@@ -26,7 +26,9 @@ def test_only_a_persons_address_is_a_target(jid, target):
 def test_the_outcome_says_invited_rang_or_failed():
     assert ci.outcome("a", {"ok": True}) == {"jid": "a", "status": "invited"}
     assert ci.outcome("a", {"rang": True}) == {"jid": "a", "status": "rang"}
-    assert ci.outcome("a", error=RuntimeError("x" * 300))["error"] == "x" * 200
+    failed = ci.outcome("a", error=RuntimeError("usync returned no LID for 5511999990000"))
+    assert failed == {"jid": "a", "status": "failed", "error": "RuntimeError"}
+    assert ci.outcome("a", error="invalid address")["error"] == "invalid address"
 
 
 class Calls:

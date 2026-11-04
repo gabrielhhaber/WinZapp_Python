@@ -599,6 +599,15 @@ class Store:
             f = self._conn.execute("SELECT COUNT(*) FROM chats WHERE pinned>0").fetchone()[0]
         return a, f
 
+    def history_ends_of_existing(self, rows):
+        """Rows (jid, endOfHistoryTransferType) written only to chats already
+        stored: an older-history answer under the chat's other address (number
+        vs LID) must not add a dateless row holding only old messages."""
+        with self._lock:
+            self._conn.executemany("UPDATE chats SET history_end=? WHERE jid=?",
+                                   [(int(end), jid) for jid, end in rows])
+            self._conn.commit()
+
     def oldest_real(self, chats):
         """The oldest stored message of the chat (its keys `chats`) that the
         phone also has, as {chat, id, fromMe, ts}, or None: the anchor of an

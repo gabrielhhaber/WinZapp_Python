@@ -30,7 +30,7 @@ def test_body_bytes_never_reads_a_disk_path(path):
 
 
 def test_whole_text_joins_the_two_halves_of_an_emoji():
-    assert inputs.whole_text("ok 💻!") == "ok \U0001F4BB!"
+    assert inputs.whole_text("ok \ud83d\udcbb!") == "ok \U0001F4BB!"
 
 
 def test_whole_text_drops_a_half_without_its_pair():

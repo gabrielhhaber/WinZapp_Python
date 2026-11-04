@@ -40,7 +40,8 @@ def updates_to_wpp(channel, updates):
             continue
         mid = update_id(update)
         w = msgmap.build(chat=channel, from_me=False, id=mid, sender=channel,
-                         ts=int(getattr(update, "Timestamp", 0) or 0), message=message)
+                         # whatsmeow's zero time is year 1 (-62135596800): no date
+                         ts=max(0, int(getattr(update, "Timestamp", 0) or 0)), message=message)
         if w is None or not mid:
             continue
         w["serverId"] = int(update.MessageServerID or 0)

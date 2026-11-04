@@ -87,10 +87,6 @@ class AnchorGate:
             self._asked[key] = now
             return True
 
-    def forget(self, key):
-        with self._lock:
-            self._asked.pop(key, None)
-
 
 def anchor_jid(chat):
     """The neonize JID of a stored chat key ('123@lid', '1-2@g.us'...)."""
@@ -116,22 +112,32 @@ def register_routes(r, *, session, ok, in_thread):
         anchor, answer = await in_thread(state_of, s, req.match_info["jid"])
         if answer is not None:
             return ok(status="success", response=answer)
-        key = (anchor["chat"], anchor["id"])
+        ask = getattr(s.client, "request_history_sync", None)
+        if not callable(ask):
+            # Refused before any send: "missing from" is one of the words
+            # backfill.py reads as a definite refusal, not an ambiguous one.
+            return ok(status="error", response={
+                "requested": False, "primaryHasMore": True, "phoneOnly": False,
+                "error": "request_history_sync missing from this neonize build"})
+        # Per account: two accounts of one bridge can hold the same message of
+        # the same group, and each one's phone has to be asked.
+        key = (s.name, anchor["chat"], anchor["id"])
         if not gate.take(key, time.monotonic()):
             return ok(status="success", response={
                 "requested": True, "primaryHasMore": True, "phoneOnly": False})
 
         def send():
-            s.client.request_history_sync(anchor_jid(anchor["chat"]), anchor["id"],
-                                          anchor["fromMe"], anchor["ts"], PAGE)
+            ask(anchor_jid(anchor["chat"]), anchor["id"], anchor["fromMe"], anchor["ts"], PAGE)
         try:
             await in_thread(send)
         except Exception as error:
-            gate.forget(key)
-            log.info("older history request not sent: %s", type(error).__name__)
+            # A send that failed waiting for the server may still have reached
+            # the phone, which then already showed its notification: the anchor
+            # stays taken and `requested` is left out, so the client keeps its
+            # reply grace (an ambiguous outcome) and does not ask again at once.
+            log.info("older history request unconfirmed: %s", type(error).__name__)
             return ok(status="error", response={
-                "requested": False, "primaryHasMore": True, "phoneOnly": False,
-                "error": type(error).__name__})
+                "primaryHasMore": True, "phoneOnly": False, "error": "send_unconfirmed"})
         log.info("older history requested from the phone (%d messages)", PAGE)
         return ok(status="success", response={
             "requested": True, "primaryHasMore": True, "phoneOnly": False})

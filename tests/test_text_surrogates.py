@@ -9,11 +9,11 @@ from core.text_surrogates import (
     repair_surrogates,
 )
 
-LAPTOP = "\U0001F4BB"            # U+1F4BB, "💻" in UTF-16
+LAPTOP = "\U0001F4BB"            # U+1F4BB, "\ud83d\udcbb" in UTF-16
 
 
 def test_two_loose_halves_become_the_emoji():
-    assert repair_surrogates("a💻b") == f"a{LAPTOP}b"
+    assert repair_surrogates("a\ud83d\udcbbb") == f"a{LAPTOP}b"
 
 
 @pytest.mark.parametrize("text, expected", [
@@ -38,7 +38,7 @@ def test_has_surrogate_only_sees_surrogate_code_points():
 
 
 def test_every_string_of_a_payload_is_repaired():
-    payload = {"message": "x💻", "list": ["\ud83d", "ok"], "n": 1,
+    payload = {"message": "x\ud83d\udcbb", "list": ["\ud83d", "ok"], "n": 1,
                "nested": {"caption": "\udcbb"}}
     assert repair_payload(payload) == {"message": f"x{LAPTOP}", "list": ["", "ok"], "n": 1,
                                        "nested": {"caption": ""}}

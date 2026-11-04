@@ -1161,6 +1161,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         # carries old messages, not the chat's current state: its date, unread
         # count or archiving would only undo what the live events set since.
         on_demand = older_history.is_on_demand(data)
+        ends = []
         for c in data.conversations:
             jid = c.ID
             if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
@@ -1168,9 +1169,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             history_end = (int(c.endOfHistoryTransferType)
                            if c.HasField("endOfHistoryTransferType") else None)
             if on_demand:
-                chats.append((jid, {} if history_end is None else {"history_end": history_end}))
+                # under the key the chat is stored with: the phone may answer
+                # by its other address (number vs LID), which get-messages,
+                # joining only stored keys, would never read
+                target = self.existing_chat(jid) or jid
+                if history_end is not None:
+                    ends.append((target, history_end))
                 count = len(rows)
-                rows.extend(Session._history_rows(jid, c))
+                rows.extend(Session._history_rows(target, c))
                 total += len(rows) - count
                 continue
             fields = {"name": c.name or c.displayName or None,
@@ -1197,6 +1203,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             rows.extend(Session._history_rows(jid, c))
             total += len(rows) - count
         self.db.chats_in_batch(chats)
+        if ends:
+            self.db.history_ends_of_existing(ends)
         self.db.messages_in_batch(rows)
         log.info("history%s: %d chats, %d messages (%s%%)", " on demand" if on_demand else "",
                  len(data.conversations), total, data.progress)
@@ -2765,7 +2773,7 @@ def create_app(folder, fixed=""):
         if reason:
             return responses.edit_refused(reason)
         mentions = (body.get("options") or {}).get("mentionedJidList") or []
-        done = await in_thread(s.edit, body["id"], body["newText"], mentions)
+        done = await in_thread(s.edit, body["id"], inputs.whole_text(body["newText"]), mentions)
         if not done:
             return web.json_response({"status": "error", "message": "not accepted"}, status=500)
         return ok(status="success", response={"edited": True})

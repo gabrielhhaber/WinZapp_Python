@@ -526,7 +526,7 @@ class TestAnEmojiSplitInHalvesIsJoinedBeforeItLeaves:
 
     def test_the_json_body_reaches_the_server_whole(self):
         session = _Session()
-        payload = {"phone": ["123@g.us"], "message": "oi 💻", "mentioned": ["1@lid"]}
+        payload = {"phone": ["123@g.us"], "message": "oi \ud83d\udcbb", "mentioned": ["1@lid"]}
 
         api_request("POST", URL, json=payload, session=session)
 

@@ -12,15 +12,15 @@ with 400 from the first such mutation on. The recipients (whitelist,
 contacts and blacklist alike) now go by number, each one once; a LID whose
 number is unknown is left out.
 ---
- broadcast.go              | 13 +++++++++-
- status_recipients.go      | 52 +++++++++++++++++++++++++++++++++++++++
- status_recipients_test.go | 38 ++++++++++++++++++++++++++++
- 3 files changed, 102 insertions(+), 1 deletion(-)
+ broadcast.go              |  8 +++--
+ status_recipients.go      | 65 +++++++++++++++++++++++++++++++++++++++
+ status_recipients_test.go | 51 ++++++++++++++++++++++++++++++
+ 3 files changed, 122 insertions(+), 2 deletions(-)
  create mode 100644 status_recipients.go
  create mode 100644 status_recipients_test.go
 
 diff --git a/broadcast.go b/broadcast.go
-index d376829..81484da 100644
+index d376829..89d270d 100644
 --- a/broadcast.go
 +++ b/broadcast.go
 @@ -52,7 +52,7 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
@@ -42,27 +42,22 @@ index d376829..81484da 100644
  	}
  
  	var contactsArray []types.JID
-@@ -79,6 +82,14 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
+@@ -79,7 +82,8 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
  			contactsArray = append(contactsArray, jid)
  		}
  	}
-+	contactsArray = cli.statusRecipientsOf(ctx, contactsArray)
+-	return contactsArray, nil
 +	// A blacklisted contact stored under its LID has its number listed now
-+	for i := 0; i < len(contactsArray); i++ {
-+		if _, isBlacklisted := blacklist[contactsArray[i]]; isBlacklisted {
-+			contactsArray = append(contactsArray[:i], contactsArray[i+1:]...)
-+			i--
-+		}
-+	}
- 	return contactsArray, nil
++	return withoutBlacklisted(cli.statusRecipientsOf(ctx, contactsArray), blacklist), nil
  }
  
+ var DefaultStatusPrivacy = []types.StatusPrivacy{{
 diff --git a/status_recipients.go b/status_recipients.go
 new file mode 100644
-index 0000000..ccd9b61
+index 0000000..8f5047f
 --- /dev/null
 +++ b/status_recipients.go
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,65 @@
 +package whatsmeow
 +
 +import (
@@ -106,6 +101,19 @@ index 0000000..ccd9b61
 +	return out
 +}
 +
++// withoutBlacklisted drops the blacklisted recipients, once every address
++// is a number: a contact blacklisted by its number but stored under its LID
++// only matches after statusRecipients mapped it.
++func withoutBlacklisted(list []types.JID, blacklist map[types.JID]struct{}) []types.JID {
++	out := list[:0:0]
++	for _, jid := range list {
++		if _, banned := blacklist[jid]; !banned {
++			out = append(out, jid)
++		}
++	}
++	return out
++}
++
 +func (cli *Client) statusRecipientsOf(ctx context.Context, list []types.JID) []types.JID {
 +	return statusRecipients(list, func(lid types.JID) (types.JID, bool) {
 +		if cli.Store.LIDs == nil {
@@ -117,10 +125,10 @@ index 0000000..ccd9b61
 +}
 diff --git a/status_recipients_test.go b/status_recipients_test.go
 new file mode 100644
-index 0000000..e1820b1
+index 0000000..538e234
 --- /dev/null
 +++ b/status_recipients_test.go
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,51 @@
 +package whatsmeow
 +
 +import (
@@ -156,6 +164,19 @@ index 0000000..e1820b1
 +	device := types.NewADJID("5511999990000", 0, 3)
 +	got := statusRecipients([]types.JID{device}, func(types.JID) (types.JID, bool) { return types.JID{}, false })
 +	if len(got) != 1 || got[0] != device.ToNonAD() {
++		t.Fatalf("got %v", got)
++	}
++}
++
++func TestABlacklistedContactStoredUnderItsLIDStaysOut(t *testing.T) {
++	pn := types.NewJID("5511999990000", types.DefaultUserServer)
++	other := types.NewJID("5511888880000", types.DefaultUserServer)
++	lid := types.NewJID("123456789", types.HiddenUserServer)
++	mapped := statusRecipients([]types.JID{lid, other}, func(j types.JID) (types.JID, bool) {
++		return pn, j == lid
++	})
++	got := withoutBlacklisted(mapped, map[types.JID]struct{}{pn: {}})
++	if len(got) != 1 || got[0] != other {
 +		t.Fatalf("got %v", got)
 +	}
 +}

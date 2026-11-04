@@ -35,9 +35,11 @@ def target_of(jid) -> str:
 
 
 def outcome(jid, answer=None, error=None) -> dict:
-    """One row of the answer: what happened when `jid` was asked."""
+    """One row of the answer: what happened when `jid` was asked. A failure
+    says only its kind: meowcaller's text can carry the person's number."""
     if error is not None:
-        return {"jid": jid, "status": "failed", "error": str(error)[:200]}
+        kind = error if isinstance(error, str) else type(error).__name__
+        return {"jid": jid, "status": "failed", "error": kind[:60]}
     return {"jid": jid, "status": "rang" if (answer or {}).get("rang") else "invited"}
 
 

@@ -23,6 +23,11 @@ def test_updates_go_out_like_any_message_oldest_first():
     assert pairs[0][0]["viewCount"] == 7 and pairs[0][0]["fromMe"] is False
 
 
+def test_a_zero_date_is_no_date():
+    (w, _), = cu.updates_to_wpp(CHANNEL, [update(1, "A", -62135596800, "x")])
+    assert w["t"] == 0
+
+
 def test_an_older_build_uses_the_server_id_as_the_id():
     u = NewsletterMessage(MessageServerID=55, ViewsCount=0)
     u.Message.conversation = "x"
