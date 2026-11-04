@@ -49,6 +49,22 @@ def candidates(members, in_call, is_self, same_person, name_of):
     return out
 
 
+def one_per_person(jids, phone_of_lid):
+    """One address per person, in the order given. A saved contact is also
+    kept under its @lid (MainWindow.contacts), so the same person came twice
+    and could be invited twice; the @lid is kept, as sends prefer it."""
+    chosen, order = {}, []
+    for jid in jids or ():
+        jid = _canonical(jid)
+        person = _canonical(phone_of_lid.get(jid, jid)) if jid.endswith("@lid") else jid
+        if person not in chosen:
+            order.append(person)
+            chosen[person] = jid
+        elif jid.endswith("@lid"):
+            chosen[person] = jid
+    return [chosen[person] for person in order]
+
+
 def saved_contact_jids(contacts):
     """The address-book contacts of *contacts* (MainWindow.contacts, jid ->
     record): who a private call may be widened to, as WhatsApp's picker

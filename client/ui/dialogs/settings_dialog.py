@@ -3926,6 +3926,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         """Validate, save, and apply all settings. Returns True on success."""
         # Set where their options are read; a window never opened changed nothing.
         channels_changed = unsaved_mark_changed = sender_numbers_changed = False
+        unread_position_changed = False
         self_reference_changed = vm_mode_changed = False
         if ready(self, "general") and self._global_hotkey_changed():
             # A new global hotkey is checked against every shortcut, which
@@ -4076,9 +4077,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "selected_announcement_position"
             ] = "start" if self._selected_announce_start_rb.GetValue() else "end"
+            new_unread_position = (UNREAD_BEFORE if self._unread_position_before_rb.GetValue()
+                                   else UNREAD_AFTER)
+            # Read before the save below: old_ui_settings is this same dict.
+            unread_position_changed = self.main_window.settings.get("user_interface", {}).get(
+                "unread_count_position", UNREAD_AFTER) != new_unread_position
             self.main_window.settings.setdefault("user_interface", {})[
                 "unread_count_position"
-            ] = UNREAD_BEFORE if self._unread_position_before_rb.GetValue() else UNREAD_AFTER
+            ] = new_unread_position
         if ready(self, "messages"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "show_yesterday_label"
@@ -4461,12 +4467,16 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         # word for chats whose last message is our own), so a self-reference
         # change (e.g. "Eu" -> "Você") takes effect immediately instead of
         # only on the next restart.
-        if (unsaved_mark_changed or channels_changed) and not (self_reference_changed or vm_mode_changed):
+        # Every chat row says its new-message count, before or after the name
+        # (issue 684): a changed position repaints the list at once.
+        if (unsaved_mark_changed or channels_changed or unread_position_changed) and not (
+                self_reference_changed or vm_mode_changed):
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
             self.main_window._chats_ui_fp = None
             self.main_window.add_chats_to_ui()
-        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed or unsaved_mark_changed or channels_changed):
+        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed or unsaved_mark_changed
+                                           or channels_changed or unread_position_changed):
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
         if self_reference_changed or vm_mode_changed:

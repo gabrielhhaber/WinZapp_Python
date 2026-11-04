@@ -3066,8 +3066,8 @@ msgstr "Pega el enlace del canal:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_list"
-msgid "&Channels"
-msgstr "&Canales"
+msgid "Channe&ls"
+msgstr "Ca&nales"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"

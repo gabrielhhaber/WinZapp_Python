@@ -2997,7 +2997,7 @@ msgstr "الصق رابط القناة:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_list"
-msgid "&Channels"
+msgid "Channe&ls"
 msgstr "ال&قنوات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py

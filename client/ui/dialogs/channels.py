@@ -42,7 +42,8 @@ def channel_label(channel, i18n, followed=()):
         parts.append(i18n.t("channels_role_owner"))
     elif channel.admin:
         parts.append(i18n.t("channels_role_admin"))
-    elif channel.jid in followed and channel.role == "guest":
+    elif channel.jid in followed:
+        # only where it is news: the directory (followed is empty elsewhere)
         parts.append(i18n.t("channels_following"))
     if channel.muted:
         parts.append(i18n.t("channels_muted"))
@@ -79,6 +80,8 @@ class ChannelEditDialog(wx.Dialog):
         self._name.SetMaxLength(ch.NAME_LIMIT)
         self._description = add_labelled(self, sizer, i18n.t("channels_description"), lambda: wx.TextCtrl(
             self, value=description, style=wx.TE_MULTILINE), 1)
+        # never cut without saying so: core/channels.py sends at most this
+        self._description.SetMaxLength(ch.DESCRIPTION_LIMIT)
         buttons = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 8)
         self.SetSizer(sizer)
@@ -179,7 +182,10 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._update_buttons()
 
     def _update_buttons(self):
-        free = not self._busy and self._current()
+        # Not disabled while busy: the handlers refuse a second press, and a
+        # disabled button that has the focus hands it to Close, where the
+        # next Space would close the window (call_participants.py).
+        free = self._current()
         channel = self._mine_version(self._selected()) if free else None
         following = self._is_following(channel)
         i18n = self._i18n
@@ -202,16 +208,16 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
 
     # ── reading ───────────────────────────────────────────────────────────
 
-    def _reload(self, event=None, keep=""):
+    def _reload(self, event=None, keep="", quiet=False):
         if self._busy or not self._current():
             return
         self._set_busy(True)
         self._status.SetLabel(self._i18n.t("loading"))
         connection = self._connection
         self._run_async(lambda: ch.list_channels(connection),
-                        lambda channels: self._finish_reload(channels, keep))
+                        lambda channels: self._finish_reload(channels, keep, quiet))
 
-    def _finish_reload(self, channels, keep=""):
+    def _finish_reload(self, channels, keep="", quiet=False):
         self._set_busy(False)
         if not self._current():
             return
@@ -223,8 +229,9 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._mine = ch.sorted_channels(channels)
         if self._mode == MINE:
             self._show(self._mine, keep)
-            self._announce(self._i18n.t("channels_count").format(count=len(channels))
-                           if channels else self._i18n.t("channels_none"))
+            if not quiet:       # after an action, its own result was just said
+                self._announce(self._i18n.t("channels_count").format(count=len(channels))
+                               if channels else self._i18n.t("channels_none"))
         else:
             self._show(self._found, keep)
 
@@ -267,7 +274,8 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         """Replace the list, keeping the selected channel."""
         kept = keep or (self._selected().jid if self._selected() else "")
         self._shown = list(channels)
-        followed = self._followed_ids()
+        # "following" only in the directory: in My channels every row is one
+        followed = self._followed_ids() if self._mode == FIND else set()
         self._list.Freeze()
         try:
             self._list.Set([channel_label(self._mine_version(c), self._i18n, followed)
@@ -313,21 +321,23 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
 
         def run():
             try:
-                work()
-                return True
+                result = work()
+                return result if isinstance(result, str) and result else True
             except ValueError:
                 return False
 
-        def finish(ok):
+        def finish(outcome):
             self._set_busy(False)
             if not self._current():
                 return
-            if not ok:
+            if not outcome:
                 logging.warning("[channels] action_failed key=%s", failed_key)
                 self._announce(self._i18n.t(failed_key))
                 return
             self._announce(self._i18n.t(done_key))
-            self._reload(keep=keep)
+            # a channel just created comes back selected (its id is the result)
+            self._reload(keep=outcome if isinstance(outcome, str) else keep, quiet=True)
+            self._list.SetFocus()
 
         self._run_async(run, finish)
 

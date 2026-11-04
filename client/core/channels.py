@@ -113,8 +113,12 @@ def parse_channels(body, *, default_role=""):
 
 def invite_code(text) -> str:
     """The invite code of a channel link ('https://whatsapp.com/channel/<code>'
-    or the code itself), or ''."""
-    match = _INVITE.search(str(text or "").strip())
+    or the code itself), or ''. Another link (a group's chat.whatsapp.com)
+    is not a channel's."""
+    text = str(text or "").strip()
+    if "/" in text.rstrip("/") and "whatsapp.com/channel/" not in text:
+        return ""
+    match = _INVITE.search(text)
     return match.group(1) if match else ""
 
 

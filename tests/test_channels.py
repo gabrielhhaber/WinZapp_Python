@@ -52,6 +52,7 @@ def test_a_refused_answer_is_an_error(body):
     ("https://whatsapp.com/channel/0029VaAbCdEfGhIjKlMnOp", "0029VaAbCdEfGhIjKlMnOp"),
     ("  0029VaAbCdEfGhIjKlMnOp/ ", "0029VaAbCdEfGhIjKlMnOp"),
     ("short", ""),
+    ("https://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv", ""),
     (None, ""),
 ])
 def test_an_invite_code_is_read_from_a_link(text, code):
@@ -144,6 +145,11 @@ def test_a_row_says_what_sets_the_channel_apart_never_its_id():
                              default_role="guest")
     assert channel_label(owner, I18n()) == "Notícias, verified, yours"
     assert channel_label(guest, I18n(), followed={"5@newsletter"}) == "unnamed, following, muted"
+    # the copy the dialog actually passes: the followed list's, role subscriber
+    followed = ch.parse_channel({"id": "6@newsletter", "viewer_metadata": {"role": "SUBSCRIBER"},
+                                 "thread_metadata": {"name": {"text": "Seguido"}}})
+    assert channel_label(followed, I18n(), followed={"6@newsletter"}) == "Seguido, following"
+    assert channel_label(followed, I18n()) == "Seguido"
     assert "newsletter" not in channel_label(guest, I18n())
 
 

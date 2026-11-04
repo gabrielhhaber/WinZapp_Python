@@ -82,3 +82,9 @@ class Window:
 def test_people_are_offered_only_for_the_call_this_device_is_in(active, state, asked, chat):
     window = Window(active, state)
     assert CallParticipantsMixin._call_invite_chat(window, asked, "") == chat
+
+
+def test_a_contact_kept_under_both_addresses_is_offered_once():
+    from core.call_invites import one_per_person
+    jids = ["55@s.whatsapp.net", "1@lid", "77@s.whatsapp.net", "55@c.us"]
+    assert one_per_person(jids, {"1@lid": "55@s.whatsapp.net"}) == ["1@lid", "77@s.whatsapp.net"]

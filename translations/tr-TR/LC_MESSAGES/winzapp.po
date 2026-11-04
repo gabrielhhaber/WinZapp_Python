@@ -3044,8 +3044,8 @@ msgstr "Kanal bağlantısını yapıştırın:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_list"
-msgid "&Channels"
-msgstr "&Kanallar"
+msgid "Channe&ls"
+msgstr "Kana&llar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"
@@ -3121,7 +3121,7 @@ msgstr "sizin"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_search"
 msgid "&Search channels"
-msgstr "&Kanal ara"
+msgstr "Kanal a&ra"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_search_button"

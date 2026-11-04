@@ -3028,8 +3028,8 @@ msgstr "Paste the channel link:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_list"
-msgid "&Channels"
-msgstr "&Channels"
+msgid "Channe&ls"
+msgstr "Channe&ls"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"

@@ -2995,7 +2995,7 @@ msgstr "&Opis"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_details"
 msgid "&Details"
-msgstr "&Szczegóły"
+msgstr "Sz&czegóły"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_directory_unavailable"
@@ -3083,7 +3083,7 @@ msgstr "Wklej link do kanału:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_list"
-msgid "&Channels"
+msgid "Channe&ls"
 msgstr "&Kanały"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py

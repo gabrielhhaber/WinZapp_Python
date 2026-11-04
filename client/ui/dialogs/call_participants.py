@@ -144,7 +144,7 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
 
     def _add_participants(self, _event=None):
         from ui.dialogs.call_invite import CallInviteDialog
-        dialog = CallInviteDialog(self, self._mw, self._call_id, self._invite_chat)
+        dialog = CallInviteDialog(self, self._mw, self._call_id, self._invite_chat, self._allowed)
         try:
             dialog.ShowModal()
         finally:

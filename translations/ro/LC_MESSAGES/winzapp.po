@@ -3056,8 +3056,8 @@ msgstr "Lipiți linkul canalului:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_list"
-msgid "&Channels"
-msgstr "&Canale"
+msgid "Channe&ls"
+msgstr "Ca&nale"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"

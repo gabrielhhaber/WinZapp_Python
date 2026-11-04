@@ -11,13 +11,16 @@ import threading
 
 import wx
 
-from core.call_invites import candidates, parse_results, room_left, saved_contact_jids, summary
+from core.call_invites import (candidates, one_per_person, parse_results, room_left,
+                                saved_contact_jids, summary)
 from core.call_participants import parse_participants
 
 
 class CallInviteDialog(wx.Dialog):
-    def __init__(self, parent, main_window, call_id, chat_jid):
+    def __init__(self, parent, main_window, call_id, chat_jid, allowed=lambda: True):
         self._mw, self._call_id, self._chat = main_window, call_id, chat_jid
+        # the participants dialog's check: a chat locked meanwhile shows nobody
+        self._allowed = allowed
         self._group = chat_jid.endswith("@g.us")
         self._alive, self._busy, self._rows, self._connected = True, False, [], 0
         i18n = main_window.i18n
@@ -66,6 +69,7 @@ class CallInviteDialog(wx.Dialog):
                 "participants", {"callId": self._call_id}, timeout=20), "participants")
             present = parse_participants(response.json(), self._call_id) or []
             connected = len(present)
+            members = one_per_person(members, dict(getattr(mw, "_lid_to_phone", None) or {}))
             rows = candidates(
                 members, [p["jid"] for p in present if not p["isSelf"]], mw._is_self_jid,
                 mw._chat_jids_equivalent,
@@ -78,6 +82,8 @@ class CallInviteDialog(wx.Dialog):
     def _show_rows(self, rows, connected, failed):
         if not self._alive:
             return
+        if not self._allowed():
+            rows, failed = [], True
         i18n = self._mw.i18n
         unknown = i18n.t("unknown_contact")
         self._rows, self._connected = rows, connected
@@ -106,6 +112,9 @@ class CallInviteDialog(wx.Dialog):
         if self._busy or not self._alive:
             return
         i18n = self._mw.i18n
+        if not self._allowed():
+            self._mw.output(i18n.t("call_invite_failed"), interrupt=True)
+            return
         picked = [self._rows[i] for i in self._list.GetCheckedItems() if i < len(self._rows)]
         if not picked:
             self._mw.output(i18n.t("call_invite_nothing_selected"), interrupt=True)
@@ -114,8 +123,10 @@ class CallInviteDialog(wx.Dialog):
         if len(picked) > room:
             self._mw.output(i18n.t("call_invite_too_many").format(count=room), interrupt=True)
             return
+        # The busy flag refuses a second press; the button stays enabled, or
+        # Windows would move the focus to Cancel and the next Space would
+        # close the window (call_participants.py does the same).
         self._busy = True
-        self._add_btn.Disable()
         self._status.SetLabel(i18n.t("call_invite_sending"))
         jids = [jid for jid, _name in picked]
         names = {jid: name for jid, name in picked}
@@ -141,7 +152,6 @@ class CallInviteDialog(wx.Dialog):
             return
         self._busy = False
         if spoken is None:
-            self._add_btn.Enable(bool(self._rows))
             self._status.SetLabel(self._mw.i18n.t("call_invite_failed"))
             return
         self._close()
