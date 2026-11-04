@@ -52,6 +52,7 @@ import chat_remaining
 import groups
 import groups_extra
 import history_progress
+import older_history
 import cleanup
 import msgmap
 import pairing
@@ -1130,6 +1131,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             self.emit("phoneCodeError", session_lifecycle.code_expired_notice(self.name))
 
     def _store_history(self, data):
+        if older_history.is_on_demand(data):
+            # an answer to an older-history request, not the pairing's
+            # history: history-sync-status must not go back to "landing"
+            self._store_history_block(data)
+            return
         progress = history_progress.progress_of(self, time.monotonic())
         progress.started(time.monotonic())
         percent = None
@@ -1148,11 +1154,24 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                                    if x.ID and x.pushname])
         total = 0
         chats, rows = [], []
+        # The phone's answer to an older-history request (older_history.py)
+        # carries old messages, not the chat's current state: its date, unread
+        # count or archiving would only undo what the live events set since.
+        on_demand = older_history.is_on_demand(data)
         for c in data.conversations:
             jid = c.ID
             if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
                 continue
+            history_end = (int(c.endOfHistoryTransferType)
+                           if c.HasField("endOfHistoryTransferType") else None)
+            if on_demand:
+                chats.append((jid, {} if history_end is None else {"history_end": history_end}))
+                count = len(rows)
+                rows.extend(Session._history_rows(jid, c))
+                total += len(rows) - count
+                continue
             fields = {"name": c.name or c.displayName or None,
+                      "history_end": history_end,
                       "ts": msgmap.seconds(c.conversationTimestamp or c.lastMsgTimestamp)}
             if c.HasField("unreadCount"):
                 fields["unread"] = int(c.unreadCount)
@@ -1172,25 +1191,32 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 fields["ephemeral_ts"] = int(c.ephemeralSettingTimestamp or 0)
             chats.append((jid, {k: v for k, v in fields.items() if v is not None}))
             count = len(rows)
-            for h in c.messages:
-                m = h.message
-                key = m.key
-                w = msgmap.build(
-                    chat=jid, from_me=bool(key.fromMe), id=key.ID,
-                    sender=key.participant or m.participant
-                    or ("" if key.fromMe else jid),
-                    ts=m.messageTimestamp, message=m.message,
-                    sender_name=m.pushName)
-                if w is not None and w["id"]["id"]:
-                    if m.starred:
-                        w["star"] = True
-                    rows.append((jid, w, msgmap.media_record_of(m.message)))
+            rows.extend(Session._history_rows(jid, c))
             total += len(rows) - count
         self.db.chats_in_batch(chats)
         self.db.messages_in_batch(rows)
-        log.info("history: %d chats, %d messages (%s%%)",
+        log.info("history%s: %d chats, %d messages (%s%%)", " on demand" if on_demand else "",
                  len(data.conversations), total, data.progress)
         return data.progress
+
+    @staticmethod
+    def _history_rows(jid, c):
+        """(chat, message, media record) of each message of a history conversation."""
+        rows = []
+        for h in c.messages:
+            m = h.message
+            key = m.key
+            w = msgmap.build(
+                chat=jid, from_me=bool(key.fromMe), id=key.ID,
+                sender=key.participant or m.participant
+                or ("" if key.fromMe else jid),
+                ts=m.messageTimestamp, message=m.message,
+                sender_name=m.pushName)
+            if w is not None and w["id"]["id"]:
+                if m.starred:
+                    w["star"] = True
+                rows.append((jid, w, msgmap.media_record_of(m.message)))
+        return rows
 
     COLLECTIONS = ("regular_high", "regular_low", "regular",
                    "critical_unblock_low", "critical_block")
@@ -2769,13 +2795,6 @@ def create_app(folder, fixed=""):
         return ok(status="success", response=[{"forwarded": len(sent),
                                                "messageIds": new_ids}])
 
-    async def older_history(req):
-        """neonize has no on-demand history request (the one of the 'click
-        here to see older messages'): says the rest only exists on the
-        phone, and the app stops asking. The history that arrives is the pairing's."""
-        return ok(status="success", response={
-            "requested": False, "primaryHasMore": True, "phoneOnly": True})
-
     async def react_message(req):
         s = session(req)
         body = await req.json()
@@ -2903,8 +2922,7 @@ def create_app(folder, fixed=""):
     r.add_post("/api/{tok}/react-message", react_message)
     r.add_post("/api/{tok}/edit-message", edit_message)
     r.add_post("/api/{tok}/forward-messages", forward_messages)
-    r.add_post("/api/{tok}/request-older-messages/{jid}", older_history)
-    r.add_get("/api/{tok}/older-history-state/{jid}", older_history)
+    older_history.register_routes(r, session=session, ok=ok, in_thread=in_thread)
     r.add_post("/api/{tok}/send-poll-message", send_poll_message)
     r.add_post("/api/{tok}/poll-votes", poll_votes)
     r.add_post("/api/{tok}/poll-voters", poll_voters)

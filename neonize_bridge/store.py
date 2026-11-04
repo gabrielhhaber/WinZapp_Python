@@ -80,7 +80,7 @@ def migrate_legacy_schema(conn):
 SYSTEM_TYPES = ("gp2", "call_log")
 
 CHAT_FIELDS = {"name", "ts", "unread", "marked_unread", "archived", "pinned", "muted", "locked",
-               "ephemeral", "ephemeral_ts"}
+               "ephemeral", "ephemeral_ts", "history_end"}
 
 
 #: receipt stage -> WhatsApp Web ack
@@ -143,6 +143,10 @@ class Store:
                     self._conn.execute(f"ALTER TABLE chats ADD COLUMN {column} INTEGER DEFAULT 0")
                 except sqlite3.OperationalError:
                     pass
+            try:    # the chat's endOfHistoryTransferType, from the history (older_history.py)
+                self._conn.execute("ALTER TABLE chats ADD COLUMN history_end INTEGER")
+            except sqlite3.OperationalError:
+                pass
             lower_dates_raised_by_notices(self._conn)
 
     def close(self):
@@ -594,6 +598,40 @@ class Store:
             a = self._conn.execute("SELECT COUNT(*) FROM chats WHERE archived=1").fetchone()[0]
             f = self._conn.execute("SELECT COUNT(*) FROM chats WHERE pinned>0").fetchone()[0]
         return a, f
+
+    def oldest_real(self, chats):
+        """The oldest stored message of the chat (its keys `chats`) that the
+        phone also has, as {chat, id, fromMe, ts}, or None: the anchor of an
+        older-history request. A notice the bridge made up (SYSTEM_TYPES) is
+        not a message the phone knows."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats:
+            return None
+        marks = ",".join("?" * len(chats))
+        types = ",".join("?" * len(SYSTEM_TYPES))
+        with self._lock:
+            r = self._conn.execute(
+                f"SELECT chat, id, ts, json_extract(data, '$.fromMe') AS mine FROM msgs "
+                f"WHERE chat IN ({marks}) AND ts > 0 "
+                f"AND IFNULL(json_extract(data, '$.type'), '') NOT IN ({types}) "
+                "ORDER BY ts ASC, rowid ASC LIMIT 1", (*chats, *SYSTEM_TYPES)).fetchone()
+        if r is None:
+            return None
+        return {"chat": r["chat"], "id": r["id"], "fromMe": bool(r["mine"]), "ts": int(r["ts"])}
+
+    def history_end(self, chats):
+        """The endOfHistoryTransferType the history gave the chat (any of its
+        keys `chats`), or None when it never said."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats:
+            return None
+        marks = ",".join("?" * len(chats))
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT history_end FROM chats WHERE jid IN ({marks}) "
+                "AND history_end IS NOT NULL", chats).fetchall()
+        values = [int(r["history_end"]) for r in rows]
+        return max(values) if values else None
 
     def chat_exists(self, jid):
         with self._lock:
