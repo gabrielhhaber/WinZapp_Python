@@ -14,6 +14,7 @@ from ui.conversation_panel.call_capabilities import can_place_call, can_relocate
 from core.call_logic import MAX_GROUP_CALL_PARTICIPANTS, group_too_large_for_call
 from ui.dialogs.emoji_picker import choose_and_insert_emoji
 from core.text_surrogates import SurrogateJoiner
+from core.caret_edit import delete_before_caret, insert_at_caret
 from core.attachment_types import DEFAULT_PASTED_AUDIO_AS, pasted_attachment_media_type
 from core.link_preview import (
     fetch_link_preview,
@@ -739,12 +740,14 @@ class ComposerMixin:
             return
 
         if kc == wx.WXK_BACK:
-            # Backspace: remove last char from message field and update filter
-            pos = self.message_field.GetInsertionPoint()
-            if pos > 0:
-                text = self.message_field.GetValue()
-                self.message_field.ChangeValue(text[:pos - 1] + text[pos:])
-                self.message_field.SetInsertionPoint(pos - 1)
+            # Backspace: remove the character before the caret (a whole emoji,
+            # never half of one: core/caret_edit.py) and update the filter
+            text = self.message_field.GetValue()
+            edited = delete_before_caret(text, self.message_field.GetInsertionPoint(),
+                                         native_newline_width(text), platform_counts_utf16())
+            if edited is not None:
+                self.message_field.ChangeValue(edited[0])
+                self.message_field.SetInsertionPoint(edited[1])
                 wx.CallAfter(self._on_mention_list_after_char)
             return
 
@@ -764,10 +767,13 @@ class ComposerMixin:
         ch = joiner.feed(uc)
         if not ch:
             return
-        pos = self.message_field.GetInsertionPoint()
         text = self.message_field.GetValue()
-        self.message_field.ChangeValue(text[:pos] + ch + text[pos:])
-        self.message_field.SetInsertionPoint(pos + 1)
+        # By native caret units: an emoji takes two on Windows, and a caret
+        # moved by one would sit between its halves (core/caret_edit.py)
+        value, caret = insert_at_caret(text, self.message_field.GetInsertionPoint(), ch,
+                                       native_newline_width(text), platform_counts_utf16())
+        self.message_field.ChangeValue(value)
+        self.message_field.SetInsertionPoint(caret)
         wx.CallAfter(self._on_mention_list_after_char)
 
     def _on_mention_list_after_char(self):

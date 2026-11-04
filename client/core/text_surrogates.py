@@ -22,8 +22,14 @@ _LOW = range(0xDC00, 0xE000)
 
 
 def has_surrogate(text) -> bool:
-    """True when ``text`` holds a surrogate code point (paired or not)."""
-    return isinstance(text, str) and any(0xD800 <= ord(ch) <= 0xDFFF for ch in text)
+    """True when ``text`` holds a surrogate code point (paired or not).
+
+    ASCII text (every base64 body: a status video, a voice note) answers at
+    once, in C: a surrogate is never ASCII, and a Python loop over 21 million
+    characters held the interpreter lock for about a second per post."""
+    if not isinstance(text, str) or text.isascii():
+        return False
+    return any(0xD800 <= ord(ch) <= 0xDFFF for ch in text)
 
 
 def repair_surrogates(text):

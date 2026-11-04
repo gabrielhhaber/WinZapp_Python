@@ -70,6 +70,8 @@ def test_an_emoji_typed_in_the_mention_list_lands_whole_in_the_field(monkeypatch
     from ui.conversation_panel import composer
 
     monkeypatch.setattr(wx, "CallAfter", lambda *args, **kwargs: None)
+    # Windows counts an emoji as two caret positions
+    monkeypatch.setattr(composer, "platform_counts_utf16", lambda: True)
 
     class Field:
         def __init__(self):
@@ -105,3 +107,4 @@ def test_an_emoji_typed_in_the_mention_list_lands_whole_in_the_field(monkeypatch
     assert stub.message_field.value == "@"          # waits for the second half
     handler(stub, Event(0xDCBB))
     assert stub.message_field.value == "@" + LAPTOP
+    assert stub.message_field.point == 3            # after both halves, never between them

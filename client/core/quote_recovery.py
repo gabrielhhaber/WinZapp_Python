@@ -25,6 +25,10 @@ from core.utils import QUOTED_TEXT_CAP, _slim_quoted_message, quoted_message_tex
 #: WhatsApp Web's "arrived, not decrypted yet" placeholder types.
 UNDECRYPTED_PLACEHOLDER_TYPES = frozenset({"ciphertext"})
 
+#: What a decrypted record holds beside its content that a ciphertext copy
+#: of it lacks (keep_known_content carries them over).
+KNOWN_TOP_LEVEL_FIELDS = ("_edited", "businessButtons", "replyCount")
+
 #: Marks a placeholder whose content came from a reply's quote.
 RECOVERED_FROM_QUOTE = "_recovered_from_quote"
 
@@ -148,6 +152,11 @@ def keep_known_content(new, stored) -> bool:
         return False
     new["messageType"] = stored["messageType"]
     new["message"] = stored["message"]
+    # Kept beside the content by the normaliser (core/websocket_client.py):
+    # the "Edited" label, a business message's buttons, a comment count.
+    for field in KNOWN_TOP_LEVEL_FIELDS:
+        if field in stored and field not in new:
+            new[field] = stored[field]
     if stored.get(RECOVERED_FROM_QUOTE):
         new[RECOVERED_FROM_QUOTE] = True
     else:

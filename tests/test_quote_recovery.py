@@ -422,7 +422,6 @@ class TestReviewRound:
         assert 'logging.exception("[quote-recovery] startup pass failed")' in loop
 
 
-
 class TestKnownContentOutlivesACiphertextCopy:
     """A message WinZapp already decrypted (sent from the other engine, say)
     keeps its content when WhatsApp Web's copy of it is a ciphertext."""
@@ -449,3 +448,11 @@ class TestKnownContentOutlivesACiphertextCopy:
     def test_a_stored_placeholder_fills_nothing(self):
         server_copy = _placeholder()
         assert carry_over_known_content([server_copy], [_placeholder()]) == 0
+
+    def test_the_edited_label_and_buttons_come_along(self):
+        known = {**self._known(), "_edited": True, "businessButtons": [{"id": "b"}], "replyCount": 2}
+        server_copy = _placeholder()
+        server_copy["key"] = dict(known["key"])
+        assert keep_known_content(server_copy, known) is True
+        assert (server_copy["_edited"], server_copy["businessButtons"], server_copy["replyCount"]) == (
+            True, [{"id": "b"}], 2)
