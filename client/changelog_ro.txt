@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Fereastră nouă Canale (Alt+9, și în lista de navigare): arată canalele pe care le urmăriți sau caută în directorul de canale WhatsApp (fără text, apar canalele recomandate). Pentru canalul ales îl puteți deschide și citi actualizările, îl puteți urmări sau nu mai urmări, îi puteți dezactiva sau activa notificările, îi puteți copia linkul și, la canalele dvs., îl puteți edita sau șterge. Puteți urmări un canal din linkul lui și puteți crea un canal. Afișarea canalelor în lista de conversații rămâne o opțiune separată. Funcționează cu WPPConnect și cu Neonize.
+
 - Apeluri: acum puteți adăuga persoane la apelul în curs, cu butonul "Adăugați participanți" din lista de participanți a apelului. Într-un apel de grup apar membrii grupului care nu sunt încă în apel; într-un apel privat, contactele dvs., iar apelul devine un apel cu mai multe persoane, ca în WhatsApp. Cine a fost deja apelat și nu a intrat este apelat din nou. Funcționează cu WPPConnect și cu Neonize.
 
 - WPPConnect Server a fost actualizat la 2.10.75, care repară un webhook Chatwoot ce accepta cereri fără autentificare și remediază o vulnerabilitate din bibliotecile glob și minimatch.
