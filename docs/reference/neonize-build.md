@@ -81,6 +81,13 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
+- **neonize 0015**: `CallAddParticipant` adds a number or LID to the call this
+  client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
+  already on the call's list), WhatsApp's "Add participant"; Python
+  `CallClient.add_participant` (`neonize_bridge/call_invites.py`).
+- **neonize 0016**: a channel update (`NewsletterMessage`) carries whatsmeow's
+  `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
+  updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
 - **neonize 0013 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.
