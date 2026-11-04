@@ -157,7 +157,9 @@ export function installGroupCallRuntimeInPage(): void {
       if (typeof invite !== 'function' || typeof createWid !== 'function') {
         throw new Error('Adding participants is unavailable in this WhatsApp version');
       }
-      const results = [];
+      // new Array(), not [] with a type: tsc infers never[] for a bare [], and
+      // tests/test_group_call_runtime.py runs this file with annotations cut out
+      const results = new Array();
       for (const jid of people) {
         if (!inThisCall()) {
           results.push({ jid, status: 'failed', error: 'call ended' });
