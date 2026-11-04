@@ -366,6 +366,7 @@
     <h2 id="h-conversas">💬 3. Sohbet listesi</h2>
 <p class="lead">Sohbet listesi (Alt+1) kişilerin ve grupların adlarını gösterir, dahili kodları asla. Her satır adı, son mesajı ve durumu (okunmamış, sabitlenmiş, sessize alınmış...) okur.</p>
 <p>Neonize ile bir sohbet yalnızca onu açtığınızda veya okundu olarak işaretlediğinizde okundu olur ve telefonda ve WhatsApp Web'de de okundu görünür.</p>
+<p>Neonize ile bir sohbette WinZapp'ın sahip olduklarının başına geldiğinizde, WhatsApp Web'in yaptığı gibi telefondan daha eski mesajları ister; telefon bağlıyken birkaç saniye içinde gelirler.</p>
 
 <h3>Filtreler ve listeler</h3>
 <ul>
@@ -730,6 +731,9 @@
   <tr><td class="field-name">Ctrl+Shift+Q</td><td>Aramayı bitir</td></tr>
 </table>
 
+<h3>Aramaya kişi ekleme</h3>
+<p>Arama sırasında "Arama katılımcıları" aramada kimlerin olduğunu gösterir ve "Katılımcı ekle" düğmesi katılabilecek kişilerin listesini açar: grup aramasında grubun henüz aramada olmayan üyeleri; özel aramada kişileriniz, ve arama birkaç kişilik bir aramaya dönüşür. Kişileri Boşluk ile işaretleyin ve "Ekle" düğmesine basın. Daha önce aranıp katılmamış kişi yeniden aranır. Ekran okuyucu kaç kişinin davet edildiğini ve kimin eklenemediğini söyler.</p>
+
 <h3>Gelen arama</h3>
 <p>Pencerede "Cevapla", "Reddet" ve "Sessize al" bulunur; görüntülü aramada "Görüntülü cevapla" ve "Görüntüsüz cevapla". Bu pencerenin kısayolları yalnızca Alt + altı çizili harftir (Alt+A yanıtlar, Alt+V görüntüsüz yanıtlar, Alt+R reddeder, Alt+S uyarıyı susturur, Alt+F pencereyi kapatır); böylece yanlışlıkla basılan bir tuş yanıtlamaz ya da reddetmez.</p>
 
@@ -772,6 +776,9 @@
 
 <h3>Topluluklar (Alt+8)</h3>
 <p>Topluluklar paneli (veya "Yeni sohbet" &gt; "Topluluklar") üyesi olduğunuz toplulukları listeler. Birini seçtiğinizde açıklamayı, yöneticileri ve topluluğun katıldığınız gruplarını görürsünüz; duyurular grubu ve genel grup belirtilmiştir; Enter veya "Grubu aç" gruba gider. Topluluğu yönetiyorsanız: "Grup ekle", "Grubu topluluktan çıkar", "Topluluk yöneticisi yap", "Topluluk yöneticiliğinden çıkar" ve "Topluluğu devre dışı bırak". "Yeni topluluk" bir ad, açıklama ve seçtiğiniz gruplarla yeni bir topluluk oluşturur. Her işlemden sonra WinZapp toplulukları yeniden okur ve yalnızca WhatsApp değişikliği gösterdiğinde bittiğini söyler; aksi halde isteğin gönderildiğini ama doğrulanmadığını ya da reddedildiğini söyler.</p>
+
+<h3>Kanallar (Alt+9)</h3>
+<p>Kanallar penceresi (Alt+9 veya gezinti listesindeki Kanallar öğesi) "Kanallarım" ile takip ettiğiniz kanalları ya da "Kanal bul" ile aramayı gösterir: "Kanal ara" alanına yazıp Enter'a basın; metin yoksa WhatsApp'ın önerdiği kanallar görünür. "Ayrıntılar" alanında açıklama, takipçi sayısı, kanalı takip edip etmediğiniz, yöneticisi ya da sahibi olup olmadığınız ve bağlantısı yer alır. Enter veya "Kanalı aç" güncellemeleri okumak için kanalı açar. "Takip et" ve "Takibi bırak", "Bildirimleri sessize al" ve "Bildirimlerin sesini aç", "Bağlantıyı kopyala", "Bağlantıyla takip et..." (kanal bağlantısını yapıştırın) ve "Kanal oluştur..." düğmeleri her kanalda çalışır; "Kanalı düzenle..." yönettiğiniz kanallarda, "Kanalı sil" ise sizin kanallarınızda görünür. Kanalları sohbet listesinde göstermek Ayarlar &gt; Arayüz &gt; Sohbetler altında ayrı bir seçenek olarak kalır.</p>
 
 <h3>Anmalar ve yanıtlar</h3>
 <p>@all ile birlikte adıyla anılan bir kişi bağlantısını korur; sizin anılmanız, bildirimde ve önizlemede, "Kendimden nasıl bahsedilsin?" içinde seçilen sözcüğü kullanır. Ayarlar &gt; Arayüz &gt; Mesajlar içinde "Mesajlarda isimsiz gönderenlerin telefon numaralarını gizle" adı olmayan kişilerin mesajlarının doğrudan içerikle başlamasını sağlar. Ayarlar &gt; Arayüz &gt; Sohbetler içinde "Kaydedilmemiş kişilerin adlarının önüne sohbetlerde ve mesajlarda tilde (~) işareti koy" (varsayılan olarak açık) kaydetmediğiniz kişilerin adının önüne sohbetlerde ve mesajlarda bir tilde koyar.</p>
@@ -853,7 +860,7 @@
   <tr><td class="field-name">Arayüz</td><td>Her düğme bir konunun penceresini açar: Mesajlar, Tepkiler, Sohbetler, Onaylar ve Kısayollar.</td></tr>
   <tr><td class="field-name">Arayüz &gt; Mesajlar</td><td>Bir sohbet açılırken kaç mesaj gösterileceği; Page Up/Down ile kaç mesaj atlanacağı; mesaj listesi türü (klasik, 512 karakter sınırlı, ya da liste kutusu, tam mesajlarla); en alt satır olarak kimin yazdığını gösterme; "Kendimden nasıl bahsedilsin?"; kendi mesajlarınızda göndereni gizleme; adı olmayan gönderenlerin numaralarını gizleme; yazılan mesajı başlık olarak koruma; tarih yerine "dün"; bağlantı önizlemeleri; gönderenden önce "İletildi"; "Medyayı telefondan da sil" seçeneğinin başlangıç durumu; videolar ve durumlar ayrı bir oynatıcıda; varsayılan olarak gösterilen medya türleri.</td></tr>
   <tr><td class="field-name">Arayüz &gt; Tepkiler</td><td>Sabit hızlı tepkiler ve her konum için emoji seçimi.</td></tr>
-  <tr><td class="field-name">Arayüz &gt; Sohbetler</td><td>Bir sohbet açıldığında odağın nereye gideceği; sohbet listesinde iletim durumu; sabitlenmiş sohbetleri sabit sırada tutma; kısayolları toplu işlemlerle değiştirme; bir seçim varken Boşluk ve Esc davranışı; açılışta sohbet aramasını koruma; "seçildi" duyurusunun konumu; kanalları sohbet listesinde gösterme (varsayılan olarak kapalı).</td></tr>
+  <tr><td class="field-name">Arayüz &gt; Sohbetler</td><td>Bir sohbet açıldığında odağın nereye gideceği; sohbet listesinde iletim durumu; sabitlenmiş sohbetleri sabit sırada tutma; kısayolları toplu işlemlerle değiştirme; bir seçim varken Boşluk ve Esc davranışı; açılışta sohbet aramasını koruma; "seçildi" duyurusunun konumu; kanalları sohbet listesinde gösterme (varsayılan olarak kapalı); "Sohbet listesindeki yeni mesaj sayısı", sohbet adından önce veya sonra.</td></tr>
   <tr><td class="field-name">Arayüz &gt; Sohbetler &gt; Kilitli sohbetler</td><td>Kasa PIN'i, hareketsizlikten sonra kilitleme ve gizli kod (düğme, kasa kullanılabilir olduğunda görünür).</td></tr>
   <tr><td class="field-name">Arayüz &gt; Onaylar</td><td>Onay soruları (tümünü okundu işaretle, temizle, sil, F5, Shift+F5, bilgisayar sesini kaydet) ve "Tekrar gösterme" sürümleri.</td></tr>
   <tr><td class="field-name">Arayüz &gt; Kısayollar</td><td>Genel olan dahil programın tüm kısayollarını listeler. Birini seçin, "Değiştir" seçin ve yeni kombinasyonu yazın; ya da devre dışı bırakın, varsayılanı geri yükleyin veya hepsini geri yükleyin. Çakışmalar uygulamadan önce uyarılır ve değişiklikler yalnızca Uygula veya Tamam ile geçerli olur.</td></tr>
@@ -965,6 +972,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+H</td><td>WinZapp kapanana kadar tüm açık hesaplarda oynatma cihazını değiştir (ardından 1 ile 0)</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>WinZapp kapanana kadar tüm açık hesaplarda kayıt cihazını değiştir (ardından 1 ile 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Toplulukları aç</td></tr>
+<tr><td class="field-name">Alt+9</td><td>Kanalları aç</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 a 9</td><td>Atanmış hızlı sohbeti aç</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 a 9</td><td>Odaklanılan sohbeti hızlı erişim numarasına ata</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Tüm sohbetleri okundu olarak işaretle</td></tr>
@@ -1312,6 +1320,7 @@
 <p class="lead">Özellik getiren her yeni alpha kılavuza eklenir. Bu liste kılavuzun hangi alpha'ya kadar tam olduğunu ve her turda neyin eklendiğini gösterir.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Kılavuza girenler</th></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kılavuz: Kanallar penceresi (Alt+9), devam eden aramaya kişi ekleme, Neonize ile telefondan istenen eski mesajlar ve sohbet listesinde yeni mesaj sayısının yeri.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kısayollar: F1, bahsetme önerilerini mesaj içindeki bahsetmelerden ayırır. İspanyolca ve Portekiz Portekizcesinde Alt+P mesaj alanına odaklanır; Alt+E mesajları düzenler.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Gruplar: biri yazarken duyuru artık yalnızca telefon numarasını değil kişinin adını kullanıyor.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Neonize: takip ettiğiniz kanalların gönderileri artık sohbet ve mesaj olarak görünmüyor.</td></tr>
