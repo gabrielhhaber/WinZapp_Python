@@ -234,6 +234,23 @@ def known_phone_jid(client, user: str):
     return found_user.split(":")[0], server
 
 
+def send_with_known_address(client, destination, content, build_jid):
+    """(response, destination actually used). A typed number WhatsApp has in its
+    other form (9th digit) fails with "no LID found": only then is it sent to the
+    address WhatsApp gives the number. Blocks on neonize calls."""
+    try:
+        return client.send_message(destination, content), destination
+    except Exception as error:
+        if "no LID found" not in str(error) or destination.Server not in (
+                "s.whatsapp.net", "c.us"):
+            raise
+        known = known_phone_jid(client, destination.User)
+        if not known or known == (destination.User, destination.Server):
+            raise
+        actual = build_jid(*known)
+        return client.send_message(actual, content), actual
+
+
 def _wpp_id(user: str, server: str = "c.us") -> dict:
     return {"server": server, "user": user, "_serialized": f"{user}@{server}"}
 

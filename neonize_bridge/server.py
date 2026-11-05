@@ -2025,19 +2025,8 @@ def create_app(folder, fixed=""):
             content = Message(extendedTextMessage=ExtendedTextMessage(text=content, **preview))
 
         def send():
-            try:
-                return s.client.send_message(destination, content), destination
-            except Exception:
-                # a typed number WhatsApp registered in its other form (9th
-                # digit) or only knows by the LID fails as "no LID found": send
-                # to the address WhatsApp gives it instead
-                if destination.Server not in ("s.whatsapp.net", "c.us"):
-                    raise
-                known = contacts.known_phone_jid(s.client, destination.User)
-                if not known or known == (destination.User, destination.Server):
-                    raise
-                actual = build_jid(*known)
-                return s.client.send_message(actual, content), actual
+            return contacts.send_with_known_address(
+                s.client, destination, content, build_jid)
 
         try:
             resp, destination = await asyncio.get_running_loop().run_in_executor(None, send)

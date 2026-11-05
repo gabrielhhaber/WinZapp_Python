@@ -352,3 +352,46 @@ def test_known_phone_jid_is_none_when_unknown_short_or_failing():
     assert contacts.known_phone_jid(_Lookup([query("", exists=False)]), "5551993050236") is None
     assert contacts.known_phone_jid(_Lookup(), "123") is None
     assert contacts.known_phone_jid(_Lookup(fail=True), "5551993050236") is None
+
+
+class _Sender(_Lookup):
+    def __init__(self, error=None, **kw):
+        super().__init__(**kw)
+        self.error, self.sent = error, []
+
+    def send_message(self, to, content):
+        self.sent.append(to)
+        if self.error and len(self.sent) == 1:
+            raise RuntimeError(self.error)
+        return "resp"
+
+
+def _to(user, server="s.whatsapp.net"):
+    return N(User=user, Server=server)
+
+
+def _build(user, server="s.whatsapp.net"):
+    return _to(user, server)
+
+
+def test_send_retries_to_the_known_address_after_no_lid_found():
+    client = _Sender("no LID found for x", responses=[query("555193050236")])
+    resp, used = contacts.send_with_known_address(client, _to("5551993050236"), "hi", _build)
+    assert resp == "resp" and used.User == "555193050236" and len(client.sent) == 2
+
+
+def test_send_does_not_retry_other_errors_or_unknown_numbers():
+    import pytest
+    for client in (_Sender("timeout", responses=[query("555193050236")]),
+                   _Sender("no LID found", responses=[query("", exists=False)]),
+                   _Sender("no LID found", responses=[query("5551993050236")])):
+        with pytest.raises(RuntimeError):
+            contacts.send_with_known_address(client, _to("5551993050236"), "hi", _build)
+        assert len(client.sent) == 1
+
+
+def test_send_does_not_retry_groups():
+    import pytest
+    with pytest.raises(RuntimeError):
+        contacts.send_with_known_address(
+            _Sender("no LID found"), _to("1203", "g.us"), "hi", _build)

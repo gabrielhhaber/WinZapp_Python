@@ -19,6 +19,8 @@ from core.utils import format_number, is_phone_like, looks_like_binary_blob, con
 class NewConversationDialog(wx.Dialog):
     """Search for a contact or number and open a conversation."""
 
+    _typed_jid = None
+
     def __init__(self, main_window):
         self._mw = main_window
         i18n = main_window.i18n
@@ -194,6 +196,7 @@ class NewConversationDialog(wx.Dialog):
                 self._results.append((name, jid, None))
 
         # ── If query looks like a phone number, add direct option ─────────────
+        self._typed_jid = None
         digits = re.sub(r"\D", "", query)
         if len(digits) >= 7:
             direct_jid = digits + "@s.whatsapp.net"
@@ -232,10 +235,19 @@ class NewConversationDialog(wx.Dialog):
             chat = {"remoteJid": jid, "pushName": name}
         self.EndModal(wx.ID_OK)
         mw = self._mw
-        if jid == getattr(self, "_typed_jid", None) and chat.get("remoteJid") == jid:
-            # a typed number: open the chat under the address WhatsApp knows
-            jid = resolve_typed_number(mw, jid.split("@")[0]) or jid
-            chat["remoteJid"] = jid
+        if jid == self._typed_jid and chat.get("remoteJid") == jid:
+            # a typed number: open the chat under the address WhatsApp knows.
+            # The lookup is a network call, so it runs off the GUI thread.
+            def lookup():
+                resolved = resolve_typed_number(mw, jid.split("@")[0]) or jid
+                wx.CallAfter(self._finish_open, name, resolved, chat)
+            threading.Thread(target=lookup, daemon=True, name="new-chat-lookup").start()
+            return
+        self._finish_open(name, jid, chat)
+
+    def _finish_open(self, name, jid, chat):
+        mw = self._mw
+        chat["remoteJid"] = jid
         norm_jid, existing = self._find_existing_chat(mw, jid)
         if existing is None:
             chat["remoteJid"] = norm_jid
