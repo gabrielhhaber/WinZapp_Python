@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "23f98047e3c4": "Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápid",
     "eb10905977f8": "O WPPConnect Server foi atualizado para a 2.10.75, que corrige um webhook do Cha",
     "0431981be75e": "Configurações do WhatsApp > Privacidade: nova opção \"Manter conversas arquivadas",
     "a75982671620": "Neonize: com a opção do WhatsApp \"Manter conversas arquivadas\" desligada, uma co",
