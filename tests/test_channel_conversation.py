@@ -140,11 +140,11 @@ class GuardPanel(Panel):
         self.main_window.i18n = SimpleNamespace(t=lambda key: key)
 
 
-def test_a_file_paste_or_a_voice_note_in_a_channel_is_refused_with_the_reason():
+def test_a_voice_note_in_a_channel_is_refused_with_the_reason():
+    # a pasted file or image: tests/test_paste_non_text_as_attachment.py
     panel = GuardPanel()
-    assert panel._paste_clipboard_as_attachment() is True     # consumed, nothing staged
     assert panel._start_voice_recording() is None
-    assert panel.said == ["channel_text_only", "channel_text_only"]
+    assert panel.said == ["channel_text_only"]
     from ui.conversation_panel.channel_conversation import refuse_in_channel
     assert refuse_in_channel(GuardPanel("5511999998888@s.whatsapp.net")) is False
 

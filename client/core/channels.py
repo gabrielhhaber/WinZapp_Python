@@ -130,7 +130,9 @@ def parse_pending(body):
     found = data.get("pending") if isinstance(data, dict) else None
     if not isinstance(body, dict) or body.get("status") != "success" or not isinstance(found, list):
         raise ValueError("channel_admins_unavailable")
-    return [jid for jid in found if isinstance(jid, str) and admin_target(jid)]
+    # WPPConnect may answer a number as @c.us, the followers as @s.whatsapp.net
+    return [jid.replace("@c.us", "@s.whatsapp.net") for jid in found
+            if isinstance(jid, str) and admin_target(jid)]
 
 
 def members(followers, pending=(), me=None):

@@ -243,3 +243,40 @@ class TestPasteFromMessagesList:
         ]
         assert stub.message_field.value == ""
         assert event.skipped is False
+
+
+class TestPasteInAChannel:
+    """An admin's channel takes text only: a file is refused with the reason,
+    text still pastes (channel_conversation.refuse_in_channel)."""
+
+    def _stub(self):
+        stub = _Stub(conversation={"remoteJid": "120363000000000001@newsletter"})
+        stub.said = []
+        stub.main_window = types.SimpleNamespace(
+            settings={}, output=stub.said.append, i18n=types.SimpleNamespace(t=lambda key: key))
+        return stub
+
+    def _paste(self, stub):
+        if not wx.TheClipboard.Open():
+            pytest.skip("clipboard unavailable")
+        try:
+            return stub._paste_clipboard_as_attachment()
+        finally:
+            wx.TheClipboard.Close()
+
+    def test_a_file_is_refused_with_the_reason(self, wx_app, tmp_path):
+        f = tmp_path / "photo.png"
+        f.write_bytes(b"PNG")
+        if not _set_clipboard_files([str(f)]):
+            pytest.skip("clipboard unavailable")
+        stub = self._stub()
+        assert self._paste(stub) is True
+        assert stub._staged_attachments == [] and stub.panel_shown_calls == 0
+        assert stub.said == ["channel_text_only"]
+
+    def test_text_still_pastes(self, wx_app):
+        if not _set_clipboard_text("Novidade do canal"):
+            pytest.skip("clipboard unavailable")
+        stub = self._stub()
+        assert self._paste(stub) is False          # the native text paste runs
+        assert stub.said == []

@@ -52,7 +52,9 @@ class Stub:
         self._mw = SimpleNamespace(
             my_lid=ME_LID, my_jid=ME_PHONE,
             _phone_to_lid={"5511999998888@s.whatsapp.net": "777@lid"},
-            chat_display_name=lambda chat: {"5511999998888@s.whatsapp.net": "Ana"}.get(chat["remoteJid"], ""))
+            # as the real one: a saved name, else the pushName, else a placeholder
+            chat_display_name=lambda chat: {"5511999998888@s.whatsapp.net": "Ana"}.get(
+                chat["remoteJid"]) or chat.get("pushName") or "unknown")
         self.picked, self.selected, self.confirm = picked, selected, confirm
         self.asked, self.sent, self.said, self.invited = [], [], [], []
 
@@ -88,7 +90,7 @@ def test_rows_say_names_and_roles_and_this_account_is_you():
     nobody = ch.Member("33333@lid", "", "", "pending")
     me = ch.Member(ME_LID, "", "", "owner")
     assert [stub._row_text(m) for m in (ana, bia, nobody, me)] == [
-        "Ana, channel_role_follower", "Bia, channel_role_admin",
+        "Ana, channel_role_follower", "Bia, channel_role_admin",            # Bia: WhatsApp's name
         "unknown, channel_role_pending", "channel_member_you, channel_role_owner"]
 
 

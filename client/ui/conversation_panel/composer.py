@@ -684,12 +684,12 @@ class ComposerMixin:
         wx.TheClipboard.Open() calls fail). Returns True when it staged
         something, so the caller must not also run the native/text paste.
         """
-        if refuse_in_channel(self):
-            return True       # consumed: nothing is pasted as a file
         if self.conversation is None:
             return False
 
         if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
+            if refuse_in_channel(self):
+                return True       # consumed: a file is never sent to a channel
             data = wx.FileDataObject()
             if wx.TheClipboard.GetData(data):
                 paths = [p for p in data.GetFilenames() if os.path.isfile(p)]
@@ -712,6 +712,8 @@ class ComposerMixin:
                     return True
 
         if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
+            if refuse_in_channel(self):
+                return True       # consumed: an image is never sent to a channel
             data = wx.BitmapDataObject()
             if wx.TheClipboard.GetData(data):
                 bitmap = data.GetBitmap()

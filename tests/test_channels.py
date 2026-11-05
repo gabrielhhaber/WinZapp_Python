@@ -213,6 +213,7 @@ def test_followers_and_pending_invites_become_the_windows_rows():
                      ch.Member("33333@lid", "", "", "subscriber")]
     pending = ch.parse_pending(ok({"pending": ["11111@lid", "55555@lid", "1203@g.us", 3]}))
     assert pending == ["11111@lid", "55555@lid"]
+    assert ch.parse_pending(ok({"pending": ["5511999998888@c.us"]})) == ["5511999998888@s.whatsapp.net"]
     me = ch.Member("99999@lid", "5500000000000@s.whatsapp.net", "", "owner")
     rows = ch.members(found, pending, me)
     assert [(m.jid, m.role) for m in rows] == [

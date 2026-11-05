@@ -117,7 +117,10 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         i18n = self._i18n
         if self._is_me(member):
             return i18n.t("channel_member_you")
-        known = self._mw.chat_display_name({"remoteJid": member.phone or member.jid})
+        # The name WhatsApp sent goes in as the chat's pushName: a saved name
+        # still wins, and a stranger is said by it rather than "unknown".
+        known = self._mw.chat_display_name({"remoteJid": member.phone or member.jid,
+                                            "pushName": member.name})
         return ch.member_name(known, member.name, i18n.t("unknown_contact"))
 
     def _row_text(self, member):
@@ -254,6 +257,11 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self.changed = True
         roles = self._mw.__dict__.setdefault("_channel_roles", {})
         roles[self._channel.jid] = role
+        # The channel may be open behind this window: its composer follows now.
+        panel = getattr(self._mw, "conversations_panel", None)
+        refresh = getattr(panel, "refresh_composer_permissions", None)
+        if refresh is not None:
+            refresh(self._channel.jid, transition=False)
 
     def _on_revoke(self, event=None):
         self._member_action("revoke", "channel_admin_revoke_confirm", ch.revoke_admin_invite,
