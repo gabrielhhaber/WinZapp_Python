@@ -47,7 +47,7 @@ from core.message_edit import (
     is_edit_event,
 )
 from core.quote_recovery import (
-    carry_over_recovered_quotes,
+    carry_over_known_content,
     fill_placeholders_from_replies,
 )
 from core.utils import (
@@ -776,12 +776,13 @@ class ConversationSyncMixin:
             if carried_edits:
                 logging.info("[sync_chat_messages] %s: kept %d edited marker(s)",
                              remote_jid, carried_edits)
-            # And for text recovered from a reply's quote, which the server
-            # copy -- still a ciphertext -- would otherwise wipe.
-            carried_quotes = carry_over_recovered_quotes(all_messages, local_records)
-            if carried_quotes:
-                logging.info("[sync_chat_messages] %s: kept %d recovered quote(s)",
-                             remote_jid, carried_quotes)
+            # And for any content WinZapp already knows (a text recovered from
+            # a quote, a message sent from the other engine) whose server copy
+            # is still a ciphertext and would otherwise wipe it.
+            carried_known = carry_over_known_content(all_messages, local_records)
+            if carried_known:
+                logging.info("[sync_chat_messages] %s: kept %d known message(s) over a ciphertext",
+                             remote_jid, carried_known)
             api_ids = {r.get("key", {}).get("id") for r in all_messages}
             # A copy an edit event was once stored as is local-only by
             # construction — keeping it is the duplicate (core/message_edit.py).

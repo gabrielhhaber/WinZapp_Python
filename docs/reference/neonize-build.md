@@ -71,11 +71,26 @@ What the patches carry today:
   deletes a number's sessions when its identity changes (a reinstall, a new
   phone), and the device comes back under the same JID without the key, while
   a retry receipt is answered only from the recent-message cache a restart
-  empties. Sessions or LID mappings that cannot be read send it to everyone).
+  empties. Sessions or LID mappings that cannot be read send it to everyone);
+  a status goes to its recipients' numbers, each once (0010: the contact
+  store keys a saved name by the JID of the mutation that carried it, and a
+  `contact[lid]` mutation put a `<user>@lid` among the numbers of the status
+  recipients; from the first one on, the server answered every status with
+  400. A LID whose number is unknown is left out).
 - **meowcaller**: go.mod/go.sum on neonize's whatsmeow pin; accept 2 s after
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
+- **neonize 0015**: `CallAddParticipant` adds a number or LID to the call this
+  client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
+  already on the call's list), WhatsApp's "Add participant"; Python
+  `CallClient.add_participant` (`neonize_bridge/call_invites.py`).
+- **neonize 0016**: a channel update (`NewsletterMessage`) carries whatsmeow's
+  `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
+  updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
+- **neonize 0017 / whatsmeow 0011**: a channel update carries the server's
+  `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
+  update `fromMe` from: a channel's admin sees their own updates as sent.
 - **neonize 0013 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.

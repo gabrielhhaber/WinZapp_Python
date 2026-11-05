@@ -13,7 +13,8 @@ const assert = require('node:assert/strict');
 const group = '120363000001@g.us';
 const wid = { _serialized: group };
 const chat = { id: wid, groupMetadata: {} };
-let record, joined, active, pending, supported, autoConnect, checks, extra, polls;
+let record, joined, active, pending, supported, autoConnect, checks, extra, polls, invited,
+  hangUpAfterFirstInvite;
 const person = '555000001@lid';
 const personChat = { id: { _serialized: person } };
 const pnChat = { id: { _serialized: '555000002@c.us' } };
@@ -38,7 +39,11 @@ const modules = {
   WAWebVoipCheckOngoingCalls: { checkOngoingCalls: async () => { checks++; } },
   WAWebVoipInitEventEmitter: { VoipInitEventEmitter: { getIsVoipInited: () => true } },
   WAWebCallCollection: { get activeCall() { return active; }, get pendingOutgoingCall() { return pending; } },
-  WAWebVoipStartCall: { joinOngoingWAWebVoipGroupCallPN: async p => {
+  WAWebVoipStartCall: { inviteToCall: async w => {
+    if (w._serialized === '555000666@lid') throw new Error('blocked 555000666');
+    invited.push(w._serialized);
+    if (hangUpAfterFirstInvite) active = null;
+  }, joinOngoingWAWebVoipGroupCallPN: async p => {
     joined.push(p);
     if (autoConnect) active = typeof autoConnect === 'function' ? autoConnect(p) : { id: p.callId, getState: () => 6 };
   } },
@@ -48,6 +53,7 @@ global.window = { require: name => supported ? modules[name] : undefined, setTim
 function fresh() {
   record = { id: { id: 'call-1', remote: wid }, callCreator: {}, isVideoCall: false, isGroupCall: true };
   joined = []; active = null; pending = null; supported = true; autoConnect = true; checks = 0;
+  invited = []; hangUpAfterFirstInvite = false;
   extra = [];
   installGroupCallRuntimeInPage();
   return window.__winzappGroupCallRuntime;
@@ -153,6 +159,30 @@ function fresh() {
   active = null;
   assert.equal((await api.participants('individual')).available, false);
   assert.equal(joined.length, 0, 'roster reads never join or acquire audio');
+  // Add participant: WhatsApp's own inviteToCall, once per person, only into this device's call.
+  api = fresh(); active = { id: 'call-1', getState: () => 6, isGroup: true };
+  const added = await api.invite({ callId: 'call-1',
+    participants: ['555000004@s.whatsapp.net', '555000005@lid', '555000666@lid', 'nobody'] });
+  assert.deepEqual(invited, ['555000004@c.us', '555000005@lid']);
+  assert.deepEqual(added.results.map(r => r.status), ['invited', 'invited', 'failed', 'failed']);
+  assert.equal(added.results[2].error, 'refused', 'a fixed word, never WhatsApp\'s text');
+  // a hangup halfway through the list sends nobody else anywhere
+  api = fresh(); active = { id: 'call-1', getState: () => 6, isGroup: true };
+  hangUpAfterFirstInvite = true;
+  const cut = await api.invite({ callId: 'call-1', participants: ['555000004@lid', '555000005@lid', '555000007@lid'] });
+  assert.deepEqual(invited, ['555000004@lid']);
+  assert.deepEqual(cut.results.map(r => r.status), ['invited', 'failed', 'failed']);
+  assert.equal(cut.results[1].error, 'call ended');
+  api = fresh(); active = { id: 'call-1', getState: () => 1 };
+  await assert.rejects(api.invite({ callId: 'call-1', participants: [person] }), /not in that call/);
+  api = fresh(); active = { id: 'other-call', getState: () => 6 };
+  await assert.rejects(api.invite({ callId: 'call-1', participants: [person] }), /not in that call/);
+  api = fresh(); active = { id: 'call-1', getState: () => 6 };
+  await assert.rejects(api.invite({ callId: 'call-1', participants: [] }), /participants are required/);
+  await assert.rejects(api.invite({ callId: 'call-1', participants: Array(32).fill(person) }),
+    /participants are required/);
+  assert.equal(invited.length, 0, 'a refused request invites nobody');
+  assert.equal(joined.length, 0, 'inviting never joins');
   console.log(JSON.stringify({ passed: true }));
 })().catch(e => { console.error(e); process.exitCode = 1; });
 '''

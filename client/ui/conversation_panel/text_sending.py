@@ -46,6 +46,8 @@ class TextSendingMixin:
         remote_jid = self.conversation.get("remoteJid", "")
         if not remote_jid:
             return
+        if remote_jid.endswith("@newsletter") and not self._channel_admin(remote_jid):
+            return      # only a channel's owner and admins post (channel_conversation.py)
 
         # Guard against a single user action enqueueing the same message
         # twice — e.g. Enter's key-repeat firing EVT_TEXT_ENTER more than

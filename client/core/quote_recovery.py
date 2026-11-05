@@ -25,6 +25,10 @@ from core.utils import QUOTED_TEXT_CAP, _slim_quoted_message, quoted_message_tex
 #: WhatsApp Web's "arrived, not decrypted yet" placeholder types.
 UNDECRYPTED_PLACEHOLDER_TYPES = frozenset({"ciphertext"})
 
+#: What a decrypted record holds beside its content that a ciphertext copy
+#: of it lacks (keep_known_content carries them over).
+KNOWN_TOP_LEVEL_FIELDS = ("_edited", "businessButtons", "replyCount")
+
 #: Marks a placeholder whose content came from a reply's quote.
 RECOVERED_FROM_QUOTE = "_recovered_from_quote"
 
@@ -123,33 +127,63 @@ def fill_placeholders_from_replies(records, same_person, replies=None) -> list:
     return filled
 
 
-def carry_over_recovered_quotes(new_msgs, old_msgs) -> int:
-    """Keep recovered text when a sync copy of the same id is still a ciphertext.
+def knows_content(msg) -> bool:
+    """Whether *msg* holds a decrypted message (not a placeholder)."""
+    return (isinstance(msg, dict) and not is_undecrypted_placeholder(msg)
+            and bool(msg.get("messageType")) and isinstance(msg.get("message"), dict)
+            and bool(msg.get("message")))
+
+
+def keep_known_content(new, stored) -> bool:
+    """Put *stored*'s content into *new* when *new* is a placeholder of it.
+
+    WhatsApp Web can hold, as a ``ciphertext``, a message WinZapp already
+    knows: one this account sent from another engine or device (switching
+    from Neonize to WPPConnect showed a message just sent to a group as
+    "Aguardando mensagem"), a text recovered from a quote, or one it decrypted
+    and later lost. The message still exists -- only its copy there is
+    undecrypted -- so what WinZapp knows is kept. A message that is gone is a
+    different case (no copy at all, or a ``revoked`` one) and is not touched
+    here. Returns whether *new* changed.
+    """
+    if not is_undecrypted_placeholder(new) or not knows_content(stored):
+        return False
+    if ((new.get("key") or {}).get("id") or "") != ((stored.get("key") or {}).get("id") or ""):
+        return False
+    new["messageType"] = stored["messageType"]
+    new["message"] = stored["message"]
+    # Kept beside the content by the normaliser (core/websocket_client.py):
+    # the "Edited" label, a business message's buttons, a comment count.
+    for field in KNOWN_TOP_LEVEL_FIELDS:
+        if field in stored and field not in new:
+            new[field] = stored[field]
+    if stored.get(RECOVERED_FROM_QUOTE):
+        new[RECOVERED_FROM_QUOTE] = True
+    else:
+        new.pop(RECOVERED_FROM_QUOTE, None)
+    return True
+
+
+def carry_over_known_content(new_msgs, old_msgs) -> int:
+    """keep_known_content() for each server copy that is still a ciphertext.
 
     Same shape as carry_over_edited_marker(): the sync replaces a chat's
     records with the server's copies and writes them to the database, so
-    without this the next get-messages turned the row back into "Aguardando
-    mensagem". Returns how many were carried.
+    without this the next get-messages turned a known message (a recovered
+    quote, or one sent from another engine) into "Aguardando mensagem".
+    Returns how many were carried.
     """
-    recovered = {
+    known = {
         (m.get("key") or {}).get("id"): m
         for m in (old_msgs or ())
-        if isinstance(m, dict) and m.get(RECOVERED_FROM_QUOTE)
-        and not is_undecrypted_placeholder(m)
+        if knows_content(m)
     }
-    recovered.pop(None, None)
-    recovered.pop("", None)
-    if not recovered:
+    known.pop(None, None)
+    known.pop("", None)
+    if not known:
         return 0
     carried = 0
     for m in new_msgs or ():
-        if not isinstance(m, dict) or not is_undecrypted_placeholder(m):
-            continue
-        source = recovered.get((m.get("key") or {}).get("id"))
-        if source is None:
-            continue
-        m["messageType"] = source["messageType"]
-        m["message"] = source["message"]
-        m[RECOVERED_FROM_QUOTE] = True
-        carried += 1
+        if isinstance(m, dict) and keep_known_content(m, known.get((m.get("key") or {}).get("id"))):
+            carried += 1
     return carried

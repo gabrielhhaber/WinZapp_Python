@@ -12,6 +12,7 @@ import threading
 import time
 import uuid
 import wx
+from ui.conversation_panel.channel_conversation import refuse_in_channel
 from core.utils import (
     MEASURED_SECONDS_KEY,
     encrypt,
@@ -53,6 +54,8 @@ class AttachmentsMixin:
         menu.Destroy()
 
     def _on_attach_photo_video(self, event):
+        if refuse_in_channel(self):
+            return
         i18n = self.main_window.i18n
         wildcard = (
             f"{i18n.t('attachment_photos_videos')} "
@@ -75,6 +78,8 @@ class AttachmentsMixin:
             self._show_attachment_panel()
 
     def _on_attach_document(self, event):
+        if refuse_in_channel(self):
+            return
         with wx.FileDialog(
             self, self.main_window.i18n.t("attachment_document"),
             style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST,
@@ -89,6 +94,8 @@ class AttachmentsMixin:
             self._show_attachment_panel()
 
     def _on_attach_audio_file(self, event):
+        if refuse_in_channel(self):
+            return
         i18n     = self.main_window.i18n
         wildcard = (
             f"{i18n.t('attachment_audio_file')} "
@@ -110,6 +117,8 @@ class AttachmentsMixin:
             self._show_attachment_panel()
 
     def _on_attach_contact(self, event):
+        if refuse_in_channel(self):
+            return
         from ui.dialogs.attach_contact_dialog import AttachContactDialog
         dlg = AttachContactDialog(self.main_window)
         if dlg.ShowModal() != wx.ID_OK or dlg.selected_contact is None:
@@ -287,6 +296,8 @@ class AttachmentsMixin:
 
     def _on_send_attachment(self, event=None):
         """Enqueue all staged attachments as outgoing messages."""
+        if refuse_in_channel(self):
+            return
         if not self._staged_attachments or self.conversation is None:
             return
         remote_jid = self.conversation.get("remoteJid", "")

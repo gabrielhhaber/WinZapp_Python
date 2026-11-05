@@ -32,6 +32,7 @@ import aiosqlite
 from cryptography.fernet import Fernet
 
 from core.phone_contacts import SYNCED_KEY, is_phone_synced
+from core.quote_recovery import is_undecrypted_placeholder, keep_known_content, knows_content
 from core.star_storage import preserve_stars, update_star_state
 from core.transcription.stored import (
     TRANSCRIPTION_KEY,
@@ -907,12 +908,18 @@ class DatabaseManager:
 
     def _needs_stored_row(self, msg: dict) -> bool:
         """Whether writing *msg* has to read its stored row first."""
-        return self._video_wants_stored_duration(msg) or may_hold_transcription(msg)
+        return (self._video_wants_stored_duration(msg) or may_hold_transcription(msg)
+                or is_undecrypted_placeholder(msg))
 
     def _apply_known_local_fields(self, msg: dict, stored: dict | None) -> dict:
         """_with_known_local_fields()'s rules over a row already read."""
         if stored is None:
             return with_known_transcription(msg, None)
+        if is_undecrypted_placeholder(msg) and knows_content(stored):
+            # A ciphertext never overwrites a message already decrypted here
+            # (core/quote_recovery.keep_known_content).
+            msg = dict(msg)
+            keep_known_content(msg, stored)
         if self._video_wants_stored_duration(msg):
             msg = self._with_known_video_duration(msg, stored)
         return with_known_transcription(msg, stored)

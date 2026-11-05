@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Wed, 4 Nov 2026 13:22:15 -0300
+Subject: [PATCH] newsletter: a channel update carries its id, date and type
+
+EncodeNewsletterMessage dropped whatsmeow's MessageID, Timestamp and Type:
+a channel's updates could not be deduplicated nor sorted, and every one
+showed as posted in 1970. Optional fields 5-7, so an older answer still
+reads.
+---
+ goneonize/Neonize.proto          | 3 +++
+ goneonize/defproto/Neonize.proto | 3 +++
+ goneonize/utils/encoder.go       | 5 +++++
+ 3 files changed, 11 insertions(+)
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index bb2706e..63cbd7e 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -404,6 +404,9 @@ message NewsletterMessage {
+     required int64 ViewsCount = 2;
+     repeated Reaction ReactionCounts = 3;
+     optional WAWebProtobufsE2E.Message Message = 4;
++    optional string MessageID = 5;
++    optional int64 Timestamp = 6;
++    optional string Type = 7;
+ }
+ 
+ message GetNewsletterMessageUpdateReturnFunction {
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index bb2706e..63cbd7e 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -404,6 +404,9 @@ message NewsletterMessage {
+     required int64 ViewsCount = 2;
+     repeated Reaction ReactionCounts = 3;
+     optional WAWebProtobufsE2E.Message Message = 4;
++    optional string MessageID = 5;
++    optional int64 Timestamp = 6;
++    optional string Type = 7;
+ }
+ 
+ message GetNewsletterMessageUpdateReturnFunction {
+diff --git a/goneonize/utils/encoder.go b/goneonize/utils/encoder.go
+index 997a9d3..886c734 100644
+--- a/goneonize/utils/encoder.go
++++ b/goneonize/utils/encoder.go
+@@ -473,6 +473,11 @@ func EncodeNewsletterMessage(message *types.NewsletterMessage) *defproto.Newslet
+ 		ViewsCount:      proto.Int64(int64(message.ViewsCount)),
+ 		Message:         message.Message, // may be nil for deleted messages — field is optional
+ 		ReactionCounts:  reacts,
++		// The id and date a channel update was posted with: without them the
++		// client can neither dedupe nor sort a channel's updates.
++		MessageID: proto.String(string(message.MessageID)),
++		Timestamp: proto.Int64(message.Timestamp.Unix()),
++		Type:      proto.String(message.Type),
+ 	}
+ }
+ 

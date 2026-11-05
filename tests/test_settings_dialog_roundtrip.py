@@ -122,6 +122,11 @@ SCENARIOS = {
         set=lambda d, t: d._selected_announce_start_rb.SetValue(True),
         shows=lambda d, t: d._selected_announce_start_rb.GetValue(),
     ),
+    "unread_count_position": dict(
+        saves={("user_interface", "unread_count_position"): "before"},
+        set=lambda d, t: d._unread_position_before_rb.SetValue(True),
+        shows=lambda d, t: d._unread_position_before_rb.GetValue(),
+    ),
     "voice_message_mode": dict(
         saves={("user_interface", "voice_message_mode"): "audio"},
         set=lambda d, t: d._voice_msg_mode_audio_rb.SetValue(True),

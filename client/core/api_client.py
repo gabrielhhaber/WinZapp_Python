@@ -44,6 +44,7 @@ import uuid
 import requests
 
 from core.pii_redaction import redact_phone
+from core.text_surrogates import repair_payload
 
 # The Node middleware only accepts an id matching /^[A-Za-z0-9._:-]{1,128}$/ and
 # silently generates its own otherwise, which would break correlation without
@@ -381,6 +382,10 @@ def _api_request(method: str, url: str, *, token: str = "", request_id: str = ""
                  **kwargs) -> requests.Response:
     """The call itself, logged and correlated. See api_request()."""
     request_id = request_id or new_request_id()
+    if "json" in kwargs:
+        # An emoji split into two loose UTF-16 halves by a wx char handler
+        # cannot be encoded on the other side (core/text_surrogates.py).
+        kwargs["json"] = repair_payload(kwargs["json"])
     headers = dict(kwargs.pop("headers", None) or {})
     if token and "Authorization" not in headers:
         headers["Authorization"] = f"Bearer {token}"

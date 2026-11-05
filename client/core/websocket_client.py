@@ -10,6 +10,7 @@ from core.api_client import api_get, api_post
 from core.connection_lifecycle import socket_client_is_current
 from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payload
 from core.business_buttons import business_buttons
+from core.channels import server_id_of
 from core.chat_contact_names import find_contact_key
 from core.commerce import (
     ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE, order_payload,
@@ -3190,6 +3191,9 @@ class WebSocketClient:
         replies = comment_count(wpp_msg.get("replyCount"))
         if replies is not None:
             normalized["replyCount"] = replies
+        # A channel update's server id: what pinning it names (core/channels.py).
+        if remote_jid.endswith("@newsletter") and server_id_of(wpp_msg):
+            normalized["serverId"] = server_id_of(wpp_msg)
 
         # Status messages: include the real sender as participant
         if status_participant:

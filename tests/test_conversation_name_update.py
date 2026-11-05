@@ -63,6 +63,8 @@ class _Panel:
 
     _conversation_note_text = ConversationsPanel._conversation_note_text
     _message_label_text = ConversationsPanel._message_label_text
+    _channel_role = ConversationsPanel._channel_role
+    _channel_admin = ConversationsPanel._channel_admin
     update_conversation_name = ConversationsPanel.update_conversation_name
 
     def __init__(self, open_jid=None, main_window=None):

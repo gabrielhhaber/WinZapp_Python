@@ -16,7 +16,8 @@ import main
 from core.quote_recovery import (
     RECOVERED_FROM_QUOTE,
     awaits_real_copy,
-    carry_over_recovered_quotes,
+    carry_over_known_content,
+    keep_known_content,
     fill_placeholders_from_replies,
     recovered_message,
     reply_context,
@@ -169,7 +170,7 @@ class TestTheRealCopyStillWins:
         fill_placeholders_from_replies([local, _reply({"conversation": "oi"})], _same)
         server_copy = _placeholder()
 
-        assert carry_over_recovered_quotes([server_copy], [local]) == 1
+        assert carry_over_known_content([server_copy], [local]) == 1
         assert server_copy["message"] == {"conversation": "oi"}
         assert server_copy[RECOVERED_FROM_QUOTE] is True
 
@@ -179,7 +180,7 @@ class TestTheRealCopyStillWins:
         server_copy = _placeholder()
         server_copy.update(messageType="conversation", message={"conversation": "real"})
 
-        assert carry_over_recovered_quotes([server_copy], [local]) == 0
+        assert carry_over_known_content([server_copy], [local]) == 0
         assert server_copy["message"] == {"conversation": "real"}
 
     def test_filling_with_the_real_copy_drops_the_marker(self, monkeypatch):
@@ -367,7 +368,7 @@ class TestEveryPathIsWired:
     def test_the_sync_carries_and_fills_before_its_batch_write(self):
         src = inspect.getsource(MainWindow.sync_chat_messages)
         write = src.index("insert_messages_batch")
-        assert src.index("carry_over_recovered_quotes(") < write
+        assert src.index("carry_over_known_content(") < write
         assert src.index("fill_placeholders_from_replies(") < write
 
     def test_the_sync_fill_cannot_mark_the_fetch_failed(self):
@@ -420,3 +421,38 @@ class TestReviewRound:
         assert loop.index("try:") < loop.index("for jid, chat in list(self.chats.items()):")
         assert 'logging.exception("[quote-recovery] startup pass failed")' in loop
 
+
+class TestKnownContentOutlivesACiphertextCopy:
+    """A message WinZapp already decrypted (sent from the other engine, say)
+    keeps its content when WhatsApp Web's copy of it is a ciphertext."""
+
+    def _known(self):
+        return {"key": {"remoteJid": "g@g.us", "id": "X1", "fromMe": True},
+                "messageType": "conversation", "message": {"conversation": "oi"}}
+
+    def test_a_sync_copy_still_undecrypted_keeps_a_message_sent_elsewhere(self):
+        server_copy = _placeholder()
+        server_copy["key"] = {"remoteJid": "g@g.us", "id": "X1", "fromMe": True}
+
+        assert carry_over_known_content([server_copy], [self._known()]) == 1
+        assert server_copy["message"] == {"conversation": "oi"}
+        assert RECOVERED_FROM_QUOTE not in server_copy
+
+    def test_another_id_is_never_filled(self):
+        server_copy = _placeholder()
+        server_copy["key"] = {"remoteJid": "g@g.us", "id": "OTHER", "fromMe": True}
+
+        assert keep_known_content(server_copy, self._known()) is False
+        assert server_copy["messageType"] == "ciphertext"
+
+    def test_a_stored_placeholder_fills_nothing(self):
+        server_copy = _placeholder()
+        assert carry_over_known_content([server_copy], [_placeholder()]) == 0
+
+    def test_the_edited_label_and_buttons_come_along(self):
+        known = {**self._known(), "_edited": True, "businessButtons": [{"id": "b"}], "replyCount": 2}
+        server_copy = _placeholder()
+        server_copy["key"] = dict(known["key"])
+        assert keep_known_content(server_copy, known) is True
+        assert (server_copy["_edited"], server_copy["businessButtons"], server_copy["replyCount"]) == (
+            True, [{"id": "b"}], 2)

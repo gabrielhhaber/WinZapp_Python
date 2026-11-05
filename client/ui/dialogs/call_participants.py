@@ -102,8 +102,9 @@ class ParticipantListMixin:
 
 
 class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
-    def __init__(self, parent, main_window, call_id, name, allowed):
+    def __init__(self, parent, main_window, call_id, name, allowed, invite_chat=""):
         self._mw, self._call_id, self._allowed = main_window, call_id, allowed
+        self._invite_chat = invite_chat
         self._alive, self._inflight, self._timer, self._shown = True, None, None, []
         i18n = main_window.i18n
         super().__init__(parent, title=i18n.t("call_participants_title").format(name=name),
@@ -121,6 +122,11 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         self._refresh_btn = wx.Button(panel, label=i18n.t("call_participants_refresh"))
         self._refresh_btn.Bind(wx.EVT_BUTTON, self._refresh_participants)
         buttons.Add(self._refresh_btn, 0, wx.ALL, 8)
+        if invite_chat:
+            # Only for the call this device is in (show_call_participants)
+            add = wx.Button(panel, label=i18n.t("call_participants_add"))
+            add.Bind(wx.EVT_BUTTON, self._add_participants)
+            buttons.Add(add, 0, wx.ALL, 8)
         close = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("close"))
         close.Bind(wx.EVT_BUTTON, self._close_participants)
         buttons.Add(close, 0, wx.ALL, 8)
@@ -135,6 +141,17 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self._close_participants)
         self._list.SetFocus()
         self._refresh_participants(announce=True)
+
+    def _add_participants(self, _event=None):
+        from ui.dialogs.call_invite import CallInviteDialog
+        dialog = CallInviteDialog(self, self._mw, self._call_id, self._invite_chat, self._allowed)
+        try:
+            dialog.ShowModal()
+        finally:
+            if dialog:
+                dialog.Destroy()
+        if self._alive:
+            self._refresh_participants()
 
     def _close_participants(self, _event):
         self._dispose_participants()

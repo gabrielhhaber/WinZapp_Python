@@ -1,0 +1,182 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Wed, 4 Nov 2026 12:43:33 -0300
+Subject: [PATCH] send: a status goes to its recipients' numbers, never to a
+ LID
+
+The contact store keys a saved name by the JID of the app state mutation
+that carried it, and WhatsApp now also sends contact mutations indexed by
+the LID (contact[lid]). getStatusBroadcastRecipients listed that contact as
+<user>@lid among the phone numbers, and the server answered every status
+with 400 from the first such mutation on. The recipients (whitelist,
+contacts and blacklist alike) now go by number, each one once; a LID whose
+number is unknown is left out.
+---
+ broadcast.go              |  8 +++--
+ status_recipients.go      | 65 +++++++++++++++++++++++++++++++++++++++
+ status_recipients_test.go | 51 ++++++++++++++++++++++++++++++
+ 3 files changed, 122 insertions(+), 2 deletions(-)
+ create mode 100644 status_recipients.go
+ create mode 100644 status_recipients_test.go
+
+diff --git a/broadcast.go b/broadcast.go
+index d376829..89d270d 100644
+--- a/broadcast.go
++++ b/broadcast.go
+@@ -52,7 +52,7 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
+ 	statusPrivacy := statusPrivacyOptions[0]
+ 	if statusPrivacy.Type == types.StatusPrivacyTypeWhitelist {
+ 		// Whitelist mode, just return the list
+-		return statusPrivacy.List, nil
++		return cli.statusRecipientsOf(ctx, statusPrivacy.List), nil
+ 	}
+ 
+ 	// Blacklist or all contacts mode. Find all contacts from database, then filter them appropriately.
+@@ -66,6 +66,9 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
+ 		for _, jid := range statusPrivacy.List {
+ 			blacklist[jid] = struct{}{}
+ 		}
++		for _, jid := range cli.statusRecipientsOf(ctx, statusPrivacy.List) {
++			blacklist[jid] = struct{}{}
++		}
+ 	}
+ 
+ 	var contactsArray []types.JID
+@@ -79,7 +82,8 @@ func (cli *Client) getStatusBroadcastRecipients(ctx context.Context) ([]types.JI
+ 			contactsArray = append(contactsArray, jid)
+ 		}
+ 	}
+-	return contactsArray, nil
++	// A blacklisted contact stored under its LID has its number listed now
++	return withoutBlacklisted(cli.statusRecipientsOf(ctx, contactsArray), blacklist), nil
+ }
+ 
+ var DefaultStatusPrivacy = []types.StatusPrivacy{{
+diff --git a/status_recipients.go b/status_recipients.go
+new file mode 100644
+index 0000000..8f5047f
+--- /dev/null
++++ b/status_recipients.go
+@@ -0,0 +1,65 @@
++package whatsmeow
++
++import (
++	"context"
++
++	"go.mau.fi/whatsmeow/types"
++)
++
++// statusRecipients puts the status broadcast's recipients in the phone number
++// form, as WhatsApp's own clients send them, without repeating anyone.
++//
++// The contact store keys a saved name by the JID of the app state mutation
++// that carried it, and WhatsApp now also sends contact mutations indexed by
++// the LID ("contact[lid]"). getStatusBroadcastRecipients then listed that
++// contact as <user>@lid among the @s.whatsapp.net ones, and the server
++// answered every status (text, image, video, voice) with 400 from the moment
++// the first such mutation arrived. A LID whose number is unknown is left out:
++// its number, if stored, is in the list already.
++func statusRecipients(list []types.JID, pnOf func(types.JID) (types.JID, bool)) []types.JID {
++	seen := make(map[types.JID]struct{}, len(list))
++	out := make([]types.JID, 0, len(list))
++	for _, jid := range list {
++		switch jid.Server {
++		case types.DefaultUserServer:
++		case types.HiddenUserServer:
++			pn, ok := pnOf(jid)
++			if !ok || pn.IsEmpty() {
++				continue
++			}
++			jid = pn
++		default:
++			continue
++		}
++		jid = jid.ToNonAD()
++		if _, dup := seen[jid]; dup {
++			continue
++		}
++		seen[jid] = struct{}{}
++		out = append(out, jid)
++	}
++	return out
++}
++
++// withoutBlacklisted drops the blacklisted recipients, once every address
++// is a number: a contact blacklisted by its number but stored under its LID
++// only matches after statusRecipients mapped it.
++func withoutBlacklisted(list []types.JID, blacklist map[types.JID]struct{}) []types.JID {
++	out := list[:0:0]
++	for _, jid := range list {
++		if _, banned := blacklist[jid]; !banned {
++			out = append(out, jid)
++		}
++	}
++	return out
++}
++
++func (cli *Client) statusRecipientsOf(ctx context.Context, list []types.JID) []types.JID {
++	return statusRecipients(list, func(lid types.JID) (types.JID, bool) {
++		if cli.Store.LIDs == nil {
++			return types.JID{}, false
++		}
++		pn, err := cli.Store.LIDs.GetPNForLID(ctx, lid)
++		return pn, err == nil
++	})
++}
+diff --git a/status_recipients_test.go b/status_recipients_test.go
+new file mode 100644
+index 0000000..538e234
+--- /dev/null
++++ b/status_recipients_test.go
+@@ -0,0 +1,51 @@
++package whatsmeow
++
++import (
++	"testing"
++
++	"go.mau.fi/whatsmeow/types"
++)
++
++func TestStatusRecipientsUseTheNumberOfALID(t *testing.T) {
++	pn := types.NewJID("5511999990000", types.DefaultUserServer)
++	other := types.NewJID("5511888880000", types.DefaultUserServer)
++	lid := types.NewJID("123456789", types.HiddenUserServer)
++	unknown := types.NewJID("987654321", types.HiddenUserServer)
++	pnOf := func(j types.JID) (types.JID, bool) {
++		if j == lid {
++			return pn, true
++		}
++		return types.JID{}, false
++	}
++	got := statusRecipients([]types.JID{other, lid, pn, unknown, types.NewJID("1-2", types.GroupServer)}, pnOf)
++	want := []types.JID{other, pn}
++	if len(got) != len(want) {
++		t.Fatalf("got %v, want %v", got, want)
++	}
++	for i := range want {
++		if got[i] != want[i] {
++			t.Fatalf("got %v, want %v", got, want)
++		}
++	}
++}
++
++func TestStatusRecipientsDropTheDeviceOfAJID(t *testing.T) {
++	device := types.NewADJID("5511999990000", 0, 3)
++	got := statusRecipients([]types.JID{device}, func(types.JID) (types.JID, bool) { return types.JID{}, false })
++	if len(got) != 1 || got[0] != device.ToNonAD() {
++		t.Fatalf("got %v", got)
++	}
++}
++
++func TestABlacklistedContactStoredUnderItsLIDStaysOut(t *testing.T) {
++	pn := types.NewJID("5511999990000", types.DefaultUserServer)
++	other := types.NewJID("5511888880000", types.DefaultUserServer)
++	lid := types.NewJID("123456789", types.HiddenUserServer)
++	mapped := statusRecipients([]types.JID{lid, other}, func(j types.JID) (types.JID, bool) {
++		return pn, j == lid
++	})
++	got := withoutBlacklisted(mapped, map[types.JID]struct{}{pn: {}})
++	if len(got) != 1 || got[0] != other {
++		t.Fatalf("got %v", got)
++	}
++}
