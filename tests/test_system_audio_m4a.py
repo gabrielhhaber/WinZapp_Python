@@ -287,7 +287,8 @@ class TestMixedComposer(unittest.TestCase):
         self.p._stop_system_audio_recording.side_effect = lambda: setattr(self.p, '_recording_system_audio', False)
         encrypt = functions(ROOT / 'client/core/utils.py', ['encrypt'], {'Fernet': Fernet})['encrypt']
         from core.voice_stereo import (  # pure; no wx
-            STEREO_BITRATE, STEREO_MIMETYPE, drop_empty_side, encode_as_stereo,
+            STEREO_MIMETYPE, bitrate_arg, drop_empty_side, encode_as_stereo,
+            voice_bitrate_kbps,
         )
         from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
@@ -295,7 +296,8 @@ class TestMixedComposer(unittest.TestCase):
                          wave=wave, threading=self.threads, wx=fake_wx,
                          recording_output_channels=recording_output_channels,
                          prepare_voice_pcm=prepare_voice_pcm,
-                         encode_as_stereo=encode_as_stereo, STEREO_BITRATE=STEREO_BITRATE,
+                         encode_as_stereo=encode_as_stereo, bitrate_arg=bitrate_arg,
+                         voice_bitrate_kbps=voice_bitrate_kbps,
                          drop_empty_side=drop_empty_side,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),

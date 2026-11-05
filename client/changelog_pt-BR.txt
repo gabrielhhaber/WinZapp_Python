@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápido mesmo com mais de um minuto (a mudança para 256 kbps tinha deixado o envio lento). Configurações > Áudio ganhou "Taxa de bits das mensagens de voz (kbps)", para escolher de 32 a 256 kbps.
+
 - O WPPConnect Server foi atualizado para a 2.10.75, que corrige um webhook do Chatwoot que aceitava pedidos sem autenticação e corrige uma vulnerabilidade nas bibliotecas glob e minimatch.
 
 - Configurações do WhatsApp > Privacidade: nova opção "Manter conversas arquivadas", a mesma do WhatsApp, que decide se uma conversa arquivada volta para a lista quando chega mensagem nova. Funciona com a WPPConnect e com o Neonize.

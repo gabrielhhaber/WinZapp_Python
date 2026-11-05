@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesaje vocale: rata de biți a înregistrărilor a revenit la 64 kbps, care se trimit rapid chiar și după un minut (trecerea la 256 kbps încetinise trimiterea). Setări > Audio are acum "Rata de biți a mesajelor vocale (kbps)", cu valori între 32 și 256 kbps.
+
 - WPPConnect Server a fost actualizat la 2.10.75, care repară un webhook Chatwoot ce accepta cereri fără autentificare și remediază o vulnerabilitate din bibliotecile glob și minimatch.
 
 - Setări WhatsApp > Confidențialitate: opțiune nouă "Păstrează conversațiile arhivate", aceeași ca în WhatsApp, care decide dacă o conversație arhivată revine în listă când sosește un mesaj nou. Funcționează cu WPPConnect și cu Neonize.

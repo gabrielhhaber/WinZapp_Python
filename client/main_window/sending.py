@@ -45,7 +45,7 @@ from core.reaction_echo import (
     reaction_echo_keys,
 )
 from core.utils import encrypt
-from core.voice_stereo import opus_encode_args, voice_data_uri
+from core.voice_stereo import opus_encode_args, voice_bitrate_kbps, voice_data_uri
 
 # The directory layout _find_api_ffmpeg() searches is relative to main.py.
 _MAIN_PY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "main.py")
@@ -814,7 +814,7 @@ class SendingMixin:
 
             result = subprocess.run(
                 [ffmpeg, "-y", "-i", wav_path,
-                 *opus_encode_args(),
+                 *opus_encode_args(voice_bitrate_kbps(self.settings)),
                  "-vbr", "on", "-compression_level", "10",
                  ogg_path],
                 capture_output=True,

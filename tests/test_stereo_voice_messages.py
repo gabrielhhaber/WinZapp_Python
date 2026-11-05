@@ -75,7 +75,20 @@ class TestWhatGoesOut:
         assert encode_as_stereo(channels) is stereo
 
     def test_the_opus_arguments_are_those_of_a_mono_voice_message(self):
-        assert opus_encode_args() == ["-ac", "1", "-c:a", "libopus", "-b:a", "256k"]
+        assert opus_encode_args() == ["-ac", "1", "-c:a", "libopus", "-b:a", "64k"]
+        assert opus_encode_args(128)[-1] == "128k"
+
+    @pytest.mark.parametrize("settings, kbps", [
+        ({}, 64), (None, 64),
+        ({"general": {"voice_recording_bitrate": 128}}, 128),
+        ({"general": {"voice_recording_bitrate": 256}}, 256),
+        ({"general": {"voice_recording_bitrate": 100}}, 64),
+        ({"general": {"voice_recording_bitrate": "128"}}, 64),
+        ({"general": {"voice_recording_bitrate": True}}, 64),
+        ({"general": "x"}, 64)])
+    def test_the_bitrate_is_the_chosen_one_else_64(self, settings, kbps):
+        from core.voice_stereo import voice_bitrate_kbps
+        assert voice_bitrate_kbps(settings) == kbps
 
     def test_the_data_uri_names_what_it_carries(self):
         assert voice_data_uri("QQ==") == "data:audio/ogg;codecs=opus;base64,QQ=="

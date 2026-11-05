@@ -15,11 +15,11 @@ message. So a stereo recording is AAC and a mono one OGG/Opus, both through
 /send-voice-base64 as push-to-talk.
 """
 
-#: Opus rate of a mono voice message.
-MONO_BITRATE = "256k"
-#: AAC rate of a stereo voice message. The encoder treats it as a ceiling, and
-#: speech usually lands below it.
-STEREO_BITRATE = "256k"
+#: Rates the user can pick for a recorded voice message, in kbit/s. 64 is the
+#: default: a minute of speech stays small, so it uploads quickly. 256 made
+#: recordings of over a minute slow to send.
+VOICE_BITRATES_KBPS = (32, 48, 64, 96, 128, 192, 256)
+DEFAULT_VOICE_BITRATE_KBPS = 64
 #: Sent in place of Opus's mimetype for a stereo voice message.
 STEREO_MIMETYPE = "audio/mp4"
 OPUS_MIMETYPE = "audio/ogg;codecs=opus"
@@ -73,9 +73,23 @@ def drop_empty_side(pcm: bytes, channels) -> tuple:
     return samples[0 if left > right else 1::2].tobytes(), 1
 
 
-def opus_encode_args() -> list:
+def voice_bitrate_kbps(settings) -> int:
+    """The recorded-voice-message bitrate chosen in *settings*, else the default."""
+    general = settings.get("general", {}) if isinstance(settings, dict) else {}
+    value = general.get("voice_recording_bitrate") if isinstance(general, dict) else None
+    if isinstance(value, int) and not isinstance(value, bool) and value in VOICE_BITRATES_KBPS:
+        return value
+    return DEFAULT_VOICE_BITRATE_KBPS
+
+
+def bitrate_arg(kbps: int) -> str:
+    """The ffmpeg ``-b:a`` value of *kbps*."""
+    return f"{kbps}k"
+
+
+def opus_encode_args(kbps: int = DEFAULT_VOICE_BITRATE_KBPS) -> list:
     """The ffmpeg arguments of a mono voice message: channel count, codec, bitrate."""
-    return ["-ac", "1", "-c:a", "libopus", "-b:a", MONO_BITRATE]
+    return ["-ac", "1", "-c:a", "libopus", "-b:a", bitrate_arg(kbps)]
 
 
 def voice_data_uri(audio_b64: str, mimetype: str = "") -> str:

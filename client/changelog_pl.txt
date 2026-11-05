@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wiadomości głosowe: przepływność nagrań wróciła do 64 kb/s, dzięki czemu wysyłanie jest szybkie nawet po minucie nagrania (zmiana na 256 kb/s spowolniła wysyłanie). W Ustawienia > Dźwięk pojawiła się opcja "Przepływność wiadomości głosowych (kb/s)" do wyboru od 32 do 256 kb/s.
+
 - WPPConnect Server zaktualizowany do 2.10.75, która naprawia webhook Chatwoot przyjmujący żądania bez uwierzytelnienia i łata podatność w bibliotekach glob i minimatch.
 
 - Ustawienia WhatsApp > Prywatność: nowa opcja "Zachowaj czaty zarchiwizowane", ta sama co w WhatsApp, która decyduje, czy zarchiwizowany czat wraca na listę po nadejściu nowej wiadomości. Działa z WPPConnect i z Neonize.

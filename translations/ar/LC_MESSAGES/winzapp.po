@@ -16599,6 +16599,12 @@ msgstr "تسجيل الصوت"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_bitrate_label"
+msgid "Voice message bitrate (kbps)"
+msgstr "معدل البت للرسائل الصوتية (كيلوبت/ث)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_recording_channels_auto"
 msgid "Automatic (use the device's channels)"
 msgstr "تلقائي (استخدام قنوات الجهاز)"

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
+
 - WPPConnect Server updated to 2.10.75, which fixes a Chatwoot webhook that accepted requests without authentication and patches a vulnerability in the glob and minimatch libraries.
 
 - WhatsApp settings > Privacy: new "Keep chats archived" option, WhatsApp's own, which decides whether an archived chat goes back to the list when a new message arrives. Works with WPPConnect and Neonize.

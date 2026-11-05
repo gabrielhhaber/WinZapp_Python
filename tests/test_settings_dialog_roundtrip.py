@@ -46,6 +46,11 @@ SCENARIOS = {
         set=lambda d, t: d._voice_recording_mode_radio.SetSelection(1),
         shows=lambda d, t: d._voice_recording_mode_radio.GetSelection() == 1,
     ),
+    "voice_recording_bitrate": dict(
+        saves={("general", "voice_recording_bitrate"): 128},
+        set=lambda d, t: d._voice_bitrate_choice.SetSelection(4),
+        shows=lambda d, t: d._voice_bitrate_choice.GetSelection() == 4,
+    ),
     # Settings > Advanced (ui/dialogs/advanced_tab.py).
     "advanced_wpp_all_updates": dict(
         saves={("general", "wpp_all_updates"): True},
