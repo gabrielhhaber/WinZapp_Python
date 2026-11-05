@@ -1962,9 +1962,17 @@ def create_app(folder, fixed=""):
             # LID comes from neonize's store. Read on the loop, they stood it
             # still for seconds on every resync, and sends waited behind it.
             chat_rows = chat_listing.listed(s.db.chats())
-            names, nicknames = chat_listing.listing_identities(
-                chat_rows, s.db.contacts(), s._phone_of_lid)
-            return [chat_listing.chat_to_wpp(c, names, wpp_id, nicknames=nicknames)
+            business_names = {}
+            if s.client is not None and s.status == "CONNECTED":
+                try:
+                    business_names = chat_listing.verified_business_names(
+                        s.client.contact.get_all_contacts(), jid_text)
+                except Exception:
+                    log.warning("list-chats: verified names unavailable")
+            names, nicknames, verified = chat_listing.listing_identities(
+                chat_rows, s.db.contacts(), s._phone_of_lid, business_names)
+            return [chat_listing.chat_to_wpp(
+                c, names, wpp_id, nicknames=nicknames, verified_names=verified)
                     for c in chat_rows]
 
         return web.json_response(await in_thread(listing))
