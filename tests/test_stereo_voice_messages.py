@@ -75,7 +75,20 @@ class TestWhatGoesOut:
         assert encode_as_stereo(channels) is stereo
 
     def test_the_opus_arguments_are_those_of_a_mono_voice_message(self):
-        assert opus_encode_args() == ["-ac", "1", "-c:a", "libopus", "-b:a", "256k"]
+        assert opus_encode_args() == ["-ac", "1", "-c:a", "libopus", "-b:a", "64k"]
+        assert opus_encode_args(128)[-1] == "128k"
+
+    @pytest.mark.parametrize("settings, kbps", [
+        ({}, 64), (None, 64),
+        ({"general": {"voice_recording_bitrate": 128}}, 128),
+        ({"general": {"voice_recording_bitrate": 256}}, 256),
+        ({"general": {"voice_recording_bitrate": 100}}, 64),
+        ({"general": {"voice_recording_bitrate": "128"}}, 64),
+        ({"general": {"voice_recording_bitrate": True}}, 64),
+        ({"general": "x"}, 64)])
+    def test_the_bitrate_is_the_chosen_one_else_64(self, settings, kbps):
+        from core.voice_stereo import voice_bitrate_kbps
+        assert voice_bitrate_kbps(settings) == kbps
 
     def test_the_data_uri_names_what_it_carries(self):
         assert voice_data_uri("QQ==") == "data:audio/ogg;codecs=opus;base64,QQ=="
@@ -174,12 +187,13 @@ def test_no_locale_keeps_the_mode_strings():
 
 class _Encoder:
     _convert_wav_to_ogg = MainWindow._convert_wav_to_ogg
+    settings = {"general": {"voice_recording_bitrate": 128}}
 
     def _find_api_ffmpeg(self):
         return __file__  # any existing file stands in for ffmpeg
 
 
-def test_the_opus_encoder_is_always_mono_at_256k(monkeypatch, tmp_path):
+def test_the_opus_encoder_is_always_mono_at_the_chosen_bitrate(monkeypatch, tmp_path):
     calls = []
 
     def _run(args, **_kw):
@@ -194,10 +208,10 @@ def test_the_opus_encoder_is_always_mono_at_256k(monkeypatch, tmp_path):
 
     args = calls[0]
     assert args[args.index("-ac") + 1] == "1"
-    assert args[args.index("-b:a") + 1] == "256k"
+    assert args[args.index("-b:a") + 1] == "128k"
 
 
-def test_a_stereo_voice_message_asks_the_aac_encoder_for_256k(monkeypatch, tmp_path):
+def test_a_stereo_voice_message_asks_the_aac_encoder_for_the_chosen_bitrate(monkeypatch, tmp_path):
     from core import audio_transcode
     m4a = tmp_path / "out.m4a"
     m4a.write_bytes(b"M4A")
@@ -207,11 +221,12 @@ def test_a_stereo_voice_message_asks_the_aac_encoder_for_256k(monkeypatch, tmp_p
         seen.update(ffmpeg=ffmpeg, wav=wav, bitrate=bitrate)
         return str(m4a)
     monkeypatch.setattr(audio_transcode, "encode_system_audio_to_m4a", _encode)
-    panel = types.SimpleNamespace(main_window=types.SimpleNamespace(_find_api_ffmpeg=lambda: "ff"))
+    panel = types.SimpleNamespace(main_window=types.SimpleNamespace(
+        _find_api_ffmpeg=lambda: "ff", settings={"general": {"voice_recording_bitrate": 96}}))
 
     assert ConversationsPanel._encode_stereo_voice(panel, "v.wav") == b"M4A"
 
-    assert seen == {"ffmpeg": "ff", "wav": "v.wav", "bitrate": "256k"}
+    assert seen == {"ffmpeg": "ff", "wav": "v.wav", "bitrate": "96k"}
     assert not m4a.exists()
 
 

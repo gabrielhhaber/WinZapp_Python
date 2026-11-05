@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Mensajes de voz: la tasa de bits de las grabaciones vuelve a 64 kbps, que se envía rápido incluso pasado un minuto (el cambio a 256 kbps había vuelto lento el envío). Configuración > Audio incorpora "Tasa de bits de los mensajes de voz (kbps)", para elegir de 32 a 256 kbps.
+
 - Configuración > Interfaz de usuario > Chats: nueva opción "Número de mensajes nuevos en la lista de chats", para que el lector de pantalla diga el número de mensajes nuevos antes del nombre del chat en lugar de después. Vale para la lista de chats, los archivados y los bloqueados. (sugerencia de Michal Suchý)
 
 - Nueva ventana de Canales (Alt+9, también en la lista de navegación): muestra los canales que sigues o busca en el directorio de canales de WhatsApp (sin texto, aparecen los recomendados). Con el canal elegido puedes abrirlo y leer sus novedades, seguirlo o dejar de seguirlo, silenciar o activar sus notificaciones, copiar su enlace y, en tus canales, editarlo o eliminarlo. También puedes seguir un canal desde su enlace y crear un canal. Mostrar los canales en la lista de conversaciones sigue siendo una opción aparte. Funciona con WPPConnect y con Neonize.

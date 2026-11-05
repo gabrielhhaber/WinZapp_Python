@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wiadomości głosowe: przepływność nagrań wróciła do 64 kb/s, dzięki czemu wysyłanie jest szybkie nawet po minucie nagrania (zmiana na 256 kb/s spowolniła wysyłanie). W Ustawienia > Dźwięk pojawiła się opcja "Przepływność wiadomości głosowych (kb/s)" do wyboru od 32 do 256 kb/s.
+
 - Ustawienia > Interfejs użytkownika > Czaty: nowa opcja "Liczba nowych wiadomości na liście czatów", dzięki której czytnik ekranu podaje liczbę nowych wiadomości przed nazwą czatu zamiast po niej. Dotyczy listy czatów, czatów zarchiwizowanych i zablokowanych. (sugestia Michala Suchego)
 
 - Nowe okno Kanały (Alt+9, także na liście nawigacji): pokazuje obserwowane kanały albo przeszukuje katalog kanałów WhatsAppa (bez tekstu widać polecane kanały). Wybrany kanał można otworzyć i czytać jego aktualizacje, obserwować go lub przestać obserwować, wyciszyć lub włączyć jego powiadomienia, skopiować link, a w swoich kanałach edytować go lub usunąć. Można też obserwować kanał z linku i utworzyć kanał. Pokazywanie kanałów na liście czatów pozostaje osobnym ustawieniem. Działa z WPPConnect i z Neonize.

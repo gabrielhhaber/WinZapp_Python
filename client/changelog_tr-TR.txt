@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sesli mesajlar: kayıt bit hızı yeniden 64 kbps oldu; bir dakikadan uzun kayıtlar da hızlı gönderilir (256 kbps'ye geçiş gönderimi yavaşlatmıştı). Ayarlar > Ses bölümüne 32 ile 256 kbps arasında seçim yapılan "Sesli mesaj bit hızı (kbps)" eklendi.
+
 - Ayarlar > Kullanıcı Arayüzü > Sohbetler: ekran okuyucunun yeni mesaj sayısını sohbet adından sonra değil önce söylemesi için yeni "Sohbet listesindeki yeni mesaj sayısı" seçeneği. Sohbet listesi, arşivlenmiş ve kilitli sohbetler için geçerlidir. (Michal Suchý'nin önerisi)
 
 - Yeni Kanallar penceresi (Alt+9, gezinti listesinde de var): takip ettiğiniz kanalları gösterir ya da WhatsApp kanal dizininde arama yapar (metin yazılmazsa önerilen kanallar görünür). Seçilen kanalı açıp güncellemelerini okuyabilir, takip edebilir ya da takibi bırakabilir, bildirimlerini sessize alabilir ya da açabilir, bağlantısını kopyalayabilir ve kendi kanallarınızda düzenleyebilir ya da silebilirsiniz. Bir kanalı bağlantısından takip edebilir ve kanal oluşturabilirsiniz. Kanalları sohbet listesinde göstermek ayrı bir ayar olarak kalır. WPPConnect ve Neonize ile çalışır.

@@ -1083,6 +1083,7 @@ DEFAULT_SETTINGS = {
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
         "voice_recording_mode": "auto",
+        "voice_recording_bitrate": 64,
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,
         # Windows spell checking in the message field (core/spell_checker.py).

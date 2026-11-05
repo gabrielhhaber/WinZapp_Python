@@ -98,6 +98,8 @@ class Radio:
 def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch):
     from ui.dialogs import voice_recording_options as options
     monkeypatch.setattr(options.wx, 'RadioBox', Radio)
+    monkeypatch.setattr(options.wx, 'StaticText', Radio)
+    monkeypatch.setattr(options.wx, 'Choice', Radio)
     dialog = SimpleNamespace(main_window=SimpleNamespace(
         settings={'general': {'voice_recording_mode': mode}},
         i18n=SimpleNamespace(t=lambda key: 'first:' + key)))
@@ -116,7 +118,8 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
 
 def test_unselected_control_cannot_save_stereo_by_negative_index():
     dialog = SimpleNamespace(main_window=SimpleNamespace(settings={}),
-                             _voice_recording_mode_radio=Radio())
+                             _voice_recording_mode_radio=Radio(),
+                             _voice_bitrate_choice=Radio())
     dialog._voice_recording_mode_radio.selection = -1
     VoiceRecordingOptionsMixin._save_voice_recording_options(dialog)
     assert voice_recording_mode(dialog.main_window.settings) == 'auto'

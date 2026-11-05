@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesaje vocale: rata de biți a înregistrărilor a revenit la 64 kbps, care se trimit rapid chiar și după un minut (trecerea la 256 kbps încetinise trimiterea). Setări > Audio are acum "Rata de biți a mesajelor vocale (kbps)", cu valori între 32 și 256 kbps.
+
 - Setări > Interfață utilizator > Conversații: opțiune nouă "Numărul de mesaje noi în lista de conversații", pentru ca cititorul de ecran să spună numărul de mesaje noi înainte de numele conversației, nu după. Se aplică listei de conversații, celor arhivate și celor blocate. (sugestia lui Michal Suchý)
 
 - Fereastră nouă Canale (Alt+9, și în lista de navigare): arată canalele pe care le urmăriți sau caută în directorul de canale WhatsApp (fără text, apar canalele recomandate). Pentru canalul ales îl puteți deschide și citi actualizările, îl puteți urmări sau nu mai urmări, îi puteți dezactiva sau activa notificările, îi puteți copia linkul și, la canalele dvs., îl puteți edita sau șterge. Puteți urmări un canal din linkul lui și puteți crea un canal. Afișarea canalelor în lista de conversații rămâne o opțiune separată. Funcționează cu WPPConnect și cu Neonize.
