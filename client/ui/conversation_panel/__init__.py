@@ -51,6 +51,7 @@ Where to look (and where new code goes):
     mentions                 @mentions panel and suggestions
     bookmarks                message bookmarks
     pinned_messages          pinned-message overview and history navigation
+    channel_conversation     a channel's role (who posts and pins) and its pinned updates
     message_search           search inside the conversation
     chat_menu                conversations-list context menu and chat actions
     commerce                 a business's catalog and cart, an order's window, a business account's tools

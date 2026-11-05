@@ -294,3 +294,16 @@ class TestTheUserInterfacePageScrolls:
         for radio in (dlg._selected_announce_start_rb, dlg._selected_announce_end_rb):
             assert group_box_of(radio, boxes) is dlg._selected_announce_box
         assert group_box_of(dlg._keep_search_after_open_cb, boxes) is None
+
+
+def test_changing_the_unread_position_repaints_the_chat_list(make_dialog):
+    """Issue 684: every row says its new-message count; a changed position
+    must not wait for the next full rebuild (the single-row refresh would
+    mix both orders meanwhile)."""
+    dialog = make_dialog({})
+    dialog._unread_position_before_rb.SetValue(True)
+
+    assert dialog._apply_values() is True
+
+    assert dialog.main_window.settings["user_interface"]["unread_count_position"] == "before"
+    assert dialog.main_window.chat_refreshes

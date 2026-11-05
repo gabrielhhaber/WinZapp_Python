@@ -2353,6 +2353,77 @@ msgctxt "call_end_hotkey_label"
 msgid "Global hotkey to reject an incoming call or end the call in progress"
 msgstr "مفتاح اختصار عالمي لرفض مكالمة واردة أو إنهاء المكالمة الجارية"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_add_button"
+msgid "&Add"
+msgstr "إ&ضافة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#, python-brace-format
+msgctxt "call_invite_count"
+msgid "People you can add: {count}"
+msgstr "الأشخاص الذين يمكنك إضافتهم: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#: client/ui/dialogs/call_invite.py
+msgctxt "call_invite_failed"
+msgid "Participants could not be added right now."
+msgstr "تعذّرت إضافة المشاركين الآن."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#, python-brace-format
+msgctxt "call_invite_failed_people"
+msgid "Could not add: {names}."
+msgstr "تعذّرت إضافة: {names}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_list"
+msgid "Group members not in the call"
+msgstr "أعضاء المجموعة غير الموجودين في المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_list_contacts"
+msgid "Contacts not in the call"
+msgstr "جهات الاتصال غير الموجودة في المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_none"
+msgid "Every member of the group is already in the call."
+msgstr "جميع أعضاء المجموعة موجودون في المكالمة بالفعل."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_none_contacts"
+msgid "There is no contact to add."
+msgstr "لا توجد جهة اتصال لإضافتها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_nothing_selected"
+msgid "Check at least one person."
+msgstr "حدّد شخصًا واحدًا على الأقل."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_sending"
+msgid "Adding participants..."
+msgstr "جارٍ إضافة المشاركين..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#, python-brace-format
+msgctxt "call_invite_sent"
+msgid "Invited to the call: {count}."
+msgstr "تمت الدعوة إلى المكالمة: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_title"
+msgid "Add participants to the call"
+msgstr "إضافة مشاركين إلى المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#, python-brace-format
+msgctxt "call_invite_too_many"
+msgid "Too many people checked. Room left in the call: {count}"
+msgstr ""
+"تم تحديد عدد كبير جدًا من الأشخاص. الأماكن المتبقية في المكالمة: {count}"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_messages.py
 msgctxt "call_log_action_unavailable"
@@ -2463,6 +2534,12 @@ msgstr "مكالمة فيديو"
 msgctxt "call_log_unknown_voice"
 msgid "Voice call"
 msgstr "مكالمة صوتية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+msgctxt "call_participants_add"
+msgid "&Add participants"
+msgstr "إ&ضافة مشاركين"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py client/ui/ongoing_calls.py
@@ -2649,7 +2726,7 @@ msgstr "&إعدادات فيديو المكالمة"
 #: client/ui/conversation_panel/reactions.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/ai_result_dialog.py
-#: client/ui/dialogs/attach_contact_dialog.py
+#: client/ui/dialogs/attach_contact_dialog.py client/ui/dialogs/call_invite.py
 #: client/ui/dialogs/community_create.py client/ui/dialogs/emoji_picker.py
 #: client/ui/dialogs/meta_ai_terms.py client/ui/dialogs/new_contact.py
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
@@ -2732,10 +2809,631 @@ msgid "Version {version}"
 msgstr "الإصدار {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_demote"
+msgid "Remove admin..."
+msgstr "إزالة المشرف..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_demote_confirm"
+msgid "Remove {name} as an admin of the channel?"
+msgstr "هل تريد إزالة {name} من مشرفي القناة؟"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_demote_failed"
+msgid "The admin could not be removed."
+msgstr "تعذّرت إزالة المشرف."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_demoted"
+msgid "{name} is no longer an admin."
+msgstr "لم يعد {name} مشرفًا."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_invite"
+msgid "Invite admin..."
+msgstr "دعوة مشرف..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_invite_button"
+msgid "Invite"
+msgstr "دعوة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_invite_failed"
+msgid "The admin invite could not be sent."
+msgstr "تعذّر إرسال دعوة الإشراف."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admin_invite_message"
+msgid "Message sent with the invite (optional):"
+msgstr "رسالة تُرسل مع الدعوة (اختياري):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_invite_pick"
+msgid "Invite a contact to be an admin"
+msgstr "دعوة جهة اتصال لتكون مشرفًا"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_invited"
+msgid "Admin invite sent to {name}. They become an admin when they accept it."
+msgstr "أُرسلت دعوة الإشراف إلى {name}. يصبح مشرفًا عندما يقبلها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_invited_until"
+msgid ""
+"Admin invite sent to {name}, valid until {date}. They become an admin when "
+"they accept it."
+msgstr ""
+"أُرسلت دعوة الإشراف إلى {name}، وهي صالحة حتى {date}. يصبح مشرفًا عندما "
+"يقبلها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_leave"
+msgid "Stop being an admin..."
+msgstr "التوقف عن الإشراف..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_leave_confirm"
+msgid "Stop being an admin of this channel?"
+msgstr "هل تريد التوقف عن الإشراف على هذه القناة؟"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_left"
+msgid "You are no longer an admin of this channel."
+msgstr "لم تعد مشرفًا على هذه القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_make"
+msgid "Make admin..."
+msgstr "تعيين مشرفًا..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_revoke"
+msgid "Cancel admin invite..."
+msgstr "إلغاء دعوة مشرف..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_revoke_confirm"
+msgid "Cancel the admin invite sent to {name}?"
+msgstr "هل تريد إلغاء دعوة الإشراف المرسلة إلى {name}؟"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_revoke_failed"
+msgid "The admin invite could not be cancelled."
+msgstr "تعذّر إلغاء دعوة الإشراف."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_revoked"
+msgid "The admin invite sent to {name} was cancelled."
+msgstr "أُلغيت دعوة الإشراف المرسلة إلى {name}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_admins_owner_only"
+msgid "Only the channel's owner invites admins."
+msgstr "مالك القناة وحده يدعو المشرفين."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_create_failed"
+msgid "The channel could not be created."
+msgstr "تعذّر إنشاء القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_delete_failed"
+msgid "The channel could not be deleted."
+msgstr "تعذّر حذف القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_edit_failed"
+msgid "The channel could not be changed."
+msgstr "تعذّر تعديل القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_follow_failed"
+msgid "The channel could not be followed."
+msgstr "تعذّرت متابعة القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_member_you"
+msgid "You"
+msgstr "أنت"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_mute_failed"
+msgid "The channel notifications could not be changed."
+msgstr "تعذّر تغيير إشعارات القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_not_found"
+msgid "The channel was not found."
+msgstr "لم يُعثر على القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_owner_change_failed"
+msgid "The owner could not be changed."
+msgstr "تعذّر تغيير المالك."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_owner_made"
+msgid "{name} is now the owner of the channel."
+msgstr "أصبح {name} مالك القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_owner_make"
+msgid "Make owner..."
+msgstr "تعيين مالكًا..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_owner_make_confirm"
+msgid ""
+"Make {name} the owner of the channel? You will no longer be able to delete "
+"it or change its admins."
+msgstr ""
+"هل تريد جعل {name} مالك القناة؟ لن تتمكن بعدها من حذفها أو تغيير مشرفيها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_people_count"
+msgid "Admins: {admins}. People listed: {count}."
+msgstr "المشرفون: {admins}. الأشخاص في القائمة: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_people_list"
+msgid "People"
+msgstr "الأشخاص"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_people_title"
+msgid "Admins and followers of {name}"
+msgstr "مشرفو القناة {name} ومتابعوها"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_people_unavailable"
+msgid "The channel's followers could not be read."
+msgstr "تعذّرت قراءة متابعي القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_actions.py
+msgctxt "channel_pin_admins_only"
+msgid "Only the channel's owner and admins can pin updates."
+msgstr "لا يمكن تثبيت التحديثات إلا لمالك القناة ومشرفيها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "هذه القناة للقراءة فقط"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_admin"
+msgid "admin"
+msgstr "مشرف"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_follower"
+msgid "follower"
+msgstr "متابع"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_owner"
+msgid "owner"
+msgstr "المالك"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_pending"
+msgid "admin invite pending"
+msgstr "دعوة إشراف معلّقة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/channel_conversation.py
+msgctxt "channel_text_only"
+msgid ""
+"In a channel WinZapp posts text only: no replies, files, polls, contacts or "
+"voice notes."
+msgstr ""
+"في القناة ينشر WinZapp النص فقط: دون ردود أو ملفات أو استطلاعات أو جهات "
+"اتصال أو رسائل صوتية."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_unfollow_failed"
+msgid "The channel could not be unfollowed."
+msgstr "تعذّر إلغاء متابعة القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category"
+msgid "Ca&tegory"
+msgstr "ال&فئة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_all"
+msgid "All categories"
+msgstr "كل الفئات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_business"
+msgid "Business"
+msgstr "الأعمال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_entertainment"
+msgid "Entertainment"
+msgstr "الترفيه"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_lifestyle"
+msgid "Lifestyle"
+msgstr "نمط الحياة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_news"
+msgid "News"
+msgstr "الأخبار"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_organizations"
+msgid "Organizations"
+msgstr "المؤسسات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_people"
+msgid "People"
+msgstr "الأشخاص"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_category_sports"
+msgid "Sports"
+msgstr "الرياضة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_copy_link"
+msgid "Copy link"
+msgstr "نسخ الرابط"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channels_count"
+msgid "Channels you follow: {count}"
+msgstr "القنوات التي تتابعها: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_create"
+msgid "Create channel..."
+msgstr "إنشاء قناة..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_create_title"
+msgid "Create channel"
+msgstr "إنشاء قناة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_created"
+msgid "Channel created."
+msgstr "تم إنشاء القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+#, python-brace-format
+msgctxt "channels_created_on"
+msgid "Created on {date}"
+msgstr "تاريخ الإنشاء: {date}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_delete"
+msgid "Delete channel"
+msgstr "حذف القناة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+#, python-brace-format
+msgctxt "channels_delete_confirm"
+msgid ""
+"Delete the channel {name}? Its followers will no longer see it, and this "
+"cannot be undone."
+msgstr ""
+"هل تريد حذف القناة {name}؟ لن يراها متابعوها بعد ذلك، ولا يمكن التراجع عن "
+"هذا."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_deleted"
+msgid "Channel deleted."
+msgstr "تم حذف القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_description"
+msgid "D&escription"
+msgstr "الو&صف"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_details"
+msgid "&Details"
+msgstr "ال&تفاصيل"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_directory_unavailable"
+msgid "The channel directory could not be loaded."
+msgstr "تعذّر تحميل دليل القنوات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_edit"
+msgid "Edit channel..."
+msgstr "تعديل القناة..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_edit_title"
+msgid "Edit channel"
+msgstr "تعديل القناة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_edited"
+msgid "Channel changed."
+msgstr "تم تعديل القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_find"
+msgid "Find channels"
+msgstr "البحث عن قنوات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_follow"
+msgid "Follow"
+msgstr "متابعة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_follow_by_link"
+msgid "Follow by link..."
+msgstr "متابعة عبر رابط..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_followed"
+msgid "You now follow this channel."
+msgstr "أنت تتابع هذه القناة الآن."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+#, python-brace-format
+msgctxt "channels_followers"
+msgid "Followers: {count}"
+msgstr "المتابعون: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_following"
+msgid "following"
+msgstr "تتابعها"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channels_found"
+msgid "Channels found: {count}"
+msgstr "القنوات التي عُثر عليها: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_link_copied"
+msgid "Channel link copied."
+msgstr "تم نسخ رابط القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channels_link_found"
+msgid "Channel found: {name}. Use Follow to follow it."
+msgstr "تم العثور على القناة: {name}. استخدم متابعة لمتابعتها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_link_invalid"
+msgid "That is not a channel link."
+msgstr "هذا ليس رابط قناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+#, python-brace-format
+msgctxt "channels_link_line"
+msgid "Link: {link}"
+msgstr "الرابط: {link}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_link_prompt"
+msgid "Paste the channel link:"
+msgstr "الصق رابط القناة:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_list"
+msgid "Channe&ls"
+msgstr "ال&قنوات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_mine"
+msgid "My channels"
+msgstr "قنواتي"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_mute"
+msgid "Mute notifications"
+msgstr "كتم الإشعارات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_muted"
+msgid "muted"
+msgstr "مكتومة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_muted_done"
+msgid "Channel notifications muted."
+msgstr "تم كتم إشعارات القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_name"
+msgid "&Name"
+msgstr "الا&سم"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_name_required"
+msgid "Type a name for the channel."
+msgstr "اكتب اسمًا للقناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+msgctxt "channels_nav"
+msgid "Channels alt+9"
+msgstr "القنوات alt+9"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_none"
+msgid "You do not follow any channel."
+msgstr "أنت لا تتابع أي قناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_nothing_found"
+msgid "No channel found."
+msgstr "لم يُعثر على أي قناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_open"
+msgid "Open channel"
+msgstr "فتح القناة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_people"
+msgid "Admins and followers..."
+msgstr "المشرفون والمتابعون..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channels_recommended"
+msgid "Recommended channels: {count}"
+msgstr "القنوات المقترحة: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_refresh"
+msgid "Refresh"
+msgstr "تحديث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_role_admin"
+msgid "you are an admin"
+msgstr "أنت مشرف"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_role_owner"
+msgid "yours"
+msgstr "قناتك"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_search"
+msgid "&Search channels"
+msgstr "ا&بحث عن قنوات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_search_button"
+msgid "Search"
+msgstr "بحث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_show"
+msgid "Show"
+msgstr "عرض"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_title"
+msgid "Channels"
+msgstr "القنوات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_unavailable"
+msgid "Your channels could not be loaded."
+msgstr "تعذّر تحميل قنواتك."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_unfollow"
+msgid "Unfollow"
+msgstr "إلغاء المتابعة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_unfollowed"
+msgid "You no longer follow this channel."
+msgstr "لم تعد تتابع هذه القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_unmute"
+msgid "Unmute notifications"
+msgstr "إلغاء كتم الإشعارات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_unmuted_done"
+msgid "Channel notifications unmuted."
+msgstr "تم إلغاء كتم إشعارات القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py client/ui/dialogs/channels.py
+msgctxt "channels_unnamed"
+msgid "Channel with no name"
+msgstr "قناة بلا اسم"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_verified"
+msgid "verified"
+msgstr "موثّقة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view"
+msgid "&View"
+msgstr "طريقة ال&عرض"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_new"
+msgid "New"
+msgstr "الجديدة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_popular"
+msgid "Popular"
+msgstr "الشائعة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_recommended"
+msgid "Recommended"
+msgstr "المقترحة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_view_trending"
+msgid "Trending"
+msgstr "الرائجة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_you_are_admin"
+msgid "You are an admin of this channel."
+msgstr "أنت مشرف في هذه القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_you_are_owner"
+msgid "You own this channel."
+msgstr "أنت مالك هذه القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_you_do_not_follow"
+msgid "You do not follow this channel."
+msgstr "أنت لا تتابع هذه القناة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_you_follow"
+msgid "You follow this channel."
+msgstr "أنت تتابع هذه القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "chat_action_archived"
@@ -6904,8 +7602,9 @@ msgid "list selection"
 msgstr "اختيار القائمة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
-#: client/ui/dialogs/call_participants.py client/ui/dialogs/cart_dialog.py
-#: client/ui/dialogs/community_comments.py
+#: client/ui/dialogs/call_invite.py client/ui/dialogs/call_participants.py
+#: client/ui/dialogs/cart_dialog.py client/ui/dialogs/channel_admins.py
+#: client/ui/dialogs/channels.py client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/order_update_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py client/ui/ongoing_calls.py
@@ -10288,6 +10987,12 @@ msgstr "Alt+7: فتح الدردشات المقفلة"
 msgctxt "shortcut_alt8_communities_label"
 msgid "Alt+8: open communities"
 msgstr "Alt+8: فتح المجتمعات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_alt9_channels_label"
+msgid "Alt+9: open channels"
+msgstr "Alt+9: فتح القنوات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -15932,6 +16637,24 @@ msgstr "إظهار ال&حالات في مشغل منفصل (يفتح نافذة
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_after"
+msgid "S&how the number after the chat name"
+msgstr "إ&ظهار العدد بعد اسم المحادثة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_before"
+msgid "Show the number &before the chat name"
+msgstr "إظ&هار العدد قبل اسم المحادثة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_unread_position_label"
+msgid "Number of new messages in the chat list:"
+msgstr "عدد الرسائل الجديدة في قائمة المحادثات:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_audio"
 msgid "A&udio (read all as audio)"
 msgstr "صوت (&اقرأ الكل كصوت)"
@@ -16016,15 +16739,16 @@ msgid ""
 "operation."
 msgstr "واجه {app_name} خطأً غير متوقع ولم يمكن إكمال العملية."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_participants.py
-#: client/core/notification_manager.py client/core/polls.py
-#: client/main_window/calls.py client/main_window/chat_list.py
-#: client/main_window/chats_store.py client/main_window/groups.py
-#: client/main_window/shortcuts.py client/status_tab/status_rules.py
-#: client/ui/conversation_panel/commerce.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#: client/core/call_participants.py client/core/notification_manager.py
+#: client/core/polls.py client/main_window/calls.py
+#: client/main_window/chat_list.py client/main_window/chats_store.py
+#: client/main_window/groups.py client/main_window/shortcuts.py
+#: client/status_tab/status_rules.py client/ui/conversation_panel/commerce.py
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/call_invite.py client/ui/dialogs/channel_admins.py
 #: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"
@@ -16100,14 +16824,12 @@ msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "لم يمكن إلغاء تثبيت هذه الرسالة. يرجى المحاولة مرة أخرى بعد لحظة."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
 msgid "unread message"
 msgstr "رسالة غير مقروءة"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_events.py
-#: client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_messages"
 msgid "unread messages"
 msgstr "رسائل غير مقروءة"

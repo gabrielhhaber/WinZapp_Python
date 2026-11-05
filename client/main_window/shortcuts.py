@@ -33,6 +33,7 @@ class ShortcutsMixin:
         self.ID_CTRL_ALT_SHIFT_H = wx.NewIdRef()
         self.ID_CTRL_ALT_SHIFT_G = wx.NewIdRef()
         self.ID_COMMUNITIES      = wx.NewIdRef()
+        self.ID_CHANNELS         = wx.NewIdRef()
 
         # navigation_panel's "&Navegação principal" label mnemonic is meant
         # to redirect Alt+N to nav_list, but that native StaticText-mnemonic
@@ -72,6 +73,8 @@ class ShortcutsMixin:
             # After the seven panels: the communities window (it is otherwise
             # reached through New conversation).
             (wx.ACCEL_ALT,    ord('8'),    self.ID_COMMUNITIES),
+            # and the channels window, next to it (core/channels.py)
+            (wx.ACCEL_ALT,    ord('9'),    self.ID_CHANNELS),
         ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_alt_1,       id=self.ID_ALT_1)
@@ -90,6 +93,7 @@ class ShortcutsMixin:
         self.Bind(wx.EVT_MENU, self._on_quick_output_devices, id=self.ID_CTRL_ALT_SHIFT_H)
         self.Bind(wx.EVT_MENU, self._on_quick_input_devices, id=self.ID_CTRL_ALT_SHIFT_G)
         self.Bind(wx.EVT_MENU, self._on_global_communities, id=self.ID_COMMUNITIES)
+        self.Bind(wx.EVT_MENU, self._on_global_channels, id=self.ID_CHANNELS)
         from ui.shortcut_bindings import refresh_mnemonics
         refresh_mnemonics(self)
 
@@ -99,6 +103,12 @@ class ShortcutsMixin:
         conversation)."""
         from ui.dialogs.communities import show_communities
         show_communities(self, self)
+
+    def _on_global_channels(self, event=None):
+        """Alt+9: the channels window, from anywhere in the window (also a
+        row of the navigation list)."""
+        from ui.dialogs.channels import show_channels
+        show_channels(self, self)
 
     def _on_alt_nav(self, event):
         """Alt+N (or the localized equivalent): focus the main navigation list."""

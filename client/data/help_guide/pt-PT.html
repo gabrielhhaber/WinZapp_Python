@@ -366,6 +366,7 @@
     <h2 id="h-conversas">💬 3. Lista de conversas</h2>
 <p class="lead">A lista de conversas (Alt+1) mostra os nomes das pessoas e grupos, nunca códigos internos. Cada linha lê o nome, a última mensagem e o estado (não lidas, afixada, silenciada...).</p>
 <p>Com o Neonize, uma conversa só é marcada como lida quando a abre ou a marca como lida, e aparece como lida também no telemóvel e no WhatsApp Web.</p>
+<p>Com o Neonize, quando chega ao início do que o WinZapp tem de uma conversa, ele pede ao telemóvel as mensagens mais antigas, como o WhatsApp Web faz; chegam em alguns instantes, com o telemóvel ligado.</p>
 
 <h3>Filtros e listas</h3>
 <ul>
@@ -730,6 +731,9 @@
   <tr><td class="field-name">Ctrl+Shift+Q</td><td>Desligar</td></tr>
 </table>
 
+<h3>Adicionar pessoas à chamada</h3>
+<p>Durante a chamada, "Participantes da chamada" mostra quem está nela, e o botão "Adicionar participantes" abre a lista de quem pode entrar: numa chamada de grupo, os membros do grupo que ainda não estão na chamada; numa chamada privada, os seus contactos, e a chamada passa a ter várias pessoas. Marque as pessoas com Espaço e prima "Adicionar". Quem já foi chamado e não entrou é chamado outra vez. O leitor de ecrã diz quantas pessoas foram convidadas e quem não pôde ser adicionado.</p>
+
 <h3>Chamada recebida</h3>
 <p>A janela tem "Atender", "Recusar" e "Silenciar alerta"; numa chamada de vídeo, "Atender com vídeo" e "Atender sem vídeo". Os atalhos dessa janela são só Alt + a letra sublinhada, para que uma tecla apertada por engano não atenda nem recuse.</p>
 
@@ -772,6 +776,10 @@
 
 <h3>Comunidades (Alt+8)</h3>
 <p>O painel Comunidades (ou "Nova conversa" &gt; "Comunidades") lista as comunidades em que o utilizador está. Ao escolher uma, aparecem a descrição, os administradores e os grupos dela em que o utilizador entrou, com o grupo de avisos e o grupo geral identificados; Enter ou "Abrir grupo" vai ao grupo. Se o utilizador administra a comunidade: "Adicionar grupos", "Remover grupo da comunidade", "Promover a administrador da comunidade", "Despromover administrador da comunidade" e "Desativar comunidade". "Nova comunidade" cria uma com nome, descrição e os grupos escolhidos. Depois de cada ação o WinZapp lê as comunidades de novo e só diz que terminou quando o WhatsApp mostra a alteração; senão avisa que o encomenda foi enviado mas não está confirmado, ou que foi recusado.</p>
+
+<h3>Canais (Alt+9)</h3>
+<p>A janela Canais (Alt+9, ou o item Canais da lista de navegação) mostra "Os meus canais", os canais que segue, ou "Encontrar canais": escreva em "Procurar canais" e prima Enter; sem texto, aparecem os canais recomendados do WhatsApp. Em "Detalhes" ficam a descrição, o número de seguidores, se segue, administra ou é dono do canal, e a ligação. Enter ou "Abrir canal" abre o canal para ler as atualizações. Os botões "Seguir" e "Deixar de seguir", "Silenciar notificações" e "Ativar notificações", "Copiar ligação", "Seguir por ligação..." (cole a ligação do canal) e "Criar canal..." valem para qualquer canal; "Editar canal..." aparece nos canais que administra e "Eliminar canal" nos que são seus. Mostrar os canais na lista de conversas continua a ser uma opção de Definições &gt; Interface &gt; Conversas.</p>
+<p>Em "Encontrar canais", as escolhas Categoria e Lista filtram o diretório como as opções do WhatsApp Web: escolha uma categoria (ou "Todas as categorias") e uma lista (recomendados, tendências, populares ou novos) e prima Procurar ou Enter. Com texto em "Procurar canais", a pesquisa fica só na categoria escolhida. Nos canais que administra, o campo de mensagem fica disponível ao abrir o canal: escreva e envie para publicar uma atualização de texto (áudio e anexos não). Pelo menu da mensagem, ou Ctrl+Shift+P, afixa ou desafixa uma atualização, e as afixadas aparecem no botão "Mensagens afixadas". O botão "Administradores e seguidores..." da janela Canais diz quantos administradores o canal tem; o dono também pode usar "Convidar administrador..." (escolha o contacto e, se quiser, uma mensagem: o convite chega à conversa da pessoa e ela passa a ser administradora quando o aceitar) e "Cancelar convite de administrador...". Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de o ser.</p>
 
 <h3>Menções e respostas</h3>
 <p>Uma pessoa mencionada pelo nome com @todos mantém o chamada; a menção ao utilizador, na notificação e na prévia, usa a palavra escolhida em "Como se referir a mim?". Em Definições &gt; Interface &gt; Mensagens, "Ocultar números de telefone de remetentes sem nome nas mensagens" faz mensagens de pessoas sem nome começarem direto pelo conteúdo. Em Definições &gt; Interface &gt; Conversas, "Preceder os nomes de contactos não guardados com um sinal de til (~) nas conversas e mensagens" (ligada por predefinição) mostra um til antes do nome de quem não guardou, nas conversas e nas mensagens.</p>
@@ -853,7 +861,7 @@
   <tr><td class="field-name">Interface</td><td>Cada botão abre a janela de um assunto: Mensagens, Reações, Conversas, Confirmações e Atalhos de teclado.</td></tr>
   <tr><td class="field-name">Interface &gt; Mensagens</td><td>Quantas mensagens mostrar ao abrir uma conversa; quantas pular com Page Up/Down; tipo de lista de mensagens (clássica, com limite de 512 caracteres, ou caixa de lista, com mensagens completas); mostrar quem está a escrever como última linha; "Como se referir a mim?"; ocultar o remetente nas suas mensagens; ocultar números de remetentes sem nome; preservar a mensagem digitada como legenda; "Ontem às {time}" no lugar da data; prévias de chamadas; "Reencaminhada" antes do remetente; marca inicial de "Eliminar também a multimédia do telemóvel"; vídeos e estados em player separado; tipos de multimédia exibidos por predefinição.</td></tr>
   <tr><td class="field-name">Interface &gt; Reações</td><td>Reações rápidas fixas e a escolha do emoji de cada posição.</td></tr>
-  <tr><td class="field-name">Interface &gt; Conversas</td><td>Onde focar ao abrir uma conversa; estados de entrega na lista de conversas; manter a ordem das conversas afixadas; substituir atalhos por ações em massa; comportamento de Espaço e Esc com seleção; manter a pesquisa de conversas ao abrir; posição do anúncio "selecionado"; mostrar canais na lista de conversas (desmarcado por predefinição).</td></tr>
+  <tr><td class="field-name">Interface &gt; Conversas</td><td>Onde focar ao abrir uma conversa; estados de entrega na lista de conversas; manter a ordem das conversas afixadas; substituir atalhos por ações em massa; comportamento de Espaço e Esc com seleção; manter a pesquisa de conversas ao abrir; posição do anúncio "selecionado"; mostrar canais na lista de conversas (desmarcado por predefinição); "Número de mensagens novas na lista de conversas", antes ou depois do nome da conversa.</td></tr>
   <tr><td class="field-name">Interface &gt; Conversas &gt; Conversas trancadas</td><td>PIN do cofre, bloqueio por tempo sem uso e o código secreto (o botão aparece quando o cofre está disponível).</td></tr>
   <tr><td class="field-name">Interface &gt; Confirmações</td><td>As perguntas de confirmação (marcar tudo como lido, limpar, eliminar, F5, Shift+F5, gravar áudio do computador) e suas versões "Não mostrar novamente".</td></tr>
   <tr><td class="field-name">Interface &gt; Atalhos de teclado</td><td>Lista todos os atalhos do programa, inclusive o global. Selecione um, escolha "Alterar" e escreva a nova combinação; ou desative-o, restaure o predefinição ou restaure todos. Conflitos são avisados antes de aplicar, e as mudanças só valem com Aplicar ou OK.</td></tr>
@@ -965,6 +973,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+H</td><td>Mudar o dispositivo de reprodução até fechar o WinZapp, em todas as contas abertas (em seguida, 1 a 0)</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Mudar o dispositivo de gravação até fechar o WinZapp, em todas as contas abertas (em seguida, 1 a 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Abrir comunidades</td></tr>
+<tr><td class="field-name">Alt+9</td><td>Abrir canais</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 a 9</td><td>Abrir um chat de acesso rápido atribuído</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 a 9</td><td>Atribuir o chat com foco a um número de acesso rápido</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Marcar todas as conversas como lidas</td></tr>
@@ -1312,6 +1321,8 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Guia: canais com categorias e listas do diretório, atualizações publicadas e afixadas por administradores e a janela de administradores do canal.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Guia: janela Canais (Alt+9), adicionar pessoas à chamada em curso, mensagens mais antigas pedidas ao telemóvel pelo Neonize e a posição do número de mensagens novas na lista de conversas.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Atalhos: F1 distingue as sugestões de menção das menções dentro de uma mensagem. Em espanhol e português de Portugal, Alt+P leva ao campo de mensagem e Alt+E edita mensagens.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Grupos: quando alguém está a escrever, o aviso passa a usar o nome da pessoa em vez de apenas o número de telefone.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Neonize: as publicações de canais que segue já não aparecem como conversas e mensagens.</td></tr>

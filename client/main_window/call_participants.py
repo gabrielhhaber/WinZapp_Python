@@ -22,9 +22,22 @@ class CallParticipantsMixin:
             return
         from ui.dialogs.call_participants import CallParticipantsDialog
         dialog = CallParticipantsDialog(parent or self, self, call_id,
-                                        self.chat_display_name(chat_jid), allowed)
+                                        self.chat_display_name(chat_jid), allowed,
+                                        invite_chat=self._call_invite_chat(call_id, chat_jid))
         try:
             dialog.ShowModal()
         finally:
             dialog._dispose_participants()
             dialog.Destroy()
+
+    def _call_invite_chat(self, call_id, chat_jid):
+        """The chat of *call_id* when people may be added to it: only the call
+        this device is in now, group or private (core/call_invites.py); ''
+        otherwise."""
+        active = getattr(self, "_active_voice_call", None) or {}
+        if not active_participants_available(active, getattr(self, "_voice_call_last_announced_state", "")):
+            return ""
+        chat = str(active.get("peer_jid") or chat_jid or "")
+        if active.get("call_id") != call_id or not chat.endswith(("@g.us", "@lid", "@s.whatsapp.net", "@c.us")):
+            return ""
+        return chat

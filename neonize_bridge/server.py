@@ -52,6 +52,10 @@ import chat_remaining
 import groups
 import groups_extra
 import history_progress
+import older_history
+import call_invites
+import channels_panel
+import channel_updates
 import cleanup
 import msgmap
 import pairing
@@ -1130,6 +1134,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             self.emit("phoneCodeError", session_lifecycle.code_expired_notice(self.name))
 
     def _store_history(self, data):
+        if older_history.is_on_demand(data):
+            # an answer to an older-history request, not the pairing's
+            # history: history-sync-status must not go back to "landing"
+            self._store_history_block(data)
+            return
         progress = history_progress.progress_of(self, time.monotonic())
         progress.started(time.monotonic())
         percent = None
@@ -1148,11 +1157,30 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                                    if x.ID and x.pushname])
         total = 0
         chats, rows = [], []
+        # The phone's answer to an older-history request (older_history.py)
+        # carries old messages, not the chat's current state: its date, unread
+        # count or archiving would only undo what the live events set since.
+        on_demand = older_history.is_on_demand(data)
+        ends = []
         for c in data.conversations:
             jid = c.ID
             if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
                 continue
+            history_end = (int(c.endOfHistoryTransferType)
+                           if c.HasField("endOfHistoryTransferType") else None)
+            if on_demand:
+                # under the key the chat is stored with: the phone may answer
+                # by its other address (number vs LID), which get-messages,
+                # joining only stored keys, would never read
+                target = self.existing_chat(jid) or jid
+                if history_end is not None:
+                    ends.append((target, history_end))
+                count = len(rows)
+                rows.extend(Session._history_rows(target, c))
+                total += len(rows) - count
+                continue
             fields = {"name": c.name or c.displayName or None,
+                      "history_end": history_end,
                       "ts": msgmap.seconds(c.conversationTimestamp or c.lastMsgTimestamp)}
             if c.HasField("unreadCount"):
                 fields["unread"] = int(c.unreadCount)
@@ -1172,25 +1200,34 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 fields["ephemeral_ts"] = int(c.ephemeralSettingTimestamp or 0)
             chats.append((jid, {k: v for k, v in fields.items() if v is not None}))
             count = len(rows)
-            for h in c.messages:
-                m = h.message
-                key = m.key
-                w = msgmap.build(
-                    chat=jid, from_me=bool(key.fromMe), id=key.ID,
-                    sender=key.participant or m.participant
-                    or ("" if key.fromMe else jid),
-                    ts=m.messageTimestamp, message=m.message,
-                    sender_name=m.pushName)
-                if w is not None and w["id"]["id"]:
-                    if m.starred:
-                        w["star"] = True
-                    rows.append((jid, w, msgmap.media_record_of(m.message)))
+            rows.extend(Session._history_rows(jid, c))
             total += len(rows) - count
         self.db.chats_in_batch(chats)
+        if ends:
+            self.db.history_ends_of_existing(ends)
         self.db.messages_in_batch(rows)
-        log.info("history: %d chats, %d messages (%s%%)",
+        log.info("history%s: %d chats, %d messages (%s%%)", " on demand" if on_demand else "",
                  len(data.conversations), total, data.progress)
         return data.progress
+
+    @staticmethod
+    def _history_rows(jid, c):
+        """(chat, message, media record) of each message of a history conversation."""
+        rows = []
+        for h in c.messages:
+            m = h.message
+            key = m.key
+            w = msgmap.build(
+                chat=jid, from_me=bool(key.fromMe), id=key.ID,
+                sender=key.participant or m.participant
+                or ("" if key.fromMe else jid),
+                ts=m.messageTimestamp, message=m.message,
+                sender_name=m.pushName)
+            if w is not None and w["id"]["id"]:
+                if m.starred:
+                    w["star"] = True
+                rows.append((jid, w, msgmap.media_record_of(m.message)))
+        return rows
 
     COLLECTIONS = ("regular_high", "regular_low", "regular",
                    "critical_unblock_low", "critical_block")
@@ -1950,6 +1987,12 @@ def create_app(folder, fixed=""):
         jid = req.match_info["phone"]
         if "@" not in jid:
             jid += "@c.us"
+        if jid.endswith("@newsletter"):
+            # a channel's updates are asked of WhatsApp: the store keeps none
+            if s.status != "CONNECTED" or s.client is None:
+                return ok(status="success", response=[])
+            return ok(status="success", response=await in_thread(
+                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text))
         # the chat may be stored by the number or by the LID (or both)
         keys = await in_thread(s.chat_keys, jid) or [msgmap.jid_whatsmeow(jid)]
         count = int(q.get("count", 20))
@@ -1975,7 +2018,7 @@ def create_app(folder, fixed=""):
             destination = build_jid(u, srv)
         else:
             destination = build_jid(phone)
-        content = body["message"]
+        content = inputs.whole_text(body["message"])
         preview = msgmap.link_preview(body.get("options"))
         if preview:      # the link card the client already built
             from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ExtendedTextMessage, Message
@@ -2170,7 +2213,7 @@ def create_app(folder, fixed=""):
         chat = jid_text(destination)
         w = msgmap.build(chat=chat, from_me=True, id=resp.ID, sender=s.me,
                          ts=resp.Timestamp or time.time(), message=resp.Message)
-        if w is not None:
+        if w is not None and channel_updates.kept_in_store(chat):
             s.db.message(chat, w, msgmap.media_record_of(resp.Message))
             s.db.on_arrival(chat, w["t"], True)
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"
@@ -2212,6 +2255,7 @@ def create_app(folder, fixed=""):
     def send_media_message(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
                            client=None):
         c = s.client if client is None else client
+        caption = inputs.whole_text(caption)
         # audio and video: not neonize's build_*_message, which need ffprobe
         # (WinZapp does not ship it)
         if kind in ("audio", "video"):
@@ -2336,7 +2380,7 @@ def create_app(folder, fixed=""):
         from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ExtendedTextMessage, Message
         options = body.get("options") or {}
         return s.client.send_message(destination, Message(extendedTextMessage=ExtendedTextMessage(
-            text=body["text"], textArgb=0xFFFFFFFF,
+            text=inputs.whole_text(body["text"]), textArgb=0xFFFFFFFF,
             backgroundArgb=msgmap.argb_color(options.get("backgroundColor")),
             font=int(options.get("font") or 0))))
 
@@ -2501,11 +2545,13 @@ def create_app(folder, fixed=""):
                                     store_sent=store_sent, quoted_context=quoted_context)
     channels.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text,
                              jid_text=jid_text)
+    channels_panel.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text)
     administration.register_routes(r, session=session, ok=ok, state=state, folder=folder,
                                    mark_active=mark_active, qr_data_url=qr_data_url)
     cleanup.register_routes(r, ok=ok, state=state, folder=folder, mark_active=mark_active)
     calls.register_routes(r, session=session, ok=ok)
     ongoing_calls.register_routes(r, session=session, ok=ok)
+    call_invites.register_routes(r, session=session, ok=ok)
     presence.register_routes(r, session=session, ok=ok)
     labels.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text,
                            jid_text=jid_text)
@@ -2544,7 +2590,7 @@ def create_app(folder, fixed=""):
         if with_mentions:
             ctx.mentionedJID.extend(msgmap.jid_whatsmeow(j) for j in body.get("mentioned", []))
         message = Message(extendedTextMessage=ExtendedTextMessage(
-            text=body["message"], contextInfo=ctx,
+            text=inputs.whole_text(body["message"]), contextInfo=ctx,
             **(msgmap.link_preview(body.get("options")) or {})))
         try:
             resp = await asyncio.get_running_loop().run_in_executor(
@@ -2727,7 +2773,7 @@ def create_app(folder, fixed=""):
         if reason:
             return responses.edit_refused(reason)
         mentions = (body.get("options") or {}).get("mentionedJidList") or []
-        done = await in_thread(s.edit, body["id"], body["newText"], mentions)
+        done = await in_thread(s.edit, body["id"], inputs.whole_text(body["newText"]), mentions)
         if not done:
             return web.json_response({"status": "error", "message": "not accepted"}, status=500)
         return ok(status="success", response={"edited": True})
@@ -2767,13 +2813,6 @@ def create_app(folder, fixed=""):
                 s.emit("received-message", {"session": s.name, "response": copy})
         return ok(status="success", response=[{"forwarded": len(sent),
                                                "messageIds": new_ids}])
-
-    async def older_history(req):
-        """neonize has no on-demand history request (the one of the 'click
-        here to see older messages'): says the rest only exists on the
-        phone, and the app stops asking. The history that arrives is the pairing's."""
-        return ok(status="success", response={
-            "requested": False, "primaryHasMore": True, "phoneOnly": True})
 
     async def react_message(req):
         s = session(req)
@@ -2902,8 +2941,7 @@ def create_app(folder, fixed=""):
     r.add_post("/api/{tok}/react-message", react_message)
     r.add_post("/api/{tok}/edit-message", edit_message)
     r.add_post("/api/{tok}/forward-messages", forward_messages)
-    r.add_post("/api/{tok}/request-older-messages/{jid}", older_history)
-    r.add_get("/api/{tok}/older-history-state/{jid}", older_history)
+    older_history.register_routes(r, session=session, ok=ok, in_thread=in_thread)
     r.add_post("/api/{tok}/send-poll-message", send_poll_message)
     r.add_post("/api/{tok}/poll-votes", poll_votes)
     r.add_post("/api/{tok}/poll-voters", poll_voters)

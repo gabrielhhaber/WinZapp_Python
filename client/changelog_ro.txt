@@ -4,6 +4,13 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Setări > Interfață utilizator > Conversații: opțiune nouă "Numărul de mesaje noi în lista de conversații", pentru ca cititorul de ecran să spună numărul de mesaje noi înainte de numele conversației, nu după. Se aplică listei de conversații, celor arhivate și celor blocate. (sugestia lui Michal Suchý)
+
+- Fereastră nouă Canale (Alt+9, și în lista de navigare): arată canalele pe care le urmăriți sau caută în directorul de canale WhatsApp (fără text, apar canalele recomandate). Pentru canalul ales îl puteți deschide și citi actualizările, îl puteți urmări sau nu mai urmări, îi puteți dezactiva sau activa notificările, îi puteți copia linkul și, la canalele dvs., îl puteți edita sau șterge. Puteți urmări un canal din linkul lui și puteți crea un canal. Afișarea canalelor în lista de conversații rămâne o opțiune separată. Funcționează cu WPPConnect și cu Neonize.
+- Canale, ca în WhatsApp Web: în "Găsiți canale", Categorie (afaceri, divertisment, stil de viață, știri, organizații, persoane, sport) și Listă (recomandate, în tendințe, populare, noi) restrâng directorul. În canalele pe care le administrați, câmpul de mesaj se deschide pentru a publica actualizări text, o actualizare poate fi fixată sau anulată fixarea din meniul mesajului (Ctrl+Shift+P), iar cele fixate apar în "Mesaje fixate"; butonul "Administratori și urmăritori..." spune câți administratori are canalul și, pentru proprietar, invită un contact să fie administrator sau anulează invitația. Funcționează cu WPPConnect și cu Neonize. Fereastra arată proprietarul, administratorii, invitațiile în așteptare și urmăritorii: proprietarul poate face administrator un urmăritor, poate anula o invitație, poate elimina un administrator sau poate face proprietar un administrator, iar un administrator poate renunța la rol.
+
+- Apeluri: acum puteți adăuga persoane la apelul în curs, cu butonul "Adăugați participanți" din lista de participanți a apelului. Într-un apel de grup apar membrii grupului care nu sunt încă în apel; într-un apel privat, contactele dvs., iar apelul devine un apel cu mai multe persoane, ca în WhatsApp. Cine a fost deja apelat și nu a intrat este apelat din nou. Funcționează cu WPPConnect și cu Neonize.
+
 - WPPConnect Server a fost actualizat la 2.10.75, care repară un webhook Chatwoot ce accepta cereri fără autentificare și remediază o vulnerabilitate din bibliotecile glob și minimatch.
 
 - Setări WhatsApp > Confidențialitate: opțiune nouă "Păstrează conversațiile arhivate", aceeași ca în WhatsApp, care decide dacă o conversație arhivată revine în listă când sosește un mesaj nou. Funcționează cu WPPConnect și cu Neonize.
@@ -24,7 +31,13 @@ NOUTĂȚI
 
 - Neonize: mesajele către Meta AI funcționează. WinZapp cere acceptarea termenilor Meta AI când contul nu i-a acceptat încă, iar răspunsurile Meta AI apar ca text în loc de un mesaj necunoscut.
 
-- Neonize: statusurile video și vocale nu mai eșuează cu "server returned error 400" pe unele conturi.
+- Neonize: publicarea unui status (text, imagine, video sau voce) nu mai eșuează cu "server returned error 400". Se întâmpla în conversațiile cu mesaje temporare și, pe orice cont, după ce telefonul sincroniza un contact salvat sub noul identificator WhatsApp.
+
+- Neonize: WinZapp cere acum telefonului mesajele mai vechi ale unei conversații, așa cum face WhatsApp Web când dați clic pentru a vedea mesajele anterioare. Înainte, o conversație avea doar ce venise la conectarea dispozitivului, iar resincronizarea nu aducea nimic în plus.
+
+- Un mesaj pe care WinZapp îl cunoaște deja nu mai devine "Se așteaptă acest mesaj". La trecerea de la Neonize la WPPConnect, un mesaj abia trimis putea apărea așa, chiar și după F5 sau după redeschiderea WinZapp.
+
+- Mențiuni: tastarea unui emoji în lista de sugestii de mențiune nu mai strică trimiterea. Înainte, mesajul putea să nu plece, cu o eroare de server.
 
 - Grupuri: într-un grup în care doar administratorii pot trimite mesaje, câmpul de mesaj este acum doar pentru citire pentru membri și în Neonize; înainte rămânea editabil în majoritatea acestor grupuri.
 

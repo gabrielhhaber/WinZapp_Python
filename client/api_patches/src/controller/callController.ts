@@ -22,6 +22,7 @@ type CallActionPayload = {
   groupJid?: string;
   chatJid?: string;
   isVideo?: boolean;
+  participants?: string[];
 };
 
 function getWhatsappPage(req: Request): any {
@@ -37,6 +38,12 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
   const page = getWhatsappPage(req);
   const logger = (req as any).logger;
   const session = String((req.client as any)?.session || 'unknown');
+  if (action === 'group-invite') {
+    // Into the call this device is already in: VoIP is up, nothing to warm.
+    await page.evaluate(installGroupCallRuntimeInPage);
+    return page.evaluate((invitePayload: any) =>
+      (window as any).__winzappGroupCallRuntime.invite(invitePayload), payload);
+  }
   if (action === 'group-ongoing' || action === 'ongoing-list' || action === 'participants' || action === 'group-join-check') {
     // Discovery must not initialize VoIP or acquire devices every timer tick.
     await page.evaluate(installGroupCallRuntimeInPage);
@@ -759,6 +766,20 @@ export async function callParticipants(req: Request, res: Response) {
     ok(res, await evaluateWppCall(req, 'participants', req.body || {}));
   } catch (error) {
     fail(req, res, 'callParticipants', error);
+  }
+}
+
+export async function addCallParticipants(req: Request, res: Response) {
+  try {
+    const body = req.body || {};
+    if (!body.callId || !Array.isArray(body.participants) || body.participants.length === 0) {
+      res.status(400).json({ status: 'error', message: 'Parameters callId and participants are required!' });
+      return;
+    }
+    ok(res, await evaluateWppCall(req, 'group-invite',
+      { callId: String(body.callId), participants: body.participants.map(String) }));
+  } catch (error) {
+    fail(req, res, 'addCallParticipants', error);
   }
 }
 

@@ -14,6 +14,7 @@ import time
 import uuid
 import wave
 import wx
+from ui.conversation_panel.channel_conversation import refuse_in_channel
 from main_window.typing_feedback import stop_typing_for_capture
 from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
@@ -162,6 +163,8 @@ class VoiceRecordingMixin:
         no automatic-gain control, no resampling.  This preserves full voice
         naturalness and quality.
         """
+        if refuse_in_channel(self):
+            return
         if self.conversation is None:
             return
 

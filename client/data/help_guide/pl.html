@@ -366,6 +366,7 @@
     <h2 id="h-conversas">💬 3. Lista czatów</h2>
 <p class="lead">Lista czatów (Alt+1) pokazuje nazwy osób i grup, nigdy kody wewnętrzne. Każdy wiersz odczytuje nazwę, ostatnią wiadomość i stan (nieprzeczytany, przypięty, wyciszony...).</p>
 <p>W Neonize czat jest oznaczany jako przeczytany tylko wtedy, gdy go otworzysz lub oznaczysz jako przeczytany, i jako przeczytany widać go też na telefonie i w WhatsApp Web.</p>
+<p>W Neonize, gdy dojdziesz do początku tego, co WinZapp ma z czatu, prosi on telefon o starsze wiadomości, tak jak WhatsApp Web; docierają po chwili, gdy telefon jest połączony.</p>
 
 <h3>Filtry i listy</h3>
 <ul>
@@ -730,6 +731,9 @@
   <tr><td class="field-name">Ctrl+Shift+Q</td><td>Rozłącz</td></tr>
 </table>
 
+<h3>Dodawanie osób do połączenia</h3>
+<p>Podczas połączenia "Uczestnicy połączenia" pokazuje, kto w nim jest, a przycisk "Dodaj uczestników" otwiera listę osób, które mogą dołączyć: w połączeniu grupowym członków grupy, których jeszcze w nim nie ma; w połączeniu prywatnym Twoje kontakty, a połączenie staje się połączeniem z kilkoma osobami. Zaznacz osoby Spacją i naciśnij "Dodaj". Do osoby, która została już wezwana i nie dołączyła, dzwoni się ponownie. Czytnik ekranu podaje, ile osób zaproszono i kogo nie udało się dodać.</p>
+
 <h3>Połączenie przychodzące</h3>
 <p>Okno ma "Odbierz", "Odrzuć" i "Wycisz alert"; w rozmowie wideo "Odbierz z wideo" i "Odbierz bez wideo". Skróty tego okna to tylko Alt + podkreślona litera (Alt+O odbiera, również z wideo, Alt+B odbiera bez wideo, Alt+R odrzuca, Alt+W wycisza alert, Alt+Z zamyka okno), aby przypadkowo naciśnięty klawisz nie odebrał ani nie odrzucił.</p>
 
@@ -772,6 +776,10 @@
 
 <h3>Społeczności (Alt+8)</h3>
 <p>Panel Społeczności (lub "Nowy czat" &gt; "Społeczności") wymienia społeczności, w których jesteś. Po wybraniu jednej widzisz opis, administratorów i grupy z niej, do których dołączyłeś, z oznaczoną grupą ogłoszeń i grupą ogólną; Enter lub "Otwórz grupę" przechodzi do grupy. Jeśli administrujesz społecznością: "Dodaj grupy", "Usuń grupę ze społeczności", "Nadaj uprawnienia administratora społeczności", "Odbierz uprawnienia administratora społeczności" i "Dezaktywuj społeczność". "Nowa społeczność" tworzy nową z nazwą, opisem i wybranymi grupami. Po każdej akcji WinZapp ponownie odczytuje społeczności i mówi, że skończył, dopiero gdy WhatsApp pokazuje zmianę; w przeciwnym razie mówi, że prośba została wysłana, ale nie jest potwierdzona, albo że została odrzucona.</p>
+
+<h3>Kanały (Alt+9)</h3>
+<p>Okno Kanały (Alt+9 albo pozycja Kanały na liście nawigacji) pokazuje "Moje kanały", czyli obserwowane kanały, albo "Znajdź kanały": wpisz tekst w "Szukaj kanałów" i naciśnij Enter; bez tekstu pojawiają się kanały polecane przez WhatsAppa. W "Szczegóły" są opis, liczba obserwujących, informacja, czy obserwujesz kanał, jesteś jego administratorem lub właścicielem, oraz link. Enter lub "Otwórz kanał" otwiera kanał, aby czytać jego aktualizacje. Przyciski "Obserwuj" i "Przestań obserwować", "Wycisz powiadomienia" i "Włącz powiadomienia", "Kopiuj link", "Obserwuj przez link..." (wklej link do kanału) i "Utwórz kanał..." działają dla każdego kanału; "Edytuj kanał..." pojawia się w kanałach, którymi administrujesz, a "Usuń kanał" w Twoich kanałach. Pokazywanie kanałów na liście czatów pozostaje opcją w Ustawienia &gt; Interfejs &gt; Czaty.</p>
+<p>W "Znajdź kanały" pola Kategoria i Lista zawężają katalog tak jak opcje WhatsApp Web: wybierz kategorię (albo "Wszystkie kategorie") i listę (polecane, na czasie, popularne lub nowe) i naciśnij Szukaj lub Enter. Gdy w "Szukaj kanałów" jest tekst, wyszukiwanie obejmuje tylko wybraną kategorię. W kanałach, którymi administrujesz, pole wiadomości jest dostępne po otwarciu kanału: wpisz tekst i wyślij, aby opublikować aktualizację tekstową (bez wiadomości głosowych i załączników). Z menu wiadomości lub skrótem Ctrl+Shift+P przypinasz lub odpinasz aktualizację, a przypięte widać pod przyciskiem "Przypięte wiadomości". Przycisk "Administratorzy i obserwujący..." w oknie Kanały podaje liczbę administratorów kanału; właściciel może też użyć "Zaproś administratora..." (wybierz kontakt i ewentualnie wiadomość: zaproszenie trafia na czat tej osoby, a zostaje ona administratorem po jego przyjęciu) oraz "Anuluj zaproszenie administratora...". To okno pokazuje właściciela, administratorów, oczekujące zaproszenia i obserwujących: właściciel może uczynić obserwującego administratorem, anulować zaproszenie, usunąć administratora lub uczynić administratora właścicielem, a administrator może przestać nim być.</p>
 
 <h3>Wzmianki i odpowiedzi</h3>
 <p>Osoba wspomniana z nazwy razem z @all zachowuje link; wzmianka o tobie, w powiadomieniu i w podglądzie, używa słowa wybranego w "Jak mam się do Ciebie zwracać?". W Ustawienia &gt; Interfejs &gt; Wiadomości opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" sprawia, że wiadomości od osób bez nazwy zaczynają się od razu od treści. W Ustawienia &gt; Interfejs &gt; Czaty opcja "Poprzedzaj nazwy niezapisanych kontaktów znakiem tyldy (~) w czatach i wiadomościach" (domyślnie włączona) pokazuje tyldę przed nazwą osoby, której nie zapisano, w czatach i w wiadomościach.</p>
@@ -853,7 +861,7 @@
   <tr><td class="field-name">Interfejs</td><td>Każdy przycisk otwiera okno jednego tematu: Wiadomości, Reakcje, Czaty, Potwierdzenia i Skróty klawiszowe.</td></tr>
   <tr><td class="field-name">Interfejs &gt; Wiadomości</td><td>Ile wiadomości pokazać po otwarciu czatu; ile pominąć klawiszami Page Up/Down; rodzaj listy wiadomości (klasyczna, z limitem 512 znaków, lub pole listy, z pełnymi wiadomościami); pokazywanie, kto pisze, jako ostatniego wiersza; "Jak mam się do Ciebie zwracać?"; ukrywanie nadawcy przy własnych wiadomościach; ukrywanie numerów nadawców bez nazwy; zachowanie wpisanej wiadomości jako podpisu; "wczoraj" zamiast daty; podglądy linków; "Przekazano" na początku wiadomości, przed nadawcą; początkowy stan "Usuń też multimedia z telefonu"; filmy i statusy w osobnym odtwarzaczu; rodzaje multimediów pokazywane domyślnie.</td></tr>
   <tr><td class="field-name">Interfejs &gt; Reakcje</td><td>Stałe szybkie reakcje i wybór emoji dla każdej pozycji.</td></tr>
-  <tr><td class="field-name">Interfejs &gt; Czaty</td><td>Gdzie ustawić fokus po otwarciu czatu; stan dostarczenia na liście czatów; utrzymywanie przypiętych czatów w stałej kolejności; zastępowanie skrótów akcjami zbiorczymi; zachowanie Spacji i Esc przy zaznaczeniu; zachowanie wyszukiwania czatów po otwarciu; pozycja komunikatu "zaznaczono"; pokazywanie kanałów na liście czatów (domyślnie wyłączone).</td></tr>
+  <tr><td class="field-name">Interfejs &gt; Czaty</td><td>Gdzie ustawić fokus po otwarciu czatu; stan dostarczenia na liście czatów; utrzymywanie przypiętych czatów w stałej kolejności; zastępowanie skrótów akcjami zbiorczymi; zachowanie Spacji i Esc przy zaznaczeniu; zachowanie wyszukiwania czatów po otwarciu; pozycja komunikatu "zaznaczono"; pokazywanie kanałów na liście czatów (domyślnie wyłączone); "Liczba nowych wiadomości na liście czatów", przed nazwą czatu lub po niej.</td></tr>
   <tr><td class="field-name">Interfejs &gt; Czaty &gt; Zabezpieczone czaty</td><td>PIN sejfu, blokada po bezczynności i tajny kod (przycisk pojawia się, gdy sejf jest dostępny).</td></tr>
   <tr><td class="field-name">Interfejs &gt; Potwierdzenia</td><td>Pytania potwierdzające (oznacz wszystko jako przeczytane, wyczyść, usuń, F5, Shift+F5, nagrywaj dźwięk komputera) i ich wersje "Nie pokazuj ponownie".</td></tr>
   <tr><td class="field-name">Interfejs &gt; Skróty klawiszowe</td><td>Wymienia wszystkie skróty programu, w tym globalny. Wybierz jeden, użyj "Zmień" i wpisz nową kombinację; albo wyłącz go, przywróć domyślny lub przywróć wszystkie. O konfliktach ostrzega się przed zastosowaniem, a zmiany zaczynają działać dopiero po Zastosuj lub OK.</td></tr>
@@ -965,6 +973,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+H</td><td>Zmień urządzenie odtwarzające we wszystkich otwartych kontach do czasu zamknięcia programu WinZapp (następnie naciśnij 1–9 lub 0)</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Zmień urządzenie nagrywające we wszystkich otwartych kontach do czasu zamknięcia programu WinZapp (następnie naciśnij 1–9 lub 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Otwórz społeczności</td></tr>
+<tr><td class="field-name">Alt+9</td><td>Otwórz kanały</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 do 9</td><td>Otwórz przypisany szybki czat</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 do 9</td><td>Przypisz czat z fokusem do cyfry szybkiego dostępu</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Oznacz wszystkie czaty jako przeczytane</td></tr>
@@ -1312,6 +1321,8 @@
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: kanały z kategoriami i listami katalogu, aktualizacje publikowane i przypinane przez administratorów oraz okno administratorów kanału.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: okno Kanały (Alt+9), dodawanie osób do trwającego połączenia, starsze wiadomości pobierane z telefonu w Neonize i położenie liczby nowych wiadomości na liście czatów.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Skróty: F1 odróżnia sugestie wzmianek od wzmianek w wiadomości. W języku hiszpańskim i portugalskim z Portugalii Alt+P przenosi do pola wiadomości, a Alt+E edytuje wiadomości.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Grupy: gdy ktoś pisze, komunikat używa teraz jego nazwy zamiast samego numeru telefonu.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: wpisy z kanałów, które obserwujesz, nie pojawiają się już jako czaty i wiadomości.</td></tr>

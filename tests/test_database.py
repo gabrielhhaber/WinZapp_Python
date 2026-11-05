@@ -1127,3 +1127,73 @@ class TestSecureDelete:
     async def test_deleted_rows_are_zeroed_in_the_file(self, in_memory_db):
         cursor = await in_memory_db._conn.execute("PRAGMA secure_delete")
         assert (await cursor.fetchone())[0] == 1
+
+
+# =============================================================================
+#  A ciphertext never overwrites a message already decrypted
+# =============================================================================
+
+
+def _group_message(msg_type, content):
+    return {
+        "key": {"remoteJid": "g@g.us", "id": "3EB0AAA", "fromMe": True},
+        "messageTimestamp": 10,
+        "messageType": msg_type,
+        "message": content,
+    }
+
+
+class TestKnownContentOverACiphertext:
+    """Switching from Neonize to WPPConnect, a message just sent to a group
+    came back from WhatsApp Web as a ciphertext and replaced its text, which
+    then stayed "Aguardando mensagem" after F5 and restarts."""
+
+    async def test_the_one_message_path_keeps_the_text(self, in_memory_db):
+        await in_memory_db.insert_message("g@g.us", _group_message(
+            "conversation", {"conversation": "oi pessoal"}))
+        await in_memory_db.insert_message("g@g.us", _group_message("ciphertext", {}))
+
+        stored = await in_memory_db.get_messages("g@g.us")
+        assert stored[0]["messageType"] == "conversation"
+        assert stored[0]["message"] == {"conversation": "oi pessoal"}
+
+    async def test_the_batch_path_keeps_the_text(self, in_memory_db):
+        await in_memory_db.insert_messages_batch("g@g.us", [_group_message(
+            "conversation", {"conversation": "oi pessoal"})])
+        await in_memory_db.insert_messages_batch("g@g.us", [_group_message("ciphertext", {})])
+
+        stored = await in_memory_db.get_messages("g@g.us")
+        assert stored[0]["message"] == {"conversation": "oi pessoal"}
+
+    async def test_a_ciphertext_with_nothing_known_is_stored_as_it_is(self, in_memory_db):
+        await in_memory_db.insert_messages_batch("g@g.us", [_group_message("ciphertext", {})])
+
+        stored = await in_memory_db.get_messages("g@g.us")
+        assert stored[0]["messageType"] == "ciphertext"
+
+    async def test_a_revoked_copy_still_replaces_the_text(self, in_memory_db):
+        await in_memory_db.insert_message("g@g.us", _group_message(
+            "conversation", {"conversation": "oi pessoal"}))
+        await in_memory_db.insert_message("g@g.us", _group_message(
+            "protocolMessage", {"protocolMessage": {"type": 0}}))
+
+        stored = await in_memory_db.get_messages("g@g.us")
+        assert stored[0]["messageType"] == "protocolMessage"
+
+    async def test_a_recovered_quote_stays_marked_over_a_ciphertext(self, in_memory_db):
+        recovered = {**_group_message("conversation", {"conversation": "citado"}),
+                     "_recovered_from_quote": True}
+        await in_memory_db.insert_message("g@g.us", recovered)
+        await in_memory_db.insert_messages_batch("g@g.us", [_group_message("ciphertext", {})])
+
+        stored = await in_memory_db.get_messages("g@g.us")
+        assert stored[0]["message"] == {"conversation": "citado"}
+        assert stored[0]["_recovered_from_quote"] is True
+
+    async def test_the_decrypted_copy_still_replaces_a_stored_ciphertext(self, in_memory_db):
+        await in_memory_db.insert_message("g@g.us", _group_message("ciphertext", {}))
+        await in_memory_db.insert_message("g@g.us", _group_message(
+            "conversation", {"conversation": "chegou"}))
+
+        stored = await in_memory_db.get_messages("g@g.us")
+        assert stored[0]["message"] == {"conversation": "chegou"}

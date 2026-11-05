@@ -94,6 +94,11 @@ class MessageActionsMixin:
         jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         if not jid:
             return
+        channel = jid.endswith("@newsletter")
+        if channel and not self._can_pin_channel_update(msg):
+            # Only a channel's owner and admins pin its updates.
+            self.main_window.output(self.main_window.i18n.t("channel_pin_admins_only"))
+            return
         pin = not bool(msg.get("pinInChat"))
         msg["pinInChat"] = pin
         self._pinned_message_state_changed(msg)
@@ -106,7 +111,8 @@ class MessageActionsMixin:
         job = self._begin_pinned_message_write(jid)
         def _do(m=msg, k=msg_key, j=jid, p=pin):
             try:
-                ok = self.main_window.pin_message(j, k, p)
+                ok = (self._write_channel_pin(j, m, p) if channel
+                      else self.main_window.pin_message(j, k, p))
             except Exception:
                 logging.warning("[pin-message] write failed")
                 ok = False

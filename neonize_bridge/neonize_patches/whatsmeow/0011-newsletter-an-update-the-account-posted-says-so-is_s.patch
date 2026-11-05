@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Wed, 4 Nov 2026 14:56:37 -0300
+Subject: [PATCH] newsletter: an update the account posted says so (is_sender)
+
+parseNewsletterMessages dropped the server's is_sender="true", the
+attribute WhatsApp Web keys a channel update fromMe from (read over CDP in
+WASmaxMessageDeliverNewsletterRPC and the message history mixin): a
+channel's admin saw their own updates as received.
+---
+ newsletter_is_sender_test.go | 18 ++++++++++++++++++
+ notification.go              |  1 +
+ types/newsletter.go          |  3 +++
+ 3 files changed, 22 insertions(+)
+ create mode 100644 newsletter_is_sender_test.go
+
+diff --git a/newsletter_is_sender_test.go b/newsletter_is_sender_test.go
+new file mode 100644
+index 0000000..2c2a6c9
+--- /dev/null
++++ b/newsletter_is_sender_test.go
+@@ -0,0 +1,18 @@
++package whatsmeow
++
++import (
++	"testing"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++)
++
++func TestNewsletterUpdatePostedByThisAccountSaysSo(t *testing.T) {
++	node := &waBinary.Node{Tag: "messages", Content: []waBinary.Node{
++		{Tag: "message", Attrs: waBinary.Attrs{"server_id": "10", "id": "A", "t": "100", "is_sender": "true"}},
++		{Tag: "message", Attrs: waBinary.Attrs{"server_id": "11", "id": "B", "t": "101"}},
++	}}
++	got := (&Client{}).parseNewsletterMessages(node)
++	if len(got) != 2 || !got[0].IsSender || got[1].IsSender {
++		t.Fatalf("got %+v", got)
++	}
++}
+diff --git a/notification.go b/notification.go
+index 22b6d10..aa01551 100644
+--- a/notification.go
++++ b/notification.go
+@@ -348,6 +348,7 @@ func (cli *Client) parseNewsletterMessages(node *waBinary.Node) []*types.Newslet
+ 			MessageID:       ag.String("id"),
+ 			Type:            ag.String("type"),
+ 			Timestamp:       ag.UnixTime("t"),
++			IsSender:        ag.OptionalBool("is_sender"),
+ 			ViewsCount:      0,
+ 			ReactionCounts:  nil,
+ 		}
+diff --git a/types/newsletter.go b/types/newsletter.go
+index 6f63ecf..d85748f 100644
+--- a/types/newsletter.go
++++ b/types/newsletter.go
+@@ -154,6 +154,9 @@ type NewsletterMessage struct {
+ 	Timestamp       time.Time
+ 	ViewsCount      int
+ 	ReactionCounts  map[string]int
++	// IsSender is the server's is_sender="true": this account posted the
++	// update (WhatsApp Web keys it fromMe from the same attribute).
++	IsSender bool
+ 
+ 	// This is only present when fetching messages, not in live updates
+ 	Message *waE2E.Message

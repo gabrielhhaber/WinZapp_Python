@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core.chat_row_text import name_with_unread, unread_position
 from core.conversation_view import ARCHIVED
 from core.listed_chats import channels_listed, is_listed_chat
 from core.unsaved_contact_marker import marked_chat_name
@@ -1408,12 +1409,9 @@ class ChatListMixin:
         )
         for chat, name in zip(filtered_chats, filtered_names):
             unread = effective_unread_count(chat)
-            unread_str = (
-                f" {unread} " + (self.i18n.t("unread_messages") if unread > 1 else self.i18n.t("unread_message"))
-                if unread > 0 else ""
-            )
             preview = self._last_msg_preview(chat)
-            item_text = marked_chat_name(self, chat, name) + unread_str
+            item_text = name_with_unread(marked_chat_name(self, chat, name), unread, self.i18n,
+                                         unread_position(self.settings))
             if item_text and preview:
                 item_text += f" {preview}"
             # Same "selecionado" marker, in the same configured position, as
@@ -1679,12 +1677,9 @@ class ChatListMixin:
         """
         chat_jid = chat.get("remoteJid", "")
         unread = effective_unread_count(chat)
-        unread_str = (
-            f" {unread} " + (self.i18n.t("unread_messages") if unread > 1 else self.i18n.t("unread_message"))
-            if unread > 0 else ""
-        )
         preview = self._last_msg_preview(chat)
-        text = marked_chat_name(self, chat, name) + unread_str
+        text = name_with_unread(marked_chat_name(self, chat, name), unread, self.i18n,
+                                unread_position(self.settings))
         if preview:
             text += f" {preview}"
         chat_jid_norm = self._normalize_jid(chat_jid) if chat_jid else ""

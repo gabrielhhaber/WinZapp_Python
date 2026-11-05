@@ -131,6 +131,56 @@ export function installGroupCallRuntimeInPage(): void {
       }
       return { id: callId, available: true, participants: Array.from(result.values()) };
     },
+    invite: async (payload: any): Promise<any> => {
+      // WhatsApp's own "Add participant" (WAWebVoipNewGroupCallContactPicker)
+      // calls WAWebVoipStartCall.inviteToCall(wid) once per person picked; the
+      // same call rings someone on the list who has not joined
+      // (WAWebVoipActionRingParticipant). Only into the call this device is in.
+      const { callId } = payload;
+      const people = payload.participants;
+      if (typeof callId !== 'string' || !callId || callId.length > 512) throw new Error('A call id is required');
+      if (!Array.isArray(people) || people.length === 0 || people.length > 31) {
+        throw new Error('Between 1 and 31 participants are required');
+      }
+      // inviteToCall takes no call id: it acts on whatever call is active when
+      // it runs. Asked again before every person, so a hangup (or another call
+      // accepted) halfway through the list never sends the rest anywhere.
+      const inThisCall = (): boolean => {
+        const active = module('WAWebCallCollection')?.activeCall;
+        const activeId = typeof active?.id === 'string' ? active.id : active?.id?._serialized;
+        const state = active?.getState?.() ?? active?.state;
+        return activeId === callId && [6, 9, 11, 'ACTIVE', 'REJOINING', 'CONNECTED_LONELY'].includes(state);
+      };
+      if (!inThisCall()) throw new Error('This device is not in that call');
+      const invite = module('WAWebVoipStartCall')?.inviteToCall;
+      const createWid = module('WAWebWidFactory')?.createWid;
+      if (typeof invite !== 'function' || typeof createWid !== 'function') {
+        throw new Error('Adding participants is unavailable in this WhatsApp version');
+      }
+      // new Array(), not [] with a type: tsc infers never[] for a bare [], and
+      // tests/test_group_call_runtime.py runs this file with annotations cut out
+      const results = new Array();
+      for (const jid of people) {
+        if (!inThisCall()) {
+          results.push({ jid, status: 'failed', error: 'call ended' });
+          continue;
+        }
+        const address = typeof jid === 'string' ? jid.replace(/@s\.whatsapp\.net$/, '@c.us') : '';
+        if (!/^\d+@(?:lid|c\.us)$/.test(address)) {
+          results.push({ jid, status: 'failed', error: 'invalid address' });
+          continue;
+        }
+        try {
+          await invite(createWid(address));
+          results.push({ jid, status: 'invited' });
+        } catch (_) {
+          // A fixed word, as the Neonize bridge answers: WhatsApp's own text
+          // can carry the person's number.
+          results.push({ jid, status: 'failed', error: 'refused' });
+        }
+      }
+      return { id: callId, results };
+    },
     check: (payload: any): any => validate(payload).current,
     mayStopAudio: (callId: string): boolean => {
       const collection = module('WAWebCallCollection');

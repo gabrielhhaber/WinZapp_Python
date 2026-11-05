@@ -27,3 +27,18 @@ def test_body_bytes_accepts_data_uri_and_plain_base64():
 def test_body_bytes_never_reads_a_disk_path(path):
     with pytest.raises(ValueError):
         inputs.body_bytes({"path": path})
+
+
+def test_whole_text_joins_the_two_halves_of_an_emoji():
+    assert inputs.whole_text("ok \ud83d\udcbb!") == "ok \U0001F4BB!"
+
+
+def test_whole_text_drops_a_half_without_its_pair():
+    # what send-mentioned received: "\ud83d" alone at position 12
+    assert inputs.whole_text("@Fulano oi \ud83d tudo") == "@Fulano oi  tudo"
+    assert inputs.whole_text("\udcbb") == ""
+
+
+@pytest.mark.parametrize("value", ["", "plain text", "ja \U0001F600", None, 5])
+def test_whole_text_leaves_valid_text_alone(value):
+    assert inputs.whole_text(value) == value

@@ -4,6 +4,13 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Configuración > Interfaz de usuario > Chats: nueva opción "Número de mensajes nuevos en la lista de chats", para que el lector de pantalla diga el número de mensajes nuevos antes del nombre del chat en lugar de después. Vale para la lista de chats, los archivados y los bloqueados. (sugerencia de Michal Suchý)
+
+- Nueva ventana de Canales (Alt+9, también en la lista de navegación): muestra los canales que sigues o busca en el directorio de canales de WhatsApp (sin texto, aparecen los recomendados). Con el canal elegido puedes abrirlo y leer sus novedades, seguirlo o dejar de seguirlo, silenciar o activar sus notificaciones, copiar su enlace y, en tus canales, editarlo o eliminarlo. También puedes seguir un canal desde su enlace y crear un canal. Mostrar los canales en la lista de conversaciones sigue siendo una opción aparte. Funciona con WPPConnect y con Neonize.
+- Canales, como en WhatsApp Web: en "Buscar canales", Categoría (negocios, entretenimiento, estilo de vida, noticias, organizaciones, personas, deportes) y Lista (recomendados, tendencias, populares, nuevos) filtran el directorio. En los canales que administras, el campo de mensaje se habilita para publicar novedades de texto, una novedad se puede fijar o dejar de fijar desde el menú del mensaje (Ctrl+Shift+P) y las fijadas aparecen en "Mensajes fijados"; el botón "Administradores y seguidores..." dice cuántos administradores tiene el canal y, para su propietario, invita a un contacto a ser administrador o cancela la invitación. Funciona con WPPConnect y con Neonize. Esa ventana muestra al propietario, los administradores, las invitaciones pendientes y los seguidores: el propietario puede hacer administrador a un seguidor, cancelar una invitación, quitar a un administrador o hacer propietario a un administrador, y un administrador puede dejar de serlo.
+
+- Llamadas: ahora puedes añadir personas a la llamada en curso, con el botón "Añadir participantes" de la lista de participantes de la llamada. En una llamada de grupo aparecen los miembros del grupo que aún no están en ella; en una llamada privada, tus contactos, y la llamada pasa a tener varias personas, como en WhatsApp. A quien ya se llamó y aún no entró se le vuelve a llamar. Funciona con WPPConnect y con Neonize.
+
 - WPPConnect Server actualizado a la 2.10.75, que corrige un webhook de Chatwoot que aceptaba solicitudes sin autenticación y parchea una vulnerabilidad en las bibliotecas glob y minimatch.
 
 - Configuración de WhatsApp > Privacidad: nueva opción "Mantener chats archivados", la misma de WhatsApp, que decide si un chat archivado vuelve a la lista cuando llega un mensaje nuevo. Funciona con WPPConnect y con Neonize.
@@ -24,7 +31,13 @@ NOVEDADES
 
 - Neonize: los mensajes a Meta AI funcionan. WinZapp pide aceptar los términos de Meta AI cuando la cuenta aún no los ha aceptado, y las respuestas de Meta AI se muestran como texto en vez de como un mensaje desconocido.
 
-- Neonize: los estados de vídeo y de voz ya no fallan con "server returned error 400" en algunas cuentas.
+- Neonize: publicar estados (texto, imagen, vídeo o voz) ya no falla con "server returned error 400". Ocurría en chats con mensajes temporales y, en cualquier cuenta, después de que el teléfono sincronizara un contacto guardado con el nuevo identificador de WhatsApp.
+
+- Neonize: WinZapp ahora pide al teléfono los mensajes más antiguos de un chat, como hace WhatsApp Web al pulsar para ver mensajes anteriores. Antes, un chat solo tenía lo que llegó al vincular el dispositivo, y volver a sincronizar no traía nada más.
+
+- Un mensaje que WinZapp ya conoce ya no se convierte en "Esperando este mensaje". Al cambiar de Neonize a WPPConnect, un mensaje que acababas de enviar podía aparecer así, incluso después de F5 o de volver a abrir WinZapp.
+
+- Menciones: escribir un emoji en la lista de sugerencias de mención ya no rompe el envío. Antes, el mensaje podía no enviarse, con un error del servidor.
 
 - Grupos: en un grupo en el que solo los administradores pueden enviar mensajes, el campo de mensaje ahora es de solo lectura para los miembros también en Neonize; antes seguía editable en la mayoría de estos grupos.
 

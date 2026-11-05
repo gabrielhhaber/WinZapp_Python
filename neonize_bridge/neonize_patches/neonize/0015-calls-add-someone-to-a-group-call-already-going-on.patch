@@ -1,0 +1,115 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Wed, 4 Nov 2026 13:00:33 -0300
+Subject: [PATCH] calls: add someone to a group call already going on
+
+CallAddParticipant invites a number or LID to the group call this client is
+in, through meowcaller's Call.AddParticipant, as WhatsApp Web's "Add
+participant" (WAWebVoipStartCall.inviteToCall) does. Someone already on the
+call's list who has not joined is rung again (RingParticipant), as the
+"Ring" button there. Python: CallClient.add_participant, behind
+add_participant_available().
+---
+ goneonize/calls_ongoing.go | 32 ++++++++++++++++++++++++++++++++
+ neonize/_binder.py         |  5 +++++
+ neonize/calls.py           | 17 +++++++++++++++++
+ 3 files changed, 54 insertions(+)
+
+diff --git a/goneonize/calls_ongoing.go b/goneonize/calls_ongoing.go
+index ae422ce..e538a42 100644
+--- a/goneonize/calls_ongoing.go
++++ b/goneonize/calls_ongoing.go
+@@ -15,6 +15,7 @@ import (
+ 	"context"
+ 	"encoding/json"
+ 	"fmt"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/purpshell/meowcaller"
+@@ -119,3 +120,34 @@ func CallRoster(id *C.char, call *C.char, buf *C.char, cap C.int) C.int {
+ 	b, _ := json.Marshal(map[string]any{"group": grupo, "participants": participantesJSON(g)})
+ 	return escreverTexto(string(b), buf, cap)
+ }
++
++// CallAddParticipant convida `target` (numero ou LID) para a chamada em grupo
++// `call` em que este cliente esta, como o "Adicionar participante" do WhatsApp
++// Web (WAWebVoipStartCall.inviteToCall). Quem ja esta na lista da chamada e
++// ainda nao entrou e chamado de novo, como o "Tocar" de la. {"ok": true},
++// {"rang": true} ou {"error"}.
++//
++//export CallAddParticipant
++func CallAddParticipant(id *C.char, call *C.char, target *C.char, buf *C.char, cap C.int) C.int {
++	cliente := C.GoString(id)
++	a := buscarChamada(cliente, C.GoString(call))
++	if a == nil {
++		return erroJSON(fmt.Errorf("call not found"), buf, cap)
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 30*time.Second)
++	defer cancelar()
++	alvo := C.GoString(target)
++	err := a.call.AddParticipant(ctx, alvo)
++	if err != nil && strings.Contains(err.Error(), "already in the call roster") {
++		if err = a.call.RingParticipant(ctx, alvo); err == nil {
++			registrar(cliente, "participante da chamada chamado de novo")
++			return escreverTexto(`{"rang":true}`, buf, cap)
++		}
++	}
++	if err != nil {
++		registrar(cliente, "adicionar participante falhou: %v", err)
++		return erroJSON(err, buf, cap)
++	}
++	registrar(cliente, "participante convidado para a chamada")
++	return escreverTexto(`{"ok":true}`, buf, cap)
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 0eddb0a..484c202 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -908,6 +908,11 @@ if not os.environ.get("SPHINX"):
+         gocode.CallJoinOngoing.restype = ctypes.c_int
+         gocode.CallRoster.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
+         gocode.CallRoster.restype = ctypes.c_int
++    if hasattr(gocode, "CallAddParticipant"):
++        # Adding someone to a group call already going on (calls_ongoing.go).
++        gocode.CallAddParticipant.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallAddParticipant.restype = ctypes.c_int
+ 
+ else:
+     gocode: Any = object()
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 3f98287..59986a4 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -44,6 +44,11 @@ def ongoing_available() -> bool:
+     return hasattr(gocode, "CallLobby")
+ 
+ 
++def add_participant_available() -> bool:
++    """Whether this build adds people to a group call already going on."""
++    return hasattr(gocode, "CallAddParticipant")
++
++
+ def video_available() -> bool:
+     """Whether this build carries video and group calls."""
+     return hasattr(gocode, "CallVideo")
+@@ -165,6 +170,18 @@ class Calls:
+                                       1 if video else 0, buf, _RESULT_BUFFER)
+         return _result(buf, size)
+ 
++    def add_participant(self, call_id: str, target: str) -> dict:
++        """Invites `target` (a number or a LID) to the group call `call_id`
++        this client is in, as WhatsApp Web's "Add participant" does; someone
++        already on the call's list who has not joined is rung again. {"ok":
++        True} or {"rang": True}; CallError on failure."""
++        if not add_participant_available():
++            raise CallError("this neonize build does not add people to a call")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallAddParticipant(self.uuid, call_id.encode(), target.encode(),
++                                         buf, _RESULT_BUFFER)
++        return _result(buf, size)
++
+     def roster(self, call_id: str):
+         """{"group", "participants": [{"jid", "pn", "state"}]} of a call this
+         client is in, or None once it is over."""

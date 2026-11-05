@@ -87,6 +87,8 @@ class _FakeMainWindow:
 
 
 class _Panel:
+    _channel_role = ConversationsPanel._channel_role
+    _channel_admin = ConversationsPanel._channel_admin
     _apply_composer_permissions = ConversationsPanel._apply_composer_permissions
     _message_label_text = ConversationsPanel._message_label_text
     refresh_composer_permissions = ConversationsPanel.refresh_composer_permissions
@@ -130,6 +132,41 @@ class TestChannel:
         panel._apply_composer_permissions(jid, {"remoteJid": jid})
         assert panel._emoji_btn.enabled is False
         assert panel.message_field.enabled is False
+
+
+class TestChannelAdmin:
+    """The owner and admins of a channel post text in it, as on WhatsApp Web."""
+
+    def _panel(self, role):
+        panel = _Panel(open_jid=_CHANNEL, chats={_CHANNEL: {"remoteJid": _CHANNEL}})
+        panel.main_window._channel_roles = {_CHANNEL: role}
+        panel._apply_composer_permissions(_CHANNEL, {"remoteJid": _CHANNEL})
+        return panel
+
+    @pytest.mark.parametrize("role", ["owner", "admin"])
+    def test_an_admin_types_and_sends_text_only(self, role):
+        panel = self._panel(role)
+        assert panel.message_field.enabled is True and panel.message_field.editable is True
+        assert panel.send_message_btn.enabled is True and panel._emoji_btn.enabled is True
+        assert panel.record_voice_message_btn.enabled is False
+        assert panel._add_attachment_btn.enabled is False
+        assert panel._message_label_text(_CHANNEL, {}, "Canal") == "type_message Canal"
+
+    def test_a_follower_still_reads_only(self):
+        panel = self._panel("subscriber")
+        assert panel.message_field.enabled is False
+        assert panel._message_label_text(_CHANNEL, {}, "Canal") == "channel_read_only"
+
+    def test_learning_the_role_while_the_channel_is_open_opens_the_field(self):
+        panel = self._panel("")
+        assert panel.send_message_btn.enabled is False
+        panel.main_window._channel_roles[_CHANNEL] = "admin"
+        panel.refresh_composer_permissions(_CHANNEL, transition=False)
+        assert panel.send_message_btn.enabled is True
+        assert panel.main_window.spoken == []
+
+
+_CHANNEL = "123456@newsletter"
 
 
 class TestWritableConversations:

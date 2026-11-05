@@ -4,6 +4,13 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Settings > User Interface > Chats: new option "Number of new messages in the chat list", so the screen reader says the number of new messages before the chat name instead of after it. It applies to the chat list, the archived chats and the locked chats. (suggested by Michal Suchý)
+
+- New Channels window (Alt+9, also in the navigation list): it shows the channels you follow or searches WhatsApp's channel directory (with no text, the recommended channels). For the chosen channel you can open it and read its updates, follow or unfollow it, mute or unmute its notifications, copy its link and, for your own channels, edit or delete it. You can also follow a channel from its link and create a channel. Showing channels in the conversation list is still a separate setting. Works with WPPConnect and Neonize.
+- Channels, as on WhatsApp Web: in "Find channels", Category (business, entertainment, lifestyle, news, organizations, people, sports) and View (recommended, trending, popular, new) narrow the directory. In the channels you administer, the message field opens to post text updates, an update can be pinned or unpinned from the message menu (Ctrl+Shift+P) and the pinned ones show in "Pinned messages"; the "Admins and followers..." button says how many admins the channel has and, for its owner, invites a contact to be an admin or cancels the invite. Works with WPPConnect and Neonize. That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.
+
+- Calls: you can now add people to the call in progress, with the "Add participants" button in the call's participant list. A group call offers the group's members who are not in it yet; a private call offers your contacts, and the call then has several people, as on WhatsApp. Someone already called who has not joined is rung again. Works with WPPConnect and Neonize.
+
 - WPPConnect Server updated to 2.10.75, which fixes a Chatwoot webhook that accepted requests without authentication and patches a vulnerability in the glob and minimatch libraries.
 
 - WhatsApp settings > Privacy: new "Keep chats archived" option, WhatsApp's own, which decides whether an archived chat goes back to the list when a new message arrives. Works with WPPConnect and Neonize.
@@ -24,7 +31,13 @@ WHAT'S NEW
 
 - Neonize: messages to Meta AI work. WinZapp asks you to accept Meta AI's terms when the account has not accepted them yet, and Meta AI's replies are shown as text instead of an unknown message.
 
-- Neonize: video and voice statuses no longer fail with "server returned error 400" on some accounts.
+- Neonize: posting a status (text, image, video or voice) no longer fails with "server returned error 400". It happened in disappearing-message chats and, on any account, after the phone synced a contact saved under WhatsApp's new identifier.
+
+- Neonize: WinZapp now asks the phone for a chat's older messages, as WhatsApp Web does when you click to see earlier messages. Before, a chat only had what came when the device was linked, and resyncing brought nothing more.
+
+- A message WinZapp already knows no longer turns into "Waiting for this message". After switching from Neonize to WPPConnect, a message you had just sent could show that way, even after F5 or reopening WinZapp.
+
+- Mentions: typing an emoji in the mention suggestion list no longer breaks the send. Before, the message could fail to go out with a server error.
 
 - Groups: in a group where only admins can send messages, the message field is now read-only for members on Neonize too; before, it stayed editable in most of these groups.
 

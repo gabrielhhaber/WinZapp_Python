@@ -2,6 +2,7 @@ import ctypes
 import os
 import sys
 import wx
+from core.chat_row_text import AFTER as UNREAD_AFTER, BEFORE as UNREAD_BEFORE
 from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
 from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -1814,6 +1815,24 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
 
         chats_sizer.Add(selected_announce_sizer, 0, wx.EXPAND | wx.ALL, 8)
 
+        # Where a chat row says how many new messages it has (issue 684,
+        # core/chat_row_text.py): after the name, as always, or before it.
+        self._unread_position_box = wx.StaticBox(
+            self._chats_page, label=i18n.t("ui_unread_position_label")
+        )
+        unread_position_sizer = wx.StaticBoxSizer(self._unread_position_box, wx.VERTICAL)
+        self._unread_position_after_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_unread_position_after"), style=wx.RB_GROUP,
+        )
+        unread_position_sizer.Add(self._unread_position_after_rb, 0, wx.LEFT | wx.TOP, 5)
+        self._unread_position_before_rb = wx.RadioButton(
+            self._chats_page, label=i18n.t("ui_unread_position_before")
+        )
+        unread_position_sizer.Add(
+            self._unread_position_before_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5
+        )
+        chats_sizer.Add(unread_position_sizer, 0, wx.EXPAND | wx.ALL, 8)
+
         # The vault's settings, one level down: a button in this window.
         # A key of its own: "locked_chats" also names the vault's list, where
         # an Alt key would be read out.
@@ -2549,6 +2568,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._selected_announce_start_rb.SetValue(True)
             else:
                 self._selected_announce_end_rb.SetValue(True)
+            if self.main_window.settings.get("user_interface", {}).get(
+                    "unread_count_position", UNREAD_AFTER) == UNREAD_BEFORE:
+                self._unread_position_before_rb.SetValue(True)
+            else:
+                self._unread_position_after_rb.SetValue(True)
 
         show_yesterday_label = self.main_window.settings.get("user_interface", {}).get(
             "show_yesterday_label", True
@@ -3902,6 +3926,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         """Validate, save, and apply all settings. Returns True on success."""
         # Set where their options are read; a window never opened changed nothing.
         channels_changed = unsaved_mark_changed = sender_numbers_changed = False
+        unread_position_changed = False
         self_reference_changed = vm_mode_changed = False
         if ready(self, "general") and self._global_hotkey_changed():
             # A new global hotkey is checked against every shortcut, which
@@ -4052,6 +4077,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "selected_announcement_position"
             ] = "start" if self._selected_announce_start_rb.GetValue() else "end"
+            new_unread_position = (UNREAD_BEFORE if self._unread_position_before_rb.GetValue()
+                                   else UNREAD_AFTER)
+            # Read before the save below: old_ui_settings is this same dict.
+            unread_position_changed = self.main_window.settings.get("user_interface", {}).get(
+                "unread_count_position", UNREAD_AFTER) != new_unread_position
+            self.main_window.settings.setdefault("user_interface", {})[
+                "unread_count_position"
+            ] = new_unread_position
         if ready(self, "messages"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "show_yesterday_label"
@@ -4434,12 +4467,16 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         # word for chats whose last message is our own), so a self-reference
         # change (e.g. "Eu" -> "Você") takes effect immediately instead of
         # only on the next restart.
-        if (unsaved_mark_changed or channels_changed) and not (self_reference_changed or vm_mode_changed):
+        # Every chat row says its new-message count, before or after the name
+        # (issue 684): a changed position repaints the list at once.
+        if (unsaved_mark_changed or channels_changed or unread_position_changed) and not (
+                self_reference_changed or vm_mode_changed):
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
             self.main_window._chats_ui_fp = None
             self.main_window.add_chats_to_ui()
-        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed or unsaved_mark_changed or channels_changed):
+        if sender_numbers_changed and not (self_reference_changed or vm_mode_changed or unsaved_mark_changed
+                                           or channels_changed or unread_position_changed):
             if cp is not None and getattr(cp, "conversation", None) is not None:
                 cp.populate_messages(preserve_focus=True)
         if self_reference_changed or vm_mode_changed:
@@ -4807,6 +4844,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._selected_announce_box.SetLabel(i18n.t("ui_selected_announce_position_label"))
             self._selected_announce_start_rb.SetLabel(i18n.t("ui_selected_announce_position_start"))
             self._selected_announce_end_rb.SetLabel(i18n.t("ui_selected_announce_position_end"))
+            self._unread_position_box.SetLabel(i18n.t("ui_unread_position_label"))
+            self._unread_position_after_rb.SetLabel(i18n.t("ui_unread_position_after"))
+            self._unread_position_before_rb.SetLabel(i18n.t("ui_unread_position_before"))
         if ready(self, "speech"):
             self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
             self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))

@@ -62,6 +62,10 @@ These need WinZapp's neonize build (`neonize_patches/neonize/0006`, `whatsmeow/0
 - `remove-contact` (`contact_removal.py`): a usync "delta" query telling the server the contact is gone (`contact_sync.py`), then a REMOVE of `["contact", "<digits>@s.whatsapp.net"]` in `critical_unblock_low`, only for a saved contact. `save-contact` now sends the "add" query the same way before its app state entry. Both queries are best effort: a refusal is logged and does not stop the save or the removal. The index form was checked in WhatsApp Web (`toString({legacy: true})` of a number is `@s.whatsapp.net`).
 - `newsletter/:id` PUT and DELETE (`channel_admin.py`): MEX mutations 24250201037901610 (`xwa2_newsletter_update`) and 30062808666639665 (`xwa2_newsletter_delete_v2`).
 
+## Older history from the phone
+
+- `request-older-messages/:phone`, `older-history-state/:phone` (`older_history.py`): neonize 0.6.0's `request_history_sync`, the peer message WhatsApp Web sends for "get older messages from your phone", anchored on the oldest message stored for the chat (any address, never a notice the bridge made up), 50 messages. The phone's ON_DEMAND block stores its messages and the chat's `endOfHistoryTransferType`, never its date, unread count or archiving. No anchor, or a history that ends there (1) or forbids more (2, 3), answers without sending; the same anchor is not sent twice within 2 minutes. Not yet run against a real account.
+
 ## Commerce and interactive messages (WinZapp's neonize build)
 
 Read over CDP from WhatsApp Web's own modules on 2026-10-26, with the business IQs Baileys keeps (`biz_iq.py`); none was run against a real account yet, and the seller's side needs a Business account.
