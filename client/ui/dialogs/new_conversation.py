@@ -12,6 +12,7 @@ import re
 import threading
 import wx
 
+from core.number_lookup import resolve_typed_number
 from core.utils import format_number, is_phone_like, looks_like_binary_blob, contact_dedup_key
 
 
@@ -198,6 +199,7 @@ class NewConversationDialog(wx.Dialog):
             direct_jid = digits + "@s.whatsapp.net"
             if self._dedup_key(direct_jid) not in seen:
                 display = format_number(direct_jid)
+                self._typed_jid = direct_jid
                 self._results.append((display, direct_jid, None))
 
         # Sort alphabetically, case-insensitively, so the list is predictable
@@ -230,6 +232,10 @@ class NewConversationDialog(wx.Dialog):
             chat = {"remoteJid": jid, "pushName": name}
         self.EndModal(wx.ID_OK)
         mw = self._mw
+        if jid == getattr(self, "_typed_jid", None) and chat.get("remoteJid") == jid:
+            # a typed number: open the chat under the address WhatsApp knows
+            jid = resolve_typed_number(mw, jid.split("@")[0]) or jid
+            chat["remoteJid"] = jid
         norm_jid, existing = self._find_existing_chat(mw, jid)
         if existing is None:
             chat["remoteJid"] = norm_jid
