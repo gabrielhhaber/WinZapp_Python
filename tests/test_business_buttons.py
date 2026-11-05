@@ -107,6 +107,33 @@ def test_the_buttons_are_kept_with_the_message_and_only_when_there_are_some():
     assert "businessButtons" not in _Normalizer()._normalize_wpp_message(raw)
 
 
+def test_legacy_unknown_button_message_recovers_its_text_and_options():
+    raw = {"id": "false_777@lid_3EB0CCCCCCCCCCCCCCCC", "type": "unknown",
+           "t": 1790000200, "from": "777@lid", "to": "999@lid",
+           "fromMe": False, "body": "Choose a trip",
+           "dynamicReplyButtons": [{"buttonId": "1", "buttonText": {"displayText": "Tomorrow"}}]}
+    message = _Normalizer()._normalize_wpp_message(raw)
+    assert message["messageType"] == "buttonsMessage"
+    assert message["message"]["buttonsMessage"] == {
+        "contentText": "Choose a trip", "buttons": raw["dynamicReplyButtons"]}
+    assert message["businessButtons"][0]["label"] == "Tomorrow"
+
+
+def test_interactive_card_and_button_reply_have_displayable_content():
+    base = {"id": "false_777@lid_3EB0DDDDDDDDDDDDDDDD", "t": 1790000200,
+            "from": "777@lid", "to": "999@lid", "fromMe": False}
+    card = _Normalizer()._normalize_wpp_message({
+        **base, "type": "interactive", "body": "Ticket\nDeparture at noon"})
+    assert card["messageType"] == "interactiveMessage"
+    assert card["message"]["interactiveMessage"]["body"]["text"] == "Ticket\nDeparture at noon"
+
+    reply = _Normalizer()._normalize_wpp_message({
+        **base, "type": "buttons_response", "body": "Tomorrow",
+        "selectedButtonID": "tomorrow"})
+    assert reply["messageType"] == "buttonsResponseMessage"
+    assert reply["message"]["buttonsResponseMessage"]["selectedDisplayText"] == "Tomorrow"
+
+
 class TestTheRequest:
     BUTTON = {"kind": "reply", "source": "native", "index": 2, "label": "Yes", "value": "y"}
 

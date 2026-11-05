@@ -68,6 +68,7 @@ def test_message_without_buttons_gets_no_fields():
 
 def test_reply_buttons():
     fields = buttons.button_fields(with_buttons())
+    assert fields["type"] == "buttons"
     assert fields["body"] == "Choose"
     assert fields["dynamicReplyButtons"][:2] == [
         {"buttonId": "yes", "buttonText": {"displayText": "Yes"}, "type": 1},
@@ -85,6 +86,7 @@ def test_list_becomes_sections_and_rows():
 
 def test_template_keeps_the_position_of_each_button():
     fields = buttons.button_fields(with_template())
+    assert fields["type"] == "template"
     assert fields["body"] == "Hi"
     assert fields["hydratedButtons"][0] == {
         "index": 0, "quickReplyButton": {"displayText": "Ok", "id": "ok"}}
@@ -94,9 +96,41 @@ def test_template_keeps_the_position_of_each_button():
 
 def test_native_flow():
     fields = buttons.button_fields(with_native_flow())
+    assert fields["type"] == "interactive"
     assert fields["body"] == "Body"
     assert fields["interactivePayload"]["buttons"] == [
         {"name": "quick_reply", "buttonParamsJson": '{"display_text":"Hi","id":"x"}'}]
+
+
+def test_carousel_without_native_buttons_keeps_its_card_text():
+    msg = Message()
+    card = msg.interactiveMessage.carouselMessage.cards.add()
+    card.header.title = "Ticket"
+    card.body.text = "Departure at noon"
+    shown = buttons.button_fields(msg)
+    assert shown == {"type": "interactive", "body": "Ticket\nDeparture at noon"}
+
+
+def test_reply_messages_keep_the_selected_text():
+    msg = Message()
+    msg.buttonsResponseMessage.selectedDisplayText = "Tomorrow"
+    msg.buttonsResponseMessage.selectedButtonID = "tomorrow"
+    assert buttons.button_fields(msg) == {
+        "type": "buttons_response", "body": "Tomorrow", "selectedButtonID": "tomorrow"}
+
+    msg = Message()
+    msg.listResponseMessage.title = "Bus station"
+    msg.listResponseMessage.singleSelectReply.selectedRowID = "station-1"
+    assert buttons.button_fields(msg) == {
+        "type": "list_response", "body": "Bus station", "selectedRowID": "station-1"}
+
+    msg = Message()
+    msg.interactiveResponseMessage.body.text = "Confirm"
+    assert buttons.button_fields(msg) == {"type": "chat", "body": "Confirm"}
+
+    msg = Message()
+    msg.interactiveResponseMessage.nativeFlowResponseMessage.paramsJSON = '{"display_text":"Confirm"}'
+    assert buttons.button_fields(msg) == {"type": "chat", "body": "Confirm"}
 
 
 def stored(m):

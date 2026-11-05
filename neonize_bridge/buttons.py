@@ -82,7 +82,7 @@ def button_fields(message) -> dict:
     has no buttons."""
     if _has(message, "buttonsMessage"):
         b = message.buttonsMessage
-        return {"body": b.contentText or b.text,
+        return {"type": "buttons", "body": b.contentText or b.text,
                 "dynamicReplyButtons": _dynamic(b)}
     if _has(message, "listMessage"):
         return {"type": "list", "body": message.listMessage.description,
@@ -91,20 +91,44 @@ def button_fields(message) -> dict:
         t = message.templateMessage
         template = t.hydratedTemplate if _has(t, "hydratedTemplate") else \
             t.hydratedFourRowTemplate
-        return {"body": template.hydratedContentText,
+        return {"type": "template", "body": template.hydratedContentText,
                 "hydratedButtons": _template(template)}
     if _has(message, "interactiveMessage"):
         i = message.interactiveMessage
-        if not _has(i, "nativeFlowMessage"):
-            return {}
-        buttons = i.nativeFlowMessage.buttons
-        fields = {"body": i.body.text, "interactivePayload": {"buttons": [
-            {"name": b.name, "buttonParamsJson": b.buttonParamsJSON}
-            for b in buttons]}}
-        flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
-        if flow:            # the client tells the order notice from the rest by this
-            fields["nativeFlowName"] = flow
+        parts = [i.header.title, i.body.text, i.footer.text]
+        for card in i.carouselMessage.cards:
+            parts.extend((card.header.title, card.body.text, card.footer.text))
+        fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
+        if _has(i, "nativeFlowMessage"):
+            buttons = i.nativeFlowMessage.buttons
+            fields["interactivePayload"] = {"buttons": [
+                {"name": b.name, "buttonParamsJson": b.buttonParamsJSON}
+                for b in buttons]}
+            flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
+            if flow:        # the client tells the order notice from the rest by this
+                fields["nativeFlowName"] = flow
         return fields
+    if _has(message, "buttonsResponseMessage"):
+        b = message.buttonsResponseMessage
+        return {"type": "buttons_response", "body": b.selectedDisplayText,
+                "selectedButtonID": b.selectedButtonID}
+    if _has(message, "listResponseMessage"):
+        b = message.listResponseMessage
+        return {"type": "list_response", "body": b.title or b.description,
+                "selectedRowID": b.singleSelectReply.selectedRowID}
+    if _has(message, "templateButtonReplyMessage"):
+        return {"type": "chat", "body": message.templateButtonReplyMessage.selectedDisplayText}
+    if _has(message, "interactiveResponseMessage"):
+        response = message.interactiveResponseMessage
+        body = response.body.text
+        if not body:
+            try:
+                params = json.loads(response.nativeFlowResponseMessage.paramsJSON or "null")
+            except ValueError:
+                params = None
+            if isinstance(params, dict) and isinstance(params.get("display_text"), str):
+                body = params["display_text"]
+        return {"type": "chat", "body": body}
     return {}
 
 
