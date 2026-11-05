@@ -38,7 +38,7 @@ class VoiceRecordingOptionsMixin:
         self.main_window.settings.setdefault("general", {})["voice_recording_mode"] = mode
         index = self._voice_bitrate_choice.GetSelection()
         if 0 <= index < len(VOICE_BITRATES_KBPS):
-            self.main_window.settings["general"]["voice_recording_bitrate"] = VOICE_BITRATES_KBPS[index]
+            self.main_window.settings.setdefault("general", {})["voice_recording_bitrate"] = VOICE_BITRATES_KBPS[index]
 
     def _relabel_voice_recording_options(self):
         i18n = self.main_window.i18n
