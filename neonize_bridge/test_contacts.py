@@ -328,3 +328,27 @@ def test_address_book_rows_prefer_the_full_name_and_skip_empty_entries():
                     ("5511911110002@s.whatsapp.net", "Beto", ""),
                     ("5511911110003@s.whatsapp.net", "", "Caio")]
     assert contacts.address_book_rows(None, _jid_text) == []
+
+
+class _Lookup:
+    def __init__(self, responses=None, fail=False):
+        self.responses, self.fail, self.asked = responses or [], fail, None
+
+    def is_on_whatsapp(self, *numbers):
+        self.asked = numbers
+        if self.fail:
+            raise RuntimeError("offline")
+        return self.responses
+
+
+def test_known_phone_jid_gives_the_registered_form_of_a_brazilian_number():
+    client = _Lookup([query("555193050236")])
+    assert contacts.known_phone_jid(client, "5551993050236") == (
+        "555193050236", "s.whatsapp.net")
+    assert client.asked == ("+5551993050236", "+555193050236")
+
+
+def test_known_phone_jid_is_none_when_unknown_short_or_failing():
+    assert contacts.known_phone_jid(_Lookup([query("", exists=False)]), "5551993050236") is None
+    assert contacts.known_phone_jid(_Lookup(), "123") is None
+    assert contacts.known_phone_jid(_Lookup(fail=True), "5551993050236") is None

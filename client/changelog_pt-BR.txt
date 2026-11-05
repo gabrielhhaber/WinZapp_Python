@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Neonize: a primeira mensagem para um número de telefone novo digitado numa nova conversa (Ctrl+N) não termina mais como "envio não confirmado" quando o WhatsApp tem o número registrado na outra forma (com ou sem o nono dígito dos celulares brasileiros): agora ela é enviada ao endereço que o WhatsApp conhece.
+
 - Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápido mesmo com mais de um minuto (a mudança para 256 kbps tinha deixado o envio lento). Configurações > Áudio ganhou "Taxa de bits das mensagens de voz (kbps)", para escolher de 32 a 256 kbps.
 
 - Configurações > Interface do usuário > Conversas: nova opção "Número de mensagens novas na lista de conversas", para o leitor de tela falar o número de mensagens novas antes do nome da conversa em vez de depois. Vale para a lista de conversas, as arquivadas e as trancadas. (sugestão de Michal Suchý)

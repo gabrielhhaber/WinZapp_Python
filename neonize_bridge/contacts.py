@@ -214,6 +214,26 @@ def found_in_query(responses):
     return None
 
 
+def known_phone_jid(client, user: str):
+    """The address WhatsApp itself gives the phone number `user` (the typed
+    digits or, for a Brazilian mobile, the form with/without the 9th digit that
+    is the registered one), as ('digits', 'server'), or None when it does not
+    know the number or the query fails. Blocks on a neonize call."""
+    digits = re.sub(r"\D", "", str(user or ""))
+    if len(digits) < _MIN_DIGITS:
+        return None
+    try:
+        responses = client.is_on_whatsapp(*["+" + f for f in number_forms(digits)])
+    except Exception:
+        log.exception("send-message: number lookup")
+        return None
+    found = found_in_query(responses)
+    if not found:
+        return None
+    found_user, _, server = found["jid"].partition("@")
+    return found_user.split(":")[0], server
+
+
 def _wpp_id(user: str, server: str = "c.us") -> dict:
     return {"server": server, "user": user, "_serialized": f"{user}@{server}"}
 
