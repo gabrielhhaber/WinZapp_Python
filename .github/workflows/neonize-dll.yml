@@ -90,6 +90,14 @@ jobs:
       - name: Build (prepare, generate, build)
         run: python neonize_bridge/build_neonize.py all
 
+      - name: Test native call lifecycle against the real package
+        working-directory: neonize_bridge/neonize_build/neonize/goneonize
+        env:
+          CGO_ENABLED: "1"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+        run: go test -p 1 -count=1 -run 'Test(CallLifecycle|IncomingAfterTerminal|IncomingBeforeTerminal|OldIncomingOwner|ConcurrentIncomingAndEnd|CallEventQueue)' .
+
       - name: The patches round-trip (export reproduces them byte for byte)
         run: |
           python neonize_bridge/build_neonize.py export

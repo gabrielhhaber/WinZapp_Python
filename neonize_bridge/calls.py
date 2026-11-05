@@ -31,6 +31,7 @@ import system_messages
 import msgmap
 import ongoing_calls
 from redaction import redact
+from call_placement_errors import placement_failure
 
 log = logging.getLogger("bridge")
 
@@ -382,8 +383,11 @@ def capabilities(media) -> dict:
 def register_routes(r, *, session, ok):
     """Wire the call routes to the aiohttp router `r`."""
 
-    def error(message, status=500):
-        return web.json_response({"status": "error", "message": str(message)}, status=status)
+    def error(message, status=500, reason=None):
+        body = {"status": "error", "message": str(message)}
+        if reason is not None:
+            body["reasonCode"] = reason
+        return web.json_response(body, status=status)
 
     async def reject(req):
         s = session(req)
@@ -444,9 +448,11 @@ def register_routes(r, *, session, ok):
         except Exception as e:
             # the text can carry the number: only its kind goes to the log and back
             log.warning("call not placed: %s", type(e).__name__)
-            return error("the call could not be placed")
+            status, reason = placement_failure(e)
+            return error("the call could not be placed", status, reason)
+        state = place.__self__.status(call_id)["state"]
         return ok(status="success", response={"id": call_id, "via": "neonize",
-                                              "call": {"state": "CALLING"}})
+                                              "call": {"state": state}})
 
     async def offer(media, body):
         video = body.get("isVideo") is True

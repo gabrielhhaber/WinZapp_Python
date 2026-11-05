@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize calls: recover an answer or end that arrives before local call registration; group call failures now distinguish WhatsApp rate limiting and the supported member limits.
+
 - Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
 
 - Settings > User Interface > Chats: new option "Number of new messages in the chat list", so the screen reader says the number of new messages before the chat name instead of after it. It applies to the chat list, the archived chats and the locked chats. (suggested by Michal Suchý)
