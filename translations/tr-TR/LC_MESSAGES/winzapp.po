@@ -2856,6 +2856,28 @@ msgid "Version {version}"
 msgstr "Sürüm {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_demote"
+msgid "Remove admin..."
+msgstr "Yöneticiyi kaldır..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_demote_confirm"
+msgid "Remove {name} as an admin of the channel?"
+msgstr "{name} kanalın yöneticilerinden kaldırılsın mı?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_demote_failed"
+msgid "The admin could not be removed."
+msgstr "Yönetici kaldırılamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_demoted"
+msgid "{name} is no longer an admin."
+msgstr "{name} artık yönetici değil."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_invite"
 msgid "Invite admin..."
@@ -2894,35 +2916,52 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_invited_until"
+msgid ""
+"Admin invite sent to {name}, valid until {date}. They become an admin when "
+"they accept it."
+msgstr ""
+"Yönetici daveti {name} kişisine gönderildi, {date} tarihine kadar geçerli. "
+"Daveti kabul ettiğinde yönetici olur."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_leave"
+msgid "Stop being an admin..."
+msgstr "Yöneticilikten ayrıl..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_leave_confirm"
+msgid "Stop being an admin of this channel?"
+msgstr "Bu kanalın yöneticiliğinden ayrılmak istiyor musunuz?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_left"
+msgid "You are no longer an admin of this channel."
+msgstr "Artık bu kanalın yöneticisi değilsiniz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_make"
+msgid "Make admin..."
+msgstr "Yönetici yap..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_revoke"
 msgid "Cancel admin invite..."
 msgstr "Yönetici davetini iptal et..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "channel_admin_revoke_button"
-msgid "Cancel invite"
-msgstr "Daveti iptal et"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 #, python-brace-format
 msgctxt "channel_admin_revoke_confirm"
 msgid "Cancel the admin invite sent to {name}?"
 msgstr "{name} kişisine gönderilen yönetici daveti iptal edilsin mi?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_revoke_failed"
 msgid "The admin invite could not be cancelled."
 msgstr "Yönetici daveti iptal edilemedi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "channel_admin_revoke_pick"
-msgid "Cancel a contact's admin invite"
-msgstr "Bir kişinin yönetici davetini iptal et"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 #, python-brace-format
 msgctxt "channel_admin_revoked"
 msgid "The admin invite sent to {name} was cancelled."
@@ -2930,29 +2969,9 @@ msgstr "{name} kişisine gönderilen yönetici daveti iptal edildi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
-#, python-brace-format
-msgctxt "channel_admins_count"
-msgid "Admins: {count}"
-msgstr "Yöneticiler: {count}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admins_owner_only"
 msgid "Only the channel's owner invites admins."
 msgstr "Yöneticileri yalnızca kanalın sahibi davet eder."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
-#, python-brace-format
-msgctxt "channel_admins_title"
-msgid "Admins of {name}"
-msgstr "{name} yöneticileri"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
-msgctxt "channel_admins_unavailable"
-msgid "The number of admins could not be read."
-msgstr "Yönetici sayısı okunamadı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_create_failed"
@@ -2975,6 +2994,12 @@ msgid "The channel could not be followed."
 msgstr "Kanal takip edilemedi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_member_you"
+msgid "You"
+msgstr "Siz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_mute_failed"
 msgid "The channel notifications could not be changed."
 msgstr "Kanal bildirimleri değiştirilemedi."
@@ -2983,6 +3008,58 @@ msgstr "Kanal bildirimleri değiştirilemedi."
 msgctxt "channel_not_found"
 msgid "The channel was not found."
 msgstr "Kanal bulunamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_owner_change_failed"
+msgid "The owner could not be changed."
+msgstr "Sahip değiştirilemedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_owner_made"
+msgid "{name} is now the owner of the channel."
+msgstr "{name} artık kanalın sahibi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_owner_make"
+msgid "Make owner..."
+msgstr "Sahip yap..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_owner_make_confirm"
+msgid ""
+"Make {name} the owner of the channel? You will no longer be able to delete "
+"it or change its admins."
+msgstr ""
+"{name} kanalın sahibi yapılsın mı? Artık kanalı silemez ve yöneticilerini "
+"değiştiremezsiniz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_people_count"
+msgid "Admins: {admins}. People listed: {count}."
+msgstr "Yöneticiler: {admins}. Listedeki kişiler: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_people_list"
+msgid "People"
+msgstr "Kişiler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_people_title"
+msgid "Admins and followers of {name}"
+msgstr "{name} yöneticileri ve takipçileri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_people_unavailable"
+msgid "The channel's followers could not be read."
+msgstr "Kanalın takipçileri okunamadı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
@@ -2998,6 +3075,30 @@ msgid "This channel is read-only"
 msgstr "Bu kanal salt okunurdur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_admin"
+msgid "admin"
+msgstr "yönetici"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_follower"
+msgid "follower"
+msgstr "takipçi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_owner"
+msgid "owner"
+msgstr "sahip"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_pending"
+msgid "admin invite pending"
+msgstr "bekleyen yönetici daveti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/channel_conversation.py
 msgctxt "channel_text_only"
 msgid ""
@@ -3011,11 +3112,6 @@ msgstr ""
 msgctxt "channel_unfollow_failed"
 msgid "The channel could not be unfollowed."
 msgstr "Kanalın takibi bırakılamadı."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "channels_admins"
-msgid "Admins..."
-msgstr "Yöneticiler..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_category"
@@ -3262,6 +3358,11 @@ msgstr "Hiç kanal bulunamadı."
 msgctxt "channels_open"
 msgid "Open channel"
 msgstr "Kanalı aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_people"
+msgid "Admins and followers..."
+msgstr "Yöneticiler ve takipçiler..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format

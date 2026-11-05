@@ -1,5 +1,5 @@
-"""The channel admins window (ui/dialogs/channel_admins.py), without a window:
-its pure helper and its handlers called unbound on a stub."""
+"""The channel's admins and followers window (ui/dialogs/channel_admins.py),
+without a window: its pure helpers and its handlers called unbound on a stub."""
 
 from types import SimpleNamespace
 
@@ -8,6 +8,7 @@ from ui.dialogs import channel_admins as ca
 from ui.dialogs.channel_admins import ChannelAdminsDialog
 
 I18N = SimpleNamespace(t=lambda key: {"unknown_contact": "unknown"}.get(key, key))
+ME_LID, ME_PHONE = "99999@lid", "5500000000000@s.whatsapp.net"
 
 
 def channel(role):
@@ -21,70 +22,119 @@ def test_the_picked_contact_is_said_by_name_never_by_jid():
     assert ca.contact_name({"remoteJid": "1@lid"}, I18N) == "unknown"
 
 
+def test_a_part_of_the_read_that_fails_leaves_the_others(monkeypatch):
+    monkeypatch.setattr(ch, "admin_count", lambda c, j: 2)
+    monkeypatch.setattr(ch, "followers", lambda c, j: (_ for _ in ()).throw(ValueError("x")))
+    monkeypatch.setattr(ch, "pending_admins", lambda c, j: ["55555@lid"])
+    assert ca.read_people(None, channel("owner")) == (2, None, ["55555@lid"])
+    assert ca.read_people(None, channel("admin")) == (2, None, [])     # only the owner sees invites
+
+
 class Stub:
+    _me = ChannelAdminsDialog._me
+    _is_me = ChannelAdminsDialog._is_me
+    _name = ChannelAdminsDialog._name
+    _row_text = ChannelAdminsDialog._row_text
     _target = ChannelAdminsDialog._target
     _on_invite = ChannelAdminsDialog._on_invite
-    _on_revoke = ChannelAdminsDialog._on_revoke
+    _on_make_admin = ChannelAdminsDialog._on_make_admin
+    _on_demote = ChannelAdminsDialog._on_demote
+    _on_make_owner = ChannelAdminsDialog._on_make_owner
+    _member_action = ChannelAdminsDialog._member_action
+    _set_my_role = ChannelAdminsDialog._set_my_role
+    _refused_while_busy = ChannelAdminsDialog._refused_while_busy
 
-    def __init__(self, role, picked=None):
+    def __init__(self, role, picked=None, selected=None, confirm=True):
         self._channel = channel(role)
         self._busy = False
         self._i18n = I18N
-        self._mw = SimpleNamespace(_phone_to_lid={"5511999998888@s.whatsapp.net": "777@lid"})
-        self.picked, self.asked, self.sent = picked, [], []
+        self.changed = False
+        self._mw = SimpleNamespace(
+            my_lid=ME_LID, my_jid=ME_PHONE,
+            _phone_to_lid={"5511999998888@s.whatsapp.net": "777@lid"},
+            chat_display_name=lambda chat: {"5511999998888@s.whatsapp.net": "Ana"}.get(chat["remoteJid"], ""))
+        self.picked, self.selected, self.confirm = picked, selected, confirm
+        self.asked, self.sent, self.said, self.invited = [], [], [], []
 
     def _current(self):
         return True
+
+    def _selected(self):
+        return self.selected
 
     def _pick(self, title_key, ok_key):
         self.asked.append(title_key)
         return self.picked
 
+    def _confirm(self, key, name):
+        self.asked.append((key, name))
+        return self.confirm
+
+    def _invite_person(self, user, name):
+        self.invited.append((user, name))
+
     def _send(self, work, done, failed):
-        self.sent.append((done, failed))
+        self.sent.append(work)
+        self.said.append(done(None))
+
+    def _announce(self, text):
+        self.said.append(text)
+
+
+def test_rows_say_names_and_roles_and_this_account_is_you():
+    stub = Stub("owner")
+    ana = ch.Member("11111@lid", "5511999998888@s.whatsapp.net", "Ana WA", "subscriber")
+    bia = ch.Member("22222@lid", "", "Bia", "admin")
+    nobody = ch.Member("33333@lid", "", "", "pending")
+    me = ch.Member(ME_LID, "", "", "owner")
+    assert [stub._row_text(m) for m in (ana, bia, nobody, me)] == [
+        "Ana, channel_role_follower", "Bia, channel_role_admin",
+        "unknown, channel_role_pending", "channel_member_you, channel_role_owner"]
 
 
 def test_an_admin_who_is_not_the_owner_invites_nobody():
-    stub = Stub("admin", {"remoteJid": "5511999998888@s.whatsapp.net"})
+    stub = Stub("admin", {"remoteJid": "5511999998888@s.whatsapp.net"},
+                selected=ch.Member("11111@lid", "", "", "subscriber"))
     stub._on_invite()
-    stub._on_revoke()
-    assert stub.asked == [] and stub.sent == []
+    stub._on_make_admin()
+    assert stub.asked == [] and stub.invited == []
+
+
+def test_the_owner_invites_a_contact_or_the_selected_follower_by_lid():
+    stub = Stub("owner", {"remoteJid": "5511999998888@s.whatsapp.net", "name": "Ana"},
+                selected=ch.Member("11111@lid", "", "Carlos", "subscriber"))
+    stub._on_invite()
+    stub._on_make_admin()
+    assert stub.invited == [("777@lid", "Ana"), ("11111@lid", "Carlos")]
 
 
 def test_a_group_picked_by_mistake_is_never_invited():
     stub = Stub("owner", {"remoteJid": "1203@g.us", "name": "Grupo"})
     stub._on_invite()
-    assert stub.asked == ["channel_admin_invite_pick"] and stub.sent == []
+    assert stub.asked == ["channel_admin_invite_pick"] and stub.invited == []
 
 
-def test_the_invitee_is_named_by_lid_when_the_window_knows_it():
-    stub = Stub("owner")
-    assert stub._target({"remoteJid": "5511999998888@s.whatsapp.net"}) == "777@lid"
-    assert stub._target({"remoteJid": "5511000001111@s.whatsapp.net"}) == "5511000001111@c.us"
-    assert stub._target(None) == ""
+def test_removing_an_admin_asks_first_and_a_no_does_nothing():
+    bia = ch.Member("22222@lid", "", "Bia", "admin")
+    yes, no = Stub("owner", selected=bia), Stub("owner", selected=bia, confirm=False)
+    yes._on_demote()
+    no._on_demote()
+    assert yes.asked == [("channel_admin_demote_confirm", "Bia")] and len(yes.sent) == 1
+    assert no.sent == []
 
 
-class CountStub:
-    _finish_count = ChannelAdminsDialog._finish_count
-
-    def __init__(self, role):
-        self._channel = channel(role)
-        self._i18n = SimpleNamespace(t=lambda key: key)
-        self.said = []
-
-    def _announce(self, text):
-        self.said.append(text)
-
-    def Layout(self):
-        pass
+def test_handing_the_channel_over_makes_this_account_an_admin():
+    stub = Stub("owner", selected=ch.Member("22222@lid", "", "Bia", "admin"))
+    stub._on_make_owner()
+    assert stub._channel.role == "admin" and stub.changed
+    assert stub._mw._channel_roles == {"1@newsletter": "admin"}
+    assert stub.said == ["channel_owner_made"]
 
 
-def test_the_count_is_spoken_and_an_admin_hears_who_invites():
-    owner, admin = CountStub("owner"), CountStub("admin")
-    owner._finish_count(3)
-    admin._finish_count(None)
-    assert owner.said == ["channel_admins_count"]
-    assert admin.said == ["channel_admins_unavailable channel_admins_owner_only"]
+def test_an_admin_cannot_remove_another_admin():
+    stub = Stub("admin", selected=ch.Member("22222@lid", "", "Bia", "admin"))
+    stub._on_demote()
+    assert stub.asked == [] and stub.sent == []
 
 
 class BusyStub:

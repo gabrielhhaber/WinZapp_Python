@@ -1,9 +1,12 @@
 """WinZapp's channels window (Alt+9): `channels/list`, `channels/directory`,
 `channels/info`, `channels/follow`, `channels/unfollow` and `channels/mute`,
 an admin pinning an update in the channel's conversation (`channels/pin`), and
-the channel's admins: how many (`channels/admins`), inviting one
-(`channels/admin-invite`) and the owner taking an invite back
-(`channels/admin-revoke`).
+the channel's people: how many admins (`channels/admins`), its followers with
+their roles (`channels/followers`), the owner's pending admin invites
+(`channels/admin-pending`), inviting an admin (`channels/admin-invite`), taking
+an invite back (`channels/admin-revoke`), removing an admin or leaving as one
+(`channels/admin-demote`) and handing the channel to an admin
+(`channels/owner-change`).
 
 The WPPConnect side calls WhatsApp Web's own MEX jobs for each read
 (client/api_patches/src/controller/channelsPanelController.ts); the bridge
@@ -24,7 +27,14 @@ The query ids were read over CDP on 2026-11-04:
   for a user's LID (`xwa2_newsletter_admin_invite_create` /
   `_revoke`). The invite itself reaches the person as a
   newsletterAdminInviteMessage in their chat, as WhatsApp Web's
-  sendNewsletterAdminInviteMessage sends it.
+  sendNewsletterAdminInviteMessage sends it;
+- 27472091235714801, the followers with their roles (`xwa2_newsletter_followers`);
+- 28049623068067370, the owner's pending admin invites (`xwa2_newsletter_admin`,
+  `pending_admin_invites`);
+- 9880997548630971 and 9546742745432473, demoting an admin and changing the
+  owner (`xwa2_newsletter_admin_demote`, `xwa2_newsletter_change_owner`).
+These four were read with a channel's info open in WhatsApp Web, which loads
+them only for its owner.
 
 Following and unfollowing are neonize's own (`follow_newsletter`,
 `unfollow_newsletter`), and so is muting both ways (`newsletter_toggle_mute`).
@@ -54,6 +64,12 @@ UNPIN_QUERY, UNPIN_FIELD = "28007176042216937", "xwa2_newsletter_unpin_messages"
 ADMIN_INFO_QUERY, ADMIN_INFO_FIELD = "26278439461859188", "xwa2_newsletter_admin"
 INVITE_QUERY, INVITE_FIELD = "9387141988078609", "xwa2_newsletter_admin_invite_create"
 REVOKE_QUERY = "9656078347839416"
+FOLLOWERS_QUERY, FOLLOWERS_FIELD = "27472091235714801", "xwa2_newsletter_followers"
+PENDING_QUERY = "28049623068067370"          # field ADMIN_INFO_FIELD
+DEMOTE_QUERY = "9880997548630971"
+OWNER_QUERY = "9546742745432473"
+FOLLOWER_LIMIT = 500
+ROLES = ("OWNER", "ADMIN", "SUBSCRIBER")
 CAPTION_LIMIT = 500
 _PERSON = re.compile(r"(\d{5,20})@(lid|s\.whatsapp\.net|c\.us)")
 
@@ -186,6 +202,36 @@ def invite_fields(channel, name, caption, expiration) -> dict:
     (WAWebGenerateNewsletterAdminInviteMessageProto)."""
     return {"newsletterJID": channel, "newsletterName": name, "caption": caption,
             "inviteExpiration": expiration}
+
+
+def followers_of(answer):
+    """[{id, phone, name, role}] of a followers answer: owner and admins
+    first, as WhatsApp Web lists them; an edge without an id is skipped."""
+    edges = (((answer or {}).get("followers") or {}).get("edges")
+             if isinstance(answer, dict) else None)
+    out = []
+    for edge in edges if isinstance(edges, list) else ():
+        node = edge.get("node") if isinstance(edge, dict) else None
+        user = person((node or {}).get("id"))
+        if not user:
+            continue
+        role = str(edge.get("role") or "").upper()
+        out.append({"id": user, "phone": person(node.get("pn")),
+                    "name": str(node.get("display_name") or "").strip()[:100],
+                    "role": role.lower() if role in ROLES else "subscriber"})
+    order = {"owner": 0, "admin": 1}
+    return sorted(out, key=lambda f: order.get(f["role"], 2))
+
+
+def pending_of(answer):
+    """The people with a pending admin invite (their JIDs)."""
+    found = answer.get("pending_admin_invites") if isinstance(answer, dict) else None
+    out = []
+    for invite in found if isinstance(found, list) else ():
+        user = person(((invite or {}).get("user") or {}).get("id")) if isinstance(invite, dict) else ""
+        if user and user not in out:
+            out.append(user)
+    return out
 
 
 def register_routes(r, *, session, ok, jid_from_text):
@@ -344,33 +390,71 @@ def register_routes(r, *, session, ok, jid_from_text):
             return error("channel_admin_invite_failed")
         return ok(status="success", response={"id": channel, "user": user, "expiration": expiration})
 
-    async def admin_revoke(req):
+    async def followers(req):
         s = session(req)
-        body = await body_of(req)
-        channel, user = channel_id(body.get("id")) if body.get("id") else "", person(body.get("user"))
-        if not channel or not user:
+        channel = channel_id((await body_of(req)).get("id"))
+        if not channel:
             return error("invalid_channel", 400)
         if not ready(s):
             return error("channels_unavailable")
-        lid = await execute(lid_of, s, user)
-        if not lid:
-            return error("channel_admin_revoke_failed")
-        try:
-            answer = await execute(s.client.send_mex, REVOKE_QUERY,
-                                   {"newsletter_id": channel, "user_id": lid})
-        except Exception as e:
-            log.info("channel admin revoke refused (%s)", type(e).__name__)
-            return error("channel_admin_revoke_failed")
-        # The mutation answers nothing worth reading: only an error says no.
-        if not isinstance(answer, dict) or answer.get("error"):
-            log.info("channel admin revoke refused")
-            return error("channel_admin_revoke_failed")
-        return ok(status="success", response={"id": channel, "user": user})
+        answer = await mex(s, FOLLOWERS_QUERY,
+                           {"input": {"newsletter_id": channel, "count": FOLLOWER_LIMIT}},
+                           FOLLOWERS_FIELD, "channel_followers_unavailable")
+        if isinstance(answer, web.Response):
+            return answer
+        return ok(status="success", response={"id": channel, "followers": followers_of(answer)})
 
+    async def admin_pending(req):
+        s = session(req)
+        channel = channel_id((await body_of(req)).get("id"))
+        if not channel:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        answer = await mex(s, PENDING_QUERY, {"newsletter_id": channel}, ADMIN_INFO_FIELD,
+                           "channel_admins_unavailable")
+        if isinstance(answer, web.Response):
+            return answer
+        return ok(status="success", response={"id": channel, "pending": pending_of(answer)})
+
+    def person_mutation(query_id, code):
+        """A mutation naming one person by LID (revoke, demote, change owner):
+        only an error answer says no."""
+        async def handler(req):
+            s = session(req)
+            body = await body_of(req)
+            channel = channel_id(body.get("id")) if body.get("id") else ""
+            user = person(body.get("user"))
+            if not channel or not user:
+                return error("invalid_channel", 400)
+            if not ready(s):
+                return error("channels_unavailable")
+            lid = await execute(lid_of, s, user)
+            if not lid:
+                return error(code)
+            try:
+                answer = await execute(s.client.send_mex, query_id,
+                                       {"newsletter_id": channel, "user_id": lid})
+            except Exception as e:
+                log.info("channel %s refused (%s)", code, type(e).__name__)
+                return error(code)
+            if not isinstance(answer, dict) or answer.get("error"):
+                log.info("channel %s refused", code)
+                return error(code)
+            return ok(status="success", response={"id": channel, "user": user})
+        return handler
+
+    r.add_post("/api/{tok}/channels/followers", followers)
+    r.add_post("/api/{tok}/channels/admin-pending", admin_pending)
+    r.add_post("/api/{tok}/channels/admin-demote",
+               person_mutation(DEMOTE_QUERY, "channel_admin_demote_failed"))
+    r.add_post("/api/{tok}/channels/owner-change",
+               person_mutation(OWNER_QUERY, "channel_owner_change_failed"))
     r.add_post("/api/{tok}/channels/list", list_channels)
     r.add_post("/api/{tok}/channels/admins", admins)
     r.add_post("/api/{tok}/channels/admin-invite", admin_invite)
-    r.add_post("/api/{tok}/channels/admin-revoke", admin_revoke)
+    r.add_post("/api/{tok}/channels/admin-revoke",
+               person_mutation(REVOKE_QUERY, "channel_admin_revoke_failed"))
     r.add_post("/api/{tok}/channels/pin", pin)
     r.add_post("/api/{tok}/channels/mute", mute)
     r.add_post("/api/{tok}/channels/directory", directory)

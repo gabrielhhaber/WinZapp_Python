@@ -6,8 +6,11 @@ Both engines answer the same routes with WhatsApp's own XWA2Newsletter nodes
 neonize_bridge/channels_panel.py): `channels/list`, `channels/directory`,
 `channels/info`, `channels/follow`, `channels/unfollow`, `channels/mute`, and
 `channels/pin` (an admin pinning an update, by its server id), and the
-admins: `channels/admins` (how many), `channels/admin-invite` (an invite sent
-to the person's chat) and `channels/admin-revoke` (the owner taking it back).
+admins: `channels/admins` (how many), `channels/followers` (the people with
+their roles), `channels/admin-pending` (the owner's pending invites),
+`channels/admin-invite` (an invite sent to the person's chat),
+`channels/admin-revoke` (the owner taking it back), `channels/admin-demote`
+(removing an admin, or leaving as one) and `channels/owner-change`.
 Creating, editing and deleting a channel are the upstream newsletter routes
 (`POST newsletter`, `PUT` / `DELETE newsletter/:id`), which the bridge answers
 the same way.
@@ -87,6 +90,72 @@ def _int(value):
 def admin_role(role) -> bool:
     """Whether *role* may post and pin in the channel (owner or admin)."""
     return role in (_OWNER, _ADMIN)
+
+
+@dataclass(frozen=True)
+class Member:
+    """One person of a channel as its admins window lists them."""
+    jid: str          # their @lid, or their number's JID
+    phone: str        # their number's JID when the answer gave it, else ""
+    name: str         # the name WhatsApp gave, possibly "" (never shown raw)
+    role: str         # owner, admin, pending (an admin invite awaits) or subscriber
+
+
+_ORDER = {"owner": 0, "admin": 1, "pending": 2}
+
+
+def parse_followers(body):
+    """The people of a `channels/followers` answer; ValueError when it is not one."""
+    data = body.get("response") if isinstance(body, dict) else None
+    found = data.get("followers") if isinstance(data, dict) else None
+    if not isinstance(body, dict) or body.get("status") != "success" or not isinstance(found, list):
+        raise ValueError("channel_followers_unavailable")
+    out = []
+    for item in found:
+        if not isinstance(item, dict):
+            continue
+        jid, phone = str(item.get("id") or ""), str(item.get("phone") or "")
+        if not admin_target(jid):
+            continue
+        role = str(item.get("role") or "").lower()
+        out.append(Member(jid, phone if admin_target(phone) else "",
+                          str(item.get("name") or "").strip(),
+                          role if role in ("owner", "admin") else "subscriber"))
+    return out
+
+
+def parse_pending(body):
+    """The JIDs with a pending admin invite; ValueError when it is not an answer."""
+    data = body.get("response") if isinstance(body, dict) else None
+    found = data.get("pending") if isinstance(data, dict) else None
+    if not isinstance(body, dict) or body.get("status") != "success" or not isinstance(found, list):
+        raise ValueError("channel_admins_unavailable")
+    return [jid for jid in found if isinstance(jid, str) and admin_target(jid)]
+
+
+def members(followers, pending=(), me=None):
+    """The window's rows: owner, admins, pending invites, then followers. A
+    follower with a pending invite shows as pending; an invitee who does not
+    follow is added. *me* (a Member) is added when the list leaves this
+    account out, as a new channel's does."""
+    pending = list(pending or ())
+    rows = [Member(m.jid, m.phone, m.name, "pending") if m.jid in pending and m.role == "subscriber"
+            else m for m in followers or ()]
+    listed = {m.jid for m in rows} | {m.phone for m in rows if m.phone}
+    rows += [Member(jid, "", "", "pending") for jid in pending if jid not in listed]
+    if me is not None and me.jid not in listed and (not me.phone or me.phone not in listed):
+        rows.append(me)
+    return sorted(rows, key=lambda m: _ORDER.get(m.role, 3))
+
+
+def member_name(known, server_name, unknown) -> str:
+    """How a person is said: the name WinZapp knows them by, else the one
+    WhatsApp gave, else *unknown*; never a JID."""
+    for name in (known, server_name):
+        name = str(name or "").strip()
+        if name and "@" not in name:
+            return name
+    return unknown
 
 
 def admin_target(jid, phone_to_lid=None) -> str:
@@ -267,22 +336,48 @@ def admin_count(connection, jid):
     return count if isinstance(count, int) and not isinstance(count, bool) and count >= 0 else None
 
 
-def invite_admin(connection, jid, user, name="", message=""):
+def invite_admin(connection, jid, user, name="", message="") -> int:
     """Invite *user* (an admin_target) to administer the channel: WhatsApp
-    sends them the invite in their chat."""
+    sends them the invite in their chat. The invite's expiration (Unix
+    seconds), 0 when the answer did not say."""
     body = _post(connection, "channels/admin-invite",
                  {"id": jid, "user": user, "name": str(name or "")[:NAME_LIMIT],
                   "message": str(message or "").strip()[:INVITE_MESSAGE_LIMIT]},
                  "channel_admin_invite_failed")
     if not isinstance(body, dict) or body.get("status") != "success":
         raise ValueError("channel_admin_invite_failed")
+    data = body.get("response") if isinstance(body.get("response"), dict) else {}
+    return _int(data.get("expiration")) or 0
+
+
+def followers(connection, jid):
+    return parse_followers(_post(connection, "channels/followers", {"id": jid},
+                                 "channel_followers_unavailable"))
+
+
+def pending_admins(connection, jid):
+    return parse_pending(_post(connection, "channels/admin-pending", {"id": jid},
+                               "channel_admins_unavailable"))
+
+
+def _person_action(connection, route, jid, user, code):
+    body = _post(connection, route, {"id": jid, "user": user}, code)
+    if not isinstance(body, dict) or body.get("status") != "success":
+        raise ValueError(code)
+
+
+def demote_admin(connection, jid, user):
+    """Remove *user* as an admin (the owner), or stop being one (yourself)."""
+    _person_action(connection, "channels/admin-demote", jid, user, "channel_admin_demote_failed")
+
+
+def change_owner(connection, jid, user):
+    """Make *user*, an admin, the channel's owner."""
+    _person_action(connection, "channels/owner-change", jid, user, "channel_owner_change_failed")
 
 
 def revoke_admin_invite(connection, jid, user):
-    body = _post(connection, "channels/admin-revoke", {"id": jid, "user": user},
-                 "channel_admin_revoke_failed")
-    if not isinstance(body, dict) or body.get("status") != "success":
-        raise ValueError("channel_admin_revoke_failed")
+    _person_action(connection, "channels/admin-revoke", jid, user, "channel_admin_revoke_failed")
 
 
 def pin_update(connection, jid, server_id, pin):
@@ -327,3 +422,18 @@ def delete_channel(connection, jid):
         return
     if body is False or (isinstance(body, dict) and body.get("status") == "error"):
         raise ValueError("channel_delete_failed")
+
+
+def member_actions(member, my_role, is_me=False):
+    """What the admins window offers for the selected *member*, as WhatsApp
+    Web does: the owner makes a follower an admin, cancels a pending invite,
+    removes an admin or hands them the channel; an admin may leave. The owner
+    cannot leave without handing the channel over first."""
+    if member is None:
+        return set()
+    if my_role == _OWNER and not is_me:
+        return {"subscriber": {"make_admin"}, "pending": {"revoke"},
+                "admin": {"demote", "make_owner"}}.get(member.role, set())
+    if my_role == _ADMIN and is_me:
+        return {"leave"}
+    return set()

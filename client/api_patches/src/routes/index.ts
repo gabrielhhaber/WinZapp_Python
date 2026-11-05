@@ -1294,6 +1294,14 @@ routes.post('/api/:session/channels/admin-invite', verifyToken, statusConnection
   ChannelsPanelController.inviteChannelAdmin);
 routes.post('/api/:session/channels/admin-revoke', verifyToken, statusConnection,
   ChannelsPanelController.revokeChannelAdminInvite);
+routes.post('/api/:session/channels/followers', verifyToken, statusConnection,
+  ChannelsPanelController.channelFollowers);
+routes.post('/api/:session/channels/admin-pending', verifyToken, statusConnection,
+  ChannelsPanelController.channelPendingAdmins);
+routes.post('/api/:session/channels/admin-demote', verifyToken, statusConnection,
+  ChannelsPanelController.demoteChannelAdmin);
+routes.post('/api/:session/channels/owner-change', verifyToken, statusConnection,
+  ChannelsPanelController.changeChannelOwner);
 
 //Communitys
 // The account's communities, their admins and joined groups (WinZapp's own:

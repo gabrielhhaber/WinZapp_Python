@@ -2890,6 +2890,28 @@ msgid "Version {version}"
 msgstr "Versão {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_demote"
+msgid "Remove admin..."
+msgstr "Remover administrador..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_demote_confirm"
+msgid "Remove {name} as an admin of the channel?"
+msgstr "Remover {name} dos administradores do canal?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_demote_failed"
+msgid "The admin could not be removed."
+msgstr "Não foi possível remover o administrador."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_admin_demoted"
+msgid "{name} is no longer an admin."
+msgstr "{name} já não é administrador."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_invite"
 msgid "Invite admin..."
@@ -2928,35 +2950,52 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_admin_invited_until"
+msgid ""
+"Admin invite sent to {name}, valid until {date}. They become an admin when "
+"they accept it."
+msgstr ""
+"Convite de administrador enviado para {name}, válido até {date}. A pessoa "
+"passa a ser administradora quando o aceitar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_leave"
+msgid "Stop being an admin..."
+msgstr "Deixar de ser administrador..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_leave_confirm"
+msgid "Stop being an admin of this channel?"
+msgstr "Deixar de ser administrador deste canal?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_left"
+msgid "You are no longer an admin of this channel."
+msgstr "Já não é administrador deste canal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_admin_make"
+msgid "Make admin..."
+msgstr "Tornar administrador..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_revoke"
 msgid "Cancel admin invite..."
 msgstr "Cancelar convite de administrador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "channel_admin_revoke_button"
-msgid "Cancel invite"
-msgstr "Cancelar convite"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 #, python-brace-format
 msgctxt "channel_admin_revoke_confirm"
 msgid "Cancel the admin invite sent to {name}?"
 msgstr "Cancelar o convite de administrador enviado para {name}?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_revoke_failed"
 msgid "The admin invite could not be cancelled."
 msgstr "Não foi possível cancelar o convite de administrador."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "channel_admin_revoke_pick"
-msgid "Cancel a contact's admin invite"
-msgstr "Cancelar o convite de administrador de um contacto"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 #, python-brace-format
 msgctxt "channel_admin_revoked"
 msgid "The admin invite sent to {name} was cancelled."
@@ -2964,29 +3003,9 @@ msgstr "O convite de administrador enviado para {name} foi cancelado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
-#, python-brace-format
-msgctxt "channel_admins_count"
-msgid "Admins: {count}"
-msgstr "Administradores: {count}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admins_owner_only"
 msgid "Only the channel's owner invites admins."
 msgstr "Só o dono do canal convida administradores."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
-#, python-brace-format
-msgctxt "channel_admins_title"
-msgid "Admins of {name}"
-msgstr "Administradores de {name}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py
-msgctxt "channel_admins_unavailable"
-msgid "The number of admins could not be read."
-msgstr "Não foi possível ler o número de administradores."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_create_failed"
@@ -3009,6 +3028,12 @@ msgid "The channel could not be followed."
 msgstr "Não foi possível seguir o canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_member_you"
+msgid "You"
+msgstr "Você"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_mute_failed"
 msgid "The channel notifications could not be changed."
 msgstr "Não foi possível alterar as notificações do canal."
@@ -3017,6 +3042,58 @@ msgstr "Não foi possível alterar as notificações do canal."
 msgctxt "channel_not_found"
 msgid "The channel was not found."
 msgstr "O canal não foi encontrado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_owner_change_failed"
+msgid "The owner could not be changed."
+msgstr "Não foi possível mudar o dono."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_owner_made"
+msgid "{name} is now the owner of the channel."
+msgstr "{name} é agora o dono do canal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_owner_make"
+msgid "Make owner..."
+msgstr "Tornar dono..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_owner_make_confirm"
+msgid ""
+"Make {name} the owner of the channel? You will no longer be able to delete "
+"it or change its admins."
+msgstr ""
+"Tornar {name} dono do canal? Deixará de poder eliminá-lo ou mudar os "
+"administradores."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_people_count"
+msgid "Admins: {admins}. People listed: {count}."
+msgstr "Administradores: {admins}. Pessoas na lista: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_people_list"
+msgid "People"
+msgstr "Pessoas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+#, python-brace-format
+msgctxt "channel_people_title"
+msgid "Admins and followers of {name}"
+msgstr "Administradores e seguidores de {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_people_unavailable"
+msgid "The channel's followers could not be read."
+msgstr "Não foi possível ler os seguidores do canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
@@ -3029,6 +3106,30 @@ msgstr "Só o dono e os administradores do canal podem afixar atualizações."
 msgctxt "channel_read_only"
 msgid "This channel is read-only"
 msgstr "Este canal é de apenas leitura"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_admin"
+msgid "admin"
+msgstr "administrador"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_follower"
+msgid "follower"
+msgstr "seguidor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_owner"
+msgid "owner"
+msgstr "dono"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_admins.py
+msgctxt "channel_role_pending"
+msgid "admin invite pending"
+msgstr "convite de administrador pendente"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/channel_conversation.py
@@ -3044,11 +3145,6 @@ msgstr ""
 msgctxt "channel_unfollow_failed"
 msgid "The channel could not be unfollowed."
 msgstr "Não foi possível deixar de seguir o canal."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "channels_admins"
-msgid "Admins..."
-msgstr "Administradores..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_category"
@@ -3295,6 +3391,11 @@ msgstr "Nenhum canal encontrado."
 msgctxt "channels_open"
 msgid "Open channel"
 msgstr "Abrir canal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_people"
+msgid "Admins and followers..."
+msgstr "Administradores e seguidores..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format

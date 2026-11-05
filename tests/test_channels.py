@@ -198,6 +198,58 @@ def test_the_admin_routes(monkeypatch):
         ch.invite_admin(CONNECTION, "1@newsletter", "777@lid")
 
 
+def ok(response):
+    return {"status": "success", "response": response}
+
+
+def test_followers_and_pending_invites_become_the_windows_rows():
+    found = ch.parse_followers(ok({"followers": [
+        {"id": "11111@lid", "phone": "5511999998888@s.whatsapp.net", "name": " Ana ", "role": "subscriber"},
+        {"id": "22222@lid", "phone": "", "name": "Bia", "role": "admin"},
+        {"id": "33333@lid", "phone": "x", "name": "", "role": "weird"},
+        {"id": "1203@g.us", "role": "admin"}, "x"]}))
+    assert found == [ch.Member("11111@lid", "5511999998888@s.whatsapp.net", "Ana", "subscriber"),
+                     ch.Member("22222@lid", "", "Bia", "admin"),
+                     ch.Member("33333@lid", "", "", "subscriber")]
+    pending = ch.parse_pending(ok({"pending": ["11111@lid", "55555@lid", "1203@g.us", 3]}))
+    assert pending == ["11111@lid", "55555@lid"]
+    me = ch.Member("99999@lid", "5500000000000@s.whatsapp.net", "", "owner")
+    rows = ch.members(found, pending, me)
+    assert [(m.jid, m.role) for m in rows] == [
+        ("99999@lid", "owner"), ("22222@lid", "admin"), ("11111@lid", "pending"),
+        ("55555@lid", "pending"), ("33333@lid", "subscriber")]
+    assert ch.members([me], [], me) == [me]                 # listed once
+
+
+@pytest.mark.parametrize("body", [{"status": "error"}, ok({}), ok({"followers": "x"}), None])
+def test_a_wrong_followers_answer_is_refused(body):
+    with pytest.raises(ValueError):
+        ch.parse_followers(body)
+
+
+def test_a_person_is_said_by_name_never_by_jid():
+    assert ch.member_name(" Ana ", "Ana WA", "?") == "Ana"
+    assert ch.member_name("", "Ana WA", "?") == "Ana WA"
+    assert ch.member_name("5511@s.whatsapp.net", "", "?") == "?"
+
+
+def test_the_people_actions_and_the_invite_expiration(monkeypatch):
+    sent = []
+
+    def post(url, json=None, headers=None, timeout=0):
+        route = url.rsplit("/api/tok/", 1)[1]
+        sent.append((route, json))
+        return Response(200, ok({"expiration": 1790000000} if route == "channels/admin-invite" else {}))
+
+    monkeypatch.setattr(ch, "api_post", post)
+    assert ch.invite_admin(CONNECTION, "1@newsletter", "777@lid") == 1790000000
+    ch.demote_admin(CONNECTION, "1@newsletter", "777@lid")
+    ch.change_owner(CONNECTION, "1@newsletter", "777@lid")
+    assert [route for route, _ in sent] == ["channels/admin-invite", "channels/admin-demote",
+                                           "channels/owner-change"]
+    assert sent[1][1] == {"id": "1@newsletter", "user": "777@lid"}
+
+
 def test_a_refused_action_raises_its_code(monkeypatch):
     monkeypatch.setattr(ch, "api_post", lambda *a, **k: Response(503, {"code": "x"}))
     with pytest.raises(ValueError, match="channel_follow_failed"):
@@ -254,3 +306,17 @@ def test_the_details_name_the_followers_role_and_link():
     plain = channel_details(ch.parse_channel({"id": "5@newsletter"}, default_role="guest"),
                             I18n(), following=False)
     assert plain == "you do not follow"
+
+
+@pytest.mark.parametrize("role, my_role, is_me, actions", [
+    ("subscriber", "owner", False, {"make_admin"}),
+    ("pending", "owner", False, {"revoke"}),
+    ("admin", "owner", False, {"demote", "make_owner"}),
+    ("owner", "owner", True, set()),                  # the owner hands over before leaving
+    ("admin", "admin", True, {"leave"}),
+    ("admin", "admin", False, set()),
+    ("subscriber", "admin", False, set()),
+])
+def test_what_each_person_can_have_done(role, my_role, is_me, actions):
+    assert ch.member_actions(ch.Member("1@lid", "", "", role), my_role, is_me) == actions
+    assert ch.member_actions(None, my_role) == set()

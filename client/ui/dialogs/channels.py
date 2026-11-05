@@ -160,7 +160,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._create = button("channels_create", self._on_create)
         self._edit = button("channels_edit", self._on_edit)
         self._delete = button("channels_delete", self._on_delete)
-        self._admins = button("channels_admins", self._on_admins)
+        self._admins = button("channels_people", self._on_admins)
         self._refresh = button("channels_refresh", self._reload)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
@@ -491,8 +491,11 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         dialog = ChannelAdminsDialog(self, self._mw, channel)
         try:
             dialog.ShowModal()
+            changed = dialog.changed
         finally:
             dialog.Destroy()
+        if changed:     # handed over or left: the list's role is stale
+            self._reload(keep=channel.jid, quiet=True)
 
     def _on_delete(self, event=None):
         channel = self._mine_version(self._selected())

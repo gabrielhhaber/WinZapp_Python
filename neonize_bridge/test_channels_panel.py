@@ -99,6 +99,30 @@ def test_an_admin_invite_names_a_person_and_keeps_its_texts_short():
         "inviteExpiration": 5}
 
 
+def test_followers_come_with_their_role_owner_and_admins_first():
+    answer = {"followers": {"edges": [
+        {"node": {"id": "11111@lid", "pn": "5511999998888@s.whatsapp.net", "display_name": " Ana "},
+         "role": "SUBSCRIBER"},
+        {"node": {"id": "22222@lid", "display_name": "Bia"}, "role": "ADMIN"},
+        {"node": {"id": "33333@lid"}, "role": "OWNER"},
+        {"node": {"id": "1203@g.us"}, "role": "ADMIN"}, {"role": "ADMIN"}, "x",
+        {"node": {"id": "44444@lid"}, "role": "WEIRD"}]}}
+    assert cp.followers_of(answer) == [
+        {"id": "33333@lid", "phone": "", "name": "", "role": "owner"},
+        {"id": "22222@lid", "phone": "", "name": "Bia", "role": "admin"},
+        {"id": "11111@lid", "phone": "5511999998888@s.whatsapp.net", "name": "Ana",
+         "role": "subscriber"},
+        {"id": "44444@lid", "phone": "", "name": "", "role": "subscriber"}]
+    assert cp.followers_of(None) == [] and cp.followers_of({"followers": None}) == []
+
+
+def test_pending_invites_are_people():
+    answer = {"pending_admin_invites": [{"user": {"id": "55555@lid"}}, {"user": {"id": "55555@lid"}},
+                                        {"user": None}, None, {"user": {"id": "x"}}]}
+    assert cp.pending_of(answer) == ["55555@lid"]
+    assert cp.pending_of({}) == []
+
+
 def test_nodes_come_from_a_list_or_a_result():
     assert cp.nodes_of([NODE, "x"]) == [NODE]
     assert cp.nodes_of({"result": [NODE]}) == [NODE]
@@ -235,3 +259,24 @@ def test_the_admin_count_route(session):
     session.client.send_mex = lambda query_id, variables: {"data": {cp.ADMIN_INFO_FIELD: {"admin_count": 2}}}
     (status, body), = post(session, ("admins", {"id": "123@newsletter"}))
     assert (status, body["response"]) == (200, {"id": "123@newsletter", "adminCount": 2})
+
+
+def test_demote_and_owner_change_name_the_person_by_lid(session):
+    asked = []
+    session.client.get_lid_from_pn = lambda jid: N(User="77712345")
+    session.client.send_mex = lambda query_id, variables: asked.append((query_id, variables)) or {"data": {}}
+    (s1, a), (s2, b) = post(session, ("admin-demote", {"id": "123@newsletter", "user": "5511999998888@c.us"}),
+                            ("owner-change", {"id": "123@newsletter", "user": "22222@lid"}))
+    assert (s1, s2) == (200, 200)
+    assert asked == [(cp.DEMOTE_QUERY, {"newsletter_id": "123@newsletter", "user_id": "77712345@lid"}),
+                     (cp.OWNER_QUERY, {"newsletter_id": "123@newsletter", "user_id": "22222@lid"})]
+
+
+def test_followers_and_pending_routes(session):
+    session.client.send_mex = lambda query_id, variables: {"data": {
+        cp.FOLLOWERS_FIELD: {"followers": {"edges": [{"node": {"id": "22222@lid"}, "role": "ADMIN"}]}},
+        cp.ADMIN_INFO_FIELD: {"pending_admin_invites": [{"user": {"id": "55555@lid"}}]}}}
+    (s1, f), (s2, p) = post(session, ("followers", {"id": "123@newsletter"}),
+                            ("admin-pending", {"id": "123@newsletter"}))
+    assert f["response"]["followers"] == [{"id": "22222@lid", "phone": "", "name": "", "role": "admin"}]
+    assert p["response"] == {"id": "123@newsletter", "pending": ["55555@lid"]}
