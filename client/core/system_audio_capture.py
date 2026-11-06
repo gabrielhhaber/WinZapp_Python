@@ -42,7 +42,6 @@ class TimelineMixer:
         self.capacity = int(rate * capacity_seconds)
         if not 0 <= late_tolerance_seconds <= capacity_seconds:
             raise ValueError("Late tolerance must fit inside the bounded buffer")
-        self._late_tolerance = int(rate * late_tolerance_seconds)
         # Sources whose QPC stamps jitter around a steady cadence (the
         # microphone); they are laid out contiguously within the snap window.
         self._snap_sources = frozenset(snap_sources)
