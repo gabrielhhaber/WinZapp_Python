@@ -113,6 +113,12 @@ What the patches carry today:
   its device number; an `<accept>` with a bare `from` while the call's peer is
   still bare counts as the phone (device 0). Before a release, call a contact
   with a phone and a companion device and answer on each in turn.
+- **meowcaller 0010**: diagnostics only, no behaviour change. For every call it
+  logs the relay endpoints (name, `is_fna`, token ids; never an address), the
+  one media runs on (`*`), the first STUN packets the relay sends back, and
+  whether relay data arriving after media started would have picked another
+  endpoint. Added for issue #689: on an inbound call the native layer reported
+  `quadros do outro lado=0` for the whole call and never saw a peer SRTCP.
 
 ## Toolchain (once)
 

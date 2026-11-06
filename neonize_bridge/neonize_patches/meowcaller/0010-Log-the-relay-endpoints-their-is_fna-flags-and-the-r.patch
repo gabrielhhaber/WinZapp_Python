@@ -1,0 +1,193 @@
+From 4604a5d65bf6f8e28fab91d9c4d6c92543749cfa Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 6 Nov 2026 14:53:07 +0000
+Subject: [PATCH] Log the relay endpoints, their is_fna flags and the relay's
+ STUN answers
+
+A call that never receives the peer's media (inbound calls on the WinZapp
+build: frames from the other side stay at 0) shows nothing about why. Log
+the endpoint list with the chosen one marked (names and flags only), the
+first STUN packets the relay sends, and whether relay data that arrives
+after media started would have picked another endpoint.
+---
+ engine.go          |  9 ++++++++
+ engine_media.go    |  8 ++++++-
+ relay_diag.go      | 46 ++++++++++++++++++++++++++++++++++++++++
+ relay_diag_test.go | 52 ++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 114 insertions(+), 1 deletion(-)
+ create mode 100644 relay_diag.go
+ create mode 100644 relay_diag_test.go
+
+diff --git a/engine.go b/engine.go
+index 10054c9..9455450 100644
+--- a/engine.go
++++ b/engine.go
+@@ -797,6 +797,7 @@ func (e *engine) onRelay(callID string, data *waBinary.Node) {
+ 		e.mu.Unlock()
+ 		return
+ 	}
++	previous, running, inbound := m.relay, m.started, m.direction == CallDirectionIncoming
+ 	m.relay = rd
+ 	if !rd.peerJID.IsEmpty() {
+ 		peerLID = rd.peerJID.String()
+@@ -806,6 +807,14 @@ func (e *engine) onRelay(callID string, data *waBinary.Node) {
+ 		}
+ 	}
+ 	e.mu.Unlock()
++	if running {
++		// Media already runs on the relay chosen before this update: say
++		// whether the update would have chosen another one.
++		e.c.log.Info().Str("call_id", callID).Bool("inbound", inbound).
++			Bool("choice_changed", relayChoiceChanged(previous, rd, inbound)).
++			Str("endpoints", describeRelayEndpoints(rd, inbound)).
++			Msg("relay data updated after media started")
++	}
+ 	if rekeyPeer != nil {
+ 		if err := rekeyPeer(peerLID); err != nil {
+ 			e.c.log.Warn().Err(err).Str("call_id", callID).Str("peer_lid", peerLID).
+diff --git a/engine_media.go b/engine_media.go
+index dd1e951..a608c38 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -118,6 +118,7 @@ func (e *engine) connectAndAllocate(ctx context.Context, rd *relayData, streamSs
+ 	}
+ 	addr := &net.UDPAddr{IP: net.ParseIP(ep.addresses[0].ipv4), Port: int(ep.addresses[0].port)}
+ 	log.Info().Str("relay_name", ep.relayName).Str("addr", addr.String()).Msg("connecting media transport to relay")
++	log.Info().Bool("inbound", inbound).Str("endpoints", describeRelayEndpoints(rd, inbound)).Msg("relay endpoints (* = chosen)")
+ 	e.c.diag.Emit("relay", map[string]any{
+ 		"event": "endpoint", "relay_name": ep.relayName,
+ 		"ipv4": ep.addresses[0].ipv4, "port": ep.addresses[0].port, "token_id": ep.tokenID,
+@@ -821,7 +822,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 
+ 	buf := make([]byte, 1500)
+ 	var receiveStats audioReceiveStats
+-	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid uint64
++	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid, stunIn uint64
+ 	for {
+ 		if ctx.Err() != nil {
+ 			return ctx.Err()
+@@ -902,6 +903,11 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			continue
+ 		case relay.RelayPacketStun:
+ 			mt, isStun := stun.StunMessageType(pkt)
++			if stunIn++; stunIn <= 3 {
++				// Whether the relay ever answers the allocate: no STUN at all
++				// means the relay does not know this allocation.
++				log.Info().Bool("stun", isStun).Str("type", fmt.Sprintf("0x%04x", mt)).Int("bytes", n).Msg("STUN from relay")
++			}
+ 			if isStun && mt == stun.MsgBindingRequest {
+ 				resp, answered, err := allocateState.SendBindingSuccess(pkt, func(packet []byte) error {
+ 					_, sendErr := ch.Send(packet)
+diff --git a/relay_diag.go b/relay_diag.go
+new file mode 100644
+index 0000000..6a868cd
+--- /dev/null
++++ b/relay_diag.go
+@@ -0,0 +1,46 @@
++package meowcaller
++
++import (
++	"fmt"
++	"strings"
++)
++
++// describeRelayEndpoints lists a call's relay endpoints for the log, one entry
++// per te2, by relay name and flags only (never an address or a token): the
++// entry the media loop picked is marked with "*". It exists so a call whose
++// peer media never arrives shows whether the endpoint chosen was the one the
++// caller marked is_fna.
++func describeRelayEndpoints(rd *relayData, inbound bool) string {
++	if rd == nil || len(rd.endpoints) == 0 {
++		return "none"
++	}
++	chosen := getMediaRelayEndpoint(rd, inbound)
++	parts := make([]string, 0, len(rd.endpoints))
++	for i := range rd.endpoints {
++		ep := &rd.endpoints[i]
++		mark := ""
++		if ep == chosen {
++			mark = "*"
++		}
++		fna := 0
++		if ep.isFNA {
++			fna = 1
++		}
++		parts = append(parts, fmt.Sprintf("%s%s:fna=%d:token=%d:auth=%d:addrs=%d",
++			mark, ep.relayName, fna, ep.tokenID, ep.authTokenID, len(ep.addresses)))
++	}
++	return strings.Join(parts, " ")
++}
++
++// relayChoiceChanged reports whether new relay data would make the media loop
++// pick a different endpoint than old did (by relay name and is_fna).
++func relayChoiceChanged(old, updated *relayData, inbound bool) bool {
++	if old == nil || updated == nil {
++		return old != updated
++	}
++	a, b := getMediaRelayEndpoint(old, inbound), getMediaRelayEndpoint(updated, inbound)
++	if a == nil || b == nil {
++		return a != b
++	}
++	return a.relayName != b.relayName || a.isFNA != b.isFNA
++}
+diff --git a/relay_diag_test.go b/relay_diag_test.go
+new file mode 100644
+index 0000000..42e2d73
+--- /dev/null
++++ b/relay_diag_test.go
+@@ -0,0 +1,52 @@
++package meowcaller
++
++import "testing"
++
++func TestDescribeRelayEndpointsMarksTheChosenOne(t *testing.T) {
++	rd := &relayData{endpoints: []relayEndpoint{
++		{relayName: "a1", tokenID: 0, authTokenID: 1, addresses: []relayAddress{{"192.0.2.1", 3478}}},
++		{relayName: "b2", tokenID: 1, isFNA: true, addresses: []relayAddress{{"192.0.2.2", 3478}}},
++	}}
++	if got, want := describeRelayEndpoints(rd, true), "a1:fna=0:token=0:auth=1:addrs=1 *b2:fna=1:token=1:auth=0:addrs=1"; got != want {
++		t.Fatalf("inbound = %q, want %q", got, want)
++	}
++	if got, want := describeRelayEndpoints(rd, false), "*a1:fna=0:token=0:auth=1:addrs=1 b2:fna=1:token=1:auth=0:addrs=1"; got != want {
++		t.Fatalf("outbound = %q, want %q", got, want)
++	}
++	if got := describeRelayEndpoints(nil, true); got != "none" {
++		t.Fatalf("nil = %q", got)
++	}
++}
++
++func TestDescribeRelayEndpointsNeverPrintsAddresses(t *testing.T) {
++	rd := &relayData{endpoints: []relayEndpoint{{relayName: "a1", addresses: []relayAddress{{"192.0.2.1", 3478}}}}}
++	if got := describeRelayEndpoints(rd, false); containsAny(got, "192.0.2.1", "3478") {
++		t.Fatalf("address leaked into %q", got)
++	}
++}
++
++func containsAny(s string, needles ...string) bool {
++	for _, n := range needles {
++		for i := 0; i+len(n) <= len(s); i++ {
++			if s[i:i+len(n)] == n {
++				return true
++			}
++		}
++	}
++	return false
++}
++
++func TestRelayChoiceChanged(t *testing.T) {
++	a := &relayData{endpoints: []relayEndpoint{{relayName: "a1", authTokenID: 1}}}
++	b := &relayData{endpoints: []relayEndpoint{{relayName: "a1", authTokenID: 1}}}
++	c := &relayData{endpoints: []relayEndpoint{{relayName: "b2", authTokenID: 1}}}
++	if relayChoiceChanged(a, b, true) {
++		t.Fatal("same endpoint reported as changed")
++	}
++	if !relayChoiceChanged(a, c, true) {
++		t.Fatal("different relay not reported")
++	}
++	if !relayChoiceChanged(a, nil, true) {
++		t.Fatal("lost relay not reported")
++	}
++}
+-- 
+2.43.0
+
