@@ -100,14 +100,15 @@ def migrate_stereo_voice_bitrate(settings) -> bool:
     and its default 64 made stereo AAC sound poor. An install still on 64 (the
     default, indistinguishable from a deliberate 64) moves to 128 for stereo;
     any other rate it chose is kept. Mono keeps the old setting. Idempotent:
-    it only acts while the stereo key is absent. Returns True if *settings*
+    it only acts while the stereo key is absent and the old one present. Returns True if *settings*
     changed.
     """
     if not isinstance(settings, dict):
         return False
     general = settings.get("general")
-    if not isinstance(general, dict) or "voice_recording_bitrate_stereo" in general:
-        return False
+    if (not isinstance(general, dict) or "voice_recording_bitrate_stereo" in general
+            or "voice_recording_bitrate" not in general):
+        return False  # no old setting: the backfill supplies the 128 default
     old = general.get("voice_recording_bitrate")
     chosen = old if (isinstance(old, int) and not isinstance(old, bool)
                      and old in VOICE_BITRATES_KBPS and old != DEFAULT_VOICE_BITRATE_KBPS) \

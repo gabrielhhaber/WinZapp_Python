@@ -102,15 +102,20 @@ class TestWhatGoesOut:
         assert stereo_voice_bitrate_kbps(settings) == kbps
 
     @pytest.mark.parametrize("old, expected", [
-        (64, 128), (None, 128), (96, 96), (256, 256), (32, 32), (100, 128)])
+        (64, 128), (96, 96), (256, 256), (32, 32), (100, 128)])
     def test_migration_moves_default_64_to_128_and_keeps_other_choices(self, old, expected):
         from core.voice_stereo import migrate_stereo_voice_bitrate
-        general = {} if old is None else {"voice_recording_bitrate": old}
+        general = {"voice_recording_bitrate": old}
         settings = {"general": general}
         assert migrate_stereo_voice_bitrate(settings) is True
         assert general["voice_recording_bitrate_stereo"] == expected
-        assert general.get("voice_recording_bitrate") == old or old is None
+        assert general["voice_recording_bitrate"] == old
         assert migrate_stereo_voice_bitrate(settings) is False
+
+    def test_migration_leaves_a_fresh_install_to_the_backfill(self):
+        from core.voice_stereo import migrate_stereo_voice_bitrate
+        for settings in ({}, {"general": {}}, None):
+            assert migrate_stereo_voice_bitrate(settings) is False
 
     def test_migration_never_overwrites_a_stereo_choice(self):
         from core.voice_stereo import migrate_stereo_voice_bitrate
@@ -251,7 +256,7 @@ def test_a_stereo_voice_message_asks_the_aac_encoder_for_the_chosen_bitrate(monk
         return str(m4a)
     monkeypatch.setattr(audio_transcode, "encode_system_audio_to_m4a", _encode)
     panel = types.SimpleNamespace(main_window=types.SimpleNamespace(
-        _find_api_ffmpeg=lambda: "ff", settings={"general": {"voice_recording_bitrate": 96}}))
+        _find_api_ffmpeg=lambda: "ff", settings={"general": {"voice_recording_bitrate_stereo": 96}}))
 
     assert ConversationsPanel._encode_stereo_voice(panel, "v.wav") == b"M4A"
 
