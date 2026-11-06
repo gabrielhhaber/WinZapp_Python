@@ -1,0 +1,14 @@
+<!--nav: 💾 Backups and logs-->
+<h3>Profile backup</h3>
+<p>The internal browser's profile is where your WhatsApp connection lives. In Settings &gt; Storage &gt; Profile backup:</p>
+<ul>
+  <li>Set how often WinZapp renews the backup when closed (default: 24 hours; 0 does it on every close).</li>
+  <li>Turn on the backup also while WinZapp is open, at the interval you choose. WhatsApp stays disconnected while it is made, which can take a few minutes, and WinZapp can ask before each time. The new backup only replaces the previous one after WhatsApp connects again with it.</li>
+  <li>"Don't keep profile backups" saves space but, if the profile gets damaged, you will have to pair again. When you check it, WinZapp says how much space the backups take and asks whether you want to delete them.</li>
+</ul>
+<p>These backups are what WinZapp uses to recover by itself (see the Accounts, tray and sync section). To keep your message and media history, copy the <code>data</code> folder.</p>
+
+<h3>Logs</h3>
+<p>The logs of WinZapp (<code>log.log</code>) and of the local server (<code>wppconnect.log</code>) mask phone numbers, WhatsApp identifiers and contact names, so they can be sent when reporting a problem without exposing your contacts. They are in <code>data\accounts\&lt;account id&gt;\logs</code>, inside the WinZapp folder. <code>log.log</code> is replaced on every start. For problems with being asked to pair again or losing the session, also send <code>shutdown_audit.log</code>.</p>
+<p>In Advanced, the "Export this account's logs..." button saves, in the background, a .zip file with the current account's logs and the Neonize bridge's, and announces when it finishes.</p>
+<p>Report problems and request features in the repository's Issues (<code>github.com/gabrielhhaber/WinZapp_Python/issues</code>). Help &gt; About the program shows the version, which the bug form asks for.</p>

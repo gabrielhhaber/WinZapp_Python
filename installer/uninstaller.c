@@ -115,6 +115,17 @@ static const UninstallStrings STR_EN = {
     L"Uninstall complete",
 };
 
+static const UninstallStrings STR_IT = {
+    L"Disinstalla WinZapp",
+    L"Vuoi davvero disinstallare WinZapp?",
+    L"Disinstalla",
+    L"Annulla",
+    L"Impossibile trovare la cartella di installazione di WinZapp.\n"
+    L"Il programma potrebbe essere già stato disinstallato.",
+    L"WinZapp è stato disinstallato correttamente.",
+    L"Disinstallazione completata",
+};
+
 static const UninstallStrings *g_str = &STR_EN;
 
 static void select_language(void)
@@ -127,6 +138,7 @@ static void select_language(void)
     case WINZAPP_LANG_RO:    g_str = &STR_RO;    break;
     case WINZAPP_LANG_TR:    g_str = &STR_TR;    break;
     case WINZAPP_LANG_AR:    g_str = &STR_AR;    break;
+    case WINZAPP_LANG_IT:    g_str = &STR_IT;    break;
     default:                 g_str = &STR_EN;    break;
     }
 }

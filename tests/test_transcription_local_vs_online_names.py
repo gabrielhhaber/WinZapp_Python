@@ -28,6 +28,7 @@ MARKERS = {
     "tr-TR": (("yerel", "bu bilgisayarda"), ("çevrimiçi",)),
     "ro": (("local",), ("ai online",)),
     "ar": (("محلي",), ("عبر الإنترنت",)),
+    "it": (("local",), ("ia online",)),
 }
 
 LOCAL_KEYS = (

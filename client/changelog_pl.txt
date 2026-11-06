@@ -289,6 +289,8 @@ NOWOŚCI
 
 - Neonize: czat ze zweryfikowaną firmą pokazuje teraz zweryfikowaną nazwę firmy, jeśli nie ma jej w Twojej książce adresowej.
 
+- Nowy język: włoski. Wybierzesz go w Ustawienia > Ogólne > Język, w instalatorze i w deinstalatorze. Program jest w pełni przetłumaczony; przewodnik użytkownika i te informacje o wersji są na razie po angielsku.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
