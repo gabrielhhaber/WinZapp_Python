@@ -16,10 +16,12 @@ message. So a stereo recording is AAC and a mono one OGG/Opus, both through
 """
 
 #: Rates the user can pick for a recorded voice message, in kbit/s. 64 is the
-#: default: a minute of speech stays small, so it uploads quickly. 256 made
-#: recordings of over a minute slow to send.
+#: mono default: a minute of speech stays small, so it uploads quickly. 256
+#: made recordings of over a minute slow to send. A stereo (AAC) recording has
+#: its own setting, default 128: at 64 it sounded poor.
 VOICE_BITRATES_KBPS = (32, 48, 64, 96, 128, 192, 256)
 DEFAULT_VOICE_BITRATE_KBPS = 64
+DEFAULT_STEREO_VOICE_BITRATE_KBPS = 128
 #: Sent in place of Opus's mimetype for a stereo voice message.
 STEREO_MIMETYPE = "audio/mp4"
 OPUS_MIMETYPE = "audio/ogg;codecs=opus"
@@ -80,6 +82,39 @@ def voice_bitrate_kbps(settings) -> int:
     if isinstance(value, int) and not isinstance(value, bool) and value in VOICE_BITRATES_KBPS:
         return value
     return DEFAULT_VOICE_BITRATE_KBPS
+
+
+def stereo_voice_bitrate_kbps(settings) -> int:
+    """The stereo (AAC) voice-message bitrate chosen in *settings*, else 128."""
+    general = settings.get("general", {}) if isinstance(settings, dict) else {}
+    value = general.get("voice_recording_bitrate_stereo") if isinstance(general, dict) else None
+    if isinstance(value, int) and not isinstance(value, bool) and value in VOICE_BITRATES_KBPS:
+        return value
+    return DEFAULT_STEREO_VOICE_BITRATE_KBPS
+
+
+def migrate_stereo_voice_bitrate(settings) -> bool:
+    """Give an existing install its stereo bitrate: 128, or the rate it chose.
+
+    Until now one setting (voice_recording_bitrate) served both mono and stereo,
+    and its default 64 made stereo AAC sound poor. An install still on 64 (the
+    default, indistinguishable from a deliberate 64) moves to 128 for stereo;
+    any other rate it chose is kept. Mono keeps the old setting. Idempotent:
+    it only acts while the stereo key is absent and the old one present. Returns True if *settings*
+    changed.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if (not isinstance(general, dict) or "voice_recording_bitrate_stereo" in general
+            or "voice_recording_bitrate" not in general):
+        return False  # no old setting: the backfill supplies the 128 default
+    old = general.get("voice_recording_bitrate")
+    chosen = old if (isinstance(old, int) and not isinstance(old, bool)
+                     and old in VOICE_BITRATES_KBPS and old != DEFAULT_VOICE_BITRATE_KBPS) \
+        else DEFAULT_STEREO_VOICE_BITRATE_KBPS
+    general["voice_recording_bitrate_stereo"] = chosen
+    return True
 
 
 def bitrate_arg(kbps: int) -> str:
