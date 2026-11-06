@@ -1339,6 +1339,9 @@ DEFAULT_SETTINGS = {
         "announce_conversations_update_complete": True,
         "announce_sync_progress": True,
         "announce_media_progress": True,
+        # "Loading link preview...", "Link preview added." and the failure
+        # reason while writing a message with a link. New key: no migration.
+        "announce_link_previews": True,
         "speak_active_conv_messages": True,
         "speak_other_conv_messages": True,
         "silence_while_recording": False

@@ -298,6 +298,8 @@ NOVIDADES
 
 - Encaminhar uma mensagem com link agora preserva a prévia do link. A janela de encaminhar ganhou a caixa "Preservar prévia do link", marcada por padrão e exibida quando alguma mensagem selecionada tem prévia; em Configurações > Interface do usuário > Conversas, a opção "Preservar prévias de links por padrão ao encaminhar mensagens" define como ela começa. Funciona com a WPPConnect e com o Neonize. Observação: com a WPPConnect, a mensagem encaminhada com a prévia é enviada como uma nova mensagem e não leva o rótulo "Encaminhada"; com o Neonize, leva.
 
+- Ao escrever uma mensagem com link, o leitor de tela agora diz "Carregando prévia..." enquanto a prévia é buscada, "Prévia adicionada." quando ela é anexada, ou "Não foi possível carregar a prévia do link: motivo." quando falha. Em Configurações > Acessibilidade > Conteúdo falado, a nova opção "Anunciar adição e carregamento das prévias de links" liga ou desliga as três mensagens; vem marcada por padrão.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.

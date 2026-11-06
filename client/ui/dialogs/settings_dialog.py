@@ -752,6 +752,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         speech_sizer.Add(self._announce_media_progress_check, 0, wx.ALL, 8)
 
+        self._announce_link_previews_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_link_previews_label")
+        )
+        speech_sizer.Add(self._announce_link_previews_check, 0, wx.ALL, 8)
+
         self._announce_sync_check = wx.CheckBox(
             self._speech_page, label=i18n.t("announce_sync_events_label")
         )
@@ -2712,6 +2717,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             )
             self._announce_sync_progress_check.SetValue(speech.get("announce_sync_progress", True))
             self._announce_media_progress_check.SetValue(speech.get("announce_media_progress", True))
+            self._announce_link_previews_check.SetValue(speech.get("announce_link_previews", True))
             self._speak_active_conv_check.SetValue(speech.get("speak_active_conv_messages", True))
             self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
         if wanted(unit, "audio"):
@@ -4239,6 +4245,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "announce_media_progress"
             ] = self._announce_media_progress_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
+                "announce_link_previews"
+            ] = self._announce_link_previews_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
                 "speak_active_conv_messages"
             ] = self._speak_active_conv_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
@@ -4888,6 +4897,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             )
             self._announce_sync_progress_check.SetLabel(i18n.t("speech_announce_sync_progress_label"))
             self._announce_media_progress_check.SetLabel(i18n.t("speech_announce_media_progress_label"))
+            self._announce_link_previews_check.SetLabel(i18n.t("speech_announce_link_previews_label"))
             self._speak_active_conv_check.SetLabel(i18n.t("speech_speak_active_conv_label"))
             self._speak_other_conv_check.SetLabel(i18n.t("speech_speak_other_conv_label"))
         if ready(self, "audio"):

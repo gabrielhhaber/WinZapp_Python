@@ -102,14 +102,24 @@ class _MetaTagParser(HTMLParser):
             self.title = data
 
 
-def fetch_link_preview(url: str, timeout: float = 6.0) -> dict | None:
+def fetch_link_preview(url: str, timeout: float = 6.0, report=None) -> dict | None:
     """Fetch Open Graph link-preview metadata for *url*.
 
     Returns ``{"title", "description", "canonicalUrl"}`` or ``None`` on any
     failure — network error, non-HTML response, or a page with neither a
     title nor a description to show. Always call this off the UI thread; it
     blocks on network I/O.
+
+    *report*, when given, is called as ``report(reason, status)`` before a
+    ``None`` is returned, so the composer can say why: reason is one of
+    ``"network"``, ``"http"`` (status is the HTTP code), ``"not_html"`` or
+    ``"empty"``; status is 0 otherwise.
     """
+    def _fail(reason, status=0):
+        if report is not None:
+            report(reason, status)
+        return None
+
     try:
         response = requests.get(
             url, timeout=timeout, stream=True, headers=_REQUEST_HEADERS,
@@ -117,7 +127,7 @@ def fetch_link_preview(url: str, timeout: float = 6.0) -> dict | None:
         response.raise_for_status()
         content_type = response.headers.get("Content-Type", "")
         if "html" not in content_type.lower():
-            return None
+            return _fail("not_html")
         raw = b""
         for chunk in response.iter_content(chunk_size=_CHUNK_SIZE):
             if not chunk:
@@ -137,7 +147,10 @@ def fetch_link_preview(url: str, timeout: float = 6.0) -> dict | None:
         html_text = raw.decode(response.encoding or "utf-8", errors="ignore")
     except Exception as exc:
         logging.info("[link_preview] fetch failed for %r: %s", url, exc)
-        return None
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        if isinstance(status, int) and status > 0:
+            return _fail("http", status)
+        return _fail("network")
     finally:
         try:
             response.close()
@@ -149,12 +162,12 @@ def fetch_link_preview(url: str, timeout: float = 6.0) -> dict | None:
         parser.feed(html_text)
     except Exception as exc:
         logging.info("[link_preview] HTML parse failed for %r: %s", url, exc)
-        return None
+        return _fail("empty")
 
     title = decode_html_entities(parser.og.get("og:title") or parser.title or "").strip()
     description = decode_html_entities(parser.og.get("og:description") or "").strip()
     if not title and not description:
-        return None
+        return _fail("empty")
 
     return {
         "title": title[:300],
@@ -191,3 +204,31 @@ def message_link_preview(msg) -> dict:
     url = (ext.get("canonicalUrl") or ext.get("matchedText") or "").strip()
     return {"title": title, "description": description,
             "canonicalUrl": url, "matchedText": url}
+
+
+def announce_link_previews_enabled(settings) -> bool:
+    """Settings > Spoken content > announce loading and adding link previews
+    (on by default; off silences all three messages)."""
+    speech = (settings or {}).get("speech_content", {})
+    return speech.get("announce_link_previews", True) is not False
+
+
+def link_preview_announcement(i18n, kind: str, reason: str = "", status: int = 0) -> str:
+    """What the screen reader says about the composer's link preview.
+
+    *kind* is ``"loading"``, ``"added"`` or ``"failed"``; for ``"failed"``,
+    *reason*/*status* are what fetch_link_preview() reported.
+    """
+    if kind == "loading":
+        return i18n.t("link_preview_loading")
+    if kind == "added":
+        return i18n.t("link_preview_added")
+    if reason == "http":
+        detail = i18n.t("link_preview_error_http").format(status=status)
+    elif reason == "not_html":
+        detail = i18n.t("link_preview_error_not_html")
+    elif reason == "empty":
+        detail = i18n.t("link_preview_error_empty")
+    else:
+        detail = i18n.t("link_preview_error_network")
+    return i18n.t("link_preview_failed").format(reason=detail)
