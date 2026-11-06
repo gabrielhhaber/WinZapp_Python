@@ -3036,7 +3036,12 @@ class WebSocketClient:
                                     "hydratedButtons": wpp_msg.get("hydratedButtons") or []}
             }
         elif msg_type == "interactive":
-            message_content = {"interactiveMessage": {"body": {"text": conversation}}}
+            order_update = order_update_payload(wpp_msg)
+            if order_update is not None:
+                message_content = {ORDER_UPDATE_MESSAGE_TYPE: order_update}
+                msg_type = "order_update"
+            else:
+                message_content = {"interactiveMessage": {"body": {"text": conversation}}}
         elif msg_type == "buttons_response":
             message_content = {"buttonsResponseMessage": {
                 "selectedDisplayText": conversation,
@@ -3092,11 +3097,6 @@ class WebSocketClient:
             # thumbnail: left to the text fallback below it became a row of
             # base64, or "unsupported message".
             message_content = {PRODUCT_MESSAGE_TYPE: product_payload(wpp_msg)}
-        elif msg_type == "interactive" and order_update_payload(wpp_msg) is not None:
-            # The seller's follow-up to an order. Any other interactive
-            # message keeps going through the handling it always had.
-            message_content = {ORDER_UPDATE_MESSAGE_TYPE: order_update_payload(wpp_msg)}
-            msg_type = "order_update"
         elif msg_type == "gp2":
             # Group membership/settings notifications (join, leave, removed,
             # promoted, subject/description/picture change, …). WPPConnect
