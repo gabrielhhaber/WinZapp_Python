@@ -18,6 +18,7 @@ static const char *name_of(WinzappLang l)
     case WINZAPP_LANG_RO:    return "ro";
     case WINZAPP_LANG_TR:    return "tr-TR";
     case WINZAPP_LANG_AR:    return "ar";
+    case WINZAPP_LANG_IT:    return "it";
     }
     return "?";
 }

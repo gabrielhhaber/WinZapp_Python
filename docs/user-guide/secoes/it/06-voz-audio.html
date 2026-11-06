@@ -1,0 +1,37 @@
+<!--nav: 🎙️ Voice messages and audio-->
+<p class="lead">Record, listen to and send voice messages, and control playback without leaving the chat.</p>
+
+<h3>Record</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Ctrl+R</td><td>Record voice message</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+P</td><td>Pause and resume the recording</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>Listen to what was recorded while the recording is paused</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+D</td><td>Discard the recording</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+H</td><td>Record microphone and computer audio</td></tr>
+</table>
+<ul>
+  <li><strong>Voice message recording channels:</strong> There is one record button. In Settings &gt; Audio, "Voice message recording channels" offers "Automatic (use the device's channels)" (the default), "Mono (mix left and right)" and "Stereo (when available)". Automatic and Stereo keep two channels when the device supports them and use mono otherwise. Mono averages left and right into one channel: use it for a microphone connected only to INPUT 1 or INPUT 2 of an audio interface. A single active input is quieter after averaging, and no automatic gain is applied. In Automatic, a recording with one side completely silent goes out in mono, taken from the side with sound. The choice is fixed when recording starts and also applies to the paused preview. It does not affect calls or microphone + computer audio recording. Stereo voice messages also play on iPhone.</li>
+  <li><strong>Microphone + computer audio:</strong> records in a single message your voice and what the computer plays (a video, music, the screen reader). During the recording, two sliders adjust the volume of the other sounds and of NVDA (without NVDA, the second one is disabled); they only apply to the recording and are kept per account. Before starting, WinZapp warns that everything that plays will go into the recording, with "Don't show again" (the option "Warn before recording computer audio" brings the warning back). The recording is sent as audio.</li>
+  <li>Recording announcements can be silenced; the screen reader does not start saying "Send" before being interrupted.</li>
+  <li><strong>Microphone noise reduction:</strong> with "Enable microphone noise reduction" checked in Settings &gt; Audio, the same page shows the "Noise reduction model" item, with its state and the "Download noise reduction model" button. The neural model is downloaded once, over the internet, and recordings are processed on this computer. Without the model, noise reduction uses the basic noise gate; if it cannot be used for a recording, WinZapp announces it through the screen reader and uses the basic noise gate for that send. If noise reduction cannot be applied at all, the message is sent unprocessed, with an announcement as well.</li>
+  <li>The microphone and speaker used are in Settings &gt; Audio.</li>
+  <li>With Neonize, the voice message is also delivered to contacts on Android.</li>
+  <li>If the computer's file-type library (libmagic) fails to load, Neonize recognizes the type from the file itself and the voice message goes out normally.</li>
+  <li>Voice messages, mono and stereo, are recorded at 64 kbps by default. In Settings &gt; Audio, "Voice message bitrate (kbps)" lets you choose from 32 to 256 kbps.</li>
+</ul>
+
+<h3>Listen</h3>
+<ul>
+  <li>On voice and audio messages, <strong>Enter</strong> or <strong>Space</strong> play and pause. In Settings &gt; Audio you can tell voice messages apart from audio files.</li>
+  <li><strong>Speed:</strong> Alt+, slows down and Alt+. speeds up. The default speed is set in Settings &gt; Audio &gt; Audio playback.</li>
+  <li><strong>Forward and back:</strong> Shift+Right/Left Arrow moves 5 seconds; Shift+Page Down/Up moves 1 minute; Shift+Home and Shift+End go to the start and the end of what is playing.</li>
+  <li>The following voice messages play in sequence, unless you clear "Automatically play voice messages in sequence" in Settings &gt; User interface. During the sequence, the focused row waits to update its state, so the screen reader does not read over the audio.</li>
+  <li><strong>Ctrl+Alt+Shift+P</strong> pauses or resumes the audio that is playing, from any panel.</li>
+  <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and plays the message the first time.</li>
+  <li>If the sound card is not available (for example, when the computer wakes up), WinZapp tries to restore the audio output when a playback fails; if it still cannot play, it tells you through the screen reader.</li>
+  <li>In Settings, there is an option not to mark audio as played.</li>
+</ul>
+
+<h3>Switch the audio device on the spot</h3>
+<p>Ctrl+Alt+Shift+H opens the list of playback devices and Ctrl+Alt+Shift+G the list of recording devices, numbered 1 to 0: press the number to switch right away, or use the arrows and Enter. The switch applies to sounds, voice messages and calls (a call in progress changes without dropping), for all open accounts, until you close WinZapp. The devices chosen in Settings do not change.</p>

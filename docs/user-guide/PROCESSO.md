@@ -10,14 +10,14 @@ Toda alteração na `main` vira uma alpha, e o pytest roda antes de cada alpha e
 2. os guias de `client/data/help_guide/` não são exatamente o que o `gerar_guia.py` produz agora;
 3. algum idioma tem seções, selos `desde` ou subtítulos diferentes do pt-BR.
 
-Para destravar: escreva a função nos 8 idiomas (roteiro abaixo), rode `python gerar_guia.py <clone>` e depois `python verificar_guia.py <clone> --registrar`. Registrar é a declaração de que o guia cobre os itens atuais; só faça depois de atualizar o texto. Um PR sem item novo no changelog (só documentação, refatoração) não precisa de nada.
+Para destravar: escreva a função nos 9 idiomas (roteiro abaixo), rode `python gerar_guia.py <clone>` e depois `python verificar_guia.py <clone> --registrar`. Registrar é a declaração de que o guia cobre os itens atuais; só faça depois de atualizar o texto. Um PR sem item novo no changelog (só documentação, refatoração) não precisa de nada.
 
 ## O que é cada arquivo
 
 | Arquivo | Função |
 |---|---|
 | `client/data/help_guide/<idioma>.html` | O guia pronto de cada idioma (um arquivo só, acessível, com busca e modo escuro). É o que o menu Ajuda > Guia de uso abre. É gerado; não edite à mão. O `.gitignore` do projeto ignora `data/`: um idioma novo precisa de `git add -f`. |
-| `secoes/<idioma>/NN-nome.html` | O conteúdo, uma seção por arquivo (a ordem dos números define a ordem no guia). **É aqui que se edita.** Idiomas: pt-BR (fonte), pt-PT, en-US, es-ES, pl, tr-TR, ro, ar. |
+| `secoes/<idioma>/NN-nome.html` | O conteúdo, uma seção por arquivo (a ordem dos números define a ordem no guia). **É aqui que se edita.** Idiomas: pt-BR (fonte), pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it. |
 | `i18n/<idioma>.json` | Textos da página (título, busca, menu, títulos dos grupos de atalhos) e nomes das teclas. |
 | `ferramentas/` | `swap.py` troca rótulos entre aspas pelos do PO do idioma; `examples.py` e `verify.py` conferem os exemplos entre aspas contra o PO; `gloss.json`/`prefix.json` são glossários. |
 | `template.html` | Visual e script do guia (CSS, busca, menu). Raramente muda. |
@@ -40,7 +40,7 @@ Para destravar: escreva a função nos 8 idiomas (roteiro abaixo), rode `python 
    - se não houver seção que sirva, crie `secoes/NN-nome.html` (começa com `<!--nav: 🔔 Título-->`).
 4. Atalhos: **nada a fazer à mão**; o `gerar_guia.py` regenera as tabelas. Só atualize as tabelas escritas à mão nas seções (conversas, mensagens, voz, ligações) se um atalho citado nelas mudou.
 5. Mudou ou foi removida uma funcionalidade? Ajuste o texto da seção para descrever **só como é agora** (sem "antes era assim").
-6. **Traduza o mesmo trecho para os outros 7 idiomas** (pt-PT, en-US, es-ES, pl, tr-TR, ro, ar), nos mesmos arquivos `secoes/<idioma>/` e na mesma ordem, com o mesmo selo `desde`. Escreva os rótulos da interface entre aspas retas, em inglês (ou como `⟦rótulo⟧`), e rode `python ferramentas/swap.py <idioma> apply`: ele troca cada rótulo pelo texto real do PO daquele idioma. Depois `python ferramentas/examples.py <idioma>` e `python ferramentas/verify.py <idioma>`; o que ficar "sem correspondência" deve ser só exemplo de fala do leitor de tela, não rótulo.
+6. **Traduza o mesmo trecho para os outros 8 idiomas** (pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it), nos mesmos arquivos `secoes/<idioma>/` e na mesma ordem, com o mesmo selo `desde`. Escreva os rótulos da interface entre aspas retas, em inglês (ou como `⟦rótulo⟧`), e rode `python ferramentas/swap.py <idioma> apply`: ele troca cada rótulo pelo texto real do PO daquele idioma. Depois `python ferramentas/examples.py <idioma>` e `python ferramentas/verify.py <idioma>`; o que ficar "sem correspondência" deve ser só exemplo de fala do leitor de tela, não rótulo.
 7. Registro: rode `python verificar_guia.py <clone> --registrar` e acrescente uma linha em `secoes/<idioma>/99-registro.html` **em cada idioma** (alpha + o que entrou) e atualize `cobertura.json`.
 8. Rode `python gerar_guia.py <clone>` (todos os idiomas) e abra os HTML: confira a busca, o menu lateral e, com leitor de tela, as seções alteradas.
 
@@ -54,7 +54,7 @@ Para destravar: escreva a função nos 8 idiomas (roteiro abaixo), rode `python 
 
 ## Verificação antes de publicar
 
-- `python gerar_guia.py <clone>` roda sem erro e informa a alpha coberta nos 8 idiomas.
+- `python gerar_guia.py <clone>` roda sem erro e informa a alpha coberta nos 9 idiomas.
 - Todos os idiomas têm as mesmas seções e o mesmo número de selos `desde`.
 - Nenhum `{{...}}` sobrou no HTML; todos os links `#...` do menu levam a uma seção.
 - Os atalhos citados no texto conferem com a tabela gerada.

@@ -38,6 +38,7 @@ SUFFIX_TO_LOCALE = {
     "TR": "tr-TR",
     "EN": "en-US",
     "AR": "ar",
+    "IT": "it",
 }
 NON_ENGLISH = [s for s in SUFFIX_TO_LOCALE if s != "EN"]
 
@@ -118,6 +119,7 @@ def test_helper_maps_each_language_and_defaults_to_english():
     assert re.search(r"case LANG_POLISH:\s*return WINZAPP_LANG_PL", lang)
     assert re.search(r"case LANG_ROMANIAN:\s*return WINZAPP_LANG_RO", lang)
     assert re.search(r"case LANG_TURKISH:\s*return WINZAPP_LANG_TR", lang)
+    assert re.search(r"case LANG_ITALIAN:\s*return WINZAPP_LANG_IT", lang)
     assert "SUBLANG_PORTUGUESE" in lang
     assert re.search(r"default:\s*return WINZAPP_LANG_EN", lang)
 
@@ -160,6 +162,8 @@ LANGID_CASES = [
     (0x0418, "ro"),
     (0x0818, "ro"),                    # Romanian, Moldova
     (0x041F, "tr-TR"),
+    (0x0410, "it"),
+    (0x0810, "it"),                    # Italian, Switzerland
     (0x0409, "en-US"),
     (0x0809, "en-US"),                 # English, UK
     (0x0411, "en-US"),                 # Japanese -> default
