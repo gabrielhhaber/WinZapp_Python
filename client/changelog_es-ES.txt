@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Configuración > General > Notificaciones incorpora "Orden de los mensajes de grupo en las notificaciones toast:", con "Primero el nombre del participante" (el valor predeterminado, como antes: "Gustavo en WinZapp | Desarrolladores y Testers") y "Primero el nombre del grupo" (como en el WhatsApp Desktop oficial: "WinZapp | Desarrolladores y Testers, Gustavo"). La elección cambia solo el texto de las notificaciones toast; lo que anuncia el lector de pantalla con la ventana activa sigue igual.
+
 - La grabación del audio del ordenador ya no se interrumpe con "problema con el dispositivo de audio" cuando WinZapp se bloquea uno o dos segundos (ordenador lento u ocupado): se omite el audio de ese instante, la grabación continúa y el resto sigue sincronizado.
 
 - Neonize: con las confirmaciones de lectura desactivadas en Privacidad, ya no ves el estado "leído" de los mensajes que envías en chats individuales, igual que ya no envías confirmaciones de lectura a los demás (como en WPPConnect). El ajuste ahora funciona en ambos sentidos.

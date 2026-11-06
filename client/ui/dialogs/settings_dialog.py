@@ -22,7 +22,7 @@ from core.audio_devices import (
 )
 from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 from core.emoticons import emoticon_setting_enabled
-from core.notification_manager import NOTIFICATION_CONTENT_LEVELS
+from core.notification_manager import GROUP_TOAST_ORDERS, NOTIFICATION_CONTENT_LEVELS
 from core.attachment_types import PASTED_AUDIO_MODES
 from core.reaction_shortcuts import (
     DEFAULT_QUICK_REACTIONS,
@@ -202,6 +202,13 @@ NOTIFICATION_CONTENT_LABEL_KEYS = (
     "notification_content_full",
     "notification_content_name",
     "notification_content_sound",
+)
+
+#: Radio labels for the group toast order, in the order of
+#: core.notification_manager.GROUP_TOAST_ORDERS.
+GROUP_TOAST_ORDER_LABEL_KEYS = (
+    "group_toast_order_participant",
+    "group_toast_order_group",
 )
 
 
@@ -638,6 +645,17 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             wx.EVT_CHECKBOX,
             lambda e: (self._sync_notification_content_enabled(), e.Skip()),
         )
+
+        # Which name a group toast leads with. Toast text only; the spoken
+        # announcement with the window active keeps its order.
+        self._group_toast_order_radio = wx.RadioBox(
+            self._notifications_page,
+            label=i18n.t("group_toast_order_label"),
+            choices=[i18n.t(key) for key in GROUP_TOAST_ORDER_LABEL_KEYS],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        notif_sizer.Add(self._group_toast_order_radio, 0, wx.EXPAND | wx.ALL, 8)
 
         self._keep_muted_silent_check = wx.CheckBox(
             self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
@@ -2319,6 +2337,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         notifications are on; greyed out otherwise, but kept, so turning them
         back on restores the level the user had picked."""
         self._notification_content_radio.Enable(self._notifications_check.GetValue())
+        self._group_toast_order_radio.Enable(self._notifications_check.GetValue())
 
     def _load_values(self, unit=None):
         """Populate controls from current settings: those of `unit`, the one
@@ -2338,6 +2357,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._notification_content_radio.SetSelection(
                 NOTIFICATION_CONTENT_LEVELS.index(content)
                 if content in NOTIFICATION_CONTENT_LEVELS else 0)
+            order = self.main_window.settings.get("general", {}).get("group_toast_order", "participant")
+            self._group_toast_order_radio.SetSelection(
+                GROUP_TOAST_ORDERS.index(order)
+                if order in GROUP_TOAST_ORDERS else 0)
             self._sync_notification_content_enabled()
 
         call_settings = self.main_window.settings.get("calls", {})
@@ -4307,6 +4330,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["notification_content"] = (
                 NOTIFICATION_CONTENT_LEVELS[self._notification_content_radio.GetSelection()]
             )
+            self.main_window.settings.setdefault("general", {})["group_toast_order"] = (
+                GROUP_TOAST_ORDERS[self._group_toast_order_radio.GetSelection()]
+            )
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
@@ -4716,6 +4742,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
             for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):
                 self._notification_content_radio.SetItemLabel(_i, i18n.t(_key))
+            self._group_toast_order_radio.SetLabel(i18n.t("group_toast_order_label"))
+            for _i, _key in enumerate(GROUP_TOAST_ORDER_LABEL_KEYS):
+                self._group_toast_order_radio.SetItemLabel(_i, i18n.t(_key))
         if ready(self, "calls"):
             self._call_alerts_check.SetLabel(i18n.t("calls_alerts_enabled_label"))
             self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))

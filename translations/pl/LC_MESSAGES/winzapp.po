@@ -7414,6 +7414,22 @@ msgid "{count} participant(s)"
 msgstr "Liczba członków: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_toast_order_group"
+msgid "Group name first"
+msgstr "Najpierw nazwa grupy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "group_toast_order_label"
+msgid "Order of group messages in toast notifications:"
+msgstr "Kolejność wiadomości grupowych w powiadomieniach toast:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "group_toast_order_participant"
+msgid "Participant name first"
+msgstr "Najpierw nazwa uczestnika"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 msgctxt "help_guide_unavailable"
 msgid "The usage guide could not be opened."
@@ -9251,6 +9267,13 @@ msgstr "Nowa reakcja"
 msgctxt "notif_in_group"
 msgid "{participant} in {group}"
 msgstr "{participant} w {group}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py
+#, python-brace-format
+msgctxt "notif_in_group_group_first"
+msgid "{group}, {participant}"
+msgstr "{group}, {participant}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
 msgctxt "notif_list"

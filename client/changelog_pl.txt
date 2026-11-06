@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Ustawienia > Ogólne > Powiadomienia zyskują opcję "Kolejność wiadomości grupowych w powiadomieniach toast:" z wyborem "Najpierw nazwa uczestnika" (domyślnie, jak dotąd: "Gustavo w WinZapp | Deweloperzy i Testerzy") oraz "Najpierw nazwa grupy" (jak w oficjalnym WhatsApp Desktop: "WinZapp | Deweloperzy i Testerzy, Gustavo"). Wybór zmienia tylko tekst powiadomień toast; to, co czytnik ekranu ogłasza przy aktywnym oknie, pozostaje bez zmian.
+
 - Nagrywanie dźwięku komputera nie przerywa się już z komunikatem o problemie z urządzeniem audio, gdy WinZapp zawiesza się na sekundę lub dwie (wolny lub obciążony komputer): dźwięk z tej chwili jest pomijany, nagrywanie trwa dalej, a reszta pozostaje zsynchronizowana.
 
 - Neonize: gdy potwierdzenia odczytu są wyłączone w Prywatności, nie widzisz już statusu „przeczytano” wiadomości wysłanych w czatach indywidualnych, tak jak nie wysyłasz potwierdzeń odczytu innym (jak w WPPConnect). Ustawienie działa teraz w obu kierunkach.
