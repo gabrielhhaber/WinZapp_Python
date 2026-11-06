@@ -12767,7 +12767,7 @@ msgstr "&Anunciar quando a atualização de conversas for iniciada"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_link_previews_label"
 msgid "Announce link preview &loading and adding"
-msgstr "Anunciar o carregamento &e a adição das prévias de links"
+msgstr "Anunciar adição &e carregamento das prévias de links"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
