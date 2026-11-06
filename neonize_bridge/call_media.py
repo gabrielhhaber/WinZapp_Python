@@ -38,7 +38,7 @@ import time
 import msgmap
 import ongoing_calls
 from call_audio_pcm import PCM48To16
-from call_placement_state import PlacementStateError, placement_state
+from call_placement_state import PlacementReplacedError, PlacementStateError, placement_state
 from call_audio_delivery import AudioDelivery, counters
 from call_video import VIDEO_ACCEPT, VIDEO_REQUEST
 
@@ -638,14 +638,24 @@ class CallMedia:
     def _placed(self, call_id, peer, video, group, *, placement=None):
         # The native wait stays OUTSIDE this gate. Once here, establish the
         # record and authoritative snapshot before queued callbacks can run.
-        recovered = placement_state(self.calls, call_id, placement)
+        try:
+            recovered = placement_state(self.calls, call_id, placement)
+        except PlacementReplacedError:
+            raise
+        except PlacementStateError:
+            # the native call is dialing but we cannot own it: do not leave it ringing
+            try:
+                self.calls.hangup(call_id)
+            except Exception:
+                log.exception("hang up a call that could not be registered")
+            raise
         if recovered is not None:
             generation, snapshot = recovered
             with self._lock:
                 previous = self._calls.get(call_id)
                 if ((snapshot is None or snapshot["ended"]) and previous is not None
                         and previous.get("native_generation") != generation):
-                    raise PlacementStateError("native placement was replaced")
+                    raise PlacementReplacedError("native placement was replaced")
         else:
             generation, snapshot = None, None
         self._stop_ring_timer(call_id)

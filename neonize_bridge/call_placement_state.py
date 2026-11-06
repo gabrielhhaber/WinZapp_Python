@@ -5,6 +5,10 @@ class PlacementStateError(RuntimeError):
     """Native ownership/state could not be established; never a user input error."""
 
 
+class PlacementReplacedError(PlacementStateError):
+    """Another native attempt owns this call id now: it is not ours to hang up."""
+
+
 def placement_state(calls, call_id, result):
     """Return (generation, snapshot), or None for the explicit legacy path.
 
@@ -22,8 +26,10 @@ def placement_state(calls, call_id, result):
     value = getter(call_id)
     if value is None:
         return generation, None
+    if isinstance(value, dict) and type(value.get("generation")) is int \
+            and value["generation"] != generation:
+        raise PlacementReplacedError("native placement snapshot belongs to another attempt")
     if (not isinstance(value, dict) or type(value.get("generation")) is not int
-            or value["generation"] != generation
             or type(value.get("peerAccepted")) is not bool
             or type(value.get("ended")) is not bool
             or type(value.get("phase")) is not int

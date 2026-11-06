@@ -6648,7 +6648,7 @@ msgctxt "group_call_too_few_members"
 msgid ""
 "Starting a group call with Neonize requires at least two other members."
 msgstr ""
-"Rozpoczęcie rozmowy grupowej przez Neonize wymaga co najmniej dwóch innych "
+"Rozpoczęcie połączenia grupowego przez Neonize wymaga co najmniej dwóch innych "
 "członków."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py

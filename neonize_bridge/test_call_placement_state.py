@@ -69,6 +69,15 @@ def test_bad_or_replaced_snapshot_cannot_authorize_a_call(bad):
     assert started == [] and m.live_call() == ""
 
 
+@pytest.mark.parametrize("bad", [{}, [], snapshot(accepted=1), snapshot(phase=100)])
+def test_a_native_call_we_cannot_own_is_hung_up(bad):
+    fake, m, sent, started = prepared(bad)
+    fake.dial = lambda *a: {"call": "BAD", "generation": 7}
+    with pytest.raises(PlacementStateError):
+        m.dial("5511999990000@c.us")
+    assert fake.hung == ["BAD"]
+
+
 def test_legacy_native_results_keep_the_existing_event_driven_path():
     fake, m, sent, started = prepared(snapshot())
     fake.dial = lambda *a: {"call": "OLD"}
