@@ -1221,6 +1221,10 @@ DEFAULT_SETTINGS = {
         # a plain audio, as WhatsApp makes it. Off: WhatsApp's own behaviour,
         # so no migration.
         "forward_voice_as_voice": False,
+        # How the "keep link previews" box of the forward dialog starts. On:
+        # a forwarded link keeps the card it had. A new key, so existing
+        # installs get it from backfill_missing_defaults(): no migration.
+        "forward_keep_link_preview": True,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
         "voice_message_mode": "voice_message",

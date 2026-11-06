@@ -1645,6 +1645,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._delete_media_default_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._forward_keep_link_preview_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_forward_keep_link_preview_label")
+        )
+        messages_sizer.Add(
+            self._forward_keep_link_preview_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._conversation_video_media_viewer_dialog_cb = wx.CheckBox(
             self._messages_page, label=i18n.t("ui_conversation_video_media_viewer_dialog_label")
         )
@@ -2600,6 +2607,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "messages"):
             self._delete_media_default_cb.SetValue(bool(delete_media_from_phone))
+
+        forward_keep_link_preview = self.main_window.settings.get("user_interface", {}).get(
+            "forward_keep_link_preview", True
+        )
+        if wanted(unit, "messages"):
+            self._forward_keep_link_preview_cb.SetValue(bool(forward_keep_link_preview))
 
         forward_voice_as_voice = self.main_window.settings.get("user_interface", {}).get(
             "forward_voice_as_voice", False
@@ -4109,6 +4122,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "delete_media_from_phone"
             ] = self._delete_media_default_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "forward_keep_link_preview"
+            ] = self._forward_keep_link_preview_cb.GetValue()
         if ready(self, "audio"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "forward_voice_as_voice"
@@ -4795,6 +4811,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
             self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
             self._delete_media_default_cb.SetLabel(i18n.t("ui_delete_media_default_label"))
+            self._forward_keep_link_preview_cb.SetLabel(
+                i18n.t("ui_forward_keep_link_preview_label"))
         if ready(self, "audio"):
             self._forward_voice_as_voice_cb.SetLabel(i18n.t("ui_forward_voice_as_voice"))
         if ready(self, "messages"):

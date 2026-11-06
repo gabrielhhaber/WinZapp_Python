@@ -40,3 +40,19 @@ def test_contact_cards():
 
 def test_other_types_are_not_forwarded():
     assert plain_forward({"type": "poll_creation", "body": "x"}) is None
+
+
+def test_text_keeps_its_link_preview_only_when_asked():
+    stored = {"type": "chat", "body": "https://example.com/a", "title": "Example",
+              "description": "A page", "canonicalUrl": "https://example.com/a"}
+    kept = plain_forward(stored, keep_preview=True).extendedTextMessage
+    assert (kept.title, kept.description, kept.matchedText) == (
+        "Example", "A page", "https://example.com/a")
+    assert kept.text == "https://example.com/a" and kept.contextInfo.isForwarded
+    plain = plain_forward(stored).extendedTextMessage
+    assert (plain.title, plain.description, plain.matchedText) == ("", "", "")
+
+
+def test_text_without_a_preview_has_nothing_to_keep():
+    msg = plain_forward({"type": "chat", "body": "oi"}, keep_preview=True).extendedTextMessage
+    assert (msg.title, msg.description, msg.matchedText) == ("", "", "")

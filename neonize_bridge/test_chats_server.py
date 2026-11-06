@@ -767,3 +767,23 @@ async def test_get_messages_reads_the_store_off_the_event_loop(tmp_path, session
         assert seen and seen[0] != loop_thread
     finally:
         await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_forward_messages_keeps_the_link_preview_when_asked(tmp_path, sessions):
+    bridge = await _open(tmp_path, sessions)
+    try:
+        bridge.s.db.message(PN, _msg(
+            "LNK", 100, PN, body="https://example.com/a", title="Example",
+            description="A page", canonicalUrl="https://example.com/a"))
+        for asked in (True, False):
+            body = {"phone": ["5522888880000@c.us"], "messageId": [f"false_{PN}_LNK"]}
+            if asked:
+                body["linkPreview"] = {"title": "Example"}
+            status, _ = await bridge.post("forward-messages", body)
+            assert status == 200
+        kept, dropped = (sent[1].extendedTextMessage for sent in bridge.fake.sent[-2:])
+        assert (kept.title, kept.matchedText) == ("Example", "https://example.com/a")
+        assert (dropped.title, dropped.matchedText) == ("", "")
+    finally:
+        await bridge.http.close()

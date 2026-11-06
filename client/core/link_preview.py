@@ -161,3 +161,33 @@ def fetch_link_preview(url: str, timeout: float = 6.0) -> dict | None:
         "description": description[:600],
         "canonicalUrl": (parser.og.get("og:url") or url).strip(),
     }
+
+
+def message_link_preview(msg) -> dict:
+    """The link preview a text message carries, {} when it has none.
+
+    A preview rides on the extendedTextMessage as the title/description/
+    canonicalUrl WhatsApp resolved (websocket_client._with_link_preview).
+    Forwarding keeps it only when asked to, per message: a mass forward mixes
+    messages with and without one, and only a message that has one has
+    anything to keep.
+    """
+    if not isinstance(msg, dict):
+        return {}
+    inner = msg.get("message", {})
+    if isinstance(inner, str):
+        import json
+        try:
+            inner = json.loads(inner)
+        except Exception:
+            return {}
+    ext = inner.get("extendedTextMessage") if isinstance(inner, dict) else None
+    if not isinstance(ext, dict):
+        return {}
+    title = (ext.get("title") or "").strip()
+    description = (ext.get("description") or "").strip()
+    if not (title or description):
+        return {}
+    url = (ext.get("canonicalUrl") or ext.get("matchedText") or "").strip()
+    return {"title": title, "description": description,
+            "canonicalUrl": url, "matchedText": url}
