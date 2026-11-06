@@ -48,12 +48,12 @@ def _text(value):
     return value.strip() if isinstance(value, str) else ""
 
 
-def _button(kind, source, index, label, value=""):
+def _button(kind, source, index, label, value="", *, full_label=False):
     label = _text(label)
     if not label:
         return None
     return {"kind": kind, "source": source, "index": index,
-            "label": label[:LABEL_LIMIT], "value": _text(value)}
+            "label": label if full_label else label[:LABEL_LIMIT], "value": _text(value)}
 
 
 def _dicts(value):
@@ -82,12 +82,14 @@ def _native(wpp_msg):
         if not isinstance(params, dict) or params.get("disabled") is True:
             continue
         name, label = raw.get("name"), params.get("display_text")
-        card_index = raw.get("cardIndex")
-        if isinstance(card_index, int) and card_index >= 0 and isinstance(label, str):
-            card_title = _text(raw.get("cardTitle"))[:32]
-            label = f"{card_index + 1}. {card_title}: {label}" if card_title else f"{card_index + 1}. {label}"
+        is_card = isinstance(raw.get("cardIndex"), int) and raw["cardIndex"] >= 0
+        if is_card and name == "quick_reply":
+            # The action text is usually the same "Select" on every card.
+            # Its accessible name needs the whole trip, while its id still
+            # identifies the selected option when the button is activated.
+            label = _text(raw.get("cardText")) or _text(raw.get("cardTitle")) or label
         if name == "quick_reply":
-            button = _button(REPLY, "native", index, label, params.get("id"))
+            button = _button(REPLY, "native", index, label, params.get("id"), full_label=is_card)
         elif name == "cta_url":
             url = _text(params.get("url"))
             button = _button(URL, "native", index, label, url) if url.lower().startswith(("http://", "https://")) else None

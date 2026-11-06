@@ -98,11 +98,13 @@ def button_fields(message) -> dict:
         parts = [i.header.title, i.body.text, i.footer.text]
         card_buttons = []
         for card_index, card in enumerate(i.carouselMessage.cards):
-            parts.extend((card.header.title, card.body.text, card.footer.text))
+            card_parts = (card.header.title, card.body.text, card.footer.text)
+            parts.extend(card_parts)
             card_buttons.extend(
                 {"name": b.name, "buttonParamsJson": b.buttonParamsJSON,
                  "cardIndex": card_index,
-                 "cardTitle": card.header.title or card.body.text}
+                 "cardTitle": card.header.title or card.body.text,
+                 "cardText": "\n".join(part for part in card_parts if part)}
                 for b in card.nativeFlowMessage.buttons)
         fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
         if _has(i, "nativeFlowMessage"):

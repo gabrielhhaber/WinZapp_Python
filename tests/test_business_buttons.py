@@ -58,17 +58,27 @@ class TestReadingTheButtons:
 
     def test_carousel_buttons_name_their_card_and_keep_original_positions(self):
         actions = []
+        trip = "17:30 → 12:30\nR$ 529,97\nCama\n" + ("Descrição da viagem " * 8).strip()
         for card_index in range(10):
             for action in range(2):
                 actions.append({**native("quick_reply", display_text="Select", id=f"{card_index}-{action}"),
                                 "cardIndex": card_index,
-                                "cardTitle": f"Trip {card_index + 1}"})
+                                "cardTitle": f"Trip {card_index + 1}",
+                                "cardText": f"Trip {card_index + 1}\n{trip}"})
         found = business_buttons({"interactivePayload": {"buttons": actions}})
         assert len(found) == 20
         assert found[0] == {"kind": "reply", "source": "native", "index": 0,
-                            "label": "1. Trip 1: Select", "value": "0-0"}
+                            "label": f"Trip 1\n{trip}", "value": "0-0"}
         assert found[-1] == {"kind": "reply", "source": "native", "index": 19,
-                             "label": "10. Trip 10: Select", "value": "9-1"}
+                             "label": f"Trip 10\n{trip}", "value": "9-1"}
+        assert len(found[0]["label"]) > bb.LABEL_LIMIT
+
+    def test_old_carousel_metadata_uses_full_card_title_without_number_or_action(self):
+        action = {**native("quick_reply", display_text="Selecionar", id="trip-1"),
+                  "cardIndex": 7, "cardTitle": "17:30 → 12:30\nR$ 529,97\nCama\nEXP"}
+        assert business_buttons({"interactivePayload": {"buttons": [action]}}) == [
+            {"kind": "reply", "source": "native", "index": 0,
+             "label": "17:30 → 12:30\nR$ 529,97\nCama\nEXP", "value": "trip-1"}]
 
     def test_the_rows_of_a_list_are_numbered_across_its_sections(self):
         msg = {"list": {"buttonText": "Menu", "sections": [
