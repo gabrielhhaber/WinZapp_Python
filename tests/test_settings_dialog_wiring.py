@@ -43,6 +43,7 @@ SETTINGS_DIALOG = (
 #: Saved in _apply_values() but loaded somewhere other than _load_values().
 READ_ELSEWHERE = {
     ("general", "voice_recording_bitrate"): "normalized by voice_bitrate_kbps(settings) in _load_voice_recording_options(); behavior covered by test_stereo_voice_messages.py",
+    ("general", "voice_recording_bitrate_stereo"): "normalized by stereo_voice_bitrate_kbps(settings) in _load_voice_recording_options(); behavior covered by test_stereo_voice_messages.py",
     ("general", "voice_recording_mode"): "normalized by voice_recording_mode(settings) in _load_voice_recording_options(); behavior covered by test_voice_recording_mode.py",
     ("general", "spell_check_mode"): "loaded through spell_check_mode(general) in _apply_spell_check_mode()",
     ("connection", "wpp_port"): "the field shows main_window.wpp_port, the port this account's API is actually on",

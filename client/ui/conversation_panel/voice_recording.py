@@ -20,7 +20,7 @@ from core.message_queue import PendingMessage
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from core.voice_stereo import (
     STEREO_MIMETYPE, bitrate_arg, drop_empty_side, encode_as_stereo,
-    voice_bitrate_kbps,
+    stereo_voice_bitrate_kbps,
 )
 from core.voice_recording_mode import (
     voice_recording_mode, recording_output_channels, prepare_voice_pcm,
@@ -941,7 +941,7 @@ class VoiceRecordingMixin:
         from core.audio_transcode import encode_system_audio_to_m4a
         m4a_path = encode_system_audio_to_m4a(
             self.main_window._find_api_ffmpeg(), wav_path,
-            bitrate=bitrate_arg(voice_bitrate_kbps(self.main_window.settings)))
+            bitrate=bitrate_arg(stereo_voice_bitrate_kbps(self.main_window.settings)))
         if not m4a_path:
             return None
         try:
