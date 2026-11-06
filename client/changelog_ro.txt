@@ -6,6 +6,8 @@ NOUTĂȚI
 
 - Apeluri Neonize: este păstrată acceptarea sau încheierea primită înainte de înregistrarea locală a apelului; erorile apelurilor de grup disting limitarea solicitărilor WhatsApp și limitele de membri acceptate.
 
+- Neonize: primul mesaj către un număr de telefon nou scris într-o conversație nouă (Ctrl+N) nu se mai termină ca „neconfirmat” când WhatsApp are numărul înregistrat în cealaltă formă (cu sau fără a 9-a cifră a mobilelor braziliene): acum este trimis la adresa pe care o cunoaște WhatsApp. În plus, un număr scris într-o conversație nouă deschide acum chatul cu adresa pe care o cunoaște WhatsApp, fără a lăsa o conversație duplicată.
+
 - Mesaje vocale: rata de biți a înregistrărilor a revenit la 64 kbps, care se trimit rapid chiar și după un minut (trecerea la 256 kbps încetinise trimiterea). Setări > Audio are acum "Rata de biți a mesajelor vocale (kbps)", cu valori între 32 și 256 kbps.
 
 - Setări > Interfață utilizator > Conversații: opțiune nouă "Numărul de mesaje noi în lista de conversații", pentru ca cititorul de ecran să spună numărul de mesaje noi înainte de numele conversației, nu după. Se aplică listei de conversații, celor arhivate și celor blocate. (sugestia lui Michal Suchý)

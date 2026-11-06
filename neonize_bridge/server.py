@@ -2023,9 +2023,13 @@ def create_app(folder, fixed=""):
         if preview:      # the link card the client already built
             from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ExtendedTextMessage, Message
             content = Message(extendedTextMessage=ExtendedTextMessage(text=content, **preview))
+
+        def send():
+            return contacts.send_with_known_address(
+                s.client, destination, content, build_jid)
+
         try:
-            resp = await asyncio.get_running_loop().run_in_executor(
-                None, lambda: s.client.send_message(destination, content))
+            resp, destination = await asyncio.get_running_loop().run_in_executor(None, send)
         except Exception as error:
             log.exception("send-message")
             return web.json_response({"status": "error", "message": str(error)}, status=500)
