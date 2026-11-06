@@ -19248,6 +19248,12 @@ msgstr "Przepływność wiadomości głosowych (kb/s)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_recording_bitrate_stereo_label"
+msgid "Stereo voice message bitrate (kbps)"
+msgstr "Przepływność stereofonicznych wiadomości głosowych (kb/s)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_recording_channels_auto"
 msgid "Automatic (use the device's channels)"
 msgstr "Automatycznie (użyj kanałów urządzenia)"
