@@ -72,9 +72,9 @@ def listing_identities(chat_rows, contact_rows, phone_of, business_names=None):
             names[wpp] = name
         if nickname:
             nicknames[wpp] = nickname
-        business = next((business_names[form] for form in
-                         [jid] + ([phone] + contacts.equivalent_jids(phone) if phone else [])
-                         if form in business_names), "")
+        business = business_names.get(jid, "")
+        for form in (contacts.equivalent_jids(phone) if business_names and phone else ()):
+            business = business or business_names.get(form, "")
         if business:
             verified[wpp] = business
     return names, nicknames, verified
