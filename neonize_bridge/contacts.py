@@ -214,6 +214,43 @@ def found_in_query(responses):
     return None
 
 
+def known_phone_jid(client, user: str):
+    """The address WhatsApp itself gives the phone number `user` (the typed
+    digits or, for a Brazilian mobile, the form with/without the 9th digit that
+    is the registered one), as ('digits', 'server'), or None when it does not
+    know the number or the query fails. Blocks on a neonize call."""
+    digits = re.sub(r"\D", "", str(user or ""))
+    if len(digits) < _MIN_DIGITS:
+        return None
+    try:
+        responses = client.is_on_whatsapp(*["+" + f for f in number_forms(digits)])
+    except Exception:
+        log.exception("send-message: number lookup")
+        return None
+    found = found_in_query(responses)
+    if not found:
+        return None
+    found_user, _, server = found["jid"].partition("@")
+    return found_user.split(":")[0], server
+
+
+def send_with_known_address(client, destination, content, build_jid):
+    """(response, destination actually used). A typed number WhatsApp has in its
+    other form (9th digit) fails with "no LID found": only then is it sent to the
+    address WhatsApp gives the number. Blocks on neonize calls."""
+    try:
+        return client.send_message(destination, content), destination
+    except Exception as error:
+        if "no LID found" not in str(error) or destination.Server not in (
+                "s.whatsapp.net", "c.us"):
+            raise
+        known = known_phone_jid(client, destination.User)
+        if not known or known == (destination.User, destination.Server):
+            raise
+        actual = build_jid(*known)
+        return client.send_message(actual, content), actual
+
+
 def _wpp_id(user: str, server: str = "c.us") -> dict:
     return {"server": server, "user": user, "_serialized": f"{user}@{server}"}
 
