@@ -225,8 +225,10 @@ def link_preview_announcement(i18n, kind: str, reason: str = "", status: int = 0
         return i18n.t("link_preview_added")
     if reason == "http":
         detail = i18n.t("link_preview_error_http").format(status=status)
-    elif reason in ("not_html", "empty"):
-        detail = i18n.t("link_preview_error_" + reason)
+    elif reason == "not_html":
+        detail = i18n.t("link_preview_error_not_html")
+    elif reason == "empty":
+        detail = i18n.t("link_preview_error_empty")
     else:
         detail = i18n.t("link_preview_error_network")
     return i18n.t("link_preview_failed").format(reason=detail)
