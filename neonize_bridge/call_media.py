@@ -57,6 +57,8 @@ ANSWERED_KEPT = 50
 # offer queued for minutes and no <terminate> ever arrives), and WhatsApp Web
 # ends the call itself, so the window would otherwise ring until hung up.
 OUTGOING_RING_LIMIT = 60
+# How long a group call placed here is remembered after its placement (its end can come later).
+PLACED_GROUP_KEEP = 6 * 3600
 
 
 class FrameAssembler:
@@ -133,6 +135,14 @@ def state_event(call, *, state, event="state", now=None) -> dict:
             "observedAt": int(now if now is not None else time.time())}
 
 
+def remote_members_connected(participants, mine) -> int:
+    """How many people other than this account are connected to a group call,
+    from the roster's participants ([{jid, pn, state}]). `mine` are the
+    account's own users (number and LID digits)."""
+    rows = ongoing_calls.connected_rows(participants, mine, lambda jid, lid: "")
+    return sum(1 for row in rows if not row["isSelf"])
+
+
 def group_target(group_jid) -> str:
     """The group's address as CallGroupDial takes it; ValueError when it is
     not a group."""
@@ -181,6 +191,12 @@ class CallMedia:
         self.ring_limit = OUTGOING_RING_LIMIT
         self._ring_timers = {}         # call id -> the timer that ends an unanswered dial
         self._unowned_audio = AudioDelivery()
+        # the account's own users (number and LID digits), set by the session
+        # once it knows them: a roster lists this account too
+        self.own_users = lambda: set()
+        # id -> {"groupJid", "isVideo", "at"} of the group calls placed here,
+        # for the end event the native layer sends without the group
+        self._placed_groups = {}
 
     # ---------------------------------------------------------------- state
     def _known(self, call_id):
@@ -259,6 +275,9 @@ class CallMedia:
                     or (call.get("connected") and state in ("CALLING", "RINGING", "CONNECTING")))):
                 self._set_state(call_id, state)
             return
+        if kind == "group":
+            self._group_member_joined(call_id)
+            return
         if kind in ("accepted", "ready"):
             with self._lock:
                 call = self._calls.get(call_id)
@@ -291,6 +310,35 @@ class CallMedia:
                     counters(call).report(force=True)
                 self._unowned_audio.report(force=True)
                 self.emit("callstate", {"session": self.name, "data": data})
+
+    def _group_member_joined(self, call_id):
+        """A group call placed here has no answer to wait for (nobody sends us
+        a CallAccept: the members join the call): it is answered once the
+        roster shows another person connected. Without this the call stayed
+        "calling", its audio never started and the microphone was dropped."""
+        with self._lock:
+            call = self._calls.get(call_id)
+            if call is None or not call["outgoing"] or not call.get("group") or call.get("connected"):
+                return
+        try:
+            participants = (self.calls.roster(call_id) or {}).get("participants")
+        except Exception:
+            log.exception("group call roster")
+            return
+        if not remote_members_connected(participants, self.own_users()):
+            return
+        with self._lock:
+            if self._calls.get(call_id) is not call:
+                return
+            call["connected"] = True
+        self._set_state(call_id, "ACTIVE", expected=call)
+        self._ensure_audio(call_id, call)
+
+    def placed_group(self, call_id):
+        """{"groupJid", "isVideo"} of a group call placed here, or None."""
+        with self._lock:
+            found = self._placed_groups.get(call_id)
+        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]} if found else None
 
     def start_pump(self, keep_going):
         """Starts pump_events on its own thread, unless it is already going (a
@@ -666,6 +714,11 @@ class CallMedia:
             if generation is not None:
                 call["native_generation"] = generation
             self._calls[call_id] = call
+            if group:
+                now = time.time()
+                self._placed_groups = {i: g for i, g in self._placed_groups.items()
+                                       if now - g["at"] < PLACED_GROUP_KEEP}
+                self._placed_groups[call_id] = {"groupJid": group, "isVideo": bool(video), "at": now}
         if recovered is not None and (snapshot is None or snapshot["ended"]):
             self.handle({"ev": "end", "call": call_id, "generation": generation,
                          "reason": "ended_before_registration"})

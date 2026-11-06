@@ -701,6 +701,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
             self.call_media.own_creator = lambda: self.lid_device
+            # a group call's roster lists this account too
+            self.call_media.own_users = lambda: {
+                groups.user_of(self.me or ""), groups.user_of(self.lid or "")} - {""}
         # every message to a chat with temporary messages carries its timer
         chat_timers.install(cli, self.chat_timer)
         # never two app-state operations at once (app_state_recovery.serialize)
