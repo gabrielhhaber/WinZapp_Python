@@ -52,6 +52,7 @@ class Root:
     exclude: tuple[str, ...] = ()
     file_only: bool = False
     required: bool = False
+    error: str = ""
 
 
 @dataclass(frozen=True)

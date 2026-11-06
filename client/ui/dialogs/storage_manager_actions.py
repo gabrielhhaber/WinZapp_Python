@@ -1,9 +1,7 @@
 """Storage view actions: explicit selection, protection, preview and application."""
-import time
-
 import wx
 
-from core.storage_manager.policy import Preferences, eligibility
+from core.storage_manager.policy import eligibility
 from core.storage_manager.transactions import PlanTooLarge
 from .storage_presentation import entry_name, modified_text, reason_text, size_text
 
@@ -49,9 +47,15 @@ class StorageActionsMixin:
     def select_suggested(self, event=None):
         if not self.available():
             return
-        self.selected = {e.key for e in self.service.suggested()}
-        self.invalidate_preview()
-        self.render_rows()
+        def done(value, error):
+            if self._alive:
+                if error:
+                    self.error("storage_operation_failed")
+                else:
+                    self.selected = value
+                    self.invalidate_preview()
+                    self.render_rows()
+        self.service.jobs.start(lambda cancel: {e.key for e in self.service.suggested(cancel=cancel)}, done)
 
     def details(self, event=None):
         index = self.files.GetFocusedItem()
@@ -65,7 +69,7 @@ class StorageActionsMixin:
                                           busy=self.service.is_busy(entry)), self.i18n))
         wx.MessageBox(text, self.i18n.t("storage_details"), wx.OK | wx.ICON_INFORMATION, self)
 
-    def save_preferences(self, preferences):
+    def save_preferences(self, preferences, *, preserve_draft=False):
         if not self.available():
             return False
         self.invalidate_preview()
@@ -80,10 +84,14 @@ class StorageActionsMixin:
             if error:
                 self.error("storage_preferences_invalid")
                 return
-            self._staged_import = None
-            self.rules.rules = list(value.rules)
-            self.rules.refresh()
-            self.options.load(value)
+            if preserve_draft:
+                if self._staged_import is not None:
+                    self._staged_import.paused_until = value.paused_until
+            else:
+                self._staged_import = None
+                self.rules.rules = list(value.rules)
+                self.rules.refresh()
+                self.options.load(value)
             self.refresh_summary()
             self.filter_rows()
             self.say(self.i18n.t("storage_preferences_saved"))

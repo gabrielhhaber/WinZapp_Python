@@ -33,6 +33,9 @@ def scan(roots, *, cancel=lambda: False, progress=None, max_entries=100_000,
     result = Snapshot()
     unique = {}
     for root in roots:
+        if root.error:
+            result.issue(root.error)
+            continue
         unique.setdefault(canonical(root.path), root)
     roots = sorted(unique.values(), key=lambda r: len(canonical(r.path)), reverse=True)
     claimed, identities, nodes = [], set(), 0

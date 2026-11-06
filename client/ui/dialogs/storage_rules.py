@@ -1,11 +1,10 @@
 """Native, explicit rule editor: drafts never consent to automatic deletion."""
-from dataclasses import replace
-
 import wx
 
 from core.storage_manager.forms import number
 from core.storage_manager.policy import Rule
 from .storage_presentation import category_text, size_text
+from .storage_layout import note
 
 
 CATEGORIES = ("media", "voice", "compile_cache")
@@ -43,9 +42,7 @@ class RuleEditor(wx.Dialog):
             sizer.Add(control, 0, wx.EXPAND | wx.ALL, 5)
         self.enabled = wx.CheckBox(page, label=i18n.t("storage_rule_enabled"))
         sizer.Add(self.enabled, 0, wx.ALL, 6)
-        note = wx.StaticText(page, label=i18n.t("storage_rules_note"))
-        note.Wrap(500)
-        sizer.Add(note, 0, wx.EXPAND | wx.ALL, 6)
+        sizer.Add(note(page, i18n.t("storage_rules_note")), 0, wx.EXPAND | wx.ALL, 6)
         page.SetSizer(sizer)
         outer = wx.BoxSizer(wx.VERTICAL)
         outer.Add(page, 1, wx.EXPAND | wx.ALL, 5)
@@ -116,9 +113,7 @@ class StorageRulesPanel(wx.Panel):
             button.Bind(wx.EVT_BUTTON, callback)
             buttons.Add(button, 0, wx.ALL, 5)
         sizer.Add(buttons)
-        note = wx.StaticText(self, label=owner.i18n.t("storage_rules_save_note"))
-        note.Wrap(650)
-        sizer.Add(note, 0, wx.ALL, 8)
+        sizer.Add(note(self, owner.i18n.t("storage_rules_save_note")), 0, wx.EXPAND | wx.ALL, 8)
         self.SetSizer(sizer)
         self.refresh()
 
@@ -132,7 +127,8 @@ class StorageRulesPanel(wx.Panel):
                     category=category_text(rule.category, self.owner.i18n),
                     mode=self.owner.i18n.t(MODE_KEYS[MODES.index(rule.mode)]),
                     state=self.owner.i18n.t("storage_rule_on" if rule.enabled else "storage_rule_off"),
-                    days=rule.days, size=size_text(rule.minimum, self.owner.i18n)))
+                    days=str(rule.days).replace(".", self.owner.i18n.t("decimal_separator")),
+                    size=size_text(rule.minimum, self.owner.i18n)))
                 lines[-1] += " — " + self.owner.i18n.t(TYPE_KEYS[MEDIA_TYPES.index(rule.media_type)])
                 lines[-1] += " — " + self.owner.i18n.t("storage_match_all" if rule.combine == "all" else "storage_match_any")
             self.list.Set(lines)

@@ -69,6 +69,8 @@ class StorageManagerDialog(StorageActionsMixin, StorageAuxiliaryMixin, wx.Dialog
     def refresh_summary(self):
         text = summary(self.service.snapshot, self.service.preferences, self.i18n)
         prefs = self.service.preferences
+        if self.service.preferences_invalid:
+            text += "\n" + self.i18n.t("storage_preferences_invalid")
         text += "\n" + self.i18n.t("storage_active_policy").format(
             rules=sum(r.enabled for r in prefs.rules), interval=prefs.interval_minutes,
             paused=self.i18n.t("storage_rule_on" if prefs.paused_until > time.time() else "storage_rule_off"))
@@ -208,6 +210,8 @@ class StorageManagerDialog(StorageActionsMixin, StorageAuxiliaryMixin, wx.Dialog
             self.say(self.i18n.t("storage_scan_progress").format(count=count))
 
     def close(self, event=None):
+        self._alive = False
+        self._timer.Stop()
         self.service.jobs.cancel()
         self.EndModal(wx.ID_CLOSE)
 

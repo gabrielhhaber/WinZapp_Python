@@ -32,6 +32,13 @@ def test_a_missing_or_decryption_filtered_row_disables_cleanup():
     assert not result.complete and result.classify(entry()).reason == "unmatched"
 
 
+def test_backend_specific_database_error_retains_protection():
+    import sqlite3
+    def unavailable(*args): raise sqlite3.OperationalError("fixture is busy")
+    result = collect(["private-jid"], unavailable, unavailable, lambda *a: "/cache/a", lambda name: name)
+    assert not result.complete and result.classify(entry()).reason == "unmatched"
+
+
 def test_changing_message_count_invalidates_reference_proof():
     counts = iter([1, 2])
     result = collect(["chat"], lambda j: next(counts), lambda *args: [message("a")],

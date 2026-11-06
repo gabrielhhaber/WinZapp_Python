@@ -150,6 +150,8 @@ def eligibility(entry, preferences, *, busy=False):
         return "user_protected"
     if busy:
         return "in_use"
+    if len(entry.identity) != 5 or not entry.identity[1]:
+        return "protected"
     if not entry.root.managed:
         return "external"
     if (entry.category == "compile_cache" and entry.root.category == "compile_cache"

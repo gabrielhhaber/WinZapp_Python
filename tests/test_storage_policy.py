@@ -47,6 +47,15 @@ def test_busy_file_and_external_component_are_not_eligible():
     assert eligibility(entry(root=Root("external", "/other", "compile_cache")), Preferences()) == "external"
 
 
+def test_unknown_file_identity_is_read_only_even_in_a_reproducible_category():
+    from core.storage_manager.fileops import ChangedFile, pinned
+    candidate = entry(identity=(1, 0, 100, 3, 4))
+    assert eligibility(candidate, Preferences()) == "protected"
+    with pytest.raises(ChangedFile):
+        with pinned(candidate):
+            pytest.fail("unknown identity was accepted")
+
+
 def test_received_media_requires_explicit_known_reference():
     media = entry(category="media", media_id="x", reason="received",
                   root=Root("media", "/owned", "media", managed=True))

@@ -88,7 +88,11 @@ class StorageAuxiliaryMixin:
             # Keep the result announcement; refreshing the list is a separate
             # explicit action rather than silently changing a selection.
             self._held = []
-            self.held_list.Set([])
+            self.held_list.Freeze()
+            try:
+                self.held_list.Set([])
+            finally:
+                self.held_list.Thaw()
         self.service.jobs.start(work, done)
 
     def retire_tokens(self, event=None):
@@ -143,6 +147,7 @@ class StorageAuxiliaryMixin:
                 raise ValueError("cancelled")
             self.service.store.reset_preferences()
             self.service.preferences = self.service.store.preferences()
+            self.service.preferences_invalid = False
             self.service.snapshot = None
             return self.service.preferences
         def done(value, error):

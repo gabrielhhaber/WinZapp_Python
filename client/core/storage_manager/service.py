@@ -12,6 +12,7 @@ from .scan import scan
 from .transactions import execute, make_plan
 from .types import CATEGORIES
 from .references import References
+from .evaluation import evaluate
 
 
 class StorageService:
@@ -22,7 +23,12 @@ class StorageService:
         self.is_busy, self.valid = busy, valid
         self.jobs = JobSlot(dispatch, launch=launch)
         self.provider = provider
-        self.preferences = store.preferences()
+        self.preferences_invalid = False
+        try:
+            self.preferences = store.preferences(strict=True)
+        except (OSError, ValueError):
+            self.preferences = Preferences()
+            self.preferences_invalid = True
         self.snapshot = None
         self.references_complete = False
         self.last_result = None
@@ -30,12 +36,16 @@ class StorageService:
         self.progress_count = 0
         self.measured_bytes = None
         self.measured_usage = {}
+        self.notification_count = 0
+        self.scheduled_keys = []
         self.capture_accounts = lambda: []
         self.shared_preferences = lambda: Preferences()
 
     def effective_preferences(self, *, strict=False):
         own = self.store.preferences(strict=strict) if strict else self.preferences
         result = Preferences.read(own.as_dict())
+        if self.preferences_invalid and not strict:
+            result.protected_categories.update(CATEGORIES)
         try:
             shared = self.shared_preferences()
         except (OSError, ValueError):
@@ -62,6 +72,7 @@ class StorageService:
             self.measured_bytes = None
             self.measured_usage = {}
         self.preferences = preferences
+        self.preferences_invalid = False
 
     @staticmethod
     def scope(preferences):
@@ -83,10 +94,9 @@ class StorageService:
     @property
     def target_exceeded(self):
         prefs = self.preferences
-        source = self.snapshot.entries if self.snapshot is not None else None
-        measured = (sum(e.size for e in source if (prefs.target_category == "all" or e.category == prefs.target_category)
-                        and (prefs.target_scope == "all" or e.root.scope == prefs.target_scope))
-                    if source is not None else self.measured_usage.get((prefs.target_scope, prefs.target_category)))
+        if prefs.target_bytes <= 0:
+            return False
+        measured = self.measured_usage.get((prefs.target_scope, prefs.target_category), 0)
         return measured is not None and prefs.target_bytes > 0 and measured >= prefs.target_bytes
 
     @property
@@ -103,15 +113,19 @@ class StorageService:
             result = scan(roots, cancel=cancel,
                           classify=lambda e: refs.classify(classify(e)),
                           progress=lambda count: setattr(self, "progress_count", count))
-            return result, refs.complete
+            evaluation = evaluate(result.entries, self.effective_preferences(), time.time(),
+                                  busy=self.is_busy, cancel=cancel)
+            if evaluation.cancelled:
+                result.cancelled = True
+            return result, refs.complete, evaluation
         def done(value, error):
             current_scope = self.scope(self.preferences)
             if error is None and self.valid() and scope == current_scope:
-                self.snapshot, self.references_complete = value
-                self.measured_bytes = self.snapshot.total_bytes
-                self.measured_usage = {(scope, category): sum(e.size for e in self.snapshot.entries
-                    if (scope == "all" or e.root.scope == scope) and (category == "all" or e.category == category))
-                    for scope in ("all", "account", "shared") for category in ("all", *CATEGORIES)}
+                self.snapshot, self.references_complete, evaluation = value
+                if not self.snapshot.cancelled:
+                    self.measured_bytes = self.snapshot.total_bytes
+                    self.measured_usage = evaluation.usage
+                self.notification_count, self.scheduled_keys = evaluation.notifications, evaluation.automatic
                 self.last_evaluation = time.monotonic()
             elif error is None:
                 error = "ScopeChanged"
@@ -177,17 +191,25 @@ class StorageService:
             callback(value, error)
         return self.jobs.start(work, done)
 
-    def suggested(self, now=None):
+    def suggested(self, now=None, *, cancel=lambda: False):
         if self.snapshot is None:
             return []
         now = time.time() if now is None else now
         preferences = self.effective_preferences()
-        return [entry for entry in self.snapshot.entries
-                if matching_rules(entry, preferences, now, busy=self.is_busy(entry))]
+        result = []
+        for entry in self.snapshot.entries:
+            if cancel():
+                raise InterruptedError("suggestion cancelled")
+            if (eligibility(entry, preferences) in ("local_copy", "reproducible")
+                    and matching_rules(entry, preferences, now, busy=self.is_busy(entry))):
+                result.append(entry)
+        return result
 
-    def automatic_selection(self, now=None):
+    def automatic_selection(self, now=None, *, cached=False):
         if self.snapshot is None:
             return []
+        if cached:
+            return list(self.scheduled_keys)
         now = time.time() if now is None else now
         preferences = self.effective_preferences()
         result = []

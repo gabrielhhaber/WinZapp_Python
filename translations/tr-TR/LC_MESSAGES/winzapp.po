@@ -4195,6 +4195,7 @@ msgstr "Seçili sohbetleri temizle"
 #: client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
+#: client/ui/dialogs/storage_manager_views.py
 #: client/ui/dialogs/transcription_result.py client/ui/media_viewer.py
 msgctxt "close"
 msgid "&Close"
@@ -5830,7 +5831,9 @@ msgstr "Tümünü devre dışı &bırak"
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/transcription_tab.py
+#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_options.py
+#: client/ui/dialogs/storage_presentation.py
+#: client/ui/dialogs/storage_rules.py client/ui/dialogs/transcription_tab.py
 msgctxt "decimal_separator"
 msgid "."
 msgstr ","
@@ -13361,10 +13364,1279 @@ msgid "Stop playback"
 msgstr "Oynatmayı durdur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+msgctxt "storage_accounting_note"
+msgid ""
+"Logical file sizes, counted once per file identity. Allocated space and free"
+" disk space are not measured. Held files still occupy space. This snapshot "
+"covers this installation only."
+msgstr ""
+"Dosya kimliği başına bir kez sayılan mantıksal boyutlar gösterilir. Diskte "
+"ayrılan alan ve boş alan ölçülmez. Bekletilen dosyalar yer kaplamaya devam "
+"eder. Bu ölçüm yalnız bu kurulumu kapsar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_active_policy"
+msgid ""
+"Enabled rules: {rules}. Evaluation interval: {interval} minutes. Scheduled "
+"evaluations paused: {paused}."
+msgstr ""
+"Etkin kurallar: {rules}. Değerlendirme aralığı: {interval} dakika. "
+"Zamanlanmış değerlendirmeler duraklatıldı: {paused}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_add_rule"
+msgid "Add rule"
+msgstr "Kural ekle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_all_categories"
+msgid "All categories"
+msgstr "Tüm kategoriler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_all_types"
+msgid "All media types"
+msgstr "Tüm medya türleri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_apply_confirm"
+msgid ""
+"Apply {method} to {count} files ({size})? Only local copies are affected. "
+"Messages, phone files and Save As copies stay. Downloading the media again "
+"may be impossible."
+msgstr ""
+"{count} dosyaya ({size}) {method} uygulansın mı? Yalnız yerel kopyalar "
+"etkilenir. Mesajlar, telefondaki dosyalar ve Farklı Kaydet kopyaları "
+"korunur. Medya tekrar indirilemeyebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_apply_plan"
+msgid "Apply preview"
+msgstr "Önizlemeyi uygula"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "storage_auto_download_media_types_label"
 msgid "Med&ia types to download automatically"
 msgstr "Otomatik indirilecek &medya türleri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_busy"
+msgid "A storage job is running. Stop it or wait for its result."
+msgstr "Bir depolama işi sürüyor. Durdurun veya sonucunu bekleyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_category"
+msgid "Category"
+msgstr "Kategori"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_backups"
+msgid "Profile backups"
+msgstr "Profil yedekleri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_compile_cache"
+msgid "Regenerable compile cache"
+msgstr "Yeniden üretilebilir derleme önbelleği"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_database"
+msgid "Message databases"
+msgstr "Mesaj veritabanları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_logs"
+msgid "Diagnostic logs"
+msgstr "Tanı kayıtları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_media"
+msgid "Photos, videos and documents"
+msgstr "Fotoğraflar, videolar ve belgeler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_models"
+msgid "Models and runtimes"
+msgstr "Modeller ve çalışma zamanları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_other"
+msgid "Other protected data"
+msgstr "Diğer korunan veriler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_program"
+msgid "Program files"
+msgstr "Program dosyaları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_quarantine"
+msgid "Recoverable holding area"
+msgstr "Geri alınabilir bekletme alanı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_sessions"
+msgid "Login and session data"
+msgstr "Giriş ve oturum verileri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_category_summary"
+msgid "{category}: {size}; files: {count}."
+msgstr "{category}: {size}; dosya: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_voice"
+msgid "Voice messages and audio"
+msgstr "Sesli mesajlar ve ses dosyaları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_choose_items"
+msgid "Select files first."
+msgstr "Önce dosya seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_matching.py client/ui/dialogs/storage_options.py
+msgctxt "storage_choose_matching_chats"
+msgid "Choose local histories to match"
+msgstr "Eşlenecek yerel geçmişleri seç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_clear_history"
+msgid "Clear summary history"
+msgstr "Özet geçmişini temizle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_clear_history_confirm"
+msgid ""
+"Clear the optional summary history? Held files and media download blocks "
+"stay."
+msgstr ""
+"İsteğe bağlı özet geçmişi temizlensin mi? Bekletilen dosyalar ve medya "
+"indirme engelleri korunur."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_clear_selection"
+msgid "Clear selection"
+msgstr "Seçimi temizle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_coverage_skipped"
+msgid ""
+"Skipped or unavailable locations/items: {count}. The total is incomplete."
+msgstr "Atlanan veya erişilemeyen konum/öğe: {count}. Toplam eksiktir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_details"
+msgid "Item details"
+msgstr "Öğe ayrıntıları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_edit_rule"
+msgid "Edit rule"
+msgstr "Kuralı düzenle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_export_preferences"
+msgid "Export preference template"
+msgstr "Tercih şablonunu dışa aktar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_files_tab"
+msgid "Overview and files"
+msgstr "Genel bakış ve dosyalar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_apply"
+msgid "Apply filters"
+msgstr "Filtreleri uygula"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_days"
+msgid "Minimum age in days; 0: any"
+msgstr "En az yaş, gün; 0: tümü"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_minimum"
+msgid "Minimum size in MiB; 0: any"
+msgstr "En az boyut, MiB; 0: tümü"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_scope"
+msgid "Filter scope"
+msgstr "Filtre kapsamı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_held_count"
+msgid "Held files on this page: {count}."
+msgstr "Bu sayfadaki bekletilen dosya: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_held_note"
+msgid ""
+"Holding moves a local copy without making another copy and does not free its"
+" space. Restore never overwrites a current file. Permanent removal cannot be"
+" undone here. Media may be unavailable from WhatsApp."
+msgstr ""
+"Bekletme, yeni kopya oluşturmadan yerel dosyayı taşır; dosyanın kapladığı "
+"alan boşalmaz. Geri alma mevcut dosyanın üzerine yazmaz. Kalıcı kaldırma "
+"buradan geri alınamaz. Medya WhatsApp'tan edinilemeyebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_held_partial"
+msgid ""
+"More items may remain. Use Next held page; unavailable or incompatible "
+"records are kept. Refresh starts at the first page."
+msgstr ""
+"Başka öğeler kalmış olabilir. Sonraki bekletilenler sayfasını kullanın; "
+"erişilemeyen veya uyumsuz kayıtlar korunur. Yenileme ilk sayfaya döner."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_held_result"
+msgid ""
+"Completed: {completed}; failed: {failed}; not started: {remaining}. Refresh "
+"the held-file list to review the current state."
+msgstr ""
+"Tamamlanan: {completed}; hata: {failed}; başlamayan: {remaining}. Güncel "
+"durum için bekletilen dosyaları yenileyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_held_row"
+msgid "Item {number}: {category}; {size}; held at {time}."
+msgstr "Öğe {number}: {category}; {size}; bekletilme zamanı {time}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_held_tab"
+msgid "Held files"
+msgstr "Bekletilen dosyalar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_history_days"
+msgid "Keep summary history for days; 0: off"
+msgstr "Özet geçmişini saklama süresi, gün; 0: kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_history_empty"
+msgid "No summary history in the selected retention period."
+msgstr "Seçili saklama süresinde özet geçmişi yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_history_row"
+msgid ""
+"{time}: completed {completed}; skipped {skipped}; failed {failed}; removed "
+"logical size {size}."
+msgstr ""
+"{time}: tamamlanan {completed}; atlanan {skipped}; hata {failed}; kaldırılan"
+" mantıksal boyut {size}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_history_tab"
+msgid "Summary history"
+msgstr "Özet geçmişi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_import_preferences"
+msgid "Import preference template"
+msgstr "Tercih şablonunu içe aktar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_import_staged"
+msgid ""
+"Template loaded for review. Rules and scheduling are disabled. Save "
+"preferences to apply the choices."
+msgstr ""
+"Şablon inceleme için yüklendi. Kurallar ve zamanlama kapalıdır. Seçenekleri "
+"uygulamak için tercihleri kaydedin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_interval_minutes"
+msgid "Evaluation interval in minutes; 0: off"
+msgstr "Değerlendirme aralığı, dakika; 0: kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_item"
+msgid "Item"
+msgstr "Öğe"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#, python-brace-format
+msgctxt "storage_item_details"
+msgid ""
+"{name}\n"
+"Size: {size}\n"
+"Modified: {time}\n"
+"Decision: {reason}\n"
+"Age and size do not prove that a file is unnecessary."
+msgstr ""
+"{name}\n"
+"Boyut: {size}\n"
+"Değiştirilme: {time}\n"
+"Karar: {reason}\n"
+"Yaş ve boyut, dosyanın gereksiz olduğunu kanıtlamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_item_label"
+msgid "{name}; {category}; item {number}"
+msgstr "{name}; {category}; öğe {number}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/media_cleanup_dialog.py
+#, python-brace-format
+msgctxt "storage_legacy_skipped"
+msgid "Files kept by storage protections: {count}."
+msgstr "Depolama korumaları nedeniyle korunan dosya: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_logical_total"
+msgid "Measured logical size: {size}. Files: {count}."
+msgstr "Ölçülen mantıksal boyut: {size}. Dosya: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/media_files.py
+#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_manager.py
+msgctxt "storage_manager_title"
+msgid "Storage manager"
+msgstr "Depolama yöneticisi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_match_all"
+msgid "All conditions"
+msgstr "Tüm koşullar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py client/ui/dialogs/storage_matching.py
+msgctxt "storage_match_all_visible_chats"
+msgid "All currently visible unlocked conversations"
+msgstr "Şu anda görünür ve kilidi açık tüm sohbetler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_match_any"
+msgid "Any condition"
+msgstr "Koşullardan herhangi biri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_matching_scope"
+msgid ""
+"Local-history matching scope: {count}. Matching is used only when its "
+"separate preference is enabled."
+msgstr ""
+"Yerel geçmiş eşleme kapsamı: {count}. Eşleme, yalnız ayrı tercihi etkinse "
+"kullanılır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_measured_at"
+msgid "Measured at {time}. Refresh to measure again."
+msgstr "Ölçüm zamanı: {time}. Tekrar ölçmek için yenileyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_media_match_incomplete"
+msgid ""
+"Local-history matching is incomplete. Media stays protected; select fewer "
+"conversations or retry after history is ready."
+msgstr ""
+"Yerel geçmiş eşlemesi eksik. Medya korunur; daha az sohbet seçin veya geçmiş"
+" hazır olduğunda tekrar deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_media_type"
+msgid "Media type"
+msgstr "Medya türü"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_method"
+msgid "Operation method"
+msgstr "İşlem yöntemi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_method_hold"
+msgid "Move to recoverable holding"
+msgstr "Geri alınabilir bekletmeye taşı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_method_remove"
+msgid "Permanently remove local copies"
+msgstr "Yerel kopyaları kalıcı kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_modified"
+msgid "Modified"
+msgstr "Değiştirilme zamanı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_needs_rescan"
+msgid ""
+"The previous snapshot is no longer current. Scan again before another "
+"preview."
+msgstr ""
+"Önceki ölçüm artık güncel değildir. Yeni önizlemeden önce tekrar tarayın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_next_held"
+msgid "Next held page"
+msgstr "Sonraki bekletilenler sayfası"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_next_page"
+msgid "Next page"
+msgstr "Sonraki sayfa"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+msgctxt "storage_not_scanned"
+msgid ""
+"Not measured yet. Scan reads file metadata. No file is selected and no "
+"cleanup starts automatically."
+msgstr ""
+"Henüz ölçülmedi. Tarama dosya üstverisini okur. Dosya seçili değildir; "
+"temizlik kendiliğinden başlamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_notify_only"
+msgid "Notify only"
+msgstr "Yalnız bildir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_open_backups"
+msgid "Open profile backup settings"
+msgstr "Profil yedekleme ayarlarını aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_open_models"
+msgid "Open model management settings"
+msgstr "Model yönetimi ayarlarını aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_operation_failed"
+msgid ""
+"The job could not finish. Nothing further was started. Review held files if "
+"an operation was interrupted, then scan again."
+msgstr ""
+"İş tamamlanamadı. Yeni işlem başlatılmadı. Bir işlem kesildiyse bekletilen "
+"dosyaları inceleyin, ardından tekrar tarayın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#, python-brace-format
+msgctxt "storage_operation_result"
+msgid ""
+"Completed: {completed}; skipped: {skipped}; failed: {failed}. Removed "
+"logical size: {removed}; moved to holding: {held}. This is not a measurement"
+" of freed disk space."
+msgstr ""
+"Tamamlanan: {completed}; atlanan: {skipped}; hata: {failed}. Kaldırılan "
+"mantıksal boyut: {removed}; bekletmeye taşınan: {held}. Bunlar boşalan disk "
+"alanının ölçümü değildir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_announce_progress"
+msgid "Announce scan progress at limited intervals"
+msgstr "Tarama ilerlemesini sınırlı aralıklarla seslendir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_external_models"
+msgid "Include known external model files"
+msgstr "Bilinen harici model dosyalarını dahil et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_match_media"
+msgid "Match media with selected local histories"
+msgstr "Medyayı seçili yerel geçmişlerle eşleştir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_other_accounts"
+msgid "Include currently known other account folders"
+msgstr "Bilinen diğer hesap klasörlerini dahil et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_scan_open"
+msgid "Scan when this manager opens"
+msgstr "Bu yönetici açıldığında tara"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_scan_start"
+msgid "Evaluate at application startup"
+msgstr "Uygulama açılışında değerlendir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_options_note"
+msgid ""
+"All background work is optional. Saving preferences does not apply a file "
+"preview. A target is advisory, not a hard quota. No disk-free-space "
+"threshold is enforced. Optional matching reads selected local message "
+"histories. External models and other accounts are information only. Newly "
+"added account folders require disabling and re-enabling that scope."
+msgstr ""
+"Arka plan işleri isteğe bağlıdır. Tercihleri kaydetmek dosya önizlemesini "
+"uygulamaz. Hedef katı kota değildir. Disk boş alan eşiği uygulanmaz. İsteğe "
+"bağlı eşleme, seçili yerel mesaj geçmişlerini okur. Harici modeller ve diğer"
+" hesaplar yalnız bilgi içindir. Yeni hesap klasörlerini dahil etmek için "
+"kapsamı kapatıp yeniden etkinleştirin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_options_tab"
+msgid "Preferences"
+msgstr "Tercihler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_owner_note"
+msgid ""
+"Models, runtimes, backups, logs, databases and login data stay protected "
+"here. Use their existing settings to manage them. Unknown files are not "
+"declared unnecessary. Only verified cache files and matched received-media "
+"copies can enter a preview."
+msgstr ""
+"Modeller, çalışma zamanları, yedekler, tanı kayıtları, veritabanları ve "
+"giriş verileri burada korunur. Yönetmek için mevcut ayarlarını kullanın. "
+"Bilinmeyen dosyalara gereksiz denmez. Önizlemeye yalnız doğrulanmış önbellek"
+" dosyaları ve eşleşmiş alınan medya kopyaları girebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_pause_day"
+msgid "Pause scheduled evaluations for one day"
+msgstr "Zamanlanmış değerlendirmeleri bir gün duraklat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_pause_downloads"
+msgid "Pause new automatic media downloads"
+msgstr "Yeni otomatik medya indirmelerini ertele"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_pause_hour"
+msgid "Pause scheduled evaluations for one hour"
+msgstr "Zamanlanmış değerlendirmeleri bir saat duraklat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py client/ui/dialogs/storage_rules.py
+msgctxt "storage_preferences_invalid"
+msgid ""
+"Check the numeric fields and preference file. Unsupported or unreadable "
+"protection settings block file actions. Explicit Reset can restore this "
+"account's defaults."
+msgstr ""
+"Sayısal alanları ve tercih dosyasını denetleyin. Desteklenmeyen veya "
+"okunamayan koruma ayarları dosya işlemlerini engeller. Açıkça Sıfırla seçimi"
+" bu hesabın varsayılanlarını geri yükleyebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_preferences_saved"
+msgid "Storage preferences saved. No file operation was started."
+msgstr "Depolama tercihleri kaydedildi. Dosya işlemi başlatılmadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_preview"
+msgid "Preview selection"
+msgstr "Seçimi önizle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preview_limit"
+msgid ""
+"Select at most 500 eligible files per preview, or fewer if their paths are "
+"unusually long. No part of this selection was applied."
+msgstr ""
+"Her önizleme için en fazla 500 uygun dosya seçin; yollar çok uzunsa sayıyı "
+"azaltın. Bu seçimin hiçbir bölümü uygulanmadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#, python-brace-format
+msgctxt "storage_preview_summary"
+msgid ""
+"Selected: {selected}; eligible: {count}; logical size: {size}. Method: "
+"{method}. Protected and in-use files are excluded. Holding does not free "
+"disk space."
+msgstr ""
+"Seçilen: {selected}; uygun: {count}; mantıksal boyut: {size}. Yöntem: "
+"{method}. Korunan ve kullanılan dosyalar dışarıda tutulur. Bekletme disk "
+"alanı boşaltmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_previous_page"
+msgid "Previous page"
+msgstr "Önceki sayfa"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_matching.py
+#: client/ui/dialogs/storage_presentation.py
+#: client/ui/dialogs/storage_protections.py
+#, python-brace-format
+msgctxt "storage_private_item"
+msgid "Local item {number}"
+msgstr "Yerel öğe {number}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect"
+msgid "Protect selected files"
+msgstr "Seçili dosyaları koru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_category"
+msgid "Protect this category"
+msgstr "Bu kategoriyi koru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_chats"
+msgid "Protect selected conversations"
+msgstr "Seçili sohbetleri koru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_scope"
+msgid "Protection scope"
+msgstr "Koruma kapsamı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_scope_account"
+msgid "This account"
+msgstr "Bu hesap"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_scope_shared"
+msgid "Shared components, across accounts"
+msgstr "Hesaplar arasında ortak bileşenler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_protections.py
+#, python-brace-format
+msgctxt "storage_protection_count"
+msgid "Saved protections: {count}."
+msgstr "Kaydedilmiş koruma: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protection_note"
+msgid ""
+"Protection wins over manual selection and rules. Shared protection applies "
+"across this installation's accounts. Removing protection grants no new "
+"selection. Missing or currently unnamed items keep a private numbered label."
+msgstr ""
+"Koruma, elle seçimin ve kuralların önüne geçer. Ortak koruma bu kurulumun "
+"hesaplarında geçerlidir. Korumayı kaldırmak yeni dosya seçmez. Bulunmayan "
+"veya adı şu anda görünmeyen öğeler özel numaralı etiketle korunur."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_protections.py
+#, python-brace-format
+msgctxt "storage_protection_row"
+msgid "{scope}: {name}"
+msgstr "{scope}: {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protection_saved"
+msgid "Protection choices saved. Previous preview cleared."
+msgstr "Koruma tercihleri kaydedildi. Önceki önizleme temizlendi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_protections_tab"
+msgid "Protections"
+msgstr "Korumalar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_held"
+msgid "Permanently remove selected held files"
+msgstr "Seçili bekletilen dosyaları kalıcı kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_purge_held_confirm"
+msgid ""
+"Permanently remove {count} held files ({size})? This cannot be undone here; "
+"WhatsApp may no longer have the media."
+msgstr ""
+"Bekletilen {count} dosya ({size}) kalıcı kaldırılsın mı? Bu işlem buradan "
+"geri alınamaz; medya artık WhatsApp'ta bulunmayabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_critical"
+msgid "Required component or critical data; managed by its owner"
+msgstr "Gerekli bileşen veya kritik veri; sahibi tarafından yönetilir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_external"
+msgid "Information only; outside this manager's file-action scope"
+msgstr "Yalnız bilgi; bu yöneticinin dosya işlemi kapsamı dışında"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_important"
+msgid "Sent, pending, failed or starred content; protected"
+msgstr "Gönderilmiş, bekleyen, başarısız veya yıldızlı içerik; korunur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_in_use"
+msgid "In use or current ownership is uncertain; protected"
+msgstr "Kullanılıyor veya güncel kullanım belirsiz; korunur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_local_copy"
+msgid "Received-media local copy; may be impossible to download again"
+msgstr "Alınan medyanın yerel kopyası; tekrar indirilemeyebilir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_protected"
+msgid "Unknown or unsupported file; protected"
+msgstr "Bilinmeyen veya desteklenmeyen dosya; korunur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_reproducible"
+msgid "Verified compile-cache layout; regenerable"
+msgstr "Doğrulanmış derleme önbelleği düzeni; yeniden üretilebilir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_unmatched"
+msgid "Local history not matched completely; protected"
+msgstr "Yerel geçmiş tam eşleşmedi; korunur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_user_protected"
+msgid "Protected by your keep-list"
+msgstr "Koruma listenizde yer alıyor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_refresh_held"
+msgid "Refresh held files"
+msgstr "Bekletilen dosyaları yenile"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_refresh_history"
+msgid "Refresh summary history"
+msgstr "Özet geçmişini yenile"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_refresh_protections"
+msgid "Refresh protections"
+msgstr "Korumaları yenile"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_remove_protection"
+msgid "Remove selected protections"
+msgstr "Seçili korumaları kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_remove_protection_confirm"
+msgid ""
+"Remove {count} selected protections? Files are not selected or removed by "
+"this action."
+msgstr ""
+"Seçili {count} koruma kaldırılsın mı? Bu işlem dosya seçmez veya kaldırmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_remove_rule"
+msgid "Remove rule draft"
+msgstr "Kural taslağını kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reset_confirm"
+msgid ""
+"Reset this account's storage preferences, rules and keep-list? Shared "
+"protections, held files and media download blocks stay. No files are "
+"cleaned."
+msgstr ""
+"Bu hesabın depolama tercihleri, kuralları ve koruma listesi sıfırlansın mı? "
+"Ortak korumalar, bekletilen dosyalar ve medya indirme engelleri korunur. "
+"Dosya temizliği yapılmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reset_preferences"
+msgid "Reset account storage preferences"
+msgstr "Hesabın depolama tercihlerini sıfırla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reset_target"
+msgid "Reset only the target fields"
+msgstr "Yalnız hedef alanlarını sıfırla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_restore_held"
+msgid "Restore selected held files"
+msgstr "Seçili bekletilen dosyaları geri al"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_restore_held_confirm"
+msgid ""
+"Restore {count} held files ({size}) to their original local locations? "
+"Existing files will not be overwritten."
+msgstr ""
+"Bekletilen {count} dosya ({size}) özgün yerel konumlarına geri alınsın mı? "
+"Mevcut dosyaların üzerine yazılmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/media_files.py
+msgctxt "storage_restore_media_confirm"
+msgid ""
+"Request this cleaned local copy once more from WhatsApp? It may no longer be"
+" available. Other cleaned files stay blocked, and automatic downloading "
+"stays blocked for this item too."
+msgstr ""
+"Temizlenmiş bu yerel kopya WhatsApp'tan bir kez daha istensin mi? Artık "
+"bulunmayabilir. Diğer temizlenmiş dosyaların ve bu öğenin otomatik indirme "
+"engeli korunur."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_resume_schedule"
+msgid "Resume scheduled evaluations"
+msgstr "Zamanlanmış değerlendirmeleri sürdür"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_retire_tokens"
+msgid "Remove expired completed-operation records"
+msgstr "Süresi dolan tamamlanmış işlem kayıtlarını kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_retire_tokens_confirm"
+msgid ""
+"Remove empty operation records older than two days? Held files and active "
+"recovery records are kept. Previews expire after one day."
+msgstr ""
+"İki günden eski boş işlem kayıtları kaldırılsın mı? Bekletilen dosyalar ve "
+"etkin geri alma kayıtları korunur. Önizlemeler bir gün sonra geçersizleşir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_retire_tokens_result"
+msgid "Expired empty operation records removed: {count}."
+msgstr "Kaldırılan süresi dolmuş boş işlem kaydı: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reverse_order"
+msgid "Reverse sort order"
+msgstr "Sıralama yönünü değiştir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_automatic"
+msgid "Automatically remove verified compile cache"
+msgstr "Doğrulanmış derleme önbelleğini otomatik kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rule_automatic_confirm"
+msgid ""
+"Enable automatic permanent removal of matching verified compile-cache files "
+"during saved startup/interval evaluations? Personal media, models and "
+"unknown files are excluded. Protection wins; no files are removed by saving "
+"this draft."
+msgstr ""
+"Kaydedilmiş açılış/aralık değerlendirmelerinde eşleşen doğrulanmış derleme "
+"önbelleğinin otomatik kalıcı kaldırılması etkinleştirilsin mi? Kişisel "
+"medya, modeller ve bilinmeyen dosyalar kapsam dışındadır. Koruma üstündür; "
+"bu taslağı kaydetmek dosya kaldırmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_rule_combine"
+msgid "Condition combination"
+msgstr "Koşulların birleşimi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_days"
+msgid "Minimum age in days; 0: no age condition"
+msgstr "En az yaş, gün; 0: yaş koşulu yok"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rule_editor"
+msgid "Storage rule"
+msgstr "Depolama kuralı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rule_enabled"
+msgid "Enable this rule after saving preferences"
+msgstr "Tercihler kaydedildiğinde bu kuralı etkinleştir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_limit"
+msgid "Up to 100 rules can be saved."
+msgstr "En fazla 100 kural kaydedilebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_minimum_mib"
+msgid "Minimum size in MiB; 0: no size condition"
+msgstr "En az boyut, MiB; 0: boyut koşulu yok"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_mode"
+msgid "Rule action"
+msgstr "Kural eylemi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_notify"
+msgid "Notify about matches"
+msgstr "Eşleşmeleri bildir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_off"
+msgid "Off"
+msgstr "Kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_on"
+msgid "On"
+msgstr "Açık"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+#, python-brace-format
+msgctxt "storage_rule_row"
+msgid "{category}; {mode}; {state}; age {days} days; minimum {size}"
+msgstr "{category}; {mode}; {state}; yaş {days} gün; en az {size}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_suggest"
+msgid "Suggest for manual review"
+msgstr "Elle incelemek için öner"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rules_note"
+msgid ""
+"Age and size are conditions, not proof of uselessness. Protection wins. A "
+"suggestion or notification rule wins over an automatic rule on the same "
+"file. Automatic mode is available only for verified regenerable compile "
+"cache."
+msgstr ""
+"Yaş ve boyut koşuldur; gereksizlik kanıtı değildir. Koruma üstündür. Aynı "
+"dosyada öneri veya bildirim kuralı otomatik kuralın önüne geçer. Otomatik "
+"kip yalnız doğrulanmış, yeniden üretilebilir derleme önbelleğine açıktır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py client/ui/dialogs/storage_rules.py
+msgctxt "storage_rules_save_note"
+msgid ""
+"These are drafts. Save preferences to apply rule and matching-scope changes."
+msgstr ""
+"Bunlar taslaktır. Kural ve eşleme kapsamı değişiklikleri için tercihleri "
+"kaydedin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rules_tab"
+msgid "Rules"
+msgstr "Kurallar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_save_preferences"
+msgid "Save preferences and rule drafts"
+msgstr "Tercihleri ve kural taslaklarını kaydet"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scan"
+msgid "Scan now"
+msgstr "Şimdi tara"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_scan_cancelled"
+msgid "Stopped. Results cover only items measured before cancellation."
+msgstr "Durduruldu. Sonuçlar yalnız iptalden önce ölçülen öğeleri kapsar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scan_complete"
+msgid "Scan finished for the selected known locations."
+msgstr "Seçili bilinen konumların taraması tamamlandı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scan_partial"
+msgid ""
+"Scan finished with incomplete coverage. Unavailable items stay protected."
+msgstr "Tarama eksik kapsamla bitti. Erişilemeyen öğeler korunur."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_scan_progress"
+msgid "Files measured: {count}."
+msgstr "Ölçülen dosya: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_scanning"
+msgid "Measuring storage. You can stop this job."
+msgstr "Depolama ölçülüyor. Bu işi durdurabilirsiniz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scheduled_failed"
+msgid ""
+"The optional scheduled storage operation could not finish. Open Storage "
+"manager, review held files and scan again."
+msgstr ""
+"İsteğe bağlı zamanlanmış depolama işlemi tamamlanamadı. Depolama "
+"yöneticisini açın, bekletilen dosyaları inceleyip tekrar tarayın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/storage_runtime.py
+#, python-brace-format
+msgctxt "storage_scheduled_notice"
+msgid ""
+"Storage evaluation: {total}. Notification-rule matches: {count}. A warning "
+"or usage target may be reached. Open Storage manager for details."
+msgstr ""
+"Depolama değerlendirmesi: {total}. Bildirim kuralı eşleşmesi: {count}. Uyarı"
+" veya kullanım hedefine ulaşılmış olabilir. Ayrıntılar için Depolama "
+"yöneticisini açın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_scheduled_result"
+msgid ""
+"Optional cache rule: completed {completed}; skipped {skipped}; failed "
+"{failed}."
+msgstr ""
+"İsteğe bağlı önbellek kuralı: tamamlanan {completed}; atlanan {skipped}; "
+"hata {failed}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_all"
+msgid ""
+"Scope: this installation, shared components and the previously selected "
+"other account folders. Other accounts are information only."
+msgstr ""
+"Kapsam: bu kurulum, ortak bileşenler ve önceden seçilen diğer hesap "
+"klasörleri. Diğer hesaplar yalnız bilgi içindir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_current"
+msgid ""
+"Scope: this installation, this account and shared components. Other account "
+"folders are excluded."
+msgstr ""
+"Kapsam: bu kurulum, bu hesap ve ortak bileşenler. Diğer hesap klasörleri "
+"kapsam dışındadır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_external"
+msgid "Known external model files"
+msgstr "Bilinen harici model dosyaları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_other_accounts"
+msgid "Previously selected other account folders"
+msgstr "Önceden seçilen diğer hesap klasörleri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_program"
+msgid "This installation's program data"
+msgstr "Bu kurulumun program verileri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_search"
+msgid "Search visible item names"
+msgstr "Görünür öğe adlarında ara"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_select_suggested"
+msgid "Select rule suggestions"
+msgstr "Kural önerilerini seç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_select_visible"
+msgid "Select this page"
+msgstr "Bu sayfayı seç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_selected_count"
+msgid "Selected files: {count}."
+msgstr "Seçili dosya: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_selection_summary"
+msgid ""
+"Selected: {selected}; on this page: {visible}; filtered total: {total}; "
+"page: {page}."
+msgstr ""
+"Seçili: {selected}; bu sayfada: {visible}; filtrelenmiş toplam: {total}; "
+"sayfa: {page}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_size"
+msgid "Logical size"
+msgstr "Mantıksal boyut"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_sort"
+msgid "Sort by"
+msgstr "Sıralama ölçütü"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state"
+msgid "Decision"
+msgstr "Karar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state_all"
+msgid "All decisions"
+msgstr "Tüm kararlar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state_eligible"
+msgid "Potentially eligible; current use checked again"
+msgstr "Uygun olabilecekler; güncel kullanım tekrar denetlenir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state_protected"
+msgid "Protected or information only"
+msgstr "Korunan veya yalnız bilgi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_stop"
+msgid "Stop current job"
+msgstr "Geçerli işi durdur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_stopping"
+msgid ""
+"Stopping after the current safe step. Completed operations are not undone."
+msgstr ""
+"Geçerli güvenli adımdan sonra durduruluyor. Tamamlanan işlemler geri "
+"alınmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_summary"
+msgid "Storage summary"
+msgstr "Depolama özeti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_target_action"
+msgid "When the usage target is reached"
+msgstr "Kullanım hedefine ulaşılınca"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_target_category"
+msgid "Usage target category"
+msgstr "Kullanım hedefi kategorisi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_exceeded"
+msgid ""
+"Your advisory usage target is reached. Notification only; files are not "
+"removed because of this target."
+msgstr ""
+"Öneri niteliğindeki kullanım hedefine ulaşıldı. Yalnız bildirim yapılır; bu "
+"hedef nedeniyle dosya kaldırılmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_gib"
+msgid "Advisory usage target in GiB; 0: off"
+msgstr "Öneri niteliğindeki kullanım hedefi, GiB; 0: kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_paused"
+msgid ""
+"Your usage target is reached. New automatic media downloads are paused using"
+" the last measurement. Manual requests, messages and sending remain "
+"available. Scan again to update the decision."
+msgstr ""
+"Kullanım hedefine ulaşıldı. Son ölçüme göre yeni otomatik medya indirmeleri "
+"ertelendi. Elle istekler, mesajlar ve gönderim kullanılabilir. Kararı "
+"güncellemek için tekrar tarayın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_target_scope"
+msgid "Usage target scope"
+msgstr "Kullanım hedefi kapsamı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_scope_all"
+msgid "All measured scopes"
+msgstr "Ölçülen tüm kapsamlar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_unprotect"
+msgid "Remove selected file protection"
+msgstr "Seçili dosyaların korumasını kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_unprotect_chats"
+msgid "Remove selected conversation protection"
+msgstr "Seçili sohbetlerin korumasını kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_warning_exceeded"
+msgid "The measured total has reached your size-warning threshold."
+msgstr "Ölçülen toplam, boyut uyarısı eşiğinize ulaştı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_warning_gib"
+msgid "Total-size warning in GiB; 0: off"
+msgstr "Toplam boyut uyarısı, GiB; 0: kapalı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_warning_repeat_minutes"
+msgid "Repeat scheduled notices after minutes; 0: once until resolved"
+msgstr ""
+"Zamanlanmış bildirimleri tekrarlama aralığı, dakika; 0: çözülene kadar bir "
+"kez"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_selection.py

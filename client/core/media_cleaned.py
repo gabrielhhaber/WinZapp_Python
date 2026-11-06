@@ -7,8 +7,10 @@ sync would fetch it all again. This is that memory: the cache ids (see
 ui.conversation_panel.media_paths.media_cache_id) of the files the cleanup
 deleted, kept in `media_cleaned.json` of the account's data folder.
 
-What it blocks: every automatic download and every explicit one — the
-message offers no download and says why. What clears it: a logout or a new
+What it blocks: automatic downloads and ordinary open/play/save requests.
+The Download action can explicitly request one cleaned copy after a separate
+confirmation, without clearing this or any other automatic block. What
+clears the complete index: a logout or a new
 pairing (`MainWindow._forget_cleaned_media()`, from the wipe that empties the
 account's local data) and nothing else. A full resync (F5) does not: it
 refetches the messages of the same account, and what the user chose to delete
@@ -103,6 +105,8 @@ class CleanedMediaIndex:
             try:
                 with open(path, encoding="utf-8") as stream:
                     raw = json.load(stream)
+                if isinstance(raw, dict) and set(raw) != {"ids"}:
+                    raise ValueError("unsupported cleaned-media index")
                 values = raw.get("ids") if isinstance(raw, dict) else raw
                 if not isinstance(values, list) or any(not isinstance(v, str) or not v for v in values):
                     raise ValueError("invalid cleaned-media index")
@@ -124,6 +128,8 @@ class CleanedMediaIndex:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(temporary, "w", encoding="utf-8") as stream:
                 json.dump({"ids": sorted(self._ids)}, stream)
+                stream.flush()
+                os.fsync(stream.fileno())
             os.replace(temporary, path)
             return True
         except OSError:

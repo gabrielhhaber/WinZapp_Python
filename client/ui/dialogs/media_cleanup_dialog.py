@@ -10,7 +10,7 @@ import threading
 
 import wx
 
-from app_paths import data_path
+from app_paths import data_path, global_dir
 from core import media_cleanup
 from ui.dialogs.chat_picker import ChatCheckList
 
@@ -210,27 +210,37 @@ class MediaCleanupDialog(wx.Dialog):
         self._scan_btn.Disable()
         self._say(i18n.t("cleanup_deleting"))
         roots = [data_path("media"), data_path("voice_messages")]
+        from core.storage_manager.store import StorageStore
+        from core.storage_manager.types import canonical
+        account_store, shared_store = StorageStore(data_path()), StorageStore(global_dir())
+        media_index = self.main_window._media_cleaned_index()
 
         def _progress(done, total):
             wx.CallAfter(self._say, i18n.t("cleanup_deleting_count").format(
                 done=done, total=total))
 
         def _work():
-            stats = media_cleanup.execute(
-                preview, roots, progress_cb=_progress,
-                should_cancel=lambda: not self._alive)
-            # Remembered before anything else can run: what was deleted must
-            # not be fetched again by the next sync.
             try:
+                from core.storage_manager.legacy_cleanup import execute
                 from ui.conversation_panel.media_paths import media_cache_id
-                self.main_window.mark_media_cleaned(
-                    [media_cache_id(i) for i in stats.deleted_ids])
+                stats = execute(preview, roots, account_store, shared_store, media_index, media_cache_id,
+                    progress=_progress, cancel=lambda: not self._alive
+                    or getattr(self.main_window, "_shutting_down", False)
+                    or canonical(data_path()) != canonical(account_store.directory))
             except Exception as exc:
-                logging.warning("[media-cleanup] could not index the cleaned media: %s",
+                logging.warning("[media-cleanup] cleanup did not finish: %s",
                                 type(exc).__name__)
+                wx.CallAfter(self._storage_failed)
+                return
             wx.CallAfter(self._on_done, stats)
 
         threading.Thread(target=_work, daemon=True, name="winzapp-media-cleanup-delete").start()
+
+    def _storage_failed(self):
+        if self._alive:
+            self._busy = False
+            self._scan_btn.Enable()
+            self._say(self._i18n.t("storage_operation_failed"))
 
     def _on_done(self, stats):
         if not self._alive:
@@ -244,5 +254,7 @@ class MediaCleanupDialog(wx.Dialog):
             files=stats.files_deleted, mb=stats.bytes_freed / _MB)
         if stats.files_failed:
             message += "\n" + i18n.t("cleanup_done_failed").format(files=stats.files_failed)
+        if getattr(stats, "files_protected", 0):
+            message += "\n" + i18n.t("storage_legacy_skipped").format(count=stats.files_protected)
         self.main_window.output(message.replace("\n", " "))
         wx.MessageBox(message, i18n.t("cleanup_title"), wx.OK | wx.ICON_INFORMATION, self)

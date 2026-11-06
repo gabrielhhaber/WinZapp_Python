@@ -16,7 +16,7 @@ class Service:
     def scan(self, callback): self.scans.append(callback)
     def effective_preferences(self): return self.preferences
     def warning(self): return False
-    def automatic_selection(self): return []
+    def automatic_selection(self, **kwargs): return []
     def apply(self, plan, callback): self.applies.append(plan)
 
 
@@ -49,7 +49,7 @@ def test_startup_is_one_owned_evaluation_and_dialog_suspends_the_scheduler():
 
 def test_closed_paused_partial_and_failed_results_never_automatically_apply():
     value, service, _, _ = runtime(Preferences(scan_on_start=True))
-    service.automatic_selection = lambda: ["would-have-been-eligible"]
+    service.automatic_selection = lambda **kwargs: ["would-have-been-eligible"]
     snapshot = Snapshot()
     snapshot.issue("unreadable")
     value.scanned(snapshot, None)
@@ -65,7 +65,7 @@ def test_closed_paused_partial_and_failed_results_never_automatically_apply():
 def test_automatic_cache_work_uses_an_explicit_automatic_plan():
     value, service, _, _ = runtime(Preferences(scan_on_start=True,
                                              rules=[Rule("compile_cache", mode="automatic", enabled=True)]))
-    service.automatic_selection = lambda: ["cache"]
+    service.automatic_selection = lambda **kwargs: ["cache"]
     requests = []
     def preview(keys, method, **kwargs):
         requests.append((keys, method, kwargs))

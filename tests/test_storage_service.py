@@ -141,3 +141,35 @@ def test_scoped_soft_target_uses_only_the_requested_category_and_keeps_its_last_
     assert value.pause_downloads
     value.snapshot = None
     assert value.pause_downloads
+
+
+def test_download_gate_never_walks_the_snapshot(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    value, _, _ = service(tmp_path, monkeypatch)
+    class UnavailableEntries:
+        def __iter__(self): raise AssertionError("download gate walked storage files")
+    value.snapshot = SimpleNamespace(entries=UnavailableEntries())
+    value.measured_usage = {("account", "media"): 20}
+    value.preferences = Preferences(target_bytes=10, target_scope="account", target_category="media",
+                                     target_action="pause_downloads")
+    for _ in range(100):
+        assert value.pause_downloads
+
+
+def test_disabled_automatic_rule_is_rechecked_after_preview(tmp_path, monkeypatch):
+    value, workers, queue = service(tmp_path, monkeypatch)
+    value.save_preferences(Preferences(scan_on_start=True,
+        rules=[Rule("compile_cache", mode="automatic", enabled=True)]))
+    value.scan(lambda *args: None)
+    complete(workers, queue)
+    plan = value.preview(value.automatic_selection(), "remove", automatic=True)
+    value.save_preferences(Preferences(scan_on_start=True))
+    probes = []
+    def execute(plan, snapshot, preferences, store, index, **kwargs):
+        from core.storage_manager.transactions import Result
+        probes.extend(kwargs["busy"](entry) for entry in plan.entries)
+        return Result(skipped=len(plan.entries))
+    monkeypatch.setattr("core.storage_manager.service.execute", execute)
+    value.apply(plan, lambda *args: None)
+    complete(workers, queue)
+    assert probes == [True]

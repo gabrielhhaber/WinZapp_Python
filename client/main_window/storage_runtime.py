@@ -27,9 +27,7 @@ class StorageRuntime:
                 or self.service.preferences.paused_until > time.time()):
             return
         service = self.service
-        prefs = service.effective_preferences()
-        count = sum(any(r.mode == "notify" for r in service_rules(e, prefs, service))
-                    for e in snapshot.entries)
+        count = getattr(service, "notification_count", 0)
         notice = (service.warning(), service.pause_downloads, count)
         now = time.monotonic()
         repeat = service.preferences.warning_repeat_minutes * 60
@@ -41,12 +39,22 @@ class StorageRuntime:
         if not any(notice):
             self.last_notice_at = None
         self.last_notice = notice
-        keys = service.automatic_selection()
+        keys = service.automatic_selection(cached=True)
         if keys:
             # Only an enabled cache-only automatic rule can enter this path.
             # A complete newly scheduled snapshot is required every time.
-            plan = service.preview(keys, "remove", automatic=True)
-            service.apply(plan, self.applied)
+            from core.storage_manager.transactions import PlanTooLarge
+            keys = keys[:500]
+            while keys:
+                try:
+                    plan = service.preview(keys, "remove", automatic=True)
+                    service.apply(plan, self.applied)
+                    break
+                except PlanTooLarge:
+                    keys = keys[:len(keys) // 2]
+                except (OSError, ValueError):
+                    self.applied(None, "Unavailable")
+                    break
 
     def applied(self, result, error):
         if self.closed or not self.service.valid():
@@ -58,11 +66,6 @@ class StorageRuntime:
     def close(self):
         self.closed = True
         self.service.jobs.close()
-
-
-def service_rules(entry, preferences, service):
-    from core.storage_manager.policy import matching_rules
-    return matching_rules(entry, preferences, time.time(), busy=service.is_busy(entry))
 
 
 def start(window):

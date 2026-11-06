@@ -83,10 +83,14 @@ def current_roots(main_window, preferences):
     data = os.path.dirname(shared)
     account = app_paths.data_path()
     external = []
+    failures = []
     app = getattr(main_window, "_app_settings", None)
     if preferences.include_external_models and app is not None:
         from .model_roots import external_model_files
-        external = external_model_files(app)
+        try:
+            external = external_model_files(app)
+        except Exception:
+            failures.append(Root("external_owner", "", "models", "external", error="owner_unavailable"))
     cache = os.environ.get("NODE_COMPILE_CACHE")
     owned = not cache or canonical(cache) == canonical(os.path.join(shared, "node-compile-cache"))
     roots = build_roots(program=app_paths._outer_exe_dir(), resources=app_paths.resource_path(),
@@ -102,7 +106,7 @@ def current_roots(main_window, preferences):
                   Root("bridge_run", bridge_paths.run_dir(bridge), "sessions", "shared")])
     roots.append(Root("bridge_log", os.path.join(bridge_paths.run_dir(bridge), "bridge.log"),
                       "logs", "shared", file_only=True))
-    return roots
+    return roots + failures
 
 
 def capture_other_accounts():

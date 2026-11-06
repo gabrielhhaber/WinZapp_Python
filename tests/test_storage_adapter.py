@@ -1,11 +1,9 @@
 """Storage resolves owner paths and visible chats without opening a session."""
-from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
 
 from core.storage_manager.model_roots import external_model_files
-from core.storage_manager.policy import Preferences
 from core.storage_manager.types import Entry, Root
 from main_window.storage_management import StorageContext
 

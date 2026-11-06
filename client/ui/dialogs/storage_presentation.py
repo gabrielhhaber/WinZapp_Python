@@ -41,7 +41,9 @@ def reason_text(reason, i18n):
 
 
 def entry_name(entry, ordinal, i18n):
-    label = entry.display_name or i18n.t("storage_private_item").format(number=ordinal)
+    if not entry.display_name:
+        return i18n.t("storage_private_item").format(number=ordinal) + "; " + category_text(entry.category, i18n)
+    label = entry.display_name
     # Label comes only from an allowed visible chat, never the raw cache name.
     return i18n.t("storage_item_label").format(name=label, number=ordinal, category=category_text(entry.category, i18n))
 

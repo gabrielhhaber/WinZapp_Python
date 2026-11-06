@@ -3,6 +3,7 @@ import wx
 
 from core.storage_manager.types import CATEGORIES
 from .storage_presentation import category_text, entry_name
+from .storage_layout import note
 
 
 class StorageProtectionsPanel(wx.ScrolledWindow):
@@ -12,9 +13,7 @@ class StorageProtectionsPanel(wx.ScrolledWindow):
         self.SetScrollRate(0, 16)
         t = owner.i18n.t
         box = wx.BoxSizer(wx.VERTICAL)
-        note = wx.StaticText(self, label=t("storage_protection_note"))
-        note.Wrap(650)
-        box.Add(note, 0, wx.EXPAND | wx.ALL, 8)
+        box.Add(note(self, t("storage_protection_note")), 0, wx.EXPAND | wx.ALL, 8)
         self.scope = wx.Choice(self, choices=[t("storage_protect_scope_account"), t("storage_protect_scope_shared")],
                                name=t("storage_protect_scope"))
         self.scope.SetSelection(0)

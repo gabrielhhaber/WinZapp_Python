@@ -48,3 +48,27 @@ def test_native_provider_rejects_changed_metadata(tmp_path):
     with pytest.raises(ChangedFile):
         with pinned(entry):
             raise AssertionError("changed file was accepted")
+
+
+def test_native_transaction_and_restore_keep_content_and_download_policy(tmp_path):
+    from dataclasses import replace
+    from core.media_cleaned import CleanedMediaIndex
+    from core.storage_manager.policy import Preferences
+    from core.storage_manager.recovery import holdings, finish
+    from core.storage_manager.store import StorageStore
+    from core.storage_manager.transactions import make_plan, execute
+    media = tmp_path / "media"
+    media.mkdir()
+    (media / "one.wzmedia").write_bytes(b"only CI-owned fixture content")
+    roots = [Root("media", str(media), "media", managed=True)]
+    snapshot = scan(roots, classify=lambda e: replace(e, reason="received", media_id="one"))
+    preferences = Preferences()
+    store = StorageStore(str(tmp_path))
+    index = CleanedMediaIndex(lambda: str(tmp_path / "cleaned.json"))
+    plan = make_plan(snapshot, [snapshot.entries[0].key], "quarantine", preferences)
+    result = execute(plan, snapshot, preferences, store, index)
+    assert result.completed == 1 and result.failed == 0 and index.contains("one")
+    held, = holdings(store, roots)
+    finish(held, store, roots, index, preferences, restore=True)
+    assert (media / "one.wzmedia").read_bytes() == b"only CI-owned fixture content"
+    assert not index.contains("one") and not holdings(store, roots)

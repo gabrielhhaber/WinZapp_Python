@@ -138,6 +138,8 @@ class PinnedFile:
 @contextmanager
 def pinned(entry):
     """Only expose handle operations after scope, ancestry and identity checks."""
+    if len(entry.identity) != 5 or not entry.identity[1]:
+        raise ChangedFile("stable file identity unavailable")
     if os.name != "nt":
         raise NotImplementedError("storage file actions require the Windows provider")
     if not inside(entry.path, entry.root.path) or canonical(entry.path) == canonical(entry.root.path):

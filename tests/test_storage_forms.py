@@ -76,3 +76,12 @@ def test_picker_restores_only_keys_that_are_still_visible():
                            _rebuild=lambda: rebuilt.append(1))
     ChatCheckList.set_checked(stub, {"visible", "no-longer-allowed"})
     assert stub._checked == {"visible"} and rebuilt == [1]
+
+
+def test_scheduling_pause_does_not_save_or_discard_other_drafts(monkeypatch):
+    monkeypatch.setattr("ui.dialogs.storage_options.time.time", lambda: 100)
+    saved = []
+    owner = SimpleNamespace(service=SimpleNamespace(preferences=Preferences()),
+        save_preferences=lambda value, **kwargs: saved.append((value, kwargs)))
+    StorageOptionsPanel.pause(SimpleNamespace(owner=owner), 3600)
+    assert saved[0][0].paused_until == 3700 and saved[0][1] == {"preserve_draft": True}

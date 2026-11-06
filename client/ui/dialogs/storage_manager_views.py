@@ -6,6 +6,7 @@ from .storage_options import StorageOptionsPanel
 from .storage_protections import StorageProtectionsPanel
 from .storage_presentation import category_text
 from .storage_rules import MEDIA_TYPES, TYPE_KEYS, StorageRulesPanel
+from .storage_layout import note
 
 
 def button(parent, sizer, owner, key, callback):
@@ -135,17 +136,13 @@ def make_files(panel, owner):
     owner.preview_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY,
                                     size=(-1, 75), name=owner.i18n.t("storage_preview"))
     sizer.Add(owner.preview_text, 0, wx.EXPAND | wx.ALL, 5)
-    note = wx.StaticText(panel, label=owner.i18n.t("storage_owner_note"))
-    note.Wrap(650)
-    sizer.Add(note, 0, wx.EXPAND | wx.ALL, 5)
+    sizer.Add(note(panel, owner.i18n.t("storage_owner_note")), 0, wx.EXPAND | wx.ALL, 5)
     panel.SetSizer(sizer)
 
 
 def make_held(panel, owner):
     sizer = wx.BoxSizer(wx.VERTICAL)
-    note = wx.StaticText(panel, label=owner.i18n.t("storage_held_note"))
-    note.Wrap(650)
-    sizer.Add(note, 0, wx.EXPAND | wx.ALL, 8)
+    sizer.Add(note(panel, owner.i18n.t("storage_held_note")), 0, wx.EXPAND | wx.ALL, 8)
     owner.held_list = wx.ListBox(panel, style=wx.LB_EXTENDED, name=owner.i18n.t("storage_held_tab"))
     sizer.Add(owner.held_list, 1, wx.EXPAND | wx.ALL, 8)
     row = wx.WrapSizer(wx.HORIZONTAL)

@@ -10,7 +10,7 @@ import uuid
 
 from . import fileops
 from .policy import eligibility
-from .types import Entry, Root, canonical, inside
+from .types import Entry, canonical
 
 
 class PlanTooLarge(ValueError):

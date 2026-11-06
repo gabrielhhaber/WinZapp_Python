@@ -98,6 +98,9 @@ def collect(chats, read_count, read_page, path_for, cache_id, *,
                     result.files[canonical(path)] = candidate
             if offset != count or read_count(jid) != count:
                 result.complete = False
-        except (OSError, ValueError, TypeError, AttributeError):
+        except Exception:
+            # Database adapters can raise backend-specific errors (for
+            # example sqlite3.OperationalError). Keep metadata accounting
+            # available; an unreadable history never grants media actions.
             result.complete = False
     return result

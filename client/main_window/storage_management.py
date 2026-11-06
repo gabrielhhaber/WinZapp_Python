@@ -1,8 +1,6 @@
 """Bridge storage's pure service to existing paths, local history and jobs."""
 from __future__ import annotations
 
-import os
-
 import app_paths
 from core.storage_manager.references import collect
 from core.storage_manager.roots import current_roots
@@ -16,6 +14,7 @@ class StorageContext:
         self.window = window
         self.account = app_paths.data_path()
         self.chats = {}
+        self.chat_jids = {}
 
     def valid(self):
         return (not getattr(self.window, "_shutting_down", False)
@@ -37,6 +36,8 @@ class StorageContext:
                 # A data/identity fallback must not become a spoken raw JID.
                 result[jid] = str(name) if name and str(name) != jid and "@" not in str(name) else ""
         self.chats = result
+        from core.storage_manager.references import chat_token
+        self.chat_jids = {chat_token(jid): jid for jid in result}
 
     def locked(self, jid):
         try:
@@ -69,16 +70,15 @@ class StorageContext:
         if not self.valid():
             return True
         if entry.media_id:
-            from core.storage_manager.references import chat_token
             from ui.conversation_panel.media_paths import media_cache_id
             # A job may already have buffered content and released its file
             # handle. Respect its owner as well as the native sharing check.
             for field in ("_auto_transcription_current", "_transcription_background_job", "_background_transcription"):
                 if getattr(self.window, field, None) is not None:
                     return True
-            for jid in self.chats:
-                if chat_token(jid) == entry.chat_key and self.locked(jid):
-                    return True
+            jid = self.chat_jids.get(entry.chat_key)
+            if jid is not None and self.locked(jid):
+                return True
             for attr in ("conversations_panel", "archived_conversations_panel", "locked_conversations_panel"):
                 panel = getattr(self.window, attr, None)
                 if panel is None:

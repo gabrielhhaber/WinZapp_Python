@@ -9,6 +9,7 @@ from core.storage_manager.forms import imported, number, portable
 from core.storage_manager.policy import Preferences
 from core.storage_manager.types import CATEGORIES
 from .storage_presentation import category_text
+from .storage_layout import note
 
 
 class StorageOptionsPanel(wx.ScrolledWindow):
@@ -18,9 +19,7 @@ class StorageOptionsPanel(wx.ScrolledWindow):
         self._checks, self._numbers = {}, {}
         self.SetScrollRate(0, 16)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        note = wx.StaticText(self, label=self.i18n.t("storage_options_note"))
-        note.Wrap(650)
-        sizer.Add(note, 0, wx.EXPAND | wx.ALL, 8)
+        sizer.Add(note(self, self.i18n.t("storage_options_note")), 0, wx.EXPAND | wx.ALL, 8)
         keys = {
             "include_other_accounts": "storage_option_other_accounts",
             "include_external_models": "storage_option_external_models",
@@ -118,7 +117,7 @@ class StorageOptionsPanel(wx.ScrolledWindow):
     def pause(self, seconds):
         preferences = Preferences.read(self.owner.service.preferences.as_dict())
         preferences.paused_until = int(time.time() + seconds) if seconds else 0
-        self.owner.save_preferences(preferences)
+        self.owner.save_preferences(preferences, preserve_draft=True)
 
     def choose_chats(self, event=None):
         if not self.owner.available():

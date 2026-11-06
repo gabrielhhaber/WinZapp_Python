@@ -112,3 +112,10 @@ def test_classification_is_injected_without_a_gui_or_database(tmp_path):
     result = scan([Root("root", str(tmp_path))],
                   classify=lambda e: replace(e, reason="received", media_id="known"))
     assert result.entries[0].reason == "received"
+
+
+def test_an_unavailable_optional_owner_does_not_erase_other_measured_categories(tmp_path):
+    put(tmp_path, "a", 12)
+    result = scan([Root("known", str(tmp_path)),
+                   Root("unavailable", "", "models", error="owner_unavailable")])
+    assert result.total_bytes == 12 and result.issues == {"owner_unavailable": 1}
