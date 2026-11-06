@@ -270,8 +270,12 @@ class ComposerMixin:
 
         if not url or url == self._link_preview_dismissed_url:
             return
-        if self._pending_link_preview is not None and self._link_preview_source_url == url:
-            return  # already resolved for this exact URL
+        if self._link_preview_source_url == url:
+            # Already asked for this exact URL: resolved, still loading, or
+            # failed. Typing on around the link must not fetch it again, or
+            # every pause would repeat "Loading link preview..." and the
+            # failure reason. Changing or removing the URL clears this.
+            return
 
         self._link_preview_fetch_token += 1
         token = self._link_preview_fetch_token

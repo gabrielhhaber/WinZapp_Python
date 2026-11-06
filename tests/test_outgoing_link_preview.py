@@ -716,3 +716,31 @@ class TestComposerSpeaks:
         stub._link_preview_fetch_token = 5
         stub._on_link_preview_fetched(1, "https://example.com", None, {"reason": "network"})
         assert stub.main_window.spoken == []
+
+    def test_typing_on_after_a_failure_does_not_repeat_the_speech(self, monkeypatch):
+        stub = _Stub(text="look https://example.com")
+        _run_fetch_synchronously(monkeypatch)
+        calls = []
+
+        def _fail(url, report=None, **kw):
+            calls.append(url)
+            report("network", 0)
+
+        patch_conversations_global(monkeypatch, "fetch_link_preview", _fail)
+        _run_debounced_check(monkeypatch, stub)
+        stub.message_field.SetValue("look https://example.com and more words")
+        _run_debounced_check(monkeypatch, stub)
+
+        assert calls == ["https://example.com"]
+        assert stub.main_window.spoken == ["link_preview_loading", "link_preview_failed"]
+
+    def test_a_new_url_is_announced_again(self, monkeypatch):
+        stub = _Stub(text="https://example.com")
+        _run_fetch_synchronously(monkeypatch)
+        patch_conversations_global(monkeypatch, "fetch_link_preview", lambda url, **kw: {
+            "title": "t", "description": "", "canonicalUrl": url})
+        _run_debounced_check(monkeypatch, stub)
+        stub.message_field.SetValue("https://other.example.com")
+        _run_debounced_check(monkeypatch, stub)
+
+        assert stub.main_window.spoken == ["link_preview_loading", "link_preview_added"] * 2
