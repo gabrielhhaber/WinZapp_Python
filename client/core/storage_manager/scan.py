@@ -46,11 +46,16 @@ def scan(roots, *, cancel=lambda: False, progress=None, max_entries=100_000,
                 continue
             root_info = os.lstat(base)
         except FileNotFoundError:
+            if root.required:
+                result.issue("missing")
             continue  # An optional cache not created yet is not missing data.
         except OSError:
             result.issue("unreadable")
             continue
         pending = [(base, root_info)]
+        if root.file_only and not stat.S_ISREG(root_info.st_mode):
+            result.issue("unsupported")
+            continue
         while pending:
             if cancel():
                 result.cancelled = True

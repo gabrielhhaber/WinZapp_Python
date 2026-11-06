@@ -9,7 +9,7 @@ from core.storage_manager.types import Entry, Root
 
 def entry(**changes):
     value = Entry(Root("cache", "/owned", "compile_cache", managed=True),
-                  "a", 100, 1000, (1, 2, 100, 3, 4), "compile_cache")
+                  "a", 100, 1000, (1, 2, 100, 3, 4), "compile_cache", reason="reproducible")
     return replace(value, **changes)
 
 
@@ -48,7 +48,8 @@ def test_busy_file_and_external_component_are_not_eligible():
 
 
 def test_received_media_requires_explicit_known_reference():
-    media = entry(category="media", media_id="x", reason="received")
+    media = entry(category="media", media_id="x", reason="received",
+                  root=Root("media", "/owned", "media", managed=True))
     assert eligibility(media, Preferences()) == "local_copy"
     assert eligibility(replace(media, media_id=""), Preferences()) == "protected"
     assert eligibility(replace(media, reason="pending"), Preferences()) == "pending"

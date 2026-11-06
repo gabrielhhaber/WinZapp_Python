@@ -3,12 +3,13 @@ from __future__ import annotations
 
 from dataclasses import replace
 import os
+import re
 
 from .types import Root, canonical, inside
 
 
 def build_roots(*, program, resources, data, account, include_other=False,
-                external_models=(), compile_cache_owned=True):
+                external_models=(), compile_cache_owned=True, other_accounts=None):
     """Pure layout description. More-specific roots take precedence in scan().
 
     Other accounts are aggregated without reading the registry or publishing
@@ -16,14 +17,19 @@ def build_roots(*, program, resources, data, account, include_other=False,
     """
     shared = os.path.join(data, "global")
     accounts = os.path.join(data, "accounts")
-    roots = [Root("program", program, "program", "installation", exclude=(data,)),
-             Root("resources", resources, "program", "installation", exclude=(data,)),
+    roots = [Root("program", program, "program", "installation", exclude=(data,), required=True),
+             Root("resources", resources, "program", "installation", exclude=(data,), required=True),
              Root("global", shared, "other", "shared"),
-             Root("account", account, "other", "account", managed=True)]
+             Root("account", account, "other", "account", managed=True, required=True)]
     # The accounts container is a completeness scope, never an authorization
     # to act in sibling accounts. Only the current account has managed roots.
     if include_other:
-        roots.append(Root("other_accounts", accounts, "other", "other_accounts"))
+        if other_accounts is None:
+            roots.append(Root("other_accounts", accounts, "other", "other_accounts"))
+        else:
+            for index, path in enumerate(other_accounts):
+                if canonical(os.path.dirname(path)) == canonical(accounts) and canonical(path) != canonical(account):
+                    roots.append(Root("other_account_" + str(index), path, "other", "other_accounts", required=True))
     for name, category in (("media", "media"), ("voice_messages", "voice"),
                            ("logs", "logs"), ("storage_quarantine", "quarantine")):
         roots.append(Root("account_" + name, os.path.join(account, name), category,
@@ -37,11 +43,11 @@ def build_roots(*, program, resources, data, account, include_other=False,
                           category, "shared", managed=category == "compile_cache" and compile_cache_owned))
     for index, path in enumerate(external_models):
         if path and not inside(path, data) and not inside(path, program) and not inside(path, resources):
-            roots.append(Root("external_model_" + str(index), path, "models", "external"))
+            roots.append(Root("external_model_" + str(index), path, "models", "external", file_only=True))
     # Parent data metadata (including legacy leftovers) is counted separately.
     # An unselected sibling account is excluded rather than silently scanned.
     roots.append(Root("data", data, "other", "installation",
-                      exclude=() if include_other or canonical(account) == canonical(data) else (accounts,)))
+                      exclude=() if canonical(account) == canonical(data) else (accounts,)))
     # A configured external model can overlap another external model root.
     # scan() partitions it and counts a shared inode once.
     return roots
@@ -58,7 +64,14 @@ def classify(entry):
     if entry.category in ("sessions", "database", "program", "models", "backups"):
         return replace(entry, reason="critical")
     if entry.category == "compile_cache" and entry.root.managed:
-        return replace(entry, reason="reproducible")
+        # Node v22's version tag and CRC32 filename layout, not a generic
+        # "everything under a folder called cache" deletion entitlement.
+        # https://github.com/nodejs/node/blob/v22.22.2/src/compile_cache.cc
+        parts = entry.relative.replace("\\", "/").split("/")
+        if (len(parts) == 2 and re.fullmatch(r"v\d+\.\d+\.\d+-[a-z0-9]+-[0-9a-f]{8}(?:-\d+)?", parts[0])
+                and re.fullmatch(r"[0-9a-f]{8}", parts[1])):
+            return replace(entry, reason="reproducible")
+        return replace(entry, reason="protected")
     return entry
 
 
@@ -72,14 +85,41 @@ def current_roots(main_window, preferences):
     external = []
     app = getattr(main_window, "_app_settings", None)
     if preferences.include_external_models and app is not None:
-        for key in ("transcription_models_dir", "transcription_cuda_extra_dir",
-                    "transcription_whisper_cpp_extra_dir"):
-            value = app.get(key)
-            if isinstance(value, str) and value:
-                external.append(value)
+        from .model_roots import external_model_files
+        external = external_model_files(app)
     cache = os.environ.get("NODE_COMPILE_CACHE")
     owned = not cache or canonical(cache) == canonical(os.path.join(shared, "node-compile-cache"))
-    return build_roots(program=app_paths._outer_exe_dir(), resources=app_paths.resource_path(),
+    roots = build_roots(program=app_paths._outer_exe_dir(), resources=app_paths.resource_path(),
                        data=data, account=account,
                        include_other=preferences.include_other_accounts,
+                       other_accounts=preferences.other_accounts,
                        external_models=external, compile_cache_owned=owned)
+    # Ask the bridge's owner for its locations, never for its secret/session.
+    from core import neonize_bridge_process as bridge_paths
+    bridge = bridge_paths.bridge_dir()
+    roots.extend([Root("bridge_program", bridge, "program", "installation"),
+                  Root("bridge_data", bridge_paths.data_dir(bridge), "sessions", "shared"),
+                  Root("bridge_run", bridge_paths.run_dir(bridge), "sessions", "shared")])
+    roots.append(Root("bridge_log", os.path.join(bridge_paths.run_dir(bridge), "bridge.log"),
+                      "logs", "shared", file_only=True))
+    return roots
+
+
+def capture_other_accounts():
+    import app_paths
+    from .types import unsafe
+    folder = app_paths.accounts_root()
+    from .scan import _safe_ancestors
+    if not _safe_ancestors(folder):
+        raise OSError("unsafe account container")
+    try:
+        with os.scandir(folder) as children:
+            result = []
+            for child in children:
+                if child.is_dir(follow_symlinks=False) and not unsafe(child.stat(follow_symlinks=False)):
+                    result.append(child.path)
+                    if len(result) > 100:
+                        raise ValueError("too many account folders")
+            return result
+    except FileNotFoundError:
+        return []

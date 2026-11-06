@@ -50,6 +50,8 @@ class Root:
     # cleanup of a directory supplied by the user or a shared external model.
     managed: bool = False
     exclude: tuple[str, ...] = ()
+    file_only: bool = False
+    required: bool = False
 
 
 @dataclass(frozen=True)
@@ -63,10 +65,12 @@ class Entry:
     reason: str = "protected"
     media_id: str = ""
     chat_key: str = ""
+    display_name: str = ""
+    media_type: str = ""
 
     @property
     def path(self):
-        return os.path.join(self.root.path, self.relative)
+        return self.root.path if self.relative == "." else os.path.join(self.root.path, self.relative)
 
     @property
     def key(self):

@@ -1159,6 +1159,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         self._media_cleanup_btn.Bind(wx.EVT_BUTTON, self._on_media_cleanup)
         storage_sizer.Add(self._media_cleanup_btn, 0, wx.ALL, 8)
+        self._storage_manager_btn = wx.Button(self._storage_page, label=i18n.t("storage_manager_title"))
+        self._storage_manager_btn.Bind(wx.EVT_BUTTON, self._on_storage_manager)
+        storage_sizer.Add(self._storage_manager_btn, 0, wx.ALL, 8)
 
         # The restore point of the WhatsApp login profile has its own window
         # (built further down, where its options are).
@@ -3370,6 +3373,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         self._sync_fixed_port_field()
         event.Skip()
 
+    def _on_storage_manager(self, event):
+        from main_window.storage_management import open_manager
+        requested = open_manager(self, self.main_window)
+        if requested == "backups":
+            self._backup_dialog.open()
+        elif requested == "models":
+            self._notebook.SetSelection(self._notebook.FindPage(self._transcription_holder))
+
     def _on_media_cleanup(self, event):
         """Open the media cleanup window over Settings."""
         from ui.dialogs.media_cleanup_dialog import MediaCleanupDialog
@@ -4743,6 +4754,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "storage"):
             self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
             self._media_cleanup_btn.SetLabel(i18n.t("cleanup_open_button"))
+            self._storage_manager_btn.SetLabel(i18n.t("storage_manager_title"))
         if ready(self, "chats"):
             self._focus_box.SetLabel(i18n.t("ui_focus_label"))
             self._focus_message_field_rb.SetLabel(i18n.t("ui_focus_message_field"))
