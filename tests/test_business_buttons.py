@@ -56,6 +56,20 @@ class TestReadingTheButtons:
             native("cta_catalog", display_text="Catalog"), native("quick_reply", display_text="Yes", id="y")]}}
         assert [(b["index"], b["source"]) for b in business_buttons(msg)] == [(1, "native")]
 
+    def test_carousel_buttons_name_their_card_and_keep_original_positions(self):
+        actions = []
+        for card_index in range(10):
+            for action in range(2):
+                actions.append({**native("quick_reply", display_text="Select", id=f"{card_index}-{action}"),
+                                "cardIndex": card_index,
+                                "cardTitle": f"Trip {card_index + 1}"})
+        found = business_buttons({"interactivePayload": {"buttons": actions}})
+        assert len(found) == 20
+        assert found[0] == {"kind": "reply", "source": "native", "index": 0,
+                            "label": "1. Trip 1: Select", "value": "0-0"}
+        assert found[-1] == {"kind": "reply", "source": "native", "index": 19,
+                             "label": "10. Trip 10: Select", "value": "9-1"}
+
     def test_the_rows_of_a_list_are_numbered_across_its_sections(self):
         msg = {"list": {"buttonText": "Menu", "sections": [
             {"rows": [{"title": "Outage", "rowId": "r1"}, {"title": " ", "rowId": "skipped"}]},
@@ -85,7 +99,7 @@ class TestReadingTheButtons:
 
     def test_a_long_label_is_cut_and_the_number_of_buttons_is_limited(self):
         msg = {"dynamicReplyButtons": [
-            {"buttonId": str(i), "buttonText": {"displayText": "x" * 200}} for i in range(30)]}
+            {"buttonId": str(i), "buttonText": {"displayText": "x" * 200}} for i in range(40)]}
         found = business_buttons(msg)
         assert len(found) == bb.MAX_BUTTONS and len(found[0]["label"]) == bb.LABEL_LIMIT
 

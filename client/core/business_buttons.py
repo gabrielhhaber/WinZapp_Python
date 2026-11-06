@@ -28,7 +28,7 @@ from urllib.parse import quote
 
 from core.api_client import api_post
 
-MAX_BUTTONS = 12
+MAX_BUTTONS = 32
 LABEL_LIMIT = 80
 SOURCES = ("dynamic", "native", "template", "list")
 REPLY, URL, COPY, CALL = "reply", "url", "copy", "call"
@@ -82,6 +82,10 @@ def _native(wpp_msg):
         if not isinstance(params, dict) or params.get("disabled") is True:
             continue
         name, label = raw.get("name"), params.get("display_text")
+        card_index = raw.get("cardIndex")
+        if isinstance(card_index, int) and card_index >= 0 and isinstance(label, str):
+            card_title = _text(raw.get("cardTitle"))[:32]
+            label = f"{card_index + 1}. {card_title}: {label}" if card_title else f"{card_index + 1}. {label}"
         if name == "quick_reply":
             button = _button(REPLY, "native", index, label, params.get("id"))
         elif name == "cta_url":

@@ -96,8 +96,14 @@ def button_fields(message) -> dict:
     if _has(message, "interactiveMessage"):
         i = message.interactiveMessage
         parts = [i.header.title, i.body.text, i.footer.text]
-        for card in i.carouselMessage.cards:
+        card_buttons = []
+        for card_index, card in enumerate(i.carouselMessage.cards):
             parts.extend((card.header.title, card.body.text, card.footer.text))
+            card_buttons.extend(
+                {"name": b.name, "buttonParamsJson": b.buttonParamsJSON,
+                 "cardIndex": card_index,
+                 "cardTitle": card.header.title or card.body.text}
+                for b in card.nativeFlowMessage.buttons)
         fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
         if _has(i, "nativeFlowMessage"):
             buttons = i.nativeFlowMessage.buttons
@@ -107,6 +113,8 @@ def button_fields(message) -> dict:
             flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
             if flow:        # the client tells the order notice from the rest by this
                 fields["nativeFlowName"] = flow
+        if card_buttons:
+            fields.setdefault("interactivePayload", {"buttons": []})["buttons"].extend(card_buttons)
         return fields
     if _has(message, "buttonsResponseMessage"):
         b = message.buttonsResponseMessage

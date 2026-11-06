@@ -111,6 +111,33 @@ def test_carousel_without_native_buttons_keeps_its_card_text():
     assert shown == {"type": "interactive", "body": "Ticket\nDeparture at noon"}
 
 
+def test_carousel_keeps_card_buttons_and_reply_positions():
+    msg = Message()
+    first = msg.interactiveMessage.carouselMessage.cards.add()
+    first.header.title = "Outbound"
+    first.body.text = "Trip one"
+    link = first.nativeFlowMessage.buttons.add()
+    link.name, link.buttonParamsJSON = "cta_url", '{"display_text":"Details","url":"https://example.test/1"}'
+    reply = first.nativeFlowMessage.buttons.add()
+    reply.name, reply.buttonParamsJSON = "quick_reply", '{"display_text":"Choose","id":"trip-1"}'
+    second = msg.interactiveMessage.carouselMessage.cards.add()
+    second.header.title = "Return"
+    second.body.text = "Trip two"
+    reply = second.nativeFlowMessage.buttons.add()
+    reply.name, reply.buttonParamsJSON = "quick_reply", '{"display_text":"Choose","id":"trip-2"}'
+
+    fields = buttons.button_fields(msg)
+    assert fields["body"] == "Outbound\nTrip one\nReturn\nTrip two"
+    actions = fields["interactivePayload"]["buttons"]
+    assert [(b["name"], b["cardIndex"], b["cardTitle"]) for b in actions] == [
+        ("cta_url", 0, "Outbound"), ("quick_reply", 0, "Outbound"),
+        ("quick_reply", 1, "Return")]
+    assert buttons.reply_plan(fields, "native", 1) == {
+        "kind": "flow", "id": "trip-1", "text": "Choose"}
+    assert buttons.reply_plan(fields, "native", 2) == {
+        "kind": "flow", "id": "trip-2", "text": "Choose"}
+
+
 def test_reply_messages_keep_the_selected_text():
     msg = Message()
     msg.buttonsResponseMessage.selectedDisplayText = "Tomorrow"
