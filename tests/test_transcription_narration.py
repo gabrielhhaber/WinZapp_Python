@@ -351,6 +351,7 @@ _CLAIMS_A_CHOICE = {
     "ro": ("ales", "alege", "aleg", "selectat", "prefer"),
     "tr-TR": ("seç", "tercih"),
     "ar": ("اخترت", "اختيار", "اختر", "حددت"),
+    "it": ("scelt", "scegli", "selezionat"),
 }
 
 
@@ -368,6 +369,7 @@ _TEXT_WORDS = {
     "tr-TR": ("metin", "metn"),
     # "النصي" (textual) names the feature, so only the noun forms are listed.
     "ar": ("نصًا", "نصوص", "نصه"),
+    "it": ("testo",),
 }
 
 
