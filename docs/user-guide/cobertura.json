@@ -7,6 +7,7 @@
     "dd8ab910ecac": "ClickBus: nomes comerciais verificados aparecem na lista de conversas, os textos",
     "731f5832a171": "Configurações > Armazenamento ganha o Gerenciador de armazenamento: tamanhos lóg",
     "d51f668b2b6a": "Chamadas do Neonize: preservado o atendimento ou encerramento recebido antes do ",
+    "a7aa0e97d026": "Chamadas do Neonize: o registro agora anota os endpoints do relay e as respostas",
     "cbb8db690a38": "Neonize: a primeira mensagem para um número de telefone novo digitado numa nova ",
     "23f98047e3c4": "Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápid",
     "fba3903f0939": "Mensagens de voz: as gravações em estéreo (AAC) agora saem por padrão a 128 kbps",
