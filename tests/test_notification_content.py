@@ -111,6 +111,10 @@ class TestFormatNotificationBodyCoversRealContentTypes:
         msg = _msg("templateMessage")
         assert format_notification_body(msg, None, _FakeI18n()) == "[template]"
 
+    def test_template_message_with_content(self):
+        msg = _msg("templateMessage", {"templateMessage": {"hydratedContentText": "Your ticket"}})
+        assert format_notification_body(msg, None, _FakeI18n()) == "Your ticket"
+
     def test_interactive_message_shows_body_text(self):
         msg = _msg("interactiveMessage", {"interactiveMessage": {"body": {"text": "Olá!"}}})
         assert format_notification_body(msg, None, _FakeI18n()) == "Olá!"

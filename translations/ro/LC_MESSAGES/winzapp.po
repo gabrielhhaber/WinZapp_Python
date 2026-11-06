@@ -7560,14 +7560,14 @@ msgstr ""
 " fi deconectată. Vă rugăm să încercați să asociați din nou."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_message"
 msgid "interactive message"
 msgstr "mesaj interactiv"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_reply"
 msgid "interactive reply"
@@ -7753,7 +7753,7 @@ msgid "Links in this message"
 msgstr "Link-uri în acest mesaj"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "list_reply"
 msgid "list selection"

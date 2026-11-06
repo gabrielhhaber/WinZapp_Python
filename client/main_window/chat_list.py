@@ -1267,11 +1267,23 @@ class ChatListMixin:
             name = poll.get("name") or ""
             content = i18n.t("notif_poll").format(name=name) if name else i18n.t("notif_poll_no_name")
         elif msg_type == "buttonsMessage":
-            content = i18n.t("notif_button")
+            buttons = msg_obj.get("buttonsMessage") or {}
+            content = (buttons.get("contentText") or buttons.get("text") or "").strip() or i18n.t("notif_button")
         elif msg_type == "listMessage":
-            content = i18n.t("notif_list")
+            listing = msg_obj.get("listMessage") or {}
+            content = (listing.get("title") or listing.get("description") or "").strip() or i18n.t("notif_list")
         elif msg_type == "templateMessage":
-            content = i18n.t("notif_template")
+            template = msg_obj.get("templateMessage") or {}
+            content = (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
+        elif msg_type == "interactiveMessage":
+            interactive = msg_obj.get("interactiveMessage") or {}
+            content = ((interactive.get("body") or {}).get("text") or "").strip() or i18n.t("interactive_message")
+        elif msg_type == "buttonsResponseMessage":
+            response = msg_obj.get("buttonsResponseMessage") or {}
+            content = (response.get("selectedDisplayText") or "").strip() or i18n.t("interactive_reply")
+        elif msg_type == "listResponseMessage":
+            response = msg_obj.get("listResponseMessage") or {}
+            content = (response.get("title") or "").strip() or i18n.t("list_reply")
         elif msg_type == "protocolMessage":
             protocol = msg_obj.get("protocolMessage") or {}
             p_type = protocol.get("type")

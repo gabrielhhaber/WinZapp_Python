@@ -14,7 +14,8 @@ from unittest.mock import Mock
 import pytest
 
 from core import business_buttons as bb
-from core.business_buttons import ButtonReplyError, business_buttons, reply_to_button
+from core.business_buttons import (ButtonReplyError, business_button_label,
+                                   business_buttons, reply_to_button)
 from core.websocket_client import WebSocketClient
 from ui.conversation_panel.business_buttons import BusinessButtonsMixin
 
@@ -56,6 +57,60 @@ class TestReadingTheButtons:
             native("cta_catalog", display_text="Catalog"), native("quick_reply", display_text="Yes", id="y")]}}
         assert [(b["index"], b["source"]) for b in business_buttons(msg)] == [(1, "native")]
 
+    def test_carousel_buttons_name_their_card_and_keep_original_positions(self):
+        actions = []
+        trip = "17:30 → 12:30\nR$ 529,97\nCama\n" + ("Descrição da viagem " * 8).strip()
+        for card_index in range(10):
+            for action in range(2):
+                actions.append({**native("quick_reply", display_text="Select", id=f"{card_index}-{action}"),
+                                "cardIndex": card_index,
+                                "cardTitle": f"Trip {card_index + 1}",
+                                "cardText": f"Trip {card_index + 1}\n{trip}"})
+        found = business_buttons({"interactivePayload": {"buttons": actions}})
+        assert len(found) == 20
+        assert found[0] == {"kind": "reply", "source": "native", "index": 0,
+                            "label": f"Trip 1\n{trip}", "value": "0-0"}
+        assert found[-1] == {"kind": "reply", "source": "native", "index": 19,
+                             "label": f"Trip 10\n{trip}", "value": "9-1"}
+        assert len(found[0]["label"]) > bb.LABEL_LIMIT
+
+    def test_old_carousel_metadata_uses_full_card_title_without_number_or_action(self):
+        action = {**native("quick_reply", display_text="Selecionar", id="trip-1"),
+                  "cardIndex": 7, "cardTitle": "17:30 → 12:30\nR$ 529,97\nCama\nEXP"}
+        assert business_buttons({"interactivePayload": {"buttons": [action]}}) == [
+            {"kind": "reply", "source": "native", "index": 0,
+             "label": "17:30 → 12:30\nR$ 529,97\nCama\nEXP", "value": "trip-1"}]
+
+    def test_cached_carousel_button_loses_old_number_and_select_text(self):
+        msg = {"messageType": "interactiveMessage"}
+        button = {"kind": "reply", "source": "native", "index": 2,
+                  "label": "3. 15:45 → 14:30\nR$ 330,97\nSemi-lei: Selecionar", "value": "trip-3"}
+        assert business_button_label(msg, button) == "15:45 → 14:30\nR$ 330,97\nSemi-lei"
+        assert button["index"] == 2 and button["value"] == "trip-3"
+
+    def test_cached_carousel_button_recovers_text_cut_at_32_characters(self):
+        trip = "15:45 → 14:30\nR$ 330,97\nSemi-leito"
+        more = "Veja mais viagens deste dia ou filtre por horário, assento, viação e rodoviárias."
+        first = {"kind": "reply", "source": "native", "index": 0,
+                 "label": f"1. {trip[:32]}: Selecionar", "value": "trip-1"}
+        second = {"kind": "reply", "source": "native", "index": 1,
+                  "label": f"2. {more[:32]}: Selecionar", "value": "more"}
+        msg = {"messageType": "interactiveMessage",
+               "message": {"interactiveMessage": {"body": {"text": f"Menu\n{trip}\n{more}"}}},
+               "businessButtons": [first, second]}
+        assert business_button_label(msg, first) == trip
+        assert business_button_label(msg, second) == more
+        assert second["index"] == 1 and second["value"] == "more"
+
+    def test_other_buttons_and_new_carousel_labels_are_unchanged(self):
+        label = "3. Trip: Select"
+        button = {"kind": "reply", "source": "native", "label": label}
+        assert business_button_label({"messageType": "conversation"}, button) == label
+        assert business_button_label({"messageType": "interactiveMessage"},
+                                     {"kind": "reply", "source": "native",
+                                      "label": "15:45 → 14:30\nR$ 330,97\nSemi-lei"}) == \
+            "15:45 → 14:30\nR$ 330,97\nSemi-lei"
+
     def test_the_rows_of_a_list_are_numbered_across_its_sections(self):
         msg = {"list": {"buttonText": "Menu", "sections": [
             {"rows": [{"title": "Outage", "rowId": "r1"}, {"title": " ", "rowId": "skipped"}]},
@@ -85,7 +140,7 @@ class TestReadingTheButtons:
 
     def test_a_long_label_is_cut_and_the_number_of_buttons_is_limited(self):
         msg = {"dynamicReplyButtons": [
-            {"buttonId": str(i), "buttonText": {"displayText": "x" * 200}} for i in range(30)]}
+            {"buttonId": str(i), "buttonText": {"displayText": "x" * 200}} for i in range(40)]}
         found = business_buttons(msg)
         assert len(found) == bb.MAX_BUTTONS and len(found[0]["label"]) == bb.LABEL_LIMIT
 
@@ -105,6 +160,33 @@ def test_the_buttons_are_kept_with_the_message_and_only_when_there_are_some():
         {"kind": "reply", "source": "dynamic", "index": 0, "label": "Home", "value": "2"}]
     del raw["dynamicReplyButtons"]
     assert "businessButtons" not in _Normalizer()._normalize_wpp_message(raw)
+
+
+def test_legacy_unknown_button_message_recovers_its_text_and_options():
+    raw = {"id": "false_777@lid_3EB0CCCCCCCCCCCCCCCC", "type": "unknown",
+           "t": 1790000200, "from": "777@lid", "to": "999@lid",
+           "fromMe": False, "body": "Choose a trip",
+           "dynamicReplyButtons": [{"buttonId": "1", "buttonText": {"displayText": "Tomorrow"}}]}
+    message = _Normalizer()._normalize_wpp_message(raw)
+    assert message["messageType"] == "buttonsMessage"
+    assert message["message"]["buttonsMessage"] == {
+        "contentText": "Choose a trip", "buttons": raw["dynamicReplyButtons"]}
+    assert message["businessButtons"][0]["label"] == "Tomorrow"
+
+
+def test_interactive_card_and_button_reply_have_displayable_content():
+    base = {"id": "false_777@lid_3EB0DDDDDDDDDDDDDDDD", "t": 1790000200,
+            "from": "777@lid", "to": "999@lid", "fromMe": False}
+    card = _Normalizer()._normalize_wpp_message({
+        **base, "type": "interactive", "body": "Ticket\nDeparture at noon"})
+    assert card["messageType"] == "interactiveMessage"
+    assert card["message"]["interactiveMessage"]["body"]["text"] == "Ticket\nDeparture at noon"
+
+    reply = _Normalizer()._normalize_wpp_message({
+        **base, "type": "buttons_response", "body": "Tomorrow",
+        "selectedButtonID": "tomorrow"})
+    assert reply["messageType"] == "buttonsResponseMessage"
+    assert reply["message"]["buttonsResponseMessage"]["selectedDisplayText"] == "Tomorrow"
 
 
 class TestTheRequest:

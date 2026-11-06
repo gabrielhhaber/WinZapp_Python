@@ -10,7 +10,8 @@ import threading
 
 import wx
 
-from core.business_buttons import CALL, COPY, REPLY, URL, ButtonReplyError, reply_to_button
+from core.business_buttons import (CALL, COPY, REPLY, URL, ButtonReplyError,
+                                   business_button_label, reply_to_button)
 from core.group_invitation import connection_identity
 
 
@@ -23,7 +24,8 @@ class BusinessButtonsMixin:
         self._buttons_container.DestroyChildren()
         sizer = wx.WrapSizer(wx.HORIZONTAL)
         for button in buttons:
-            control = wx.Button(self._buttons_container, label=button["label"].replace("&", "&&"))
+            label = business_button_label(msg, button).replace("&", "&&")
+            control = wx.Button(self._buttons_container, label=label)
             control.Bind(wx.EVT_BUTTON, lambda e, b=button, m=msg: self._on_business_button(b, m))
             sizer.Add(control, 0, wx.ALL, 4)
         self._buttons_container.SetSizer(sizer, True)
