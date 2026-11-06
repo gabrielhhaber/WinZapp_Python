@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- ClickBus: los nombres comerciales verificados aparecen en la lista de conversaciones, los textos de viajes y los botones interactivos se muestran completos y la opción elegida en un carrusel se envía con el índice de la tarjeta.
+
 - Ajustes > Almacenamiento incorpora el Gestor de almacenamiento: tamaños lógicos y cobertura, asociación multimedia, protecciones, vista previa de eliminación de copias locales o retención recuperable, restauración y reglas, avisos y objetivos opcionales. La eliminación automática se limita a caché de compilación regenerable verificada; la programación comienza desactivada. Puede solicitar cada archivo limpiado sin quitar los bloqueos de descarga automática.
 
 - Llamadas de Neonize: se conserva la respuesta o finalización recibida antes de registrar la llamada localmente; los errores de grupo distinguen el límite de solicitudes de WhatsApp y los límites de miembros admitidos.

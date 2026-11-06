@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "dd8ab910ecac": "ClickBus: nomes comerciais verificados aparecem na lista de conversas, os textos",
     "731f5832a171": "Configurações > Armazenamento ganha o Gerenciador de armazenamento: tamanhos lóg",
     "d51f668b2b6a": "Chamadas do Neonize: preservado o atendimento ou encerramento recebido antes do ",
     "cbb8db690a38": "Neonize: a primeira mensagem para um número de telefone novo digitado numa nova ",
