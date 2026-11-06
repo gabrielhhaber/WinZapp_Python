@@ -1066,6 +1066,9 @@ DEFAULT_SETTINGS = {
         # "sound" (core.notification_manager.NOTIFICATION_CONTENT_LEVELS,
         # issue #258). "full" is what WinZapp always did.
         "notification_content": "full",
+        # Which name a group toast leads with: "participant" or "group"
+        # (core.notification_manager.GROUP_TOAST_ORDERS).
+        "group_toast_order": "participant",
         # Audio files pasted into the message field (Ctrl+V): "audio" or
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",

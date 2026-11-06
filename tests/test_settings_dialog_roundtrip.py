@@ -77,6 +77,11 @@ SCENARIOS = {
         set=lambda d, t: d._notification_content_radio.SetSelection(2),
         shows=lambda d, t: d._notification_content_radio.GetSelection() == 2,
     ),
+    "group_toast_order": dict(
+        saves={("general", "group_toast_order"): "group"},
+        set=lambda d, t: d._group_toast_order_radio.SetSelection(1),
+        shows=lambda d, t: d._group_toast_order_radio.GetSelection() == 1,
+    ),
     "spell_check_mode": dict(
         saves={("general", "spell_check_mode"): "off"},
         set=lambda d, t: d._spell_check_radio.SetSelection(SPELL_CHECK_MODES.index("off")),

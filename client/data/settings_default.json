@@ -13,6 +13,7 @@
         "language": "",
         "notifications_enabled": true,
         "notification_content": "full",
+        "group_toast_order": "participant",
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": true,
         "updates_enabled": true,
