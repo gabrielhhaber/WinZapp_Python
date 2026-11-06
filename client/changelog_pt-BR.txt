@@ -281,6 +281,8 @@ NOVIDADES
 
 - Árabe: o guia de uso (Ajuda > Guia de uso) agora está completo em árabe.
 
+- Neonize: uma conversa com uma empresa verificada agora mostra o nome verificado da empresa quando ela não está na sua agenda.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.

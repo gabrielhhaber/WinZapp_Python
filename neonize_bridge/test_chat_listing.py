@@ -119,6 +119,19 @@ def test_verified_business_name_reaches_an_anonymous_lid_chat():
     assert shown["contact"] == {"verifiedName": "Atendimento Cirurgico"}
 
 
+def test_verified_name_found_under_the_twin_form_of_a_number():
+    chat = row("123@lid")
+    _, _, verified = cl.listing_identities(
+        [chat], [], lambda lid: "5511999990000@s.whatsapp.net",
+        {"551199990000@s.whatsapp.net": "Clinica"})
+    assert verified == {"123@lid": "Clinica"}
+
+
+def test_empty_jid_never_collects_a_business_name():
+    entries = [N(JID="", Info=N(BusinessName="Orfa"))]
+    assert cl.verified_business_names(entries, lambda jid: jid) == {}
+
+
 def test_saved_name_still_wins_over_verified_business_name():
     chat = row("123@lid")
     names, nicknames, verified = cl.listing_identities(

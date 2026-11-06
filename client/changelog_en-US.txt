@@ -281,6 +281,8 @@ WHAT'S NEW
 
 - Arabic: the usage guide (Help > Usage guide) is now complete in Arabic.
 
+- Neonize: a chat with a verified business now shows the business's verified name when it is not in your address book.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

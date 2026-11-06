@@ -46,8 +46,9 @@ def verified_business_names(entries, jid_text):
     result = {}
     for entry in entries or ():
         name = (entry.Info.BusinessName or "").strip()
-        if name:
-            result[jid_text(entry.JID)] = name
+        jid = jid_text(entry.JID)
+        if jid and name:
+            result[jid] = name
     return result
 
 
@@ -71,7 +72,9 @@ def listing_identities(chat_rows, contact_rows, phone_of, business_names=None):
             names[wpp] = name
         if nickname:
             nicknames[wpp] = nickname
-        business = business_names.get(phone) or business_names.get(jid)
+        business = next((business_names[form] for form in
+                         [jid] + ([phone] + contacts.equivalent_jids(phone) if phone else [])
+                         if form in business_names), "")
         if business:
             verified[wpp] = business
     return names, nicknames, verified

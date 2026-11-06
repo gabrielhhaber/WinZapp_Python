@@ -1968,7 +1968,7 @@ def create_app(folder, fixed=""):
                     business_names = chat_listing.verified_business_names(
                         s.client.contact.get_all_contacts(), jid_text)
                 except Exception:
-                    log.warning("list-chats: verified names unavailable")
+                    log.warning("list-chats: verified names unavailable", exc_info=True)
             names, nicknames, verified = chat_listing.listing_identities(
                 chat_rows, s.db.contacts(), s._phone_of_lid, business_names)
             return [chat_listing.chat_to_wpp(
