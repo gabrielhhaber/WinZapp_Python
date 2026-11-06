@@ -7432,8 +7432,8 @@ msgstr "Nome do grupo primeiro"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "group_toast_order_label"
-msgid "Order of group messages in toast notifications:"
-msgstr "Ordem das mensagens de grupo nas notificações toast:"
+msgid "Order of &group messages in toast notifications:"
+msgstr "Ordem das mensagens de &grupo nas notificações toast:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_toast_order_participant"

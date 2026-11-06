@@ -6974,7 +6974,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "group_toast_order_label"
-msgid "Order of group messages in toast notifications:"
+msgid "Order of &group messages in toast notifications:"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
