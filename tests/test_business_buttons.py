@@ -14,7 +14,8 @@ from unittest.mock import Mock
 import pytest
 
 from core import business_buttons as bb
-from core.business_buttons import ButtonReplyError, business_buttons, reply_to_button
+from core.business_buttons import (ButtonReplyError, business_button_label,
+                                   business_buttons, reply_to_button)
 from core.websocket_client import WebSocketClient
 from ui.conversation_panel.business_buttons import BusinessButtonsMixin
 
@@ -79,6 +80,22 @@ class TestReadingTheButtons:
         assert business_buttons({"interactivePayload": {"buttons": [action]}}) == [
             {"kind": "reply", "source": "native", "index": 0,
              "label": "17:30 → 12:30\nR$ 529,97\nCama\nEXP", "value": "trip-1"}]
+
+    def test_cached_carousel_button_loses_old_number_and_select_text(self):
+        msg = {"messageType": "interactiveMessage"}
+        button = {"kind": "reply", "source": "native", "index": 2,
+                  "label": "3. 15:45 → 14:30\nR$ 330,97\nSemi-lei: Selecionar", "value": "trip-3"}
+        assert business_button_label(msg, button) == "15:45 → 14:30\nR$ 330,97\nSemi-lei"
+        assert button["index"] == 2 and button["value"] == "trip-3"
+
+    def test_other_buttons_and_new_carousel_labels_are_unchanged(self):
+        label = "3. Trip: Select"
+        button = {"kind": "reply", "source": "native", "label": label}
+        assert business_button_label({"messageType": "conversation"}, button) == label
+        assert business_button_label({"messageType": "interactiveMessage"},
+                                     {"kind": "reply", "source": "native",
+                                      "label": "15:45 → 14:30\nR$ 330,97\nSemi-lei"}) == \
+            "15:45 → 14:30\nR$ 330,97\nSemi-lei"
 
     def test_the_rows_of_a_list_are_numbered_across_its_sections(self):
         msg = {"list": {"buttonText": "Menu", "sections": [

@@ -34,6 +34,7 @@ SOURCES = ("dynamic", "native", "template", "list")
 REPLY, URL, COPY, CALL = "reply", "url", "copy", "call"
 
 _MESSAGE = re.compile(r"(?:true|false)_\d+@(?:c\.us|lid)_[A-Za-z0-9]{8,64}")
+_OLD_CARD_LABEL = re.compile(r"^[1-9]\d*\. (.+): [^:\n]+$", re.DOTALL)
 
 
 class ButtonReplyError(Exception):
@@ -144,6 +145,21 @@ def business_buttons(wpp_msg):
     if not isinstance(wpp_msg, dict):
         return []
     return (_dynamic(wpp_msg) + _native(wpp_msg) + _template(wpp_msg) + _list(wpp_msg))[:MAX_BUTTONS]
+
+
+def business_button_label(msg, button):
+    """Name for a stored button, including carousels cached by the old build.
+
+    Their labels were saved as "3. <card text>: Select" and a restart does not
+    re-normalize that local message. The original card text is still inside
+    the label, so remove only the framing this client added.
+    """
+    label = button.get("label") or ""
+    if (msg.get("messageType") != "interactiveMessage"
+            or button.get("kind") != REPLY or button.get("source") != "native"):
+        return label
+    old = _OLD_CARD_LABEL.fullmatch(label)
+    return old.group(1) if old else label
 
 
 def reply_to_button(connection, message_id, button):
