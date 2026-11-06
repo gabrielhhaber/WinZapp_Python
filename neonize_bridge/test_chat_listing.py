@@ -86,10 +86,11 @@ def test_listing_identities_follow_an_lid_to_its_number():
         asked.append(lid)
         return "5511999990000@s.whatsapp.net" if lid == "99@lid" else ""
 
-    names, nicknames = cl.listing_identities(chat_rows, contact_rows, phone_of)
+    names, nicknames, verified = cl.listing_identities(chat_rows, contact_rows, phone_of)
 
     assert names == {"99@lid": "Ana Silva", "5511999990000@c.us": "Ana Silva"}
     assert nicknames == {"99@lid": "aninha", "77@lid": "so apelido"}
+    assert verified == {}
     assert asked == ["99@lid", "77@lid"]          # only an LID needs the number looked up
 
 
@@ -97,9 +98,51 @@ def test_a_chat_under_a_number_finds_the_name_saved_under_its_twin_form():
     contact_rows = [{"jid": "5511999990000@s.whatsapp.net", "name": "Bia Lima", "pushname": ""}]
     chat_rows = [row("551199990000@s.whatsapp.net")]
 
-    names, _ = cl.listing_identities(chat_rows, contact_rows, lambda lid: "")
+    names, _, _ = cl.listing_identities(chat_rows, contact_rows, lambda lid: "")
 
     assert names == {"551199990000@c.us": "Bia Lima"}
+
+
+def test_verified_business_name_reaches_an_anonymous_lid_chat():
+    entries = [N(JID="5511999990000@s.whatsapp.net",
+                 Info=N(BusinessName="Atendimento Cirurgico")),
+               N(JID="5521@s.whatsapp.net", Info=N(BusinessName="  "))]
+    business = cl.verified_business_names(entries, lambda jid: jid)
+    assert business == {"5511999990000@s.whatsapp.net": "Atendimento Cirurgico"}
+
+    chat = row("123@lid")
+    names, nicknames, verified = cl.listing_identities(
+        [chat], [], lambda lid: "5511999990000@s.whatsapp.net", business)
+    shown = cl.chat_to_wpp(chat, names, wpp_id, nicknames=nicknames,
+                           verified_names=verified)
+    assert shown["name"] is None
+    assert shown["contact"] == {"verifiedName": "Atendimento Cirurgico"}
+
+
+def test_verified_name_found_under_the_twin_form_of_a_number():
+    chat = row("123@lid")
+    _, _, verified = cl.listing_identities(
+        [chat], [], lambda lid: "5511999990000@s.whatsapp.net",
+        {"551199990000@s.whatsapp.net": "Clinica"})
+    assert verified == {"123@lid": "Clinica"}
+
+
+def test_empty_jid_never_collects_a_business_name():
+    entries = [N(JID="", Info=N(BusinessName="Orfa"))]
+    assert cl.verified_business_names(entries, lambda jid: jid) == {}
+
+
+def test_saved_name_still_wins_over_verified_business_name():
+    chat = row("123@lid")
+    names, nicknames, verified = cl.listing_identities(
+        [chat], [{"jid": "5511999990000@s.whatsapp.net", "name": "Minha clinica",
+                  "pushname": ""}],
+        lambda lid: "5511999990000@s.whatsapp.net",
+        {"5511999990000@s.whatsapp.net": "Atendimento Cirurgico"})
+    shown = cl.chat_to_wpp(chat, names, wpp_id, nicknames=nicknames,
+                           verified_names=verified)
+    assert shown["name"] == "Minha clinica"
+    assert shown["contact"] == {"verifiedName": "Atendimento Cirurgico"}
 
 
 def test_select_archived_broadcast_and_muted():
