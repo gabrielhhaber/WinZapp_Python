@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- ClickBus: numele comerciale verificate apar în lista de conversații, textele călătoriilor și butoanele interactive sunt afișate complet, iar opțiunea aleasă într-un carusel este trimisă cu indexul cardului.
+
 - Setări > Stocare primește Managerul de stocare: dimensiuni logice și acoperire, asociere media, protecții, previzualizarea eliminării copiilor locale sau a păstrării recuperabile, restaurare și reguli, notificări și ținte opționale. Eliminarea automată se limitează la cache-ul de compilare verificat și regenerabil; programarea este inițial dezactivată. Fișierele curățate pot fi solicitate separat fără anularea blocărilor descărcării automate.
 
 - Apeluri Neonize: este păstrată acceptarea sau încheierea primită înainte de înregistrarea locală a apelului; erorile apelurilor de grup disting limitarea solicitărilor WhatsApp și limitele de membri acceptate.
