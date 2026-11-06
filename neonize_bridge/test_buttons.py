@@ -137,9 +137,11 @@ def test_carousel_keeps_card_buttons_and_reply_positions():
         "Outbound\nTrip one\nSleeper seat", "Outbound\nTrip one\nSleeper seat",
         "Return\nTrip two"]
     assert buttons.reply_plan(fields, "native", 1) == {
-        "kind": "flow", "id": "trip-1", "text": "Choose"}
+        "kind": "carousel", "id": "trip-1", "text": "Choose",
+        "index": 1, "cardIndex": 0}
     assert buttons.reply_plan(fields, "native", 2) == {
-        "kind": "flow", "id": "trip-2", "text": "Choose"}
+        "kind": "carousel", "id": "trip-2", "text": "Choose",
+        "index": 0, "cardIndex": 1}
 
 
 def test_reply_messages_keep_the_selected_text():
@@ -229,16 +231,25 @@ def test_reply_protos():
     assert (flow.name, flow.version) == ("quick_reply", 3)
     assert json.loads(flow.paramsJSON) == {"display_text": "Olá", "id": "x"}
     assert r.interactiveResponseMessage.contextInfo.stanzaID == "ID1"
+    r = buttons.build_reply(
+        {"kind": "carousel", "id": "trip-2", "text": "Select",
+         "index": 0, "cardIndex": 1}, ctx)
+    card = r.templateButtonReplyMessage
+    assert (card.selectedID, card.selectedDisplayText,
+            card.selectedIndex, card.selectedCarouselCardIndex) == (
+                "trip-2", "Select", 0, 1)
+    assert card.contextInfo.stanzaID == "ID1"
 
 
 def test_valid_request():
     serial = "false_5511999990000@c.us_ABCDEF1234"
     assert ci.valid_request(serial, {"source": "list", "index": 0}) == ("list", 0)
+    assert ci.valid_request(serial, {"source": "native", "index": 31}) == ("native", 31)
     bad = [
         ("false_1203@g.us_ABCDEF1234", {"source": "list", "index": 0}),      # group
         (serial, {"source": "x", "index": 0}),
         (serial, {"source": "list", "index": -1}),
-        (serial, {"source": "list", "index": 12}),
+        (serial, {"source": "list", "index": 32}),
         (serial, {"source": "list", "index": True}),
         (serial, {"source": "list", "index": "1"}),
         (serial, None),
@@ -252,11 +263,13 @@ def test_valid_request():
 SERIAL = "false_5511999990000@c.us_ABCDEF1234"
 
 
-def ask(tmp_path, body, connected=True, store=True, fails=False, serial=SERIAL):
+def ask(tmp_path, body, connected=True, store=True, fails=False, serial=SERIAL,
+        message_fields=None):
     db = Store(str(tmp_path / "x.db"))
     if store:
         original = {"id": {"id": "ABCDEF1234", "_serialized": SERIAL}, "t": 5,
-                    "fromMe": False, "type": "chat", **stored(with_buttons())}
+                    "fromMe": False, "type": "chat",
+                    **(message_fields if message_fields is not None else stored(with_buttons()))}
         db.message("5511999990000@s.whatsapp.net", original)
     sent = []
 
@@ -288,6 +301,23 @@ def test_route_sends_the_reply_once(tmp_path):
     destination, message = sent[0]
     assert destination == "JID:5511999990000@s.whatsapp.net"
     assert message.buttonsResponseMessage.selectedButtonID == "yes"
+
+
+def test_route_sends_a_carousel_card_selection(tmp_path):
+    msg = Message()
+    for card_index in range(2):
+        card = msg.interactiveMessage.carouselMessage.cards.add()
+        button = card.nativeFlowMessage.buttons.add()
+        button.name = "quick_reply"
+        button.buttonParamsJSON = json.dumps(
+            {"display_text": "Select", "id": f"trip-{card_index}"})
+    status, body, sent = ask(
+        tmp_path, {"source": "native", "index": 1},
+        message_fields=buttons.button_fields(msg))
+    assert status == 200 and len(sent) == 1
+    reply = sent[0][1].templateButtonReplyMessage
+    assert (reply.selectedID, reply.selectedIndex,
+            reply.selectedCarouselCardIndex) == ("trip-1", 0, 1)
 
 
 def test_route_answers_with_the_code_the_client_reads(tmp_path):

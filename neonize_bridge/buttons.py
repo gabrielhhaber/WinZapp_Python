@@ -16,10 +16,11 @@ Replies that exist: reply button ("dynamic", ButtonsResponseMessage), list row
 ("list", ListResponseMessage), template button ("template",
 TemplateButtonReplyMessage) and the quick reply of an interactive message
 ("native", InteractiveResponseMessage with a `quick_reply`
-nativeFlowResponseMessage, the format TeleZapp sends). The other native buttons
+nativeFlowResponseMessage). A carousel card uses TemplateButtonReplyMessage
+with its card index. The other native buttons
 (link, copy, call) are opened by the client itself and never come here.
 
-Nothing here was tested against a real account.
+The carousel reply format has unit tests but awaits confirmation on a real account.
 """
 import json
 
@@ -171,7 +172,8 @@ def reply_plan(wpp, source, index):
         return {"kind": "list", "id": row["rowId"], "title": row["title"],
                 "description": row.get("description") or ""}
     if source == "native":
-        button = _item((wpp.get("interactivePayload") or {}).get("buttons"), index)
+        native_buttons = (wpp.get("interactivePayload") or {}).get("buttons")
+        button = _item(native_buttons, index)
         if button.get("name") != "quick_reply":
             raise ButtonRefused("button_not_found", 404)
         try:
@@ -180,6 +182,14 @@ def reply_plan(wpp, source, index):
             params = None
         if not isinstance(params, dict) or not params.get("display_text"):
             raise ButtonRefused("button_not_found", 404)
+        card_index = button.get("cardIndex")
+        if isinstance(card_index, int) and not isinstance(card_index, bool) and card_index >= 0:
+            card_button_index = sum(
+                1 for earlier in native_buttons[:index]
+                if isinstance(earlier, dict) and earlier.get("cardIndex") == card_index)
+            return {"kind": "carousel", "id": str(params.get("id") or ""),
+                    "text": str(params["display_text"]), "index": card_button_index,
+                    "cardIndex": card_index}
         return {"kind": "flow", "id": str(params.get("id") or ""),
                 "text": str(params["display_text"])}
     raise ButtonRefused("invalid_request", 400)
@@ -198,6 +208,11 @@ def build_reply(plan, ctx):
         return Message(templateButtonReplyMessage=TemplateButtonReplyMessage(
             selectedID=plan["id"], selectedDisplayText=plan["text"],
             selectedIndex=plan["index"], contextInfo=ctx))
+    if plan["kind"] == "carousel":
+        return Message(templateButtonReplyMessage=TemplateButtonReplyMessage(
+            selectedID=plan["id"], selectedDisplayText=plan["text"],
+            selectedIndex=plan["index"], selectedCarouselCardIndex=plan["cardIndex"],
+            contextInfo=ctx))
     if plan["kind"] == "flow":
         reply = InteractiveResponseMessage(contextInfo=ctx)
         reply.body.text = plan["text"]
