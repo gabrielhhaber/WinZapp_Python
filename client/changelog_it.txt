@@ -308,6 +308,8 @@ WHAT'S NEW
 
 - Neonize: citando un messaggio vocale, ora la sua durata (ad esempio 0:15) compare nel fumetto della citazione sul WhatsApp dell'altra persona, come con WPPConnect (problema #707).
 
+- Stati: posizione, sondaggio, elenco di contatti e altri tipi di stati dei contatti che comparivano come "Messaggio incompatibile" ora sono mostrati con la loro etichetta.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

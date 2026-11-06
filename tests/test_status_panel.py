@@ -47,6 +47,9 @@ class _FakeI18n:
         "contact_message": "Contato: {name}",
         "unknown_contact": "Contato sem nome",
         "notif_unsupported": "Mensagem não suportada",
+        "notif_location": "Localização",
+        "notif_poll": "Enquete: {name}",
+        "notif_poll_no_name": "Enquete",
         "status_recent_updates": "Recentes",
         "status_viewed_updates": "Vistos",
         "my_status": "Meu status",
@@ -1020,6 +1023,18 @@ class TestStatusContentLabelHandlesEveryMessageType:
     def test_document_status_without_filename(self):
         label = _status_content_label("documentMessage", {"documentMessage": {}}, self.i18n)
         assert label == "Documento"
+
+    def test_location_status_is_not_incompatible(self):
+        label = _status_content_label("locationMessage", {"locationMessage": {}}, self.i18n)
+        assert label == "Localização"
+
+    def test_poll_status_is_not_incompatible(self):
+        msg_obj = {"pollCreationMessage": {"name": "Pizza?"}}
+        label = _status_content_label("pollCreationMessage", msg_obj, self.i18n)
+        assert label == "Enquete: Pizza?"
+
+    def test_truly_unknown_status_stays_incompatible(self):
+        assert _status_content_label("weirdMessage", {}, self.i18n) == "Mensagem não suportada"
 
     def test_sticker_status_is_translated(self):
         label = _status_content_label("stickerMessage", {}, self.i18n)

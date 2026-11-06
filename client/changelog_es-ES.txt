@@ -308,6 +308,8 @@ NOVEDADES
 
 - Neonize: al citar un mensaje de voz, ahora se muestra su duración (por ejemplo 0:15) en la burbuja de cita del WhatsApp de la otra persona, como en WPPConnect (incidencia #707).
 
+- Estados: ubicación, encuesta, lista de contactos y otros tipos de estados de contactos que aparecían como "Mensaje incompatible" ahora se muestran con su etiqueta.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

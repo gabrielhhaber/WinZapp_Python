@@ -310,6 +310,8 @@ V3.0.0.0
 
 - Neonize: عند الاقتباس من رسالة صوتية تظهر الآن مدتها (مثل 0:15) في فقاعة الاقتباس في واتساب لدى الشخص الآخر، كما في WPPConnect (المشكلة #707).
 
+- الحالات: الموقع والاستطلاع وقائمة جهات الاتصال وأنواع أخرى من حالات جهات الاتصال التي كانت تظهر كـ«رسالة غير متوافقة» تظهر الآن بتسميتها الصحيحة.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
