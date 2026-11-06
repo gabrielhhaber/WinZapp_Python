@@ -14290,8 +14290,9 @@ msgid ""
 "unlocked and completely matched media without a protection can be removed."
 msgstr ""
 "Aby trwale usunąć multimedia z przechowalni, włącz powiązanie multimediów i "
-"wybierz czaty w Preferencjach, zapisz i spróbuj ponownie. Można usuwać tylko"
-" multimedia obecnie widoczne, odblokowane, w pełni powiązane i bez ochrony."
+"wybierz czaty w Preferencjach, a następnie zapisz preferencje i spróbuj "
+"ponownie. Można usuwać tylko w pełni powiązane i nieobjęte ochroną "
+"multimedia z obecnie widocznych czatów bez zabezpieczenia dostępu."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_reason_critical"
