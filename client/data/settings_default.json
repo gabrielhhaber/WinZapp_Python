@@ -107,6 +107,7 @@
         "forwarded_prefix_enabled": false,
         "delete_media_from_phone": true,
         "forward_voice_as_voice": false,
+        "forward_keep_link_preview": true,
         "conversation_video_media_viewer_dialog": true,
         "status_media_viewer_dialog": true,
         "voice_message_mode": "voice_message",

@@ -6525,6 +6525,12 @@ msgstr "Zachowaj podpis multimediów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
+msgctxt "forward_keep_link_preview"
+msgid "Keep link preview"
+msgstr "Zachowaj podgląd linku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "forward_message"
 msgid "Forward"
@@ -18265,6 +18271,12 @@ msgstr "Wskaźnik nieprzeczytanych &lub ostatnia wiadomość"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_forward_keep_link_preview_label"
+msgid "Keep link pre&views by default when forwarding messages"
+msgstr "Domyśln&ie zachowuj podglądy linków przy przekazywaniu wiadomości"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forward_voice_as_voice"
 msgid ""
 "Forward &voice messages as voice messages instead of audio (they are still "
@@ -18400,7 +18412,7 @@ msgstr "P&rzy otwieraniu czatu pokaż maksymalnie tyle wiadomości:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_page_jump_size_label"
 msgid "Messages &to skip when pressing Page Up / Page Down:"
-msgstr "L&iczba wiadomości pomijanych klawiszami Page Up / Page Down:"
+msgstr "Licz&ba wiadomości pomijanych klawiszami Page Up / Page Down:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ui_page_step_box_label"

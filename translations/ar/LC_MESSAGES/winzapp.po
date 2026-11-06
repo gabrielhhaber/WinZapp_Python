@@ -6398,6 +6398,12 @@ msgstr "الإبقاء على توضيح الوسائط"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
+msgctxt "forward_keep_link_preview"
+msgid "Keep link preview"
+msgstr "الإبقاء على معاينة الرابط"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "forward_message"
 msgid "Forward"
@@ -17682,6 +17688,12 @@ msgstr "&حقل الرسالة (الافتراضي)"
 msgctxt "ui_focus_unread_or_last"
 msgid "Unread &message indicator or last message"
 msgstr "مؤشر الرسالة غير المقروءة أو آخر رسال&ة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_forward_keep_link_preview_label"
+msgid "Keep link pre&views by default when forwarding messages"
+msgstr "&الإبقاء على معاينات الروابط افتراضيًا عند إعادة توجيه الرسائل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

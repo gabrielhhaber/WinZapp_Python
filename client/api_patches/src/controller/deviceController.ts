@@ -2142,6 +2142,7 @@ export async function forwardMessages(req: Request, res: Response) {
               isGroup: { type: "boolean" },
               messageId: { type: "string" },
               keepVoice: { type: "boolean" },
+              linkPreview: { type: "object" },
             }
           },
           examples: {
@@ -2157,7 +2158,7 @@ export async function forwardMessages(req: Request, res: Response) {
       }
      }
    */
-  const { phone, messageId, keepVoice } = req.body;
+  const { phone, messageId, keepVoice, linkPreview } = req.body;
 
   try {
     // wa-js's forwardMessages is unusable on builds whose forward module has
@@ -2171,6 +2172,12 @@ export async function forwardMessages(req: Request, res: Response) {
         // WinZapp patch: a forwarded voice message stays a voice message
         // (util/forwardRuntime.ts). Only an explicit true asks for it.
         keepVoice: keepVoice === true,
+        // WinZapp patch: the card of a forwarded link message is kept
+        // (util/forwardRuntime.ts). Only an object asks for it.
+        linkPreview:
+          linkPreview && typeof linkPreview === 'object' && !Array.isArray(linkPreview)
+            ? linkPreview
+            : undefined,
       })
     );
     if (!outcome || outcome.ok !== true) {

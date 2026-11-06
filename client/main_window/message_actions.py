@@ -16,6 +16,7 @@ from core.message_edit import (
     connection_refused,
     response_not_sent,
 )
+from core.link_preview import message_link_preview
 from core.utils import is_voice_message
 from app_paths import data_path
 
@@ -338,7 +339,7 @@ class MessageActionsMixin:
         return is_voice_message(source_msg)
 
     def forward_message(self, source_jid: str, msg_key: dict, target_jid: str,
-                        source_msg: dict = None) -> bool:
+                        source_msg: dict = None, keep_link_preview: bool = False) -> bool:
         """Forward a message of any type (text, media, document, …) via
         POST /api/session/forward-messages, which calls WhatsApp's own
         forwardMessages (client/api_patches/src/util/forwardRuntime.ts) — the real WhatsApp forward, so it carries over media/captions/etc.
@@ -366,6 +367,11 @@ class MessageActionsMixin:
         }
         if self._keep_voice_on_forward(source_msg):
             payload["keepVoice"] = True
+        # Only when the box was ticked AND the message really carries a
+        # preview, so a plain forward is byte-for-byte what it always was.
+        link_preview = message_link_preview(source_msg) if keep_link_preview else {}
+        if link_preview:
+            payload["linkPreview"] = link_preview
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"

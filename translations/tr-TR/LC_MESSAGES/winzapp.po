@@ -6476,6 +6476,12 @@ msgstr "Medya açıklamasını koru"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
+msgctxt "forward_keep_link_preview"
+msgid "Keep link preview"
+msgstr "Bağlantı önizlemesini koru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "forward_message"
 msgid "Forward"
@@ -17904,6 +17910,12 @@ msgstr "&Okunmamış mesaj göstergesi veya son mesaj"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_forward_keep_link_preview_label"
+msgid "Keep link pre&views by default when forwarding messages"
+msgstr "Mesajları iletirken bağlantı önizlemelerini varsayılan olarak kor&u"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forward_voice_as_voice"
 msgid ""
 "Forward &voice messages as voice messages instead of audio (they are still "
@@ -18020,7 +18032,7 @@ msgid ""
 "List box (&full messages, screen reader does not announce position or item "
 "count)"
 msgstr ""
-"Liste k&utusu (tam mesajlar, ekran okuyucu konum veya öğe sayısı duyurmaz)"
+"Liste kutusu (tam mesajlar, ekran okuyu&cu konum veya öğe sayısı duyurmaz)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

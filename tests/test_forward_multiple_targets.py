@@ -29,13 +29,16 @@ class _FakeMainWindow:
         self.calls = []
         self.resend_calls = []
         self.source_msgs = []
+        self.keep_link_previews = []
 
-    def forward_message(self, source_jid, msg_key, target_jid, source_msg=None):
+    def forward_message(self, source_jid, msg_key, target_jid, source_msg=None,
+                        keep_link_preview=False):
         # source_msg carries the full source message so its media duration can
         # be grafted onto the forwarded copy (issue #43) — mirrored here so the
         # fake keeps matching the real signature.
         self.calls.append((source_jid, msg_key, target_jid))
         self.source_msgs.append(source_msg)
+        self.keep_link_previews.append(keep_link_preview)
         return target_jid not in self._failing_jids
 
     def resend_media_message_with_caption(self, msg, target_jid):
@@ -148,3 +151,20 @@ class TestSourceMessageReachesTheForwardCall:
             "forward_message was called without the source message, so the "
             "forwarded copy has no duration to recover"
         )
+
+
+class TestKeepLinkPreviewReachesTheForwardCall:
+    def test_the_box_is_passed_along_to_every_target(self):
+        stub = _Stub()
+        targets = [("a@s.whatsapp.net", "Alice"), ("b@s.whatsapp.net", "Bob")]
+
+        stub._forward_message_to_targets(MSG, targets, keep_link_preview=True)
+
+        assert stub.main_window.keep_link_previews == [True, True]
+
+    def test_it_defaults_to_off(self):
+        stub = _Stub()
+
+        stub._forward_message_to_targets(MSG, [("a@s.whatsapp.net", "Alice")])
+
+        assert stub.main_window.keep_link_previews == [False]
