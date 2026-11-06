@@ -1,4 +1,4 @@
-From 4604a5d65bf6f8e28fab91d9c4d6c92543749cfa Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Fri, 6 Nov 2026 14:53:07 +0000
 Subject: [PATCH] Log the relay endpoints, their is_fna flags and the relay's
@@ -188,6 +188,3 @@ index 0000000..42e2d73
 +		t.Fatal("lost relay not reported")
 +	}
 +}
--- 
-2.43.0
-
