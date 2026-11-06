@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) bilgisayar sesinin kaydı artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor.
+
 - Neonize: Gizlilik'te okundu bilgisi kapalıyken, bire bir sohbetlerde gönderdiğiniz mesajların "okundu" durumunu artık görmezsiniz; başkalarına da okundu bilgisi göndermezsiniz (WPPConnect'teki gibi). Ayar artık iki yönde de geçerlidir.
 
 - ClickBus: doğrulanmış işletme adları sohbet listesinde görünür, yolculuk metinleri ve etkileşimli düğmeler tam gösterilir ve karusel içinde seçilen seçenek kart dizini ile gönderilir.

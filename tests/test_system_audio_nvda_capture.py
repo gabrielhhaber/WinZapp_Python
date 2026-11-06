@@ -28,8 +28,8 @@ class NvdaTimelineTests(unittest.TestCase):
         self.assertEqual(mix.late_packets, [0, 0, 1])
         self.assertEqual(mix.late_frames, [0, 0, 40])
         mix.render_until(10_000_000)
-        with self.assertRaises(ValueError):
-            mix.add(2, packet(200_000))
+        mix.add(2, packet(200_000))  # far beyond the reserve: dropped, not fatal
+        self.assertEqual(mix.late_packets, [0, 0, 2])
 
     def test_three_sources_clip_and_ring_wrap_without_replaying_samples(self):
         mix = TimelineMixer(8000, 2, 0, capacity_seconds=.02, source_count=3)

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Recording the computer's audio no longer stops with "audio device problem" when WinZapp stalls for a second or two (a busy or slow computer): the audio from that moment is skipped, the recording goes on, and the rest stays in sync.
+
 - Neonize: with read receipts turned off in Privacy, you no longer see the "read" status of the messages you send in one-to-one chats, just as you no longer send read receipts to others (as with WPPConnect). The setting now works in both directions.
 
 - ClickBus: verified business names now show in the conversation list, trip texts and interactive buttons are shown in full, and the option chosen in a carousel is sent with the card index.

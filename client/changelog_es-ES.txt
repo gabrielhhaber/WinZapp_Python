@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- La grabación del audio del ordenador ya no se interrumpe con "problema con el dispositivo de audio" cuando WinZapp se bloquea uno o dos segundos (ordenador lento u ocupado): se omite el audio de ese instante, la grabación continúa y el resto sigue sincronizado.
+
 - Neonize: con las confirmaciones de lectura desactivadas en Privacidad, ya no ves el estado "leído" de los mensajes que envías en chats individuales, igual que ya no envías confirmaciones de lectura a los demás (como en WPPConnect). El ajuste ahora funciona en ambos sentidos.
 
 - ClickBus: los nombres comerciales verificados aparecen en la lista de conversaciones, los textos de viajes y los botones interactivos se muestran completos y la opción elegida en un carrusel se envía con el índice de la tarjeta.

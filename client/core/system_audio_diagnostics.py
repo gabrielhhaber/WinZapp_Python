@@ -16,7 +16,6 @@ import time
 _REASONS = {
     'WASAPI capture data discontinuity': 'capture_discontinuity',
     'WASAPI packet timestamp is unreliable': 'unreliable_timestamp',
-    'Capture packet arrived after its playback deadline': 'late_packet',
     'Timed out opening both recording devices': 'startup_timeout',
     'Timed out changing capture pause state': 'pause_timeout',
     'Capture worker did not stop before the deadline': 'stop_timeout',
