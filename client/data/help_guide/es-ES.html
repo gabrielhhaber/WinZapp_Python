@@ -220,9 +220,10 @@
     <a href="#privacidade" class="nav-link">15. Configuración de WhatsApp</a>
     <a href="#copias-registros" class="nav-link">16. Copias de seguridad y registros</a>
     <a href="#mac" class="nav-link">17. WinZapp en el Mac</a>
-    <a href="#atalhos" class="nav-link">18. Atajos de teclado</a>
-    <a href="#solucao-problemas" class="nav-link">19. Solución de problemas</a>
-    <a href="#registro" class="nav-link">20. Registro de la guía</a>
+    <a href="#armazenamento" class="nav-link">18. Gestor de almacenamiento</a>
+    <a href="#atalhos" class="nav-link">19. Atajos de teclado</a>
+    <a href="#solucao-problemas" class="nav-link">20. Solución de problemas</a>
+    <a href="#registro" class="nav-link">21. Registro de la guía</a>
   </div>
 </nav>
 
@@ -252,6 +253,7 @@
         <li><a href="#privacidade">Configuración de WhatsApp</a></li>
         <li><a href="#copias-registros">Copias de seguridad y registros</a></li>
         <li><a href="#mac">WinZapp en el Mac</a></li>
+        <li><a href="#armazenamento">Gestor de almacenamiento</a></li>
         <li><a href="#atalhos">Atajos de teclado</a></li>
         <li><a href="#solucao-problemas">Solución de problemas</a></li>
         <li><a href="#registro">Registro de la guía</a></li>
@@ -721,6 +723,8 @@
 <p>Con el motor Neonize, una llamada que haces y nadie contesta termina sola al cabo de un minuto, como en WhatsApp Web: el tono de llamada se detiene y el resultado es "sin respuesta".</p>
 <p>Si se corta internet en mitad de una llamada, el botón de colgar sigue funcionando: WinZapp termina la llamada en tu ordenador aunque no haya conexión, sin mostrar ningún error.</p>
 
+<p>Para iniciar una llamada de grupo con Neonize se necesitan entre dos y 31 miembros más. Si WhatsApp limita temporalmente las solicitudes de llamadas, WinZapp indica ese motivo; inténtalo de nuevo más tarde.</p>
+
 <h3>Durante la llamada</h3>
 <table class="field-table">
   <tr><th>Atajo</th><th>Acción</th></tr>
@@ -754,6 +758,7 @@
 <p>Al reinstalar WPPConnect, WinZapp conserva un catálogo de WhatsApp Web más reciente y compatible y busca uno actualizado. Sin internet se conserva un catálogo utilizable, pero no se puede confirmar su vigencia. Si la llamada sigue sin iniciarse, restablezca internet y reinicie WinZapp. Una incompatibilidad confirmada de VoIP que no permite reintentos se comunica sin repetir la inicialización.</p>
 <p>Mientras el chat de un grupo está abierto, WinZapp comprueba si hay una llamada en curso aproximadamente cada diez segundos. El botón para unirse aparece solo cuando hay una llamada disponible y desaparece al terminar. Al unirse a una videollamada, la cámara comienza apagada. Unirse a una llamada existente no aplica el límite de 32 miembros para iniciar una nueva llamada de grupo. Cuando hay una llamada disponible, el botón "Unirse a la llamada de voz en curso" o, en una videollamada, "Unirse a la videollamada en curso (cámara apagada)" sustituye a los botones para iniciar llamadas de voz y vídeo. En Llamadas (Alt+6), el filtro En curso muestra llamadas a las que puedes unirte, incluidas las de varias personas fuera de chats de grupo; también aparecen primero en Todas. Selecciona una llamada y pulsa Intro o usa el mismo botón para unirte. Si ya estás en esa llamada, el botón se llama "Volver a la llamada" y trae al frente la ventana de tu llamada actual. La lista se actualiza aproximadamente cada diez segundos mientras Llamadas está abierto e incluye solo llamadas que WhatsApp ofrece a tu cuenta.</p>
 <p>Usa el botón "Participantes de la llamada" en la ventana de llamada o en una llamada en curso seleccionada en Llamadas para ver los nombres de las personas conectadas. La lista se actualiza cada diez segundos; "Actualizar" solicita los datos actuales y "Cerrar" o Esc cierra la ventana. Se excluyen las personas invitadas o desconectadas. Consultar la lista no te une a la llamada ni la finaliza.</p>
+
 
   </section>
 
@@ -950,8 +955,48 @@
 
   </section>
 
+  <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
+    <h2 id="h-armazenamento">💾 18. Gestor de almacenamiento</h2>
+<h3>Resumen de almacenamiento</h3>
+<p>Abra Configuración → Almacenamiento → Gestor de almacenamiento. Use Tab entre controles y Ctrl+Tab entre pestañas. En la lista, las flechas mueven el cursor y Espacio cambia la casilla; mover el cursor no selecciona un archivo para eliminarlo. Cada página contiene hasta 200 elementos. Analizar y actualizar no aplican la limpieza.</p>
+<p>Tamaños lógicos, contados una vez por identidad de archivo. No se miden el espacio asignado ni el espacio libre del disco. Los archivos retenidos siguen ocupando espacio. Esta medición solo cubre esta instalación.</p>
+<h3>Preferencias</h3>
+<p>Todo el trabajo en segundo plano es opcional. Guardar preferencias no aplica una vista previa de archivos. El objetivo es orientativo, no una cuota estricta. No se impone un umbral de espacio libre en disco. La asociación opcional lee los historiales locales de mensajes seleccionados. Los modelos externos y las otras cuentas son solo informativos. Para incluir nuevas carpetas de cuentas, desactive y reactive ese ámbito.</p>
+<p>Si la asociación de toda la cuenta es incompleta, seleccione menos chats locales. La asociación lee el historial local sin contactar con WhatsApp. El contenido enviado, pendiente, fallido, destacado, bloqueado, oculto o no asociado sigue protegido. Los botones de modelos y copias de seguridad abren sus ajustes existentes.</p>
+<p>Asociar multimedia con historiales locales seleccionados → Elegir historiales locales para asociar → Guardar preferencias y borradores de reglas</p>
+<h3>Vista previa de la selección</h3>
+<ol>
+<li>Analizar ahora</li>
+<li>Aplicar filtros</li>
+<li>Seleccionar esta página</li>
+<li>Método de operación</li>
+<li>Vista previa de la selección</li>
+<li>Aplicar vista previa</li>
+</ol>
+<p>Seleccione como máximo 500 archivos aptos por vista previa, o menos si las rutas son muy largas. No se aplicó ninguna parte de esta selección.</p>
+<p>Aquí se protegen los modelos, entornos de ejecución, copias de seguridad, registros, bases de datos y datos de acceso. Use sus ajustes existentes para gestionarlos. Los archivos desconocidos no se consideran innecesarios. Solo los archivos de caché verificados y las copias multimedia recibidas y asociadas pueden entrar en una vista previa.</p>
+<h3>Protecciones</h3>
+<p>La protección prevalece sobre la selección manual y las reglas. La protección compartida abarca las cuentas de esta instalación. Quitar una protección no selecciona archivos. Los elementos ausentes o sin nombre visible conservan una etiqueta numérica privada.</p>
+<p>Proteger archivos seleccionados → Proteger chats seleccionados → Actualizar protecciones</p>
+<h3>Archivos retenidos</h3>
+<p>La retención mueve la copia local sin crear otra y no libera su espacio. Restaurar nunca sobrescribe un archivo actual. La eliminación permanente no se puede deshacer aquí. El archivo multimedia podría no estar disponible en WhatsApp.</p>
+<p>Para eliminar permanentemente archivos multimedia retenidos, active su asociación y seleccione chats en Preferencias, guarde y vuelva a intentarlo. Solo se pueden eliminar archivos actualmente visibles, desbloqueados, completamente asociados y sin protección.</p>
+<p>Actualizar archivos retenidos → Restaurar archivos retenidos seleccionados → Eliminar permanentemente archivos retenidos seleccionados</p>
+<p>Para una foto, vídeo, documento o audio limpiado, seleccione su mensaje y use Descargar. Confirme la solicitud independiente de esa copia. Esto no deshace la limpieza ni garantiza que WhatsApp tenga el archivo. No se quita otro bloqueo de descarga.</p>
+<p>¿Eliminar registros vacíos de operaciones de hace más de dos días? Se conservan los archivos retenidos y los registros activos de recuperación. Las vistas previas caducan al cabo de un día.</p>
+<h3>Reglas</h3>
+<p>La antigüedad y el tamaño son condiciones, no pruebas de inutilidad. La protección prevalece. Una regla de sugerencia o notificación prevalece sobre una automática para el mismo archivo. El modo automático solo se ofrece para caché de compilación regenerable verificada.</p>
+<p>El análisis manual no ejecuta eliminación automática. Solo una regla de caché activada por separado puede eliminar archivos en lotes limitados durante evaluaciones guardadas de inicio o intervalo. Pausar evaluaciones conserva otros borradores sin guardar. El objetivo usa la última medición no cancelada y no es una cuota de disco. Las solicitudes manuales y los envíos siguen disponibles.</p>
+<p>Añadir regla → Activar esta regla al guardar las preferencias → Guardar preferencias y borradores de reglas</p>
+<p>Son borradores. Guarde las preferencias para aplicar cambios en las reglas y el ámbito de asociación.</p>
+<p>Plantilla cargada para revisar. Reglas y programación desactivadas. Guarde las preferencias para aplicar las opciones.</p>
+<p>Días para conservar el historial de resúmenes; 0: desactivado → Actualizar historial de resúmenes → Borrar historial de resúmenes</p>
+<p>¿Restablecer las preferencias de almacenamiento, reglas y protecciones de esta cuenta? Se conservan las protecciones compartidas, archivos retenidos y bloqueos de descarga multimedia. No se limpia ningún archivo.</p>
+
+  </section>
+
   <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
-    <h2 id="h-atalhos">⌨️ 18. Atajos de teclado</h2>
+    <h2 id="h-atalhos">⌨️ 19. Atajos de teclado</h2>
 <div class="callout info">
   <div class="callout-title">ℹ️ Lista generada a partir del código</div>
   Las tablas siguientes se generan automáticamente a partir del catálogo de atajos de WinZapp y muestran las teclas de fábrica. También aparecen en el programa, con F1 o en Ayuda &gt; Atajos de teclado. Cualquier tecla se puede cambiar en la pestaña Atajos de teclado de la configuración.
@@ -1298,7 +1343,7 @@
   </section>
 
   <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
-    <h2 id="h-solucao-problemas">🧰 19. Solución de problemas</h2>
+    <h2 id="h-solucao-problemas">🧰 20. Solución de problemas</h2>
 <table class="field-table">
   <tr><th>Situación</th><th>Qué hacer</th></tr>
   <tr><td>WinZapp te pide emparejar de nuevo</td><td>Empareja con número o código QR. Tus chats solo se borran si conectas un número distinto. Si ocurrió sin motivo, guarda <code>log.log</code> y <code>shutdown_audit.log</code> antes de volver a abrirlo.</td></tr>
@@ -1318,12 +1363,13 @@
   </section>
 
   <section id="registro" class="wiki-section" aria-labelledby="h-registro">
-    <h2 id="h-registro">📝 20. Registro de la guía</h2>
+    <h2 id="h-registro">📝 21. Registro de la guía</h2>
 <p>El árabe ya está disponible en Ajustes > General > Idioma, con textos en árabe en el instalador y desinstalador de Windows.</p>
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Guía: el italiano entra en la lista de idiomas de Configuración.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Ajustes &gt; Almacenamiento incorpora el Gestor de almacenamiento: tamaños lógicos y cobertura, asociación multimedia, protecciones, vista previa de eliminación de copias locales o retención recuperable, restauración y reglas, avisos y objetivos opcionales. La eliminación automática se limita a caché de compilación regenerable verificada; la programación comienza desactivada. Puede solicitar cada archivo limpiado sin quitar los bloqueos de descarga automática.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Guía: un chat nuevo por número se abre con el número que usa WhatsApp.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Guía: canales con categorías y listas del directorio, novedades publicadas y fijadas por administradores y la ventana de administradores del canal.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Guía: ventana Canales (Alt+9), añadir personas a la llamada en curso, mensajes más antiguos pedidos al teléfono con Neonize y la posición del número de mensajes nuevos en la lista de chats.</td></tr>
@@ -1358,6 +1404,7 @@
   <tr><td class="field-name">Aún no publicado</td><td>Canales de grabación de mensajes de voz: Automático (usar los canales del dispositivo), Mono (mezclar izquierda y derecha), Estéreo (si está disponible).</td></tr>
   <tr><td class="field-name">2.1.0.4397</td><td>Pestaña Perfil en la configuración de WhatsApp (nombre visible, Info y foto); Comunidades en la lista de navegación, después de Llamadas.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>Primera versión de la guía: todas las funciones de las versiones 1.1.0.0, 1.1.1.0, 2.0.0.0 y del ciclo 2.1.0.0 hasta esta alpha.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Llamadas de Neonize: se conserva la respuesta o finalización recibida antes de registrar la llamada localmente; los errores de grupo distinguen el límite de solicitudes de WhatsApp y los límites de miembros admitidos.</td></tr>
 </table>
 
   </section>

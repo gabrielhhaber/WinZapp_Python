@@ -220,9 +220,10 @@
     <a href="#privacidade" class="nav-link">15. Ustawienia WhatsApp</a>
     <a href="#copias-registros" class="nav-link">16. Kopie zapasowe i dzienniki</a>
     <a href="#mac" class="nav-link">17. WinZapp na Macu</a>
-    <a href="#atalhos" class="nav-link">18. Skróty klawiszowe</a>
-    <a href="#solucao-problemas" class="nav-link">19. Rozwiązywanie problemów</a>
-    <a href="#registro" class="nav-link">20. Dziennik zmian podręcznika</a>
+    <a href="#armazenamento" class="nav-link">18. Menedżer miejsca na dysku</a>
+    <a href="#atalhos" class="nav-link">19. Skróty klawiszowe</a>
+    <a href="#solucao-problemas" class="nav-link">20. Rozwiązywanie problemów</a>
+    <a href="#registro" class="nav-link">21. Dziennik zmian podręcznika</a>
   </div>
 </nav>
 
@@ -252,6 +253,7 @@
         <li><a href="#privacidade">Ustawienia WhatsApp</a></li>
         <li><a href="#copias-registros">Kopie zapasowe i dzienniki</a></li>
         <li><a href="#mac">WinZapp na Macu</a></li>
+        <li><a href="#armazenamento">Menedżer miejsca na dysku</a></li>
         <li><a href="#atalhos">Skróty klawiszowe</a></li>
         <li><a href="#solucao-problemas">Rozwiązywanie problemów</a></li>
         <li><a href="#registro">Dziennik zmian podręcznika</a></li>
@@ -721,6 +723,8 @@
 <p>Przy silniku Neonize połączenie, które wykonujesz, a nikt nie odbiera, kończy się samo po minucie, tak jak w WhatsApp Web: dzwonienie cichnie, a wynik to „nieodebrane”.</p>
 <p>Jeśli internet zniknie w trakcie rozmowy, przycisk rozłączania nadal działa: WinZapp kończy rozmowę na komputerze nawet bez połączenia i nie pokazuje błędu.</p>
 
+<p>Rozpoczęcie rozmowy grupowej przez Neonize wymaga od dwóch do 31 innych członków. Jeśli WhatsApp tymczasowo ograniczy żądania połączeń, WinZapp poda tę przyczynę; spróbuj ponownie później.</p>
+
 <h3>Podczas połączenia</h3>
 <table class="field-table">
   <tr><th>Skrót</th><th>Akcja</th></tr>
@@ -754,6 +758,7 @@
 <p>Podczas ponownej instalacji WPPConnect WinZapp zachowuje nowszą, zgodną listę dostępnych wersji WhatsApp Web i sprawdza dostępność jej aktualizacji. Bez internetu zachowuje dotychczasową listę, ale nie może potwierdzić jej aktualności. Jeśli połączenie nadal się nie rozpoczyna, przywróć dostęp do internetu i uruchom WinZapp ponownie. Jeśli wykryta niezgodność z mechanizmem połączeń WhatsApp Web nie pozwala na skuteczne ponowienie próby, WinZapp zgłasza ją i przestaje ponawiać inicjalizację.</p>
 <p>Gdy czat grupowy jest otwarty, WinZapp sprawdza trwające połączenie mniej więcej co dziesięć sekund. Przycisk dołączenia pojawia się tylko wtedy, gdy połączenie jest dostępne, i znika po jego zakończeniu. Dołączenie do połączenia wideo rozpoczyna się z wyłączoną kamerą. Dołączenie do istniejącego połączenia nie podlega limitowi 32 członków dotyczącemu rozpoczynania nowego połączenia grupowego. Gdy połączenie jest dostępne, przyciski rozpoczynania połączeń głosowych i wideo zastępuje przycisk "Dołącz do trwającego połączenia głosowego" lub, w przypadku połączenia wideo, "Dołącz do trwającego połączenia wideo (kamera wyłączona)". W sekcji Połączenia (Alt+6) filtr Trwające pokazuje połączenia, do których można dołączyć, w tym połączenia wielu osób poza czatami grupowymi; pojawiają się one również na początku listy Wszystkie. Wybierz połączenie i naciśnij Enter lub użyj tego samego przycisku dołączenia. Jeśli już uczestniczysz w tym połączeniu, przycisk nazywa się "Powrót do połączenia" i przywołuje okno bieżącego połączenia. Lista odświeża się mniej więcej co dziesięć sekund, gdy sekcja Połączenia jest otwarta, i zawiera tylko połączenia udostępnione przez WhatsApp Twojemu kontu.</p>
 <p>Użyj przycisku "Uczestnicy połączenia" w oknie połączenia lub przy zaznaczonym trwającym połączeniu w sekcji Połączenia, aby zobaczyć nazwy połączonych osób. Lista odświeża się co dziesięć sekund; "Odśwież" pobiera bieżące dane, a "Zamknij" lub Esc zamyka okno. Osoby zaproszone lub rozłączone nie są wyświetlane. Przeglądanie listy nie dołącza do połączenia ani go nie kończy.</p>
+
 
   </section>
 
@@ -950,8 +955,48 @@
 
   </section>
 
+  <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
+    <h2 id="h-armazenamento">💾 18. Menedżer miejsca na dysku</h2>
+<h3>Podsumowanie miejsca na dysku</h3>
+<p>Otwórz Ustawienia → Pamięć → Menedżer miejsca na dysku. Tab przenosi między kontrolkami, a Ctrl+Tab między kartami. Na liście strzałki przesuwają kursor, a Spacja przełącza pole wyboru. Przesunięcie kursora nie zaznacza pliku do usunięcia. Strona zawiera najwyżej 200 elementów. Skanowanie i odświeżanie nie stosują planu czyszczenia.</p>
+<p>Rozmiary logiczne są liczone raz dla każdej tożsamości pliku. Zajęte bloki i wolne miejsce na dysku nie są mierzone. Pliki w przechowalni nadal zajmują miejsce. Pomiar obejmuje tylko tę instalację.</p>
+<h3>Preferencje</h3>
+<p>Praca w tle jest opcjonalna. Zapis preferencji nie stosuje podglądu plików. Cel jest orientacyjny, a nie ścisłym limitem. Próg wolnego miejsca na dysku nie jest egzekwowany. Opcjonalne powiązanie odczytuje wybrane lokalne historie wiadomości. Modele zewnętrzne i inne konta służą tylko do informacji. Nowe foldery kont wymagają wyłączenia i ponownego włączenia tego zakresu.</p>
+<p>Jeśli powiązanie całego konta jest niepełne, wybierz mniej lokalnych czatów. Powiązanie odczytuje historię lokalną bez łączenia z WhatsApp. Treści wysłane, oczekujące, z błędem, z gwiazdką, z zabezpieczonym dostępem, ukryte i niepowiązane pozostają chronione. Przyciski modeli i kopii zapasowych otwierają ich istniejące ustawienia.</p>
+<p>Powiąż multimedia z wybranymi historiami lokalnymi → Wybierz lokalne historie do powiązania → Zapisz preferencje i szkice reguł</p>
+<h3>Podgląd zaznaczenia</h3>
+<ol>
+<li>Skanuj teraz</li>
+<li>Zastosuj filtry</li>
+<li>Zaznacz tę stronę</li>
+<li>Sposób operacji</li>
+<li>Podgląd zaznaczenia</li>
+<li>Zastosuj podgląd</li>
+</ol>
+<p>Zaznacz najwyżej 500 odpowiednich plików na podgląd, a mniej przy bardzo długich ścieżkach. Żadna część tego zaznaczenia nie została zastosowana.</p>
+<p>Modele, środowiska wykonawcze, kopie zapasowe, dzienniki, bazy danych i dane logowania są tu chronione. Zarządzaj nimi w ich istniejących ustawieniach. Nieznane pliki nie są uznawane za zbędne. Do podglądu mogą wejść tylko zweryfikowane pliki pamięci podręcznej i powiązane kopie odebranych multimediów.</p>
+<h3>Ochrona</h3>
+<p>Ochrona ma pierwszeństwo przed ręcznym zaznaczeniem i regułami. Wspólna ochrona dotyczy kont w tej instalacji. Usunięcie ochrony nie zaznacza plików. Brakujące elementy lub elementy bez widocznej nazwy zachowują prywatną etykietę numeryczną.</p>
+<p>Chroń zaznaczone pliki → Chroń zaznaczone czaty → Odśwież ochronę</p>
+<h3>Pliki w przechowalni</h3>
+<p>Przechowalnia przenosi lokalną kopię bez tworzenia kolejnej i nie zwalnia jej miejsca. Przywracanie nigdy nie nadpisuje bieżącego pliku. Trwałego usunięcia nie można tu cofnąć. Multimedia mogą być już niedostępne w WhatsApp.</p>
+<p>Aby trwale usunąć multimedia z przechowalni, włącz powiązanie multimediów i wybierz czaty w Preferencjach, a następnie zapisz preferencje i spróbuj ponownie. Można usuwać tylko w pełni powiązane i nieobjęte ochroną multimedia z obecnie widocznych czatów bez zabezpieczenia dostępu.</p>
+<p>Odśwież pliki w przechowalni → Przywróć zaznaczone pliki z przechowalni → Trwale usuń zaznaczone pliki z przechowalni</p>
+<p>Dla wyczyszczonego zdjęcia, filmu, dokumentu lub nagrania zaznacz wiadomość i użyj Pobierz. Potwierdź osobne żądanie tej jednej kopii. To nie cofa czyszczenia ani nie gwarantuje, że WhatsApp ma plik. Żadna inna blokada pobierania nie jest znoszona.</p>
+<p>Usunąć puste zapisy operacji starsze niż dwa dni? Pliki w przechowalni i aktywne zapisy odzyskiwania pozostaną. Podglądy wygasają po jednym dniu.</p>
+<h3>Reguły</h3>
+<p>Wiek i rozmiar to warunki, a nie dowód zbędności. Ochrona ma pierwszeństwo. Reguła propozycji lub powiadomienia przeważa nad automatyczną dla tego samego pliku. Tryb automatyczny jest dostępny tylko dla zweryfikowanej, odtwarzalnej pamięci podręcznej kompilacji.</p>
+<p>Ręczny skan nie uruchamia automatycznego usuwania. Tylko osobno włączona reguła pamięci podręcznej może usuwać ograniczone partie plików przy zapisanej ocenie startowej lub okresowej. Wstrzymanie ocen zachowuje inne niezapisane szkice. Cel używa ostatniego nieanulowanego pomiaru i nie jest limitem dysku. Ręczne żądania i wysyłanie pozostają dostępne.</p>
+<p>Dodaj regułę → Włącz regułę po zapisaniu preferencji → Zapisz preferencje i szkice reguł</p>
+<p>To szkice. Zapisz preferencje, aby zastosować zmiany reguł i zakresu powiązań.</p>
+<p>Wczytano szablon do sprawdzenia. Reguły i harmonogram są wyłączone. Zapisz preferencje, aby zastosować wybory.</p>
+<p>Okres historii podsumowań w dniach; 0: wyłączona → Odśwież historię podsumowań → Wyczyść historię podsumowań</p>
+<p>Przywrócić domyślne preferencje miejsca na dysku, reguły i listę ochrony tego konta? Wspólna ochrona, przechowalnia i blokady pobierania pozostają. Żadne pliki nie zostaną wyczyszczone.</p>
+
+  </section>
+
   <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
-    <h2 id="h-atalhos">⌨️ 18. Skróty klawiszowe</h2>
+    <h2 id="h-atalhos">⌨️ 19. Skróty klawiszowe</h2>
 <div class="callout info">
   <div class="callout-title">ℹ️ Lista wygenerowana z kodu</div>
   Poniższe tabele są generowane automatycznie z katalogu skrótów WinZapp i pokazują klawisze fabryczne. Pojawiają się też w programie, pod F1 lub w Pomoc &gt; Skróty klawiszowe. Każdy klawisz można zmienić na karcie Skróty klawiszowe w ustawieniach.
@@ -1298,7 +1343,7 @@
   </section>
 
   <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
-    <h2 id="h-solucao-problemas">🧰 19. Rozwiązywanie problemów</h2>
+    <h2 id="h-solucao-problemas">🧰 20. Rozwiązywanie problemów</h2>
 <table class="field-table">
   <tr><th>Sytuacja</th><th>Co zrobić</th></tr>
   <tr><td>WinZapp prosi o ponowne sparowanie</td><td>Sparuj za pomocą numeru lub kodu QR. Twoje czaty są usuwane tylko wtedy, gdy połączysz inny numer. Jeśli stało się to bez powodu, zachowaj <code>log.log</code> i <code>shutdown_audit.log</code> przed ponownym otwarciem.</td></tr>
@@ -1318,12 +1363,13 @@
   </section>
 
   <section id="registro" class="wiki-section" aria-labelledby="h-registro">
-    <h2 id="h-registro">📝 20. Dziennik zmian podręcznika</h2>
+    <h2 id="h-registro">📝 21. Dziennik zmian podręcznika</h2>
 <p>Język arabski jest teraz dostępny w ustawieniach języka programu oraz w instalatorze i deinstalatorze systemu Windows.</p>
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: włoski dołącza do listy języków w Ustawieniach.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Ustawienia &gt; Pamięć otrzymują Menedżer miejsca na dysku: rozmiary logiczne i zakres, powiązanie multimediów, ochrona, podgląd usuwania kopii lokalnych lub przenoszenia do przechowalni, przywracanie oraz opcjonalne reguły, ostrzeżenia i cele. Automatyczne usuwanie dotyczy tylko zweryfikowanej, odtwarzalnej pamięci podręcznej kompilacji; harmonogram jest domyślnie wyłączony. Można osobno pobrać wyczyszczony plik bez znoszenia blokad automatycznego pobierania.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: nowa rozmowa po numerze otwiera się z numerem używanym przez WhatsApp.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: kanały z kategoriami i listami katalogu, aktualizacje publikowane i przypinane przez administratorów oraz okno administratorów kanału.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: okno Kanały (Alt+9), dodawanie osób do trwającego połączenia, starsze wiadomości pobierane z telefonu w Neonize i położenie liczby nowych wiadomości na liście czatów.</td></tr>
@@ -1358,6 +1404,7 @@
   <tr><td class="field-name">Jeszcze niewydane</td><td>Kanały nagrywania wiadomości głosowych: Automatycznie (użyj kanałów urządzenia), Mono (połącz lewy i prawy kanał), Stereo (jeśli dostępne).</td></tr>
   <tr><td class="field-name">2.1.0.4397</td><td>Karta Profil w ustawieniach WhatsApp (wyświetlana nazwa, Informacje i zdjęcie); Społeczności na liście nawigacji, po Połączeniach.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>Pierwsza wersja podręcznika: wszystkie funkcje wersji 1.1.0.0, 1.1.1.0, 2.0.0.0 i cyklu 2.1.0.0 do tej alphy.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Rozmowy przez Neonize: zachowywana jest odpowiedź lub zakończenie otrzymane przed lokalną rejestracją połączenia; błędy rozmów grupowych rozróżniają limit żądań WhatsAppa i obsługiwane limity członków.</td></tr>
 </table>
 
   </section>

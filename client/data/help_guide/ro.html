@@ -220,9 +220,10 @@
     <a href="#privacidade" class="nav-link">15. Setări WhatsApp</a>
     <a href="#copias-registros" class="nav-link">16. Copii de siguranță și jurnale</a>
     <a href="#mac" class="nav-link">17. WinZapp pe Mac</a>
-    <a href="#atalhos" class="nav-link">18. Comenzi rapide de la tastatură</a>
-    <a href="#solucao-problemas" class="nav-link">19. Depanare</a>
-    <a href="#registro" class="nav-link">20. Jurnalul actualizărilor ghidului</a>
+    <a href="#armazenamento" class="nav-link">18. Manager de stocare</a>
+    <a href="#atalhos" class="nav-link">19. Comenzi rapide de la tastatură</a>
+    <a href="#solucao-problemas" class="nav-link">20. Depanare</a>
+    <a href="#registro" class="nav-link">21. Jurnalul actualizărilor ghidului</a>
   </div>
 </nav>
 
@@ -252,6 +253,7 @@
         <li><a href="#privacidade">Setări WhatsApp</a></li>
         <li><a href="#copias-registros">Copii de siguranță și jurnale</a></li>
         <li><a href="#mac">WinZapp pe Mac</a></li>
+        <li><a href="#armazenamento">Manager de stocare</a></li>
         <li><a href="#atalhos">Comenzi rapide de la tastatură</a></li>
         <li><a href="#solucao-problemas">Depanare</a></li>
         <li><a href="#registro">Jurnalul actualizărilor ghidului</a></li>
@@ -721,6 +723,8 @@
 <p>Cu motorul Neonize, un apel pe care îl faci și la care nu răspunde nimeni se încheie singur după un minut, ca în WhatsApp Web: sunetul de apel se oprește, iar rezultatul este „fără răspuns”.</p>
 <p>Dacă internetul cade în mijlocul unui apel, butonul de închidere funcționează în continuare: WinZapp încheie apelul pe computer chiar și fără conexiune, fără să afișeze o eroare.</p>
 
+<p>Pentru a începe un apel de grup cu Neonize sunt necesari între doi și 31 de alți membri. Dacă WhatsApp limitează temporar solicitările de apel, WinZapp anunță acest motiv; încearcă din nou mai târziu.</p>
+
 <h3>În timpul apelului</h3>
 <table class="field-table">
   <tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
@@ -754,6 +758,7 @@
 <p>La reinstalarea WPPConnect, WinZapp păstrează un catalog WhatsApp Web mai nou și compatibil și caută un catalog actualizat. Fără internet este păstrat un catalog utilizabil, dar actualitatea lui nu poate fi confirmată. Dacă apelul tot nu pornește, restabiliți conexiunea la internet și reporniți WinZapp. O incompatibilitate VoIP confirmată care nu permite reîncercarea este raportată fără repetarea inițializării.</p>
 <p>Cât timp conversația unui grup este deschisă, WinZapp verifică aproximativ la fiecare zece secunde dacă există un apel în desfășurare. Butonul de alăturare apare numai când există un apel disponibil și dispare când acesta se încheie. La alăturarea la un apel video, camera pornește oprită. Alăturarea la un apel existent nu folosește limita de 32 de membri pentru inițierea unui apel de grup nou. Când un apel este disponibil, butoanele de inițiere a apelurilor vocale și video sunt înlocuite de butonul "Alăturați-vă apelului vocal în desfășurare" sau, pentru un apel video, "Alăturați-vă apelului video în desfășurare (camera oprită)". În Apeluri (Alt+6), filtrul În desfășurare afișează apelurile la care vă puteți alătura, inclusiv apeluri între mai multe persoane în afara chaturilor de grup; acestea apar și primele în Toate. Selectați un apel și apăsați Enter sau folosiți același buton de alăturare. Dacă sunteți deja în acel apel, butonul se numește "Reveniți la apel" și aduce în față fereastra apelului curent. Lista se actualizează aproximativ la fiecare zece secunde cât timp Apeluri este deschis și include numai apelurile pe care WhatsApp le pune la dispoziția contului dvs.</p>
 <p>Folosiți butonul "Participanții la apel" din fereastra apelului sau pentru un apel în desfășurare selectat în Apeluri pentru a vedea numele persoanelor conectate. Lista se actualizează la fiecare zece secunde; "Reîmprospătează" solicită datele actuale, iar "Închide" sau Esc închide fereastra. Persoanele invitate sau deconectate nu sunt afișate. Consultarea listei nu vă alătură apelului și nu îl încheie.</p>
+
 
   </section>
 
@@ -950,8 +955,48 @@
 
   </section>
 
+  <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
+    <h2 id="h-armazenamento">💾 18. Manager de stocare</h2>
+<h3>Rezumatul stocării</h3>
+<p>Deschideți Setări → Stocare → Manager de stocare. Folosiți Tab între controale și Ctrl+Tab între file. În listă, săgețile mută cursorul, iar Spațiu schimbă caseta de selectare. Mutarea cursorului nu selectează un fișier pentru eliminare. O pagină are cel mult 200 de elemente. Scanarea și reîmprospătarea nu aplică planul de curățare.</p>
+<p>Dimensiuni logice, numărate o singură dată pentru fiecare identitate de fișier. Spațiul alocat și spațiul liber pe disc nu sunt măsurate. Fișierele păstrate ocupă în continuare spațiu. Măsurarea acoperă numai această instalare.</p>
+<h3>Preferințe</h3>
+<p>Lucrul în fundal este opțional. Salvarea preferințelor nu aplică o previzualizare de fișiere. Ținta este orientativă, nu o cotă strictă. Nu se impune un prag de spațiu liber pe disc. Asocierea opțională citește istoricele locale de mesaje selectate. Modelele externe și alte conturi sunt doar informative. Pentru dosare noi de conturi, dezactivați și reactivați acel domeniu.</p>
+<p>Dacă asocierea întregului cont este incompletă, selectați mai puține conversații locale. Asocierea citește istoricul local fără a contacta WhatsApp. Conținutul trimis, în așteptare, eșuat, marcat cu stea, blocat, ascuns sau neasociat rămâne protejat. Butoanele pentru modele și copii de siguranță deschid setările lor existente.</p>
+<p>Asociați media cu istoricele locale selectate → Alegeți istoricele locale pentru asociere → Salvați preferințele și schițele regulilor</p>
+<h3>Previzualizați selecția</h3>
+<ol>
+<li>Scanați acum</li>
+<li>Aplicați filtrele</li>
+<li>Selectați această pagină</li>
+<li>Metoda operației</li>
+<li>Previzualizați selecția</li>
+<li>Aplicați previzualizarea</li>
+</ol>
+<p>Selectați maximum 500 de fișiere eligibile per previzualizare, sau mai puține pentru căi foarte lungi. Nicio parte a selecției nu a fost aplicată.</p>
+<p>Modelele, mediile de execuție, copiile de siguranță, jurnalele, bazele de date și datele de autentificare rămân protejate aici. Gestionați-le în setările lor existente. Fișierele necunoscute nu sunt declarate inutile. Numai fișierele cache verificate și copiile media primite și asociate pot intra în previzualizare.</p>
+<h3>Protecții</h3>
+<p>Protecția are prioritate față de selecția manuală și reguli. Protecția partajată se aplică tuturor conturilor acestei instalări. Eliminarea protecției nu selectează fișiere. Elementele absente sau fără nume vizibil păstrează o etichetă numerică privată.</p>
+<p>Protejați fișierele selectate → Protejați conversațiile selectate → Reîmprospătați protecțiile</p>
+<h3>Fișiere păstrate</h3>
+<p>Păstrarea mută copia locală fără a crea alta și nu eliberează spațiul ei. Restaurarea nu suprascrie niciodată un fișier actual. Eliminarea definitivă nu poate fi anulată aici. Fișierul media poate să nu mai fie disponibil pe WhatsApp.</p>
+<p>Pentru a elimina definitiv fișiere media păstrate, activați asocierea media și selectați conversații în Preferințe, salvați și încercați din nou. Pot fi eliminate doar fișierele media vizibile acum, deblocate, complet asociate și neprotejate.</p>
+<p>Reîmprospătați fișierele păstrate → Restaurați fișierele păstrate selectate → Eliminați definitiv fișierele păstrate selectate</p>
+<p>Pentru o fotografie, un videoclip, document sau fișier audio curățat, selectați mesajul și folosiți Descarcă. Confirmați solicitarea separată pentru acea copie. Aceasta nu anulează curățarea și nu garantează că WhatsApp mai are fișierul. Nicio altă blocare nu este anulată.</p>
+<p>Eliminați înregistrările goale ale operațiilor mai vechi de două zile? Fișierele păstrate și înregistrările active de recuperare rămân. Previzualizările expiră după o zi.</p>
+<h3>Reguli</h3>
+<p>Vechimea și dimensiunea sunt condiții, nu dovezi că fișierul este inutil. Protecția are prioritate. O regulă de sugestie sau notificare are prioritate față de una automată pentru același fișier. Modul automat este disponibil numai pentru cache-ul de compilare verificat și regenerabil.</p>
+<p>Scanarea manuală nu execută eliminarea automată. Numai o regulă cache activată separat poate elimina loturi limitate la evaluările salvate de pornire sau interval. Suspendarea evaluărilor păstrează alte schițe nesalvate. Ținta folosește ultima măsurare neanulată și nu este o cotă de disc. Solicitările manuale și trimiterea rămân disponibile.</p>
+<p>Adăugați regulă → Activați regula după salvarea preferințelor → Salvați preferințele și schițele regulilor</p>
+<p>Acestea sunt schițe. Salvați preferințele pentru a aplica modificările regulilor și domeniului de asociere.</p>
+<p>Șablon încărcat pentru verificare. Regulile și programarea sunt dezactivate. Salvați preferințele pentru a aplica opțiunile.</p>
+<p>Păstrați istoricul rezumatelor zile; 0: dezactivat → Reîmprospătați istoricul rezumatelor → Ștergeți istoricul rezumatelor</p>
+<p>Resetați preferințele de stocare, regulile și protecțiile acestui cont? Protecțiile partajate, fișierele păstrate și blocările descărcărilor media rămân. Niciun fișier nu va fi curățat.</p>
+
+  </section>
+
   <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
-    <h2 id="h-atalhos">⌨️ 18. Comenzi rapide de la tastatură</h2>
+    <h2 id="h-atalhos">⌨️ 19. Comenzi rapide de la tastatură</h2>
 <div class="callout info">
   <div class="callout-title">ℹ️ Listă generată din cod</div>
   Tabelele de mai jos sunt generate automat din catalogul de comenzi rapide al WinZapp și arată tastele din fabrică. Apar și în program, la F1 sau Ajutor &gt; Comenzi rapide de la tastatură. Orice tastă poate fi schimbată în fila Comenzi rapide de la tastatură din Setări.
@@ -1298,7 +1343,7 @@
   </section>
 
   <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
-    <h2 id="h-solucao-problemas">🧰 19. Depanare</h2>
+    <h2 id="h-solucao-problemas">🧰 20. Depanare</h2>
 <table class="field-table">
   <tr><th>Situație</th><th>Ce să faci</th></tr>
   <tr><td>WinZapp îți cere să asociezi din nou</td><td>Asociază cu număr sau cod QR. Conversațiile tale sunt șterse doar dacă te conectezi cu alt număr. Dacă s-a întâmplat fără motiv, păstrează <code>log.log</code> și <code>shutdown_audit.log</code> înainte de a-l deschide din nou.</td></tr>
@@ -1318,12 +1363,13 @@
   </section>
 
   <section id="registro" class="wiki-section" aria-labelledby="h-registro">
-    <h2 id="h-registro">📝 20. Jurnalul actualizărilor ghidului</h2>
+    <h2 id="h-registro">📝 21. Jurnalul actualizărilor ghidului</h2>
 <p>Limba arabă este acum disponibilă în Setări > General > Limbă, cu texte în arabă în programul de instalare și dezinstalare pentru Windows.</p>
 <p class="lead">Fiecare alfa nou care aduce funcții este adăugat în ghid. Această listă arată până la ce alfa este complet ghidul și ce a intrat în fiecare rundă.</p>
 <table class="field-table">
   <tr><th>Alfa</th><th>Ce a intrat în ghid</th></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Ghid: italiana intră în lista de limbi din Setări.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Setări &gt; Stocare primește Managerul de stocare: dimensiuni logice și acoperire, asociere media, protecții, previzualizarea eliminării copiilor locale sau a păstrării recuperabile, restaurare și reguli, notificări și ținte opționale. Eliminarea automată se limitează la cache-ul de compilare verificat și regenerabil; programarea este inițial dezactivată. Fișierele curățate pot fi solicitate separat fără anularea blocărilor descărcării automate.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Ghid: o conversație nouă după număr se deschide cu numărul folosit de WhatsApp.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Ghid: canale cu categoriile și listele directorului, actualizări publicate și fixate de administratori și fereastra administratorilor canalului.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Ghid: fereastra Canale (Alt+9), adăugarea persoanelor la apelul în curs, mesajele mai vechi cerute telefonului cu Neonize și poziția numărului de mesaje noi în lista de conversații.</td></tr>
@@ -1358,6 +1404,7 @@
   <tr><td class="field-name">Încă nelansat</td><td>Canalele de înregistrare a mesajelor vocale: Automat (folosește canalele dispozitivului), Mono (combină stânga și dreapta), Stereo (dacă este disponibil).</td></tr>
   <tr><td class="field-name">2.1.0.4397</td><td>Fila Profil din setările WhatsApp (nume afișat, Despre și poză); Comunități în lista de navigare, după Apeluri.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>Prima versiune a ghidului: toate funcțiile versiunilor 1.1.0.0, 1.1.1.0, 2.0.0.0 și ale ciclului 2.1.0.0 până la acest alfa.</td></tr>
+<tr><td class="field-name">Nelansat încă</td><td>Apeluri Neonize: este păstrată acceptarea sau încheierea primită înainte de înregistrarea locală a apelului; erorile apelurilor de grup disting limitarea solicitărilor WhatsApp și limitele de membri acceptate.</td></tr>
 </table>
 
   </section>

@@ -340,7 +340,8 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
         return (list_msg.get("title") or list_msg.get("description") or "").strip() or i18n.t("interactive_message")
 
     if msg_type == "templateMessage":
-        return i18n.t("notif_template")
+        template = msg_obj.get("templateMessage") or {}
+        return (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
 
     if msg_type == "interactiveMessage":
         inter = msg_obj.get("interactiveMessage") or {}

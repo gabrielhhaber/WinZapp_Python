@@ -577,6 +577,8 @@ class WindowLifecycleMixin:
             if getattr(self, "_shutting_down", False):
                 return False  # another path already owns teardown
             self._shutting_down = True
+        from main_window.storage_runtime import stop as stop_storage_runtime
+        stop_storage_runtime(self)
         stop_typing_sound(self)
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and hasattr(cp, "close_ai_media"):

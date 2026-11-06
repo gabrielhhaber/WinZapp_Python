@@ -4234,6 +4234,7 @@ msgstr "Wyczyść zaznaczone czaty"
 #: client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
+#: client/ui/dialogs/storage_manager_views.py
 #: client/ui/dialogs/transcription_result.py client/ui/media_viewer.py
 msgctxt "close"
 msgid "&Close"
@@ -5879,7 +5880,9 @@ msgstr "W&yłącz wszystkie"
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/transcription_tab.py
+#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_options.py
+#: client/ui/dialogs/storage_presentation.py
+#: client/ui/dialogs/storage_rules.py client/ui/dialogs/transcription_tab.py
 msgctxt "decimal_separator"
 msgid "."
 msgstr ","
@@ -6642,6 +6645,20 @@ msgstr "Dołącz do trwającego połączenia wideo (kamera wyłączona)"
 msgctxt "group_call_joining"
 msgid "Joining the ongoing call: {name}..."
 msgstr "Dołączanie do trwającego połączenia: {name}..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "group_call_too_few_members"
+msgid ""
+"Starting a group call with Neonize requires at least two other members."
+msgstr ""
+"Rozpoczęcie połączenia grupowego przez Neonize wymaga co najmniej dwóch "
+"innych członków."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "group_call_too_many_members"
+msgid "Neonize can call at most 31 other group members at once."
+msgstr ""
+"Neonize może jednocześnie zadzwonić do najwyżej 31 innych członków grupy."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 msgctxt "group_call_unavailable_label"
@@ -7559,14 +7576,14 @@ msgstr ""
 "na rozłączony. Spróbuj sparować ponownie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_message"
 msgid "interactive message"
 msgstr "wiadomość interaktywna"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_reply"
 msgid "interactive reply"
@@ -7748,7 +7765,7 @@ msgid "Links in this message"
 msgstr "Linki w tej wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "list_reply"
 msgid "list selection"
@@ -13501,10 +13518,1330 @@ msgid "Stop playback"
 msgstr "Zatrzymaj odtwarzanie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+msgctxt "storage_accounting_note"
+msgid ""
+"Logical file sizes, counted once per file identity. Allocated space and free"
+" disk space are not measured. Held files still occupy space. This snapshot "
+"covers this installation only."
+msgstr ""
+"Rozmiary logiczne są liczone raz dla każdej tożsamości pliku. Zajęte bloki i"
+" wolne miejsce na dysku nie są mierzone. Pliki w przechowalni nadal zajmują "
+"miejsce. Pomiar obejmuje tylko tę instalację."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_active_policy"
+msgid ""
+"Enabled rules: {rules}. Evaluation interval: {interval} minutes. Scheduled "
+"evaluations paused: {paused}."
+msgstr ""
+"Włączone reguły: {rules}. Odstęp oceny: {interval} min. Oceny zaplanowane "
+"wstrzymane: {paused}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_add_rule"
+msgid "Add rule"
+msgstr "Dodaj regułę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_all_categories"
+msgid "All categories"
+msgstr "Wszystkie kategorie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_all_types"
+msgid "All media types"
+msgstr "Wszystkie typy multimediów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_apply_confirm"
+msgid ""
+"Apply {method} to {count} files ({size})? Only local copies are affected. "
+"Messages, phone files and Save As copies stay. Downloading the media again "
+"may be impossible."
+msgstr ""
+"Zastosować {method} do plików: {count} ({size})? Zmiana dotyczy tylko kopii "
+"lokalnych. Wiadomości, pliki w telefonie i kopie z Zapisz jako pozostają. "
+"Ponowne pobranie multimediów może być niemożliwe."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_apply_plan"
+msgid "Apply preview"
+msgstr "Zastosuj podgląd"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "storage_auto_download_media_types_label"
 msgid "Med&ia types to download automatically"
 msgstr "&Typy multimediów pobierane automatycznie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_busy"
+msgid "A storage job is running. Stop it or wait for its result."
+msgstr ""
+"Trwa zadanie dotyczące miejsca na dysku. Zatrzymaj je lub poczekaj na wynik."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_category"
+msgid "Category"
+msgstr "Kategoria"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_backups"
+msgid "Profile backups"
+msgstr "Kopie zapasowe profilu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_compile_cache"
+msgid "Regenerable compile cache"
+msgstr "Odtwarzalna pamięć podręczna kompilacji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_database"
+msgid "Message databases"
+msgstr "Bazy danych wiadomości"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_logs"
+msgid "Diagnostic logs"
+msgstr "Dzienniki diagnostyczne"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_media"
+msgid "Photos, videos and documents"
+msgstr "Zdjęcia, filmy i dokumenty"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_models"
+msgid "Models and runtimes"
+msgstr "Modele i środowiska wykonawcze"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_other"
+msgid "Other protected data"
+msgstr "Inne chronione dane"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_program"
+msgid "Program files"
+msgstr "Pliki programu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_quarantine"
+msgid "Recoverable holding area"
+msgstr "Przechowalnia z możliwością przywrócenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_sessions"
+msgid "Login and session data"
+msgstr "Dane logowania i sesji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_category_summary"
+msgid "{category}: {size}; files: {count}."
+msgstr "{category}: {size}; pliki: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_category_voice"
+msgid "Voice messages and audio"
+msgstr "Wiadomości głosowe i pliki audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_choose_items"
+msgid "Select files first."
+msgstr "Najpierw zaznacz pliki."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_matching.py client/ui/dialogs/storage_options.py
+msgctxt "storage_choose_matching_chats"
+msgid "Choose local histories to match"
+msgstr "Wybierz lokalne historie do powiązania"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_clear_history"
+msgid "Clear summary history"
+msgstr "Wyczyść historię podsumowań"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_clear_history_confirm"
+msgid ""
+"Clear the optional summary history? Held files and media download blocks "
+"stay."
+msgstr ""
+"Wyczyścić opcjonalną historię podsumowań? Pliki w przechowalni i blokady "
+"pobierania multimediów pozostaną."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_clear_selection"
+msgid "Clear selection"
+msgstr "Wyczyść zaznaczenie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_coverage_skipped"
+msgid ""
+"Skipped or unavailable locations/items: {count}. The total is incomplete."
+msgstr ""
+"Pominięte lub niedostępne miejsca i elementy: {count}. Suma jest niepełna."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_sensitive.py
+msgctxt "storage_details"
+msgid "Item details"
+msgstr "Szczegóły elementu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_edit_rule"
+msgid "Edit rule"
+msgstr "Edytuj regułę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_export_preferences"
+msgid "Export preference template"
+msgstr "Eksportuj szablon preferencji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_files_tab"
+msgid "Overview and files"
+msgstr "Przegląd i pliki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_apply"
+msgid "Apply filters"
+msgstr "Zastosuj filtry"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_days"
+msgid "Minimum age in days; 0: any"
+msgstr "Minimalny wiek w dniach; 0: dowolny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_minimum"
+msgid "Minimum size in MiB; 0: any"
+msgstr "Minimalny rozmiar w MiB; 0: dowolny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_filter_scope"
+msgid "Filter scope"
+msgstr "Zakres filtra"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_held_count"
+msgid "Held files on this page: {count}."
+msgstr "Pliki w przechowalni na tej stronie: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_held_note"
+msgid ""
+"Holding moves a local copy without making another copy and does not free its"
+" space. Restore never overwrites a current file. Permanent removal cannot be"
+" undone here. Media may be unavailable from WhatsApp."
+msgstr ""
+"Przechowalnia przenosi lokalną kopię bez tworzenia kolejnej i nie zwalnia "
+"jej miejsca. Przywracanie nigdy nie nadpisuje bieżącego pliku. Trwałego "
+"usunięcia nie można tu cofnąć. Multimedia mogą być już niedostępne w "
+"WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_held_partial"
+msgid ""
+"More items may remain. Use Next held page; unavailable or incompatible "
+"records are kept. Refresh starts at the first page."
+msgstr ""
+"Mogą pozostać inne elementy. Użyj Następna strona przechowalni. Niedostępne "
+"lub niezgodne zapisy pozostają. Odświeżanie wraca do pierwszej strony."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_held_result"
+msgid ""
+"Completed: {completed}; failed: {failed}; not started: {remaining}. Refresh "
+"the held-file list to review the current state."
+msgstr ""
+"Ukończone: {completed}; błędy: {failed}; nierozpoczęte: {remaining}. Odśwież"
+" listę przechowalni, aby sprawdzić bieżący stan."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_held_row"
+msgid "Item {number}: {category}; {size}; held at {time}."
+msgstr "Element {number}: {category}; {size}; umieszczono: {time}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_held_tab"
+msgid "Held files"
+msgstr "Pliki w przechowalni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_history_days"
+msgid "Keep summary history for days; 0: off"
+msgstr "Okres historii podsumowań w dniach; 0: wyłączona"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_history_empty"
+msgid "No summary history in the selected retention period."
+msgstr "Brak historii podsumowań w wybranym okresie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_history_row"
+msgid ""
+"{time}: completed {completed}; skipped {skipped}; failed {failed}; removed "
+"logical size {size}."
+msgstr ""
+"{time}: ukończone {completed}; pominięte {skipped}; błędy {failed}; usunięty"
+" rozmiar logiczny {size}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_history_tab"
+msgid "Summary history"
+msgstr "Historia podsumowań"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_import_preferences"
+msgid "Import preference template"
+msgstr "Importuj szablon preferencji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_import_staged"
+msgid ""
+"Template loaded for review. Rules and scheduling are disabled. Save "
+"preferences to apply the choices."
+msgstr ""
+"Wczytano szablon do sprawdzenia. Reguły i harmonogram są wyłączone. Zapisz "
+"preferencje, aby zastosować wybory."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_interval_minutes"
+msgid "Evaluation interval in minutes; 0: off"
+msgstr "Odstęp oceny w minutach; 0: wyłączona"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_item"
+msgid "Item"
+msgstr "Element"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#, python-brace-format
+msgctxt "storage_item_details"
+msgid ""
+"{name}\n"
+"Size: {size}\n"
+"Modified: {time}\n"
+"Decision: {reason}\n"
+"Age and size do not prove that a file is unnecessary."
+msgstr ""
+"{name}\n"
+"Rozmiar: {size}\n"
+"Modyfikacja: {time}\n"
+"Decyzja: {reason}\n"
+"Wiek i rozmiar nie dowodzą, że plik jest zbędny."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_item_label"
+msgid "{name}; {category}; item {number}"
+msgstr "{name}; {category}; element {number}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/media_cleanup_dialog.py
+#, python-brace-format
+msgctxt "storage_legacy_skipped"
+msgid "Files kept by storage protections: {count}."
+msgstr "Pliki zachowane przez ochronę miejsca na dysku: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_logical_total"
+msgid "Measured logical size: {size}. Files: {count}."
+msgstr "Zmierzony rozmiar logiczny: {size}. Pliki: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "storage_manager_open"
+msgid "Sto&rage manager…"
+msgstr "Menedżer m&iejsca na dysku…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/media_files.py
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_manager_title"
+msgid "Storage manager"
+msgstr "Menedżer miejsca na dysku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_match_all"
+msgid "All conditions"
+msgstr "Wszystkie warunki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py client/ui/dialogs/storage_matching.py
+msgctxt "storage_match_all_visible_chats"
+msgid "All currently visible unlocked conversations"
+msgstr "Wszystkie obecnie widoczne czaty bez zabezpieczenia dostępu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_match_any"
+msgid "Any condition"
+msgstr "Dowolny warunek"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_matching_scope"
+msgid ""
+"Local-history matching scope: {count}. Matching is used only when its "
+"separate preference is enabled."
+msgstr ""
+"Zakres powiązania historii lokalnej: {count}. Powiązanie jest używane tylko "
+"po włączeniu oddzielnej preferencji."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+#, python-brace-format
+msgctxt "storage_measured_at"
+msgid "Measured at {time}. Refresh to measure again."
+msgstr "Pomiar: {time}. Odśwież, aby zmierzyć ponownie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_media_match_incomplete"
+msgid ""
+"Local-history matching is incomplete. Media stays protected; select fewer "
+"conversations or retry after history is ready."
+msgstr ""
+"Powiązanie z historią lokalną jest niepełne. Multimedia pozostają chronione."
+" Wybierz mniej czatów lub ponów po przygotowaniu historii."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_media_type"
+msgid "Media type"
+msgstr "Typ multimediów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_method"
+msgid "Operation method"
+msgstr "Sposób operacji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_method_hold"
+msgid "Move to recoverable holding"
+msgstr "Przenieś do przechowalni z możliwością przywrócenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_method_remove"
+msgid "Permanently remove local copies"
+msgstr "Trwale usuń lokalne kopie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_modified"
+msgid "Modified"
+msgstr "Modyfikacja"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_needs_rescan"
+msgid ""
+"The previous snapshot is no longer current. Scan again before another "
+"preview."
+msgstr ""
+"Poprzedni pomiar nie jest już aktualny. Przeskanuj ponownie przed kolejnym "
+"podglądem."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_next_held"
+msgid "Next held page"
+msgstr "Następna strona przechowalni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_next_page"
+msgid "Next page"
+msgstr "Następna strona"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_presentation.py
+msgctxt "storage_not_scanned"
+msgid ""
+"Not measured yet. Scan reads file metadata. No file is selected and no "
+"cleanup starts automatically."
+msgstr ""
+"Jeszcze nie zmierzono. Skan odczytuje metadane plików. Nic nie jest "
+"zaznaczone, a czyszczenie nie uruchamia się automatycznie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_notify_only"
+msgid "Notify only"
+msgstr "Tylko powiadom"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_open_backups"
+msgid "Open profile backup settings"
+msgstr "Otwórz ustawienia kopii zapasowej profilu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_open_models"
+msgid "Open model management settings"
+msgstr "Otwórz ustawienia zarządzania modelami"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_operation_failed"
+msgid ""
+"The job could not finish. Nothing further was started. Review held files if "
+"an operation was interrupted, then scan again."
+msgstr ""
+"Nie udało się ukończyć zadania. Nie rozpoczęto kolejnych operacji. Jeśli "
+"wystąpiło przerwanie, sprawdź przechowalnię, a następnie przeskanuj "
+"ponownie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#, python-brace-format
+msgctxt "storage_operation_result"
+msgid ""
+"Completed: {completed}; skipped: {skipped}; failed: {failed}. Removed "
+"logical size: {removed}; moved to holding: {held}. This is not a measurement"
+" of freed disk space."
+msgstr ""
+"Ukończone: {completed}; pominięte: {skipped}; błędy: {failed}. Usunięty "
+"rozmiar logiczny: {removed}; przeniesiono do przechowalni: {held}. To nie "
+"jest pomiar zwolnionego miejsca na dysku."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_announce_progress"
+msgid "Announce scan progress at limited intervals"
+msgstr "Ogłaszaj postęp skanowania w ograniczonych odstępach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_external_models"
+msgid "Include known external model files"
+msgstr "Uwzględnij znane pliki modeli zewnętrznych"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_match_media"
+msgid "Match media with selected local histories"
+msgstr "Powiąż multimedia z wybranymi historiami lokalnymi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_other_accounts"
+msgid "Include currently known other account folders"
+msgstr "Uwzględnij obecnie znane foldery innych kont"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_scan_open"
+msgid "Scan when this manager opens"
+msgstr "Skanuj przy otwieraniu menedżera"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_option_scan_start"
+msgid "Evaluate at application startup"
+msgstr "Oceniaj przy uruchamianiu aplikacji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_options_note"
+msgid ""
+"All background work is optional. Saving preferences does not apply a file "
+"preview. A target is advisory, not a hard quota. No disk-free-space "
+"threshold is enforced. Optional matching reads selected local message "
+"histories. External models and other accounts are information only. Newly "
+"added account folders require disabling and re-enabling that scope."
+msgstr ""
+"Praca w tle jest opcjonalna. Zapis preferencji nie stosuje podglądu plików. "
+"Cel jest orientacyjny, a nie ścisłym limitem. Próg wolnego miejsca na dysku "
+"nie jest egzekwowany. Opcjonalne powiązanie odczytuje wybrane lokalne "
+"historie wiadomości. Modele zewnętrzne i inne konta służą tylko do "
+"informacji. Nowe foldery kont wymagają wyłączenia i ponownego włączenia tego"
+" zakresu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_options_tab"
+msgid "Preferences"
+msgstr "Preferencje"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_owner_note"
+msgid ""
+"Models, runtimes, backups, logs, databases and login data stay protected "
+"here. Use their existing settings to manage them. Unknown files are not "
+"declared unnecessary. Only verified cache files and matched received-media "
+"copies can enter a preview."
+msgstr ""
+"Modele, środowiska wykonawcze, kopie zapasowe, dzienniki, bazy danych i dane"
+" logowania są tu chronione. Zarządzaj nimi w ich istniejących ustawieniach. "
+"Nieznane pliki nie są uznawane za zbędne. Do podglądu mogą wejść tylko "
+"zweryfikowane pliki pamięci podręcznej i powiązane kopie odebranych "
+"multimediów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_pause_day"
+msgid "Pause scheduled evaluations for one day"
+msgstr "Wstrzymaj zaplanowane oceny na dzień"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_pause_downloads"
+msgid "Pause new automatic media downloads"
+msgstr "Wstrzymaj nowe automatyczne pobieranie multimediów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_pause_hour"
+msgid "Pause scheduled evaluations for one hour"
+msgstr "Wstrzymaj zaplanowane oceny na godzinę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py client/ui/dialogs/storage_rules.py
+msgctxt "storage_preferences_invalid"
+msgid ""
+"Check the numeric fields and preference file. Unsupported or unreadable "
+"protection settings block file actions. Explicit Reset can restore this "
+"account's defaults."
+msgstr ""
+"Sprawdź pola liczbowe i plik preferencji. Nieobsługiwane lub nieczytelne "
+"ustawienia ochrony blokują operacje na plikach. Jawne przywrócenie ustawień "
+"domyślnych może zresetować preferencje tego konta."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preferences_limit"
+msgid ""
+"The preference size limit was reached. Previous readable settings were kept."
+" Select fewer protection entries or use smaller batches, then retry."
+msgstr ""
+"Osiągnięto limit rozmiaru preferencji. Poprzednie czytelne ustawienia "
+"zachowano. Zaznacz mniej elementów ochrony lub użyj mniejszych partii i "
+"ponów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_manager_auxiliary.py
+msgctxt "storage_preferences_saved"
+msgid "Storage preferences saved. No file operation was started."
+msgstr ""
+"Zapisano preferencje miejsca na dysku. Nie rozpoczęto operacji na plikach."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_preview"
+msgid "Preview selection"
+msgstr "Podgląd zaznaczenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preview_limit"
+msgid ""
+"Select at most 500 eligible files per preview, or fewer if their paths are "
+"unusually long. No part of this selection was applied."
+msgstr ""
+"Zaznacz najwyżej 500 odpowiednich plików na podgląd, a mniej przy bardzo "
+"długich ścieżkach. Żadna część tego zaznaczenia nie została zastosowana."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+#, python-brace-format
+msgctxt "storage_preview_summary"
+msgid ""
+"Selected: {selected}; eligible: {count}; logical size: {size}. Method: "
+"{method}. Protected and in-use files are excluded. Holding does not free "
+"disk space."
+msgstr ""
+"Zaznaczone: {selected}; odpowiednie: {count}; rozmiar logiczny: {size}. "
+"Sposób: {method}. Pliki chronione i używane są wykluczone. Przechowalnia nie"
+" zwalnia miejsca na dysku."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_previous_page"
+msgid "Previous page"
+msgstr "Poprzednia strona"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_matching.py
+#: client/ui/dialogs/storage_presentation.py
+#: client/ui/dialogs/storage_protections.py
+#, python-brace-format
+msgctxt "storage_private_item"
+msgid "Local item {number}"
+msgstr "Element lokalny {number}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect"
+msgid "Protect selected files"
+msgstr "Chroń zaznaczone pliki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_category"
+msgid "Protect this category"
+msgstr "Chroń tę kategorię"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_chats"
+msgid "Protect selected conversations"
+msgstr "Chroń zaznaczone czaty"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_scope"
+msgid "Protection scope"
+msgstr "Zakres ochrony"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_scope_account"
+msgid "This account"
+msgstr "To konto"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protect_scope_shared"
+msgid "Shared components, across accounts"
+msgstr "Wspólne składniki dla kont"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_protections.py
+#, python-brace-format
+msgctxt "storage_protection_count"
+msgid "Saved protections: {count}."
+msgstr "Zapisane zabezpieczenia: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protection_note"
+msgid ""
+"Protection wins over manual selection and rules. Shared protection applies "
+"across this installation's accounts. Removing protection grants no new "
+"selection. Missing or currently unnamed items keep a private numbered label."
+msgstr ""
+"Ochrona ma pierwszeństwo przed ręcznym zaznaczeniem i regułami. Wspólna "
+"ochrona dotyczy kont w tej instalacji. Usunięcie ochrony nie zaznacza "
+"plików. Brakujące elementy lub elementy bez widocznej nazwy zachowują "
+"prywatną etykietę numeryczną."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_protections.py
+#, python-brace-format
+msgctxt "storage_protection_row"
+msgid "{scope}: {name}"
+msgstr "{scope}: {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_protection_saved"
+msgid "Protection choices saved. Previous preview cleared."
+msgstr "Zapisano ochronę. Poprzedni podgląd wyczyszczono."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_protections_tab"
+msgid "Protections"
+msgstr "Ochrona"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_held"
+msgid "Permanently remove selected held files"
+msgstr "Trwale usuń zaznaczone pliki z przechowalni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_purge_held_confirm"
+msgid ""
+"Permanently remove {count} held files ({size})? This cannot be undone here; "
+"WhatsApp may no longer have the media."
+msgstr ""
+"Trwale usunąć pliki z przechowalni: {count} ({size})? Nie można tego tu "
+"cofnąć. WhatsApp może już nie mieć tych multimediów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_matching_required"
+msgid ""
+"To permanently remove held media, enable media matching and select "
+"conversations in Preferences, save, then retry. Only currently visible, "
+"unlocked and completely matched media without a protection can be removed."
+msgstr ""
+"Aby trwale usunąć multimedia z przechowalni, włącz powiązanie multimediów i "
+"wybierz czaty w Preferencjach, a następnie zapisz preferencje i spróbuj "
+"ponownie. Można usuwać tylko w pełni powiązane i nieobjęte ochroną "
+"multimedia z obecnie widocznych czatów bez zabezpieczenia dostępu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_critical"
+msgid "Required component or critical data; managed by its owner"
+msgstr "Wymagany składnik lub dane krytyczne; zarządzane przez właściciela"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_external"
+msgid "Information only; outside this manager's file-action scope"
+msgstr "Tylko informacja; poza zakresem operacji tego menedżera"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_important"
+msgid "Sent, pending, failed or starred content; protected"
+msgstr "Treść wysłana, oczekująca, z błędem lub z gwiazdką; chroniona"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_in_use"
+msgid "In use or current ownership is uncertain; protected"
+msgstr "W użyciu lub bieżące użycie niepewne; chronione"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_local_copy"
+msgid "Received-media local copy; may be impossible to download again"
+msgstr ""
+"Lokalna kopia odebranych multimediów; ponowne pobranie może być niemożliwe"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_protected"
+msgid "Unknown or unsupported file; protected"
+msgstr "Nieznany lub nieobsługiwany plik; chroniony"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_reproducible"
+msgid "Verified compile-cache layout; regenerable"
+msgstr "Zweryfikowany układ pamięci podręcznej kompilacji; odtwarzalny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_unmatched"
+msgid "Local history not matched completely; protected"
+msgstr "Historia lokalna niepowiązana w całości; chronione"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reason_user_protected"
+msgid "Protected by your keep-list"
+msgstr "Chronione przez listę zachowywanych elementów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_refresh_held"
+msgid "Refresh held files"
+msgstr "Odśwież pliki w przechowalni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_refresh_history"
+msgid "Refresh summary history"
+msgstr "Odśwież historię podsumowań"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_refresh_protections"
+msgid "Refresh protections"
+msgstr "Odśwież ochronę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_remove_protection"
+msgid "Remove selected protections"
+msgstr "Usuń zaznaczoną ochronę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_remove_protection_confirm"
+msgid ""
+"Remove {count} selected protections? Files are not selected or removed by "
+"this action."
+msgstr ""
+"Usunąć zaznaczone zabezpieczenia: {count}? Ta czynność nie zaznacza ani nie "
+"usuwa plików."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_remove_rule"
+msgid "Remove rule draft"
+msgstr "Usuń szkic reguły"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reset_confirm"
+msgid ""
+"Reset this account's storage preferences, rules and keep-list? Shared "
+"protections, held files and media download blocks stay. No files are "
+"cleaned."
+msgstr ""
+"Przywrócić domyślne preferencje miejsca na dysku, reguły i listę ochrony "
+"tego konta? Wspólna ochrona, przechowalnia i blokady pobierania pozostają. "
+"Żadne pliki nie zostaną wyczyszczone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reset_preferences"
+msgid "Reset account storage preferences"
+msgstr "Przywróć domyślne preferencje miejsca na dysku dla konta"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reset_target"
+msgid "Reset only the target fields"
+msgstr "Resetuj tylko pola celu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_restore_held"
+msgid "Restore selected held files"
+msgstr "Przywróć zaznaczone pliki z przechowalni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_restore_held_confirm"
+msgid ""
+"Restore {count} held files ({size}) to their original local locations? "
+"Existing files will not be overwritten."
+msgstr ""
+"Przywrócić pliki z przechowalni: {count} ({size}) do pierwotnych miejsc? "
+"Istniejące pliki nie zostaną nadpisane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/media_files.py
+msgctxt "storage_restore_media_confirm"
+msgid ""
+"Request this cleaned local copy once more from WhatsApp? It may no longer be"
+" available. Other cleaned files stay blocked, and automatic downloading "
+"stays blocked for this item too."
+msgstr ""
+"Ponownie poprosić WhatsApp o tę wyczyszczoną kopię lokalną? Może już być "
+"niedostępna. Pozostałe wyczyszczone pliki nadal są blokowane, podobnie jak "
+"automatyczne pobieranie tego elementu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_resume_schedule"
+msgid "Resume scheduled evaluations"
+msgstr "Wznów zaplanowane oceny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_retire_tokens"
+msgid "Remove expired completed-operation records"
+msgstr "Usuń wygasłe zapisy ukończonych operacji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_retire_tokens_confirm"
+msgid ""
+"Remove empty operation records older than two days? Held files and active "
+"recovery records are kept. Previews expire after one day."
+msgstr ""
+"Usunąć puste zapisy operacji starsze niż dwa dni? Pliki w przechowalni i "
+"aktywne zapisy odzyskiwania pozostaną. Podglądy wygasają po jednym dniu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_auxiliary.py
+#, python-brace-format
+msgctxt "storage_retire_tokens_result"
+msgid "Expired empty operation records removed: {count}."
+msgstr "Usunięte wygasłe puste zapisy: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_reverse_order"
+msgid "Reverse sort order"
+msgstr "Odwróć kolejność sortowania"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_automatic"
+msgid "Automatically remove verified compile cache"
+msgstr "Automatycznie usuwaj zweryfikowaną pamięć podręczną kompilacji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rule_automatic_confirm"
+msgid ""
+"Enable automatic permanent removal of matching verified compile-cache files "
+"during saved startup/interval evaluations? Personal media, models and "
+"unknown files are excluded. Protection wins; no files are removed by saving "
+"this draft."
+msgstr ""
+"Włączyć automatyczne trwałe usuwanie pasującej, zweryfikowanej pamięci "
+"podręcznej kompilacji podczas zapisanych ocen przy starcie lub okresowych? "
+"Multimedia osobiste, modele i nieznane pliki są wykluczone. Ochrona ma "
+"pierwszeństwo. Zapis szkicu nie usuwa plików."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_rule_combine"
+msgid "Condition combination"
+msgstr "Łączenie warunków"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_days"
+msgid "Minimum age in days; 0: no age condition"
+msgstr "Minimalny wiek w dniach; 0: bez warunku wieku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rule_editor"
+msgid "Storage rule"
+msgstr "Reguła miejsca na dysku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rule_enabled"
+msgid "Enable this rule after saving preferences"
+msgstr "Włącz regułę po zapisaniu preferencji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_limit"
+msgid "Up to 100 rules can be saved."
+msgstr "Można zapisać najwyżej 100 reguł."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_minimum_mib"
+msgid "Minimum size in MiB; 0: no size condition"
+msgstr "Minimalny rozmiar w MiB; 0: bez warunku rozmiaru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_mode"
+msgid "Rule action"
+msgstr "Działanie reguły"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_notify"
+msgid "Notify about matches"
+msgstr "Powiadom o dopasowaniach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_off"
+msgid "Off"
+msgstr "Wyłączone"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_on"
+msgid "On"
+msgstr "Włączone"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+#, python-brace-format
+msgctxt "storage_rule_row"
+msgid "{category}; {mode}; {state}; age {days} days; minimum {size}"
+msgstr "{category}; {mode}; {state}; wiek {days} dni; minimum {size}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_rule_suggest"
+msgid "Suggest for manual review"
+msgstr "Zaproponuj do ręcznego przeglądu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rules_note"
+msgid ""
+"Age and size are conditions, not proof of uselessness. Protection wins. A "
+"suggestion or notification rule wins over an automatic rule on the same "
+"file. Automatic mode is available only for verified regenerable compile "
+"cache."
+msgstr ""
+"Wiek i rozmiar to warunki, a nie dowód zbędności. Ochrona ma pierwszeństwo. "
+"Reguła propozycji lub powiadomienia przeważa nad automatyczną dla tego "
+"samego pliku. Tryb automatyczny jest dostępny tylko dla zweryfikowanej, "
+"odtwarzalnej pamięci podręcznej kompilacji."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py client/ui/dialogs/storage_rules.py
+msgctxt "storage_rules_save_note"
+msgid ""
+"These are drafts. Save preferences to apply rule and matching-scope changes."
+msgstr ""
+"To szkice. Zapisz preferencje, aby zastosować zmiany reguł i zakresu "
+"powiązań."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+#: client/ui/dialogs/storage_rules.py
+msgctxt "storage_rules_tab"
+msgid "Rules"
+msgstr "Reguły"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_save_preferences"
+msgid "Save preferences and rule drafts"
+msgstr "Zapisz preferencje i szkice reguł"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scan"
+msgid "Scan now"
+msgstr "Skanuj teraz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_scan_cancelled"
+msgid "Stopped. Results cover only items measured before cancellation."
+msgstr ""
+"Zatrzymano. Wyniki obejmują tylko elementy zmierzone przed anulowaniem."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scan_complete"
+msgid "Scan finished for the selected known locations."
+msgstr "Ukończono skan wybranych znanych miejsc."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scan_partial"
+msgid ""
+"Scan finished with incomplete coverage. Unavailable items stay protected."
+msgstr ""
+"Ukończono skan z niepełnym zakresem. Niedostępne elementy pozostają "
+"chronione."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_scan_progress"
+msgid "Files measured: {count}."
+msgstr "Zmierzone pliki: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_scanning"
+msgid "Measuring storage. You can stop this job."
+msgstr "Trwa pomiar miejsca na dysku. Możesz zatrzymać to zadanie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scheduled_failed"
+msgid ""
+"The optional scheduled storage operation could not finish. Open Storage "
+"manager, review held files and scan again."
+msgstr ""
+"Nie udało się ukończyć opcjonalnej zaplanowanej operacji. Otwórz Menedżer "
+"miejsca na dysku, sprawdź przechowalnię i przeskanuj ponownie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/storage_runtime.py
+#, python-brace-format
+msgctxt "storage_scheduled_notice"
+msgid ""
+"Storage evaluation: {total}. Notification-rule matches: {count}. A warning "
+"or usage target may be reached. Open Storage manager for details."
+msgstr ""
+"Ocena miejsca na dysku: {total}. Dopasowania reguł powiadomień: {count}. "
+"Mógł zostać osiągnięty próg ostrzeżenia lub cel użycia. Szczegóły są w "
+"Menedżerze miejsca na dysku."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "storage_scheduled_result"
+msgid ""
+"Optional cache rule: completed {completed}; skipped {skipped}; failed "
+"{failed}."
+msgstr ""
+"Opcjonalna reguła pamięci podręcznej: ukończone {completed}; pominięte "
+"{skipped}; błędy {failed}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_all"
+msgid ""
+"Scope: this installation, shared components and the previously selected "
+"other account folders. Other accounts are information only."
+msgstr ""
+"Zakres: ta instalacja, wspólne składniki i wcześniej wybrane foldery innych "
+"kont. Inne konta służą tylko do informacji."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_current"
+msgid ""
+"Scope: this installation, this account and shared components. Other account "
+"folders are excluded."
+msgstr ""
+"Zakres: ta instalacja, to konto i wspólne składniki. Foldery innych kont są "
+"wykluczone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_external"
+msgid "Known external model files"
+msgstr "Znane pliki modeli zewnętrznych"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_other_accounts"
+msgid "Previously selected other account folders"
+msgstr "Wcześniej wybrane foldery innych kont"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_scope_program"
+msgid "This installation's program data"
+msgstr "Dane programu w tej instalacji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_search"
+msgid "Search visible item names"
+msgstr "Szukaj w widocznych nazwach elementów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_select_suggested"
+msgid "Select rule suggestions"
+msgstr "Zaznacz propozycje reguł"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_select_visible"
+msgid "Select this page"
+msgstr "Zaznacz tę stronę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_selected_count"
+msgid "Selected files: {count}."
+msgstr "Zaznaczone pliki: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+#, python-brace-format
+msgctxt "storage_selection_summary"
+msgid ""
+"Selected: {selected}; on this page: {visible}; filtered total: {total}; "
+"page: {page}."
+msgstr ""
+"Zaznaczone: {selected}; na stronie: {visible}; razem po filtrowaniu: "
+"{total}; strona: {page}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_size"
+msgid "Logical size"
+msgstr "Rozmiar logiczny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_sort"
+msgid "Sort by"
+msgstr "Sortuj według"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state"
+msgid "Decision"
+msgstr "Decyzja"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state_all"
+msgid "All decisions"
+msgstr "Wszystkie decyzje"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state_eligible"
+msgid "Potentially eligible; current use checked again"
+msgstr "Potencjalnie odpowiednie; użycie sprawdzane ponownie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_state_protected"
+msgid "Protected or information only"
+msgstr "Chronione lub tylko informacyjne"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_stop"
+msgid "Stop current job"
+msgstr "Zatrzymaj bieżące zadanie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_actions.py
+msgctxt "storage_stopping"
+msgid ""
+"Stopping after the current safe step. Completed operations are not undone."
+msgstr ""
+"Zatrzymywanie po bieżącym bezpiecznym kroku. Ukończone operacje nie są "
+"cofane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager_views.py
+msgctxt "storage_summary"
+msgid "Storage summary"
+msgstr "Podsumowanie miejsca na dysku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_target_action"
+msgid "When the usage target is reached"
+msgstr "Po osiągnięciu celu użycia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_target_category"
+msgid "Usage target category"
+msgstr "Kategoria celu użycia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_exceeded"
+msgid ""
+"Your advisory usage target is reached. Notification only; files are not "
+"removed because of this target."
+msgstr ""
+"Osiągnięto orientacyjny cel użycia. Tylko powiadomienie; ten cel nie "
+"powoduje usuwania plików."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_gib"
+msgid "Advisory usage target in GiB; 0: off"
+msgstr "Orientacyjny cel użycia w GiB; 0: wyłączony"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_paused"
+msgid ""
+"Your usage target is reached. New automatic media downloads are paused using"
+" the last measurement. Manual requests, messages and sending remain "
+"available. Scan again to update the decision."
+msgstr ""
+"Osiągnięto cel użycia. Nowe automatyczne pobieranie jest wstrzymane na "
+"podstawie ostatniego pomiaru. Ręczne żądania, wiadomości i wysyłanie nadal "
+"działają. Przeskanuj ponownie, aby zaktualizować decyzję."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_options.py
+msgctxt "storage_target_scope"
+msgid "Usage target scope"
+msgstr "Zakres celu użycia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_target_scope_all"
+msgid "All measured scopes"
+msgstr "Wszystkie zmierzone zakresy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_unprotect"
+msgid "Remove selected file protection"
+msgstr "Usuń ochronę zaznaczonych plików"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_unprotect_chats"
+msgid "Remove selected conversation protection"
+msgstr "Usuń ochronę zaznaczonych czatów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_visibility_changed"
+msgid ""
+"Chat visibility changed. Cached names, selections and previews were cleared."
+" Scan again to review the current permitted scope."
+msgstr ""
+"Zmieniła się widoczność czatów. Wyczyścił się bufor nazw, zaznaczenia i "
+"podglądy. Przeskanuj ponownie, aby sprawdzić aktualnie dozwolony zakres."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_warning_exceeded"
+msgid "The measured total has reached your size-warning threshold."
+msgstr "Zmierzona suma osiągnęła próg ostrzeżenia o rozmiarze."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_warning_gib"
+msgid "Total-size warning in GiB; 0: off"
+msgstr "Ostrzeżenie o łącznym rozmiarze w GiB; 0: wyłączone"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_warning_repeat_minutes"
+msgid "Repeat scheduled notices after minutes; 0: once until resolved"
+msgstr "Powtarzaj komunikaty po minutach; 0: raz do rozwiązania"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_selection.py
@@ -17805,6 +19142,13 @@ msgstr "Urządzenia odtwarzania"
 msgctxt "voice_call_promote_video_button"
 msgid "Switch to video call"
 msgstr "Przełącz na połączenie wideo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_rate_limited"
+msgid "WhatsApp has temporarily limited call requests. Try again later."
+msgstr ""
+"WhatsApp tymczasowo ograniczył liczbę żądań połączeń. Spróbuj ponownie "
+"później."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_reconnecting"

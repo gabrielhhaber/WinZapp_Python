@@ -2792,6 +2792,18 @@ class WebSocketClient:
             ts //= 1000
 
         msg_type = wpp_msg.get("type", "chat")
+        # Older Neonize builds stored these proto messages as "unknown" while
+        # retaining their button payloads. Recognize them when history is read
+        # again so existing conversations gain their text and options too.
+        if msg_type == "unknown":
+            if isinstance(wpp_msg.get("dynamicReplyButtons"), list):
+                msg_type = "buttons"
+            elif isinstance(wpp_msg.get("interactivePayload"), dict):
+                msg_type = "interactive"
+            elif isinstance(wpp_msg.get("hydratedButtons"), list):
+                msg_type = "template"
+            elif isinstance(wpp_msg.get("list"), dict):
+                msg_type = "list"
         is_video_message = msg_type == "ptv"
         if is_video_message:
             # A video message (recorded with the camera button, sent in place
@@ -3009,16 +3021,35 @@ class WebSocketClient:
             }
         elif msg_type == "buttons":
             message_content = {
-                "buttonsMessage": {}
+                "buttonsMessage": {
+                    "contentText": conversation,
+                    "buttons": wpp_msg.get("dynamicReplyButtons") or [],
+                }
             }
         elif msg_type == "list":
             message_content = {
-                "listMessage": {}
+                "listMessage": wpp_msg.get("list") or {"description": conversation}
             }
         elif msg_type == "template":
             message_content = {
-                "templateMessage": {}
+                "templateMessage": {"hydratedContentText": conversation,
+                                    "hydratedButtons": wpp_msg.get("hydratedButtons") or []}
             }
+        elif msg_type == "interactive":
+            order_update = order_update_payload(wpp_msg)
+            if order_update is not None:
+                message_content = {ORDER_UPDATE_MESSAGE_TYPE: order_update}
+                msg_type = "order_update"
+            else:
+                message_content = {"interactiveMessage": {"body": {"text": conversation}}}
+        elif msg_type == "buttons_response":
+            message_content = {"buttonsResponseMessage": {
+                "selectedDisplayText": conversation,
+                "selectedButtonID": wpp_msg.get("selectedButtonID") or ""}}
+        elif msg_type == "list_response":
+            message_content = {"listResponseMessage": {
+                "title": conversation,
+                "singleSelectReply": {"selectedRowId": wpp_msg.get("selectedRowID") or ""}}}
         elif msg_type == "revoked":
             # WPPConnect gives the revoke event its own serialized `id` and
             # points at the message being deleted through protocolMessageKey.
@@ -3066,11 +3097,6 @@ class WebSocketClient:
             # thumbnail: left to the text fallback below it became a row of
             # base64, or "unsupported message".
             message_content = {PRODUCT_MESSAGE_TYPE: product_payload(wpp_msg)}
-        elif msg_type == "interactive" and order_update_payload(wpp_msg) is not None:
-            # The seller's follow-up to an order. Any other interactive
-            # message keeps going through the handling it always had.
-            message_content = {ORDER_UPDATE_MESSAGE_TYPE: order_update_payload(wpp_msg)}
-            msg_type = "order_update"
         elif msg_type == "gp2":
             # Group membership/settings notifications (join, leave, removed,
             # promoted, subject/description/picture change, …). WPPConnect
@@ -3134,6 +3160,9 @@ class WebSocketClient:
             "buttons": "buttonsMessage",
             "list": "listMessage",
             "template": "templateMessage",
+            "interactive": "interactiveMessage",
+            "buttons_response": "buttonsResponseMessage",
+            "list_response": "listResponseMessage",
             "revoked": "protocolMessage",
             "extendedText": "extendedTextMessage",
             "gp2": "groupNotification",

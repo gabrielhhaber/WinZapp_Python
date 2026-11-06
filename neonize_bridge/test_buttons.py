@@ -68,6 +68,7 @@ def test_message_without_buttons_gets_no_fields():
 
 def test_reply_buttons():
     fields = buttons.button_fields(with_buttons())
+    assert fields["type"] == "buttons"
     assert fields["body"] == "Choose"
     assert fields["dynamicReplyButtons"][:2] == [
         {"buttonId": "yes", "buttonText": {"displayText": "Yes"}, "type": 1},
@@ -85,6 +86,7 @@ def test_list_becomes_sections_and_rows():
 
 def test_template_keeps_the_position_of_each_button():
     fields = buttons.button_fields(with_template())
+    assert fields["type"] == "template"
     assert fields["body"] == "Hi"
     assert fields["hydratedButtons"][0] == {
         "index": 0, "quickReplyButton": {"displayText": "Ok", "id": "ok"}}
@@ -94,9 +96,74 @@ def test_template_keeps_the_position_of_each_button():
 
 def test_native_flow():
     fields = buttons.button_fields(with_native_flow())
+    assert fields["type"] == "interactive"
     assert fields["body"] == "Body"
     assert fields["interactivePayload"]["buttons"] == [
         {"name": "quick_reply", "buttonParamsJson": '{"display_text":"Hi","id":"x"}'}]
+
+
+def test_carousel_without_native_buttons_keeps_its_card_text():
+    msg = Message()
+    card = msg.interactiveMessage.carouselMessage.cards.add()
+    card.header.title = "Ticket"
+    card.body.text = "Departure at noon"
+    shown = buttons.button_fields(msg)
+    assert shown == {"type": "interactive", "body": "Ticket\nDeparture at noon"}
+
+
+def test_carousel_keeps_card_buttons_and_reply_positions():
+    msg = Message()
+    first = msg.interactiveMessage.carouselMessage.cards.add()
+    first.header.title = "Outbound"
+    first.body.text = "Trip one"
+    first.footer.text = "Sleeper seat"
+    link = first.nativeFlowMessage.buttons.add()
+    link.name, link.buttonParamsJSON = "cta_url", '{"display_text":"Details","url":"https://example.test/1"}'
+    reply = first.nativeFlowMessage.buttons.add()
+    reply.name, reply.buttonParamsJSON = "quick_reply", '{"display_text":"Choose","id":"trip-1"}'
+    second = msg.interactiveMessage.carouselMessage.cards.add()
+    second.header.title = "Return"
+    second.body.text = "Trip two"
+    reply = second.nativeFlowMessage.buttons.add()
+    reply.name, reply.buttonParamsJSON = "quick_reply", '{"display_text":"Choose","id":"trip-2"}'
+
+    fields = buttons.button_fields(msg)
+    assert fields["body"] == "Outbound\nTrip one\nSleeper seat\nReturn\nTrip two"
+    actions = fields["interactivePayload"]["buttons"]
+    assert [(b["name"], b["cardIndex"], b["cardTitle"]) for b in actions] == [
+        ("cta_url", 0, "Outbound"), ("quick_reply", 0, "Outbound"),
+        ("quick_reply", 1, "Return")]
+    assert [b["cardText"] for b in actions] == [
+        "Outbound\nTrip one\nSleeper seat", "Outbound\nTrip one\nSleeper seat",
+        "Return\nTrip two"]
+    assert buttons.reply_plan(fields, "native", 1) == {
+        "kind": "carousel", "id": "trip-1", "text": "Choose",
+        "index": 1, "cardIndex": 0}
+    assert buttons.reply_plan(fields, "native", 2) == {
+        "kind": "carousel", "id": "trip-2", "text": "Choose",
+        "index": 0, "cardIndex": 1}
+
+
+def test_reply_messages_keep_the_selected_text():
+    msg = Message()
+    msg.buttonsResponseMessage.selectedDisplayText = "Tomorrow"
+    msg.buttonsResponseMessage.selectedButtonID = "tomorrow"
+    assert buttons.button_fields(msg) == {
+        "type": "buttons_response", "body": "Tomorrow", "selectedButtonID": "tomorrow"}
+
+    msg = Message()
+    msg.listResponseMessage.title = "Bus station"
+    msg.listResponseMessage.singleSelectReply.selectedRowID = "station-1"
+    assert buttons.button_fields(msg) == {
+        "type": "list_response", "body": "Bus station", "selectedRowID": "station-1"}
+
+    msg = Message()
+    msg.interactiveResponseMessage.body.text = "Confirm"
+    assert buttons.button_fields(msg) == {"type": "chat", "body": "Confirm"}
+
+    msg = Message()
+    msg.interactiveResponseMessage.nativeFlowResponseMessage.paramsJSON = '{"display_text":"Confirm"}'
+    assert buttons.button_fields(msg) == {"type": "chat", "body": "Confirm"}
 
 
 def stored(m):
@@ -164,16 +231,25 @@ def test_reply_protos():
     assert (flow.name, flow.version) == ("quick_reply", 3)
     assert json.loads(flow.paramsJSON) == {"display_text": "Olá", "id": "x"}
     assert r.interactiveResponseMessage.contextInfo.stanzaID == "ID1"
+    r = buttons.build_reply(
+        {"kind": "carousel", "id": "trip-2", "text": "Select",
+         "index": 0, "cardIndex": 1}, ctx)
+    card = r.templateButtonReplyMessage
+    assert (card.selectedID, card.selectedDisplayText,
+            card.selectedIndex, card.selectedCarouselCardIndex) == (
+                "trip-2", "Select", 0, 1)
+    assert card.contextInfo.stanzaID == "ID1"
 
 
 def test_valid_request():
     serial = "false_5511999990000@c.us_ABCDEF1234"
     assert ci.valid_request(serial, {"source": "list", "index": 0}) == ("list", 0)
+    assert ci.valid_request(serial, {"source": "native", "index": 31}) == ("native", 31)
     bad = [
         ("false_1203@g.us_ABCDEF1234", {"source": "list", "index": 0}),      # group
         (serial, {"source": "x", "index": 0}),
         (serial, {"source": "list", "index": -1}),
-        (serial, {"source": "list", "index": 12}),
+        (serial, {"source": "list", "index": 32}),
         (serial, {"source": "list", "index": True}),
         (serial, {"source": "list", "index": "1"}),
         (serial, None),
@@ -187,11 +263,13 @@ def test_valid_request():
 SERIAL = "false_5511999990000@c.us_ABCDEF1234"
 
 
-def ask(tmp_path, body, connected=True, store=True, fails=False, serial=SERIAL):
+def ask(tmp_path, body, connected=True, store=True, fails=False, serial=SERIAL,
+        message_fields=None):
     db = Store(str(tmp_path / "x.db"))
     if store:
         original = {"id": {"id": "ABCDEF1234", "_serialized": SERIAL}, "t": 5,
-                    "fromMe": False, "type": "chat", **stored(with_buttons())}
+                    "fromMe": False, "type": "chat",
+                    **(message_fields if message_fields is not None else stored(with_buttons()))}
         db.message("5511999990000@s.whatsapp.net", original)
     sent = []
 
@@ -223,6 +301,23 @@ def test_route_sends_the_reply_once(tmp_path):
     destination, message = sent[0]
     assert destination == "JID:5511999990000@s.whatsapp.net"
     assert message.buttonsResponseMessage.selectedButtonID == "yes"
+
+
+def test_route_sends_a_carousel_card_selection(tmp_path):
+    msg = Message()
+    for card_index in range(2):
+        card = msg.interactiveMessage.carouselMessage.cards.add()
+        button = card.nativeFlowMessage.buttons.add()
+        button.name = "quick_reply"
+        button.buttonParamsJSON = json.dumps(
+            {"display_text": "Select", "id": f"trip-{card_index}"})
+    status, body, sent = ask(
+        tmp_path, {"source": "native", "index": 1},
+        message_fields=buttons.button_fields(msg))
+    assert status == 200 and len(sent) == 1
+    reply = sent[0][1].templateButtonReplyMessage
+    assert (reply.selectedID, reply.selectedIndex,
+            reply.selectedCarouselCardIndex) == ("trip-1", 0, 1)
 
 
 def test_route_answers_with_the_code_the_client_reads(tmp_path):

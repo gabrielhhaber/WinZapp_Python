@@ -348,7 +348,8 @@ class MessageRenderingMixin:
 
         # ── Template ─────────────────────────────────────────────────────────
         if msg_type == "templateMessage":
-            return i18n.t("notif_template")
+            template = msg_obj.get("templateMessage") or {}
+            return template.get("hydratedContentText") or i18n.t("notif_template")
 
         # ── Revoked / Protocol Message ───────────────────────────────────────
         if msg_type == "protocolMessage":

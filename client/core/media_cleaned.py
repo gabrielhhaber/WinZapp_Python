@@ -7,8 +7,10 @@ sync would fetch it all again. This is that memory: the cache ids (see
 ui.conversation_panel.media_paths.media_cache_id) of the files the cleanup
 deleted, kept in `media_cleaned.json` of the account's data folder.
 
-What it blocks: every automatic download and every explicit one — the
-message offers no download and says why. What clears it: a logout or a new
+What it blocks: automatic downloads and ordinary open/play/save requests.
+The Download action can explicitly request one cleaned copy after a separate
+confirmation, without clearing this or any other automatic block. What
+clears the complete index: a logout or a new
 pairing (`MainWindow._forget_cleaned_media()`, from the wipe that empties the
 account's local data) and nothing else. A full resync (F5) does not: it
 refetches the messages of the same account, and what the user chose to delete
@@ -23,6 +25,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import uuid
 
 
 class CleanedMediaIndex:
@@ -88,17 +91,51 @@ class CleanedMediaIndex:
             except OSError:
                 pass
 
+    def update_durable(self, cache_ids, *, remove=False):
+        """An explicit storage transaction must persist its block BEFORE acting.
+
+        Unlike legacy best-effort add_many, failures propagate. Only requested
+        ids change; malformed existing data must never become an empty index.
+        Returns newly changed ids so a failed transaction can roll back its own
+        additions without clearing anybody else's cleanup decisions.
+        """
+        requested = {v for v in cache_ids if isinstance(v, str) and v}
+        with self._lock:
+            path = self._path_getter()
+            try:
+                with open(path, encoding="utf-8") as stream:
+                    raw = json.load(stream)
+                if isinstance(raw, dict) and set(raw) != {"ids"}:
+                    raise ValueError("unsupported cleaned-media index")
+                values = raw.get("ids") if isinstance(raw, dict) else raw
+                if not isinstance(values, list) or any(not isinstance(v, str) or not v for v in values):
+                    raise ValueError("invalid cleaned-media index")
+                previous = set(values)
+            except FileNotFoundError:
+                previous = set()
+            changed = previous & requested if remove else requested - previous
+            self._loaded_from = path
+            self._ids = previous - requested if remove else previous | requested
+            if not self._save():
+                self._ids = previous
+                raise OSError("could not persist cleaned-media index")
+            return changed
+
     def _save(self):
         path = self._loaded_from
-        temporary = path + ".tmp"
+        temporary = path + "." + uuid.uuid4().hex + ".tmp"
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(temporary, "w", encoding="utf-8") as stream:
                 json.dump({"ids": sorted(self._ids)}, stream)
+                stream.flush()
+                os.fsync(stream.fileno())
             os.replace(temporary, path)
+            return True
         except OSError:
             # Still blocked for this run; it is the file that failed.
             try:
                 os.remove(temporary)
             except OSError:
                 pass
+            return False

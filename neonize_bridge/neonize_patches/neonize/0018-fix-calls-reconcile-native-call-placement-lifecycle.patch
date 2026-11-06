@@ -1,0 +1,459 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Muhammet Enes Senovali <mesenovali@gmail.com>
+Date: Thu, 5 Nov 2026 20:05:36 +0300
+Subject: [PATCH] fix(calls): reconcile native call placement lifecycle
+
+---
+ goneonize/calls.go                |  51 ++++-----
+ goneonize/calls_lifecycle.go      |  87 +++++++++++++++
+ goneonize/calls_lifecycle_test.go | 172 ++++++++++++++++++++++++++++++
+ goneonize/calls_video.go          |  16 ++-
+ neonize/calls.py                  |  27 +++++
+ 5 files changed, 316 insertions(+), 37 deletions(-)
+ create mode 100644 goneonize/calls_lifecycle.go
+ create mode 100644 goneonize/calls_lifecycle_test.go
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 1eefb10..20121fb 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -117,9 +117,12 @@ func registrar(cliente, formato string, args ...any) {
+ 
+ // chamadaAtiva liga uma chamada do meowcaller as filas de audio do Python.
+ type chamadaAtiva struct {
+-	pcmRate    int
+-	generation uint64
+-	call       *meowcaller.Call
++	pcmRate       int
++	generation    uint64
++	call          *meowcaller.Call
++	peerAccepted  atomic.Bool
++	finished      sync.Once
++	notifications sync.Mutex
+ 	// entrante: a chamada veio de fora; atendida: ja atendemos. Recusar uma
+ 	// chamada que ainda toca usa Reject (o terminate do Hangup nao a derruba).
+ 	entrante bool
+@@ -167,25 +170,10 @@ func (c *chamadaAtiva) Close() error { return nil }
+ func chaveChamada(cliente, chamada string) string { return cliente + "|" + chamada }
+ 
+ func emitirEvento(cliente string, ev map[string]any) {
++	b, _ := json.Marshal(ev)
+ 	chamadasMu.Lock()
+-	fila := chamadasEventos[cliente]
++	queueCallEvent(chamadasEventos[cliente], string(b))
+ 	chamadasMu.Unlock()
+-	if fila == nil {
+-		return
+-	}
+-	b, _ := json.Marshal(ev)
+-	select {
+-	case fila <- string(b):
+-	default: // ninguem esta lendo: perde o evento mais antigo
+-		select {
+-		case <-fila:
+-		default:
+-		}
+-		select {
+-		case fila <- string(b):
+-		default:
+-		}
+-	}
+ }
+ 
+ // ligarChamada anexa o audio e os avisos a uma chamada nova (de entrada ou de saida).
+@@ -232,6 +220,7 @@ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAti
+ 	// so a chamada de saida: o outro lado atendeu (a fase Connecting do
+ 	// meowcaller vem antes, quando o relay e alocado, e nao quer dizer isso)
+ 	c.OnPeerAccept(func() {
++		a.peerAccepted.Store(true)
+ 		registrar(cliente, "chamada %s: a outra pessoa atendeu, depois de %.1fs", id, time.Since(inicio).Seconds())
+ 		emitirEvento(cliente, map[string]any{"ev": "accepted", "call": id, "generation": a.generation})
+ 	})
+@@ -242,17 +231,13 @@ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAti
+ 	c.OnEnd(func(motivo string) {
+ 		registrar(cliente, "chamada %s encerrada (%s) depois de %.1fs: quadros do outro lado=%d, do microfone=%d",
+ 			id, motivo, time.Since(inicio).Seconds(), a.recebidos.Load(), a.enviados.Load())
+-		a.encerrar()
+-		chamadasMu.Lock()
+-		current := chamadasAtivas[chaveChamada(cliente, id)] == a
+-		if current {
+-			delete(chamadasAtivas, chaveChamada(cliente, id))
+-		}
+-		chamadasMu.Unlock()
+-		if current {
+-			emitirEvento(cliente, map[string]any{"ev": "end", "call": id, "reason": motivo, "generation": a.generation})
+-		}
++		finishCallRecord(cliente, id, a, motivo)
+ 	})
++	// OnEnd does not replay an end that preceded registration. Release its
++	// queues once and report a neutral terminal reason, never a guessed reject.
++	if c.State() == meowcaller.CallPhaseEnded {
++		finishCallRecord(cliente, id, a, "ended_before_binding")
++	}
+ 	return a
+ }
+ 
+@@ -306,7 +291,7 @@ func instalarChamadas(id string) {
+ 	mc.OnIncomingCall(func(c *meowcaller.Call) {
+ 		a := ligarChamada(id, c, true)
+ 		_, grupo := c.GroupState()
+-		emitirEvento(id, map[string]any{"ev": "incoming", "call": c.ID(), "peer": c.Peer(),
++		emitIncomingCallRecord(id, c.ID(), a, map[string]any{"ev": "incoming", "call": c.ID(), "peer": c.Peer(),
+ 			"video": c.IsVideo(), "group": grupo, "generation": a.generation})
+ 	})
+ }
+@@ -439,8 +424,8 @@ func discar(cliente, numero string, video bool, buf *C.char, cap C.int) C.int {
+ 		registrar(cliente, "a ligacao para %s falhou: %v", mascararNumero(destino), err)
+ 		return erro(err)
+ 	}
+-	ligarChamada(cliente, c, false)
+-	b, _ := json.Marshal(map[string]any{"call": c.ID(), "peer": c.Peer()})
++	a := ligarChamada(cliente, c, false)
++	b, _ := json.Marshal(map[string]any{"call": c.ID(), "peer": c.Peer(), "generation": a.generation})
+ 	return escreverTexto(string(b), buf, cap)
+ }
+ 
+diff --git a/goneonize/calls_lifecycle.go b/goneonize/calls_lifecycle.go
+new file mode 100644
+index 0000000..de04410
+--- /dev/null
++++ b/goneonize/calls_lifecycle.go
+@@ -0,0 +1,87 @@
++package main
++
++import (
++	"encoding/json"
++	"github.com/purpshell/meowcaller"
++)
++
++// Called under chamadasMu. The queue operations never block or call back.
++func queueCallEvent(queue chan string, encoded string) bool {
++	if queue == nil {
++		return false
++	}
++	select {
++	case queue <- encoded:
++		return true
++	default:
++		select {
++		case <-queue:
++		default:
++		}
++		select {
++		case queue <- encoded:
++			return true
++		default:
++			return false
++		}
++	}
++}
++
++// Incoming and end must be queued in one record order. Checking current and
++// enqueueing under the same map lock also fences a same-ID replacement.
++func emitIncomingCallRecord(cliente, id string, a *chamadaAtiva, event map[string]any) bool {
++	encoded, _ := json.Marshal(event)
++	a.notifications.Lock()
++	defer a.notifications.Unlock()
++	if a.call.State() == meowcaller.CallPhaseEnded {
++		return false
++	}
++	select {
++	case <-a.fim:
++		return false
++	default:
++	}
++	chamadasMu.Lock()
++	defer chamadasMu.Unlock()
++	if chamadasAtivas[chaveChamada(cliente, id)] != a {
++		return false
++	}
++	return queueCallEvent(chamadasEventos[cliente], string(encoded))
++}
++
++// The final map check is the snapshot's linearization point. No callback or
++// JSON serialization runs under chamadasMu; generation belongs to this a.
++func callLifecycleInfo(cliente, id string, a *chamadaAtiva) (map[string]any, bool) {
++	phase := a.call.State()
++	ended := phase == meowcaller.CallPhaseEnded
++	select {
++	case <-a.fim:
++		ended = true
++	default:
++	}
++	info := map[string]any{
++		"generation": a.generation, "peerAccepted": a.peerAccepted.Load(),
++		"ended": ended, "phase": int(phase),
++	}
++	chamadasMu.Lock()
++	current := chamadasAtivas[chaveChamada(cliente, id)] == a
++	chamadasMu.Unlock()
++	return info, current
++}
++
++func finishCallRecord(cliente, id string, a *chamadaAtiva, reason string) {
++	a.notifications.Lock()
++	defer a.notifications.Unlock()
++	a.finished.Do(func() {
++		a.encerrar()
++		encoded, _ := json.Marshal(map[string]any{"ev": "end", "call": id,
++			"reason": reason, "generation": a.generation})
++		chamadasMu.Lock()
++		current := chamadasAtivas[chaveChamada(cliente, id)] == a
++		if current {
++			delete(chamadasAtivas, chaveChamada(cliente, id))
++			queueCallEvent(chamadasEventos[cliente], string(encoded))
++		}
++		chamadasMu.Unlock()
++	})
++}
+diff --git a/goneonize/calls_lifecycle_test.go b/goneonize/calls_lifecycle_test.go
+new file mode 100644
+index 0000000..922c6b6
+--- /dev/null
++++ b/goneonize/calls_lifecycle_test.go
+@@ -0,0 +1,172 @@
++package main
++
++import (
++	"encoding/json"
++	"sync"
++	"testing"
++
++	"github.com/purpshell/meowcaller"
++)
++
++func lifecycleRecord(t *testing.T, client, id string, generation uint64) *chamadaAtiva {
++	t.Helper()
++	a := &chamadaAtiva{call: &meowcaller.Call{}, generation: generation,
++		entrada: newCallPCMQueue(), fim: make(chan struct{})}
++	key := chaveChamada(client, id)
++	chamadasMu.Lock()
++	previous, events := chamadasAtivas[key], chamadasEventos[client]
++	chamadasAtivas[key] = a
++	chamadasEventos[client] = make(chan string, 4)
++	chamadasMu.Unlock()
++	t.Cleanup(func() {
++		a.encerrar()
++		chamadasMu.Lock()
++		delete(chamadasAtivas, key)
++		delete(chamadasEventos, client)
++		if previous != nil {
++			chamadasAtivas[key] = previous
++		}
++		if events != nil {
++			chamadasEventos[client] = events
++		}
++		chamadasMu.Unlock()
++	})
++	return a
++}
++
++func TestCallLifecycleSnapshotKeepsOneRecordIdentity(t *testing.T) {
++	a := lifecycleRecord(t, "lifecycle-snapshot", "C", 17)
++	a.peerAccepted.Store(true)
++	info, current := callLifecycleInfo("lifecycle-snapshot", "C", a)
++	if !current || info["generation"] != uint64(17) || info["peerAccepted"] != true || info["ended"] != false {
++		t.Fatalf("invalid snapshot: %#v, current=%v", info, current)
++	}
++	a.encerrar()
++	info, current = callLifecycleInfo("lifecycle-snapshot", "C", a)
++	if !current || info["ended"] != true {
++		t.Fatal("closed queue was not terminal")
++	}
++}
++
++func TestCallLifecycleReplacementCannotReturnOldSnapshotOrBeRemoved(t *testing.T) {
++	a := lifecycleRecord(t, "lifecycle-replaced", "C", 17)
++	b := &chamadaAtiva{generation: 18}
++	chamadasMu.Lock()
++	chamadasAtivas[chaveChamada("lifecycle-replaced", "C")] = b
++	chamadasMu.Unlock()
++	if _, current := callLifecycleInfo("lifecycle-replaced", "C", a); current {
++		t.Fatal("old owner is current")
++	}
++	finishCallRecord("lifecycle-replaced", "C", a, "old end")
++	chamadasMu.Lock()
++	current := chamadasAtivas[chaveChamada("lifecycle-replaced", "C")]
++	chamadasMu.Unlock()
++	if current != b {
++		t.Fatal("old end removed replacement")
++	}
++}
++
++func TestCallLifecycleFinishEmitsOneTerminalEvent(t *testing.T) {
++	a := lifecycleRecord(t, "lifecycle-finish", "C", 17)
++	finishCallRecord("lifecycle-finish", "C", a, "ended_before_binding")
++	finishCallRecord("lifecycle-finish", "C", a, "hangup")
++	chamadasMu.Lock()
++	queue := chamadasEventos["lifecycle-finish"]
++	current := chamadasAtivas[chaveChamada("lifecycle-finish", "C")]
++	chamadasMu.Unlock()
++	if current != nil || len(queue) != 1 {
++		t.Fatal("terminal cleanup was not once")
++	}
++	var event map[string]any
++	if err := json.Unmarshal([]byte(<-queue), &event); err != nil {
++		t.Fatal(err)
++	}
++	if event["ev"] != "end" || event["generation"] != float64(17) {
++		t.Fatalf("wrong terminal identity: %#v", event)
++	}
++}
++
++func TestIncomingAfterTerminalCannotResurrectTheCall(t *testing.T) {
++	a := lifecycleRecord(t, "incoming-ended", "C", 17)
++	finishCallRecord("incoming-ended", "C", a, "ended_before_binding")
++	if emitIncomingCallRecord("incoming-ended", "C", a, map[string]any{"ev": "incoming"}) {
++		t.Fatal("an ended incoming call was published")
++	}
++	if len(chamadasEventos["incoming-ended"]) != 1 {
++		t.Fatal("extra event after end")
++	}
++}
++
++func TestIncomingBeforeTerminalKeepsItsEventOrder(t *testing.T) {
++	a := lifecycleRecord(t, "incoming-order", "C", 17)
++	if !emitIncomingCallRecord("incoming-order", "C", a, map[string]any{"ev": "incoming"}) {
++		t.Fatal("live incoming call was suppressed")
++	}
++	finishCallRecord("incoming-order", "C", a, "hangup")
++	queue := chamadasEventos["incoming-order"]
++	for _, expected := range []string{"incoming", "end"} {
++		var event map[string]any
++		if err := json.Unmarshal([]byte(<-queue), &event); err != nil {
++			t.Fatal(err)
++		}
++		if event["ev"] != expected {
++			t.Fatalf("got %v, want %s", event, expected)
++		}
++	}
++}
++
++func TestOldIncomingOwnerCannotPublishAfterReplacement(t *testing.T) {
++	a := lifecycleRecord(t, "incoming-replaced", "C", 17)
++	chamadasAtivas[chaveChamada("incoming-replaced", "C")] = &chamadaAtiva{generation: 18}
++	if emitIncomingCallRecord("incoming-replaced", "C", a, map[string]any{"ev": "incoming"}) {
++		t.Fatal("stale incoming owner was published")
++	}
++	if len(chamadasEventos["incoming-replaced"]) != 0 {
++		t.Fatal("stale event was queued")
++	}
++}
++
++func TestConcurrentIncomingAndEndNeverQueueTerminalThenIncoming(t *testing.T) {
++	for iteration := 0; iteration < 30; iteration++ {
++		a := lifecycleRecord(t, "incoming-concurrent", "C", uint64(iteration+1))
++		start := make(chan struct{})
++		var done sync.WaitGroup
++		done.Add(2)
++		go func() {
++			defer done.Done()
++			<-start
++			emitIncomingCallRecord("incoming-concurrent", "C", a, map[string]any{"ev": "incoming"})
++		}()
++		go func() { defer done.Done(); <-start; finishCallRecord("incoming-concurrent", "C", a, "hangup") }()
++		close(start)
++		done.Wait()
++		queue := chamadasEventos["incoming-concurrent"]
++		seenEnd := false
++		for len(queue) > 0 {
++			var event map[string]any
++			if err := json.Unmarshal([]byte(<-queue), &event); err != nil {
++				t.Fatal(err)
++			}
++			if event["ev"] == "incoming" && seenEnd {
++				t.Fatal("incoming followed terminal event")
++			}
++			seenEnd = seenEnd || event["ev"] == "end"
++		}
++		if !seenEnd {
++			t.Fatal("terminal event missing")
++		}
++	}
++}
++
++func TestCallEventQueueRemainsBoundedAndDropsOldest(t *testing.T) {
++	queue := make(chan string, 2)
++	queueCallEvent(queue, "old")
++	queueCallEvent(queue, "middle")
++	queueCallEvent(queue, "latest")
++	if len(queue) != 2 || <-queue != "middle" || <-queue != "latest" {
++		t.Fatal("queue bound/order changed")
++	}
++	if queueCallEvent(nil, "none") {
++		t.Fatal("missing queue reported success")
++	}
++}
+diff --git a/goneonize/calls_video.go b/goneonize/calls_video.go
+index 2ccff90..06317d2 100644
+--- a/goneonize/calls_video.go
++++ b/goneonize/calls_video.go
+@@ -108,8 +108,8 @@ func CallGroupDial(id *C.char, group *C.char, video C.int, buf *C.char, cap C.in
+ 		registrar(cliente, "a ligacao para o grupo falhou: %v", err)
+ 		return erro(err)
+ 	}
+-	ligarChamada(cliente, c, false)
+-	b, _ := json.Marshal(map[string]any{"call": c.ID()})
++	a := ligarChamada(cliente, c, false)
++	b, _ := json.Marshal(map[string]any{"call": c.ID(), "generation": a.generation})
+ 	return escreverTexto(string(b), buf, cap)
+ }
+ 
+@@ -198,9 +198,17 @@ func CallInfo(id *C.char, call *C.char, buf *C.char, cap C.int) C.int {
+ 		return erroSemChamada
+ 	}
+ 	g, grupo := a.call.GroupState()
+-	b, _ := json.Marshal(map[string]any{
++	lifecycle, current := callLifecycleInfo(C.GoString(id), C.GoString(call), a)
++	if !current {
++		return erroSemChamada
++	}
++	info := map[string]any{
+ 		"video": a.call.IsVideo(), "sendingVideo": a.call.IsSendingVideo(),
+ 		"receivingVideo": a.call.IsReceivingVideo(), "group": grupo,
+-		"participants": len(g.Participants)})
++		"participants": len(g.Participants)}
++	for key, value := range lifecycle {
++		info[key] = value
++	}
++	b, _ := json.Marshal(info)
+ 	return escreverTexto(string(b), buf, cap)
+ }
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 59986a4..1a7085d 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -147,6 +147,33 @@ class Calls:
+             return None
+         return json.loads(buf.raw[:size].decode("utf-8"))
+ 
++    def placement_state(self, call_id: str):
++        """An exact-generation lifecycle snapshot; None only for native no-call.
++
++        Called only when a placement result carries generation. An old DLL's
++        legacy CallInfo response must not masquerade as a terminal snapshot.
++        """
++        if not hasattr(gocode, "CallInfo"):
++            raise CallError("native placement snapshot unavailable")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallInfo(self.uuid, call_id.encode(), buf, _RESULT_BUFFER)
++        if size == _NO_CALL:
++            return None
++        if size <= 0 or size > _RESULT_BUFFER:
++            raise CallError("invalid native placement snapshot")
++        try:
++            value = json.loads(buf.raw[:size].decode("utf-8"))
++        except (UnicodeError, ValueError) as error:
++            raise CallError("invalid native placement snapshot") from error
++        if (not isinstance(value, dict) or type(value.get("generation")) is not int
++                or not 0 < value["generation"] < 2**64
++                or type(value.get("peerAccepted")) is not bool
++                or type(value.get("ended")) is not bool
++                or type(value.get("phase")) is not int
++                or not 0 <= value["phase"] <= 8):
++            raise CallError("invalid native placement snapshot")
++        return value
++
+     def lobby(self, call_id: str, creator: str):
+         """Where the group call `call_id` started by `creator` stands, as the
+         server says while this account is not in it: {"call", "groupJid",

@@ -93,3 +93,18 @@ def test_related_chat_list_previews_use_translation_keys():
     for message_type, payload, expected in cases:
         preview = stub._last_msg_preview(_chat_with(_message(message_type, payload)))
         assert preview.startswith(expected)
+
+
+def test_interactive_content_reaches_the_row_and_chat_preview():
+    panel = _ConversationStub()
+    main = _MainWindowStub()
+    cases = (
+        ("buttonsMessage", {"contentText": "Choose a trip", "buttons": [
+            {"buttonText": {"displayText": "Tomorrow"}}]}, "Choose a trip"),
+        ("templateMessage", {"hydratedContentText": "Your ticket"}, "Your ticket"),
+        ("interactiveMessage", {"body": {"text": "Bus at noon"}}, "Bus at noon"),
+    )
+    for message_type, payload, expected in cases:
+        message = _message(message_type, payload)
+        assert expected in panel._get_message_content(message)
+        assert main._last_msg_preview(_chat_with(message)).startswith(expected)
