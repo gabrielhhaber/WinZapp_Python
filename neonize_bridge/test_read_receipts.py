@@ -48,3 +48,16 @@ def test_the_session_sends_read_self_with_receipts_hidden():
     assert session.receipt_for("1203@g.us", "READ") is ReceiptType.READ
     session.client = _client(0)     # a failed fetch: the last value known holds
     assert session.receipt_for("55@s.whatsapp.net", "PLAYED") is ReceiptType.PLAYED_SELF
+
+
+def test_hidden_read_receipts_hide_the_contacts_reads_too():
+    # bilateral: with the setting off we do not see their blue ticks either
+    assert rr.incoming_kind("55@s.whatsapp.net", "READ", "none") == "DELIVERED"
+    assert rr.incoming_kind("77@lid", "PLAYED", "none") == "DELIVERED"
+    assert rr.incoming_kind("55@s.whatsapp.net", "DELIVERED", "none") == "DELIVERED"
+
+
+def test_incoming_reads_stay_in_groups_and_when_shown_or_unknown():
+    assert rr.incoming_kind("1203@g.us", "READ", "none") == "READ"
+    assert rr.incoming_kind("55@s.whatsapp.net", "READ", "all") == "READ"
+    assert rr.incoming_kind("55@s.whatsapp.net", "PLAYED", None) == "PLAYED"

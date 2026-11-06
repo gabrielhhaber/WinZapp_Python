@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Neonize: com as confirmações de leitura desativadas em Privacidade, você deixa de ver o status "lida" das mensagens que envia em conversas individuais, assim como deixa de enviar confirmação de leitura aos outros (como no WPPConnect). A configuração agora vale nos dois sentidos.
+
 - ClickBus: nomes comerciais verificados aparecem na lista de conversas, os textos de viagens e os botões interativos são exibidos por completo, e a opção escolhida no carrossel é enviada com o índice do cartão.
 
 - Configurações > Armazenamento ganha o Gerenciador de armazenamento: tamanhos lógicos e cobertura, associação de mídia, proteções, prévia da remoção de cópias locais ou retenção recuperável, restauração e regras, avisos e metas opcionais. A remoção automática é exclusiva do cache de compilação regenerável verificado; o agendamento começa desligado. É possível pedir uma mídia limpa individualmente sem liberar o download automático.

@@ -972,6 +972,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     return
                 if ack is None:
                     return
+                kind = self.incoming_receipt_kind(chat, kind)
+                ack = {"DELIVERED": 2, "READ": 3, "PLAYED": 4}[kind]
                 if not is_mine:
                     try:
                         who = msgmap.jid_wpp(jid_text(e.MessageSource.Sender))

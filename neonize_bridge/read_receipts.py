@@ -38,6 +38,18 @@ def receipt_name(chat, kind, read_receipts):
     return kind
 
 
+def incoming_kind(chat, kind, read_receipts):
+    """The receipt `kind` ('DELIVERED', 'READ', 'PLAYED') to honour when one
+    arrives in `chat`. The setting works both ways, as on the phone: with
+    "Read receipts" off, a contact's read or played receipt in a one-to-one
+    chat is only a delivery for us (WhatsApp still forwards it; WPPConnect's
+    page ignores it). Groups keep theirs, as when sending."""
+    if kind in ("READ", "PLAYED") and read_receipts == "none" \
+            and not str(chat or "").endswith("@g.us"):
+        return "DELIVERED"
+    return kind
+
+
 def read_receipts_setting(client, last_known=None):
     """'all' or 'none' from whatsmeow's privacy settings; `last_known` when
     they do not say (whatsmeow answers an empty struct on a failed fetch)."""
@@ -73,6 +85,13 @@ class ReadReceipts:
     """`Session` method choosing the receipt it sends."""
 
     _read_receipts = None
+
+    def incoming_receipt_kind(self, chat, kind):
+        """`incoming_kind` with the account's current setting."""
+        if kind not in ("READ", "PLAYED"):
+            return kind
+        self._read_receipts = read_receipts_setting(self.client, self._read_receipts)
+        return incoming_kind(chat, kind, self._read_receipts)
 
     def receipt_for(self, chat, kind):
         """The neonize ReceiptType to send for `kind` ('READ'/'PLAYED') in `chat`."""
