@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize: Gizlilik'te okundu bilgisi kapalıyken, bire bir sohbetlerde gönderdiğiniz mesajların "okundu" durumunu artık görmezsiniz; başkalarına da okundu bilgisi göndermezsiniz (WPPConnect'teki gibi). Ayar artık iki yönde de geçerlidir.
+
 - ClickBus: doğrulanmış işletme adları sohbet listesinde görünür, yolculuk metinleri ve etkileşimli düğmeler tam gösterilir ve karusel içinde seçilen seçenek kart dizini ile gönderilir.
 
 - Ayarlar > Depolama bölümüne Depolama yöneticisi eklendi: mantıksal boyutları ve kapsamı inceleyin, medya eşlemesini ve korumaları seçin, yerel kopya kaldırmayı veya geri alınabilir bekletmeyi önizleyin, bekletilen dosyaları geri alın; isteğe bağlı kuralları, bildirimleri ve kullanım hedeflerini yönetin. Otomatik kaldırma yalnız doğrulanmış, yeniden üretilebilir derleme önbelleğine açıktır; zamanlama varsayılan olarak kapalıdır. Temizlenmiş medya, otomatik indirme engelleri kaldırılmadan tek tek istenebilir.

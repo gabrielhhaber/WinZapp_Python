@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: with read receipts turned off in Privacy, you no longer see the "read" status of the messages you send in one-to-one chats, just as you no longer send read receipts to others (as with WPPConnect). The setting now works in both directions.
+
 - ClickBus: verified business names now show in the conversation list, trip texts and interactive buttons are shown in full, and the option chosen in a carousel is sent with the card index.
 
 - Settings > Storage gains Storage manager: inspect logical sizes and coverage, choose media matching and protections, preview local-copy removal or recoverable holding, restore held files, and configure optional rules, notices and advisory targets. Automatic removal is restricted to verified regenerable compile cache; all scheduling starts off. Cleaned media can be requested individually without clearing automatic-download blocks.
