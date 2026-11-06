@@ -8,6 +8,7 @@ available here.
 import logging
 import wx
 from core.conversation_view import LOCKED, MAIN
+from main_window.storage_privacy import invalidate as invalidate_storage_visibility
 from ui.chat_lock import (
     ChatLockChangePinDialog,
     ChatLockRecoveryDialog,
@@ -341,6 +342,7 @@ class ChatLockMixin:
 
         canonical = self._chat_lock_canonical_jid(jid)
         vault.lock_chat(canonical)
+        invalidate_storage_visibility(self)
         self._persist_chat_lock_vault()
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and cp.conversation is not None:
@@ -564,6 +566,7 @@ class ChatLockMixin:
     def lock_chat_vault(self, *, silent=False, show_conversations=True):
         self._cancel_chat_lock_timeout()
         self._chat_lock_unlocked = False
+        invalidate_storage_visibility(self)
         if hasattr(self, "_invalidate_star_sync_for_lock"):
             self._invalidate_star_sync_for_lock()
         cp = getattr(self, "conversations_panel", None)

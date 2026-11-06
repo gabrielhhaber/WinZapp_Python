@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Ayarlar > Depolama bölümüne Depolama yöneticisi eklendi: mantıksal boyutları ve kapsamı inceleyin, medya eşlemesini ve korumaları seçin, yerel kopya kaldırmayı veya geri alınabilir bekletmeyi önizleyin, bekletilen dosyaları geri alın; isteğe bağlı kuralları, bildirimleri ve kullanım hedeflerini yönetin. Otomatik kaldırma yalnız doğrulanmış, yeniden üretilebilir derleme önbelleğine açıktır; zamanlama varsayılan olarak kapalıdır. Temizlenmiş medya, otomatik indirme engelleri kaldırılmadan tek tek istenebilir.
+
 - Neonize aramaları: yerel çağrı kaydı oluşturulmadan gelen cevaplama ve bitiş durumları korunur; grup araması hataları WhatsApp hız sınırı ile desteklenen üye sınırlarını ayrı bildirir.
 
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.

@@ -1,9 +1,10 @@
 """Media cleanup: free disk space by deleting downloaded media files.
 
 Deletes the files WinZapp cached for received media of chosen conversations
-and media types — never the messages. A message whose file is removed here
-goes back to offering the on-demand download (or "not downloaded"), exactly
-as one whose media was never fetched.
+and media types — never the messages. The cleaned-media index prevents the
+next sync from refilling the cache. A later explicit Download request can
+ask to retrieve that one file without clearing the automatic-download block;
+WhatsApp may no longer have the media.
 
 Two steps, on purpose: `scan()` only reads (it stats files and deletes
 nothing) and returns a `Preview`; `execute()` takes that same preview back

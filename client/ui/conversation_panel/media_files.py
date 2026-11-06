@@ -959,6 +959,17 @@ class MediaFilesMixin:
             mw.output(i18n.t("media_download_offline"))
             return
 
+        restore_cleaned = False
+        cleaned = getattr(mw, "is_media_cleaned", None)
+        if callable(cleaned) and cleaned(msg_id):
+            if wx.MessageBox(i18n.t("storage_restore_media_confirm"),
+                             i18n.t("storage_manager_title"),
+                             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION, self) != wx.YES:
+                return
+            # This one explicit request may bypass the block. Keep the index:
+            # it still prevents future automatic refetches if the copy is lost.
+            restore_cleaned = True
+
         mw.output(i18n.t("downloading"))
         self._action_download_btn.Hide()
         # The gauge only moves forward now (see
@@ -982,10 +993,12 @@ class MediaFilesMixin:
 
         def _run():
             try:
+                extra = {"restore_cleaned": True} if restore_cleaned else {}
                 if msg_type == "audioMessage":
-                    mw.handle_audio_message(msg)
+                    mw.handle_audio_message(msg, **extra)
                 else:
-                    mw.handle_media_message(msg, progress_callback=_update_download_progress)
+                    mw.handle_media_message(msg, progress_callback=_update_download_progress,
+                                            **extra)
             except Exception:
                 pass
 
