@@ -6591,6 +6591,19 @@ msgctxt "group_call_joining"
 msgid "Joining the ongoing call: {name}..."
 msgstr "Devam eden aramaya katılınıyor: {name}..."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "group_call_too_few_members"
+msgid ""
+"Starting a group call with Neonize requires at least two other members."
+msgstr ""
+"Neonize ile grup araması başlatmak için sizin dışınızda en az iki üye "
+"gerekir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "group_call_too_many_members"
+msgid "Neonize can call at most 31 other group members at once."
+msgstr "Neonize ile aynı anda en fazla 31 diğer grup üyesi aranabilir."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 msgctxt "group_call_unavailable_label"
 msgid "Calling is not possible"
@@ -17453,6 +17466,13 @@ msgstr "Oynatma cihazları"
 msgctxt "voice_call_promote_video_button"
 msgid "Switch to video call"
 msgstr "Görüntülü aramaya geç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_rate_limited"
+msgid "WhatsApp has temporarily limited call requests. Try again later."
+msgstr ""
+"WhatsApp arama isteklerini geçici olarak sınırladı. Bir süre sonra yeniden "
+"deneyin."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_reconnecting"
