@@ -296,6 +296,8 @@ NOWOŚCI
 
 - Przekazywanie wiadomości z linkiem zachowuje teraz podgląd linku. W oknie przekazywania jest nowe pole „Zachowaj podgląd linku”, domyślnie zaznaczone i widoczne, gdy któraś z zaznaczonych wiadomości ma podgląd; w Ustawienia > Interfejs użytkownika > Wiadomości opcja „Domyślnie zachowuj podglądy linków przy przekazywaniu wiadomości” określa, jak to pole się zaczyna. Działa z WPPConnect i z Neonize. Uwaga: z WPPConnect wiadomość przekazana z podglądem jest wysyłana jako nowa wiadomość i nie ma oznaczenia „Przekazano”; z Neonize je ma.
 
+- Podczas pisania wiadomości z linkiem czytnik ekranu mówi teraz „Ładowanie podglądu...” w trakcie pobierania podglądu, „Dodano podgląd.” po jego dołączeniu albo „Nie udało się załadować podglądu linku: przyczyna.” w razie błędu. W Ustawienia > Dostępność > Treść mówiona nowa opcja „Ogłaszaj ładowanie i dodawanie podglądów linków” włącza lub wyłącza te trzy komunikaty; jest domyślnie zaznaczona.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

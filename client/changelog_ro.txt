@@ -296,6 +296,8 @@ NOUTĂȚI
 
 - Redirecționarea unui mesaj cu un link păstrează acum previzualizarea linkului. Fereastra de redirecționare are caseta nouă „Păstrează previzualizarea linkului”, bifată implicit și afișată când un mesaj selectat are previzualizare; în Setări > Interfața utilizatorului > Mesaje, opțiunea „Păstrează implicit previzualizările linkurilor la redirecționarea mesajelor” stabilește cum începe. Funcționează cu WPPConnect și cu Neonize. Notă: cu WPPConnect, mesajul redirecționat cu previzualizarea este trimis ca mesaj nou și nu poartă eticheta „Redirecționat”; cu Neonize o poartă.
 
+- Când scrii un mesaj cu un link, cititorul de ecran spune acum „Se încarcă previzualizarea...” cât timp aceasta este obținută, „Previzualizare adăugată.” când este atașată sau „Nu s-a putut încărca previzualizarea linkului: motiv.” când eșuează. În Setări > Accesibilitate > Conținut vorbit, noua opțiune „Anunțați încărcarea și adăugarea previzualizărilor linkurilor” activează sau dezactivează cele trei mesaje; este bifată implicit.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

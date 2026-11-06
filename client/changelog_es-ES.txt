@@ -296,6 +296,8 @@ NOVEDADES
 
 - Al reenviar un mensaje con un enlace, ahora se conserva la vista previa del enlace. El diálogo de reenvío tiene la nueva casilla "Mantener la vista previa del enlace", marcada por defecto y visible cuando algún mensaje seleccionado tiene vista previa; en Configuración > Interfaz de usuario > Conversaciones, la opción "Mantener las vistas previas de enlaces de forma predeterminada al reenviar mensajes" define cómo empieza. Funciona con WPPConnect y con Neonize. Nota: con WPPConnect, el mensaje reenviado con su vista previa se envía como un mensaje nuevo y no lleva la etiqueta "Reenviado"; con Neonize sí la lleva.
 
+- Al escribir un mensaje con un enlace, el lector de pantalla ahora dice "Cargando vista previa..." mientras se obtiene, "Vista previa añadida." cuando se adjunta, o "No se pudo cargar la vista previa del enlace: motivo." cuando falla. En Configuración > Accesibilidad > Contenido hablado, la nueva opción "Anunciar la carga y la adición de las vistas previas de enlaces" activa o desactiva los tres mensajes; viene marcada por defecto.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

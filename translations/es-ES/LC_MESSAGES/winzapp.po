@@ -7754,6 +7754,43 @@ msgctxt "link_copied"
 msgid "Link copied: {url}"
 msgstr "Enlace copiado: {url}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_added"
+msgid "Link preview added."
+msgstr "Vista previa añadida."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_empty"
+msgid "the page has no title or description"
+msgstr "la página no tiene título ni descripción"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_error_http"
+msgid "the site answered with error {status}"
+msgstr "el sitio respondió con el error {status}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_network"
+msgid "could not connect to the site"
+msgstr "no se pudo conectar con el sitio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_not_html"
+msgid "the link is not a web page"
+msgstr "el enlace no es una página web"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_failed"
+msgid "Could not load the link preview: {reason}."
+msgstr "No se pudo cargar la vista previa del enlace: {reason}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_loading"
+msgid "Loading link preview..."
+msgstr "Cargando vista previa..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/links.py
 msgctxt "links_list_label"
@@ -12756,6 +12793,12 @@ msgstr "Anunciar cuando &la actualización de chats se haya completado"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "Anunciar cuando la actualización &de chats se haya iniciado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_link_previews_label"
+msgid "Announce link preview &loading and adding"
+msgstr "Anunciar la carga &y la adición de las vistas previas de enlaces"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
