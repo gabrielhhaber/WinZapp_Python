@@ -13,6 +13,7 @@ NOWOŚCI
 - Neonize: pierwsza wiadomość do nowego numeru telefonu wpisanego w nowej rozmowie (Ctrl+N) nie kończy się już jako „niepotwierdzona”, gdy WhatsApp ma ten numer zarejestrowany w innej postaci (z dziewiątą cyfrą lub bez niej w brazylijskich numerach komórkowych): jest teraz wysyłana na adres, który zna WhatsApp. Numer wpisany w nowej rozmowie otwiera teraz czat pod adresem, który zna WhatsApp, więc nie zostaje zdublowana rozmowa.
 
 - Wiadomości głosowe: przepływność nagrań wróciła do 64 kb/s, dzięki czemu wysyłanie jest szybkie nawet po minucie nagrania (zmiana na 256 kb/s spowolniła wysyłanie). W Ustawienia > Dźwięk pojawiła się opcja "Przepływność wiadomości głosowych (kb/s)" do wyboru od 32 do 256 kb/s.
+- Wiadomości głosowe: nagrania stereo (AAC) są teraz domyślnie wysyłane z przepływnością 128 kb/s, ponieważ 64 kb/s pogarszało jakość dźwięku; nagrania mono pozostają przy 64 kb/s. W Ustawieniach > Dźwięk pojawia się „Przepływność stereofonicznych wiadomości głosowych (kb/s)”. Kto miał jeszcze dawną wartość domyślną 64 kb/s, przechodzi na 128 kb/s dla stereo; każda inna wybrana przepływność zostaje zachowana.
 
 - Ustawienia > Interfejs użytkownika > Czaty: nowa opcja "Liczba nowych wiadomości na liście czatów", dzięki której czytnik ekranu podaje liczbę nowych wiadomości przed nazwą czatu zamiast po niej. Dotyczy listy czatów, czatów zarchiwizowanych i zablokowanych. (sugestia Michala Suchego)
 

@@ -13,6 +13,7 @@ NOVIDADES
 - Neonize: a primeira mensagem para um número de telefone novo digitado numa nova conversa (Ctrl+N) não termina mais como "envio não confirmado" quando o WhatsApp tem o número registrado na outra forma (com ou sem o nono dígito dos celulares brasileiros): agora ela é enviada ao endereço que o WhatsApp conhece. Além disso, um número digitado numa nova conversa agora abre o chat com o endereço que o WhatsApp conhece, sem deixar uma conversa duplicada.
 
 - Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápido mesmo com mais de um minuto (a mudança para 256 kbps tinha deixado o envio lento). Configurações > Áudio ganhou "Taxa de bits das mensagens de voz (kbps)", para escolher de 32 a 256 kbps.
+- Mensagens de voz: as gravações em estéreo (AAC) agora saem por padrão a 128 kbps, porque 64 kbps deixava o áudio com qualidade ruim; as gravações em mono continuam a 64 kbps. Configurações > Áudio ganha "Taxa de bits das mensagens de voz em estéreo (kbps)". Quem ainda estava no padrão antigo de 64 kbps passa a 128 kbps no estéreo; qualquer outra taxa que você tenha escolhido é mantida.
 
 - Configurações > Interface do usuário > Conversas: nova opção "Número de mensagens novas na lista de conversas", para o leitor de tela falar o número de mensagens novas antes do nome da conversa em vez de depois. Vale para a lista de conversas, as arquivadas e as trancadas. (sugestão de Michal Suchý)
 

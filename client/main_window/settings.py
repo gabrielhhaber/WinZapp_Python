@@ -24,6 +24,7 @@ from core.sound_system import (
     resolve_alert_tone_path,
     resolve_sound_event_path,
 )
+from core.voice_stereo import migrate_stereo_voice_bitrate
 from core.utils import (
     DEFAULT_SETTINGS,
     backfill_missing_defaults,
@@ -955,6 +956,11 @@ class SettingsMixin:
         # reinstall recommendation. Must run here too, ahead of the backfill
         # that would otherwise plant the (already-True) shipped default first.
         if migrate_wpp_reinstall_notice(self.settings):
+            changed = True
+        # One bitrate served mono and stereo; stereo AAC now has its own,
+        # default 128. Must run ahead of the backfill -- see
+        # migrate_stereo_voice_bitrate().
+        if migrate_stereo_voice_bitrate(self.settings):
             changed = True
         if changed:
             self.save_settings()
