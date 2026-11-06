@@ -7696,7 +7696,7 @@ msgctxt "link_preview_added"
 msgid "Link preview added."
 msgstr "Önizleme eklendi."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
 msgctxt "link_preview_error_empty"
 msgid "the page has no title or description"
 msgstr "sayfanın başlığı ve açıklaması yok"
@@ -7712,7 +7712,7 @@ msgctxt "link_preview_error_network"
 msgid "could not connect to the site"
 msgstr "siteye bağlanılamadı"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
 msgctxt "link_preview_error_not_html"
 msgid "the link is not a web page"
 msgstr "bağlantı bir web sayfası değil"

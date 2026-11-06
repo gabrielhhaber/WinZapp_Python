@@ -7763,7 +7763,7 @@ msgctxt "link_preview_added"
 msgid "Link preview added."
 msgstr "Dodano podgląd."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
 msgctxt "link_preview_error_empty"
 msgid "the page has no title or description"
 msgstr "strona nie ma tytułu ani opisu"
@@ -7779,7 +7779,7 @@ msgctxt "link_preview_error_network"
 msgid "could not connect to the site"
 msgstr "nie udało się połączyć ze stroną"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
 msgctxt "link_preview_error_not_html"
 msgid "the link is not a web page"
 msgstr "link nie prowadzi do strony internetowej"
