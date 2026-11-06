@@ -88,6 +88,20 @@ class TestReadingTheButtons:
         assert business_button_label(msg, button) == "15:45 → 14:30\nR$ 330,97\nSemi-lei"
         assert button["index"] == 2 and button["value"] == "trip-3"
 
+    def test_cached_carousel_button_recovers_text_cut_at_32_characters(self):
+        trip = "15:45 → 14:30\nR$ 330,97\nSemi-leito"
+        more = "Veja mais viagens deste dia ou filtre por horário, assento, viação e rodoviárias."
+        first = {"kind": "reply", "source": "native", "index": 0,
+                 "label": f"1. {trip[:32]}: Selecionar", "value": "trip-1"}
+        second = {"kind": "reply", "source": "native", "index": 1,
+                  "label": f"2. {more[:32]}: Selecionar", "value": "more"}
+        msg = {"messageType": "interactiveMessage",
+               "message": {"interactiveMessage": {"body": {"text": f"Menu\n{trip}\n{more}"}}},
+               "businessButtons": [first, second]}
+        assert business_button_label(msg, first) == trip
+        assert business_button_label(msg, second) == more
+        assert second["index"] == 1 and second["value"] == "more"
+
     def test_other_buttons_and_new_carousel_labels_are_unchanged(self):
         label = "3. Trip: Select"
         button = {"kind": "reply", "source": "native", "label": label}

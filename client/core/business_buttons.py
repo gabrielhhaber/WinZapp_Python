@@ -34,7 +34,7 @@ SOURCES = ("dynamic", "native", "template", "list")
 REPLY, URL, COPY, CALL = "reply", "url", "copy", "call"
 
 _MESSAGE = re.compile(r"(?:true|false)_\d+@(?:c\.us|lid)_[A-Za-z0-9]{8,64}")
-_OLD_CARD_LABEL = re.compile(r"^[1-9]\d*\. (.+): [^:\n]+$", re.DOTALL)
+_OLD_CARD_LABEL = re.compile(r"^([1-9]\d*)\. (.+): [^:\n]+$", re.DOTALL)
 
 
 class ButtonReplyError(Exception):
@@ -150,16 +150,44 @@ def business_buttons(wpp_msg):
 def business_button_label(msg, button):
     """Name for a stored button, including carousels cached by the old build.
 
-    Their labels were saved as "3. <card text>: Select" and a restart does not
-    re-normalize that local message. The original card text is still inside
-    the label, so remove only the framing this client added.
+    Their labels were saved as "3. <first 32 characters>: Select" and a
+    restart does not re-normalize that local message. Recover the complete
+    card from the interactive message body, which still contains all cards.
     """
     label = button.get("label") or ""
     if (msg.get("messageType") != "interactiveMessage"
             or button.get("kind") != REPLY or button.get("source") != "native"):
         return label
     old = _OLD_CARD_LABEL.fullmatch(label)
-    return old.group(1) if old else label
+    if not old:
+        return label
+    preview = old.group(2)
+    interactive = (msg.get("message") or {}).get("interactiveMessage") or {}
+    body = (interactive.get("body") or {}).get("text") or ""
+    if not isinstance(body, str) or not isinstance(msg.get("businessButtons"), list):
+        return preview
+    locations = []
+    cursor = 0
+    previous_number, previous_start = "", -1
+    for action in msg["businessButtons"]:
+        match = _OLD_CARD_LABEL.fullmatch(action.get("label") or "")
+        if not match:
+            continue
+        number, candidate = match.group(1), match.group(2)
+        if number == previous_number:
+            start = previous_start
+        else:
+            start = body.find(candidate, cursor)
+            if start < 0:
+                continue
+            cursor = start + len(candidate)
+        locations.append((action, start))
+        previous_number, previous_start = number, start
+    for action, start in locations:
+        if action is button:
+            end = next((pos for _, pos in locations if pos > start), len(body))
+            return body[start:end].strip() or preview
+    return preview
 
 
 def reply_to_button(connection, message_id, button):
