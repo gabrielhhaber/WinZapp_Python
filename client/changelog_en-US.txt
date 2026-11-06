@@ -18,6 +18,8 @@ WHAT'S NEW
 
 - Neonize calls: the log now records the relay endpoints and the relay's answers, to find why an incoming call may carry no audio from the other person (issue #689). No change in behavior.
 
+- Neonize group calls: when a group member joins a group call you started, the call becomes active and the audio starts, instead of staying on "calling" with the microphone dropped. The end of the call is now recorded in the group and in your call history, not in a private chat with one of the members (issue #689).
+
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
 
 - Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
