@@ -283,6 +283,8 @@ NOWOŚCI
 
 - Arabski: przewodnik użytkowania (Pomoc > Przewodnik użytkowania) jest teraz kompletny po arabsku.
 
+- Neonize: czat ze zweryfikowaną firmą pokazuje teraz zweryfikowaną nazwę firmy, jeśli nie ma jej w Twojej książce adresowej.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

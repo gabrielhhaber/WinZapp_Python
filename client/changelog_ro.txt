@@ -283,6 +283,8 @@ NOUTĂȚI
 
 - Arabă: ghidul de utilizare (Ajutor > Ghid de utilizare) este acum complet în arabă.
 
+- Neonize: o conversație cu o firmă verificată arată acum numele verificat al firmei când aceasta nu este în agenda ta.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

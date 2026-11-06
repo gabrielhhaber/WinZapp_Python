@@ -41,13 +41,25 @@ def contact_names(contacts):
     return {msgmap.jid_wpp(c["jid"]): c["name"] for c in contacts if c["name"]}
 
 
-def listing_identities(chat_rows, contact_rows, phone_of):
-    """({chat id in WPPConnect format: address-book name}, {...: nickname}) of
-    the person behind each private chat. Most chats are kept under an LID, whose
-    own row has no address-book name: `phone_of(lid)` gives the number's JID
-    ('' when unknown), where the name is."""
+def verified_business_names(entries, jid_text):
+    """Business names from neonize's contact store, separate from saved names."""
+    result = {}
+    for entry in entries or ():
+        name = (entry.Info.BusinessName or "").strip()
+        jid = jid_text(entry.JID)
+        if jid and name:
+            result[jid] = name
+    return result
+
+
+def listing_identities(chat_rows, contact_rows, phone_of, business_names=None):
+    """Address-book names, nicknames and verified names for private chats.
+
+    Most chats are kept under an LID, whose own row has no address-book name:
+    `phone_of(lid)` gives the number's JID ('' when unknown)."""
     rows = {c["jid"]: c for c in contact_rows}
-    names, nicknames = {}, {}
+    names, nicknames, verified = {}, {}, {}
+    business_names = business_names or {}
     for c in chat_rows:
         jid = c["jid"]
         if not jid.endswith(("@lid", "@s.whatsapp.net")):
@@ -60,10 +72,15 @@ def listing_identities(chat_rows, contact_rows, phone_of):
             names[wpp] = name
         if nickname:
             nicknames[wpp] = nickname
-    return names, nicknames
+        business = business_names.get(jid, "")
+        for form in (contacts.equivalent_jids(phone) if business_names and phone else ()):
+            business = business or business_names.get(form, "")
+        if business:
+            verified[wpp] = business
+    return names, nicknames, verified
 
 
-def chat_to_wpp(c, names, wpp_id, messages=None, nicknames=None):
+def chat_to_wpp(c, names, wpp_id, messages=None, nicknames=None, verified_names=None):
     """A store row -> the chat as `list-chats` returns it. The name is the one in
     the address book, else the one the phone gave the conversation; the person's
     own nickname goes in `contact.pushname`, where the client reads it."""
@@ -78,8 +95,13 @@ def chat_to_wpp(c, names, wpp_id, messages=None, nicknames=None):
         "msgs": messages,
     }
     nickname = (nicknames or {}).get(jid)
-    if nickname:
-        chat["contact"] = {"pushname": nickname}
+    verified = (verified_names or {}).get(jid)
+    if nickname or verified:
+        chat["contact"] = {}
+        if nickname:
+            chat["contact"]["pushname"] = nickname
+        if verified:
+            chat["contact"]["verifiedName"] = verified
     return chat
 
 
