@@ -95,7 +95,16 @@ def _status_content_label(msg_type: str, msg_obj: dict, i18n, settings: dict = N
                     break
             name = parsed_name or i18n.t("unknown_contact")
         return i18n.t("contact_message").format(name=name)
-    return i18n.t("notif_unsupported")
+    # Everything else a contact can post (location, live location, poll,
+    # contacts array, commerce, interactive, view-once...) already has a
+    # label in the notification formatter; before, each of them showed as
+    # "Incompatible message" in the Status tab.
+    try:
+        from core.notification_manager import format_notification_body
+        return format_notification_body(
+            {"messageType": msg_type, "message": msg_obj}, None, i18n)
+    except Exception:
+        return i18n.t("notif_unsupported")
 
 
 # Shared by both status media-save entry points — the classic "Salvar

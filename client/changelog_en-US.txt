@@ -308,6 +308,8 @@ WHAT'S NEW
 
 - Neonize: quoting a voice note now shows its duration (for example 0:15) in the quote bubble on the other person's WhatsApp, as with WPPConnect (issue #707).
 
+- Status: location, poll, contact-list and other types of contact statuses that showed as "Incompatible message" now appear with their proper label.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
