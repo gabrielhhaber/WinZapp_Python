@@ -13697,7 +13697,7 @@ msgstr ""
 "Pominięte lub niedostępne miejsca i elementy: {count}. Suma jest niepełna."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_sensitive.py
 msgctxt "storage_details"
 msgid "Item details"
 msgstr "Szczegóły elementu"
@@ -13886,8 +13886,14 @@ msgid "Measured logical size: {size}. Files: {count}."
 msgstr "Zmierzony rozmiar logiczny: {size}. Pliki: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "storage_manager_open"
+msgid "Sto&rage manager…"
+msgstr "Menedżer m&iejsca na dysku…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_manager.py
+#: client/ui/dialogs/storage_manager.py
 msgctxt "storage_manager_title"
 msgid "Storage manager"
 msgstr "Menedżer miejsca na dysku"
@@ -14135,6 +14141,16 @@ msgstr ""
 "domyślnych może zresetować preferencje tego konta."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preferences_limit"
+msgid ""
+"The preference size limit was reached. Previous readable settings were kept."
+" Select fewer protection entries or use smaller batches, then retry."
+msgstr ""
+"Osiągnięto limit rozmiaru preferencji. Poprzednie czytelne ustawienia "
+"zachowano. Zaznacz mniej elementów ochrony lub użyj mniejszych partii i "
+"ponów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager_actions.py
 #: client/ui/dialogs/storage_manager_auxiliary.py
 msgctxt "storage_preferences_saved"
@@ -14265,6 +14281,17 @@ msgid ""
 msgstr ""
 "Trwale usunąć pliki z przechowalni: {count} ({size})? Nie można tego tu "
 "cofnąć. WhatsApp może już nie mieć tych multimediów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_matching_required"
+msgid ""
+"To permanently remove held media, enable media matching and select "
+"conversations in Preferences, save, then retry. Only currently visible, "
+"unlocked and completely matched media without a protection can be removed."
+msgstr ""
+"Aby trwale usunąć multimedia z przechowalni, włącz powiązanie multimediów i "
+"wybierz czaty w Preferencjach, zapisz i spróbuj ponownie. Można usuwać tylko"
+" multimedia obecnie widoczne, odblokowane, w pełni powiązane i bez ochrony."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_reason_critical"
@@ -14788,6 +14815,16 @@ msgstr "Usuń ochronę zaznaczonych plików"
 msgctxt "storage_unprotect_chats"
 msgid "Remove selected conversation protection"
 msgstr "Usuń ochronę zaznaczonych czatów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_visibility_changed"
+msgid ""
+"Chat visibility changed. Cached names, selections and previews were cleared."
+" Scan again to review the current permitted scope."
+msgstr ""
+"Zmieniła się widoczność czatów. Wyczyścił się bufor nazw, zaznaczenia i "
+"podglądy. Przeskanuj ponownie, aby sprawdzić aktualnie dozwolony zakres."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager.py

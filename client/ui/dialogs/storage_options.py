@@ -129,7 +129,8 @@ class StorageOptionsPanel(wx.ScrolledWindow):
             self.owner.error("storage_preferences_invalid")
             return
         with StorageMatchingDialog(self, self.owner, preferences) as dialog:
-            if dialog.ShowModal() == wx.ID_OK:
+            from .storage_sensitive import show_sensitive
+            if show_sensitive(self.owner.service, dialog) == wx.ID_OK:
                 preferences.match_chats = dialog.selection()
                 self.owner.stage_import(preferences)
                 self.owner.say(self.i18n.t("storage_rules_save_note"))

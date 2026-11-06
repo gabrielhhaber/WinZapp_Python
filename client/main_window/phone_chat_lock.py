@@ -28,6 +28,7 @@ import wx
 
 from core import phone_chat_lock
 from core.chat_lock_vault import jid_fingerprint
+from main_window.storage_privacy import invalidate as invalidate_storage_visibility
 
 
 class PhoneChatLockMixin:
@@ -108,11 +109,14 @@ class PhoneChatLockMixin:
             record = chats.get(name) if name else None
             if isinstance(record, dict):
                 record["isLocked"] = flag
-        return phone_chat_lock.apply_flag(
+        changed = phone_chat_lock.apply_flag(
             self._phone_locked_chats,
             (self._phone_lock_fp(jid), self._phone_lock_fp(counterpart)),
             flag,
         )
+        if flag:
+            invalidate_storage_visibility(self, only_if_hidden=True)
+        return changed
 
     def is_chat_phone_locked(self, jid: str) -> bool:
         """Whether the PHONE has this chat under WhatsApp Chat Lock.

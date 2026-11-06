@@ -132,7 +132,7 @@ def holdings(store, roots, *, limit=1000, after=None):
 
 
 def finish(holding, store, roots, media_index, preferences, *, restore,
-           provider=fileops.pinned):
+           provider=fileops.pinned, busy=lambda e: False, cancel=lambda: False):
     """Freshly validate one selection. Native rename never overwrites a target."""
     folder = os.path.join(store.directory, "storage_quarantine")
     name = os.path.basename(holding.journal)
@@ -146,6 +146,8 @@ def finish(holding, store, roots, media_index, preferences, *, restore,
         current = _decode(store, holding.journal, holding.index, item, roots, raw.get("created", 0))
         if current is None or current.entry.identity != holding.entry.identity:
             raise fileops.ChangedFile("held file changed")
+        if cancel() or busy(current.original):
+            raise fileops.ChangedFile("holding is now protected or busy")
         if (current.original.key in preferences.protected
                 or current.original.chat_key in preferences.protected_chats
                 or current.original.category in preferences.protected_categories):
@@ -155,6 +157,8 @@ def finish(holding, store, roots, media_index, preferences, *, restore,
         item["state"] = "restoring" if restore else "purging"
         _write(holding.journal, raw)
         with provider(current.entry) as pinned:
+            if cancel() or busy(current.original):
+                raise fileops.ChangedFile("holding is now protected or busy")
             if restore:
                 pinned.move(current.original.path)
             else:

@@ -151,3 +151,16 @@ def test_retirement_only_removes_expired_empty_tokens_never_held_content(held):
     assert retire(store, provider=provider)[0] == 0
     assert retire(store, provider=provider, now=time.time() + 300000)[0] == 1
     assert not os.path.exists(item.journal)
+
+
+def test_holding_that_becomes_busy_after_pinning_is_not_mutated(held):
+    store, roots, index, prefs, provider = held
+    item, = holdings(store, roots)
+    checks = []
+    def busy(entry):
+        checks.append(entry)
+        return len(checks) > 1
+    with pytest.raises(fileops.ChangedFile):
+        finish(item, store, roots, index, prefs, restore=False, provider=provider, busy=busy)
+    assert os.path.isfile(item.entry.path) and index.contains("one")
+    assert len(holdings(store, roots)) == 1

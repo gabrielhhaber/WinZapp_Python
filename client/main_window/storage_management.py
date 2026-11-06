@@ -1,6 +1,8 @@
 """Bridge storage's pure service to existing paths, local history and jobs."""
 from __future__ import annotations
 
+import threading
+
 import app_paths
 from core.storage_manager.references import collect
 from core.storage_manager.roots import current_roots
@@ -15,6 +17,31 @@ class StorageContext:
         self.account = app_paths.data_path()
         self.chats = {}
         self.chat_jids = {}
+        self._labels_lock = threading.RLock()
+        self._labels_epoch = 0
+
+    def forget_labels(self):
+        with self._labels_lock:
+            self._labels_epoch += 1
+            self.chats, self.chat_jids = {}, {}
+
+    def can_display(self, entry):
+        if not entry.chat_key:
+            return not entry.display_name
+        with self._labels_lock:
+            jid = self.chat_jids.get(entry.chat_key)
+            known = jid in self.chats if jid is not None else False
+        return known and not self.locked(jid)
+
+    def allowed_chats(self):
+        with self._labels_lock:
+            names = dict(self.chats)
+        return {jid: name for jid, name in names.items() if not self.locked(jid)}
+
+    def has_hidden_labels(self, cached_keys=()):
+        with self._labels_lock:
+            known = dict(self.chat_jids)
+        return any(not known.get(key) or self.locked(known[key]) for key in set(known) | set(cached_keys))
 
     def valid(self):
         return (not getattr(self.window, "_shutting_down", False)
@@ -22,6 +49,7 @@ class StorageContext:
 
     def capture_chats(self):
         """Called on the UI thread; workers never enumerate wx controls."""
+        epoch = self._labels_epoch
         result = {}
         for attr in ("conversations_panel", "archived_conversations_panel"):
             panel = getattr(self.window, attr, None)
@@ -35,9 +63,11 @@ class StorageContext:
                     continue
                 # A data/identity fallback must not become a spoken raw JID.
                 result[jid] = str(name) if name and str(name) != jid and "@" not in str(name) else ""
-        self.chats = result
         from core.storage_manager.references import chat_token
-        self.chat_jids = {chat_token(jid): jid for jid in result}
+        with self._labels_lock:
+            if epoch == self._labels_epoch:
+                self.chats = result
+                self.chat_jids = {chat_token(jid): jid for jid in result}
 
     def locked(self, jid):
         try:
@@ -46,13 +76,13 @@ class StorageContext:
         except Exception:
             return True
 
-    def references(self, cancel):
+    def references(self, cancel, preferences=None):
         from ui.conversation_panel.media_paths import cached_media_path, media_cache_id
         from core.message_stars import is_local_star
         from core.utils import group_media_category
         db = getattr(self.window, "db", None)
-        names = dict(self.chats)
-        preferences = self.window._storage_service.preferences
+        names = self.allowed_chats()
+        preferences = preferences if preferences is not None else self.window._storage_service.preferences
         if preferences.match_chats is not None:
             from core.storage_manager.references import chat_token
             names = {jid: label for jid, label in names.items() if chat_token(jid) in preferences.match_chats}
@@ -70,6 +100,8 @@ class StorageContext:
         if not self.valid():
             return True
         if entry.media_id:
+            if not self.can_display(entry):
+                return True
             from ui.conversation_panel.media_paths import media_cache_id
             # A job may already have buffered content and released its file
             # handle. Respect its owner as well as the native sharing check.
@@ -121,6 +153,7 @@ def service_for(window):
                              context.references, wx.CallAfter,
                              busy=context.busy, valid=context.valid)
     service.shared_store = StorageStore(app_paths.global_dir())
+    service.scoped_references = context.references
     from core.storage_manager.roots import capture_other_accounts
     service.capture_accounts = capture_other_accounts
     service.shared_preferences = lambda: service.shared_store.preferences(strict=True)
@@ -133,9 +166,14 @@ def open_manager(parent, window):
     from ui.dialogs.storage_manager import StorageManagerDialog
     dialog = StorageManagerDialog(parent, window, service_for(window))
     window._storage_dialog_open = True
+    service = window._storage_service
+    service.register_view(dialog)
     try:
+        if dialog.privacy_epoch != service.visibility_epoch:
+            dialog.clear_private_state()
         dialog.ShowModal()
         return dialog.requested_owner
     finally:
         window._storage_dialog_open = False
+        service.unregister_view(dialog)
         dialog.Destroy()

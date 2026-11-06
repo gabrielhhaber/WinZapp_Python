@@ -12822,7 +12822,7 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_sensitive.py
 msgctxt "storage_details"
 msgid "Item details"
 msgstr ""
@@ -12994,8 +12994,14 @@ msgid "Measured logical size: {size}. Files: {count}."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "storage_manager_open"
+msgid "Sto&rage manager…"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_manager.py
+#: client/ui/dialogs/storage_manager.py
 msgctxt "storage_manager_title"
 msgid "Storage manager"
 msgstr ""
@@ -13215,6 +13221,13 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preferences_limit"
+msgid ""
+"The preference size limit was reached. Previous readable settings were kept."
+" Select fewer protection entries or use smaller batches, then retry."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager_actions.py
 #: client/ui/dialogs/storage_manager_auxiliary.py
 msgctxt "storage_preferences_saved"
@@ -13332,6 +13345,14 @@ msgctxt "storage_purge_held_confirm"
 msgid ""
 "Permanently remove {count} held files ({size})? This cannot be undone here; "
 "WhatsApp may no longer have the media."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_matching_required"
+msgid ""
+"To permanently remove held media, enable media matching and select "
+"conversations in Preferences, save, then retry. Only currently visible, "
+"unlocked and completely matched media without a protection can be removed."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -13809,6 +13830,14 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_unprotect_chats"
 msgid "Remove selected conversation protection"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_visibility_changed"
+msgid ""
+"Chat visibility changed. Cached names, selections and previews were cleared."
+" Scan again to review the current permitted scope."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

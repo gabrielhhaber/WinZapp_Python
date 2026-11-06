@@ -118,6 +118,8 @@ def scan(roots, *, cancel=lambda: False, progress=None, max_entries=100_000,
             if classify is not None:
                 entry = classify(entry)
             result.entries.append(entry)
+            if entry.display_name and entry.chat_key:
+                result.named_chats.add(entry.chat_key)
             if progress is not None and len(result.entries) % 256 == 0:
                 progress(len(result.entries))
     return result

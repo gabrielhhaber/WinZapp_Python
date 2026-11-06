@@ -11,6 +11,8 @@ from core.storage_manager.references import References
 from tests.conftest import hidden_frame, destroy_now
 from ui.dialogs.storage_manager import StorageManagerDialog
 from ui.dialogs.storage_rules import RuleEditor
+from ui.dialogs.storage_matching import StorageMatchingDialog
+from ui.dialogs.storage_sensitive import StorageDetailsDialog
 
 pytestmark = pytest.mark.wxgui
 
@@ -34,6 +36,16 @@ def test_manager_builds_native_tabs_without_scanning_or_selecting(wx_app, tmp_pa
         assert dialog.files.HasCheckBoxes()
         assert dialog.search.GetWindowStyleFlag() & wx.TE_PROCESS_ENTER
         assert dialog.options.action.GetSelection() == 0
+        frame._storage_context = SimpleNamespace(capture_chats=lambda: None,
+                                                allowed_chats=lambda: {"synthetic": "Synthetic public chat"})
+        with StorageMatchingDialog(dialog, dialog, service.preferences) as matching:
+            assert matching.chats.has_options()
+            matching.clear_private_state()
+            assert not matching.chats.has_options()
+        with StorageDetailsDialog(dialog, "Synthetic named content", service.visibility_epoch) as details:
+            assert details.text.GetValue() == "Synthetic named content"
+            details.clear_private_state()
+            assert details.text.GetValue() == ""
         with RuleEditor(dialog, frame.i18n) as rule:
             assert not rule.enabled.GetValue() and rule.mode.GetCount() == 2
             rule.category.SetSelection(2)

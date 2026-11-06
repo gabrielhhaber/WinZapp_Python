@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import time
+import threading
+import weakref
 from dataclasses import replace
 from contextlib import nullcontext
 
@@ -20,7 +22,12 @@ class StorageService:
                  busy=lambda e: False, valid=lambda: True, launch=None, provider=None):
         self.store, self.media_index = store, media_index
         self.get_roots, self.get_references = roots, references
+        self.scoped_references = None
         self.is_busy, self.valid = busy, valid
+        self.can_display = getattr(getattr(busy, "__self__", None), "can_display", lambda entry: True)
+        self._visibility_lock = threading.RLock()
+        self.visibility_epoch = 0
+        self.views = weakref.WeakSet()
         self.jobs = JobSlot(dispatch, launch=launch)
         self.provider = provider
         self.preferences_invalid = False
@@ -40,6 +47,34 @@ class StorageService:
         self.scheduled_keys = []
         self.capture_accounts = lambda: []
         self.shared_preferences = lambda: Preferences()
+
+    def present(self, entry):
+        return entry if self.can_display(entry) else replace(entry, display_name="")
+
+    def read_references(self, preferences, cancel):
+        if self.scoped_references is not None:
+            return self.scoped_references(cancel, preferences)
+        return self.get_references(cancel)
+
+    def register_view(self, view):
+        with self._visibility_lock:
+            self.views.add(view)
+
+    def unregister_view(self, view):
+        with self._visibility_lock:
+            self.views.discard(view)
+
+    def invalidate_visibility(self):
+        # This part is synchronous even when a phone update arrives on a
+        # worker. UI dispatch must never leave old publication authority valid.
+        with self._visibility_lock:
+            self.visibility_epoch += 1
+            self.snapshot = None
+            self.references_complete = False
+            self.notification_count = 0
+            self.scheduled_keys = []
+            self.jobs.cancel()
+            return list(self.views)
 
     def effective_preferences(self, *, strict=False):
         own = self.store.preferences(strict=strict) if strict else self.preferences
@@ -105,11 +140,12 @@ class StorageService:
 
     def scan(self, callback):
         preferences = self.preferences
+        visibility = self.visibility_epoch
         scope = self.scope(preferences)
         self.progress_count = 0
         def work(cancel):
             roots = self.get_roots(preferences)
-            refs = self.get_references(cancel) if preferences.match_media else References({}, complete=False)
+            refs = self.read_references(preferences, cancel) if preferences.match_media else References({}, complete=False)
             result = scan(roots, cancel=cancel,
                           classify=lambda e: refs.classify(classify(e)),
                           progress=lambda count: setattr(self, "progress_count", count))
@@ -120,15 +156,18 @@ class StorageService:
             return result, refs.complete, evaluation
         def done(value, error):
             current_scope = self.scope(self.preferences)
-            if error is None and self.valid() and scope == current_scope:
-                self.snapshot, self.references_complete, evaluation = value
-                if not self.snapshot.cancelled:
-                    self.measured_bytes = self.snapshot.total_bytes
-                    self.measured_usage = evaluation.usage
-                self.notification_count, self.scheduled_keys = evaluation.notifications, evaluation.automatic
-                self.last_evaluation = time.monotonic()
-            elif error is None:
-                error = "ScopeChanged"
+            with self._visibility_lock:
+                if visibility != self.visibility_epoch:
+                    error = "VisibilityChanged"
+                elif error is None and self.valid() and scope == current_scope:
+                    self.snapshot, self.references_complete, evaluation = value
+                    if not self.snapshot.cancelled:
+                        self.measured_bytes = self.snapshot.total_bytes
+                        self.measured_usage = evaluation.usage
+                    self.notification_count, self.scheduled_keys = evaluation.notifications, evaluation.automatic
+                    self.last_evaluation = time.monotonic()
+                elif error is None:
+                    error = "ScopeChanged"
             callback(self.snapshot if error is None else None, error)
         return self.jobs.start(work, done)
 
@@ -150,7 +189,7 @@ class StorageService:
             scope = {(r.key, r.path) for r in current_roots if r.managed}
             if any((e.root.key, e.root.path) not in scope for e in plan.entries):
                 raise ValueError("storage roots changed")
-            fresh = self.get_references(cancel) if any(e.media_id for e in plan.entries) else References({})
+            fresh = self.read_references(preferences, cancel) if any(e.media_id for e in plan.entries) else References({})
             def busy(entry):
                 if not self.valid() or self.is_busy(entry):
                     return True

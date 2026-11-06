@@ -13706,7 +13706,7 @@ msgstr ""
 "incompleto."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_sensitive.py
 msgctxt "storage_details"
 msgid "Item details"
 msgstr "Detalhes do item"
@@ -13894,8 +13894,14 @@ msgid "Measured logical size: {size}. Files: {count}."
 msgstr "Tamanho lógico medido: {size}. Ficheiros: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "storage_manager_open"
+msgid "Sto&rage manager…"
+msgstr "&Gestor de armazenamento…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_manager.py
+#: client/ui/dialogs/storage_manager.py
 msgctxt "storage_manager_title"
 msgid "Storage manager"
 msgstr "Gestor de armazenamento"
@@ -14074,7 +14080,7 @@ msgstr "Analisar ao abrir este gestor"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_option_scan_start"
 msgid "Evaluate at application startup"
-msgstr "Avaliar ao iniciar o aplicação"
+msgstr "Avaliar ao iniciar a aplicação"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_options.py
@@ -14110,7 +14116,7 @@ msgid ""
 msgstr ""
 "Modelos, ambientes de execução, cópias de segurança, registos, bases de "
 "dados e dados de acesso permanecem protegidos aqui. Use suas definições "
-"existentes para gerenciá-los. Ficheiros desconhecidos não são considerados "
+"existentes para geri-los. Ficheiros desconhecidos não são considerados "
 "desnecessários. Somente ficheiros de cache verificados e cópias recebidas de"
 " multimédia associadas podem entrar em uma pré-visualização."
 
@@ -14141,6 +14147,16 @@ msgstr ""
 "Confira os campos numéricos e o ficheiro de preferências. Proteções "
 "incompatíveis ou ilegíveis bloqueiam ações em ficheiros. Redefinir "
 "explicitamente pode restaurar os padrões desta conta."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preferences_limit"
+msgid ""
+"The preference size limit was reached. Previous readable settings were kept."
+" Select fewer protection entries or use smaller batches, then retry."
+msgstr ""
+"Foi atingido o limite de tamanho das preferências. As definições anteriores "
+"legíveis foram preservadas. Selecione menos proteções ou use lotes mais "
+"pequenos e tente novamente."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager_actions.py
@@ -14276,9 +14292,21 @@ msgstr ""
 "ser desfeito aqui; o WhatsApp pode não ter mais a multimédia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_matching_required"
+msgid ""
+"To permanently remove held media, enable media matching and select "
+"conversations in Preferences, save, then retry. Only currently visible, "
+"unlocked and completely matched media without a protection can be removed."
+msgstr ""
+"Para remover permanentemente multimédia retida, ative a associação de "
+"multimédia e selecione conversas em Preferências, guarde e tente novamente. "
+"Só pode ser removida multimédia atualmente visível, desbloqueada, "
+"completamente associada e sem proteção."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_reason_critical"
 msgid "Required component or critical data; managed by its owner"
-msgstr "Componente necessário ou dados críticos; gerenciados pelo responsável"
+msgstr "Componente necessário ou dados críticos; geridos pelo responsável"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_reason_external"
@@ -14422,7 +14450,7 @@ msgid ""
 "recovery records are kept. Previews expire after one day."
 msgstr ""
 "Remover registos vazios de operações com mais de dois dias? Ficheiros "
-"retidos e registos ativos de recuperação são mantidos. Pré-visualizaçãos "
+"retidos e registos ativos de recuperação são mantidos. Pré-visualizações "
 "expiram após um dia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14800,6 +14828,17 @@ msgstr "Remover proteção dos ficheiros selecionados"
 msgctxt "storage_unprotect_chats"
 msgid "Remove selected conversation protection"
 msgstr "Remover proteção das conversas selecionadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_visibility_changed"
+msgid ""
+"Chat visibility changed. Cached names, selections and previews were cleared."
+" Scan again to review the current permitted scope."
+msgstr ""
+"A visibilidade das conversas mudou. Nomes em cache, seleções e pré-"
+"visualizações foram limpos. Analise novamente para rever o âmbito permitido "
+"atual."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager.py

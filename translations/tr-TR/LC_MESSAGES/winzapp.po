@@ -13541,7 +13541,7 @@ msgid ""
 msgstr "Atlanan veya erişilemeyen konum/öğe: {count}. Toplam eksiktir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_sensitive.py
 msgctxt "storage_details"
 msgid "Item details"
 msgstr "Öğe ayrıntıları"
@@ -13729,8 +13729,14 @@ msgid "Measured logical size: {size}. Files: {count}."
 msgstr "Ölçülen mantıksal boyut: {size}. Dosya: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "storage_manager_open"
+msgid "Sto&rage manager…"
+msgstr "&Depolama yöneticisi…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_manager.py
+#: client/ui/dialogs/storage_manager.py
 msgctxt "storage_manager_title"
 msgid "Storage manager"
 msgstr "Depolama yöneticisi"
@@ -13974,6 +13980,15 @@ msgstr ""
 " bu hesabın varsayılanlarını geri yükleyebilir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preferences_limit"
+msgid ""
+"The preference size limit was reached. Previous readable settings were kept."
+" Select fewer protection entries or use smaller batches, then retry."
+msgstr ""
+"Tercih boyutu sınırına ulaşıldı. Önceki okunabilir ayarlar korundu. Daha az "
+"koruma öğesi seçin veya daha küçük gruplar kullanıp yeniden deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager_actions.py
 #: client/ui/dialogs/storage_manager_auxiliary.py
 msgctxt "storage_preferences_saved"
@@ -14102,6 +14117,18 @@ msgid ""
 msgstr ""
 "Bekletilen {count} dosya ({size}) kalıcı kaldırılsın mı? Bu işlem buradan "
 "geri alınamaz; medya artık WhatsApp'ta bulunmayabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_matching_required"
+msgid ""
+"To permanently remove held media, enable media matching and select "
+"conversations in Preferences, save, then retry. Only currently visible, "
+"unlocked and completely matched media without a protection can be removed."
+msgstr ""
+"Bekletilen medyayı kalıcı kaldırmak için Tercihler bölümünde medya "
+"eşlemesini açıp sohbetleri seçin, kaydedin ve yeniden deneyin. Yalnız şu "
+"anda görünür, kilidi açık, tamamen eşleşmiş ve korumasız medya "
+"kaldırılabilir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_reason_critical"
@@ -14619,6 +14646,16 @@ msgstr "Seçili dosyaların korumasını kaldır"
 msgctxt "storage_unprotect_chats"
 msgid "Remove selected conversation protection"
 msgstr "Seçili sohbetlerin korumasını kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_visibility_changed"
+msgid ""
+"Chat visibility changed. Cached names, selections and previews were cleared."
+" Scan again to review the current permitted scope."
+msgstr ""
+"Sohbet görünürlüğü değişti. Önbellekteki adlar, seçimler ve önizlemeler "
+"temizlendi. Güncel izinli kapsamı incelemek için tekrar tarayın."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager.py

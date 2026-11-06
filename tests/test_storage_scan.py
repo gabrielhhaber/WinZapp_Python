@@ -119,3 +119,16 @@ def test_an_unavailable_optional_owner_does_not_erase_other_measured_categories(
     result = scan([Root("known", str(tmp_path)),
                    Root("unavailable", "", "models", error="owner_unavailable")])
     assert result.total_bytes == 12 and result.issues == {"owner_unavailable": 1}
+
+
+def test_windows_identity_uses_consistent_explicit_birth_time_without_dropping_mtime(monkeypatch):
+    from core.storage_manager import types
+    monkeypatch.setattr(types, "_IDENTITY_TIME_FIELD", "st_birthtime_ns")
+    path_info = SimpleNamespace(st_dev=1, st_ino=2, st_size=3, st_mtime_ns=4, st_ctime_ns=5, st_birthtime_ns=5)
+    handle_info = SimpleNamespace(**dict(path_info.__dict__, st_ctime_ns=99))
+    assert types.fingerprint(path_info) == types.fingerprint(handle_info)
+    handle_info.st_mtime_ns = 6
+    assert types.fingerprint(path_info) != types.fingerprint(handle_info)
+    monkeypatch.setattr(types, "_IDENTITY_TIME_FIELD", "st_ctime_ns")
+    handle_info.st_mtime_ns = 4
+    assert types.fingerprint(path_info) != types.fingerprint(handle_info)

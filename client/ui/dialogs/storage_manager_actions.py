@@ -3,7 +3,7 @@ import wx
 
 from core.storage_manager.policy import eligibility
 from core.storage_manager.transactions import PlanTooLarge
-from .storage_presentation import entry_name, modified_text, reason_text, size_text
+from .storage_presentation import entry_name, modified_text, reason_text, size_text, preference_error
 
 
 class StorageActionsMixin:
@@ -23,6 +23,8 @@ class StorageActionsMixin:
             return
         self._operation = ""
         self.poll()
+        if error == "VisibilityChanged":
+            return
         if error:
             self.error("storage_operation_failed")
             return
@@ -62,12 +64,15 @@ class StorageActionsMixin:
         if not 0 <= index < len(self._rows):
             return
         entry = self._rows[index]
+        epoch = self.service.visibility_epoch
         text = self.i18n.t("storage_item_details").format(
-            name=entry_name(entry, index + self._page * self.PAGE_SIZE + 1, self.i18n),
+            name=entry_name(self.service.present(entry), index + self._page * self.PAGE_SIZE + 1, self.i18n),
             size=size_text(entry.size, self.i18n), time=modified_text(entry),
             reason=reason_text(eligibility(entry, self.service.effective_preferences(),
                                           busy=self.service.is_busy(entry)), self.i18n))
-        wx.MessageBox(text, self.i18n.t("storage_details"), wx.OK | wx.ICON_INFORMATION, self)
+        from .storage_sensitive import StorageDetailsDialog, show_sensitive
+        with StorageDetailsDialog(self, text, epoch) as dialog:
+            show_sensitive(self.service, dialog)
 
     def save_preferences(self, preferences, *, preserve_draft=False):
         if not self.available():
@@ -82,7 +87,7 @@ class StorageActionsMixin:
             if not self._alive:
                 return
             if error:
-                self.error("storage_preferences_invalid")
+                self.error(preference_error(error))
                 return
             if preserve_draft:
                 if self._staged_import is not None:
@@ -123,7 +128,7 @@ class StorageActionsMixin:
             if self._alive:
                 self.invalidate_preview()
                 self.render_rows()
-                self.say(self.i18n.t("storage_preferences_invalid" if error else "storage_protection_saved"))
+                self.say(self.i18n.t(preference_error(error) if error else "storage_protection_saved"))
         self.service.jobs.start(work, done)
 
     def preview(self, event=None):

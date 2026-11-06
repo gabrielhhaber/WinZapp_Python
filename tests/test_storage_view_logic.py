@@ -21,7 +21,7 @@ def test_filtering_invalidates_a_preview_but_keeps_identity_based_selection():
                   (1, 1, 10, 10, 10), "media", reason="received", media_id="one")
     invalidations, renders = [], []
     stub = SimpleNamespace(service=SimpleNamespace(snapshot=Snapshot(entries=[first]),
-        references_complete=True, preferences=prefs, effective_preferences=lambda: prefs),
+        references_complete=True, preferences=prefs, effective_preferences=lambda: prefs, present=lambda e: e),
         invalidate_preview=lambda: invalidations.append(1), category=field(0), media_type=field(0),
         minimum=field("0"), days=field("0"), combine=field(0), scope=field(0), state=field(0),
         sort=field(0), search=field(""), _descending=True, selected={first.key},
@@ -64,3 +64,40 @@ def test_rows_do_not_expose_raw_cache_paths_or_message_identifiers():
 
 def test_a_late_scan_callback_does_not_touch_a_closed_view():
     StorageActionsMixin.scanned(SimpleNamespace(_alive=False), None, None)
+
+
+def test_privacy_reset_clears_all_named_collections_and_user_search():
+    class Control:
+        def __init__(self): self.value = "Synthetic private name"
+        def Freeze(self): pass
+        def Thaw(self): pass
+        def DeleteAllItems(self): self.value = []
+        def Set(self, value): self.value = value
+        def ChangeValue(self, value): self.value = value
+        def SetLabel(self, value): self.value = value
+    controls = {key: Control() for key in ("files", "held_list", "search", "selection_status")}
+    protected = Control()
+    stub = SimpleNamespace(**controls, _alive=True, service=SimpleNamespace(visibility_epoch=2),
+        selected={"private"}, _rows=["private"], _filtered=["private"], _held=["private"],
+        invalidate_preview=lambda: None, protections=SimpleNamespace(clear_private_state=lambda: protected.Set([])),
+        refresh_summary=lambda: None, say=lambda value: None,
+        i18n=SimpleNamespace(t=lambda key: "{count}" if key == "storage_selected_count" else key))
+    StorageManagerDialog.clear_private_state(stub)
+    assert not stub._rows and not stub._filtered and not stub._held and not stub.selected
+    assert controls["files"].value == controls["held_list"].value == protected.value == []
+    assert controls["search"].value == "" and stub.privacy_epoch == 2
+
+
+def test_held_media_purge_requires_current_matching_before_confirmation():
+    from ui.dialogs.storage_manager_auxiliary import StorageAuxiliaryMixin
+    errors = []
+    def forbidden(*args, **kwargs):
+        raise AssertionError("No confirmation or worker before matching consent")
+    stub = SimpleNamespace(available=lambda: True,
+        _held=[SimpleNamespace(original=SimpleNamespace(media_id="synthetic"))],
+        held_list=SimpleNamespace(GetSelections=lambda: [0]),
+        service=SimpleNamespace(preferences=Preferences(match_media=False),
+                                jobs=SimpleNamespace(start=forbidden)),
+        confirm=forbidden, error=errors.append)
+    StorageAuxiliaryMixin.finish_held(stub, False)
+    assert errors == ["storage_purge_matching_required"]

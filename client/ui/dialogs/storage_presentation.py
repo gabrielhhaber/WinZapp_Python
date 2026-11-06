@@ -20,6 +20,10 @@ REASON_KEYS = {
 }
 
 
+def preference_error(error):
+    return "storage_preferences_limit" if error == "PreferencesTooLarge" else "storage_preferences_invalid"
+
+
 def size_text(size, i18n):
     unit = "B"
     number = float(size)

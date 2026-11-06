@@ -10,6 +10,12 @@ from coord_locks import NamedLock
 from .policy import Preferences
 from .types import canonical
 
+MAX_STORE_CHARS = 2_000_000
+
+
+class PreferencesTooLarge(ValueError):
+    pass
+
 
 class StorageStore:
     def __init__(self, directory):
@@ -25,8 +31,8 @@ class StorageStore:
     def _read(self, *, strict=False):
         try:
             with open(self.path, encoding="utf-8") as stream:
-                text = stream.read(2_000_001)
-                if len(text) > 2_000_000:
+                text = stream.read(MAX_STORE_CHARS + 1)
+                if len(text) > MAX_STORE_CHARS:
                     raise ValueError("storage preferences too large")
                 raw = json.loads(text)
             if not isinstance(raw, dict) or type(raw.get("version", 1)) is not int or raw.get("version", 1) != 1:
@@ -95,11 +101,14 @@ class StorageStore:
             self._write(raw)
 
     def _write(self, raw):
+        payload = json.dumps(raw, ensure_ascii=False)
+        if len(payload) > MAX_STORE_CHARS:
+            raise PreferencesTooLarge("storage preference size limit")
         os.makedirs(self.directory, exist_ok=True)
         temporary = self.path + "." + uuid.uuid4().hex + ".tmp"
         try:
             with open(temporary, "w", encoding="utf-8") as stream:
-                json.dump(raw, stream, ensure_ascii=False)
+                stream.write(payload)
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, self.path)

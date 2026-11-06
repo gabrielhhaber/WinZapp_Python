@@ -13407,7 +13407,7 @@ msgstr ""
 "المواقع أو العناصر المتجاوزة أو غير المتاحة: {count}. الإجمالي غير مكتمل."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/storage_manager_actions.py
+#: client/ui/dialogs/storage_sensitive.py
 msgctxt "storage_details"
 msgid "Item details"
 msgstr "تفاصيل العنصر"
@@ -13595,8 +13595,14 @@ msgid "Measured logical size: {size}. Files: {count}."
 msgstr "الحجم المنطقي المقاس: {size}. عدد الملفات: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "storage_manager_open"
+msgid "Sto&rage manager…"
+msgstr "إ&دارة التخزين…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/storage_manager.py
+#: client/ui/dialogs/storage_manager.py
 msgctxt "storage_manager_title"
 msgid "Storage manager"
 msgstr "إدارة التخزين"
@@ -13839,6 +13845,15 @@ msgstr ""
 "الافتراضية لهذا الحساب."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_preferences_limit"
+msgid ""
+"The preference size limit was reached. Previous readable settings were kept."
+" Select fewer protection entries or use smaller batches, then retry."
+msgstr ""
+"بلغت التفضيلات حد الحجم. حُفظت الإعدادات السابقة المقروءة. حدد عناصر حماية "
+"أقل أو استخدم دفعات أصغر ثم أعد المحاولة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager_actions.py
 #: client/ui/dialogs/storage_manager_auxiliary.py
 msgctxt "storage_preferences_saved"
@@ -13967,6 +13982,17 @@ msgid ""
 msgstr ""
 "هل تريد إزالة الملفات المحتفظ بها نهائيا؟ العدد: {count}؛ الحجم: {size}. لا "
 "يمكن التراجع هنا؛ قد لا تبقى الوسائط في واتساب."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "storage_purge_matching_required"
+msgid ""
+"To permanently remove held media, enable media matching and select "
+"conversations in Preferences, save, then retry. Only currently visible, "
+"unlocked and completely matched media without a protection can be removed."
+msgstr ""
+"لإزالة الوسائط المحتفظ بها نهائيا، فعّل مطابقة الوسائط وحدد المحادثات في "
+"التفضيلات، ثم احفظ وأعد المحاولة. لا يمكن إزالة إلا الوسائط الظاهرة حاليا "
+"وغير المقفلة والمطابقة بالكامل والتي ليست محمية."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "storage_reason_critical"
@@ -14478,6 +14504,16 @@ msgstr "إزالة حماية الملفات المحددة"
 msgctxt "storage_unprotect_chats"
 msgid "Remove selected conversation protection"
 msgstr "إزالة حماية المحادثات المحددة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/storage_manager.py
+msgctxt "storage_visibility_changed"
+msgid ""
+"Chat visibility changed. Cached names, selections and previews were cleared."
+" Scan again to review the current permitted scope."
+msgstr ""
+"تغير ظهور المحادثات. مُسحت الأسماء المخزنة مؤقتا والتحديدات والمعاينات. افحص"
+" مجددا لمراجعة النطاق المسموح حاليا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/storage_manager.py

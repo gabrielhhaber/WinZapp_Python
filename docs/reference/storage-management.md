@@ -96,6 +96,19 @@ rules, scope expansion and scheduling. Optional history retains at most 100
 count/size/time summaries for the chosen period; it contains no message
 content, contact names or file paths. Required recovery journals are separate.
 
+The writer enforces the same two-million-character budget as its reader
+before replacing a preference/history file; oversized protection lists fail
+without replacing the last readable state. Chat-lock and vault transitions
+synchronously revoke scan publication authority and cached labels, then clear
+open storage views. Queued results from older visibility epochs are rejected.
+Purging held media requires fresh, complete matching within the currently
+consented and visible conversation scope. Current keeps, locks and busy
+owners are checked again inside the pinned-handle operation.
+
+Windows path and handle fingerprints use explicit birth time, modification
+time, device/inode and size. This avoids comparing path creation time with
+handle change time while preserving the remaining identity checks.
+
 ## Native interface and evidence
 
 The dialog uses standard wx controls, checkable ListCtrl rows, six tabs,

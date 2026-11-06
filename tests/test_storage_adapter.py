@@ -58,3 +58,15 @@ def test_unknown_private_preference_schema_blocks_mutation(tmp_path):
     assert not store.preferences().rules
     with pytest.raises(ValueError):
         store.preferences(strict=True)
+
+
+def test_fresh_empty_matching_scope_never_reads_previously_allowed_history(tmp_path, monkeypatch):
+    from core.storage_manager.policy import Preferences
+    value, window = context(tmp_path, monkeypatch)
+    value.chats = {"allowed": "Synthetic label"}
+    window._storage_service = SimpleNamespace(preferences=Preferences(match_media=True))
+    def forbidden(*args, **kwargs):
+        pytest.fail("Fresh empty consent must not read local histories")
+    window.db = SimpleNamespace(get_message_count=forbidden, get_messages_asc=forbidden)
+    refs = value.references(lambda: False, Preferences(match_media=True, match_chats=set()))
+    assert refs.complete and not refs.files

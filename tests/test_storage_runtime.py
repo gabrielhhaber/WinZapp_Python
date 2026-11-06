@@ -12,6 +12,7 @@ class Service:
         self.jobs = SimpleNamespace(busy=False, close=lambda: None)
         self.scans, self.applies = [], []
         self.pause_downloads = False
+        self.target_exceeded = False
     def valid(self): return True
     def scan(self, callback): self.scans.append(callback)
     def effective_preferences(self): return self.preferences
@@ -74,3 +75,25 @@ def test_automatic_cache_work_uses_an_explicit_automatic_plan():
     value.scanned(Snapshot(), None)
     assert requests == [(["cache"], "remove", {"automatic": True})]
     assert service.applies == ["fixed-plan"]
+
+
+def test_notify_only_target_notifies_without_pausing_or_starting_file_actions():
+    from core.storage_manager.service import StorageService
+    prefs = Preferences(interval_minutes=1, target_bytes=1, target_action="notify", warning_repeat_minutes=0)
+    service = StorageService(SimpleNamespace(preferences=lambda **kw: prefs), None,
+        lambda prefs: [], lambda cancel: None, lambda fn: fn())
+    snapshot = service.snapshot = Snapshot()
+    service.measured_usage = {("all", "all"): 20}
+    speech, actions = [], []
+    window = SimpleNamespace(i18n=SimpleNamespace(t=lambda key: "." if key == "decimal_separator" else "{total} {count}"),
+        speak_output=SimpleNamespace(output=speech.append))
+    service.apply = lambda *a: actions.append(1)
+    value = StorageRuntime(window, service, None)
+    value.scanned(snapshot, None)
+    value.scanned(snapshot, None)
+    assert len(speech) == 1 and service.target_exceeded and not service.pause_downloads and not actions
+    service.measured_usage = {}
+    value.scanned(snapshot, None)
+    service.measured_usage = {("all", "all"): 20}
+    value.scanned(snapshot, None)
+    assert len(speech) == 2 and not actions

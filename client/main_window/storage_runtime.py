@@ -28,7 +28,7 @@ class StorageRuntime:
             return
         service = self.service
         count = getattr(service, "notification_count", 0)
-        notice = (service.warning(), service.pause_downloads, count)
+        notice = (service.warning(), service.target_exceeded, count)
         now = time.monotonic()
         repeat = service.preferences.warning_repeat_minutes * 60
         if any(notice) and (self.last_notice_at is None or (repeat and now - self.last_notice_at >= repeat)):

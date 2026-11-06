@@ -16,6 +16,7 @@ CATEGORIES = (
 # logs and backups must never silently join it just because of their age.
 AUTOMATIC_CATEGORIES = frozenset({"compile_cache"})
 BLOCKED_ATTRIBUTES = 0x400 | 0x1000 | 0x40000 | 0x400000
+_IDENTITY_TIME_FIELD = "st_birthtime_ns" if os.name == "nt" else "st_ctime_ns"
 
 
 def canonical(path):
@@ -36,8 +37,12 @@ def unsafe(info):
 
 
 def fingerprint(info):
+    # Windows path stat and fstat can give ctime different meanings. Use
+    # their explicit, consistent creation timestamp without dropping any
+    # preview component. Elsewhere retain metadata-change time.
+    # https://github.com/python/cpython/issues/157671
     return (info.st_dev, info.st_ino, info.st_size,
-            info.st_mtime_ns, info.st_ctime_ns)
+            info.st_mtime_ns, getattr(info, _IDENTITY_TIME_FIELD, info.st_ctime_ns))
 
 
 @dataclass(frozen=True)
@@ -86,6 +91,7 @@ class Snapshot:
     created: float = field(default_factory=time.time)
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     duplicates: int = 0
+    named_chats: set[str] = field(default_factory=set)
 
     @property
     def complete(self):

@@ -19,6 +19,7 @@ class StorageManagerDialog(StorageActionsMixin, StorageAuxiliaryMixin, wx.Dialog
 
     def __init__(self, parent, main_window, service):
         self.main_window, self.service, self.i18n = main_window, service, main_window.i18n
+        self.privacy_epoch = service.visibility_epoch
         super().__init__(parent, title=self.i18n.t("storage_manager_title"),
                          size=(850, 780), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.SetMinSize((520, 420))
@@ -125,7 +126,7 @@ class StorageManagerDialog(StorageActionsMixin, StorageAuxiliaryMixin, wx.Dialog
                     # Search only the visible allowed name, never a hidden
                     # account path, raw cache id or protected session filename.
                     self._filtered = [e for n, e in enumerate(self._filtered)
-                                      if query in entry_name(e, n + 1, self.i18n).casefold()]
+                                      if query in entry_name(self.service.present(e), n + 1, self.i18n).casefold()]
             except (ValueError, OverflowError):
                 self.error("storage_preferences_invalid")
                 return
@@ -143,7 +144,7 @@ class StorageManagerDialog(StorageActionsMixin, StorageAuxiliaryMixin, wx.Dialog
             self.files.DeleteAllItems()
             preferences = self.service.effective_preferences()
             for index, entry in enumerate(rows):
-                self.files.InsertItem(index, entry_name(entry, start + index + 1, self.i18n)[:511])
+                self.files.InsertItem(index, entry_name(self.service.present(entry), start + index + 1, self.i18n)[:511])
                 self.files.SetItem(index, 1, size_text(entry.size, self.i18n))
                 self.files.SetItem(index, 2, reason_text(eligibility(entry, preferences,
                                                       busy=self.service.is_busy(entry)), self.i18n))
@@ -214,6 +215,30 @@ class StorageManagerDialog(StorageActionsMixin, StorageAuxiliaryMixin, wx.Dialog
         self._timer.Stop()
         self.service.jobs.cancel()
         self.EndModal(wx.ID_CLOSE)
+
+    def clear_private_state(self):
+        if not self._alive:
+            return
+        self.privacy_epoch = self.service.visibility_epoch
+        self.selected.clear()
+        self._rows, self._filtered, self._held = [], [], []
+        self._snapshot_marker, self._held_cursor = None, None
+        self.invalidate_preview()
+        self.search.ChangeValue("")
+        self.files.Freeze()
+        try:
+            self.files.DeleteAllItems()
+        finally:
+            self.files.Thaw()
+        self.held_list.Freeze()
+        try:
+            self.held_list.Set([])
+        finally:
+            self.held_list.Thaw()
+        self.protections.clear_private_state()
+        self.selection_status.SetLabel(self.i18n.t("storage_selected_count").format(count=0))
+        self.refresh_summary()
+        self.say(self.i18n.t("storage_visibility_changed"))
 
     def open_owner(self, name):
         if not self.available():

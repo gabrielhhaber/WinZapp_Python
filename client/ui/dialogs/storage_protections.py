@@ -2,7 +2,7 @@
 import wx
 
 from core.storage_manager.types import CATEGORIES
-from .storage_presentation import category_text, entry_name
+from .storage_presentation import category_text, entry_name, preference_error
 from .storage_layout import note
 
 
@@ -46,6 +46,14 @@ class StorageProtectionsPanel(wx.ScrolledWindow):
             owner.service.change_protection("protected_categories", {category}, True, shared=shared)
         owner.service.jobs.start(work, self.changed)
 
+    def clear_private_state(self):
+        self.rows = []
+        self.list.Freeze()
+        try:
+            self.list.Set([])
+        finally:
+            self.list.Thaw()
+
     def changed(self, value, error):
         owner = self.owner
         if not owner._alive:
@@ -53,7 +61,7 @@ class StorageProtectionsPanel(wx.ScrolledWindow):
         owner.invalidate_preview()
         owner.render_rows()
         if error:
-            owner.error("storage_preferences_invalid")
+            owner.error(preference_error(error))
         else:
             self.refresh()
 
@@ -75,6 +83,7 @@ class StorageProtectionsPanel(wx.ScrolledWindow):
             self.rows = rows
             snapshot = owner.service.snapshot
             entries = snapshot.entries if snapshot is not None else []
+            entries = [owner.service.present(e) for e in entries]
             names = {e.key: entry_name(e, n + 1, owner.i18n) for n, e in enumerate(entries)}
             chats = {e.chat_key: e.display_name for e in entries if e.chat_key and e.display_name}
             labels = []
