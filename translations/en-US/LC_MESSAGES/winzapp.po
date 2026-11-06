@@ -7673,6 +7673,43 @@ msgctxt "link_copied"
 msgid "Link copied: {url}"
 msgstr "Link copied: {url}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_added"
+msgid "Link preview added."
+msgstr "Link preview added."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_empty"
+msgid "the page has no title or description"
+msgstr "the page has no title or description"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_error_http"
+msgid "the site answered with error {status}"
+msgstr "the site answered with error {status}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_network"
+msgid "could not connect to the site"
+msgstr "could not connect to the site"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_not_html"
+msgid "the link is not a web page"
+msgstr "the link is not a web page"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_failed"
+msgid "Could not load the link preview: {reason}."
+msgstr "Could not load the link preview: {reason}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_loading"
+msgid "Loading link preview..."
+msgstr "Loading link preview..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/links.py
 msgctxt "links_list_label"
@@ -12601,6 +12638,12 @@ msgstr "Announce when chats &update is complete"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "Announce &when chats update starts"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_link_previews_label"
+msgid "Announce link preview &loading and adding"
+msgstr "Announce link preview &loading and adding"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

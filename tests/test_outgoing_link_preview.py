@@ -307,6 +307,7 @@ class _Stub:
         ConversationsPanel._check_link_preview_for_current_text
     )
     _on_link_preview_fetched = ConversationsPanel._on_link_preview_fetched
+    _announce_link_preview = ConversationsPanel._announce_link_preview
     _on_remove_link_preview = ConversationsPanel._on_remove_link_preview
     _clear_link_preview = ConversationsPanel._clear_link_preview
     _LINK_PREVIEW_DEBOUNCE_MS = ConversationsPanel._LINK_PREVIEW_DEBOUNCE_MS
@@ -320,6 +321,22 @@ class _Stub:
         self._link_preview_dismissed_url = ""
         self._link_preview_fetch_token = 0
         self._link_preview_debounce_timer = None
+        self.main_window = _FakeMainWindow()
+
+
+class _FakeI18n:
+    def t(self, key):
+        return key
+
+
+class _FakeMainWindow:
+    def __init__(self, **speech):
+        self.settings = {"speech_content": speech}
+        self.i18n = _FakeI18n()
+        self.spoken = []
+
+    def output(self, text, interrupt=False):
+        self.spoken.append(text)
 
 
 def _run_debounced_check(monkeypatch, stub):
@@ -584,3 +601,118 @@ class TestSendNewTextMessageWithLinkPreview:
         assert virtual_msg["message"] == {"conversation": "just some text"}
         pm = stub.main_window.message_queue.enqueued[0]
         assert pm.link_preview is None
+
+
+# ── spoken feedback: loading, added, failed ─────────────────────────────────
+
+class TestFetchReportsWhyItFailed:
+    def _reasons(self, monkeypatch, response=None, error=None):
+        seen = []
+
+        def _get(*a, **kw):
+            if error is not None:
+                raise error
+            return response
+
+        monkeypatch.setattr("core.link_preview.requests.get", _get)
+        assert fetch_link_preview(
+            "https://example.com", report=lambda reason, status=0: seen.append((reason, status))
+        ) is None
+        return seen
+
+    def test_a_connection_error(self, monkeypatch):
+        assert self._reasons(monkeypatch, error=OSError("down")) == [("network", 0)]
+
+    def test_an_http_error_carries_the_status(self, monkeypatch):
+        import requests
+
+        error = requests.HTTPError("404")
+        error.response = types.SimpleNamespace(status_code=404)
+        assert self._reasons(monkeypatch, error=error) == [("http", 404)]
+
+    def test_a_page_that_is_not_html(self, monkeypatch):
+        response = _FakeResponse(b"x", content_type="image/png")
+        assert self._reasons(monkeypatch, response=response) == [("not_html", 0)]
+
+    def test_a_page_without_title_or_description(self, monkeypatch):
+        response = _FakeResponse(b"<html><head></head><body>hi</body></html>")
+        assert self._reasons(monkeypatch, response=response) == [("empty", 0)]
+
+    def test_success_reports_nothing(self, monkeypatch):
+        monkeypatch.setattr(
+            "core.link_preview.requests.get",
+            lambda *a, **kw: _FakeResponse(b"<html><head><title>T</title></head></html>"),
+        )
+        seen = []
+        assert fetch_link_preview("https://example.com", report=lambda *a: seen.append(a))
+        assert seen == []
+
+
+class TestAnnouncementText:
+    class _I18n:
+        TEXTS = {
+            "link_preview_loading": "Loading link preview...",
+            "link_preview_added": "Link preview added.",
+            "link_preview_failed": "Could not load the link preview: {reason}.",
+            "link_preview_error_network": "no connection",
+            "link_preview_error_http": "error {status}",
+            "link_preview_error_not_html": "not a page",
+            "link_preview_error_empty": "empty page",
+        }
+
+        def t(self, key):
+            return self.TEXTS[key]
+
+    def test_each_kind(self):
+        from core.link_preview import link_preview_announcement as say
+
+        i18n = self._I18n()
+        assert say(i18n, "loading") == "Loading link preview..."
+        assert say(i18n, "added") == "Link preview added."
+        assert say(i18n, "failed", "http", 503) == "Could not load the link preview: error 503."
+        assert say(i18n, "failed", "not_html") == "Could not load the link preview: not a page."
+        assert say(i18n, "failed", "empty") == "Could not load the link preview: empty page."
+        assert say(i18n, "failed", "network") == "Could not load the link preview: no connection."
+        assert say(i18n, "failed") == "Could not load the link preview: no connection."
+
+    def test_the_setting_defaults_on_and_off_silences_everything(self):
+        from core.link_preview import announce_link_previews_enabled as enabled
+        from core.utils import DEFAULT_SETTINGS
+
+        assert DEFAULT_SETTINGS["speech_content"]["announce_link_previews"] is True
+        assert enabled({}) is True
+        assert enabled({"speech_content": {}}) is True
+        assert enabled({"speech_content": {"announce_link_previews": False}}) is False
+
+
+class TestComposerSpeaks:
+    def _typed(self, monkeypatch, fetch, **speech):
+        stub = _Stub(text="look https://example.com")
+        stub.main_window = _FakeMainWindow(**speech)
+        _run_fetch_synchronously(monkeypatch)
+        patch_conversations_global(monkeypatch, "fetch_link_preview", fetch)
+        _run_debounced_check(monkeypatch, stub)
+        return stub.main_window.spoken
+
+    def test_loading_then_added(self, monkeypatch):
+        spoken = self._typed(monkeypatch, lambda url, **kw: {
+            "title": "t", "description": "", "canonicalUrl": url})
+        assert spoken == ["link_preview_loading", "link_preview_added"]
+
+    def test_loading_then_the_reason_it_failed(self, monkeypatch):
+        def _fail(url, report=None, **kw):
+            report("http", 404)
+
+        spoken = self._typed(monkeypatch, _fail)
+        assert spoken == ["link_preview_loading", "link_preview_failed"]
+
+    def test_the_setting_off_says_nothing(self, monkeypatch):
+        spoken = self._typed(monkeypatch, lambda url, **kw: None,
+                             announce_link_previews=False)
+        assert spoken == []
+
+    def test_a_superseded_fetch_says_nothing_more(self, monkeypatch):
+        stub = _Stub(text="https://example.com")
+        stub._link_preview_fetch_token = 5
+        stub._on_link_preview_fetched(1, "https://example.com", None, {"reason": "network"})
+        assert stub.main_window.spoken == []

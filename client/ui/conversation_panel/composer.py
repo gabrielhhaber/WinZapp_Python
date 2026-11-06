@@ -18,8 +18,10 @@ from core.text_surrogates import SurrogateJoiner
 from core.caret_edit import delete_before_caret, insert_at_caret
 from core.attachment_types import DEFAULT_PASTED_AUDIO_AS, pasted_attachment_media_type
 from core.link_preview import (
+    announce_link_previews_enabled,
     fetch_link_preview,
     find_first_url,
+    link_preview_announcement,
 )
 from core.utils import (
     normalize_line_separators,
@@ -275,13 +277,28 @@ class ComposerMixin:
         token = self._link_preview_fetch_token
         self._link_preview_source_url = url
 
+        self._announce_link_preview("loading")
+
         def _bg_fetch():
-            preview = fetch_link_preview(url)
-            wx.CallAfter(self._on_link_preview_fetched, token, url, preview)
+            failure = {}
+            preview = fetch_link_preview(
+                url, report=lambda reason, status=0: failure.update(
+                    reason=reason, status=status))
+            wx.CallAfter(self._on_link_preview_fetched, token, url, preview, failure)
 
         threading.Thread(target=_bg_fetch, daemon=True).start()
 
-    def _on_link_preview_fetched(self, token, url, preview):
+    def _announce_link_preview(self, kind, failure=None):
+        """Say what is happening to the link preview (loading, added or why it
+        failed), unless Settings > Spoken content turned these off."""
+        main_window = getattr(self, "main_window", None)
+        if main_window is None or not announce_link_previews_enabled(main_window.settings):
+            return
+        failure = failure or {}
+        main_window.output(link_preview_announcement(
+            main_window.i18n, kind, failure.get("reason", ""), failure.get("status", 0)))
+
+    def _on_link_preview_fetched(self, token, url, preview, failure=None):
         # Superseded by a later fetch, or by the field being cleared, while
         # this one was still in flight on its own thread.
         if token != self._link_preview_fetch_token:
@@ -289,8 +306,11 @@ class ComposerMixin:
         if find_first_url(self.message_field.GetValue()) != url:
             return
         if not preview:
-            return  # no title/description available — silently no-op
+            # No title/description available, or the page could not be read.
+            self._announce_link_preview("failed", failure)
+            return
         self._pending_link_preview = preview
+        self._announce_link_preview("added")
         self._remove_link_preview_btn.Show()
         self.conversation_panel.Layout()
 

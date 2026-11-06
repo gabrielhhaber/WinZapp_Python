@@ -7771,6 +7771,43 @@ msgctxt "link_copied"
 msgid "Link copied: {url}"
 msgstr "Link copiado: {url}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_added"
+msgid "Link preview added."
+msgstr "Pré-visualização adicionada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_empty"
+msgid "the page has no title or description"
+msgstr "a página não tem título nem descrição"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_error_http"
+msgid "the site answered with error {status}"
+msgstr "o site respondeu com o erro {status}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_network"
+msgid "could not connect to the site"
+msgstr "não foi possível ligar ao site"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_not_html"
+msgid "the link is not a web page"
+msgstr "a ligação não é uma página web"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_failed"
+msgid "Could not load the link preview: {reason}."
+msgstr "Não foi possível carregar a pré-visualização da ligação: {reason}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_loading"
+msgid "Loading link preview..."
+msgstr "A carregar a pré-visualização..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/links.py
 msgctxt "links_list_label"
@@ -12769,6 +12806,12 @@ msgstr "Anunciar quando a atualização &de conversas for concluída"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "&Anunciar quando a atualização de conversas for iniciada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_link_previews_label"
+msgid "Announce link preview &loading and adding"
+msgstr "Anunciar o carregamento &e a adição das pré-visualizações de ligações"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

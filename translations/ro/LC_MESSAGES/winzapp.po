@@ -7749,6 +7749,43 @@ msgctxt "link_copied"
 msgid "Link copied: {url}"
 msgstr "Link copiat: {url}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_added"
+msgid "Link preview added."
+msgstr "Previzualizare adăugată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_empty"
+msgid "the page has no title or description"
+msgstr "pagina nu are titlu și nici descriere"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_error_http"
+msgid "the site answered with error {status}"
+msgstr "site-ul a răspuns cu eroarea {status}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_network"
+msgid "could not connect to the site"
+msgstr "nu s-a putut face conexiunea cu site-ul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_not_html"
+msgid "the link is not a web page"
+msgstr "linkul nu duce la o pagină web"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_failed"
+msgid "Could not load the link preview: {reason}."
+msgstr "Nu s-a putut încărca previzualizarea linkului: {reason}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_loading"
+msgid "Loading link preview..."
+msgstr "Se încarcă previzualizarea..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/links.py
 msgctxt "links_list_label"
@@ -12754,6 +12791,12 @@ msgstr "Anunțați când actualizarea conversațiilor &este finalizată"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "A&nunțați când începe actualizarea conversațiilor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_link_previews_label"
+msgid "Announce link preview &loading and adding"
+msgstr "Anunțați încărcarea și adăugarea &previzualizărilor linkurilor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

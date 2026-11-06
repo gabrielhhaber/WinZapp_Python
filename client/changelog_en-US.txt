@@ -296,6 +296,8 @@ WHAT'S NEW
 
 - Forwarding a message with a link now keeps its link preview. The forward dialog has a new "Keep link preview" box, ticked by default, shown when a selected message has a preview; Settings > User interface > Messages has "Keep link previews by default when forwarding messages" to choose how it starts. Works with WPPConnect and Neonize. Note: with WPPConnect a message forwarded with its preview is sent as a new message and does not carry the "Forwarded" label; with Neonize it does.
 
+- When you write a message with a link, the screen reader now says "Loading link preview..." while the preview is fetched, "Link preview added." when it is attached, or "Could not load the link preview: reason." when it fails. In Settings > Accessibility > Spoken content, the new option "Announce link preview loading and adding" turns all three messages on or off; it is on by default.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

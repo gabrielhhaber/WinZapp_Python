@@ -7691,6 +7691,43 @@ msgctxt "link_copied"
 msgid "Link copied: {url}"
 msgstr "Bağlantı kopyalandı: {url}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_added"
+msgid "Link preview added."
+msgstr "Önizleme eklendi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_empty"
+msgid "the page has no title or description"
+msgstr "sayfanın başlığı ve açıklaması yok"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_error_http"
+msgid "the site answered with error {status}"
+msgstr "site {status} hatası verdi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_error_network"
+msgid "could not connect to the site"
+msgstr "siteye bağlanılamadı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "link_preview_error_not_html"
+msgid "the link is not a web page"
+msgstr "bağlantı bir web sayfası değil"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+#, python-brace-format
+msgctxt "link_preview_failed"
+msgid "Could not load the link preview: {reason}."
+msgstr "Bağlantı önizlemesi yüklenemedi: {reason}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/link_preview.py
+msgctxt "link_preview_loading"
+msgid "Loading link preview..."
+msgstr "Önizleme yükleniyor..."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/links.py
 msgctxt "links_list_label"
@@ -12623,6 +12660,12 @@ msgstr "Sohbet &güncellemesi tamamlandığında duyur"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "Sohbet güncellemesi &başladığında duyur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_link_previews_label"
+msgid "Announce link preview &loading and adding"
+msgstr "Bağlantı önizlemelerinin yüklenmesini &ve eklenmesini duyur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
