@@ -290,6 +290,8 @@ WHAT'S NEW
 
 - Neonize: a chat with a verified business now shows the business's verified name when it is not in your address book.
 
+- New language: Italian. Choose it in Settings > General > Language, in the installer and in the uninstaller. The program is fully translated; the user guide and these release notes are still in English for now.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

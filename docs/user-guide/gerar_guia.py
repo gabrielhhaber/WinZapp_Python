@@ -2,7 +2,7 @@
 """Monta client/data/help_guide/<idioma>.html a partir de template.html, i18n/ e secoes/<idioma>/*.html.
 
 Uso: python gerar_guia.py <pasta-do-repositorio-winzapp> [idioma ...]
-Sem idiomas, gera todos. Idiomas: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar.
+Sem idiomas, gera todos. Idiomas: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it.
 
 1. Regenera as tabelas de atalhos do catálogo do repositório, com o PO do idioma.
 2. Numera e junta as seções (ordem dos nomes de arquivo).
@@ -12,7 +12,7 @@ import json, re, subprocess, sys
 from pathlib import Path
 
 AQUI = Path(__file__).parent
-IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro', 'ar']
+IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro', 'ar', 'it']
 
 def gerar(repo, loc, pasta_saida=None):
     t = json.loads((AQUI / 'i18n' / f'{loc}.json').read_text(encoding='utf-8'))

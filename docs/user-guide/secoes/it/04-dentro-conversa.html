@@ -1,0 +1,104 @@
+<!--nav: 📨 Inside a chat-->
+<p class="lead">When you open a chat you get the message list and the message field. Each message is a row that the screen reader reads with sender, content and state.</p>
+
+<h3>Send messages</h3>
+<p>Type in the message field and press Enter; Shift+Enter inserts a new line. Sends go through a background queue. If WhatsApp accepts the message but does not confirm delivery, WinZapp tells you to check the chat before resending, so it is not delivered twice. Sending a message to yourself (the "Me (messages to myself)" chat) works too.</p>
+<ul>
+  <li><strong>Emoticons become emojis as you type</strong>: <code>:)</code> becomes 🙂, <code>:D</code> becomes 😃, <code>&lt;3</code> becomes ❤️, when you type a space or punctuation after them. Backspace right after the conversion gives back what you typed. It can be turned off in Settings &gt; General. Ctrl+. opens the emoji picker (the left and right arrows change the skin tone).</li>
+  <li><strong>Spell check:</strong> a dedicated sound plays when you misspell a word, when you type punctuation after it and when the cursor reaches a misspelled word. In the field's context menu, the "Spelling" submenu offers suggestions from the Windows dictionary. In Settings you choose to follow Windows, always on or always off.</li>
+  <li><strong>Mentions:</strong> type <code>@</code> to pick someone (Enter inserts the mention, Esc closes). In groups, <code>@all</code> works too.</li>
+</ul>
+<p>In F1, "Mention suggestions" is the list shown while typing @: Enter inserts the selected mention and Esc closes the suggestions. "Mentions in this message" refers to people mentioned in a received or sent message: Enter or Space opens the selected mention. These are separate contexts even when they share keys.</p>
+
+<h3>Read the messages</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Alt+2</td><td>Go to the last message</td></tr>
+  <tr><td class="field-name">Alt+3</td><td>Go to the unread messages (also Alt+U and Ctrl+L)</td></tr>
+  <tr><td class="field-name">Alt+L</td><td>Read the rest of a text message cut off in the list</td></tr>
+  <tr><td class="field-name">Alt+C</td><td>Show the message text in a window (to read calmly or copy a part)</td></tr>
+  <tr><td class="field-name">Alt+Shift+L</td><td>Announce the state of the focused message (sent, delivered, read)</td></tr>
+  <tr><td class="field-name">Alt+Shift+K</td><td>Announce the date and time of the focused message</td></tr>
+  <tr><td class="field-name">Alt+Shift+Q</td><td>Go to the quoted message, in a reply</td></tr>
+  <tr><td class="field-name">Alt+Shift+M / Alt+Shift+J</td><td>Go to the previous / next message that mentions you</td></tr>
+  <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Go to the previous / next message that replies to you (pressing again goes back through the replies and, after the oldest, returns to the most recent)</td></tr>
+  <tr><td class="field-name">Alt+T</td><td>Announce the contact's state: last seen, online, typing. The chat button and the contact details show the same information, always up to date</td></tr>
+</table>
+<p>Alt+T reads the most recent available information without waiting for a network request. Typing and voice recording can be reported even when online visibility is unavailable; these indicators do not mean that online visibility is shared. An activity indicator expires after ten seconds without a refresh. Last-seen privacy remains respected. Activity belongs to the conversation where it occurs: groups and private chats are tracked separately.</p>
+<p>Contact status updates leave unread totals unchanged and do not rewrite unchanged window titles or archived-chat labels. Typing and recording announcements follow your speech settings. Newly learned contact names are saved in the background; no additional setting is needed.</p>
+
+<p><strong>Review recent messages by position:</strong> there are ten commands, from the newest message (1) to the tenth (0), that read that message without moving focus; pressing the same key twice quickly copies it. They come with no key, because Alt+1 to Alt+9 belong to the main window: choose the keys in Settings &gt; Interface &gt; Keyboard shortcuts.</p>
+<p><strong>"Typing" in the list:</strong> with "Show who is typing or recording audio as the last row of the messages list" (Settings &gt; Interface &gt; Messages), a temporary row such as "Ana is typing..." appears at the end of the list and disappears when the person stops. It never moves focus and is not spoken on its own.</p>
+<p><strong>Other kinds of rows:</strong> messages that WhatsApp has not loaded yet appear as "Waiting for this message. This may take a while." and turn into the text when it arrives. View-once messages appear as "View once message. Open it on your phone to see it." Order and product messages from businesses show items, total and state. Calls appear at the point of the chat where they happened ("Missed voice call", "Answered video call"...).</p>
+
+<h3>Reply, edit, delete, forward</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Alt+R</td><td>Reply to the focused message</td></tr>
+  <tr><td class="field-name">Alt+Shift+R</td><td>Reply privately (in groups)</td></tr>
+  <tr><td class="field-name">Alt+Shift+V</td><td>Chat with the participant (in groups)</td></tr>
+  <tr><td class="field-name">Alt+E</td><td>Edit a message of yours</td></tr>
+  <tr><td class="field-name">Delete</td><td>Delete the message (for you or for everyone)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+E</td><td>Forward</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>Copy the message; on a focused link, copies the link</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+C</td><td>Copy the caption of a photo, video or document</td></tr>
+  <tr><td class="field-name">Alt+Shift+D</td><td>Message info</td></tr>
+</table>
+<ul>
+  <li><strong>Reply:</strong> if the original message is not found before sending, WinZapp tells you the quote is missing and keeps your text for you to edit through the message menu ("Edit unsent reply without its quote"). Replies with a mention carry the quote along.</li>
+  <li><strong>Deleting media:</strong> when you delete a photo, video, audio or document, the confirmation has "Also delete the media from your phone", checked by default. Uncheck it to delete the message and keep the file stored on the phone. The box also applies to several selected messages and only appears when there is media among them. In Settings &gt; Interface &gt; Messages, you define how it starts.</li>
+  <li><strong>Forward:</strong> choose the destinations in a list with search (the down arrow in the field goes to the first result). When it works, the screen reader says "Message forwarded." (or how many were), with no window to close. Forwarded voice messages arrive as ordinary audio, unless you check "Forward voice messages as voice messages instead of audio" in Settings &gt; Audio. With Neonize, the forwarded copy shows up in the destination conversation right away.</li>
+  <li><strong>Message info:</strong> on a message of yours, it shows when it was delivered, read and played, with full date and time, by asking WhatsApp itself (so receipts that arrived while WinZapp was closed also appear). In a group, it lists who received and who read it, by name.</li>
+  <li><strong>Quoted messages:</strong> in a reply, only the reply's own links count as links.</li>
+</ul>
+
+<h3>React</h3>
+<p>Ctrl+Shift+R opens the message's reactions (or, on a missed call, calls back). The list has 12 quick reactions; you select one to react, your current reaction comes marked, and selecting it again removes it. The left and right arrows change the emoji's skin tone. At the end, "Add more reactions" opens the full emoji picker. The reactions you use most start to appear among the 12, with the most used on top. If you prefer fixed positions, use Settings &gt; Interface &gt; Reactions: "Use fixed quick reactions" and, in each position, Enter opens the picker to choose its emoji; "Restore default positions" undoes it. A dedicated sound plays when someone reacts to your message (Settings &gt; Event sounds). Alt+Shift+E reads aloud the recent reactions the focused message received.</p>
+
+<h3>Star and pin</h3>
+<ul>
+  <li><strong>Star</strong> (Ctrl+Shift+O): stars are synced with WhatsApp, and each change is verified. To send your old local stars to WhatsApp, use "Sync old local stars with WhatsApp" in the chat menu.</li>
+  <li><strong>Pin a message</strong> (Ctrl+Shift+P, when you are not recording): a button in each chat lists the messages pinned on WhatsApp, including old ones; Enter takes you to the message in the history. When you open the chat, the number of pinned messages is announced without changing focus.</li>
+</ul>
+
+<h3>Bookmarks</h3>
+<p>Bookmarks are positions you create on messages to come back to later. With the message focused, Ctrl+0 to Ctrl+9 creates a bookmark (or, if that number already exists, goes to it); Ctrl+Shift+0 to 9 removes it. Alt+Shift+0 to 9 creates temporary bookmarks, deleted when you leave the chat; Ctrl+Alt+Shift+0 to 9 removes the temporary ones.</p>
+<h3>Quick chats</h3>
+<p>With a chat focused in a chat list or open, press Ctrl+Alt+Shift+F1 to F10 to assign it to a quick slot. Ctrl+Shift+the same function key opens it from anywhere in the main window. F1 to F9 are slots 1 to 9; F10 is slot 0. Assignments are separate for each account and persist after restart. You can change these shortcuts in Settings, User Interface, Keyboard shortcuts, or assign a chat from its context menu. Protected chats cannot be assigned.</p>
+
+<h3>Search in the chat</h3>
+<p>Ctrl+Shift+F opens the search. F3 goes to the next result and Shift+F3 to the previous one, from anywhere in the open chat; focus follows the result and the screen reader announces the position. The "Previous result" and "Next result" buttons also work, and inside the search field Enter and Shift+Enter do the same.</p>
+
+<h3>Links</h3>
+<p>A message with two or more links becomes a navigable list. Enter or Space on a link opens it; Ctrl+C copies the link; the context menu has "Open link" and "Copy link". Group invitation links (<code>chat.whatsapp.com/...</code>) open WinZapp's "Join group by link" window, with the group preview, instead of the browser; the link's menu also offers "Join group by link" and keeps "Open link" for those who want the browser. Messages you send also carry a link preview.</p>
+<p>In a link preview, the title and description appear with the real characters, without HTML codes such as &amp;amp; or &amp;eacute;, both in the preview WinZapp sends and in the one you read.</p>
+
+<h3>Contacts, polls and cards</h3>
+<ul>
+  <li><strong>Received contact card:</strong> Enter or Space saves it as a contact. The context menu has see name and number, copy the number with Ctrl+C, and chat. If the card has more than one number, WinZapp asks which one to use.</li>
+  <li><strong>Received polls:</strong> the row reads the question and then each option, with percentage and votes when WinZapp receives them. Enter opens a window with the same list, check boxes to vote and a progress bar per option. In a single-answer poll, Tab from the message leads to the options and checking one already votes. The "View votes" button (Alt+V) lists who voted for what. To create a poll, see the Attachments section.</li>
+  <li><strong>Order messages:</strong> Enter opens the order; see the Businesses section.</li>
+  <li><strong>Community announcements:</strong> in the menu of an announcement message, "Community announcement replies" opens a window to read and send replies and refresh the list; the text is kept if the send is not confirmed.</li>
+</ul>
+
+<h3>Chat with Meta AI</h3>
+<p>WhatsApp requires accepting the Meta AI terms of service before the first message. WinZapp shows the terms, with a link to read them, and records the acceptance.</p>
+
+<h3>Select messages and bulk actions</h3>
+<p>It works as in chats: Ctrl+Space marks, then Space marks the following ones, Ctrl+Shift+Space marks everything. In the "Bulk actions" submenu (or with the shortcuts), the selected messages can be:</p>
+<table class="field-table">
+  <tr><th>Action</th><th>Shortcut</th></tr>
+  <tr><td>Copy</td><td class="field-name">Ctrl+Alt+Shift+C</td></tr>
+  <tr><td>Forward</td><td class="field-name">Ctrl+Alt+Shift+E</td></tr>
+  <tr><td>Star</td><td class="field-name">Ctrl+Alt+Shift+F</td></tr>
+  <tr><td>Pin</td><td class="field-name">Ctrl+Alt+Shift+X</td></tr>
+  <tr><td>Save</td><td class="field-name">Ctrl+Alt+Shift+S</td></tr>
+  <tr><td>Delete</td><td class="field-name">Delete (with a selection)</td></tr>
+  <tr><td>Transcribe and show together / on their rows / delete transcriptions</td><td class="field-name">Ctrl+Alt+Shift+T / N / Delete</td></tr>
+</table>
+<p>The selection ends with the chat: when you close it, nothing stays marked.</p>
+
+<h3>Drafts, sending again and the controls after the list</h3>
+<p>The message field keeps what you typed with its conversation: leave a conversation without sending, and the text, mentions included, comes back when you open it again. In Settings &gt; Interface &gt; Chats, "Unsent message when you leave a conversation" chooses among keeping it in the field for the next conversation, keeping it as that conversation's draft (the default) or discarding it. Drafts last until WinZapp is closed.</p>
+<p>A message of yours that failed or was not confirmed, text or attachment, has "Try sending again" in its menu, also with Ctrl+Shift+Y. WinZapp never resends anything on its own.</p>
+<p>During playback, Tab after the message list stops at the speed button and the duration bar, and on a voice message, picture or video, at the online AI button. Each can be taken out of the way: "Hide the speed button while media plays (the speed shortcuts still work)" and "Hide the duration bar while media plays (Tab skips it)" in Settings &gt; Audio &gt; Audio playback, and "Hide the online AI button after the message list (the message menu still offers it)" in Online AI: Transcriptions and Descriptions. The shortcuts and the message menu keep working.</p>

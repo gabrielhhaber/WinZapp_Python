@@ -1,0 +1,57 @@
+<!--nav: 🔌 Getting started-->
+<p class="lead">WinZapp is a WhatsApp client for Windows built for people who use a screen reader (NVDA, JAWS or Narrator). It works like WhatsApp Web: your phone stays the main device and WinZapp joins as a linked device.</p>
+
+<h3>Install</h3>
+<p>Always download from the official repository's Releases page (<code>github.com/gabrielhhaber/WinZapp_Python/releases</code>). Copies on other sites are not from the project. Every release has these files:</p>
+<table class="field-table">
+  <tr><th>File</th><th>What it is for</th></tr>
+  <tr><td class="field-name">WinZappInstaller.exe</td><td>The installer. The right choice for most people. It installs to <code>%LOCALAPPDATA%\WinZapp</code> (no administrator rights needed), can create desktop and Start menu shortcuts, and registers an uninstaller in Windows Settings &gt; Apps.</td></tr>
+  <tr><td class="field-name">WinZapp.zip</td><td>The same program as a portable version. Extract it to a folder on a local disk and run <code>WinZapp.exe</code>.</td></tr>
+  <tr><td class="field-name">SHA256SUMS.txt</td><td>Checksums to verify the download.</td></tr>
+</table>
+<div class="callout warn">
+  <div class="callout-title">⚠️ Local disk</div>
+  WinZapp does not work from a network folder (such as <code>\\server\folder</code>, or the Downloads folder of a virtual machine). If that happens, it tells you and explains what to do: install with WinZappInstaller or move the folder to a disk on your own computer.
+</div>
+<p>Requirements: 64-bit Windows 10 or 11, an internet connection and a WhatsApp account on your phone.</p>
+
+<h3>Stable or alpha</h3>
+<ul>
+  <li><strong>Stable:</strong> made by hand and recommended. It is the one marked "Latest" on the Releases page.</li>
+  <li><strong>Alpha:</strong> marked "Pre-release". It is built automatically for every change on the main line, without long testing, so it may have defects. The number ends in "alpha" (for example, <code>2.1.0.4397alpha</code>; the last digits count the changes made to the project).</li>
+</ul>
+<p>By default you only receive stable versions. To receive alphas too, check "Check for alpha updates (unstable)" in Settings &gt; General.</p>
+
+<h3>First start</h3>
+<p>The first time, WinZapp downloads and sets up by itself the components that talk to WhatsApp Web (the WPPConnect server and an internal Chromium browser). This needs internet and shows a progress window titled "Starting WPPConnect, please wait...". On later starts, with the account already connected, the main window and your chats appear right away and WhatsApp connects in the background. Messages you send in the meantime wait and go out as soon as the connection is ready. The window title shows "starting WPPConnect..." until everything is ready.</p>
+
+<h3>Connect your account</h3>
+<p>The connection screen offers two ways to pair:</p>
+<ol class="steps">
+  <li><span class="step-num">1</span><div><strong>Phone number:</strong> If you have not paired yet, the "Connection engine" list before the country lets you choose between WPPConnect and Neonize without opening Settings; when you choose, WinZapp asks for confirmation and restarts with the chosen engine. choose the country (the list is alphabetical, uses the country and language of Windows, and accepts typing several letters to search), type the number and continue. WinZapp shows a code. On your phone, open WhatsApp, go to Linked devices &gt; Link a device and choose to link with a phone number.</div></li>
+  <li><span class="step-num">2</span><div><strong>QR code:</strong> scan the code on the screen with WhatsApp on your phone, under Linked devices.</div></li>
+</ol>
+<p>WinZapp announces when the code is being generated, when it actually appears, when it expires and when it could not be generated. If WhatsApp refuses the code, the message explains why.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 Connecting a different number</div>
+  Closing or cancelling the pairing screen does not delete your chats. History is only erased when a different phone number is actually connected, and in that case WinZapp warns you.
+</div>
+
+<h3>Where your data lives</h3>
+<p>Everything is in a <code>data</code> folder next to the program: accounts, message history, downloaded media and logs. With the installer, it is <code>%LOCALAPPDATA%\WinZapp\data</code>. Back up that folder if you want to take your history to another computer. Message content and the session token are stored encrypted.</p>
+
+<h3>Updates</h3>
+<p>WinZapp looks for new versions by itself and offers to download and install them. To check right now, use Help &gt; Check for updates (if the update server cannot be reached, it tells you). A few useful things:</p>
+<ul>
+  <li>With "Download updates and transcription downloads in the background, without the progress window" (Settings &gt; General), you keep using the program, connected, while the update downloads; only when it is ready does WinZapp say it is going to install. If you are on a call, the notice waits until it ends.</li>
+  <li>Cancelling the progress window before the installation starts stops the update safely.</li>
+  <li>The downloaded package is kept while it waits to install. Once WinZapp closes, wait for the installer to finish before opening it again. If installation does not finish, reaching the wait limit does not automatically reopen WinZapp. An incomplete copy is a failure; a later successful update clears the earlier failure warning. If copying fails or its completion cannot be confirmed, WinZapp stays closed and opens recovery instructions in Notepad. Wait for the installer to finish before repairing. Back up your existing data folder, repair the program files using the official installer or ZIP, and keep your data folder. The note shows the installation folder and update log location.</li>
+  <li>With more than one account open, the update opens a single window and closes the other accounts before installing.</li>
+  <li>Help &gt; Force reinstall WPPConnect and Force reinstall from ZIP file are there for when something in the local server gets out of shape.</li>
+  <li>Help &gt; What's New shows what changed in each version, and Help &gt; "What's New Since You Last Looked..." summarizes only what is new for you, in plain sentences. The "What's new?" button in the update window shows what the offered version changes; on an alpha, it also lists the changes of each alpha since yours.</li>
+</ul>
+
+<h3>Check the download</h3>
+<p>Every release has a <code>SHA256SUMS.txt</code>. To check in CMD:</p>
+<p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
+<p>The value must match the one on the file's line. If it differs, delete the file and download it again. WinZapp's updater also checks the checksum (and, on newer versions, the signature) before installing.</p>

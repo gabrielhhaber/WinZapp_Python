@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="it" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinZapp — Guida all'uso</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1a1a2e;
+    --ink-light:  #3d3d5c;
+    --ink-muted:  #7a7a9a;
+    --surface:    #ffffff;
+    --surface-2:  #f4f4f8;
+    --surface-3:  #eaeaf2;
+    --accent:     #0a7d5f;
+    --accent-2:   #0f9d8a;
+    --accent-warm:#d97706;
+    --success:    #059669;
+    --danger:     #dc2626;
+    --border:     #d1d1e0;
+    --radius:     6px;
+    --sidebar-w:  260px;
+    --font-body:  Georgia, 'Times New Roman', serif;
+    --font-ui:    'Segoe UI', system-ui, sans-serif;
+    --font-code:  'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:       #e8e8f4; --ink-light: #b8b8d4; --ink-muted: #7a7a9a;
+      --surface:   #12121e; --surface-2: #1a1a2e; --surface-3: #22223a;
+      --accent:    #34d3a8; --accent-2:  #5eead4; --accent-warm:#fbbf24;
+      --success:   #34d399; --danger:    #f87171; --border:     #2e2e4a;
+    }
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--surface);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .skip-link {
+    position: absolute; top: -100px; inset-inline-start: 1rem;
+    background: var(--accent); color: #fff;
+    padding: 8px 16px; border-radius: var(--radius);
+    font-family: var(--font-ui); font-size: 14px; z-index: 9999;
+    transition: top .2s;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed; top: 0; inset-inline-start: 0;
+    width: var(--sidebar-w); height: 100vh;
+    background: var(--surface-2); border-inline-end: 1px solid var(--border);
+    overflow-y: auto; padding: 0 0 2rem;
+    z-index: 100; display: flex; flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface-2); z-index: 1;
+  }
+
+  .sidebar-logo {
+    font-family: var(--font-ui); font-size: 15px; font-weight: 700;
+    color: var(--ink); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; letter-spacing: -.2px;
+  }
+  .sidebar-logo span { font-size: 20px; }
+  .sidebar-subtitle {
+    font-family: var(--font-ui); font-size: 11px; color: var(--ink-muted);
+    margin-top: 3px; letter-spacing: .4px; text-transform: uppercase;
+  }
+
+  .sidebar-search { padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .sidebar-search input {
+    width: 100%; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink);
+    font-family: var(--font-ui); font-size: 13px; outline: none;
+  }
+  .sidebar-search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .nav-section { padding: .5rem 0; }
+  .nav-section-title {
+    font-family: var(--font-ui); font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--ink-muted);
+    padding: .5rem 1.25rem .25rem;
+  }
+  .nav-link {
+    display: block; padding-block: 5px; padding-inline: 1.5rem 1.25rem;
+    font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-light);
+    text-decoration: none; border-inline-start: 3px solid transparent;
+    transition: all .15s; line-height: 1.4;
+  }
+  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-inline-start-color: var(--accent); }
+  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-inline-start-color: var(--accent); font-weight: 600; }
+
+  /* ── Main ── */
+  .main { margin-inline-start: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
+
+  .wiki-section { margin-bottom: 4rem; padding-top: 1rem; }
+  .wiki-section:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
+
+  h1 { font-family: var(--font-ui); font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 1rem; }
+  h2 { font-family: var(--font-ui); font-size: 1.35rem; font-weight: 700; color: var(--ink); margin: 2rem 0 .75rem; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-inline-start: .5rem; }
+  h3 { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
+
+  .lead { font-size: 1.05rem; color: var(--ink-light); margin-bottom: 1.5rem; line-height: 1.8; }
+  p { margin-bottom: 1rem; }
+
+  .callout { border-inline-start: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-start-end-radius: var(--radius); border-end-end-radius: var(--radius); margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+  .callout.tip  { border-color: var(--success); background: color-mix(in srgb, var(--success) 6%, var(--surface-2)); }
+  .callout.warn { border-color: var(--accent-warm); background: color-mix(in srgb, var(--accent-warm) 6%, var(--surface-2)); }
+  .callout.info { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--surface-2)); }
+  .callout-title { font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+
+  kbd { display: inline-block; background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--ink); box-shadow: 0 1px 0 var(--border); white-space: nowrap; }
+
+  .btn-demo { display: inline-flex; align-items: center; gap: 5px; background: var(--accent); color: #fff; padding: 4px 12px; border-radius: var(--radius); font-family: var(--font-ui); font-size: 13px; font-weight: 600; white-space: nowrap; vertical-align: middle; }
+  .btn-demo.outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+
+  .steps { list-style: none; padding: 0; margin: 1rem 0 1.5rem; }
+  .steps li { display: flex; gap: 1rem; margin-bottom: .85rem; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; align-items: flex-start; }
+  .step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .col-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; font-family: var(--font-ui); font-size: 13.5px; line-height: 1.6; }
+  .col-card h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+
+  .field-table { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 13.5px; margin: 1rem 0 1.5rem; }
+  .field-table th { text-align: start; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
+  .field-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
+  .field-table tr:nth-child(even) td { background: var(--surface-2); }
+  .field-name { font-family: var(--font-code); font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+
+  [id] { scroll-margin-top: 1.5rem; }
+
+  .hero-toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0 2rem; font-family: var(--font-ui); font-size: 13.5px; }
+  .hero-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink-muted); margin-bottom: .75rem; }
+  .hero-toc ol { columns: 2; gap: 1rem; padding-inline-start: 1.25rem; color: var(--ink-light); line-height: 2.2; }
+  .hero-toc a { color: var(--accent); text-decoration: none; }
+  .hero-toc a:hover { text-decoration: underline; }
+
+  .menu-toggle { display: none; position: fixed; top: 1rem; inset-inline-end: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); transition: transform .25s; }
+    [dir="rtl"] .sidebar { transform: translateX(100%); }
+    .sidebar.open, [dir="rtl"] .sidebar.open { transform: translateX(0); }
+    .main { margin-inline-start: 0; padding: 2rem 1.25rem 4rem; }
+    .menu-toggle { display: block; }
+    .cols-2 { grid-template-columns: 1fr; }
+    .hero-toc ol { columns: 1; }
+  }
+
+  mark { background: color-mix(in srgb, var(--accent-warm) 30%, transparent); color: inherit; border-radius: 2px; padding: 0 2px; }
+
+  .em-breve { color: var(--ink-muted); font-family: var(--font-ui); font-style: italic; }
+
+  @media print {
+    .sidebar, .menu-toggle, .skip-link { display: none; }
+    .main { margin-inline-start: 0; padding: 1rem; }
+  }
+  code { font-family: var(--font-code); font-size: .9em; background: var(--surface-3); padding: 1px 5px; border-radius: 3px; }
+  .desde { display: inline-block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; background: var(--accent-warm); color: #1a1a2e; border-radius: 10px; padding: 1px 8px; margin-inline-start: 6px; vertical-align: middle; }
+  .cobertura { font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted); margin-bottom: 1rem; }
+  ul, ol { margin: 0 0 1rem; margin-inline-start: 1.5rem; } li { margin-bottom: .4rem; }
+  .steps { margin-inline-start: 0; }
+  /* Keys, paths and code read left to right inside right-to-left text. */
+  [dir="rtl"] code, [dir="rtl"] kbd { direction: ltr; unicode-bidi: isolate; }
+  [dir="rtl"] .field-name { unicode-bidi: plaintext; text-align: right; }
+  /* Georgia has no Arabic letters, and spacing breaks the joins between them. */
+  :root:lang(ar) { --font-body: 'Segoe UI', Tahoma, sans-serif; }
+  html:lang(ar) body * { letter-spacing: normal; }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#conteudo">Vai al contenuto</a>
+<button class="menu-toggle" aria-label="Apri il menu" aria-expanded="false" id="menuToggle">☰ Menu</button>
+
+<nav class="sidebar" id="sidebar" aria-label="Navigazione della guida">
+  <div class="sidebar-header">
+    <a href="#topo" class="sidebar-logo"><span>💬</span> WinZapp</a>
+    <div class="sidebar-subtitle">Guida all'uso</div>
+  </div>
+  <div class="sidebar-search">
+    <input type="search" id="searchInput" placeholder="Cerca nella guida…" aria-label="Cerca nella guida" autocomplete="off">
+  </div>
+  <div class="nav-section">
+    <a href="#primeiros-passos" class="nav-link">1. Getting started</a>
+    <a href="#navegacao" class="nav-link">2. Main navigation</a>
+    <a href="#conversas" class="nav-link">3. Chat list</a>
+    <a href="#dentro-conversa" class="nav-link">4. Inside a chat</a>
+    <a href="#anexos-midia" class="nav-link">5. Attachments and media</a>
+    <a href="#voz-audio" class="nav-link">6. Voice messages and audio</a>
+    <a href="#transcricao-ia" class="nav-link">7. Transcription and description</a>
+    <a href="#status" class="nav-link">8. Status</a>
+    <a href="#ligacoes" class="nav-link">9. Calls</a>
+    <a href="#grupos-comunidades" class="nav-link">10. Groups and communities</a>
+    <a href="#trancadas" class="nav-link">11. Locked chats</a>
+    <a href="#empresas" class="nav-link">12. Businesses: catalog and orders</a>
+    <a href="#contas" class="nav-link">13. Accounts, tray and sync</a>
+    <a href="#configuracoes" class="nav-link">14. Settings</a>
+    <a href="#privacidade" class="nav-link">15. WhatsApp settings</a>
+    <a href="#copias-registros" class="nav-link">16. Backups and logs</a>
+    <a href="#mac" class="nav-link">17. WinZapp on the Mac</a>
+    <a href="#armazenamento" class="nav-link">18. Gestione archiviazione</a>
+    <a href="#atalhos" class="nav-link">19. Keyboard shortcuts</a>
+    <a href="#solucao-problemas" class="nav-link">20. Troubleshooting</a>
+    <a href="#registro" class="nav-link">21. Guide update log</a>
+  </div>
+</nav>
+
+<main class="main" id="conteudo" tabindex="-1">
+
+  <div id="topo" class="wiki-section">
+    <h1>WinZapp</h1>
+    <p class="lead">Guida all'uso di WinZapp, il client WhatsApp accessibile per Windows. Sfoglia l'indice a sinistra o usa la ricerca per trovare qualsiasi argomento.</p>
+    <p class="cobertura">Questa guida copre WinZapp fino alla versione alpha 2.1.0.4397 (14/10/2026). Le funzioni aggiunte in seguito non sono ancora incluse.</p>
+    <div class="hero-toc" role="navigation" aria-label="Indice della guida">
+      <div class="hero-toc-title">📋 In questa guida</div>
+      <ol>
+        <li><a href="#primeiros-passos">Getting started</a></li>
+        <li><a href="#navegacao">Main navigation</a></li>
+        <li><a href="#conversas">Chat list</a></li>
+        <li><a href="#dentro-conversa">Inside a chat</a></li>
+        <li><a href="#anexos-midia">Attachments and media</a></li>
+        <li><a href="#voz-audio">Voice messages and audio</a></li>
+        <li><a href="#transcricao-ia">Transcription and description</a></li>
+        <li><a href="#status">Status</a></li>
+        <li><a href="#ligacoes">Calls</a></li>
+        <li><a href="#grupos-comunidades">Groups and communities</a></li>
+        <li><a href="#trancadas">Locked chats</a></li>
+        <li><a href="#empresas">Businesses: catalog and orders</a></li>
+        <li><a href="#contas">Accounts, tray and sync</a></li>
+        <li><a href="#configuracoes">Settings</a></li>
+        <li><a href="#privacidade">WhatsApp settings</a></li>
+        <li><a href="#copias-registros">Backups and logs</a></li>
+        <li><a href="#mac">WinZapp on the Mac</a></li>
+        <li><a href="#armazenamento">Gestione archiviazione</a></li>
+        <li><a href="#atalhos">Keyboard shortcuts</a></li>
+        <li><a href="#solucao-problemas">Troubleshooting</a></li>
+        <li><a href="#registro">Guide update log</a></li>
+      </ol>
+    </div>
+  </div>
+
+  <section id="primeiros-passos" class="wiki-section" aria-labelledby="h-primeiros-passos">
+    <h2 id="h-primeiros-passos">🔌 1. Getting started</h2>
+<p class="lead">WinZapp is a WhatsApp client for Windows built for people who use a screen reader (NVDA, JAWS or Narrator). It works like WhatsApp Web: your phone stays the main device and WinZapp joins as a linked device.</p>
+
+<h3>Install</h3>
+<p>Always download from the official repository's Releases page (<code>github.com/gabrielhhaber/WinZapp_Python/releases</code>). Copies on other sites are not from the project. Every release has these files:</p>
+<table class="field-table">
+  <tr><th>File</th><th>What it is for</th></tr>
+  <tr><td class="field-name">WinZappInstaller.exe</td><td>The installer. The right choice for most people. It installs to <code>%LOCALAPPDATA%\WinZapp</code> (no administrator rights needed), can create desktop and Start menu shortcuts, and registers an uninstaller in Windows Settings &gt; Apps.</td></tr>
+  <tr><td class="field-name">WinZapp.zip</td><td>The same program as a portable version. Extract it to a folder on a local disk and run <code>WinZapp.exe</code>.</td></tr>
+  <tr><td class="field-name">SHA256SUMS.txt</td><td>Checksums to verify the download.</td></tr>
+</table>
+<div class="callout warn">
+  <div class="callout-title">⚠️ Local disk</div>
+  WinZapp does not work from a network folder (such as <code>\\server\folder</code>, or the Downloads folder of a virtual machine). If that happens, it tells you and explains what to do: install with WinZappInstaller or move the folder to a disk on your own computer.
+</div>
+<p>Requirements: 64-bit Windows 10 or 11, an internet connection and a WhatsApp account on your phone.</p>
+
+<h3>Stable or alpha</h3>
+<ul>
+  <li><strong>Stable:</strong> made by hand and recommended. It is the one marked "Latest" on the Releases page.</li>
+  <li><strong>Alpha:</strong> marked "Pre-release". It is built automatically for every change on the main line, without long testing, so it may have defects. The number ends in "alpha" (for example, <code>2.1.0.4397alpha</code>; the last digits count the changes made to the project).</li>
+</ul>
+<p>By default you only receive stable versions. To receive alphas too, check "Check for alpha updates (unstable)" in Settings &gt; General.</p>
+
+<h3>First start</h3>
+<p>The first time, WinZapp downloads and sets up by itself the components that talk to WhatsApp Web (the WPPConnect server and an internal Chromium browser). This needs internet and shows a progress window titled "Starting WPPConnect, please wait...". On later starts, with the account already connected, the main window and your chats appear right away and WhatsApp connects in the background. Messages you send in the meantime wait and go out as soon as the connection is ready. The window title shows "starting WPPConnect..." until everything is ready.</p>
+
+<h3>Connect your account</h3>
+<p>The connection screen offers two ways to pair:</p>
+<ol class="steps">
+  <li><span class="step-num">1</span><div><strong>Phone number:</strong> If you have not paired yet, the "Connection engine" list before the country lets you choose between WPPConnect and Neonize without opening Settings; when you choose, WinZapp asks for confirmation and restarts with the chosen engine. choose the country (the list is alphabetical, uses the country and language of Windows, and accepts typing several letters to search), type the number and continue. WinZapp shows a code. On your phone, open WhatsApp, go to Linked devices &gt; Link a device and choose to link with a phone number.</div></li>
+  <li><span class="step-num">2</span><div><strong>QR code:</strong> scan the code on the screen with WhatsApp on your phone, under Linked devices.</div></li>
+</ol>
+<p>WinZapp announces when the code is being generated, when it actually appears, when it expires and when it could not be generated. If WhatsApp refuses the code, the message explains why.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 Connecting a different number</div>
+  Closing or cancelling the pairing screen does not delete your chats. History is only erased when a different phone number is actually connected, and in that case WinZapp warns you.
+</div>
+
+<h3>Where your data lives</h3>
+<p>Everything is in a <code>data</code> folder next to the program: accounts, message history, downloaded media and logs. With the installer, it is <code>%LOCALAPPDATA%\WinZapp\data</code>. Back up that folder if you want to take your history to another computer. Message content and the session token are stored encrypted.</p>
+
+<h3>Updates</h3>
+<p>WinZapp looks for new versions by itself and offers to download and install them. To check right now, use Help &gt; Check for updates (if the update server cannot be reached, it tells you). A few useful things:</p>
+<ul>
+  <li>With "Download updates and transcription downloads in the background, without the progress window" (Settings &gt; General), you keep using the program, connected, while the update downloads; only when it is ready does WinZapp say it is going to install. If you are on a call, the notice waits until it ends.</li>
+  <li>Cancelling the progress window before the installation starts stops the update safely.</li>
+  <li>The downloaded package is kept while it waits to install. Once WinZapp closes, wait for the installer to finish before opening it again. If installation does not finish, reaching the wait limit does not automatically reopen WinZapp. An incomplete copy is a failure; a later successful update clears the earlier failure warning. If copying fails or its completion cannot be confirmed, WinZapp stays closed and opens recovery instructions in Notepad. Wait for the installer to finish before repairing. Back up your existing data folder, repair the program files using the official installer or ZIP, and keep your data folder. The note shows the installation folder and update log location.</li>
+  <li>With more than one account open, the update opens a single window and closes the other accounts before installing.</li>
+  <li>Help &gt; Force reinstall WPPConnect and Force reinstall from ZIP file are there for when something in the local server gets out of shape.</li>
+  <li>Help &gt; What's New shows what changed in each version, and Help &gt; "What's New Since You Last Looked..." summarizes only what is new for you, in plain sentences. The "What's new?" button in the update window shows what the offered version changes; on an alpha, it also lists the changes of each alpha since yours.</li>
+</ul>
+
+<h3>Check the download</h3>
+<p>Every release has a <code>SHA256SUMS.txt</code>. To check in CMD:</p>
+<p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
+<p>The value must match the one on the file's line. If it differs, delete the file and download it again. WinZapp's updater also checks the checksum (and, on newer versions, the signature) before installing.</p>
+
+  </section>
+
+  <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
+    <h2 id="h-navegacao">🧭 2. Main navigation</h2>
+<p class="lead">The main window is divided into panels. You can go to any of them from anywhere in the window with Alt+number.</p>
+
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Panel</th></tr>
+  <tr><td class="field-name">Alt+1</td><td>Chats (the main list)</td></tr>
+  <tr><td class="field-name">Alt+2</td><td>Last message of the open chat</td></tr>
+  <tr><td class="field-name">Alt+3</td><td>Unread messages of the open chat</td></tr>
+  <tr><td class="field-name">Alt+4</td><td>Archived chats</td></tr>
+  <tr><td class="field-name">Alt+5</td><td>Status</td></tr>
+  <tr><td class="field-name">Alt+6</td><td>Calls</td></tr>
+  <tr><td class="field-name">Alt+7</td><td>Locked chats</td></tr>
+  <tr><td class="field-name">Alt+8</td><td>Communities</td></tr>
+  <tr><td class="field-name">Alt+M</td><td>Messages: goes back to the message list of the open chat</td></tr>
+  <tr><td class="field-name">Alt+N</td><td>Focuses the main navigation menu (the letter comes from the label in the program's language)</td></tr>
+  <tr><td class="field-name">F1</td><td>Shows all keyboard shortcuts</td></tr>
+  <tr><td class="field-name">Ctrl+,</td><td>Settings</td></tr>
+</table>
+<p>The panels are also in a navigation list (Alt+N takes you to it), in the same order: Communities comes after Calls <span class="desde">alpha 4397</span>, with Alt+8 in the item's name, and you can reach it by moving down the list.</p>
+<p>If no chat is open, Alt+2, Alt+3 and Ctrl+W say "No chat is open"; in an empty chat, Alt+2 says "This chat is empty".</p>
+
+<h3>The open chat stays "behind" the panels</h3>
+<p>When you switch panels (Status, Calls, archived...), the open chat stays open, just hidden. While it is hidden, its new messages are announced as coming from another chat and are not marked as read, and "typing" notices are not spoken. Go back to it with Alt+M, Alt+2 or Alt+3, or by opening it again.</p>
+
+<h3>The menus</h3>
+<table class="field-table">
+  <tr><th>Menu</th><th>What it has</th></tr>
+  <tr><td class="field-name">File</td><td>Settings, WhatsApp settings (privacy and profile), Export and Import settings, Mark all chats as read, Disconnect, Exit.</td></tr>
+  <tr><td class="field-name">Sync</td><td>Resync all chats (F5), Resync this chat (Shift+F5), Download media, Offline mode.</td></tr>
+  <tr><td class="field-name">Accounts</td><td>Switch accounts (Ctrl+Alt+1 to 9) and Close current account (Ctrl+F4). See the Accounts section.</td></tr>
+  <tr><td class="field-name">Help</td><td>Keyboard shortcuts, What's New, Check for updates, Force reinstall WPPConnect and from ZIP, About the program.</td></tr>
+</table>
+
+<h3>System tray and global shortcut</h3>
+<p>WinZapp can stay in the system tray and start with Windows. There is a global shortcut (configurable in Settings &gt; Interface &gt; Keyboard shortcuts) that brings the window to the front from any program; with WinZapp already in the foreground, the same shortcut hides it in the tray. When started with Windows, it only shows up in the tray once the connection is ready.</p>
+
+<h3>Spoken announcements</h3>
+<p>Everything WinZapp says goes through your screen reader (or through the Windows SAPI voice, if you enable that option in Settings &gt; Accessibility and no screen reader is active). In Settings &gt; Accessibility &gt; Spoken content you choose what is announced.</p>
+
+  </section>
+
+  <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
+    <h2 id="h-conversas">💬 3. Chat list</h2>
+<p class="lead">The chat list (Alt+1) shows the names of people and groups, never internal codes. Each row reads the name, the last message and the state (unread, pinned, muted...).</p>
+<p>With Neonize, a chat is marked as read only when you open it or mark it as read, and it shows as read on the phone and on WhatsApp Web too.</p>
+<p>With Neonize, when you reach the start of what WinZapp holds of a chat, it asks the phone for the older messages, as WhatsApp Web does; they arrive in a few moments, with the phone connected.</p>
+
+<h3>Filters and lists</h3>
+<ul>
+  <li><strong>Filters:</strong> All, Unread, Groups and Individual, as radio buttons. Alt+Shift+F takes you to them; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the list.</li>
+  <li><strong>WhatsApp lists:</strong> your custom lists appear before the filters. You can refresh them, filter by them, create or rename a list, and add or remove chats, in "Manage WhatsApp lists". Editing depends on your account's support; when it is not possible, the manager says why. Locked chats or chats unavailable locally do not show in the selection, and the other members of the list are preserved.</li>
+  <li><strong>Search:</strong> Ctrl+F takes you to the search field; the down arrow goes to the first result. In Settings &gt; Interface &gt; Chats, "Keep the chat search when opening a chat" makes Esc return focus to that chat in the results instead of going back to the full list.</li>
+</ul>
+
+<h3>Open a chat</h3>
+<p>Enter opens the selected chat. Focus goes where you set it in Settings &gt; Interface &gt; Chats (message field, or the unread marker / last message). Esc or Ctrl+W closes the chat.</p>
+
+<h3>The chat context menu</h3>
+<p>Open it with the Applications key or Shift+F10. The items vary with the chat:</p>
+<table class="field-table">
+  <tr><th>Item</th><th>Shortcut</th></tr>
+  <tr><td>Chat info</td><td class="field-name">Ctrl+Shift+D</td></tr>
+  <tr><td>Pin / unpin</td><td class="field-name">Ctrl+P</td></tr>
+  <tr><td>Mute / unmute</td><td class="field-name">Alt+Shift+S</td></tr>
+  <tr><td>Mark as read / unread</td><td class="field-name">Ctrl+Shift+M</td></tr>
+  <tr><td>Archive / unarchive</td><td class="field-name">Ctrl+Shift+Q</td></tr>
+  <tr><td>Lock chat</td><td class="field-name">Ctrl+Shift+T</td></tr>
+  <tr><td>Block contact</td><td class="field-name">Ctrl+Shift+B</td></tr>
+  <tr><td>Clear chat</td><td class="field-name">Ctrl+Shift+L</td></tr>
+  <tr><td>Delete chat</td><td class="field-name">Delete</td></tr>
+  <tr><td>Copy phone number</td><td class="field-name">Alt+Shift+C</td></tr>
+  <tr><td>Business catalog and cart (chats with businesses)</td><td class="field-name">Alt+Shift+B</td></tr>
+  <tr><td>Business tools (WhatsApp Business accounts only)</td><td>Create an order for this contact (Ctrl+Shift+N) and Accept carts in my catalog</td></tr>
+</table>
+<p>Block contact also works for a number that is not saved in your contacts.</p>
+<div class="callout info">
+  <div class="callout-title">ℹ️ Shortcuts can be changed</div>
+  All shortcuts in this guide are the factory ones. You can change them in Settings &gt; Interface &gt; Keyboard shortcuts. The complete, always current list is in the Keyboard shortcuts section and on F1.
+</div>
+
+<h3>Clear and delete</h3>
+<ul>
+  <li><strong>Clear chat</strong> asks whether to keep starred messages ("Keep starred messages", checked by default). Unchecked, starred messages are deleted too, including on the phone. It also applies to several selected chats and to archived ones.</li>
+  <li>The clear and delete confirmations have a "Don't show again" box, which only counts together with Yes. To be asked again, use the matching options in Settings &gt; Interface &gt; Confirmations. With the question turned off, clearing keeps starred messages.</li>
+  <li><strong>Mark all chats as read</strong> (File menu, or Ctrl+Alt+Shift+M) asks first, with No as the default. It also has "Don't show again"; the option "Ask for confirmation before marking all chats as read" brings the question back.</li>
+  <li><strong>Spoken confirmation:</strong> marking a chat read or unread, muting, archiving and pinning now say what was done, and marking several chats as read says how many.</li>
+</ul>
+
+<h3>New chat, group and contact</h3>
+<p>Ctrl+N opens "New chat". There you search for a contact (the field already has focus and filters by name, including surname, and by number as you type), start a chat by number, create a group, add a contact, join a group by link and open communities ("Communities" button).</p>
+<p>If you type a Brazilian number with the extra 9 and WhatsApp uses the number without it, the conversation stays a single one: when you open the conversation, WinZapp asks WhatsApp which number it uses and opens the conversation with that one.</p>
+<p>In a new or empty personal chat, the line that says there are no messages also tells you that messages and calls are end-to-end encrypted and, if the chat has disappearing messages, how long they last.</p>
+<h3>Contacts: local or synced with the phone</h3>
+<p>When you add a contact (in Chat info, in New chat or from a contact message), there are two tabs:</p>
+<ul>
+  <li><strong>Contact synced with the phone:</strong> saves the name on WhatsApp and in the phone's address book. It opens by default; if the number is already in the phone's address book, only this tab appears. Deleting a synced contact also removes it from WhatsApp and from the phone.</li>
+  <li><strong>Local WinZapp contact:</strong> the name exists only in WinZapp.</li>
+</ul>
+<p>Verified businesses you have not saved (banks, payment apps...) appear with the business's verified name. A name saved in your contacts always takes precedence.</p>
+<p>The conversation, archived and locked chat lists use the full width of the list, so names and message previews are cut off only when the window is narrow.</p>
+
+<h3>Pinning</h3>
+<p>With "Keep pinned chats in a fixed order" (Settings &gt; Interface &gt; Chats), new messages do not change the position of pinned chats and the order is kept on restart. Turned off, pinned chats move up with new messages like the others.</p>
+
+<h3>Select several chats</h3>
+<p>Ctrl+Space marks or unmarks the focused chat. After the first marked item, Space alone marks and unmarks the following ones (selection mode; the screen reader announces when it turns on and off, and it turns off when nothing is marked any more). Shift+Down/Up Arrow extends the selection, Shift+Home and Shift+End mark up to the start or the end, and Ctrl+Shift+Space marks or unmarks everything. With something marked, the first Esc only unmarks. This also applies in archived and locked chats, in the message list and in the forward window.</p>
+<p>The context menu has the <strong>Bulk actions</strong> submenu, each action with its own shortcut:</p>
+<table class="field-table">
+  <tr><th>Action</th><th>Shortcut</th></tr>
+  <tr><td>Clear the selected ones</td><td class="field-name">Ctrl+Alt+Shift+L</td></tr>
+  <tr><td>Delete the selected ones</td><td class="field-name">Ctrl+Shift+Delete</td></tr>
+  <tr><td>Archive (in archived chats, unarchive)</td><td class="field-name">Ctrl+Alt+Shift+A</td></tr>
+  <tr><td>Mark as read</td><td class="field-name">Ctrl+Alt+Shift+R</td></tr>
+  <tr><td>Mark as unread</td><td class="field-name">Ctrl+Alt+Shift+U</td></tr>
+  <tr><td>Unlock (in locked chats)</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
+</table>
+<p>The options "Use Space to select/deselect whenever a selection already exists" and "Esc deselects the selected messages before closing the chat" can be turned off in Settings &gt; Interface &gt; Chats.</p>
+
+<h3>Archived chats</h3>
+<p>Alt+4 opens the archived chats. They have their own search (Ctrl+F), the same selection and the same actions. An archived chat is not announced aloud when a new message arrives while the archived list is off screen. With Neonize, if WhatsApp's "Keep chats archived" option is off, an archived chat goes back to the chat list when a new message arrives, as on the phone.</p>
+
+  </section>
+
+  <section id="dentro-conversa" class="wiki-section" aria-labelledby="h-dentro-conversa">
+    <h2 id="h-dentro-conversa">📨 4. Inside a chat</h2>
+<p class="lead">When you open a chat you get the message list and the message field. Each message is a row that the screen reader reads with sender, content and state.</p>
+
+<h3>Send messages</h3>
+<p>Type in the message field and press Enter; Shift+Enter inserts a new line. Sends go through a background queue. If WhatsApp accepts the message but does not confirm delivery, WinZapp tells you to check the chat before resending, so it is not delivered twice. Sending a message to yourself (the "Me (messages to myself)" chat) works too.</p>
+<ul>
+  <li><strong>Emoticons become emojis as you type</strong>: <code>:)</code> becomes 🙂, <code>:D</code> becomes 😃, <code>&lt;3</code> becomes ❤️, when you type a space or punctuation after them. Backspace right after the conversion gives back what you typed. It can be turned off in Settings &gt; General. Ctrl+. opens the emoji picker (the left and right arrows change the skin tone).</li>
+  <li><strong>Spell check:</strong> a dedicated sound plays when you misspell a word, when you type punctuation after it and when the cursor reaches a misspelled word. In the field's context menu, the "Spelling" submenu offers suggestions from the Windows dictionary. In Settings you choose to follow Windows, always on or always off.</li>
+  <li><strong>Mentions:</strong> type <code>@</code> to pick someone (Enter inserts the mention, Esc closes). In groups, <code>@all</code> works too.</li>
+</ul>
+<p>In F1, "Mention suggestions" is the list shown while typing @: Enter inserts the selected mention and Esc closes the suggestions. "Mentions in this message" refers to people mentioned in a received or sent message: Enter or Space opens the selected mention. These are separate contexts even when they share keys.</p>
+
+<h3>Read the messages</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Alt+2</td><td>Go to the last message</td></tr>
+  <tr><td class="field-name">Alt+3</td><td>Go to the unread messages (also Alt+U and Ctrl+L)</td></tr>
+  <tr><td class="field-name">Alt+L</td><td>Read the rest of a text message cut off in the list</td></tr>
+  <tr><td class="field-name">Alt+C</td><td>Show the message text in a window (to read calmly or copy a part)</td></tr>
+  <tr><td class="field-name">Alt+Shift+L</td><td>Announce the state of the focused message (sent, delivered, read)</td></tr>
+  <tr><td class="field-name">Alt+Shift+K</td><td>Announce the date and time of the focused message</td></tr>
+  <tr><td class="field-name">Alt+Shift+Q</td><td>Go to the quoted message, in a reply</td></tr>
+  <tr><td class="field-name">Alt+Shift+M / Alt+Shift+J</td><td>Go to the previous / next message that mentions you</td></tr>
+  <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Go to the previous / next message that replies to you (pressing again goes back through the replies and, after the oldest, returns to the most recent)</td></tr>
+  <tr><td class="field-name">Alt+T</td><td>Announce the contact's state: last seen, online, typing. The chat button and the contact details show the same information, always up to date</td></tr>
+</table>
+<p>Alt+T reads the most recent available information without waiting for a network request. Typing and voice recording can be reported even when online visibility is unavailable; these indicators do not mean that online visibility is shared. An activity indicator expires after ten seconds without a refresh. Last-seen privacy remains respected. Activity belongs to the conversation where it occurs: groups and private chats are tracked separately.</p>
+<p>Contact status updates leave unread totals unchanged and do not rewrite unchanged window titles or archived-chat labels. Typing and recording announcements follow your speech settings. Newly learned contact names are saved in the background; no additional setting is needed.</p>
+
+<p><strong>Review recent messages by position:</strong> there are ten commands, from the newest message (1) to the tenth (0), that read that message without moving focus; pressing the same key twice quickly copies it. They come with no key, because Alt+1 to Alt+9 belong to the main window: choose the keys in Settings &gt; Interface &gt; Keyboard shortcuts.</p>
+<p><strong>"Typing" in the list:</strong> with "Show who is typing or recording audio as the last row of the messages list" (Settings &gt; Interface &gt; Messages), a temporary row such as "Ana is typing..." appears at the end of the list and disappears when the person stops. It never moves focus and is not spoken on its own.</p>
+<p><strong>Other kinds of rows:</strong> messages that WhatsApp has not loaded yet appear as "Waiting for this message. This may take a while." and turn into the text when it arrives. View-once messages appear as "View once message. Open it on your phone to see it." Order and product messages from businesses show items, total and state. Calls appear at the point of the chat where they happened ("Missed voice call", "Answered video call"...).</p>
+
+<h3>Reply, edit, delete, forward</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Alt+R</td><td>Reply to the focused message</td></tr>
+  <tr><td class="field-name">Alt+Shift+R</td><td>Reply privately (in groups)</td></tr>
+  <tr><td class="field-name">Alt+Shift+V</td><td>Chat with the participant (in groups)</td></tr>
+  <tr><td class="field-name">Alt+E</td><td>Edit a message of yours</td></tr>
+  <tr><td class="field-name">Delete</td><td>Delete the message (for you or for everyone)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+E</td><td>Forward</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>Copy the message; on a focused link, copies the link</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+C</td><td>Copy the caption of a photo, video or document</td></tr>
+  <tr><td class="field-name">Alt+Shift+D</td><td>Message info</td></tr>
+</table>
+<ul>
+  <li><strong>Reply:</strong> if the original message is not found before sending, WinZapp tells you the quote is missing and keeps your text for you to edit through the message menu ("Edit unsent reply without its quote"). Replies with a mention carry the quote along.</li>
+  <li><strong>Deleting media:</strong> when you delete a photo, video, audio or document, the confirmation has "Also delete the media from your phone", checked by default. Uncheck it to delete the message and keep the file stored on the phone. The box also applies to several selected messages and only appears when there is media among them. In Settings &gt; Interface &gt; Messages, you define how it starts.</li>
+  <li><strong>Forward:</strong> choose the destinations in a list with search (the down arrow in the field goes to the first result). When it works, the screen reader says "Message forwarded." (or how many were), with no window to close. Forwarded voice messages arrive as ordinary audio, unless you check "Forward voice messages as voice messages instead of audio" in Settings &gt; Audio. With Neonize, the forwarded copy shows up in the destination conversation right away.</li>
+  <li><strong>Message info:</strong> on a message of yours, it shows when it was delivered, read and played, with full date and time, by asking WhatsApp itself (so receipts that arrived while WinZapp was closed also appear). In a group, it lists who received and who read it, by name.</li>
+  <li><strong>Quoted messages:</strong> in a reply, only the reply's own links count as links.</li>
+</ul>
+
+<h3>React</h3>
+<p>Ctrl+Shift+R opens the message's reactions (or, on a missed call, calls back). The list has 12 quick reactions; you select one to react, your current reaction comes marked, and selecting it again removes it. The left and right arrows change the emoji's skin tone. At the end, "Add more reactions" opens the full emoji picker. The reactions you use most start to appear among the 12, with the most used on top. If you prefer fixed positions, use Settings &gt; Interface &gt; Reactions: "Use fixed quick reactions" and, in each position, Enter opens the picker to choose its emoji; "Restore default positions" undoes it. A dedicated sound plays when someone reacts to your message (Settings &gt; Event sounds). Alt+Shift+E reads aloud the recent reactions the focused message received.</p>
+
+<h3>Star and pin</h3>
+<ul>
+  <li><strong>Star</strong> (Ctrl+Shift+O): stars are synced with WhatsApp, and each change is verified. To send your old local stars to WhatsApp, use "Sync old local stars with WhatsApp" in the chat menu.</li>
+  <li><strong>Pin a message</strong> (Ctrl+Shift+P, when you are not recording): a button in each chat lists the messages pinned on WhatsApp, including old ones; Enter takes you to the message in the history. When you open the chat, the number of pinned messages is announced without changing focus.</li>
+</ul>
+
+<h3>Bookmarks</h3>
+<p>Bookmarks are positions you create on messages to come back to later. With the message focused, Ctrl+0 to Ctrl+9 creates a bookmark (or, if that number already exists, goes to it); Ctrl+Shift+0 to 9 removes it. Alt+Shift+0 to 9 creates temporary bookmarks, deleted when you leave the chat; Ctrl+Alt+Shift+0 to 9 removes the temporary ones.</p>
+<h3>Quick chats</h3>
+<p>With a chat focused in a chat list or open, press Ctrl+Alt+Shift+F1 to F10 to assign it to a quick slot. Ctrl+Shift+the same function key opens it from anywhere in the main window. F1 to F9 are slots 1 to 9; F10 is slot 0. Assignments are separate for each account and persist after restart. You can change these shortcuts in Settings, User Interface, Keyboard shortcuts, or assign a chat from its context menu. Protected chats cannot be assigned.</p>
+
+<h3>Search in the chat</h3>
+<p>Ctrl+Shift+F opens the search. F3 goes to the next result and Shift+F3 to the previous one, from anywhere in the open chat; focus follows the result and the screen reader announces the position. The "Previous result" and "Next result" buttons also work, and inside the search field Enter and Shift+Enter do the same.</p>
+
+<h3>Links</h3>
+<p>A message with two or more links becomes a navigable list. Enter or Space on a link opens it; Ctrl+C copies the link; the context menu has "Open link" and "Copy link". Group invitation links (<code>chat.whatsapp.com/...</code>) open WinZapp's "Join group by link" window, with the group preview, instead of the browser; the link's menu also offers "Join group by link" and keeps "Open link" for those who want the browser. Messages you send also carry a link preview.</p>
+<p>In a link preview, the title and description appear with the real characters, without HTML codes such as &amp;amp; or &amp;eacute;, both in the preview WinZapp sends and in the one you read.</p>
+
+<h3>Contacts, polls and cards</h3>
+<ul>
+  <li><strong>Received contact card:</strong> Enter or Space saves it as a contact. The context menu has see name and number, copy the number with Ctrl+C, and chat. If the card has more than one number, WinZapp asks which one to use.</li>
+  <li><strong>Received polls:</strong> the row reads the question and then each option, with percentage and votes when WinZapp receives them. Enter opens a window with the same list, check boxes to vote and a progress bar per option. In a single-answer poll, Tab from the message leads to the options and checking one already votes. The "View votes" button (Alt+V) lists who voted for what. To create a poll, see the Attachments section.</li>
+  <li><strong>Order messages:</strong> Enter opens the order; see the Businesses section.</li>
+  <li><strong>Community announcements:</strong> in the menu of an announcement message, "Community announcement replies" opens a window to read and send replies and refresh the list; the text is kept if the send is not confirmed.</li>
+</ul>
+
+<h3>Chat with Meta AI</h3>
+<p>WhatsApp requires accepting the Meta AI terms of service before the first message. WinZapp shows the terms, with a link to read them, and records the acceptance.</p>
+
+<h3>Select messages and bulk actions</h3>
+<p>It works as in chats: Ctrl+Space marks, then Space marks the following ones, Ctrl+Shift+Space marks everything. In the "Bulk actions" submenu (or with the shortcuts), the selected messages can be:</p>
+<table class="field-table">
+  <tr><th>Action</th><th>Shortcut</th></tr>
+  <tr><td>Copy</td><td class="field-name">Ctrl+Alt+Shift+C</td></tr>
+  <tr><td>Forward</td><td class="field-name">Ctrl+Alt+Shift+E</td></tr>
+  <tr><td>Star</td><td class="field-name">Ctrl+Alt+Shift+F</td></tr>
+  <tr><td>Pin</td><td class="field-name">Ctrl+Alt+Shift+X</td></tr>
+  <tr><td>Save</td><td class="field-name">Ctrl+Alt+Shift+S</td></tr>
+  <tr><td>Delete</td><td class="field-name">Delete (with a selection)</td></tr>
+  <tr><td>Transcribe and show together / on their rows / delete transcriptions</td><td class="field-name">Ctrl+Alt+Shift+T / N / Delete</td></tr>
+</table>
+<p>The selection ends with the chat: when you close it, nothing stays marked.</p>
+
+<h3>Drafts, sending again and the controls after the list</h3>
+<p>The message field keeps what you typed with its conversation: leave a conversation without sending, and the text, mentions included, comes back when you open it again. In Settings &gt; Interface &gt; Chats, "Unsent message when you leave a conversation" chooses among keeping it in the field for the next conversation, keeping it as that conversation's draft (the default) or discarding it. Drafts last until WinZapp is closed.</p>
+<p>A message of yours that failed or was not confirmed, text or attachment, has "Try sending again" in its menu, also with Ctrl+Shift+Y. WinZapp never resends anything on its own.</p>
+<p>During playback, Tab after the message list stops at the speed button and the duration bar, and on a voice message, picture or video, at the online AI button. Each can be taken out of the way: "Hide the speed button while media plays (the speed shortcuts still work)" and "Hide the duration bar while media plays (Tab skips it)" in Settings &gt; Audio &gt; Audio playback, and "Hide the online AI button after the message list (the message menu still offers it)" in Online AI: Transcriptions and Descriptions. The shortcuts and the message menu keep working.</p>
+
+  </section>
+
+  <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
+    <h2 id="h-anexos-midia">📎 5. Attachments and media</h2>
+<p class="lead">Photos, videos, audio, documents, contacts and polls are sent from the attachment menu; received media is opened, saved and described right in the message list.</p>
+
+<h3>Send attachments</h3>
+<p>Ctrl+Shift+A opens the attachment menu. The types are photos, videos, audio, documents, contact and, last, Poll.</p>
+<ul>
+  <li><strong>Size:</strong> documents up to 2 GB; photos, videos and audio up to 1 GB, which are WhatsApp's limits.</li>
+  <li><strong>Caption:</strong> the caption field takes several lines. Enter sends the attachment with its caption; Shift+Enter or Ctrl+Enter start a new line.</li>
+  <li><strong>Audio files:</strong> a stereo or surround (5.1, 7.1) WAV or OGG Vorbis arrives with all channels, as ordinary audio, and keeps the sample rate up to 48 kHz. A file with more than 8 channels is sent unchanged as a document. Audio files pasted into the message field with Ctrl+V can go as audio or as a document (Settings &gt; Audio; the default is audio).</li>
+  <li><strong>Attach contact:</strong> the list opens with the search field focused, filters by name (including surname) and number, and has no duplicates.</li>
+  <li>Receiving a contact: an attached contact you receive shows the name and the number, which you can read, copy and use to chat with the person.</li>
+  <li><strong>Poll:</strong> choose Poll and enter the question, up to 12 options and whether multiple answers are allowed.</li>
+  <li>Sent documents already show the file size in the list; while a document is downloading, the row shows progress, for example "35% (13.8 MB of 39.4 MB)".</li>
+  <li>Downloaded files always have the same size as the original, including those whose size is a multiple of 16 bytes, such as an APK, which Android installs normally.</li>
+</ul>
+
+<h3>Open, save and describe</h3>
+<p>On a message with media, Enter opens it (photo in the viewer, audio and video play, document opens in the default program). Space plays and pauses audio and video, but never opens links, documents or the viewer. After "Open" there are the buttons, reachable with Tab, "Save as..." (Ctrl+Shift+S), "Show in folder" (Ctrl+Enter, when you saved a copy) and "Describe" (Ctrl+Shift+I, when the AI features are on). The context menu has the same items.</p>
+<p>A video message (the video recorded with the camera button in WhatsApp, sent instead of a voice message) appears in the list as "video message" and works like any video: Enter plays it, and Save as, the duration and the rest of the menu are the same.</p>
+<p>The folder where the save windows open is chosen in Settings &gt; Storage: the last folder used, Downloads or a folder of your own.</p>
+
+<h3>Media viewer</h3>
+<p>A viewer in its own window (if you turn it on in the settings for chat videos and statuses) has play and pause, forward and back 10 seconds (Alt+A and Alt+V), position, volume and speed. Ctrl+Shift+S saves and Ctrl+Shift+I describes.</p>
+
+<h3>Media tab</h3>
+<p>In Chat info and Group info, the <strong>Media</strong> tab lists photos, videos, audio, voice messages, documents and links, with a filter by type and by downloaded or not downloaded, loading of the full history, and the actions open, save as and delete on each item. Audio and voice messages are separate filters.</p>
+
+<h3>Automatic download</h3>
+<p>In Settings &gt; Storage, "Automatically download media" turns on media download, and you choose the types. Unchecking it stops what is in progress; checking it (or checking one more type) starts downloading right away and also applies to the media of messages that arrive while WinZapp is open. Even with everything off, opening a media item manually downloads it right then. "Download media" (Sync menu, Ctrl+Alt+Shift+B) triggers the download whenever you want. WinZapp announces progress by voice, such as "Downloading media: 30 of 120 processed (8 downloaded)".</p>
+<p>Settings &gt; Storage &gt; "Media cleanup" frees disk space by deleting the downloaded media files of the conversations you choose; the messages stay. You pick the conversations (with a "Select all" row and a groups/individual filter), the media types (photos and stickers, videos, audios, voice messages, documents) and a minimum size in MB. "Gather data" only reads and tells how many files and how many MB match, per type; "Proceed with cleanup" asks for confirmation (No is the default) and then deletes exactly what was previewed. Files you saved with Save As are never touched, nor are the media of unsent messages or locked chats. The cleaned files are remembered, so automatic downloads and syncs do not fetch them again, and an explicit download says so; only a logout or a new pairing forgets them, not F5.</p>
+
+  </section>
+
+  <section id="voz-audio" class="wiki-section" aria-labelledby="h-voz-audio">
+    <h2 id="h-voz-audio">🎙️ 6. Voice messages and audio</h2>
+<p class="lead">Record, listen to and send voice messages, and control playback without leaving the chat.</p>
+
+<h3>Record</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Ctrl+R</td><td>Record voice message</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+P</td><td>Pause and resume the recording</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>Listen to what was recorded while the recording is paused</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+D</td><td>Discard the recording</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+H</td><td>Record microphone and computer audio</td></tr>
+</table>
+<ul>
+  <li><strong>Voice message recording channels:</strong> There is one record button. In Settings &gt; Audio, "Voice message recording channels" offers "Automatic (use the device's channels)" (the default), "Mono (mix left and right)" and "Stereo (when available)". Automatic and Stereo keep two channels when the device supports them and use mono otherwise. Mono averages left and right into one channel: use it for a microphone connected only to INPUT 1 or INPUT 2 of an audio interface. A single active input is quieter after averaging, and no automatic gain is applied. In Automatic, a recording with one side completely silent goes out in mono, taken from the side with sound. The choice is fixed when recording starts and also applies to the paused preview. It does not affect calls or microphone + computer audio recording. Stereo voice messages also play on iPhone.</li>
+  <li><strong>Microphone + computer audio:</strong> records in a single message your voice and what the computer plays (a video, music, the screen reader). During the recording, two sliders adjust the volume of the other sounds and of NVDA (without NVDA, the second one is disabled); they only apply to the recording and are kept per account. Before starting, WinZapp warns that everything that plays will go into the recording, with "Don't show again" (the option "Warn before recording computer audio" brings the warning back). The recording is sent as audio.</li>
+  <li>Recording announcements can be silenced; the screen reader does not start saying "Send" before being interrupted.</li>
+  <li><strong>Microphone noise reduction:</strong> with "Enable microphone noise reduction" checked in Settings &gt; Audio, the same page shows the "Noise reduction model" item, with its state and the "Download noise reduction model" button. The neural model is downloaded once, over the internet, and recordings are processed on this computer. Without the model, noise reduction uses the basic noise gate; if it cannot be used for a recording, WinZapp announces it through the screen reader and uses the basic noise gate for that send. If noise reduction cannot be applied at all, the message is sent unprocessed, with an announcement as well.</li>
+  <li>The microphone and speaker used are in Settings &gt; Audio.</li>
+  <li>With Neonize, the voice message is also delivered to contacts on Android.</li>
+  <li>If the computer's file-type library (libmagic) fails to load, Neonize recognizes the type from the file itself and the voice message goes out normally.</li>
+  <li>Voice messages, mono and stereo, are recorded at 64 kbps by default. In Settings &gt; Audio, "Voice message bitrate (kbps)" lets you choose from 32 to 256 kbps.</li>
+</ul>
+
+<h3>Listen</h3>
+<ul>
+  <li>On voice and audio messages, <strong>Enter</strong> or <strong>Space</strong> play and pause. In Settings &gt; Audio you can tell voice messages apart from audio files.</li>
+  <li><strong>Speed:</strong> Alt+, slows down and Alt+. speeds up. The default speed is set in Settings &gt; Audio &gt; Audio playback.</li>
+  <li><strong>Forward and back:</strong> Shift+Right/Left Arrow moves 5 seconds; Shift+Page Down/Up moves 1 minute; Shift+Home and Shift+End go to the start and the end of what is playing.</li>
+  <li>The following voice messages play in sequence, unless you clear "Automatically play voice messages in sequence" in Settings &gt; User interface. During the sequence, the focused row waits to update its state, so the screen reader does not read over the audio.</li>
+  <li><strong>Ctrl+Alt+Shift+P</strong> pauses or resumes the audio that is playing, from any panel.</li>
+  <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and plays the message the first time.</li>
+  <li>If the sound card is not available (for example, when the computer wakes up), WinZapp tries to restore the audio output when a playback fails; if it still cannot play, it tells you through the screen reader.</li>
+  <li>In Settings, there is an option not to mark audio as played.</li>
+</ul>
+
+<h3>Switch the audio device on the spot</h3>
+<p>Ctrl+Alt+Shift+H opens the list of playback devices and Ctrl+Alt+Shift+G the list of recording devices, numbered 1 to 0: press the number to switch right away, or use the arrows and Enter. The switch applies to sounds, voice messages and calls (a call in progress changes without dropping), for all open accounts, until you close WinZapp. The devices chosen in Settings do not change.</p>
+
+  </section>
+
+  <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
+    <h2 id="h-transcricao-ia">🤖 7. Transcription and description</h2>
+<p class="lead">There are two different paths, with different commands: <strong>local transcription</strong> (Whisper, on your computer, nothing leaves it) and <strong>online AI</strong> (sends the media to the provider you configure).</p>
+
+<h3>Local transcription with Whisper</h3>
+<p>Turns voice messages, audio and videos into text on your own computer. Everything is configured in the <strong>Local Transcription</strong> tab of Settings.</p>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Alt+Shift+T</td><td>Transcribes the message and opens the text in a window (copy, save or insert into the message); if a saved transcription exists, shows it</td></tr>
+  <tr><td class="field-name">Alt+Shift+N</td><td>Puts the transcription on the message's row ("..., duration: 0:12, transcription: ...") and reads it aloud, with no window</td></tr>
+  <tr><td class="field-name">Alt+Shift+Delete</td><td>Deletes the message's saved transcription</td></tr>
+  <tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Transcribes the selected messages and shows them together</td></tr>
+  <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Transcribes the selected ones on their own rows</td></tr>
+  <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>Deletes the saved transcriptions of the selected ones</td></tr>
+</table>
+<p>In the context menu: "Transcribe message locally with Whisper", "View transcription", "Transcribe again" and "Delete transcription".</p>
+<ul>
+  <li><strong>Components:</strong> <em>faster-whisper</em> is the default and comes with WinZapp; <em>whisper.cpp</em> is optional and experimental, and the tab installs it in the version for the processor or for NVIDIA graphics cards. faster-whisper also uses an NVIDIA card once you install the "CUDA libraries" in the same tab.</li>
+  <li><strong>Models:</strong> they are only downloaded when you ask, from tiny to large-v3 and large-v3-turbo; in whisper.cpp there are also smaller versions (8 and 5 bits) and some 32-bit ones. Some models understand only one language (marked in the list). In the list, Ctrl+Space marks models and "Download" downloads all the marked ones, one after the other. "Where to run the transcription" and the "Calculation precision" stay on Automatic or can be chosen.</li>
+  <li><strong>Reuse what you already have:</strong> "Models in other folders" uses models downloaded elsewhere without copying them, and "Reuse downloads from another folder" points to the CUDA libraries and to the whisper.cpp programs already downloaded. The models folder can be moved, with the models along.</li>
+  <li><strong>Memory:</strong> "Keep the model loaded in memory (faster-whisper and whisper.cpp)" avoids reloading the model for each message. Turned off, the model is released 5 minutes after the last transcription.</li>
+  <li><strong>Per model:</strong> the text stored in each message is per model. When you switch models, the message is transcribed again and the previous model's text stays stored. "Clear this model's saved transcriptions" and "Clear saved transcriptions of all models" clean the cache. The cache can be turned on or off in general and per model.</li>
+  <li><strong>No progress window:</strong> the option "Transcribe without the progress window: stay on the messages or statuses until the text is ready (the same shortcut cancels)" makes Alt+Shift+T and Alt+Shift+N transcribe in the background; the same shortcut on the same message cancels.</li>
+  <li><strong>Automatic:</strong> "Automatically transcribe received voice messages and videos and put the text in the message line" transcribes each new voice message and video (up to 10 minutes of audio, one at a time, outside locked chats), with no windows or per-message announcements. If transcription is not ready, WinZapp pauses and says why just once.</li>
+  <li><strong>Enter and Space:</strong> with "Enter and Space on a voice message or video transcribe it into its line in the list instead of playing it..." (Settings &gt; Audio), Enter and Space transcribe and Alt+Shift+N plays or pauses. Turned off, Enter and Space play and Alt+Shift+N transcribes on the row.</li>
+  <li><strong>Videos:</strong> the video's sound is converted and transcribed, with the same options. GIFs are ignored and a video without sound is reported as such.</li>
+  <li><strong>In bulk:</strong> WinZapp says how many messages will be transcribed, skipped or reused, transcribes one at a time ("message 3 of 12"), continues if one fails and says at the end how many succeeded, were skipped and failed. The same shortcut or the context menu cancels the queue, and the context menu shows all the transcriptions together, with sender, date and time, to copy or save. With "Replace shortcuts with bulk actions when selecting chats and messages", Alt+Shift+T and Alt+Shift+N also act on the selection.</li>
+  <li><strong>Background downloads:</strong> with "Download updates and transcription downloads in the background, without the progress window" (Settings &gt; General), models, whisper.cpp and CUDA download without the progress window, and "Cancel download in the background" stops it.</li>
+  <li><strong>Status:</strong> audio and video statuses can be transcribed in the Status tab, with the same keys (see the Status section).</li>
+</ul>
+
+<h3>Online AI</h3>
+<p>In the <strong>Online AI: Transcriptions and Descriptions</strong> tab of Settings, you turn the features on (they start off) and enter the API key of one or more providers: Gemini, OpenAI, Claude, Groq, OpenRouter and Mistral. They are tried in the order you set: if one fails or runs out of quota, the next one answers. Each provider has its own window, with the "Use the model recommended by WinZapp" box (WinZapp always uses the model it recommends) or the choice of a fixed model.</p>
+<table class="field-table">
+  <tr><th>Where</th><th>What it does</th></tr>
+  <tr><td>Voice message or audio: "Transcribe with online AI"</td><td>Turns it into text.</td></tr>
+  <tr><td>Photo or video: "Describe"</td><td>Describes the image. A video is described from a single image taken from it; the sound is never sent.</td></tr>
+  <tr><td>Sticker: "Describe sticker"</td><td>Describes the sticker.</td></tr>
+  <tr><td>PDF: "Convert to accessible text"</td><td>Turns it into plain, readable text.</td></tr>
+</table>
+<p><kbd>Ctrl+Shift+I</kbd> does all of this on the focused message. The result opens in a window with the text; for photos and videos, you can ask follow-up questions (Ctrl+Enter asks). In the Status tab (Alt+5), the "Describe" button describes photo and video statuses.</p>
+<p>In the result of a transcription or description, "Put transcription in the message line" and "Put description in the message line" keep the text with the message, which then shows it in its own line in the list. In Settings &gt; Transcriptions &amp; Descriptions, "Transcribe received voice messages automatically" and "Describe received pictures, stickers and videos automatically" (both off by default) do this with the online providers, with no window, sound or speech per message; only providers you already authorized are used, and turning one on turns off the local automatic transcription. Each conversation's data window has "transcribe" and "describe" boxes, and you can choose between all conversations except the ones turned off, or only the ones turned on. To save your quota, you choose how old a received message may be and still be processed (5 minutes, 15, 30 or 1 hour) and a daily ceiling on automatic requests (50 by default, 0 for none); if every provider refuses because of quota or key, the queue pauses for an hour and says so once.</p>
+<div class="callout warn">
+  <div class="callout-title">🔒 Privacy</div>
+  WinZapp asks before sending media to a provider, and asks again each time in locked chats. Your keys are stored encrypted on your computer and are only sent to the provider they belong to. Resetting all keys also clears the remembered send authorizations. A waiting sound plays while the provider works; answers can be read aloud automatically; the text follows the app's language. Very long transcription and PDF texts report a text limit error.
+</div>
+
+<h3>Queue, windows and per-conversation options</h3>
+<p>With transcription without the progress window, asking for the inline transcription of another message while one is running puts it in a queue: WinZapp says its position and starts it when the previous one ends; the same shortcut on a waiting message takes it out of the queue. A transcription that opens a window is still refused while another runs.</p>
+<p>In automatic, WinZapp uses a model already on the computer whenever one fits: on a small graphics card that cannot hold the installed model, it runs that model on the processor instead of asking for a download.</p>
+<p>The options of the Local Transcription tab are in windows opened from buttons on it: "Advanced options...", "Saved transcriptions...", "Transcription of statuses...", "Models folder and models in other folders...", and the windows of the CUDA libraries and of whisper.cpp. The automatic options of online AI are in "Automatic transcription and description...", on its page.</p>
+<p>The conversation details have a single choice for automatic transcription: None, Online with AI or Local with Whisper. This way the same message is never transcribed twice, and the choice starts out following the general option until you change it there.</p>
+<p>Enter and Space, when set to transcribe, also transcribe audio and video sent as a file.</p>
+<p>Mistral uses three different models: the voice message model for audio, Ministral 3 3B by default for photos, stickers and video frames, and mistral-ocr-4 for PDF text extraction. Choose the audio model in "Voice message model": Voxtral Mini Transcribe 3 (the default) or Voxtral Small Transcribe 3, which is more accurate. Both are in preview, so Mistral may change or withdraw them. The Model field and Get models select a vision model only; changing it does not change transcription or OCR. OpenAI and Groq also use fixed audio models, independently of their selected vision model; Groq does not process PDFs here. Gemini uses its selected model for all supported media. Provider availability does not guarantee free usage: review the provider’s included quota and rate limits. Mistral OCR extracts document text; it does not add descriptions of the pictures inside a PDF. On Mistral's free Experiment plan, requests may be used to train its models unless you opt out in your Mistral account; WinZapp says so before sending media to Mistral.</p>
+
+  </section>
+
+  <section id="status" class="wiki-section" aria-labelledby="h-status">
+    <h2 id="h-status">🟢 8. Status</h2>
+<p class="lead">The Status tab (Alt+5) shows your contacts' statuses and lets you post your own.</p>
+<ul>
+  <li><strong>View:</strong> the list shows the statuses; Enter opens one. Photo and video statuses open in the viewer (separate or in the player inside the tab) and Ctrl+Left/Right Arrow goes to the previous/next status.</li>
+  <li><strong>React:</strong> "Like ❤️".</li>
+  <li><strong>Reply:</strong> "Reply to status" opens the reply field; Enter sends ("Reply sent.").</li>
+  <li><strong>Post:</strong> "Post text as status" and "Send media as status". "Status posted successfully." confirms. Your own statuses are in "My status".</li>
+  <li><strong>Save and describe:</strong> "Save as..." and "Describe" (online AI) work on photo and video statuses.</li>
+  <li><strong>Copy:</strong> Ctrl+C copies the status text. F5 refreshes the list.</li>
+  <li><strong>Voice:</strong> in replies, Ctrl+R records a voice message (Ctrl+Shift+P pauses, Ctrl+P listens, Ctrl+Shift+D discards) and Ctrl+. opens the emoji picker.</li>
+  <li><strong>Transcribe audio and video statuses (local):</strong> Alt+Shift+T opens the text in the result window (or the saved transcription); Alt+Shift+N puts it on the status row and reads it aloud; Alt+Shift+Delete deletes the saved transcription. The "My status" window also accepts these keys on your own audio and video statuses. In Settings &gt; Local Transcription there are options just for statuses: automatically transcribe received ones, Enter and Space transcribing on the row, and saving the transcriptions together with the status (cache deleted along with it when the status expires), plus the "Clear saved local transcriptions of statuses" button.</li>
+</ul>
+<p>Who can see your statuses is set in File &gt; WhatsApp settings &gt; Privacy.</p>
+
+<h3>Posting again and deleting</h3>
+<p>WinZapp posts one status at a time; asking to post again while one is still going only says it is being posted. A status that failed or was not confirmed stays in the list right after "My status", with "Try posting again" and "Discard" in its menu (Ctrl+Shift+Y tries again); nothing is posted again on its own. In "My status", the Delete key or the "Delete status" button deletes a status for everyone, after the same confirmation as WhatsApp.</p>
+
+  </section>
+
+  <section id="ligacoes" class="wiki-section" aria-labelledby="h-ligacoes">
+    <h2 id="h-ligacoes">📞 9. Calls</h2>
+<p class="lead">You can make, answer and decline voice and video calls right in WinZapp, without picking up your phone.</p>
+<p>Neonize call audio includes fixes for silence after answering, lost audio frames and distortion during sample-rate conversion. Codec selection follows WhatsApp automatically; there is no codec switch to configure. This experimental engine still needs real-call quality evaluation; equal quality to other calling apps is not guaranteed.</p>
+
+<p>Neonize keeps its normal call audio mode by default. A developer-only experimental 48 kHz path is available for calls negotiated with Opus; it does not change the MLow codec or add a control to the call window. Updating does not enable it automatically.</p>
+
+<h3>Make a call</h3>
+<p>In an individual chat, use the "Voice call" (Ctrl+Shift+V) and "Video call" (Ctrl+Alt+Shift+V) buttons; the shortcuts also work with the message field focused. The screen reader announces when the call connects, when it is reconnecting and when it ends.</p>
+<p>WhatsApp only allows calls to groups of up to 32 participants. In a larger group, a "Calling is not possible" button with the note "The group has more than 32 participants" replaces the call buttons, and the call shortcuts say the same.</p>
+<p>In a group chat the same buttons call the whole group. An incoming group call rings, is announced by the group's name and is answered like any other call, and the camera can be turned on during the call. WinZapp finds the camera with the FFmpeg it ships, so a video call no longer goes out receive-only. A group call that rang and you did not answer stays in the group's history, as a missed group call.</p>
+
+<p>With Neonize, voice, video and group call buttons appear only for the call types the engine reports as supported. Until that information arrives, these buttons stay hidden; they update automatically when it arrives. The same check applies to joining an ongoing group call from its chat. An update never brings a hidden chat or an inactive window into focus.</p>
+<p>With the Neonize engine, WinZapp itself plays the sounds WhatsApp Web used to play for you: while the other phone rings you hear the ringback tone with the pitch and rhythm of the country you called, and short beeps play while the call connects or reconnects. With the WPPConnect engine nothing changes. When an answered call ends, it also plays the WhatsApp call-ended sound; this is the "Call ended" sound event, which can be turned off or replaced in Settings &gt; Sound events.</p>
+<p>With the Neonize engine, a call you place that nobody answers ends by itself after one minute, as in WhatsApp Web: the ringing stops and the outcome is "not answered".</p>
+<p>If the internet drops in the middle of a call, the hang-up button still works: WinZapp ends the call on your computer even without a connection, without showing an error.</p>
+
+<p>Starting a group call with Neonize requires between two and 31 other members. If WhatsApp temporarily limits call requests, WinZapp announces that reason; try again later.</p>
+
+<h3>During the call</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Ctrl+M</td><td>Mute or unmute the microphone</td></tr>
+  <tr><td class="field-name">Ctrl+V</td><td>Turn the camera on or off, in a video call</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>Turn a voice call into a video call</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>Open the call settings (microphone, speaker, camera)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+Q</td><td>Hang up</td></tr>
+</table>
+
+<h3>Adding people to the call</h3>
+<p>During the call, "Call participants" shows who is in it, and the "Add participants" button opens the list of who can join: in a group call, the group's members who are not in the call yet; in a private call, your contacts, and the call then has several people. Check people with Space and press "Add". Someone already called who has not joined is rung again. The screen reader says how many people were invited and who could not be added.</p>
+
+<h3>Incoming call</h3>
+<p>The window has "Answer", "Reject" and "Silence alert"; in a video call, "Answer with video" and "Answer without video". The shortcuts of this window are only Alt + the underlined letter (Alt+A answers, Alt+V answers without video, Alt+R rejects, Alt+S silences the alert, Alt+F closes the window), so that a key pressed by mistake does not answer or reject.</p>
+
+<h3>Answering from any window</h3>
+<p>While a call is ringing, Ctrl+Alt+Shift+Enter answers it from any program: the call window comes to the front and gets the focus. A video call is answered with the camera on, like its "Answer" button. Ctrl+Alt+Shift+Backspace rejects the ringing call, a group call included, and the screen reader says "Call rejected."; with no call ringing, it hangs up the call in progress. With several accounts open, a call ringing in any of them is rejected first. Both keys can be changed or removed in Settings &gt; Keyboard shortcuts and belong to WinZapp only while they can act; the rest of the time, other programs keep them.</p>
+
+<h3>Calls tab (Alt+6)</h3>
+<p>History of calls from all chats, split into All, Missed, Rejected, Answered and Ongoing (Ctrl+Tab and Ctrl+Shift+Tab switch; Alt+L goes to the list). In the list, Enter opens the call's chat, Ctrl+Shift+R calls back a missed call and F5 refreshes. On a missed call, in the chat, the "Call back" button does the same.</p>
+
+<h3>Call settings</h3>
+<p>In Settings &gt; Calls, "Call audio settings" chooses microphone and speaker, and "Call video settings" chooses the camera. There you also find echo cancellation (reduces the return of your own sound when you use a speaker), microphone noise reduction and exclusive mode for microphone and speaker.</p>
+<p>Echo cancellation comes turned on. It uses the same echo canceller as Google Meet and WhatsApp (WebRTC's), so you can talk through a laptop speaker or with a mixer's loopback turned on without the other person hearing their own voice. With headphones it does no harm; uncheck it only if you prefer.</p>
+<p>WinZapp automatically converts call audio when the selected microphone or speaker uses a different sample rate from the call. Timing stays continuous between audio packets; no additional option needs to be enabled.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 If the call does not start</div>
+  When the WhatsApp Web version in use does not support calls, WinZapp says so and what to try: restart WinZapp or choose Help &gt; Force reinstall WPPConnect.
+</div>
+<p>When WPPConnect is reinstalled, WinZapp preserves a newer compatible WhatsApp Web catalogue and checks for a fresh one. Without internet, a usable catalogue is retained, but its freshness cannot be confirmed. If a call still cannot start, restore internet access and restart WinZapp. A confirmed VoIP mismatch that cannot be retried is reported without repeating initialization.</p>
+<p>While a group chat is open, WinZapp checks for an ongoing call about every ten seconds. A join button appears only when a call is available and disappears when it ends. Joining a video call starts with the camera off. Joining an existing call does not use the 32-member limit for starting a new group call. While a call is available, the "Join ongoing voice call" button or, for a video call, "Join ongoing video call (camera off)" replaces the voice and video start buttons. In Calls (Alt+6), the Ongoing filter lists joinable calls, including multiparty calls outside group chats; they also appear first in All. Select a call and press Enter or use the same join button. If you are already in that call, the button is "Return to call" and brings your current call window forward. The list refreshes about every ten seconds while Calls is open and includes only calls WhatsApp makes available to your account.</p>
+<p>Use the "Call participants" button in the call window, or on a selected ongoing call in Calls, to see the connected people by name. The list updates every ten seconds; "Refresh" updates it on demand and "Close" or Esc closes it. Invited and disconnected people are excluded. Reading the list does not join or end a call.</p>
+
+
+  </section>
+
+  <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
+    <h2 id="h-grupos-comunidades">👥 10. Groups and communities</h2>
+<h3>Chat info and group info</h3>
+<p>Ctrl+Shift+D (or "Chat info" in the context menu) opens a window with tabs. All buttons and fields have a shortcut letter (Alt+letter).</p>
+<ul>
+  <li><strong>Contact:</strong> Overview tab with name, the profile name the contact chose, verified name and whether the account is a business account, whether notifications are muted (and until when), the disappearing messages timer and the notice that messages and calls are end-to-end encrypted. The "Profile picture" button (Alt+F) shows the picture, and "Open in external viewer" (Alt+A) opens it in the Windows default program; if there is no picture, or the person does not allow you to see it, WinZapp says so. There is also the <strong>Groups in common</strong> tab (Enter opens the group) and the Media tab.</li>
+  <li><strong>Group:</strong> Overview tab (name, description, group picture, whether only admins send messages), Participants tab (Enter on a participant opens the private chat with them; "Add member" accepts contacts or an extra number) and Media tab. The data appears as soon as the group answers and missing names and numbers are filled in right after.</li>
+  <li><strong>Notices:</strong> in groups where only admins send messages, the message field is read-only and WinZapp says so.</li>
+</ul>
+
+<h3>Create a group and invitations</h3>
+<p>In "New chat", create a group by entering a name and participants. In <strong>Invitation to the group</strong>, the invitation link and the QR code can be viewed, copied ("Copy link"), saved ("Save QR code...") and reset with confirmation ("Reset invitation link..."). In <strong>Join group by link</strong>, paste the link (including those that end in <code>?mode=...</code>), see the "Preview group" and choose "Join group or request approval". The results of pending approval and of unconfirmed joining are reported separately.</p>
+<p>In Settings &gt; General, "Let Windows open WhatsApp group invitation links with WinZapp" registers WinZapp for <code>whatsapp:</code> links: when you use the join button on the invitation page opened in the browser, Windows hands the invitation to WinZapp, even when it is closed.</p>
+
+<h3>Join requests (admins)</h3>
+<p>In groups where you are an admin, the "Pending join requests" button lists who is waiting (name or number, how the request arrived and when). "Approve" and "Reject" answer the selected request; "Refresh" checks again. WinZapp only says the request was answered once it has left the list on WhatsApp.</p>
+
+<h3>Communities (Alt+8)</h3>
+<p>The Communities panel (or "New chat" &gt; "Communities") lists the communities you are in. When you choose one, you see the description, the admins and the groups of it you joined, with the announcements group and the general group identified; Enter or "Open group" goes to the group. If you administer the community: "Add groups", "Remove group from the community", "Promote to community admin", "Demote community admin" and "Deactivate community". "New community" creates one with a name, description and the groups you choose. After each action WinZapp reads the communities again and only says it finished when WhatsApp shows the change; otherwise it tells you the request was sent but is not confirmed, or that it was refused.</p>
+
+<h3>Channels (Alt+9)</h3>
+<p>The Channels window (Alt+9, or the Channels item of the navigation list) shows "My channels", the channels you follow, or "Find channels": type in "Search channels" and press Enter; with no text, WhatsApp's recommended channels appear. "Details" holds the description, the number of followers, whether you follow, administer or own the channel, and its link. Enter or "Open channel" opens the channel to read its updates. The "Follow" and "Unfollow", "Mute notifications" and "Unmute notifications", "Copy link", "Follow by link..." (paste the channel link) and "Create channel..." buttons work on any channel; "Edit channel..." appears on channels you administer and "Delete channel" on your own. Showing channels in the chat list is still an option of Settings &gt; Interface &gt; Chats.</p>
+<p>In "Find channels", the Category and View choices narrow the directory as WhatsApp Web's options do: pick a category (or "All categories") and a view (recommended, trending, popular or new) and press Search or Enter. With text in "Search channels", the search stays within the chosen category. In the channels you administer, the message field opens when you open the channel: type and send to post a text update (no voice notes or attachments). From the message menu, or Ctrl+Shift+P, you pin or unpin an update, and the pinned ones show under the "Pinned messages" button. The Channels window's "Admins and followers..." button says how many admins the channel has; its owner can also use "Invite admin..." (pick the contact and, if you like, a message: the invite reaches their chat and they become an admin when they accept it) and "Cancel admin invite...". That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.</p>
+
+<h3>Mentions and replies</h3>
+<p>A person mentioned by name together with @all keeps the link; the mention of you, in the notification and in the preview, uses the word chosen in "How should I be referred to?". In Settings &gt; Interface &gt; Messages, "Hide phone numbers of unnamed senders in messages" makes messages from people without a name start straight with the content. In Settings &gt; Interface &gt; Chats, "Precede names of unsaved contacts with a tilde (~) in conversations and messages" (on by default) shows a tilde before the name of anyone you have not saved, in conversations and in messages.</p>
+
+<h3>Groups of a community</h3>
+<p>In the list of communities, Enter goes to the community's groups, and "Open the most recent group" opens the group with the latest activity, saying its name. "Filter groups" shows all groups, the groups you are in or the ones you are not in; a group you are not in says so in its line. On one of those, "Join group" joins it or, when the group needs approval, "Request to join" sends the request, which "Cancel join request" withdraws.</p>
+
+  </section>
+
+  <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
+    <h2 id="h-trancadas">🔒 11. Locked chats</h2>
+<p class="lead">Locked chats (Alt+7) stay in a vault protected by a PIN, outside the chat list, the archived chats, the search and the forward window.</p>
+<ul>
+  <li><strong>Lock:</strong> "Lock chat" in the context menu or Ctrl+Shift+T. The PIN has 6 to 12 digits. When you set up the vault, WinZapp creates a <em>recovery key</em> (it can be read aloud or copied) to set a new PIN if you forget the current one.</li>
+  <li><strong>Notifications:</strong> those of these chats only say how many new messages arrived, with no name or content. Their messages are never transcribed automatically, and online AI asks again for every send.</li>
+  <li><strong>Closing the vault:</strong> it closes by itself when you minimize WinZapp, hide it in the tray and switch panels, and (if you want) after a period of inactivity. Ctrl+Shift+K closes and hides the vault right away.</li>
+  <li><strong>Secret code:</strong> "Locked chats" can be taken out of the navigation menu; in that case, the vault opens by typing a secret code in the chat search. This is set up in Settings &gt; Interface &gt; Chats &gt; Locked chats.</li>
+  <li><strong>WhatsApp Chat Lock:</strong> chats locked on the phone are also hidden in WinZapp and only show in Locked chats, after your PIN (if you never created one, WinZapp offers to create it). Only the phone can unlock them; a chat unlocked on the phone goes back to the list by itself.</li>
+  <li><strong>Bulk actions:</strong> locked chats can also be selected to unlock or mark as read/unread.</li>
+</ul>
+
+  </section>
+
+  <section id="empresas" class="wiki-section" aria-labelledby="h-empresas">
+    <h2 id="h-empresas">🛍️ 12. Businesses: catalog and orders</h2>
+<p class="lead">In chats with businesses, WinZapp shows the catalog, builds the cart and tracks orders.</p>
+
+<h3>Catalog and cart</h3>
+<p>In "Business catalog and cart" (the chat's context menu, or Alt+Shift+B), the list shows the products with price and availability. From there you use "Add to cart", "Change quantity", "Remove from cart" and "Empty cart". "Send order" sends the order only once, after a question that says what is going and to whom. If the business turned the cart off, the catalog can still be browsed and WinZapp says it does not accept orders there. A product the business sends from its catalog appears with name, price and description.</p>
+
+<h3>Orders</h3>
+<p>Order messages and order updates appear in the message list, in the chat preview and in notifications, with items, total and state. Enter on the order message (or "View order" in the message menu) opens the details.</p>
+
+<h3>WhatsApp Business accounts</h3>
+<p>Only on WhatsApp Business accounts: in the orders window, "Accept order", "Decline order" and "Update status" for the orders received; in the chat menu, the "Business tools" submenu, with "Create an order for this contact" (Ctrl+Shift+N) and "Accept carts in my catalog". Where they do not apply, WinZapp says why.</p>
+
+<h3>Orders created by the seller</h3>
+<p>Enter on an order a seller created for you opens its details, with items and subtotal. When the order is pending and is paid outside the app, "Confirm order info" sends the seller the confirmation, like WhatsApp Web; the dialog says which buyer responses WinZapp does not offer yet.</p>
+
+<h3>Buttons in business messages</h3>
+<p>Some messages from businesses come with buttons. Select the message and press Tab: the buttons are real buttons under the message list, in the order of Tab. A reply button sends the answer to the business, the way WhatsApp Web does, and WinZapp says whether it was sent. The rows of a list message are buttons too, one for each row. A link button opens the link, a copy button copies the code, and a call button says the number to dial. The buttons are the business's own, so their names change from message to message.</p>
+
+<p>With Neonize, a chat with a verified business that is not in your address book shows the business's verified name.</p>
+
+  </section>
+
+  <section id="contas" class="wiki-section" aria-labelledby="h-contas">
+    <h2 id="h-contas">👤 13. Accounts, tray and sync</h2>
+<h3>Multiple accounts</h3>
+<p>Each account has its own window and its own local server. The <strong>Accounts</strong> menu switches between them; so does Ctrl+Alt+1 to 9. "Close current account" (Ctrl+F4) ends only the account you are in, frees its memory and connection, and moves to another open account. To open it again, choose it in the Accounts menu of another account or use Ctrl+Alt with its number. If it is the only one open, WinZapp asks first, because closing it ends the program.</p>
+<p>Deleting an account (Accounts &gt; Manage accounts, Delete button) removes everything it owns: messages, media, settings, the browser profile that holds the WhatsApp login and that profile's backups. Anything that cannot be removed right away is finished the next time WinZapp starts. When the account is the only one, it can be deleted too: WinZapp asks for confirmation (No is the default), closes, and the next start is a first run.</p>
+
+<h3>Sync</h3>
+<ul>
+  <li><strong>F5</strong> deletes and downloads all chats again (asks for confirmation, with No as the default and "Don't show again").</li>
+  <li><strong>Shift+F5</strong> resyncs only the open chat: it fetches the messages again, puts back in place the ones that were missing and removes the ones that no longer exist, without touching older history. It says whether the chat is already up to date or whether WhatsApp has no messages for it. It also asks for confirmation.</li>
+  <li>Progress is spoken every few seconds and shown in the window title: "Syncing chats: 12 of 80" and "Downloading media: 30 of 120 processed (8 downloaded)". Each announcement can be turned off in Settings &gt; Accessibility &gt; Spoken content; the option "Announce sync, media downloads and automatic offline mode" controls the announcements, which are not spoken while WinZapp starts in the background or during a call.</li>
+  <li><strong>Offline mode</strong> (Ctrl+Alt+Shift+O) puts WinZapp offline; it also goes in and out by itself depending on the connection. When the computer wakes from sleep, WinZapp reopens the connection and fetches the new messages.</li>
+  <li>In a chat whose oldest messages exist only on the phone, WinZapp says "Use WhatsApp on your phone to see older messages."</li>
+</ul>
+
+<h3>Tray and notifications</h3>
+<p>In Settings &gt; General &gt; Notifications, "Background notification content" has three levels: sound, chat name and message text; sound and chat name, without the text; or sound only, with no on-screen notification and nothing read. Notifications respect Windows Focus Assist, and reading a chat inside WinZapp removes its notification from the notification area.</p>
+
+<h3>Connection and recovery</h3>
+<p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Settings &gt; Storage &gt; Profile backup) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
+<p>If WhatsApp disconnects the session, WinZapp tells you right away and opens pairing. In Settings &gt; Connection you can use a custom API (remote server); in that case, the browser profile and the backups are left to the server.</p>
+<p>When you open WinZapp after a long time without using WPPConnect, WhatsApp Web can take a few minutes to catch up. Meanwhile the window title says "syncing with WhatsApp...": the account has not dropped and there is nothing to do.</p>
+
+  </section>
+
+  <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
+    <h2 id="h-configuracoes">⚙️ 14. Settings</h2>
+<p>Arabic is now available in Settings > General > Language, with Arabic text in the Windows installer and uninstaller.</p>
+<p class="lead">File &gt; Settings (Ctrl+,) has a search field at the top and a list of categories. Type in the search field and press the down arrow to go to the results; Enter or Space opens the option found. Without a search, the arrow keys change category and Tab enters its options. In some categories, buttons open the window of one subject (such as Messages or Spoken content). Change what you want and use Apply or OK. In Interface, the Keyboard shortcuts button lets you change any shortcut. The window opens straight on General; the other categories and windows are built the first time you go to them. Search results arrive as they load, and you can keep typing.</p>
+
+<table class="field-table">
+  <tr><th>Category</th><th>What you find</th></tr>
+  <tr><td class="field-name">General</td><td>Language (Brazilian and European Portuguese, English, Spanish, Polish, Turkish, Romanian, Italian); spell check (follow Windows, always or never); convert emoticons to emojis; Unicode normalization in searches (exact, ignore accents, or also equivalent forms); start in the background when signing in to Windows; open group invitation links with WinZapp; check for updates automatically and alphas; download updates and transcription downloads in the background; global shortcut to open WinZapp or hide it in the tray; what to do when switching accounts (hide the current account's window or keep the windows of all accounts open).</td></tr>
+  <tr><td class="field-name">General &gt; Notifications</td><td>Background notifications and their content; keep muted chats muted even when open; tray icon and unread count.</td></tr>
+  <tr><td class="field-name">Interface</td><td>Each button opens the window of one subject: Messages, Reactions, Chats, Confirmations and Keyboard shortcuts.</td></tr>
+  <tr><td class="field-name">Interface &gt; Messages</td><td>How many messages to show when opening a chat; how many to skip with Page Up/Down; type of message list (classic, with a 512-character limit, or list box, with full messages); show who is typing as the last row; "How should I be referred to?"; hide the sender on your own messages; hide numbers of unnamed senders; preserve the typed message as a caption; "yesterday" instead of the date; link previews; "Forwarded" before the sender; initial state of "Also delete the media from your phone"; videos and statuses in a separate player; media types shown by default.</td></tr>
+  <tr><td class="field-name">Interface &gt; Reactions</td><td>Fixed quick reactions and the choice of the emoji for each position.</td></tr>
+  <tr><td class="field-name">Interface &gt; Chats</td><td>Where to put the focus when opening a chat; delivery status in the chat list; keep pinned chats in a fixed order; replace shortcuts with bulk actions; Space and Esc behavior with a selection; keep chat search when opening; position of the "selected" announcement; show channels in the chat list (off by default); "Number of new messages in the chat list", before or after the chat name.</td></tr>
+  <tr><td class="field-name">Interface &gt; Chats &gt; Locked chats</td><td>Vault PIN, lock after inactivity and the secret code (the button appears when the vault is available).</td></tr>
+  <tr><td class="field-name">Interface &gt; Confirmations</td><td>The confirmation questions (mark all as read, clear, delete, F5, Shift+F5, record computer audio) and their "Don't show again" versions.</td></tr>
+  <tr><td class="field-name">Interface &gt; Keyboard shortcuts</td><td>Lists all of the program's shortcuts, including the global one. Select one, choose "Change" and type the new combination; or disable it, restore the default or restore all. Conflicts are warned about before applying, and changes only take effect with Apply or OK.</td></tr>
+  <tr><td class="field-name">Accessibility</td><td>Extended screen reader compatibility (additional announcements) and use of the SAPI voice when no screen reader is active.</td></tr>
+  <tr><td class="field-name">Accessibility &gt; Spoken content</td><td>Announce a contact typing or recording; announce the start and end of chat refresh; spoken progress of sync and media download; speak messages automatically in the active chat and in others; announce sync, media downloads and automatic offline mode.</td></tr>
+  <tr><td class="field-name">Audio</td><td>Microphone, speaker and effects output (alerts and sounds); microphone noise reduction and its neural model, downloaded on the same page; audio files pasted with Ctrl+V as audio or document; where to put the focus after recording a voice message (send or discard); forward voice as voice; read voice message as audio or as voice message; Enter and Space transcribing; silence announcements and the send button while recording.</td></tr>  <tr><td class="field-name">Audio &gt; Audio playback</td><td>Default speed; mark audio as played and announce; play voice messages in sequence automatically; move focus to the next audio in sequence.</td></tr>
+  <tr><td class="field-name">Event sounds</td><td>Sound pack, import a sounds folder or ZIP file, and the sound of each event (including when someone reacts to your message and the spelling error one); enable or disable all; background notification sound for private chats and for groups, with sound preview.</td></tr>
+  <tr><td class="field-name">Storage</td><td>Automatically download media, media types, limit in days and in MB (0 = unlimited), find the duration of videos when downloading; folder where the save windows open (last used, Downloads or custom).</td></tr>
+  <tr><td class="field-name">Storage &gt; Profile backup</td><td>See the Backups and logs section.</td></tr>
+  <tr><td class="field-name">Calls</td><td>Allow alerts and open a window when a call arrives; call audio and video settings, echo cancellation, noise reduction and exclusive mode.</td></tr>
+  <tr><td class="field-name">Online AI: Transcriptions and Descriptions</td><td>See the Transcription and description section.</td></tr>
+  <tr><td class="field-name">Local Transcription</td><td>See the Transcription and description section.</td></tr>
+  <tr><td class="field-name">WhatsApp settings</td><td>Privacy and Profile: see the WhatsApp settings section.</td></tr>
+  <tr><td class="field-name">Connection</td><td>Connection engine: WPPConnect (the default), Neonize (experimental: connects to WhatsApp without a browser, through a local bridge that WinZapp starts by itself) or custom server (server address, WebSocket address, port and API key). Changing the engine only takes effect after restarting WinZapp; the first launch also asks this question. Compiled builds include Neonize and keep WPPConnect installed alongside it; from a repository checkout, first run neonize_bridge/prepare.py, as the README in that folder explains. Installs still on WPPConnect see a one-time notice at startup offering to switch to Neonize (pairing is required on the new engine); each engine keeps its own connection, so you can go back and forth without losing either. Someone who has not paired yet can change the engine in the pairing window itself, in the "Connection engine" list before the country: WinZapp asks for confirmation and restarts on the chosen engine. Compiled builds do not include Node.js; when you choose WPPConnect (on first launch, in the pairing window or in Settings), WinZapp downloads a verified Node.js and installs the WPPConnect modules before connecting.</td></tr>
+</table>
+<p>Typing notifications: optionally repeat a sound while someone types, use only the screen reader, use both, or turn both off. Choose your own sound in Settings, Sound Events. Existing spoken-content choices are preserved and typing sounds are off by default in both connection engines. The repeat interval is adjustable from 1 to 30 seconds (3 by default). Sound stops when typing ends, the sender’s message arrives, or you leave the active chat. Screen reader speech announces the start once. Recording announcements, the visual typing row and Alt+T keep their existing behavior. Long sound files finish before replaying; a missing custom file falls back to the pack sound.</p>
+<p>Typing sounds are muted during voice-message recording and calls by default. To allow them, clear the checkbox “Silence typing sounds during voice recording and calls” in Sound Events. This changes only typing sounds; screen reader speech and other sounds retain their existing settings.</p>
+
+
+<h3>Export and import settings</h3>
+<p>In the File menu, "Export settings..." saves your preferences to a file and "Import settings..." applies that file right away, without restarting. It is useful for taking everything to another computer or account. The connection to WhatsApp and what belongs to each account (cleared chats, per-chat sounds) are not in the file. If you use your own API, address, port and key go along.</p>
+<p>If you change the language and apply, all options switch to the new language right away.</p>
+
+<h3>Shortcut letters and keyboard shortcuts</h3>
+<p>Every control in Settings and in the windows it opens has a shortcut letter: Alt plus the letter the screen reader announces goes straight to the control, and no letter repeats within one window. In Interface &gt; Keyboard shortcuts, the shortcuts are in a tree by category: Right arrow opens a category and Left arrow closes it. The "Search shortcuts" field above it filters the tree; Down arrow goes from the field to the results, and Up arrow on the first one goes back to the field.</p>
+<p>In the shortcut search, press the keys of a shortcut in the keys field to filter the tree by the commands that use that combination; WinZapp announces how many were found, and a button clears the search. The tree is built only once when Settings opens, does not announce selections while you type, and after applying changes focus goes to the OK button; Esc closes the window.</p>
+
+<h3>Advanced</h3>
+<p>The Advanced category, at the end of the list, has "Log level" (debug, information, warnings and errors, or errors only), applied at once; "Start the local API on a fixed port", with the port number, which applies the next time WinZapp starts and lets two copies of WinZapp run or avoids port 6300 when another program already uses it; and "Show every WPPConnect Server update, not only the ones the WinZapp maintainers checked", off by default, which also offers releases the maintainers have not checked yet, with a warning. The port of the Connection category is the custom API's and is enabled only with it.</p>
+
+  </section>
+
+  <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
+    <h2 id="h-privacidade">🛡️ 15. WhatsApp settings</h2>
+<p class="lead">File &gt; WhatsApp settings opens Settings on the WhatsApp settings category, which has two buttons, Privacy and Profile, and changes your WhatsApp account directly on WhatsApp.</p>
+<h3>Privacy button</h3>
+<ul>
+  <li>Last seen and online; About; profile picture; read receipts; who can add you to groups; who can see your status (my contacts, my contacts except..., or share only with...).</li>
+  <li>Under "Chats", "Keep chats archived": when it is off, an archived chat goes back to the chat list when a new message arrives. It is WhatsApp's own option, so it also applies on the phone and your other devices.</li>
+  <li>The people for status are chosen from the synced contacts, in a list with search where each one is marked with Space.</li>
+  <li>The window loads the current values, sends only what you changed and then checks, saying which settings WhatsApp did not confirm.</li>
+</ul>
+
+<h3>Profile button <span class="desde">alpha 4397</span></h3>
+<p>Changes the display name, the About text and the profile picture of your WhatsApp account without picking up your phone.</p>
+<ul>
+  <li>The window already opens showing your current name and About and whether you have a photo. A field left blank or unchanged stays as it is on WhatsApp.</li>
+  <li>The window opens from anywhere with Ctrl+Shift+, (the Settings key plus Shift); you can change it in Settings &gt; Interface &gt; Keyboard shortcuts.</li>
+  <li>Each item is saved separately: if WhatsApp refuses one, the others are saved and the window lists the ones that failed.</li>
+  <li>The picture is chosen from a JPG or PNG file.</li>
+</ul>
+
+<p>In the status options "My contacts except" and "Only share with", only the contacts saved on the phone are offered: they are the only ones WhatsApp lets see a status. In Profile, the button to choose the photo says whether there is a current photo and which file was chosen.</p>
+
+  </section>
+
+  <section id="copias-registros" class="wiki-section" aria-labelledby="h-copias-registros">
+    <h2 id="h-copias-registros">💾 16. Backups and logs</h2>
+<h3>Profile backup</h3>
+<p>The internal browser's profile is where your WhatsApp connection lives. In Settings &gt; Storage &gt; Profile backup:</p>
+<ul>
+  <li>Set how often WinZapp renews the backup when closed (default: 24 hours; 0 does it on every close).</li>
+  <li>Turn on the backup also while WinZapp is open, at the interval you choose. WhatsApp stays disconnected while it is made, which can take a few minutes, and WinZapp can ask before each time. The new backup only replaces the previous one after WhatsApp connects again with it.</li>
+  <li>"Don't keep profile backups" saves space but, if the profile gets damaged, you will have to pair again. When you check it, WinZapp says how much space the backups take and asks whether you want to delete them.</li>
+</ul>
+<p>These backups are what WinZapp uses to recover by itself (see the Accounts, tray and sync section). To keep your message and media history, copy the <code>data</code> folder.</p>
+
+<h3>Logs</h3>
+<p>The logs of WinZapp (<code>log.log</code>) and of the local server (<code>wppconnect.log</code>) mask phone numbers, WhatsApp identifiers and contact names, so they can be sent when reporting a problem without exposing your contacts. They are in <code>data\accounts\&lt;account id&gt;\logs</code>, inside the WinZapp folder. <code>log.log</code> is replaced on every start. For problems with being asked to pair again or losing the session, also send <code>shutdown_audit.log</code>.</p>
+<p>In Advanced, the "Export this account's logs..." button saves, in the background, a .zip file with the current account's logs and the Neonize bridge's, and announces when it finishes.</p>
+<p>Report problems and request features in the repository's Issues (<code>github.com/gabrielhhaber/WinZapp_Python/issues</code>). Help &gt; About the program shows the version, which the bug form asks for.</p>
+
+  </section>
+
+  <section id="mac" class="wiki-section" aria-labelledby="h-mac">
+    <h2 id="h-mac">🍎 17. WinZapp on the Mac</h2>
+<p class="lead">On macOS, WinZapp works with VoiceOver. The chat and message lists are tables VoiceOver reads, and shortcuts follow the Mac rule: Ctrl becomes Command, Alt becomes Command-Option and Ctrl+Alt becomes Control-Command.</p>
+<ul>
+  <li><strong>Lists:</strong> VO+Space on a row does what Enter does; on a chat, the chat opens and VoiceOver moves to the message field. The items of the row's context menu are VoiceOver actions (VO+Command+Space), and VO+Shift+M opens the context menu. VoiceOver keeps its place when a row changes, for example when a new message arrives.</li>
+  <li><strong>Updates:</strong> "Check for updates" is in the WinZapp menu, under About WinZapp, and in "Help". With "Automatically check for updates" on in Settings, an update is downloaded in the background and installed when you quit WinZapp; if WinZapp stays open, the update window offers to install and relaunch, and WinZapp announces it by speech and by a notification. The update window says what changed since your version. Installing an update takes a few seconds, and the first launch after it is as quick as any other.</li>
+  <li><strong>Update verification:</strong> If verification fails, the message explains whether the update verification file could not be retrieved or the official release tag could not be checked. It distinguishes connection, address lookup, timeout, certificate, access, missing resource, server and GitHub request-limit problems. Temporary connection and server failures are retried once within the request time limit. When GitHub specifies a wait, the message gives the number of seconds; wait before checking again. Request limits stop further requests to that host in the same running process during that wait. A certificate failure or an unverified release is never accepted as a successful check. On a Mac without python.org Python, verification uses the certificates bundled with the app.</li>
+  <li><strong>Home and End:</strong> go to the first and last row of a list. <strong>After sleep:</strong> when the Mac wakes, WinZapp reconnects on its own.</li>
+</ul>
+
+  </section>
+
+  <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
+    <h2 id="h-armazenamento">💾 18. Gestione archiviazione</h2>
+<h3>Storage summary</h3>
+<p>Open Settings → Storage → Storage manager. Use Tab to move between controls and Ctrl+Tab between tabs. In the file list, arrows move the cursor and Space changes the checkbox; moving the cursor does not select a file for removal. A page contains at most 200 items. Scan and refresh do not apply a cleanup plan.</p>
+<p>Logical file sizes, counted once per file identity. Allocated space and free disk space are not measured. Held files still occupy space. This snapshot covers this installation only.</p>
+<h3>Preferences</h3>
+<p>All background work is optional. Saving preferences does not apply a file preview. A target is advisory, not a hard quota. No disk-free-space threshold is enforced. Optional matching reads selected local message histories. External models and other accounts are information only. Newly added account folders require disabling and re-enabling that scope.</p>
+<p>If matching an entire account is incomplete, select fewer local conversations. Matching reads local message histories without contacting WhatsApp. Sent, pending, failed, starred, locked, hidden and unmatched content stays protected. No model or backup removal is offered here; their buttons open the existing settings.</p>
+<p>Match media with selected local histories → Choose local histories to match → Save preferences and rule drafts</p>
+<h3>Preview selection</h3>
+<ol>
+<li>Scan now</li>
+<li>Apply filters</li>
+<li>Select this page</li>
+<li>Operation method</li>
+<li>Preview selection</li>
+<li>Apply preview</li>
+</ol>
+<p>Select at most 500 eligible files per preview, or fewer if their paths are unusually long. No part of this selection was applied.</p>
+<p>Models, runtimes, backups, logs, databases and login data stay protected here. Use their existing settings to manage them. Unknown files are not declared unnecessary. Only verified cache files and matched received-media copies can enter a preview.</p>
+<h3>Protections</h3>
+<p>Protection wins over manual selection and rules. Shared protection applies across this installation&#x27;s accounts. Removing protection grants no new selection. Missing or currently unnamed items keep a private numbered label.</p>
+<p>Protect selected files → Protect selected conversations → Refresh protections</p>
+<h3>Held files</h3>
+<p>Holding moves a local copy without making another copy and does not free its space. Restore never overwrites a current file. Permanent removal cannot be undone here. Media may be unavailable from WhatsApp.</p>
+<p>To permanently remove held media, enable media matching and select conversations in Preferences, save, then retry. Only currently visible, unlocked and completely matched media without a protection can be removed.</p>
+<p>Refresh held files → Restore selected held files → Permanently remove selected held files</p>
+<p>For a cleaned photo, video, document or audio item, select its message and use Download. Confirm the separate one-copy request. This is not an undo or a promise that WhatsApp still has the file. No other download block is cleared.</p>
+<p>Remove empty operation records older than two days? Held files and active recovery records are kept. Previews expire after one day.</p>
+<h3>Rules</h3>
+<p>Age and size are conditions, not proof of uselessness. Protection wins. A suggestion or notification rule wins over an automatic rule on the same file. Automatic mode is available only for verified regenerable compile cache.</p>
+<p>Manual scans do not run automatic removal rules. Only a separately enabled cache rule can remove files during saved startup or interval evaluations, in bounded batches. Pausing scheduled evaluations preserves other unsaved drafts. A usage target uses the last non-cancelled measurement and is not a disk quota; manual requests and sending remain available.</p>
+<p>Add rule → Enable this rule after saving preferences → Save preferences and rule drafts</p>
+<p>These are drafts. Save preferences to apply rule and matching-scope changes.</p>
+<p>Template loaded for review. Rules and scheduling are disabled. Save preferences to apply the choices.</p>
+<p>Keep summary history for days; 0: off → Refresh summary history → Clear summary history</p>
+<p>Reset this account&#x27;s storage preferences, rules and keep-list? Shared protections, held files and media download blocks stay. No files are cleaned.</p>
+
+  </section>
+
+  <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
+    <h2 id="h-atalhos">⌨️ 19. Keyboard shortcuts</h2>
+<div class="callout info">
+  <div class="callout-title">ℹ️ List generated from the code</div>
+  The tables below are generated automatically from WinZapp's shortcut catalog and show the factory keys. They also appear in the program, on F1 or Help &gt; Keyboard shortcuts. Any key can be changed in the Keyboard shortcuts tab of Settings.
+</div>
+<h3>Finestra principale e navigazione</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Alt+1</td><td>Vai alle chat</td></tr>
+<tr><td class="field-name">Alt+2</td><td>Vai all&#x27;ultimo messaggio</td></tr>
+<tr><td class="field-name">Alt+3</td><td>Vai ai messaggi non letti</td></tr>
+<tr><td class="field-name">Alt+4</td><td>Vai alle chat archiviate</td></tr>
+<tr><td class="field-name">Alt+5</td><td>Vai allo stato</td></tr>
+<tr><td class="field-name">Alt+6</td><td>Vai alle chiamate</td></tr>
+<tr><td class="field-name">Alt+7</td><td>Apri le chat bloccate</td></tr>
+<tr><td class="field-name">Alt+N</td><td>Attiva la navigazione principale</td></tr>
+<tr><td class="field-name">Ctrl+,</td><td>Impostazioni</td></tr>
+<tr><td class="field-name">Ctrl+Shift+,</td><td>Impostazioni di WhatsApp</td></tr>
+<tr><td class="field-name">F1</td><td>Mostra le scorciatoie da tastiera</td></tr>
+<tr><td class="field-name">Alt+T</td><td>Annuncia lo stato della chat (visto di recente, online, sta scrivendo)</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+P</td><td>Metti in pausa/riprendi qualsiasi audio attualmente in riproduzione, da qualsiasi pannello</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+H</td><td>Cambiare il dispositivo di riproduzione fino alla chiusura di WinZapp, in ogni account aperto (quindi da 1 a 0)</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Cambiare il dispositivo di registrazione fino alla chiusura di WinZapp, in ogni account aperto (quindi da 1 a 0)</td></tr>
+<tr><td class="field-name">Alt+8</td><td>Apri community</td></tr>
+<tr><td class="field-name">Alt+9</td><td>Apri i canali</td></tr>
+<tr><td class="field-name">Ctrl+Shift+F10 a 9</td><td>Apri una chat rapida assegnata</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+F10 a 9</td><td>Assegna la chat evidenziata a un numero veloce</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Contrassegna tutte le chat come lette</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+D</td><td>Disconnetti</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+Q</td><td>Esci</td></tr>
+<tr><td class="field-name">F5</td><td>Risincronizza tutte le chat</td></tr>
+<tr><td class="field-name">Shift+F5</td><td>Risincronizza questa chat</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+B</td><td>Scarica contenuti multimediali</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+O</td><td>Modalità offline</td></tr>
+<tr><td class="field-name">Ctrl+Shift+K</td><td>Chiudi e nascondi il vault delle chat bloccate</td></tr>
+<tr><td class="field-name">Ctrl+Alt+1 a 9</td><td>Passa all&#x27;account associato corrispondente</td></tr>
+<tr><td class="field-name">Ctrl+F4</td><td>Chiudere l&#x27;account corrente, lasciando aperti gli altri</td></tr>
+<tr><td class="field-name">Ctrl+0 a 9</td><td>Aggiungi un segnalibro al messaggio selezionato o vai a un segnalibro esistente</td></tr>
+</table>
+<h3>Elenchi (in generale)</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Spazio</td><td>Apri</td></tr>
+</table>
+<h3>Dispositivi audio</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">0 a 9</td><td>Scegli il dispositivo audio con numero</td></tr>
+<tr><td class="field-name">Enter</td><td>Scegli il dispositivo audio selezionato</td></tr>
+</table>
+<h3>Elenco delle chat</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Alt+M</td><td>Messaggi</td></tr>
+<tr><td class="field-name">Ctrl+F</td><td>Cerca nella chat</td></tr>
+<tr><td class="field-name">Ctrl+N</td><td>Nuova chat</td></tr>
+<tr><td class="field-name">Canc</td><td>Elimina chat</td></tr>
+<tr><td class="field-name">Alt+Shift+C</td><td>Copia il numero di telefono</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>Informazioni chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+M</td><td>Contrassegna come letto/non letto</td></tr>
+<tr><td class="field-name">Alt+Shift+S</td><td>Silenzia</td></tr>
+<tr><td class="field-name">Ctrl+Shift+B</td><td>Blocca</td></tr>
+<tr><td class="field-name">Ctrl+Shift+L</td><td>Svuota chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Q</td><td>Archivia chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+T</td><td>Blocca chat</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>Blocca o sblocca la chat; riproduci o interrompi l&#x27;anteprima mentre la registrazione è in pausa</td></tr>
+<tr><td class="field-name">Ctrl+W</td><td>Chiudi la chat. Con i messaggi selezionati, la prima pressione di Esc deseleziona solo tutti i messaggi e solo la seconda chiude la chat, se l&#x27;opzione è abilitata in Impostazioni, Interfaccia utente</td></tr>
+<tr><td class="field-name">Alt+Shift+B</td><td>In una chat con un&#x27;azienda, il suo catalogo e il suo carrello</td></tr>
+<tr><td class="field-name">Ctrl+Shift+N</td><td>Su un account WhatsApp Business, crea un ordine per il contatto della chat</td></tr>
+<tr><td class="field-name">Alt+2</td><td>Vai all&#x27;ultimo messaggio</td></tr>
+<tr><td class="field-name">Alt+3</td><td>Vai ai messaggi non letti</td></tr>
+<tr><td class="field-name">Alt+Shift+F</td><td>Vai ai filtri della chat</td></tr>
+<tr><td class="field-name">Alt+Shift+A</td><td>Mostra tutte le chat</td></tr>
+<tr><td class="field-name">Alt+Shift+U</td><td>Mostra le chat non lette</td></tr>
+<tr><td class="field-name">Alt+Shift+G</td><td>Mostra le chat di gruppo</td></tr>
+<tr><td class="field-name">Alt+Shift+I</td><td>Mostra le chat individuali</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+L</td><td>Svuota le chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Canc</td><td>Elimina le chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+A</td><td>Archivia le chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+R</td><td>Contrassegna le chat selezionate come lette</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+U</td><td>Contrassegna le chat selezionate come non lette</td></tr>
+</table>
+<h3>Selezione delle chat</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Shift+Home</td><td>Estendi la selezione alla prima riga</td></tr>
+<tr><td class="field-name">Shift+Fine</td><td>Estendi la selezione all&#x27;ultima riga</td></tr>
+<tr><td class="field-name">Shift+Freccia giù</td><td>Seleziona la chat o il messaggio successivo e sposta su di esso l&#x27;elemento attivo</td></tr>
+<tr><td class="field-name">Shift+Freccia su</td><td>Estendi la selezione alla riga precedente</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Spazio</td><td>Seleziona tutte le chat o i messaggi oppure deseleziona tutto se è già tutto selezionato</td></tr>
+<tr><td class="field-name">Spazio</td><td>Attiva/disattiva la riga in primo piano mentre la modalità di selezione è attiva</td></tr>
+<tr><td class="field-name">Ctrl+Spazio</td><td>Seleziona/deseleziona la chat o il messaggio evidenziato</td></tr>
+</table>
+<h3>Chat archiviate</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+F</td><td>Cerca nella chat</td></tr>
+<tr><td class="field-name">Canc</td><td>Elimina chat</td></tr>
+<tr><td class="field-name">Alt+Shift+C</td><td>Copia il numero di telefono</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>Informazioni chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+M</td><td>Contrassegna come letto/non letto</td></tr>
+<tr><td class="field-name">Alt+Shift+S</td><td>Silenzia</td></tr>
+<tr><td class="field-name">Ctrl+Shift+B</td><td>Blocca</td></tr>
+<tr><td class="field-name">Ctrl+Shift+L</td><td>Svuota chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Q</td><td>Annulla l&#x27;archiviazione della chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+T</td><td>Blocca chat</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>Fissa chat</td></tr>
+<tr><td class="field-name">Alt+M</td><td>Messaggi</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+L</td><td>Svuota le chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Canc</td><td>Elimina le chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+A</td><td>Annulla l&#x27;archiviazione delle chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+R</td><td>Contrassegna le chat selezionate come lette</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+U</td><td>Contrassegna le chat selezionate come non lette</td></tr>
+</table>
+<h3>Chat bloccate</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Alt+M</td><td>Messaggi</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Sblocca le chat selezionate</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+R</td><td>Contrassegna le chat selezionate come lette</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+U</td><td>Contrassegna le chat selezionate come non lette</td></tr>
+</table>
+<h3>Ricerca</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Enter</td><td>Risultato di ricerca successivo (alternativa, funziona solo nel campo di ricerca)</td></tr>
+<tr><td class="field-name">Shift+Enter</td><td>Risultato di ricerca precedente (alternativa, funziona solo nel campo di ricerca)</td></tr>
+</table>
+<h3>Dentro una chat</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Shift+I</td><td>Trascrivi, descrivi o converti i contenuti multimediali del messaggio selezionato con l&#x27;IA online</td></tr>
+<tr><td class="field-name">Alt+S</td><td>Scrivi un messaggio a</td></tr>
+<tr><td class="field-name">Alt+M</td><td>Messaggi</td></tr>
+<tr><td class="field-name">Ctrl+R</td><td>Registra un messaggio vocale</td></tr>
+<tr><td class="field-name">Alt+2</td><td>Vai all&#x27;ultimo messaggio</td></tr>
+<tr><td class="field-name">Esc</td><td>Chiudi la chat. Con i messaggi selezionati, la prima pressione di Esc deseleziona solo tutti i messaggi e solo la seconda chiude la chat, se l&#x27;opzione è abilitata in Impostazioni, Interfaccia utente</td></tr>
+<tr><td class="field-name">Ctrl+W</td><td>Chiudi la chat. Con i messaggi selezionati, la prima pressione di Esc deseleziona solo tutti i messaggi e solo la seconda chiude la chat, se l&#x27;opzione è abilitata in Impostazioni, Interfaccia utente</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>Dati della chat / elimina registrazione</td></tr>
+<tr><td class="field-name">Ctrl+Shift+A</td><td>Aggiungi allegato</td></tr>
+<tr><td class="field-name">Ctrl+Shift+B</td><td>Blocca contatto</td></tr>
+<tr><td class="field-name">Alt+R</td><td>Rispondi al messaggio</td></tr>
+<tr><td class="field-name">Alt+Shift+D</td><td>Dati del messaggio</td></tr>
+<tr><td class="field-name">Ctrl+Shift+E</td><td>Inoltra messaggio</td></tr>
+<tr><td class="field-name">Ctrl+Shift+P</td><td>Metti in pausa/riprendi la registrazione (o blocca/sblocca il messaggio selezionato, quando non stai registrando)</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>Rispondi al messaggio; in caso di chiamata persa, richiama</td></tr>
+<tr><td class="field-name">Ctrl+Shift+H</td><td>Registra l&#x27;audio del microfono e del computer</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Y</td><td>Se l&#x27;invio di un messaggio non è andato a buon fine o non è stato confermato, prova a inviarlo di nuovo</td></tr>
+<tr><td class="field-name">Alt+Shift+B</td><td>In una chat con un&#x27;azienda, il suo catalogo e il suo carrello</td></tr>
+<tr><td class="field-name">Ctrl+Shift+N</td><td>Su un account WhatsApp Business, crea un ordine per il contatto della chat</td></tr>
+<tr><td class="field-name">Canc</td><td>Elimina il messaggio o la chat (o tutti quelli selezionati, se è presente una selezione)</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Copia messaggio</td></tr>
+<tr><td class="field-name">Ctrl+Shift+C</td><td>Copia didascalia (foto/video/documento)</td></tr>
+<tr><td class="field-name">Alt+C</td><td>Mostra il testo del messaggio nel popup</td></tr>
+<tr><td class="field-name">Alt+E</td><td>Modifica messaggio</td></tr>
+<tr><td class="field-name">Alt+L</td><td>Leggi il resto di un messaggio di testo troncato nell&#x27;elenco</td></tr>
+<tr><td class="field-name">Alt+Shift+L</td><td>Annuncia lo stato del messaggio su cui è attivo il fuoco</td></tr>
+<tr><td class="field-name">Alt+Shift+K</td><td>Annuncia la data e l&#x27;ora del messaggio su cui è attivo il focus</td></tr>
+<tr><td class="field-name">Ctrl+Shift+S</td><td>Salva/scarica i contenuti multimediali</td></tr>
+<tr><td class="field-name">Ctrl+Shift+M</td><td>Contrassegna come letto/non letto</td></tr>
+<tr><td class="field-name">Ctrl+Shift+L</td><td>Svuota chat</td></tr>
+<tr><td class="field-name">Ctrl+Shift+F</td><td>Cerca nella chat</td></tr>
+<tr><td class="field-name">F3</td><td>Risultato di ricerca successivo, nell&#x27;intera conversazione aperta</td></tr>
+<tr><td class="field-name">Shift+F3</td><td>Risultato di ricerca precedente, nell&#x27;intera conversazione aperta</td></tr>
+<tr><td class="field-name">Alt+3</td><td>Vai ai messaggi non letti</td></tr>
+<tr><td class="field-name">Alt+U</td><td>Vai ai messaggi non letti</td></tr>
+<tr><td class="field-name">Ctrl+L</td><td>Vai ai messaggi non letti</td></tr>
+<tr><td class="field-name">Alt+Shift+R</td><td>Rispondi al messaggio privatamente</td></tr>
+<tr><td class="field-name">Alt+Shift+E</td><td>Reazioni recenti</td></tr>
+<tr><td class="field-name">Alt+Shift+M</td><td>Vai al messaggio precedente in cui sei menzionato</td></tr>
+<tr><td class="field-name">Alt+Shift+P</td><td>Vai al messaggio precedente che ti risponde</td></tr>
+<tr><td class="field-name">Alt+Shift+J</td><td>Passa al messaggio successivo in cui vieni menzionato</td></tr>
+<tr><td class="field-name">Alt+Shift+O</td><td>Passa al messaggio successivo che contiene una risposta per te</td></tr>
+<tr><td class="field-name">Alt+Shift+C</td><td>Copia il numero di telefono</td></tr>
+<tr><td class="field-name">Alt+Shift+V</td><td>Chat con i partecipanti (gruppi)</td></tr>
+<tr><td class="field-name">Ctrl+Shift+V</td><td>Chiamata vocale</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+V</td><td>Chiamata video</td></tr>
+<tr><td class="field-name">Alt+Shift+Q</td><td>Vai al messaggio citato</td></tr>
+<tr><td class="field-name">Alt+Shift+S</td><td>Apri il menu Disattiva chat / Riattiva chat</td></tr>
+<tr><td class="field-name">Alt+Shift+T</td><td>Trascrivi il messaggio vocale o l&#x27;audio localmente con Whisper oppure apri la trascrizione già salvata</td></tr>
+<tr><td class="field-name">Alt+Shift+N</td><td>Su un messaggio vocale o un video, esegui ciò che Invio e Spazio non fanno: trascrivilo localmente con Whisper nella sua riga nell&#x27;elenco oppure riproducilo, mettilo in pausa o aprilo quando Invio e Spazio sono impostati per la trascrizione (Impostazioni &gt; Interfaccia utente)</td></tr>
+<tr><td class="field-name">Alt+Shift+Canc</td><td>Elimina la trascrizione locale salvata del messaggio (o di tutti quelli selezionati, quando i tasti di scelta rapida vengono sostituiti dalle azioni in blocco)</td></tr>
+<tr><td class="field-name">Ctrl+Shift+O</td><td>Contrassegna il messaggio con una stella/aggiungilo ai preferiti</td></tr>
+<tr><td class="field-name">Alt+,</td><td>Riduci la velocità di riproduzione</td></tr>
+<tr><td class="field-name">Alt+.</td><td>Aumenta velocità di riproduzione</td></tr>
+<tr><td class="field-name">Ctrl+.</td><td>Seleziona emoji</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+C</td><td>Copia i messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+E</td><td>Inoltra i messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+F</td><td>Contrassegna con una stella i messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+X</td><td>Blocca i messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+S</td><td>Salva i messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+T</td><td>Trascrivi localmente i messaggi selezionati con Whisper e visualizzali insieme</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Trascrivi localmente i messaggi selezionati con Whisper nelle rispettive righe</td></tr>
+<tr><td class="field-name">Ctrl+Alt+Shift+Canc</td><td>Elimina le trascrizioni locali salvate dei messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Canc</td><td>Elimina i messaggi selezionati</td></tr>
+<tr><td class="field-name">Ctrl+0 a 9</td><td>Aggiungi un segnalibro al messaggio selezionato o vai a un segnalibro esistente</td></tr>
+<tr><td class="field-name">Ctrl+Shift+0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9</td><td>Rimuovere un segnalibro temporaneo</td></tr>
+<tr><td class="field-name">Alt+Shift+0 a 9</td><td>Aggiungi temporaneamente un segnalibro al messaggio attivo o vai a un segnalibro temporaneo esistente (viene rimosso quando esci dalla chat)</td></tr>
+</table>
+<h3>Elenco dei messaggi</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Enter</td><td>Mostra nella cartella</td></tr>
+<tr><td class="field-name">Ctrl+V</td><td>Incolla nell&#x27;editor dei messaggi dall&#x27;elenco messaggi</td></tr>
+<tr><td class="field-name">Shift+Freccia sinistra</td><td>Riavvolgi audio/video di 5 secondi</td></tr>
+<tr><td class="field-name">Shift+Freccia destra</td><td>Avanza audio/video di 5 secondi</td></tr>
+<tr><td class="field-name">Shift+Page Up</td><td>Riavvolgi audio/video di 1 minuto</td></tr>
+<tr><td class="field-name">Shift+Page Down</td><td>Avanza audio/video di 1 minuto</td></tr>
+<tr><td class="field-name">Shift+Home</td><td>Vai all&#x27;inizio dell&#x27;audio/video in riproduzione oppure seleziona tutti i messaggi/chat precedenti e spostati sul primo se non è in corso alcuna riproduzione</td></tr>
+<tr><td class="field-name">Shift+Fine</td><td>Vai alla fine dell&#x27;audio/video in riproduzione o seleziona tutti i messaggi/chat sottostanti e spostati all&#x27;ultimo se non è in corso alcuna riproduzione</td></tr>
+<tr><td class="field-name">Shift+Freccia giù</td><td>Seleziona la chat o il messaggio successivo e sposta su di esso l&#x27;elemento attivo</td></tr>
+<tr><td class="field-name">Shift+Freccia su</td><td>Estendi la selezione alla riga precedente</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Spazio</td><td>Seleziona tutte le chat o i messaggi oppure deseleziona tutto se è già tutto selezionato</td></tr>
+<tr><td class="field-name">Spazio</td><td>Riproduci/metti in pausa l&#x27;audio o il video selezionato. Quando è già presente una selezione, seleziona/deseleziona invece la chat o il messaggio attivo, se l&#x27;opzione è abilitata in Impostazioni, Interfaccia utente</td></tr>
+<tr><td class="field-name">Ctrl+Spazio</td><td>Seleziona/deseleziona la chat o il messaggio evidenziato</td></tr>
+</table>
+<h3>Campo del messaggio</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Enter</td><td>Invia messaggio</td></tr>
+<tr><td class="field-name">Shift+Enter</td><td>Inserire una nuova riga</td></tr>
+</table>
+<h3>Link in un messaggio</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Enter</td><td>Apri</td></tr>
+<tr><td class="field-name">Spazio</td><td>Apri</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Copia Link</td></tr>
+</table>
+<h3>Menzioni in questo messaggio</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Enter</td><td>Apri</td></tr>
+<tr><td class="field-name">Spazio</td><td>Apri</td></tr>
+</table>
+<h3>Suggerimenti di menzione</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Enter</td><td>Inserisci la menzione selezionata</td></tr>
+<tr><td class="field-name">Esc</td><td>Chiudi</td></tr>
+</table>
+<h3>Visualizzatore e riproduzione dei contenuti multimediali</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Freccia sinistra</td><td>Stato precedente</td></tr>
+<tr><td class="field-name">Ctrl+Freccia destra</td><td>Stato successivo</td></tr>
+<tr><td class="field-name">Ctrl+Shift+S</td><td>Salva/scarica i contenuti multimediali</td></tr>
+<tr><td class="field-name">Ctrl+Shift+I</td><td>Descrizione</td></tr>
+<tr><td class="field-name">Alt+V</td><td>Torna indietro di 10 secondi</td></tr>
+<tr><td class="field-name">Alt+A</td><td>Vai avanti di 10 secondi</td></tr>
+<tr><td class="field-name">Esc</td><td>Chiudi</td></tr>
+<tr><td class="field-name">Spazio</td><td>Riproduci/metti in pausa l&#x27;audio o il video selezionato. Quando è già presente una selezione, seleziona/deseleziona invece la chat o il messaggio attivo, se l&#x27;opzione è abilitata in Impostazioni, Interfaccia utente</td></tr>
+<tr><td class="field-name">Enter</td><td>Invia risposta</td></tr>
+</table>
+<h3>Selettore di emoji</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Enter</td><td>Inserisci</td></tr>
+<tr><td class="field-name">Freccia sinistra</td><td>Tonalità della pelle dell&#x27;emoji precedente</td></tr>
+<tr><td class="field-name">Freccia destra</td><td>Tonalità della pelle dell&#x27;emoji successiva</td></tr>
+</table>
+<h3>Finestra del risultato (IA e trascrizione)</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Enter</td><td>Chiedi</td></tr>
+<tr><td class="field-name">Esc</td><td>Chiudi</td></tr>
+</table>
+<h3>Stato</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Freccia sinistra</td><td>Stato precedente</td></tr>
+<tr><td class="field-name">Ctrl+Freccia destra</td><td>Stato successivo</td></tr>
+<tr><td class="field-name">Esc</td><td>Chiudi</td></tr>
+<tr><td class="field-name">F5</td><td>Aggiorna stato</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Copia testo dello stato</td></tr>
+<tr><td class="field-name">Ctrl+R</td><td>Registra un messaggio vocale</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>Ascolta l&#x27;audio registrato</td></tr>
+<tr><td class="field-name">Ctrl+Shift+P</td><td>Sospendi registrazione</td></tr>
+<tr><td class="field-name">Ctrl+Shift+D</td><td>Elimina messaggio vocale</td></tr>
+<tr><td class="field-name">Ctrl+.</td><td>Seleziona emoji</td></tr>
+<tr><td class="field-name">Ctrl+Shift+S</td><td>Salva/scarica i contenuti multimediali</td></tr>
+<tr><td class="field-name">Ctrl+Shift+I</td><td>Descrizione</td></tr>
+<tr><td class="field-name">Alt+Shift+T</td><td>Trascrivi lo stato audio o video localmente con Whisper oppure apri la trascrizione già salvata</td></tr>
+<tr><td class="field-name">Alt+Shift+N</td><td>Su uno stato audio o video, esegue l&#x27;azione che non eseguono Invio e Spazio: lo trascrive localmente con Whisper nella sua riga dell&#x27;elenco oppure lo apre o lo riproduce quando Invio e Spazio sono impostati per la trascrizione</td></tr>
+<tr><td class="field-name">Alt+Shift+Canc</td><td>Elimina la trascrizione locale salvata dello stato</td></tr>
+<tr><td class="field-name">Canc</td><td>Nel mio stato, elimina lo stato visualizzato, per tutti coloro che lo hanno ricevuto</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Y</td><td>Se lo stato non è stato pubblicato, prova a pubblicarlo di nuovo</td></tr>
+</table>
+<h3>Elenco degli stati</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Spazio</td><td>Apri o riproduci lo stato evidenziato</td></tr>
+</table>
+<h3>Risposta a uno stato</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Enter</td><td>Invia risposta</td></tr>
+</table>
+<h3>Scheda Chiamate</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Alt+L</td><td>Vai all&#x27;elenco delle chiamate</td></tr>
+<tr><td class="field-name">Ctrl+Shift+R</td><td>Richiamare un numero da cui si è ricevuta una chiamata persa</td></tr>
+<tr><td class="field-name">F5</td><td>Aggiorna l&#x27;elenco delle chiamate</td></tr>
+<tr><td class="field-name">Ctrl+Tab</td><td>Passare dalle schede Tutte, Perse, Rifiutate e Risposte</td></tr>
+<tr><td class="field-name">Ctrl+Shift+Tab</td><td>Filtro elenco chiamate precedente</td></tr>
+<tr><td class="field-name">Enter</td><td>Apri la chat della chiamata</td></tr>
+</table>
+<h3>Durante una chiamata</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Ctrl+Shift+Q</td><td>Termina la chiamata</td></tr>
+<tr><td class="field-name">Ctrl+M</td><td>Attiva o disattiva il microfono</td></tr>
+<tr><td class="field-name">Ctrl+C</td><td>Impostazioni chiamata</td></tr>
+<tr><td class="field-name">Ctrl+V</td><td>Attiva o disattiva il video in una videochiamata</td></tr>
+<tr><td class="field-name">Ctrl+P</td><td>Passa da una chiamata vocale a una videochiamata</td></tr>
+</table>
+<h3>Chiamata in arrivo</h3>
+<table class="field-table">
+<tr><th>Scorciatoia</th><th>Azione</th></tr>
+<tr><td class="field-name">Alt+I</td><td>Rispondi</td></tr>
+<tr><td class="field-name">Alt+U</td><td>Rispondi con un video</td></tr>
+<tr><td class="field-name">Alt+V</td><td>Rispondi senza video</td></tr>
+<tr><td class="field-name">Alt+R</td><td>Rifiuta</td></tr>
+<tr><td class="field-name">Alt+S</td><td>Silenzia avviso</td></tr>
+<tr><td class="field-name">Alt+C</td><td>Chiudi finestra</td></tr>
+</table>
+<h3>Comandi senza tasto assegnato</h3>
+<p>Questi comandi esistono nella scheda Scorciatoie da tastiera delle Impostazioni, ma non hanno un tasto. Scegline uno lì se vuoi usarli.</p>
+<table class="field-table">
+<tr><th>Comando</th></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (1)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (2)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (3)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (4)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (5)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (6)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (7)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (8)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (9)</td></tr>
+<tr><td>Leggere un messaggio recente in base alla posizione, contando a ritroso dal più recente (1 è il più recente, 0 è il decimo); premuto due volte rapidamente copia il messaggio, posizione (0)</td></tr>
+</table>
+
+  </section>
+
+  <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
+    <h2 id="h-solucao-problemas">🧰 20. Troubleshooting</h2>
+<table class="field-table">
+  <tr><th>Situation</th><th>What to do</th></tr>
+  <tr><td>WinZapp asks you to pair again</td><td>Pair with number or QR code. Your chats are only deleted if you connect a different number. If it happened for no reason, keep <code>log.log</code> and <code>shutdown_audit.log</code> before opening it again.</td></tr>
+  <tr><td>Messages do not arrive or the list looks stuck</td><td>Wait for the sync progress; use Shift+F5 in the chat or F5 for all. Also check that offline mode is not on. If the list keeps syncing again and again, update WinZapp: a fix lets the chat list finish syncing.</td></tr>
+  <tr><td>Local transcription on the NVIDIA graphics card fails or gets stuck</td><td>Update WinZapp: a fix loads the CUDA libraries on Windows before the graphics card is used. If they cannot be loaded, WinZapp says so and offers to transcribe on the processor instead.</td></tr>
+  <tr><td>WinZapp freezes when sending or receiving large files</td><td>Update WinZapp: a fix stops a received file from being downloaded along with the message notification and stops send and download progress from piling up screen updates.</td></tr>
+  <tr><td>The "chat not found" error appears when sending to an existing conversation</td><td>Update WinZapp: a fix makes sending messages and attachments use the conversation WhatsApp has already loaded.</td></tr>
+  <tr><td>My account still shows as online after I left the window</td><td>WinZapp requests offline presence when its window is inactive, minimized, hidden or running in the background, and retries every 20 seconds. If the problem continues, note the local time and the window state and provide redacted diagnostic logs. The logs distinguish the requested state from the local runtime observation; neither confirms what another device displayed.</td></tr>
+  <tr><td>Calls do not start</td><td>Restart WinZapp or use Help &gt; Force reinstall WPPConnect. WinZapp keeps the list of WhatsApp Web versions up to date by itself.</td></tr>
+  <tr><td>The internal browser does not open</td><td>Usually an antivirus removed part of it. WinZapp warns and explains; use Force reinstall WPPConnect.</td></tr>
+  <tr><td>A message was sent but WinZapp did not confirm</td><td>Check the chat before resending; WinZapp does not resend by itself in these cases.</td></tr>
+  <tr><td>"Use WhatsApp on your phone to see older messages"</td><td>Those messages exist only on the phone.</td></tr>
+  <tr><td>An error appears when installing or updating WPPConnect</td><td>The error comes in a read-only text field, to read and copy; send it when reporting the problem.</td></tr>
+  <tr><td>Local transcription does not work</td><td>In Settings &gt; Local Transcription, confirm that a model is downloaded and ready. WinZapp says why when transcription is not ready.</td></tr>
+</table>
+
+  </section>
+
+  <section id="registro" class="wiki-section" aria-labelledby="h-registro">
+    <h2 id="h-registro">📝 21. Guide update log</h2>
+<p>Arabic is now available in Settings > General > Language, with Arabic text in the Windows installer and uninstaller.</p>
+<p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
+<table class="field-table">
+  <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>Guide: Italian joins the language list in Settings.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Settings &gt; Storage gains Storage manager: inspect logical sizes and coverage, choose media matching and protections, preview local-copy removal or recoverable holding, restore held files, and configure optional rules, notices and advisory targets. Automatic removal is restricted to verified regenerable compile cache; all scheduling starts off. Cleaned media can be requested individually without clearing automatic-download blocks.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Guide: a new conversation by number opens with the number WhatsApp uses.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Guide: channels with the directory's categories and views, updates posted and pinned by admins and the channel admins window.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Guide: the Channels window (Alt+9), adding people to the call in progress, older messages asked of the phone on Neonize and where the number of new messages goes in the chat list.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Shortcuts: F1 distinguishes mention suggestions from mentions inside a message. In Spanish and European Portuguese, Alt+P focuses the message field and Alt+E edits messages.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Groups: when someone is typing, the announcement now uses their name instead of just their phone number.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize: posts from channels you follow no longer show up as chats and messages.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize calls: a call nobody answers ends by itself after one minute.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize calls: added a disabled-by-default experimental 48 kHz PCM path for negotiated Opus calls, with format and call-instance checks. Normal calls retain the existing MLow fallback.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Guide: exporting the account's logs, shortcut search by keys and a single automatic transcription choice per conversation; fixes for F5, reactions, community announcement replies, starring and liking statuses, and Neonize sync.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Microphone noise reduction for voice messages with a neural model, downloaded once on the Audio page in Settings; without the model, the basic noise gate is still used.</td></tr>  <tr><td class="field-name">Not yet released</td><td>QR code pairing with Neonize: the QR code is shown whole in the connection window, at a size the phone camera can read.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Unanswered group calls stay in the group's history, not as a private call from whoever started them.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize connection engine (experimental) in Settings, Connection and on the first launch. Chat call buttons follow the support reported by the engine, including joining ongoing group calls.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Ongoing calls: joining an available call from the group chat or from the Ongoing filter in Calls, and the list of connected participants. Mistral for online transcription, image descriptions and PDF text extraction.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Contact presence (typing, online): many updates in a row no longer freeze the program for seconds or slow the computer down.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Contact status updates with fewer repeated interface changes and background saving of newly learned contact names.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Updating WinZapp or WPPConnect: installation and build run at lower priority, so the computer and the screen reader do not freeze half-way through the update.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Typing and voice-recording indicators in private chats remain available when WhatsApp reports the contact as offline. Activity is shown separately from online visibility and expires when it stops being refreshed. Activity belongs to the conversation where it occurs: groups and private chats are tracked separately.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Pinned messages in groups: the list of pinned messages also loads pins older than what WhatsApp Web keeps in memory.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Calls: reinstalling WPPConnect preserves a newer compatible WhatsApp Web catalogue and checks its freshness. A rebuilt catalogue is checked without the previous six-hour wait. A confirmed non-retryable VoIP contract mismatch stops repeated initialization.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Buttons in business messages: reply, link, copy code and phone number.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>macOS update verification: distinct causes and verification stages, one bounded transient retry, and GitHub wait times.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Update package retention, installation ownership, copy results and safe reopening. After an incomplete or unconfirmed copy, WinZapp stays closed and opens recovery instructions in Notepad. Answering, rejecting and hanging up calls from any window (Ctrl+Alt+Shift+Enter and Ctrl+Alt+Shift+Backspace). Advanced category, shortcut letters in Settings, shortcuts in a tree with search, draft per conversation, Try sending again, controls after the list that can leave the Tab order, the queue and windows of local transcription, automatic transcription per conversation, statuses that were not posted and deleting a status, groups of a community, orders created by the seller and status privacy.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Automatic adaptation of call audio to microphone and speaker sample rates.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Received attached contacts with name and number.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Forwards through Neonize show up in the destination conversation right away.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Secure update verification on Macs without python.org Python.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Voice messages sent through Neonize reach contacts on Android.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize voice messages, photos and documents go out even when the computer's libmagic fails to load.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Voice stays at up to 256 kbps; Neonize now logs each media send.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Voice messages: the bitrate is back to 64 kbps by default and can be chosen from 32 to 256 kbps in Settings &gt; Audio.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize: stereo voice messages go out as audio/mp4.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Voice message recording channels: Automatic (use the device's channels), Mono (mix left and right), Stereo (when available).</td></tr>
+  <tr><td class="field-name">2.1.0.4397</td><td>Profile tab in WhatsApp settings (display name, About and picture); Communities in the navigation list, after Calls.</td></tr>
+  <tr><td class="field-name">2.1.0.4395</td><td>First version of the guide: all features of versions 1.1.0.0, 1.1.1.0, 2.0.0.0 and of the 2.1.0.0 cycle up to this alpha.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Neonize calls: recover an answer or end that arrives before local call registration; group call failures now distinguish WhatsApp rate limiting and the supported member limits.</td></tr>
+</table>
+
+  </section>
+
+
+</main>
+
+<script>
+// ── Highlight active nav link on scroll ──
+(function() {
+    const links = document.querySelectorAll('.nav-link');
+    const sections = Array.from(document.querySelectorAll('section[id], div[id]'));
+    function updateActive() {
+        let current = '';
+        sections.forEach(sec => { if (sec.getBoundingClientRect().top <= 80) current = sec.id; });
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + current));
+    }
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// ── Mobile sidebar toggle ──
+(function() {
+    const btn = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    btn.addEventListener('click', function() {
+        const open = sidebar.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open);
+        btn.textContent = open ? '✕ Chiudi' : '☰ Menu';
+    });
+    sidebar.querySelectorAll('.nav-link').forEach(l => {
+        l.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.textContent = '☰ Menu';
+            }
+        });
+    });
+})();
+
+// ── Search / highlight ──
+(function() {
+    const input = document.getElementById('searchInput');
+    const main  = document.getElementById('conteudo');
+    let origHTML = null;
+
+    function clearMarks() {
+        if (origHTML !== null) { main.innerHTML = origHTML; origHTML = null; bindSearch(); }
+    }
+
+    function doSearch(term) {
+        if (!term) { clearMarks(); return; }
+        if (origHTML === null) origHTML = main.innerHTML;
+        main.innerHTML = origHTML;
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp('(' + escaped + ')', 'gi');
+        function walk(node) {
+            if (node.nodeType === 3) {
+                if (rx.test(node.textContent)) {
+                    const span = document.createElement('span');
+                    const safe = node.textContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    span.innerHTML = safe.replace(rx, '<mark>$1</mark>');
+                    node.parentNode.replaceChild(span, node);
+                }
+            } else if (node.nodeType === 1 && !['SCRIPT','STYLE','INPUT'].includes(node.tagName)) {
+                Array.from(node.childNodes).forEach(walk);
+            }
+        }
+        walk(main);
+        const first = main.querySelector('mark');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function bindSearch() {
+        const inp = document.getElementById('searchInput');
+        if (inp) inp.addEventListener('input', function() { doSearch(this.value.trim()); });
+    }
+    bindSearch();
+})();
+</script>
+</body>
+</html>

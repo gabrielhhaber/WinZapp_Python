@@ -1,0 +1,52 @@
+<!--nav: 📞 Calls-->
+<p class="lead">You can make, answer and decline voice and video calls right in WinZapp, without picking up your phone.</p>
+<p>Neonize call audio includes fixes for silence after answering, lost audio frames and distortion during sample-rate conversion. Codec selection follows WhatsApp automatically; there is no codec switch to configure. This experimental engine still needs real-call quality evaluation; equal quality to other calling apps is not guaranteed.</p>
+
+<p>Neonize keeps its normal call audio mode by default. A developer-only experimental 48 kHz path is available for calls negotiated with Opus; it does not change the MLow codec or add a control to the call window. Updating does not enable it automatically.</p>
+
+<h3>Make a call</h3>
+<p>In an individual chat, use the "Voice call" (Ctrl+Shift+V) and "Video call" (Ctrl+Alt+Shift+V) buttons; the shortcuts also work with the message field focused. The screen reader announces when the call connects, when it is reconnecting and when it ends.</p>
+<p>WhatsApp only allows calls to groups of up to 32 participants. In a larger group, a "Calling is not possible" button with the note "The group has more than 32 participants" replaces the call buttons, and the call shortcuts say the same.</p>
+<p>In a group chat the same buttons call the whole group. An incoming group call rings, is announced by the group's name and is answered like any other call, and the camera can be turned on during the call. WinZapp finds the camera with the FFmpeg it ships, so a video call no longer goes out receive-only. A group call that rang and you did not answer stays in the group's history, as a missed group call.</p>
+
+<p>With Neonize, voice, video and group call buttons appear only for the call types the engine reports as supported. Until that information arrives, these buttons stay hidden; they update automatically when it arrives. The same check applies to joining an ongoing group call from its chat. An update never brings a hidden chat or an inactive window into focus.</p>
+<p>With the Neonize engine, WinZapp itself plays the sounds WhatsApp Web used to play for you: while the other phone rings you hear the ringback tone with the pitch and rhythm of the country you called, and short beeps play while the call connects or reconnects. With the WPPConnect engine nothing changes. When an answered call ends, it also plays the WhatsApp call-ended sound; this is the "Call ended" sound event, which can be turned off or replaced in Settings &gt; Sound events.</p>
+<p>With the Neonize engine, a call you place that nobody answers ends by itself after one minute, as in WhatsApp Web: the ringing stops and the outcome is "not answered".</p>
+<p>If the internet drops in the middle of a call, the hang-up button still works: WinZapp ends the call on your computer even without a connection, without showing an error.</p>
+
+<p>Starting a group call with Neonize requires between two and 31 other members. If WhatsApp temporarily limits call requests, WinZapp announces that reason; try again later.</p>
+
+<h3>During the call</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Ctrl+M</td><td>Mute or unmute the microphone</td></tr>
+  <tr><td class="field-name">Ctrl+V</td><td>Turn the camera on or off, in a video call</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>Turn a voice call into a video call</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>Open the call settings (microphone, speaker, camera)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+Q</td><td>Hang up</td></tr>
+</table>
+
+<h3>Adding people to the call</h3>
+<p>During the call, "Call participants" shows who is in it, and the "Add participants" button opens the list of who can join: in a group call, the group's members who are not in the call yet; in a private call, your contacts, and the call then has several people. Check people with Space and press "Add". Someone already called who has not joined is rung again. The screen reader says how many people were invited and who could not be added.</p>
+
+<h3>Incoming call</h3>
+<p>The window has "Answer", "Reject" and "Silence alert"; in a video call, "Answer with video" and "Answer without video". The shortcuts of this window are only Alt + the underlined letter (Alt+A answers, Alt+V answers without video, Alt+R rejects, Alt+S silences the alert, Alt+F closes the window), so that a key pressed by mistake does not answer or reject.</p>
+
+<h3>Answering from any window</h3>
+<p>While a call is ringing, Ctrl+Alt+Shift+Enter answers it from any program: the call window comes to the front and gets the focus. A video call is answered with the camera on, like its "Answer" button. Ctrl+Alt+Shift+Backspace rejects the ringing call, a group call included, and the screen reader says "Call rejected."; with no call ringing, it hangs up the call in progress. With several accounts open, a call ringing in any of them is rejected first. Both keys can be changed or removed in Settings &gt; Keyboard shortcuts and belong to WinZapp only while they can act; the rest of the time, other programs keep them.</p>
+
+<h3>Calls tab (Alt+6)</h3>
+<p>History of calls from all chats, split into All, Missed, Rejected, Answered and Ongoing (Ctrl+Tab and Ctrl+Shift+Tab switch; Alt+L goes to the list). In the list, Enter opens the call's chat, Ctrl+Shift+R calls back a missed call and F5 refreshes. On a missed call, in the chat, the "Call back" button does the same.</p>
+
+<h3>Call settings</h3>
+<p>In Settings &gt; Calls, "Call audio settings" chooses microphone and speaker, and "Call video settings" chooses the camera. There you also find echo cancellation (reduces the return of your own sound when you use a speaker), microphone noise reduction and exclusive mode for microphone and speaker.</p>
+<p>Echo cancellation comes turned on. It uses the same echo canceller as Google Meet and WhatsApp (WebRTC's), so you can talk through a laptop speaker or with a mixer's loopback turned on without the other person hearing their own voice. With headphones it does no harm; uncheck it only if you prefer.</p>
+<p>WinZapp automatically converts call audio when the selected microphone or speaker uses a different sample rate from the call. Timing stays continuous between audio packets; no additional option needs to be enabled.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 If the call does not start</div>
+  When the WhatsApp Web version in use does not support calls, WinZapp says so and what to try: restart WinZapp or choose Help &gt; Force reinstall WPPConnect.
+</div>
+<p>When WPPConnect is reinstalled, WinZapp preserves a newer compatible WhatsApp Web catalogue and checks for a fresh one. Without internet, a usable catalogue is retained, but its freshness cannot be confirmed. If a call still cannot start, restore internet access and restart WinZapp. A confirmed VoIP mismatch that cannot be retried is reported without repeating initialization.</p>
+<p>While a group chat is open, WinZapp checks for an ongoing call about every ten seconds. A join button appears only when a call is available and disappears when it ends. Joining a video call starts with the camera off. Joining an existing call does not use the 32-member limit for starting a new group call. While a call is available, the "Join ongoing voice call" button or, for a video call, "Join ongoing video call (camera off)" replaces the voice and video start buttons. In Calls (Alt+6), the Ongoing filter lists joinable calls, including multiparty calls outside group chats; they also appear first in All. Select a call and press Enter or use the same join button. If you are already in that call, the button is "Return to call" and brings your current call window forward. The list refreshes about every ten seconds while Calls is open and includes only calls WhatsApp makes available to your account.</p>
+<p>Use the "Call participants" button in the call window, or on a selected ongoing call in Calls, to see the connected people by name. The list updates every ten seconds; "Refresh" updates it on demand and "Close" or Esc closes it. Invited and disconnected people are excluded. Reading the list does not join or end a call.</p>
+
