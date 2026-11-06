@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- A gravação do áudio do computador já não é interrompida com "problema com o dispositivo de áudio" quando o WinZapp bloqueia durante um ou dois segundos (computador lento ou ocupado): o áudio desse instante é ignorado, a gravação continua e o resto mantém-se sincronizado.
+
 - Neonize: com as confirmações de leitura desativadas em Privacidade, deixa de ver o estado "lida" das mensagens que envia em conversas individuais, tal como deixa de enviar confirmação de leitura aos outros (como no WPPConnect). A definição passa a valer nos dois sentidos.
 
 - ClickBus: os nomes comerciais verificados aparecem na lista de conversas, os textos de viagens e os botões interativos são apresentados por completo, e a opção escolhida no carrossel é enviada com o índice do cartão.

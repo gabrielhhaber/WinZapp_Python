@@ -63,8 +63,9 @@ class TimelineMixer:
         start = self._frame(packet.timestamp)
         frames = len(packet.data) // (4 * self.channels)
         late = max(0, self.position - start) if self.position and frames else 0
-        if late > self._late_tolerance:
-            raise ValueError('Capture packet arrived after its playback deadline')
+        # A worker stall longer than the playout reserve loses the late audio
+        # (counted in late_packets/late_frames) but must not end the recording:
+        # _commit clips to position, so the timeline stays aligned afterwards.
         if start + frames > self.position + self.capacity:
             raise ValueError('Capture timeline exceeded its bounded buffer')
         if not frames:
@@ -183,8 +184,9 @@ class SystemAudioRecorder:
     for a runtime failure, after cleanup; startup errors are raised by start().
 
     A 500 ms playout reserve absorbs transient WASAPI scheduling stalls.
-    Packets up to 500 ms behind already emitted PCM lose only their late prefix;
-    timestamps are never shifted. Greater lateness, overflow, missing microphone
+    Packets behind already emitted PCM lose only their late prefix (counted in
+    the diagnostics); timestamps are never shifted, so a longer stall costs that
+    audio but keeps recording. Overflow, bad timestamps, missing microphone
     packets for 2 s or endpoint loss fails closed, preserving delivered PCM.
     OS COM calls cannot be forcibly interrupted safely: API waits are bounded, but a wedged driver may keep the
     daemon worker alive until that native call returns (then it cleans up).

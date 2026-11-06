@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Înregistrarea sunetului computerului nu se mai oprește cu „problemă la dispozitivul audio” când WinZapp se blochează o secundă sau două (computer lent sau ocupat): sunetul din acel moment este omis, înregistrarea continuă, iar restul rămâne sincronizat.
+
 - Neonize: cu confirmările de citire dezactivate în Confidențialitate, nu mai vezi starea „citit” a mesajelor trimise în conversațiile individuale, la fel cum nu mai trimiți confirmări de citire altora (ca în WPPConnect). Setarea funcționează acum în ambele sensuri.
 
 - ClickBus: numele comerciale verificate apar în lista de conversații, textele călătoriilor și butoanele interactive sunt afișate complet, iar opțiunea aleasă într-un carusel este trimisă cu indexul cardului.
