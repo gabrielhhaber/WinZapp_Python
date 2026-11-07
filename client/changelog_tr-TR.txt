@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sohbet özetleri: yeterince okunmamış mesaj olduğunda (varsayılan 10, Ayarlar > Çevrimiçi yapay zeka bölümünden değiştirilebilir), sohbete "Okunmayanları özetle" düğmesi ve Alt+Shift+U kısayolu eklenir: açıklamalar için zaten yapılandırılmış yapay zeka sağlayıcısı kaçırdıklarınızı özetler ve aynı pencerede takip soruları sorabilirsiniz. İlk kullanımda ayrıca onam ister, çünkü okunmamış mesajların metni sağlayıcıya gönderilir; kilitli sohbetler bunu asla önermez.
+
 - Sohbet ve grupların Medya sekmesi: Bir belge, fotoğraf, video veya sesin üzerinde Ctrl+C artık "Bu mesaj kopyalanamadı" demek yerine, mesaj listesindeki gibi dosyayı panoya kopyalıyor. Bağlam menüsü öğesi de artık "Dosyayı kopyala".
 
 - Aç düğmesi artık belgeleri, fotoğrafları, videoları ve diğer dosyaları harici görüntüleyicide "tmpab12cd34" gibi bir ad yerine gerçek adıyla açıyor; Farklı kaydet zaten böyle yapıyordu.

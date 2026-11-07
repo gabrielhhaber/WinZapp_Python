@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Riassunti delle chat: con abbastanza messaggi non letti (10 per impostazione predefinita, modificabile in Impostazioni > IA online), la conversazione guadagna il pulsante "Riassumi non letti" e la scorciatoia Alt+Shift+U: il provider IA già configurato per le descrizioni riassume ciò che hai perso, con domande di approfondimento nella stessa finestra. Il primo utilizzo chiede un consenso a parte, perché il testo stesso dei messaggi non letti viene inviato al provider; le chat bloccate non lo offrono mai.
+
 - Scheda Media di chat e gruppi: Ctrl+C su un documento, una foto, un video o un audio ora copia il file negli appunti, come nell'elenco dei messaggi, invece di dire "Impossibile copiare questo messaggio". Anche la voce del menu contestuale è ora "Copia file".
 
 - Il pulsante Apri ora apre documenti, foto, video e altri file nel visualizzatore esterno con il loro nome reale, invece di un nome come "tmpab12cd34", come già faceva Salva con nome.

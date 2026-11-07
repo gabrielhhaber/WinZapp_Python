@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chat summaries: with enough unread messages (10 by default, settable in Settings > Online AI), the conversation gains a "Summarize unread messages" button and the Alt+Shift+U shortcut: the AI provider already configured for descriptions summarizes what you missed, with follow-up questions in the same window. The first use asks consent separately, because the text of the unread messages itself is sent to the provider; locked chats never offer it.
+
 - Media tab of chats and groups: Ctrl+C on a document, photo, video or audio now copies the file to the clipboard, as in the message list, instead of saying "Could not copy this message." The context menu item is now "Copy file" too.
 
 - The Open button now opens documents, photos, videos and other files in the external viewer under their real name, instead of a name like "tmpab12cd34", just as Save as already did.

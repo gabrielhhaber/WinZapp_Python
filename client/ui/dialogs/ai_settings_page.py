@@ -360,6 +360,13 @@ class AISettingsPage(ScrolledPanel):
         self.profile.SetSelection(PROFILES.index(config["profile"]))
         self.read_answers = self._check("ai_read_answers", config["read_answers"])
         self.hide_action_button = self._check("ai_hide_action_button", config["hide_action_button"])
+        self._label("ai_summary_min_unread_label")
+        self.summary_min_unread = wx.SpinCtrl(
+            self, min=0, max=10000, initial=config["summary_min_unread"],
+            name=self._plain("ai_summary_min_unread_label"))
+        self.summary_min_unread.Bind(
+            wx.EVT_SPINCTRL, lambda event: (self._on_change(), event.Skip()))
+        self.sizer.Add(self.summary_min_unread, 0, wx.ALL, 8)
         # The automatic options, in a window of their own (ai_auto_options.py).
         # Its parent is the settings dialog, not this page: _show_options()
         # shows and hides every child of the page.
@@ -659,6 +666,7 @@ class AISettingsPage(ScrolledPanel):
                     profile=PROFILES[self.profile.GetSelection()],
                     read_answers=self.read_answers.GetValue(),
                     hide_action_button=self.hide_action_button.GetValue(),
+                    summary_min_unread=int(self.summary_min_unread.GetValue()),
                     auto_transcribe=self.auto_transcribe.GetValue(),
                     auto_describe=self.auto_describe.GetValue(),
                     auto_daily_limit=int(self.auto_limit.GetValue()))

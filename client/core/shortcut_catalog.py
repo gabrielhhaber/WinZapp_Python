@@ -66,6 +66,7 @@ SHORTCUTS = (
     Shortcut('messages.ID_AI_ACTION', 'messages', 'ID_AI_ACTION', 'shortcut_ctrl_shift_i_label', 6, 73, 0),
     Shortcut('messages.ID_ALT_FOCUS_FIELD', 'messages', 'ID_ALT_FOCUS_FIELD', 'type_message', 1, '@type_message', 0),
     Shortcut('navigation.messages', 'messages', 'ID_ALT_FOCUS_LIST', 'messages', 1, '@messages', 0),
+    Shortcut('messages.ID_SUMMARIZE_UNREAD', 'messages', 'ID_SUMMARIZE_UNREAD', 'shortcut_summarize_unread_label', 5, 85, 0),
     Shortcut('messages.ID_CTRL_R', 'messages', 'ID_CTRL_R', 'shortcut_ctrl_r_label', 2, 82, 0),
     Shortcut('main.ID_ALT_2', 'messages', 'ID_ALT_2', 'shortcut_alt2_label', 1, 50, 0),
     Shortcut('messages.ID_ESC', 'messages', 'ID_ESC', 'shortcut_esc_ctrl_w_label', 0, 27, 0),

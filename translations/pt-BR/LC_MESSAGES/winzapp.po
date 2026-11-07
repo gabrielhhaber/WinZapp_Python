@@ -20037,3 +20037,27 @@ msgstr "Ontem às {time}"
 #~ msgstr ""
 #~ "Transcrever automaticamente, com os provedores online, as mensagens de voz e"
 #~ " áudios recebidos nesta conversa"
+
+msgctxt "ai_summary_button"
+msgid "&Summarize unread messages"
+msgstr "&Resumir não lidas"
+
+msgctxt "ai_summary_not_available"
+msgid "No summary to offer here: not enough unread messages or no provider set up."
+msgstr "Nenhum resumo disponível aqui: não há mensagens não lidas suficientes ou nenhum provedor configurado."
+
+msgctxt "ai_summary_consent_notice"
+msgid "This summary sends the text of your unread messages in this chat — not a file: the names and words of the people in it go with it."
+msgstr "Este resumo envia o texto das suas mensagens não lidas desta conversa, não um arquivo: os nomes e as palavras dos participantes vão junto."
+
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "Resumo de mensagens não lidas"
+
+msgctxt "ai_summary_min_unread_label"
+msgid "Offer to summarize when a chat has at least this many unread messages (0 = never):"
+msgstr "Oferecer resumir quando uma conversa tiver pelo menos esta quantidade de mensagens não lidas (0 = nunca):"
+
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: resumir mensagens não lidas"

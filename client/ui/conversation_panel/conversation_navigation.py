@@ -492,6 +492,7 @@ class ConversationNavigationMixin:
                 daemon=True,
             ).start()
         wx.CallAfter(_start_mark_as_read)
+        wx.CallAfter(self._update_summary_button)
         wx.CallAfter(self._load_pinned_messages, announce=take_focus)
 
     def _clear_chat_search_on_open(self):
@@ -594,6 +595,9 @@ class ConversationNavigationMixin:
             self.close_ai_media()
         self._stop_typing_for_current_conversation()
         self._cancel_active_recording()
+        summary_button = getattr(self, "_summary_btn", None)
+        if summary_button is not None:
+            summary_button.Hide()
         self._hide_audio_controls()
         self._hide_all_media_controls()
         self._hide_media_transfer_gauge()

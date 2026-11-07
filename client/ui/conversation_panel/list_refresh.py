@@ -384,6 +384,8 @@ class ListRefreshMixin:
         return False
 
     def on_incoming_message(self, remote_jid: str, msg: dict):
+        # A new unread message may cross the summary threshold either way.
+        wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))
         """
         Called (on the main thread) when a new message arrives via WebSocket.
         If the conversation matching remote_jid is currently open, appends the

@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Resúmenes de chats: con suficientes mensajes sin leer (10 por defecto, configurable en Configuración > IA en línea), la conversación gana el botón "Resumir no leídos" y el atajo Alt+Shift+U: el proveedor de IA ya configurado para las descripciones resume lo que te perdiste, con preguntas de seguimiento en la misma ventana. El primer uso pide consentimiento aparte, porque se envía el texto mismo de los mensajes no leídos; los chats bloqueados nunca lo ofrecen.
+
 - Pestaña Multimedia de chats y grupos: Ctrl+C sobre un documento, foto, vídeo o audio ahora copia el archivo al portapapeles, como en la lista de mensajes, en lugar de decir "No se pudo copiar este mensaje". El elemento del menú contextual también pasa a ser "Copiar archivo".
 
 - El botón Abrir ahora abre documentos, fotos, vídeos y otros archivos en el visor externo con su nombre real, en lugar de un nombre como "tmpab12cd34", como ya hacía Guardar como.

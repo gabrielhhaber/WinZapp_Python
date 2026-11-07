@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Resumos de conversas: com mensagens não lidas suficientes (10 por predefinição, ajustável em Definições > IA online), a conversa ganha o botão "Resumir não lidas" e o atalho Alt+Shift+U: o fornecedor de IA já configurado para as descrições resume o que perdeu, com perguntas de seguimento na mesma janela. A primeira utilização pede consentimento à parte, porque o texto das próprias mensagens não lidas é enviado ao fornecedor; conversas bloqueadas nunca o oferecem.
+
 - Separador Multimédia das conversas e grupos: Ctrl+C num documento, foto, vídeo ou áudio passa a copiar o ficheiro para a área de transferência, como na lista de mensagens, em vez de dizer "Não foi possível copiar esta mensagem". O item do menu de contexto passou também a ser "Copiar ficheiro".
 
 - O botão Abrir passa a abrir documentos, fotografias, vídeos e outros ficheiros no visualizador externo com o nome real, em vez de um nome como "tmpab12cd34", como o Guardar como já fazia.

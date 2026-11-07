@@ -20210,3 +20210,27 @@ msgstr "&Sì"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri alle {time}"
+
+msgctxt "ai_summary_button"
+msgid "&Summarize unread messages"
+msgstr "&Riassumi non letti"
+
+msgctxt "ai_summary_not_available"
+msgid "No summary to offer here: not enough unread messages or no provider set up."
+msgstr "Nessun riepilogo disponibile qui: non ci sono abbastanza messaggi non letti o nessun provider configurato."
+
+msgctxt "ai_summary_consent_notice"
+msgid "This summary sends the text of your unread messages in this chat — not a file: the names and words of the people in it go with it."
+msgstr "Questo riepilogo invia il testo dei tuoi messaggi non letti di questa chat, non un file: i nomi e le parole dei partecipanti sono inclusi."
+
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "Riepilogo dei messaggi non letti"
+
+msgctxt "ai_summary_min_unread_label"
+msgid "Offer to summarize when a chat has at least this many unread messages (0 = never):"
+msgstr "Proponi il riepilogo quando una chat ha almeno questo numero di messaggi non letti (0 = mai):"
+
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: riassumi i messaggi non letti"

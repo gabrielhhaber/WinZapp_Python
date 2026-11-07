@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Rezumate de conversații: cu suficiente mesaje necitite (10 implicit, reglabil din Setări > IA online), conversația primește butonul „Rezumă mesajele necitite" și comanda rapidă Alt+Shift+U: furnizorul IA deja configurat pentru descrieri rezumă ce ai ratat, cu întrebări suplimentare în aceeași fereastră. Prima utilizare cere consimțământ separat, pentru că textul propriu-zis al mesajelor necitite este trimis furnizorului; conversațiile blocate nu oferă niciodată acest lucru.
+
 - Fila Media a conversațiilor și grupurilor: Ctrl+C pe un document, o fotografie, un video sau un fișier audio copiază acum fișierul în clipboard, ca în lista de mesaje, în loc să spună că mesajul nu a putut fi copiat. Elementul din meniul contextual este acum și „Copiază fișierul”.
 
 - Butonul Deschide deschide acum documente, fotografii, videoclipuri și alte fișiere în vizualizatorul extern sub numele lor real, în loc de un nume precum "tmpab12cd34", ca și Salvează ca până acum.

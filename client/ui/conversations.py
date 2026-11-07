@@ -841,6 +841,16 @@ class ConversationsPanel(
         self._media_action_sizer.Add(self._action_describe_btn, 0, wx.TOP, 2)
         self._action_describe_btn.Hide()
 
+        # Summarize unread (Alt+Shift+U), right after Describe in the Tab
+        # order; ai_actions.py shows it only when the chat has enough unread
+        # and a text-capable provider holds a key.
+        self._summary_btn = wx.Button(
+            self._media_action_slot, label=i18n.t("ai_summary_button")
+        )
+        self._summary_btn.Bind(wx.EVT_BUTTON, self._on_summary_action)
+        self._media_action_sizer.Add(self._summary_btn, 0, wx.TOP, 2)
+        self._summary_btn.Hide()
+
         self._action_show_in_folder_btn = wx.Button(
             self._media_action_slot, label=i18n.t("show_in_folder")
         )
