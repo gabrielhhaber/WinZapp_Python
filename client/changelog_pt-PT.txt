@@ -42,6 +42,8 @@ NOVIDADES
 
 - Chamadas: já é possível adicionar pessoas à chamada em curso, com o botão "Adicionar participantes" na lista de participantes da chamada. Numa chamada de grupo aparecem os membros do grupo que ainda não estão nela; numa chamada privada, os seus contactos, e a chamada passa a ter várias pessoas, como no WhatsApp. Quem já foi chamado e ainda não entrou é chamado outra vez. Funciona com a WPPConnect e com o Neonize.
 
+- O WPPConnect Server foi atualizado para a 2.10.78, que deixa de servir a cache privada de multimédia por HTTP.
+
 - O WPPConnect Server foi atualizado para a 2.10.75, que corrige um webhook do Chatwoot que aceitava pedidos sem autenticação e corrige uma vulnerabilidade nas bibliotecas glob e minimatch.
 
 - Definições do WhatsApp > Privacidade: nova opção "Manter conversas arquivadas", a mesma do WhatsApp, que decide se uma conversa arquivada volta à lista quando chega uma mensagem nova. Funciona com o WPPConnect e com o Neonize.

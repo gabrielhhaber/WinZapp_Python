@@ -42,6 +42,8 @@ NOWOŚCI
 
 - Połączenia: do trwającego połączenia można teraz dodawać osoby przyciskiem "Dodaj uczestników" na liście uczestników połączenia. W połączeniu grupowym widać członków grupy, których jeszcze w nim nie ma; w połączeniu prywatnym Twoje kontakty, a połączenie staje się połączeniem z kilkoma osobami, jak w WhatsAppie. Do osoby, która została już wezwana i nie dołączyła, dzwoni się ponownie. Działa z WPPConnect i z Neonize.
 
+- WPPConnect Server zaktualizowany do 2.10.78, która przestaje udostępniać prywatną pamięć podręczną multimediów przez HTTP.
+
 - WPPConnect Server zaktualizowany do 2.10.75, która naprawia webhook Chatwoot przyjmujący żądania bez uwierzytelnienia i łata podatność w bibliotekach glob i minimatch.
 
 - Ustawienia WhatsApp > Prywatność: nowa opcja "Zachowaj czaty zarchiwizowane", ta sama co w WhatsApp, która decyduje, czy zarchiwizowany czat wraca na listę po nadejściu nowej wiadomości. Działa z WPPConnect i z Neonize.
