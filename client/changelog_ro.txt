@@ -326,6 +326,8 @@ NOUTĂȚI
 
 - Statusuri: locația, sondajul, lista de contacte și alte tipuri de statusuri ale contactelor care apăreau ca „Mesaj incompatibil” sunt acum afișate cu eticheta lor.
 
+- Apeluri: butonul „Participanții la apel” din fereastra apelului are acum scurtătura Ctrl+Shift+P (Ctrl+P rămâne trecerea la video). Cititorul de ecran anunță această tastă de scurtătură pe buton, iar scurtătura apare în lista de scurtături a ferestrei apelului.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

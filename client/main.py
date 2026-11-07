@@ -177,6 +177,7 @@ from status_panel import StatusPanel
 from calls_panel import CallsPanel
 from ui.accessible import (
     AccessibleCallEndButton,
+    AccessibleCallParticipantsButton,
     AccessibleCallPromoteVideoButton,
     AccessibleCallMuteButton,
     AccessibleCallSettingsButton,
@@ -1381,6 +1382,7 @@ class MainWindow(
         self.voice_call_window_settings_button.SetAccessible(AccessibleCallSettingsButton())
         self.voice_call_window_mute_button.SetAccessible(AccessibleCallMuteButton())
         self.voice_call_window_promote_button.SetAccessible(AccessibleCallPromoteVideoButton())
+        self.voice_call_window_participants_button.SetAccessible(AccessibleCallParticipantsButton())
         self.voice_call_window_video_button.SetAccessible(AccessibleCallVideoToggleButton())
         self.voice_call_window_end_button.Bind(wx.EVT_BUTTON, self.end_active_call)
         self.voice_call_window_settings_button.Bind(wx.EVT_BUTTON, self._open_active_call_settings)
@@ -1416,12 +1418,14 @@ class MainWindow(
         self.ID_CALL_SETTINGS = wx.NewIdRef()  # call settings       (Ctrl+C)
         self.ID_CALL_VIDEO    = wx.NewIdRef()  # toggle video        (Ctrl+V)
         self.ID_CALL_PROMOTE  = wx.NewIdRef()  # voice -> video      (Ctrl+P)
+        self.ID_CALL_PARTICIPANTS = wx.NewIdRef()  # call participants (Ctrl+Shift+P)
         call_accel_tbl = make_shortcut_table(self, 'call', [
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("Q"), self.ID_CALL_END),
             (wx.ACCEL_CTRL,                  ord("M"), self.ID_CALL_MUTE),
             (wx.ACCEL_CTRL,                  ord("C"), self.ID_CALL_SETTINGS),
             (wx.ACCEL_CTRL,                  ord("V"), self.ID_CALL_VIDEO),
             (wx.ACCEL_CTRL,                  ord("P"), self.ID_CALL_PROMOTE),
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("P"), self.ID_CALL_PARTICIPANTS),
         ], target=self.voice_call_window)
         self.voice_call_window.SetAcceleratorTable(call_accel_tbl)
         self.voice_call_window.Bind(wx.EVT_MENU, self.end_active_call,          id=self.ID_CALL_END)
@@ -1429,6 +1433,7 @@ class MainWindow(
         self.voice_call_window.Bind(wx.EVT_MENU, self._open_active_call_settings, id=self.ID_CALL_SETTINGS)
         self.voice_call_window.Bind(wx.EVT_MENU, self.toggle_call_video,        id=self.ID_CALL_VIDEO)
         self.voice_call_window.Bind(wx.EVT_MENU, self.promote_call_to_video,    id=self.ID_CALL_PROMOTE)
+        self.voice_call_window.Bind(wx.EVT_MENU, self._show_active_call_participants, id=self.ID_CALL_PARTICIPANTS)
         self.voice_call_window.Hide()
 
         self.main_panel = wx.Panel(self)

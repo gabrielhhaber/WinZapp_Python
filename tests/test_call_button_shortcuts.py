@@ -30,6 +30,7 @@ from ui.accessible import (
     AccessibleVideoCallButton,
     AccessibleCallEndButton,
     AccessibleCallMuteButton,
+    AccessibleCallParticipantsButton,
     AccessibleCallSettingsButton,
     AccessibleCallVideoToggleButton,
 )
@@ -228,3 +229,15 @@ def test_incoming_call_dialog_mnemonics_are_unique_in_every_language():
                     path.name, letter, seen.get(letter), key,
                 )
                 seen[letter] = key
+
+
+def test_call_participants_button_reports_ctrl_shift_p_and_is_bound():
+    # Ctrl+P is taken by the switch to video, so participants use Ctrl+Shift+P.
+    assert AccessibleCallParticipantsButton().GetKeyboardShortcut(0) == (wx.ACC_OK, "Ctrl+Shift+P")
+    assert '(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("P"), self.ID_CALL_PARTICIPANTS),' in _MAIN_SRC
+    assert "id=self.ID_CALL_PARTICIPANTS)" in _MAIN_SRC
+    assert "self._show_active_call_participants, id=self.ID_CALL_PARTICIPANTS" in _MAIN_SRC
+    assert (
+        "self.voice_call_window_participants_button.SetAccessible(AccessibleCallParticipantsButton())"
+        in _MAIN_SRC
+    )

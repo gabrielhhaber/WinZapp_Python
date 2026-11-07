@@ -326,6 +326,8 @@ WHAT'S NEW
 
 - Status: location, poll, contact-list and other types of contact statuses that showed as "Incompatible message" now appear with their proper label.
 
+- Calls: the "Call participants" button in the call window now has the Ctrl+Shift+P shortcut (Ctrl+P is still the switch to video). The screen reader announces this shortcut key on the button, and it is listed with the call window shortcuts.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

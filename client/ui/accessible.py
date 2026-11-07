@@ -283,6 +283,14 @@ class AccessibleCallPromoteVideoButton(wx.Accessible):
         return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+P", ('call.ID_CALL_PROMOTE',)))
 
 
+class AccessibleCallParticipantsButton(wx.Accessible):
+    """Reports Ctrl+Shift+P as the keyboard shortcut for the active-call
+    window's "Call participants" button (Ctrl+P is the switch to video)."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+Shift+P", ('call.ID_CALL_PARTICIPANTS',)))
+
+
 class AccessibleCallSettingsButton(wx.Accessible):
     """Reports Ctrl+C as the keyboard shortcut for the active-call window's
     settings button."""
