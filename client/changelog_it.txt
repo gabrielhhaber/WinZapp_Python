@@ -28,6 +28,8 @@ WHAT'S NEW
 
 - Chiamate di gruppo Neonize: il registro ora annota cosa contengono gli elenchi dei partecipanti inviati dal server (solo numeri, senza nomi), per scoprire perché alcune persone che entrano in una chiamata non sentono nessuno (problema #689). Nessun cambiamento di comportamento.
 
+- Chiamate di gruppo Neonize: un dispositivo collegato alla chiamata ora mantiene l'identificativo ricevuto quando è entrato, invece di perderlo al successivo aggiornamento del server. Chi risponde con Neonize non sente più solo chi ha avviato la chiamata, ma anche gli altri partecipanti (problema #689).
+
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
 
 - Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
