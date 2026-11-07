@@ -1381,13 +1381,16 @@ msgstr ""
 "archivo: van incluidos los nombres y las palabras de quienes participan."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#| msgid ""
+#| "Offer to summarize when a chat has at least this many unread messages (0 = "
+#| "never):"
 msgctxt "ai_summary_min_unread_label"
 msgid ""
-"Offer to summarize when a chat has at least this many unread messages (0 = "
+"Offer to summari&ze when a chat has at least this many unread messages (0 = "
 "never):"
 msgstr ""
-"Ofrecer resumir cuando un chat tenga al menos esta cantidad de mensajes sin "
-"leer (0 = nunca):"
+"Ofrecer resumir cuando un c&hat tenga al menos esta cantidad de mensajes sin"
+" leer (0 = nunca):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/ai_actions.py

@@ -828,6 +828,7 @@ class PageStub:
         self.auto_scope = Control(selection=0)
         self.auto_max_age = Control(selection=0)
         self.auto_limit = Control(50)
+        self.summary_min_unread = Control(10)
         self._auto_consent = set()
         self.status = Control()
         self.providers = Control(selection=0)

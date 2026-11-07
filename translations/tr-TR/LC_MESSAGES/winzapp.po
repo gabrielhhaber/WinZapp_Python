@@ -1369,12 +1369,15 @@ msgstr ""
 "değil: katılımcıların adları ve sözleri de buna dahildir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#| msgid ""
+#| "Offer to summarize when a chat has at least this many unread messages (0 = "
+#| "never):"
 msgctxt "ai_summary_min_unread_label"
 msgid ""
-"Offer to summarize when a chat has at least this many unread messages (0 = "
+"Offer to summari&ze when a chat has at least this many unread messages (0 = "
 "never):"
 msgstr ""
-"Bir sohbette en az bu kadar okunmamış mesaj olduğunda özet öner (0 = asla):"
+"Bir s&ohbette en az bu kadar okunmamış mesaj olduğunda özet öner (0 = asla):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/ai_actions.py

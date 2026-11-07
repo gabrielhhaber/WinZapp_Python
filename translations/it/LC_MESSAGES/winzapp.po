@@ -1397,13 +1397,16 @@ msgstr ""
 "non un file: i nomi e le parole dei partecipanti sono inclusi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#| msgid ""
+#| "Offer to summarize when a chat has at least this many unread messages (0 = "
+#| "never):"
 msgctxt "ai_summary_min_unread_label"
 msgid ""
-"Offer to summarize when a chat has at least this many unread messages (0 = "
+"Offer to summari&ze when a chat has at least this many unread messages (0 = "
 "never):"
 msgstr ""
-"Proponi il riepilogo quando una chat ha almeno questo numero di messaggi non"
-" letti (0 = mai):"
+"Proponi il riepilogo quando una c&hat ha almeno questo numero di messaggi "
+"non letti (0 = mai):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/ai_actions.py

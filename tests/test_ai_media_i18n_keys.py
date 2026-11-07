@@ -125,7 +125,7 @@ SETTINGS_PAGE = (
     "ai_provider_move_up_button", "ai_provider_move_down_button", "ai_describe_images_label",
     "ai_describe_stickers_label", "ai_describe_videos_label", "ai_transcribe_audio_label",
     "ai_pdf_accessible_label", "ai_profile", "ai_read_answers", "ai_hide_action_button", "ai_auto_button", "ai_settings_help",
-    "ai_technical_info", "ai_reset_keys", "ai_status_label",
+    "ai_technical_info", "ai_reset_keys", "ai_status_label", "ai_summary_min_unread_label",
 )
 #: The window of the automatic options, opened from the page (ai_auto_options.py).
 AUTO_WINDOW = (
