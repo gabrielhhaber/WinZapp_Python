@@ -208,7 +208,10 @@ def test_join_uses_the_existing_group_call_and_keeps_video_off():
     stub._post_call_control = lambda endpoint, payload, **kw: (
         requests.append((endpoint, payload, kw)) or _Response("call-existing"))
     probes = []
-    stub._probe_call_camera = lambda: probes.append(True)
+    def probe(*, expected_call=None):
+        assert expected_call is stub._active_voice_call
+        probes.append(expected_call)
+    stub._probe_call_camera = probe
 
     stub._start_call("120363000001@g.us", "Group", is_group=True,
                      is_video=True, join_call_id="call-existing")
@@ -218,7 +221,8 @@ def test_join_uses_the_existing_group_call_and_keeps_video_off():
     }, {"timeout": 75})]
     assert stub._active_voice_call["call_id"] == "call-existing"
     assert stub.camera_starts == 0
-    assert probes == [True]
+    assert probes == [stub._active_voice_call]
+    assert probes[0] is stub._active_voice_call
 
 
 def test_join_failure_releases_audio_and_never_sends_an_offer():
