@@ -425,6 +425,15 @@ class IncrementalDenoiseController:
             self._sessions.pop(local_id, None)
             return True
 
+    def slot_busy(self) -> bool:
+        """True while one incremental session holds the single model slot.
+
+        Read-only probe for work that must not load a second ONNX instance
+        alongside the incremental one (e.g. the kept-pending retry).
+        """
+        with self._lock:
+            return self._slot_owner is not None
+
     def release_slot(self, local_id) -> None:
         """Free the SLOT — nothing else. Only called by the party that
         confirmed worker death + spool cleanup (see class docstring).

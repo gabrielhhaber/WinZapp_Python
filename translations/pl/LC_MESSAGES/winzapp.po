@@ -9244,6 +9244,15 @@ msgid "Enable microphone &noise reduction"
 msgstr "Włącz redukcję szumów &mikrofonu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reduction_pending_save_failed"
+msgid ""
+"Could not apply neural noise reduction, and the voice message could not be "
+"kept for another attempt; it was not sent."
+msgstr ""
+"Nie można zastosować neuronowej redukcji szumów, a notatki głosowej nie "
+"udało się zachować do kolejnej próby; nie została wysłana."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py
 msgctxt "notif_audio"
 msgid "Audio"
@@ -9421,6 +9430,12 @@ msgstr "Tylko dźwięk"
 msgctxt "notifications_label"
 msgid "Enable background &notifications for new messages"
 msgstr "&Włącz powiadomienia w tle o nowych wiadomościach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "nr_pending_send_raw"
+msgid "Send without noise reduction"
+msgstr "Wyślij bez redukcji szumów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/accessible.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -10660,7 +10675,6 @@ msgstr "Spróbuj wysłać ponownie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
-#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_not_available"
 msgid "This message has nothing to send again."
 msgstr "Tej wiadomości nie trzeba wysyłać ponownie."

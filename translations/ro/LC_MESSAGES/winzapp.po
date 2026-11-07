@@ -9234,6 +9234,15 @@ msgid "Enable microphone &noise reduction"
 msgstr "Activați reducerea zgomotului &microfonului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reduction_pending_save_failed"
+msgid ""
+"Could not apply neural noise reduction, and the voice message could not be "
+"kept for another attempt; it was not sent."
+msgstr ""
+"Reducerea neuronală a zgomotului nu a putut fi aplicată, iar mesajul vocal "
+"nu a putut fi păstrat pentru o nouă încercare; nu a fost trimis."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py
 msgctxt "notif_audio"
 msgid "Audio"
@@ -9411,6 +9420,12 @@ msgstr "Doar sunet"
 msgctxt "notifications_label"
 msgid "Enable background &notifications for new messages"
 msgstr "Activați &notificările de fundal pentru mesajele noi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "nr_pending_send_raw"
+msgid "Send without noise reduction"
+msgstr "Trimite fără reducerea zgomotului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/accessible.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -10647,7 +10662,6 @@ msgstr "Încercați să trimiteți din nou"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
-#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_not_available"
 msgid "This message has nothing to send again."
 msgstr "Acest mesaj nu are o trimitere de reîncercat."

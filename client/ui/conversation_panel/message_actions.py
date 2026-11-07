@@ -853,6 +853,22 @@ class MessageActionsMixin:
             return
         self._on_menu_resend_message(msg)
 
+    def _on_menu_send_nr_pending_raw(self, msg: dict):
+        """Fourth-option kept-pending note: send the ORIGINAL audio as a
+        voice note, without any noise reduction — an explicit per-action
+        user choice (Fran 18:35), never automatic. The actual work lives
+        with the retry: voice_recording._send_nr_pending_raw."""
+        request = resend_request(msg)
+        if request is None or request[0] != "media":
+            self.main_window.output(
+                self.main_window.i18n.t("resend_not_available"), interrupt=True)
+            return
+        remote_jid = (msg.get("key") or {}).get("remoteJid", "")
+        if not remote_jid:
+            return
+        _kind, path, _media_type, _caption = request
+        self._send_nr_pending_raw(msg, remote_jid, path)
+
     def _on_menu_resend_message(self, msg: dict):
         """Manually send again an own message whose send failed or WinZapp
         never confirmed — the other recovery option besides dismissing it

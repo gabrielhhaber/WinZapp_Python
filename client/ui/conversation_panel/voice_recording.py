@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+import hashlib
 import logging
 import os
 import sound_lib.stream as sl_stream
@@ -980,6 +981,201 @@ class VoiceRecordingMixin:
                 wx.CallAfter(announce, mw.i18n.t("noise_reduction_failed"))
             return audio_data, None
 
+    def _nr_pending_row_alive(self, local_id):
+        """UI-thread liveness of the kept-pending row (delete wins races)."""
+        if not local_id:
+            return True
+        return any(
+            isinstance(m, dict) and m.get("key", {}).get("id") == local_id
+            for m in self._sorted_messages)
+
+    def _nr_pending_announce(self, msg, key):
+        """Release the attempt and announce — only if the row still lives
+        (checked on the UI thread, where deletions run)."""
+        mw = self.main_window
+        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+
+        def _do():
+            msg.pop("_nr_retry_active", None)
+            if self._nr_pending_row_alive(local_id):
+                mw.output(mw.i18n.t(key), interrupt=True)
+        wx.CallAfter(_do)
+
+    def _read_nr_pending(self, msg, path):
+        """Fingerprint-checked read of a kept-pending WAV.
+
+        Returns (pcm, rate, channels, seconds); raises on any mismatch or
+        unreadable file — the caller announces and keeps the row pending.
+        """
+        expected_size = msg.get("_nr_pending_size")
+        expected_hash = msg.get("_nr_pending_sha256")
+        if expected_size is not None and \
+                os.path.getsize(path) != expected_size:
+            raise ValueError("kept note size changed on disk")
+        if expected_hash is not None:
+            with open(path, "rb") as fh:
+                if hashlib.sha256(fh.read()).hexdigest() != expected_hash:
+                    raise ValueError("kept note content changed on disk")
+        with wave.open(path, "rb") as wf:
+            channels = wf.getnchannels()
+            rate = wf.getframerate()
+            if wf.getsampwidth() != 2:
+                raise ValueError("unexpected sample width")
+            seconds = int(wf.getnframes() / float(rate)) if rate else 0
+            data = wf.readframes(wf.getnframes())
+        return data, rate, channels, seconds
+
+    def _nr_pending_handoff(self, msg, remote_jid, wav_path,
+                            channels, rate, seconds):
+        """Hand a fourth-option note's audio to the voice-note pipeline.
+
+        Runs on a worker thread; ends in a UI-thread dispatch. The audio
+        goes out AS A VOICE NOTE — same encode the recording would use
+        (OGG Opus mono / AAC M4A stereo), ptt, the recording's channels,
+        the original reply quote — never as a generic file attachment.
+
+        Honest handoff: the kept original and the old row are dropped only
+        AFTER the queue accepted the copy (queued LOCALLY, not delivered);
+        the new row carries RESEND_PATH_KEY to the persisted copy, so a
+        later transport failure stays resendable by hand, and the queue's
+        own machinery disposes of the file on success.
+        """
+        mw = self.main_window
+        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+        # Encode off the UI thread exactly like the recording path.
+        ogg_bytes = None
+        voice_mimetype = ""
+        if channels >= 2:
+            ogg_bytes = self._encode_stereo_voice(wav_path)
+            if not ogg_bytes:
+                try:
+                    os.unlink(wav_path)
+                except OSError:
+                    pass
+                self._nr_pending_announce(msg, "noise_reduction_kept_pending")
+                return
+            voice_mimetype = STEREO_MIMETYPE
+        else:
+            try:
+                ogg_path = mw._convert_wav_to_ogg(wav_path)
+                if ogg_path and os.path.isfile(ogg_path):
+                    with open(ogg_path, "rb") as f_in:
+                        ogg_bytes = f_in.read()
+                    try:
+                        os.unlink(ogg_path)
+                    except OSError:
+                        pass
+            except Exception as exc:
+                logging.warning("[noise_reduction] pending handoff OGG "
+                                "pre-encode failed: %s", exc)
+                ogg_bytes = None
+        # A persistent home for the copy: the new row's RESEND_PATH_KEY
+        # points at it; remove_messages_by_id disposes of it with its row.
+        new_local_id = str(uuid.uuid4())
+        try:
+            os.makedirs(data_path("voice_messages"), exist_ok=True)
+            persisted = os.path.join(
+                data_path("voice_messages"), new_local_id + ".resend.wav")
+            os.replace(wav_path, persisted)
+        except OSError as exc:
+            logging.error("[noise_reduction] could not persist the pending "
+                          "handoff: %s", exc)
+            try:
+                os.unlink(wav_path)
+            except OSError:
+                pass
+            self._nr_pending_announce(msg, "noise_reduction_kept_pending")
+            return
+        # Local playback copy, same encryption as any recorded note — and
+        # the same payload: the encoded bytes, or the raw PCM when the OGG
+        # pre-encode was unavailable (never the WAV container).
+        try:
+            with wave.open(persisted, "rb") as wf:
+                pcm_bytes = wf.readframes(wf.getnframes())
+            msv_path = os.path.join(
+                data_path("voice_messages"), new_local_id + ".msv")
+            with open(msv_path, "wb") as f_out:
+                f_out.write(encrypt(ogg_bytes or pcm_bytes, mw.key))
+        except Exception as exc:
+            logging.warning("[noise_reduction] could not save the local "
+                            "copy of the pending handoff: %s", exc)
+        quoted = None
+        ctx = msg.get("contextInfo")
+        if isinstance(ctx, dict) and ctx.get("stanzaId"):
+            quoted = {"key": {"id": ctx.get("stanzaId", ""),
+                              "participant": ctx.get("participant", ""),
+                              "fromMe": bool(ctx.get("_quotedFromMe", False)),
+                              "remoteJid": remote_jid},
+                      "message": ctx.get("quotedMessage") or {}}
+        pm = PendingMessage(new_local_id, remote_jid,
+                            audio_path=persisted,
+                            ogg_bytes=ogg_bytes, quoted=quoted,
+                            voice_mimetype=voice_mimetype)
+
+        def _dispatch():
+            # UI thread. Delete wins: if the row went away while the worker
+            # ran, the persisted copy dies quietly with it.
+            if not self._nr_pending_row_alive(local_id):
+                msg.pop("_nr_retry_active", None)
+                try:
+                    os.unlink(persisted)
+                except OSError:
+                    pass
+                return
+            try:
+                mw.message_queue.enqueue(pm)
+            except Exception as exc:
+                logging.error("[noise_reduction] could not queue the pending "
+                              "handoff: %s", exc)
+                msg.pop("_nr_retry_active", None)
+                try:
+                    os.unlink(persisted)
+                except OSError:
+                    pass
+                mw.output(mw.i18n.t("noise_reduction_kept_pending"),
+                          interrupt=True)
+                return
+            # The queue owns the copy now — queued LOCALLY, not delivered:
+            # the new row reads as an ordinary pending voice note. Only now
+            # does the old failed row go away, taking the kept ORIGINAL
+            # with it.
+            new_msg = {
+                "_local_pending": True,
+                "_local_id": new_local_id,
+                "_is_voice_recording": True,
+                "key": {"id": new_local_id, "fromMe": True,
+                        "remoteJid": remote_jid},
+                "messageType": "audioMessage",
+                "message": {"audioMessage": {
+                    "seconds": seconds,
+                    "ptt": True,
+                    **({"mimetype": "audio/mp4",
+                        "fileName": new_local_id + ".m4a"}
+                       if channels >= 2 else {})}},
+                "messageTimestamp": int(time.time()),
+                "pushName": "",
+                RESEND_PATH_KEY: persisted,
+            }
+            if quoted:
+                new_msg["contextInfo"] = ctx
+            self._clear_empty_placeholder()
+            self._sorted_messages.append(new_msg)
+            append_message_row(self, self._render_message_line(new_msg))
+            self._register_virtual_msg(new_msg)
+            old_local_id = str(msg.get("_local_id") or "")
+            old_ids = {i for i in (old_local_id,
+                                   str((msg.get("key") or {}).get("id") or "")) if i}
+            if old_local_id:
+                mw.message_queue.cancel(old_local_id)
+                self._outgoing_virtual_messages.pop(old_local_id, None)
+            if old_ids:
+                self.remove_messages_by_id(old_ids, focus_previous=True)
+            msg.pop("_nr_retry_active", None)
+            mw._schedule_set_chats()
+            mw.output(mw.i18n.t("resend_started"), interrupt=True)
+
+        wx.CallAfter(_dispatch)
+
     def _retry_nr_pending(self, msg, remote_jid, path):
         """Retry the PROCESSING of a fourth-option kept-pending note.
 
@@ -987,27 +1183,56 @@ class VoiceRecordingMixin:
         processings failed, the note stayed pending instead of going out
         with the basic gate or unprocessed. "Try sending again" therefore
         re-runs the NEURAL reduction on the kept original (off the UI
-        thread) and only dispatches the PROCESSED audio through the
-        ordinary attachment resend path. If the reduction fails again, or
-        the kept file can no longer be read, the row stays pending
-        untouched: never a gate, never the raw audio, and never
-        automatically. Local only: no settings write, no new state.
+        thread) and hands the PROCESSED audio to the ordinary voice-note
+        pipeline (_nr_pending_handoff). Audited contracts (review 18:28),
+        all local:
+
+        - Never automatic: only this explicit user action runs it.
+        - Attempt authority: ONE live attempt per note — a second action
+          while an attempt runs is ignored, so a double retry can never
+          produce two transfers.
+        - Never the gate: engine != "neural" leaves the row pending,
+          untouched. (Sending the ORIGINAL is a separate, equally explicit
+          user action: _send_nr_pending_raw.)
+        - One model at a time: while an incremental session holds the slot
+          (its own private model), the retry does NOT load/run the offline
+          singleton on top; the row simply stays pending.
+        - Immutability: the kept file must still match the size/sha256
+          recorded when it was kept, or nothing is processed.
+        - Delete wins: the row's liveness is re-checked on the UI thread
+          before any announcement and before the handoff; a row deleted
+          while the worker ran gets no send and no noise.
+        - Destination/account: identical to the existing attachment resend
+          (the row's own remoteJid through this panel's live session); no
+          new destination surface.
         """
         mw = self.main_window
+        # Attempt authority: set here, on the UI thread, before the worker
+        # exists; released by every terminal path.
+        if msg.get("_nr_retry_active"):
+            logging.info("[noise_reduction] an action on this pending note "
+                         "is already in flight; ignoring the extra request")
+            return
+        msg["_nr_retry_active"] = True
 
         def _work():
+            controller = getattr(mw, "_incremental_controller", None)
+            if controller is not None and controller.slot_busy():
+                # A live incremental session owns a private model instance:
+                # loading/running the offline singleton on top would double
+                # the loaded ONNX and rely on concurrent run() being safe in
+                # our pinned onnxruntime — a property the codebase does NOT
+                # claim (see _incremental_drain). Stay pending.
+                logging.info("[noise_reduction] kept-pending retry deferred: "
+                             "incremental session busy")
+                self._nr_pending_announce(msg, "noise_reduction_kept_pending")
+                return
             try:
-                with wave.open(path, "rb") as wf:
-                    channels = wf.getnchannels()
-                    rate = wf.getframerate()
-                    if wf.getsampwidth() != 2:
-                        raise ValueError("unexpected sample width")
-                    data = wf.readframes(wf.getnframes())
+                data, rate, channels, seconds = self._read_nr_pending(msg, path)
             except Exception as exc:
                 logging.warning("[noise_reduction] kept-pending retry could "
                                 "not read %s: %s", path, exc)
-                wx.CallAfter(mw.output, mw.i18n.t("resend_not_available"),
-                             interrupt=True)
+                self._nr_pending_announce(msg, "resend_not_available")
                 return
             engine = None
             try:
@@ -1017,8 +1242,7 @@ class VoiceRecordingMixin:
                 logging.info("[noise_reduction] kept-pending retry reduction "
                              "failed again: %s", exc)
             if engine != "neural":
-                wx.CallAfter(mw.output, mw.i18n.t("noise_reduction_kept_pending"),
-                             interrupt=True)
+                self._nr_pending_announce(msg, "noise_reduction_kept_pending")
                 return
             try:
                 tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
@@ -1031,36 +1255,53 @@ class VoiceRecordingMixin:
             except Exception as exc:
                 logging.error("[noise_reduction] could not write the processed "
                               "retry: %s", exc)
-                wx.CallAfter(mw.output, mw.i18n.t("noise_reduction_kept_pending"),
-                             interrupt=True)
+                self._nr_pending_announce(msg, "noise_reduction_kept_pending")
                 return
-            processed_path = tmp.name
+            self._nr_pending_handoff(msg, remote_jid, tmp.name,
+                                     channels, rate, seconds)
 
-            def _dispatch():
-                # UI thread: _send_attachment_file builds its own pending row.
-                # Only once the processed copy is queued does the old failed
-                # row go away (its remove_messages_by_id also deletes the
-                # kept original). A refused send keeps the pending row and
-                # drops only the processed temp.
-                if self._send_attachment_file(remote_jid, processed_path,
-                                              "audio", "", None):
-                    old_local_id = str(msg.get("_local_id") or "")
-                    old_ids = {i for i in (old_local_id,
-                                           str((msg.get("key") or {}).get("id") or "")) if i}
-                    if old_local_id:
-                        mw.message_queue.cancel(old_local_id)
-                        self._outgoing_virtual_messages.pop(old_local_id, None)
-                    if old_ids:
-                        self.remove_messages_by_id(old_ids, focus_previous=True)
-                    mw._schedule_set_chats()
-                    mw.output(mw.i18n.t("resend_started"), interrupt=True)
-                else:
-                    try:
-                        os.unlink(processed_path)
-                    except OSError:
-                        pass
+        threading.Thread(target=_work, daemon=True).start()
 
-            wx.CallAfter(_dispatch)
+    def _send_nr_pending_raw(self, msg, remote_jid, path):
+        """Send a fourth-option kept-pending note AS RECORDED — no
+        reduction at all. The other half of Fran's 18:35 decision: the
+        choice between reprocessing and sending the original is ALWAYS the
+        user's, action by action; nothing ever sends the raw audio on its
+        own. Same attempt authority, fingerprint check, delete-wins and
+        voice-note handoff as the reprocessing retry. No model is touched,
+        so the incremental slot does not gate this path.
+        """
+        # Attempt authority, shared with the reprocessing retry: one live
+        # action per note, whatever its kind.
+        if msg.get("_nr_retry_active"):
+            logging.info("[noise_reduction] an action on this pending note "
+                         "is already in flight; ignoring the extra request")
+            return
+        msg["_nr_retry_active"] = True
+
+        def _work():
+            try:
+                data, rate, channels, seconds = self._read_nr_pending(msg, path)
+            except Exception as exc:
+                logging.warning("[noise_reduction] raw pending send could "
+                                "not read %s: %s", path, exc)
+                self._nr_pending_announce(msg, "resend_not_available")
+                return
+            try:
+                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+                tmp.close()
+                with wave.open(tmp.name, "wb") as wf:
+                    wf.setnchannels(channels)
+                    wf.setsampwidth(2)
+                    wf.setframerate(rate)
+                    wf.writeframes(data)
+            except Exception as exc:
+                logging.error("[noise_reduction] could not stage the raw "
+                              "pending send: %s", exc)
+                self._nr_pending_announce(msg, "noise_reduction_kept_pending")
+                return
+            self._nr_pending_handoff(msg, remote_jid, tmp.name,
+                                     channels, rate, seconds)
 
         threading.Thread(target=_work, daemon=True).start()
 
@@ -1693,26 +1934,59 @@ class VoiceRecordingMixin:
             # (skipped when the incremental session already cleaned the audio)
             if (not incremental_cleaned and not mixed_audio
                     and mw.settings.get("general", {}).get("noise_reduction_enabled", False)):
-                basic_only = voice_nr_engine(mw.settings) == "basic" or (
-                    inc_session is not None and (
-                        inc_session.get("basic_only", False)
-                        or inc_session.get("model_unavailable", False)
-                        or inc_session.get("fallback_chosen", False)))
+                # Chosen-basic and temporarily-impossible-neural are NOT
+                # the same state (review 18:28, contract 1): the gate is
+                # the published fallback for both, but keep_pending only
+                # exists for a user who chose NEURAL — a basic engine chosen
+                # on purpose sends gated exactly as published.
+                chosen_basic = voice_nr_engine(mw.settings) == "basic"
+                session_blocked = inc_session is not None and (
+                    inc_session.get("basic_only", False)
+                    or inc_session.get("model_unavailable", False)
+                    or inc_session.get("fallback_chosen", False))
+                basic_only = chosen_basic or session_blocked
                 on_failure = voice_nr_on_failure(mw.settings)
-                raw_unprocessed = audio_data if (
-                    on_failure == "keep_pending" and not basic_only) else None
-                audio_data, _nr_engine = self._reduce_for_send(
-                    mw, audio_data, actual_rate, channels, basic_only,
-                    on_failure=on_failure)
+                want_pending = on_failure == "keep_pending" and not chosen_basic
+                # No second ONNX next to a live native session: with
+                # keep_pending, when the incremental side could not clean
+                # this note and its model may still be loaded (load failed,
+                # finish timed out, or the slot busy at record is STILL
+                # busy), the send does NOT run the offline reduction — the
+                # raw note goes straight to pending. A slot freed meanwhile
+                # makes the posterior pass possible; if even that is not
+                # neural, the note stays pending.
+                skip_posterior = want_pending and inc_session is not None and (
+                    inc_session.get("model_unavailable", False)
+                    or inc_session.get("fallback_chosen", False)
+                    or (inc_session.get("basic_only", False)
+                        and controller is not None and controller.slot_busy()))
+                raw_unprocessed = audio_data if want_pending else None
+                if skip_posterior:
+                    _nr_engine = None
+                    logging.info("[noise_reduction] native session may still "
+                                 "hold its model; keeping the note pending "
+                                 "without a second ONNX pass")
+                else:
+                    audio_data, _nr_engine = self._reduce_for_send(
+                        mw, audio_data, actual_rate, channels,
+                        chosen_basic or (session_blocked and not want_pending),
+                        on_failure=on_failure)
                 logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", _nr_engine)
                 if raw_unprocessed is not None and _nr_engine != "neural":
                     # Fourth option: BOTH neural processings failed (the
                     # incremental one did not clean this note and the
-                    # at-send one just failed). Keep the note pending with
-                    # its ORIGINAL audio for a manual "Try sending again"
-                    # instead of sending it gated or unprocessed. Never
-                    # retried automatically. A basic engine chosen on
-                    # purpose (basic_only) never lands here.
+                    # at-send one failed or was impossible without a second
+                    # ONNX). Keep the note pending with its ORIGINAL audio
+                    # for a manual "Try sending again" — never gated, never
+                    # unprocessed, never automatic. Revoke arbitration
+                    # (contract 5): a delete of the pending row during the
+                    # processing or the write stops everything — no orphan
+                    # WAV, no late announcement on a dead row.
+                    if inc_session is not None and inc_session.get("revoked"):
+                        logging.info("[noise_reduction] send revoked before "
+                                     "the keep-pending write")
+                        _forget_incremental()
+                        return
                     logging.info("[noise_reduction] neural reduction failed; "
                                  "keeping the note pending for a manual resend")
                     pending_path = None
@@ -1729,6 +2003,16 @@ class VoiceRecordingMixin:
                         logging.error("[_send_voice_message] could not keep the "
                                       "pending WAV: %s", exc)
                         pending_path = None
+                    if inc_session is not None and inc_session.get("revoked"):
+                        # Deleted while the file was being written: it dies
+                        # with its row and nothing is announced.
+                        if pending_path is not None:
+                            try:
+                                os.unlink(pending_path)
+                            except OSError:
+                                pass
+                        _forget_incremental()
+                        return
                     if pending_path is not None:
                         virtual_msg[RESEND_PATH_KEY] = pending_path
                         # Marks this row for the media-resend hook in
@@ -1736,14 +2020,40 @@ class VoiceRecordingMixin:
                         # THE PROCESSING (_retry_nr_pending), not resend the
                         # original audio unprocessed.
                         virtual_msg["_nr_pending_retry"] = True
+                        # Fingerprint of what was kept: the retry processes
+                        # EXACTLY these bytes or none at all (a synced,
+                        # truncated or replaced file is never sent as if it
+                        # were the recorded note).
+                        try:
+                            with open(pending_path, "rb") as fh:
+                                virtual_msg["_nr_pending_sha256"] =                                     hashlib.sha256(fh.read()).hexdigest()
+                            virtual_msg["_nr_pending_size"] =                                 os.path.getsize(pending_path)
+                        except OSError:
+                            pass
                     virtual_msg.pop("_incremental_preparing", None)
                     _forget_incremental()
+                    if pending_path is not None:
+                        announce_key = "noise_reduction_kept_pending"
+                    else:
+                        # The note stays FAILED but nothing was kept: never
+                        # announce a retry that cannot happen.
+                        announce_key = "noise_reduction_pending_save_failed"
 
-                    def _mark_kept_pending():
+                    def _mark_kept_pending(path=pending_path, key=announce_key):
+                        # UI thread — the same one deletions run on: if the
+                        # row went away after the write, the kept file dies
+                        # here and nothing is announced on a dead row.
+                        if not self._nr_pending_row_alive(local_id):
+                            if path is not None:
+                                try:
+                                    os.unlink(path)
+                                except OSError:
+                                    pass
+                            return
                         self._mark_message_failed(local_id)
                         announce = getattr(mw, "output", None)
                         if announce is not None:
-                            announce(mw.i18n.t("noise_reduction_kept_pending"))
+                            announce(mw.i18n.t(key))
 
                     wx.CallAfter(_mark_kept_pending)
                     return

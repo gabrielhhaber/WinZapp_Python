@@ -9154,6 +9154,15 @@ msgid "Enable microphone &noise reduction"
 msgstr "Mikrofon gürültü azaltmayı &etkinleştir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reduction_pending_save_failed"
+msgid ""
+"Could not apply neural noise reduction, and the voice message could not be "
+"kept for another attempt; it was not sent."
+msgstr ""
+"Sinirsel gürültü azaltma uygulanamadı ve sesli mesaj başka bir deneme için "
+"saklanamadı; gönderilmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py
 msgctxt "notif_audio"
 msgid "Audio"
@@ -9331,6 +9340,12 @@ msgstr "Yalnızca ses"
 msgctxt "notifications_label"
 msgid "Enable background &notifications for new messages"
 msgstr "Yeni mesajlar için arka plan &bildirimlerini etkinleştir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "nr_pending_send_raw"
+msgid "Send without noise reduction"
+msgstr "Gürültü azaltma olmadan gönder"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/accessible.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -10551,7 +10566,6 @@ msgstr "Yeniden göndermeyi dene"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
-#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_not_available"
 msgid "This message has nothing to send again."
 msgstr "Bu mesajın yeniden denenecek bir gönderimi yok."

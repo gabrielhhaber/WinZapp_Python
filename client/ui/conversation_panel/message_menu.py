@@ -516,6 +516,17 @@ class MessageMenuMixin:
                 lambda e, m=msg: self._on_menu_resend_message(m),
                 resend_item,
             )
+        if msg.get("_nr_pending_retry"):
+            # Fourth-option note: besides "Try sending again" (which retries
+            # the neural PROCESSING), the user may explicitly send the note
+            # as recorded — their choice, action by action (Fran 18:35);
+            # nothing ever sends the unprocessed audio on its own.
+            raw_item = menu.Append(wx.ID_ANY, i18n.t('nr_pending_send_raw'))
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_menu_send_nr_pending_raw(m),
+                raw_item,
+            )
 
         if _is_text and is_missing_quote_failure(msg):
             restore_item = menu.Append(wx.ID_ANY, f"{i18n.t('restore_unsent_reply')}\tAlt+E")
