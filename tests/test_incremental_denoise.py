@@ -438,6 +438,18 @@ def test_release_slot_frees_slot_but_send_still_needs_transfer():
     assert not c.transfer("m1")                                    # so nothing is enqueued
 
 
+def test_release_slot_keeps_session_revocable_until_transfer():
+    # Resource lifetime != send-authority lifetime: after the slot is
+    # freed, a user delete must STILL reach the session's flags (the send
+    # thread may be waiting on them) and win against transfer.
+    c = IncrementalDenoiseController()
+    session = _registered_session(c)
+    c.release_slot("m1")
+    assert c.revoke("m1")
+    assert session["revoked"] is True and session["cancel"] is True
+    assert not c.transfer("m1")
+
+
 def test_release_slot_then_transfer_succeeds():
     c = IncrementalDenoiseController()
     _registered_session(c)

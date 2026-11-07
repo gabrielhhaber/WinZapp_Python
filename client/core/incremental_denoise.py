@@ -343,8 +343,18 @@ class IncrementalDenoiseController:
         self._states = {}     # local_id -> PREPARING | CANCELLED
         self._slot_owner = None
 
+    def register(self, local_id, session) -> None:
+        """Send authority + capture identity for EVERY note that enters the
+        incremental system — with or without the neural slot. A note whose
+        slot request fails still gets confirmed-close tracking, revoke /
+        cancel semantics and the echo-matcher exclusion."""
+        with self._lock:
+            self._sessions[local_id] = session
+            self._states[local_id] = PREPARING
+
     def acquire_slot(self, local_id, session) -> bool:
-        """Take the single slot without waiting. False = occupied."""
+        """Register the note AND take the single slot without waiting.
+        False = occupied."""
         with self._lock:
             if self._slot_owner is not None:
                 return False
@@ -376,10 +386,16 @@ class IncrementalDenoiseController:
         reference gone), the entry is forgotten here — no one else will."""
         with self._lock:
             if self._states.get(local_id) == PREPARING:
+                self._states[local_id] = CANCELLED
                 session = self._sessions.get(local_id)
                 if session is not None:
-                    self._states[local_id] = CANCELLED
                     session["cancel"] = True
+                    if session.get("thread") is None:
+                        # No drain thread will ever run for this session
+                        # (basic-only note, no slot): nobody else cleans the
+                        # entry up — forget it right here.
+                        self._sessions.pop(local_id, None)
+                        self._states.pop(local_id, None)
                 else:
                     self._states.pop(local_id, None)
 
@@ -405,19 +421,18 @@ class IncrementalDenoiseController:
             return True
 
     def release_slot(self, local_id) -> None:
-        """Free the slot. Only called by the party that confirmed worker
-        death + spool cleanup (see class docstring).
+        """Free the SLOT — nothing else. Only called by the party that
+        confirmed worker death + spool cleanup (see class docstring).
 
-        The send-authority state is KEPT: an abandoned-to-offline send
-        (drain exited after cancel, slot released by the drain) still has to
-        pass transfer() before it may enqueue, and a later revoke() of the
-        pending row must still win against it. The entry leaves through
-        transfer() or forget(), both driven by the send thread.
+        Resource lifetime and send-authority lifetime are DIFFERENT: the
+        session reference and the PREPARING state are KEPT so that a
+        revoke() after release still reaches the session's flags (the send
+        thread may be waiting on them) and still wins atomically against
+        transfer(). The entry leaves only through transfer() or forget().
         """
         with self._lock:
             if self._slot_owner == local_id:
                 self._slot_owner = None
-            self._sessions.pop(local_id, None)
 
     def forget(self, local_id) -> None:
         """Terminal cleanup of the send-authority entry: the send thread

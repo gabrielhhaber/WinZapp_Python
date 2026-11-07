@@ -61,6 +61,7 @@ class _FakePanel:
         # The real drain method, bound as it would be on the mixin instance.
         self._incremental_drain = (
             lambda session: vr.VoiceRecordingMixin._incremental_drain(self, session))
+        self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
 
 
 def _start(panel, frames=None):
@@ -147,24 +148,44 @@ def test_start_skipped_when_no_controller():
     assert panel._incremental_session is None
 
 
-def test_start_goes_offline_when_slot_occupied():
+def test_start_goes_basic_only_when_slot_occupied():
     panel = _FakePanel()
     controller = panel.main_window._incremental_controller
     assert controller.acquire_slot("someone-else", {"cancel": False})
     _start(panel)
-    # No session, no thread, no model: the recording goes to the basic gate.
+    session = panel._incremental_session
+    # No thread, no model, no spool — but the note KEEPS its own identity:
+    # registered send authority, close confirmation, cancel, echo exclusion.
+    assert session is not None
+    assert session["basic_only"] is True
+    assert session["thread"] is None and session["worker"] is None
+    assert "spool" not in session
+    assert session["stopped_event"] is not None
+    assert controller.is_preparing(session["local_id"])
+    # The slot is still the other note's.
+    assert not controller.acquire_slot("third", {"cancel": False})
+
+
+def test_discard_basic_only_session_forgets_entry():
+    panel = _FakePanel()
+    controller = panel.main_window._incremental_controller
+    assert controller.acquire_slot("someone-else", {"cancel": False})
+    _start(panel)
+    session = panel._incremental_session
+    vr.VoiceRecordingMixin._cancel_incremental_denoise(panel)
+    # No drain will ever run for a basic-only session: the entry is
+    # forgotten by discard itself, not left for a nonexistent thread.
+    assert session["cancel"] is True
+    assert not controller.is_preparing(session["local_id"])
     assert panel._incremental_session is None
-    assert panel._incremental_basic_only is True
-    assert controller.is_preparing("someone-else")
 
 
 def test_start_clears_basic_only_when_the_slot_is_free():
     panel = _FakePanel()
-    panel._incremental_basic_only = True  # stale flag from a previous busy note
     _start(panel)
-    assert panel._incremental_basic_only is False
     session = panel._incremental_session
     assert session is not None
+    assert session["basic_only"] is False
     session["cancel"] = True
     _join_drain(panel)
 
@@ -278,15 +299,19 @@ def test_cancel_marks_session_and_controller():
 def test_orphaned_previous_session_is_discarded_on_new_start():
     panel = _FakePanel()
     controller = panel.main_window._incremental_controller
-    previous = {"local_id": "old", "cancel": False}
+    # A slot-holding orphan whose drain never exits (thread marker set):
+    previous = {"local_id": "old", "cancel": False, "thread": object()}
     assert controller.acquire_slot("old", previous)
     panel._incremental_session = previous
-    # Slot held by the orphan: the new recording must still go offline, and
-    # the orphan must be cancelled + discarded from the registry.
+    # Slot held by the orphan: the new recording goes basic-only, and the
+    # orphan is cancelled + dropped from the send-authority registry (its
+    # slot stays until its own drain confirms cleanup).
     _start(panel)
     assert previous["cancel"] is True
     assert not controller.is_preparing("old")
-    assert panel._incremental_session is None
+    session = panel._incremental_session
+    assert session is not None and session["basic_only"] is True
+    controller.discard(session["local_id"])
 
 
 class _FakeStream:
@@ -314,21 +339,47 @@ def _session_with_close(local_id="m1"):
 
 def test_stop_recording_stream_confirmed_close_sets_event():
     panel = _FakePanel()
-    panel._sd_stream = _FakeStream()
-    panel._recording_stream = _FakeStream()
+    stream = _FakeStream()
     session = _session_with_close()
-    panel._incremental_session = session
+    session["stream"] = stream
+    panel._recording_stream = stream  # panel still points at THIS stream
     vr.VoiceRecordingMixin._stop_recording_stream(panel, session)
     assert session["stopped_event"].is_set()
     assert session["device_failed"] is False
-    assert panel._sd_stream is None and panel._recording_stream is None
+    assert stream.closed
+    # Identity match: the panel attribute is cleared.
+    assert panel._recording_stream is None
+
+
+def test_stop_recording_stream_closes_only_the_sessions_own_stream():
+    # R1: closing recording A must not touch the panel attributes a newer
+    # recording B already owns.
+    panel = _FakePanel()
+    stream_a, stream_b = _FakeStream(), _FakeStream()
+    session_a = _session_with_close("a")
+    session_a["stream"] = stream_a
+    panel._recording_stream = stream_b
+    panel._sd_stream = stream_b
+    vr.VoiceRecordingMixin._stop_recording_stream(panel, session_a)
+    assert stream_a.closed and not stream_b.closed
+    assert panel._recording_stream is stream_b and panel._sd_stream is stream_b
+    assert session_a["stopped_event"].is_set()
+    assert session_a["device_failed"] is False
+
+
+def test_stop_recording_stream_without_session_uses_panel_handles():
+    panel = _FakePanel()
+    stream = _FakeStream()
+    panel._recording_stream = stream
+    vr.VoiceRecordingMixin._stop_recording_stream(panel, None)
+    assert stream.closed
+    assert panel._recording_stream is None
 
 
 def test_stop_recording_stream_failed_close_is_not_reported_confirmed():
     panel = _FakePanel()
-    panel._sd_stream = None
-    panel._recording_stream = _FakeStream(fail=True)
     session = _session_with_close()
+    session["stream"] = _FakeStream(fail=True)
     vr.VoiceRecordingMixin._stop_recording_stream(panel, session)
     # The send thread wakes, but sees the failure marker — never a snapshot.
     assert session["stopped_event"].is_set()
@@ -365,3 +416,370 @@ def test_on_destroy_cancels_incremental_for_normal_mic_recording():
     assert session["cancel"] is True
     assert not controller.is_preparing("m1")
     assert skipped == [True]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Real SEND-path tests: the unmodified _send_voice_message /
+# _write_and_enqueue code, driven with fake panel/main-window/queue and
+# controlled wx.CallAfter. No MainWindow, no audio device, no model file.
+# ═══════════════════════════════════════════════════════════════════════
+import os  # noqa: E402
+import threading  # noqa: E402
+import time  # noqa: E402
+import wave  # noqa: E402
+
+from main_window import message_events as me  # noqa: E402
+from ui.conversation_panel import message_actions as ma  # noqa: E402
+
+
+class _FakeQueue:
+    def __init__(self):
+        self.enqueued = []
+        self.event = threading.Event()
+
+    def enqueue(self, pm):
+        self.enqueued.append(pm)
+        self.event.set()
+
+
+class _FakeSendMW:
+    def __init__(self, controller):
+        self.settings = {"general": {"noise_reduction_enabled": True}}
+        self._incremental_controller = controller
+        self.message_queue = _FakeQueue()
+        from cryptography.fernet import Fernet
+        self.key = Fernet.generate_key()
+        self.i18n = _FakeI18n()
+        # A real announce target so the fallback notice path runs and is
+        # observable through the recorded wx.CallAfter calls.
+        self.output = lambda *a, **k: None
+        self.voicemsg_send_sound = types.SimpleNamespace(play=lambda: None)
+        self.failed_calls = []
+
+    def send_recording_status(self, *a):
+        pass
+
+    def mark_conversation_as_read(self, *a):
+        pass
+
+    def _schedule_set_chats(self):
+        pass
+
+    def _convert_wav_to_ogg(self, wav_path):
+        return None  # OGG pre-encode unavailable: WAV fallback, as published
+
+    def _on_message_failed(self, *a, **k):
+        self.failed_calls.append((a, k))
+
+
+class _SendPanel:
+    """Fake conversation panel exposing the REAL mixin methods the send
+    path calls on self."""
+
+    def __init__(self, mw, frames, session):
+        self.main_window = mw
+        self._is_recording = True
+        self._system_audio_session = None
+        self._recording_system_audio = False
+        self._recording_channel_mode = "mono"
+        self.conversation = {"remoteJid": "peer@s.whatsapp.net"}
+        self._recording_frames = frames
+        self._incremental_session = session
+        self._recording_actual_rate = 48000
+        self._recording_actual_ch = 1
+        self._quoted_message = None
+        self._recording_paused = False
+        self._sorted_messages = []
+        self.registered = None
+        self.messages_list = types.SimpleNamespace(EnsureVisible=lambda i: None)
+        self.message_field = types.SimpleNamespace(SetFocus=lambda: None)
+        self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
+
+    def _stop_recording_stream(self, session=None):
+        return vr.VoiceRecordingMixin._stop_recording_stream(self, session)
+
+    def _reduce_for_send(self, *a):
+        return vr.VoiceRecordingMixin._reduce_for_send(self, *a)
+
+    def _clear_empty_placeholder(self):
+        pass
+
+    def _render_message_line(self, msg):
+        return "row"
+
+    def _register_virtual_msg(self, msg):
+        self.registered = msg
+
+    def _on_cancel_reply(self):
+        pass
+
+    def _hide_voice_panel(self):
+        pass
+
+
+@pytest.fixture
+def send_env(monkeypatch, tmp_path):
+    monkeypatch.setattr(vr, "append_message_row", lambda panel, row: None)
+    monkeypatch.setattr(vr, "message_row_count", lambda panel: 1)
+    monkeypatch.setattr(vr, "data_path", lambda name: str(tmp_path / name))
+    os.makedirs(tmp_path / "voice_messages", exist_ok=True)
+    return tmp_path
+
+
+def _send_session(controller, frames, local_id="m1", basic_only=False,
+                  thread=None, worker=None, spool=None, stream=None):
+    session = {"local_id": local_id, "frames": frames, "rate": 48000, "ch": 1,
+               "worker_ch": 1, "worker": worker, "thread": thread,
+               "stop": False, "cancel": False, "failed": False, "revoked": False,
+               "stopped_event": threading.Event(), "device_failed": False,
+               "basic_only": basic_only}
+    if spool:
+        session["spool"] = spool
+    if stream is not None:
+        session["stream"] = stream
+    if basic_only:
+        controller.register(local_id, session)
+    else:
+        assert controller.acquire_slot(local_id, session)
+    return session
+
+
+def _wav_payload(path):
+    with wave.open(path, "rb") as wf:
+        return wf.readframes(wf.getnframes())
+
+
+def _no_neural(*a, **k):
+    raise AssertionError("reduce_voice_noise must not run for this note")
+
+
+def test_send_blocked_drain_falls_back_to_basic_with_all_bytes(send_env, monkeypatch):
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_WORKER_TIMEOUT", 0.3)
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"partial-work")
+
+    class _Worker:
+        def finish(self):
+            raise AssertionError("finish must not run after the stage-2 timeout")
+
+        def abort(self):
+            pass
+
+    session = _send_session(controller, frames, worker=_Worker(),
+                            spool=spool, stream=_FakeStream())
+
+    def _stuck_drain():
+        # A natively stuck feed: alive until cancel, then the drain's own
+        # exit contract (spool cleanup + slot release).
+        while not session["cancel"]:
+            time.sleep(0.02)
+        try:
+            os.unlink(session["spool"])
+        except OSError:
+            pass
+        controller.release_slot(session["local_id"])
+
+    drain = threading.Thread(target=_stuck_drain, daemon=True)
+    drain.start()
+    session["thread"] = drain
+
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    # Basic gate on the COMPLETE raw (close was confirmed first), no ONNX.
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    drain.join(5)
+    assert not drain.is_alive()
+    assert not os.path.exists(spool)
+    # Authority consumed by the real hand-off; echo exclusion lifted there.
+    assert not controller.is_preparing("m1")
+    assert "_incremental_preparing" not in panel.registered
+    # The existing fallback announcement was queued for the UI thread.
+    assert any(args and args[0] == "noise_reduction_fallback"
+               for fn, args, k in WX_CALLS for _ in [0]
+               if fn == (mw.output or fn))
+
+
+def test_send_basic_only_note_goes_straight_to_gate(send_env, monkeypatch):
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x05\x06" * 480]
+    raw = b"".join(frames)
+    session = _send_session(controller, frames, basic_only=True, stream=_FakeStream())
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    # The note kept full identity: confirmed close, authority, echo exclusion.
+    assert session["stopped_event"].is_set()
+    assert not controller.is_preparing("m1")  # consumed by transfer
+    assert "_incremental_preparing" not in panel.registered
+    # It never held the neural slot.
+    assert controller.acquire_slot("other", {"cancel": False})
+
+
+def test_send_waits_for_confirmed_close_and_includes_late_callback(send_env, monkeypatch):
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (data, "neural"))
+    controller = IncrementalDenoiseController()
+    frames = [b"A" * 960]
+    close_gate = threading.Event()
+
+    class _SlowCloseStream:
+        closed = False
+
+        def stop_stream(self):
+            pass
+
+        def close(self):
+            close_gate.wait(5)
+            self.closed = True
+
+    stream = _SlowCloseStream()
+    session = _send_session(controller, frames, stream=stream)
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    # The close has not confirmed: nothing may be enqueued yet.
+    time.sleep(0.4)
+    assert not mw.message_queue.event.is_set()
+    # A capture callback landing BEFORE the confirmed close is part of the
+    # recording and must be in the sent audio.
+    frames.append(b"B" * 960)
+    close_gate.set()
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == b"A" * 960 + b"B" * 960
+
+
+def test_send_revoked_while_drain_blocked_sends_nothing(send_env, monkeypatch):
+    controller = IncrementalDenoiseController()
+    frames = [b"\x07\x08" * 480]
+    session = _send_session(controller, frames, stream=_FakeStream())
+
+    def _stuck_drain():
+        while not session["cancel"]:
+            time.sleep(0.02)
+        controller.release_slot(session["local_id"])
+
+    drain = threading.Thread(target=_stuck_drain, daemon=True)
+    drain.start()
+    session["thread"] = drain
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    # Wait until the send thread is inside the stage-2 wait...
+    deadline = time.time() + 5
+    while not session.get("stop") and time.time() < deadline:
+        time.sleep(0.02)
+    assert session.get("stop")
+    # ...then the user deletes the pending row (message_actions path).
+    assert controller.revoke("m1")
+    drain.join(5)
+    deadline = time.time() + 5
+    while time.time() < deadline and controller.is_preparing("m1"):
+        time.sleep(0.05)
+    assert not mw.message_queue.enqueued
+    assert not controller.is_preparing("m1")
+    assert session["cancel"] is True
+
+
+def test_send_revoked_during_finish_helper_cleans_up_on_return(send_env, monkeypatch):
+    controller = IncrementalDenoiseController()
+    frames = [b"\x09\x0a" * 480]
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    finish_gate = threading.Event()
+    finish_started = threading.Event()
+    aborted = []
+
+    class _Worker:
+        def finish(self):
+            finish_started.set()
+            finish_gate.wait(5)
+            return spool, "neural"
+
+        def abort(self):
+            aborted.append(True)
+
+    session = _send_session(controller, frames, worker=_Worker(),
+                            spool=spool, stream=_FakeStream())
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert finish_started.wait(5)
+    assert controller.revoke("m1")
+    time.sleep(0.4)
+    # finish() is natively blocked: nothing enqueued, slot still held.
+    assert not mw.message_queue.enqueued
+    assert not controller.acquire_slot("other", {"cancel": False})
+    # When the native call DOES return, the helper owns the cleanup:
+    # result discarded, worker aborted, spool deleted, slot released.
+    finish_gate.set()
+    deadline = time.time() + 5
+    while time.time() < deadline and os.path.exists(spool):
+        time.sleep(0.05)
+    assert not os.path.exists(spool)
+    assert aborted
+    assert controller.acquire_slot("other2", {"cancel": False})
+    assert not mw.message_queue.enqueued
+
+
+def test_send_finish_timeout_falls_back_and_late_result_is_discarded(send_env, monkeypatch):
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_WORKER_TIMEOUT", 0.3)
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x0b\x0c" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    finish_gate = threading.Event()
+
+    class _Worker:
+        def finish(self):
+            finish_gate.wait(5)
+            return spool, "neural"
+
+        def abort(self):
+            pass
+
+    session = _send_session(controller, frames, worker=_Worker(),
+                            spool=spool, stream=_FakeStream())
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    # The late finish result is cleaned up by the helper when it returns.
+    finish_gate.set()
+    deadline = time.time() + 5
+    while time.time() < deadline and os.path.exists(spool):
+        time.sleep(0.05)
+    assert not os.path.exists(spool)
+    assert controller.acquire_slot("other", {"cancel": False})
