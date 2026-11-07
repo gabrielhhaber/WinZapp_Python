@@ -131,7 +131,8 @@ def resolve_multiparty_group(s, media, data, creator):
     if not group:
         log.info("multiparty call: the lobby named no group")
         return ""
-    s.ringing_calls.set_group(data["id"], group)
+    if not s.ringing_calls.set_group(data["id"], group):
+        return ""                       # it ended while the lobby answered
     media.set_call_group(data["id"], group)
     ongoing_calls.known(media).remember(
         data["id"], ongoing_calls.device_jid(creator), group, data.get("isVideo"))
@@ -320,8 +321,10 @@ class Pending:
     def set_group(self, call_id, group):
         """The group of a call whose offer did not name it."""
         found = self._offers.get(call_id)
-        if found:
-            self._offers[call_id] = ({**found[0], "groupJid": group}, found[1])
+        if not found:
+            return False                # the call is over: nothing to update
+        self._offers[call_id] = ({**found[0], "groupJid": group}, found[1])
+        return True
 
     def offer_of(self, call_id):
         """{"groupJid", "isVideo"} of the call's offer, or None."""

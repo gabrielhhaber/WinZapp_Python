@@ -449,3 +449,22 @@ def test_a_lobby_that_fails_leaves_the_call_as_it_was():
     assert calls.resolve_multiparty_group(
         s, Media(), {"id": "C1"}, N(User="100", Device=0, Server="lid")) == ""
     assert pending.offer_of("C1")["groupJid"] == ""
+
+
+def test_a_lobby_answer_that_comes_after_the_call_ended_registers_nothing():
+    pending = calls.Pending()                      # the end already forgot the call
+
+    class Media:
+        ongoing_calls = None
+
+        def lobby(self, call_id, creator):
+            return {"groupJid": "1203@g.us"}
+
+        def set_call_group(self, call_id, group):
+            raise AssertionError("a dead call must not be touched")
+
+    media = Media()
+    s = N(ringing_calls=pending)
+    assert calls.resolve_multiparty_group(
+        s, media, {"id": "C1"}, N(User="100", Device=0, Server="lid")) == ""
+    assert media.ongoing_calls is None
