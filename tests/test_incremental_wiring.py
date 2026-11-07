@@ -2917,6 +2917,109 @@ def test_retry_waits_for_cleanup_when_the_same_note_retains_its_slot(send_env, m
     os.unlink(mw.message_queue.enqueued[0].audio_path)
 
 
+def test_retry_processes_a_kept_note_without_fingerprint(send_env, monkeypatch):
+    # Hash ausente (corrección de alcance 18:47): when NO fingerprint was
+    # recorded at keep time, the check is SKIPPED, not claimed mandatory —
+    # the retry processes the kept note without rejecting it.
+    import core.neural_noise_reduction as nnr
+    called = []
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (called.append(data), (data, "neural"))[1])
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x57\x58" * 480
+    msg, kept = _kept_note(send_env, raw)
+    msg.pop("_nr_pending_sha256", None)
+    msg.pop("_nr_pending_size", None)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert called == [raw]
+    assert announced == ["resend_started"]
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_env, monkeypatch):
+    # E2E with a REAL hanging drain thread and the REAL 2 s final wait
+    # (Milo 19:11: the m9 guard was synthetic). A moment=send switch with
+    # a drain that hangs past the wait: skip_posterior keeps the note
+    # pending with its RAW audio, the slot stays RETAINED (forget() never
+    # frees it), and a retry of that same row defers — no model call —
+    # until the drain really finishes and releases the slot. Audio
+    # capture and wx remain stubbed; the timeout, threads, reservation
+    # lifecycle and keep/retry chain are real.
+    from core.message_resend import RESEND_PATH_KEY
+    import core.neural_noise_reduction as nnr
+    called = []
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (called.append(data), (data, "neural"))[1])
+    controller = IncrementalDenoiseController()
+    frames = [b"\x59\x5a" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+
+    session = _send_session(controller, frames, worker=types.SimpleNamespace(abort=lambda: None),
+                            spool=spool, stream=_FakeStream())
+
+    def _hanging_drain():
+        # Ignores stop/cancel past the 2 s wait, then self-cleans like the
+        # real drain does (drain_cleaned + slot release).
+        time.sleep(3.0)
+        session["drain_cleaned"] = True
+        controller.release_slot("m1")
+
+    drain = threading.Thread(target=_hanging_drain, daemon=True)
+    session["thread"] = drain
+    drain.start()
+    mw, announced = _keep_pending_mw(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    panel = _SendPanel(mw, frames, session)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)  # async worker
+    _wait_wx_calls()  # the keep-pending mark lands after the real ~2 s wait
+    _drive_wx_calls()
+    # Timeout -> skip_posterior -> pending with the ORIGINAL audio, model
+    # never called, slot RETAINED by the still-hanging drain.
+    assert called == []
+    assert announced == ["noise_reduction_kept_pending"]
+    assert panel.failed == ["m1"]
+    assert controller._slot_owner == "m1"
+    msg = panel.registered
+    pending_path = msg[RESEND_PATH_KEY]
+    assert _wav_payload(pending_path) == raw
+    # Retry while the native side is still alive: defers, no model call.
+    mw2, announced2 = _retry_mw(controller)
+    retry_panel = _RetryPanel(mw2, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        retry_panel, msg, "peer@s.whatsapp.net", pending_path)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert called == []
+    assert announced2 == ["noise_reduction_kept_pending"]
+    assert controller._slot_owner == "m1"
+    # The drain really finishes and releases: the retry now processes the
+    # SAME original bytes and hands off.
+    drain.join(10)
+    assert controller._slot_owner is None
+    mw3, announced3 = _retry_mw(controller)
+    retry_panel2 = _RetryPanel(mw3, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        retry_panel2, msg, "peer@s.whatsapp.net", pending_path)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert called == [raw]
+    assert announced3 == ["resend_started"]
+    os.unlink(mw3.message_queue.enqueued[0].audio_path)
+
+
 def test_retry_refuses_a_changed_kept_file(send_env, monkeypatch):
     import core.neural_noise_reduction as nnr
     called = []
