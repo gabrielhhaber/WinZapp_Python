@@ -76,7 +76,7 @@ class _Panel:
         self.sent = []
 
     def _forward_message_to_targets(self, msg, targets, keep_caption=False,
-                                    source_jid_override=""):
+                                    source_jid_override="", keep_link_preview=False):
         self.sent.append((msg["key"]["id"], source_jid_override, keep_caption))
         return [name for jid, name in targets if jid in self.failing]
 

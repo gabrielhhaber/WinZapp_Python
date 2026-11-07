@@ -172,6 +172,23 @@ static const UiStrings STR_EN = {
     L"Installation error",
 };
 
+static const UiStrings STR_IT = {
+    L"Programma di installazione di WinZapp",
+    L"Cartella di installazione:",
+    L"Sfoglia...",
+    L"Crea un collegamento sul desktop",
+    L"Crea un collegamento nel menu Start",
+    L"Installa",
+    L"Annulla",
+    L"Seleziona la cartella di installazione",
+    L"Seleziona una cartella di installazione.",
+    L"Estrazione non riuscita.",
+    L"WinZapp è stato installato correttamente!",
+    L"Installazione completata",
+    L"Si è verificato un errore durante l'installazione:\n%s",
+    L"Errore di installazione",
+};
+
 static const UiStrings *g_str = &STR_EN;
 
 static void select_language(void)
@@ -184,6 +201,7 @@ static void select_language(void)
     case WINZAPP_LANG_RO:    g_str = &STR_RO;    break;
     case WINZAPP_LANG_TR:    g_str = &STR_TR;    break;
     case WINZAPP_LANG_AR:    g_str = &STR_AR;    break;
+    case WINZAPP_LANG_IT:    g_str = &STR_IT;    break;
     default:                 g_str = &STR_EN;    break;
     }
 }

@@ -6,11 +6,26 @@ NOVEDADES
 
 - Pestaña Multimedia de chats y grupos: Ctrl+C sobre un documento, foto, vídeo o audio ahora copia el archivo al portapapeles, como en la lista de mensajes, en lugar de decir "No se pudo copiar este mensaje". El elemento del menú contextual también pasa a ser "Copiar archivo".
 
+- Configuración > General > Notificaciones incorpora "Orden de los mensajes de grupo en las notificaciones toast:", con "Primero el nombre del participante" (el valor predeterminado, como antes: "Gustavo en WinZapp | Desarrolladores y Testers") y "Primero el nombre del grupo" (como en el WhatsApp Desktop oficial: "WinZapp | Desarrolladores y Testers, Gustavo"). La elección cambia solo el texto de las notificaciones toast; lo que anuncia el lector de pantalla con la ventana activa sigue igual.
+
+- La grabación del audio del ordenador ya no se interrumpe con "problema con el dispositivo de audio" cuando WinZapp se bloquea uno o dos segundos (ordenador lento u ocupado): se omite el audio de ese instante, la grabación continúa y el resto sigue sincronizado.
+
+- Neonize: con las confirmaciones de lectura desactivadas en Privacidad, ya no ves el estado "leído" de los mensajes que envías en chats individuales, igual que ya no envías confirmaciones de lectura a los demás (como en WPPConnect). El ajuste ahora funciona en ambos sentidos.
+
+- ClickBus: los nombres comerciales verificados aparecen en la lista de conversaciones, los textos de viajes y los botones interactivos se muestran completos y la opción elegida en un carrusel se envía con el índice de la tarjeta.
+
+- Ajustes > Almacenamiento incorpora el Gestor de almacenamiento: tamaños lógicos y cobertura, asociación multimedia, protecciones, vista previa de eliminación de copias locales o retención recuperable, restauración y reglas, avisos y objetivos opcionales. La eliminación automática se limita a caché de compilación regenerable verificada; la programación comienza desactivada. Puede solicitar cada archivo limpiado sin quitar los bloqueos de descarga automática.
+
 - Llamadas de Neonize: se conserva la respuesta o finalización recibida antes de registrar la llamada localmente; los errores de grupo distinguen el límite de solicitudes de WhatsApp y los límites de miembros admitidos.
+
+- Llamadas de Neonize: el registro ahora anota los endpoints del relay y sus respuestas, para descubrir por qué una llamada entrante puede llegar sin el audio de la otra persona (problema #689). Sin cambios de comportamiento.
+
+- Llamadas grupales de Neonize: cuando un miembro del grupo entra en una llamada grupal que iniciaste, la llamada pasa a estar activa y el audio empieza, en vez de quedarse en "llamando" con el micrófono descartado. El final de la llamada ahora se registra en el grupo y en tu historial de llamadas, no en un chat privado con uno de los miembros (problema #689).
 
 - Neonize: el primer mensaje a un número de teléfono nuevo escrito en una conversación nueva (Ctrl+N) ya no termina como «no confirmado» cuando WhatsApp tiene el número registrado en su otra forma (con o sin el 9.º dígito de los móviles brasileños): ahora se envía a la dirección que WhatsApp conoce. Además, un número escrito en una conversación nueva abre ahora el chat con la dirección que WhatsApp conoce, así no queda una conversación duplicada.
 
 - Mensajes de voz: la tasa de bits de las grabaciones vuelve a 64 kbps, que se envía rápido incluso pasado un minuto (el cambio a 256 kbps había vuelto lento el envío). Configuración > Audio incorpora "Tasa de bits de los mensajes de voz (kbps)", para elegir de 32 a 256 kbps.
+- Mensajes de voz: las grabaciones en estéreo (AAC) ahora se envían por defecto a 128 kbps, porque 64 kbps dejaba el audio con mala calidad; las grabaciones en mono siguen a 64 kbps. Configuración > Audio incorpora "Tasa de bits de los mensajes de voz en estéreo (kbps)". Quien seguía con el valor antiguo de 64 kbps pasa a 128 kbps en estéreo; cualquier otra tasa que hubiera elegido se mantiene.
 
 - Configuración > Interfaz de usuario > Chats: nueva opción "Número de mensajes nuevos en la lista de chats", para que el lector de pantalla diga el número de mensajes nuevos antes del nombre del chat en lugar de después. Vale para la lista de chats, los archivados y los bloqueados. (sugerencia de Michal Suchý)
 
@@ -286,6 +301,16 @@ NOVEDADES
 - Árabe: la guía de uso (Ayuda > Guía de uso) ya está completa en árabe.
 
 - Neonize: un chat con una empresa verificada ahora muestra el nombre verificado de la empresa cuando no está en tu agenda.
+
+- Nuevo idioma: italiano. Elíjalo en Configuración > General > Idioma, en el instalador y en el desinstalador. El programa está totalmente traducido; la guía de uso y estas notas de la versión siguen en inglés por ahora.
+
+- Al reenviar un mensaje con un enlace, ahora se conserva la vista previa del enlace. El diálogo de reenvío tiene la nueva casilla "Mantener la vista previa del enlace", marcada por defecto y visible cuando algún mensaje seleccionado tiene vista previa; en Configuración > Interfaz de usuario > Conversaciones, la opción "Mantener las vistas previas de enlaces de forma predeterminada al reenviar mensajes" define cómo empieza. Funciona con WPPConnect y con Neonize. Nota: con WPPConnect, el mensaje reenviado con su vista previa se envía como un mensaje nuevo y no lleva la etiqueta "Reenviado"; con Neonize sí la lleva.
+
+- Al escribir un mensaje con un enlace, el lector de pantalla ahora dice "Cargando vista previa..." mientras se obtiene, "Vista previa añadida." cuando se adjunta, o "No se pudo cargar la vista previa del enlace: motivo." cuando falla. En Configuración > Accesibilidad > Contenido hablado, la nueva opción "Anunciar la carga y la adición de las vistas previas de enlaces" activa o desactiva los tres mensajes; viene marcada por defecto.
+
+- Neonize: al citar un mensaje de voz, ahora se muestra su duración (por ejemplo 0:15) en la burbuja de cita del WhatsApp de la otra persona, como en WPPConnect (incidencia #707).
+
+- Estados: ubicación, encuesta, lista de contactos y otros tipos de estados de contactos que aparecían como "Mensaje incompatible" ahora se muestran con su etiqueta.
 
 V2.1.0.0
 

@@ -13,7 +13,7 @@ import threading
 import wx
 from core.group_invitation_link import invitation_code
 from core.polls import POLL_MESSAGE_TYPES
-from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES
+from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES, cached_media_path
 from core.call_log import (
     call_log_is_video,
     is_returnable_missed_call,
@@ -115,6 +115,12 @@ class MessageListMixin:
             clean_msg_id = parts[2] if len(parts) > 2 else parts[-1]
         media_path = data_path("media", f"{clean_msg_id}.wzmedia")
         is_downloaded = os.path.isfile(media_path)
+        cleaned = getattr(self.main_window, "is_media_cleaned", None)
+        if (msg_type in _SAVEABLE_MESSAGE_TYPES and callable(cleaned) and cleaned(msg_id)
+                and not os.path.isfile(cached_media_path(msg_type, msg_id))):
+            # Images and audio also need the explicit one-copy reacquire
+            # action; ordinary Open/Play never lifts an automatic block.
+            self._action_download_btn.Show()
 
         if msg_type == "documentMessage":
             if is_downloaded:

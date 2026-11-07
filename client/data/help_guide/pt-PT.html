@@ -220,9 +220,10 @@
     <a href="#privacidade" class="nav-link">15. Definições do WhatsApp</a>
     <a href="#copias-registros" class="nav-link">16. Cópias de segurança e registros</a>
     <a href="#mac" class="nav-link">17. WinZapp no Mac</a>
-    <a href="#atalhos" class="nav-link">18. Atalhos de teclado</a>
-    <a href="#solucao-problemas" class="nav-link">19. Solução de problemas</a>
-    <a href="#registro" class="nav-link">20. Registro de atualizações do guia</a>
+    <a href="#armazenamento" class="nav-link">18. Gestor de armazenamento</a>
+    <a href="#atalhos" class="nav-link">19. Atalhos de teclado</a>
+    <a href="#solucao-problemas" class="nav-link">20. Solução de problemas</a>
+    <a href="#registro" class="nav-link">21. Registro de atualizações do guia</a>
   </div>
 </nav>
 
@@ -252,6 +253,7 @@
         <li><a href="#privacidade">Definições do WhatsApp</a></li>
         <li><a href="#copias-registros">Cópias de segurança e registros</a></li>
         <li><a href="#mac">WinZapp no Mac</a></li>
+        <li><a href="#armazenamento">Gestor de armazenamento</a></li>
         <li><a href="#atalhos">Atalhos de teclado</a></li>
         <li><a href="#solucao-problemas">Solução de problemas</a></li>
         <li><a href="#registro">Registro de atualizações do guia</a></li>
@@ -492,9 +494,9 @@
   <tr><td class="field-name">Alt+Shift+D</td><td>Dados da mensagem</td></tr>
 </table>
 <ul>
-  <li><strong>Responder:</strong> se a mensagem original não for encontrada antes do envio, o WinZapp avisa que a citação está ausente e mantém o seu texto para o utilizador editar pelo menu da mensagem ("Editar resposta não enviada sem a citação"). Respostas com menção levam a citação junto.</li>
+  <li><strong>Responder:</strong> se a mensagem original não for encontrada antes do envio, o WinZapp avisa que a citação está ausente e mantém o seu texto para o utilizador editar pelo menu da mensagem ("Editar resposta não enviada sem a citação"). Respostas com menção levam a citação junto. Com o Neonize, ao citar uma mensagem de voz, a duração dela aparece na citação vista pela outra pessoa.</li>
   <li><strong>Eliminar multimédia:</strong> ao eliminar foto, vídeo, áudio ou documento, a confirmação traz "Eliminar também a multimédia do telemóvel", marcada por predefinição. Desmarque para eliminar a mensagem e manter o ficheiro guardado no telemóvel. A caixa vale também para várias mensagens selecionadas e só aparece quando há multimédia entre elas. Em Definições &gt; Interface &gt; Mensagens, o utilizador define como ela começa.</li>
-  <li><strong>Reencaminhar:</strong> escolha os destinos numa lista com pesquisa (a seta para baixo no campo leva ao primeiro resultado). Quando dá certo, o leitor de ecrã fala "Mensagem reencaminhada" (ou quantas foram), sem janela para fechar. Mensagens de voz reencaminhadas chegam como áudio comum, a não ser que o utilizador marque "Reencaminhar mensagens de voz como mensagens de voz, em vez de áudio" em Definições &gt; Áudio. Com o Neonize, a cópia reencaminhada aparece logo na conversa de destino.</li>
+  <li><strong>Reencaminhar:</strong> escolha os destinos numa lista com pesquisa (a seta para baixo no campo leva ao primeiro resultado). Quando dá certo, o leitor de ecrã fala "Mensagem reencaminhada" (ou quantas foram), sem janela para fechar. Mensagens de voz reencaminhadas chegam como áudio comum, a não ser que o utilizador marque "Reencaminhar mensagens de voz como mensagens de voz, em vez de áudio" em Definições &gt; Áudio. Com o Neonize, a cópia reencaminhada aparece logo na conversa de destino. Quando uma mensagem selecionada tem pré-visualização de ligação, a caixa "Manter a pré-visualização da ligação" começa como definido em Definições &gt; Interface do utilizador &gt; Conversas, "Manter por predefinição as pré-visualizações de links ao reencaminhar mensagens". Com o WPPConnect a cópia é enviada como mensagem nova e não vem marcada como reencaminhada; com o Neonize vem.</li>
   <li><strong>Dados da mensagem:</strong> numa mensagem sua, mostra quando foi entregue, lida e reproduzida, com data e hora completas, consultando o próprio WhatsApp (então recibos que chegaram com o WinZapp fechado também aparecem). Em grupo, lista quem recebeu e quem leu, pelo nome.</li>
   <li><strong>Mensagens citadas:</strong> numa resposta, só os chamadas da própria resposta contam como chamadas.</li>
 </ul>
@@ -519,6 +521,7 @@
 <h3>Links</h3>
 <p>Uma mensagem com dois ou mais chamadas vira uma lista navegável. Enter ou Espaço num chamada o abre; Ctrl+C copia o chamada; o menu de contexto tem "Abrir ligação" e "Copiar ligação". Links de convite de grupo (<code>chat.whatsapp.com/...</code>) abrem a janela "Entrar no grupo por ligação" do WinZapp, com a prévia do grupo, em vez do navegador; o menu do chamada oferece também "Entrar no grupo por ligação" e mantém "Abrir ligação" para quem quiser o navegador. Suas mensagens enviadas também levam prévia do chamada.</p>
 <p>Na pré-visualização de uma ligação, o título e a descrição aparecem com os caracteres verdadeiros, sem códigos HTML como &amp;amp; ou &amp;eacute;, tanto na que o WinZapp envia como na que lê.</p>
+<p>Enquanto escreve uma mensagem com ligação, o leitor de ecrã diz "A carregar a pré-visualização..." quando o WinZapp começa a obter a pré-visualização, "Pré-visualização adicionada." quando ela é anexada à mensagem, ou "Não foi possível carregar a pré-visualização da ligação" seguido do motivo. Em Definições &gt; Acessibilidade &gt; Conteúdo falado, "Anunciar o carregamento e a adição das pré-visualizações de ligações" liga ou desliga as três mensagens.</p>
 
 <h3>Contactos, enquetes e cartões</h3>
 <ul>
@@ -601,13 +604,13 @@
 </table>
 <ul>
   <li><strong>Canais de gravação de mensagens de voz:</strong> Há um só botão de gravar. Em Definições &gt; Áudio, "Canais de gravação de mensagens de voz" oferece "Automático (usar os canais do dispositivo)" (predefinição), "Mono (misturar esquerda e direita)" e "Estéreo (quando disponível)". Automático e Estéreo mantêm dois canais quando o dispositivo permite e usam mono caso contrário. Mono calcula a média dos canais esquerdo e direito: use para um microfone ligado apenas à INPUT 1 ou INPUT 2 de uma interface de áudio. Com uma só entrada ativa, o volume diminui após a mistura, e não há ganho automático. No modo Automático, uma gravação com um dos lados em silêncio total é enviada em mono, a partir do lado com som. A escolha fica fixa no início da gravação e também se aplica à pré-visualização em pausa. Não afeta chamadas nem a gravação de microfone + áudio do computador. As mensagens de voz estéreo também são reproduzidas no iPhone.</li>
-  <li><strong>Microfone + áudio do computador:</strong> grava numa mensagem só a sua voz e o que o computador toca (um vídeo, uma música, o leitor de ecrã). Durante a gravação, dois controles deslizantes ajustam o volume dos demais sons e o do NVDA (sem NVDA, o segundo fica desativado); valem só para a gravação e ficam guardados por conta. Antes de começar, o WinZapp avisa que tudo o que tocar vai para a gravação, com "Não mostrar novamente" (a opção "Avisar antes de gravar o áudio do computador" volta a avisar). A gravação é enviada como áudio.</li>
+  <li><strong>Microfone + áudio do computador:</strong> grava numa mensagem só a sua voz e o que o computador toca (um vídeo, uma música, o leitor de ecrã). Durante a gravação, dois controles deslizantes ajustam o volume dos demais sons e o do NVDA (sem NVDA, o segundo fica desativado); valem só para a gravação e ficam guardados por conta. Antes de começar, o WinZapp avisa que tudo o que tocar vai para a gravação, com "Não mostrar novamente" (a opção "Avisar antes de gravar o áudio do computador" volta a avisar). Se o WinZapp bloquear durante um ou dois segundos (computador lento ou ocupado), o som desse instante é ignorado e a gravação continua. A gravação é enviada como áudio.</li>
   <li>Os anúncios da gravação podem ser silenciados; o leitor de ecrã não começa a dizer "Enviar" antes de ser interrompido.</li>
   <li><strong>Redução de ruído do microfone:</strong> com "Ativar a redução de ruído do microfone" marcada em Definições &gt; Áudio, a mesma página mostra o "Modelo de redução de ruído", com o estado e o botão "Transferir modelo de redução de ruído". O modelo neuronal é transferido uma única vez, pela internet, e as gravações são processadas no próprio computador. Sem o modelo, a redução usa o noise gate básico; se não puder ser usado numa gravação, o WinZapp avisa pelo leitor de ecrã e usa o noise gate básico nesse envio. Se a redução de ruído não puder ser aplicada de todo, a mensagem é enviada sem processamento, também com aviso.</li>
   <li>O microfone e o alto-falante usados ficam em Definições &gt; Áudio.</li>
   <li>Com o Neonize, a mensagem de voz é entregue também a contactos no Android.</li>
   <li>Se a biblioteca de tipos de ficheiro do computador (libmagic) não carregar, o Neonize reconhece o tipo pelo próprio ficheiro e a mensagem de voz sai normalmente.</li>
-  <li>As mensagens de voz em mono e em estéreo são gravadas a 64 kbps por predefinição. Em Definições &gt; Áudio, "Taxa de bits das mensagens de voz (kbps)" permite escolher de 32 a 256 kbps.</li>
+  <li>As mensagens de voz em mono são gravadas a 64 kbps por predefinição e as em estéreo a 128 kbps. Em Definições &gt; Áudio, "Taxa de bits das mensagens de voz (kbps)" (mono) e "Taxa de bits das mensagens de voz em estéreo (kbps)" permitem escolher de 32 a 256 kbps.</li>
 </ul>
 
 <h3>Ouvir</h3>
@@ -688,7 +691,7 @@
     <h2 id="h-status">🟢 8. Status</h2>
 <p class="lead">O separador Estados (Alt+5) mostra os estados dos seus contactos e deixa o utilizador publicar os seus.</p>
 <ul>
-  <li><strong>Ver:</strong> a lista traz os estados; Enter abre. Estados de foto e vídeo abrem no visualizador (separado ou no player dentro do separador) e Ctrl+Seta para a esquerda/direita vai ao estados anterior/próximo.</li>
+  <li><strong>Ver:</strong> a lista traz os estados; Enter abre. Estados de foto e vídeo abrem no visualizador (separado ou no player dentro do separador) e Ctrl+Seta para a esquerda/direita vai ao estados anterior/próximo. O estado de localização, sondagem, lista de contactos e outros tipos aparece na lista com a sua etiqueta (por exemplo, "Localização") e abre como texto.</li>
   <li><strong>Reagir:</strong> "Gosto ❤️".</li>
   <li><strong>Responder:</strong> "Responder ao estado" abre o campo de resposta; Enter envia ("Resposta enviada").</li>
   <li><strong>Postar:</strong> "Publicar o texto como estado" e "Enviar ficheiros multimédia como estado". "Estado publicado com sucesso" confirma. Seus próprios estados ficam em "O meu estado".</li>
@@ -845,7 +848,7 @@
 </ul>
 
 <h3>Bandeja e notificações</h3>
-<p>Em Definições &gt; Geral &gt; Notificações, "Conteúdo das notificações em segundo plano" tem três níveis: som, nome da conversa e texto da mensagem; som e nome da conversa, sem o texto; ou somente o som, sem notificação no ecrã e sem nada lido. As notificações respeitam o Assistente de Foco do Windows, e ler uma conversa dentro do WinZapp remove a notificação dela da área de notificações.</p>
+<p>Em Definições &gt; Geral &gt; Notificações, "Conteúdo das notificações em segundo plano" tem três níveis: som, nome da conversa e texto da mensagem; som e nome da conversa, sem o texto; ou somente o som, sem notificação no ecrã e sem nada lido. As notificações respeitam o Assistente de Foco do Windows, e ler uma conversa dentro do WinZapp remove a notificação dela da área de notificações. Em "Ordem das mensagens de grupo nas notificações toast:" escolhe "Nome do participante primeiro" (predefinição: "Gustavo em WinZapp | Desenvolvedores e Testers") ou "Nome do grupo primeiro" (como no WhatsApp Desktop oficial: "WinZapp | Desenvolvedores e Testers, Gustavo"); a escolha vale apenas para o texto das notificações toast, não para o que o leitor de ecrã anuncia com a janela ativa.</p>
 
 <h3>Ligação e recuperação</h3>
 <p>A ligação com o WhatsApp fica guardada no perfil do navegador interno. O WinZapp guarda cópias de segurança dele (Definições &gt; Armazenamento &gt; Cópia de segurança) e as restaura sozinho quando a ligação é recusada, avisando em voz alta que restaurou e está a religar; só pede para emparelhar de novo quando não há cópia aproveitável. Se o navegador interno estiver incompleto (em geral, um antivírus removeu parte dele), o WinZapp diz isso e explica o que fazer.</p>
@@ -861,7 +864,7 @@
 
 <table class="field-table">
   <tr><th>Categoria</th><th>O que o utilizador encontra</th></tr>
-  <tr><td class="field-name">Geral</td><td>Idioma (português do Brasil e de Portugal, inglês, espanhol, polonês, turco, romeno); verificação ortográfica (seguir o Windows, sempre ou nunca); converter emoticons em emojis; normalização Unicode nas pesquisas (exata, ignorar acentos, ou também formas equivalentes); iniciar em segundo plano ao entrar no Windows; abrir chamadas de convite de grupo com o WinZapp; verificar atualizações automaticamente e alphas; descarregar atualizações e transferências da transcrição em segundo plano; atalho global para abrir o WinZapp ou ocultá-lo na bandeja; o que fazer ao trocar de conta (ocultar a janela da conta atual ou manter as janelas de todas abertas).</td></tr>
+  <tr><td class="field-name">Geral</td><td>Idioma (português do Brasil e de Portugal, inglês, espanhol, polonês, turco, romeno, italiano); verificação ortográfica (seguir o Windows, sempre ou nunca); converter emoticons em emojis; normalização Unicode nas pesquisas (exata, ignorar acentos, ou também formas equivalentes); iniciar em segundo plano ao entrar no Windows; abrir chamadas de convite de grupo com o WinZapp; verificar atualizações automaticamente e alphas; descarregar atualizações e transferências da transcrição em segundo plano; atalho global para abrir o WinZapp ou ocultá-lo na bandeja; o que fazer ao trocar de conta (ocultar a janela da conta atual ou manter as janelas de todas abertas).</td></tr>
   <tr><td class="field-name">Geral &gt; Notificações</td><td>Notificações em segundo plano e o conteúdo delas; manter conversas silenciadas mesmo abertas; ícone e contagem de não lidas na bandeja.</td></tr>
   <tr><td class="field-name">Interface</td><td>Cada botão abre a janela de um assunto: Mensagens, Reações, Conversas, Confirmações e Atalhos de teclado.</td></tr>
   <tr><td class="field-name">Interface &gt; Mensagens</td><td>Quantas mensagens mostrar ao abrir uma conversa; quantas pular com Page Up/Down; tipo de lista de mensagens (clássica, com limite de 512 caracteres, ou caixa de lista, com mensagens completas); mostrar quem está a escrever como última linha; "Como se referir a mim?"; ocultar o remetente nas suas mensagens; ocultar números de remetentes sem nome; preservar a mensagem digitada como legenda; "Ontem às {time}" no lugar da data; prévias de chamadas; "Reencaminhada" antes do remetente; marca inicial de "Eliminar também a multimédia do telemóvel"; vídeos e estados em player separado; tipos de multimédia exibidos por predefinição.</td></tr>
@@ -905,6 +908,7 @@
 <h3>Botão Privacidade</h3>
 <ul>
   <li>Visto por último e online; recado; foto do perfil; confirmação de leitura; quem pode adicionar o utilizador a grupos; quem pode ver o seu estados (meus contactos, meus contactos exceto..., ou compartilhar somente com...).</li>
+  <li>Com a confirmação de leitura desligada, vale nos dois sentidos, em conversas individuais: não envia confirmação de leitura aos outros e também deixa de ver o estado "lida" das mensagens que envia. Nos grupos, continua como no telemóvel.</li>
   <li>Em "Conversas", "Manter conversas arquivadas": desligada, uma conversa arquivada volta à lista de conversas quando chega uma mensagem nova. É uma opção do próprio WhatsApp, por isso aplica-se também no telemóvel e nos seus outros dispositivos.</li>
   <li>As pessoas do estados são escolhidas entre os contactos sincronizados, numa lista com pesquisa em que cada uma é marcada com Espaço.</li>
   <li>A janela carrega os valores atuais, envia só o que o utilizador mudou e depois verifica, dizendo quais configurações o WhatsApp não confirmou.</li>
@@ -953,8 +957,48 @@
 
   </section>
 
+  <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
+    <h2 id="h-armazenamento">💾 18. Gestor de armazenamento</h2>
+<h3>Resumo do armazenamento</h3>
+<p>Abra Definições → Armazenamento → Gestor de armazenamento. Use Tab entre controlos e Ctrl+Tab entre separadores. Na lista, as setas movem o cursor e Espaço altera a caixa de seleção; mover o cursor não seleciona um ficheiro para remoção. Cada página tem até 200 itens. Analisar ou atualizar não aplica a limpeza.</p>
+<p>Tamanhos lógicos, contados uma vez por identidade do ficheiro. O espaço alocado e o espaço livre no disco não são medidos. Ficheiros retidos continuam ocupando espaço. Esta medição abrange apenas esta instalação.</p>
+<h3>Preferências</h3>
+<p>Todo trabalho em segundo plano é opcional. Guardar preferências não aplica uma pré-visualização de ficheiros. A meta é indicativa, não uma quota rígida. Não se impõe um limite de espaço livre no disco. A associação opcional lê os históricos locais de mensagens selecionados. Modelos externos e outras contas são apenas informativos. Para incluir novas pastas de contas, desligue e religue esse âmbito.</p>
+<p>Se a associação da conta inteira ficar incompleta, selecione menos conversas locais. A associação lê o histórico local sem contactar o WhatsApp. Conteúdo enviado, pendente, com falha, com estrela, trancado, oculto ou não associado fica protegido. Modelos e cópias de segurança são geridos pelos botões que abrem as suas definições existentes.</p>
+<p>Associar multimédia aos históricos locais selecionados → Escolher históricos locais para associar → Guardar preferências e rascunhos de regras</p>
+<h3>Pré-visualização da seleção</h3>
+<ol>
+<li>Analisar agora</li>
+<li>Aplicar filtros</li>
+<li>Selecionar esta página</li>
+<li>Método da operação</li>
+<li>Pré-visualização da seleção</li>
+<li>Aplicar pré-visualização</li>
+</ol>
+<p>Selecione até 500 ficheiros elegíveis por pré-visualização, ou menos se os caminhos forem muito longos. Nenhuma parte desta seleção foi aplicada.</p>
+<p>Modelos, ambientes de execução, cópias de segurança, registos, bases de dados e dados de acesso permanecem protegidos aqui. Use suas definições existentes para geri-los. Ficheiros desconhecidos não são considerados desnecessários. Somente ficheiros de cache verificados e cópias recebidas de multimédia associadas podem entrar em uma pré-visualização.</p>
+<h3>Proteções</h3>
+<p>A proteção prevalece sobre a seleção manual e as regras. A proteção partilhada abrange as contas desta instalação. Remover uma proteção não seleciona ficheiros. Itens ausentes ou sem nome visível mantêm uma identificação numérica privada.</p>
+<p>Proteger ficheiros selecionados → Proteger conversas selecionadas → Atualizar proteções</p>
+<h3>Ficheiros retidos</h3>
+<p>A retenção move a cópia local sem criar outra cópia e não libera seu espaço. Restaurar nunca substitui um ficheiro atual. A remoção permanente não pode ser desfeita aqui. A multimédia pode não estar mais disponível no WhatsApp.</p>
+<p>Para remover permanentemente multimédia retida, ative a associação de multimédia e selecione conversas em Preferências, guarde e tente novamente. Só pode ser removida multimédia atualmente visível, desbloqueada, completamente associada e sem proteção.</p>
+<p>Atualizar ficheiros retidos → Restaurar ficheiros retidos selecionados → Remover permanentemente os ficheiros retidos selecionados</p>
+<p>Para uma fotografia, vídeo, documento ou áudio já limpo, selecione a mensagem e use Descarregar. Confirme o pedido separado dessa cópia. Isto não anula a limpeza nem garante que o WhatsApp tenha o ficheiro. Nenhum outro bloqueio de descarregamento é removido.</p>
+<p>Remover registos vazios de operações com mais de dois dias? Ficheiros retidos e registos ativos de recuperação são mantidos. Pré-visualizações expiram após um dia.</p>
+<h3>Regras</h3>
+<p>Idade e tamanho são condições, não prova de inutilidade. A proteção prevalece. Uma regra de sugestão ou notificação prevalece sobre uma automática no mesmo ficheiro. O modo automático é exclusivo do cache de compilação regenerável verificado.</p>
+<p>Uma análise manual não executa remoção automática. Só uma regra de cache ativada separadamente pode remover ficheiros, em lotes limitados, nas avaliações guardadas de início ou intervalo. Pausar avaliações mantém outros rascunhos não guardados. A meta usa a última medição não cancelada e não é uma quota do disco. Pedidos manuais e envios continuam disponíveis.</p>
+<p>Adicionar regra → Ativar esta regra após guardar as preferências → Guardar preferências e rascunhos de regras</p>
+<p>São rascunhos. Guarde as preferências para aplicar mudanças nas regras e no âmbito de associação.</p>
+<p>Modelo carregado para revisão. Regras e agendamento estão desligados. Guarde as preferências para aplicar as escolhas.</p>
+<p>Dias de retenção do histórico de resumos; 0: desligado → Atualizar histórico de resumos → Limpar histórico de resumos</p>
+<p>Redefinir preferências de armazenamento, regras e proteções desta conta? Proteções partilhadas, ficheiros retidos e bloqueios de descarregamento de multimédia permanecem. Nenhum ficheiro será limpo.</p>
+
+  </section>
+
   <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
-    <h2 id="h-atalhos">⌨️ 18. Atalhos de teclado</h2>
+    <h2 id="h-atalhos">⌨️ 19. Atalhos de teclado</h2>
 <div class="callout info">
   <div class="callout-title">ℹ️ Lista gerada do código</div>
   As tabelas abaixo são geradas automaticamente do catálogo de atalhos do WinZapp e mostram as teclas de fábrica. Elas aparecem também no programa, em F1 ou Ajuda &gt; Atalhos de teclado. Qualquer tecla pode ser trocada no separador Atalhos de teclado das Definições.
@@ -1301,7 +1345,7 @@
   </section>
 
   <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
-    <h2 id="h-solucao-problemas">🧰 19. Solução de problemas</h2>
+    <h2 id="h-solucao-problemas">🧰 20. Solução de problemas</h2>
 <table class="field-table">
   <tr><th>Situação</th><th>O que fazer</th></tr>
   <tr><td>O WinZapp pede para emparelhar de novo</td><td>Pareie com número ou QR Code. Suas conversas só são eliminadas se o utilizador ligar um número diferente. Se aconteceu sem motivo, guarde o <code>log.log</code> e o <code>shutdown_audit.log</code> antes de abrir de novo.</td></tr>
@@ -1321,11 +1365,13 @@
   </section>
 
   <section id="registro" class="wiki-section" aria-labelledby="h-registro">
-    <h2 id="h-registro">📝 20. Registro de atualizações do guia</h2>
+    <h2 id="h-registro">📝 21. Registro de atualizações do guia</h2>
 <p>O árabe está agora disponível em Definições > Geral > Idioma, com textos em árabe no instalador e no desinstalador do Windows.</p>
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Guia: o italiano entra na lista de idiomas das Definições.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Definições &gt; Armazenamento ganha o Gestor de armazenamento: tamanhos lógicos e cobertura, associação de multimédia, proteções, pré-visualização da remoção de cópias locais ou retenção recuperável, restauro e regras, avisos e metas opcionais. A remoção automática limita-se à cache de compilação regenerável verificada; o agendamento começa desligado. É possível pedir um ficheiro limpo individualmente sem permitir o descarregamento automático.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Guia: nova conversa por número abre a conversa com o número que o WhatsApp usa.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Guia: canais com categorias e listas do diretório, atualizações publicadas e afixadas por administradores e a janela de administradores do canal.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Guia: janela Canais (Alt+9), adicionar pessoas à chamada em curso, mensagens mais antigas pedidas ao telemóvel pelo Neonize e a posição do número de mensagens novas na lista de conversas.</td></tr>
@@ -1361,6 +1407,11 @@
   <tr><td class="field-name">2.1.0.4397</td><td>Separador Perfil em Definições do WhatsApp (nome exibido, recado e foto); Comunidades na lista de navegação, depois de Chamadas.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>Versão inicial do guia: todas as funcionalidades das versões 1.1.0.0, 1.1.1.0, 2.0.0.0 e do ciclo 2.1.0.0 até esta alpha.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Chamadas do Neonize: preservado o atendimento ou encerramento recebido antes do registo local da chamada; falhas em chamadas em grupo agora distinguem o limite de pedidos do WhatsApp e os limites de membros suportados.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens de voz: estéreo (AAC) passa a 128 kbps por predefinição; mono continua a 64 kbps.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Gravação do áudio do computador: um bloqueio curto já não interrompe a gravação.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Notificações toast de grupo: opção para mostrar o nome do grupo antes do nome do participante.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Neonize: a citação de uma mensagem de voz mostra a duração dela.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Estados de localização, sondagem e outros tipos deixam de aparecer como mensagem incompatível.</td></tr>
 </table>
 
   </section>

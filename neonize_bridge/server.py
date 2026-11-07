@@ -393,7 +393,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self.mark_edited(mid, msgmap.jid_wpp(conversation), mid, True, **fields)
         return True
 
-    def message_to_forward(self, serial, keep_voice=False):
+    def message_to_forward(self, serial, keep_voice=False, keep_preview=False):
         """The stored message, ready to be sent as forwarded, or None if the
         type is not supported yet."""
         from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
@@ -416,7 +416,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             sub.contextInfo.forwardingScore = 1
             return msg
         import forwarding
-        return forwarding.plain_forward(original)
+        return forwarding.plain_forward(original, keep_preview)
 
     # ------------------------------------------------------------ polls
     def _vote_received(self, o, e):
@@ -701,6 +701,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
             self.call_media.own_creator = lambda: self.lid_device
+            # a group call's roster lists this account too
+            self.call_media.own_users = lambda: {
+                groups.user_of(self.me or ""), groups.user_of(self.lid or "")} - {""}
         # every message to a chat with temporary messages carries its timer
         chat_timers.install(cli, self.chat_timer)
         # never two app-state operations at once (app_state_recovery.serialize)
@@ -972,6 +975,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     return
                 if ack is None:
                     return
+                kind = self.incoming_receipt_kind(chat, kind)
+                ack = {"DELIVERED": 2, "READ": 3, "PLAYED": 4}[kind]
                 if not is_mine:
                     try:
                         who = msgmap.jid_wpp(jid_text(e.MessageSource.Sender))
@@ -2804,7 +2809,8 @@ def create_app(folder, fixed=""):
         sent, new_ids = [], []
         for serial in ids:
             msg = await in_thread(s.message_to_forward, serial,
-                                  bool(body.get("keepVoice")))
+                                  bool(body.get("keepVoice")),
+                                  isinstance(body.get("linkPreview"), dict))
             if msg is None:
                 return web.json_response(
                     {"status": "error", "message": "message type not yet forwardable"},

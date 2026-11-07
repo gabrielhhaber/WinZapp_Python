@@ -1346,7 +1346,7 @@ class MessageEventsMixin:
             )
         else:
             title, body = background_notification_content(
-                level, format_notification_title(msg, self, self.i18n), body,
+                level, format_notification_title(msg, self, self.i18n, toast=True), body,
                 self.i18n.t("notif_hidden_message"),
             )
 
@@ -1915,7 +1915,9 @@ class MessageEventsMixin:
                     notification_content_level,
                 )
                 content = background_notification_content(
-                    notification_content_level(self.settings), title, body,
+                    notification_content_level(self.settings),
+                    format_notification_title(msg, self, self.i18n, toast=True),
+                    body,
                     self.i18n.t("notif_hidden_reaction"),
                 )
                 if content is None:

@@ -4,9 +4,17 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "bb4275f75fd6": "Configurações > Geral > Notificações ganha \"Ordem das mensagens de grupo nas not",
+    "582fdae09dc7": "A gravação do áudio do computador não é mais interrompida com \"problema com o di",
+    "432ad95c6139": "Neonize: com as confirmações de leitura desativadas em Privacidade, você deixa d",
+    "dd8ab910ecac": "ClickBus: nomes comerciais verificados aparecem na lista de conversas, os textos",
+    "731f5832a171": "Configurações > Armazenamento ganha o Gerenciador de armazenamento: tamanhos lóg",
     "d51f668b2b6a": "Chamadas do Neonize: preservado o atendimento ou encerramento recebido antes do ",
+    "a7aa0e97d026": "Chamadas do Neonize: o registro agora anota os endpoints do relay e as respostas",
+    "26dc361f73f6": "Chamadas em grupo do Neonize: quando um membro do grupo entra numa chamada em gr",
     "cbb8db690a38": "Neonize: a primeira mensagem para um número de telefone novo digitado numa nova ",
     "23f98047e3c4": "Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápid",
+    "fba3903f0939": "Mensagens de voz: as gravações em estéreo (AAC) agora saem por padrão a 128 kbps",
     "e5691fbeda8f": "Configurações > Interface do usuário > Conversas: nova opção \"Número de mensagen",
     "7409e38001c8": "Nova janela de Canais (Alt+9, também na lista de navegação): mostra os canais qu",
     "e436aef3a987": "Canais, como no WhatsApp Web: em \"Encontrar canais\", Categoria (negócios, entret",
@@ -145,6 +153,11 @@
     "b5ca2fa49afb": "WPPConnect: enquanto o WhatsApp Web ainda sincroniza um histórico longo, o WinZa",
     "4cef19647dba": "WPPConnect: um catálogo incompleto de versões do WhatsApp Web é reparado quando ",
     "885017195d90": "Árabe: o guia de uso (Ajuda > Guia de uso) agora está completo em árabe.",
-    "84fdf2d5432a": "Neonize: uma conversa com uma empresa verificada agora mostra o nome verificado "
+    "84fdf2d5432a": "Neonize: uma conversa com uma empresa verificada agora mostra o nome verificado ",
+    "a8f90dd85084": "Novo idioma: italiano. Escolha-o em Configurações > Geral > Idioma, no instalado",
+    "3e123e4a6a59": "Encaminhar uma mensagem com link agora preserva a prévia do link. A janela de en",
+    "35c7731e2901": "Ao escrever uma mensagem com link, o leitor de tela agora diz \"Carregando prévia",
+    "bd4f75618c7e": "Neonize: ao citar uma mensagem de voz, a duração dela (por exemplo 0:15) agora a",
+    "021fdca9a7fe": "Status: localização, enquete, lista de contatos e outros tipos de status de cont"
   }
 }

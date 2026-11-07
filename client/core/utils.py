@@ -1066,6 +1066,9 @@ DEFAULT_SETTINGS = {
         # "sound" (core.notification_manager.NOTIFICATION_CONTENT_LEVELS,
         # issue #258). "full" is what WinZapp always did.
         "notification_content": "full",
+        # Which name a group toast leads with: "participant" or "group"
+        # (core.notification_manager.GROUP_TOAST_ORDERS).
+        "group_toast_order": "participant",
         # Audio files pasted into the message field (Ctrl+V): "audio" or
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",
@@ -1084,6 +1087,7 @@ DEFAULT_SETTINGS = {
         "noise_reduction_enabled": False,
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
+        "voice_recording_bitrate_stereo": 128,
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,
         # Windows spell checking in the message field (core/spell_checker.py).
@@ -1221,6 +1225,10 @@ DEFAULT_SETTINGS = {
         # a plain audio, as WhatsApp makes it. Off: WhatsApp's own behaviour,
         # so no migration.
         "forward_voice_as_voice": False,
+        # How the "keep link previews" box of the forward dialog starts. On:
+        # a forwarded link keeps the card it had. A new key, so existing
+        # installs get it from backfill_missing_defaults(): no migration.
+        "forward_keep_link_preview": True,
         "conversation_video_media_viewer_dialog": True,
         "status_media_viewer_dialog": True,
         "voice_message_mode": "voice_message",
@@ -1334,6 +1342,9 @@ DEFAULT_SETTINGS = {
         "announce_conversations_update_complete": True,
         "announce_sync_progress": True,
         "announce_media_progress": True,
+        # "Loading link preview...", "Link preview added." and the failure
+        # reason while writing a message with a link. New key: no migration.
+        "announce_link_previews": True,
         "speak_active_conv_messages": True,
         "speak_other_conv_messages": True,
         "silence_while_recording": False

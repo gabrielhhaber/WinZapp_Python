@@ -383,3 +383,24 @@ def test_the_other_call_routes_still_need_the_connection():
     s = N(client=None, status="CLOSED", ringing_calls=calls.Pending(), call_media=FakeMedia())
     (status, _), = run(s, [("POST", "/call/accept", {"callId": "C1"})])
     assert status == 400
+
+
+def test_the_end_of_a_group_call_placed_here_keeps_the_group_and_is_ours():
+    data = {**ended(), "peerJid": "75db@lid", "isGroup": False, "outgoing": False}
+    done = calls.with_placed_group(data, {"groupJid": "1203@g.us", "isVideo": True})
+    assert (done["peerJid"], done["groupJid"], done["isGroup"]) == ("1203@g.us", "1203@g.us", True)
+    assert done["outgoing"] is True and done["isVideo"] is True
+    # not a group call placed here: the end stays what the native layer said
+    assert calls.with_placed_group(data, None) is data
+    assert calls.with_placed_group(data, {"groupJid": ""}) is data
+
+
+def test_record_end_does_not_file_the_call_this_client_placed(monkeypatch):
+    stored = []
+    monkeypatch.setattr(calls, "call_chat", lambda db, meta, group: "75db@lid")
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append(w) or True)
+    s = N(me="5599@s.whatsapp.net", lid="", db=None)
+    mine = calls.with_placed_group(ended(), {"groupJid": "1203@g.us"})
+    assert not calls.record_end(s, N(basicCallMeta=None), mine, False, 1000)
+    assert stored == []

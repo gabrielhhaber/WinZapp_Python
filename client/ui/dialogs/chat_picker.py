@@ -143,6 +143,10 @@ class ChatCheckList(wx.Panel):
     def checked_jids(self):
         return [jid for jid, _, _ in self._options if jid in self._checked]
 
+    def set_checked(self, keys):
+        self._checked = {key for key, _, _ in self._options if key in keys}
+        self._rebuild()
+
     def has_options(self):
         return bool(self._options)
 

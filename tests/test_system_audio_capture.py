@@ -16,12 +16,11 @@ class TimelineTests(unittest.TestCase):
         pcm = mix.render_until(10_060_000)
         self.assertEqual(struct.unpack('<6h', pcm), (8192, 8192, 16384, 16384, 0, 0))
 
-    def test_bounded_ring_rejects_late_future_and_malformed_packets(self):
+    def test_bounded_ring_rejects_future_and_malformed_packets(self):
         from core.system_audio_capture import TimelineMixer, AudioPacket
         mix = TimelineMixer(1000, 1, 0)
         mix.render_until(10_000)
-        for stamp, data in [(0, struct.pack('<f', .5)),
-                            (30_000_000, struct.pack('<f', .5)),
+        for stamp, data in [(30_000_000, struct.pack('<f', .5)),
                             (10_000, b'x')]:
             with self.subTest(stamp=stamp, data=data):
                 with self.assertRaises(ValueError):

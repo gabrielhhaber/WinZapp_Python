@@ -6,11 +6,26 @@ YENİLİKLER
 
 - Sohbet ve grupların Medya sekmesi: Bir belge, fotoğraf, video veya sesin üzerinde Ctrl+C artık "Bu mesaj kopyalanamadı" demek yerine, mesaj listesindeki gibi dosyayı panoya kopyalıyor. Bağlam menüsü öğesi de artık "Dosyayı kopyala".
 
+- Ayarlar > Genel > Bildirimler bölümüne "Toast bildirimlerinde grup iletilerinin sırası:" eklendi: "Önce katılımcı adı" (varsayılan, eskisi gibi: "Gustavo (WinZapp | Geliştiriciler ve Test Edenler)") ve "Önce grup adı" (resmî WhatsApp Desktop'taki gibi: "WinZapp | Geliştiriciler ve Test Edenler, Gustavo"). Seçim yalnızca toast bildirimlerinin metnini değiştirir; pencere etkinken ekran okuyucunun duyurduğu şey aynı kalır.
+
+- WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) bilgisayar sesinin kaydı artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor.
+
+- Neonize: Gizlilik'te okundu bilgisi kapalıyken, bire bir sohbetlerde gönderdiğiniz mesajların "okundu" durumunu artık görmezsiniz; başkalarına da okundu bilgisi göndermezsiniz (WPPConnect'teki gibi). Ayar artık iki yönde de geçerlidir.
+
+- ClickBus: doğrulanmış işletme adları sohbet listesinde görünür, yolculuk metinleri ve etkileşimli düğmeler tam gösterilir ve karusel içinde seçilen seçenek kart dizini ile gönderilir.
+
+- Ayarlar > Depolama bölümüne Depolama yöneticisi eklendi: mantıksal boyutları ve kapsamı inceleyin, medya eşlemesini ve korumaları seçin, yerel kopya kaldırmayı veya geri alınabilir bekletmeyi önizleyin, bekletilen dosyaları geri alın; isteğe bağlı kuralları, bildirimleri ve kullanım hedeflerini yönetin. Otomatik kaldırma yalnız doğrulanmış, yeniden üretilebilir derleme önbelleğine açıktır; zamanlama varsayılan olarak kapalıdır. Temizlenmiş medya, otomatik indirme engelleri kaldırılmadan tek tek istenebilir.
+
 - Neonize aramaları: yerel çağrı kaydı oluşturulmadan gelen cevaplama ve bitiş durumları korunur; grup araması hataları WhatsApp hız sınırı ile desteklenen üye sınırlarını ayrı bildirir.
+
+- Neonize aramaları: günlük artık röle (relay) uç noktalarını ve rölenin yanıtlarını kaydediyor; gelen bir aramada karşı tarafın sesinin neden gelmeyebileceğini bulmak için (sorun #689). Davranış değişmedi.
+
+- Neonize grup aramaları: başlattığınız bir grup aramasına bir grup üyesi katıldığında arama etkin olur ve ses başlar; artık mikrofon yok sayılarak "aranıyor" durumunda kalmaz. Aramanın bitişi artık üyelerden biriyle özel bir sohbette değil, grupta ve arama geçmişinizde kaydedilir (sorun #689).
 
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.
 
 - Sesli mesajlar: kayıt bit hızı yeniden 64 kbps oldu; bir dakikadan uzun kayıtlar da hızlı gönderilir (256 kbps'ye geçiş gönderimi yavaşlatmıştı). Ayarlar > Ses bölümüne 32 ile 256 kbps arasında seçim yapılan "Sesli mesaj bit hızı (kbps)" eklendi.
+- Sesli mesajlar: stereo (AAC) kayıtlar artık varsayılan olarak 128 kbps ile gönderiliyor, çünkü 64 kbps sesi kötü yapıyordu; mono kayıtlar 64 kbps olarak kalıyor. Ayarlar > Ses bölümüne "Stereo sesli mesaj bit hızı (kbps)" eklendi. Hâlâ eski varsayılan 64 kbps üzerinde olanlar stereo için 128 kbps'ye geçer; seçtiğiniz başka bir hız korunur.
 
 - Ayarlar > Kullanıcı Arayüzü > Sohbetler: ekran okuyucunun yeni mesaj sayısını sohbet adından sonra değil önce söylemesi için yeni "Sohbet listesindeki yeni mesaj sayısı" seçeneği. Sohbet listesi, arşivlenmiş ve kilitli sohbetler için geçerlidir. (Michal Suchý'nin önerisi)
 
@@ -286,6 +301,16 @@ YENİLİKLER
 - Arapça: kullanım kılavuzu (Yardım > Kullanım kılavuzu) artık Arapça olarak tamamlandı.
 
 - Neonize: doğrulanmış bir işletmeyle yapılan sohbet, işletme rehberinizde yoksa artık işletmenin doğrulanmış adını gösterir.
+
+- Yeni dil: İtalyanca. Ayarlar > Genel > Dil bölümünden, yükleyicide ve kaldırıcıda seçebilirsiniz. Program tamamen çevrildi; kullanım kılavuzu ve bu sürüm notları şimdilik İngilizce.
+
+- Bağlantı içeren bir mesajı iletirken bağlantı önizlemesi artık korunuyor. İletme penceresinde yeni "Bağlantı önizlemesini koru" kutusu var; varsayılan olarak işaretlidir ve seçilen bir mesajın önizlemesi varsa görünür; Ayarlar > Kullanıcı arayüzü > Mesajlar altındaki "Mesajları iletirken bağlantı önizlemelerini varsayılan olarak koru" seçeneği kutunun nasıl başlayacağını belirler. WPPConnect ve Neonize ile çalışır. Not: WPPConnect ile önizlemesiyle iletilen mesaj yeni bir mesaj olarak gönderilir ve "İletildi" etiketini taşımaz; Neonize ile taşır.
+
+- Bağlantı içeren bir mesaj yazarken ekran okuyucu artık önizleme alınırken "Önizleme yükleniyor...", eklendiğinde "Önizleme eklendi.", başarısız olduğunda "Bağlantı önizlemesi yüklenemedi: neden." der. Ayarlar > Erişilebilirlik > Seslendirilen içerik altındaki yeni "Bağlantı önizlemelerinin yüklenmesini ve eklenmesini duyur" seçeneği bu üç iletiyi açar veya kapatır; varsayılan olarak işaretlidir.
+
+- Neonize: bir sesli mesaj alıntılandığında, süresi (örneğin 0:15) artık karşı tarafın WhatsApp'ındaki alıntı balonunda görünüyor, tıpkı WPPConnect'teki gibi (sorun #707).
+
+- Durumlar: konum, anket, kişi listesi ve "Uyumsuz mesaj" olarak görünen diğer kişi durumu türleri artık kendi etiketleriyle gösteriliyor.
 
 V2.1.0.0
 

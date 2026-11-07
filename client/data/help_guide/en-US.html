@@ -220,9 +220,10 @@
     <a href="#privacidade" class="nav-link">15. WhatsApp settings</a>
     <a href="#copias-registros" class="nav-link">16. Backups and logs</a>
     <a href="#mac" class="nav-link">17. WinZapp on the Mac</a>
-    <a href="#atalhos" class="nav-link">18. Keyboard shortcuts</a>
-    <a href="#solucao-problemas" class="nav-link">19. Troubleshooting</a>
-    <a href="#registro" class="nav-link">20. Guide update log</a>
+    <a href="#armazenamento" class="nav-link">18. Storage manager</a>
+    <a href="#atalhos" class="nav-link">19. Keyboard shortcuts</a>
+    <a href="#solucao-problemas" class="nav-link">20. Troubleshooting</a>
+    <a href="#registro" class="nav-link">21. Guide update log</a>
   </div>
 </nav>
 
@@ -252,6 +253,7 @@
         <li><a href="#privacidade">WhatsApp settings</a></li>
         <li><a href="#copias-registros">Backups and logs</a></li>
         <li><a href="#mac">WinZapp on the Mac</a></li>
+        <li><a href="#armazenamento">Storage manager</a></li>
         <li><a href="#atalhos">Keyboard shortcuts</a></li>
         <li><a href="#solucao-problemas">Troubleshooting</a></li>
         <li><a href="#registro">Guide update log</a></li>
@@ -492,9 +494,9 @@
   <tr><td class="field-name">Alt+Shift+D</td><td>Message info</td></tr>
 </table>
 <ul>
-  <li><strong>Reply:</strong> if the original message is not found before sending, WinZapp tells you the quote is missing and keeps your text for you to edit through the message menu ("Edit unsent reply without its quote"). Replies with a mention carry the quote along.</li>
+  <li><strong>Reply:</strong> if the original message is not found before sending, WinZapp tells you the quote is missing and keeps your text for you to edit through the message menu ("Edit unsent reply without its quote"). Replies with a mention carry the quote along. With Neonize, quoting a voice message shows its duration in the quote the other person sees.</li>
   <li><strong>Deleting media:</strong> when you delete a photo, video, audio or document, the confirmation has "Also delete the media from your phone", checked by default. Uncheck it to delete the message and keep the file stored on the phone. The box also applies to several selected messages and only appears when there is media among them. In Settings &gt; Interface &gt; Messages, you define how it starts.</li>
-  <li><strong>Forward:</strong> choose the destinations in a list with search (the down arrow in the field goes to the first result). When it works, the screen reader says "Message forwarded." (or how many were), with no window to close. Forwarded voice messages arrive as ordinary audio, unless you check "Forward voice messages as voice messages instead of audio" in Settings &gt; Audio. With Neonize, the forwarded copy shows up in the destination conversation right away.</li>
+  <li><strong>Forward:</strong> choose the destinations in a list with search (the down arrow in the field goes to the first result). When it works, the screen reader says "Message forwarded." (or how many were), with no window to close. Forwarded voice messages arrive as ordinary audio, unless you check "Forward voice messages as voice messages instead of audio" in Settings &gt; Audio. With Neonize, the forwarded copy shows up in the destination conversation right away. When a selected message has a link preview, the box "Keep link preview" starts as set in Settings &gt; User interface &gt; Messages, "Keep link previews by default when forwarding messages". With WPPConnect the copy is sent as a new message and is not marked as forwarded; with Neonize it is.</li>
   <li><strong>Message info:</strong> on a message of yours, it shows when it was delivered, read and played, with full date and time, by asking WhatsApp itself (so receipts that arrived while WinZapp was closed also appear). In a group, it lists who received and who read it, by name.</li>
   <li><strong>Quoted messages:</strong> in a reply, only the reply's own links count as links.</li>
 </ul>
@@ -519,6 +521,7 @@
 <h3>Links</h3>
 <p>A message with two or more links becomes a navigable list. Enter or Space on a link opens it; Ctrl+C copies the link; the context menu has "Open link" and "Copy link". Group invitation links (<code>chat.whatsapp.com/...</code>) open WinZapp's "Join group by link" window, with the group preview, instead of the browser; the link's menu also offers "Join group by link" and keeps "Open link" for those who want the browser. Messages you send also carry a link preview.</p>
 <p>In a link preview, the title and description appear with the real characters, without HTML codes such as &amp;amp; or &amp;eacute;, both in the preview WinZapp sends and in the one you read.</p>
+<p>While you write a message with a link, the screen reader says "Loading link preview..." when WinZapp starts fetching the preview, "Link preview added." when it is attached to the message, or "Could not load the link preview" followed by the reason. In Settings &gt; Accessibility &gt; Spoken content, "Announce link preview loading and adding" turns the three messages on or off.</p>
 
 <h3>Contacts, polls and cards</h3>
 <ul>
@@ -601,13 +604,13 @@
 </table>
 <ul>
   <li><strong>Voice message recording channels:</strong> There is one record button. In Settings &gt; Audio, "Voice message recording channels" offers "Automatic (use the device's channels)" (the default), "Mono (mix left and right)" and "Stereo (when available)". Automatic and Stereo keep two channels when the device supports them and use mono otherwise. Mono averages left and right into one channel: use it for a microphone connected only to INPUT 1 or INPUT 2 of an audio interface. A single active input is quieter after averaging, and no automatic gain is applied. In Automatic, a recording with one side completely silent goes out in mono, taken from the side with sound. The choice is fixed when recording starts and also applies to the paused preview. It does not affect calls or microphone + computer audio recording. Stereo voice messages also play on iPhone.</li>
-  <li><strong>Microphone + computer audio:</strong> records in a single message your voice and what the computer plays (a video, music, the screen reader). During the recording, two sliders adjust the volume of the other sounds and of NVDA (without NVDA, the second one is disabled); they only apply to the recording and are kept per account. Before starting, WinZapp warns that everything that plays will go into the recording, with "Don't show again" (the option "Warn before recording computer audio" brings the warning back). The recording is sent as audio.</li>
+  <li><strong>Microphone + computer audio:</strong> records in a single message your voice and what the computer plays (a video, music, the screen reader). During the recording, two sliders adjust the volume of the other sounds and of NVDA (without NVDA, the second one is disabled); they only apply to the recording and are kept per account. Before starting, WinZapp warns that everything that plays will go into the recording, with "Don't show again" (the option "Warn before recording computer audio" brings the warning back). If WinZapp stalls for a second or two (a slow or busy computer), the sound of that moment is skipped and the recording goes on. The recording is sent as audio.</li>
   <li>Recording announcements can be silenced; the screen reader does not start saying "Send" before being interrupted.</li>
   <li><strong>Microphone noise reduction:</strong> with "Enable microphone noise reduction" checked in Settings &gt; Audio, the same page shows the "Noise reduction model" item, with its state and the "Download noise reduction model" button. The neural model is downloaded once, over the internet, and recordings are processed on this computer. Without the model, noise reduction uses the basic noise gate; if it cannot be used for a recording, WinZapp announces it through the screen reader and uses the basic noise gate for that send. If noise reduction cannot be applied at all, the message is sent unprocessed, with an announcement as well.</li>
   <li>The microphone and speaker used are in Settings &gt; Audio.</li>
   <li>With Neonize, the voice message is also delivered to contacts on Android.</li>
   <li>If the computer's file-type library (libmagic) fails to load, Neonize recognizes the type from the file itself and the voice message goes out normally.</li>
-  <li>Voice messages, mono and stereo, are recorded at 64 kbps by default. In Settings &gt; Audio, "Voice message bitrate (kbps)" lets you choose from 32 to 256 kbps.</li>
+  <li>Mono voice messages are recorded at 64 kbps by default and stereo ones at 128 kbps. In Settings &gt; Audio, "Voice message bitrate (kbps)" (mono) and "Stereo voice message bitrate (kbps)" let you choose from 32 to 256 kbps.</li>
 </ul>
 
 <h3>Listen</h3>
@@ -688,7 +691,7 @@
     <h2 id="h-status">🟢 8. Status</h2>
 <p class="lead">The Status tab (Alt+5) shows your contacts' statuses and lets you post your own.</p>
 <ul>
-  <li><strong>View:</strong> the list shows the statuses; Enter opens one. Photo and video statuses open in the viewer (separate or in the player inside the tab) and Ctrl+Left/Right Arrow goes to the previous/next status.</li>
+  <li><strong>View:</strong> the list shows the statuses; Enter opens one. Photo and video statuses open in the viewer (separate or in the player inside the tab) and Ctrl+Left/Right Arrow goes to the previous/next status. Location, poll, contact-list and other kinds of status appear in the list with their own label (for example, "Location") and open as text.</li>
   <li><strong>React:</strong> "Like ❤️".</li>
   <li><strong>Reply:</strong> "Reply to status" opens the reply field; Enter sends ("Reply sent.").</li>
   <li><strong>Post:</strong> "Post text as status" and "Send media as status". "Status posted successfully." confirms. Your own statuses are in "My status".</li>
@@ -845,7 +848,7 @@
 </ul>
 
 <h3>Tray and notifications</h3>
-<p>In Settings &gt; General &gt; Notifications, "Background notification content" has three levels: sound, chat name and message text; sound and chat name, without the text; or sound only, with no on-screen notification and nothing read. Notifications respect Windows Focus Assist, and reading a chat inside WinZapp removes its notification from the notification area.</p>
+<p>In Settings &gt; General &gt; Notifications, "Background notification content" has three levels: sound, chat name and message text; sound and chat name, without the text; or sound only, with no on-screen notification and nothing read. Notifications respect Windows Focus Assist, and reading a chat inside WinZapp removes its notification from the notification area. In "Order of group messages in toast notifications:" you choose "Participant name first" (the default: "Gustavo in WinZapp | Developers and Testers") or "Group name first" (as in the official WhatsApp Desktop: "WinZapp | Developers and Testers, Gustavo"); the choice applies only to the text of toast notifications, not to what the screen reader announces while the window is active.</p>
 
 <h3>Connection and recovery</h3>
 <p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Settings &gt; Storage &gt; Profile backup) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
@@ -861,7 +864,7 @@
 
 <table class="field-table">
   <tr><th>Category</th><th>What you find</th></tr>
-  <tr><td class="field-name">General</td><td>Language (Brazilian and European Portuguese, English, Spanish, Polish, Turkish, Romanian); spell check (follow Windows, always or never); convert emoticons to emojis; Unicode normalization in searches (exact, ignore accents, or also equivalent forms); start in the background when signing in to Windows; open group invitation links with WinZapp; check for updates automatically and alphas; download updates and transcription downloads in the background; global shortcut to open WinZapp or hide it in the tray; what to do when switching accounts (hide the current account's window or keep the windows of all accounts open).</td></tr>
+  <tr><td class="field-name">General</td><td>Language (Brazilian and European Portuguese, English, Spanish, Polish, Turkish, Romanian, Italian); spell check (follow Windows, always or never); convert emoticons to emojis; Unicode normalization in searches (exact, ignore accents, or also equivalent forms); start in the background when signing in to Windows; open group invitation links with WinZapp; check for updates automatically and alphas; download updates and transcription downloads in the background; global shortcut to open WinZapp or hide it in the tray; what to do when switching accounts (hide the current account's window or keep the windows of all accounts open).</td></tr>
   <tr><td class="field-name">General &gt; Notifications</td><td>Background notifications and their content; keep muted chats muted even when open; tray icon and unread count.</td></tr>
   <tr><td class="field-name">Interface</td><td>Each button opens the window of one subject: Messages, Reactions, Chats, Confirmations and Keyboard shortcuts.</td></tr>
   <tr><td class="field-name">Interface &gt; Messages</td><td>How many messages to show when opening a chat; how many to skip with Page Up/Down; type of message list (classic, with a 512-character limit, or list box, with full messages); show who is typing as the last row; "How should I be referred to?"; hide the sender on your own messages; hide numbers of unnamed senders; preserve the typed message as a caption; "yesterday" instead of the date; link previews; "Forwarded" before the sender; initial state of "Also delete the media from your phone"; videos and statuses in a separate player; media types shown by default.</td></tr>
@@ -905,6 +908,7 @@
 <h3>Privacy button</h3>
 <ul>
   <li>Last seen and online; About; profile picture; read receipts; who can add you to groups; who can see your status (my contacts, my contacts except..., or share only with...).</li>
+  <li>With read receipts turned off, it works both ways in one-to-one chats: you do not send read receipts to others, and you no longer see the "read" status of the messages you send. In groups, it stays as on the phone.</li>
   <li>Under "Chats", "Keep chats archived": when it is off, an archived chat goes back to the chat list when a new message arrives. It is WhatsApp's own option, so it also applies on the phone and your other devices.</li>
   <li>The people for status are chosen from the synced contacts, in a list with search where each one is marked with Space.</li>
   <li>The window loads the current values, sends only what you changed and then checks, saying which settings WhatsApp did not confirm.</li>
@@ -953,8 +957,48 @@
 
   </section>
 
+  <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
+    <h2 id="h-armazenamento">💾 18. Storage manager</h2>
+<h3>Storage summary</h3>
+<p>Open Settings → Storage → Storage manager. Use Tab to move between controls and Ctrl+Tab between tabs. In the file list, arrows move the cursor and Space changes the checkbox; moving the cursor does not select a file for removal. A page contains at most 200 items. Scan and refresh do not apply a cleanup plan.</p>
+<p>Logical file sizes, counted once per file identity. Allocated space and free disk space are not measured. Held files still occupy space. This snapshot covers this installation only.</p>
+<h3>Preferences</h3>
+<p>All background work is optional. Saving preferences does not apply a file preview. A target is advisory, not a hard quota. No disk-free-space threshold is enforced. Optional matching reads selected local message histories. External models and other accounts are information only. Newly added account folders require disabling and re-enabling that scope.</p>
+<p>If matching an entire account is incomplete, select fewer local conversations. Matching reads local message histories without contacting WhatsApp. Sent, pending, failed, starred, locked, hidden and unmatched content stays protected. No model or backup removal is offered here; their buttons open the existing settings.</p>
+<p>Match media with selected local histories → Choose local histories to match → Save preferences and rule drafts</p>
+<h3>Preview selection</h3>
+<ol>
+<li>Scan now</li>
+<li>Apply filters</li>
+<li>Select this page</li>
+<li>Operation method</li>
+<li>Preview selection</li>
+<li>Apply preview</li>
+</ol>
+<p>Select at most 500 eligible files per preview, or fewer if their paths are unusually long. No part of this selection was applied.</p>
+<p>Models, runtimes, backups, logs, databases and login data stay protected here. Use their existing settings to manage them. Unknown files are not declared unnecessary. Only verified cache files and matched received-media copies can enter a preview.</p>
+<h3>Protections</h3>
+<p>Protection wins over manual selection and rules. Shared protection applies across this installation&#x27;s accounts. Removing protection grants no new selection. Missing or currently unnamed items keep a private numbered label.</p>
+<p>Protect selected files → Protect selected conversations → Refresh protections</p>
+<h3>Held files</h3>
+<p>Holding moves a local copy without making another copy and does not free its space. Restore never overwrites a current file. Permanent removal cannot be undone here. Media may be unavailable from WhatsApp.</p>
+<p>To permanently remove held media, enable media matching and select conversations in Preferences, save, then retry. Only currently visible, unlocked and completely matched media without a protection can be removed.</p>
+<p>Refresh held files → Restore selected held files → Permanently remove selected held files</p>
+<p>For a cleaned photo, video, document or audio item, select its message and use Download. Confirm the separate one-copy request. This is not an undo or a promise that WhatsApp still has the file. No other download block is cleared.</p>
+<p>Remove empty operation records older than two days? Held files and active recovery records are kept. Previews expire after one day.</p>
+<h3>Rules</h3>
+<p>Age and size are conditions, not proof of uselessness. Protection wins. A suggestion or notification rule wins over an automatic rule on the same file. Automatic mode is available only for verified regenerable compile cache.</p>
+<p>Manual scans do not run automatic removal rules. Only a separately enabled cache rule can remove files during saved startup or interval evaluations, in bounded batches. Pausing scheduled evaluations preserves other unsaved drafts. A usage target uses the last non-cancelled measurement and is not a disk quota; manual requests and sending remain available.</p>
+<p>Add rule → Enable this rule after saving preferences → Save preferences and rule drafts</p>
+<p>These are drafts. Save preferences to apply rule and matching-scope changes.</p>
+<p>Template loaded for review. Rules and scheduling are disabled. Save preferences to apply the choices.</p>
+<p>Keep summary history for days; 0: off → Refresh summary history → Clear summary history</p>
+<p>Reset this account&#x27;s storage preferences, rules and keep-list? Shared protections, held files and media download blocks stay. No files are cleaned.</p>
+
+  </section>
+
   <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
-    <h2 id="h-atalhos">⌨️ 18. Keyboard shortcuts</h2>
+    <h2 id="h-atalhos">⌨️ 19. Keyboard shortcuts</h2>
 <div class="callout info">
   <div class="callout-title">ℹ️ List generated from the code</div>
   The tables below are generated automatically from WinZapp's shortcut catalog and show the factory keys. They also appear in the program, on F1 or Help &gt; Keyboard shortcuts. Any key can be changed in the Keyboard shortcuts tab of Settings.
@@ -1301,7 +1345,7 @@
   </section>
 
   <section id="solucao-problemas" class="wiki-section" aria-labelledby="h-solucao-problemas">
-    <h2 id="h-solucao-problemas">🧰 19. Troubleshooting</h2>
+    <h2 id="h-solucao-problemas">🧰 20. Troubleshooting</h2>
 <table class="field-table">
   <tr><th>Situation</th><th>What to do</th></tr>
   <tr><td>WinZapp asks you to pair again</td><td>Pair with number or QR code. Your chats are only deleted if you connect a different number. If it happened for no reason, keep <code>log.log</code> and <code>shutdown_audit.log</code> before opening it again.</td></tr>
@@ -1321,11 +1365,13 @@
   </section>
 
   <section id="registro" class="wiki-section" aria-labelledby="h-registro">
-    <h2 id="h-registro">📝 20. Guide update log</h2>
+    <h2 id="h-registro">📝 21. Guide update log</h2>
 <p>Arabic is now available in Settings > General > Language, with Arabic text in the Windows installer and uninstaller.</p>
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>Guide: Italian joins the language list in Settings.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Settings &gt; Storage gains Storage manager: inspect logical sizes and coverage, choose media matching and protections, preview local-copy removal or recoverable holding, restore held files, and configure optional rules, notices and advisory targets. Automatic removal is restricted to verified regenerable compile cache; all scheduling starts off. Cleaned media can be requested individually without clearing automatic-download blocks.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Guide: a new conversation by number opens with the number WhatsApp uses.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Guide: channels with the directory's categories and views, updates posted and pinned by admins and the channel admins window.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Guide: the Channels window (Alt+9), adding people to the call in progress, older messages asked of the phone on Neonize and where the number of new messages goes in the chat list.</td></tr>
@@ -1361,6 +1407,11 @@
   <tr><td class="field-name">2.1.0.4397</td><td>Profile tab in WhatsApp settings (display name, About and picture); Communities in the navigation list, after Calls.</td></tr>
   <tr><td class="field-name">2.1.0.4395</td><td>First version of the guide: all features of versions 1.1.0.0, 1.1.1.0, 2.0.0.0 and of the 2.1.0.0 cycle up to this alpha.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Neonize calls: recover an answer or end that arrives before local call registration; group call failures now distinguish WhatsApp rate limiting and the supported member limits.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Voice messages: stereo (AAC) now defaults to 128 kbps; mono stays at 64 kbps.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Computer audio recording: a short stall no longer stops the recording.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Group toast notifications: option to show the group name before the participant name.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Neonize: quoting a voice message shows its duration.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Location, poll and other kinds of status no longer show as an incompatible message.</td></tr>
 </table>
 
   </section>

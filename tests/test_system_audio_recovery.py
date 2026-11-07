@@ -103,12 +103,21 @@ class MixerRecoveryTests(unittest.TestCase):
                 self.assertEqual(samples[::2], (8192,) * 480 + (0,) * (gap_ms * 48) + (8192,) * 480)
                 self.assertEqual(samples[1::2], (8192,) * end_frames)
 
-    def test_large_lateness_bad_timestamps_and_overflow_remain_fatal(self):
+    def test_lateness_beyond_reserve_drops_audio_without_failing(self):
         from core.system_audio_capture import AudioPacket
         mix = self.mixer()
         mix.render_until(10000000)
-        with self.assertRaisesRegex(ValueError, 'deadline'):
-            mix.add(0, AudioPacket(0, bytes(4)))
+        mix.add(0, AudioPacket(0, bytes(4)))
+        mix.add(0, AudioPacket(9000000, struct.pack('<50f', *([.5] * 50))))
+        self.assertEqual(mix.late_packets, [2, 0])
+        self.assertEqual(mix.late_frames, [51, 0])
+        mix.add(0, AudioPacket(10000000, struct.pack('<10f', *([.5] * 10))))
+        self.assertEqual(struct.unpack('<10h', mix.render_until(10100000)), (8192,) * 10)
+
+    def test_bad_timestamps_and_overflow_remain_fatal(self):
+        from core.system_audio_capture import AudioPacket
+        mix = self.mixer()
+        mix.render_until(10000000)
         mix.add(0, AudioPacket(11000000, bytes(40)))
         with self.assertRaisesRegex(ValueError, 'backwards'):
             mix.add(0, AudioPacket(10900000, bytes(40)))

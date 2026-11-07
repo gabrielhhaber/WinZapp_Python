@@ -1,7 +1,9 @@
 """Forwarding a stored message that has no media: text, location and contact
 cards, rebuilt from the record the client reads (msgmap.py writes it).
 
-A location keeps its point, its name and its address; a live location goes
+A text message keeps its link preview (title, description, address) when the
+caller asks for it; the thumbnail is not stored, so the card goes without one,
+as the cards WinZapp sends itself do. A location keeps its point, its name and its address; a live location goes
 as the point where it was last seen, as WhatsApp's own forward does. A
 contact card goes as one `contactMessage`, a set of cards as a
 `contactsArrayMessage` with the set's name. Anything else is None: the route
@@ -23,14 +25,24 @@ def card_name(card) -> str:
     return match.group(1).strip() if match else ""
 
 
-def plain_forward(original):
-    """The Message that forwards the stored record `original`, or None."""
+def plain_forward(original, keep_preview=False):
+    """The Message that forwards the stored record `original`, or None.
+
+    `keep_preview`: a text message goes with the link preview it was stored
+    with, if it has one."""
     from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import (
         ContactMessage, ContactsArrayMessage, ExtendedTextMessage, LocationMessage, Message)
     kind = original.get("type")
     if kind == "chat" and original.get("body"):
-        return Message(extendedTextMessage=ExtendedTextMessage(
-            text=original["body"], contextInfo=_forwarded()))
+        text = ExtendedTextMessage(text=original["body"], contextInfo=_forwarded())
+        title = str(original.get("title") or "")
+        description = str(original.get("description") or "")
+        if keep_preview and (title or description):
+            text.title = title
+            text.description = description
+            # in the proto the page address is matchedText (msgmap.link_preview_fields)
+            text.matchedText = str(original.get("canonicalUrl") or "")
+        return Message(extendedTextMessage=text)
     if kind in ("location", "liveLocation"):
         lat, lng = original.get("lat"), original.get("lng")
         if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (lat, lng)):

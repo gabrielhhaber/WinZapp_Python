@@ -28,6 +28,8 @@
  * rejected forward throws and is never retried: the caller must not send twice.
  * With args.keepVoice the success also carries voice: { asked, kept }, the
  * voice messages in the batch and how many of them stayed voice messages.
+ * With args.linkPreview the single text message being forwarded goes out with
+ * that preview card (see the linkPreview block below).
  */
 
 export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
@@ -266,8 +268,48 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
     };
   };
 
+  // args.linkPreview: {title, description, canonicalUrl, matchedText} of the
+  // ONE text message being forwarded, which the user asked to keep with its
+  // card. WhatsApp Web's own forward of a text message drops the card, so for
+  // that message the text is sent through WPP.chat.sendTextMessage with the
+  // preview as an object: wa-js uses an object as-is and fetches nothing (the
+  // same call WinZapp's ordinary text sends make, see /send-message). A card
+  // sent this way is a new text message, not WhatsApp's forward: it does not
+  // carry the "Forwarded" label. Anything that is not a plain text message
+  // with a body goes through the real forward as before, and a failed send
+  // throws like any other forward: never retried here.
+  const linkPreview = args && args.linkPreview;
+  const previewObject = () => {
+    if (!linkPreview || typeof linkPreview !== 'object') return null;
+    const url = String(linkPreview.canonicalUrl || linkPreview.matchedText || '');
+    const title = String(linkPreview.title || '');
+    if (!url && !title) return null;
+    return {
+      title: title,
+      description: String(linkPreview.description || ''),
+      canonicalUrl: url,
+      matchedText: url,
+    };
+  };
+  const sendWithPreview = async () => {
+    const WPP = win.WPP;
+    const preview = previewObject();
+    if (!preview || messageIds.length !== 1) return null;
+    if (!WPP || !WPP.chat || typeof WPP.chat.sendTextMessage !== 'function') return null;
+    const msg = await WPP.chat.getMessageById(messageIds[0]);
+    const body = msg && msg.type === 'chat' && typeof msg.body === 'string' ? msg.body : '';
+    if (!body) return null;
+    const response = await WPP.chat.sendTextMessage(chatId, body, {
+      linkPreview: preview,
+      createChat: true,
+    });
+    return { ok: true, response: serializable(response) };
+  };
+
   const run = async () => {
     const WPP = win.WPP;
+    const withPreview = await sendWithPreview();
+    if (withPreview) return withPreview;
     let mod = forwardModule();
     const bound = Boolean(
       WPP && WPP.whatsapp && WPP.whatsapp.functions &&
@@ -357,7 +399,8 @@ export const FORWARD_RUNTIME_SOURCE = String.raw`async function (args) {
   // the first one's result, never send. The key is released on any outcome so
   // a later, deliberate forward of the same messages is not blocked.
   const inflight = (win.__winzappForwardInflight = win.__winzappForwardInflight || {});
-  const key = String(chatId) + '|' + messageIds.join(',') + (keepVoice ? '|voice' : '');
+  const key = String(chatId) + '|' + messageIds.join(',') + (keepVoice ? '|voice' : '') +
+    (previewObject() ? '|preview' : '');
   if (inflight[key]) return await inflight[key];
   const pending = run();
   inflight[key] = pending;
@@ -372,6 +415,12 @@ export function buildForwardRuntimeExpression(args: {
   chatId: string;
   messageIds: string[];
   keepVoice?: boolean;
+  linkPreview?: {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    matchedText?: string;
+  };
 }): string {
   return `(${FORWARD_RUNTIME_SOURCE})(${JSON.stringify(args)})`;
 }

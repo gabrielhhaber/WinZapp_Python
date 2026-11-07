@@ -189,7 +189,7 @@ def test_model_catalogue_is_pinned_and_flat_locally(tmp_path):
 def test_every_locale_has_the_fallback_notice():
     import polib, glob
     files = glob.glob(os.path.join(os.path.dirname(__file__), "..", "translations", "*", "LC_MESSAGES", "winzapp.po"))
-    assert len(files) == 8  # upstream added Arabic after the first adaptation
+    assert len(files) == 9  # upstream added Arabic and Italian after the first adaptation
     for f in files:
         for key in ("noise_reduction_fallback", "noise_reduction_failed"):
             entry = [e for e in polib.pofile(f) if e.msgctxt == key]
@@ -209,7 +209,7 @@ class _PoI18n:
         return self._t[key]
 
 
-LOCALES = ["en-US", "es-ES", "pl", "pt-BR", "pt-PT", "ro", "tr-TR"]
+LOCALES = ["en-US", "es-ES", "pl", "pt-BR", "pt-PT", "ro", "tr-TR", "it"]
 
 
 def test_noise_model_section_speaks_in_every_locale():

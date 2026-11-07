@@ -90,6 +90,40 @@ class TestWhatGoesOut:
         from core.voice_stereo import voice_bitrate_kbps
         assert voice_bitrate_kbps(settings) == kbps
 
+    @pytest.mark.parametrize("settings, kbps", [
+        ({}, 128), (None, 128),
+        ({"general": {"voice_recording_bitrate_stereo": 192}}, 192),
+        ({"general": {"voice_recording_bitrate_stereo": 100}}, 128),
+        ({"general": {"voice_recording_bitrate_stereo": True}}, 128),
+        # the mono setting never leaks into stereo
+        ({"general": {"voice_recording_bitrate": 32}}, 128)])
+    def test_the_stereo_bitrate_defaults_to_128(self, settings, kbps):
+        from core.voice_stereo import stereo_voice_bitrate_kbps
+        assert stereo_voice_bitrate_kbps(settings) == kbps
+
+    @pytest.mark.parametrize("old, expected", [
+        (64, 128), (96, 96), (256, 256), (32, 32), (100, 128)])
+    def test_migration_moves_default_64_to_128_and_keeps_other_choices(self, old, expected):
+        from core.voice_stereo import migrate_stereo_voice_bitrate
+        general = {"voice_recording_bitrate": old}
+        settings = {"general": general}
+        assert migrate_stereo_voice_bitrate(settings) is True
+        assert general["voice_recording_bitrate_stereo"] == expected
+        assert general["voice_recording_bitrate"] == old
+        assert migrate_stereo_voice_bitrate(settings) is False
+
+    def test_migration_leaves_a_fresh_install_to_the_backfill(self):
+        from core.voice_stereo import migrate_stereo_voice_bitrate
+        for settings in ({}, {"general": {}}, None):
+            assert migrate_stereo_voice_bitrate(settings) is False
+
+    def test_migration_never_overwrites_a_stereo_choice(self):
+        from core.voice_stereo import migrate_stereo_voice_bitrate
+        settings = {"general": {"voice_recording_bitrate": 64,
+                                "voice_recording_bitrate_stereo": 64}}
+        assert migrate_stereo_voice_bitrate(settings) is False
+        assert settings["general"]["voice_recording_bitrate_stereo"] == 64
+
     def test_the_data_uri_names_what_it_carries(self):
         assert voice_data_uri("QQ==") == "data:audio/ogg;codecs=opus;base64,QQ=="
         assert voice_data_uri("QQ==", STEREO_MIMETYPE) == "data:audio/mp4;base64,QQ=="
@@ -222,7 +256,7 @@ def test_a_stereo_voice_message_asks_the_aac_encoder_for_the_chosen_bitrate(monk
         return str(m4a)
     monkeypatch.setattr(audio_transcode, "encode_system_audio_to_m4a", _encode)
     panel = types.SimpleNamespace(main_window=types.SimpleNamespace(
-        _find_api_ffmpeg=lambda: "ff", settings={"general": {"voice_recording_bitrate": 96}}))
+        _find_api_ffmpeg=lambda: "ff", settings={"general": {"voice_recording_bitrate_stereo": 96}}))
 
     assert ConversationsPanel._encode_stereo_voice(panel, "v.wav") == b"M4A"
 

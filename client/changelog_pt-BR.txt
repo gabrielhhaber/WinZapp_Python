@@ -6,11 +6,26 @@ NOVIDADES
 
 - Aba Mídia das conversas e grupos: Ctrl+C num documento, foto, vídeo ou áudio agora copia o arquivo para a área de transferência, como na lista de mensagens, em vez de dizer "Não foi possível copiar esta mensagem". O item do menu de contexto também passou a ser "Copiar arquivo".
 
+- Configurações > Geral > Notificações ganha "Ordem das mensagens de grupo nas notificações toast:", com "Nome do participante primeiro" (padrão, como já era: "Gustavo em WinZapp | Desenvolvedores e Testers") e "Nome do grupo primeiro" (como no WhatsApp Desktop oficial: "WinZapp | Desenvolvedores e Testers, Gustavo"). A escolha muda só o texto das notificações toast; o que o leitor de tela anuncia com a janela ativa continua igual.
+
+- A gravação do áudio do computador não é mais interrompida com "problema com o dispositivo de áudio" quando o WinZapp trava por um ou dois segundos (computador lento ou ocupado): o áudio desse instante é pulado, a gravação continua e o resto permanece sincronizado.
+
+- Neonize: com as confirmações de leitura desativadas em Privacidade, você deixa de ver o status "lida" das mensagens que envia em conversas individuais, assim como deixa de enviar confirmação de leitura aos outros (como no WPPConnect). A configuração agora vale nos dois sentidos.
+
+- ClickBus: nomes comerciais verificados aparecem na lista de conversas, os textos de viagens e os botões interativos são exibidos por completo, e a opção escolhida no carrossel é enviada com o índice do cartão.
+
+- Configurações > Armazenamento ganha o Gerenciador de armazenamento: tamanhos lógicos e cobertura, associação de mídia, proteções, prévia da remoção de cópias locais ou retenção recuperável, restauração e regras, avisos e metas opcionais. A remoção automática é exclusiva do cache de compilação regenerável verificado; o agendamento começa desligado. É possível pedir uma mídia limpa individualmente sem liberar o download automático.
+
 - Chamadas do Neonize: preservado o atendimento ou encerramento recebido antes do registro local da chamada; falhas em chamadas em grupo agora distinguem o limite de solicitações do WhatsApp e os limites de membros suportados.
+
+- Chamadas do Neonize: o registro agora anota os endpoints do relay e as respostas dele, para descobrir por que uma chamada recebida pode vir sem o áudio da outra pessoa (problema #689). Nenhuma mudança de comportamento.
+
+- Chamadas em grupo do Neonize: quando um membro do grupo entra numa chamada em grupo que você iniciou, a chamada passa a ficar ativa e o áudio começa, em vez de ficar em "chamando" com o microfone descartado. O fim da chamada agora é registrado no grupo e no seu histórico de chamadas, não numa conversa privada com um dos membros (problema #689).
 
 - Neonize: a primeira mensagem para um número de telefone novo digitado numa nova conversa (Ctrl+N) não termina mais como "envio não confirmado" quando o WhatsApp tem o número registrado na outra forma (com ou sem o nono dígito dos celulares brasileiros): agora ela é enviada ao endereço que o WhatsApp conhece. Além disso, um número digitado numa nova conversa agora abre o chat com o endereço que o WhatsApp conhece, sem deixar uma conversa duplicada.
 
 - Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápido mesmo com mais de um minuto (a mudança para 256 kbps tinha deixado o envio lento). Configurações > Áudio ganhou "Taxa de bits das mensagens de voz (kbps)", para escolher de 32 a 256 kbps.
+- Mensagens de voz: as gravações em estéreo (AAC) agora saem por padrão a 128 kbps, porque 64 kbps deixava o áudio com qualidade ruim; as gravações em mono continuam a 64 kbps. Configurações > Áudio ganha "Taxa de bits das mensagens de voz em estéreo (kbps)". Quem ainda estava no padrão antigo de 64 kbps passa a 128 kbps no estéreo; qualquer outra taxa que você tenha escolhido é mantida.
 
 - Configurações > Interface do usuário > Conversas: nova opção "Número de mensagens novas na lista de conversas", para o leitor de tela falar o número de mensagens novas antes do nome da conversa em vez de depois. Vale para a lista de conversas, as arquivadas e as trancadas. (sugestão de Michal Suchý)
 
@@ -286,6 +301,16 @@ NOVIDADES
 - Árabe: o guia de uso (Ajuda > Guia de uso) agora está completo em árabe.
 
 - Neonize: uma conversa com uma empresa verificada agora mostra o nome verificado da empresa quando ela não está na sua agenda.
+
+- Novo idioma: italiano. Escolha-o em Configurações > Geral > Idioma, no instalador e no desinstalador. O programa está totalmente traduzido; o guia de uso e estas notas de versão ainda estão em inglês por enquanto.
+
+- Encaminhar uma mensagem com link agora preserva a prévia do link. A janela de encaminhar ganhou a caixa "Preservar prévia do link", marcada por padrão e exibida quando alguma mensagem selecionada tem prévia; em Configurações > Interface do usuário > Conversas, a opção "Preservar prévias de links por padrão ao encaminhar mensagens" define como ela começa. Funciona com a WPPConnect e com o Neonize. Observação: com a WPPConnect, a mensagem encaminhada com a prévia é enviada como uma nova mensagem e não leva o rótulo "Encaminhada"; com o Neonize, leva.
+
+- Ao escrever uma mensagem com link, o leitor de tela agora diz "Carregando prévia..." enquanto a prévia é buscada, "Prévia adicionada." quando ela é anexada, ou "Não foi possível carregar a prévia do link: motivo." quando falha. Em Configurações > Acessibilidade > Conteúdo falado, a nova opção "Anunciar adição e carregamento das prévias de links" liga ou desliga as três mensagens; vem marcada por padrão.
+
+- Neonize: ao citar uma mensagem de voz, a duração dela (por exemplo 0:15) agora aparece no balão de citação no WhatsApp da outra pessoa, como no WPPConnect (problema #707).
+
+- Status: localização, enquete, lista de contatos e outros tipos de status de contatos que apareciam como "Mensagem incompatível" agora são mostrados com o seu rótulo.
 
 V2.1.0.0
 

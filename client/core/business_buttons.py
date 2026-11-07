@@ -28,12 +28,13 @@ from urllib.parse import quote
 
 from core.api_client import api_post
 
-MAX_BUTTONS = 12
+MAX_BUTTONS = 32
 LABEL_LIMIT = 80
 SOURCES = ("dynamic", "native", "template", "list")
 REPLY, URL, COPY, CALL = "reply", "url", "copy", "call"
 
 _MESSAGE = re.compile(r"(?:true|false)_\d+@(?:c\.us|lid)_[A-Za-z0-9]{8,64}")
+_OLD_CARD_LABEL = re.compile(r"^([1-9]\d*)\. (.+): [^:\n]+$", re.DOTALL)
 
 
 class ButtonReplyError(Exception):
@@ -48,12 +49,12 @@ def _text(value):
     return value.strip() if isinstance(value, str) else ""
 
 
-def _button(kind, source, index, label, value=""):
+def _button(kind, source, index, label, value="", *, full_label=False):
     label = _text(label)
     if not label:
         return None
     return {"kind": kind, "source": source, "index": index,
-            "label": label[:LABEL_LIMIT], "value": _text(value)}
+            "label": label if full_label else label[:LABEL_LIMIT], "value": _text(value)}
 
 
 def _dicts(value):
@@ -82,8 +83,14 @@ def _native(wpp_msg):
         if not isinstance(params, dict) or params.get("disabled") is True:
             continue
         name, label = raw.get("name"), params.get("display_text")
+        is_card = isinstance(raw.get("cardIndex"), int) and raw["cardIndex"] >= 0
+        if is_card and name == "quick_reply":
+            # The action text is usually the same "Select" on every card.
+            # Its accessible name needs the whole trip, while its id still
+            # identifies the selected option when the button is activated.
+            label = _text(raw.get("cardText")) or _text(raw.get("cardTitle")) or label
         if name == "quick_reply":
-            button = _button(REPLY, "native", index, label, params.get("id"))
+            button = _button(REPLY, "native", index, label, params.get("id"), full_label=is_card)
         elif name == "cta_url":
             url = _text(params.get("url"))
             button = _button(URL, "native", index, label, url) if url.lower().startswith(("http://", "https://")) else None
@@ -138,6 +145,49 @@ def business_buttons(wpp_msg):
     if not isinstance(wpp_msg, dict):
         return []
     return (_dynamic(wpp_msg) + _native(wpp_msg) + _template(wpp_msg) + _list(wpp_msg))[:MAX_BUTTONS]
+
+
+def business_button_label(msg, button):
+    """Name for a stored button, including carousels cached by the old build.
+
+    Their labels were saved as "3. <first 32 characters>: Select" and a
+    restart does not re-normalize that local message. Recover the complete
+    card from the interactive message body, which still contains all cards.
+    """
+    label = button.get("label") or ""
+    if (msg.get("messageType") != "interactiveMessage"
+            or button.get("kind") != REPLY or button.get("source") != "native"):
+        return label
+    old = _OLD_CARD_LABEL.fullmatch(label)
+    if not old:
+        return label
+    preview = old.group(2)
+    interactive = (msg.get("message") or {}).get("interactiveMessage") or {}
+    body = (interactive.get("body") or {}).get("text") or ""
+    if not isinstance(body, str) or not isinstance(msg.get("businessButtons"), list):
+        return preview
+    locations = []
+    cursor = 0
+    previous_number, previous_start = "", -1
+    for action in msg["businessButtons"]:
+        match = _OLD_CARD_LABEL.fullmatch(action.get("label") or "")
+        if not match:
+            continue
+        number, candidate = match.group(1), match.group(2)
+        if number == previous_number:
+            start = previous_start
+        else:
+            start = body.find(candidate, cursor)
+            if start < 0:
+                continue
+            cursor = start + len(candidate)
+        locations.append((action, start))
+        previous_number, previous_start = number, start
+    for action, start in locations:
+        if action is button:
+            end = next((pos for _, pos in locations if pos > start), len(body))
+            return body[start:end].strip() or preview
+    return preview
 
 
 def reply_to_button(connection, message_id, button):

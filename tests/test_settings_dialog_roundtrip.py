@@ -51,6 +51,11 @@ SCENARIOS = {
         set=lambda d, t: d._voice_bitrate_choice.SetSelection(4),
         shows=lambda d, t: d._voice_bitrate_choice.GetSelection() == 4,
     ),
+    "voice_recording_bitrate_stereo": dict(
+        saves={("general", "voice_recording_bitrate_stereo"): 192},
+        set=lambda d, t: d._voice_bitrate_stereo_choice.SetSelection(5),
+        shows=lambda d, t: d._voice_bitrate_stereo_choice.GetSelection() == 5,
+    ),
     # Settings > Advanced (ui/dialogs/advanced_tab.py).
     "advanced_wpp_all_updates": dict(
         saves={("general", "wpp_all_updates"): True},
@@ -71,6 +76,11 @@ SCENARIOS = {
         saves={("general", "notification_content"): "sound"},
         set=lambda d, t: d._notification_content_radio.SetSelection(2),
         shows=lambda d, t: d._notification_content_radio.GetSelection() == 2,
+    ),
+    "group_toast_order": dict(
+        saves={("general", "group_toast_order"): "group"},
+        set=lambda d, t: d._group_toast_order_radio.SetSelection(1),
+        shows=lambda d, t: d._group_toast_order_radio.GetSelection() == 1,
     ),
     "spell_check_mode": dict(
         saves={("general", "spell_check_mode"): "off"},

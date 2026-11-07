@@ -180,11 +180,14 @@ class TestSettings:
 
         s = _S()
         s._notifications_check, s._notification_content_radio = _Ctl(False), _Ctl()
+        s._group_toast_order_radio = _Ctl()
         s._sync_notification_content_enabled()
         assert s._notification_content_radio.enabled is False
+        assert s._group_toast_order_radio.enabled is False
         s._notifications_check.value = True
         s._sync_notification_content_enabled()
         assert s._notification_content_radio.enabled is True
+        assert s._group_toast_order_radio.enabled is True
 
 
 def test_the_no_banner_fallback_does_not_repeat_itself_at_name(direct_callafter):

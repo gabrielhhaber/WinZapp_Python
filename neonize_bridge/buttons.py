@@ -16,10 +16,11 @@ Replies that exist: reply button ("dynamic", ButtonsResponseMessage), list row
 ("list", ListResponseMessage), template button ("template",
 TemplateButtonReplyMessage) and the quick reply of an interactive message
 ("native", InteractiveResponseMessage with a `quick_reply`
-nativeFlowResponseMessage, the format TeleZapp sends). The other native buttons
+nativeFlowResponseMessage). A carousel card uses TemplateButtonReplyMessage
+with its card index. The other native buttons
 (link, copy, call) are opened by the client itself and never come here.
 
-Nothing here was tested against a real account.
+The carousel reply format has unit tests but awaits confirmation on a real account.
 """
 import json
 
@@ -82,7 +83,7 @@ def button_fields(message) -> dict:
     has no buttons."""
     if _has(message, "buttonsMessage"):
         b = message.buttonsMessage
-        return {"body": b.contentText or b.text,
+        return {"type": "buttons", "body": b.contentText or b.text,
                 "dynamicReplyButtons": _dynamic(b)}
     if _has(message, "listMessage"):
         return {"type": "list", "body": message.listMessage.description,
@@ -91,20 +92,54 @@ def button_fields(message) -> dict:
         t = message.templateMessage
         template = t.hydratedTemplate if _has(t, "hydratedTemplate") else \
             t.hydratedFourRowTemplate
-        return {"body": template.hydratedContentText,
+        return {"type": "template", "body": template.hydratedContentText,
                 "hydratedButtons": _template(template)}
     if _has(message, "interactiveMessage"):
         i = message.interactiveMessage
-        if not _has(i, "nativeFlowMessage"):
-            return {}
-        buttons = i.nativeFlowMessage.buttons
-        fields = {"body": i.body.text, "interactivePayload": {"buttons": [
-            {"name": b.name, "buttonParamsJson": b.buttonParamsJSON}
-            for b in buttons]}}
-        flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
-        if flow:            # the client tells the order notice from the rest by this
-            fields["nativeFlowName"] = flow
+        parts = [i.header.title, i.body.text, i.footer.text]
+        card_buttons = []
+        for card_index, card in enumerate(i.carouselMessage.cards):
+            card_parts = (card.header.title, card.body.text, card.footer.text)
+            parts.extend(card_parts)
+            card_buttons.extend(
+                {"name": b.name, "buttonParamsJson": b.buttonParamsJSON,
+                 "cardIndex": card_index,
+                 "cardTitle": card.header.title or card.body.text,
+                 "cardText": "\n".join(part for part in card_parts if part)}
+                for b in card.nativeFlowMessage.buttons)
+        fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
+        if _has(i, "nativeFlowMessage"):
+            buttons = i.nativeFlowMessage.buttons
+            fields["interactivePayload"] = {"buttons": [
+                {"name": b.name, "buttonParamsJson": b.buttonParamsJSON}
+                for b in buttons]}
+            flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
+            if flow:        # the client tells the order notice from the rest by this
+                fields["nativeFlowName"] = flow
+        if card_buttons:
+            fields.setdefault("interactivePayload", {"buttons": []})["buttons"].extend(card_buttons)
         return fields
+    if _has(message, "buttonsResponseMessage"):
+        b = message.buttonsResponseMessage
+        return {"type": "buttons_response", "body": b.selectedDisplayText,
+                "selectedButtonID": b.selectedButtonID}
+    if _has(message, "listResponseMessage"):
+        b = message.listResponseMessage
+        return {"type": "list_response", "body": b.title or b.description,
+                "selectedRowID": b.singleSelectReply.selectedRowID}
+    if _has(message, "templateButtonReplyMessage"):
+        return {"type": "chat", "body": message.templateButtonReplyMessage.selectedDisplayText}
+    if _has(message, "interactiveResponseMessage"):
+        response = message.interactiveResponseMessage
+        body = response.body.text
+        if not body:
+            try:
+                params = json.loads(response.nativeFlowResponseMessage.paramsJSON or "null")
+            except ValueError:
+                params = None
+            if isinstance(params, dict) and isinstance(params.get("display_text"), str):
+                body = params["display_text"]
+        return {"type": "chat", "body": body}
     return {}
 
 
@@ -137,7 +172,8 @@ def reply_plan(wpp, source, index):
         return {"kind": "list", "id": row["rowId"], "title": row["title"],
                 "description": row.get("description") or ""}
     if source == "native":
-        button = _item((wpp.get("interactivePayload") or {}).get("buttons"), index)
+        native_buttons = (wpp.get("interactivePayload") or {}).get("buttons")
+        button = _item(native_buttons, index)
         if button.get("name") != "quick_reply":
             raise ButtonRefused("button_not_found", 404)
         try:
@@ -146,6 +182,14 @@ def reply_plan(wpp, source, index):
             params = None
         if not isinstance(params, dict) or not params.get("display_text"):
             raise ButtonRefused("button_not_found", 404)
+        card_index = button.get("cardIndex")
+        if isinstance(card_index, int) and not isinstance(card_index, bool) and card_index >= 0:
+            card_button_index = sum(
+                1 for earlier in native_buttons[:index]
+                if isinstance(earlier, dict) and earlier.get("cardIndex") == card_index)
+            return {"kind": "carousel", "id": str(params.get("id") or ""),
+                    "text": str(params["display_text"]), "index": card_button_index,
+                    "cardIndex": card_index}
         return {"kind": "flow", "id": str(params.get("id") or ""),
                 "text": str(params["display_text"])}
     raise ButtonRefused("invalid_request", 400)
@@ -164,6 +208,11 @@ def build_reply(plan, ctx):
         return Message(templateButtonReplyMessage=TemplateButtonReplyMessage(
             selectedID=plan["id"], selectedDisplayText=plan["text"],
             selectedIndex=plan["index"], contextInfo=ctx))
+    if plan["kind"] == "carousel":
+        return Message(templateButtonReplyMessage=TemplateButtonReplyMessage(
+            selectedID=plan["id"], selectedDisplayText=plan["text"],
+            selectedIndex=plan["index"], selectedCarouselCardIndex=plan["cardIndex"],
+            contextInfo=ctx))
     if plan["kind"] == "flow":
         reply = InteractiveResponseMessage(contextInfo=ctx)
         reply.body.text = plan["text"]

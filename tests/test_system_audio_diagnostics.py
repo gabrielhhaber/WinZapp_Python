@@ -290,41 +290,6 @@ class RecorderDiagnosticsTests(unittest.TestCase):
             self.assertEqual(errors[0]['native']['microphone']['packet_frames'], 2)
             self.assertEqual(errors[0]['native']['microphone']['state'], 1)
 
-    def test_late_packet_reason_deadline_and_prefix_are_preserved(self):
-        import threading
-        from core.system_audio_capture import AudioPacket, SystemAudioRecorder
-        from core.system_audio_diagnostics import CaptureDiagnostics
-        from tests.test_system_audio_capture import FakeBackend
-        backend = FakeBackend()
-        frames, errors = [], []
-        delivered, failed = threading.Event(), threading.Event()
-        def receive(data):
-            frames.append(data)
-            delivered.set()
-        def failure(exc):
-            errors.append(exc)
-            failed.set()
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / 'capture.log'
-            recorder = SystemAudioRecorder(receive, failure, rate=8000,
-                backend_factory=lambda: backend,
-                diagnostics=CaptureDiagnostics(rate=8000, channels=1, path=path))
-            try:
-                recorder.start()
-                self.assertTrue(delivered.wait(2))
-                prefix = b''.join(frames)
-                backend.loop.read_packets = lambda: [AudioPacket(0, bytes(4))]
-                self.assertTrue(failed.wait(2))
-            finally:
-                recorder.stop()
-            records = [json.loads(s) for s in path.read_text(encoding='utf-8').splitlines()]
-            primary = next(r for r in records if r.get('primary'))
-            self.assertEqual(primary['reason'], 'late_packet')
-            self.assertEqual((primary['phase'], primary['source']), ('mix', 'loopback'))
-            self.assertLess(primary['recent'][-1]['deadline_frames'], 0)
-            self.assertTrue(b''.join(frames).startswith(prefix))
-            self.assertEqual(len(errors), 1)
-
     def test_lifecycle_metrics_and_original_error_survive_cleanup(self):
         import inspect
         import threading

@@ -10,6 +10,7 @@ import time
 import wx
 from core.utils import append_selected_marker, contact_dedup_key
 from ui.dialogs.contact_list_picker import build_own_contact_rows
+from core.link_preview import message_link_preview
 from ui.conversation_panel.text_helpers import message_caption
 from ui.conversation_panel.selection_rules import (
     toggle_jid_selection,
@@ -183,6 +184,15 @@ class ForwardingMixin:
             chk_keep_caption = wx.CheckBox(p, label=i18n.t("forward_keep_caption"))
             chk_keep_caption.SetValue(True)
             vsz.Add(chk_keep_caption, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+
+        # Offered when ANY message of the batch carries a link preview, for
+        # the same reason as the caption box above. It starts as Settings >
+        # Interface > Messages says (on by default).
+        chk_keep_preview = None
+        if any(message_link_preview(m) for m in msgs_to_forward):
+            chk_keep_preview = wx.CheckBox(p, label=i18n.t("forward_keep_link_preview"))
+            chk_keep_preview.SetValue(self._forward_keep_link_preview_default())
+            vsz.Add(chk_keep_preview, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         # ── Selection state ──────────────────────────────────────────────────
         # lst is a single-selection wx.ListBox: native selection is only ever
@@ -450,17 +460,26 @@ class ForwardingMixin:
         # through the normal WebSocket echo, same as any other outgoing message.
         targets = list(zip(target_jids, target_names))
         keep_captions = chk_keep_caption.GetValue() if chk_keep_caption else False
+        keep_previews = chk_keep_preview.GetValue() if chk_keep_preview else False
 
         threading.Thread(
             target=self._forward_batch,
-            args=(msgs_to_forward, targets, keep_captions),
+            args=(msgs_to_forward, targets, keep_captions, keep_previews),
             daemon=True,
         ).start()
 
     #: Pause between two messages of one batch — see _forward_batch().
     _FORWARD_GAP_SECONDS = 0.4
 
-    def _forward_batch(self, msgs_to_forward: list, targets: list, keep_captions: bool):
+    def _forward_keep_link_preview_default(self) -> bool:
+        """How the "keep link previews" box starts: Settings > Interface >
+        Messages, on unless turned off."""
+        return bool(self.main_window.settings.get("user_interface", {}).get(
+            "forward_keep_link_preview", True
+        ))
+
+    def _forward_batch(self, msgs_to_forward: list, targets: list, keep_captions: bool,
+                       keep_previews: bool = False):
         """Worker thread: forward every message to every target, then say how
         it went (forward_outcome())."""
         mw = self.main_window
@@ -484,7 +503,8 @@ class ForwardingMixin:
             # would push that message through the media call.
             keep = keep_captions and bool(message_caption(m))
             f_names = self._forward_message_to_targets(
-                m, targets, keep_caption=keep, source_jid_override=source_jid
+                m, targets, keep_caption=keep, source_jid_override=source_jid,
+                keep_link_preview=keep_previews,
             )
             failed_names.update(f_names)
             forwarded += 1
@@ -501,7 +521,8 @@ class ForwardingMixin:
             # are listening to for "sent" is worse than waiting for it.
             wx.CallAfter(mw.output, text)
 
-    def _forward_message_to_targets(self, msg: dict, targets: list, keep_caption: bool = False, source_jid_override: str = "") -> list:
+    def _forward_message_to_targets(self, msg: dict, targets: list, keep_caption: bool = False,
+                                    source_jid_override: str = "", keep_link_preview: bool = False) -> list:
         """Forward one message to each (jid, name) pair in *targets*, one at
         a time — so one failing recipient (e.g. a stale JID) doesn't abort
         delivery to the rest.
@@ -520,7 +541,9 @@ class ForwardingMixin:
             if keep_caption:
                 success = mw.resend_media_message_with_caption(msg, jid)
             else:
-                success = mw.forward_message(source_jid, msg_key, jid, source_msg=msg)
+                success = mw.forward_message(
+                    source_jid, msg_key, jid, source_msg=msg,
+                    keep_link_preview=keep_link_preview)
             if not success:
                 failed.append(name)
         return failed

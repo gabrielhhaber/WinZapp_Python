@@ -22,7 +22,7 @@ from core.audio_devices import (
 )
 from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 from core.emoticons import emoticon_setting_enabled
-from core.notification_manager import NOTIFICATION_CONTENT_LEVELS
+from core.notification_manager import GROUP_TOAST_ORDERS, NOTIFICATION_CONTENT_LEVELS
 from core.attachment_types import PASTED_AUDIO_MODES
 from core.reaction_shortcuts import (
     DEFAULT_QUICK_REACTIONS,
@@ -202,6 +202,13 @@ NOTIFICATION_CONTENT_LABEL_KEYS = (
     "notification_content_full",
     "notification_content_name",
     "notification_content_sound",
+)
+
+#: Radio labels for the group toast order, in the order of
+#: core.notification_manager.GROUP_TOAST_ORDERS.
+GROUP_TOAST_ORDER_LABEL_KEYS = (
+    "group_toast_order_participant",
+    "group_toast_order_group",
 )
 
 
@@ -639,6 +646,17 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             lambda e: (self._sync_notification_content_enabled(), e.Skip()),
         )
 
+        # Which name a group toast leads with. Toast text only; the spoken
+        # announcement with the window active keeps its order.
+        self._group_toast_order_radio = wx.RadioBox(
+            self._notifications_page,
+            label=i18n.t("group_toast_order_label"),
+            choices=[i18n.t(key) for key in GROUP_TOAST_ORDER_LABEL_KEYS],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        notif_sizer.Add(self._group_toast_order_radio, 0, wx.EXPAND | wx.ALL, 8)
+
         self._keep_muted_silent_check = wx.CheckBox(
             self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
         )
@@ -751,6 +769,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._speech_page, label=i18n.t("speech_announce_media_progress_label")
         )
         speech_sizer.Add(self._announce_media_progress_check, 0, wx.ALL, 8)
+
+        self._announce_link_previews_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_link_previews_label")
+        )
+        speech_sizer.Add(self._announce_link_previews_check, 0, wx.ALL, 8)
 
         self._announce_sync_check = wx.CheckBox(
             self._speech_page, label=i18n.t("announce_sync_events_label")
@@ -1159,6 +1182,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         self._media_cleanup_btn.Bind(wx.EVT_BUTTON, self._on_media_cleanup)
         storage_sizer.Add(self._media_cleanup_btn, 0, wx.ALL, 8)
+        self._storage_manager_btn = wx.Button(self._storage_page, label=i18n.t("storage_manager_open"))
+        self._storage_manager_btn.Bind(wx.EVT_BUTTON, self._on_storage_manager)
+        storage_sizer.Add(self._storage_manager_btn, 0, wx.ALL, 8)
 
         # The restore point of the WhatsApp login profile has its own window
         # (built further down, where its options are).
@@ -1640,6 +1666,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         messages_sizer.Add(
             self._delete_media_default_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._forward_keep_link_preview_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_forward_keep_link_preview_label")
+        )
+        messages_sizer.Add(
+            self._forward_keep_link_preview_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
         self._conversation_video_media_viewer_dialog_cb = wx.CheckBox(
@@ -2304,6 +2337,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         notifications are on; greyed out otherwise, but kept, so turning them
         back on restores the level the user had picked."""
         self._notification_content_radio.Enable(self._notifications_check.GetValue())
+        self._group_toast_order_radio.Enable(self._notifications_check.GetValue())
 
     def _load_values(self, unit=None):
         """Populate controls from current settings: those of `unit`, the one
@@ -2323,6 +2357,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._notification_content_radio.SetSelection(
                 NOTIFICATION_CONTENT_LEVELS.index(content)
                 if content in NOTIFICATION_CONTENT_LEVELS else 0)
+            order = self.main_window.settings.get("general", {}).get("group_toast_order", "participant")
+            self._group_toast_order_radio.SetSelection(
+                GROUP_TOAST_ORDERS.index(order)
+                if order in GROUP_TOAST_ORDERS else 0)
             self._sync_notification_content_enabled()
 
         call_settings = self.main_window.settings.get("calls", {})
@@ -2598,6 +2636,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "messages"):
             self._delete_media_default_cb.SetValue(bool(delete_media_from_phone))
 
+        forward_keep_link_preview = self.main_window.settings.get("user_interface", {}).get(
+            "forward_keep_link_preview", True
+        )
+        if wanted(unit, "messages"):
+            self._forward_keep_link_preview_cb.SetValue(bool(forward_keep_link_preview))
+
         forward_voice_as_voice = self.main_window.settings.get("user_interface", {}).get(
             "forward_voice_as_voice", False
         )
@@ -2696,6 +2740,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             )
             self._announce_sync_progress_check.SetValue(speech.get("announce_sync_progress", True))
             self._announce_media_progress_check.SetValue(speech.get("announce_media_progress", True))
+            self._announce_link_previews_check.SetValue(speech.get("announce_link_previews", True))
             self._speak_active_conv_check.SetValue(speech.get("speak_active_conv_messages", True))
             self._speak_other_conv_check.SetValue(speech.get("speak_other_conv_messages", True))
         if wanted(unit, "audio"):
@@ -3369,6 +3414,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         self._update_fields_state()
         self._sync_fixed_port_field()
         event.Skip()
+
+    def _on_storage_manager(self, event):
+        from main_window.storage_management import open_manager
+        requested = open_manager(self, self.main_window)
+        if requested == "backups":
+            self._backup_dialog.open()
+        elif requested == "models":
+            self._notebook.SetSelection(self._notebook.FindPage(self._transcription_holder))
 
     def _on_media_cleanup(self, event):
         """Open the media cleanup window over Settings."""
@@ -4098,6 +4151,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "delete_media_from_phone"
             ] = self._delete_media_default_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "forward_keep_link_preview"
+            ] = self._forward_keep_link_preview_cb.GetValue()
         if ready(self, "audio"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "forward_voice_as_voice"
@@ -4212,6 +4268,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "announce_media_progress"
             ] = self._announce_media_progress_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
+                "announce_link_previews"
+            ] = self._announce_link_previews_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
                 "speak_active_conv_messages"
             ] = self._speak_active_conv_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
@@ -4270,6 +4329,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             )
             self.main_window.settings.setdefault("general", {})["notification_content"] = (
                 NOTIFICATION_CONTENT_LEVELS[self._notification_content_radio.GetSelection()]
+            )
+            self.main_window.settings.setdefault("general", {})["group_toast_order"] = (
+                GROUP_TOAST_ORDERS[self._group_toast_order_radio.GetSelection()]
             )
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
@@ -4680,6 +4742,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._notification_content_radio.SetLabel(i18n.t("notification_content_label"))
             for _i, _key in enumerate(NOTIFICATION_CONTENT_LABEL_KEYS):
                 self._notification_content_radio.SetItemLabel(_i, i18n.t(_key))
+            self._group_toast_order_radio.SetLabel(i18n.t("group_toast_order_label"))
+            for _i, _key in enumerate(GROUP_TOAST_ORDER_LABEL_KEYS):
+                self._group_toast_order_radio.SetItemLabel(_i, i18n.t(_key))
         if ready(self, "calls"):
             self._call_alerts_check.SetLabel(i18n.t("calls_alerts_enabled_label"))
             self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
@@ -4743,6 +4808,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "storage"):
             self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
             self._media_cleanup_btn.SetLabel(i18n.t("cleanup_open_button"))
+            self._storage_manager_btn.SetLabel(i18n.t("storage_manager_open"))
         if ready(self, "chats"):
             self._focus_box.SetLabel(i18n.t("ui_focus_label"))
             self._focus_message_field_rb.SetLabel(i18n.t("ui_focus_message_field"))
@@ -4783,6 +4849,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
             self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
             self._delete_media_default_cb.SetLabel(i18n.t("ui_delete_media_default_label"))
+            self._forward_keep_link_preview_cb.SetLabel(
+                i18n.t("ui_forward_keep_link_preview_label"))
         if ready(self, "audio"):
             self._forward_voice_as_voice_cb.SetLabel(i18n.t("ui_forward_voice_as_voice"))
         if ready(self, "messages"):
@@ -4858,6 +4926,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             )
             self._announce_sync_progress_check.SetLabel(i18n.t("speech_announce_sync_progress_label"))
             self._announce_media_progress_check.SetLabel(i18n.t("speech_announce_media_progress_label"))
+            self._announce_link_previews_check.SetLabel(i18n.t("speech_announce_link_previews_label"))
             self._speak_active_conv_check.SetLabel(i18n.t("speech_speak_active_conv_label"))
             self._speak_other_conv_check.SetLabel(i18n.t("speech_speak_other_conv_label"))
         if ready(self, "audio"):

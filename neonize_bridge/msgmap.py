@@ -108,6 +108,12 @@ def quoted(w):
     elif kind in ("audio", "ptt"):
         m.audioMessage.PTT = kind == "ptt"
         m.audioMessage.mimetype = w.get("mimetype") or "audio/ogg; codecs=opus"
+        try:
+            sec = int(w.get("duration") or w.get("seconds") or 0)
+        except (TypeError, ValueError):
+            sec = 0
+        if sec > 0:
+            m.audioMessage.seconds = sec
     elif kind == "document":
         m.documentMessage.fileName = w.get("filename") or ""
         m.documentMessage.caption = w.get("caption") or ""
@@ -307,7 +313,7 @@ CONTEXT = ("extendedTextMessage", "imageMessage", "videoMessage", "ptvMessage",
 
 # what the client reads of a quote: the rest (keys, thumbnail...) would only bloat
 # what it stores (core/utils.py _slim_quoted_message)
-QUOTED_FIELDS = ("type", "body", "caption", "filename", "isPtt")
+QUOTED_FIELDS = ("type", "body", "caption", "filename", "isPtt", "duration")
 
 
 def _ctx_of(inner):

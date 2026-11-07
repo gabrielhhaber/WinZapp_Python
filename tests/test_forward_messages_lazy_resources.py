@@ -106,7 +106,7 @@ const fs = require('fs');
 const [, , tsPath, scenario] = process.argv;
 const ts = fs.readFileSync(tsPath, 'utf8');
 const src = /String\.raw`([\s\S]*?)`;/.exec(ts)[1];
-const calls = { forward: [], lib: [], scripts: [], sentTypes: [] };
+const calls = { forward: [], lib: [], scripts: [], sentTypes: [], text: [] };
 const world = JSON.parse(process.env.WORLD);
 let loadedScripts = 0;
 const modAvailable = () => loadedScripts >= world.scriptsNeeded;
@@ -186,7 +186,12 @@ global.window = {
     whatsapp: { functions: world.bound ? { forwardMessages: () => 1 } : {} },
     chat: {
       find: async (id) => ({ chatId: id }),
-      getMessageById: async (id) => voiceModels[id] || { msgId: id },
+      getMessageById: async (id) => (world.textModels || {})[id] || voiceModels[id] || { msgId: id },
+      sendTextMessage: async (chatId, body, options) => {
+        calls.text.push({ chatId, body, options });
+        if (world.rejectText) throw new Error('text rejected');
+        return { id: 'copy' };
+      },
       forwardMessages: async (c, ids) => {
         calls.lib.push([c, ids]);
         // By id the library builds its own model of the message.
@@ -472,3 +477,56 @@ class TestKeepVoiceWiring:
     def test_a_voice_message_that_went_out_as_audio_is_logged(self, handler):
         assert "outcome.voice.kept < outcome.voice.asked" in handler
         assert "req.logger.warn(" in handler
+
+
+PREVIEW = {"title": "Example", "description": "A page",
+           "canonicalUrl": "https://example.com/a", "matchedText": "https://example.com/a"}
+
+
+@needs_node
+class TestKeepLinkPreview:
+    """A text message forwarded with its card goes out as a text with the card;
+    anything else is WhatsApp's own forward, as before."""
+
+    TEXT = {"m": {"msgId": "m", "type": "chat", "body": "https://example.com/a"}}
+
+    def _batch(self, **args):
+        return dict({"chatId": "chat@c.us", "messageIds": ["m"]}, **args)
+
+    def test_the_text_goes_out_with_the_card_as_an_object(self, tmp_path):
+        r = _run(tmp_path, textModels=self.TEXT,
+                 batches=[[self._batch(linkPreview=PREVIEW)]])
+        assert r["calls"]["forward"] == []
+        assert r["calls"]["text"] == [{
+            "chatId": "chat@c.us", "body": "https://example.com/a",
+            "options": {"linkPreview": PREVIEW, "createChat": True}}]
+        assert r["out"][0]["ok"] is True
+
+    def test_without_a_card_it_is_the_real_forward(self, tmp_path):
+        r = _run(tmp_path, textModels=self.TEXT, batches=[[self._batch()]])
+        assert r["calls"]["text"] == [] and len(r["calls"]["forward"]) == 1
+
+    @pytest.mark.parametrize("model", [
+        {"msgId": "m", "type": "image", "body": "caption"},
+        {"msgId": "m", "type": "chat", "body": ""},
+    ])
+    def test_a_message_that_is_not_plain_text_is_still_forwarded(self, tmp_path, model):
+        r = _run(tmp_path, textModels={"m": model},
+                 batches=[[self._batch(linkPreview=PREVIEW)]])
+        assert r["calls"]["text"] == [] and len(r["calls"]["forward"]) == 1
+
+    def test_an_empty_card_is_ignored(self, tmp_path):
+        r = _run(tmp_path, textModels=self.TEXT,
+                 batches=[[self._batch(linkPreview={"title": "", "canonicalUrl": ""})]])
+        assert r["calls"]["text"] == [] and len(r["calls"]["forward"]) == 1
+
+    def test_a_rejected_text_is_not_retried_or_forwarded_instead(self, tmp_path):
+        r = _run(tmp_path, textModels=self.TEXT, rejectText=True,
+                 batches=[[self._batch(linkPreview=PREVIEW)]])
+        assert r["err"] == "text rejected"
+        assert len(r["calls"]["text"]) == 1 and r["calls"]["forward"] == []
+
+    def test_a_card_send_and_a_plain_forward_are_two_sends(self, tmp_path):
+        r = _run(tmp_path, textModels=self.TEXT, forwardDelayMs=20,
+                 batches=[[self._batch(linkPreview=PREVIEW), self._batch()]])
+        assert len(r["calls"]["text"]) == 1 and len(r["calls"]["forward"]) == 1

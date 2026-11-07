@@ -240,6 +240,9 @@ class MediaMixin:
         """
         if not explicit and not auto_download_enabled(self.settings):
             return None
+        storage = getattr(self, "_storage_service", None)
+        if not explicit and storage is not None and storage.pause_downloads:
+            return None
         message_type = msg.get("messageType", "")
         if not message_type and msg.get("type"):
             t = str(msg.get("type"))
@@ -362,7 +365,8 @@ class MediaMixin:
             pass
         return False
 
-    def handle_media_message(self, msg, progress_callback=None, timeout=60, *, max_bytes=None, cancel_check=None):
+    def handle_media_message(self, msg, progress_callback=None, timeout=60, *, max_bytes=None, cancel_check=None,
+                             restore_cleaned=False):
         """Download and encrypt a document/image/sticker/video to data/media/.
 
         Returns True only when this call actually wrote a new file — every
@@ -379,7 +383,7 @@ class MediaMixin:
         media_path = data_path("media", f"{msg_id}.wzmedia")
         if os.path.isfile(media_path):
             return False
-        if self.is_media_cleaned(msg_id):
+        if self.is_media_cleaned(msg_id) and restore_cleaned is not True:
             self._say_media_cleaned()
             return False
         if not getattr(self, "_wa_connected", False):
@@ -484,7 +488,8 @@ class MediaMixin:
             # row that just gained a duration clause.
             cp._repaint_message_rows([msg_id])
 
-    def handle_audio_message(self, msg, timeout=60, *, max_bytes=None, cancel_check=None):
+    def handle_audio_message(self, msg, timeout=60, *, max_bytes=None, cancel_check=None,
+                             restore_cleaned=False):
         """Download and encrypt a voice message to data/voice_messages/.
 
         Returns True only when this call actually wrote a new file — see
@@ -500,7 +505,7 @@ class MediaMixin:
         audio_file_path = os.path.join(voice_messages_dir, f"{msg_id}.msv")
         if os.path.isfile(audio_file_path):
             return False
-        if self.is_media_cleaned(msg_id):
+        if self.is_media_cleaned(msg_id) and restore_cleaned is not True:
             self._say_media_cleaned()
             return False
         if not getattr(self, "_wa_connected", False):

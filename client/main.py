@@ -1639,6 +1639,8 @@ class MainWindow(
             logging.error("[init_UI] _post_ui_init_fn is MISSING — connection/sync will NOT start! This is a bug.")
 
         self.start_ui_watchdog()
+        from main_window.storage_runtime import start as start_storage_runtime
+        start_storage_runtime(self)
         logging.info("[init_UI] Entering app.MainLoop() — main thread will block here until app exits")
         try:
             app.MainLoop()

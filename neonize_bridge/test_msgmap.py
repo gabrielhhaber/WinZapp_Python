@@ -12,6 +12,18 @@ def test_private_text_received():
     assert m["from"] == "5551999990000@c.us" and m["t"] == 1700000000
 
 
+def test_interactive_proto_is_no_longer_an_unknown_message():
+    msg = Message()
+    msg.buttonsMessage.contentText = "Choose a trip"
+    msg.buttonsMessage.buttons.add(buttonID="one").buttonText.displayText = "First trip"
+    result = msgmap.build(chat="5551999990000@s.whatsapp.net", from_me=False,
+                          id="B", sender="5551999990000@s.whatsapp.net", ts=5,
+                          message=msg)
+    assert result["type"] == "buttons"
+    assert result["body"] == "Choose a trip"
+    assert result["dynamicReplyButtons"][0]["buttonText"]["displayText"] == "First trip"
+
+
 def test_group_carries_the_author_in_the_id():
     m = msgmap.build(chat="1203@g.us", from_me=False, id="X",
                      sender="5551:12@s.whatsapp.net", ts=1700000000000,

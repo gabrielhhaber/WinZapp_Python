@@ -29,7 +29,7 @@ log = logging.getLogger("bridge")
 
 #: "true_<chat>_<ID>" of an individual chat (the same rule as the client's)
 _MESSAGE = re.compile(r"(?:true|false)_\d+@(?:c\.us|lid)_[A-Za-z0-9]{8,64}")
-MAX_BUTTONS = 12
+MAX_BUTTONS = 32
 
 
 def valid_request(serial, body):

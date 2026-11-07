@@ -340,7 +340,8 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
         return (list_msg.get("title") or list_msg.get("description") or "").strip() or i18n.t("interactive_message")
 
     if msg_type == "templateMessage":
-        return i18n.t("notif_template")
+        template = msg_obj.get("templateMessage") or {}
+        return (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
 
     if msg_type == "interactiveMessage":
         inter = msg_obj.get("interactiveMessage") or {}
@@ -523,12 +524,38 @@ def reaction_silenced_now(main_window, remote_jid: str) -> bool:
     )
 
 
-def format_notification_title(msg: dict, main_window, i18n) -> str:
+#: Which name a group toast leads with (Settings > General > Notifications):
+#: "participant" — "Gustavo in WinZapp Developers" (what WinZapp always did);
+#: "group" — "WinZapp Developers, Gustavo" (the official WhatsApp Desktop
+#: order). It shapes the text of a toast only, never what the screen reader
+#: announces while the window is active.
+GROUP_TOAST_ORDERS = ("participant", "group")
+DEFAULT_GROUP_TOAST_ORDER = "participant"
+
+
+def group_toast_order(settings) -> str:
+    """The configured order; anything unknown reads as the default."""
+    value = ((settings or {}).get("general") or {}).get("group_toast_order")
+    return value if value in GROUP_TOAST_ORDERS else DEFAULT_GROUP_TOAST_ORDER
+
+
+def format_group_notification_base(participant: str, group: str, order: str,
+                                   i18n) -> str:
+    """'Participant in Group', or 'Group, Participant' for order "group"."""
+    template = (i18n.t("notif_in_group_group_first") if order == "group"
+                else i18n.t("notif_in_group"))
+    return template.format(participant=participant, group=group)
+
+
+def format_notification_title(msg: dict, main_window, i18n,
+                              toast: bool = False) -> str:
     """
     Build the notification title for a toast notification.
 
     Private chat  → [prefix] sender name
-    Group message → [prefix] 'Participant em GroupName'
+    Group message → [prefix] 'Participant em GroupName' (or 'GroupName,
+    Participant' when *toast* is True and the user picked group first; the
+    spoken announcement of a message never changes order).
 
     prefix is one of notif_replied_to_you / notif_mentioned_you /
     notif_mentioned_all, or absent when none of those conditions apply.
@@ -565,9 +592,10 @@ def format_notification_title(msg: dict, main_window, i18n) -> str:
         participant_name = _resolve_participant_name(p_jid, push_name, main_window)
         if not participant_name:
             participant_name = i18n.t("unnamed_participant") or "Participante sem nome"
-        base = i18n.t("notif_in_group").format(
-            participant=participant_name, group=group_name
-        )
+        order = (group_toast_order(getattr(main_window, "settings", None))
+                 if toast else DEFAULT_GROUP_TOAST_ORDER)
+        base = format_group_notification_base(
+            participant_name, group_name, order, i18n)
     else:
         chat = main_window.chats.get(remote_jid) or {"remoteJid": remote_jid}
         # format_number(remote_jid) must NEVER run on a bare, unresolved
