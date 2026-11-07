@@ -26,6 +26,8 @@ NOVEDADES
 
 - Llamadas grupales de Neonize: cuando llega una invitación a una llamada grupal sin el nombre del grupo, el programa pregunta al servidor de qué grupo es, y la llamada en curso aparece en la conversación del grupo para que te unas (problema #689).
 
+- Llamadas grupales de Neonize: el registro ahora anota qué contienen las listas de participantes que envía el servidor (solo cantidades, sin nombres), para descubrir por qué algunas personas que entran en una llamada no oyen a nadie (problema #689). Ningún cambio de comportamiento.
+
 - Neonize: el primer mensaje a un número de teléfono nuevo escrito en una conversación nueva (Ctrl+N) ya no termina como «no confirmado» cuando WhatsApp tiene el número registrado en su otra forma (con o sin el 9.º dígito de los móviles brasileños): ahora se envía a la dirección que WhatsApp conoce. Además, un número escrito en una conversación nueva abre ahora el chat con la dirección que WhatsApp conoce, así no queda una conversación duplicada.
 
 - Mensajes de voz: la tasa de bits de las grabaciones vuelve a 64 kbps, que se envía rápido incluso pasado un minuto (el cambio a 256 kbps había vuelto lento el envío). Configuración > Audio incorpora "Tasa de bits de los mensajes de voz (kbps)", para elegir de 32 a 256 kbps.

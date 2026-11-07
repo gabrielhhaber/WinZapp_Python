@@ -1,0 +1,105 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 01:33:30 +0000
+Subject: [PATCH] Log how the group roster stands: states, connected devices
+ and their PIDs
+
+A callee that heard nobody in a group call applied rosters with no connected
+remote device carrying a PID, so only the fallback receiver stayed. Nothing in
+the log said what the server's rosters held. The summary counts participants by
+state and connected devices with and without PID, naming no one.
+---
+ group_media_receive.go |  6 ++++++
+ roster_diag.go         | 39 +++++++++++++++++++++++++++++++++++++++
+ roster_diag_test.go    | 19 +++++++++++++++++++
+ 3 files changed, 64 insertions(+)
+ create mode 100644 roster_diag.go
+ create mode 100644 roster_diag_test.go
+
+diff --git a/group_media_receive.go b/group_media_receive.go
+index 2bc7885..80cf5fa 100644
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -348,6 +348,12 @@ func (r *participantReceiveRegistry) prepareGroupUpdateLocked(
+ 			})
+ 		}
+ 	}
++	r.log.Info().
++		Str("call_id", r.callID).
++		Uint32("transaction_id", update.TransactionID).
++		Str("roster", describeGroupRoster(update)).
++		Bool("fallback_only", !hasConnectedRemotePID).
++		Msg("group roster received")
+ 	if !hasConnectedRemotePID {
+ 		fallback := r.byDeviceID[r.fallbackID]
+ 		if fallback != nil {
+diff --git a/roster_diag.go b/roster_diag.go
+new file mode 100644
+index 0000000..d6aca3a
+--- /dev/null
++++ b/roster_diag.go
+@@ -0,0 +1,39 @@
++package meowcaller
++
++import (
++	"fmt"
++	"sort"
++	"strings"
++)
++
++// describeGroupRoster summarizes a group update's roster for the log without
++// naming anyone: how many participants are in each state, how many devices
++// they carry and how many of those devices have a PID. WinZapp: a callee heard
++// nobody because every roster it received left no connected device with a PID.
++func describeGroupRoster(update groupCallUpdate) string {
++	states := make(map[string]int)
++	devices, withPID := 0, 0
++	for _, participant := range update.Participants {
++		states[participant.State]++
++		if participant.State != "connected" {
++			continue
++		}
++		for _, device := range participant.Devices {
++			devices++
++			if device.HasPID {
++				withPID++
++			}
++		}
++	}
++	names := make([]string, 0, len(states))
++	for state := range states {
++		names = append(names, state)
++	}
++	sort.Strings(names)
++	parts := make([]string, 0, len(names))
++	for _, state := range names {
++		parts = append(parts, fmt.Sprintf("%s=%d", state, states[state]))
++	}
++	return fmt.Sprintf("participants=%d %s connected_devices=%d with_pid=%d",
++		len(update.Participants), strings.Join(parts, ","), devices, withPID)
++}
+diff --git a/roster_diag_test.go b/roster_diag_test.go
+new file mode 100644
+index 0000000..52bf1de
+--- /dev/null
++++ b/roster_diag_test.go
+@@ -0,0 +1,19 @@
++package meowcaller
++
++import "testing"
++
++func TestDescribeGroupRosterCountsStatesAndPIDsWithoutNamingAnyone(t *testing.T) {
++	update := groupCallUpdate{Participants: []groupCallParticipant{
++		{State: "connected", Devices: []groupCallDevice{{HasPID: true}, {HasPID: false}}},
++		{State: "connected"},
++		{State: "invited"},
++	}}
++	got := describeGroupRoster(update)
++	want := "participants=3 connected=2,invited=1 connected_devices=2 with_pid=1"
++	if got != want {
++		t.Fatalf("describeGroupRoster() = %q, want %q", got, want)
++	}
++	if got := describeGroupRoster(groupCallUpdate{}); got != "participants=0  connected_devices=0 with_pid=0" {
++		t.Fatalf("empty roster = %q", got)
++	}
++}

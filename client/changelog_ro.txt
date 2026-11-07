@@ -26,6 +26,8 @@ NOUTĂȚI
 
 - Apeluri de grup prin Neonize: când invitația la un apel de grup ajunge fără numele grupului, programul întreabă serverul despre ce grup este vorba, iar apelul în desfășurare apare în conversația grupului ca să te poți alătura (problema #689).
 
+- Apeluri de grup prin Neonize: jurnalul notează acum ce conțin listele de participanți trimise de server (doar numere, fără nume), pentru a afla de ce unele persoane care intră într-un apel nu aud pe nimeni (problema #689). Nicio schimbare de comportament.
+
 - Neonize: primul mesaj către un număr de telefon nou scris într-o conversație nouă (Ctrl+N) nu se mai termină ca „neconfirmat” când WhatsApp are numărul înregistrat în cealaltă formă (cu sau fără a 9-a cifră a mobilelor braziliene): acum este trimis la adresa pe care o cunoaște WhatsApp. În plus, un număr scris într-o conversație nouă deschide acum chatul cu adresa pe care o cunoaște WhatsApp, fără a lăsa o conversație duplicată.
 
 - Mesaje vocale: rata de biți a înregistrărilor a revenit la 64 kbps, care se trimit rapid chiar și după un minut (trecerea la 256 kbps încetinise trimiterea). Setări > Audio are acum "Rata de biți a mesajelor vocale (kbps)", cu valori între 32 și 256 kbps.
