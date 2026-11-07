@@ -696,6 +696,10 @@ class TestTheMenuAdvertisesWorkingShortcuts:
     def test_the_key_handler_covers_every_advertised_shortcut(self):
         src = _inspect.getsource(ConversationDataDialog._on_media_list_key_down)
         for _label, _shortcut, method in _MEDIA_MENU_ACTIONS:
+            if method == "_on_menu_copy_message":
+                # Ctrl+C picks file / contact number / text per message.
+                assert "copy_method_for_message" in src
+                continue
             assert method in src, f"{method} is advertised but not bound"
 
 
