@@ -32,6 +32,8 @@ NOWOŚCI
 
 - Rozmowy grupowe przez Neonize: urządzenie połączone z rozmową zachowuje teraz identyfikator otrzymany przy dołączeniu, zamiast tracić go przy następnej aktualizacji z serwera. Osoba odbierająca przez Neonize nie słyszy już tylko tego, kto zaczął rozmowę, ale także pozostałych uczestników (problem #689).
 
+- Rozmowy przez Neonize: rozmowy, które wykonujesz oraz te, które odbierasz i kończysz sam, pojawiają się teraz w historii rozmowy i w sekcji Połączenia. Wcześniej nie były zapisywane (problem #689).
+
 - Neonize: pierwsza wiadomość do nowego numeru telefonu wpisanego w nowej rozmowie (Ctrl+N) nie kończy się już jako „niepotwierdzona”, gdy WhatsApp ma ten numer zarejestrowany w innej postaci (z dziewiątą cyfrą lub bez niej w brazylijskich numerach komórkowych): jest teraz wysyłana na adres, który zna WhatsApp. Numer wpisany w nowej rozmowie otwiera teraz czat pod adresem, który zna WhatsApp, więc nie zostaje zdublowana rozmowa.
 
 - Wiadomości głosowe: przepływność nagrań wróciła do 64 kb/s, dzięki czemu wysyłanie jest szybkie nawet po minucie nagrania (zmiana na 256 kb/s spowolniła wysyłanie). W Ustawienia > Dźwięk pojawiła się opcja "Przepływność wiadomości głosowych (kb/s)" do wyboru od 32 do 256 kb/s.

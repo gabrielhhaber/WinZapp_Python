@@ -65,13 +65,13 @@ def notice_id(*parts) -> str:
     return "WZ" + hashlib.sha1(raw.encode("utf-8")).hexdigest()[:22].upper()
 
 
-def _base(chat_w, msg_id, ts, kind, author="") -> dict:
-    serial = f"false_{chat_w}_{msg_id}"
+def _base(chat_w, msg_id, ts, kind, author="", from_me=False) -> dict:
+    serial = f"{'true' if from_me else 'false'}_{chat_w}_{msg_id}"
     if author and chat_w.endswith("@g.us"):
         serial += f"_{author}"       # as msgmap.build does in group messages
     return {
-        "id": {"fromMe": False, "remote": chat_w, "id": msg_id, "_serialized": serial},
-        "fromMe": False, "from": chat_w, "to": chat_w,
+        "id": {"fromMe": from_me, "remote": chat_w, "id": msg_id, "_serialized": serial},
+        "fromMe": from_me, "from": chat_w, "to": chat_w,
         "t": ts, "timestamp": ts, "isStatus": False, "notifyName": "",
         "type": kind, "body": "",
     }
@@ -154,10 +154,12 @@ def call_outcome(state, was_ringing):
     return "Canceled" if (state == "ENDED" and was_ringing) else None
 
 
-def call_record(*, call_id, chat_w, creator_w, outcome, video, ts, duration=0) -> dict:
+def call_record(*, call_id, chat_w, creator_w, outcome, video, ts, duration=0,
+                from_me=False) -> dict:
     """`call_log` message (id = the call's id). `chat_w` is the peer in an
-    ordinary call and the group in a group one; `creator_w` is who called."""
-    w = _base(chat_w, call_id, ts, "call_log", creator_w)
+    ordinary call and the group in a group one; `creator_w` is who called;
+    `from_me` is a call this account placed."""
+    w = _base(chat_w, call_id, ts, "call_log", creator_w, from_me)
     w.update(callOutcome=outcome, finalCallOutcome=outcome, isVideoCall=bool(video),
              callDuration=int(duration or 0), callCreator=creator_w)
     return w

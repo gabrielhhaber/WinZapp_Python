@@ -32,6 +32,8 @@ YENİLİKLER
 
 - Neonize grup aramaları: aramaya bağlı bir cihaz, katılırken aldığı kimliği sunucunun sonraki güncellemesinde kaybetmek yerine artık koruyor. Neonize ile yanıtlayan kişi artık yalnızca aramayı başlatanı değil, diğer katılımcıları da duyuyor (sorun #689).
 
+- Neonize aramaları: yaptığınız aramalar ile yanıtlayıp kendinizin kapattığı aramalar artık konuşma geçmişinde ve Aramalar bölümünde görünüyor. Daha önce hiç kaydedilmiyorlardı (sorun #689).
+
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.
 
 - Sesli mesajlar: kayıt bit hızı yeniden 64 kbps oldu; bir dakikadan uzun kayıtlar da hızlı gönderilir (256 kbps'ye geçiş gönderimi yavaşlatmıştı). Ayarlar > Ses bölümüne 32 ile 256 kbps arasında seçim yapılan "Sesli mesaj bit hızı (kbps)" eklendi.

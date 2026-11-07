@@ -588,3 +588,39 @@ def test_a_call_that_learns_its_group_later_carries_it_in_its_states():
     assert m.set_call_group("IN1", "1203@g.us") and not m.set_call_group("GONE", "1203@g.us")
     m._set_state("IN1", "ACTIVE")
     assert sent[-1][1]["data"]["groupJid"] == "1203@g.us" and sent[-1][1]["data"]["isGroup"]
+
+
+def test_a_call_that_ends_tells_the_session_whether_it_was_answered():
+    fake = FakeCalls(remote=[b"", None])
+    m, sent = media(fake)
+    seen = []
+    m.on_finished = seen.append
+    m.dial("5511999990000@c.us")
+    m.handle({"ev": "accepted", "call": "OUT1"})
+    m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
+    info = seen[0]
+    assert (info["id"], info["outgoing"], info["state"]) == ("OUT1", True, "ENDED")
+    assert info["activeAt"] and info["endedAt"] >= info["activeAt"]
+
+
+def test_a_call_never_answered_ends_without_an_active_time():
+    fake = FakeCalls(remote=[None])
+    m, sent = media(fake)
+    seen = []
+    m.on_finished = seen.append
+    m.dial("5511999990000@c.us")
+    m.handle({"ev": "end", "call": "OUT1", "reason": "timeout"})
+    assert seen[0]["activeAt"] is None and seen[0]["state"] == "NOT_ANSWERED"
+
+
+def test_a_failing_finish_hook_does_not_break_the_end_of_the_call():
+    fake = FakeCalls(remote=[None])
+    m, sent = media(fake)
+
+    def boom(info):
+        raise RuntimeError("store")
+
+    m.on_finished = boom
+    m.dial("5511999990000@c.us")
+    m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
+    assert states(sent)[-1] == "ENDED"

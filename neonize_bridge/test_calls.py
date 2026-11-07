@@ -468,3 +468,70 @@ def test_a_lobby_answer_that_comes_after_the_call_ended_registers_nothing():
     assert calls.resolve_multiparty_group(
         s, media, {"id": "C1"}, N(User="100", Device=0, Server="lid")) == ""
     assert media.ongoing_calls is None
+
+
+def finished(**over):
+    info = {"id": "C1", "peer": "5511@s.whatsapp.net", "outgoing": False, "video": False,
+            "group": "", "state": "ENDED", "activeAt": None, "endedAt": 1000.0}
+    info.update(over)
+    return info
+
+
+def test_a_call_that_became_active_is_completed_with_its_duration():
+    assert calls.finished_outcome(finished(activeAt=640.0)) == ("Completed", 360)
+    assert calls.finished_outcome(finished(activeAt=640.0, outgoing=True)) == ("Completed", 360)
+
+
+def test_a_call_placed_here_and_not_answered_says_how_it_ended():
+    placed = {"outgoing": True}
+    assert calls.finished_outcome(finished(state="NOT_ANSWERED", **placed)) == ("Missed", 0)
+    assert calls.finished_outcome(finished(state="REJECTED", **placed)) == ("Rejected", 0)
+    assert calls.finished_outcome(finished(state="ENDED", **placed)) == ("Canceled", 0)
+    assert calls.finished_outcome(finished(state="FAILED", **placed)) is None
+
+
+def test_a_received_call_never_answered_here_is_left_to_record_end():
+    assert calls.finished_outcome(finished(state="ENDED")) is None
+    assert calls.finished_outcome(finished(state="NOT_ANSWERED")) is None
+
+
+def test_the_peer_chat_is_the_one_that_exists_and_the_number_first():
+    class Db:
+        def __init__(self, *chats):
+            self.chats = chats
+
+        def chat_exists(self, jid):
+            return jid in self.chats
+
+    phone = lambda lid: "5511@s.whatsapp.net"
+    assert calls.peer_chat(Db("75db@lid"), "75db@lid", phone) == "75db@lid"
+    assert calls.peer_chat(Db(), "75db@lid", phone) == "5511@s.whatsapp.net"
+    assert calls.peer_chat(Db(), "5511@s.whatsapp.net", None) == "5511@s.whatsapp.net"
+
+
+def test_record_finished_files_the_call_placed_here_as_mine(monkeypatch):
+    stored = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append((chat, w)) or True)
+    s = N(me="5599@s.whatsapp.net", lid="", db=N(chat_exists=lambda jid: True))
+    assert calls.record_finished(s, finished(outgoing=True, activeAt=900.0, video=True), 1000)
+    chat, w = stored[0]
+    assert chat == "5511@s.whatsapp.net" and w["fromMe"] and w["id"]["fromMe"]
+    assert w["id"]["_serialized"].startswith("true_")
+    assert (w["callOutcome"], w["callDuration"], w["isVideoCall"]) == ("Completed", 100, True)
+
+
+def test_record_finished_files_a_group_call_in_the_group(monkeypatch):
+    stored = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append((chat, w)) or True)
+    s = N(me="5599@s.whatsapp.net", lid="", db=N(chat_exists=lambda jid: False))
+    info = finished(outgoing=True, activeAt=900.0, group="1203@g.us", peer="1203@g.us")
+    assert calls.record_finished(s, info, 1000)
+    assert stored[0][0] == "1203@g.us"
+
+
+def test_record_finished_ignores_what_has_no_record():
+    s = N(me="5599@s.whatsapp.net", lid="", db=None)
+    assert not calls.record_finished(s, finished(state="ENDED"), 1000)
+    assert not calls.record_finished(s, finished(id="", activeAt=1.0), 1000)

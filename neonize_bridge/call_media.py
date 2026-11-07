@@ -140,6 +140,15 @@ def state_event(call, *, state, event="state", now=None) -> dict:
             "observedAt": int(now if now is not None else time.time())}
 
 
+def finished_info(call, state, now) -> dict:
+    """What the session needs to write the record of a call that ended: who and
+    which way it went, the state it ended in, and when it became active (the
+    answer), so its duration is known."""
+    return {"id": call["id"], "peer": call.get("peer", ""), "outgoing": bool(call.get("outgoing")),
+            "video": bool(call.get("video")), "group": call.get("group") or "",
+            "state": state, "activeAt": call.get("active_at"), "endedAt": now}
+
+
 def remote_members_connected(participants, mine) -> int:
     """How many people other than this account are connected to a group call,
     from the roster's participants ([{jid, pn, state}]). `mine` are the
@@ -202,6 +211,10 @@ class CallMedia(CallIngressMixin):
         # the account's own users (number and LID digits), set by the session
         # once it knows them: a roster lists this account too
         self.own_users = lambda: set()
+        # called with the facts of each call that ended (finished_info), for
+        # the session to write its call_log: WhatsApp Web writes no record of
+        # a call this engine placed or hung up itself
+        self.on_finished = lambda info: None
         # id -> {"groupJid", "isVideo", "at"} of the group calls placed here,
         # for the end event the native layer sends without the group
         self._placed_groups = {}
@@ -219,6 +232,8 @@ class CallMedia(CallIngressMixin):
             if call is None or (expected is not None and call is not expected) or call["state"] == state:
                 return False
             call["state"] = state
+            if state == "ACTIVE":
+                call.setdefault("active_at", time.time())
             data = state_event(call, state=state, event=event)
             self._publish_ingress_owner_locked()
         self.emit("callstate", {"session": self.name, "data": data})
@@ -336,6 +351,10 @@ class CallMedia(CallIngressMixin):
                     counters(call).report(force=True)
                 self._unowned_audio.report(force=True)
                 self.emit("callstate", {"session": self.name, "data": data})
+                try:
+                    self.on_finished(finished_info(call, state, time.time()))
+                except Exception:
+                    log.exception("call finished")
 
     def _group_member_joined(self, call_id):
         """A group call placed here has no answer to wait for (nobody sends us

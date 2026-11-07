@@ -260,6 +260,57 @@ def answered_outcome(data, answered):
     return "Completed", duration, bool(data["isVideo"] or answered.get("video"))
 
 
+def finished_outcome(info):
+    """(outcome, duration) of the call_log of a call that ended here, from
+    call_media.finished_info, or None when the end says nothing the other layer
+    (record_end, for a call that rang here) does not. A call that became active
+    is "Completed" whoever placed it; one placed here and not answered is
+    "Missed", "Rejected" or "Canceled" (I hung up first)."""
+    active = info.get("activeAt")
+    if active:
+        return "Completed", max(0, int(round(info["endedAt"] - active)))
+    if not info.get("outgoing"):
+        return None
+    return {"NOT_ANSWERED": ("Missed", 0), "REJECTED": ("Rejected", 0),
+            "ENDED": ("Canceled", 0)}.get(info.get("state"))
+
+
+def peer_chat(db, peer, phone_of_lid):
+    """The key (whatsmeow format) of the chat of a call's peer: the form that
+    already has a chat (number or LID), else the number."""
+    forms = [msgmap.jid_whatsmeow(peer)]
+    other = phone_of_lid(peer) if peer.endswith("@lid") and phone_of_lid else ""
+    if other:
+        forms.append(msgmap.jid_whatsmeow(other))
+    forms.sort(key=lambda j: j.endswith("@lid"))          # the number first
+    for form in forms:
+        if db.chat_exists(form):
+            return form
+    return forms[0] if forms else ""
+
+
+def record_finished(s, info, now):
+    """The record of a call that ended here, for what WhatsApp Web would have
+    written had it run the call: the calls this client placed, and the ones it
+    answered and hung up itself. record_end writes the ones that rang; a call
+    already stored (same id) is left as it is. False if nothing was recorded."""
+    outcome = finished_outcome(info)
+    if outcome is None or not info.get("id"):
+        return False
+    outcome, duration = outcome
+    chat = msgmap.jid_whatsmeow(info["group"]) if info.get("group") else peer_chat(
+        s.db, info.get("peer") or "", getattr(s, "_phone_of_lid", None))
+    if not chat or chat.endswith("@broadcast"):
+        return False
+    outgoing = bool(info.get("outgoing"))
+    creator = msgmap.jid_wpp(getattr(s, "me", "") or "") if outgoing else info.get("peer", "")
+    w = system_messages.call_record(
+        call_id=info["id"], chat_w=msgmap.jid_wpp(chat), creator_w=creator,
+        outcome=outcome, video=info.get("video"), ts=int(info["endedAt"] - duration),
+        duration=duration, from_me=outgoing)
+    return system_messages.store_and_emit(s, chat, w, now)
+
+
 def record_end(s, e, data, was_ringing, now, answered=None):
     """The end of a received call becomes the `call_log` record in the chat (what
     WhatsApp Web shows as "Missed voice call"). `data` is the `end_event`;
