@@ -23,7 +23,7 @@ from core.ai_media import config as ai_config
 from core.ai_media.config import MAX_SOURCE_BYTES, MENU_KEY, preferences
 from core.ai_media.errors import DescriptionError
 from core.ai_media.summary import build_unread_transcript
-from core.utils import decrypt_bytes, effective_unread_count
+from core.utils import decrypt_bytes
 from ui.ai_media_launch import close_open_dialog
 from ui.conversation_panel.media_paths import cached_media_path
 
@@ -189,13 +189,38 @@ class AIActionsMixin:
 
     # ── Unread-messages summary (kind "text") ────────────────────────────────
     def _unread_slice(self) -> list:
-        """The unread tail of the open conversation, oldest first."""
+        """The unread tail of the open conversation, oldest first.
+
+        Not the conversation dict's unreadCount: mark_conversation_as_read()
+        zeroes it as soon as the chat opens, so by the time anyone could ask
+        for a summary the count was always 0 (reported live: a group with 93
+        unread heard "not enough unread messages"). The panel's unread
+        separator keeps the real answer: it is placed from the count
+        snapshotted at open, summed and moved as messages arrive live, and
+        dismissed only once focus passes it — when the user actually reached
+        what sits below. The summary covers exactly the messages that
+        separator announces.
+        """
         if not self.conversation:
             return []
-        count = effective_unread_count(self.conversation)
-        if count <= 0:
-            return []
-        return self._sorted_messages[-count:]
+        messages = getattr(self, "_sorted_messages", None) or []
+        sep_idx = getattr(self, "_unread_sep_idx", -1)
+        if not (0 <= sep_idx < len(messages)) or not self._is_separator(messages[sep_idx]):
+            # No separator row at the recorded index (mid-rebuild, or the
+            # anchor pair is all that survived): fall back to the anchor id.
+            sep_idx = -1
+            anchor = getattr(self, "_first_unread_msg_id", None)
+            if anchor:
+                for idx, msg in enumerate(messages):
+                    if not isinstance(msg, dict) or self._is_separator(msg):
+                        continue
+                    if (msg.get("key") or {}).get("id") == anchor:
+                        sep_idx = idx - 1
+                        break
+            if sep_idx < 0:
+                return []
+        return [m for m in messages[sep_idx + 1:]
+                if isinstance(m, dict) and not self._is_separator(m)]
 
     def _summary_offered(self, config=None) -> bool:
         """The button and Alt+Shift+U share this rule: feature on, at least one
@@ -232,9 +257,12 @@ class AIActionsMixin:
             button.Show()
         else:
             button.Hide()
-        slot = getattr(self, "_media_action_slot", None)
-        if slot is not None:
-            slot.Layout()
+        # The slot's visibility is decided by _sync_media_action_slot_visibility()
+        # (the summary button is one of its controls); a bare Layout() here
+        # left the slot hidden when the summary was the only action offered.
+        sync = getattr(self, "_sync_media_action_slot_visibility", None)
+        if sync is not None:
+            sync()
 
     def _on_summary_action(self, event=None):
         """Button and Alt+Shift+U: summarize the unread tail of this chat with

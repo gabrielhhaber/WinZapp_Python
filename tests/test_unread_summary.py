@@ -95,3 +95,131 @@ class TestTextKind:
 
     def test_operation_budget_exists_for_text(self):
         assert service.ATTEMPT_SECONDS["text"] > 0
+
+
+class TestUnreadSlice:
+    """_unread_slice() reads the panel's unread separator, not the chat
+    dict's unreadCount: mark_conversation_as_read() zeroes that counter the
+    moment the chat opens, and the summary must still cover the messages
+    that were unread when it opened. Unbound methods against stubs, no wx
+    windows."""
+    from types import SimpleNamespace as _NS
+
+    @staticmethod
+    def _panel(messages, sep_idx=-1, anchor=None):
+        from ui.conversation_panel.unread_separator import UnreadSeparatorMixin
+        panel = TestUnreadSlice._NS(
+            conversation={"remoteJid": "x@s.whatsapp.net", "unreadCount": 0},
+            _sorted_messages=messages, _unread_sep_idx=sep_idx,
+            _first_unread_msg_id=anchor)
+        panel._is_separator = lambda m: UnreadSeparatorMixin._is_separator(panel, m)
+        return panel
+
+    @staticmethod
+    def _slice(panel):
+        from ui.conversation_panel.ai_actions import AIActionsMixin
+        return AIActionsMixin._unread_slice(panel)
+
+    def test_reads_below_the_separator_even_with_the_counter_zeroed(self):
+        msgs = [_msg("leído", ), {"_type": "unread_separator", "count": 2},
+                _msg("nuevo 1"), _msg("nuevo 2", from_me=False)]
+        for i, m in enumerate(msgs):
+            if not m.get("_type"):
+                m["key"]["id"] = f"m{i}"
+        panel = self._panel(msgs, sep_idx=1, anchor="m2")
+        assert [m["message"]["conversation"] for m in self._slice(panel)] == ["nuevo 1", "nuevo 2"]
+
+    def test_empty_once_the_separator_is_dismissed(self):
+        panel = self._panel([_msg("nuevo")], sep_idx=-1, anchor=None)
+        assert self._slice(panel) == []
+
+    def test_falls_back_to_the_anchor_id_mid_rebuild(self):
+        msgs = [_msg("leído"), _msg("nuevo 1"), _msg("nuevo 2")]
+        for i, m in enumerate(msgs):
+            m["key"]["id"] = f"m{i}"
+        panel = self._panel(msgs, sep_idx=-1, anchor="m1")
+        assert [m["message"]["conversation"] for m in self._slice(panel)] == ["nuevo 1", "nuevo 2"]
+
+    def test_empty_without_a_conversation(self):
+        panel = self._panel([], sep_idx=-1)
+        panel.conversation = None
+        assert self._slice(panel) == []
+
+    def test_skips_sentinel_rows_below_the_separator(self):
+        msgs = [{"_type": "unread_separator", "count": 1}, _msg("nuevo"),
+                {"_type": "empty_placeholder"}]
+        msgs[1]["key"]["id"] = "m1"
+        panel = self._panel(msgs, sep_idx=0, anchor="m1")
+        assert [m.get("message", {}).get("conversation") for m in self._slice(panel)] == ["nuevo"]
+
+
+class TestSummaryOffered:
+    """The button/shortcut gate: enough unread (from the separator) and a
+    text-capable provider with a key."""
+    from types import SimpleNamespace as _NS
+
+    @staticmethod
+    def _panel(unread, minimum, monkeypatch):
+        import ui.conversation_panel.ai_actions as ai_actions
+        from ui.conversation_panel.ai_actions import AIActionsMixin
+        from ui.conversation_panel.unread_separator import UnreadSeparatorMixin
+        store = TestSummaryOffered._NS(saved=lambda: {"gemini"})
+        monkeypatch.setattr(ai_actions, "CredentialStore", lambda _path: store)
+        rows = [_msg("leído"), {"_type": "unread_separator", "count": unread}]
+        rows += [_msg(f"nuevo {i}") for i in range(unread)]
+        for i, m in enumerate(rows):
+            if not m.get("_type"):
+                m["key"]["id"] = f"m{i}"
+        panel = TestSummaryOffered._NS(
+            conversation={"remoteJid": "x@s.whatsapp.net", "unreadCount": 0},
+            _sorted_messages=rows, _unread_sep_idx=1, _first_unread_msg_id="m1",
+            main_window=TestSummaryOffered._NS(
+                is_chat_locked=lambda jid: False, _chat_lock_unlocked=False),
+            _ai_settings=lambda: (None, {
+                "enabled": True, "summary_min_unread": minimum,
+                "order": ["gemini"], "disabled": []}))
+        panel._is_separator = lambda m: UnreadSeparatorMixin._is_separator(panel, m)
+        panel._unread_slice = lambda: AIActionsMixin._unread_slice(panel)
+        return panel
+
+    def test_offered_at_the_minimum(self, monkeypatch):
+        from ui.conversation_panel.ai_actions import AIActionsMixin
+        assert AIActionsMixin._summary_offered(self._panel(3, 3, monkeypatch)) is True
+
+    def test_not_offered_below_the_minimum(self, monkeypatch):
+        from ui.conversation_panel.ai_actions import AIActionsMixin
+        assert AIActionsMixin._summary_offered(self._panel(3, 4, monkeypatch)) is False
+
+    def test_not_offered_when_zero_means_never(self, monkeypatch):
+        from ui.conversation_panel.ai_actions import AIActionsMixin
+        assert AIActionsMixin._summary_offered(self._panel(30, 0, monkeypatch)) is False
+
+
+def test_media_action_slot_stays_visible_for_the_summary_button_alone():
+    """Regression: _sync_media_action_slot_visibility() did not count the
+    summary button, so the whole slot (and the button with it) stayed hidden
+    whenever no media action was on screen."""
+    from types import SimpleNamespace
+    from ui.conversation_panel.media_files import MediaFilesMixin
+
+    class Control:
+        def __init__(self, shown):
+            self.shown = shown
+        def IsShown(self):
+            return self.shown
+
+    class Slot:
+        def __init__(self):
+            self.shown = None
+        def Show(self, visible):
+            self.shown = visible
+
+    panel = SimpleNamespace(
+        _media_action_slot=Slot(),
+        _media_transfer_gauge=Control(False), _action_open_btn=Control(False),
+        _action_save_as_btn=Control(False), _action_describe_btn=Control(False),
+        _summary_btn=Control(True), _action_show_in_folder_btn=Control(False),
+        _action_download_btn=Control(False),
+        conversation_panel=SimpleNamespace(Layout=lambda: None))
+    MediaFilesMixin._sync_media_action_slot_visibility(panel)
+    assert panel._media_action_slot.shown is True
