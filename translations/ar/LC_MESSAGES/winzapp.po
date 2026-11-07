@@ -2377,6 +2377,12 @@ msgid "Could not add: {names}."
 msgstr "تعذّرت إضافة: {names}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#, python-brace-format
+msgctxt "call_invite_failed_reason"
+msgid "Participants could not be added: {reason}"
+msgstr "تعذّرت إضافة المشاركين: {reason}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_list"
 msgid "Group members not in the call"
 msgstr "أعضاء المجموعة غير الموجودين في المكالمة"
@@ -2408,9 +2414,9 @@ msgstr "جارٍ إضافة المشاركين..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
 #, python-brace-format
-msgctxt "call_invite_sent"
-msgid "Invited to the call: {count}."
-msgstr "تمت الدعوة إلى المكالمة: {count}."
+msgctxt "call_invite_sent_people"
+msgid "Invited to the call: {names}."
+msgstr "تمت الدعوة إلى المكالمة: {names}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_title"
@@ -10787,6 +10793,7 @@ msgstr "محدد"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
 #: client/ui/chat_lock.py client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/call_invite_marks.py
 #: client/ui/dialogs/transcription_model_marks.py
 msgctxt "selected_suffix"
 msgid "selected"
@@ -10794,6 +10801,7 @@ msgstr "محدد"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/dialogs/call_invite_marks.py
 #: client/ui/dialogs/transcription_model_marks.py
 msgctxt "selection_mode_off"
 msgid "Selection mode disabled"
@@ -10801,6 +10809,7 @@ msgstr "تم تعطيل وضع التحديد"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/dialogs/call_invite_marks.py
 #: client/ui/dialogs/transcription_model_marks.py
 msgctxt "selection_mode_on"
 msgid "Selection mode enabled"
@@ -18138,7 +18147,7 @@ msgstr "واجه {app_name} خطأً غير متوقع ولم يمكن إكما�
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
-#: client/ui/dialogs/call_invite.py client/ui/dialogs/channel_admins.py
+#: client/ui/dialogs/call_invite_marks.py client/ui/dialogs/channel_admins.py
 #: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"
@@ -19552,6 +19561,11 @@ msgstr "&نعم"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "أمس في {time}"
+
+#, python-brace-format
+#~ msgctxt "call_invite_sent"
+#~ msgid "Invited to the call: {count}."
+#~ msgstr "تمت الدعوة إلى المكالمة: {count}."
 
 #~ msgctxt "conversation_auto_transcribe_local_check"
 #~ msgid ""

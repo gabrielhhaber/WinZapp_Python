@@ -101,16 +101,17 @@ def parse_results(body, call_id, asked):
 
 
 def summary(results, names, i18n) -> str:
-    """The line spoken after the request: how many were invited or rung, and
-    who could not be."""
-    ok = sum(1 for status in results.values() if status in ("invited", "rang"))
+    """The line spoken after the request: who was invited or rung, and who
+    could not be."""
+    ok = [names.get(jid) or i18n.t("unknown_contact")
+          for jid, status in results.items() if status in ("invited", "rang")]
     failed = [names.get(jid) or i18n.t("unknown_contact")
               for jid, status in results.items() if status == "failed"]
     missing = [names.get(jid) or i18n.t("unknown_contact") for jid in names if jid not in results]
     failed += missing
     parts = []
     if ok:
-        parts.append(i18n.t("call_invite_sent").format(count=ok))
+        parts.append(i18n.t("call_invite_sent_people").format(names=", ".join(ok)))
     if failed:
         parts.append(i18n.t("call_invite_failed_people").format(names=", ".join(failed)))
     return " ".join(parts) or i18n.t("call_invite_failed")

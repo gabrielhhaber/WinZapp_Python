@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia: okno „Dodaj uczestników” działa teraz z czytnikiem ekranu. Osoby zaznacza się tymi samymi klawiszami, dźwiękiem i komunikatami co na listach rozmów i wiadomości (Ctrl+Spacja, Spacja, gdy coś jest zaznaczone, Shift+strzałki, Ctrl+Shift+Spacja, Esc), a wynik jest odczytywany: kto został zaproszony, kogo nie udało się dodać lub dlaczego żądanie się nie powiodło.
+
 - Połączenia: opóźnione dane multimedialne oraz zadania urządzeń i kamery pozostają przypisane do pierwotnego połączenia i strumienia. Neonize przetwarza dane w ograniczonych kolejkach poza pętlą serwera i nie zatrzymuje odczytu po przejściowym błędzie wysyłania danych do klienta. Przy niejednoznacznej nazwie WASAPI nie jest już wybierane pierwsze pasujące urządzenie odtwarzające. Dzienniki połączeń Neonize zawierają również podsumowania poziomu sygnału bez zapisywania treści dźwięku, co pomaga badać przyczyny braku dźwięku. Po ponownym otwarciu wyjścia audio połączenia stary strumień, którego nie udało się zamknąć, nie może pobierać dźwięku z nowego strumienia; błąd sygnału odniesienia dla usuwania echa nie wycisza już dźwięku przygotowanego do odtwarzania.
 
 - Karta Multimedia czatów i grup: Ctrl+C na dokumencie, zdjęciu, filmie lub nagraniu audio kopiuje teraz plik do schowka, tak jak na liście wiadomości, zamiast komunikatu o niemożności skopiowania wiadomości. Pozycja menu kontekstowego to teraz także „Kopiuj plik”.
