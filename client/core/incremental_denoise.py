@@ -372,25 +372,34 @@ class IncrementalDenoiseController:
     def discard(self, local_id) -> None:
         """The recording was dropped before send (chat switch, panel destroy,
         empty recording): cancel the session; the drain cleans up and
-        releases the slot on exit."""
+        releases the slot on exit. If the drain already exited (session
+        reference gone), the entry is forgotten here — no one else will."""
         with self._lock:
             if self._states.get(local_id) == PREPARING:
-                self._states[local_id] = CANCELLED
                 session = self._sessions.get(local_id)
                 if session is not None:
+                    self._states[local_id] = CANCELLED
                     session["cancel"] = True
+                else:
+                    self._states.pop(local_id, None)
 
     def is_preparing(self, local_id) -> bool:
         with self._lock:
             return self._states.get(local_id) == PREPARING
 
-    def transfer(self, local_id) -> bool:
-        """Hand the note to the MessageQueue. Atomic with revoke(): True =
-        PREPARING, entry consumed, enqueue may proceed; False = revoked or
-        unknown, nothing may be sent."""
+    def transfer(self, local_id, enqueue=None) -> bool:
+        """Hand the note to the MessageQueue. Atomic with revoke().
+
+        The *enqueue* callable runs UNDER this lock, so a user cancel cannot
+        slip between the authority check and the real hand-off: when True is
+        returned the message IS in the queue and the queue's own cancel
+        machinery gives a definitive answer. False = revoked or unknown,
+        nothing was enqueued."""
         with self._lock:
             if self._states.get(local_id) != PREPARING:
                 return False
+            if enqueue is not None:
+                enqueue()
             self._states.pop(local_id, None)
             self._sessions.pop(local_id, None)
             return True
@@ -421,10 +430,17 @@ class IncrementalDenoiseController:
             self._states.pop(local_id, None)
 
     def shutdown(self) -> None:
-        """real_exit: signal every live session to cancel. The threads are
-        daemonic and die with the process; this only lets a healthy drain
-        clean its own spool on the way out."""
+        """real_exit: cancel every live session AND every outstanding send
+        authority — including released-but-still-PREPARING entries (an
+        abandoned-to-offline send in flight), so no late transfer can
+        enqueue while the process is dying. The threads are daemonic and
+        die with the process; this only lets a healthy drain clean its own
+        spool on the way out and makes the send threads abort."""
         with self._lock:
             sessions = list(self._sessions.values())
+            for local_id, state in self._states.items():
+                if state == PREPARING:
+                    self._states[local_id] = CANCELLED
         for session in sessions:
+            session["revoked"] = True
             session["cancel"] = True

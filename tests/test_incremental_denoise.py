@@ -464,7 +464,7 @@ def test_shutdown_cancels_every_live_session():
     c = IncrementalDenoiseController()
     s1 = _registered_session(c, "m1")
     c.shutdown()
-    assert s1["cancel"]
+    assert s1["cancel"] and s1["revoked"]
 
 
 def test_drain_exit_after_cancel_releases_slot(tmp_path):
@@ -484,3 +484,69 @@ def test_drain_exit_after_cancel_releases_slot(tmp_path):
     if session["cancel"] or session["failed"]:
         c.release_slot(session["local_id"])
     assert c.acquire_slot("m2", _drain_session([], "x", None))
+
+
+def test_fallback_offline_uses_all_raw_after_abandon(tmp_path):
+    """Evidence for the full-raw fallback claim: when the incremental session
+    is abandoned mid-capture, the send path joins the LIVE frame list —
+    including chunks the callback appended after the drain exited — and the
+    offline pass over it equals today's offline output over the complete
+    recording. No captured audio is lost."""
+    rate, n = 44100, 3 * 44100
+    full = _signal(n, rate, 1, seed=42)
+    chunks = _chunks(full, "pyaudio4096", rate, 1)
+    frames = list(chunks[:3])                    # capture so far
+    spool = tmp_path / "s.pcm"
+    spool.write_bytes(b"")
+    worker = IncrementalDenoiser(rate, 1, _stand_in(), spool_path=str(spool))
+    # Tiny lag cap: the drain abandons as soon as it looks at the backlog.
+    session = _drain_session(frames, spool, worker, rate=rate,
+                             max_lag_seconds=0.001)
+    t = threading.Thread(target=drain_capture_frames, args=(session, worker))
+    t.start()
+    frames.extend(chunks[3:])                    # capture keeps going
+    session["stop"] = True
+    t.join(5.0)
+    assert not t.is_alive()
+    assert session["failed"]                     # abandoned via the lag cap
+    assert not spool.exists()                    # its own spool cleaned
+    joined = b"".join(frames)                    # what the send path joins
+    assert joined == full                        # nothing lost, in order
+    expected = nnr.denoise_pcm16(full, rate, 1, _stand_in())
+    assert nnr.denoise_pcm16(joined, rate, 1, _stand_in()) == expected
+
+
+def test_transfer_runs_enqueue_under_the_lock():
+    """The hand-off covers the REAL enqueue: a delete of the pending row
+    arriving mid-enqueue blocks on the lock and then loses — after transfer
+    returns True the message is in the queue and revoke answers False."""
+    c = IncrementalDenoiseController()
+    _registered_session(c)
+    events = []
+
+    def _enqueue():
+        events.append("enqueued")
+        t = threading.Thread(target=lambda: events.append(("revoke", c.revoke("m1"))))
+        t.start()
+        # The revoke must be BLOCKED on the controller lock right now.
+        t.join(0.3)
+        assert events == ["enqueued"]
+        events.append(t)
+
+    assert c.transfer("m1", _enqueue)
+    events[1].join(5.0)
+    assert not events[1].is_alive()
+    assert events[0] == "enqueued" and events[2] == ("revoke", False)
+
+
+def test_shutdown_cancels_released_but_preparing_authority():
+    """An abandoned-to-offline send in flight (slot released, authority
+    still PREPARING) must not transfer during app exit."""
+    c = IncrementalDenoiseController()
+    _registered_session(c)
+    c.release_slot("m1")     # slot freed; session reference gone from registry
+    c.shutdown()
+    # The released send thread learns through the authority state: no late
+    # transfer can succeed during exit.
+    assert not c.is_preparing("m1")
+    assert not c.transfer("m1")

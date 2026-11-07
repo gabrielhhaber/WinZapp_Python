@@ -18575,9 +18575,3 @@ msgstr ""
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr ""
-
-#: translations/winzapp.pot
-#: client/ui/conversation_panel/voice_recording.py
-msgctxt "noise_reduction_busy"
-msgid "Voice message not sent: noise reduction is still busy. You can cancel this message."
-msgstr ""
