@@ -384,14 +384,16 @@ class ListRefreshMixin:
         return False
 
     def on_incoming_message(self, remote_jid: str, msg: dict):
-        # A new unread message may cross the summary threshold either way.
-        wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))
         """
         Called (on the main thread) when a new message arrives via WebSocket.
         If the conversation matching remote_jid is currently open, appends the
         message to the list; otherwise does nothing (the unread badge in the
         conversations list is updated separately via set_chats).
         """
+        # A new unread message may cross the summary threshold either way.
+        # Tests bind this method without a wx.App: only schedule then.
+        if wx.GetApp() is not None:
+            wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))
         # Reactions are handled BEFORE the "is this conversation open?" guard
         # below — unlike a normal message, a reaction still has to be recorded
         # for a chat the user is not currently looking at. See

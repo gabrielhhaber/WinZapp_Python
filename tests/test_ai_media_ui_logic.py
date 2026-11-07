@@ -136,6 +136,7 @@ class DialogStub:
     _speak = AIResultDialog._speak
     _chain = AIResultDialog._chain
     _start = AIResultDialog._start
+    _consent_key = AIResultDialog._consent_key
 
     def __init__(self, *, locked=False, kind="image"):
         self.kind = kind
@@ -154,7 +155,7 @@ class DialogStub:
                                            IsShown=lambda: True, output=self.spoken.append)
         self.i18n = SimpleNamespace(t=lambda key: key)
         self.config = {"read_answers": False, "order": ["gemini", "openai"], "disabled": [],
-                       "consented": [], "models": {p: ai_config.PROVIDERS[p].model for p in ai_config.PROVIDERS},
+                       "consented": [], "consented_text": [], "models": {p: ai_config.PROVIDERS[p].model for p in ai_config.PROVIDERS},
                        "profile": "balanced", "kinds": {k: True for k in ai_config.KINDS}}
         self._latest = ""
         self._consented = False

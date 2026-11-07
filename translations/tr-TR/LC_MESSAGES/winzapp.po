@@ -1303,6 +1303,11 @@ msgid "Accessible PDF text"
 msgstr "PDF'nin erişilebilir metni"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "Okunmamış mesajların özeti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Sesli mesajın yazıya dökümü (çevrimiçi yapay zekâ)"
@@ -1346,6 +1351,39 @@ msgstr "Anahtarı göster &veya gizle"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "&Durum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Okunmayanları özetle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_consent_notice"
+msgid ""
+"This summary sends the text of your unread messages in this chat — not a "
+"file: the names and words of the people in it go with it."
+msgstr ""
+"Bu özet, bu sohbetteki okunmamış mesajlarınızın metnini gönderir; bir dosya "
+"değil: katılımcıların adları ve sözleri de buna dahildir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_min_unread_label"
+msgid ""
+"Offer to summarize when a chat has at least this many unread messages (0 = "
+"never):"
+msgstr ""
+"Bir sohbette en az bu kadar okunmamış mesaj olduğunda özet öner (0 = asla):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary to offer here: not enough unread messages or no provider set up."
+msgstr ""
+"Burada sunulacak özet yok: yeterli okunmamış mesaj yok ya da yapılandırılmış"
+" sağlayıcı yok."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -12343,6 +12381,11 @@ msgstr ""
 "Alt+Shift+T: sesli ya da videolu durumu Whisper ile yerel olarak yazıya dök "
 "ya da kaydedilmiş dökümü aç"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: okunmamış mesajları özetle"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
 msgid "Not assigned"
@@ -19826,27 +19869,3 @@ msgstr "Dün {time}"
 #~ msgstr ""
 #~ "Bu sohbette alınan sesli mesajları ve ses dosyalarını çevrimiçi "
 #~ "sağlayıcılarla otomatik olarak yazıya dök"
-
-msgctxt "ai_summary_button"
-msgid "&Summarize unread messages"
-msgstr "&Okunmayanları özetle"
-
-msgctxt "ai_summary_not_available"
-msgid "No summary to offer here: not enough unread messages or no provider set up."
-msgstr "Burada sunulacak özet yok: yeterli okunmamış mesaj yok ya da yapılandırılmış sağlayıcı yok."
-
-msgctxt "ai_summary_consent_notice"
-msgid "This summary sends the text of your unread messages in this chat — not a file: the names and words of the people in it go with it."
-msgstr "Bu özet, bu sohbetteki okunmamış mesajlarınızın metnini gönderir; bir dosya değil: katılımcıların adları ve sözleri de buna dahildir."
-
-msgctxt "ai_result_summary_title"
-msgid "Unread messages summary"
-msgstr "Okunmamış mesajların özeti"
-
-msgctxt "ai_summary_min_unread_label"
-msgid "Offer to summarize when a chat has at least this many unread messages (0 = never):"
-msgstr "Bir sohbette en az bu kadar okunmamış mesaj olduğunda özet öner (0 = asla):"
-
-msgctxt "shortcut_summarize_unread_label"
-msgid "Alt+Shift+U: summarize unread messages"
-msgstr "Alt+Shift+U: okunmamış mesajları özetle"

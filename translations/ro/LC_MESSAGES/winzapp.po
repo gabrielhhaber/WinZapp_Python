@@ -1308,6 +1308,11 @@ msgid "Accessible PDF text"
 msgstr "Text accesibil din PDF"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "Rezumatul mesajelor necitite"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Transcrierea mesajului vocal (AI online)"
@@ -1351,6 +1356,40 @@ msgstr "Arată &sau ascunde cheia"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "Star&e"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Rezumă mesajele necitite"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_consent_notice"
+msgid ""
+"This summary sends the text of your unread messages in this chat — not a "
+"file: the names and words of the people in it go with it."
+msgstr ""
+"Acest rezumat trimite textul mesajelor tale necitite din această "
+"conversație, nu un fișier: numele și cuvintele participanților sunt incluse."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_min_unread_label"
+msgid ""
+"Offer to summarize when a chat has at least this many unread messages (0 = "
+"never):"
+msgstr ""
+"Oferă rezumat când o conversație are cel puțin atâtea mesaje necitite (0 = "
+"niciodată):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary to offer here: not enough unread messages or no provider set up."
+msgstr ""
+"Niciun rezumat disponibil aici: nu sunt suficiente mesaje necitite sau "
+"niciun furnizor configurat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -12467,6 +12506,11 @@ msgstr ""
 "Alt+Shift+T: transcrie local starea audio sau video cu Whisper sau deschide "
 "transcrierea deja salvată"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: rezumă mesajele necitite"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
 msgid "Not assigned"
@@ -20085,27 +20129,3 @@ msgstr "Ieri la {time}"
 #~ msgstr ""
 #~ "Transcrie automat, cu furnizorii online, mesajele vocale și fișierele audio "
 #~ "primite în această conversație"
-
-msgctxt "ai_summary_button"
-msgid "&Summarize unread messages"
-msgstr "&Rezumă mesajele necitite"
-
-msgctxt "ai_summary_not_available"
-msgid "No summary to offer here: not enough unread messages or no provider set up."
-msgstr "Niciun rezumat disponibil aici: nu sunt suficiente mesaje necitite sau niciun furnizor configurat."
-
-msgctxt "ai_summary_consent_notice"
-msgid "This summary sends the text of your unread messages in this chat — not a file: the names and words of the people in it go with it."
-msgstr "Acest rezumat trimite textul mesajelor tale necitite din această conversație, nu un fișier: numele și cuvintele participanților sunt incluse."
-
-msgctxt "ai_result_summary_title"
-msgid "Unread messages summary"
-msgstr "Rezumatul mesajelor necitite"
-
-msgctxt "ai_summary_min_unread_label"
-msgid "Offer to summarize when a chat has at least this many unread messages (0 = never):"
-msgstr "Oferă rezumat când o conversație are cel puțin atâtea mesaje necitite (0 = niciodată):"
-
-msgctxt "shortcut_summarize_unread_label"
-msgid "Alt+Shift+U: summarize unread messages"
-msgstr "Alt+Shift+U: rezumă mesajele necitite"

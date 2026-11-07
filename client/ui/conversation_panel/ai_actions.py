@@ -226,6 +226,9 @@ class AIActionsMixin:
         except Exception:
             offered = False
         if offered:
+            # Kept in sync here (not only at construction) so a language
+            # change with a chat open renames the button too.
+            button.SetLabel(self.main_window.i18n.t("ai_summary_button"))
             button.Show()
         else:
             button.Hide()

@@ -1279,6 +1279,11 @@ msgid "Accessible PDF text"
 msgstr "نص PDF يمكن الوصول إليه"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "ملخص الرسائل غير المقروءة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "تفريغ الرسالة الصوتية (ذكاء اصطناعي عبر الإنترنت)"
@@ -1322,6 +1327,39 @@ msgstr "إظها&ر أو إخفاء المفتاح"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "ال&حالة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "تلخيص الرسائل غير المقروءة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_consent_notice"
+msgid ""
+"This summary sends the text of your unread messages in this chat — not a "
+"file: the names and words of the people in it go with it."
+msgstr ""
+"يرسل هذا الملخص نص رسائلك غير المقروءة في هذه المحادثة، لا ملفًا: وتُرفق معه"
+" أسماء المشاركين وكلماتهم."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_min_unread_label"
+msgid ""
+"Offer to summarize when a chat has at least this many unread messages (0 = "
+"never):"
+msgstr ""
+"اقترح التلخيص عندما تحتوي المحادثة على هذا العدد من الرسائل غير المقروءة على"
+" الأقل (0 = أبدًا):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary to offer here: not enough unread messages or no provider set up."
+msgstr ""
+"لا يوجد ملخص متاح هنا: لا توجد رسائل غير مقروءة كافية أو لم يُعَدّ أي مزوّد."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -12212,6 +12250,11 @@ msgstr ""
 "Alt+Shift+T: فرّغ الحالة الصوتية أو الفيديو نصيًا محليًا باستخدام Whisper، "
 "أو افتح التفريغ النصي المحفوظ بالفعل"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: تلخيص الرسائل غير المقروءة"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
 msgid "Not assigned"
@@ -19582,27 +19625,3 @@ msgstr "أمس في {time}"
 #~ msgctxt "api_type_ask_title"
 #~ msgid "API Server Configuration"
 #~ msgstr "إعداد خادم API"
-
-msgctxt "ai_summary_button"
-msgid "&Summarize unread messages"
-msgstr "&تلخيص الرسائل غير المقروءة"
-
-msgctxt "ai_summary_not_available"
-msgid "No summary to offer here: not enough unread messages or no provider set up."
-msgstr "لا يوجد ملخص متاح هنا: لا توجد رسائل غير مقروءة كافية أو لم يُعَدّ أي مزوّد."
-
-msgctxt "ai_summary_consent_notice"
-msgid "This summary sends the text of your unread messages in this chat — not a file: the names and words of the people in it go with it."
-msgstr "يرسل هذا الملخص نص رسائلك غير المقروءة في هذه المحادثة، لا ملفًا: وتُرفق معه أسماء المشاركين وكلماتهم."
-
-msgctxt "ai_result_summary_title"
-msgid "Unread messages summary"
-msgstr "ملخص الرسائل غير المقروءة"
-
-msgctxt "ai_summary_min_unread_label"
-msgid "Offer to summarize when a chat has at least this many unread messages (0 = never):"
-msgstr "اقترح التلخيص عندما تحتوي المحادثة على هذا العدد من الرسائل غير المقروءة على الأقل (0 = أبدًا):"
-
-msgctxt "shortcut_summarize_unread_label"
-msgid "Alt+Shift+U: summarize unread messages"
-msgstr "Alt+Shift+U: تلخيص الرسائل غير المقروءة"
