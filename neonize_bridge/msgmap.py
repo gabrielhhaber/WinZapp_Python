@@ -4,6 +4,7 @@ No dependency on the server: a pure function, tested in test_msgmap.py."""
 import base64
 import hashlib
 import json
+import logging
 
 import buttons
 import commerce_messages
@@ -11,7 +12,14 @@ import commerce_messages
 # layers that only wrap another message
 WRAPPERS = ("ephemeralMessage", "viewOnceMessage", "viewOnceMessageV2",
             "viewOnceMessageV2Extension", "documentWithCaptionMessage",
-            "deviceSentMessage", "editedMessage", "botInvokeMessage")
+            "deviceSentMessage", "editedMessage", "botInvokeMessage",
+            # status layers: "Add yours" and question statuses, spoiler and
+            # mentioned-group wrappers, animated stickers. Unwrapped, their
+            # text/media shows; before, each was an "Incompatible message".
+            "statusAddYours", "questionMessage", "spoilerMessage",
+            "groupMentionedMessage", "lottieStickerMessage")
+
+log = logging.getLogger("bridge")
 
 MEDIA_KINDS = {  # field -> (WhatsApp Web type, default mimetype)
     "imageMessage": ("image", "image/jpeg"),
@@ -285,6 +293,9 @@ def _content(inner, field, chat_w, out) -> bool:
         return False
     else:
         out["type"] = "unknown"
+        # the proto field name carries no personal data; it is what a report of
+        # an "Incompatible message" needs to be traced to a message type
+        log.info("message with no mapping: field=%s", field)
         out.update(buttons.button_fields(inner))
     return True
 

@@ -338,3 +338,16 @@ def test_a_unified_response_that_is_not_json_is_left_out():
     out = _meta_ai_reply("M3", _rich("Hi", unified=b"\xff not json"))
     assert out["type"] == "rich_response" and "unifiedResponse" not in out
 
+
+
+def test_a_status_add_yours_wrapper_shows_its_text():
+    msg = Message()
+    msg.statusAddYours.message.extendedTextMessage.text = "add yours"
+    m = _build(msg)
+    assert m["type"] == "chat" and m["body"] == "add yours"
+
+
+def test_a_question_status_wrapper_shows_its_text():
+    msg = Message()
+    msg.questionMessage.message.extendedTextMessage.text = "ask me anything"
+    assert _build(msg)["body"] == "ask me anything"
