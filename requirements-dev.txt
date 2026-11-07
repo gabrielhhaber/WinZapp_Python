@@ -1,6 +1,8 @@
 # Test tooling for the pip/venv workflow; see requirements.txt. Every package
 # here must also be declared in pyproject.toml, and pinned there at a version
 # these ranges accept (tests/test_requirements_in_sync.py).
+# The cross-end call pipeline imports the bridge's HTTP route helpers.
+aiohttp==3.14.5
 pytest>=8.0
 pytest-cov>=5.0
 pytest-asyncio>=0.25

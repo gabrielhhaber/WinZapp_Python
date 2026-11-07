@@ -447,12 +447,14 @@ def test_remote_video_blocked_by_is_video_gate_is_counted(monkeypatch):
 def test_remote_video_passes_gate_and_schedules_render(monkeypatch):
     import wx
     scheduled = []
-    monkeypatch.setattr(wx, "CallAfter", lambda fn, *args: scheduled.append((fn, args)))
+    monkeypatch.setattr(wx, "CallAfter", lambda fn, *args, **kwargs: scheduled.append((fn, args, kwargs)))
     stub = _RemoteVideoMainWindow(is_video=True)
 
     stub.on_call_remote_video(b"jpeg-bytes")
 
-    assert scheduled == [(stub._show_call_remote_video, (b"jpeg-bytes",))]
+    assert scheduled == [(stub._show_call_remote_video, (b"jpeg-bytes",),
+                          {'expected_call': stub._active_voice_call, 'media_epoch': None})]
+    assert scheduled[0][2]['expected_call'] is stub._active_voice_call
     assert stub._call_remote_video_gate_blocked == 0
 
 
@@ -528,17 +530,27 @@ def test_camera_starts_after_the_accept_post_not_before_it():
     assert accept_post < camera_start
 
 
-def test_camera_starts_after_the_offer_post_on_an_outgoing_video_call():
+def test_camera_starts_after_the_offer_post_on_an_outgoing_video_call(monkeypatch):
     """Same ordering on the dialling side: enumerating the camera must not sit
     between pressing "video call" and the offer actually being placed."""
-    body = _body_between(
-        _MAIN_SRC,
-        "    def _start_call(self",
-        "    def _abandon_outgoing_call(self",
-    )
-    offer_post = body.index('"offer",')
-    camera_start = body.index("self._start_call_camera()")
-    assert offer_post < camera_start
+    from tests.test_outgoing_call_teardown import _MainStub
+
+    class InlineThread:
+        def __init__(self, target=None, args=(), kwargs=None, **_kw):
+            self.target, self.args, self.kwargs = target, args, kwargs or {}
+
+        def start(self):
+            self.target(*self.args, **self.kwargs)
+
+    monkeypatch.setattr("main.threading.Thread", InlineThread)
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *args, **kwargs: fn(*args, **kwargs))
+    during_offer = []
+    def offer(stub):
+        during_offer.append(stub.camera_starts)
+    stub = _MainStub(offer=offer)
+    stub._start_individual_call("5511888888888@s.whatsapp.net", "Contact", is_video=True)
+    assert during_offer == [0]
+    assert stub.posted == ['offer'] and stub.camera_starts == 1
 
 
 class _StopCameraWs(_NoCameraWs):
@@ -553,7 +565,7 @@ class _StopCameraWs(_NoCameraWs):
         self.stopped_epochs.append(epoch)
         self.native_stops.append(native)
 
-    def send_call_camera_start(self):
+    def send_call_camera_start(self, epoch=None, *, media_epoch=None):
         self.camera_starts += 1
 
 
@@ -799,6 +811,13 @@ class _ToggleMainWindow(_StopCameraMainWindow):
 
     def _start_call_camera(self, **kwargs):
         self.started.append(kwargs)
+        owner = kwargs.get('expected_call')
+        assert owner is None or owner is self._active_voice_call
+        if self.start_result:
+            self._call_camera_capture = _RecordingCapture()
+            self._call_camera_enabled = True
+            self._call_camera_epoch = 17
+            self._call_camera_owner = self._active_voice_call
         return self.start_result
 
 
@@ -973,8 +992,8 @@ def test_a_second_video_on_press_while_the_camera_opens_starts_nothing(monkeypat
     threads = []
 
     class _HeldThread:
-        def __init__(self, target=None, daemon=None, **_kw):
-            self.target = target
+        def __init__(self, target=None, args=(), daemon=None, **_kw):
+            self.target = lambda: target(*args)
 
         def start(self):
             threads.append(self.target)
@@ -988,7 +1007,8 @@ def test_a_second_video_on_press_while_the_camera_opens_starts_nothing(monkeypat
     assert len(threads) == 1
 
     threads[0]()                        # the first open finishes
-    assert stub.started == [{}]
+    assert stub.started == [{'expected_call': stub._active_voice_call}]
+    assert stub.started[0]['expected_call'] is stub._active_voice_call
     assert stub._call_camera_resuming is False
 
 

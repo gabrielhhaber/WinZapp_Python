@@ -12,6 +12,7 @@ import pytest
 
 from core.call_audio import CALL_FRAME_SAMPLES, CALL_SAMPLE_RATE, CallAudioConfig, CallAudioSession
 from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
+from core.call_media_ownership import CapturedPCM
 
 
 def _stream(data, source, target, sizes):
@@ -207,11 +208,15 @@ def test_microphone_callback_copies_float32_without_filtering_or_quantizing(monk
 
     monkeypatch.setattr(call_audio, "MicrophonePCMEncoder", unexpected)
     session, socket = _session()
+    owner = 'a' * 32
+    assert session.set_media_epoch(owner)
     signal = np.array([[0.1234567], [-0.2345678]], dtype=np.float32)
     session._on_microphone_frame(44_100)(signal, len(signal), None, None)
     captured = session._mic_queue.get_nowait()
     signal[:] = 0
-    np.testing.assert_array_equal(captured, [np.float32(0.1234567), np.float32(-0.2345678)])
+    assert isinstance(captured, CapturedPCM) and captured.epoch == owner
+    assert captured.samples.dtype == np.float32
+    np.testing.assert_array_equal(captured.samples, [np.float32(0.1234567), np.float32(-0.2345678)])
     assert socket.events == []
 
 

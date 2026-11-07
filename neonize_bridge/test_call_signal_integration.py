@@ -1,5 +1,6 @@
 """Generated PCM at fake native boundaries; no device or codec acceptance."""
 import base64
+import ast
 import json
 
 import pytest
@@ -14,6 +15,29 @@ def payload():
 
 def stage(stats, name):
     return stats.signal_summary()["stages"][name]
+
+
+def logged_signal(record):
+    # The bridge's privacy filter may render and replace LogRecord.msg/args.
+    # Assert the actual log payload, independent of that internal storage.
+    prefix = "call audio signal summary: "
+    message = record.getMessage()
+    return ast.literal_eval(message[len(prefix):]) if message.startswith(prefix) else None
+
+
+@pytest.fixture(params=[False, True], ids=["standard-record", "privacy-filtered-record"])
+def log_contract(request):
+    import logging
+    from redaction import RedactionFilter
+    logger = logging.getLogger("bridge")
+    privacy = RedactionFilter() if request.param else None
+    if privacy is not None:
+        logger.addFilter(privacy)
+    try:
+        yield
+    finally:
+        if privacy is not None:
+            logger.removeFilter(privacy)
 
 
 def test_native_acceptance_is_measured_after_writer_result_only():
@@ -65,7 +89,7 @@ def test_same_id_replacement_never_mixes_signal_windows():
     assert all(s["frames"] == 0 for s in new_stats.signal_summary()["stages"].values())
 
 
-def test_periodic_and_final_windows_do_not_repeat_samples_or_log_pcm(caplog):
+def test_periodic_and_final_windows_do_not_repeat_samples_or_log_pcm(caplog, log_contract):
     now = [0.0]
     stats = AudioDelivery(clock=lambda: now[0])
     pcm = b"\x00\x10" * 320
@@ -77,7 +101,7 @@ def test_periodic_and_final_windows_do_not_repeat_samples_or_log_pcm(caplog):
         stats.report()
         stats.report()
         assert len(caplog.records) == 1
-        first = caplog.records[0].args
+        first = logged_signal(caplog.records[0])
         assert first["window_ms"] == 5000
         assert first["stages"]["remote_native_pcm"]["frames"] == 1
         assert first["stages"]["mic_native_accepted"]["rms_dbfs"] is None
@@ -86,7 +110,7 @@ def test_periodic_and_final_windows_do_not_repeat_samples_or_log_pcm(caplog):
         stats.report(force=True)
         stats.report(force=True)
         assert len(caplog.records) == 2
-        final = caplog.records[-1].args
+        final = logged_signal(caplog.records[-1])
         assert final["window_ms"] == 1000
         assert final["stages"]["remote_native_pcm"]["frames"] == 0
         assert final["stages"]["mic_native_accepted"]["zero_frames"] == 1
@@ -98,7 +122,7 @@ def test_periodic_and_final_windows_do_not_repeat_samples_or_log_pcm(caplog):
     assert set(first["stages"]) == set(SIGNAL_STAGES)
 
 
-def test_end_flushes_a_short_call_window_once(caplog):
+def test_end_flushes_a_short_call_window_once(caplog, log_contract):
     fake, media = active()
     stats = counters(media._calls["C"])
     stats._last = stats._clock()
@@ -106,9 +130,9 @@ def test_end_flushes_a_short_call_window_once(caplog):
         media.microphone(payload())
         media.handle({"ev": "end", "call": "C", "generation": 7})
         media.handle({"ev": "end", "call": "C", "generation": 7})
-    signals = [r for r in caplog.records if r.msg == "call audio signal summary: %s"]
+    signals = [entry for r in caplog.records if (entry := logged_signal(r)) is not None]
     assert len(signals) == 1
-    assert signals[0].args["stages"]["mic_native_accepted"]["frames"] == 1
+    assert signals[0]["stages"]["mic_native_accepted"]["frames"] == 1
 
 
 def test_invalid_measurement_and_internal_error_do_not_stop_media(monkeypatch):

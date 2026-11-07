@@ -760,6 +760,9 @@
 <p>Gdy czat grupowy jest otwarty, WinZapp sprawdza trwające połączenie mniej więcej co dziesięć sekund. Przycisk dołączenia pojawia się tylko wtedy, gdy połączenie jest dostępne, i znika po jego zakończeniu. Dołączenie do połączenia wideo rozpoczyna się z wyłączoną kamerą. Dołączenie do istniejącego połączenia nie podlega limitowi 32 członków dotyczącemu rozpoczynania nowego połączenia grupowego. Gdy połączenie jest dostępne, przyciski rozpoczynania połączeń głosowych i wideo zastępuje przycisk "Dołącz do trwającego połączenia głosowego" lub, w przypadku połączenia wideo, "Dołącz do trwającego połączenia wideo (kamera wyłączona)". W sekcji Połączenia (Alt+6) filtr Trwające pokazuje połączenia, do których można dołączyć, w tym połączenia wielu osób poza czatami grupowymi; pojawiają się one również na początku listy Wszystkie. Wybierz połączenie i naciśnij Enter lub użyj tego samego przycisku dołączenia. Jeśli już uczestniczysz w tym połączeniu, przycisk nazywa się "Powrót do połączenia" i przywołuje okno bieżącego połączenia. Lista odświeża się mniej więcej co dziesięć sekund, gdy sekcja Połączenia jest otwarta, i zawiera tylko połączenia udostępnione przez WhatsApp Twojemu kontu.</p>
 <p>Użyj przycisku "Uczestnicy połączenia" w oknie połączenia lub przy zaznaczonym trwającym połączeniu w sekcji Połączenia, aby zobaczyć nazwy połączonych osób. Lista odświeża się co dziesięć sekund; "Odśwież" pobiera bieżące dane, a "Zamknij" lub Esc zamyka okno. Osoby zaproszone lub rozłączone nie są wyświetlane. Przeglądanie listy nie dołącza do połączenia ani go nie kończy.</p>
 
+<h3>Ciągłość dźwięku w połączeniach</h3>
+<p>Neonize przypisuje opóźniony dźwięk, operacje kamery i zmiany urządzeń do połączenia i strumienia, które je rozpoczęły. Oczekujące dane zakończonego lub zastąpionego strumienia są odrzucane, a zaległe dane multimedialne mają ograniczony rozmiar. Przejściowy błąd przekazania ramki do klienta nie zatrzymuje na stałe odczytu dźwięku. Po ponownym otwarciu wyjścia stary strumień nie może pobierać dźwięku nowego; błąd sygnału odniesienia dla usuwania echa nie wycisza dźwięku przygotowanego do odtwarzania. Niejednoznaczne częściowe dopasowanie nazwy urządzenia WASAPI zachowuje pierwotne API zamiast wybierać przypadkowe dopasowanie.</p>
+<p>Dzienniki połączeń Neonize zawierają liczbowe podsumowania sygnału do badania problemów, bez zapisywania treści dźwięku. Rozróżniają brak próbek, cyfrową ciszę i poziomy sygnału; nie potwierdzają, że druga osoba zrozumiała lub usłyszała mowę.</p>
 
   </section>
 
@@ -1413,6 +1416,7 @@
 <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: cytat wiadomości głosowej pokazuje jej czas trwania.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Statusy z lokalizacją, ankietą i innymi typami nie pokazują się już jako niezgodna wiadomość.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Otwórz: plik otwarty w zewnętrznej przeglądarce zachowuje prawdziwą nazwę.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Przypisanie połączeń i strumieni, ograniczona obsługa multimediów i diagnostyka sygnału bez treści dźwięku.</td></tr>
 </table>
 
   </section>

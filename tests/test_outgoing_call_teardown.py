@@ -104,11 +104,13 @@ class _MainStub:
     def _resolve_jid_for_send(self, jid):
         return jid
 
-    def _start_voice_call_audio(self, identity, details=None, *, keep_active_call=False):
-        # The real one REPLACES _active_voice_call with a record of its own,
-        # which is why the worker takes its identity token only afterwards.
+    def _start_voice_call_audio(self, identity, details=None, *, keep_active_call=False,
+                                expected_call=None):
+        # Device startup now preserves the worker's exact owning record,
+        # including event fields that may have arrived while devices open.
+        assert expected_call is self._active_voice_call
         self._call_audio_session = object()
-        self._active_voice_call = {
+        fields = {
             "identity": identity,
             "call_id": (details or {}).get("call_id") or identity,
             "peer_jid": (details or {}).get("peer_jid") or "",
@@ -117,6 +119,8 @@ class _MainStub:
             "outgoing": True,
             "is_video": bool((details or {}).get("is_video")),
         }
+        for key, value in fields.items():
+            expected_call.setdefault(key, value)
         return True
 
     def _stop_voice_call_audio(self, grace_seconds=0.0, *, keep_call=False):
@@ -148,7 +152,8 @@ class _MainStub:
     def _call_error_text(self, error):
         return str(error)
 
-    def _start_call_camera(self, *, announce_failure=True, transmit=True):
+    def _start_call_camera(self, *, announce_failure=True, transmit=True, expected_call=None):
+        assert expected_call is self._active_voice_call
         self.camera_starts += 1
         return True
 
