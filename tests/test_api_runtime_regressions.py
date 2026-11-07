@@ -238,3 +238,12 @@ def test_server_2_10_75_chatwoot_authentication_is_ported_into_the_restored_file
     assert "const client: any = req.client;" in controller
     assert "Session is not connected" in controller
     assert "clientsArray" not in controller
+
+
+def test_server_2_10_77_private_media_cache_is_not_served_in_the_restored_index():
+    """src/index.ts is restored over the checkout, so upstream's 2.10.77 removal
+    of the public /files route (the private media cache) only reaches WinZapp
+    when it is carried into api_patches/."""
+    index = _patch("src/index.ts")
+    assert "express.static('WhatsAppImages')" not in index
+    assert "'/files'" not in index
