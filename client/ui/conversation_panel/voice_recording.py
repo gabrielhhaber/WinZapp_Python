@@ -479,6 +479,10 @@ class VoiceRecordingMixin:
         threading.Thread(target=_bg_open_stream, daemon=True).start()
 
     # ── Incremental neural noise reduction (test branch) ───────────────────
+    #: How far the cleaner may fall behind capture before the session is
+    #: abandoned to the offline path, in seconds of captured audio.
+    _INCREMENTAL_MAX_LAG_SECONDS = 30
+
     def _start_incremental_denoise(self, frames_list, rate, ch):
         """Start cleaning the recording through the model as frames arrive.
 
@@ -486,8 +490,9 @@ class VoiceRecordingMixin:
         (total RAM matches the current recording profile — the model side is
         what stays flat); the cleaned PCM16 is spooled to a temp file off the
         UI thread. Any failure marks the session failed and
-        _write_and_enqueue falls back to the existing offline path, so the
-        worst case is today's behaviour. Explicit-mono mode averages the two
+        _write_and_enqueue falls back to the existing offline path (the
+        fallback adds the abandoned session's already-spent work, so no
+        worst-case claim until measured). Explicit-mono mode averages the two
         captured channels per chunk BEFORE the model, mirroring the offline
         prepare_voice_pcm step; automatic mode's empty-side drop is resolved
         at send time from the cleaned spool (the model handles channels
@@ -528,13 +533,18 @@ class VoiceRecordingMixin:
 
         Read-only on the frames list: the capture callback owns appends
         (atomic under the GIL, see _start_voice_recording's _callback) and
-        this thread never mutates or rebinds it. Frames accumulate in memory
-        today regardless, so a slow CPU only makes this thread fall behind —
-        the send path then waits for it, never longer than the full offline
-        pass it replaces. The model session is loaded HERE (off the UI
-        thread): nnr._denoiser is shared with the offline path, which cannot
-        race it because _write_and_enqueue joins this thread before any
-        offline fallback runs.
+        this thread never mutates or rebinds it. Bounded lag: when the
+        unprocessed backlog grows past _INCREMENTAL_MAX_LAG_SECONDS of audio
+        the session is marked failed and abandoned — the spool is deleted
+        and the send path falls back to the existing offline pass, exactly
+        as if incremental had never started. The capture callback and the UI
+        thread never wait on this thread; only the background send thread
+        joins it, with at most the bounded backlog left to process. No
+        worst-case claim is made about total send time versus the offline
+        path until measured on the target machine. The model session is
+        loaded HERE (off the UI thread): nnr._denoiser is shared with the
+        offline path, which cannot race it because _write_and_enqueue joins
+        this thread before any offline fallback runs.
         """
         try:
             from core import neural_noise_reduction as nnr
@@ -548,15 +558,30 @@ class VoiceRecordingMixin:
             session["worker"] = worker
             frames = session["frames"]
             mono_average = session["worker_ch"] != session["ch"]
+            max_lag = (session["rate"] * session["ch"] * 2
+                       * self._INCREMENTAL_MAX_LAG_SECONDS)
             i = 0
+            seen_index = 0
+            seen_bytes = 0
+            fed_bytes = 0
             while not session["cancel"]:
                 n = len(frames)
+                while seen_index < n:
+                    seen_bytes += len(frames[seen_index])
+                    seen_index += 1
+                if seen_bytes - fed_bytes > max_lag:
+                    logging.warning("[noise_reduction] incremental session abandoned: "
+                                    "model fell %.1fs behind; offline path takes over at send",
+                                    (seen_bytes - fed_bytes) / (session["rate"] * session["ch"] * 2))
+                    session["failed"] = True
+                    break
                 while i < n and not session["cancel"]:
                     chunk = frames[i]
                     if mono_average:
                         # Same int16 (L+R)//2 as the offline prepare_voice_pcm.
                         chunk, _ = prepare_voice_pcm(chunk, session["ch"], "mono")
                     worker.feed(chunk)
+                    fed_bytes += len(frames[i])
                     i += 1
                 if session["stop"] and i >= len(frames):
                     break
@@ -976,6 +1001,16 @@ class VoiceRecordingMixin:
                         logging.exception("[VOICE_TIMING] incremental noise reduction failed; "
                                           "falling back to the offline path")
                         audio_data = None
+                        # finish() may have died with the spool still open or
+                        # half-written: close the handle, then delete the file.
+                        try:
+                            worker.abort()
+                        except Exception:
+                            pass
+                        try:
+                            os.unlink(inc_session["spool"])
+                        except OSError:
+                            pass
             if audio_data is None:
                 # Join raw PCM frames.
                 audio_data = b"".join(frames)
