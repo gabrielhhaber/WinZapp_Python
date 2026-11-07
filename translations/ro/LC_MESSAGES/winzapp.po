@@ -9218,6 +9218,16 @@ msgstr ""
 "de bază a zgomotului."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_kept_pending"
+msgid ""
+"Could not apply neural noise reduction; the voice message stayed pending so "
+"you can try sending it again."
+msgstr ""
+"Nu s-a putut aplica reducerea neuronală a zgomotului; mesajul vocal a rămas "
+"în așteptare, astfel încât să puteți încerca să-l trimiteți din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "noise_reduction_label"
 msgid "Enable microphone &noise reduction"
@@ -19240,6 +19250,25 @@ msgstr "În timpul &înregistrării"
 msgctxt "voice_nr_moment_send"
 msgid "&When sending"
 msgstr "La tr&imitere"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_basic"
+msgid "Send with basic noise reduction (default)"
+msgstr "Trimite cu reducerea de bază a zgomotului (implicit)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_label"
+msgid "When noise reduction fails"
+msgstr "Când reducerea zgomotului eșuează"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_pending"
+msgid "Keep the voice message pending to try sending it again"
+msgstr ""
+"Păstrează mesajul vocal în așteptare pentru a încerca să-l trimiteți din nou"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"

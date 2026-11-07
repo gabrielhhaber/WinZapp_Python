@@ -502,8 +502,8 @@ class _SendPanel:
     def _stop_recording_stream(self, session=None):
         return vr.VoiceRecordingMixin._stop_recording_stream(self, session)
 
-    def _reduce_for_send(self, *a):
-        return vr.VoiceRecordingMixin._reduce_for_send(self, *a)
+    def _reduce_for_send(self, *a, **k):
+        return vr.VoiceRecordingMixin._reduce_for_send(self, *a, **k)
 
     def _clear_empty_placeholder(self):
         pass
@@ -2173,3 +2173,152 @@ def test_send_after_switching_to_send_moment_goes_offline(send_env, monkeypatch)
     pm = mw.message_queue.enqueued[0]
     assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
     assert session["cancel"] is True
+
+
+# --- Fourth option (voice_nr_on_failure="keep_pending"): when BOTH neural
+# processings fail, keep the note pending for a manual resend instead of
+# sending it gated or unprocessed. Never retried automatically. ---
+
+
+def _keep_pending_mw(controller):
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_on_failure"] = "keep_pending"
+    announced = []
+    mw.output = lambda msg, **k: announced.append(msg)
+    return mw, announced
+
+
+def _drive_wx_calls():
+    for fn, a, k in WX_CALLS:
+        fn(*a, **k)
+
+
+def _wait_kept_pending(panel, timeout=10.0):
+    """The send thread keeps the note pending off the caller thread: wait
+    until the resend file is recorded (the last step before the UI call)."""
+    from core.message_resend import RESEND_PATH_KEY
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        registered = panel.registered
+        if registered is not None and RESEND_PATH_KEY in registered:
+            return registered[RESEND_PATH_KEY]
+        time.sleep(0.05)
+    raise AssertionError("the note was never kept pending")
+
+
+def test_send_kept_pending_when_both_neural_paths_fail(send_env, monkeypatch):
+    import core.neural_noise_reduction as nnr
+
+    def _boom(*a, **k):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _boom)
+    from core.message_resend import RESEND_PATH_KEY, resend_request
+    controller = IncrementalDenoiseController()
+    frames = [b"\x0d\x0e" * 480]
+    raw = b"".join(frames)
+    mw, announced = _keep_pending_mw(controller)
+    panel = _SendPanel(mw, frames, None)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    path = _wait_kept_pending(panel)
+    # Nothing was sent.
+    assert mw.message_queue.enqueued == []
+    # The pending row keeps the ORIGINAL audio for the manual resend.
+    assert _wav_payload(path) == raw
+    # ...and the existing "Try sending again" affordance accepts the row.
+    panel.registered["_send_failed"] = True  # what the real marker sets
+    assert resend_request(panel.registered) == ("media", path, "audio", "")
+    # Marked failed and announced on the UI thread.
+    _drive_wx_calls()
+    assert panel.failed == [panel.registered["_local_id"]]
+    assert announced == ["noise_reduction_kept_pending"]
+    assert "_incremental_preparing" not in panel.registered
+
+
+def test_send_kept_pending_when_neural_returns_gate_result(send_env, monkeypatch):
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "gate"))
+    controller = IncrementalDenoiseController()
+    frames = [b"\x0f\x10" * 480]
+    mw, announced = _keep_pending_mw(controller)
+    panel = _SendPanel(mw, frames, None)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    _wait_kept_pending(panel)
+    # A gate result is NOT the neural engine: the note stays pending, the
+    # gated audio is never sent.
+    assert mw.message_queue.enqueued == []
+    _drive_wx_calls()
+    assert panel.failed == [panel.registered["_local_id"]]
+    assert announced == ["noise_reduction_kept_pending"]
+
+
+def test_send_basic_engine_still_sends_with_keep_pending_option(send_env, monkeypatch):
+    # The basic engine is an explicit choice, not a neural failure.
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x11\x12" * 480]
+    raw = b"".join(frames)
+    mw, _ = _keep_pending_mw(controller)
+    mw.settings["general"]["voice_nr_engine"] = "basic"
+    panel = _SendPanel(mw, frames, None)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+
+
+def test_send_slot_busy_session_still_gates_with_keep_pending_option(send_env, monkeypatch):
+    # Slot was busy at record time: neural never ran for this note, so the
+    # documented no-second-ONNX policy still applies and the gate sends.
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x13\x14" * 480]
+    raw = b"".join(frames)
+    session = _send_session(controller, frames, basic_only=True, stream=_FakeStream())
+    mw, _ = _keep_pending_mw(controller)
+    panel = _SendPanel(mw, frames, session)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+
+
+def test_send_neural_failure_sends_unprocessed_by_default(send_env, monkeypatch):
+    # Option unset: the published behavior is unchanged — the note goes out
+    # unprocessed with the published announcement.
+    import core.neural_noise_reduction as nnr
+
+    def _boom(*a, **k):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _boom)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x15\x16" * 480]
+    raw = b"".join(frames)
+    mw = _FakeSendMW(controller)
+    announced = []
+    mw.output = lambda msg, **k: announced.append(msg)
+    panel = _SendPanel(mw, frames, None)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == raw
+    assert any(fn == mw.output and a and a[0] == "noise_reduction_failed"
+               for fn, a, k in WX_CALLS)

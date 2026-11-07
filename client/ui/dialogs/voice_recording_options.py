@@ -3,7 +3,8 @@
 import wx
 
 from core.voice_nr_options import (
-    NR_ENGINES, NR_MOMENTS, voice_nr_engine, voice_nr_moment)
+    NR_ENGINES, NR_MOMENTS, NR_ON_FAILURE,
+    voice_nr_engine, voice_nr_moment, voice_nr_on_failure)
 from core.voice_recording_mode import RECORDING_MODES, voice_recording_mode
 from core.voice_stereo import (
     VOICE_BITRATES_KBPS, stereo_voice_bitrate_kbps, voice_bitrate_kbps)
@@ -40,6 +41,15 @@ class VoiceRecordingOptionsMixin:
             style=wx.RA_SPECIFY_COLS,
         )
         sizer.Add(self._voice_nr_moment_radio, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_on_failure_radio = wx.RadioBox(
+            parent,
+            label=i18n.t("voice_nr_on_failure_label"),
+            choices=[i18n.t("voice_nr_on_failure_basic"),
+                     i18n.t("voice_nr_on_failure_pending")],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        sizer.Add(self._voice_nr_on_failure_radio, 0, wx.EXPAND | wx.ALL, 8)
         self._voice_bitrate_label = wx.StaticText(
             parent, label=i18n.t("voice_recording_bitrate_label"))
         sizer.Add(self._voice_bitrate_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
@@ -60,6 +70,8 @@ class VoiceRecordingOptionsMixin:
             NR_ENGINES.index(voice_nr_engine(self.main_window.settings)))
         self._voice_nr_moment_radio.SetSelection(
             NR_MOMENTS.index(voice_nr_moment(self.main_window.settings)))
+        self._voice_nr_on_failure_radio.SetSelection(
+            NR_ON_FAILURE.index(voice_nr_on_failure(self.main_window.settings)))
         self._voice_bitrate_choice.SetSelection(
             VOICE_BITRATES_KBPS.index(voice_bitrate_kbps(self.main_window.settings)))
         self._voice_bitrate_stereo_choice.SetSelection(
@@ -75,6 +87,9 @@ class VoiceRecordingOptionsMixin:
         index = self._voice_nr_moment_radio.GetSelection()
         moment = NR_MOMENTS[index] if 0 <= index < len(NR_MOMENTS) else "send"
         self.main_window.settings.setdefault("general", {})["voice_nr_moment"] = moment
+        index = self._voice_nr_on_failure_radio.GetSelection()
+        on_failure = NR_ON_FAILURE[index] if 0 <= index < len(NR_ON_FAILURE) else "basic"
+        self.main_window.settings.setdefault("general", {})["voice_nr_on_failure"] = on_failure
         index = self._voice_bitrate_choice.GetSelection()
         if 0 <= index < len(VOICE_BITRATES_KBPS):
             self.main_window.settings.setdefault("general", {})["voice_recording_bitrate"] = VOICE_BITRATES_KBPS[index]
@@ -94,5 +109,8 @@ class VoiceRecordingOptionsMixin:
         self._voice_nr_moment_radio.SetLabel(i18n.t("voice_nr_moment_label"))
         self._voice_nr_moment_radio.SetItemLabel(0, i18n.t("voice_nr_moment_send"))
         self._voice_nr_moment_radio.SetItemLabel(1, i18n.t("voice_nr_moment_record"))
+        self._voice_nr_on_failure_radio.SetLabel(i18n.t("voice_nr_on_failure_label"))
+        self._voice_nr_on_failure_radio.SetItemLabel(0, i18n.t("voice_nr_on_failure_basic"))
+        self._voice_nr_on_failure_radio.SetItemLabel(1, i18n.t("voice_nr_on_failure_pending"))
         self._voice_bitrate_label.SetLabel(i18n.t("voice_recording_bitrate_label"))
         self._voice_bitrate_stereo_label.SetLabel(i18n.t("voice_recording_bitrate_stereo_label"))

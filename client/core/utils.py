@@ -1090,6 +1090,9 @@ DEFAULT_SETTINGS = {
         # (core/voice_nr_options.py).
         "voice_nr_engine": "neural",
         "voice_nr_moment": "send",
+        # What a note the neural engine could not process does: send with the
+        # basic gate (published), or stay pending for a manual resend.
+        "voice_nr_on_failure": "basic",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,

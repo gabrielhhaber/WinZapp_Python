@@ -17,6 +17,7 @@ import wx
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from main_window.typing_feedback import stop_typing_for_capture
 from core.message_queue import PendingMessage
+from core.message_resend import RESEND_PATH_KEY
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from core.voice_stereo import (
     STEREO_MIMETYPE, bitrate_arg, drop_empty_side, encode_as_stereo,
@@ -25,7 +26,7 @@ from core.voice_stereo import (
 from core.voice_recording_mode import (
     voice_recording_mode, recording_output_channels, prepare_voice_pcm,
 )
-from core.voice_nr_options import voice_nr_engine, voice_nr_moment
+from core.voice_nr_options import voice_nr_engine, voice_nr_moment, voice_nr_on_failure
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import encrypt
@@ -930,7 +931,8 @@ class VoiceRecordingMixin:
                 pass
             self._recorded_audio_temp_path = None
 
-    def _reduce_for_send(self, mw, audio_data, rate, channels, basic_only):
+    def _reduce_for_send(self, mw, audio_data, rate, channels, basic_only,
+                         on_failure="basic"):
         """Noise-reduction step of the send path.
 
         basic_only=True means the incremental slot was occupied (the model
@@ -942,7 +944,14 @@ class VoiceRecordingMixin:
         note goes out unprocessed with the published announcement — there
         is no further escalation step. Returns (audio_data, engine) with
         engine None when both failed.
+
+        on_failure="keep_pending" (the user's choice, only meaningful with
+        basic_only=False) changes none of the processing — only the
+        announcements: the caller keeps the note pending instead of sending
+        the gate/unprocessed result, so neither "basic was used" nor
+        "sent unprocessed" may be announced here.
         """
+        keep_pending = on_failure == "keep_pending" and not basic_only
         try:
             if basic_only:
                 logging.info("[VOICE_TIMING] Applying the basic noise gate "
@@ -955,7 +964,7 @@ class VoiceRecordingMixin:
                 from core.neural_noise_reduction import reduce_voice_noise
                 audio_data, engine = reduce_voice_noise(audio_data, rate, channels)
             logging.info("[VOICE_TIMING] Noise reduction engine: %s", engine)
-            if engine != "neural":
+            if engine != "neural" and not keep_pending:
                 # Never let the plain gate pass for the neural model.
                 announce = getattr(mw, "output", None)
                 if announce is not None:
@@ -963,6 +972,8 @@ class VoiceRecordingMixin:
             return audio_data, engine
         except Exception as ex:
             logging.error("[VOICE_TIMING] Failed to apply noise reduction: %s", ex)
+            if keep_pending:
+                return audio_data, None
             # Both engines failed: the note goes out unprocessed, say so.
             announce = getattr(mw, "output", None)
             if announce is not None:
@@ -1603,9 +1614,50 @@ class VoiceRecordingMixin:
                         inc_session.get("basic_only", False)
                         or inc_session.get("model_unavailable", False)
                         or inc_session.get("fallback_chosen", False)))
+                on_failure = voice_nr_on_failure(mw.settings)
+                raw_unprocessed = audio_data if (
+                    on_failure == "keep_pending" and not basic_only) else None
                 audio_data, _nr_engine = self._reduce_for_send(
-                    mw, audio_data, actual_rate, channels, basic_only)
+                    mw, audio_data, actual_rate, channels, basic_only,
+                    on_failure=on_failure)
                 logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", _nr_engine)
+                if raw_unprocessed is not None and _nr_engine != "neural":
+                    # Fourth option: BOTH neural processings failed (the
+                    # incremental one did not clean this note and the
+                    # at-send one just failed). Keep the note pending with
+                    # its ORIGINAL audio for a manual "Try sending again"
+                    # instead of sending it gated or unprocessed. Never
+                    # retried automatically. A basic engine chosen on
+                    # purpose (basic_only) never lands here.
+                    logging.info("[noise_reduction] neural reduction failed; "
+                                 "keeping the note pending for a manual resend")
+                    pending_path = None
+                    try:
+                        os.makedirs(data_path("voice_messages"), exist_ok=True)
+                        pending_path = os.path.join(
+                            data_path("voice_messages"), local_id + ".resend.wav")
+                        with wave.open(pending_path, "wb") as wf:
+                            wf.setnchannels(channels)
+                            wf.setsampwidth(2)
+                            wf.setframerate(actual_rate)
+                            wf.writeframes(raw_unprocessed)
+                    except Exception as exc:
+                        logging.error("[_send_voice_message] could not keep the "
+                                      "pending WAV: %s", exc)
+                        pending_path = None
+                    if pending_path is not None:
+                        virtual_msg[RESEND_PATH_KEY] = pending_path
+                    virtual_msg.pop("_incremental_preparing", None)
+                    _forget_incremental()
+
+                    def _mark_kept_pending():
+                        self._mark_message_failed(local_id)
+                        announce = getattr(mw, "output", None)
+                        if announce is not None:
+                            announce(mw.i18n.t("noise_reduction_kept_pending"))
+
+                    wx.CallAfter(_mark_kept_pending)
+                    return
 
             # 2. Write WAV temp file (used for ffmpeg conversion, backup, and retry fallback).
             tmp = None

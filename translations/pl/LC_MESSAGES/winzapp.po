@@ -9228,6 +9228,16 @@ msgstr ""
 "szumów."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_kept_pending"
+msgid ""
+"Could not apply neural noise reduction; the voice message stayed pending so "
+"you can try sending it again."
+msgstr ""
+"Nie można zastosować neuronowej redukcji szumów; notatka głosowa pozostała "
+"oczekująca, aby można było spróbować wysłać ją ponownie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "noise_reduction_label"
 msgid "Enable microphone &noise reduction"
@@ -19363,6 +19373,25 @@ msgstr "Podczas nagrywan&ia"
 msgctxt "voice_nr_moment_send"
 msgid "&When sending"
 msgstr "Podczas &wysyłania"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_basic"
+msgid "Send with basic noise reduction (default)"
+msgstr "Wyślij z podstawową redukcją szumów (domyślne)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_label"
+msgid "When noise reduction fails"
+msgstr "Gdy redukcja szumów się nie powiedzie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_pending"
+msgid "Keep the voice message pending to try sending it again"
+msgstr ""
+"Pozostaw notatkę głosową jako oczekującą, aby spróbować wysłać ją ponownie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"

@@ -9138,6 +9138,16 @@ msgstr ""
 "Sinirsel gürültü azaltma kullanılamadı; temel gürültü azaltma kullanıldı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_kept_pending"
+msgid ""
+"Could not apply neural noise reduction; the voice message stayed pending so "
+"you can try sending it again."
+msgstr ""
+"Sinirsel gürültü azaltma uygulanamadı; sesli mesaj, yeniden göndermeyi "
+"deneyebilmeniz için beklemede kaldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "noise_reduction_label"
 msgid "Enable microphone &noise reduction"
@@ -18995,6 +19005,24 @@ msgstr "Kay&ıt sırasında"
 msgctxt "voice_nr_moment_send"
 msgid "&When sending"
 msgstr "G&önderirken"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_basic"
+msgid "Send with basic noise reduction (default)"
+msgstr "Temel gürültü azaltma ile gönder (varsayılan)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_label"
+msgid "When noise reduction fails"
+msgstr "Gürültü azaltma başarısız olduğunda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_pending"
+msgid "Keep the voice message pending to try sending it again"
+msgstr "Sesli mesajı yeniden göndermeyi denemek için beklemede tut"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"

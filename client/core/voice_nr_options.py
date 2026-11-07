@@ -9,6 +9,11 @@ noise_reduction_enabled, and apply only while that flag is on:
   published behavior) or "record" (incremental pass while recording, so the
   note leaves already processed). The basic engine ignores the moment: it
   always runs as a gate when the recording is sent.
+- voice_nr_on_failure: "basic" (default: a note the neural engine could not
+  process is sent with the basic gate, or unprocessed when even that fails)
+  or "keep_pending" (when BOTH neural processings — incremental and at-send
+  — fail, the note is kept pending with its original audio so the user can
+  try sending it again by hand; never retried automatically).
 
 Defaults reproduce the published behavior exactly (neural, at send time),
 so current installs change nothing until the user chooses otherwise.
@@ -16,6 +21,7 @@ so current installs change nothing until the user chooses otherwise.
 
 NR_ENGINES = ("neural", "basic")
 NR_MOMENTS = ("send", "record")
+NR_ON_FAILURE = ("basic", "keep_pending")
 
 
 def normalize_nr_engine(value):
@@ -38,3 +44,14 @@ def voice_nr_moment(settings):
     if not isinstance(general, dict):
         return "send"
     return normalize_nr_moment(general.get("voice_nr_moment"))
+
+
+def normalize_nr_on_failure(value):
+    return value if isinstance(value, str) and value in NR_ON_FAILURE else "basic"
+
+
+def voice_nr_on_failure(settings):
+    general = settings.get("general", {}) if isinstance(settings, dict) else {}
+    if not isinstance(general, dict):
+        return "basic"
+    return normalize_nr_on_failure(general.get("voice_nr_on_failure"))

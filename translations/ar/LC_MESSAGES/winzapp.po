@@ -9040,6 +9040,16 @@ msgid "Could not use neural noise reduction; basic noise reduction was used."
 msgstr "تعذّر استخدام تقليل الضوضاء العصبي؛ استُخدم تقليل الضوضاء الأساسي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/voice_recording.py
+msgctxt "noise_reduction_kept_pending"
+msgid ""
+"Could not apply neural noise reduction; the voice message stayed pending so "
+"you can try sending it again."
+msgstr ""
+"تعذّر تطبيق تقليل الضوضاء العصبي؛ بقيت الرسالة الصوتية قيد الانتظار لتتمكن "
+"من محاولة إرسالها مرة أخرى."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "noise_reduction_label"
 msgid "Enable microphone &noise reduction"
@@ -18759,6 +18769,24 @@ msgstr "أثناء الت&سجيل"
 msgctxt "voice_nr_moment_send"
 msgid "&When sending"
 msgstr "ع&ند الإرسال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_basic"
+msgid "Send with basic noise reduction (default)"
+msgstr "الإرسال مع تقليل الضوضاء الأساسي (الافتراضي)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_label"
+msgid "When noise reduction fails"
+msgstr "عند فشل تقليل الضوضاء"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_on_failure_pending"
+msgid "Keep the voice message pending to try sending it again"
+msgstr "الاحتفاظ بالرسالة الصوتية قيد الانتظار لمحاولة إرسالها مرة أخرى"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"
