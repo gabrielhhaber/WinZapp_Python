@@ -13,7 +13,7 @@ from main_window.call_participants import CallParticipantsMixin
 
 class I18n:
     def t(self, key):
-        return {"call_invite_sent": "sent {count}", "call_invite_failed_people": "not {names}",
+        return {"call_invite_sent_people": "sent {names}", "call_invite_failed_people": "not {names}",
                 "call_invite_failed": "failed", "unknown_contact": "unknown"}[key]
 
 
@@ -59,9 +59,9 @@ def test_a_wrong_answer_is_refused(body):
         parse_results(body, "C1", ["2@lid"])
 
 
-def test_the_summary_counts_and_names_who_failed():
+def test_the_summary_names_who_was_invited_and_who_failed():
     names = {"a": "Ana", "b": "Bia", "c": ""}
-    assert summary({"a": "invited", "b": "rang", "c": "failed"}, names, I18n()) == "sent 2 not unknown"
+    assert summary({"a": "invited", "b": "rang", "c": "failed"}, names, I18n()) == "sent Ana, Bia not unknown"
     assert summary({"a": "failed"}, {"a": "Ana", "b": "Bia"}, I18n()) == "not Ana, Bia"
     assert summary({}, {}, I18n()) == "failed"
 

@@ -14,9 +14,15 @@ import wx
 from core.call_invites import (candidates, one_per_person, parse_results, room_left,
                                 saved_contact_jids, summary)
 from core.call_participants import parse_participants
+from ui.dialogs.call_invite_marks import CallInviteMarksMixin
 
 
-class CallInviteDialog(wx.Dialog):
+def failure_line(i18n, reason) -> str:
+    """The line spoken when the request itself failed: what went wrong."""
+    return i18n.t("call_invite_failed_reason").format(reason=reason)
+
+
+class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
     def __init__(self, parent, main_window, call_id, chat_jid, allowed=lambda: True):
         self._mw, self._call_id, self._chat = main_window, call_id, chat_jid
         # the participants dialog's check: a chat locked meanwhile shows nobody
@@ -31,7 +37,7 @@ class CallInviteDialog(wx.Dialog):
         title = i18n.t("call_invite_list") if self._group else i18n.t("call_invite_list_contacts")
         label = wx.StaticText(panel, label=title)
         sizer.Add(label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
-        self._list = wx.CheckListBox(panel, choices=[], name=title)
+        self._list = wx.ListBox(panel, choices=[], style=wx.LB_SINGLE, name=title)
         sizer.Add(self._list, 1, wx.EXPAND | wx.ALL, 8)
         self._status = wx.StaticText(panel, label=i18n.t("loading"))
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT, 8)
@@ -52,6 +58,7 @@ class CallInviteDialog(wx.Dialog):
         self.Fit()
         self.CentreOnParent()
         self.Bind(wx.EVT_CLOSE, self._close)
+        self._init_invite_marks()
         self._list.SetFocus()
         threading.Thread(target=self._load, daemon=True, name="call-invite-load").start()
 
@@ -85,13 +92,13 @@ class CallInviteDialog(wx.Dialog):
         if not self._allowed():
             rows, failed = [], True
         i18n = self._mw.i18n
-        unknown = i18n.t("unknown_contact")
         self._rows, self._connected = rows, connected
+        # a mark of someone no longer offered is forgotten
+        self._marks.intersection_update(jid for jid, _name in rows)
+        self._labels = self._invite_labels()
         self._list.Freeze()
         try:
-            self._list.Clear()
-            for _jid, name in rows:
-                self._list.Append(name or unknown)
+            self._list.Set(self._labels)
         finally:
             self._list.Thaw()
         if failed:
@@ -115,7 +122,7 @@ class CallInviteDialog(wx.Dialog):
         if not self._allowed():
             self._mw.output(i18n.t("call_invite_failed"), interrupt=True)
             return
-        picked = [self._rows[i] for i in self._list.GetCheckedItems() if i < len(self._rows)]
+        picked = [row for row in self._rows if row[0] in self._marks]
         if not picked:
             self._mw.output(i18n.t("call_invite_nothing_selected"), interrupt=True)
             return
@@ -127,34 +134,51 @@ class CallInviteDialog(wx.Dialog):
         # Windows would move the focus to Cancel and the next Space would
         # close the window (call_participants.py does the same).
         self._busy = True
-        self._status.SetLabel(i18n.t("call_invite_sending"))
+        sending = i18n.t("call_invite_sending")
+        self._status.SetLabel(sending)
+        self._mw.output(sending, interrupt=True)
         jids = [jid for jid, _name in picked]
         names = {jid: name for jid, name in picked}
 
         def worker():
-            spoken = None
+            spoken, error, invited = None, None, False
             try:
                 response = self._mw._raise_for_call_response(self._mw._post_call_control(
                     "add-participants", {"callId": self._call_id, "participants": jids},
                     timeout=60), "add-participants")
-                spoken = summary(parse_results(response.json(), self._call_id, jids), names, i18n)
-            except Exception:
+                results = parse_results(response.json(), self._call_id, jids)
+                invited = any(status in ("invited", "rang") for status in results.values())
+                spoken = summary(results, names, i18n)
+            except Exception as exc:
+                error = exc
                 logging.warning("[call] adding participants failed")
-            wx.CallAfter(self._finish_add, spoken)
+            wx.CallAfter(self._finish_add, spoken, error, invited)
 
         threading.Thread(target=worker, daemon=True, name="call-invite-send").start()
 
-    def _finish_add(self, spoken):
+    def _finish_add(self, spoken, error=None, invited=True):
         if getattr(self._mw, "_shutting_down", False):
             return
-        self._mw.output(spoken or self._mw.i18n.t("call_invite_failed"), interrupt=True)
+        i18n = self._mw.i18n
+        if spoken is None:
+            # What went wrong, not only that it did: the screen reader user has
+            # no other way to tell a refusal from a call that ended meanwhile.
+            spoken = failure_line(i18n, self._mw._call_error_text(error))
         if not self._alive:
+            self._mw.output(spoken, interrupt=True)
             return
         self._busy = False
-        if spoken is None:
-            self._status.SetLabel(self._mw.i18n.t("call_invite_failed"))
+        if not invited:
+            # nobody got through: stay, so the choice can be changed and retried
+            self._status.SetLabel(spoken)
+            self._mw.output(spoken, interrupt=True)
             return
+        self._status.SetLabel(spoken)
         self._close()
+        # After the dialog is gone: closing moves the focus back to the
+        # participants window, and the reader's focus announcement would cut
+        # the result off if it were spoken first.
+        wx.CallLater(400, self._mw.output, spoken, True)
 
     def _close(self, _event=None):
         self._alive = False

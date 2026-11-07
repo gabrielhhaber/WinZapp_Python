@@ -2459,6 +2459,12 @@ msgid "Could not add: {names}."
 msgstr "Impossibile aggiungere: {names}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#, python-brace-format
+msgctxt "call_invite_failed_reason"
+msgid "Participants could not be added: {reason}"
+msgstr "Impossibile aggiungere i partecipanti: {reason}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_list"
 msgid "Group members not in the call"
 msgstr "Membri del gruppo non presenti nella chiamata"
@@ -2490,9 +2496,9 @@ msgstr "Aggiunta dei partecipanti in corso..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
 #, python-brace-format
-msgctxt "call_invite_sent"
-msgid "Invited to the call: {count}."
-msgstr "Persone invitate alla chiamata: {count}."
+msgctxt "call_invite_sent_people"
+msgid "Invited to the call: {names}."
+msgstr "Persone invitate alla chiamata: {names}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_title"
@@ -11053,6 +11059,7 @@ msgstr "Selezionato"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
 #: client/ui/chat_lock.py client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_rendering.py
+#: client/ui/dialogs/call_invite_marks.py
 #: client/ui/dialogs/transcription_model_marks.py
 msgctxt "selected_suffix"
 msgid "selected"
@@ -11060,6 +11067,7 @@ msgstr "selezionato"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/dialogs/call_invite_marks.py
 #: client/ui/dialogs/transcription_model_marks.py
 msgctxt "selection_mode_off"
 msgid "Selection mode disabled"
@@ -11067,6 +11075,7 @@ msgstr "Modalità di selezione disabilitata"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/chat_list_selection.py
+#: client/ui/dialogs/call_invite_marks.py
 #: client/ui/dialogs/transcription_model_marks.py
 msgctxt "selection_mode_on"
 msgid "Selection mode enabled"
@@ -18745,7 +18754,7 @@ msgstr ""
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py
-#: client/ui/dialogs/call_invite.py client/ui/dialogs/channel_admins.py
+#: client/ui/dialogs/call_invite_marks.py client/ui/dialogs/channel_admins.py
 #: client/ui/dialogs/status_audience_dialog.py
 msgctxt "unknown_contact"
 msgid "Unnamed contact"
@@ -20216,3 +20225,8 @@ msgstr "&Sì"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri alle {time}"
+
+#, python-brace-format
+#~ msgctxt "call_invite_sent"
+#~ msgid "Invited to the call: {count}."
+#~ msgstr "Persone invitate alla chiamata: {count}."
