@@ -18725,6 +18725,42 @@ msgid "Voice call"
 msgstr "مكالمة صوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_engine_basic"
+msgid "B&asic (noise gate)"
+msgstr "&أساسي (بوابة الضوضاء)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_engine_label"
+msgid "Noise reduction engine"
+msgstr "محرك تقليل الضوضاء"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_engine_neural"
+msgid "N&eural"
+msgstr "&عصبي"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_moment_label"
+msgid "Process voice notes"
+msgstr "معالجة الملاحظات الصوتية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_moment_record"
+msgid "While re&cording"
+msgstr "أثناء الت&سجيل"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/voice_recording_options.py
+msgctxt "voice_nr_moment_send"
+msgid "&When sending"
+msgstr "ع&ند الإرسال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"
 msgid "Recording audio"
 msgstr "تسجيل الصوت"

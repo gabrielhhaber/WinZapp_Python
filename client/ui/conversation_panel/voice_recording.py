@@ -25,6 +25,7 @@ from core.voice_stereo import (
 from core.voice_recording_mode import (
     voice_recording_mode, recording_output_channels, prepare_voice_pcm,
 )
+from core.voice_nr_options import voice_nr_engine, voice_nr_moment
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import encrypt
@@ -540,6 +541,13 @@ class VoiceRecordingMixin:
         self._incremental_session = None
         try:
             if not self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False):
+                return
+            # The incremental pass only runs for the neural engine while
+            # recording. Neural at send time (default) and the basic engine
+            # keep the published flow: no session, no slot, no registry, and
+            # the send path reduces offline.
+            if (voice_nr_engine(self.main_window.settings) != "neural"
+                    or voice_nr_moment(self.main_window.settings) != "record"):
                 return
             controller = getattr(self.main_window, "_incremental_controller", None)
             if controller is None:
@@ -1138,6 +1146,11 @@ class VoiceRecordingMixin:
                     not mixed_audio
                     and not inc_session.get("basic_only", False)
                     and mw.settings.get("general", {}).get("noise_reduction_enabled", False)
+                    # The preference can change between recording and
+                    # sending; anything but neural-while-recording goes
+                    # through the published offline path below.
+                    and voice_nr_engine(mw.settings) == "neural"
+                    and voice_nr_moment(mw.settings) == "record"
                 )
                 drain_thread = inc_session.get("thread")
 
@@ -1585,10 +1598,11 @@ class VoiceRecordingMixin:
             # (skipped when the incremental session already cleaned the audio)
             if (not incremental_cleaned and not mixed_audio
                     and mw.settings.get("general", {}).get("noise_reduction_enabled", False)):
-                basic_only = inc_session is not None and (
-                    inc_session.get("basic_only", False)
-                    or inc_session.get("model_unavailable", False)
-                    or inc_session.get("fallback_chosen", False))
+                basic_only = voice_nr_engine(mw.settings) == "basic" or (
+                    inc_session is not None and (
+                        inc_session.get("basic_only", False)
+                        or inc_session.get("model_unavailable", False)
+                        or inc_session.get("fallback_chosen", False)))
                 audio_data, _nr_engine = self._reduce_for_send(
                     mw, audio_data, actual_rate, channels, basic_only)
                 logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", _nr_engine)

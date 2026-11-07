@@ -46,7 +46,9 @@ from ui.conversation_panel import voice_recording as vr  # noqa: E402
 
 class _FakeMainWindow:
     def __init__(self, nr_enabled=True, with_controller=True):
-        self.settings = {"general": {"noise_reduction_enabled": nr_enabled}}
+        self.settings = {"general": {"noise_reduction_enabled": nr_enabled,
+                                     "voice_nr_engine": "neural",
+                                     "voice_nr_moment": "record"}}
         if with_controller:
             self._incremental_controller = IncrementalDenoiseController()
 
@@ -444,7 +446,9 @@ class _FakeQueue:
 
 class _FakeSendMW:
     def __init__(self, controller):
-        self.settings = {"general": {"noise_reduction_enabled": True}}
+        self.settings = {"general": {"noise_reduction_enabled": True,
+                                     "voice_nr_engine": "neural",
+                                     "voice_nr_moment": "record"}}
         self._incremental_controller = controller
         self.message_queue = _FakeQueue()
         from cryptography.fernet import Fernet
@@ -1231,7 +1235,9 @@ class _RecPanel:
 
     def __init__(self, controller):
         self.main_window = types.SimpleNamespace(
-            settings={"general": {"noise_reduction_enabled": True}},
+            settings={"general": {"noise_reduction_enabled": True,
+                                  "voice_nr_engine": "neural",
+                                  "voice_nr_moment": "record"}},
             _incremental_controller=controller,
             i18n=_FakeI18n(),
             voicemsg_startrecording_sound=types.SimpleNamespace(play=lambda: None),
@@ -2052,3 +2058,118 @@ def test_send_revoke_after_finisher_ready_send_claims_once(send_env, monkeypatch
     assert not os.path.exists(spool)
     assert controller.acquire_slot("probe", {"cancel": False})
     controller.release_slot("probe")
+
+
+# --- Engine/moment selector (voice_nr_engine / voice_nr_moment) ---
+# The incremental pass only runs for the neural engine while recording.
+# Every other combination keeps the published flow: no session at record
+# time, offline reduction at send time.
+
+
+def test_start_skipped_when_engine_is_basic():
+    panel = _FakePanel()
+    panel.main_window.settings["general"]["voice_nr_engine"] = "basic"
+    _start(panel)
+    assert panel._incremental_session is None
+
+
+def test_start_skipped_when_moment_is_send():
+    panel = _FakePanel()
+    panel.main_window.settings["general"]["voice_nr_moment"] = "send"
+    _start(panel)
+    assert panel._incremental_session is None
+
+
+def test_start_skipped_with_default_settings():
+    # Keys absent: the defaults (neural, at send time) must reproduce the
+    # published behavior, so no incremental session is created.
+    panel = _FakePanel()
+    general = panel.main_window.settings["general"]
+    del general["voice_nr_engine"], general["voice_nr_moment"]
+    _start(panel)
+    assert panel._incremental_session is None
+
+
+def test_start_still_registers_when_neural_and_recording():
+    panel = _FakePanel()
+    panel.main_window.settings["general"]["voice_nr_moment"] = "record"
+    _start(panel)
+    session = panel._incremental_session
+    assert session is not None
+    _join_drain(panel)  # no model here: the drain fails and self-cleans
+    controller = panel.main_window._incremental_controller
+    controller.discard(session["local_id"])
+
+
+def _no_gate(*a, **k):
+    raise AssertionError("apply_noise_gate must not run for this note")
+
+
+def test_send_basic_engine_goes_straight_to_gate_without_session(send_env, monkeypatch):
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x05\x06" * 480]
+    raw = b"".join(frames)
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_engine"] = "basic"
+    panel = _SendPanel(mw, frames, None)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+
+
+def test_send_neural_at_send_moment_uses_the_offline_model(send_env, monkeypatch):
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate", _no_gate)
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    frames = [b"\x07\x08" * 480]
+    raw = b"".join(frames)
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    panel = _SendPanel(mw, frames, None)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+
+
+def test_send_after_switching_to_send_moment_goes_offline(send_env, monkeypatch):
+    # Recorded with neural-while-recording, but the preference changed to
+    # at-send before the note was sent: the published offline path applies
+    # and the session is cancelled so its drain self-cleans.
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate", _no_gate)
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    frames = [b"\x09\x0a" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+
+    class _Worker:
+        def finish(self):
+            raise AssertionError("finish must not run after the switch")
+
+        def abort(self):
+            pass
+
+    session = _send_session(controller, frames, worker=_Worker(),
+                            spool=spool, stream=_FakeStream())
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["cancel"] is True

@@ -1085,6 +1085,11 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
+        # Neural engine at send time reproduces the published behavior; the
+        # basic engine and processing while recording are opt-in
+        # (core/voice_nr_options.py).
+        "voice_nr_engine": "neural",
+        "voice_nr_moment": "send",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,
