@@ -128,6 +128,11 @@ What the patches carry today:
   rosters list the same device without it, and receivers rebuilt only from
   devices carrying a PID dropped everyone but the fallback peer (issue #689:
   neonize callees heard only the creator).
+- **meowcaller 0013**: diagnostics only. Every 5 seconds a call logs "relay
+  traffic by kind": the RTP, RTCP, STUN and other packets the relay delivered in
+  the window and in total, zeros included. The receive summary prints only when
+  a packet arrives, so a relay gone quiet logged nothing. Added for issue #689:
+  a call from an Android caller received 3 RTP packets, then none for 38 s.
 
 ## Toolchain (once)
 
