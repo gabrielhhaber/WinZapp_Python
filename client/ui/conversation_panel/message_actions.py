@@ -21,7 +21,8 @@ from core.message_resend import resend_request
 from core.reply_failure import is_missing_quote_failure
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from app_paths import data_path
-from ui.conversation_panel.media_paths import any_phone_media, discard_local_media_cache
+from ui.conversation_panel.media_paths import (
+    any_phone_media, discard_local_media_cache, discard_nr_pending_resend)
 from core.utils import to_editor_line_endings
 
 
@@ -639,6 +640,11 @@ class MessageActionsMixin:
         """
         if not msg_ids:
             return
+        # A fourth-option note (neural reduction failed, user chose to keep
+        # it pending) leaves voice_messages/<id>.resend.wav behind; every
+        # row-removal path (delete, successful resend) ends its need for it.
+        for _removed_id in msg_ids:
+            discard_nr_pending_resend(data_path("voice_messages"), _removed_id)
         if hasattr(self, "close_ai_media"):
             self.close_ai_media(message_ids=msg_ids)
         # Stop playback before touching the list — a currently-playing audio
@@ -908,6 +914,14 @@ class MessageActionsMixin:
 
         if request[0] == "media":
             _kind, path, media_type, caption = request
+            if media_type == "audio" and msg.get("_nr_pending_retry"):
+                # A fourth-option note: "Try sending again" means RETRY THE
+                # PROCESSING (the whole point of keeping it pending), not
+                # resending the unprocessed audio. _retry_nr_pending re-runs
+                # the neural reduction off the UI thread and only then
+                # dispatches; if it fails again the row stays pending.
+                self._retry_nr_pending(msg, remote_jid, path)
+                return
             # Only once the copy is queued: a file that can no longer be sent
             # (too large now) keeps its failed row instead of vanishing.
             if self._send_attachment_file(remote_jid, path, media_type, caption, None):

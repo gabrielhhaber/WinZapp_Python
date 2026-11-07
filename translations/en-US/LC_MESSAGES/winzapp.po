@@ -10528,12 +10528,14 @@ msgstr "Try sending again"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
+#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_not_available"
 msgid "This message has nothing to send again."
 msgstr "This message has nothing to send again."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
+#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_started"
 msgid "Sending again."
 msgstr "Sending again."

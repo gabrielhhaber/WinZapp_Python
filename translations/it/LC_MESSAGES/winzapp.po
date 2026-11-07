@@ -10697,12 +10697,14 @@ msgstr "Riprova a inviare"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
+#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_not_available"
 msgid "This message has nothing to send again."
 msgstr "Questo messaggio non contiene altro da inviare."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_actions.py
+#: client/ui/conversation_panel/voice_recording.py
 msgctxt "resend_started"
 msgid "Sending again."
 msgstr "Invio di nuovo."

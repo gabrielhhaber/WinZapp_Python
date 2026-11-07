@@ -980,6 +980,90 @@ class VoiceRecordingMixin:
                 wx.CallAfter(announce, mw.i18n.t("noise_reduction_failed"))
             return audio_data, None
 
+    def _retry_nr_pending(self, msg, remote_jid, path):
+        """Retry the PROCESSING of a fourth-option kept-pending note.
+
+        The user chose voice_nr_on_failure=keep_pending: when both neural
+        processings failed, the note stayed pending instead of going out
+        with the basic gate or unprocessed. "Try sending again" therefore
+        re-runs the NEURAL reduction on the kept original (off the UI
+        thread) and only dispatches the PROCESSED audio through the
+        ordinary attachment resend path. If the reduction fails again, or
+        the kept file can no longer be read, the row stays pending
+        untouched: never a gate, never the raw audio, and never
+        automatically. Local only: no settings write, no new state.
+        """
+        mw = self.main_window
+
+        def _work():
+            try:
+                with wave.open(path, "rb") as wf:
+                    channels = wf.getnchannels()
+                    rate = wf.getframerate()
+                    if wf.getsampwidth() != 2:
+                        raise ValueError("unexpected sample width")
+                    data = wf.readframes(wf.getnframes())
+            except Exception as exc:
+                logging.warning("[noise_reduction] kept-pending retry could "
+                                "not read %s: %s", path, exc)
+                wx.CallAfter(mw.output, mw.i18n.t("resend_not_available"),
+                             interrupt=True)
+                return
+            engine = None
+            try:
+                from core.neural_noise_reduction import reduce_voice_noise
+                data, engine = reduce_voice_noise(data, rate, channels)
+            except Exception as exc:
+                logging.info("[noise_reduction] kept-pending retry reduction "
+                             "failed again: %s", exc)
+            if engine != "neural":
+                wx.CallAfter(mw.output, mw.i18n.t("noise_reduction_kept_pending"),
+                             interrupt=True)
+                return
+            try:
+                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+                tmp.close()
+                with wave.open(tmp.name, "wb") as wf:
+                    wf.setnchannels(channels)
+                    wf.setsampwidth(2)
+                    wf.setframerate(rate)
+                    wf.writeframes(data)
+            except Exception as exc:
+                logging.error("[noise_reduction] could not write the processed "
+                              "retry: %s", exc)
+                wx.CallAfter(mw.output, mw.i18n.t("noise_reduction_kept_pending"),
+                             interrupt=True)
+                return
+            processed_path = tmp.name
+
+            def _dispatch():
+                # UI thread: _send_attachment_file builds its own pending row.
+                # Only once the processed copy is queued does the old failed
+                # row go away (its remove_messages_by_id also deletes the
+                # kept original). A refused send keeps the pending row and
+                # drops only the processed temp.
+                if self._send_attachment_file(remote_jid, processed_path,
+                                              "audio", "", None):
+                    old_local_id = str(msg.get("_local_id") or "")
+                    old_ids = {i for i in (old_local_id,
+                                           str((msg.get("key") or {}).get("id") or "")) if i}
+                    if old_local_id:
+                        mw.message_queue.cancel(old_local_id)
+                        self._outgoing_virtual_messages.pop(old_local_id, None)
+                    if old_ids:
+                        self.remove_messages_by_id(old_ids, focus_previous=True)
+                    mw._schedule_set_chats()
+                    mw.output(mw.i18n.t("resend_started"), interrupt=True)
+                else:
+                    try:
+                        os.unlink(processed_path)
+                    except OSError:
+                        pass
+
+            wx.CallAfter(_dispatch)
+
+        threading.Thread(target=_work, daemon=True).start()
+
     def _send_voice_message(self, event):
         """Stop recording and enqueue the audio for delivery."""
         if not self._is_recording:
@@ -1647,6 +1731,11 @@ class VoiceRecordingMixin:
                         pending_path = None
                     if pending_path is not None:
                         virtual_msg[RESEND_PATH_KEY] = pending_path
+                        # Marks this row for the media-resend hook in
+                        # message_actions: "Try sending again" must RETRY
+                        # THE PROCESSING (_retry_nr_pending), not resend the
+                        # original audio unprocessed.
+                        virtual_msg["_nr_pending_retry"] = True
                     virtual_msg.pop("_incremental_preparing", None)
                     _forget_incremental()
 

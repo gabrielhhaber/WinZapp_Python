@@ -58,6 +58,28 @@ def local_media_cache_paths(voice_dir: str, media_dir: str, msg_id: str) -> list
     ]
 
 
+def discard_nr_pending_resend(voice_dir: str, local_id: str) -> None:
+    """Delete a fourth-option note's kept original audio when its row goes.
+
+    voice_messages/<id>.resend.wav is created by the keep-pending branch of
+    the voice send path (the user chose not to send a note whose neural
+    noise reduction failed). Unlike the .msv copy it is NOT deleted by
+    discard_local_media_cache — the failed row takes the plain
+    remove_messages_by_id path, not the cancelled-pending one — so the
+    row-removal point itself calls this. The file is named after the local
+    id and only that branch creates it, so a missing file is the common
+    case and simply skipped.
+    """
+    if not local_id:
+        return
+    path = os.path.join(voice_dir, f"{local_id}.resend.wav")
+    try:
+        if os.path.isfile(path):
+            os.unlink(path)
+    except Exception as exc:
+        logging.warning("[conversations] could not discard %s: %s", path, exc)
+
+
 def media_cache_id(msg_id: str) -> str:
     """The id a message's cached media file is actually named after.
 
