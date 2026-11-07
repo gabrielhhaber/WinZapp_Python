@@ -535,3 +535,23 @@ def test_record_finished_ignores_what_has_no_record():
     s = N(me="5599@s.whatsapp.net", lid="", db=None)
     assert not calls.record_finished(s, finished(state="ENDED"), 1000)
     assert not calls.record_finished(s, finished(id="", activeAt=1.0), 1000)
+
+
+def test_record_finished_does_not_name_the_group_as_the_caller(monkeypatch):
+    stored = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append(w) or True)
+    s = N(me="5599@s.whatsapp.net", lid="9@lid", db=N(chat_exists=lambda jid: False))
+    info = finished(activeAt=900.0, group="1203@g.us", peer="1203@g.us")
+    assert calls.record_finished(s, info, 1000)
+    assert stored[0]["callCreator"] == ""
+
+
+def test_record_finished_leaves_out_a_call_of_this_account_seen_as_received():
+    s = N(me="5599@s.whatsapp.net", lid="9@lid", db=N(chat_exists=lambda jid: True))
+    assert not calls.record_finished(s, finished(activeAt=900.0, peer="5599@s.whatsapp.net"), 1000)
+
+
+def test_peer_chat_drops_the_device_of_the_peer():
+    db = N(chat_exists=lambda jid: False)
+    assert calls.peer_chat(db, "5511:12@s.whatsapp.net", None) == "5511@s.whatsapp.net"

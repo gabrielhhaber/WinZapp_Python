@@ -709,8 +709,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             self.call_media.own_users = lambda: {
                 groups.user_of(self.me or ""), groups.user_of(self.lid or "")} - {""}
             # the record of the calls placed here and of those hung up here
-            self.call_media.on_finished = lambda info: calls.record_finished(
-                self, info, time.time())
+            # (on a thread: the store must not hold up the next call event)
+            self.call_media.on_finished = lambda info: threading.Thread(
+                target=calls.record_finished, args=(self, info, time.time()),
+                daemon=True, name="call-record").start()
         # every message to a chat with temporary messages carries its timer
         chat_timers.install(cli, self.chat_timer)
         # never two app-state operations at once (app_state_recovery.serialize)

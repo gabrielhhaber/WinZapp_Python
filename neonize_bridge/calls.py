@@ -278,6 +278,7 @@ def finished_outcome(info):
 def peer_chat(db, peer, phone_of_lid):
     """The key (whatsmeow format) of the chat of a call's peer: the form that
     already has a chat (number or LID), else the number."""
+    peer = peer.split(":")[0] + "@" + peer.partition("@")[2] if ":" in peer.split("@")[0] else peer
     forms = [msgmap.jid_whatsmeow(peer)]
     other = phone_of_lid(peer) if peer.endswith("@lid") and phone_of_lid else ""
     if other:
@@ -303,7 +304,15 @@ def record_finished(s, info, now):
     if not chat or chat.endswith("@broadcast"):
         return False
     outgoing = bool(info.get("outgoing"))
-    creator = msgmap.jid_wpp(getattr(s, "me", "") or "") if outgoing else info.get("peer", "")
+    mine = {msgmap.jid_wpp(getattr(s, "me", "") or ""), msgmap.jid_wpp(getattr(s, "lid", "") or "")} - {""}
+    peer = info.get("peer", "")
+    if outgoing:
+        creator = msgmap.jid_wpp(getattr(s, "me", "") or "")
+    elif msgmap.jid_wpp(peer) in mine:
+        return False                    # a call of this account from another device
+    else:
+        # a group call joined here names the group as its peer, not who started it
+        creator = "" if peer == info.get("group") else peer
     w = system_messages.call_record(
         call_id=info["id"], chat_w=msgmap.jid_wpp(chat), creator_w=creator,
         outcome=outcome, video=info.get("video"), ts=int(info["endedAt"] - duration),
