@@ -657,6 +657,10 @@ class VoiceRecordingMixin:
                 os.unlink(session["spool"])
             except OSError:
                 pass
+            # This failure path OWNED the cleanup (abort above, spool,
+            # and the slot in the finally below): a send-time reaper must
+            # never repeat it.
+            session["drain_cleaned"] = True
         finally:
             # On a cancel/failure exit the cleanup above already ran (worker
             # dead, spool deleted): the slot is released here. On a normal
@@ -665,7 +669,7 @@ class VoiceRecordingMixin:
             # whose drain failed mid-capture still sends (offline fallback)
             # and needs its transfer to pass. A discarded/revoked session has
             # no send coming — forget its entry here.
-            if controller is not None and (session["cancel"] or session["failed"]):
+            if session.get("drain_cleaned") and controller is not None:
                 controller.release_slot(session["local_id"])
                 if not controller.is_preparing(session["local_id"]):
                     controller.forget(session["local_id"])
@@ -1208,8 +1212,39 @@ class VoiceRecordingMixin:
                     if drain_thread is not None and drain_thread.is_alive():
                         # Model load still in progress: cancel so the late
                         # constructor's drain aborts and self-cleans
-                        # (spool + slot) when it returns.
+                        # (spool + slot) when it returns. But the drain's
+                        # last flag check may already have read False and
+                        # it can exit through the normal stop path WITHOUT
+                        # re-reading cancel — keeping worker/spool/slot for
+                        # a send that went basic. A reaper joins the drain
+                        # OFF the send path and claims whatever the drain
+                        # did not clean (flag set only where cleanup
+                        # actually ran), exactly once: never aborting while
+                        # native code runs (the join completes first),
+                        # never making the send wait, never a second ONNX.
                         inc_session["cancel"] = True
+
+                        def _reap_late_drain(session=inc_session,
+                                             thread=drain_thread):
+                            thread.join()
+                            if session.get("drain_cleaned"):
+                                return
+                            late_worker = session.get("worker")
+                            if late_worker is not None:
+                                try:
+                                    late_worker.abort()
+                                except Exception:
+                                    pass
+                                session["worker"] = None
+                                try:
+                                    os.unlink(session["spool"])
+                                except OSError:
+                                    pass
+                                if controller is not None:
+                                    controller.release_slot(local_id)
+
+                        threading.Thread(target=_reap_late_drain,
+                                         daemon=True).start()
                     elif drain_thread is not None and not inc_session.get("cancel"):
                         # The drain EXITED between the worker snapshot and
                         # the aliveness check, without failing and without

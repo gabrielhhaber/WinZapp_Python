@@ -307,6 +307,11 @@ def drain_capture_frames(session: dict, worker: IncrementalDenoiser,
             except OSError:
                 pass
             session["worker"] = None
+            # The drain OWNED this cleanup: a send-time reaper (spawned when
+            # the send went basic while the drain was still alive) must
+            # never repeat it. A normal stop exit keeps worker+spool for
+            # the send and leaves the flag unset.
+            session["drain_cleaned"] = True
 
 
 # ── Per-process slot + send-authority registry ────────────────────────────

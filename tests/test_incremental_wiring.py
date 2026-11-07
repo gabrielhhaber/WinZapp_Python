@@ -1333,7 +1333,8 @@ def test_send_during_model_load_goes_basic_without_second_engine(send_env, monke
 
     def _fake_drain_loop(session, worker, transform=None):
         # The real loop observes cancel cooperatively; on cancel it
-        # aborts the worker and deletes the spool (documented contract).
+        # aborts the worker, deletes the spool and marks the cleanup as
+        # drain-owned (documented contract).
         while not session["cancel"] and not session["stop"]:
             time.sleep(0.01)
         if session["cancel"]:
@@ -1342,6 +1343,7 @@ def test_send_during_model_load_goes_basic_without_second_engine(send_env, monke
                 os.unlink(session["spool"])
             except OSError:
                 pass
+            session["drain_cleaned"] = True
 
     monkeypatch.setattr(inc, "drain_capture_frames", _fake_drain_loop)
 
@@ -1555,5 +1557,80 @@ def test_send_drain_fails_during_finish_join_never_touches_worker(send_env, monk
     # never double-released the slot — the drain owns that cleanup.
     assert aborted == []
     assert spool not in unlinked
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
+
+
+
+def test_send_cancel_unread_by_exiting_drain_reaper_cleans_once(send_env, monkeypatch):
+    """Milo 17:39 window, opposite edge of the is_alive=False test: the
+    drain is ALIVE when the send snapshots worker None, the send cancels
+    and goes basic, but the drain exits through its normal path WITHOUT
+    re-reading cancel — no self-cleanup. A reaper must join the drain off
+    the send path (the send enqueues without waiting) and clean the late
+    worker/spool/slot exactly once."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    aborted = []
+
+    class _Worker:
+        def finish(self):
+            raise AssertionError("finish must not run for an abandoned session")
+
+        def abort(self):
+            aborted.append(True)
+
+    exit_gate = threading.Event()
+
+    def _fake_drain(session):
+        # Still "in native work" while the send snapshots (worker None) and
+        # cancels; publishes the late worker only at the very end and exits
+        # WITHOUT re-reading cancel and WITHOUT cleaning — Milo's window.
+        exit_gate.wait(10)
+        session["worker"] = _Worker()
+
+    session = _send_session(controller, frames, worker=None, spool=spool,
+                            stream=_FakeStream())
+    drain = threading.Thread(target=_fake_drain, args=(session,), daemon=True)
+    session["thread"] = drain
+    drain.start()
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    # The send does NOT wait for the drain: basic gate enqueued already.
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    assert session["cancel"] is True
+    # The drain is still parked in its native work: nobody cleaned yet.
+    assert aborted == []
+    # Now the drain exits without re-reading cancel: the reaper (which was
+    # joined on it) claims the remainder exactly once.
+    exit_gate.set()
+    deadline = time.time() + 5
+    while time.time() < deadline and not aborted:
+        time.sleep(0.02)
+    assert aborted == [True]
+    assert session["worker"] is None
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
+    # The next capture acquires the slot.
     assert controller.acquire_slot("probe", {"cancel": False})
     controller.release_slot("probe")
