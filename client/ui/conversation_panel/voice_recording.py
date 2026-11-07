@@ -264,22 +264,15 @@ class VoiceRecordingMixin:
                 self.conversation_panel.Layout()
                 self._focus_recording_button_silently(self._send_voice_btn)
 
-                # The session this recording just started: a slow async
-                # open must attach the stream to THIS identity, never to
-                # whatever session is current when the open returns
-                # (possibly the NEXT recording's).
-                _inc_at_start = getattr(self, "_incremental_session", None)
-
                 def _bg_start_mic():
                     try:
                         sd_stream = sd.InputStream(samplerate=48000, channels=1, dtype='int16', callback=_sd_callback)
                         sd_stream.start()
                         self._sd_stream = sd_stream
                         self._recording_stream = sd_stream
-                        if (_inc_at_start is not None
-                                and getattr(self, "_incremental_session", None) is _inc_at_start
-                                and not _inc_at_start["stopped_event"].is_set()):
-                            _inc_at_start["stream"] = sd_stream
+                        _inc = getattr(self, "_incremental_session", None)
+                        if _inc is not None and not _inc["stopped_event"].is_set():
+                            _inc["stream"] = sd_stream
                     except Exception as err:
                         logging.error("[audio] Async sounddevice InputStream error: %s", err)
                 threading.Thread(target=_bg_start_mic, daemon=True).start()
@@ -1194,6 +1187,20 @@ class VoiceRecordingMixin:
                 # self-cleans on the way out.
                 inc_session["stop" if use_incremental else "cancel"] = True
                 worker = inc_session.get("worker")
+                if (use_incremental and worker is None
+                        and not inc_session.get("failed")
+                        and not inc_session.get("basic_only", False)
+                        and drain_thread is not None and drain_thread.is_alive()):
+                    # Model load still in progress: no worker to finish.
+                    # Policy: prefer the existing basic gate — never spin
+                    # up a SECOND ONNX instance through the offline path
+                    # for this note. cancel so the late constructor's
+                    # drain aborts and self-cleans (spool + slot) when it
+                    # returns.
+                    logging.info("[noise_reduction] model load still busy at send; "
+                                 "falling back to the basic gate with the full raw audio")
+                    inc_session["fallback_chosen"] = True
+                    inc_session["cancel"] = True
                 if (use_incremental and not inc_session["cancel"] and worker is not None
                         and not inc_session.get("failed")):
                     # Stage 3 — finish() runs the remaining model hops and
@@ -1226,8 +1233,17 @@ class VoiceRecordingMixin:
                         finally:
                             with finish_lock:
                                 finish_out["ready"] = True
-                                abandoned = (inc_session.get("revoked")
-                                             or inc_session.get("fallback_chosen"))
+                                abandoned = ((inc_session.get("revoked")
+                                              or inc_session.get("fallback_chosen"))
+                                             and not finish_out.get("claimed"))
+                                if abandoned:
+                                    # Exactly one claimant ever cleans up
+                                    # the late result: the claim is taken
+                                    # under the same lock that publishes
+                                    # readiness, so the revoked branch of
+                                    # the send thread can never clean it a
+                                    # second time.
+                                    finish_out["claimed"] = True
                             if abandoned:
                                 # The helper owns the cleanup when the send
                                 # thread walked away (revoked, or the
@@ -1261,11 +1277,16 @@ class VoiceRecordingMixin:
                     if stage3 == "revoked":
                         logging.info("[noise_reduction] send revoked during finish()")
                         with finish_lock:
-                            finished = finish_out.get("ready", False)
+                            finished = (finish_out.get("ready", False)
+                                        and not finish_out.get("claimed"))
+                            if finished:
+                                # finish() completed BEFORE the revoke
+                                # landed but after its own flag check:
+                                # nobody cleaned up — claim the late
+                                # result under the same lock and clean it
+                                # here, exactly once.
+                                finish_out["claimed"] = True
                         if finished:
-                            # finish() completed BEFORE the revoke landed
-                            # but after its own flag check: nobody cleaned
-                            # up — this thread owns the late result now.
                             try:
                                 worker.abort()
                             except Exception:
@@ -1306,6 +1327,16 @@ class VoiceRecordingMixin:
                     if not inc_session.get('fallback_chosen'):
                         try:
                             _t_inc = _time.perf_counter()
+                            with finish_lock:
+                                already_claimed = finish_out.get("claimed")
+                            if already_claimed:
+                                # The wait observed ready, but the revoke
+                                # landed before the finisher's flag check:
+                                # the finisher already discarded the late
+                                # result under the same lock. Nothing left
+                                # to consume; the message is cancelled.
+                                _forget_incremental()
+                                return
                             if "error" in finish_out:
                                 raise finish_out["error"]
                             spool_path, engine = finish_out["result"]

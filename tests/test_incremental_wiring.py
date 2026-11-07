@@ -742,14 +742,17 @@ def test_send_revoked_during_finish_helper_cleans_up_on_return(send_env, monkeyp
     assert not mw.message_queue.enqueued
     assert not controller.acquire_slot("other", {"cancel": False})
     # When the native call DOES return, the helper owns the cleanup:
-    # result discarded, worker aborted, spool deleted, slot released.
+    # result discarded, worker aborted EXACTLY ONCE, spool deleted,
+    # slot released — the send side observed not-ready and cleaned
+    # nothing (order A of the finish-lock linearization).
     finish_gate.set()
     deadline = time.time() + 5
     while time.time() < deadline and os.path.exists(spool):
         time.sleep(0.05)
     assert not os.path.exists(spool)
-    assert aborted
+    assert aborted == [True]
     assert controller.acquire_slot("other2", {"cancel": False})
+    controller.release_slot("other2")
     assert not mw.message_queue.enqueued
 
 
@@ -1074,16 +1077,37 @@ def test_echo_matcher_claims_transferred_record_despite_stale_flag(monkeypatch):
     assert db.inserted == [(jid, record)]
 
 
-def test_send_finish_and_revoke_race_exactly_one_cleanup(send_env):
-    """Boundary: finish() returns in the same instant the user deletes the
-    pending note. Whichever decision linearizes first under the finish
-    lock, EXACTLY ONE party cleans the late result and nothing enqueues."""
+def test_send_finish_completed_then_revoke_send_consumes_once(send_env, monkeypatch):
+    """Boundary, order B: finish() completes and the send CONSUMES the
+    result strictly BEFORE the revoke lands (deterministic barrier: the
+    test waits for the counted spool unlink, which only the consume block
+    performs, after the finisher stored the ready result under
+    finish_lock).
+    The finisher's flag check linearizes first (no flags, no cleanup);
+    the send consumes the spool exactly once; the later revoke beats only
+    the transfer, and nobody cleans up a second time."""
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    # Park the send between the consume and the transfer: the revoke below
+    # is then guaranteed to land while the send still owns the message,
+    # before the enqueue decision — no wall-clock race against the WAV
+    # write and transfer path. (mono send: ogg conversion precedes the
+    # transfer; the fake's method is wrapped, no production code touched.)
+    wav_gate = threading.Event()
+    wav_reached = threading.Event()
     controller = IncrementalDenoiseController()
     frames = [b"\x0d\x0e" * 480]
     spool = str(send_env / "spool.pcm")
     open(spool, "wb").write(b"work")
     finish_gate = threading.Event()
     finish_started = threading.Event()
+    aborted = []
 
     class _Worker:
         def finish(self):
@@ -1092,35 +1116,52 @@ def test_send_finish_and_revoke_race_exactly_one_cleanup(send_env):
             return spool, "neural"
 
         def abort(self):
-            pass
+            aborted.append(True)
 
     session = _send_session(controller, frames, worker=_Worker(),
                             spool=spool, stream=_FakeStream())
     mw = _FakeSendMW(controller)
+    real_convert = mw._convert_wav_to_ogg
+
+    def _gated_convert(*args, **kwargs):
+        wav_reached.set()
+        wav_gate.wait(5)
+        return real_convert(*args, **kwargs)
+
+    mw._convert_wav_to_ogg = _gated_convert
     panel = _SendPanel(mw, frames, session)
     vr.VoiceRecordingMixin._send_voice_message(panel, None)
     assert finish_started.wait(5)
-    # The exact boundary: the native return and the revoke together.
     finish_gate.set()
-    assert controller.revoke("m1") or True  # revoke may land either side
+    # Wait until the send has actually consumed the finished result: the
+    # consume block deletes the spool (counted by the unlink wrapper) and
+    # runs only after the finisher stored the ready result under
+    # finish_lock.
     deadline = time.time() + 6
-    while time.time() < deadline and (os.path.exists(spool)
-                                      or controller.is_preparing("m1")
-                                      or not controller.acquire_slot("probe", {"cancel": False})):
-        if not controller.is_preparing("m1"):
-            pass
+    while time.time() < deadline and spool not in unlinked:
+        time.sleep(0.02)
+    # The consume deleted the spool exactly once, before any revoke:
+    assert unlinked.count(spool) == 1
+    # Revoke AFTER consumption but BEFORE the transfer (the send is parked
+    # at the gated WAV step): revoke() reports the message, the in-flight
+    # transfer refuses the cancelled enqueue, and nobody cleans up again.
+    assert wav_reached.wait(5)
+    assert controller.revoke("m1")
+    wav_gate.set()
+    deadline = time.time() + 6
+    while time.time() < deadline and controller.is_preparing("m1"):
         time.sleep(0.05)
-        if not controller.acquire_slot("probe2", {"cancel": False}):
-            continue
-        controller.release_slot("probe2")
-        break
-    controller.release_slot("probe")
-    assert not mw.message_queue.enqueued
-    assert not os.path.exists(spool)
+    time.sleep(0.2)  # let the send thread finish its transfer-fail path
     assert not controller.is_preparing("m1")
-
-
-# ── Real recording-start paths, delayed open (Milo residue 1) ────────────────
+    assert not mw.message_queue.enqueued
+    # The finisher never aborted the worker (it completed before the
+    # revoke) and the spool was deleted exactly once, by the send.
+    assert aborted == []
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
+    # The slot was released exactly into a free state.
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
 
 
 class _FakePAStream:
@@ -1250,3 +1291,91 @@ def test_start_pyaudio_delayed_open_stream_goes_to_the_new_session(monkeypatch):
     controller.discard(session["local_id"])
     controller.discard("old1")
     controller.release_slot("other")
+
+
+def test_send_during_model_load_goes_basic_without_second_engine(send_env, monkeypatch):
+    """Milo 17:16 priority: send while the model constructor is still
+    blocked. The send must take the existing basic gate — never spin up a
+    SECOND ONNX instance via reduce_voice_noise — and the late-returning
+    constructor's drain must abort and self-clean (spool + slot)."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    import core.incremental_denoise as inc
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    ctor_barrier = threading.Event()
+    ctor_calls = []
+
+    class _FakeDenoiser:
+        pass
+
+    def _held_ctor(*a, **k):
+        ctor_calls.append(1)
+        ctor_barrier.wait(10)
+        return _FakeDenoiser()
+
+    monkeypatch.setattr(nnr, "NeuralDenoiser", _held_ctor)
+    monkeypatch.setattr(nnr, "model_path", lambda: __file__)  # exists
+    aborted = []
+
+    class _FakeWorker:
+        def finish(self):
+            raise AssertionError("finish must not run for an abandoned load")
+
+        def abort(self):
+            aborted.append(True)
+
+    def _fake_worker_factory(rate, ch, denoiser, spool_path=None):
+        return _FakeWorker()
+
+    monkeypatch.setattr(inc, "IncrementalDenoiser", _fake_worker_factory)
+
+    def _fake_drain_loop(session, worker, transform=None):
+        # The real loop observes cancel cooperatively; on cancel it
+        # aborts the worker and deletes the spool (documented contract).
+        while not session["cancel"] and not session["stop"]:
+            time.sleep(0.01)
+        if session["cancel"]:
+            worker.abort()
+            try:
+                os.unlink(session["spool"])
+            except OSError:
+                pass
+
+    monkeypatch.setattr(inc, "drain_capture_frames", _fake_drain_loop)
+
+    controller = IncrementalDenoiseController()
+    mw = _FakeSendMW(controller)
+    frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
+    raw = b"".join(frames)
+    panel = _SendPanel(mw, frames, None)
+    panel._incremental_drain = (
+        lambda session: vr.VoiceRecordingMixin._incremental_drain(panel, session))
+    # Real start: takes the slot, spawns the REAL drain — whose model
+    # constructor is now held at the barrier.
+    vr.VoiceRecordingMixin._start_incremental_denoise(panel, frames, 48000, 1)
+    session = panel._incremental_session
+    assert session is not None and not session["basic_only"]
+    deadline = time.time() + 5
+    while not ctor_calls and time.time() < deadline:
+        time.sleep(0.02)
+    assert ctor_calls == [1]
+
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    # Basic gate on the complete raw; NO second engine was constructed.
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    assert ctor_calls == [1]
+
+    # The late constructor return: the drain aborts and self-cleans.
+    ctor_barrier.set()
+    deadline = time.time() + 5
+    while time.time() < deadline and os.path.exists(session["spool"]):
+        time.sleep(0.05)
+    assert aborted == [True]
+    assert not os.path.exists(session["spool"])
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
