@@ -603,7 +603,14 @@ class VoiceRecordingMixin:
             logging.exception("[noise_reduction] incremental drain failed; offline path remains")
             session["failed"] = True
             worker = session.get("worker")
-            if worker is not None:
+            if worker is None:
+                # Failed BEFORE the worker existed: the model could not be
+                # loaded (missing file or load/ctor error). Per the agreed
+                # contract this is "model unavailable": the send goes
+                # STRAIGHT to the basic gate — the offline path must not
+                # retry the ONNX load for this note.
+                session["model_unavailable"] = True
+            else:
                 try:
                     worker.abort()
                 except Exception:
@@ -1259,8 +1266,11 @@ class VoiceRecordingMixin:
             # (skipped when the incremental session already cleaned the audio)
             if (not incremental_cleaned and not mixed_audio
                     and mw.settings.get("general", {}).get("noise_reduction_enabled", False)):
+                basic_only = incremental_basic_only or (
+                    inc_session is not None
+                    and inc_session.get("model_unavailable", False))
                 audio_data, _nr_engine = self._reduce_for_send(
-                    mw, audio_data, actual_rate, channels, incremental_basic_only)
+                    mw, audio_data, actual_rate, channels, basic_only)
                 logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", _nr_engine)
 
             # 2. Write WAV temp file (used for ffmpeg conversion, backup, and retry fallback).

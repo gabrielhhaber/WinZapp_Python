@@ -101,6 +101,40 @@ def test_start_registers_session_and_model_missing_fails_clean():
     _join_drain(panel)
 
 
+def test_drain_model_load_failure_marks_model_unavailable():
+    # The model file is absent in this environment: the real drain takes
+    # its documented FileNotFoundError path BEFORE the worker exists.
+    panel = _FakePanel()
+    _start(panel)
+    _join_drain(panel)
+    session = panel._incremental_session
+    assert session["failed"] is True
+    assert session["model_unavailable"] is True
+    assert session["worker"] is None
+
+
+def test_drain_feed_failure_is_not_model_unavailable(monkeypatch):
+    import core.neural_noise_reduction as nnr
+    import core.incremental_denoise as inc
+    monkeypatch.setattr(nnr, "model_path", lambda: __file__)  # any real file
+    monkeypatch.setattr(nnr, "NeuralDenoiser", lambda: object())
+    class _Worker:
+        def abort(self):
+            pass
+    monkeypatch.setattr(inc, "IncrementalDenoiser", lambda *a, **k: _Worker())
+    def _boom(session, worker, transform):
+        raise RuntimeError("feed blew up")
+    monkeypatch.setattr(inc, "drain_capture_frames", _boom)
+    panel = _FakePanel()
+    _start(panel)
+    _join_drain(panel)
+    session = panel._incremental_session
+    assert session["failed"] is True
+    # Worker existed: "error with worker released" — the published
+    # neural/basic offline path remains allowed for this note.
+    assert "model_unavailable" not in session
+
+
 def test_start_skipped_when_noise_reduction_disabled():
     panel = _FakePanel(nr_enabled=False)
     _start(panel)
