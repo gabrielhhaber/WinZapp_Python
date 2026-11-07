@@ -36,6 +36,8 @@ WHAT'S NEW
 
 - Neonize calls: calls you place, and calls you answer and hang up yourself, now appear in the conversation history and in the Calls section. They were not recorded at all before (issue #689).
 
+- Neonize calls: the log now counts, every 5 seconds, the packets of each kind the relay delivers (no names), to find out why the caller's audio stops in some received calls (issue #689). No change in behavior.
+
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
 
 - Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
