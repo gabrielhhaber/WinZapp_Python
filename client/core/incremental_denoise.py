@@ -11,9 +11,16 @@ bit-exact against the offline path — covered by
 tests/test_incremental_denoise.py against the real upstream code.
 
 ``spool_path`` streams the cleaned audio to a temporary file as it is produced
-(the raw capture is retained by the caller exactly as before — total RAM then
-matches the current recording profile, and the send-time processing peak and
-wait go away). Without ``spool_path`` the cleaned PCM accumulates in memory.
+(the raw capture is retained by the caller exactly as before, so recording-time
+RAM matches the current profile; the engine itself retains no per-recording
+growth). Without ``spool_path`` the cleaned PCM accumulates in memory. The
+effect on send-time peak and wait is a design goal, not a measured result.
+
+``drain_capture_frames`` is the wx-free capture-pump controller: it feeds a
+recording's chunk list to an IncrementalDenoiser as the chunks arrive, with
+cooperative cancel, a bounded-lag abandonment policy and spool cleanup, so
+the UI wiring in voice_recording.py stays a thin adapter and the policy is
+testable without wx, audio hardware or a model file.
 
 No user-facing behaviour lives here: engine fallback, announcements and the
 original/raw retention strategy stay in the wiring (voice_recording.py).
@@ -21,7 +28,10 @@ original/raw retention strategy stay in the wiring (voice_recording.py).
 
 from __future__ import annotations
 
+import logging
 import math
+import os
+import time
 
 import numpy as np
 
@@ -208,3 +218,82 @@ class IncrementalDenoiser:
             except Exception:
                 pass
             self._file = None
+
+
+#: Cap on how far the cleaner may fall behind capture before the session is
+#: abandoned to the offline path, in seconds of captured audio. NOT validated
+#: on any target machine: a conservative placeholder to be set from the
+#: Windows integration measurements. It bounds pending audio, never time.
+DEFAULT_MAX_LAG_SECONDS = 30
+
+
+def drain_capture_frames(session: dict, worker: IncrementalDenoiser,
+                         transform=None, poll_seconds: float = 0.01) -> None:
+    """Feed a capture session's chunk list to *worker* until stop or cancel.
+
+    *session* is the wiring's IPC dict: ``frames`` (the list the capture
+    callback appends to), ``rate``, ``ch``, ``spool``, ``stop``, ``cancel``,
+    ``failed``, ``worker``. The list is read-only here: the callback owns
+    appends and this function never mutates or rebinds it.
+
+    Bounded lag: bytes are counted as chunks become visible in the list, so
+    an append between polls is counted at the next poll (at most
+    *poll_seconds* late — the threshold is never evaluated against stale
+    state older than that). When counted-but-unfed bytes pass the lag cap,
+    the session is marked failed and abandoned. Abandonment and cancel are
+    cooperative: a worker blocked inside a native model or disk call is not
+    preempted — the loop notices once that call returns, exactly as the
+    offline path's own model call cannot be interrupted either.
+
+    On cancel or failure the worker is aborted (its file handle closed) and
+    the spool deleted; the send path then falls back to the offline pass,
+    which reprocesses the retained raw frames — no captured audio is lost.
+    On normal completion (``stop`` with every chunk fed) the worker and its
+    spool stay live and ownership passes to the send thread, which joins
+    this loop before touching them.
+    """
+    frames = session["frames"]
+    max_lag = (session["rate"] * session["ch"] * 2
+               * session.get("max_lag_seconds", DEFAULT_MAX_LAG_SECONDS))
+    bytes_per_second = session["rate"] * session["ch"] * 2
+    i = 0
+    seen_index = 0
+    seen_bytes = 0
+    fed_bytes = 0
+    try:
+        while not session["cancel"]:
+            n = len(frames)
+            while seen_index < n:
+                seen_bytes += len(frames[seen_index])
+                seen_index += 1
+            if seen_bytes - fed_bytes > max_lag:
+                logging.warning(
+                    "[noise_reduction] incremental session abandoned: cleaner fell "
+                    "%.1fs of audio behind capture; offline path takes over at send",
+                    (seen_bytes - fed_bytes) / bytes_per_second)
+                session["failed"] = True
+                break
+            while i < n and not session["cancel"]:
+                chunk = frames[i]
+                if transform is not None:
+                    chunk = transform(chunk)
+                worker.feed(chunk)
+                fed_bytes += len(frames[i])
+                i += 1
+            if session["stop"] and i >= len(frames):
+                break
+            time.sleep(poll_seconds)
+    except Exception:
+        logging.exception("[noise_reduction] incremental drain failed; offline path remains")
+        session["failed"] = True
+    finally:
+        if session["cancel"] or session["failed"]:
+            try:
+                worker.abort()
+            except Exception:
+                pass
+            try:
+                os.unlink(session["spool"])
+            except OSError:
+                pass
+            session["worker"] = None
