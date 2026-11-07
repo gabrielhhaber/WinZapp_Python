@@ -2876,6 +2876,47 @@ def test_retry_deferred_while_incremental_slot_busy(send_env, monkeypatch):
     controller.release_slot("other-note")
 
 
+def test_retry_waits_for_cleanup_when_the_same_note_retains_its_slot(send_env, monkeypatch):
+    # Regression (review 19:07): a native timeout leaves skip_posterior +
+    # forget() with the slot STILL HELD BY THE SAME NOTE and its private
+    # model possibly alive. ID equality is NOT cleanup: the retry must
+    # defer — never load the singleton next to that model — until the
+    # slot is actually released. Only then does the same row's retry run.
+    import core.neural_noise_reduction as nnr
+    called = []
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (called.append(data), (data, "neural"))[1])
+    controller = IncrementalDenoiseController()
+    # The kept note's OWN native session retains the slot (timeout/forget).
+    assert controller.acquire_slot("m9", {"cancel": False})
+    mw, announced = _retry_mw(controller)
+    raw = b"\x53\x54" * 480
+    msg, kept = _kept_note(send_env, raw, local_id="m9")
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    # No model call next to the possibly-live private one: deferred.
+    assert called == []
+    assert mw.message_queue.enqueued == []
+    assert announced == ["noise_reduction_kept_pending"]
+    assert controller._offline_owner is None
+    assert not getattr(panel, "_nr_attempts", {})
+    # Cleanup confirmed (the slot is really released): the SAME row's
+    # retry now runs the reduction and hands off.
+    controller.release_slot("m9")
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert called == [raw]
+    assert announced == ["noise_reduction_kept_pending", "resend_started"]
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
 def test_retry_refuses_a_changed_kept_file(send_env, monkeypatch):
     import core.neural_noise_reduction as nnr
     called = []

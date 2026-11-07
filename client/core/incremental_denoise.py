@@ -447,17 +447,16 @@ class IncrementalDenoiseController:
         offline one in between, and no second offline reservation runs
         concurrently (review 18:47, contract 1).
 
-        The note's OWN slot does not count against its own offline
-        reservation: by the time the send flow reserves, it has already
-        serialized that session's private model (cancel-and-wait barrier,
-        remnant reclaim, or skip_posterior when the model may still be
-        loaded), so holding the slot only marks the send-side authority.
-        False = a DIFFERENT note holds the slot (a capture in progress) or
-        another offline reservation is active (review 18:59, residual 1)."""
+        STRICT: any occupied slot refuses, whatever its owner — ID
+        equality is NOT cleanup (review 19:07). A native timeout leaves
+        skip_posterior + forget() with the slot STILL held and the
+        private model possibly alive; a retry of that same row must not
+        load the singleton next to it. The only way the send path's own
+        slot is free here is caller-confirmed cleanup: the barrier/
+        reclaim/drain released it, or the caller released it after
+        positively confirming the session never started a model."""
         with self._lock:
-            if self._offline_owner is not None:
-                return False
-            if self._slot_owner is not None and self._slot_owner != local_id:
+            if self._slot_owner is not None or self._offline_owner is not None:
                 return False
             self._offline_owner = local_id
             return True

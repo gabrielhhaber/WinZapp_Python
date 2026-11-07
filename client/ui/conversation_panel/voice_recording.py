@@ -2225,6 +2225,21 @@ class VoiceRecordingMixin:
                 raw_unprocessed = audio_data if want_pending else None
                 reduce_basic_only = chosen_basic or (session_blocked and not want_pending)
                 offline_reserved = False
+                if (inc_session is not None and controller is not None
+                        and inc_session.get("worker") is None
+                        and drain_thread is None
+                        and not inc_session.get("basic_only", False)
+                        and not inc_session.get("model_unavailable", False)
+                        and not inc_session.get("fallback_chosen", False)):
+                    # moment=send from the start: this session NEVER started
+                    # incremental work, so no private model can be loaded and
+                    # the slot it holds is only send-side authority. The
+                    # caller confirms the cleanup HERE and releases its own
+                    # slot, so the reservation below stays a pure exclusion
+                    # (review 19:07: caller + confirmed cleanup, NEVER ID
+                    # equality alone — a retained slot after a native timeout
+                    # means the private model may still be alive).
+                    controller.release_slot(local_id)
                 if not skip_posterior and not reduce_basic_only \
                         and controller is not None:
                     # The NORMAL offline pass takes the same reservation as
