@@ -34,6 +34,7 @@ import logging
 import sys
 import threading
 import time
+import uuid
 
 import msgmap
 import ongoing_calls
@@ -41,6 +42,8 @@ from call_audio_pcm import PCM48To16
 from call_placement_state import PlacementReplacedError, PlacementStateError, placement_state
 from call_audio_delivery import AudioDelivery, counters
 from call_video import VIDEO_ACCEPT, VIDEO_REQUEST
+from call_media_ingress import MediaIngress
+from call_media_ownership import CallIngressMixin
 
 log = logging.getLogger("bridge")
 
@@ -127,7 +130,9 @@ def state_event(call, *, state, event="state", now=None) -> dict:
     """The `data` of `callstate` for one of our calls (`call`: a dict with
     id, peer, outgoing, and video and group when it has them)."""
     group = call.get("group") or ""
+    epoch = call.setdefault("media_epoch", uuid.uuid4().hex)
     return {"id": call["id"], "peerJid": call["peer"], "state": state, "event": event,
+            "mediaEpoch": epoch,
             "outgoing": call["outgoing"], "isVideo": bool(call.get("video")),
             "isGroup": bool(group), "groupJid": group,
             "observedAt": int(now if now is not None else time.time())}
@@ -156,7 +161,7 @@ def _serialized(method):
     return run
 
 
-class CallMedia:
+class CallMedia(CallIngressMixin):
     """The calls of one session. `calls` is a neonize.calls.Calls (or a fake);
     `emit(event, data)` sends to the session's clients."""
 
@@ -181,6 +186,9 @@ class CallMedia:
         self.ring_limit = OUTGOING_RING_LIMIT
         self._ring_timers = {}         # call id -> the timer that ends an unanswered dial
         self._unowned_audio = AudioDelivery()
+        self._ingress = MediaIngress()
+        self._closed = False
+        self._ingress_owner = None
 
     # ---------------------------------------------------------------- state
     def _known(self, call_id):
@@ -196,6 +204,7 @@ class CallMedia:
                 return False
             call["state"] = state
             data = state_event(call, state=state, event=event)
+            self._publish_ingress_owner_locked()
         self.emit("callstate", {"session": self.name, "data": data})
         return True
 
@@ -219,6 +228,8 @@ class CallMedia:
     @_serialized
     def handle(self, ev):
         """One event of the call layer."""
+        if self._closed:
+            return
         kind, call_id = ev.get("ev"), str(ev.get("call") or "")
         if not call_id:
             return
@@ -239,12 +250,15 @@ class CallMedia:
                 if generation is not None and previous is not None and previous.get("native_generation") not in (None, generation):
                     self._calls.pop(call_id, None)
                     self._audio_readers.pop(call_id, None)
+                    if self.video is not None:
+                        self.video.end(call_id)
                 call = self._calls.setdefault(call_id, {
                     "id": call_id, "peer": msgmap.jid_wpp(str(ev.get("peer") or "")),
                     "outgoing": False, "state": "INCOMING_RING", "group": ""})
                 call["video"] = bool(call.get("video") or ev.get("video"))
                 if generation is not None:
                     call["native_generation"] = generation
+                self._publish_ingress_owner_locked()
             return
         if kind == "video":
             self._peer_video(call_id, ev)
@@ -280,6 +294,7 @@ class CallMedia:
                     event, state = "timeout", "NOT_ANSWERED"
                 self._audio_readers.pop(call_id, None)
                 data = state_event(call, state=state, event=event) if call else None
+                self._publish_ingress_owner_locked()
             if self.video is not None:
                 self.video.end(call_id)
             with self._mic_lock:
@@ -319,6 +334,7 @@ class CallMedia:
                         log.exception("call event")
         finally:
             self._running = False
+            self.close()
 
     # ---------------------------------------------------------------- audio
     def _format_for(self, call):
@@ -372,6 +388,9 @@ class CallMedia:
                          name="call-audio").start()
         if self.video is not None:
             try:
+                bind = getattr(self.video, "bind_call", None)
+                if callable(bind):
+                    bind(call_id, claim[1].setdefault("media_epoch", uuid.uuid4().hex))
                 self.video.start_receiving(call_id)
             except Exception:
                 # The audio thread already owns the queue; a camera failure
@@ -398,13 +417,27 @@ class CallMedia:
                     return
                 # Native reads may return after end/rejoin of the same id.
                 if frame:
-                    if callable(reader):
-                        self._emit_audio(call_id, claim, frame, packet["sampleRate"], packet["generation"])
-                    else:
-                        self._emit_audio(call_id, claim, frame)
+                    try:
+                        if callable(reader):
+                            self._emit_audio(call_id, claim, frame, packet["sampleRate"], packet["generation"])
+                        else:
+                            self._emit_audio(call_id, claim, frame)
+                    except (ValueError, layer_error()):
+                        raise
+                    except Exception:
+                        # Do not lose the only reader for a transient emit
+                        # failure. This frame is dropped, never replayed.
+                        if self._owns_audio(call_id, claim):
+                            stats = counters(claim[1])
+                            stats.add('remote_emit_errors')
+                            failures = stats.summary()['remote_emit_errors']
+                            if failures in (1, 50, 500):
+                                log.warning('call audio remote emission failed; frame dropped count=%d', failures)
         except (ValueError, layer_error()):
             log.warning("native call audio format rejected; reader released")
             self._note_reader_exit(call_id, claim, "format rejected")
+        except Exception:
+            self._note_reader_exit(call_id, claim, 'unexpected native reader failure')
         finally:
             with self._lock:
                 if self._audio_readers.get(call_id) is claim:
@@ -420,7 +453,7 @@ class CallMedia:
 
     def _owns_audio(self, call_id, claim):
         with self._lock:
-            return (claim is not None and self._audio_readers.get(call_id) is claim
+            return (not self._closed and claim is not None and self._audio_readers.get(call_id) is claim
                     and self._calls.get(call_id) is claim[1])
 
     @_serialized
@@ -438,10 +471,16 @@ class CallMedia:
                 return
             counters(claim[1]).add("remote_emit_attempts")
             counters(claim[1]).add("remote_bytes", len(frame))
+            counters(claim[1]).observe("remote_native_pcm", frame, sample_rate)
             counters(claim[1]).report()
             self.emit("call:audio:remote", {
                 "session": self.name, "encoding": "base64", "sampleRate": sample_rate,
+                "mediaEpoch": claim[1].setdefault("media_epoch", uuid.uuid4().hex),
                 "pcm": base64.b64encode(frame).decode("ascii")})
+
+
+
+
 
     def _connected_call(self):
         with self._lock:
@@ -459,10 +498,15 @@ class CallMedia:
         if call is None:
             self._unowned_audio.add("mic_not_connected")
             return
+        if self._closed:
+            return
         stats = counters(call)
         stats.add("mic_packets")
         if not isinstance(data, dict):
             stats.add("mic_invalid_payload")
+            return
+        if not self._matches_epoch(call, data):
+            stats.add('mic_owner_rejected')
             return
         call_id = call["id"]
         encoded = data.get("pcm") or ""
@@ -487,6 +531,18 @@ class CallMedia:
             if self._calls.get(call_id) is not call or call["state"] != "ACTIVE" or not call.get("connected"):
                 return
         with self._mic_lock:
+            if data.get('mediaProtocol') == 1:
+                epoch = data.get('streamEpoch')
+                if type(epoch) is not int or not 0 < epoch < 2**53:
+                    return
+                previous = call.get('mic_stream_epoch', 0)
+                if epoch < previous or epoch <= call.get('mic_stopped_epoch', 0):
+                    stats.add('mic_stale_stream')
+                    return
+                call['media_protocol'] = 1
+                if epoch > previous:
+                    self._mic.clear()
+                    call['mic_stream_epoch'] = epoch
             pcm_format = self._format_for(call)
             if pcm_format is None:
                 stats.add("mic_format_unavailable")
@@ -508,10 +564,22 @@ class CallMedia:
                         break
                     stats.add("mic_native_write_ok")
                     stats.add("mic_native_bytes", len(frame))
+                    stats.observe("mic_native_accepted", frame, pcm_format["sampleRate"])
             stats.report()
 
     @_serialized
-    def stop_microphone(self):
+    def stop_microphone(self, data=None):
+        data = data if isinstance(data, dict) else {}
+        with self._lock:
+            active = [c for c in self._calls.values() if c['state'] == 'ACTIVE' and c.get('connected')]
+            call = active[-1] if active else None
+        if call is None or not self._matches_epoch(call, data):
+            return
+        if data.get('mediaProtocol') == 1:
+            epoch = data.get('streamEpoch')
+            if type(epoch) is not int or not 0 < epoch < 2**53 or epoch < call.get('mic_stream_epoch', 0):
+                return
+            call['mic_stopped_epoch'] = max(epoch, call.get('mic_stopped_epoch', 0))
         with self._mic_lock:
             self._mic.clear()
             self._mic_owner = None
@@ -555,18 +623,9 @@ class CallMedia:
         self._mark_video(call_id)
         return True, False
 
-    def camera_frame(self, data):
-        if self.video is not None:
-            self.video.camera_frame(self._connected_call(), data)
 
-    def camera_stop(self, data=None):
-        if self.video is not None:
-            native = isinstance(data, dict) and data.get("native") is True
-            self.video.camera_stop(self._connected_call(), native)
 
-    def camera_start(self):
-        if self.video is not None:
-            self.video.camera_start(self._connected_call())
+
 
     # ---------------------------------------------------------------- actions
     def dial(self, to, video=False):

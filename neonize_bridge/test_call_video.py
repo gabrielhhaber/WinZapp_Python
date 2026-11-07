@@ -71,7 +71,7 @@ def video_media(fake=None):
     sent = []
     emit = lambda event, data: sent.append((event, data))     # noqa: E731
     video = cv.CallVideo("s1", fake, emit, Codec())
-    video.start_receiving = lambda call_id: video._pump(call_id)    # no thread
+    video.start_receiving = lambda call_id: video._pump(call_id, video._claim_receiver(call_id))  # no thread
     m = cm.CallMedia("s1", fake, emit, video=video, group_calls=True)
     m._start_audio = lambda call_id, claim: (m._pump_audio(call_id, claim), video.start_receiving(call_id))
     return m, fake, sent

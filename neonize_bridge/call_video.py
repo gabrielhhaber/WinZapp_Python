@@ -52,78 +52,144 @@ class CallVideo:
 
     def __init__(self, name, calls, emit, codec):
         self.name, self.calls, self.emit, self.codec = name, calls, emit, codec
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._encoders = {}
+        self._encoder_claims = {}
         self._decoders = {}
-        self._receiving = set()
+        self._owners = {}
+        self._wire_epochs = {}
+        self._receiving = {}
 
     # ------------------------------------------------------------- outgoing
-    def camera_frame(self, call_id, data):
+    def bind_call(self, call_id, media_epoch):
+        with self._lock:
+            self._wire_epochs[call_id] = media_epoch
+
+    def camera_frame(self, call_id, data, *, expected_epoch=None):
         jpeg = camera_jpeg(data)
         if not call_id or jpeg is None:
             return
         with self._lock:
+            if expected_epoch is not None and self._wire_epochs.get(call_id) != expected_epoch:
+                return
+            owner = self._owners.get(call_id)
+            if owner is None:
+                return
             encoder = self._encoders.get(call_id)
             if encoder is None:
-                encoder = self._encoders[call_id] = self.codec.encoder(
-                    lambda unit: self._send(call_id, unit))
+                claim = object()
+                self._encoder_claims[call_id] = claim
+                try:
+                    encoder = self._encoders[call_id] = self.codec.encoder(
+                        lambda unit: self._send(call_id, owner, claim, unit))
+                except Exception:
+                    self._encoder_claims.pop(call_id, None)
+                    raise
                 log.info("call video: camera encoder started")
-        encoder.push(jpeg)
+            encoder.push(jpeg)
 
-    def _send(self, call_id, unit):
+    def _send(self, call_id, owner, claim, unit):
         # False until the other side acknowledged our video: nothing to do
-        self.calls.write_video(call_id, unit, video_codec.FRAME_MS)
-
-    def camera_stop(self, call_id, native=False):
         with self._lock:
-            encoder = self._encoders.pop(call_id, None)
-        if encoder is not None:
-            encoder.close()
-        if native and call_id:
-            self.calls.video(call_id, VIDEO_DISABLE)
+            if (self._owners.get(call_id) is owner
+                    and self._encoder_claims.get(call_id) is claim):
+                self.calls.write_video(call_id, unit, video_codec.FRAME_MS)
 
-    def camera_start(self, call_id):
-        return bool(call_id) and self.calls.video(call_id, VIDEO_ENABLE)
+    def camera_stop(self, call_id, native=False, *, expected_epoch=None):
+        with self._lock:
+            if expected_epoch is not None and self._wire_epochs.get(call_id) != expected_epoch:
+                return
+            owner = self._owners.get(call_id)
+            self._encoder_claims.pop(call_id, None)
+            encoder = self._encoders.pop(call_id, None)
+        try:
+            if encoder is not None:
+                encoder.close()
+        finally:
+            if native and call_id:
+                with self._lock:
+                    if (self._owners.get(call_id) is owner
+                            and (expected_epoch is None or self._wire_epochs.get(call_id) == expected_epoch)):
+                        self.calls.video(call_id, VIDEO_DISABLE)
+
+    def camera_start(self, call_id, *, expected_epoch=None):
+        with self._lock:
+            if expected_epoch is not None and self._wire_epochs.get(call_id) != expected_epoch:
+                return False
+            return bool(call_id) and self.calls.video(call_id, VIDEO_ENABLE)
 
     # ------------------------------------------------------------- incoming
     def start_receiving(self, call_id):
         """Reads the other side's video of the call until it ends (once)."""
+        claim = self._claim_receiver(call_id)
+        if claim is None:
+            return
+        try:
+            threading.Thread(target=self._pump, args=(call_id, claim), daemon=True,
+                             name="call-video").start()
+        except Exception:
+            with self._lock:
+                if self._receiving.get(call_id) is claim:
+                    self._receiving.pop(call_id, None)
+            raise
+
+    def _claim_receiver(self, call_id):
         with self._lock:
             if not call_id or call_id in self._receiving:
-                return
-            self._receiving.add(call_id)
-        threading.Thread(target=self._pump, args=(call_id,), daemon=True,
-                         name="call-video").start()
+                return None
+            owner = self._owners.setdefault(call_id, object())
+            claim = (object(), owner)
+            self._receiving[call_id] = claim
+            return claim
 
-    def _pump(self, call_id):
+    def _owns_receiver(self, call_id, claim):
+        return (claim is not None and self._receiving.get(call_id) is claim
+                and self._owners.get(call_id) is claim[1])
+
+    def _pump(self, call_id, claim):
         try:
             while True:
+                with self._lock:
+                    if not self._owns_receiver(call_id, claim):
+                        return
                 unit = self.calls.read_video(call_id, 500)
                 if unit is None:
                     return
                 if unit:
-                    self._decoder(call_id).push(unit)
+                    with self._lock:
+                        if not self._owns_receiver(call_id, claim):
+                            return
+                        self._decoder(call_id, claim[1]).push(unit)
         except Exception:
             log.exception("call video: receiving")
         finally:
             with self._lock:
-                self._receiving.discard(call_id)
+                if self._receiving.get(call_id) is claim:
+                    self._receiving.pop(call_id, None)
 
-    def _decoder(self, call_id):
+    def _decoder(self, call_id, owner):
         with self._lock:
             decoder = self._decoders.get(call_id)
             if decoder is None:
-                decoder = self._decoders[call_id] = self.codec.decoder(self._show)
+                decoder = self._decoders[call_id] = self.codec.decoder(
+                    lambda jpeg: self._show(call_id, owner, jpeg))
                 log.info("call video: the other side's video started")
             return decoder
 
-    def _show(self, jpeg):
-        self.emit("call:video:remote", {"session": self.name,
-                                        "jpeg": base64.b64encode(jpeg).decode("ascii")})
+    def _show(self, call_id, owner, jpeg):
+        with self._lock:
+            if self._owners.get(call_id) is owner:
+                self.emit("call:video:remote", {"session": self.name,
+                                                **({'mediaEpoch': self._wire_epochs[call_id]} if call_id in self._wire_epochs else {}),
+                                                "jpeg": base64.b64encode(jpeg).decode("ascii")})
 
     # ----------------------------------------------------------------- end
     def end(self, call_id):
         with self._lock:
+            self._owners.pop(call_id, None)
+            self._wire_epochs.pop(call_id, None)
+            self._receiving.pop(call_id, None)
+            self._encoder_claims.pop(call_id, None)
             pipes = [self._encoders.pop(call_id, None), self._decoders.pop(call_id, None)]
         for pipe in pipes:
             if pipe is not None:

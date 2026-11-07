@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chiamate: i dati multimediali e le operazioni ritardate di dispositivi o videocamera restano associati alla chiamata e al flusso originali. Neonize elabora i dati in code limitate fuori dal ciclo del server e mantiene il lettore dopo un errore temporaneo di invio. I nomi WASAPI ambigui non selezionano più il primo dispositivo corrispondente. I registri delle chiamate Neonize includono anche riepiloghi del livello del segnale, senza salvare il contenuto audio, per aiutare a indagare sull'assenza di suono. Quando si riapre l'uscita audio di una chiamata, un vecchio flusso che non riesce a chiudersi non può consumare l'audio del nuovo flusso; un errore nel riferimento dell'eco non silenzia più l'audio pronto per la riproduzione.
+
 - Impostazioni > Generale > Notifiche aggiunge "Ordine dei messaggi di gruppo nelle notifiche toast:", con "Prima il nome del partecipante" (predefinito, come prima: "Gustavo in WinZapp | Sviluppatori e Tester") e "Prima il nome del gruppo" (come in WhatsApp Desktop ufficiale: "WinZapp | Sviluppatori e Tester, Gustavo"). La scelta cambia solo il testo delle notifiche toast; ciò che lo screen reader annuncia con la finestra attiva resta invariato.
 
 - La registrazione dell'audio del computer non si interrompe più con "problema con il dispositivo audio" quando WinZapp si blocca per un secondo o due (computer lento o occupato): l'audio di quell'istante viene saltato, la registrazione continua e il resto resta sincronizzato.

@@ -34,6 +34,7 @@ from core.call_log import (
     refile_call_log,
 )
 from core.audio_devices import enumerate_input_devices
+from core.call_media_ownership import valid_media_epoch, retire_media_epoch, is_retired_media_epoch
 
 
 class CallsMixin:
@@ -404,7 +405,8 @@ class CallsMixin:
 
     def _start_voice_call_audio(self, identity: str, details: dict | None = None,
                                 *, keep_active_call: bool = False,
-                                microphone_muted: bool = False):
+                                microphone_muted: bool = False,
+                                expected_call: dict | None = None):
         """Open Python's call audio and record the call it belongs to.
 
         ``keep_active_call`` is for a device switch inside the same call: the
@@ -418,6 +420,10 @@ class CallsMixin:
         starts unmuted, so a user who had muted and then changed device was
         heard again with nothing spoken to say so.
         """
+        owner = expected_call if expected_call is not None else getattr(self, "_active_voice_call", None)
+        guarded = owner is not None or keep_active_call or expected_call is not None
+        if guarded and (owner is None or getattr(self, "_active_voice_call", None) is not owner):
+            return False
         logging.info("[call_audio] starting session identity=%s", identity)
         if getattr(self, "_call_audio_session", None) is not None:
             return True
@@ -431,6 +437,10 @@ class CallsMixin:
 
         if microphone_muted:
             audio.set_microphone_muted(True)
+        epoch = (details or {}).get('media_epoch') or (owner or {}).get('media_epoch')
+        setter = getattr(audio, 'set_media_epoch', None)
+        if callable(setter):
+            setter(epoch)
         try:
             audio.start()
         except Exception:
@@ -442,27 +452,23 @@ class CallsMixin:
                     pass
             raise
 
+        if guarded and getattr(self, "_active_voice_call", None) is not owner:
+            if getattr(self, "_call_ring_audio_session", None) is audio:
+                self._call_ring_audio_session = None
+            # A stale worker owns only its local streams. Resetting the bridge
+            # here could disable the replacement call's microphone.
+            audio.stop(notify_bridge=False)
+            return False
         self._call_ring_audio_session = None
         logging.info("[call_audio] streams started session=%s", session_name)
         self._call_audio_session = audio
         if keep_active_call:
-            if getattr(self, "_active_voice_call", None) is None:
-                # The call ended (ENDED arrives without _call_action_lock)
-                # while its devices were being switched: do not reopen the
-                # microphone and speaker for a call that is already over.
-                self._call_audio_session = None
-                try:
-                    audio.stop()
-                except Exception:
-                    logging.exception("[call_audio] failed to stop audio of an ended call")
-                logging.info("[call_audio] call ended during a device switch; audio not reopened")
-                return False
             wx.CallAfter(self._sync_voice_call_bar)
             return True
         details = details or getattr(self, "_incoming_call_details", {}).get(identity, {})
         is_group = bool(details.get("is_group", False))
         group_jid = str(details.get("group_jid") or "")
-        self._active_voice_call = {
+        record = {
             "identity": identity,
             "call_id": details.get("call_id") or identity,
             # A group call's event names a participant in peerJid and the group
@@ -474,8 +480,19 @@ class CallsMixin:
             "name": details.get("name") or "",
             "outgoing": bool(details.get("outgoing", False)),
             "is_video": bool(details.get("is_video", False)),
+            "media_epoch": (owner or {}).get('media_epoch') or details.get('media_epoch') or '',
         }
-        self._voice_call_last_announced_state = ""
+        if owner is not None:
+            # ACTIVE (and its bridge epoch) may arrive while start() opens
+            # devices. Keep that exact record and its newer event fields.
+            for key, value in record.items():
+                owner.setdefault(key, value)
+            record = owner
+        self._active_voice_call = record
+        if callable(setter):
+            setter(record['media_epoch'])
+        if owner is None:
+            self._voice_call_last_announced_state = ""
         wx.CallAfter(self._sync_voice_call_bar)
         return True
 
@@ -494,6 +511,7 @@ class CallsMixin:
         hearing the user (see CallAudioSession.stop).
         """
         if not keep_call:
+            retire_media_epoch(self, (getattr(self, '_active_voice_call', None) or {}).get('media_epoch'))
             stop_call_tone(self)
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -540,7 +558,7 @@ class CallsMixin:
 
     def _restart_active_voice_call_audio(self):
         """Apply changed call devices without ending the WhatsApp call."""
-        active = dict(getattr(self, "_active_voice_call", {}) or {})
+        active = getattr(self, "_active_voice_call", None)
         if (
             not active
             or getattr(self, "_call_audio_session", None) is None
@@ -552,6 +570,8 @@ class CallsMixin:
         def _worker():
             with self._call_action_lock:
                 try:
+                    if getattr(self, "_active_voice_call", None) is not active:
+                        return
                     # Read at the moment the old session stops, not when the
                     # switch was asked for: a mute toggled in between belongs
                     # to the session being replaced and must carry over too.
@@ -564,19 +584,24 @@ class CallsMixin:
                             # background callback immediately after close.
                             if attempt:
                                 time.sleep(0.25)
+                            if getattr(self, "_active_voice_call", None) is not active:
+                                return
                             if self._start_voice_call_audio(
                                 str(active.get("identity") or active.get("call_id") or "call"),
                                 active,
                                 keep_active_call=True,
                                 microphone_muted=muted,
+                                expected_call=active,
                             ):
                                 logging.info("[call_audio] active call devices switched")
                             last_error = None
                             break
                         except Exception as exc:
+                            if getattr(self, "_active_voice_call", None) is not active:
+                                return
                             last_error = exc
                             self._stop_voice_call_audio(keep_call=True)
-                    if last_error is not None:
+                    if last_error is not None and getattr(self, "_active_voice_call", None) is active:
                         # No audio device would open: tear the local call
                         # down as before, camera included.
                         self._stop_voice_call_audio()
@@ -606,16 +631,22 @@ class CallsMixin:
         if peer_jid and peer_jid == active.get("peer_jid"):
             self._stop_voice_call_audio()
 
-    def on_call_remote_audio(self, pcm: bytes, sample_rate: int):
+    def on_call_remote_audio(self, pcm: bytes, sample_rate: int, *, media_epoch=None):
         session = (
             getattr(self, "_call_audio_session", None)
             or getattr(self, "_call_ring_audio_session", None)
         )
         if session is not None:
-            session.enqueue_remote_audio(pcm, sample_rate)
+            if media_epoch is not None:
+                session.enqueue_remote_audio(pcm, sample_rate, media_epoch=media_epoch)
+            else:
+                session.enqueue_remote_audio(pcm, sample_rate)
 
-    def on_call_remote_video(self, jpeg: bytes):
-        if not (getattr(self, "_active_voice_call", None) or {}).get("is_video"):
+    def on_call_remote_video(self, jpeg: bytes, *, media_epoch=None):
+        active = getattr(self, "_active_voice_call", None)
+        if media_epoch is not None and (active or {}).get('media_epoch') != media_epoch:
+            return
+        if not (active or {}).get("is_video"):
             self._call_remote_video_gate_blocked += 1
             if (
                 self._call_remote_video_gate_blocked == 1
@@ -627,9 +658,14 @@ class CallsMixin:
                     self._call_remote_video_gate_blocked,
                 )
             return
-        wx.CallAfter(self._show_call_remote_video, jpeg)
+        wx.CallAfter(self._show_call_remote_video, jpeg, expected_call=active, media_epoch=media_epoch)
 
-    def _show_call_remote_video(self, jpeg: bytes):
+    def _show_call_remote_video(self, jpeg: bytes, *, expected_call=None, media_epoch=None):
+        active = getattr(self, '_active_voice_call', None)
+        if expected_call is not None and active is not expected_call:
+            return
+        if media_epoch is not None and (active or {}).get('media_epoch') != media_epoch:
+            return
         if not (getattr(self, "_active_voice_call", None) or {}).get("is_video"):
             return
         import io
@@ -654,7 +690,8 @@ class CallsMixin:
                 "[call_video] remote-video-render failed to display remote frame"
             )
 
-    def _start_call_camera(self, *, announce_failure: bool = True, transmit: bool = True):
+    def _start_call_camera(self, *, announce_failure: bool = True, transmit: bool = True,
+                           expected_call: dict | None = None):
         """Start local camera capture without making video calls depend on it.
 
         A video call is still useful on a PC with no camera: audio continues and
@@ -675,6 +712,10 @@ class CallsMixin:
         ready event before its first send_frame() call, so a caller relying
         on stop-right-after-start alone would be racing an in-flight send.
         """
+        active = getattr(self, '_active_voice_call', None)
+        if active is None or (expected_call is not None and active is not expected_call):
+            return False
+        expected_call = active
         from core.call_video import CameraCapture
 
         self._call_camera_available = False
@@ -700,7 +741,13 @@ class CallsMixin:
         epoch = self._next_call_camera_epoch()
 
         def send_frame(frame, _send=sender, _epoch=epoch):
-            _send(frame, epoch=_epoch)
+            if getattr(self, '_active_voice_call', None) is not expected_call:
+                return
+            media_epoch = expected_call.get('media_epoch')
+            if valid_media_epoch(media_epoch):
+                _send(frame, epoch=_epoch, media_epoch=media_epoch)
+            else:
+                _send(frame, epoch=_epoch)
 
         capture = CameraCapture(self._find_api_ffmpeg(), send_frame, transmit=transmit)
         # Captured BEFORE the blocking start below, and compared by identity
@@ -709,7 +756,6 @@ class CallsMixin:
         # keep_active_call in _start_voice_call_audio), so identity -- not truthiness --
         # is what distinguishes "still the same call" from "that call ended
         # and another one began while the camera was opening".
-        expected_call = getattr(self, "_active_voice_call", None)
         # The identity test below treats None-is-None as "same call", so the
         # no-call case must be refused up front -- otherwise a camera opened
         # after the call's grace cleanup already ran stays on, transmitting,
@@ -747,7 +793,7 @@ class CallsMixin:
             # This capture was already sending while start() blocked; stop its
             # epoch on the page too, or its in-flight frames land after the
             # call's reset() and leave the user's picture on the canvas.
-            self._send_call_camera_stop(epoch)
+            self._send_call_camera_stop(epoch, media_epoch=expected_call.get('media_epoch'))
             logging.info(
                 "[call_video] call ended or changed while the camera was opening; "
                 "discarding the capture"
@@ -755,6 +801,7 @@ class CallsMixin:
             return False
 
         self._call_camera_capture = capture
+        self._call_camera_owner = expected_call
         self._call_camera_epoch = epoch
         self._call_camera_available = True
         self._call_camera_enabled = True
@@ -802,12 +849,16 @@ class CallsMixin:
         self._call_camera_last_epoch = epoch
         return epoch
 
-    def _send_call_camera_stop(self, epoch, native: bool = False):
+    def _send_call_camera_stop(self, epoch, native: bool = False, *, media_epoch=None):
         stop_remote = getattr(getattr(self, "ws", None), "send_call_camera_stop", None)
         if stop_remote is None:
             return
         try:
-            stop_remote(epoch=epoch, native=native)
+            owner_epoch = media_epoch or (getattr(self, '_call_camera_owner', None) or {}).get('media_epoch')
+            if valid_media_epoch(owner_epoch):
+                stop_remote(epoch=epoch, native=native, media_epoch=owner_epoch)
+            else:
+                stop_remote(epoch=epoch, native=native)
         except Exception:
             logging.exception("[call_video] failed to stop page-side camera")
 
@@ -839,9 +890,9 @@ class CallsMixin:
         # Opening DirectShow can block for a moment; never do it on the wx UI
         # thread. _start_call_camera() re-probes the camera and refreshes the
         # button when capture is ready (or hides it if the device disappeared).
-        threading.Thread(target=self._resume_call_camera, daemon=True).start()
+        threading.Thread(target=self._resume_call_camera, args=(active,), daemon=True).start()
 
-    def _resume_call_camera(self):
+    def _resume_call_camera(self, expected_call=None):
         """Turn video back on: restart the capture, then tell WhatsApp.
 
         WhatsApp Web transmits our camera through its own call engine, which
@@ -851,13 +902,22 @@ class CallsMixin:
         really running, so it never resumes onto a canvas nothing feeds.
         """
         try:
-            if not self._start_call_camera():
+            if not self._start_call_camera(expected_call=expected_call):
+                return
+            capture = getattr(self, '_call_camera_capture', None)
+            capture_epoch = getattr(self, '_call_camera_epoch', None)
+            if (capture is None or not getattr(self, '_call_camera_enabled', False)
+                    or (expected_call is not None and getattr(self, '_active_voice_call', None) is not expected_call)):
                 return
             resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
             if resume is None:
                 return
             try:
-                resume()
+                epoch = (getattr(self, '_call_camera_owner', None) or {}).get('media_epoch')
+                if valid_media_epoch(epoch):
+                    resume(epoch=capture_epoch, media_epoch=epoch)
+                else:
+                    resume(epoch=capture_epoch)
             except Exception:
                 logging.exception("[call_video] failed to resume page-side camera")
         finally:
@@ -907,16 +967,24 @@ class CallsMixin:
             "outgoing": False,
             "is_video": is_video,
         }
+        expected_call = self._active_voice_call
         wx.CallAfter(self._sync_voice_call_bar)
 
         def _worker():
             accepted = False
             with self._call_action_lock:
                 try:
-                    self._start_voice_call_audio(identity, details)
+                    if getattr(self, '_active_voice_call', None) is not expected_call:
+                        return
+                    if not self._start_voice_call_audio(identity, details, expected_call=expected_call):
+                        return
+                    if getattr(self, '_active_voice_call', None) is not expected_call:
+                        return
                     self._raise_for_call_response(
                         self._post_call_control("accept", payload), "accept"
                     )
+                    if getattr(self, '_active_voice_call', None) is not expected_call:
+                        return
                     wx.CallAfter(
                         self.output,
                         self.i18n.t("incoming_call_answered"),
@@ -924,6 +992,8 @@ class CallsMixin:
                     )
                     accepted = True
                 except Exception as exc:
+                    if getattr(self, '_active_voice_call', None) is not expected_call:
+                        return
                     self._stop_voice_call_audio()
                     logging.exception("[call] accept failed")
                     wx.CallAfter(
@@ -954,9 +1024,9 @@ class CallsMixin:
                     # _stop_call_camera() below is cleanup rather than a race
                     # against an in-flight frame.
                     if start_camera_enabled:
-                        self._start_call_camera()
+                        self._start_call_camera(expected_call=expected_call)
                     else:
-                        self._probe_call_camera()
+                        self._probe_call_camera(expected_call=expected_call)
                 except Exception:
                     # The call is already accepted; a camera problem must not
                     # be reported as "answer failed" nor tear the audio down.
@@ -1079,7 +1149,7 @@ class CallsMixin:
 
         threading.Thread(target=_worker, daemon=True, name="call-ensure-ended").start()
 
-    def _probe_call_camera(self):
+    def _probe_call_camera(self, expected_call=None):
         """Prove the camera works without it ever sending a frame.
 
         Sets ``_call_camera_available`` so the "turn video on" button appears.
@@ -1087,8 +1157,9 @@ class CallsMixin:
         _start_call_camera() returns False the call changed while the camera
         was opening, and stopping would hit the NEW call's capture.
         """
-        if self._start_call_camera(announce_failure=False, transmit=False):
-            self._stop_call_camera()
+        if self._start_call_camera(announce_failure=False, transmit=False, expected_call=expected_call):
+            if expected_call is None or getattr(self, '_active_voice_call', None) is expected_call:
+                self._stop_call_camera()
 
     def _on_call_upgraded_to_video(self):
         """The ongoing voice call became a video call without ending.
@@ -1114,9 +1185,10 @@ class CallsMixin:
         if getattr(self, "_call_upgrade_pending", False):
             return  # ... or is opening it right now
 
+        expected_call = getattr(self, '_active_voice_call', None)
         def _probe_camera():
             try:
-                self._probe_call_camera()
+                self._probe_call_camera(expected_call=expected_call)
             except Exception:
                 logging.exception("[call_video] camera probe after upgrade failed")
 
@@ -1150,6 +1222,9 @@ class CallsMixin:
 
         def _worker():
             try:
+                if (getattr(self, '_active_voice_call', None) is not expected_call
+                        or attempt['cancelled']):
+                    return
                 # OUTSIDE _call_action_lock, like the offer POST and for the
                 # same reason (#275): the lock serialises state transitions,
                 # never a blocking POST -- held across this one's 20 s timeout,
@@ -1184,15 +1259,25 @@ class CallsMixin:
                 wx.CallAfter(self._mark_call_upgraded_to_video, expected_call)
                 # Outside the lock, like every camera start (it blocks for
                 # seconds and hang-up takes the same lock).
-                if self._start_call_camera():
+                if self._start_call_camera(expected_call=expected_call):
+                    capture_epoch = getattr(self, '_call_camera_epoch', None)
+                    if (getattr(self, '_active_voice_call', None) is not expected_call
+                            or not getattr(self, '_call_camera_enabled', False)
+                            or getattr(self, '_call_camera_capture', None) is None):
+                        return
                     resume = getattr(getattr(self, "ws", None), "send_call_camera_start", None)
                     if resume is not None:
                         try:
-                            resume()
+                            epoch = expected_call.get('media_epoch')
+                            if valid_media_epoch(epoch):
+                                resume(epoch=capture_epoch, media_epoch=epoch)
+                            else:
+                                resume(epoch=capture_epoch)
                         except Exception:
                             logging.exception("[call_video] failed to resume page-side camera")
             finally:
-                self._call_upgrade_pending = False
+                if getattr(self, '_promote_attempt', None) is attempt:
+                    self._call_upgrade_pending = False
 
         threading.Thread(target=_worker, daemon=True).start()
 
@@ -1326,7 +1411,8 @@ class CallsMixin:
                 # Same guard as toggle_call_video(): a video-on press while
                 # this reopen runs must not start a second capture.
                 self._call_camera_resuming = True
-                threading.Thread(target=self._resume_call_camera, daemon=True).start()
+                threading.Thread(target=self._resume_call_camera,
+                                 args=(getattr(self, '_active_voice_call', None),), daemon=True).start()
             if first_combo is not None:
                 wx.CallAfter(first_combo.SetFocus)
         apply_button.Bind(wx.EVT_BUTTON, apply)
@@ -1438,13 +1524,12 @@ class CallsMixin:
         )
         stop_typing_for_capture(self)
         self._active_voice_call = dict(details)
+        initial_record = self._active_voice_call
         self._voice_call_last_announced_state = ""
         wx.CallAfter(self._sync_voice_call_bar)
         # One token per outgoing attempt, kept on the window rather than on the
-        # call record: _start_voice_call_audio() below REPLACES
-        # _active_voice_call with a record of its own, so a flag written onto
-        # the record while the offer is in flight could land on a dict nobody
-        # reads again. end_active_call() sets ``cancelled`` here.
+        # call record: it remains valid even after terminal cleanup removed
+        # that record. end_active_call() sets ``cancelled`` here.
         attempt = {"cancelled": False}
         self._outgoing_call_attempt = attempt
 
@@ -1455,10 +1540,13 @@ class CallsMixin:
             # terminal callstate event, or an incoming call the user answered,
             # can replace _active_voice_call with a different call, and that
             # call must not be torn down by this attempt's failure.
-            call_record = getattr(self, "_active_voice_call", None)
+            call_record = initial_record
             try:
                 with self._call_action_lock:
-                    self._start_voice_call_audio(identity, details)
+                    if (attempt['cancelled'] or getattr(self, '_active_voice_call', None) is not call_record):
+                        return
+                    if not self._start_voice_call_audio(identity, details, expected_call=call_record):
+                        return
                     # Taken after the audio start, which is what installs the
                     # record this attempt owns.
                     call_record = getattr(self, "_active_voice_call", None)
@@ -1584,9 +1672,9 @@ class CallsMixin:
                         # Joining someone else's video call must not put the
                         # user on camera unasked (as Answer without video):
                         # the probe only lets them turn the camera on.
-                        self._probe_call_camera()
+                        self._probe_call_camera(expected_call=call_record)
                     else:
-                        self._start_call_camera()
+                        self._start_call_camera(expected_call=call_record)
                 except Exception:
                     logging.exception("[call_video] camera setup failed after offer")
 
@@ -1728,6 +1816,15 @@ class CallsMixin:
         """Apply the complete call lifecycle emitted by the page CallStore."""
         if not isinstance(event, dict):
             return
+        epoch = event.get('mediaEpoch')
+        active_owner = getattr(self, '_active_voice_call', None)
+        if is_retired_media_epoch(self, epoch):
+            return
+        previous_epoch = (active_owner or {}).get('media_epoch')
+        if (valid_media_epoch(previous_epoch) and valid_media_epoch(epoch)
+                and previous_epoch != epoch):
+            logging.info('[call_audio] conflicting media owner ignored; active call unchanged')
+            return
         state = str(event.get("state") or "").upper()
         call_id = str(event.get("id") or "")
         peer_jid = self._normalize_jid(str(event.get("peerJid") or ""))
@@ -1772,6 +1869,13 @@ class CallsMixin:
             return
         if call_id:
             active["call_id"] = call_id
+        epoch = event.get('mediaEpoch')
+        if valid_media_epoch(epoch):
+            active['media_epoch'] = epoch
+            audio = getattr(self, '_call_audio_session', None) or getattr(self, '_call_ring_audio_session', None)
+            setter = getattr(audio, 'set_media_epoch', None)
+            if callable(setter):
+                setter(epoch)
         # A voice call the other person (or this user, Ctrl+P) upgraded to
         # video: WhatsApp keeps the same call and id and only flips isVideo.
         # Deliberately one-way -- isVideo also drops back to false when both
@@ -1817,10 +1921,9 @@ class CallsMixin:
             self._voice_call_last_announced_state = "ACTIVE"
             self._sync_voice_call_bar()  # the promote button needs a connected call
             if getattr(self, "_call_audio_session", None) is None:
-                details = dict(active)
                 threading.Thread(
                     target=self._attach_audio_to_browser_call,
-                    args=(details,),
+                    args=(active,),
                     daemon=True,
                 ).start()
             self.output(self.i18n.t("voice_call_connected"), interrupt=True)
@@ -1908,28 +2011,26 @@ class CallsMixin:
     def _attach_audio_to_browser_call(self, details: dict):
         """Attach Python-owned audio/video when the page handled the answer."""
         with self._call_action_lock:
-            if self._call_audio_session is not None:
+            if (self._call_audio_session is not None
+                    or getattr(self, "_active_voice_call", None) is not details):
                 return
             try:
                 if details.get("is_video"):
-                    self._start_call_camera()
+                    self._start_call_camera(expected_call=details)
+                if getattr(self, "_active_voice_call", None) is not details:
+                    return
                 self._raise_for_call_response(
                     self._post_call_control("audio/enable", {}, timeout=20),
                     "audio/enable",
                 )
-                # This call is already connected, and the fresh record
-                # installed below resets the announced state: losing ACTIVE
-                # would keep Participants and the promote-to-video button
-                # unavailable until the next callstate, which would also
-                # speak "connected" again.
-                state = getattr(self, "_voice_call_last_announced_state", "")
+                if getattr(self, "_active_voice_call", None) is not details:
+                    return
                 self._start_voice_call_audio(
                     str(details.get("identity") or details.get("call_id") or "call"),
                     details,
+                    keep_active_call=True,
+                    expected_call=details,
                 )
-                if state and not getattr(self, "_voice_call_last_announced_state", ""):
-                    self._voice_call_last_announced_state = state
-                    wx.CallAfter(self._sync_voice_call_bar)
             except Exception:
                 logging.exception("[call_audio] failed to attach to browser call")
 
