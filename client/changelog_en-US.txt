@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- The Open button now opens documents, photos, videos and other files in the external viewer under their real name, instead of a name like "tmpab12cd34", just as Save as already did.
+
 - Settings > General > Notifications gains "Order of group messages in toast notifications:", with "Participant name first" (the default, as before: "Gustavo in WinZapp | Developers and Testers") and "Group name first" (as in the official WhatsApp Desktop: "WinZapp | Developers and Testers, Gustavo"). The choice changes only the text of toast notifications; what the screen reader announces while the window is active stays the same.
 
 - Recording the computer's audio no longer stops with "audio device problem" when WinZapp stalls for a second or two (a busy or slow computer): the audio from that moment is skipped, the recording goes on, and the rest stays in sync.

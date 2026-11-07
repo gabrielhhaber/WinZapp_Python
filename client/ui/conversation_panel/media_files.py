@@ -27,6 +27,7 @@ from ui.conversation_panel.media_paths import (
     saved_media_path,
 )
 from app_paths import data_path
+from core.external_open import write_named_temp_file
 from datetime import datetime
 from core.save_location import resolve_save_dialog_folder
 from core.save_dialog_selection import schedule_deselect_extension
@@ -383,10 +384,10 @@ class MediaFilesMixin:
             try:
                 with open(media_path, "rb") as fh:
                     content = decrypt_bytes(fh.read(), self.main_window.key)
-                tmp = tempfile.NamedTemporaryFile(suffix=ext, delete=False)
-                tmp.write(content)
-                tmp.close()
-                wx.CallAfter(lambda: self._open_file_safely(tmp.name))
+                path = write_named_temp_file(
+                    content, self._resolve_media_filename(msg), f"file{ext}"
+                )
+                wx.CallAfter(lambda: self._open_file_safely(path))
             except Exception as exc:
                 wx.CallAfter(
                     wx.MessageBox,
