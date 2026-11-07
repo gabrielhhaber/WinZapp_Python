@@ -580,3 +580,11 @@ def test_the_group_of_a_call_placed_here_is_remembered_for_its_end():
     m.group_dial("1203@g.us", video=False)
     assert m.placed_group("GP1") == {"groupJid": "1203@g.us", "isVideo": False}
     assert m.placed_group("OTHER") is None
+
+
+def test_a_call_that_learns_its_group_later_carries_it_in_its_states():
+    m, sent = media()
+    m.remember_offer({"id": "IN1", "peerJid": "5511@s.whatsapp.net", "isVideo": False, "groupJid": ""})
+    assert m.set_call_group("IN1", "1203@g.us") and not m.set_call_group("GONE", "1203@g.us")
+    m._set_state("IN1", "ACTIVE")
+    assert sent[-1][1]["data"]["groupJid"] == "1203@g.us" and sent[-1][1]["data"]["isGroup"]

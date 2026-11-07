@@ -404,3 +404,48 @@ def test_record_end_does_not_file_the_call_this_client_placed(monkeypatch):
     mine = calls.with_placed_group(ended(), {"groupJid": "1203@g.us"})
     assert not calls.record_end(s, N(basicCallMeta=None), mine, False, 1000)
     assert stored == []
+
+
+def test_the_lobby_names_the_group_of_an_invitation_that_came_without_one():
+    assert calls.lobby_group({"groupJid": "1203@g.us"}) == "1203@g.us"
+    assert calls.lobby_group({"groupJid": ""}) == ""
+    assert calls.lobby_group({"groupJid": "5511@s.whatsapp.net"}) == ""
+    assert calls.lobby_group(None) == ""
+
+
+def test_the_group_found_by_the_lobby_reaches_every_place_that_remembers_the_call():
+    pending = calls.Pending()
+    pending.remember("C1", "100:2@lid", 1000, {"groupJid": "", "isVideo": False})
+    seen = []
+
+    class Media:
+        ongoing_calls = None
+
+        def lobby(self, call_id, creator):
+            seen.append((call_id, creator))
+            return {"groupJid": "1203@g.us"}
+
+        def set_call_group(self, call_id, group):
+            seen.append(("group", call_id, group))
+
+    media = Media()
+    creator = N(User="100", Device=2, Server="lid")
+    s = N(ringing_calls=pending)
+    assert calls.resolve_multiparty_group(s, media, {"id": "C1", "isVideo": False}, creator) == "1203@g.us"
+    assert seen == [("C1", "100:2@lid"), ("group", "C1", "1203@g.us")]
+    assert pending.offer_of("C1")["groupJid"] == "1203@g.us"
+    assert media.ongoing_calls.get("C1")["chat"] == "1203@g.us"
+
+
+def test_a_lobby_that_fails_leaves_the_call_as_it_was():
+    pending = calls.Pending()
+    pending.remember("C1", "100@lid", 1000, {"groupJid": ""})
+
+    class Media:
+        def lobby(self, call_id, creator):
+            raise OSError("down")
+
+    s = N(ringing_calls=pending)
+    assert calls.resolve_multiparty_group(
+        s, Media(), {"id": "C1"}, N(User="100", Device=0, Server="lid")) == ""
+    assert pending.offer_of("C1")["groupJid"] == ""
