@@ -1379,3 +1379,181 @@ def test_send_during_model_load_goes_basic_without_second_engine(send_env, monke
     assert not os.path.exists(session["spool"])
     assert controller.acquire_slot("probe", {"cancel": False})
     controller.release_slot("probe")
+
+
+def test_send_constructor_finishes_between_snapshot_and_liveness(send_env, monkeypatch):
+    """Milo 17:32 frontier 1, exact interleave: the constructor publishes
+    the worker and the drain EXITS between the send's worker snapshot
+    (None) and the aliveness check. The send must still take the basic
+    gate — never a second offline ONNX — and must clean the ownerless
+    late worker/spool/slot exactly once (the drain is dead, so it cannot).
+    """
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    aborted = []
+
+    class _LateWorker:
+        def finish(self):
+            raise AssertionError(
+                "finish must not run: the send holds no worker reference")
+
+        def abort(self):
+            aborted.append(True)
+
+    holder = {}
+
+    class _DeadAfterPublishThread:
+        # Deterministic interleave: the FIRST is_alive() call publishes
+        # the late worker (what the real drain did before exiting) and
+        # reports the thread as already dead.
+        def is_alive(self):
+            holder["session"]["worker"] = _LateWorker()
+            return False
+
+    session = _send_session(controller, frames, worker=None, spool=spool,
+                            stream=_FakeStream(),
+                            thread=_DeadAfterPublishThread())
+    holder["session"] = session
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    # Basic gate on the complete raw; NO offline neural engine.
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    # The late worker was cleaned exactly once, by the send...
+    assert aborted == [True]
+    assert session["worker"] is None
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
+    # ...and the slot is free for the next note.
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
+
+
+def test_start_temp_file_failure_releases_slot_for_next_capture(send_env, monkeypatch):
+    """Milo 17:32 frontier 2: a temp-file failure AFTER acquire_slot must
+    not leak the slot or the send-authority entry — the next capture
+    starts a full incremental session."""
+    controller = IncrementalDenoiseController()
+    mw = _FakeSendMW(controller)
+    frames = [b"\x01\x02" * 480]
+    panel = _SendPanel(mw, frames, None)
+    panel._incremental_drain = (
+        lambda session: vr.VoiceRecordingMixin._incremental_drain(panel, session))
+    real_ntf = vr.tempfile.NamedTemporaryFile
+
+    def _raise_temp(*args, **kwargs):
+        raise OSError("simulated disk/permission failure")
+
+    monkeypatch.setattr(vr.tempfile, "NamedTemporaryFile", _raise_temp)
+    vr.VoiceRecordingMixin._start_incremental_denoise(panel, frames, 48000, 1)
+    # Failure logged and contained: no session published...
+    assert panel._incremental_session is None
+    # ...the slot is free...
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
+    # ...and the NEXT capture takes a full (non-basic) session.
+    monkeypatch.setattr(vr.tempfile, "NamedTemporaryFile", real_ntf)
+    vr.VoiceRecordingMixin._start_incremental_denoise(panel, frames, 48000, 1)
+    session = panel._incremental_session
+    assert session is not None and not session["basic_only"]
+    # Cleanup: stop the real drain (no model file here -> it fails and
+    # self-cleans; cancel covers the model-present case too).
+    session["cancel"] = True
+    thread = session.get("thread")
+    if thread is not None:
+        thread.join(5)
+
+
+def test_send_drain_fails_during_finish_join_never_touches_worker(send_env, monkeypatch):
+    """Milo 17:32 helper revalidation: the drain fails (and self-cleans
+    per its contract) WHILE the finisher is blocked in drain.join(). The
+    finisher must re-validate AFTER the join: no finish() on the aborted
+    worker, and the send must not abort/unlink/release again — the note
+    falls to the basic gate."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    # The failed drain already cleaned its OWN instance, so the published
+    # offline policy (neural retry) applies — same as a feed failure
+    # discovered before the send. The fake marks the engine used.
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    finish_calls = []
+    aborted = []
+
+    class _Worker:
+        def finish(self):
+            finish_calls.append(1)
+            return spool, "neural"
+
+        def abort(self):
+            aborted.append(True)
+
+    class _FailUnderJoinThread:
+        # Emulates a drain that dies mid-join: its own failure path marks
+        # the session failed and releases the slot (its contract also
+        # covers abort/spool, irrelevant here — the point is the SEND
+        # must not touch any of it).
+        def __init__(self, session, controller):
+            self._session = session
+            self._controller = controller
+
+        def is_alive(self):
+            return True
+
+        def join(self):
+            self._session["failed"] = True
+            self._controller.release_slot("m1")
+
+    worker = _Worker()
+    session = _send_session(controller, frames, worker=worker, spool=spool,
+                            stream=_FakeStream())
+    session["thread"] = _FailUnderJoinThread(session, controller)
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    # Offline path on the complete raw (fake neural marks the bytes).
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    # finish() never ran on the failed drain's worker...
+    assert finish_calls == []
+    # ...and the send never aborted the worker, never deleted the spool,
+    # never double-released the slot — the drain owns that cleanup.
+    assert aborted == []
+    assert spool not in unlinked
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
