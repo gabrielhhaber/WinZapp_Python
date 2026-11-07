@@ -224,6 +224,7 @@ class VoiceRecordingMixin:
                 self._recording_actual_rate = 48000
                 self._recording_actual_ch = 1
                 self._is_recording = True
+                self._start_incremental_denoise(recording_frames, 48000, 1)
                 
                 # UI updates INSTANTLY (0.01s)
                 self.main_window.voicemsg_startrecording_sound.play()
@@ -418,6 +419,7 @@ class VoiceRecordingMixin:
             self._recording_actual_ch   = ch
 
             self._is_recording = True
+            self._start_incremental_denoise(recording_frames, rate, ch)
 
             # UI: play sound, swap buttons, focus the configured recording action.
             self.main_window.voicemsg_startrecording_sound.play()
@@ -476,6 +478,110 @@ class VoiceRecordingMixin:
 
         threading.Thread(target=_bg_open_stream, daemon=True).start()
 
+    # ── Incremental neural noise reduction (test branch) ───────────────────
+    def _start_incremental_denoise(self, frames_list, rate, ch):
+        """Start cleaning the recording through the model as frames arrive.
+
+        Storage strategy A: the raw frames stay in memory exactly as before
+        (total RAM matches the current recording profile — the model side is
+        what stays flat); the cleaned PCM16 is spooled to a temp file off the
+        UI thread. Any failure marks the session failed and
+        _write_and_enqueue falls back to the existing offline path, so the
+        worst case is today's behaviour. Explicit-mono mode averages the two
+        captured channels per chunk BEFORE the model, mirroring the offline
+        prepare_voice_pcm step; automatic mode's empty-side drop is resolved
+        at send time from the cleaned spool (the model handles channels
+        independently, so selecting one cleaned side is bit-exact).
+        """
+        self._incremental_session = None
+        try:
+            if not self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False):
+                return
+            mode = getattr(self, "_recording_channel_mode", "auto")
+            worker_ch = 1 if (mode == "mono" and ch == 2) else ch
+            tmp = tempfile.NamedTemporaryFile(prefix="winzapp-inc-", suffix=".pcm", delete=False)
+            tmp.close()
+            session = {
+                "frames": frames_list, "rate": rate, "ch": ch, "worker_ch": worker_ch,
+                "spool": tmp.name, "worker": None, "thread": None,
+                "stop": False, "cancel": False, "failed": False,
+            }
+            thread = threading.Thread(target=self._incremental_drain, args=(session,), daemon=True)
+            session["thread"] = thread
+            self._incremental_session = session
+            try:
+                thread.start()
+            except Exception:
+                self._incremental_session = None
+                try:
+                    os.unlink(tmp.name)
+                except OSError:
+                    pass
+                raise
+            logging.info("[noise_reduction] incremental session started (%d Hz, %d ch -> %d ch)",
+                         rate, ch, worker_ch)
+        except Exception:
+            logging.exception("[noise_reduction] incremental session could not start; offline path remains")
+
+    def _incremental_drain(self, session):
+        """Drain thread: feed capture chunks to the model as they arrive.
+
+        Read-only on the frames list: the capture callback owns appends
+        (atomic under the GIL, see _start_voice_recording's _callback) and
+        this thread never mutates or rebinds it. Frames accumulate in memory
+        today regardless, so a slow CPU only makes this thread fall behind —
+        the send path then waits for it, never longer than the full offline
+        pass it replaces. The model session is loaded HERE (off the UI
+        thread): nnr._denoiser is shared with the offline path, which cannot
+        race it because _write_and_enqueue joins this thread before any
+        offline fallback runs.
+        """
+        try:
+            from core import neural_noise_reduction as nnr
+            from core.incremental_denoise import IncrementalDenoiser
+            if nnr._denoiser is None:
+                if not os.path.isfile(nnr.model_path()):
+                    raise FileNotFoundError(nnr.model_path())
+                nnr._denoiser = nnr.NeuralDenoiser()
+            worker = IncrementalDenoiser(session["rate"], session["worker_ch"], nnr._denoiser,
+                                         spool_path=session["spool"])
+            session["worker"] = worker
+            frames = session["frames"]
+            mono_average = session["worker_ch"] != session["ch"]
+            i = 0
+            while not session["cancel"]:
+                n = len(frames)
+                while i < n and not session["cancel"]:
+                    chunk = frames[i]
+                    if mono_average:
+                        # Same int16 (L+R)//2 as the offline prepare_voice_pcm.
+                        chunk, _ = prepare_voice_pcm(chunk, session["ch"], "mono")
+                    worker.feed(chunk)
+                    i += 1
+                if session["stop"] and i >= len(frames):
+                    break
+                time.sleep(0.01)
+        except Exception:
+            logging.exception("[noise_reduction] incremental drain failed; offline path remains")
+            session["failed"] = True
+        finally:
+            if session["cancel"] or session["failed"]:
+                worker = session.get("worker")
+                if worker is not None:
+                    worker.abort()
+                try:
+                    os.unlink(session["spool"])
+                except OSError:
+                    pass
+                session["worker"] = None
+
+    def _cancel_incremental_denoise(self):
+        """Ask the drain thread to abort and delete its spool (non-blocking)."""
+        session = getattr(self, "_incremental_session", None)
+        if session is not None:
+            session["cancel"] = True
+            self._incremental_session = None
+
     def _stop_recording_stream(self):
         """Stop and close the active stream (safe to call when None)."""
         if hasattr(self, "_sd_stream") and self._sd_stream:
@@ -503,6 +609,7 @@ class VoiceRecordingMixin:
             self._recording_system_audio = False
             self._is_recording = False
             self._recording_frames = []
+            self._cancel_incremental_denoise()
         if self._recording_pa is not None:
             try:
                 self._recording_pa.terminate()
@@ -550,6 +657,7 @@ class VoiceRecordingMixin:
         self._is_recording     = False
         self._recording_paused = False
         self._recording_frames = []
+        self._cancel_incremental_denoise()
         # Notify contacts that recording stopped
         _rec_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         if _rec_jid and not _rec_jid.endswith("@newsletter"):
@@ -708,6 +816,12 @@ class VoiceRecordingMixin:
 
         frames = self._recording_frames
         self._recording_frames = []
+        inc_session = getattr(self, "_incremental_session", None)
+        self._incremental_session = None
+        if inc_session is not None:
+            # The drain keeps consuming anything the callback still lands on
+            # this same list object while the stream finishes stopping.
+            inc_session["stop"] = True
 
         if not frames:
             self._hide_voice_panel()
@@ -798,27 +912,92 @@ class VoiceRecordingMixin:
             logging.info("[VOICE_TIMING] T+%.3fs — _write_and_enqueue thread started",
                          _tw0 - _t0)
 
-            # 1. Join raw PCM frames.
-            audio_data = b"".join(frames)
-            logging.info("[VOICE_TIMING] T+%.3fs — PCM frames joined (%d bytes, %d frames)",
-                         _time.perf_counter() - _t0, len(audio_data), len(frames))
+            # 1. Noise reduction. If the incremental session started at
+            # record time stayed healthy, its spool file already holds the
+            # cleaned audio with the equivalent channel handling, and
+            # finish() is the only model work left in this thread. Otherwise
+            # the raw frames are joined and converted through the existing
+            # offline path unchanged.
+            incremental_cleaned = False
+            audio_data = None
+            if inc_session is not None:
+                use_incremental = (
+                    not mixed_audio
+                    and mw.settings.get("general", {}).get("noise_reduction_enabled", False)
+                )
+                if not use_incremental:
+                    inc_session["cancel"] = True
+                drain_thread = inc_session.get("thread")
+                if drain_thread is not None:
+                    drain_thread.join()
+                worker = inc_session.get("worker")
+                if use_incremental and worker is not None and not inc_session.get("failed"):
+                    try:
+                        _t_inc = _time.perf_counter()
+                        spool_path, engine = worker.finish()
+                        try:
+                            with open(spool_path, "rb") as spool_file:
+                                cleaned_pcm = spool_file.read()
+                        finally:
+                            os.unlink(spool_path)
+                        if inc_session["worker_ch"] == 1 and actual_ch == 2:
+                            # Explicit mono: averaged before the model per chunk.
+                            audio_data, channels = cleaned_pcm, 1
+                        elif actual_ch == 2 and channel_mode == "auto":
+                            # Same empty-side decision as the offline path, on
+                            # the same raw audio; the kept side comes from the
+                            # cleaned spool (channels are model-independent).
+                            import numpy as np
+                            raw_joined = b"".join(frames)
+                            dropped_pcm, dropped_ch = drop_empty_side(raw_joined, 2)
+                            if dropped_ch == 2:
+                                audio_data, channels = cleaned_pcm, 2
+                            else:
+                                _raw = np.frombuffer(raw_joined, dtype="<i2")
+                                if _raw[0::2].tobytes() == dropped_pcm:
+                                    _side = 0
+                                elif _raw[1::2].tobytes() == dropped_pcm:
+                                    _side = 1
+                                else:
+                                    # Never guess the side: fall back to the
+                                    # offline path rather than send the wrong one.
+                                    raise RuntimeError("empty-side selection did not match either channel")
+                                audio_data = np.ascontiguousarray(
+                                    np.frombuffer(cleaned_pcm, dtype="<i2").reshape(-1, 2)[:, _side]
+                                ).tobytes()
+                                channels = 1
+                        else:
+                            audio_data, channels = cleaned_pcm, actual_ch
+                        incremental_cleaned = True
+                        logging.info("[VOICE_TIMING] T+%.3fs — incremental noise reduction done "
+                                     "(engine: %s; finish() residual %.3fs)",
+                                     _time.perf_counter() - _t0, engine, _time.perf_counter() - _t_inc)
+                    except Exception:
+                        logging.exception("[VOICE_TIMING] incremental noise reduction failed; "
+                                          "falling back to the offline path")
+                        audio_data = None
+            if audio_data is None:
+                # Join raw PCM frames.
+                audio_data = b"".join(frames)
+                logging.info("[VOICE_TIMING] T+%.3fs — PCM frames joined (%d bytes, %d frames)",
+                             _time.perf_counter() - _t0, len(audio_data), len(frames))
 
-            # Convert before processing/backup so preview, retries, the
-            # queued bytes and local playback all have the chosen channels.
-            try:
-                audio_data, _ = prepare_voice_pcm(audio_data, actual_ch, channel_mode)
-            except Exception:
-                logging.exception("[voice] Could not prepare recording channels")
-                wx.CallAfter(mw._on_message_failed, local_id,
-                             mw.i18n.t("media_audio_convert_failed"), True)
-                return
+                # Convert before processing/backup so preview, retries, the
+                # queued bytes and local playback all have the chosen channels.
+                try:
+                    audio_data, _ = prepare_voice_pcm(audio_data, actual_ch, channel_mode)
+                except Exception:
+                    logging.exception("[voice] Could not prepare recording channels")
+                    wx.CallAfter(mw._on_message_failed, local_id,
+                                 mw.i18n.t("media_audio_convert_failed"), True)
+                    return
 
-            # In Automatic, two channels opened says nothing about what is
-            # plugged into them (core/voice_stereo.py, #679). Too heavy for the
-            # UI thread, so the row that already said M4A is corrected here.
-            channels = output_ch
-            if stereo_out and channel_mode == "auto":
-                audio_data, channels = drop_empty_side(audio_data, output_ch)
+                # In Automatic, two channels opened says nothing about what is
+                # plugged into them (core/voice_stereo.py, #679). Too heavy for the
+                # UI thread, so the row that already said M4A is corrected here.
+                channels = output_ch
+                if stereo_out and channel_mode == "auto":
+                    audio_data, channels = drop_empty_side(audio_data, output_ch)
             send_stereo = stereo_out and channels >= 2
             if stereo_out and not send_stereo:
                 logging.info("[audio] One side of the recording is empty — sending it in mono.")
@@ -827,7 +1006,8 @@ class VoiceRecordingMixin:
                 row.pop("fileName", None)
 
             # Apply microphone noise reduction if enabled in settings
-            if not mixed_audio and mw.settings.get("general", {}).get("noise_reduction_enabled", False):
+            # (skipped when the incremental session already cleaned the audio)
+            if not incremental_cleaned and not mixed_audio and mw.settings.get("general", {}).get("noise_reduction_enabled", False):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
                     from core.neural_noise_reduction import reduce_voice_noise
