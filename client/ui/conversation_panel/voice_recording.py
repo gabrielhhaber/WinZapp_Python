@@ -5,7 +5,6 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
-import glob
 import logging
 import os
 import sound_lib.stream as sl_stream
@@ -480,8 +479,12 @@ class VoiceRecordingMixin:
         threading.Thread(target=_bg_open_stream, daemon=True).start()
 
     # ── Incremental neural noise reduction (test branch) ───────────────────
-    #: Seconds the send thread waits for the stream-stop thread and for a
-    #: cancelled drain to exit before degrading instead of waiting. NOT
+    #: Seconds the send thread waits for the capture stream to confirm the
+    #: device closed before abandoning the session to the offline path, and
+    #: the wait after which a still-running drain is announced as busy
+    #: (noise_reduction_busy). The drain wait itself is NOT bounded: a
+    #: natively blocked worker cannot be preempted and the note stays
+    #: pending until it exits, the user cancels, or the process ends. NOT
     #: validated on any target machine — placeholders for the Windows run.
     _INCREMENTAL_STREAM_STOP_TIMEOUT = 5.0
     _INCREMENTAL_JOIN_TIMEOUT = 5.0
@@ -500,6 +503,12 @@ class VoiceRecordingMixin:
         offline prepare_voice_pcm step; automatic mode's empty-side drop is
         resolved at send time from the cleaned spool (the model handles
         channels independently, so selecting one cleaned side is bit-exact).
+
+        One incremental slot per process (== per account): the slot is taken
+        without waiting BEFORE any model load or thread start; when another
+        incremental operation holds it, this recording keeps the current
+        offline path. The session's local_id is generated here so the
+        controller's send-authority registry can key it from the start.
         """
         # A previous session that was never cancelled (a path that missed
         # _cancel_incremental_denoise) must not be orphaned: its drain would
@@ -507,27 +516,36 @@ class VoiceRecordingMixin:
         previous = getattr(self, "_incremental_session", None)
         if previous is not None:
             previous["cancel"] = True
+            controller = getattr(self.main_window, "_incremental_controller", None)
+            if controller is not None:
+                controller.discard(previous.get("local_id", ""))
         self._incremental_session = None
         try:
             if not self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False):
                 return
-            # Sweep spools leaked by a crashed or killed earlier session.
-            cutoff = time.time() - 3600
-            for old in glob.glob(os.path.join(tempfile.gettempdir(), "winzapp-inc-*.pcm")):
-                try:
-                    if os.path.getmtime(old) < cutoff:
-                        os.unlink(old)
-                except OSError:
-                    pass
+            controller = getattr(self.main_window, "_incremental_controller", None)
+            if controller is None:
+                return
             mode = getattr(self, "_recording_channel_mode", "auto")
             worker_ch = 1 if (mode == "mono" and ch == 2) else ch
             tmp = tempfile.NamedTemporaryFile(prefix="winzapp-inc-", suffix=".pcm", delete=False)
             tmp.close()
             session = {
+                "local_id": str(uuid.uuid4()),
                 "frames": frames_list, "rate": rate, "ch": ch, "worker_ch": worker_ch,
                 "spool": tmp.name, "worker": None, "thread": None,
-                "stop": False, "cancel": False, "failed": False,
+                "stop": False, "cancel": False, "failed": False, "revoked": False,
             }
+            if not controller.acquire_slot(session["local_id"], session):
+                # Slot busy (typically a previous drain that has not yet
+                # confirmed exit/cleanup): no model, no thread — the offline
+                # path cleans this recording at send, as today.
+                try:
+                    os.unlink(tmp.name)
+                except OSError:
+                    pass
+                logging.info("[noise_reduction] incremental slot busy; recording uses the offline path")
+                return
             # Set when _stop_recording_stream finishes closing the device:
             # the send thread waits on it before closing the drain, so the
             # last callback chunks cannot land after the drain exited.
@@ -539,6 +557,8 @@ class VoiceRecordingMixin:
                 thread.start()
             except Exception:
                 self._incremental_session = None
+                controller.release_slot(session["local_id"])
+                controller.forget(session["local_id"])
                 try:
                     os.unlink(tmp.name)
                 except OSError:
@@ -550,23 +570,25 @@ class VoiceRecordingMixin:
             logging.exception("[noise_reduction] incremental session could not start; offline path remains")
 
     def _incremental_drain(self, session):
-        """Drain thread: load the model off the UI thread, then run the
-        wx-free controller (core.incremental_denoise.drain_capture_frames,
+        """Drain thread: load a PRIVATE model instance off the UI thread, then
+        run the wx-free controller (core.incremental_denoise.drain_capture_frames,
         which owns the lag/abandonment policy and the spool cleanup).
 
-        The model load takes nnr._denoiser_lock, the same lock the offline
-        path uses in reduce_voice_noise, so the two can never initialize
-        the session at the same time.
+        The instance is private to this session because sharing one
+        InferenceSession between the drain and the offline path would rely
+        on concurrent run() being safe in our pinned onnxruntime — a
+        property we have NOT verified (neither serialized calls nor native
+        fault isolation are claimed). The single slot bounds this to at
+        most one incremental instance at a time; the offline singleton
+        (nnr._denoiser) stays untouched.
         """
         from core import neural_noise_reduction as nnr
         from core.incremental_denoise import IncrementalDenoiser, drain_capture_frames
+        controller = getattr(self.main_window, "_incremental_controller", None)
         try:
-            with nnr._denoiser_lock:
-                if nnr._denoiser is None:
-                    if not os.path.isfile(nnr.model_path()):
-                        raise FileNotFoundError(nnr.model_path())
-                    nnr._denoiser = nnr.NeuralDenoiser()
-                denoiser = nnr._denoiser
+            if not os.path.isfile(nnr.model_path()):
+                raise FileNotFoundError(nnr.model_path())
+            denoiser = nnr.NeuralDenoiser()
             worker = IncrementalDenoiser(session["rate"], session["worker_ch"], denoiser,
                                          spool_path=session["spool"])
             session["worker"] = worker
@@ -589,12 +611,21 @@ class VoiceRecordingMixin:
                 except OSError:
                     pass
                 session["worker"] = None
+        finally:
+            # On a cancel/failure exit the cleanup above already ran (worker
+            # dead, spool deleted): the slot is released here. On a normal
+            # stop the send thread owns worker+spool and releases instead.
+            if controller is not None and (session["cancel"] or session["failed"]):
+                controller.release_slot(session["local_id"])
 
     def _cancel_incremental_denoise(self):
         """Ask the drain thread to abort and delete its spool (non-blocking)."""
         session = getattr(self, "_incremental_session", None)
         if session is not None:
             session["cancel"] = True
+            controller = getattr(self.main_window, "_incremental_controller", None)
+            if controller is not None:
+                controller.discard(session.get("local_id", ""))
             self._incremental_session = None
 
     def _stop_recording_stream(self):
@@ -848,13 +879,19 @@ class VoiceRecordingMixin:
                 # Nothing to send: cancel cooperatively (non-blocking here);
                 # the drain aborts the worker and deletes the spool itself.
                 inc_session["cancel"] = True
+                controller = getattr(self.main_window, "_incremental_controller", None)
+                if controller is not None:
+                    controller.discard(inc_session.get("local_id", ""))
             self._hide_voice_panel()
             self.message_field.SetFocus()
             return
 
         # ── Phase 2: instant UI update ────────────────────────────────────────
         remote_jid      = self.conversation.get("remoteJid", "")
-        local_id        = str(uuid.uuid4())
+        # The incremental session's id was generated at recording start so the
+        # controller could key it; reuse it as the message's local id.
+        local_id        = (inc_session["local_id"] if inc_session is not None
+                           else str(uuid.uuid4()))
         actual_rate     = self._recording_actual_rate
         actual_ch       = self._recording_actual_ch
         bytes_per_frame = 2 * actual_ch
@@ -907,7 +944,14 @@ class VoiceRecordingMixin:
                 "quotedMessage": quoted_msg.get("message") or {},
                 "_quotedFromMe": bool(_qk.get("fromMe", False)),
             }
-        
+        if inc_session is not None:
+            # Held by the incremental machinery until the send thread hands it
+            # to the MessageQueue (transfer). While set, the echo matcher in
+            # main_window/message_events.py skips this record so it cannot
+            # claim another audio's echo — the pre-enqueue window is normally
+            # short, but a natively blocked drain stretches it indefinitely.
+            virtual_msg["_incremental_preparing"] = True
+
         self._clear_empty_placeholder()
         self._sorted_messages.append(virtual_msg)
         append_message_row(self, self._render_message_line(virtual_msg))
@@ -943,8 +987,15 @@ class VoiceRecordingMixin:
             # the raw frames are joined and converted through the existing
             # offline path unchanged.
             incremental_cleaned = False
-            skip_offline_nr = False
             audio_data = None
+            controller = getattr(mw, "_incremental_controller", None)
+
+            def _forget_incremental():
+                # Terminal cleanup for a send that ends without transfer:
+                # drop the controller's send-authority entry (and free the
+                # slot if it is somehow still held by this id).
+                if controller is not None and inc_session is not None:
+                    controller.forget(local_id)
             if inc_session is not None:
                 use_incremental = (
                     not mixed_audio
@@ -963,29 +1014,64 @@ class VoiceRecordingMixin:
                         logging.warning("[noise_reduction] capture stream did not stop in "
                                         "time; incremental session abandoned")
                         use_incremental = False
-                if use_incremental:
-                    inc_session["stop"] = True
-                    # The drain has at most the bounded lag of audio left.
-                    # A native (ONNX/disk) block inside feed() cannot be
-                    # preempted from Python; waiting here is the same
-                    # failure class as the offline model call below.
-                    if drain_thread is not None:
-                        drain_thread.join()
-                else:
-                    inc_session["cancel"] = True
-                    if drain_thread is not None:
-                        drain_thread.join(self._INCREMENTAL_JOIN_TIMEOUT)
-                        if drain_thread.is_alive():
-                            # The drain did not exit after cancel: its worker
-                            # may still own the model session and the spool
-                            # file. Do NOT run the offline pass against them;
-                            # the note goes out unprocessed (announced below)
-                            # and the spool is swept at the next session start.
-                            logging.error("[noise_reduction] incremental drain did not "
-                                          "stop; sending without noise reduction")
-                            skip_offline_nr = True
+                # stop → the drain finishes the audio it has; cancel → it
+                # aborts and cleans up. Either way this thread then waits in
+                # slices so a user cancel of the pending row (controller
+                # revoke) is honored even while the drain sits inside a
+                # native call. That native block cannot be preempted and is
+                # NOT bounded: the note stays pending — announced once —
+                # until the drain exits, the user cancels, or the process
+                # ends. Nothing is ever sent partially or unprocessed
+                # because of this wait.
+                inc_session["stop" if use_incremental else "cancel"] = True
+                announced_busy = False
+                waited = 0.0
+                while drain_thread is not None and drain_thread.is_alive():
+                    if inc_session.get("revoked"):
+                        # The user deleted the pending note while we waited:
+                        # the row is already gone (message_actions), the
+                        # drain cleans its own spool and releases the slot on
+                        # exit. Never enqueue.
+                        logging.info("[noise_reduction] send revoked while waiting "
+                                     "for the incremental drain")
+                        if controller is not None:
+                            controller.forget(local_id)
+                        return
+                    drain_thread.join(0.1)
+                    waited += 0.1
+                    if not announced_busy and waited >= self._INCREMENTAL_JOIN_TIMEOUT:
+                        announced_busy = True
+                        announce = getattr(mw, "output", None)
+                        if announce is not None and controller is not None:
+                            def _announce_busy(_lid=local_id, _c=controller,
+                                               _a=announce, _mw=mw):
+                                # Identity/validity check on the UI thread:
+                                # only announce if this same operation is
+                                # still the live one.
+                                if _c.is_preparing(_lid):
+                                    _a(_mw.i18n.t("noise_reduction_busy"))
+                            wx.CallAfter(_announce_busy)
+                if inc_session.get("revoked"):
+                    # Revoked in the same instant the drain exited.
+                    worker = inc_session.get("worker")
+                    if worker is not None and not inc_session["cancel"] and not inc_session["failed"]:
+                        # Drain exited normally: this thread owns worker+spool.
+                        try:
+                            worker.abort()
+                        except Exception:
+                            pass
+                        try:
+                            os.unlink(inc_session["spool"])
+                        except OSError:
+                            pass
+                        if controller is not None:
+                            controller.release_slot(local_id)
+                    if controller is not None:
+                        controller.forget(local_id)
+                    return
                 worker = inc_session.get("worker")
-                if use_incremental and worker is not None and not inc_session.get("failed"):
+                if (use_incremental and not inc_session["cancel"] and worker is not None
+                        and not inc_session.get("failed")):
                     try:
                         _t_inc = _time.perf_counter()
                         spool_path, engine = worker.finish()
@@ -1023,6 +1109,11 @@ class VoiceRecordingMixin:
                         else:
                             audio_data, channels = cleaned_pcm, actual_ch
                         incremental_cleaned = True
+                        if controller is not None:
+                            # Worker finished, spool consumed and deleted:
+                            # the slot is free. The send-authority entry
+                            # stays until transfer (or a terminal failure).
+                            controller.release_slot(local_id)
                         logging.info("[VOICE_TIMING] T+%.3fs — incremental noise reduction done "
                                      "(engine: %s; finish() residual %.3fs)",
                                      _time.perf_counter() - _t0, engine, _time.perf_counter() - _t_inc)
@@ -1040,6 +1131,8 @@ class VoiceRecordingMixin:
                             os.unlink(inc_session["spool"])
                         except OSError:
                             pass
+                        if controller is not None:
+                            controller.release_slot(local_id)
             if audio_data is None:
                 # Join raw PCM frames.
                 audio_data = b"".join(frames)
@@ -1052,6 +1145,7 @@ class VoiceRecordingMixin:
                     audio_data, _ = prepare_voice_pcm(audio_data, actual_ch, channel_mode)
                 except Exception:
                     logging.exception("[voice] Could not prepare recording channels")
+                    _forget_incremental()
                     wx.CallAfter(mw._on_message_failed, local_id,
                                  mw.i18n.t("media_audio_convert_failed"), True)
                     return
@@ -1070,13 +1164,8 @@ class VoiceRecordingMixin:
                 row.pop("fileName", None)
 
             # Apply microphone noise reduction if enabled in settings
-            # (skipped when the incremental session already cleaned the audio,
-            # or when its drain failed to stop and may still own the model)
-            if skip_offline_nr:
-                announce = getattr(mw, "output", None)
-                if announce is not None:
-                    wx.CallAfter(announce, mw.i18n.t("noise_reduction_failed"))
-            if (not incremental_cleaned and not skip_offline_nr and not mixed_audio
+            # (skipped when the incremental session already cleaned the audio)
+            if (not incremental_cleaned and not mixed_audio
                     and mw.settings.get("general", {}).get("noise_reduction_enabled", False)):
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
@@ -1119,9 +1208,11 @@ class VoiceRecordingMixin:
                             pass
                     wx.CallAfter(mw._on_message_failed, local_id,
                                  mw.i18n.t("media_audio_convert_failed"), True)
+                _forget_incremental()
                 return
 
             if as_audio_file:
+                _forget_incremental()
                 self._enqueue_system_audio_file(
                     wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg,
                 )
@@ -1138,6 +1229,7 @@ class VoiceRecordingMixin:
                         os.unlink(wav_path)
                     except OSError:
                         pass
+                    _forget_incremental()
                     wx.CallAfter(mw._on_message_failed, local_id,
                                  mw.i18n.t("media_audio_convert_failed"), True)
                     return
@@ -1177,6 +1269,27 @@ class VoiceRecordingMixin:
             logging.info("[VOICE_TIMING] T+%.3fs — calling enqueue (ogg_bytes=%s)",
                          _time.perf_counter() - _t0,
                          "yes" if ogg_bytes else "NO — will fallback to WAV")
+            if inc_session is not None:
+                if controller is not None and not controller.transfer(local_id):
+                    # The user deleted the pending note while it was being
+                    # processed: revoke won against transfer under the
+                    # controller's lock, the row is already gone — send
+                    # nothing. The slot/spool were already released above.
+                    logging.info("[noise_reduction] send revoked before transfer; not enqueuing")
+                    controller.forget(local_id)
+                    try:
+                        os.unlink(wav_path)
+                    except OSError:
+                        pass
+                    # The .msv copy may have been written moments ago, after
+                    # the user's delete already discarded the cache.
+                    from ui.conversation_panel.media_paths import discard_local_media_cache
+                    discard_local_media_cache(
+                        data_path("voice_messages"), data_path("media"), local_id)
+                    return
+                # Really handed to the queue now: the record may claim its
+                # own echo again (flag cleared on the UI thread).
+                wx.CallAfter(lambda: virtual_msg.pop("_incremental_preparing", None))
             pm = PendingMessage(local_id, remote_jid, audio_path=wav_path,
                                 ogg_bytes=ogg_bytes, quoted=quoted_msg,
                                 voice_mimetype=voice_mimetype)

@@ -22,6 +22,15 @@ cooperative cancel, a bounded-lag abandonment policy and spool cleanup, so
 the UI wiring in voice_recording.py stays a thin adapter and the policy is
 testable without wx, audio hardware or a model file.
 
+``IncrementalDenoiseController`` is the per-process owner of the single
+incremental slot and of every session's send-authority state
+(PREPARING/CANCELLED), held under one lock so that a user cancel
+(message_actions.py) and the send thread's transfer to the MessageQueue are
+mutually exclusive. One process hosts one account in WinZapp (main.py takes
+the instance lock per account and background accounts run as separate
+processes), so "one slot per process" and "one slot per account" coincide;
+there is deliberately no inter-process coordination.
+
 No user-facing behaviour lives here: engine fallback, announcements and the
 original/raw retention strategy stay in the wiring (voice_recording.py).
 """
@@ -31,6 +40,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import threading
 import time
 
 import numpy as np
@@ -297,3 +307,124 @@ def drain_capture_frames(session: dict, worker: IncrementalDenoiser,
             except OSError:
                 pass
             session["worker"] = None
+
+
+# ── Per-process slot + send-authority registry ────────────────────────────
+
+PREPARING = "preparing"
+CANCELLED = "cancelled"
+
+
+class IncrementalDenoiseController:
+    """Single incremental slot and per-session send authority, one per process.
+
+    The wiring acquires the slot BEFORE loading a model or starting a drain
+    thread; a busy slot is never waited on — the recording simply uses the
+    current offline path at send. The slot is released only by the party
+    that can confirm the worker is dead and the spool cleaned: the drain
+    itself after a cancel/failure exit, or the send thread after finish()
+    and spool consumption. A drain blocked in a native call never gets
+    there, so the slot stays taken and every later recording goes offline
+    until the process ends — declared, not hidden.
+
+    Send authority: a session is PREPARING from recording start until the
+    send thread's transfer() succeeds (the moment the note is handed to the
+    MessageQueue, whose own cancel machinery takes over). revoke() — the
+    user deleting the pending row — wins atomically against transfer()
+    under the same lock and flags the session dict itself (``revoked`` /
+    ``cancel``), so the send thread never needs to re-read the registry
+    after the drain's cleanup may have popped the entry. A revoked session
+    is never enqueued: the late worker cannot send.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._sessions = {}   # local_id -> drain IPC session dict
+        self._states = {}     # local_id -> PREPARING | CANCELLED
+        self._slot_owner = None
+
+    def acquire_slot(self, local_id, session) -> bool:
+        """Take the single slot without waiting. False = occupied."""
+        with self._lock:
+            if self._slot_owner is not None:
+                return False
+            self._slot_owner = local_id
+            self._sessions[local_id] = session
+            self._states[local_id] = PREPARING
+            return True
+
+    def revoke(self, local_id) -> bool:
+        """User deleted the pending note before transfer. True = the session
+        was PREPARING and is now revoked: the caller removes the row plainly
+        (no echo anchor — nothing was ever enqueued) and the send thread
+        will observe the flags and never enqueue. False = unknown id or
+        already transferred (the queue's own cancel path applies)."""
+        with self._lock:
+            if self._states.get(local_id) != PREPARING:
+                return False
+            self._states[local_id] = CANCELLED
+            session = self._sessions.get(local_id)
+            if session is not None:
+                session["revoked"] = True
+                session["cancel"] = True
+            return True
+
+    def discard(self, local_id) -> None:
+        """The recording was dropped before send (chat switch, panel destroy,
+        empty recording): cancel the session; the drain cleans up and
+        releases the slot on exit."""
+        with self._lock:
+            if self._states.get(local_id) == PREPARING:
+                self._states[local_id] = CANCELLED
+                session = self._sessions.get(local_id)
+                if session is not None:
+                    session["cancel"] = True
+
+    def is_preparing(self, local_id) -> bool:
+        with self._lock:
+            return self._states.get(local_id) == PREPARING
+
+    def transfer(self, local_id) -> bool:
+        """Hand the note to the MessageQueue. Atomic with revoke(): True =
+        PREPARING, entry consumed, enqueue may proceed; False = revoked or
+        unknown, nothing may be sent."""
+        with self._lock:
+            if self._states.get(local_id) != PREPARING:
+                return False
+            self._states.pop(local_id, None)
+            self._sessions.pop(local_id, None)
+            return True
+
+    def release_slot(self, local_id) -> None:
+        """Free the slot. Only called by the party that confirmed worker
+        death + spool cleanup (see class docstring).
+
+        The send-authority state is KEPT: an abandoned-to-offline send
+        (drain exited after cancel, slot released by the drain) still has to
+        pass transfer() before it may enqueue, and a later revoke() of the
+        pending row must still win against it. The entry leaves through
+        transfer() or forget(), both driven by the send thread.
+        """
+        with self._lock:
+            if self._slot_owner == local_id:
+                self._slot_owner = None
+            self._sessions.pop(local_id, None)
+
+    def forget(self, local_id) -> None:
+        """Terminal cleanup of the send-authority entry: the send thread
+        calls it once the outcome is decided (revoked, or failed before
+        enqueue). Never touches slot ownership — the slot is freed only by
+        release_slot() after confirmed cleanup, so a hung drain keeps its
+        slot even when its registry entry is gone."""
+        with self._lock:
+            self._sessions.pop(local_id, None)
+            self._states.pop(local_id, None)
+
+    def shutdown(self) -> None:
+        """real_exit: signal every live session to cancel. The threads are
+        daemonic and die with the process; this only lets a healthy drain
+        clean its own spool on the way out."""
+        with self._lock:
+            sessions = list(self._sessions.values())
+        for session in sessions:
+            session["cancel"] = True

@@ -958,6 +958,16 @@ class MessageEventsMixin:
                 for r in records:
                     if not r.get("_local_pending"):
                         continue
+                    if r.get("_incremental_preparing"):
+                        # A recorded voice note the incremental
+                        # noise-reduction machinery still holds pre-enqueue:
+                        # it has no send in flight, so no echo can belong to
+                        # it — and with a natively blocked cleaner this
+                        # window can stretch indefinitely, in which time it
+                        # would steal the echo of any other pending audio of
+                        # the same type (matched in order). Cleared at the
+                        # real hand-off to the MessageQueue.
+                        continue
                     r_type = r.get("messageType", "")
                     if incoming_type in _text_types:
                         if r_type not in _text_types:

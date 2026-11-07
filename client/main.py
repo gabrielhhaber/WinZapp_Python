@@ -2065,6 +2065,12 @@ if __name__ == "__main__":
         frame = MainWindow(account_id=_account_id, account_name=_account_name,
                            startup_source=startup_source, resume_pending=_resume_pending,
                            registry=_registry, global_dir=gd)
+        # Incremental noise reduction: one controller (single slot + send
+        # authority) per process; this process hosts exactly one account
+        # (the instance lock above is per account and background accounts
+        # run as their own processes), so per-process == per-account here.
+        from core.incremental_denoise import IncrementalDenoiseController
+        frame._incremental_controller = IncrementalDenoiseController()
         _main_frame_ref.append(frame)
         if _invitation_link:
             wx.CallAfter(frame.open_group_invitation_link, _invitation_link)

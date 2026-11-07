@@ -19,7 +19,10 @@ import numpy as np
 import pytest
 
 from core import neural_noise_reduction as nnr
-from core.incremental_denoise import IncrementalDenoiser, drain_capture_frames
+from core.incremental_denoise import (
+    CANCELLED, PREPARING, IncrementalDenoiseController, IncrementalDenoiser,
+    drain_capture_frames,
+)
 from core.voice_recording_mode import prepare_voice_pcm
 
 BINS = nnr.WINDOW // 2 + 1
@@ -170,10 +173,6 @@ def test_non_finite_model_output_raises(tmp_path):
         inc.feed(data)
 
 
-@pytest.mark.skipif(
-    not MODEL_PATH or not os.path.isfile(MODEL_PATH),
-    reason="pinned DPDFNet model not provided (set DPDFNET_MODEL)",
-)
 # ── Drain controller (capture pump): fake workers, no model, no wx ─────────
 
 class _FakeWorker:
@@ -336,6 +335,10 @@ def test_drain_transform_preserves_offline_mono_mix_order(tmp_path):
         assert f.read() == expected
 
 
+@pytest.mark.skipif(
+    not MODEL_PATH or not os.path.isfile(MODEL_PATH),
+    reason="pinned DPDFNet model not provided (set DPDFNET_MODEL)",
+)
 def test_real_model_matches_offline_bit_for_bit():
     digest = hashlib.sha256()
     with open(MODEL_PATH, "rb") as f:
@@ -353,3 +356,131 @@ def test_real_model_matches_offline_bit_for_bit():
         data = _signal(frames, rate, channels, seed=frames ^ (rate << 2) ^ channels)
         expected = nnr.denoise_pcm16(data, rate, channels, denoiser)
         assert _incremental(data, rate, channels, style, denoiser) == expected
+
+
+# ── Slot + send-authority controller (wx-free) ────────────────────────────
+
+def _registered_session(controller, local_id="m1", **flags):
+    session = _drain_session([], "spool-does-not-need-to-exist", None, **flags)
+    assert controller.acquire_slot(local_id, session)
+    return session
+
+
+def test_slot_is_single_and_releases():
+    c = IncrementalDenoiseController()
+    _registered_session(c, "m1")
+    # Occupied: a second recording gets no slot, no session is registered.
+    assert not c.acquire_slot("m2", _drain_session([], "x", None))
+    assert not c.is_preparing("m2")
+    c.release_slot("m1")
+    assert c.acquire_slot("m2", _drain_session([], "x", None))
+    assert c.is_preparing("m2")
+
+
+def test_revoke_pre_transfer_wins_and_flags_the_session():
+    c = IncrementalDenoiseController()
+    session = _registered_session(c)
+    assert c.revoke("m1")
+    assert session["revoked"] and session["cancel"]       # send thread reads its own dict
+    assert not c.is_preparing("m1")
+    assert not c.revoke("m1")                             # second delete: already revoked
+    assert not c.transfer("m1")                           # revoked can never be enqueued
+
+
+def test_transfer_wins_then_revoke_is_the_queues_job():
+    c = IncrementalDenoiseController()
+    _registered_session(c)
+    assert c.transfer("m1")                               # handed to MessageQueue
+    assert not c.revoke("m1")                             # post-transfer: queue cancel path
+    assert not c.transfer("m1")                           # consumed: cannot transfer twice
+
+
+def test_revoke_and_transfer_are_atomic_under_the_lock():
+    # Interleave repeatedly: exactly one of revoke/transfer may succeed.
+    for _ in range(200):
+        c = IncrementalDenoiseController()
+        _registered_session(c)
+        results = {}
+        barrier = threading.Barrier(3)
+
+        def _do(name, fn):
+            barrier.wait(5.0)
+            results[name] = fn()
+
+        t1 = threading.Thread(target=_do, args=("revoke", lambda: c.revoke("m1")))
+        t2 = threading.Thread(target=_do, args=("transfer", lambda: c.transfer("m1")))
+        t1.start(), t2.start()
+        barrier.wait(5.0)
+        t1.join(5.0), t2.join(5.0)
+        assert sorted(results) == ["revoke", "transfer"]
+        assert results["revoke"] != results["transfer"]   # exactly one winner
+
+
+def test_discard_cancels_preparing_session_only():
+    c = IncrementalDenoiseController()
+    session = _registered_session(c)
+    c.discard("m1")
+    assert session["cancel"] and not c.is_preparing("m1")
+    c.discard("m1")                                       # idempotent, no error
+    c.discard("unknown")                                  # unknown id: no-op
+
+
+def test_release_slot_frees_slot_but_send_still_needs_transfer():
+    """An abandoned-to-offline send (drain exited after cancel and released
+    the slot) must still pass transfer() before it may enqueue, and a user
+    delete of the pending row must still be able to win against it."""
+    c = IncrementalDenoiseController()
+    _registered_session(c)
+    c.release_slot("m1")
+    assert c.is_preparing("m1")                                    # authority kept
+    assert c.acquire_slot("m2", _drain_session([], "x", None))     # slot free
+    assert c.revoke("m1")                                          # delete still wins
+    assert not c.transfer("m1")                                    # so nothing is enqueued
+
+
+def test_release_slot_then_transfer_succeeds():
+    c = IncrementalDenoiseController()
+    _registered_session(c)
+    c.release_slot("m1")
+    assert c.transfer("m1")                                        # offline fallback enqueues
+    assert not c.revoke("m1")                                      # post-transfer: queue's job
+
+
+def test_revoked_session_keeps_slot_until_cleanup_confirmed():
+    """A revoked session whose drain has not exited keeps the slot occupied:
+    the next recording uses the offline path until cleanup is confirmed."""
+    c = IncrementalDenoiseController()
+    session = _registered_session(c)
+    assert c.revoke("m1")
+    assert not c.acquire_slot("m2", _drain_session([], "x", None))  # still occupied
+    c.release_slot("m1")                                   # drain confirmed cleanup
+    assert c.acquire_slot("m2", _drain_session([], "x", None))
+    assert not c.transfer("m1")                            # revoked stays revoked
+    c.forget("m1")                                         # send thread observed it
+    assert not c.revoke("m1")                              # entry gone for good
+
+
+def test_shutdown_cancels_every_live_session():
+    c = IncrementalDenoiseController()
+    s1 = _registered_session(c, "m1")
+    c.shutdown()
+    assert s1["cancel"]
+
+
+def test_drain_exit_after_cancel_releases_slot(tmp_path):
+    """Controller + real drain: cancel mid-capture -> drain cleans its own
+    spool and the wiring's release path frees the slot for the next session."""
+    spool = tmp_path / "s.pcm"
+    spool.write_bytes(b"x")
+    worker = _FakeWorker()
+    c = IncrementalDenoiseController()
+    session = _drain_session([b"x" * 512] * 3, spool, worker, cancel=True,
+                             local_id="m1")
+    assert c.acquire_slot("m1", session)
+    drain_capture_frames(session, worker)
+    assert session["failed"] is False and session["cancel"]
+    assert worker.aborted and not spool.exists()
+    # wiring: _incremental_drain's finally on a cancel/failure exit
+    if session["cancel"] or session["failed"]:
+        c.release_slot(session["local_id"])
+    assert c.acquire_slot("m2", _drain_session([], "x", None))

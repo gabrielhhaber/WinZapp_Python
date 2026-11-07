@@ -368,6 +368,25 @@ class MessageActionsMixin:
             )
         )
         if cancelled_pending:
+            # A recorded voice note still held by the incremental
+            # noise-reduction machinery was never handed to the send queue:
+            # no worker owns it and no echo can arrive for it, so it needs
+            # no _cancelled_awaiting_id anchor — the row and record are
+            # simply removed. revoke() is atomic with the send thread's
+            # transfer under the controller's lock: when it wins here, that
+            # thread observes the revocation and never enqueues.
+            controller = getattr(self.main_window, "_incremental_controller", None)
+            if controller is not None and controller.revoke(pending_local_id):
+                self.remove_messages_by_id({pending_local_id}, focus_previous=True)
+                self._outgoing_virtual_messages.pop(pending_local_id, None)
+                self._media_upload_progress.pop(pending_local_id, None)
+                self._upload_stages_seen.pop(pending_local_id, None)
+                self._media_transfer_started.discard(pending_local_id)
+                self._hide_media_transfer_gauge()
+                discard_local_media_cache(
+                    data_path("voice_messages"), data_path("media"), pending_local_id
+                )
+                return
             # An unconfirmed send shares the "nothing to revoke, local delete
             # only" path, but NOT the wait for an echo: its send already
             # finished and reported. Saying so explicitly matters because
