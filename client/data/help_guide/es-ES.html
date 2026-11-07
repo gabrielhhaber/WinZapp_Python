@@ -494,7 +494,7 @@
   <tr><td class="field-name">Alt+Shift+D</td><td>Información del mensaje</td></tr>
 </table>
 <ul>
-  <li><strong>Responder:</strong> si no se encuentra el mensaje original antes de enviar, WinZapp te avisa de que falta la cita y conserva tu texto para que lo edites desde el menú del mensaje ("Editar respuesta no enviada sin la cita"). Las respuestas con mención llevan la cita.</li>
+  <li><strong>Responder:</strong> si no se encuentra el mensaje original antes de enviar, WinZapp te avisa de que falta la cita y conserva tu texto para que lo edites desde el menú del mensaje ("Editar respuesta no enviada sin la cita"). Las respuestas con mención llevan la cita. Con Neonize, al citar un mensaje de voz, su duración aparece en la cita que ve la otra persona.</li>
   <li><strong>Eliminar medios:</strong> al eliminar una foto, un vídeo, un audio o un documento, la confirmación incluye "Eliminar también el archivo multimedia del teléfono", marcado por defecto. Desmárcalo para eliminar el mensaje y conservar el archivo guardado en el teléfono. La casilla también se aplica a varios mensajes seleccionados y solo aparece cuando hay medios entre ellos. En Configuración &gt; Interfaz &gt; Mensajes defines cómo empieza.</li>
   <li><strong>Reenviar:</strong> elige los destinos en una lista con búsqueda (la flecha abajo en el campo va al primer resultado). Cuando funciona, el lector de pantalla dice "Mensaje reenviado." (o cuántos fueron), sin ventana que cerrar. Los mensajes de voz reenviados llegan como audio normal, a menos que marques "Reenviar los mensajes de voz como mensajes de voz, en lugar de audio" en Configuración &gt; Audio. Con Neonize, la copia reenviada aparece enseguida en el chat de destino. Cuando un mensaje seleccionado tiene vista previa de enlace, la casilla "Mantener la vista previa del enlace" empieza como se define en Configuración &gt; Interfaz de usuario &gt; Conversaciones, "Mantener las vistas previas de enlaces de forma predeterminada al reenviar mensajes". Con WPPConnect la copia se envía como mensaje nuevo y no va marcada como reenviada; con Neonize sí.</li>
   <li><strong>Información del mensaje:</strong> en un mensaje tuyo, muestra cuándo se entregó, se leyó y se reprodujo, con fecha y hora completas, consultando al propio WhatsApp (así también aparecen los acuses que llegaron mientras WinZapp estaba cerrado). En un grupo, lista quién lo recibió y quién lo leyó, por nombre.</li>
@@ -573,7 +573,7 @@
 </ul>
 
 <h3>Abrir, guardar y describir</h3>
-<p>En un mensaje con medios, Intro lo abre (foto en el visor, el audio y el vídeo se reproducen, el documento se abre en el programa predeterminado). Espacio reproduce y pausa audio y vídeo, pero nunca abre enlaces, documentos ni el visor. Después de "Abrir" están los botones, accesibles con Tab: "Guardar como..." (Ctrl+Shift+S), "Mostrar en carpeta" (Ctrl+Intro, cuando guardaste una copia) y "Describir" (Ctrl+Shift+I, cuando las funciones de IA están activadas). El menú contextual tiene los mismos elementos.</p>
+<p>En un mensaje con medios, Intro lo abre (foto en el visor, el audio y el vídeo se reproducen, el documento se abre en el programa predeterminado). Espacio reproduce y pausa audio y vídeo, pero nunca abre enlaces, documentos ni el visor. Después de "Abrir" están los botones, accesibles con Tab: "Guardar como..." (Ctrl+Shift+S), "Mostrar en carpeta" (Ctrl+Intro, cuando guardaste una copia) y "Describir" (Ctrl+Shift+I, cuando las funciones de IA están activadas). El menú contextual tiene los mismos elementos. Un archivo abierto así conserva su nombre real (el mismo que propone Guardar como).</p>
 <p>Un mensaje de vídeo (el vídeo grabado con el botón de la cámara de WhatsApp, enviado en lugar de un mensaje de voz) aparece en la lista como "mensaje de vídeo" y funciona como cualquier vídeo: Intro lo reproduce, y Guardar como, la duración y el resto del menú son los mismos.</p>
 <p>La carpeta donde se abren las ventanas de guardado se elige en Configuración &gt; Almacenamiento: la última carpeta usada, Descargas o una carpeta propia.</p>
 
@@ -691,7 +691,7 @@
     <h2 id="h-status">🟢 8. Estados</h2>
 <p class="lead">La pestaña Estado (Alt+5) muestra los estados de tus contactos y te permite publicar los tuyos.</p>
 <ul>
-  <li><strong>Ver:</strong> la lista muestra los estados; Intro abre uno. Los estados de foto y de vídeo se abren en el visor (aparte o en el reproductor dentro de la pestaña) y Ctrl+Flecha izquierda/derecha va al estado anterior/siguiente.</li>
+  <li><strong>Ver:</strong> la lista muestra los estados; Intro abre uno. Los estados de foto y de vídeo se abren en el visor (aparte o en el reproductor dentro de la pestaña) y Ctrl+Flecha izquierda/derecha va al estado anterior/siguiente. Los estados de ubicación, encuesta, lista de contactos y otros tipos aparecen en la lista con su etiqueta (por ejemplo, "Ubicación") y se abren como texto.</li>
   <li><strong>Reaccionar:</strong> "Me gusta ❤️".</li>
   <li><strong>Responder:</strong> "Responder al estado" abre el campo de respuesta; Intro envía ("Respuesta enviada.").</li>
   <li><strong>Publicar:</strong> "Publicar texto como estado" y "Enviar multimedia como estado". "Estado publicado con éxito." lo confirma. Tus propios estados están en "Mi estado".</li>
@@ -769,7 +769,7 @@
 <p>Ctrl+Shift+D (o "Datos del chat" en el menú contextual) abre una ventana con pestañas. Todos los botones y campos tienen una letra de atajo (Alt+letra).</p>
 <ul>
   <li><strong>Contacto:</strong> pestaña Resumen con el nombre, el nombre de perfil que eligió el contacto, el nombre verificado y si la cuenta es de empresa, si las notificaciones están silenciadas (y hasta cuándo), el temporizador de mensajes temporales y el aviso de que los mensajes y las llamadas están cifrados de extremo a extremo. El botón "Foto de perfil" (Alt+F) muestra la foto y "Abrir en visor externo" (Alt+A) la abre en el programa predeterminado de Windows; si no hay foto, o la persona no permite que la veas, WinZapp lo dice. También está la pestaña <strong>Grupos en común</strong> (Intro abre el grupo) y la pestaña Multimedia.</li>
-  <li><strong>Grupo:</strong> pestaña Resumen (nombre, descripción, foto del grupo, si solo los administradores envían mensajes), pestaña Participantes (Intro en un participante abre el chat privado con él; "Agregar miembro" admite contactos o un número aparte) y pestaña Multimedia. Los datos aparecen en cuanto el grupo responde y los nombres y números que faltan se completan justo después.</li>
+  <li><strong>Grupo:</strong> pestaña Resumen (nombre, descripción, foto del grupo, si solo los administradores envían mensajes), pestaña Participantes (Intro en un participante abre el chat privado con él; "Agregar miembro" admite contactos o un número aparte) y pestaña Multimedia. Los datos aparecen en cuanto el grupo responde y los nombres y números que faltan se completan justo después. En la pestaña Multimedia, Ctrl+C sobre un documento, foto, vídeo o audio copia el archivo al portapapeles, como en la lista de mensajes.</li>
   <li><strong>Avisos:</strong> en los grupos donde solo los administradores envían mensajes, el campo de mensaje es de solo lectura y WinZapp lo dice.</li>
 </ul>
 
@@ -1410,6 +1410,9 @@
 <tr><td class="field-name">Aún no publicado</td><td>Mensajes de voz: el estéreo (AAC) pasa a 128 kbps por defecto; el mono sigue a 64 kbps.</td></tr>
 <tr><td class="field-name">Aún no publicado</td><td>Grabación del audio del ordenador: un bloqueo breve ya no interrumpe la grabación.</td></tr>
 <tr><td class="field-name">Aún no publicado</td><td>Notificaciones toast de grupo: opción para mostrar el nombre del grupo antes del nombre del participante.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Neonize: la cita de un mensaje de voz muestra su duración.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Los estados de ubicación, encuesta y otros tipos ya no aparecen como mensaje incompatible.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Abrir: el archivo abierto en el visor externo conserva su nombre real.</td></tr>
 </table>
 
   </section>

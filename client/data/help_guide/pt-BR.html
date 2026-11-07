@@ -494,7 +494,7 @@
   <tr><td class="field-name">Alt+Shift+D</td><td>Dados da mensagem</td></tr>
 </table>
 <ul>
-  <li><strong>Responder:</strong> se a mensagem original não for encontrada antes do envio, o WinZapp avisa que a citação está ausente e mantém o seu texto para você editar pelo menu da mensagem ("Editar resposta não enviada sem a citação"). Respostas com menção levam a citação junto.</li>
+  <li><strong>Responder:</strong> se a mensagem original não for encontrada antes do envio, o WinZapp avisa que a citação está ausente e mantém o seu texto para você editar pelo menu da mensagem ("Editar resposta não enviada sem a citação"). Respostas com menção levam a citação junto. Com o Neonize, ao citar uma mensagem de voz, a duração dela aparece na citação vista pela outra pessoa.</li>
   <li><strong>Apagar mídia:</strong> ao apagar foto, vídeo, áudio ou documento, a confirmação traz "Apagar também a mídia do celular", marcada por padrão. Desmarque para apagar a mensagem e manter o arquivo guardado no celular. A caixa vale também para várias mensagens selecionadas e só aparece quando há mídia entre elas. Em Configurações &gt; Interface &gt; Mensagens, você define como ela começa.</li>
   <li><strong>Encaminhar:</strong> escolha os destinos numa lista com pesquisa (a seta para baixo no campo leva ao primeiro resultado). Quando dá certo, o leitor de tela fala "Mensagem encaminhada." (ou quantas foram), sem janela para fechar. Mensagens de voz encaminhadas chegam como áudio comum, a não ser que você marque "Encaminhar mensagens de voz como mensagens de voz, em vez de áudio" em Configurações &gt; Áudio. Com o Neonize, a cópia encaminhada aparece na hora na conversa de destino. Quando uma mensagem selecionada tem prévia de link, a caixa "Preservar prévia do link" começa como definido em Configurações &gt; Interface do usuário &gt; Conversas, "Preservar prévias de links por padrão ao encaminhar mensagens". Com a WPPConnect a cópia é enviada como mensagem nova e não vem marcada como encaminhada; com o Neonize vem.</li>
   <li><strong>Dados da mensagem:</strong> numa mensagem sua, mostra quando foi entregue, lida e reproduzida, com data e hora completas, consultando o próprio WhatsApp (então recibos que chegaram com o WinZapp fechado também aparecem). Em grupo, lista quem recebeu e quem leu, pelo nome.</li>
@@ -573,7 +573,7 @@
 </ul>
 
 <h3>Abrir, salvar e descrever</h3>
-<p>Numa mensagem com mídia, Enter abre (foto no visualizador, áudio e vídeo tocam, documento abre no programa padrão). O Espaço reproduz e pausa áudio e vídeo, mas nunca abre links, documentos nem visualizador. Depois de "Abrir" há os botões, alcançáveis com Tab, "Salvar como..." (Ctrl+Shift+S), "Mostrar na pasta" (Ctrl+Enter, quando você salvou uma cópia) e "Descrever" (Ctrl+Shift+I, quando os recursos de IA estão ligados). No menu de contexto estão os mesmos itens.</p>
+<p>Numa mensagem com mídia, Enter abre (foto no visualizador, áudio e vídeo tocam, documento abre no programa padrão). O Espaço reproduz e pausa áudio e vídeo, mas nunca abre links, documentos nem visualizador. Depois de "Abrir" há os botões, alcançáveis com Tab, "Salvar como..." (Ctrl+Shift+S), "Mostrar na pasta" (Ctrl+Enter, quando você salvou uma cópia) e "Descrever" (Ctrl+Shift+I, quando os recursos de IA estão ligados). No menu de contexto estão os mesmos itens. Ao abrir assim, o arquivo leva o nome real (o mesmo do Salvar como).</p>
 <p>Uma mensagem de vídeo (o vídeo gravado com o botão da câmera do WhatsApp, enviado no lugar de uma mensagem de voz) aparece na lista como "mensagem de vídeo" e funciona como qualquer vídeo: Enter toca, e Salvar como, a duração e o restante do menu são os mesmos.</p>
 <p>A pasta em que as janelas de salvar abrem é escolhida em Configurações &gt; Armazenamento: a última pasta usada, Downloads ou uma pasta sua.</p>
 
@@ -691,7 +691,7 @@
     <h2 id="h-status">🟢 8. Status</h2>
 <p class="lead">A aba Status (Alt+5) mostra os status dos seus contatos e deixa você publicar os seus.</p>
 <ul>
-  <li><strong>Ver:</strong> a lista traz os status; Enter abre. Status de foto e vídeo abrem no visualizador (separado ou no player dentro da aba) e Ctrl+Seta para a esquerda/direita vai ao status anterior/próximo.</li>
+  <li><strong>Ver:</strong> a lista traz os status; Enter abre. Status de foto e vídeo abrem no visualizador (separado ou no player dentro da aba) e Ctrl+Seta para a esquerda/direita vai ao status anterior/próximo. Status de localização, enquete, lista de contatos e outros tipos aparecem na lista com o seu rótulo (por exemplo, "Localização") e abrem como texto.</li>
   <li><strong>Reagir:</strong> "Curtir ❤️".</li>
   <li><strong>Responder:</strong> "Responder ao status" abre o campo de resposta; Enter envia ("Resposta enviada.").</li>
   <li><strong>Postar:</strong> "Postar texto como status" e "Enviar mídia como status". "Status postado com sucesso." confirma. Seus próprios status ficam em "Meu status".</li>
@@ -769,7 +769,7 @@
 <p>Ctrl+Shift+D (ou "Dados da conversa" no menu de contexto) abre uma janela com abas. Todos os botões e campos têm uma letra de atalho (Alt+letra).</p>
 <ul>
   <li><strong>Contato:</strong> aba Visão geral com nome, nome de perfil que o contato escolheu, nome verificado e se a conta é comercial, se as notificações estão silenciadas (e até quando), o tempo das mensagens temporárias e o aviso de que as mensagens e ligações são protegidas com criptografia de ponta a ponta. O botão "Foto do perfil" (Alt+F) mostra a foto, e "Abrir em visualizador externo" (Alt+A) abre no programa padrão do Windows; se não houver foto, ou a pessoa não permitir que você a veja, o WinZapp avisa. Também há a aba <strong>Grupos em comum</strong> (Enter abre o grupo) e a aba Mídia.</li>
-  <li><strong>Grupo:</strong> abas Visão geral (nome, descrição, foto/imagem do grupo, se só administradores enviam mensagens), Participantes (Enter num participante abre a conversa particular com ele; "Adicionar membro" aceita contatos ou um número adicional) e Mídia. Os dados aparecem assim que o grupo responde e os nomes e números que faltam são preenchidos em seguida.</li>
+  <li><strong>Grupo:</strong> abas Visão geral (nome, descrição, foto/imagem do grupo, se só administradores enviam mensagens), Participantes (Enter num participante abre a conversa particular com ele; "Adicionar membro" aceita contatos ou um número adicional) e Mídia. Os dados aparecem assim que o grupo responde e os nomes e números que faltam são preenchidos em seguida. Na aba Mídia, Ctrl+C num documento, foto, vídeo ou áudio copia o arquivo para a área de transferência, como na lista de mensagens.</li>
   <li><strong>Avisos:</strong> em grupos onde só administradores enviam mensagens, o campo de mensagem fica somente leitura e o WinZapp avisa.</li>
 </ul>
 
@@ -1410,6 +1410,9 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Mensagens de voz: estéreo (AAC) passa a 128 kbps por padrão; mono continua a 64 kbps.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Gravação do áudio do computador: um travamento curto não interrompe mais a gravação.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Notificações toast de grupo: opção para mostrar o nome do grupo antes do nome do participante.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Neonize: a citação de uma mensagem de voz mostra a duração dela.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Status de localização, enquete e outros tipos deixam de aparecer como mensagem incompatível.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Abrir mídia: o arquivo aberto no visualizador externo leva o nome real.</td></tr>
 </table>
 
   </section>

@@ -6,6 +6,10 @@ NOUTĂȚI
 
 - Apeluri: datele media și operațiile întârziate pentru dispozitive sau cameră rămân asociate apelului și fluxului de origine. Neonize procesează datele în cozi limitate, în afara buclei serverului, și păstrează cititorul după o eroare temporară de emitere. Numele WASAPI ambigue nu mai selectează primul dispozitiv găsit. Jurnalele apelurilor Neonize includ și rezumate ale nivelului semnalului, fără a salva conținutul audio, pentru a ajuta la investigarea lipsei sunetului. La redeschiderea ieșirii audio a unui apel, un flux vechi care nu se poate închide nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu mai reduce la tăcere sunetul pregătit pentru redare.
 
+- Fila Media a conversațiilor și grupurilor: Ctrl+C pe un document, o fotografie, un video sau un fișier audio copiază acum fișierul în clipboard, ca în lista de mesaje, în loc să spună că mesajul nu a putut fi copiat. Elementul din meniul contextual este acum și „Copiază fișierul”.
+
+- Butonul Deschide deschide acum documente, fotografii, videoclipuri și alte fișiere în vizualizatorul extern sub numele lor real, în loc de un nume precum "tmpab12cd34", ca și Salvează ca până acum.
+
 - Setări > General > Notificări primește opțiunea "Ordinea mesajelor de grup în notificările toast:", cu "Mai întâi numele participantului" (implicit, ca până acum: "Gustavo în WinZapp | Dezvoltatori și Testeri") și "Mai întâi numele grupului" (ca în WhatsApp Desktop oficial: "WinZapp | Dezvoltatori și Testeri, Gustavo"). Alegerea schimbă doar textul notificărilor toast; ce anunță cititorul de ecran cât timp fereastra este activă rămâne neschimbat.
 
 - Înregistrarea sunetului computerului nu se mai oprește cu „problemă la dispozitivul audio” când WinZapp se blochează o secundă sau două (computer lent sau ocupat): sunetul din acel moment este omis, înregistrarea continuă, iar restul rămâne sincronizat.
@@ -19,6 +23,14 @@ NOUTĂȚI
 - Apeluri Neonize: este păstrată acceptarea sau încheierea primită înainte de înregistrarea locală a apelului; erorile apelurilor de grup disting limitarea solicitărilor WhatsApp și limitele de membri acceptate.
 
 - Apeluri Neonize: jurnalul notează acum punctele finale ale releului (relay) și răspunsurile lui, pentru a afla de ce un apel primit poate veni fără sunetul celeilalte persoane (problema #689). Niciun comportament nu s-a schimbat.
+
+- Apeluri de grup prin Neonize: când un membru al grupului intră într-un apel de grup pornit de tine, apelul devine activ și sunetul începe, în loc să rămână pe „se apelează” cu microfonul ignorat. Sfârșitul apelului este acum înregistrat în grup și în istoricul apelurilor tale, nu într-o conversație privată cu unul dintre membri (problema #689).
+
+- Apeluri de grup prin Neonize: când invitația la un apel de grup ajunge fără numele grupului, programul întreabă serverul despre ce grup este vorba, iar apelul în desfășurare apare în conversația grupului ca să te poți alătura (problema #689).
+
+- Apeluri de grup prin Neonize: jurnalul notează acum ce conțin listele de participanți trimise de server (doar numere, fără nume), pentru a afla de ce unele persoane care intră într-un apel nu aud pe nimeni (problema #689). Nicio schimbare de comportament.
+
+- Apeluri de grup prin Neonize: un dispozitiv conectat la apel păstrează acum identificatorul primit la intrare, în loc să-l piardă la următoarea actualizare de la server. Cine răspunde prin Neonize nu mai aude doar persoana care a început apelul, ci și ceilalți participanți (problema #689).
 
 - Neonize: primul mesaj către un număr de telefon nou scris într-o conversație nouă (Ctrl+N) nu se mai termină ca „neconfirmat” când WhatsApp are numărul înregistrat în cealaltă formă (cu sau fără a 9-a cifră a mobilelor braziliene): acum este trimis la adresa pe care o cunoaște WhatsApp. În plus, un număr scris într-o conversație nouă deschide acum chatul cu adresa pe care o cunoaște WhatsApp, fără a lăsa o conversație duplicată.
 
@@ -305,6 +317,10 @@ NOUTĂȚI
 - Redirecționarea unui mesaj cu un link păstrează acum previzualizarea linkului. Fereastra de redirecționare are caseta nouă „Păstrează previzualizarea linkului”, bifată implicit și afișată când un mesaj selectat are previzualizare; în Setări > Interfața utilizatorului > Mesaje, opțiunea „Păstrează implicit previzualizările linkurilor la redirecționarea mesajelor” stabilește cum începe. Funcționează cu WPPConnect și cu Neonize. Notă: cu WPPConnect, mesajul redirecționat cu previzualizarea este trimis ca mesaj nou și nu poartă eticheta „Redirecționat”; cu Neonize o poartă.
 
 - Când scrii un mesaj cu un link, cititorul de ecran spune acum „Se încarcă previzualizarea...” cât timp aceasta este obținută, „Previzualizare adăugată.” când este atașată sau „Nu s-a putut încărca previzualizarea linkului: motiv.” când eșuează. În Setări > Accesibilitate > Conținut vorbit, noua opțiune „Anunțați încărcarea și adăugarea previzualizărilor linkurilor” activează sau dezactivează cele trei mesaje; este bifată implicit.
+
+- Neonize: când citezi un mesaj vocal, durata lui (de exemplu 0:15) apare acum în balonul de citat din WhatsApp-ul celeilalte persoane, ca în WPPConnect (problema #707).
+
+- Statusuri: locația, sondajul, lista de contacte și alte tipuri de statusuri ale contactelor care apăreau ca „Mesaj incompatibil” sunt acum afișate cu eticheta lor.
 
 V2.1.0.0
 

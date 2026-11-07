@@ -13,6 +13,7 @@ from core.utils import format_number
 from main_window.message_rules import quote_is_of_my_message
 from core.message_review import is_repeated_review, recent_message_index
 from core.transcription import message_audio
+from ui.conversation_panel.copy_target import copy_method_for_message
 
 
 def jump_to_older_message(panel, indices, found_key):
@@ -280,26 +281,9 @@ class MessageAccelsMixin:
         msg = self._sorted_messages[index]
         if self._is_separator(msg):
             return
-        msg_type = msg.get("messageType", "")
-        msg_obj  = msg.get("message") or {}
-        # Text messages store the payload as a plain string under the
-        # messageType key (e.g. {"conversation": "..."}), not a dict — guard
-        # before calling .get() on it.
-        inner = msg_obj.get(msg_type)
-        if not isinstance(inner, dict):
-            inner = {}
-        media_data = msg.get("mediaData") or {}
-        is_ptt   = bool(inner.get("ptt", False) or inner.get("isPtt", False) or media_data.get("ptt", False))
-
-        if msg_type in ("imageMessage", "videoMessage", "documentMessage", "audioMessage"):
-            self._on_menu_copy_file(msg)
-        elif msg_type == "contactMessage":
-            # Ctrl+C on a contact card copies the phone number, not the row's
-            # rendered text — a card has no body to copy, and the number is the
-            # only thing anyone wants off it (issue #84).
-            self._on_contact_copy_number(msg)
-        else:
-            self._on_menu_copy_message(msg)
+        # Ctrl+C on a contact card copies the phone number, not the row's
+        # rendered text (issue #84); media copies the file.
+        getattr(self, copy_method_for_message(msg))(msg)
 
     def _on_accel_copy_caption(self, event):
         """Ctrl+Shift+C: copy the caption of the focused photo/video/document

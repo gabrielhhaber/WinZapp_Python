@@ -119,6 +119,15 @@ What the patches carry today:
   whether relay data arriving after media started would have picked another
   endpoint. Added for issue #689: on an inbound call the native layer reported
   `quadros do outro lado=0` for the whole call and never saw a peer SRTCP.
+- **meowcaller 0011**: diagnostics only. Each group roster received logs
+  "group roster received": participants by state, connected devices and how
+  many carry a PID (no names). Added for issue #689: a callee heard nobody in
+  a group call, with every roster applied as `remote_participants=0`.
+- **meowcaller 0012**: a connected group device keeps the PID it got in the
+  update where it joined. The server sends the PID only there; later full
+  rosters list the same device without it, and receivers rebuilt only from
+  devices carrying a PID dropped everyone but the fallback peer (issue #689:
+  neonize callees heard only the creator).
 
 ## Toolchain (once)
 

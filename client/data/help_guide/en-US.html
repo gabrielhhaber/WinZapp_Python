@@ -494,7 +494,7 @@
   <tr><td class="field-name">Alt+Shift+D</td><td>Message info</td></tr>
 </table>
 <ul>
-  <li><strong>Reply:</strong> if the original message is not found before sending, WinZapp tells you the quote is missing and keeps your text for you to edit through the message menu ("Edit unsent reply without its quote"). Replies with a mention carry the quote along.</li>
+  <li><strong>Reply:</strong> if the original message is not found before sending, WinZapp tells you the quote is missing and keeps your text for you to edit through the message menu ("Edit unsent reply without its quote"). Replies with a mention carry the quote along. With Neonize, quoting a voice message shows its duration in the quote the other person sees.</li>
   <li><strong>Deleting media:</strong> when you delete a photo, video, audio or document, the confirmation has "Also delete the media from your phone", checked by default. Uncheck it to delete the message and keep the file stored on the phone. The box also applies to several selected messages and only appears when there is media among them. In Settings &gt; Interface &gt; Messages, you define how it starts.</li>
   <li><strong>Forward:</strong> choose the destinations in a list with search (the down arrow in the field goes to the first result). When it works, the screen reader says "Message forwarded." (or how many were), with no window to close. Forwarded voice messages arrive as ordinary audio, unless you check "Forward voice messages as voice messages instead of audio" in Settings &gt; Audio. With Neonize, the forwarded copy shows up in the destination conversation right away. When a selected message has a link preview, the box "Keep link preview" starts as set in Settings &gt; User interface &gt; Messages, "Keep link previews by default when forwarding messages". With WPPConnect the copy is sent as a new message and is not marked as forwarded; with Neonize it is.</li>
   <li><strong>Message info:</strong> on a message of yours, it shows when it was delivered, read and played, with full date and time, by asking WhatsApp itself (so receipts that arrived while WinZapp was closed also appear). In a group, it lists who received and who read it, by name.</li>
@@ -573,7 +573,7 @@
 </ul>
 
 <h3>Open, save and describe</h3>
-<p>On a message with media, Enter opens it (photo in the viewer, audio and video play, document opens in the default program). Space plays and pauses audio and video, but never opens links, documents or the viewer. After "Open" there are the buttons, reachable with Tab, "Save as..." (Ctrl+Shift+S), "Show in folder" (Ctrl+Enter, when you saved a copy) and "Describe" (Ctrl+Shift+I, when the AI features are on). The context menu has the same items.</p>
+<p>On a message with media, Enter opens it (photo in the viewer, audio and video play, document opens in the default program). Space plays and pauses audio and video, but never opens links, documents or the viewer. After "Open" there are the buttons, reachable with Tab, "Save as..." (Ctrl+Shift+S), "Show in folder" (Ctrl+Enter, when you saved a copy) and "Describe" (Ctrl+Shift+I, when the AI features are on). The context menu has the same items. A file opened this way keeps its real name (the same one Save as proposes).</p>
 <p>A video message (the video recorded with the camera button in WhatsApp, sent instead of a voice message) appears in the list as "video message" and works like any video: Enter plays it, and Save as, the duration and the rest of the menu are the same.</p>
 <p>The folder where the save windows open is chosen in Settings &gt; Storage: the last folder used, Downloads or a folder of your own.</p>
 
@@ -691,7 +691,7 @@
     <h2 id="h-status">🟢 8. Status</h2>
 <p class="lead">The Status tab (Alt+5) shows your contacts' statuses and lets you post your own.</p>
 <ul>
-  <li><strong>View:</strong> the list shows the statuses; Enter opens one. Photo and video statuses open in the viewer (separate or in the player inside the tab) and Ctrl+Left/Right Arrow goes to the previous/next status.</li>
+  <li><strong>View:</strong> the list shows the statuses; Enter opens one. Photo and video statuses open in the viewer (separate or in the player inside the tab) and Ctrl+Left/Right Arrow goes to the previous/next status. Location, poll, contact-list and other kinds of status appear in the list with their own label (for example, "Location") and open as text.</li>
   <li><strong>React:</strong> "Like ❤️".</li>
   <li><strong>Reply:</strong> "Reply to status" opens the reply field; Enter sends ("Reply sent.").</li>
   <li><strong>Post:</strong> "Post text as status" and "Send media as status". "Status posted successfully." confirms. Your own statuses are in "My status".</li>
@@ -769,7 +769,7 @@
 <p>Ctrl+Shift+D (or "Chat info" in the context menu) opens a window with tabs. All buttons and fields have a shortcut letter (Alt+letter).</p>
 <ul>
   <li><strong>Contact:</strong> Overview tab with name, the profile name the contact chose, verified name and whether the account is a business account, whether notifications are muted (and until when), the disappearing messages timer and the notice that messages and calls are end-to-end encrypted. The "Profile picture" button (Alt+F) shows the picture, and "Open in external viewer" (Alt+A) opens it in the Windows default program; if there is no picture, or the person does not allow you to see it, WinZapp says so. There is also the <strong>Groups in common</strong> tab (Enter opens the group) and the Media tab.</li>
-  <li><strong>Group:</strong> Overview tab (name, description, group picture, whether only admins send messages), Participants tab (Enter on a participant opens the private chat with them; "Add member" accepts contacts or an extra number) and Media tab. The data appears as soon as the group answers and missing names and numbers are filled in right after.</li>
+  <li><strong>Group:</strong> Overview tab (name, description, group picture, whether only admins send messages), Participants tab (Enter on a participant opens the private chat with them; "Add member" accepts contacts or an extra number) and Media tab. The data appears as soon as the group answers and missing names and numbers are filled in right after. On the Media tab, Ctrl+C on a document, photo, video or audio copies the file to the clipboard, as in the message list.</li>
   <li><strong>Notices:</strong> in groups where only admins send messages, the message field is read-only and WinZapp says so.</li>
 </ul>
 
@@ -1410,6 +1410,9 @@
 <tr><td class="field-name">Not yet released</td><td>Voice messages: stereo (AAC) now defaults to 128 kbps; mono stays at 64 kbps.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Computer audio recording: a short stall no longer stops the recording.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Group toast notifications: option to show the group name before the participant name.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Neonize: quoting a voice message shows its duration.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Location, poll and other kinds of status no longer show as an incompatible message.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Open: the file opened in the external viewer keeps its real name.</td></tr>
 </table>
 
   </section>

@@ -383,3 +383,88 @@ def test_the_other_call_routes_still_need_the_connection():
     s = N(client=None, status="CLOSED", ringing_calls=calls.Pending(), call_media=FakeMedia())
     (status, _), = run(s, [("POST", "/call/accept", {"callId": "C1"})])
     assert status == 400
+
+
+def test_the_end_of_a_group_call_placed_here_keeps_the_group_and_is_ours():
+    data = {**ended(), "peerJid": "75db@lid", "isGroup": False, "outgoing": False}
+    done = calls.with_placed_group(data, {"groupJid": "1203@g.us", "isVideo": True})
+    assert (done["peerJid"], done["groupJid"], done["isGroup"]) == ("1203@g.us", "1203@g.us", True)
+    assert done["outgoing"] is True and done["isVideo"] is True
+    # not a group call placed here: the end stays what the native layer said
+    assert calls.with_placed_group(data, None) is data
+    assert calls.with_placed_group(data, {"groupJid": ""}) is data
+
+
+def test_record_end_does_not_file_the_call_this_client_placed(monkeypatch):
+    stored = []
+    monkeypatch.setattr(calls, "call_chat", lambda db, meta, group: "75db@lid")
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append(w) or True)
+    s = N(me="5599@s.whatsapp.net", lid="", db=None)
+    mine = calls.with_placed_group(ended(), {"groupJid": "1203@g.us"})
+    assert not calls.record_end(s, N(basicCallMeta=None), mine, False, 1000)
+    assert stored == []
+
+
+def test_the_lobby_names_the_group_of_an_invitation_that_came_without_one():
+    assert calls.lobby_group({"groupJid": "1203@g.us"}) == "1203@g.us"
+    assert calls.lobby_group({"groupJid": ""}) == ""
+    assert calls.lobby_group({"groupJid": "5511@s.whatsapp.net"}) == ""
+    assert calls.lobby_group(None) == ""
+
+
+def test_the_group_found_by_the_lobby_reaches_every_place_that_remembers_the_call():
+    pending = calls.Pending()
+    pending.remember("C1", "100:2@lid", 1000, {"groupJid": "", "isVideo": False})
+    seen = []
+
+    class Media:
+        ongoing_calls = None
+
+        def lobby(self, call_id, creator):
+            seen.append((call_id, creator))
+            return {"groupJid": "1203@g.us"}
+
+        def set_call_group(self, call_id, group):
+            seen.append(("group", call_id, group))
+
+    media = Media()
+    creator = N(User="100", Device=2, Server="lid")
+    s = N(ringing_calls=pending)
+    assert calls.resolve_multiparty_group(s, media, {"id": "C1", "isVideo": False}, creator) == "1203@g.us"
+    assert seen == [("C1", "100:2@lid"), ("group", "C1", "1203@g.us")]
+    assert pending.offer_of("C1")["groupJid"] == "1203@g.us"
+    assert media.ongoing_calls.get("C1")["chat"] == "1203@g.us"
+
+
+def test_a_lobby_that_fails_leaves_the_call_as_it_was():
+    pending = calls.Pending()
+    pending.remember("C1", "100@lid", 1000, {"groupJid": ""})
+
+    class Media:
+        def lobby(self, call_id, creator):
+            raise OSError("down")
+
+    s = N(ringing_calls=pending)
+    assert calls.resolve_multiparty_group(
+        s, Media(), {"id": "C1"}, N(User="100", Device=0, Server="lid")) == ""
+    assert pending.offer_of("C1")["groupJid"] == ""
+
+
+def test_a_lobby_answer_that_comes_after_the_call_ended_registers_nothing():
+    pending = calls.Pending()                      # the end already forgot the call
+
+    class Media:
+        ongoing_calls = None
+
+        def lobby(self, call_id, creator):
+            return {"groupJid": "1203@g.us"}
+
+        def set_call_group(self, call_id, group):
+            raise AssertionError("a dead call must not be touched")
+
+    media = Media()
+    s = N(ringing_calls=pending)
+    assert calls.resolve_multiparty_group(
+        s, media, {"id": "C1"}, N(User="100", Device=0, Server="lid")) == ""
+    assert media.ongoing_calls is None

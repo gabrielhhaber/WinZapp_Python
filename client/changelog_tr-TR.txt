@@ -6,6 +6,10 @@ YENİLİKLER
 
 - Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.
 
+- Sohbet ve grupların Medya sekmesi: Bir belge, fotoğraf, video veya sesin üzerinde Ctrl+C artık "Bu mesaj kopyalanamadı" demek yerine, mesaj listesindeki gibi dosyayı panoya kopyalıyor. Bağlam menüsü öğesi de artık "Dosyayı kopyala".
+
+- Aç düğmesi artık belgeleri, fotoğrafları, videoları ve diğer dosyaları harici görüntüleyicide "tmpab12cd34" gibi bir ad yerine gerçek adıyla açıyor; Farklı kaydet zaten böyle yapıyordu.
+
 - Ayarlar > Genel > Bildirimler bölümüne "Toast bildirimlerinde grup iletilerinin sırası:" eklendi: "Önce katılımcı adı" (varsayılan, eskisi gibi: "Gustavo (WinZapp | Geliştiriciler ve Test Edenler)") ve "Önce grup adı" (resmî WhatsApp Desktop'taki gibi: "WinZapp | Geliştiriciler ve Test Edenler, Gustavo"). Seçim yalnızca toast bildirimlerinin metnini değiştirir; pencere etkinken ekran okuyucunun duyurduğu şey aynı kalır.
 
 - WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) bilgisayar sesinin kaydı artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor.
@@ -19,6 +23,14 @@ YENİLİKLER
 - Neonize aramaları: yerel çağrı kaydı oluşturulmadan gelen cevaplama ve bitiş durumları korunur; grup araması hataları WhatsApp hız sınırı ile desteklenen üye sınırlarını ayrı bildirir.
 
 - Neonize aramaları: günlük artık röle (relay) uç noktalarını ve rölenin yanıtlarını kaydediyor; gelen bir aramada karşı tarafın sesinin neden gelmeyebileceğini bulmak için (sorun #689). Davranış değişmedi.
+
+- Neonize grup aramaları: başlattığınız bir grup aramasına bir grup üyesi katıldığında arama etkin olur ve ses başlar; artık mikrofon yok sayılarak "aranıyor" durumunda kalmaz. Aramanın bitişi artık üyelerden biriyle özel bir sohbette değil, grupta ve arama geçmişinizde kaydedilir (sorun #689).
+
+- Neonize grup aramaları: bir grup aramasına davet grup adı olmadan geldiğinde program sunucuya hangi grup olduğunu sorar; böylece devam eden arama, katılabilmeniz için grubun sohbetinde görünür (sorun #689).
+
+- Neonize grup aramaları: günlük artık sunucunun gönderdiği katılımcı listelerinin içeriğini kaydediyor (yalnızca sayılar, isim yok); böylece bir aramaya katılan bazı kişilerin neden kimseyi duyamadığı anlaşılabilir (sorun #689). Davranış değişikliği yok.
+
+- Neonize grup aramaları: aramaya bağlı bir cihaz, katılırken aldığı kimliği sunucunun sonraki güncellemesinde kaybetmek yerine artık koruyor. Neonize ile yanıtlayan kişi artık yalnızca aramayı başlatanı değil, diğer katılımcıları da duyuyor (sorun #689).
 
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.
 
@@ -305,6 +317,10 @@ YENİLİKLER
 - Bağlantı içeren bir mesajı iletirken bağlantı önizlemesi artık korunuyor. İletme penceresinde yeni "Bağlantı önizlemesini koru" kutusu var; varsayılan olarak işaretlidir ve seçilen bir mesajın önizlemesi varsa görünür; Ayarlar > Kullanıcı arayüzü > Mesajlar altındaki "Mesajları iletirken bağlantı önizlemelerini varsayılan olarak koru" seçeneği kutunun nasıl başlayacağını belirler. WPPConnect ve Neonize ile çalışır. Not: WPPConnect ile önizlemesiyle iletilen mesaj yeni bir mesaj olarak gönderilir ve "İletildi" etiketini taşımaz; Neonize ile taşır.
 
 - Bağlantı içeren bir mesaj yazarken ekran okuyucu artık önizleme alınırken "Önizleme yükleniyor...", eklendiğinde "Önizleme eklendi.", başarısız olduğunda "Bağlantı önizlemesi yüklenemedi: neden." der. Ayarlar > Erişilebilirlik > Seslendirilen içerik altındaki yeni "Bağlantı önizlemelerinin yüklenmesini ve eklenmesini duyur" seçeneği bu üç iletiyi açar veya kapatır; varsayılan olarak işaretlidir.
+
+- Neonize: bir sesli mesaj alıntılandığında, süresi (örneğin 0:15) artık karşı tarafın WhatsApp'ındaki alıntı balonunda görünüyor, tıpkı WPPConnect'teki gibi (sorun #707).
+
+- Durumlar: konum, anket, kişi listesi ve "Uyumsuz mesaj" olarak görünen diğer kişi durumu türleri artık kendi etiketleriyle gösteriliyor.
 
 V2.1.0.0
 

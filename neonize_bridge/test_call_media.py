@@ -529,3 +529,62 @@ def test_dropped_frames_are_logged_once_in_a_while(caplog):
         for _ in range(3):
             m._emit_audio("IN-DROP", claim, b"\0\0", 48000, 0)
     assert caplog.text.count("call audio frame dropped") == 1
+
+
+class GroupRoster(FakeCalls):
+    def __init__(self, people):
+        super().__init__()
+        self.people = people
+
+    def group_dial(self, group, video=False):
+        return {"call": "GP1"}
+
+    def roster(self, call_id):
+        return {"group": True, "participants": self.people}
+
+
+def group_member(jid, state="connected"):
+    return {"jid": jid, "pn": "", "state": state}
+
+
+def test_a_group_call_placed_here_is_answered_once_another_member_connects():
+    fake = GroupRoster([group_member("111@lid")])            # only this account so far
+    m, sent = media(fake)
+    m.group_calls = True
+    m.own_users = lambda: {"111"}
+    assert m.group_dial("1203@g.us") == "GP1"
+    m.handle({"ev": "group", "call": "GP1", "participants": 1})
+    assert states(sent)[-1] == "CALLING" and not m._known("GP1").get("connected")
+    fake.people = [group_member("111@lid"), group_member("222@lid", "invited")]
+    m.handle({"ev": "group", "call": "GP1", "participants": 2})
+    assert states(sent)[-1] == "CALLING"
+    fake.people = [group_member("111@lid"), group_member("222@lid")]
+    m.handle({"ev": "group", "call": "GP1", "participants": 2})
+    assert states(sent)[-1] == "ACTIVE" and m._known("GP1")["connected"]
+
+
+def test_a_roster_event_does_not_answer_a_call_that_is_not_an_outgoing_group_call():
+    fake = GroupRoster([group_member("222@lid")])
+    m, sent = media(fake)
+    m.own_users = lambda: {"111"}
+    m.handle({"ev": "group", "call": "NOPE", "participants": 1})
+    assert sent == []
+    assert m.dial("5511999990000@c.us") == "OUT1"
+    m.handle({"ev": "group", "call": "OUT1", "participants": 1})
+    assert states(sent) == ["CALLING"]
+
+
+def test_the_group_of_a_call_placed_here_is_remembered_for_its_end():
+    m, _ = media(GroupRoster([]))
+    m.group_calls = True
+    m.group_dial("1203@g.us", video=False)
+    assert m.placed_group("GP1") == {"groupJid": "1203@g.us", "isVideo": False}
+    assert m.placed_group("OTHER") is None
+
+
+def test_a_call_that_learns_its_group_later_carries_it_in_its_states():
+    m, sent = media()
+    m.remember_offer({"id": "IN1", "peerJid": "5511@s.whatsapp.net", "isVideo": False, "groupJid": ""})
+    assert m.set_call_group("IN1", "1203@g.us") and not m.set_call_group("GONE", "1203@g.us")
+    m._set_state("IN1", "ACTIVE")
+    assert sent[-1][1]["data"]["groupJid"] == "1203@g.us" and sent[-1][1]["data"]["isGroup"]

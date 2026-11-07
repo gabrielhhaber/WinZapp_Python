@@ -21,7 +21,9 @@ import time
 #: What message_audio, audio_prep and whisper_cpp_backend name their temporaries.
 PREFIXES = ("winzapp-audio-", "winzapp-transcribe-", "winzapp-whisper-",
             # The download of a status being transcribed (statuses.TEMP_PREFIX).
-            "winzapp-status-")
+            "winzapp-status-",
+            # The folder an external-viewer open stages a file in (core.external_open).
+            "winzapp-open-")
 
 MAX_AGE_SECONDS = 24 * 3600
 

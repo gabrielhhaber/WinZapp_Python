@@ -46,6 +46,7 @@ from core.locale_format import get_datetime_format
 # function, so this direction of the pair is not a cycle.
 from ui.conversations import local_media_cache_paths
 from ui.conversation_panel.message_list import enter_transcribes
+from ui.conversation_panel.copy_target import copy_method_for_message
 from app_paths import data_path
 from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
 from core.sound_system import (
@@ -1634,7 +1635,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         elif ctrl and shift and key == "O":
             method = "_on_menu_star"
         elif ctrl and not shift and not alt and key == "C":
-            method = "_on_menu_copy_message"
+            method = copy_method_for_message(msg)
         elif alt and not ctrl and not shift and key == "R":
             method = "_on_menu_reply"
 
@@ -1707,6 +1708,11 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
             if label_key == "star_message":
                 # Mirrors the panel's own label, which flips with the state.
                 label_key = "unstar_message" if msg.get("starred") else "star_message"
+            if label_key == "copy_message_text":
+                # Same choice as Ctrl+C: a file copies the file, not text.
+                method = copy_method_for_message(msg)
+                label_key = ("copy_file" if method == "_on_menu_copy_file"
+                             else label_key)
             _add_msg_action(f"{i18n.t(label_key)}\t{shortcut}", method)
             if label_key == "react_to_message":
                 _separator()

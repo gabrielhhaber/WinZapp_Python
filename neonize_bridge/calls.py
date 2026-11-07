@@ -110,6 +110,36 @@ def offer_event(e, now) -> dict:
     }
 
 
+def lobby_group(lobby) -> str:
+    """The group the lobby answer names ('' if it names none): an invitation to
+    a group call can come without `group-jid`, and then the call looked like a
+    private call from its creator."""
+    group = msgmap.jid_wpp(str((lobby or {}).get("groupJid") or ""))
+    return group if group.endswith("@g.us") else ""
+
+
+def resolve_multiparty_group(s, media, data, creator):
+    """Asks the server which group an invitation without `group-jid` belongs to
+    and tells everything that remembers the call (the ongoing calls of the
+    group's chat, its later states, its end). Blocks on the network: run it on
+    its own thread."""
+    try:
+        group = lobby_group(media.lobby(data["id"], ongoing_calls.device_jid(creator)))
+    except Exception as e:
+        log.info("multiparty call: lobby not answered (%s)", type(e).__name__)
+        return ""
+    if not group:
+        log.info("multiparty call: the lobby named no group")
+        return ""
+    if not s.ringing_calls.set_group(data["id"], group):
+        return ""                       # it ended while the lobby answered
+    media.set_call_group(data["id"], group)
+    ongoing_calls.known(media).remember(
+        data["id"], ongoing_calls.device_jid(creator), group, data.get("isVideo"))
+    log.info("multiparty call: the lobby named its group")
+    return group
+
+
 def ring_left(offer_ts, now, limit=RING_LIMIT) -> float:
     """Seconds until an unanswered incoming call is surely over (0 when it
     already is). A missing offer time counts from now."""
@@ -135,6 +165,20 @@ def with_offer(data, offer) -> dict:
     group = data["groupJid"] or offer.get("groupJid") or ""
     return {**data, "groupJid": group, "isGroup": bool(group),
             "isVideo": bool(data["isVideo"] or offer.get("isVideo"))}
+
+
+def with_placed_group(data, placed) -> dict:
+    """The end of a group call placed from here, completed with what the
+    placement knew. WhatsApp's <terminate> names neither the group nor that the
+    call was ours, and its creator is whichever member ended it, so the end
+    looked like a private call from that member: the client never matched it
+    to the call it was making and the call record landed in that member's
+    chat. `placed` is CallMedia.placed_group."""
+    if not placed or not placed.get("groupJid"):
+        return data
+    group = placed["groupJid"]
+    return {**data, "peerJid": group, "groupJid": group, "isGroup": True, "outgoing": True,
+            "isVideo": bool(data["isVideo"] or placed.get("isVideo"))}
 
 
 def end_state(reason) -> tuple:
@@ -223,6 +267,8 @@ def record_end(s, e, data, was_ringing, now, answered=None):
     CallMedia.answered_here for the call. Does not record the call I made
     myself (from another device): it cannot be known who it was with just
     from the event. False if nothing was recorded."""
+    if data.get("outgoing"):
+        return False                    # the client records the calls it placed
     here = answered_outcome(data, answered)
     if here is not None:
         outcome, duration, video = here
@@ -271,6 +317,14 @@ class Pending:
             self._offers = {i: t for i, t in self._offers.items() if now - t[1] < OFFER_TTL}
             self._offers[call_id] = ({"groupJid": offer.get("groupJid") or "",
                                       "isVideo": bool(offer.get("isVideo"))}, now)
+
+    def set_group(self, call_id, group):
+        """The group of a call whose offer did not name it."""
+        found = self._offers.get(call_id)
+        if not found:
+            return False                # the call is over: nothing to update
+        self._offers[call_id] = ({**found[0], "groupJid": group}, found[1])
+        return True
 
     def offer_of(self, call_id):
         """{"groupJid", "isVideo"} of the call's offer, or None."""
@@ -325,8 +379,13 @@ def register_events(cli, s):
             if media is not None:
                 media.remember_offer(data)
                 ongoing_calls.remember_offer(media, data["id"], e.basicCallMeta.callCreator, data)
-            log.info("call received (video=%s group=%s)", data["isVideo"], data["isGroup"])
+            log.info("call received (video=%s group=%s multiparty=%s)",
+                     data["isVideo"], data["isGroup"], data["isMultiparty"])
             notify(data)
+            if media is not None and data["isMultiparty"] and not data["groupJid"]:
+                threading.Thread(target=resolve_multiparty_group,
+                                 args=(s, media, data, e.basicCallMeta.callCreator),
+                                 daemon=True, name="call-group").start()
             if media is not None:
                 timer = threading.Timer(ring_left(data["timestamp"], time.time()),
                                         drop_if_unanswered, (media, data["id"]))
@@ -350,6 +409,9 @@ def register_events(cli, s):
             data = end_event(e, time.time())
             data = with_offer(data, s.ringing_calls.offer_of(data["id"]))
             data = refine_end(data, s.ringing_calls.accepted(data["id"]))
+            placed_media = getattr(s, "call_media", None)
+            if placed_media is not None:
+                data = with_placed_group(data, placed_media.placed_group(data["id"]))
             was_ringing = s.ringing_calls.creator_of(data["id"]) is not None
             s.ringing_calls.forget(data["id"])
             media = getattr(s, "call_media", None)
