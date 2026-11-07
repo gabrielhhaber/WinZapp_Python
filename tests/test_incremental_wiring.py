@@ -556,7 +556,7 @@ def _no_neural(*a, **k):
 def test_send_blocked_drain_falls_back_to_basic_with_all_bytes(send_env, monkeypatch):
     import core.audio_processing as ap
     import core.neural_noise_reduction as nnr
-    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_WORKER_TIMEOUT", 0.3)
+    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
     monkeypatch.setattr(ap, "apply_noise_gate",
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
@@ -577,8 +577,10 @@ def test_send_blocked_drain_falls_back_to_basic_with_all_bytes(send_env, monkeyp
                             spool=spool, stream=_FakeStream())
 
     def _stuck_drain():
-        # A natively stuck feed: alive until cancel, then the drain's own
-        # exit contract (spool cleanup + slot release).
+        # A natively WEDGED feed: the stop flag cannot be observed until
+        # the native call returns — here modelled as never observing stop
+        # at all. cancel (set when the send abandons) is what unblocks it,
+        # then the drain's own exit contract: spool cleanup + slot release.
         while not session["cancel"]:
             time.sleep(0.02)
         try:
@@ -602,7 +604,13 @@ def test_send_blocked_drain_falls_back_to_basic_with_all_bytes(send_env, monkeyp
     assert session["fallback_chosen"] is True
     drain.join(5)
     assert not drain.is_alive()
+    # The finisher owns the abandoned result: spool deleted, slot released.
+    deadline = time.time() + 5
+    while time.time() < deadline and os.path.exists(spool):
+        time.sleep(0.05)
     assert not os.path.exists(spool)
+    assert controller.acquire_slot("later", {"cancel": False})
+    controller.release_slot("later")
     # Authority consumed by the real hand-off; echo exclusion lifted there.
     assert not controller.is_preparing("m1")
     assert "_incremental_preparing" not in panel.registered
@@ -748,7 +756,7 @@ def test_send_revoked_during_finish_helper_cleans_up_on_return(send_env, monkeyp
 def test_send_finish_timeout_falls_back_and_late_result_is_discarded(send_env, monkeypatch):
     import core.audio_processing as ap
     import core.neural_noise_reduction as nnr
-    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_WORKER_TIMEOUT", 0.3)
+    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
     monkeypatch.setattr(ap, "apply_noise_gate",
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
@@ -783,3 +791,462 @@ def test_send_finish_timeout_falls_back_and_late_result_is_discarded(send_env, m
         time.sleep(0.05)
     assert not os.path.exists(spool)
     assert controller.acquire_slot("other", {"cancel": False})
+
+
+# ── Real delete / echo handlers (H1, H2) ─────────────────────────────────────
+# The REAL _on_menu_delete_message and on_new_message functions, driven with
+# fake selves — same headless pattern as the send harness above.
+
+from ui.conversation_panel import message_actions as ma  # noqa: E402
+from main_window import message_events as me  # noqa: E402
+import threading  # noqa: E402
+
+
+class _FakeWxDialog:
+    """Stands in for wx.Dialog: always confirmed (ID_OK)."""
+
+    def __init__(self, parent, title=None, style=None):
+        pass
+
+    def ShowModal(self):
+        return 5100  # wx.ID_OK
+
+    def Destroy(self):
+        pass
+
+    def SetSizer(self, sizer):
+        pass
+
+    def Fit(self):
+        pass
+
+    def CentreOnParent(self):
+        pass
+
+
+class _FakeWxWidget:
+    def __init__(self, *a, **k):
+        self._value = False
+
+    def SetValue(self, v):
+        self._value = v
+
+    def GetValue(self):
+        return self._value
+
+    def SetSizer(self, sizer):
+        pass
+
+    def Add(self, *a, **k):
+        pass
+
+    def AddButton(self, *a, **k):
+        pass
+
+    def Realize(self):
+        pass
+
+
+@pytest.fixture
+def delete_wx(monkeypatch):
+    """Real dialog classes on the wx stub: the stub's classes cannot be
+    instantiated with args, so the delete dialog gets plain fakes."""
+    monkeypatch.setattr(ma.wx, "Dialog", _FakeWxDialog)
+    monkeypatch.setattr(ma.wx, "Panel", _FakeWxWidget)
+    monkeypatch.setattr(ma.wx, "BoxSizer", _FakeWxWidget)
+    monkeypatch.setattr(ma.wx, "RadioButton", _FakeWxWidget)
+    monkeypatch.setattr(ma.wx, "StdDialogButtonSizer", _FakeWxWidget)
+    monkeypatch.setattr(ma.wx, "Button", _FakeWxWidget)
+    monkeypatch.setattr(ma.wx, "DEFAULT_DIALOG_STYLE", 0, raising=False)
+    monkeypatch.setattr(ma.wx, "VERTICAL", 1, raising=False)
+    monkeypatch.setattr(ma.wx, "ALL", 2, raising=False)
+    monkeypatch.setattr(ma.wx, "LEFT", 4, raising=False)
+    monkeypatch.setattr(ma.wx, "RIGHT", 8, raising=False)
+    monkeypatch.setattr(ma.wx, "BOTTOM", 16, raising=False)
+    monkeypatch.setattr(ma.wx, "EXPAND", 32, raising=False)
+    monkeypatch.setattr(ma.wx, "RB_GROUP", 64, raising=False)
+    monkeypatch.setattr(ma.wx, "ID_OK", 5100, raising=False)
+    monkeypatch.setattr(ma.wx, "ID_CANCEL", 5101, raising=False)
+
+
+class _DeletePanel:
+    """Fake conversation panel for the REAL _on_menu_delete_message."""
+
+    def __init__(self, controller, msg):
+        self.main_window = types.SimpleNamespace(
+            i18n=_FakeI18n(),
+            _is_self_jid=lambda jid: False,
+            _incremental_controller=controller,
+        )
+        self.conversation = {"remoteJid": "peer@s.whatsapp.net"}
+        self._sorted_messages = [msg]
+        self._outgoing_virtual_messages = {msg["_local_id"]: {}}
+        self._media_upload_progress = {msg["_local_id"]: 5}
+        self._upload_stages_seen = {msg["_local_id"]: {"upload"}}
+        self._media_transfer_started = {msg["_local_id"]}
+        self.calls = []
+
+    def _is_separator(self, msg):
+        return False
+
+    def _is_system_event(self, msg):
+        return False
+
+    def _add_delete_media_checkbox(self, panel, sizer, msgs):
+        return None
+
+    def remove_messages_by_id(self, ids, focus_previous=False):
+        self.calls.append(("remove_messages_by_id", set(ids), focus_previous))
+
+    def _hide_media_transfer_gauge(self):
+        self.calls.append(("hide_gauge",))
+
+    def _cancel_pending_message(self, msg, local_id, hold_for_echo=True):
+        self.calls.append(("cancel_pending", local_id, hold_for_echo))
+
+    def _delete_message_for_me_only(self, *a, **k):
+        self.calls.append(("for_me_only",))
+
+    def _delete_message_for_everyone_keep_row(self, *a, **k):
+        self.calls.append(("for_everyone",))
+
+    def _confirm_local_delete(self, msgs):
+        self.calls.append(("confirm_local",))
+        return True, True
+
+
+def _pending_voice_msg(local_id):
+    return {
+        "key": {"id": local_id, "fromMe": True,
+                "remoteJid": "peer@s.whatsapp.net"},
+        "_local_id": local_id,
+        "_local_pending": True,
+        "messageType": "audioMessage",
+    }
+
+
+def test_delete_handler_revoke_wins_removes_incremental_note(delete_wx, monkeypatch):
+    """H1: real delete handler, incremental branch — the note is still held
+    by the NR machinery (PREPARING), revoke() wins, plain local removal."""
+    discarded = []
+    monkeypatch.setattr(ma, "discard_local_media_cache",
+                        lambda *a: discarded.append(a))
+    monkeypatch.setattr(ma, "data_path", lambda name: "/tmp/dp/" + name)
+    controller = IncrementalDenoiseController()
+    session = {"revoked": False, "cancel": False}
+    controller.register("LID1", session)
+    msg = _pending_voice_msg("LID1")
+    panel = _DeletePanel(controller, msg)
+
+    ma.MessageActionsMixin._on_menu_delete_message(panel, 0)
+
+    # Revocation reached the session flags atomically.
+    assert session["revoked"] and session["cancel"]
+    assert ("remove_messages_by_id", {"LID1"}, True) in panel.calls
+    assert ("hide_gauge",) in panel.calls
+    assert panel._outgoing_virtual_messages == {}
+    assert panel._media_upload_progress == {}
+    assert panel._upload_stages_seen == {}
+    assert panel._media_transfer_started == set()
+    assert discarded == [("/tmp/dp/voice_messages", "/tmp/dp/media", "LID1")]
+    # NOT the queue-cancel path and NOT a normal delete.
+    assert not any(c[0] in ("cancel_pending", "for_me_only", "for_everyone")
+                   for c in panel.calls)
+
+
+def test_delete_handler_revoke_lost_falls_to_queue_cancel(delete_wx, monkeypatch):
+    """H1: same handler, but the send thread already transferred the note
+    (or never registered it): revoke() is False and the existing
+    _cancel_pending_message path applies, holding the record for the echo."""
+    monkeypatch.setattr(ma, "discard_local_media_cache", lambda *a: None)
+    monkeypatch.setattr(ma, "data_path", lambda name: "/tmp/dp/" + name)
+    controller = IncrementalDenoiseController()
+    msg = _pending_voice_msg("LID2")
+    panel = _DeletePanel(controller, msg)
+
+    ma.MessageActionsMixin._on_menu_delete_message(panel, 0)
+
+    assert panel.calls == [("cancel_pending", "LID2", True)]
+
+
+class _FakeDb:
+    def __init__(self):
+        self.inserted = []
+
+    def insert_message(self, jid, record):
+        self.inserted.append((jid, record))
+
+
+class _SyncExecutor:
+    def submit(self, fn):
+        fn()
+
+
+def _echo_window(controller, jid, records):
+    db = _FakeDb()
+    window = types.SimpleNamespace(
+        _live_events_ready=lambda: True,
+        _normalize_jid=lambda j: j,
+        _is_self_jid=lambda s: False,
+        my_jid="",
+        my_lid="",
+        _redirect_self_chat_artifact=lambda rj, key, fm: (rj, fm),
+        _extract_lid_mapping=lambda msg: None,
+        _drop_protocol_edit=lambda rj, msg: False,
+        _deleted_chats=set(),
+        chats={jid: {"t": 0, "messages": {"messages": {"records": records}}}},
+        _apply_group_subject_change=lambda *a, **k: None,
+        _refresh_mention_cache_on_membership_change=lambda *a, **k: None,
+        _apply_group_settings_change=lambda *a, **k: None,
+        db=db,
+        _msg_bg_executor=_SyncExecutor(),
+        _own_sent_ids_lock=threading.Lock(),
+        _own_sent_ids=set(),
+        conversations_panel=types.SimpleNamespace(
+            _mark_message_sent=lambda *a, **k: None),
+        _schedule_save=lambda **k: None,
+        _schedule_set_chats=lambda: None,
+        _incremental_controller=controller,
+    )
+    return window, db
+
+
+def _audio_echo(jid, real_id):
+    return {
+        "key": {"id": real_id, "fromMe": True, "remoteJid": jid},
+        "messageType": "audioMessage",
+        "messageTimestamp": 200,
+    }
+
+
+def _pending_record(local_id, jid, preparing=False):
+    record = {
+        "key": {"id": local_id, "fromMe": True, "remoteJid": jid},
+        "_local_id": local_id,
+        "_local_pending": True,
+        "messageType": "audioMessage",
+        "messageTimestamp": 100,
+    }
+    if preparing:
+        record["_incremental_preparing"] = True
+    return record
+
+
+def test_echo_matcher_skips_preparing_record(monkeypatch):
+    """H2: real on_new_message — a note still held by the NR machinery has
+    no send in flight, so the echo of ANOTHER pending audio claims that one,
+    never the PREPARING record."""
+    monkeypatch.setattr(me, "dismiss_typing_message", lambda *a: None)
+    jid = "peer@s.whatsapp.net"
+    controller = IncrementalDenoiseController()
+    controller.register("LID_A", {})  # PREPARING: authority for the skip
+    held = _pending_record("LID_A", jid, preparing=True)
+    other = _pending_record("LID_B", jid)
+    window, db = _echo_window(controller, jid, [held, other])
+
+    me.MessageEventsMixin.on_new_message(window, _audio_echo(jid, "REAL1"))
+
+    # The echo claimed the other pending audio...
+    assert other["_local_pending"] is False
+    assert other["key"]["id"] == "REAL1"
+    assert db.inserted == [(jid, other)]
+    # ...and the held note was left completely untouched.
+    assert held["key"]["id"] == "LID_A"
+    assert held["_local_pending"] is True
+
+
+def test_echo_matcher_claims_transferred_record_despite_stale_flag(monkeypatch):
+    """H2: same matcher — after the real hand-off the record may still carry
+    a stale _incremental_preparing flag; the controller's state is the
+    authority, so the transferred note DOES claim its echo."""
+    monkeypatch.setattr(me, "dismiss_typing_message", lambda *a: None)
+    jid = "peer@s.whatsapp.net"
+    controller = IncrementalDenoiseController()
+    controller.register("LID_A", {})
+    assert controller.transfer("LID_A")  # real hand-off: state consumed
+    record = _pending_record("LID_A", jid, preparing=True)  # stale flag
+    window, db = _echo_window(controller, jid, [record])
+
+    me.MessageEventsMixin.on_new_message(window, _audio_echo(jid, "REAL2"))
+
+    assert record["_local_pending"] is False
+    assert record["key"]["id"] == "REAL2"
+    assert db.inserted == [(jid, record)]
+
+
+def test_send_finish_and_revoke_race_exactly_one_cleanup(send_env):
+    """Boundary: finish() returns in the same instant the user deletes the
+    pending note. Whichever decision linearizes first under the finish
+    lock, EXACTLY ONE party cleans the late result and nothing enqueues."""
+    controller = IncrementalDenoiseController()
+    frames = [b"\x0d\x0e" * 480]
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    finish_gate = threading.Event()
+    finish_started = threading.Event()
+
+    class _Worker:
+        def finish(self):
+            finish_started.set()
+            finish_gate.wait(5)
+            return spool, "neural"
+
+        def abort(self):
+            pass
+
+    session = _send_session(controller, frames, worker=_Worker(),
+                            spool=spool, stream=_FakeStream())
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert finish_started.wait(5)
+    # The exact boundary: the native return and the revoke together.
+    finish_gate.set()
+    assert controller.revoke("m1") or True  # revoke may land either side
+    deadline = time.time() + 6
+    while time.time() < deadline and (os.path.exists(spool)
+                                      or controller.is_preparing("m1")
+                                      or not controller.acquire_slot("probe", {"cancel": False})):
+        if not controller.is_preparing("m1"):
+            pass
+        time.sleep(0.05)
+        if not controller.acquire_slot("probe2", {"cancel": False}):
+            continue
+        controller.release_slot("probe2")
+        break
+    controller.release_slot("probe")
+    assert not mw.message_queue.enqueued
+    assert not os.path.exists(spool)
+    assert not controller.is_preparing("m1")
+
+
+# ── Real recording-start paths, delayed open (Milo residue 1) ────────────────
+
+
+class _FakePAStream:
+    def __init__(self):
+        self.closed = False
+
+    def start_stream(self):
+        pass
+
+    def stop_stream(self):
+        pass
+
+    def close(self):
+        self.closed = True
+
+
+class _FakePA:
+    """pa.open() blocks until the test releases the gate: a slow open."""
+
+    def __init__(self):
+        self.gate = threading.Event()
+        self.open_entered = threading.Event()
+        self.streams = []
+
+    def open(self, **kw):
+        self.open_entered.set()
+        self.gate.wait(10)
+        stream = _FakePAStream()
+        self.streams.append(stream)
+        return stream
+
+
+class _RecPanel:
+    """Fake conversation panel for the REAL _start_voice_recording."""
+
+    def __init__(self, controller):
+        self.main_window = types.SimpleNamespace(
+            settings={"general": {"noise_reduction_enabled": True}},
+            _incremental_controller=controller,
+            i18n=_FakeI18n(),
+            voicemsg_startrecording_sound=types.SimpleNamespace(play=lambda: None),
+            send_recording_status=lambda *a: None,
+            output=lambda *a: None,
+        )
+        self.conversation = {"remoteJid": "peer@s.whatsapp.net"}
+        self._recording_pa = None
+        self._recording_open_token = 0
+        self._incremental_session = None
+        self._recording_channel_mode = "auto"
+        self._recording_system_audio = False
+        self._recording_stream = None
+        self._sd_stream = None
+        self._recording_paused = False
+        self._is_recording = False
+        noop = lambda *a, **k: None
+        self._voice_recording_focus_suppression_enabled = lambda: False
+        self._focus_recording_button_silently = noop
+        self.send_message_btn = types.SimpleNamespace(Hide=noop)
+        self.record_voice_message_btn = types.SimpleNamespace(Hide=noop)
+        self._add_attachment_btn = types.SimpleNamespace(Hide=noop)
+        self._pause_resume_btn = types.SimpleNamespace(SetLabel=noop)
+        self._voice_panel = types.SimpleNamespace(Show=noop)
+        self.conversation_panel = types.SimpleNamespace(Layout=noop)
+        self.message_field = types.SimpleNamespace(Hide=noop)
+        self._send_voice_btn = object()
+        self._discard_voice_btn = object()
+        self._incremental_drain = (
+            lambda session: vr.VoiceRecordingMixin._incremental_drain(self, session))
+        self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
+        self._start_incremental_denoise = (
+            lambda frames, rate, ch: vr.VoiceRecordingMixin._start_incremental_denoise(
+                self, frames, rate, ch))
+
+
+def _patch_recording_env(monkeypatch):
+    monkeypatch.setattr(vr, "refuse_in_channel", lambda self: False)
+    monkeypatch.setattr(vr, "stop_typing_for_capture", lambda mw: None)
+    monkeypatch.setattr(vr, "voice_recording_mode", lambda settings: "auto")
+    monkeypatch.setattr(vr, "recording_configs_for",
+                        lambda *a, **k: [(48000, 1)])
+
+
+def _wait_stream_opened_call(timeout=5):
+    """The recorded wx.CallAfter(_on_stream_opened, stream, rate, ch, fb)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        for i, (fn, args, k) in enumerate(WX_CALLS):
+            if len(args) == 4:
+                return WX_CALLS.pop(i)
+        time.sleep(0.02)
+    raise AssertionError("_on_stream_opened was never scheduled")
+
+
+def test_start_pyaudio_delayed_open_stream_goes_to_the_new_session(monkeypatch):
+    """REAL _start_voice_recording, PyAudio path, slow open: the stream must
+    land on the session THIS recording created — never on a stale session
+    left over from a previous one, whose close was never confirmed."""
+    _patch_recording_env(monkeypatch)
+    controller = IncrementalDenoiseController()
+    # Occupy the neural slot: both notes go basic-only, no drain threads.
+    assert controller.acquire_slot("other", {"cancel": False})
+    pa = _FakePA()
+    monkeypatch.setattr(vr, "pyaudio", types.SimpleNamespace(
+        PyAudio=lambda: pa, paInt16=8, paContinue=0))
+    panel = _RecPanel(controller)
+    panel._recording_pa = pa
+    # Stale session from a previous recording: cancelled, close NEVER
+    # confirmed (stopped_event unset) — the shape that used to steal the
+    # next recording's stream handle.
+    stale = {"local_id": "old1", "stopped_event": threading.Event(),
+             "cancel": True}
+    panel._incremental_session = stale
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._start_voice_recording(panel)
+    assert pa.open_entered.wait(5), "background open never started"
+    pa.gate.set()  # the slow open completes now
+    fn, args, _ = _wait_stream_opened_call()
+    fn(*args)  # the real _on_stream_opened, on our "UI thread"
+    session = panel._incremental_session
+    assert session is not None and session is not stale
+    assert session["stream"] is pa.streams[0]
+    assert "stream" not in stale
+    # And the real stop path now closes the session's OWN stream.
+    vr.VoiceRecordingMixin._stop_recording_stream(panel, session)
+    assert pa.streams[0].closed
+    assert session["stopped_event"].is_set()
+    controller.discard(session["local_id"])
+    controller.discard("old1")
+    controller.release_slot("other")

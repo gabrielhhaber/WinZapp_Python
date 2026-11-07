@@ -43,16 +43,20 @@ except ImportError:
     pyaudio = None
 
 
-#: Bound (seconds) on the send-path waits for the incremental worker's
-#: drain and finish steps: on timeout the note falls back to basic on
-#: the complete raw audio and the late worker result is discarded (the
-#: thread keeps its slot until it exits — the next note goes basic
-#: too). The device close wait is deliberately NOT bounded: neither
-#: cleaned nor basic audio may come from a frames list a callback can
-#: still append to. NOT validated on any target machine — a
-#: placeholder for the Windows run. Module-level so headless adapter
-#: tests can patch it without a real panel class.
-_INCREMENTAL_SEND_WORKER_TIMEOUT = 30.0
+#: The send path's SINGLE bounded wait (seconds) for the incremental
+#: worker's final completion (drain exit + residual finish()). It is a
+#: POLICY — prefer the existing basic gate over a longer wait — never
+#: a hang diagnosis: is_alive() cannot tell a slow native call from a
+#: stuck one. Grounded in the measured send-time residual of this
+#: branch's own benchmark: ~31 ms mono / ~35 ms stereo on the
+#: development box (synthetic 48 kHz audio, real-clock confirmation),
+#: so 2.0 s leaves >50x headroom for slower machines. NOT validated on
+#: any target machine — the Windows run may adjust it. The device
+#: close wait is deliberately NOT bounded: neither cleaned nor basic
+#: audio may come from a frames list a callback can still append to.
+#: Module-level so headless adapter tests can patch it without a real
+#: panel class.
+_INCREMENTAL_SEND_FINAL_WAIT = 2.0
 
 
 class VoiceRecordingMixin:
@@ -260,15 +264,22 @@ class VoiceRecordingMixin:
                 self.conversation_panel.Layout()
                 self._focus_recording_button_silently(self._send_voice_btn)
 
+                # The session this recording just started: a slow async
+                # open must attach the stream to THIS identity, never to
+                # whatever session is current when the open returns
+                # (possibly the NEXT recording's).
+                _inc_at_start = getattr(self, "_incremental_session", None)
+
                 def _bg_start_mic():
                     try:
                         sd_stream = sd.InputStream(samplerate=48000, channels=1, dtype='int16', callback=_sd_callback)
                         sd_stream.start()
                         self._sd_stream = sd_stream
                         self._recording_stream = sd_stream
-                        _inc = getattr(self, "_incremental_session", None)
-                        if _inc is not None and not _inc["stopped_event"].is_set():
-                            _inc["stream"] = sd_stream
+                        if (_inc_at_start is not None
+                                and getattr(self, "_incremental_session", None) is _inc_at_start
+                                and not _inc_at_start["stopped_event"].is_set()):
+                            _inc_at_start["stream"] = sd_stream
                     except Exception as err:
                         logging.error("[audio] Async sounddevice InputStream error: %s", err)
                 threading.Thread(target=_bg_start_mic, daemon=True).start()
@@ -432,16 +443,19 @@ class VoiceRecordingMixin:
             self._recording_stream      = stream
             self._recording_actual_rate = rate
             self._recording_actual_ch   = ch
-            # Hand the handle to the recording session it belongs to: the
-            # stop path closes the SESSION's own stream, never whatever the
-            # panel attributes point at by then (possibly the next
-            # recording's stream).
-            _inc = getattr(self, "_incremental_session", None)
-            if _inc is not None and not _inc["stopped_event"].is_set():
-                _inc["stream"] = stream
 
             self._is_recording = True
             self._start_incremental_denoise(recording_frames, rate, ch)
+            # Hand the handle to the session this recording JUST started
+            # (attaching before _start_incremental_denoise() would land it
+            # on a STALE session left over from a previous recording,
+            # leaving the new one believing its close was confirmed while
+            # this stream's callback could still append). The stop path
+            # closes the SESSION's own stream, never whatever the panel
+            # attributes point at by then.
+            _inc = getattr(self, "_incremental_session", None)
+            if _inc is not None and not _inc["stopped_event"].is_set():
+                _inc["stream"] = stream
 
             # UI: play sound, swap buttons, focus the configured recording action.
             self.main_window.voicemsg_startrecording_sound.play()
@@ -1172,69 +1186,56 @@ class VoiceRecordingMixin:
                             time.sleep(0.1)
                         _forget_incremental()
                         return
-                # Stage 2 — the drain: stop → it finishes the audio it has;
-                # cancel → it aborts and cleans up itself. Bounded: a worker
-                # stuck in a native feed must not wedge the note forever —
-                # on timeout the send FALLS BACK to the basic gate on the
-                # complete raw (close is confirmed by now) and the late
-                # worker result is discarded; the drain aborts, cleans its
-                # own spool and releases the slot when it exits. The bound
-                # itself is NOT validated on any target machine — a
-                # placeholder for the Windows run.
+                # Stage 2 — ask the drain for its end state: stop → it
+                # finishes the audio it has and hands worker+spool to this
+                # send; cancel → it aborts and cleans up itself. The cancel
+                # case needs NO wait: the raw frames are already stable
+                # after the confirmed device close above, and the drain
+                # self-cleans on the way out.
                 inc_session["stop" if use_incremental else "cancel"] = True
-                if drain_thread is not None:
-                    stage2 = _wait_or_revoked(lambda: not drain_thread.is_alive(),
-                                              timeout=_INCREMENTAL_SEND_WORKER_TIMEOUT)
-                    if stage2 == "revoked":
-                        logging.info("[noise_reduction] send revoked while waiting "
-                                     "for the incremental drain")
-                        _forget_incremental()
-                        return
-                    if stage2 == "timeout" and drain_thread.is_alive():
-                        logging.warning("[noise_reduction] incremental drain still busy; "
-                                        "falling back to the basic gate with the full raw audio")
-                        inc_session["fallback_chosen"] = True
-                        inc_session["cancel"] = True
-                if inc_session.get("revoked"):
-                    # Revoked in the same instant the drain exited.
-                    worker = inc_session.get("worker")
-                    if worker is not None and not inc_session["cancel"] and not inc_session["failed"]:
-                        # Drain exited normally: this thread owns worker+spool.
-                        try:
-                            worker.abort()
-                        except Exception:
-                            pass
-                        try:
-                            os.unlink(inc_session["spool"])
-                        except OSError:
-                            pass
-                        if controller is not None:
-                            controller.release_slot(local_id)
-                    if controller is not None:
-                        controller.forget(local_id)
-                    return
                 worker = inc_session.get("worker")
                 if (use_incremental and not inc_session["cancel"] and worker is not None
                         and not inc_session.get("failed")):
                     # Stage 3 — finish() runs the remaining model hops and
                     # can block natively just like load/feed: run it in a
-                    # helper under the same revocation-aware wait, never
-                    # inline here, and never without a bound.
+                    # helper that first joins the drain, under ONE
+                    # revocation-aware bounded wait for the whole final
+                    # completion (see _INCREMENTAL_SEND_FINAL_WAIT) — never
+                    # inline here, and never unbounded.
+                    #
+                    # Ownership of a late result is indivisible: the
+                    # finisher's cleanup decision and this thread's
+                    # abandon/consume decision are serialized under
+                    # finish_lock, so exactly one party cleans up — a
+                    # finish() returning between the wait's timeout and the
+                    # abandonment mark can no longer slip through with
+                    # nobody aborting the worker, deleting the spool and
+                    # releasing the slot.
                     finish_out = {}
+                    finish_lock = threading.Lock()
 
                     def _finish_incremental():
                         try:
-                            finish_out["result"] = worker.finish()
+                            if drain_thread is not None:
+                                drain_thread.join()
+                            if not (inc_session.get("revoked")
+                                    or inc_session.get("fallback_chosen")):
+                                finish_out["result"] = worker.finish()
                         except BaseException as exc:
                             finish_out["error"] = exc
                         finally:
-                            # The helper owns the cleanup when the send
-                            # thread walked away (revoked, or the bounded
-                            # wait chose the basic fallback): a late result
-                            # is deleted, the worker aborted and the slot
-                            # released WHEN the native call actually
-                            # returns — never left dangling.
-                            if inc_session.get("revoked") or inc_session.get("fallback_chosen"):
+                            with finish_lock:
+                                finish_out["ready"] = True
+                                abandoned = (inc_session.get("revoked")
+                                             or inc_session.get("fallback_chosen"))
+                            if abandoned:
+                                # The helper owns the cleanup when the send
+                                # thread walked away (revoked, or the
+                                # bounded wait chose the basic fallback): a
+                                # late result is deleted, the worker
+                                # aborted and the slot released WHEN the
+                                # native call actually returns — never left
+                                # dangling.
                                 try:
                                     worker.abort()
                                 except Exception:
@@ -1255,18 +1256,53 @@ class VoiceRecordingMixin:
 
                     finisher = threading.Thread(target=_finish_incremental, daemon=True)
                     finisher.start()
-                    stage3 = _wait_or_revoked(lambda: not finisher.is_alive(),
-                                              timeout=_INCREMENTAL_SEND_WORKER_TIMEOUT)
+                    stage3 = _wait_or_revoked(lambda: finish_out.get("ready", False),
+                                              timeout=_INCREMENTAL_SEND_FINAL_WAIT)
                     if stage3 == "revoked":
                         logging.info("[noise_reduction] send revoked during finish()")
+                        with finish_lock:
+                            finished = finish_out.get("ready", False)
+                        if finished:
+                            # finish() completed BEFORE the revoke landed
+                            # but after its own flag check: nobody cleaned
+                            # up — this thread owns the late result now.
+                            try:
+                                worker.abort()
+                            except Exception:
+                                pass
+                            paths = {inc_session.get("spool")}
+                            result = finish_out.get("result")
+                            if result:
+                                paths.add(result[0])
+                            for spool_path in paths:
+                                if not spool_path:
+                                    continue
+                                try:
+                                    os.unlink(spool_path)
+                                except OSError:
+                                    pass
+                            if controller is not None:
+                                controller.release_slot(local_id)
                         _forget_incremental()
                         return
-                    if stage3 == "timeout" and finisher.is_alive():
-                        # Same fallback as stage 2: basic gate on the
-                        # complete raw; the finisher cleans up on return.
-                        logging.warning("[noise_reduction] incremental finish() still busy; "
-                                        "falling back to the basic gate with the full raw audio")
-                        inc_session["fallback_chosen"] = True
+                    if stage3 == "timeout":
+                        with finish_lock:
+                            if finish_out.get("ready", False):
+                                # Finished between the wait's last check
+                                # and this claim: consume it normally.
+                                stage3 = "done"
+                            else:
+                                # Policy: prefer the basic gate on the
+                                # complete raw over a longer wait; the
+                                # finisher cleans up on return. cancel too:
+                                # a drain that CAN observe flags between
+                                # chunks aborts and self-cleans now instead
+                                # of finishing work nobody will consume.
+                                inc_session["fallback_chosen"] = True
+                                inc_session["cancel"] = True
+                        if stage3 == "timeout":
+                            logging.warning("[noise_reduction] incremental finish still busy; "
+                                            "falling back to the basic gate with the full raw audio")
                     if not inc_session.get('fallback_chosen'):
                         try:
                             _t_inc = _time.perf_counter()
