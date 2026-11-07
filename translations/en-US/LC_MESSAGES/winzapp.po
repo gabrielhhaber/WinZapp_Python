@@ -11461,6 +11461,12 @@ msgstr "Ctrl+P: switch a voice call to a video call"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_call_ctrl_shift_p_label"
+msgid "Ctrl+Shift+P: show the call participants"
+msgstr "Ctrl+Shift+P: show the call participants"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_call_ctrl_shift_q_label"
 msgid "Ctrl+Shift+Q: end the call"
 msgstr "Ctrl+Shift+Q: end the call"
