@@ -544,6 +544,23 @@ def _send_session(controller, frames, local_id="m1", basic_only=False,
     return session
 
 
+def _cleanup_signal(controller):
+    """Wrap release_slot with an Event set when the LAST cleanup step (the
+    slot release) completes. Tests must wait on THIS, never on an
+    intermediate step: abort and unlink run BEFORE the release, so seeing
+    an abort registered or the spool gone does not prove the cleanup
+    finished."""
+    done = threading.Event()
+    real_release = controller.release_slot
+
+    def _release(local_id):
+        real_release(local_id)
+        done.set()
+
+    controller.release_slot = _release
+    return done
+
+
 def _wav_payload(path):
     with wave.open(path, "rb") as wf:
         return wf.readframes(wf.getnframes())
@@ -714,6 +731,7 @@ def test_send_revoked_while_drain_blocked_sends_nothing(send_env, monkeypatch):
 
 def test_send_revoked_during_finish_helper_cleans_up_on_return(send_env, monkeypatch):
     controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
     frames = [b"\x09\x0a" * 480]
     spool = str(send_env / "spool.pcm")
     open(spool, "wb").write(b"work")
@@ -746,9 +764,7 @@ def test_send_revoked_during_finish_helper_cleans_up_on_return(send_env, monkeyp
     # slot released — the send side observed not-ready and cleaned
     # nothing (order A of the finish-lock linearization).
     finish_gate.set()
-    deadline = time.time() + 5
-    while time.time() < deadline and os.path.exists(spool):
-        time.sleep(0.05)
+    assert cleanup_done.wait(5), "helper cleanup never finished"
     assert not os.path.exists(spool)
     assert aborted == [True]
     assert controller.acquire_slot("other2", {"cancel": False})
@@ -764,6 +780,7 @@ def test_send_finish_timeout_falls_back_and_late_result_is_discarded(send_env, m
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
     controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
     frames = [b"\x0b\x0c" * 480]
     raw = b"".join(frames)
     spool = str(send_env / "spool.pcm")
@@ -789,9 +806,7 @@ def test_send_finish_timeout_falls_back_and_late_result_is_discarded(send_env, m
     assert session["fallback_chosen"] is True
     # The late finish result is cleaned up by the helper when it returns.
     finish_gate.set()
-    deadline = time.time() + 5
-    while time.time() < deadline and os.path.exists(spool):
-        time.sleep(0.05)
+    assert cleanup_done.wait(5), "helper cleanup never finished"
     assert not os.path.exists(spool)
     assert controller.acquire_slot("other", {"cancel": False})
 
@@ -1348,6 +1363,7 @@ def test_send_during_model_load_goes_basic_without_second_engine(send_env, monke
     monkeypatch.setattr(inc, "drain_capture_frames", _fake_drain_loop)
 
     controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
     mw = _FakeSendMW(controller)
     frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
     raw = b"".join(frames)
@@ -1374,9 +1390,9 @@ def test_send_during_model_load_goes_basic_without_second_engine(send_env, monke
 
     # The late constructor return: the drain aborts and self-cleans.
     ctor_barrier.set()
-    deadline = time.time() + 5
-    while time.time() < deadline and os.path.exists(session["spool"]):
-        time.sleep(0.05)
+    # Wait the cleanup COMPLETION signal (slot release is the last step),
+    # not an intermediate one.
+    assert cleanup_done.wait(5), "drain self-cleanup never finished"
     assert aborted == [True]
     assert not os.path.exists(session["spool"])
     assert controller.acquire_slot("probe", {"cancel": False})
@@ -1538,6 +1554,12 @@ def test_send_drain_fails_during_finish_join_never_touches_worker(send_env, monk
 
         def join(self):
             self._session["failed"] = True
+            # The real drain's failure path aborts the worker, deletes the
+            # spool and marks the cleanup as drain-owned (drain_cleaned);
+            # the wiring's finally then releases the slot. The fake
+            # collapses that into the join: the point stands — the SEND
+            # must not touch any of it.
+            self._session["drain_cleaned"] = True
             self._controller.release_slot("m1")
 
     worker = _Worker()
@@ -1562,6 +1584,161 @@ def test_send_drain_fails_during_finish_join_never_touches_worker(send_env, monk
 
 
 
+def test_send_cancel_before_dead_drain_check_cleans_remnant_once(send_env, monkeypatch):
+    """Milo 17:43 window A: worker-None frontier, drain DEAD at the
+    aliveness check, and a cancel lands between the send's worker
+    snapshot and the dead-drain cleanup check (a revoke/user-cancel
+    interleave). The old `not cancel` guard skipped the cleanup and no
+    reaper exists for a dead drain: the late worker/spool/slot leaked.
+    Cleanup authority must key on drain_cleaned (what the drain ACTUALLY
+    did), not on the cancel flag: the remnant is cleaned exactly once
+    and the basic gate is still enqueued."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
+    frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    aborted = []
+
+    class _LateWorker:
+        def finish(self):
+            raise AssertionError(
+                "finish must not run: the send holds no worker reference")
+
+        def abort(self):
+            aborted.append(True)
+
+    holder = {}
+
+    class _CancelBeforeDeadCheckThread:
+        # Deterministic interleave: at the liveness check the drain is
+        # already dead, it published a worker it never cleaned (no
+        # drain_cleaned), and a cancel already landed.
+        def is_alive(self):
+            holder["session"]["worker"] = _LateWorker()
+            holder["session"]["cancel"] = True
+            return False
+
+    session = _send_session(controller, frames, worker=None, spool=spool,
+                            stream=_FakeStream(),
+                            thread=_CancelBeforeDeadCheckThread())
+    holder["session"] = session
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    # Basic gate on the complete raw; NO offline neural engine.
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    assert session["cancel"] is True
+    # The cleanup is synchronous on this branch: done before the enqueue.
+    assert cleanup_done.is_set()
+    assert aborted == [True]
+    assert session["worker"] is None
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
+    # ...and the slot is free for the next note.
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
+
+
+def test_send_finish_timeout_drain_normal_exit_reclaims_remnant_once(send_env, monkeypatch):
+    """Milo 17:43 window B: a worker EXISTS at send and the finisher is
+    blocked in drain.join() while the drain keeps running. The bounded
+    wait times out (basic gate chosen, cancel set) BEFORE the helper
+    resumes, and the drain then exits through its NORMAL stop path
+    without re-reading cancel and WITHOUT cleaning (no drain_cleaned).
+    The helper must not presume the drain cleaned: it reclaims the
+    remnant exactly once (abort + spool + slot), never calls finish(),
+    and the basic audio the send already enqueued stands."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
+    frames = [b"\x0b\x0c" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    finish_calls = []
+    aborted = []
+
+    class _Worker:
+        def finish(self):
+            finish_calls.append(1)
+            return spool, "neural"
+
+        def abort(self):
+            aborted.append(True)
+
+    drain_exit_gate = threading.Event()
+
+    class _NormalExitDrainThread:
+        # Alive while the send snapshots; the join blocks until the test
+        # lets the drain "exit" — through its normal path: no cleanup, no
+        # drain_cleaned, worker+spool+slot kept for the send.
+        def is_alive(self):
+            return True
+
+        def join(self):
+            drain_exit_gate.wait(10)
+
+    session = _send_session(controller, frames, worker=_Worker(), spool=spool,
+                            stream=_FakeStream(),
+                            thread=_NormalExitDrainThread())
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    # The bounded wait times out under the blocked join: basic gate,
+    # enqueued WITHOUT waiting for the drain.
+    assert mw.message_queue.event.wait(10), "send thread never enqueued"
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
+    assert session["fallback_chosen"] is True
+    assert session["cancel"] is True
+    # The drain is still "exiting": nobody cleaned, finish() never ran.
+    assert finish_calls == []
+    assert aborted == []
+    # The drain exits NORMALLY without re-reading cancel: the helper
+    # resumes post-join, sees superseded BUT drain_cleaned absent, and
+    # reclaims the remnant exactly once. Wait for the cleanup COMPLETION
+    # signal, not the abort (which precedes unlink/release).
+    drain_exit_gate.set()
+    assert cleanup_done.wait(5), "helper never released the slot"
+    assert finish_calls == []
+    assert aborted == [True]
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
+
+
 def test_send_cancel_unread_by_exiting_drain_reaper_cleans_once(send_env, monkeypatch):
     """Milo 17:39 window, opposite edge of the is_alive=False test: the
     drain is ALIVE when the send snapshots worker None, the send cancels
@@ -1575,6 +1752,7 @@ def test_send_cancel_unread_by_exiting_drain_reaper_cleans_once(send_env, monkey
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
     controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
     frames = [b"\x01\x02" * 480, b"\x03\x04" * 480]
     raw = b"".join(frames)
     spool = str(send_env / "spool.pcm")
@@ -1622,11 +1800,11 @@ def test_send_cancel_unread_by_exiting_drain_reaper_cleans_once(send_env, monkey
     # The drain is still parked in its native work: nobody cleaned yet.
     assert aborted == []
     # Now the drain exits without re-reading cancel: the reaper (which was
-    # joined on it) claims the remainder exactly once.
+    # joined on it) claims the remainder exactly once. Wait for the
+    # cleanup COMPLETION signal — abort is registered BEFORE unlink and
+    # the slot release, so seeing it is not proof the cleanup finished.
     exit_gate.set()
-    deadline = time.time() + 5
-    while time.time() < deadline and not aborted:
-        time.sleep(0.02)
+    assert cleanup_done.wait(5), "reaper cleanup never finished"
     assert aborted == [True]
     assert session["worker"] is None
     assert unlinked.count(spool) == 1

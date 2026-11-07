@@ -1245,14 +1245,22 @@ class VoiceRecordingMixin:
 
                         threading.Thread(target=_reap_late_drain,
                                          daemon=True).start()
-                    elif drain_thread is not None and not inc_session.get("cancel"):
+                    elif not inc_session.get("drain_cleaned"):
                         # The drain EXITED between the worker snapshot and
-                        # the aliveness check, without failing and without
-                        # a cancel it could observe: it published a worker
-                        # and kept worker+spool+slot for a send that holds
-                        # no worker reference. The drain is dead, so the
-                        # session fields are stable — clean the late worker
-                        # here, exactly once.
+                        # the aliveness check. Cleanup authority keys on
+                        # what the drain ACTUALLY did — drain_cleaned is
+                        # written only where its cleanup really ran — never
+                        # on the cancel flag: a cancel/revoke can land
+                        # between the snapshot and this check while the
+                        # drain already left through its normal stop path
+                        # without re-reading it, keeping worker+spool+slot
+                        # for a send that holds no worker reference (a
+                        # drain that OBSERVED the cancel cleaned itself
+                        # and set the flag, so this branch then skips; the
+                        # alive branch above is mutually exclusive by
+                        # snapshot). The drain is dead, so the session
+                        # fields are stable — clean the remnant here,
+                        # exactly once.
                         late_worker = inc_session.get("worker")
                         if late_worker is not None:
                             try:
@@ -1292,10 +1300,12 @@ class VoiceRecordingMixin:
                             if drain_thread is not None:
                                 drain_thread.join()
                             # Re-validate AFTER the join, not the pre-join
-                            # state: if the drain failed or was cancelled
-                            # while we waited, IT owns the worker/spool/slot
-                            # cleanup — never call finish() on a worker the
-                            # drain may have aborted.
+                            # state: never call finish() on a worker the
+                            # drain may have aborted. A FAILED drain owns
+                            # the cleanup; a CANCELLED one may NOT have
+                            # cleaned (normal stop-path exit without
+                            # re-reading the flag) — the finally below
+                            # reclaims that remnant via drain_cleaned.
                             if (inc_session.get("failed")
                                     or inc_session.get("cancel")):
                                 superseded = True
@@ -1308,22 +1318,38 @@ class VoiceRecordingMixin:
                             finish_out["superseded"] = superseded
                             with finish_lock:
                                 finish_out["ready"] = True
-                                abandoned = ((inc_session.get("revoked")
-                                              or inc_session.get("fallback_chosen"))
-                                             and not superseded
-                                             and not finish_out.get("claimed"))
+                                # Exactly one claimant ever cleans up, and
+                                # the claim is taken under the same lock
+                                # that publishes readiness, so the revoked
+                                # branch of the send thread can never clean
+                                # it a second time. Authority keys on what
+                                # the drain ACTUALLY did — drain_cleaned
+                                # is written only where its cleanup really
+                                # ran — never on session flags alone: a
+                                # drain can exit through its normal stop
+                                # path without re-reading a cancel/revoke
+                                # that landed under the join, keeping
+                                # worker+spool+slot for a send that no
+                                # longer wants them. Whenever this helper
+                                # will NOT process the worker (superseded,
+                                # revoked or fallback) and the drain left
+                                # the remnant uncleaned, claim it here.
+                                # (A drain that failed or observed the
+                                # cancel cleaned itself and set the flag:
+                                # this then skips.)
+                                abandoned = (not finish_out.get("claimed")
+                                             and not inc_session.get("drain_cleaned")
+                                             and (superseded
+                                                  or inc_session.get("revoked")
+                                                  or inc_session.get("fallback_chosen")))
                                 if abandoned:
-                                    # Exactly one claimant ever cleans up
-                                    # the late result: the claim is taken
-                                    # under the same lock that publishes
-                                    # readiness, so the revoked branch of
-                                    # the send thread can never clean it a
-                                    # second time.
                                     finish_out["claimed"] = True
                             if abandoned:
                                 # The helper owns the cleanup when the send
                                 # thread walked away (revoked, or the
-                                # bounded wait chose the basic fallback): a
+                                # bounded wait chose the basic fallback) or
+                                # when the worker was superseded under the
+                                # join but the drain left it uncleaned: a
                                 # late result is deleted, the worker
                                 # aborted and the slot released WHEN the
                                 # native call actually returns — never left
