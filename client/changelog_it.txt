@@ -24,6 +24,8 @@ WHAT'S NEW
 
 - Chiamate di gruppo Neonize: quando un membro del gruppo entra in una chiamata di gruppo che hai avviato, la chiamata diventa attiva e l'audio parte, invece di restare su "in chiamata" con il microfono scartato. La fine della chiamata viene ora registrata nel gruppo e nella cronologia delle chiamate, non in una chat privata con uno dei membri (problema #689).
 
+- Chiamate di gruppo Neonize: quando arriva un invito a una chiamata di gruppo senza il nome del gruppo, il programma chiede al server di quale gruppo si tratta, così la chiamata in corso compare nella conversazione del gruppo e puoi unirti (problema #689).
+
 - Chiamate di gruppo Neonize: il registro ora annota cosa contengono gli elenchi dei partecipanti inviati dal server (solo numeri, senza nomi), per scoprire perché alcune persone che entrano in una chiamata non sentono nessuno (problema #689). Nessun cambiamento di comportamento.
 
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.

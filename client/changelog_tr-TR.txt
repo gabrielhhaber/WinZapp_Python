@@ -24,6 +24,8 @@ YENİLİKLER
 
 - Neonize grup aramaları: başlattığınız bir grup aramasına bir grup üyesi katıldığında arama etkin olur ve ses başlar; artık mikrofon yok sayılarak "aranıyor" durumunda kalmaz. Aramanın bitişi artık üyelerden biriyle özel bir sohbette değil, grupta ve arama geçmişinizde kaydedilir (sorun #689).
 
+- Neonize grup aramaları: bir grup aramasına davet grup adı olmadan geldiğinde program sunucuya hangi grup olduğunu sorar; böylece devam eden arama, katılabilmeniz için grubun sohbetinde görünür (sorun #689).
+
 - Neonize grup aramaları: günlük artık sunucunun gönderdiği katılımcı listelerinin içeriğini kaydediyor (yalnızca sayılar, isim yok); böylece bir aramaya katılan bazı kişilerin neden kimseyi duyamadığı anlaşılabilir (sorun #689). Davranış değişikliği yok.
 
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.

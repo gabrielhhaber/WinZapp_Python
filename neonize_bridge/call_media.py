@@ -225,6 +225,17 @@ class CallMedia:
                 "state": "INCOMING_RING", "video": bool(data.get("isVideo")),
                 "group": data.get("groupJid") or ""})
 
+    def set_call_group(self, call_id, group):
+        """A multiparty call that came without its group learned it (the lobby
+        names it): later states and the end carry the group. False if the call
+        is gone."""
+        with self._lock:
+            call = self._calls.get(call_id)
+            if call is None:
+                return False
+            call["group"] = group
+            return True
+
     def live_call(self):
         """The id of the call whose audio flows (the newest live one)."""
         with self._lock:
