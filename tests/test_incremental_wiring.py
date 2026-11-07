@@ -561,6 +561,23 @@ def _cleanup_signal(controller):
     return done
 
 
+def _forget_signal(controller):
+    """Wrap forget with an Event set when the send thread reaches its
+    TERMINAL forget. is_preparing() proves nothing here: a revoke already
+    moved the entry to CANCELLED, so only the real forget() call shows
+    the send thread actually returned (e.g. without waiting on a drain
+    whose exit the test still gates)."""
+    done = threading.Event()
+    real_forget = controller.forget
+
+    def _forget(local_id):
+        real_forget(local_id)
+        done.set()
+
+    controller.forget = _forget
+    return done
+
+
 def _wav_payload(path):
     with wave.open(path, "rb") as wf:
         return wf.readframes(wf.getnframes())
@@ -1832,6 +1849,7 @@ def test_send_revoke_before_finisher_gate_finalizer_cleans_once(send_env, monkey
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
     controller = IncrementalDenoiseController()
     cleanup_done = _cleanup_signal(controller)
+    send_returned = _forget_signal(controller)
     frames = [b"\x0e\x0f" * 480]
     spool = str(send_env / "spool.pcm")
     open(spool, "wb").write(b"work")
@@ -1889,12 +1907,10 @@ def test_send_revoke_before_finisher_gate_finalizer_cleans_once(send_env, monkey
     panel = _SendPanel(mw, frames, session)
     vr.VoiceRecordingMixin._send_voice_message(panel, None)
     # The note is never enqueued and the send does NOT wait for the
-    # drain: its terminal forget runs while the drain is still parked.
-    deadline = time.time() + 10
-    while controller.is_preparing("m1") and time.time() < deadline:
-        time.sleep(0.01)
-    assert not controller.is_preparing("m1"), \
-        "send thread never reached its terminal forget"
+    # drain: its TERMINAL forget runs while the drain is still parked
+    # (the real forget() call, not is_preparing — the revoke already
+    # moved the entry to CANCELLED, which proves nothing).
+    assert send_returned.wait(10), "send thread never reached its terminal forget"
     assert mw.message_queue.enqueued == []
     assert session["cancel"] is True
     assert session["revoked"] is True
@@ -1913,5 +1929,126 @@ def test_send_revoke_before_finisher_gate_finalizer_cleans_once(send_env, monkey
     assert unlinked.count(spool) == 1
     assert not os.path.exists(spool)
     # ...and the slot is free for the next note.
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
+
+
+def test_send_revoke_after_finisher_ready_send_claims_once(send_env, monkeypatch):
+    """Milo 17:55 second order of the pre-gate cancel window: the finisher
+    COMPLETES finish() and publishes ready while cancel is still False (its
+    post-join check already ran), exits unclaimed, and the revoke lands
+    only then — before the send's cancel check. The send must NOT walk
+    away supposing a live helper: it arbitrates under finish_lock, claims
+    the completed result itself and cleans it exactly once — 0 enqueue,
+    1 finish (completed before the revoke), 1 abort, 1 spool unlink, slot
+    free after the cleanup-COMPLETION signal. The finisher's death, not a
+    flag, gates the revoke: dict reads of "cancel" are hooked AFTER the
+    finisher thread is gone, so the interleave is deterministic."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
+    send_returned = _forget_signal(controller)
+    frames = [b"\x1a\x1b" * 480]
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    finish_calls = []
+    aborted = []
+
+    class _Worker:
+        def finish(self):
+            finish_calls.append(1)
+            return spool, "neural"
+
+        def abort(self):
+            aborted.append(True)
+
+    class _ExitedNormalDrainThread:
+        # The drain already exited through its normal stop path: no
+        # cleanup, no drain_cleaned, worker+spool+slot kept for the send.
+        def is_alive(self):
+            return False
+
+        def join(self):
+            return None
+
+    # Record the finisher thread the module creates so the hook can wait
+    # for its DEATH — the only external proof that the helper published
+    # ready and exited unclaimed (its finally is the last step). The
+    # target name is captured AT CREATION: CPython clears Thread._target
+    # when the thread finishes, and the finisher completes fast.
+    created_threads = []
+    real_thread = threading.Thread
+
+    class _ThreadShim:
+        @staticmethod
+        def Thread(*a, **k):
+            t = real_thread(*a, **k)
+            target = k.get("target", a[0] if a else None)
+            created_threads.append(
+                (t, getattr(target, "__name__", "")))
+            return t
+
+        def __getattr__(self, name):
+            return getattr(threading, name)
+
+    monkeypatch.setattr(vr, "threading", _ThreadShim())
+
+    class _RevokeOnCancelRead(dict):
+        # The consume path's first "cancel" item-read is the send's check
+        # right after finisher.start() (the helper uses .get()). Hold that
+        # read until the finisher is DEAD — ready published with cancel
+        # False, helper exited — then deliver the revoke: Milo's exact
+        # second-order interleave.
+        fired = False
+
+        def __getitem__(self, key):
+            if key == "cancel" and not self.fired:
+                self.fired = True
+                deadline = time.time() + 10
+                finisher = next(
+                    (t for t, name in created_threads
+                     if name == "_finish_incremental"), None)
+                assert finisher is not None, "finisher thread was never created"
+                while finisher.is_alive() and time.time() < deadline:
+                    time.sleep(0.005)
+                assert not finisher.is_alive(), "finisher never exited"
+                controller.revoke("m1")
+            return super().__getitem__(key)
+
+    # The hooked session IS the registered one: the controller's revoke
+    # and the send thread must see the same dict.
+    session = _RevokeOnCancelRead({
+        "local_id": "m1", "frames": frames, "rate": 48000, "ch": 1,
+        "worker_ch": 1, "worker": _Worker(), "thread": _ExitedNormalDrainThread(),
+        "stop": False, "cancel": False, "failed": False, "revoked": False,
+        "stopped_event": threading.Event(), "device_failed": False,
+        "basic_only": False, "spool": spool, "stream": _FakeStream()})
+    assert controller.acquire_slot("m1", session)
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    # The send claims the completed result itself and returns WITHOUT
+    # enqueueing; its terminal forget runs after the cleanup.
+    assert cleanup_done.wait(10), "send-side claim never released the slot"
+    assert send_returned.wait(10), "send thread never reached its terminal forget"
+    assert mw.message_queue.enqueued == []
+    assert session["cancel"] is True
+    assert session["revoked"] is True
+    assert finish_calls == [1]
+    assert aborted == [True]
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
     assert controller.acquire_slot("probe", {"cancel": False})
     controller.release_slot("probe")

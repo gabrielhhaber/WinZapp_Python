@@ -1385,6 +1385,44 @@ class VoiceRecordingMixin:
                                 if controller is not None:
                                     controller.release_slot(local_id)
 
+                    def _claim_completed_result():
+                        """Arbitrate a cancel/revoke against a finisher that
+                        may have ALREADY published a completed result: its
+                        post-join flag check ran before the cancel landed,
+                        so it exited expecting this thread to consume the
+                        result — and nobody else will clean it. The claim is
+                        taken under the same lock that publishes readiness,
+                        so exactly one party ever cleans up: a finished,
+                        unclaimed result is claimed and cleaned HERE; a
+                        finisher still in flight observes the cancel after
+                        its join (superseded) and reclaims an uncleaned
+                        remnant itself via drain_cleaned/claimed."""
+                        with finish_lock:
+                            finished = (finish_out.get("ready", False)
+                                        and not finish_out.get("superseded")
+                                        and not finish_out.get("claimed"))
+                            if finished:
+                                finish_out["claimed"] = True
+                        if not finished:
+                            return
+                        try:
+                            worker.abort()
+                        except Exception:
+                            pass
+                        paths = {inc_session.get("spool")}
+                        result = finish_out.get("result")
+                        if result:
+                            paths.add(result[0])
+                        for spool_path in paths:
+                            if not spool_path:
+                                continue
+                            try:
+                                os.unlink(spool_path)
+                            except OSError:
+                                pass
+                        if controller is not None:
+                            controller.release_slot(local_id)
+
                     finisher = threading.Thread(target=_finish_incremental, daemon=True)
                     finisher.start()
                     if inc_session["cancel"]:
@@ -1392,49 +1430,26 @@ class VoiceRecordingMixin:
                         # shutdown, or a panel-level discard): the note is
                         # never consumed or enqueued — transfer() would
                         # refuse it anyway — so there is nothing to wait
-                        # for. The finalizer just started owns the remnant:
-                        # it joins the drain (never aborting native-active
-                        # code — the join completes first), never calls
-                        # finish() on a superseded session, and reclaims an
-                        # uncleaned worker/spool/slot exactly once via
-                        # drain_cleaned/claimed.
+                        # for. But the send can NOT just walk away: the
+                        # finisher may already hold a completed result.
+                        # Same arbitration as the stage-3 revoked branch
+                        # below; a finisher still in flight owns the
+                        # remnant after its join (never aborting
+                        # native-active code — the join completes first).
                         logging.info("[noise_reduction] send cancelled before finish(); "
-                                     "the finalizer owns the incremental remnant")
+                                     "arbitrating the incremental remnant")
+                        _claim_completed_result()
                         _forget_incremental()
                         return
                     stage3 = _wait_or_revoked(lambda: finish_out.get("ready", False),
                                               timeout=_INCREMENTAL_SEND_FINAL_WAIT)
                     if stage3 == "revoked":
+                        # finish() may have completed BEFORE the revoke
+                        # landed but after its own flag check: nobody
+                        # cleaned up — same arbitration as the pre-gate
+                        # cancel branch above, exactly once.
                         logging.info("[noise_reduction] send revoked during finish()")
-                        with finish_lock:
-                            finished = (finish_out.get("ready", False)
-                                        and not finish_out.get("superseded")
-                                        and not finish_out.get("claimed"))
-                            if finished:
-                                # finish() completed BEFORE the revoke
-                                # landed but after its own flag check:
-                                # nobody cleaned up — claim the late
-                                # result under the same lock and clean it
-                                # here, exactly once.
-                                finish_out["claimed"] = True
-                        if finished:
-                            try:
-                                worker.abort()
-                            except Exception:
-                                pass
-                            paths = {inc_session.get("spool")}
-                            result = finish_out.get("result")
-                            if result:
-                                paths.add(result[0])
-                            for spool_path in paths:
-                                if not spool_path:
-                                    continue
-                                try:
-                                    os.unlink(spool_path)
-                                except OSError:
-                                    pass
-                            if controller is not None:
-                                controller.release_slot(local_id)
+                        _claim_completed_result()
                         _forget_incremental()
                         return
                     if stage3 == "timeout":
