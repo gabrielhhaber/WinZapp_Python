@@ -232,6 +232,7 @@ SHORTCUTS = (
     Shortcut('call.ID_CALL_SETTINGS', 'call', 'ID_CALL_SETTINGS', 'shortcut_call_ctrl_c_label', 2, 67, 0),
     Shortcut('call.ID_CALL_VIDEO', 'call', 'ID_CALL_VIDEO', 'shortcut_call_ctrl_v_label', 2, 86, 0),
     Shortcut('call.ID_CALL_PROMOTE', 'call', 'ID_CALL_PROMOTE', 'shortcut_call_ctrl_p_label', 2, 80, 0),
+    Shortcut('call.ID_CALL_PARTICIPANTS', 'call', 'ID_CALL_PARTICIPANTS', 'shortcut_call_ctrl_shift_p_label', 6, 80, 0),
     Shortcut('main.mark_all_read', 'main', 'mark_all_read', 'menu_mark_all_read', 7, 77, 0),
     Shortcut('main.disconnect', 'main', 'disconnect', 'menu_disconnect', 7, 68, 0),
     Shortcut('main.exit', 'main', 'exit', 'menu_exit', 7, 81, 0),

@@ -232,6 +232,7 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_call_ctrl_shift_q_label"),
             i18n.t("shortcut_call_ctrl_m_label"),
             i18n.t("shortcut_call_ctrl_p_label"),
+            i18n.t("shortcut_call_ctrl_shift_p_label"),
             i18n.t("shortcut_call_ctrl_v_label"),
             i18n.t("shortcut_call_ctrl_c_label"),
             "",

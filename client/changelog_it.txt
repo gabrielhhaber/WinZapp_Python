@@ -328,6 +328,8 @@ WHAT'S NEW
 
 - Stati: posizione, sondaggio, elenco di contatti e altri tipi di stati dei contatti che comparivano come "Messaggio incompatibile" ora sono mostrati con la loro etichetta.
 
+- Chiamate: il pulsante "Partecipanti alla chiamata" della finestra della chiamata ora ha la scorciatoia Ctrl+Shift+P (Ctrl+P resta il passaggio al video). Il lettore di schermo annuncia questo tasto di scelta rapida sul pulsante, e la scorciatoia compare nell'elenco delle scorciatoie della finestra della chiamata.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
