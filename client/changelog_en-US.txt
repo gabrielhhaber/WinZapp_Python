@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Media tab of chats and groups: Ctrl+C on a document, photo, video or audio now copies the file to the clipboard, as in the message list, instead of saying "Could not copy this message." The context menu item is now "Copy file" too.
+
 - The Open button now opens documents, photos, videos and other files in the external viewer under their real name, instead of a name like "tmpab12cd34", just as Save as already did.
 
 - Settings > General > Notifications gains "Order of group messages in toast notifications:", with "Participant name first" (the default, as before: "Gustavo in WinZapp | Developers and Testers") and "Group name first" (as in the official WhatsApp Desktop: "WinZapp | Developers and Testers, Gustavo"). The choice changes only the text of toast notifications; what the screen reader announces while the window is active stays the same.

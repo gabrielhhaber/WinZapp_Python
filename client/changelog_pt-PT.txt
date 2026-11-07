@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Separador Multimédia das conversas e grupos: Ctrl+C num documento, foto, vídeo ou áudio passa a copiar o ficheiro para a área de transferência, como na lista de mensagens, em vez de dizer "Não foi possível copiar esta mensagem". O item do menu de contexto passou também a ser "Copiar ficheiro".
+
 - O botão Abrir passa a abrir documentos, fotografias, vídeos e outros ficheiros no visualizador externo com o nome real, em vez de um nome como "tmpab12cd34", como o Guardar como já fazia.
 
 - Definições > Geral > Notificações passa a ter "Ordem das mensagens de grupo nas notificações toast:", com "Nome do participante primeiro" (predefinição, como já era: "Gustavo em WinZapp | Desenvolvedores e Testers") e "Nome do grupo primeiro" (como no WhatsApp Desktop oficial: "WinZapp | Desenvolvedores e Testers, Gustavo"). A escolha altera apenas o texto das notificações toast; o que o leitor de ecrã anuncia com a janela ativa continua igual.

@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Fila Media a conversațiilor și grupurilor: Ctrl+C pe un document, o fotografie, un video sau un fișier audio copiază acum fișierul în clipboard, ca în lista de mesaje, în loc să spună că mesajul nu a putut fi copiat. Elementul din meniul contextual este acum și „Copiază fișierul”.
+
 - Butonul Deschide deschide acum documente, fotografii, videoclipuri și alte fișiere în vizualizatorul extern sub numele lor real, în loc de un nume precum "tmpab12cd34", ca și Salvează ca până acum.
 
 - Setări > General > Notificări primește opțiunea "Ordinea mesajelor de grup în notificările toast:", cu "Mai întâi numele participantului" (implicit, ca până acum: "Gustavo în WinZapp | Dezvoltatori și Testeri") și "Mai întâi numele grupului" (ca în WhatsApp Desktop oficial: "WinZapp | Dezvoltatori și Testeri, Gustavo"). Alegerea schimbă doar textul notificărilor toast; ce anunță cititorul de ecran cât timp fereastra este activă rămâne neschimbat.

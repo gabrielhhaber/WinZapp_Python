@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sohbet ve grupların Medya sekmesi: Bir belge, fotoğraf, video veya sesin üzerinde Ctrl+C artık "Bu mesaj kopyalanamadı" demek yerine, mesaj listesindeki gibi dosyayı panoya kopyalıyor. Bağlam menüsü öğesi de artık "Dosyayı kopyala".
+
 - Aç düğmesi artık belgeleri, fotoğrafları, videoları ve diğer dosyaları harici görüntüleyicide "tmpab12cd34" gibi bir ad yerine gerçek adıyla açıyor; Farklı kaydet zaten böyle yapıyordu.
 
 - Ayarlar > Genel > Bildirimler bölümüne "Toast bildirimlerinde grup iletilerinin sırası:" eklendi: "Önce katılımcı adı" (varsayılan, eskisi gibi: "Gustavo (WinZapp | Geliştiriciler ve Test Edenler)") ve "Önce grup adı" (resmî WhatsApp Desktop'taki gibi: "WinZapp | Geliştiriciler ve Test Edenler, Gustavo"). Seçim yalnızca toast bildirimlerinin metnini değiştirir; pencere etkinken ekran okuyucunun duyurduğu şey aynı kalır.
