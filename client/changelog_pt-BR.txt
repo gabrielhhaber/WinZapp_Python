@@ -6,6 +6,8 @@ NOVIDADES
 
 - Aba Mídia das conversas e grupos: Ctrl+C num documento, foto, vídeo ou áudio agora copia o arquivo para a área de transferência, como na lista de mensagens, em vez de dizer "Não foi possível copiar esta mensagem". O item do menu de contexto também passou a ser "Copiar arquivo".
 
+- O botão Abrir agora abre documentos, fotos, vídeos e outros arquivos no visualizador externo com o nome real, em vez de um nome como "tmpab12cd34", como o Salvar como já fazia.
+
 - Configurações > Geral > Notificações ganha "Ordem das mensagens de grupo nas notificações toast:", com "Nome do participante primeiro" (padrão, como já era: "Gustavo em WinZapp | Desenvolvedores e Testers") e "Nome do grupo primeiro" (como no WhatsApp Desktop oficial: "WinZapp | Desenvolvedores e Testers, Gustavo"). A escolha muda só o texto das notificações toast; o que o leitor de tela anuncia com a janela ativa continua igual.
 
 - A gravação do áudio do computador não é mais interrompida com "problema com o dispositivo de áudio" quando o WinZapp trava por um ou dois segundos (computador lento ou ocupado): o áudio desse instante é pulado, a gravação continua e o resto permanece sincronizado.
