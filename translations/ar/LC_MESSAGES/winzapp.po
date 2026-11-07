@@ -9040,7 +9040,6 @@ msgid "Could not use neural noise reduction; basic noise reduction was used."
 msgstr "تعذّر استخدام تقليل الضوضاء العصبي؛ استُخدم تقليل الضوضاء الأساسي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/voice_recording.py
 msgctxt "noise_reduction_kept_pending"
 msgid ""
 "Could not apply neural noise reduction; the voice message stayed pending so "

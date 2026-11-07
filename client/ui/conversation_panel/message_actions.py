@@ -938,6 +938,14 @@ class MessageActionsMixin:
                 # dispatches; if it fails again the row stays pending.
                 self._retry_nr_pending(msg, remote_jid, path)
                 return
+            if media_type == "audio" and msg.get("_nr_processed_voice"):
+                # A note that ALREADY went through the pipeline (handoff
+                # product): "Try sending again" resends THOSE bytes as a
+                # voice note — ptt, quote, channels — never re-reduced,
+                # never the generic attachment path below (review 18:47,
+                # contract 4).
+                self._resend_processed_voice(msg, remote_jid, path)
+                return
             # Only once the copy is queued: a file that can no longer be sent
             # (too large now) keeps its failed row instead of vanishing.
             if self._send_attachment_file(remote_jid, path, media_type, caption, None):

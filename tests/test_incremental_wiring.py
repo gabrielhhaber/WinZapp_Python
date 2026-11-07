@@ -407,6 +407,8 @@ def test_on_destroy_cancels_incremental_for_normal_mic_recording():
     panel._video_player = None
     panel._cancel_incremental_denoise = (
         lambda: vr.VoiceRecordingMixin._cancel_incremental_denoise(panel))
+    panel._nr_invalidate_attempts = (
+        lambda: vr.VoiceRecordingMixin._nr_invalidate_attempts(panel))
     controller = panel.main_window._incremental_controller
     session = {"local_id": "m1", "cancel": False}
     assert controller.acquire_slot("m1", session)
@@ -2520,15 +2522,15 @@ class _RetryPanel:
         self.registered = []
         self._outgoing_virtual_messages = {}
         self._sorted_messages = [row] if row is not None else []
-        self._nr_pending_row_alive = (
-            lambda local_id: vr.VoiceRecordingMixin._nr_pending_row_alive(self, local_id))
-        self._nr_pending_announce = (
-            lambda msg, key: vr.VoiceRecordingMixin._nr_pending_announce(self, msg, key))
-        self._read_nr_pending = (
-            lambda msg, path: vr.VoiceRecordingMixin._read_nr_pending(self, msg, path))
-        self._nr_pending_handoff = (
-            lambda msg, jid, wav, ch, rate, secs:
-            vr.VoiceRecordingMixin._nr_pending_handoff(self, msg, jid, wav, ch, rate, secs))
+        for _name in ("_nr_pending_row_alive", "_nr_attempt_begin",
+                      "_nr_attempt_end", "_nr_attempt_context_alive",
+                      "_nr_invalidate_attempts", "_nr_pending_announce",
+                      "_read_nr_pending", "_nr_pending_handoff",
+                      "_stage_pending_and_handoff"):
+            setattr(self, _name,
+                    (lambda n: (lambda *a, **k:
+                                getattr(vr.VoiceRecordingMixin, n)(self, *a, **k))
+                     )(_name))
 
     def _clear_empty_placeholder(self):
         pass
@@ -2537,7 +2539,10 @@ class _RetryPanel:
         return "row"
 
     def _register_virtual_msg(self, msg):
+        # Mirrors the real one (text_sending.py): records AND the outgoing
+        # virtual registry the echo matcher reads.
         self.registered.append(msg)
+        self._outgoing_virtual_messages[msg["_local_id"]] = msg
 
     def remove_messages_by_id(self, ids, focus_previous=False):
         self.removed.append(set(ids))
@@ -2600,7 +2605,7 @@ def test_retry_nr_pending_reduces_and_sends_processed(send_env, monkeypatch):
     assert panel.removed == [{"m9"}]
     assert mw.message_queue.cancelled == ["m9"]
     assert announced == ["resend_started"]
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
     os.unlink(pm.audio_path)
 
 
@@ -2627,7 +2632,7 @@ def test_retry_nr_pending_failure_keeps_the_row(send_env, monkeypatch):
     assert panel.removed == []
     assert announced == ["noise_reduction_kept_pending"]
     assert os.path.exists(kept)
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
 
 
 def test_retry_nr_pending_refused_queue_keeps_the_row(send_env, monkeypatch):
@@ -2649,15 +2654,21 @@ def test_retry_nr_pending_refused_queue_keeps_the_row(send_env, monkeypatch):
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
-    # The handoff never happened: the pending row and the kept original stay,
-    # and no processed copy is left behind.
-    assert panel.removed == []
+    # The representation WAS registered before the queue was activated and
+    # rolled back when the enqueue was rejected: the old pending row and
+    # the kept original stay, and NO new artifact (WAV/MSV/row/virtual
+    # registration) is left behind (review 18:47, contracts 3+5).
+    assert len(panel.registered) == 1
+    new_id = panel.registered[0]["_local_id"]
+    assert panel.removed == [{new_id}]
+    assert all(not (isinstance(m, dict) and m.get("_local_id") == new_id)
+               for m in panel._sorted_messages)
+    assert new_id not in panel._outgoing_virtual_messages
     assert announced == ["noise_reduction_kept_pending"]
     assert os.path.exists(kept)
-    leftovers = [f for f in os.listdir(send_env / "voice_messages")
-                 if f.endswith(".resend.wav")]
-    assert leftovers == [os.path.basename(kept)]
-    assert "_nr_retry_active" not in msg
+    assert sorted(os.listdir(send_env / "voice_messages")) == \
+        [os.path.basename(kept)]
+    assert not getattr(panel, "_nr_attempts", {})
 
 
 def test_double_retry_runs_a_single_attempt(send_env, monkeypatch):
@@ -2686,7 +2697,7 @@ def test_double_retry_runs_a_single_attempt(send_env, monkeypatch):
     _drive_wx_calls()
     assert len(mw.message_queue.enqueued) == 1
     assert announced == ["resend_started"]
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
     os.unlink(mw.message_queue.enqueued[0].audio_path)
 
 
@@ -2856,7 +2867,7 @@ def test_retry_deferred_while_incremental_slot_busy(send_env, monkeypatch):
     assert mw.message_queue.enqueued == []
     assert announced == ["noise_reduction_kept_pending"]
     assert os.path.exists(kept)
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
     controller.release_slot("other-note")
 
 
@@ -2884,7 +2895,7 @@ def test_retry_refuses_a_changed_kept_file(send_env, monkeypatch):
     assert panel.removed == []
     assert announced == ["resend_not_available"]
     assert os.path.exists(kept)
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
 
 
 def test_retry_sends_nothing_when_row_deleted_mid_processing(send_env, monkeypatch):
@@ -2914,10 +2925,11 @@ def test_retry_sends_nothing_when_row_deleted_mid_processing(send_env, monkeypat
     assert mw.message_queue.enqueued == []
     assert panel.removed == []
     assert announced == []
-    leftovers = [f for f in os.listdir(send_env / "voice_messages")
-                 if f.endswith(".resend.wav")]
-    assert leftovers == [os.path.basename(kept)]
-    assert "_nr_retry_active" not in msg
+    # Every artifact the handoff staged (processed copy AND .msv playback
+    # copy) is gone; only the valid kept original stays (contract 5).
+    assert sorted(os.listdir(send_env / "voice_messages")) == \
+        [os.path.basename(kept)]
+    assert not getattr(panel, "_nr_attempts", {})
 
 
 def test_retry_unreadable_file_stays_silent_when_row_already_gone(send_env, monkeypatch):
@@ -2937,7 +2949,7 @@ def test_retry_unreadable_file_stays_silent_when_row_already_gone(send_env, monk
     _drive_wx_calls()
     assert mw.message_queue.enqueued == []
     assert announced == []
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
 
 
 # --- Fran 18:35/18:36: the kept-pending note also offers "Send without
@@ -2973,7 +2985,7 @@ def test_send_nr_pending_raw_sends_original_as_voice_note(send_env, monkeypatch)
     assert panel.registered[0]["message"]["audioMessage"]["ptt"] is True
     assert panel.removed == [{"m9"}]
     assert announced == ["resend_started"]
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
     os.unlink(pm.audio_path)
 
 
@@ -2992,7 +3004,7 @@ def test_send_nr_pending_raw_refuses_a_changed_file(send_env, monkeypatch):
     assert mw.message_queue.enqueued == []
     assert announced == ["resend_not_available"]
     assert os.path.exists(kept)
-    assert "_nr_retry_active" not in msg
+    assert not getattr(panel, "_nr_attempts", {})
 
 
 def test_raw_send_ignored_while_retry_attempt_in_flight(send_env, monkeypatch):
@@ -3023,6 +3035,321 @@ def test_raw_send_ignored_while_retry_attempt_in_flight(send_env, monkeypatch):
     # The winner is the RETRY: the payload is the processed audio.
     assert _wav_payload(mw.message_queue.enqueued[0].audio_path) == bytes(reversed(raw))
     os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+# --- Review 18:47 residual contracts: reservation (not probe), attempt
+# token/context, representation before queue activation, processed-voice
+# resend, full artifact cleanup, single stable read. ---
+
+
+def test_retry_reservation_blocks_capture_and_second_offline(send_env, monkeypatch):
+    # Contract 1 (18:47): the offline side is RESERVED under the
+    # controller's lock from before the inference-lock wait — a capture
+    # cannot take the slot between a probe and the model use, and a
+    # second offline reservation defers. Released when the reduction
+    # ends, before staging/handoff.
+    import core.neural_noise_reduction as nnr
+    gate = threading.Event()
+    entered = threading.Event()
+
+    def _slow(data, rate, ch):
+        entered.set()
+        gate.wait(10)
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _slow)
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x51\x52" * 480
+    msg, kept = _kept_note(send_env, raw)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    assert entered.wait(10)
+    assert controller.acquire_slot("other-note", {"cancel": False}) is False
+    assert controller.try_reserve_offline("other-offline") is False
+    gate.set()
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert announced == ["resend_started"]
+    assert controller.acquire_slot("other-note", {"cancel": False}) is True
+    controller.release_slot("other-note")
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def test_second_attempt_blocked_for_rehydrated_same_id_row(send_env, monkeypatch):
+    # Contract 2 (18:47): authority lives per NOTE on the panel, not on
+    # the row dict — a rehydrated row with the same id carries no flag
+    # yet cannot start a second attempt while one runs.
+    import core.neural_noise_reduction as nnr
+    gate = threading.Event()
+    calls = []
+
+    def _slow(data, rate, ch):
+        calls.append(1)
+        gate.wait(10)
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _slow)
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x53\x54" * 480
+    msg, kept = _kept_note(send_env, raw)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    # Same id, NEW dict — as a rehydration from records/DB would build
+    # it, WITHOUT any per-dict attempt state.
+    rehydrated = {k: v for k, v in msg.items() if k != "_nr_retry_active"}
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, rehydrated, "peer@s.whatsapp.net", kept)
+    vr.VoiceRecordingMixin._send_nr_pending_raw(
+        panel, rehydrated, "peer@s.whatsapp.net", kept)
+    gate.set()
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert calls == [1]
+    assert len(mw.message_queue.enqueued) == 1
+    assert not getattr(panel, "_nr_attempts", {})
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def test_destroy_without_emptying_list_invalidates_the_attempt(send_env, monkeypatch):
+    # Contract 2 (18:47): destroy invalidates live attempts even when the
+    # message list SURVIVES the destroy — the worker's UI dispatch cleans
+    # its artifacts quietly instead of calling into dead controls.
+    import core.neural_noise_reduction as nnr
+    gate = threading.Event()
+
+    def _slow(data, rate, ch):
+        gate.wait(10)
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _slow)
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x55\x56" * 480
+    msg, kept = _kept_note(send_env, raw)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    vr.VoiceRecordingMixin._nr_invalidate_attempts(panel)
+    gate.set()
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert mw.message_queue.enqueued == []
+    assert announced == []
+    assert panel._sorted_messages == [msg]  # the list was never emptied
+    assert not getattr(panel, "_nr_attempts", {})
+    assert sorted(os.listdir(send_env / "voice_messages")) == \
+        [os.path.basename(kept)]
+
+
+def test_representation_registered_before_queue_activation(send_env, monkeypatch):
+    # Contract 3 (18:47): enqueue() wakes the sender — a SYNCHRONOUS echo
+    # at activation time must already find the row and its virtual
+    # registration, or it lands as a late duplicate pending row.
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x57\x58" * 480
+    msg, kept = _kept_note(send_env, raw)
+    panel = _RetryPanel(mw, row=msg)
+    seen = []
+
+    def _enqueue(pm):
+        seen.append(pm.local_id in panel._outgoing_virtual_messages
+                    and any(isinstance(m, dict) and m.get("_local_id") == pm.local_id
+                            for m in panel._sorted_messages))
+        mw.message_queue.enqueued.append(pm)
+
+    mw.message_queue.enqueue = _enqueue
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert seen == [True]
+    assert announced == ["resend_started"]
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def _processed_voice_row(send_env, raw, local_id="n1"):
+    import hashlib
+    from core.message_resend import RESEND_PATH_KEY
+    os.makedirs(send_env / "voice_messages", exist_ok=True)
+    path = str(send_env / "voice_messages" / (local_id + ".resend.wav"))
+    _write_wav(path, raw)
+    with open(path, "rb") as fh:
+        digest = hashlib.sha256(fh.read()).hexdigest()
+    row = {"_local_id": local_id, "_local_pending": False, "_send_failed": True,
+           "_nr_processed_voice": True, RESEND_PATH_KEY: path,
+           "_nr_pending_sha256": digest, "_nr_pending_size": os.path.getsize(path),
+           "key": {"id": local_id, "fromMe": True,
+                   "remoteJid": "peer@s.whatsapp.net"},
+           "messageType": "audioMessage",
+           "message": {"audioMessage": {"ptt": True, "seconds": 1}},
+           "contextInfo": {"stanzaId": "q1", "participant": "peer@s.whatsapp.net",
+                           "quotedMessage": {"conversation": "hi"},
+                           "_quotedFromMe": False},
+           "messageTimestamp": 100}
+    return row, path
+
+
+def test_resend_processed_voice_resends_voice_bytes(send_env, monkeypatch):
+    # Contract 4 (18:47): a handoff-produced row that failed in transport
+    # resends THOSE bytes as a voice note — ptt, quote — never re-reduced,
+    # never a generic attachment; the failed row's file survives until the
+    # new enqueue is accepted.
+    import core.neural_noise_reduction as nnr
+    called = []
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda *a: (called.append(a), (a[0], "neural"))[1])
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x59\x5a" * 480
+    row, path = _processed_voice_row(send_env, raw)
+    panel = _RetryPanel(mw, row=row)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._resend_processed_voice(
+        panel, row, "peer@s.whatsapp.net", path)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert called == []  # never re-reduced
+    assert len(mw.message_queue.enqueued) == 1
+    pm = mw.message_queue.enqueued[0]
+    assert _wav_payload(pm.audio_path) == raw
+    assert pm.quoted["key"]["id"] == "q1"
+    assert panel.registered[0]["message"]["audioMessage"]["ptt"] is True
+    assert announced == ["resend_started"]
+    os.unlink(pm.audio_path)
+
+
+def test_resend_routes_processed_voice_to_voice_resend(send_env):
+    # Contract 4 routing: "Try sending again" on a processed-voice row
+    # goes to the voice resend, NEVER to the generic attachment path.
+    row, path = _processed_voice_row(send_env, b"\x61\x62" * 480, local_id="n2")
+    routed = []
+
+    def _no_generic(*a, **k):
+        raise AssertionError("generic attachment path must not run")
+
+    panel = types.SimpleNamespace(
+        conversation={"remoteJid": "peer@s.whatsapp.net"},
+        _resend_processed_voice=lambda m, jid, p: routed.append((m, jid, p)),
+        _send_attachment_file=_no_generic,
+    )
+    ma.MessageActionsMixin._on_menu_resend_message(panel, row)
+    assert routed == [(row, "peer@s.whatsapp.net", path)]
+
+
+def test_retry_processes_the_same_bytes_it_validated(send_env, monkeypatch):
+    # Fingerprint (18:47): ONE stable read — a file swapped between two
+    # opens can never validate as A and be processed as B.
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (data, "neural"))
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw_a = b"\x63\x64" * 480
+    raw_b = b"\x65\x66" * 480
+    msg, kept = _kept_note(send_env, raw_a)
+    other = str(send_env / "other.wav")
+    _write_wav(other, raw_b)
+    real_open = open
+    reads = [0]
+
+    def _swapping_open(path, mode="r", *a, **k):
+        if str(path) == kept and "r" in mode:
+            reads[0] += 1
+            if reads[0] > 1:
+                path = other  # swapped AFTER the first read
+        return real_open(path, mode, *a, **k)
+
+    monkeypatch.setattr("builtins.open", _swapping_open)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert len(mw.message_queue.enqueued) == 1
+    assert _wav_payload(mw.message_queue.enqueued[0].audio_path) == raw_a
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def test_moment_switch_blocks_offline_until_drain_exit(send_env, monkeypatch):
+    # Contract 1 (18:47), record->send with the native session retained:
+    # the offline pass never starts while the cancelled drain can still
+    # hold its private model. Provenance: FAKE drain thread honoring the
+    # documented exit contract, as in
+    # test_switch_moment_cancel_cleanup_contract_fake_drain.
+    import core.neural_noise_reduction as nnr
+    entered = []
+    drain_gate = threading.Event()
+
+    def _reduce(data, rate, ch):
+        entered.append(drain_gate.is_set())
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _reduce)
+    controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
+    frames = [b"\x67\x68" * 480]
+    raw = b"".join(frames)
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+
+    class _Worker:
+        def finish(self):
+            raise AssertionError("finish must not run after the switch")
+
+        def abort(self):
+            pass
+
+    session = _send_session(controller, frames, worker=_Worker(),
+                            spool=spool, stream=_FakeStream())
+
+    def _drain():
+        # A drain whose native call stays blocked until released: only
+        # then observes the cancel and follows the exit contract.
+        drain_gate.wait(10)
+        while not session["cancel"]:
+            time.sleep(0.02)
+        session["drain_cleaned"] = True
+        try:
+            os.unlink(session["spool"])
+        except OSError:
+            pass
+        controller.release_slot(session["local_id"])
+
+    drain = threading.Thread(target=_drain, daemon=True)
+    drain.start()
+    session["thread"] = drain
+
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"  # changed mid-flight
+    panel = _SendPanel(mw, frames, session)
+    send_thread = threading.Thread(
+        target=lambda: vr.VoiceRecordingMixin._send_voice_message(panel, None),
+        daemon=True)
+    send_thread.start()
+    # The send is parked at the barrier: no offline pass while the drain
+    # can still hold its model.
+    time.sleep(0.5)
+    assert entered == []
+    drain_gate.set()
+    assert mw.message_queue.event.wait(10)
+    send_thread.join(10)
+    assert entered == [True]  # offline ran only AFTER the drain exited
+    assert _wav_payload(mw.message_queue.enqueued[0].audio_path) == bytes(reversed(raw))
+    assert cleanup_done.wait(5)
+    drain.join(5)
 
 
 def test_menu_offers_send_raw_only_on_nr_pending_notes():

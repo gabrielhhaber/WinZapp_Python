@@ -347,6 +347,7 @@ class IncrementalDenoiseController:
         self._sessions = {}   # local_id -> drain IPC session dict
         self._states = {}     # local_id -> PREPARING | CANCELLED
         self._slot_owner = None
+        self._offline_owner = None
 
     def register(self, local_id, session) -> None:
         """Send authority + capture identity for EVERY note that enters the
@@ -359,9 +360,12 @@ class IncrementalDenoiseController:
 
     def acquire_slot(self, local_id, session) -> bool:
         """Register the note AND take the single slot without waiting.
-        False = occupied."""
+        False = occupied — by another capture OR by an offline
+        reservation: the exclusion between the capture's private model
+        and the offline singleton is effective in BOTH directions under
+        this same lock (review 18:47, contract 1)."""
         with self._lock:
-            if self._slot_owner is not None:
+            if self._slot_owner is not None or self._offline_owner is not None:
                 return False
             self._slot_owner = local_id
             self._sessions[local_id] = session
@@ -433,6 +437,27 @@ class IncrementalDenoiseController:
         """
         with self._lock:
             return self._slot_owner is not None
+
+    def try_reserve_offline(self, local_id) -> bool:
+        """Reserve the offline-model side against the incremental slot —
+        atomically, under the same lock acquire_slot() uses, not a
+        boolean probe. A kept-pending retry holds this from BEFORE it
+        waits on the singleton's inference lock until the reduction
+        returns, so no capture can start a private model next to the
+        offline one in between, and no second offline reservation runs
+        concurrently (review 18:47, contract 1). False = a capture holds
+        the slot or another offline reservation is active."""
+        with self._lock:
+            if self._slot_owner is not None or self._offline_owner is not None:
+                return False
+            self._offline_owner = local_id
+            return True
+
+    def release_offline(self, local_id) -> None:
+        """Free the offline reservation — only the reserving owner can."""
+        with self._lock:
+            if self._offline_owner == local_id:
+                self._offline_owner = None
 
     def release_slot(self, local_id) -> None:
         """Free the SLOT — nothing else. Only called by the party that

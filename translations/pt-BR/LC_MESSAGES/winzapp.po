@@ -9215,7 +9215,6 @@ msgstr ""
 "ruído básica."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/voice_recording.py
 msgctxt "noise_reduction_kept_pending"
 msgid ""
 "Could not apply neural noise reduction; the voice message stayed pending so "
