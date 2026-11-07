@@ -2546,6 +2546,11 @@ class _RetryPanel:
 
     def remove_messages_by_id(self, ids, focus_previous=False):
         self.removed.append(set(ids))
+        # Mirrors the real one: a removed row takes its kept/processed
+        # resend file with it (message_actions.py).
+        from ui.conversation_panel.media_paths import discard_nr_pending_resend
+        for _id in ids:
+            discard_nr_pending_resend(vr.data_path("voice_messages"), _id)
         self._sorted_messages = [
             m for m in self._sorted_messages
             if not (isinstance(m, dict) and m.get("key", {}).get("id") in ids)]
@@ -3350,6 +3355,184 @@ def test_moment_switch_blocks_offline_until_drain_exit(send_env, monkeypatch):
     assert _wav_payload(mw.message_queue.enqueued[0].audio_path) == bytes(reversed(raw))
     assert cleanup_done.wait(5)
     drain.join(5)
+
+
+# --- Review 18:59 residuals: the NORMAL send in the same exclusion,
+# converter-temp cleanup, and the old handoff row's media cache. ---
+
+
+def test_normal_send_uses_gate_while_capture_holds_slot(send_env, monkeypatch):
+    # Residual 1 (18:59): the NORMAL send path takes the same reservation
+    # as the retry — with the slot held by a capture, the offline neural
+    # pass is never attempted; the published gate applies instead.
+    import core.neural_noise_reduction as nnr
+    called = []
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda *a: (called.append(a), (a[0], "neural"))[1])
+    controller = IncrementalDenoiseController()
+    assert controller.acquire_slot("other-note", {"cancel": False})
+    frames = [b"\x69\x6a" * 480]
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    panel = _SendPanel(mw, frames, None)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    assert called == []  # no second ONNX next to the capture's model
+    controller.release_slot("other-note")
+
+
+def test_normal_send_stays_pending_while_capture_holds_slot(send_env, monkeypatch):
+    # Same exclusion with the fourth option: keep_pending keeps the note
+    # pending instead of running the offline pass next to the capture.
+    import core.neural_noise_reduction as nnr
+    called = []
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda *a: (called.append(a), (a[0], "neural"))[1])
+    controller = IncrementalDenoiseController()
+    assert controller.acquire_slot("other-note", {"cancel": False})
+    frames = [b"\x6b\x6c" * 480]
+    mw, announced = _keep_pending_mw(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    panel = _SendPanel(mw, frames, None)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    deadline = time.time() + 10
+    while time.time() < deadline and not WX_CALLS:
+        time.sleep(0.05)
+    assert WX_CALLS, "the note was never kept pending"
+    _drive_wx_calls()
+    assert called == []
+    assert announced == ["noise_reduction_kept_pending"]
+    assert panel.failed == [panel.registered["_local_id"]]
+    controller.release_slot("other-note")
+
+
+def test_capture_cannot_acquire_during_normal_offline_send(send_env, monkeypatch):
+    # The other direction (residual 1): while the NORMAL offline pass
+    # holds the reservation, a new capture cannot take the slot; it can
+    # once the reduction ended.
+    import core.neural_noise_reduction as nnr
+    gate = threading.Event()
+    entered = threading.Event()
+
+    def _slow(data, rate, ch):
+        entered.set()
+        gate.wait(10)
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _slow)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x6d\x6e" * 480]
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    panel = _SendPanel(mw, frames, None)
+    WX_CALLS.clear()
+    send_thread = threading.Thread(
+        target=lambda: vr.VoiceRecordingMixin._send_voice_message(panel, None),
+        daemon=True)
+    send_thread.start()
+    assert entered.wait(10)
+    assert controller.acquire_slot("new-note", {"cancel": False}) is False
+    gate.set()
+    send_thread.join(10)
+    assert mw.message_queue.event.wait(10)
+    assert controller.acquire_slot("new-note", {"cancel": False}) is True
+    controller.release_slot("new-note")
+
+
+def test_handoff_cleans_ogg_temp_when_read_fails(send_env, monkeypatch):
+    # Residual 2 (18:59): a converter temp OGG whose READ fails is deleted
+    # too — never left behind while the send continues with the WAV.
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    ogg_left = str(send_env / "voice_messages" / "leftover.ogg")
+    converted = []
+    read_attempts = []
+
+    def _convert(wav_path):
+        with open(ogg_left, "wb") as fh:
+            fh.write(b"OggS-fake")
+        converted.append(ogg_left)
+        return ogg_left
+
+    mw._convert_wav_to_ogg = _convert
+    real_open = open
+
+    def _failing_open(path, mode="r", *a, **k):
+        if str(path) == ogg_left and "r" in mode:
+            read_attempts.append(path)
+            raise OSError("read error")
+        return real_open(path, mode, *a, **k)
+
+    raw = b"\x6f\x70" * 480
+    msg, kept = _kept_note(send_env, raw)
+    monkeypatch.setattr("builtins.open", _failing_open)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert announced == ["resend_started"]
+    # The mono converter ran and its output's read genuinely failed — the
+    # cleanup under test is not a vacuous pass.
+    assert converted == [ogg_left]
+    assert read_attempts, "the OGG read never happened: no coverage"
+    assert not os.path.exists(ogg_left)
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def test_second_handoff_drops_the_first_rows_media_cache(send_env, monkeypatch):
+    # Residual 3 (18:59): after a processed-voice resend, the FIRST
+    # handoff row's .msv dies with its row; every artifact of the NEW row
+    # (its valid owned files) stays.
+    import core.neural_noise_reduction as nnr
+    from core.message_resend import RESEND_PATH_KEY
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    raw = b"\x71\x72" * 480
+    msg, kept = _kept_note(send_env, raw)
+    panel = _RetryPanel(mw, row=msg)
+    WX_CALLS.clear()
+    # First handoff: kept pending -> processed row.
+    vr.VoiceRecordingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert announced == ["resend_started"]
+    first_row = panel.registered[0]
+    first_id = first_row["_local_id"]
+    first_resend = first_row[RESEND_PATH_KEY]
+    first_msv = str(send_env / "voice_messages" / (first_id + ".msv"))
+    assert os.path.exists(first_resend) and os.path.exists(first_msv)
+    # Transport failure on the first row (no claim about the queue's
+    # cleanup moment is made — Milo withdrew it; we only assert the file
+    # is still there for the manual resend).
+    first_row["_send_failed"] = True
+    first_row["_local_pending"] = False
+    # Second handoff: resend of the processed voice note.
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._resend_processed_voice(
+        panel, first_row, "peer@s.whatsapp.net", first_resend)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert announced == ["resend_started", "resend_started"]
+    assert not os.path.exists(first_resend)
+    assert not os.path.exists(first_msv)
+    second_row = panel.registered[1]
+    second_id = second_row["_local_id"]
+    assert sorted(os.listdir(send_env / "voice_messages")) == \
+        sorted([second_id + ".resend.wav", second_id + ".msv"])
+    os.unlink(second_row[RESEND_PATH_KEY])
+    os.unlink(str(send_env / "voice_messages" / (second_id + ".msv")))
 
 
 def test_menu_offers_send_raw_only_on_nr_pending_notes():

@@ -1133,19 +1133,24 @@ class VoiceRecordingMixin:
                 return
             voice_mimetype = STEREO_MIMETYPE
         else:
+            ogg_path = None
             try:
                 ogg_path = mw._convert_wav_to_ogg(wav_path)
                 if ogg_path and os.path.isfile(ogg_path):
                     with open(ogg_path, "rb") as f_in:
                         ogg_bytes = f_in.read()
-                    try:
-                        os.unlink(ogg_path)
-                    except OSError:
-                        pass
             except Exception as exc:
                 logging.warning("[noise_reduction] pending handoff OGG "
                                 "pre-encode failed: %s", exc)
                 ogg_bytes = None
+            finally:
+                # The converter's temp OGG dies here either way — a read
+                # failure must not leave it behind (review 18:59).
+                if ogg_path:
+                    try:
+                        os.unlink(ogg_path)
+                    except OSError:
+                        pass
         # A persistent home for the copy: the new row's RESEND_PATH_KEY
         # points at it; remove_messages_by_id disposes of it with its row.
         new_local_id = str(uuid.uuid4())
@@ -1287,6 +1292,19 @@ class VoiceRecordingMixin:
                 self._outgoing_virtual_messages.pop(old_local_id, None)
             if old_ids:
                 self.remove_messages_by_id(old_ids, focus_previous=True)
+            if msg.get("_nr_processed_voice"):
+                # The old row was itself a handoff product: its local
+                # playback cache (.msv) is still named after the LOCAL id
+                # (only a DELIVERED row's cache is renamed to the real
+                # WhatsApp id) and remove_messages_by_id does not collect
+                # it — it dies with its row here, or a second handoff
+                # leaves it orphaned (review 18:59). Valid caches of rows
+                # that stay are never touched.
+                from ui.conversation_panel.media_paths import \
+                    discard_local_media_cache
+                discard_local_media_cache(
+                    data_path("voice_messages"), data_path("media"),
+                    old_local_id)
             self._nr_attempt_end(local_id, token)
             mw._schedule_set_chats()
             mw.output(mw.i18n.t("resend_started"), interrupt=True)
@@ -1715,8 +1733,9 @@ class VoiceRecordingMixin:
                 # after the confirmed device close above, and the drain
                 # self-cleans on the way out.
                 inc_session["stop" if use_incremental else "cancel"] = True
-                if (not use_incremental and drain_thread is not None
-                        and not inc_session.get("basic_only", False)):
+                if (not use_incremental and not inc_session.get("basic_only", False)
+                        and (drain_thread is not None
+                             or inc_session.get("worker") is not None)):
                     # record→send preference switch with a native session
                     # that may STILL hold its private model: the cancelled
                     # drain cleans itself asynchronously, so the offline
@@ -1728,7 +1747,7 @@ class VoiceRecordingMixin:
                     # A drain that will not die keeps its model: mark the
                     # session occupied so the note takes the published
                     # gate / stays pending, never a second ONNX.
-                    if drain_thread.is_alive():
+                    if drain_thread is not None and drain_thread.is_alive():
                         outcome = _wait_or_revoked(
                             lambda: not drain_thread.is_alive(),
                             timeout=_INCREMENTAL_SEND_FINAL_WAIT)
@@ -1765,12 +1784,14 @@ class VoiceRecordingMixin:
                             threading.Thread(target=_reap_switched_drain,
                                              daemon=True).start()
                     if (not inc_session.get("model_unavailable")
-                            and not drain_thread.is_alive()
+                            and (drain_thread is None
+                                 or not drain_thread.is_alive())
                             and not inc_session.get("drain_cleaned")):
-                        # The drain is dead but left worker/spool/slot
-                        # behind (normal stop-path exit that raced past the
-                        # cancel): reclaim the remnant here, exactly once,
-                        # before any offline pass loads the singleton.
+                        # The drain is dead (or was never snapshotted) but
+                        # left worker/spool/slot behind (normal stop-path
+                        # exit that raced past the cancel): reclaim the
+                        # remnant here, exactly once, before any offline
+                        # pass loads the singleton.
                         late_worker = inc_session.get("worker")
                         if late_worker is not None:
                             try:
@@ -2202,16 +2223,37 @@ class VoiceRecordingMixin:
                     or (inc_session.get("basic_only", False)
                         and controller is not None and controller.slot_busy()))
                 raw_unprocessed = audio_data if want_pending else None
+                reduce_basic_only = chosen_basic or (session_blocked and not want_pending)
+                offline_reserved = False
+                if not skip_posterior and not reduce_basic_only \
+                        and controller is not None:
+                    # The NORMAL offline pass takes the same reservation as
+                    # the retry (review 18:59, residual 1): while it loads /
+                    # runs the singleton, no capture starts a private model
+                    # next to it (acquire_slot refuses), and a capture or
+                    # another offline pass already holding the exclusion
+                    # makes THIS note take the occupied policy — published
+                    # gate, or pending when the user chose keep_pending.
+                    if controller.try_reserve_offline(local_id):
+                        offline_reserved = True
+                    elif want_pending:
+                        skip_posterior = True
+                    else:
+                        reduce_basic_only = True
                 if skip_posterior:
                     _nr_engine = None
-                    logging.info("[noise_reduction] native session may still "
-                                 "hold its model; keeping the note pending "
-                                 "without a second ONNX pass")
+                    logging.info("[noise_reduction] exclusion busy (native "
+                                 "session may still hold its model or another "
+                                 "note owns the slot); no second ONNX pass")
                 else:
-                    audio_data, _nr_engine = self._reduce_for_send(
-                        mw, audio_data, actual_rate, channels,
-                        chosen_basic or (session_blocked and not want_pending),
-                        on_failure=on_failure)
+                    try:
+                        audio_data, _nr_engine = self._reduce_for_send(
+                            mw, audio_data, actual_rate, channels,
+                            reduce_basic_only,
+                            on_failure=on_failure)
+                    finally:
+                        if offline_reserved:
+                            controller.release_offline(local_id)
                 logging.info("[VOICE_TIMING] Noise reduction finished (engine: %s)", _nr_engine)
                 if raw_unprocessed is not None and _nr_engine != "neural":
                     # Fourth option: BOTH neural processings failed (the

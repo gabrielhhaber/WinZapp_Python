@@ -445,10 +445,19 @@ class IncrementalDenoiseController:
         waits on the singleton's inference lock until the reduction
         returns, so no capture can start a private model next to the
         offline one in between, and no second offline reservation runs
-        concurrently (review 18:47, contract 1). False = a capture holds
-        the slot or another offline reservation is active."""
+        concurrently (review 18:47, contract 1).
+
+        The note's OWN slot does not count against its own offline
+        reservation: by the time the send flow reserves, it has already
+        serialized that session's private model (cancel-and-wait barrier,
+        remnant reclaim, or skip_posterior when the model may still be
+        loaded), so holding the slot only marks the send-side authority.
+        False = a DIFFERENT note holds the slot (a capture in progress) or
+        another offline reservation is active (review 18:59, residual 1)."""
         with self._lock:
-            if self._slot_owner is not None or self._offline_owner is not None:
+            if self._offline_owner is not None:
+                return False
+            if self._slot_owner is not None and self._slot_owner != local_id:
                 return False
             self._offline_owner = local_id
             return True
