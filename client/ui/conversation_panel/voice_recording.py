@@ -1274,7 +1274,7 @@ class VoiceRecordingMixin:
                                 pass
                             if controller is not None:
                                 controller.release_slot(local_id)
-                if (use_incremental and not inc_session["cancel"] and worker is not None
+                if (use_incremental and worker is not None
                         and not inc_session.get("failed")):
                     # Stage 3 — finish() runs the remaining model hops and
                     # can block natively just like load/feed: run it in a
@@ -1282,6 +1282,19 @@ class VoiceRecordingMixin:
                     # revocation-aware bounded wait for the whole final
                     # completion (see _INCREMENTAL_SEND_FINAL_WAIT) — never
                     # inline here, and never unbounded.
+                    #
+                    # The helper is created for EVERY session that reached
+                    # the drain stop holding its own published worker —
+                    # even one already cancelled (user revoke / shutdown /
+                    # discard between the stop and this gate): a cancelled
+                    # session is never consumed, but the helper is also the
+                    # FINALIZER that joins the drain and reclaims a remnant
+                    # the drain left uncleaned (its normal stop exit may
+                    # have raced past the cancel without re-reading it).
+                    # Skipping the helper on cancel leaked worker/spool/
+                    # slot: no reaper exists for a session holding its own
+                    # worker (Milo 17:50). A FAILED drain owns its cleanup
+                    # (drain_cleaned), so it is the one case excluded here.
                     #
                     # Ownership of a late result is indivisible: the
                     # finisher's cleanup decision and this thread's
@@ -1374,6 +1387,21 @@ class VoiceRecordingMixin:
 
                     finisher = threading.Thread(target=_finish_incremental, daemon=True)
                     finisher.start()
+                    if inc_session["cancel"]:
+                        # A cancel landed before this gate (user revoke,
+                        # shutdown, or a panel-level discard): the note is
+                        # never consumed or enqueued — transfer() would
+                        # refuse it anyway — so there is nothing to wait
+                        # for. The finalizer just started owns the remnant:
+                        # it joins the drain (never aborting native-active
+                        # code — the join completes first), never calls
+                        # finish() on a superseded session, and reclaims an
+                        # uncleaned worker/spool/slot exactly once via
+                        # drain_cleaned/claimed.
+                        logging.info("[noise_reduction] send cancelled before finish(); "
+                                     "the finalizer owns the incremental remnant")
+                        _forget_incremental()
+                        return
                     stage3 = _wait_or_revoked(lambda: finish_out.get("ready", False),
                                               timeout=_INCREMENTAL_SEND_FINAL_WAIT)
                     if stage3 == "revoked":

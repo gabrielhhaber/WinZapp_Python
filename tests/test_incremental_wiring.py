@@ -1812,3 +1812,106 @@ def test_send_cancel_unread_by_exiting_drain_reaper_cleans_once(send_env, monkey
     # The next capture acquires the slot.
     assert controller.acquire_slot("probe", {"cancel": False})
     controller.release_slot("probe")
+
+
+def test_send_revoke_before_finisher_gate_finalizer_cleans_once(send_env, monkeypatch):
+    """Milo 17:50 window: a worker EXISTS at send and the user's revoke
+    lands between the confirmed device close and the finisher-creation
+    gate (cancel True AT the gate). The old `not cancel` in the gate
+    skipped the helper, and no reaper exists for a session holding its
+    own worker: the drain exits through its normal stop path without
+    re-reading cancel (no drain_cleaned) and worker/spool/slot leak.
+    Every own-worker session that reached the drain stop now keeps a
+    FINALIZER: the helper joins the drain, never calls finish(), and
+    reclaims the remnant exactly once — 0 enqueue, 0 finish, 1 abort,
+    1 spool unlink, slot free after the cleanup-COMPLETION signal."""
+    import core.audio_processing as ap
+    from core import neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    cleanup_done = _cleanup_signal(controller)
+    frames = [b"\x0e\x0f" * 480]
+    spool = str(send_env / "spool.pcm")
+    open(spool, "wb").write(b"work")
+    unlinked = []
+    real_unlink = os.unlink
+
+    def _counting_unlink(path):
+        unlinked.append(path)
+        return real_unlink(path)
+
+    monkeypatch.setattr(os, "unlink", _counting_unlink)
+    finish_calls = []
+    aborted = []
+
+    class _Worker:
+        def finish(self):
+            finish_calls.append(1)
+            return spool, "neural"
+
+        def abort(self):
+            aborted.append(True)
+
+    drain_exit_gate = threading.Event()
+
+    class _NormalExitDrainThread:
+        # Alive at the gate; the join blocks until the test lets the
+        # drain "exit" — through its normal stop path: no cleanup, no
+        # drain_cleaned, worker+spool+slot kept for the send.
+        def is_alive(self):
+            return True
+
+        def join(self):
+            drain_exit_gate.wait(10)
+
+    class _RevokeOnCloseEvent:
+        # stopped_event whose first confirmed read delivers the user's
+        # revoke: the delete lands between the confirmed close and the
+        # finisher gate — Milo's exact pre-helper interleave.
+        def __init__(self):
+            self._set = False
+
+        def set(self):
+            self._set = True
+
+        def is_set(self):
+            if self._set:
+                controller.revoke("m1")
+            return self._set
+
+    session = _send_session(controller, frames, worker=_Worker(), spool=spool,
+                            stream=_FakeStream(),
+                            thread=_NormalExitDrainThread())
+    session["stopped_event"] = _RevokeOnCloseEvent()
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    # The note is never enqueued and the send does NOT wait for the
+    # drain: its terminal forget runs while the drain is still parked.
+    deadline = time.time() + 10
+    while controller.is_preparing("m1") and time.time() < deadline:
+        time.sleep(0.01)
+    assert not controller.is_preparing("m1"), \
+        "send thread never reached its terminal forget"
+    assert mw.message_queue.enqueued == []
+    assert session["cancel"] is True
+    assert session["revoked"] is True
+    # The drain is still "exiting": nobody cleaned, finish() never ran.
+    assert finish_calls == []
+    assert aborted == []
+    # The drain exits NORMALLY without re-reading cancel: the finalizer
+    # resumes post-join, sees superseded with drain_cleaned absent, and
+    # reclaims the remnant exactly once. Wait for the cleanup
+    # COMPLETION signal, not an intermediate step (abort precedes
+    # unlink and the slot release).
+    drain_exit_gate.set()
+    assert cleanup_done.wait(5), "finalizer never released the slot"
+    assert finish_calls == []
+    assert aborted == [True]
+    assert unlinked.count(spool) == 1
+    assert not os.path.exists(spool)
+    # ...and the slot is free for the next note.
+    assert controller.acquire_slot("probe", {"cancel": False})
+    controller.release_slot("probe")
