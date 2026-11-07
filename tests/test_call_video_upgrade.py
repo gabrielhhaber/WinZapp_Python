@@ -464,10 +464,12 @@ class _CameraStub:
         self.stops = 0
         self.page_camera_starts = 0
         self.start_result = start_result
+        self._active_voice_call = {**_voice_call(), 'is_video': True}
         self._call_camera_capture = None
         self.ws = SimpleNamespace(send_call_camera_start=self._page_start)
 
-    def _page_start(self):
+    def _page_start(self, epoch=None, *, media_epoch=None):
+        assert epoch == self._call_camera_epoch
         self.page_camera_starts += 1
 
     def output(self, text, interrupt=False):
@@ -478,10 +480,19 @@ class _CameraStub:
 
     def _start_call_camera(self, **kwargs):
         self.starts.append(kwargs)
+        owner = kwargs.get('expected_call')
+        assert owner is None or owner is self._active_voice_call
+        if self.start_result:
+            self._call_camera_capture = object()
+            self._call_camera_enabled = True
+            self._call_camera_epoch = 17
+            self._call_camera_owner = self._active_voice_call
         return self.start_result
 
     def _stop_call_camera(self, **_kw):
         self.stops += 1
+        self._call_camera_capture = None
+        self._call_camera_enabled = False
 
 
 def _inline_threads(monkeypatch):
@@ -503,7 +514,9 @@ def test_an_upgrade_by_the_other_person_never_transmits_the_users_camera(monkeyp
 
     stub._on_call_upgraded_to_video()
 
-    assert stub.starts == [{"announce_failure": False, "transmit": False}]
+    assert stub.starts == [{"announce_failure": False, "transmit": False,
+                            "expected_call": stub._active_voice_call}]
+    assert stub.starts[0]['expected_call'] is stub._active_voice_call
     assert stub.stops == 1
     assert stub.page_camera_starts == 0
     assert stub.announcements == ["voice_call_upgraded_to_video"]
@@ -558,7 +571,9 @@ def test_promote_posts_outside_the_lock_then_starts_the_camera(monkeypatch):
 
     assert stub.lock_held_during_post is False
     assert stub.marked == [stub._active_voice_call]
-    assert stub.starts == [{}]            # the user asked: camera on, transmitting
+    # The user asked: camera on, transmitting, owned by this exact call.
+    assert stub.starts == [{'expected_call': stub._active_voice_call}]
+    assert stub.starts[0]['expected_call'] is stub._active_voice_call
     assert stub.page_camera_starts == 1
     assert stub._call_upgrade_pending is False
 

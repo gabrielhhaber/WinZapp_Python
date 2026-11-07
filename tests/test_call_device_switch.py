@@ -234,6 +234,8 @@ def test_a_call_that_ends_during_the_switch_is_not_reopened():
 
 def test_multiparty_audio_keeps_person_chat_when_there_is_no_group_jid():
     window = _CallWindow()
+    # This starts a fresh multiparty call, not a device switch of CALL1.
+    window._active_voice_call = None
     window._call_audio_session = None
     window._start_voice_call_audio("MULTI", {
         "call_id": "MULTI", "is_group": True, "group_jid": "",

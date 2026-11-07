@@ -106,7 +106,7 @@ def test_attaching_audio_to_an_adopted_call_keeps_it_connected():
     window = _CallWindow()
     audio = window._call_ring_audio_session = _Audio()
 
-    window._attach_audio_to_browser_call(dict(window._active_voice_call))
+    window._attach_audio_to_browser_call(window._active_voice_call)
 
     assert window._call_audio_session is audio and audio.started
     assert window._active_voice_call["call_id"] == "C1"

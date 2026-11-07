@@ -193,7 +193,11 @@ def test_call_audio_session_sends_python_microphone_pcm_to_socket():
     assert base64.b64decode(payload["pcm"])
 
     session.stop()
-    assert sio.events[-1] == ("call:audio:stop", {"session": "winzapp"})
+    event, stop = sio.events[-1]
+    assert event == 'call:audio:stop' and stop['session'] == 'winzapp'
+    assert stop['mediaProtocol'] == payload['mediaProtocol'] == 1
+    assert stop['mediaEpoch'] == payload['mediaEpoch'] == ''  # legacy server
+    assert stop['streamEpoch'] == payload['streamEpoch'] > 0
 
 
 def test_stop_without_notifying_the_bridge_emits_no_call_audio_stop():
@@ -209,7 +213,7 @@ def test_stop_without_notifying_the_bridge_emits_no_call_audio_stop():
 
     session.stop(notify_bridge=False)
 
-    assert ("call:audio:stop", {"session": "winzapp"}) not in sio.events
+    assert not any(event == 'call:audio:stop' for event, _ in sio.events)
     assert not session.running
     assert not session.output_running
 

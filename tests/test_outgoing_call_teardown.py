@@ -104,11 +104,13 @@ class _MainStub:
     def _resolve_jid_for_send(self, jid):
         return jid
 
-    def _start_voice_call_audio(self, identity, details=None, *, keep_active_call=False):
-        # The real one REPLACES _active_voice_call with a record of its own,
-        # which is why the worker takes its identity token only afterwards.
+    def _start_voice_call_audio(self, identity, details=None, *, keep_active_call=False,
+                                expected_call=None):
+        # Device startup now preserves the worker's exact owning record,
+        # including event fields that may have arrived while devices open.
+        assert expected_call is self._active_voice_call
         self._call_audio_session = object()
-        self._active_voice_call = {
+        fields = {
             "identity": identity,
             "call_id": (details or {}).get("call_id") or identity,
             "peer_jid": (details or {}).get("peer_jid") or "",
@@ -117,6 +119,8 @@ class _MainStub:
             "outgoing": True,
             "is_video": bool((details or {}).get("is_video")),
         }
+        for key, value in fields.items():
+            expected_call.setdefault(key, value)
         return True
 
     def _stop_voice_call_audio(self, grace_seconds=0.0, *, keep_call=False):
@@ -148,7 +152,8 @@ class _MainStub:
     def _call_error_text(self, error):
         return str(error)
 
-    def _start_call_camera(self, *, announce_failure=True, transmit=True):
+    def _start_call_camera(self, *, announce_failure=True, transmit=True, expected_call=None):
+        assert expected_call is self._active_voice_call
         self.camera_starts += 1
         return True
 
@@ -203,7 +208,10 @@ def test_join_uses_the_existing_group_call_and_keeps_video_off():
     stub._post_call_control = lambda endpoint, payload, **kw: (
         requests.append((endpoint, payload, kw)) or _Response("call-existing"))
     probes = []
-    stub._probe_call_camera = lambda: probes.append(True)
+    def probe(*, expected_call=None):
+        assert expected_call is stub._active_voice_call
+        probes.append(expected_call)
+    stub._probe_call_camera = probe
 
     stub._start_call("120363000001@g.us", "Group", is_group=True,
                      is_video=True, join_call_id="call-existing")
@@ -213,7 +221,8 @@ def test_join_uses_the_existing_group_call_and_keeps_video_off():
     }, {"timeout": 75})]
     assert stub._active_voice_call["call_id"] == "call-existing"
     assert stub.camera_starts == 0
-    assert probes == [True]
+    assert probes == [stub._active_voice_call]
+    assert probes[0] is stub._active_voice_call
 
 
 def test_join_failure_releases_audio_and_never_sends_an_offer():

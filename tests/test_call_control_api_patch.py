@@ -732,11 +732,21 @@ def test_turning_video_off_reaches_the_page_and_blanks_the_canvas():
 
 
 def test_the_desktop_side_has_a_camera_stop_channel():
-    websocket_client = _source("client/core/websocket_client.py")
-    assert "def send_call_camera_stop(self, epoch: int | None = None, native: bool = False)" in websocket_client
-    assert "def send_call_camera_start(self)" in websocket_client
-    assert '"call:video:camera:start"' in websocket_client
-    assert '"call:video:camera:stop"' in websocket_client
+    from tests.test_call_media_epoch import socket_methods
+    sent = []
+    owner = 'a' * 32
+    ws = SimpleNamespace(instance_name='synthetic',
+                         main_window=SimpleNamespace(_active_voice_call={'media_epoch': owner}),
+                         sio=SimpleNamespace(emit=lambda *args: sent.append(args)))
+    methods = socket_methods('send_call_camera_stop', 'send_call_camera_start')
+    methods['send_call_camera_stop'](ws, epoch=17, native=True)
+    methods['send_call_camera_start'](ws, epoch=18)
+    assert sent == [
+        ('call:video:camera:stop', {'session': 'synthetic', 'mediaProtocol': 1,
+                                    'mediaEpoch': owner, 'epoch': 17, 'native': True}),
+        ('call:video:camera:start', {'session': 'synthetic', 'mediaProtocol': 1,
+                                     'mediaEpoch': owner, 'epoch': 18}),
+    ]
 
 
 

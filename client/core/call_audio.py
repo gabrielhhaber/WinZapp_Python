@@ -15,6 +15,8 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass
+from core.call_media_ownership import accepts_media_epoch, media_fields, next_stream_epoch, valid_media_epoch
+from core.call_media_ownership import CapturedPCM, PlaybackPCM
 from typing import Optional
 
 import numpy as np
@@ -22,6 +24,7 @@ import numpy as np
 from core.audio_devices import repair_device_name
 from core.call_audio_processing import CallAudioProcessor
 from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
+from core.call_audio_output import render_output
 
 try:
     import sounddevice as sd
@@ -167,6 +170,7 @@ class _OutputJitterBuffer:
 
     def __init__(self, rate: int):
         self._lock = threading.Lock()
+        self._owner = None
         self._chunks: "deque[np.ndarray]" = deque()
         self._size = 0
         # Cumulative for the life of the session and deliberately NOT cleared
@@ -273,7 +277,13 @@ class _OutputJitterBuffer:
                     self._size -= overflow
                     self.dropped_samples += overflow
 
-    def fill(self, out: np.ndarray) -> None:
+    def set_owner(self, owner) -> None:
+        # Same gate as drain: a callback paused before fill cannot consume a
+        # replacement stream's reservoir after passing an earlier check.
+        with self._lock:
+            self._owner = owner
+
+    def fill(self, out: np.ndarray, *, owner=None) -> bool:
         """Write one device period into *out* (a writable 1-D float view).
 
         Never raises, never blocks and never logs: this is called from
@@ -282,10 +292,13 @@ class _OutputJitterBuffer:
         """
         frames = out.shape[0]
         with self._lock:
+            if owner is not None and owner is not self._owner:
+                out[:] = 0.0
+                return False
             if self._priming:
                 if self._size < self._priming_target:
                     out[:] = 0.0
-                    return
+                    return True
                 self._priming = False
 
             written = 0
@@ -354,6 +367,8 @@ class _OutputJitterBuffer:
                     )
                     self._clean_samples = 0
 
+        return True
+
     def _apply_ramp(self, out: np.ndarray, start: int, length: int, *, fade_in: bool) -> None:
         if length == self._fade_samples:
             ramp = self._fade_in_ramp if fade_in else self._fade_out_ramp
@@ -375,8 +390,8 @@ class CallAudioSession:
         self._output_stream = None
         self._input_rate = CALL_SAMPLE_RATE
         self._output_rate = CALL_SAMPLE_RATE
-        self._mic_queue: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=CALL_MIC_QUEUE_LIMIT)
-        self._output_queue: "queue.Queue[tuple[bytes, int]]" = queue.Queue(
+        self._mic_queue: "queue.Queue[CapturedPCM]" = queue.Queue(maxsize=CALL_MIC_QUEUE_LIMIT)
+        self._output_queue: "queue.Queue[PlaybackPCM]" = queue.Queue(
             maxsize=CALL_OUTPUT_QUEUE_LIMIT
         )
         # The reservoir the output callback drains; the player thread fills it.
@@ -396,6 +411,9 @@ class CallAudioSession:
         self._mic_bytes_sent = 0
         self._mic_frames_dropped_for_latency = 0
         self._microphone_muted = False
+        self._media_epoch = ''
+        self._dequeued_media_epoch = ''
+        self._stream_epoch = next_stream_epoch()
         # Built when the microphone opens (_restart_echo_reference), not here:
         # the ringing monitor builds a session too and never captures.
         self._processor: Optional[CallAudioProcessor] = None
@@ -413,6 +431,26 @@ class CallAudioSession:
         """Mute only this call's outgoing microphone, keeping the stream alive."""
         self._microphone_muted = bool(muted)
         logging.info("[call_audio] microphone %s", "muted" if self._microphone_muted else "unmuted")
+
+    @property
+    def media_epoch(self):
+        return self._media_epoch
+
+    def set_media_epoch(self, epoch):
+        if not valid_media_epoch(epoch):
+            return False
+        with self._output_lock:
+            if self._media_epoch:
+                return self._media_epoch == epoch
+            # Only the initial unbound -> bound transition is allowed. Clear
+            # unowned data before publishing the owner; in-flight data carries
+            # its old tag and is checked again by sender/player.
+            self._drain_queue(self._mic_queue)
+            self._drain_queue(self._output_queue)
+            self._output_buffer.reset()
+            self._output_resampler.reset()
+            self._media_epoch = epoch
+            return True
 
     @property
     def running(self) -> bool:
@@ -451,6 +489,7 @@ class CallAudioSession:
         try:
             self._output_stream.start()
         except Exception:
+            self._output_buffer.set_owner(None)
             self._close_stream(self._output_stream)
             self._output_stream = None
             raise
@@ -557,6 +596,7 @@ class CallAudioSession:
         with self._output_lock:
             old = self._output_stream
             self._output_stream = None
+            self._output_buffer.set_owner(None)
             self._close_stream(old)
             stream, rate = self._open_output_stream()
             # The ring's audio is gone with its stream; the new device may
@@ -566,6 +606,7 @@ class CallAudioSession:
             try:
                 stream.start()
             except Exception:
+                self._output_buffer.set_owner(None)
                 self._close_stream(stream)
                 raise
             self._output_stream, self._output_rate = stream, rate
@@ -581,6 +622,7 @@ class CallAudioSession:
         silence for the rest of the call.
         """
         self._stop_event.set()
+        self._output_buffer.set_owner(None)
         if notify_bridge:
             self._emit_stop()
         self._close_stream(self._input_stream)
@@ -588,6 +630,9 @@ class CallAudioSession:
         # Under the same lock as the player's writes, so a write in flight
         # does not hit a stream being closed and log a spurious exception.
         with self._output_lock:
+            # A reopen may have published a replacement while input close
+            # was in progress. Retire the stream we are actually closing.
+            self._output_buffer.set_owner(None)
             self._close_stream(self._output_stream)
             self._output_stream = None
             self._output_resampler.reset()
@@ -598,14 +643,18 @@ class CallAudioSession:
         self._reference_resampler.reset()
         self._processor = None
 
-    def enqueue_remote_audio(self, pcm: bytes, sample_rate: int) -> None:
+    def enqueue_remote_audio(self, pcm: bytes, sample_rate: int, *, media_epoch=None) -> None:
+        epoch = self._media_epoch
         if self._stop_event.is_set() or not pcm:
+            return
+        data = {} if media_epoch is None else {'mediaEpoch': media_epoch}
+        if not accepts_media_epoch(epoch, data):
             return
         try:
             sample_rate = int(sample_rate or CALL_SAMPLE_RATE)
         except (TypeError, ValueError):
             sample_rate = CALL_SAMPLE_RATE
-        self._put_drop_oldest(self._output_queue, (bytes(pcm), sample_rate))
+        self._put_drop_oldest(self._output_queue, PlaybackPCM(bytes(pcm), sample_rate, epoch))
 
     def _query_devices(self):
         try:
@@ -696,7 +745,7 @@ class CallAudioSession:
         # call on the wrong physical device, while the log cheerfully reported
         # hostapi=wasapi. For a blind user, hearing the call come out of the
         # monitor's HDMI output instead of the headset has no visual tell.
-        partial = None
+        partials = []
         for index, info in enumerate(self._query_devices()):
             if int(info.get(channels_key, 0) or 0) <= 0:
                 continue
@@ -709,9 +758,13 @@ class CallAudioSession:
             actual = self._normalized_name(info.get("name", ""))
             if actual == wanted:
                 return index
-            if partial is None and (wanted in actual or actual in wanted):
-                partial = index
-        return partial
+            if wanted in actual or actual in wanted:
+                partials.append(index)
+        if len(partials) > 1:
+            logging.info('[call_audio] WASAPI alias ambiguous device=%r candidates=%d; retaining original API',
+                         device_index, len(partials))
+            return None
+        return partials[0] if partials else None
 
     def _candidate_devices(
         self, stored_name: str, *, input_device: bool, include_fallbacks: bool = True
@@ -941,7 +994,7 @@ class CallAudioSession:
                             dtype="float32",
                             latency="low",
                             extra_settings=extra_settings,
-                            callback=self._on_output_frames,
+                            callback=self._new_output_callback(rate),
                         )
                         if attempt_index > 0:
                             logging.info(
@@ -959,6 +1012,7 @@ class CallAudioSession:
                         )
                         return stream, rate
                     except Exception as exc:
+                        self._output_buffer.set_owner(None)
                         last_error = exc
                         self._log_candidate_failure(
                             "output", device, rate, exclusive, exc
@@ -989,6 +1043,7 @@ class CallAudioSession:
 
     def _on_microphone_frame(self, source_rate: int):
         def _callback(indata, _frames, _time_info, status):
+            epoch = self._media_epoch
             if status:
                 logging.debug("[call_audio] microphone status: %s", status)
             if self._stop_event.is_set() or indata is None:
@@ -997,32 +1052,45 @@ class CallAudioSession:
             # PCM16 encoding run on the sender, not its realtime callback.
             samples = np.array(indata, dtype=np.float32, copy=True).reshape(-1)
             if samples.size:
-                self._put_drop_oldest(self._mic_queue, samples)
+                self._put_drop_oldest(self._mic_queue, CapturedPCM(samples, epoch))
 
         return _callback
 
     def _dequeue_fresh_microphone_frame(self) -> tuple[np.ndarray, int, int]:
         """Return current microphone audio instead of replaying stale backlog."""
-        samples = self._mic_queue.get(timeout=0.1)
+        item = self._mic_queue.get(timeout=0.1)
+        samples = item.samples if isinstance(item, CapturedPCM) else item
+        epoch = item.epoch if isinstance(item, CapturedPCM) else self._media_epoch
         dropped = 0
         dropped_samples = 0
         while self._mic_queue.qsize() > CALL_MIC_TARGET_BACKLOG_FRAMES:
             try:
-                next_samples = self._mic_queue.get_nowait()
+                item = self._mic_queue.get_nowait()
+                next_samples = item.samples if isinstance(item, CapturedPCM) else item
+                epoch = item.epoch if isinstance(item, CapturedPCM) else self._media_epoch
                 dropped_samples += samples.size
                 samples = next_samples
                 dropped += 1
             except queue.Empty:
                 break
+        self._dequeued_media_epoch = epoch
         return samples, dropped, dropped_samples
 
     def _send_microphone_loop(self) -> None:
         encoder = MicrophonePCMEncoder(CALL_SAMPLE_RATE, CALL_FRAME_SAMPLES)
+        encoder_epoch = self._media_epoch
         while not self._stop_event.is_set():
             try:
                 samples, dropped, dropped_source_samples = self._dequeue_fresh_microphone_frame()
             except queue.Empty:
                 continue
+            epoch = self._dequeued_media_epoch
+            if epoch != self._media_epoch:
+                encoder.reset()
+                continue
+            if epoch != encoder_epoch:
+                encoder.reset()
+                encoder_epoch = epoch
 
             if dropped:
                 # Do not join old filter history/partial audio onto the fresh
@@ -1067,12 +1135,16 @@ class CallAudioSession:
                         continue
 
                 try:
+                    if epoch != self._media_epoch:
+                        encoder.reset()
+                        break
                     if self._microphone_muted:
                         pcm = b"\x00" * len(pcm)
                     self._sio.emit(
                         "call:audio:mic",
                         {
                             "session": self._config.session,
+                            **media_fields(epoch, self._stream_epoch),
                             "sampleRate": CALL_SAMPLE_RATE,
                             "encoding": "base64",
                             "pcm": base64.b64encode(pcm).decode("ascii"),
@@ -1107,25 +1179,30 @@ class CallAudioSession:
             processor.push_reference(self._reference_resampler.process(chunk, rate))
         return _pcm16_bytes(processor.process(_pcm16_float32(pcm)))
 
-    def _on_output_frames(self, outdata, _frames, _time_info, _status) -> None:
+    def _new_output_callback(self, rate):
+        owner = object()
+        buffer = self._output_buffer
+        buffer.set_owner(owner)
+        # A callback already past fill may finish after a reopen. Its old tap
+        # must not add stale-rate reference to the new microphone processor.
+        tap = self._echo_reference_tap = deque(maxlen=64)
+        echo_enabled = self._config.echo_cancellation
+        context = (buffer, owner, rate, tap, echo_enabled)
+        return lambda outdata, frames, time_info, status: self._on_output_frames(
+            outdata, frames, time_info, status, _context=context)
+
+    def _on_output_frames(self, outdata, _frames, _time_info, _status, *, _context=None) -> None:
         """PortAudio's realtime thread asking for one device period.
 
         Everything expensive or fallible happens in the player thread; this
         only copies out of the reservoir. It must not raise (PortAudio aborts
         the stream), must not block, and must not log — all three are audible.
         """
-        try:
-            view = outdata[:, 0] if getattr(outdata, "ndim", 1) > 1 else outdata
-            self._output_buffer.fill(view)
-            if self._config.echo_cancellation:
-                self._echo_reference_tap.append((view.copy(), self._output_rate))
-        except Exception:
-            # Silence is the only safe answer left; the underrun counter and
-            # the player thread's summary are what make it visible.
-            try:
-                outdata[:] = 0
-            except Exception:
-                pass
+        # Direct unowned rendering remains useful for pure tests. Every real
+        # OutputStream receives a closure with an immutable stream context.
+        context = _context or (self._output_buffer, None, self._output_rate,
+                               self._echo_reference_tap, self._config.echo_cancellation)
+        render_output(outdata, *context)
 
     def _play_remote_loop(self) -> None:
         """Resample each remote packet into the playback reservoir.
@@ -1163,7 +1240,9 @@ class CallAudioSession:
         """
         while not self._stop_event.is_set():
             try:
-                pcm, source_rate = self._output_queue.get(timeout=0.1)
+                item = self._output_queue.get(timeout=0.1)
+                pcm, source_rate = item
+                epoch = item.epoch if isinstance(item, PlaybackPCM) else self._media_epoch
             except queue.Empty:
                 self._log_output_underruns()
                 continue
@@ -1172,6 +1251,8 @@ class CallAudioSession:
                 # The lock still guards the stream/rate pair against a swap to
                 # the exclusive stream mid-packet; the reservoir has its own.
                 with self._output_lock:
+                    if epoch != self._media_epoch:
+                        continue
                     if self._output_stream is None:
                         continue
                     target_rate = self._output_rate
@@ -1210,7 +1291,8 @@ class CallAudioSession:
 
     def _emit_stop(self) -> None:
         try:
-            self._sio.emit("call:audio:stop", {"session": self._config.session})
+            self._sio.emit("call:audio:stop", {"session": self._config.session,
+                                              **media_fields(self._media_epoch, self._stream_epoch)})
         except Exception:
             logging.debug("[call_audio] could not emit call:audio:stop", exc_info=True)
 

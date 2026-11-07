@@ -1,4 +1,5 @@
 import base64
+from core.call_media_ownership import accepts_media_epoch, media_fields, next_stream_epoch
 import logging
 import threading
 import time
@@ -2578,6 +2579,10 @@ class WebSocketClient:
         """Send a Python-captured PCM frame to the page call bridge."""
         if not pcm:
             return
+        epoch = (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch')
+        if getattr(self, '_mic_owner_epoch', None) != epoch or not getattr(self, '_mic_stream_epoch', None):
+            self._mic_owner_epoch = epoch
+            self._mic_stream_epoch = next_stream_epoch()
         try:
             # Keep the remote media transport JSON-safe.  Sending raw Socket.IO
             # binary here is not stable across polling/websocket upgrades and
@@ -2589,6 +2594,7 @@ class WebSocketClient:
                 "call:audio:mic",
                 {
                     "session": self.instance_name,
+                    **media_fields(epoch, self._mic_stream_epoch),
                     "encoding": "base64",
                     "sampleRate": 48000,
                     "pcm": base64.b64encode(bytes(pcm)).decode("ascii"),
@@ -2600,7 +2606,9 @@ class WebSocketClient:
     def stop_call_audio_stream(self):
         """Tell the page call bridge to drop buffered microphone frames."""
         try:
-            self.sio.emit("call:audio:stop", {"session": self.instance_name})
+            self.sio.emit("call:audio:stop", {"session": self.instance_name,
+                **media_fields(getattr(self, '_mic_owner_epoch', ''), getattr(self, '_mic_stream_epoch', None))})
+            self._mic_stream_epoch = None
         except Exception:
             logging.debug(
                 "[WebSocketClient] failed to emit call audio stop", exc_info=True
@@ -2611,6 +2619,9 @@ class WebSocketClient:
         try:
             if not isinstance(data, dict) or not self._belongs_to_this_session(data):
                 return
+            expected = (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch')
+            if not accepts_media_epoch(expected, data):
+                return
             pcm = _socketio_binary_to_bytes(data.get("pcm"))
             if not pcm:
                 return
@@ -2620,22 +2631,27 @@ class WebSocketClient:
                 sample_rate = 48000
             handler = getattr(self.main_window, "on_call_remote_audio", None)
             if handler is not None:
-                handler(pcm, sample_rate)
+                if 'mediaEpoch' in data:
+                    handler(pcm, sample_rate, media_epoch=data['mediaEpoch'])
+                else:
+                    handler(pcm, sample_rate)
         except Exception:
             logging.exception("[WebSocketClient] on_call_audio_remote error")
 
-    def send_call_camera_frame(self, jpeg: bytes, epoch: int | None = None):
+    def send_call_camera_frame(self, jpeg: bytes, epoch: int | None = None, *, media_epoch=None):
         if not jpeg or len(jpeg) > 256_000:
             return
         payload = {
             "session": self.instance_name,
+            **media_fields(media_epoch if media_epoch is not None else
+                           (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch')),
             "jpeg": base64.b64encode(jpeg).decode("ascii"),
         }
         if epoch is not None:
             payload["epoch"] = int(epoch)
         self.sio.emit("call:video:camera", payload)
 
-    def send_call_camera_stop(self, epoch: int | None = None, native: bool = False):
+    def send_call_camera_stop(self, epoch: int | None = None, native: bool = False, *, media_epoch=None):
         """Tell the page to stop transmitting local video.
 
         Stopping the ffmpeg capture on this side is not enough: the page draws
@@ -2646,7 +2662,9 @@ class WebSocketClient:
         video was off.
         """
         try:
-            payload = {"session": self.instance_name}
+            payload = {"session": self.instance_name,
+                       **media_fields(media_epoch if media_epoch is not None else
+                                      (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch'))}
             if epoch is not None:
                 payload["epoch"] = int(epoch)
             if native:
@@ -2658,7 +2676,7 @@ class WebSocketClient:
         except Exception:
             logging.debug("[call_video] could not emit call:video:camera:stop", exc_info=True)
 
-    def send_call_camera_start(self):
+    def send_call_camera_start(self, epoch: int | None = None, *, media_epoch=None):
         """Tell the page the user turned video back on.
 
         WhatsApp Web transmits our camera through its own call engine, which
@@ -2667,13 +2685,21 @@ class WebSocketClient:
         toggle (setCallVideoMute(false)), the one WhatsApp's UI button uses.
         """
         try:
-            self.sio.emit("call:video:camera:start", {"session": self.instance_name})
+            payload = {"session": self.instance_name,
+                **media_fields(media_epoch if media_epoch is not None else
+                               (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch'))}
+            if epoch is not None:
+                payload['epoch'] = int(epoch)
+            self.sio.emit("call:video:camera:start", payload)
         except Exception:
             logging.debug("[call_video] could not emit call:video:camera:start", exc_info=True)
 
     def on_call_video_remote(self, data):
         try:
             if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            expected = (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch')
+            if not accepts_media_epoch(expected, data):
                 return
             jpeg = _socketio_binary_to_bytes(data.get("jpeg"))
             if jpeg and len(jpeg) <= 256_000:
@@ -2688,7 +2714,10 @@ class WebSocketClient:
                     )
                 handler = getattr(self.main_window, "on_call_remote_video", None)
                 if handler is not None:
-                    handler(jpeg)
+                    if 'mediaEpoch' in data:
+                        handler(jpeg, media_epoch=data['mediaEpoch'])
+                    else:
+                        handler(jpeg)
         except Exception:
             logging.exception("[WebSocketClient] on_call_video_remote error")
 

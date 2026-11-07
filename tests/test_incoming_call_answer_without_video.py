@@ -55,6 +55,7 @@ class _MainStub:
     _call_control_payload = MainWindow._call_control_payload
     _close_incoming_call_dialog = MainWindow._close_incoming_call_dialog
     _stop_call_camera = MainWindow._stop_call_camera
+    _send_call_camera_stop = MainWindow._send_call_camera_stop
     _probe_call_camera = MainWindow._probe_call_camera
 
     def __init__(self):
@@ -85,7 +86,8 @@ class _MainStub:
     def _sync_voice_call_bar(self):
         pass
 
-    def _start_call_camera(self, *, announce_failure=True, transmit=True):
+    def _start_call_camera(self, *, announce_failure=True, transmit=True, expected_call=None):
+        assert expected_call is self._active_voice_call
         self.camera_starts += 1
         self.camera_announce_failure_values.append(announce_failure)
         self.camera_transmit_values.append(transmit)
@@ -94,8 +96,12 @@ class _MainStub:
         self._call_camera_enabled = True
         return True  # like the real one once the capture is running
 
-    def _start_voice_call_audio(self, identity, details):
+    def _start_voice_call_audio(self, identity, details, *, expected_call=None):
+        # The real start preserves the exact record passed by the accept
+        # worker; replacing it would make the post-start ownership guard fail.
+        assert expected_call is self._active_voice_call
         self.audio_starts.append(identity)
+        return True
 
     def _post_call_control(self, endpoint, payload, *, timeout=15):
         self.posted_controls.append((endpoint, payload))

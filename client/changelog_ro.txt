@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Apeluri: datele media și operațiile întârziate pentru dispozitive sau cameră rămân asociate apelului și fluxului de origine. Neonize procesează datele în cozi limitate, în afara buclei serverului, și păstrează cititorul după o eroare temporară de emitere. Numele WASAPI ambigue nu mai selectează primul dispozitiv găsit. Jurnalele apelurilor Neonize includ și rezumate ale nivelului semnalului, fără a salva conținutul audio, pentru a ajuta la investigarea lipsei sunetului. La redeschiderea ieșirii audio a unui apel, un flux vechi care nu se poate închide nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu mai reduce la tăcere sunetul pregătit pentru redare.
+
 - Fila Media a conversațiilor și grupurilor: Ctrl+C pe un document, o fotografie, un video sau un fișier audio copiază acum fișierul în clipboard, ca în lista de mesaje, în loc să spună că mesajul nu a putut fi copiat. Elementul din meniul contextual este acum și „Copiază fișierul”.
 
 - Butonul Deschide deschide acum documente, fotografii, videoclipuri și alte fișiere în vizualizatorul extern sub numele lor real, în loc de un nume precum "tmpab12cd34", ca și Salvează ca până acum.

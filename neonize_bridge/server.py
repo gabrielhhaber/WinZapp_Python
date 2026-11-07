@@ -695,6 +695,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         # when a NewClient is collected (weakref.finalize); that is why the swap
         # happens here, before the new connect(), and never with the old thread still up.
         calls_on = call_layer_on()          # before the client: the layer installs on connect
+        previous_media = getattr(self, 'call_media', None)
+        if previous_media is not None:
+            previous_media.close()
+        self.call_media = None
         cli = self.client = NewClient(os.path.join(self.folder, "session.db"),
                                       props=device_props(HISTORY_DAYS))
         if calls_on and getattr(cli, "uuid", None):
@@ -1752,6 +1756,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         thread finishes on its own; begin() waits for it. Idempotent."""
         with self._lifecycle_lock:
             self.lifecycle.end(status)
+            media = getattr(self, 'call_media', None)
+            if media is not None:
+                media.close()
             c = self.client
             if c is not None:
                 for action in (c.disconnect, c.stop):
@@ -2871,31 +2878,31 @@ def create_app(folder, fixed=""):
     async def call_audio_mic(sid, data):
         media = await media_of_socket(sid)
         if media is not None:
-            media.microphone(data)
+            media.enqueue_media('mic', data)
 
     @sio.on("call:audio:stop")
     async def call_audio_stop(sid, data=None):
         media = await media_of_socket(sid)
         if media is not None:
-            media.stop_microphone()
+            media.enqueue_media('audio_stop', data)
 
     @sio.on("call:video:camera")
     async def call_video_camera(sid, data):
         media = await media_of_socket(sid)
         if media is not None:
-            media.camera_frame(data)
+            media.enqueue_media('camera', data)
 
     @sio.on("call:video:camera:stop")
     async def call_video_camera_stop(sid, data=None):
         media = await media_of_socket(sid)
         if media is not None:
-            await asyncio.get_running_loop().run_in_executor(None, media.camera_stop, data)
+            media.enqueue_media('camera_stop', data)
 
     @sio.on("call:video:camera:start")
     async def call_video_camera_start(sid, data=None):
         media = await media_of_socket(sid)
         if media is not None:
-            await asyncio.get_running_loop().run_in_executor(None, media.camera_start)
+            media.enqueue_media('camera_start', data)
 
     async def pinned_messages(req):
         """Messages pinned in the requested chats (the bridge keeps the pin and

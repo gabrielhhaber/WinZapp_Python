@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Llamadas: los datos multimedia y las tareas de dispositivos o cámara que llegan tarde permanecen vinculados a su llamada y flujo originales. Neonize procesa los datos en colas limitadas fuera del bucle del servidor y conserva el lector tras un fallo transitorio de emisión. Los nombres WASAPI ambiguos ya no seleccionan el primer dispositivo coincidente. Los registros de llamadas de Neonize también incluyen resúmenes del nivel de la señal, sin guardar el contenido del audio, para ayudar a investigar la ausencia de sonido. Al reabrir la salida de una llamada, un flujo antiguo que no consigue cerrarse no puede consumir el audio del nuevo flujo; un fallo en la referencia de eco ya no silencia el audio preparado para reproducirse.
+
 - Pestaña Multimedia de chats y grupos: Ctrl+C sobre un documento, foto, vídeo o audio ahora copia el archivo al portapapeles, como en la lista de mensajes, en lugar de decir "No se pudo copiar este mensaje". El elemento del menú contextual también pasa a ser "Copiar archivo".
 
 - El botón Abrir ahora abre documentos, fotos, vídeos y otros archivos en el visor externo con su nombre real, en lugar de un nombre como "tmpab12cd34", como ya hacía Guardar como.
