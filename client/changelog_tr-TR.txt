@@ -6,6 +6,8 @@ YENİLİKLER
 
 - Okunmamış filtresi: programı güncelledikten veya yeniden başlattıktan sonra okunmamış mesajı olan bazı sohbetler, F5 ile yeniden eşitleyene kadar filtreden kayboluyordu (örneğin 12 sohbet 9'a düşüyordu). Sayım artık sohbetin en eski mesajlarına değil, en yeni mesajlarına bakıyor. Son kayıtları grup bildirimleri (davetler, eklenen üyeler, açıklama değişikliği) olan grup sohbetleri de artık kaybolmuyor: bu bildirimler artık gerçek okunmamış mesajların yerini almıyor.
 
+- Alt+harf kısayolları: birkaç pencerede iki denetim aynı harfi kullanıyordu ve Alt+harf yalnızca aralarında geçiş yapıyordu. Artık bir penceredeki her denetimin kendi harfi var, tüm dillerde.
+
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
 - Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.

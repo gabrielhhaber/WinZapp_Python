@@ -2605,7 +2605,7 @@ msgstr "Ligação de voz"
 #: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_add"
 msgid "&Add participants"
-msgstr "&Adicionar participantes"
+msgstr "Adicionar &participantes"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py client/ui/ongoing_calls.py
@@ -2882,8 +2882,8 @@ msgstr "Versão {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_demote"
-msgid "Remove admin..."
-msgstr "Remover administrador..."
+msgid "Remove &admin..."
+msgstr "&Remover administrador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2905,8 +2905,8 @@ msgstr "{name} não é mais administrador."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_invite"
-msgid "Invite admin..."
-msgstr "Convidar administrador..."
+msgid "&Invite admin..."
+msgstr "&Convidar administrador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_invite_button"
@@ -2952,8 +2952,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_leave"
-msgid "Stop being an admin..."
-msgstr "Deixar de ser administrador..."
+msgid "&Stop being an admin..."
+msgstr "&Deixar de ser administrador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_leave_confirm"
@@ -2967,13 +2967,13 @@ msgstr "Você não é mais administrador deste canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_make"
-msgid "Make admin..."
-msgstr "Tornar administrador..."
+msgid "&Make admin..."
+msgstr "Tornar &administrador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_revoke"
-msgid "Cancel admin invite..."
-msgstr "Cancelar convite de administrador..."
+msgid "Ca&ncel admin invite..."
+msgstr "Ca&ncelar convite de administrador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3047,8 +3047,8 @@ msgstr "{name} agora é o dono do canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_owner_make"
-msgid "Make owner..."
-msgstr "Tornar dono..."
+msgid "Make &owner..."
+msgstr "&Tornar dono..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3070,8 +3070,8 @@ msgstr "Administradores: {admins}. Pessoas na lista: {count}."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_people_list"
-msgid "People"
-msgstr "Pessoas"
+msgid "&People"
+msgstr "&Pessoas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
@@ -3185,8 +3185,8 @@ msgstr "Esportes"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_copy_link"
-msgid "Copy link"
-msgstr "Copiar link"
+msgid "Co&py link"
+msgstr "C&opiar link"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3196,8 +3196,8 @@ msgstr "Canais que você segue: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_create"
-msgid "Create channel..."
-msgstr "Criar canal..."
+msgid "Cre&ate channel..."
+msgstr "C&riar canal..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_create_title"
@@ -3217,8 +3217,8 @@ msgstr "Criado em {date}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
-msgid "Delete channel"
-msgstr "Excluir canal"
+msgid "Delete c&hannel"
+msgstr "E&xcluir canal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 #, python-brace-format
@@ -3252,8 +3252,8 @@ msgstr "Não foi possível carregar o diretório de canais."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_edit"
-msgid "Edit channel..."
-msgstr "Editar canal..."
+msgid "Ed&it channel..."
+msgstr "Editar ca&nal..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_edit_title"
@@ -3267,18 +3267,18 @@ msgstr "Canal alterado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_find"
-msgid "Find channels"
-msgstr "Encontrar canais"
+msgid "Fi&nd channels"
+msgstr "&Encontrar canais"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow"
-msgid "Follow"
-msgstr "Seguir"
+msgid "&Follow"
+msgstr "&Seguir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow_by_link"
-msgid "Follow by link..."
-msgstr "Seguir por link..."
+msgid "Follow &by link..."
+msgstr "Seguir &por link..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_followed"
@@ -3336,13 +3336,13 @@ msgstr "&Canais"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"
-msgid "My channels"
-msgstr "Meus canais"
+msgid "&My channels"
+msgstr "&Meus canais"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_mute"
-msgid "Mute notifications"
-msgstr "Silenciar notificações"
+msgid "M&ute notifications"
+msgstr "Silenciar notifica&ções"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_muted"
@@ -3381,13 +3381,13 @@ msgstr "Nenhum canal encontrado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_open"
-msgid "Open channel"
-msgstr "Abrir canal"
+msgid "&Open channel"
+msgstr "&Abrir canal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_people"
-msgid "Admins and followers..."
-msgstr "Administradores e seguidores..."
+msgid "Admins and follo&wers..."
+msgstr "Administradores e se&guidores..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3397,8 +3397,8 @@ msgstr "Canais recomendados: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_refresh"
-msgid "Refresh"
-msgstr "Atualizar"
+msgid "&Refresh"
+msgstr "Atual&izar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_role_admin"
@@ -3417,8 +3417,8 @@ msgstr "&Buscar canais"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_search_button"
-msgid "Search"
-msgstr "Buscar"
+msgid "S&earch"
+msgstr "B&uscar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_show"
@@ -3437,8 +3437,8 @@ msgstr "Não foi possível carregar os seus canais."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unfollow"
-msgid "Unfollow"
-msgstr "Deixar de seguir"
+msgid "Un&follow"
+msgstr "Deixar de &seguir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unfollowed"
@@ -3447,8 +3447,8 @@ msgstr "Você deixou de seguir este canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unmute"
-msgid "Unmute notifications"
-msgstr "Ativar notificações"
+msgid "&Unmute notifications"
+msgstr "Ativar notifica&ções"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unmuted_done"
@@ -5747,7 +5747,7 @@ msgstr "Copiar legenda"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 msgctxt "copy_error_text"
-msgid "&Copy error text to clipboard"
+msgid "Copy &error text to clipboard"
 msgstr "&Copiar texto do erro para a área de transferência"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -6297,8 +6297,8 @@ msgstr "Viagens e lugares"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/emoji_picker.py
 msgctxt "emoji_picker_category"
-msgid "&Category"
-msgstr "&Categoria"
+msgid "C&ategory"
+msgstr "C&ategoria"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/emoji_picker.py
 msgctxt "emoji_picker_emoji"
@@ -6668,7 +6668,7 @@ msgstr "O grupo possui mais de {limit} participantes"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
 msgctxt "group_contacts_label"
 msgid "&Participants"
-msgstr "&Participantes"
+msgstr "Pa&rticipantes"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
 msgctxt "group_create_members_unconfirmed"
@@ -7043,7 +7043,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
 msgctxt "group_name"
-msgid "&Group name"
+msgid "Group &name"
 msgstr "&Nome do grupo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -7439,7 +7439,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 msgctxt "hotkey_first_run_skip"
 msgid "&Not now"
-msgstr "Ag&ora não"
+msgstr "&Agora não"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #, python-brace-format
@@ -8438,7 +8438,7 @@ msgstr "&Baixar mídias"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 msgctxt "menu_whats_new"
-msgid "&What's New"
+msgid "What's &New"
 msgstr "&Novidades"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

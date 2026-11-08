@@ -22,6 +22,7 @@ import wx
 from core import channels as ch
 from ui.dialogs.attach_contact_dialog import AttachContactDialog
 from ui.dialogs.background_work import BackgroundWork
+from ui.accessible import split_mnemonic
 from ui.dialogs.labelled_control import add_labelled
 
 
@@ -216,8 +217,9 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
 
     def _invite_person(self, user, name):
         i18n = self._i18n
+        # The button's label, without its mnemonic, as the dialog's title.
         with wx.TextEntryDialog(self, i18n.t("channel_admin_invite_message"),
-                                i18n.t("channel_admin_invite")) as ask:
+                                split_mnemonic(i18n.t("channel_admin_invite"))[0]) as ask:
             ask.SetMaxLength(ch.INVITE_MESSAGE_LIMIT)
             if ask.ShowModal() != wx.ID_OK:
                 return

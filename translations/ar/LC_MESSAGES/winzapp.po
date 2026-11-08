@@ -118,7 +118,7 @@ msgstr "&اتصال"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 msgctxt "acc_btn_rename"
 msgid "&Rename"
-msgstr "&إعادة تسمية"
+msgstr "إعادة &تسمية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 msgctxt "acc_btn_restore"
@@ -2816,8 +2816,8 @@ msgstr "الإصدار {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_demote"
-msgid "Remove admin..."
-msgstr "إزالة المشرف..."
+msgid "Remove &admin..."
+msgstr "&إزالة المشرف..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2839,8 +2839,8 @@ msgstr "لم يعد {name} مشرفًا."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_invite"
-msgid "Invite admin..."
-msgstr "دعوة مشرف..."
+msgid "&Invite admin..."
+msgstr "دعوة &مشرف..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_invite_button"
@@ -2884,8 +2884,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_leave"
-msgid "Stop being an admin..."
-msgstr "التوقف عن الإشراف..."
+msgid "&Stop being an admin..."
+msgstr "ا&لتوقف عن الإشراف..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_leave_confirm"
@@ -2899,13 +2899,13 @@ msgstr "لم تعد مشرفًا على هذه القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_make"
-msgid "Make admin..."
-msgstr "تعيين مشرفًا..."
+msgid "&Make admin..."
+msgstr "ت&عيين مشرفًا..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_revoke"
-msgid "Cancel admin invite..."
-msgstr "إلغاء دعوة مشرف..."
+msgid "Ca&ncel admin invite..."
+msgstr "إلغا&ء دعوة مشرف..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2979,8 +2979,8 @@ msgstr "أصبح {name} مالك القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_owner_make"
-msgid "Make owner..."
-msgstr "تعيين مالكًا..."
+msgid "Make &owner..."
+msgstr "&تعيين مالكًا..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3001,8 +3001,8 @@ msgstr "المشرفون: {admins}. الأشخاص في القائمة: {count}.
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_people_list"
-msgid "People"
-msgstr "الأشخاص"
+msgid "&People"
+msgstr "&الأشخاص"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
@@ -3115,8 +3115,8 @@ msgstr "الرياضة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_copy_link"
-msgid "Copy link"
-msgstr "نسخ الرابط"
+msgid "Co&py link"
+msgstr "ن&سخ الرابط"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3126,8 +3126,8 @@ msgstr "القنوات التي تتابعها: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_create"
-msgid "Create channel..."
-msgstr "إنشاء قناة..."
+msgid "Cre&ate channel..."
+msgstr "&إنشاء قناة..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_create_title"
@@ -3147,8 +3147,8 @@ msgstr "تاريخ الإنشاء: {date}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
-msgid "Delete channel"
-msgstr "حذف القناة"
+msgid "Delete c&hannel"
+msgstr "ح&ذف القناة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 #, python-brace-format
@@ -3182,8 +3182,8 @@ msgstr "تعذّر تحميل دليل القنوات."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_edit"
-msgid "Edit channel..."
-msgstr "تعديل القناة..."
+msgid "Ed&it channel..."
+msgstr "تعد&يل القناة..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_edit_title"
@@ -3197,18 +3197,18 @@ msgstr "تم تعديل القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_find"
-msgid "Find channels"
-msgstr "البحث عن قنوات"
+msgid "Fi&nd channels"
+msgstr "ا&لبحث عن قنوات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow"
-msgid "Follow"
-msgstr "متابعة"
+msgid "&Follow"
+msgstr "&متابعة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow_by_link"
-msgid "Follow by link..."
-msgstr "متابعة عبر رابط..."
+msgid "Follow &by link..."
+msgstr "متابعة عبر &رابط..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_followed"
@@ -3266,13 +3266,13 @@ msgstr "ال&قنوات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"
-msgid "My channels"
-msgstr "قنواتي"
+msgid "&My channels"
+msgstr "ق&نواتي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_mute"
-msgid "Mute notifications"
-msgstr "كتم الإشعارات"
+msgid "M&ute notifications"
+msgstr "&كتم الإشعارات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_muted"
@@ -3311,13 +3311,13 @@ msgstr "لم يُعثر على أي قناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_open"
-msgid "Open channel"
-msgstr "فتح القناة"
+msgid "&Open channel"
+msgstr "فتح &القناة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_people"
-msgid "Admins and followers..."
-msgstr "المشرفون والمتابعون..."
+msgid "Admins and follo&wers..."
+msgstr "المشرفون &والمتابعون..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3327,8 +3327,8 @@ msgstr "القنوات المقترحة: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_refresh"
-msgid "Refresh"
-msgstr "تحديث"
+msgid "&Refresh"
+msgstr "تح&ديث"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_role_admin"
@@ -3347,8 +3347,8 @@ msgstr "ا&بحث عن قنوات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_search_button"
-msgid "Search"
-msgstr "بحث"
+msgid "S&earch"
+msgstr "ب&حث"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_show"
@@ -3367,8 +3367,8 @@ msgstr "تعذّر تحميل قنواتك."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unfollow"
-msgid "Unfollow"
-msgstr "إلغاء المتابعة"
+msgid "Un&follow"
+msgstr "إلغاء ال&متابعة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unfollowed"
@@ -3377,8 +3377,8 @@ msgstr "لم تعد تتابع هذه القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unmute"
-msgid "Unmute notifications"
-msgstr "إلغاء كتم الإشعارات"
+msgid "&Unmute notifications"
+msgstr "إلغاء &كتم الإشعارات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unmuted_done"
@@ -4974,7 +4974,7 @@ msgstr "أنت لست في هذه المجموعة، لذا لا يمكن فتح
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
 msgctxt "communities_groups_filter"
 msgid "F&ilter groups"
-msgstr "تصفية المجموع&ات"
+msgstr "ت&صفية المجموعات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_groups_list"
@@ -5004,7 +5004,7 @@ msgstr "لم يمكن الانضمام إلى المجموعة. تحقق من ا
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_join_group"
 msgid "&Join group"
-msgstr "انضم إلى &المجموعة"
+msgstr "ا&نضم إلى المجموعة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_join_hidden"
@@ -5075,7 +5075,7 @@ msgstr "افتح ا&لمجموعة"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
 msgctxt "communities_open_recent_group"
 msgid "Open the mo&st recent group"
-msgstr "افتح أحدث مج&موعة"
+msgstr "ا&فتح أحدث مجموعة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -5258,7 +5258,7 @@ msgstr "ردود الإعلان - {name}"
 #: client/ui/dialogs/community_comments.py
 msgctxt "community_comments_write"
 msgid "Write a r&eply"
-msgstr "&اكتب ردًا"
+msgstr "ا&كتب ردًا"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "connect_dialog_cancel"
@@ -5643,7 +5643,7 @@ msgstr "نسخ التوضيح"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 msgctxt "copy_error_text"
-msgid "&Copy error text to clipboard"
+msgid "Copy &error text to clipboard"
 msgstr "&نسخ نص الخطأ إلى الحافظة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -6189,7 +6189,7 @@ msgstr "السفر والأماكن"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/emoji_picker.py
 msgctxt "emoji_picker_category"
-msgid "&Category"
+msgid "C&ategory"
 msgstr "&الفئة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/emoji_picker.py
@@ -6919,7 +6919,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
 msgctxt "group_name"
-msgid "&Group name"
+msgid "Group &name"
 msgstr "اسم المجم&وعة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -8281,7 +8281,7 @@ msgstr "&تنزيل الوسائط"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 msgctxt "menu_whats_new"
-msgid "&What's New"
+msgid "What's &New"
 msgstr "&ما الجديد"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -8761,13 +8761,13 @@ msgstr "خيارات الاستطلاع:"
 #: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_question_label"
 msgid "&Question:"
-msgstr "ال&سؤال:"
+msgstr "الس&ؤال:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_remove_option"
 msgid "&Remove option"
-msgstr "&إزالة خيار"
+msgstr "إ&زالة خيار"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
@@ -10825,7 +10825,7 @@ msgstr "أنا (رسائل إلى نفسي)"
 #: client/ui/dialogs/new_poll_dialog.py
 msgctxt "send_attachment"
 msgid "Sen&d"
-msgstr "&إرسال"
+msgstr "إرس&ال"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "send_capabilities_incompatible"
@@ -13241,7 +13241,7 @@ msgstr "تم نسخ نص الحالة."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 msgctxt "status_text_label"
 msgid "&Status text"
-msgstr "&نص الحالة"
+msgstr "نص &الحالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
