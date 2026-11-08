@@ -18,6 +18,7 @@ import { Request, Response } from 'express';
 
 import { unlinkAsync } from '../util/functions';
 import { writePinnedMessage } from '../util/pinnedMessagesRuntime';
+import { editChannelUpdate } from './channelsPanelController';
 import {
   missingReplyQuoteResponse,
   replyQuoteIsMissing,
@@ -299,6 +300,22 @@ export async function editMessage(req: Request, res: Response) {
 
   const options = req.body.options || {};
   try {
+    if (/@newsletter_/.test(String(id))) {
+      // A channel update goes through WhatsApp Web's own edit
+      // (editChannelUpdate): wa-js's is a chat's.
+      const page = (req.client as any).page;
+      const sent = page
+        ? await page.evaluate(editChannelUpdate, { id, text: newText })
+        : null;
+      if (!sent) {
+        res.status(400).json({ status: 'error', code: 'channel_edit_unsupported',
+          message: 'This channel update cannot be edited here' });
+        return;
+      }
+      req.io.emit('edited-message', sent);
+      returnSucess(res, sent);
+      return;
+    }
     const edited = await (req.client as any).editMessage(id, newText, options);
 
     req.io.emit('edited-message', edited);

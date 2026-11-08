@@ -1,5 +1,6 @@
 import {
-  channelDirectory, channelInfo, channelKey, followChannel, listChannels, pullChannelHistory,
+  channelDirectory, channelInfo, channelKey, editChannelUpdate, followChannel, listChannels,
+  pullChannelHistory,
   readChannels,
 } from '../../controller/channelsPanelController';
 
@@ -270,5 +271,29 @@ test('anything but a channel, or a page without the loader, loads nothing', asyn
     expect(page.state.rounds).toBe(0);
   } finally {
     page.restore();
+  }
+});
+
+test('an own channel update is edited through WhatsApp Web\'s own edit', async () => {
+  const root = globalThis as any;
+  const previous = [root.require, root.WPP];
+  const edits: any[] = [];
+  const msg = { id: 'true_1@newsletter_3EB0AB' };
+  root.require = (name: string) => (name === 'WAWebSendMessageEditAction'
+    ? { sendMessageEdit: async (m: any, text: string, options: any) => { edits.push([m, text, options]); } }
+    : undefined);
+  root.WPP = { chat: { getMessageById: async (id: string) => (id === msg.id ? msg : undefined) } };
+  try {
+    expect(await editChannelUpdate({ id: msg.id, text: '  novo texto ' })).toEqual({ id: msg.id });
+    expect(edits).toEqual([[msg, 'novo texto', {}]]);
+    // not a channel's id, an empty text, an update the page does not hold
+    expect(await editChannelUpdate({ id: 'true_5511@c.us_3EB0AB', text: 'x' })).toBeNull();
+    expect(await editChannelUpdate({ id: msg.id, text: '   ' })).toBeNull();
+    expect(await editChannelUpdate({ id: 'true_1@newsletter_FFFF', text: 'x' })).toBeNull();
+    root.require = () => undefined;
+    expect(await editChannelUpdate({ id: msg.id, text: 'x' })).toBeNull();
+    expect(edits.length).toBe(1);
+  } finally {
+    [root.require, root.WPP] = previous;
   }
 });

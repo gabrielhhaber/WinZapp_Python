@@ -32,6 +32,32 @@ import type { Request, Response } from 'express';
 // the Neonize bridge sends the same queries and answers the same nodes, and the
 // client reads them once (client/core/channels.py).
 //
+// Editing an update this account posted in a channel. wa-js's editMessage()
+// builds a chat's protocol edit and sends it down the chat pipeline
+// (sendRawMessage), which a channel does not use; WhatsApp Web's own edit,
+// WAWebSendMessageEditAction.sendMessageEdit(msg, text, options), sends a
+// channel's edit with WAWebNewsletterSendMsgAction.sendNewsletterEditMsg
+// (read on 2026-11-08, 2.3000.x). It checks itself whether the update can be
+// edited (its own, text or a caption, inside the edit window) and throws
+// otherwise. Answers { id } once sent, or null when the page cannot do it.
+//
+// Runs inside the page: self-contained, no closure over anything here.
+export async function editChannelUpdate(request: any): Promise<unknown> {
+  const root = globalThis as any;
+  const id = typeof request?.id === 'string' ? request.id : '';
+  const text = typeof request?.text === 'string' ? request.text.trim() : '';
+  if (!/^(true|false)_\d+@newsletter_[A-Za-z0-9]+$/.test(id) || !text
+      || typeof root.require !== 'function') return null;
+  let edit: any = null;
+  try { edit = root.require('WAWebSendMessageEditAction')?.sendMessageEdit; } catch (_) { edit = null; }
+  const find = root.WPP?.chat?.getMessageById;
+  if (typeof edit !== 'function' || typeof find !== 'function') return null;
+  const msg = await find(id);
+  if (!msg) return null;
+  await edit(msg, text, {});
+  return { id };
+}
+
 // A channel's older updates, pulled into WhatsApp Web before a `before` page
 // of get-messages is read. They are on WhatsApp's server, not on the phone,
 // and the page holds only the newest few: measured on 2026-11-08, 16 of a
