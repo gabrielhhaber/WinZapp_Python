@@ -11,7 +11,7 @@ import time
 import wx
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
-from core.jid_alias_guard import lid_phone_pair_allowed
+from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
 from core.phone_variants import brazilian_variant_chat_jid
 from core.message_stars import apply_remote_star, merge_star_state
 from core.conversation_view import (
@@ -623,6 +623,7 @@ class MessageEventsMixin:
     def _resolve_message_chat_jid(self, remote_jid: str, key: dict,
                                   resolve_unknown: bool = True) -> str:
         """File live and historical messages under the same canonical chat."""
+        retire_cross_self_aliases(self, remote_jid, key.get("remoteJidAlt"), key.get("participant"))
         alt_jid = self._normalize_jid(key.get("remoteJidAlt", ""))
         if remote_jid.endswith("@lid"):
             # A refused mapping must not become an accepted routing hint.
@@ -665,6 +666,7 @@ class MessageEventsMixin:
         if not self._live_events_ready():
             return
         key        = msg.get("key", {})
+        retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         from_me    = key.get("fromMe", False)
         remote_jid = self._normalize_jid(key.get("remoteJid", ""))
         msg_id     = key.get("id", "")
@@ -1517,6 +1519,7 @@ class MessageEventsMixin:
         if not self._live_events_ready():
             return
         key        = msg.get("key", {})
+        retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         remote_jid = self._normalize_jid(key.get("remoteJid", ""))
         msg_id     = key.get("id", "")
 

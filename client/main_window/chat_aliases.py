@@ -1,11 +1,12 @@
 """Learn chat-list message aliases without crossing the account boundary."""
-from core.jid_alias_guard import lid_phone_pair_allowed
+from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
 
 
 def learn_snapshot_alias(owner, key):
     """Keep the existing mapping lock and follow contacts outside that lock."""
     remote = owner._normalize_jid(key.get("remoteJid", ""))
     alt = owner._normalize_jid(key.get("remoteJidAlt", ""))
+    retire_cross_self_aliases(owner, remote, alt, key.get("participant"))
     if remote.endswith("@lid") and alt.endswith("@s.whatsapp.net"):
         lid, phone = remote, alt
     elif alt.endswith("@lid") and remote.endswith("@s.whatsapp.net"):

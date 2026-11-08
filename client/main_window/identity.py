@@ -11,7 +11,7 @@ import threading
 import time
 import wx
 from core.jid_device import strip_device_suffix
-from core.jid_alias_guard import lid_phone_pair_allowed
+from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
 from core.contact_presence_query import query_targets
 from core.phone_variants import other_brazilian_mobile_jid
 from main_window.presence_work import presence_work, wake_waiting_presence
@@ -57,7 +57,13 @@ class IdentityMixin:
         If both exist, copies @lid messages into phone_jid (dedup by ID), then
         removes the @lid entry.
         """
-        if not lid_phone_pair_allowed(self, lid_jid, phone_jid):
+        # The first-message path also merges the two Brazilian phone forms.
+        # Keep that exact PN pair, without allowing unrelated PN-to-PN merges.
+        if lid_jid.endswith("@lid"):
+            allowed = lid_phone_pair_allowed(self, lid_jid, phone_jid)
+        else:
+            allowed = bool(phone_jid) and other_brazilian_mobile_jid(lid_jid) == phone_jid
+        if not allowed:
             return
         if lid_jid not in self.chats:
             return
@@ -250,6 +256,7 @@ class IdentityMixin:
         key = msg.get("key")
         if not isinstance(key, dict):
             return
+        retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         remote = key.get("remoteJid", "")
         alt = key.get("remoteJidAlt", "")
         participant = key.get("participant", "")

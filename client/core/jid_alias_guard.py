@@ -36,3 +36,31 @@ def lid_phone_pair_allowed(owner, lid_jid, phone_jid):
     if lid_is_mine:
         return False
     return True
+
+
+def retire_cross_self_aliases(owner, *jids):
+    """Retire only incompatible cached pairs touched by this event/snapshot.
+
+    Run before any cache-based self inference. This changes no persisted data,
+    and never removes a reverse entry that now belongs to a different LID.
+    """
+    changed = False
+    with owner._lid_mapping_lock:
+        forward = getattr(owner, "_lid_to_phone", {})
+        reverse = getattr(owner, "_phone_to_lid", {})
+        for raw in jids:
+            jid = _normal(raw)
+            lid = jid if jid.endswith("@lid") else reverse.get(jid, "")
+            if not lid:
+                continue
+            phone = forward.get(lid, "")
+            if phone and not lid_phone_pair_allowed(owner, lid, phone):
+                del forward[lid]
+                if reverse.get(phone) == lid:
+                    del reverse[phone]
+                changed = True
+            if (reverse.get(jid) == lid
+                    and not lid_phone_pair_allowed(owner, lid, jid)):
+                del reverse[jid]
+                changed = True
+    return changed

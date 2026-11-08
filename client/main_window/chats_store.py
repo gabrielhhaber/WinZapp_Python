@@ -13,6 +13,7 @@ import threading
 import time
 import wx
 from main_window.chat_aliases import learn_snapshot_alias
+from core.jid_alias_guard import retire_cross_self_aliases
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 from core.conversation_view import conversation_in_view
 from core.chat_contact_names import learn_chat_names
@@ -806,6 +807,10 @@ class ChatsStoreMixin:
                     if not isinstance(chat, dict):
                         continue
                     jid = self._normalize_jid(chat.get("remoteJid", ""))
+
+                    # A snapshot can omit lastMessage/remoteJidAlt entirely.
+                    # Retire its incompatible live alias before any map reads.
+                    retire_cross_self_aliases(self, jid)
 
                     # Try to extract JID mapping from lastMessage if present
                     last_msg = chat.get("lastMessage")

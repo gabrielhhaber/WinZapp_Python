@@ -12,7 +12,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.jid_alias_guard import lid_phone_pair_allowed
+from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
+from core.phone_variants import other_brazilian_mobile_jid
 from main_window.chat_aliases import learn_snapshot_alias
 
 ROOT = Path(os.environ.get("SENDER_SOURCE_ROOT", Path(__file__).parents[1]))
@@ -27,7 +28,9 @@ def actual(path, cls, method):
     owner = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == cls)
     fn = next(n for n in owner.body if isinstance(n, ast.FunctionDef) and n.name == method)
     fn.decorator_list = []
-    ns = {"logging": logging, "lid_phone_pair_allowed": lid_phone_pair_allowed}
+    ns = {"logging": logging, "lid_phone_pair_allowed": lid_phone_pair_allowed,
+          "retire_cross_self_aliases": retire_cross_self_aliases,
+          "other_brazilian_mobile_jid": other_brazilian_mobile_jid}
     exec(compile(ast.Module(body=[fn], type_ignores=[]), str(ROOT / path), "exec"), ns)
     return ns[method]
 
@@ -211,3 +214,110 @@ def test_rejected_registration_cannot_be_bypassed_by_message_routing(from_me):
     assert s._lid_to_phone[PEER_LID] == PEER
     assert s._resolve_message_chat_jid(PEER_LID, msg["key"]) == PEER
     assert s.merges == [(PEER_LID, PEER)]
+
+
+@pytest.mark.parametrize("source,destination", [
+    ("551198765432@s.whatsapp.net", "5511998765432@s.whatsapp.net"),
+    ("5511998765432@s.whatsapp.net", "551198765432@s.whatsapp.net"),
+    (PEER_LID, PEER), (MY_LID, ME),
+])
+def test_real_merge_keeps_brazilian_phone_variants_and_valid_lids(source, destination):
+    s = State()
+    original = chat(source, {"id": "synthetic-preserved-message"})
+    s.chats = {source: original}
+    s._pending_lid_inserts = {}
+    moved = []
+    s.db = SimpleNamespace(merge_or_rename_chat=lambda old, new: moved.append((old, new)))
+    # Execute the production closure synchronously against a plain DB stub.
+    merge.__globals__["threading"] = SimpleNamespace(
+        Thread=lambda *, target, daemon: SimpleNamespace(start=target))
+    merge(s, source, destination)
+    assert s.chats == {destination: original}
+    assert original["remoteJid"] == destination
+    assert original["messages"]["messages"]["records"][0]["key"]["id"] == "synthetic-preserved-message"
+    assert moved == [(source, destination)]
+
+
+def test_unrelated_phone_merge_refuses_before_accessing_the_chat_store():
+    s = State()
+    class Untouchable:
+        def __contains__(self, key):
+            raise AssertionError("unrelated phone merge reached chat storage")
+    s.chats = Untouchable()
+    merge(s, ME, PEER)
+
+
+def test_retired_alias_reaches_real_queue_admission_and_no_longer_looks_like_self():
+    s = State({PEER_LID: ME, MY_LID: ME})
+    # Keep the valid reverse own pair; retiring the peer must not remove it.
+    s._phone_to_lid[ME] = MY_LID
+    s._lid_resolution_queue = set()
+    s._lid_resolution_queue_lock = nullcontext()
+    s._lid_resolution_queue_running = True  # Exercise admission, no worker.
+    s._queue_lid_resolutions = actual(
+        "client/main_window/identity.py", "IdentityMixin", "_queue_lid_resolutions").__get__(s)
+    is_self = actual("client/main_window/contacts.py", "ContactsMixin", "_is_self_jid")
+    s._phone_digits_equivalent = lambda a, b: a == b
+    assert s._resolve_message_chat_jid(PEER_LID, {}) == PEER_LID
+    assert s._lid_resolution_queue == {PEER_LID}
+    assert not is_self(s, PEER_LID)
+    assert s._phone_to_lid[ME] == MY_LID
+    assert s._lid_to_phone == {MY_LID: ME}
+
+
+@pytest.mark.parametrize("jid", [PEER_LID, ME])
+def test_targeted_retirement_removes_both_poisoned_directions_only(jid):
+    s = State({PEER_LID: ME, MY_LID: ME, "700000000000003@lid": PEER})
+    s._phone_to_lid[ME] = PEER_LID
+    assert retire_cross_self_aliases(s, jid)
+    assert s._lid_to_phone == {MY_LID: ME, "700000000000003@lid": PEER}
+    assert ME not in s._phone_to_lid
+    assert s._phone_to_lid[PEER] == "700000000000003@lid"
+    assert not retire_cross_self_aliases(s, jid)
+
+
+@pytest.mark.parametrize("history", [False, True])
+def test_event_retires_poison_before_first_cache_based_self_inference(history):
+    s = State({PEER_LID: ME})
+    s._live_events_ready = lambda: True
+    class ReachedInference(BaseException):
+        pass
+    def inference(*args):
+        assert PEER_LID not in s._lid_to_phone
+        assert ME not in s._phone_to_lid
+        raise ReachedInference()
+    s._is_self_jid = inference
+    s._redirect_self_chat_artifact = inference
+    name = "on_historical_message" if history else "on_new_message"
+    event = actual("client/main_window/message_events.py", "MessageEventsMixin", name)
+    with pytest.raises(ReachedInference):
+        event(s, {"key": {"remoteJid": PEER_LID, "id": "synthetic-event", "fromMe": False}})
+
+
+@pytest.mark.parametrize("last_message", [None, {"key": {"remoteJid": PEER_LID}}])
+def test_real_chat_snapshot_retires_poison_without_an_alternate_hint(last_message):
+    s = State({PEER_LID: ME})
+    s.wpp_server, s.wpp_port, s.token = "synthetic", 0, "not-a-token"
+    s._deleted_chats, s.settings, s.contacts = set(), {}, {}
+    s._lift_contact_identity = lambda chat: None
+    snapshot = {"remoteJid": PEER_LID, "lastMessage": last_message}
+    fetch = actual("client/main_window/chats_store.py", "ChatsStoreMixin", "get_remote_chats")
+    fetch.__globals__.update(
+        capture_sync_context=lambda owner: None,
+        sync_context_is_current=lambda owner, context: True,
+        api_post=lambda *args, **kwargs: SimpleNamespace(status_code=200, text="synthetic", json=lambda: [snapshot]),
+        observe_payload=lambda *args: None,
+        learn_snapshot_alias=learn_snapshot_alias,
+        is_listed_chat=lambda *args: True, channels_listed=lambda settings: False,
+        looks_like_binary_blob=lambda value: False, learn_chat_names=lambda *args, **kwargs: None,
+    )
+    class ReachedUnread(BaseException):
+        pass
+    observed = []
+    def note(jid, count):
+        observed.append((jid, dict(s._lid_to_phone), dict(s._phone_to_lid)))
+        raise ReachedUnread()
+    s._note_server_unread = note
+    with pytest.raises(ReachedUnread):
+        fetch(s, {ME: chat(ME)}, persist_full=False, notify_errors=False)
+    assert observed == [(PEER_LID, {}, {})]
