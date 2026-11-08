@@ -11,6 +11,7 @@ import threading
 import time
 import wx
 from core.jid_device import strip_device_suffix
+from core.jid_alias_guard import lid_phone_pair_allowed
 from core.contact_presence_query import query_targets
 from core.phone_variants import other_brazilian_mobile_jid
 from main_window.presence_work import presence_work, wake_waiting_presence
@@ -56,6 +57,8 @@ class IdentityMixin:
         If both exist, copies @lid messages into phone_jid (dedup by ID), then
         removes the @lid entry.
         """
+        if not lid_phone_pair_allowed(self, lid_jid, phone_jid):
+            return
         if lid_jid not in self.chats:
             return
         if phone_jid in self.chats:
@@ -176,15 +179,16 @@ class IdentityMixin:
 
                 if alt and alt.endswith("@s.whatsapp.net"):
                     # OLD format: remoteJid=@lid, remoteJidAlt=phone
-                    if remote.endswith("@lid"):
+                    if remote.endswith("@lid") and lid_phone_pair_allowed(self, remote, alt):
                         cache[remote] = alt
                     participant = key.get("participant", "")
-                    if participant.endswith("@lid"):
+                    if participant.endswith("@lid") and lid_phone_pair_allowed(self, participant, alt):
                         cache[participant] = alt
 
                 elif alt and alt.endswith("@lid") and remote.endswith("@s.whatsapp.net"):
                     # NEW format (post-swap): remoteJid=phone, remoteJidAlt=lid
-                    cache[alt] = remote
+                    if lid_phone_pair_allowed(self, alt, remote):
+                        cache[alt] = remote
 
         # Merge, never replace. A pair learned by _extract_lid_mapping() on
         # the Socket.IO thread while the scan above was running exists only
@@ -197,6 +201,13 @@ class IdentityMixin:
         with self._lid_mapping_lock:
             if not hasattr(self, "_lid_to_phone"):
                 self._lid_to_phone = {}
+            # Old message keys may already have poisoned only the live cache.
+            # Retire cross-self pairs here, without touching messages or DB rows.
+            for lid, phone in list(self._lid_to_phone.items()):
+                if not lid_phone_pair_allowed(self, lid, phone):
+                    del self._lid_to_phone[lid]
+            cache = {lid: phone for lid, phone in cache.items()
+                     if lid_phone_pair_allowed(self, lid, phone)}
             # What this scan teaches: the pairs the bridge did not have, or
             # had differently.
             learned = [(lid, phone) for lid, phone in cache.items()
@@ -736,11 +747,13 @@ class IdentityMixin:
             remote = _norm(key.get("remoteJid", ""))
             alt    = _norm(key.get("remoteJidAlt", ""))
             # alt is the phone JID, remote is @lid (OLD format)
-            if alt and alt.endswith("@s.whatsapp.net"):
+            if (alt and alt.endswith("@s.whatsapp.net")
+                    and lid_phone_pair_allowed(self, jid, alt)):
                 self.register_jid_mapping(jid, alt)
                 return alt
             # remote is the phone JID, alt is @lid (NEW post-swap format)
-            if remote and remote.endswith("@s.whatsapp.net") and alt and alt.endswith("@lid"):
+            if (remote and remote.endswith("@s.whatsapp.net") and alt and alt.endswith("@lid")
+                    and lid_phone_pair_allowed(self, alt, remote)):
                 self.register_jid_mapping(alt, remote)
                 return remote
 

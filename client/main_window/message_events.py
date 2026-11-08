@@ -11,6 +11,7 @@ import time
 import wx
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
+from core.jid_alias_guard import lid_phone_pair_allowed
 from core.phone_variants import brazilian_variant_chat_jid
 from core.message_stars import apply_remote_star, merge_star_state
 from core.conversation_view import (
@@ -624,20 +625,24 @@ class MessageEventsMixin:
         """File live and historical messages under the same canonical chat."""
         alt_jid = self._normalize_jid(key.get("remoteJidAlt", ""))
         if remote_jid.endswith("@lid"):
-            phone_jid = (
-                alt_jid if alt_jid.endswith("@s.whatsapp.net")
-                else getattr(self, "_lid_to_phone", {}).get(remote_jid, "")
-            )
+            # A refused mapping must not become an accepted routing hint.
+            # Preserve the original peer if neither hint nor cache is safe.
+            phone_jid = ""
+            for candidate in (alt_jid, getattr(self, "_lid_to_phone", {}).get(remote_jid, "")):
+                if lid_phone_pair_allowed(self, remote_jid, candidate):
+                    phone_jid = self._normalize_jid(candidate)
+                    break
             if phone_jid:
                 self._merge_lid_into_phone(remote_jid, phone_jid)
                 return phone_jid
             if resolve_unknown:
                 self._queue_lid_resolutions([remote_jid])
         elif alt_jid.endswith("@lid"):
-            self._merge_lid_into_phone(alt_jid, remote_jid)
+            if lid_phone_pair_allowed(self, alt_jid, remote_jid):
+                self._merge_lid_into_phone(alt_jid, remote_jid)
         elif remote_jid.endswith("@s.whatsapp.net"):
             lid_jid = getattr(self, "_phone_to_lid", {}).get(remote_jid, "")
-            if lid_jid:
+            if lid_jid and lid_phone_pair_allowed(self, lid_jid, remote_jid):
                 self._merge_lid_into_phone(lid_jid, remote_jid)
         return remote_jid
 
