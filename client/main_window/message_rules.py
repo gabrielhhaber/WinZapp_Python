@@ -160,9 +160,12 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
     # the tail of a newest-first list inspects the OLDEST messages instead
     # (typically the chat's encryption notice or an own send), which
     # discounted real unread messages to 0 after every restart or update.
-    if (len(records) > 1
-            and message_timestamp_seconds(records[0]) > message_timestamp_seconds(records[-1])):
-        records = records[::-1]
+    # Stable sort, a record with no usable timestamp (a pending local send)
+    # counting as the newest.
+    records = sorted(
+        records,
+        key=lambda m: message_timestamp_seconds(m) or float("inf"),
+    )
     tail = records[-unread_count:] if unread_count <= len(records) else records
     discount = sum(
         1 for m in tail
