@@ -21,8 +21,8 @@ build_neonize.py prepares next to this checkout.
  goneonize/calls.go | 527 +++++++++++++++++++++++++++++++++++++++++++++
  goneonize/go.mod   |  18 +-
  goneonize/go.sum   |  22 +-
- goneonize/main.go  |   3 +-
- 4 files changed, 566 insertions(+), 4 deletions(-)
+ goneonize/main.go  |   4 +-
+ 4 files changed, 567 insertions(+), 4 deletions(-)
  create mode 100644 goneonize/calls.go
 
 diff --git a/goneonize/calls.go b/goneonize/calls.go
@@ -656,7 +656,7 @@ index 99e87e9..4b24028 100644
  google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
  google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 diff --git a/goneonize/main.go b/goneonize/main.go
-index d2759e9..2cefeb4 100644
+index d2759e9..e705989 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
 @@ -61,7 +61,7 @@ var (
@@ -676,3 +676,11 @@ index d2759e9..2cefeb4 100644
  	}
  	if cancelFunc, exists := lookupStopSignal(C.GoString(id)); exists {
  		cancelFunc()
+@@ -809,6 +810,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 	clientLog := utils.NewLogger("Client", C.GoString(logLevel), utils.Callback(logCb))
+ 	client := whatsmeow.NewClient(deviceStore, clientLog)
+ 	setClient(uuid, client)
++	instalarChamadas(uuid)
+ 	sprStore := newSPRRetryStore(C.GoString(db))
+ 	sprRetryStores.Store(uuid, sprStore)
+ 	installSPRRetryHooks(client, sprStore)
