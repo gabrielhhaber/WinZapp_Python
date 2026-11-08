@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesaje: identitățile alternative contradictorii nu mai direcționează mesajele trimise altei persoane sau primite de la aceasta către conversația cu tine însuți. Asocierile nevalide sunt ignorate; mesajele rămân în conversația originală până la identificarea persoanei.
+
 - Filtrul pentru necitite: după actualizarea sau repornirea programului, unele conversații cu mesaje necitite dispăreau din filtru (de exemplu, din 12 rămâneau 9) până când resincronizai cu F5. Numărătoarea ia acum în calcul cele mai noi mesaje ale conversației, nu cele mai vechi.
 
 - Apeluri: fereastra „Adaugă participanți” funcționează acum cu cititorul de ecran. Persoanele se marchează cu aceleași taste, același sunet și aceleași anunțuri ca în listele de conversații și mesaje (Ctrl+Spațiu, Spațiu cât timp este ceva marcat, Shift+săgeți, Ctrl+Shift+Spațiu, Esc), iar rezultatul este rostit: cine a fost invitat, cine nu a putut fi adăugat sau de ce a eșuat cererea.

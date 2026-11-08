@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.
+
 - Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest.
 
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.

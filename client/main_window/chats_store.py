@@ -12,6 +12,8 @@ import sys
 import threading
 import time
 import wx
+from main_window.chat_aliases import learn_snapshot_alias
+from core.jid_alias_guard import retire_cross_self_aliases
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 from core.conversation_view import conversation_in_view
 from core.chat_contact_names import learn_chat_names
@@ -806,40 +808,16 @@ class ChatsStoreMixin:
                         continue
                     jid = self._normalize_jid(chat.get("remoteJid", ""))
 
+                    # A snapshot can omit lastMessage/remoteJidAlt entirely.
+                    # Retire its incompatible live alias before any map reads.
+                    retire_cross_self_aliases(self, jid)
+
                     # Try to extract JID mapping from lastMessage if present
                     last_msg = chat.get("lastMessage")
                     if isinstance(last_msg, dict):
                         key = last_msg.get("key")
                         if isinstance(key, dict):
-                            remote = key.get("remoteJid", "")
-                            alt = key.get("remoteJidAlt", "")
-                            if remote and alt:
-                                # This runs on the sync thread while
-                                # _extract_lid_mapping() writes the same two
-                                # dicts from the Socket.IO one — same
-                                # check-then-set, same lock.
-                                learned_pair = None
-                                with self._lid_mapping_lock:
-                                    if not hasattr(self, "_lid_to_phone"):
-                                        self._lid_to_phone = {}
-                                    if not hasattr(self, "_phone_to_lid"):
-                                        self._phone_to_lid = {}
-                                    if remote.endswith("@lid") and alt.endswith("@s.whatsapp.net"):
-                                        if self._lid_to_phone.get(remote) != alt:
-                                            self._lid_to_phone[remote] = alt
-                                            self._phone_to_lid[alt] = remote
-                                            learned_pair = (remote, alt)
-                                            logging.info(f"[LID Mapping] Extracted mapping from lastMessage in get_remote_chats: {remote} <-> {alt}")
-                                    elif alt.endswith("@lid") and remote.endswith("@s.whatsapp.net"):
-                                        if self._lid_to_phone.get(alt) != remote:
-                                            self._lid_to_phone[alt] = remote
-                                            self._phone_to_lid[remote] = alt
-                                            learned_pair = (alt, remote)
-                                            logging.info(f"[LID Mapping] Extracted mapping from lastMessage in get_remote_chats (alt): {alt} <-> {remote}")
-                                if learned_pair:
-                                    # A contact the user saved under this @lid
-                                    # follows the person to the phone JID.
-                                    self._follow_saved_contacts([learned_pair])
+                            learn_snapshot_alias(self, key)
 
                     # Statuses go to the Status tab; channels only when the user
                     # asked for them in the chat list (Settings > Interface > Chats)

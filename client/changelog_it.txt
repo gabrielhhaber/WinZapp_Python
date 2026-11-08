@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Messaggi: le identità alternative in conflitto non spostano più i messaggi inviati a un'altra persona o ricevuti da essa nella chat con te stesso. Le associazioni non valide vengono ignorate; i messaggi rimangono nella chat originale finché l'identità non viene risolta.
+
 - Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest.
 
 - Chiamate: la finestra «Aggiungi partecipanti» ora funziona con lo screen reader. Le persone si contrassegnano con gli stessi tasti, suoni e annunci degli elenchi di conversazioni e messaggi (Ctrl+Spazio, Spazio finché qualcosa è contrassegnato, Maiusc+frecce, Ctrl+Maiusc+Spazio, Esc) e il risultato viene letto: chi è stato invitato, chi non è stato possibile aggiungere o perché la richiesta è fallita.
