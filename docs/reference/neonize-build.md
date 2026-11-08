@@ -19,37 +19,37 @@ unchanged export is byte for byte the same). Each tree's patches apply in
 order on top of its pin. Generated protobuf code (`Neonize.pb.go`,
 `Neonize_pb2.py/.pyi`) is never in a patch: the build regenerates it from
 `Neonize.proto` with the pinned toolchain, which reproduces upstream's own
-generated files exactly (checked on 0.6.0).
+generated files exactly (checked on 0.6.0; on 0.10.0 only the "protoc v7.36.0" version stamp in the
+header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
-- **neonize 0001**: neonize 0.6.0's `SendSPRMessage` sets two
-  `SendRequestExtra` fields that no released whatsmeow has, so 0.6.0 does not
-  build against its own pin (its GitHub release has no binaries). The call
-  refuses after validating its input; dropping the fields would send the
-  targeted text to the whole group. Remove this patch once the pin has them.
-- **neonize 0002**: app-state events (archive, pin, mute, read, lock, delete
-  chat, delete for me, star: events 46-53), `fetch_app_state` /
-  `request_app_state_recovery`, the `DecodePatchInfo` fix, transfers to and
-  from disk with progress and cancel, `update_group_request_participants`
-  (upstream pull requests krypton-byte/neonize #227-#232, by reffehcsoibaf).
-- **neonize 0003**: voice calls through meowcaller (`calls.go`, exported
+- **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
+  whatsmeow patch) and media transfers to and from disk with progress and
+  cancel (`DownloadAnyToFile`, `UploadFile`, `TransferProgress`,
+  `TransferCancel`; the bridge's `transfers.py`). The rest of what this patch
+  carried on 0.6.0 (app-state events 46-49 and 51-53, `fetch_app_state` /
+  `request_app_state_recovery`, the `DecodePatchInfo` fix and
+  `update_group_request_participants`, upstream pull requests #227-#232) is in
+  neonize since 0.8.0 and is no longer patched. neonize 0.6.0's SPR group-send
+  patch is gone too: since 0.7.0 `SendSPRMessage` fails closed itself.
+- **neonize 0002**: voice calls through meowcaller (`calls.go`, exported
   functions, no protobuf) and the session database in WAL with a 30 s busy
   timeout.
-- **neonize 0004**: `ContactUpdate` (54), `PushNameUpdate` (55) and
+- **neonize 0003**: `ContactUpdate` (54), `PushNameUpdate` (55) and
   `AppStateSyncComplete` (56). A full app-state sync (right after pairing)
   does not emit `ContactUpdate`: whatsmeow stores those names in bulk, and
   `AppStateSyncComplete` for `critical_unblock_low` says when they are there
   (`contact_events.py` reloads them).
-- **neonize 0006**: raw info queries and MEX (GraphQL) queries
+- **neonize 0005**: raw info queries and MEX (GraphQL) queries
   (`goneonize/rawiq.go`: `SendIQ` / `SendMexIQ`, JSON in and out; the
   client's `send_iq` / `send_mex`), `AppStateMutation` (57) for every app
   state mutation, and `MutationInfo.Remove` so `send_app_state` can send a
   REMOVE. The bridge's custom lists, community joins, channel edits, status
   privacy and contact removal use them (`neonize_bridge/COVERAGE.md`).
-- **neonize 0007**: `MediaConn`, the media upload hosts and token, for the
+- **neonize 0006**: `MediaConn`, the media upload hosts and token, for the
   unencrypted upload of a catalog product's picture (`media_upload.py`).
-- **neonize 0011**: the sync client's `get_linked_group_participants` reads
+- **neonize 0010**: the sync client's `get_linked_group_participants` reads
   the `ReturnFunctionWithError` the Go side sends (it parsed another message
   and failed with "Wire format was corrupt"; the async client was right). It
   gives `community-participants` and the community total in `group-info`.
@@ -81,17 +81,17 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
-- **neonize 0015**: `CallAddParticipant` adds a number or LID to the call this
+- **neonize 0014**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
   already on the call's list), WhatsApp's "Add participant"; Python
   `CallClient.add_participant` (`neonize_bridge/call_invites.py`).
-- **neonize 0016**: a channel update (`NewsletterMessage`) carries whatsmeow's
+- **neonize 0015**: a channel update (`NewsletterMessage`) carries whatsmeow's
   `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
   updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
-- **neonize 0017 / whatsmeow 0011**: a channel update carries the server's
+- **neonize 0016 / whatsmeow 0011**: a channel update carries the server's
   `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
   update `fromMe` from: a channel's admin sees their own updates as sent.
-- **neonize 0013 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
+- **neonize 0012 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.
   See [call audio](neonize-call-audio.md) for
@@ -192,7 +192,7 @@ starting (`contact_events.register_events`).
 ## Moving to a new upstream neonize
 
 ```powershell
-neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py check --ref 0.6.1
+neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py check --ref 0.10.1
 ```
 
 `check` rebuilds the workspace on that ref (a tag, branch or commit),
@@ -211,7 +211,7 @@ else depends on it.
 Then approve it, which records the commit the tag resolves to:
 
 ```powershell
-neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py approve --ref 0.6.1 --version 0.6.1
+neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py approve --ref 0.10.1 --version 0.10.1
 ```
 
 Commit the manifest, the patches and the bridge's tests run against the new

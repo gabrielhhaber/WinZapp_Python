@@ -7,7 +7,7 @@ session also has `call_media` (call_media.py, meowcaller): then `call/offer`,
 `call/ensure-ended`, `call/status` and `call/audio/enable` place, answer and
 carry voice and video calls, one-to-one or to a group. Without it (an older
 build) they answer 501, and so do video (without ffmpeg, or a DLL without
-neonize 0008) and group calls (a DLL without 0008), instead of pretending to
+neonize 0007) and group calls (a DLL without 0007), instead of pretending to
 have worked. `call/diagnostics` answers what the
 bridge knows of its call layer (`diagnostics`): WPPConnect's version reads the
 page's VoIP stack, which does not exist here.

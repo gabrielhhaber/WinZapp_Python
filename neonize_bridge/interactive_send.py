@@ -26,7 +26,7 @@ reply and action buttons as <native_flow v="9" name="mixed"/>, a Pix key as
 <native_flow name="payment_info"/>, a list as <list v="2"
 type="product_list"/> (wa-js applyNativeFlowBiz and createFanoutMsgStanza,
 read 2026-10-26); neonize's own GenerateWABinary used to add a second
-<biz>, which the server refused with 479 (smax-invalid), so neonize 0009
+<biz>, which the server refused with 479 (smax-invalid), so neonize 0008
 leaves it to whatsmeow. A list goes as <message type="text"> to a person and
 "media" to a group, as WhatsApp Web's stanza captured on 2026-10-27 (whatsmeow
 0007). WPPConnect's own send-buttons sends the InteractiveMessage

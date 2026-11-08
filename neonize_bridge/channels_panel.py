@@ -10,7 +10,7 @@ an invite back (`channels/admin-revoke`), removing an admin or leaving as one
 
 The WPPConnect side calls WhatsApp Web's own MEX jobs for each read
 (client/api_patches/src/controller/channelsPanelController.ts); the bridge
-sends the same queries (`send_mex`, neonize patch 0006) and answers the same
+sends the same queries (`send_mex`, neonize patch 0005) and answers the same
 XWA2Newsletter nodes, which the client reads once (client/core/channels.py).
 The query ids were read over CDP on 2026-11-04:
 

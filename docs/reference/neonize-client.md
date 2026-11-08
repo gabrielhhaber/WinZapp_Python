@@ -98,6 +98,19 @@ them (looped, through `sound_system.load_sound`, from WAVs cached under
   pack as the `call_ended` Sound Event (`call_ended.ogg`); `play_call_ended_sound`
   plays it once when a call that was ACTIVE ends, on Neonize only.
 
+## Changes made on the phone (app state)
+
+neonize forwards the phone's chat and message changes as events, and the bridge
+mirrors each into its store (`server.py`, registered once per event type):
+`ChatMarkAsReadEv` (read or marked unread; answers `chats-update` with
+`unreadCount`), `ChatArchiveEv` and `ChatPinEv` (`chats-update` with `archive` /
+`pin`, which WinZapp's `on_chats_update` consumes), `ChatMuteEv` and
+`ChatLockEv`, `MessageStarEv`, `MessageDeleteForMeEv` and `ChatDeleteEv`. A
+chat deleted on the phone is deleted in the bridge unless the mutation is a full
+sync's replay or a newer message is stored (`phone_chat_delete.applies`). WinZapp
+has no socket event for a chat that disappears, so the app's list drops it on
+its next `list-chats`.
+
 ## Reading a chat writes no app state
 
 A read goes out as read receipts, the way WhatsApp's own clients do it:
