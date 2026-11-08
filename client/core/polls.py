@@ -168,7 +168,7 @@ def poll_row_text(i18n, poll: dict) -> str:
 
 def poll_send_payload(phone: str, poll: dict, *, is_group: bool, is_lid: bool) -> dict:
     """The ``/send-poll-message`` body for one poll to one destination."""
-    return {
+    payload = {
         "phone": [phone],
         "isGroup": is_group,
         "isLid": is_lid,
@@ -176,6 +176,9 @@ def poll_send_payload(phone: str, poll: dict, *, is_group: bool, is_lid: bool) -
         "choices": list(poll["options"]),
         "options": {"selectableCount": poll.get("selectableCount", 1)},
     }
+    if str(phone).endswith("@newsletter"):
+        payload["isNewsletter"] = True      # a channel (contactToArray)
+    return payload
 
 
 def vote_percent(option: dict, options: list[dict]) -> int | None:

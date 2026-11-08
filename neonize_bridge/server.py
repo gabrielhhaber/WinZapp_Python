@@ -2894,10 +2894,14 @@ def create_app(folder, fixed=""):
         media = getattr(session(req), "call_media", None)
         calls_ready = media is not None and media.calls.enabled()
         can = calls.capabilities(media)
+        # `channelMedia` / `channelPolls`: photos, videos and polls posted to a
+        # channel. Not yet: a channel's media goes out with the handle of its
+        # unencrypted upload, which neonize's SendMessage does not pass on.
         return ok(status="success", response={
             "compatible": True, "calls": calls_ready,
             "videoCalls": calls_ready and can["video"],
-            "groupCalls": calls_ready and can["groupCalls"]})
+            "groupCalls": calls_ready and can["groupCalls"],
+            "channelMedia": False, "channelPolls": False})
 
     async def media_of_socket(sid):
         try:

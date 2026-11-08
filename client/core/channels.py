@@ -183,6 +183,33 @@ def server_id_of(message) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
 
 
+#: what WhatsApp lets a channel's admins post besides text, as WinZapp posts it
+#: (wa-js accepts "chat", "image", "video" and "poll_creation" for a channel)
+CHANNEL_POST_KINDS = ("photo_video", "poll")
+#: an attachment's media_type that is a photo or a video
+CHANNEL_MEDIA_TYPES = ("image", "video")
+
+
+def channel_post_kinds(capabilities):
+    """The kinds the engine posts in a channel, from /send-capabilities.
+
+    WPPConnect does not state them: wa-js posts photos, videos and polls to a
+    channel through WhatsApp Web's own newsletter job, so a missing field is
+    all of them. The Neonize bridge states `channelMedia` / `channelPolls`.
+    None when nothing is known yet (the probe has not answered).
+    """
+    if not isinstance(capabilities, dict):
+        return None
+    if "channelMedia" not in capabilities and "channelPolls" not in capabilities:
+        return set(CHANNEL_POST_KINDS)
+    kinds = set()
+    if capabilities.get("channelMedia") is True:
+        kinds.add("photo_video")
+    if capabilities.get("channelPolls") is True:
+        kinds.add("poll")
+    return kinds
+
+
 def older_page_query(jid, oldest_msg) -> str:
     """What a channel's `before` page of get-messages adds to its query: the
     anchor's server id, so the Neonize bridge finds it even when it no longer

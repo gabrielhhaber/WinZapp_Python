@@ -3094,6 +3094,15 @@ msgstr ""
 "Somente o dono e os administradores do canal podem fixar atualizações."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_post_kinds"
+msgid ""
+"In a channel WinZapp posts text, photos, videos and polls: no replies, "
+"documents, audio, contacts or voice notes."
+msgstr ""
+"Num canal o WinZapp posta texto, fotos, vídeos e enquetes: sem respostas, "
+"documentos, áudios, contatos ou mensagens de voz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "channel_read_only"
 msgid "This channel is read-only"
@@ -3124,7 +3133,6 @@ msgid "admin invite pending"
 msgstr "convite de administrador pendente"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/channel_conversation.py
 msgctxt "channel_text_only"
 msgid ""
 "In a channel WinZapp posts text only: no replies, files, polls, contacts or "

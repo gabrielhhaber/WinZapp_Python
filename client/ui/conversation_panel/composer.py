@@ -712,8 +712,10 @@ class ComposerMixin:
             return False
 
         if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
-            if refuse_in_channel(self):
-                return True       # consumed: a file is never sent to a channel
+            if refuse_in_channel(self, "photo_video"):
+                return True       # consumed: refused, and said why
+            # (a pasted document or audio is refused when the batch is sent:
+            # refuse_attachments_in_channel())
             data = wx.FileDataObject()
             if wx.TheClipboard.GetData(data):
                 paths = [p for p in data.GetFilenames() if os.path.isfile(p)]
@@ -736,8 +738,8 @@ class ComposerMixin:
                     return True
 
         if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
-            if refuse_in_channel(self):
-                return True       # consumed: an image is never sent to a channel
+            if refuse_in_channel(self, "photo_video"):
+                return True       # consumed: refused, and said why
             data = wx.BitmapDataObject()
             if wx.TheClipboard.GetData(data):
                 bitmap = data.GetBitmap()

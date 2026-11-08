@@ -144,6 +144,11 @@ def test_a_voice_note_in_a_channel_is_refused_with_the_reason():
     # a pasted file or image: tests/test_paste_non_text_as_attachment.py
     panel = GuardPanel()
     assert panel._start_voice_recording() is None
+    # the engine posts photos, videos and polls (WPPConnect): the reason names them
+    assert panel.said == ["channel_post_kinds"]
+    panel = GuardPanel()
+    panel.main_window._channel_post_kinds = set()      # an engine that posts text only
+    assert panel._start_voice_recording() is None
     assert panel.said == ["channel_text_only"]
     from ui.conversation_panel.channel_conversation import refuse_in_channel
     assert refuse_in_channel(GuardPanel("5511999998888@s.whatsapp.net")) is False
