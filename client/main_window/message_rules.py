@@ -121,7 +121,30 @@ def is_countable_message(msg: dict) -> bool:
     return msg.get("messageType") not in _PREVIEW_ONLY_MESSAGE_TYPES
 
 
-def _discount_non_countable_unread(records: list, unread_count: int) -> int:
+def _is_discountable_unread(m) -> bool:
+    """A record the badge never counts: an own send or a system event."""
+    return ((isinstance(m, dict) and bool((m.get("key") or {}).get("fromMe")))
+            or not is_countable_message(m))
+
+
+def _unread_tail_order(m):
+    """Sort key for the tail: oldest first, a pending send as the newest.
+
+    Two records stamped in the same second (an incoming text and the
+    business "notification_template" WhatsApp writes beside it) used to keep
+    whatever order the database returned, so the tail of 1 could be the
+    template and the real message was discounted to 0. Within one second the
+    countable record is taken as the newer, so a tie never eats a real unread
+    message. A record without a timestamp keeps its place as before.
+    """
+    seconds = message_timestamp_seconds(m)
+    if not seconds:
+        return (float("inf"), 0)
+    return (seconds, 0 if _is_discountable_unread(m) else 1)
+
+
+def _discount_non_countable_unread(records: list, unread_count: int,
+                                   activity_t=0) -> int:
     """Discount from a server-reported unread count the tail messages that
     must never count toward the badge: our own (fromMe) sends — WhatsApp Web
     sometimes counts those — and system events (groupNotification,
@@ -147,11 +170,29 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
     cannot take the place of a message that was. Measured 2026-09-23: a group
     with 1 unread text received four reactions; the tail of 1 was a reaction,
     was discounted, and the badge went to 0 with the text still unread.
+
+    *activity_t* is the chat's activity marker (`t`) for the count being
+    discounted. A record stamped after it is left out of the tail: WhatsApp
+    did not move the chat for it, so it is not what the count covers. Group
+    notifications (an invite, a description change, a member added) arrive
+    without bumping `t`, and the database keeps every one the live stream
+    brought. Measured 2026-11-08 on a live session: 29 conversations unread
+    on WhatsApp Web read 0 in WinZapp, most of them groups whose newest
+    records were exactly that many notifications newer than `t`, with the
+    real unread messages just before them. On a warm start the list-chats
+    merge discounted them against that stored tail and the badge stayed off
+    until F5, which empties the database and fetches a tail without them
+    (reported by a user as the unread count falling from 18 to 15 after an
+    update and returning to 18 on F5). 0 means no marker: nothing is cut.
     """
     if unread_count <= 0 or not records:
         return unread_count
     records = [m for m in records
                if not (isinstance(m, dict) and m.get("messageType") == "reactionMessage")]
+    cutoff = _timestamp_seconds(activity_t or 0)
+    if cutoff:
+        records = [m for m in records
+                   if not message_timestamp_seconds(m) > cutoff]
     if not records:
         return unread_count
     # The tail is the NEWEST messages, but records are not always stored
@@ -162,16 +203,9 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
     # discounted real unread messages to 0 after every restart or update.
     # Stable sort, a record with no usable timestamp (a pending local send)
     # counting as the newest.
-    records = sorted(
-        records,
-        key=lambda m: message_timestamp_seconds(m) or float("inf"),
-    )
+    records = sorted(records, key=_unread_tail_order)
     tail = records[-unread_count:] if unread_count <= len(records) else records
-    discount = sum(
-        1 for m in tail
-        if (isinstance(m, dict) and (m.get("key") or {}).get("fromMe"))
-        or not is_countable_message(m)
-    )
+    discount = sum(1 for m in tail if _is_discountable_unread(m))
     return max(0, unread_count - discount)
 
 
@@ -419,7 +453,7 @@ def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     if not chat.pop(_UNREAD_UNDISCOUNTED, False):
         return False
     before = int(chat.get("unreadCount") or 0)
-    corrected = _discount_non_countable_unread(records, before)
+    corrected = _discount_non_countable_unread(records, before, chat.get("t", 0))
     if corrected == before:
         return False
     logging.info(

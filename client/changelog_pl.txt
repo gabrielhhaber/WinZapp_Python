@@ -4,7 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
-- Filtr nieprzeczytanych: po aktualizacji lub ponownym uruchomieniu programu niektóre rozmowy z nieprzeczytanymi wiadomościami znikały z filtra (na przykład z 12 robiło się 9), dopóki nie zsynchronizowano ponownie klawiszem F5. Liczenie bierze teraz pod uwagę najnowsze wiadomości rozmowy, a nie najstarsze.
+- Filtr nieprzeczytanych: po aktualizacji lub ponownym uruchomieniu programu niektóre rozmowy z nieprzeczytanymi wiadomościami znikały z filtra (na przykład z 12 robiło się 9), dopóki nie zsynchronizowano ponownie klawiszem F5. Liczenie bierze teraz pod uwagę najnowsze wiadomości rozmowy, a nie najstarsze. Nie znikają już też rozmowy grupowe, których ostatnimi wpisami były powiadomienia grupy (zaproszenia, dodanie członków, zmiana opisu): takie powiadomienia nie zajmują już miejsca prawdziwych nieprzeczytanych wiadomości.
 
 - Połączenia: okno „Dodaj uczestników” działa teraz z czytnikiem ekranu. Osoby zaznacza się tymi samymi klawiszami, dźwiękiem i komunikatami co na listach czatów i wiadomości (Ctrl+Spacja, Spacja, gdy coś jest zaznaczone, Shift+strzałki, Ctrl+Shift+Spacja, Esc), a wynik jest odczytywany: kto został zaproszony, kogo nie udało się dodać lub dlaczego żądanie się nie powiodło.
 

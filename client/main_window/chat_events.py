@@ -747,7 +747,8 @@ class ChatEventsMixin:
             .get("records", [])
         )
         if unread_count > 0 and records:
-            unread_count = _discount_non_countable_unread(records, unread_count)
+            unread_count = _discount_non_countable_unread(
+                records, unread_count, chat.get("t", 0))
         # A zero has nothing to discount, so it counts as final either way.
         discounted = bool(records) or unread_count == 0
         old_count = int(chat.get("unreadCount") or 0)

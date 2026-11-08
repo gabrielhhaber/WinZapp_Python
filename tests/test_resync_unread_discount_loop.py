@@ -48,7 +48,9 @@ JID = "120363151058129530@g.us"
 def _records(countable: int, system_events: int):
     """A record tail shaped like the real group's: real incoming messages,
     then a few system events the server counts toward unread and WinZapp
-    deliberately does not."""
+    deliberately does not. They are stamped at the snapshot's `t` (the
+    fixtures below use 1700000500): an event after it did not move the chat
+    and is not in the count (see test_unread_discount_activity_marker.py)."""
     records = [
         {"key": {"id": f"m{i}", "fromMe": False}, "messageType": "conversation",
          "message": {"conversation": f"msg {i}"}, "timestamp": 1700000000 + i}
@@ -57,7 +59,7 @@ def _records(countable: int, system_events: int):
     records += [
         {"key": {"id": f"sys{i}", "fromMe": False},
          "messageType": "groupNotification",
-         "message": {}, "timestamp": 1700001000 + i}
+         "message": {}, "timestamp": 1700000500 - i}
         for i in range(system_events)
     ]
     return records

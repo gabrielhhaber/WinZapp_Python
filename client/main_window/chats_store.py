@@ -1056,6 +1056,7 @@ class ChatsStoreMixin:
                                     _discount_records = []
                                 server_val = _discount_non_countable_unread(
                                     _discount_records, server_val,
+                                    chat.get("t", 0),
                                 )
                                 # An open conversation is reconciled, not zeroed.
                                 # This used to be a bare `v = 0` under a comment

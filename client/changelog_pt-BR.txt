@@ -4,7 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
-- Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 viravam 9) até você ressincronizar com F5. A contagem agora olha as mensagens mais recentes da conversa, e não as mais antigas.
+- Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 viravam 9) até você ressincronizar com F5. A contagem agora olha as mensagens mais recentes da conversa, e não as mais antigas. Também deixaram de sumir as conversas de grupo cujas últimas mensagens eram avisos do grupo (convites, membros adicionados, descrição alterada): esses avisos não tomam mais o lugar das mensagens não lidas de verdade.
 
 - Chamadas: a janela "Adicionar participantes" agora funciona com leitor de tela. As pessoas são marcadas com as mesmas teclas, som e anúncios das listas de conversas e mensagens (Ctrl+Espaço, Espaço enquanto houver algo marcado, Shift+setas, Ctrl+Shift+Espaço, Esc), e o resultado é falado: quem foi convidado, quem não pôde ser adicionado ou por que o pedido falhou.
 
