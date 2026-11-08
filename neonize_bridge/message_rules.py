@@ -34,6 +34,21 @@ def refusal_reason(from_me, original, now):
     return ""
 
 
+def channel_edit_refusal(from_me, details, now):
+    """refusal_reason() for a channel update, judged by what the bridge
+    remembered of it (channel_updates.ServerIds.details) since channel posts
+    are never stored. Only text is edited there: a caption would need the
+    media the bridge does not keep."""
+    if not from_me or (details is not None and not details.get("fromMe")):
+        return "not_mine"
+    if details is None or details.get("type") != "chat":
+        return "not_stored"
+    when = details.get("t") or 0
+    if when and now - when > EDIT_WINDOW:
+        return "outside_window"
+    return ""
+
+
 def revocation_author(from_me, group, me, id_author, original):
     """The JID (whatsmeow) that signs the 'delete for everyone' ('' if it
     cannot be deleted). My message: me. Someone else's can only be deleted in a

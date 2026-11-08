@@ -70,7 +70,10 @@ def updates_to_wpp(channel, updates):
 
 
 class ServerIds:
-    """message id -> server id of the updates already answered (bounded)."""
+    """message id -> what the bridge answered about an update (bounded): its
+    server id, and the type, date and author an edit is judged by. A channel
+    post is never stored (kept_in_store), and opening a channel reads its
+    updates again, so the ones a user can edit are always remembered here."""
 
     def __init__(self, limit=REMEMBERED):
         self.limit = limit
@@ -80,14 +83,21 @@ class ServerIds:
     def remember(self, pairs):
         with self._lock:
             for w, server_id in pairs:
-                self._ids[w["id"]["id"]] = server_id
+                self._ids[w["id"]["id"]] = {
+                    "server_id": server_id, "type": w.get("type") or "",
+                    "t": int(w.get("t") or 0), "fromMe": bool(w.get("fromMe"))}
                 self._ids.move_to_end(w["id"]["id"])
             while len(self._ids) > self.limit:
                 self._ids.popitem(last=False)
 
     def of(self, message_id):
+        details = self.details(message_id)
+        return details["server_id"] if details else None
+
+    def details(self, message_id):
         with self._lock:
-            return self._ids.get(message_id)
+            found = self._ids.get(message_id)
+            return dict(found) if found else None
 
 
 def server_ids_of(s) -> ServerIds:
@@ -103,6 +113,25 @@ def anchor_server_id(value) -> int:
     except (TypeError, ValueError):
         return 0
     return number if number > 0 else 0
+
+
+def is_channel(chat) -> bool:
+    return str(chat or "").endswith("@newsletter")
+
+
+def edit(s, channel, message_id, text):
+    """Edits an update this account posted in *channel* (whatsmeow form).
+    whatsmeow sends a channel's edit as an admin edit of the original id
+    (sendNewsletter), so nothing stored is needed. Runs on a thread."""
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
+    from neonize.utils import build_jid
+    user, _, server = channel.partition("@")
+    try:
+        s.client.edit_message(build_jid(user, server), message_id, Message(conversation=text))
+    except Exception as error:
+        log.info("channel update edit refused (%s)", type(error).__name__)
+        return False
+    return True
 
 
 def read(s, channel, count, before, jid_from_text, before_server_id=0):

@@ -787,3 +787,47 @@ async def test_forward_messages_keeps_the_link_preview_when_asked(tmp_path, sess
         assert (dropped.title, dropped.matchedText) == ("", "")
     finally:
         await bridge.http.close()
+
+
+# ------------------------------------------------- edit-message in a channel
+CHANNEL = "120363000000000001@newsletter"
+
+
+def _remember_update(s, mid, t, from_me=True, kind="chat"):
+    import channel_updates
+    channel_updates.server_ids_of(s).remember(
+        [({"id": {"id": mid}, "type": kind, "t": t, "fromMe": from_me}, 7)])
+
+
+@pytest.mark.asyncio
+async def test_an_own_channel_update_is_edited_without_being_stored(tmp_path, sessions):
+    """A channel post is never stored; what the bridge remembered from reading
+    the channel is enough, and whatsmeow edits it by its original id."""
+    import time
+    bridge = await _open(tmp_path, sessions)
+    try:
+        _remember_update(bridge.s, "POST", int(time.time()) - 60)
+        status, body = await bridge.post("edit-message", {"id": f"true_{CHANNEL}_POST",
+                                                          "newText": "corrigido"})
+        assert status == 200 and body["response"] == {"edited": True}
+        assert bridge.fake.edited == [(CHANNEL, "POST")]
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
+async def test_a_channel_update_that_cannot_be_edited_is_refused_first(tmp_path, sessions):
+    import time
+    bridge = await _open(tmp_path, sessions)
+    try:
+        now = int(time.time())
+        _remember_update(bridge.s, "OLD", now - 3600)
+        _remember_update(bridge.s, "THEIRS", now, from_me=False)
+        _remember_update(bridge.s, "PHOTO", now, kind="image")
+        for mid in ("OLD", "THEIRS", "PHOTO", "NEVER_READ"):
+            response = await bridge.http.post(
+                bridge.url("edit-message"), json={"id": f"true_{CHANNEL}_{mid}", "newText": "x"})
+            assert response.status == 400 and "Cannot edit this message" in await response.text()
+        assert bridge.fake.edited == []
+    finally:
+        await bridge.http.close()

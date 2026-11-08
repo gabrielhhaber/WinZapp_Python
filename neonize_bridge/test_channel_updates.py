@@ -121,3 +121,22 @@ def test_a_refused_later_page_keeps_what_came_before():
             return super().get_newsletter_messages(jid, count, before)
     s = N(client=Flaky(500))
     assert len(cu.read(s, CHANNEL, 300, None, lambda t: t)) == 100
+
+
+def test_what_an_edit_needs_is_remembered_with_the_server_id():
+    s = N(client=Server(5))
+    cu.read(s, CHANNEL, 2, None, lambda t: t)
+    details = cu.server_ids_of(s).details("M5")
+    assert details == {"server_id": 5, "type": "chat", "t": 50, "fromMe": False}
+    assert cu.server_ids_of(s).of("M5") == 5 and cu.server_ids_of(s).details("X") is None
+
+
+def test_the_channel_edit_rules():
+    import message_rules as mr
+    mine = {"type": "chat", "t": 1000, "fromMe": True}
+    assert mr.channel_edit_refusal(True, mine, 1000 + 60) == ""
+    assert mr.channel_edit_refusal(True, mine, 1000 + mr.EDIT_WINDOW + 1) == "outside_window"
+    assert mr.channel_edit_refusal(False, mine, 1000) == "not_mine"
+    assert mr.channel_edit_refusal(True, dict(mine, fromMe=False), 1000) == "not_mine"
+    assert mr.channel_edit_refusal(True, dict(mine, type="image"), 1000) == "not_stored"
+    assert mr.channel_edit_refusal(True, None, 1000) == "not_stored"

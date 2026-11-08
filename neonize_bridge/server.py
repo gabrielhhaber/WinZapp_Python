@@ -2813,7 +2813,18 @@ def create_app(folder, fixed=""):
             return error
         # refusals that happen before anything is sent: the client only undoes the
         # optimistic text when the body says so (responses.edit_refused)
-        from_me, _, mid, _ = s.id_parts(body["id"])
+        from_me, conversation, mid, _ = s.id_parts(body["id"])
+        if channel_updates.is_channel(conversation):
+            reason = message_rules.channel_edit_refusal(
+                from_me, channel_updates.server_ids_of(s).details(mid), time.time())
+            if reason:
+                return responses.edit_refused(reason)
+            done = await in_thread(channel_updates.edit, s, conversation, mid,
+                                   inputs.whole_text(body["newText"]))
+            if not done:
+                return web.json_response({"status": "error", "message": "not accepted"},
+                                         status=500)
+            return ok(status="success", response={"edited": True})
         reason = message_rules.refusal_reason(from_me, s.db.wpp_message(mid), time.time())
         if reason:
             return responses.edit_refused(reason)
