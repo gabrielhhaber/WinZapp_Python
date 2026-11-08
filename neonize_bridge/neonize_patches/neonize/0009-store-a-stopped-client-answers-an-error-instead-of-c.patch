@@ -17,14 +17,14 @@ now answer "client is not running".
  create mode 100644 goneonize/nostore_test.go
 
 diff --git a/goneonize/chat_settings_store.go b/goneonize/chat_settings_store.go
-index aeff2a2..36d50c6 100644
+index 43f9311..36d50c6 100644
 --- a/goneonize/chat_settings_store.go
 +++ b/goneonize/chat_settings_store.go
 @@ -27,7 +27,11 @@ func PutMutedUntil(id *C.char, user *C.uchar, userSize C.int, mutedUntil C.float
  	if err := proto.Unmarshal(getByteByAddr(user, userSize), &JID); err != nil {
  		return C.CString(err.Error())
  	}
--	err := clients[C.GoString(id)].Store.ChatSettings.PutMutedUntil(context.Background(), utils.DecodeJidProto(&JID), time.Unix(int64(mutedUntil), 0))
+-	err := clientFor(C.GoString(id)).Store.ChatSettings.PutMutedUntil(context.Background(), utils.DecodeJidProto(&JID), time.Unix(int64(mutedUntil), 0))
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		return C.CString(errNoClient)
@@ -37,7 +37,7 @@ index aeff2a2..36d50c6 100644
  		return_.Error = proto.String(err.Error())
  		return ProtoReturnV3(&return_)
  	}
--	local_chat_settings, err := clients[C.GoString(id)].Store.ChatSettings.GetChatSettings(context.Background(), utils.DecodeJidProto(&JID))
+-	local_chat_settings, err := clientFor(C.GoString(id)).Store.ChatSettings.GetChatSettings(context.Background(), utils.DecodeJidProto(&JID))
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		return_.Error = proto.String(errNoClient)
@@ -48,7 +48,7 @@ index aeff2a2..36d50c6 100644
  		return_.Error = proto.String(err.Error())
  	}
 diff --git a/goneonize/contact_store.go b/goneonize/contact_store.go
-index 69516ea..c6acdde 100644
+index dcc393e..324ae9f 100644
 --- a/goneonize/contact_store.go
 +++ b/goneonize/contact_store.go
 @@ -14,6 +14,20 @@ import (
@@ -62,7 +62,7 @@ index 69516ea..c6acdde 100644
 +
 +// storeOf is the device store of client `id`, or nil when it is not running.
 +func storeOf(id string) *store.Device {
-+	client, ok := clients[id]
++	client, ok := lookupClient(id)
 +	if !ok || client == nil {
 +		return nil
 +	}
@@ -76,7 +76,7 @@ index 69516ea..c6acdde 100644
  		return_.Error = proto.String(err.Error())
  		return ProtoReturnV3(&return_)
  	}
--	status, prev_name, err := clients[C.GoString(id)].Store.Contacts.PutPushName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(pushname))
+-	status, prev_name, err := clientFor(C.GoString(id)).Store.Contacts.PutPushName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(pushname))
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		return_.Error = proto.String(errNoClient)
@@ -90,7 +90,7 @@ index 69516ea..c6acdde 100644
  		return_.Error = proto.String(err.Error())
  		return ProtoReturnV3(&return_)
  	}
--	status, prev_name, err := clients[C.GoString(id)].Store.Contacts.PutBusinessName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(businessName))
+-	status, prev_name, err := clientFor(C.GoString(id)).Store.Contacts.PutBusinessName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(businessName))
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		return_.Error = proto.String(errNoClient)
@@ -104,7 +104,7 @@ index 69516ea..c6acdde 100644
  	if err != nil {
  		return C.CString(err.Error())
  	}
--	err_ := clients[C.GoString(id)].Store.Contacts.PutContactName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(fullName), C.GoString(firstName))
+-	err_ := clientFor(C.GoString(id)).Store.Contacts.PutContactName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(fullName), C.GoString(firstName))
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		return C.CString(errNoClient)
@@ -117,7 +117,7 @@ index 69516ea..c6acdde 100644
  	for i, centry := range entry.ContactEntry {
  		contactEntry[i] = *utils.DecodeContactEntry(centry)
  	}
--	err_r := clients[C.GoString(id)].Store.Contacts.PutAllContactNames(context.Background(), contactEntry)
+-	err_r := clientFor(C.GoString(id)).Store.Contacts.PutAllContactNames(context.Background(), contactEntry)
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		return C.CString(errNoClient)
@@ -130,7 +130,7 @@ index 69516ea..c6acdde 100644
  		return_.Error = proto.String(err.Error())
  		return ProtoReturnV3(&return_)
  	}
--	contact_info, err_ := clients[C.GoString(id)].Store.Contacts.GetContact(context.Background(), utils.DecodeJidProto(&userJID))
+-	contact_info, err_ := clientFor(C.GoString(id)).Store.Contacts.GetContact(context.Background(), utils.DecodeJidProto(&userJID))
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		r := defproto.ContactsGetContactReturnFunction{Error: proto.String(errNoClient)}
@@ -144,7 +144,7 @@ index 69516ea..c6acdde 100644
  
  //export GetAllContacts
  func GetAllContacts(id *C.char) *C.struct_BytesReturn {
--	contacts, err := clients[C.GoString(id)].Store.Contacts.GetAllContacts(context.Background())
+-	contacts, err := clientFor(C.GoString(id)).Store.Contacts.GetAllContacts(context.Background())
 +	dev := storeOf(C.GoString(id))
 +	if dev == nil {
 +		r := defproto.ContactsGetAllContactsReturnFunction{Error: proto.String(errNoClient)}
@@ -156,7 +156,7 @@ index 69516ea..c6acdde 100644
  	}
 diff --git a/goneonize/nostore_test.go b/goneonize/nostore_test.go
 new file mode 100644
-index 0000000..e306957
+index 0000000..32fb69b
 --- /dev/null
 +++ b/goneonize/nostore_test.go
 @@ -0,0 +1,14 @@
@@ -168,8 +168,8 @@ index 0000000..e306957
 +	if storeOf("not-running") != nil {
 +		t.Fatal("a client Stop removed has no store")
 +	}
-+	clients["nil-entry"] = nil
-+	defer delete(clients, "nil-entry")
++	setClient("nil-entry", nil)
++	defer deleteClient("nil-entry")
 +	if storeOf("nil-entry") != nil {
 +		t.Fatal("a nil entry has no store")
 +	}

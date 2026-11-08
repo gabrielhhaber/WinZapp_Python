@@ -14,7 +14,7 @@ reads.
  3 files changed, 11 insertions(+)
 
 diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index bb2706e..63cbd7e 100644
+index c79a8f8..f08b493 100644
 --- a/goneonize/Neonize.proto
 +++ b/goneonize/Neonize.proto
 @@ -404,6 +404,9 @@ message NewsletterMessage {
@@ -28,7 +28,7 @@ index bb2706e..63cbd7e 100644
  
  message GetNewsletterMessageUpdateReturnFunction {
 diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index bb2706e..63cbd7e 100644
+index c79a8f8..f08b493 100644
 --- a/goneonize/defproto/Neonize.proto
 +++ b/goneonize/defproto/Neonize.proto
 @@ -404,6 +404,9 @@ message NewsletterMessage {
@@ -42,10 +42,10 @@ index bb2706e..63cbd7e 100644
  
  message GetNewsletterMessageUpdateReturnFunction {
 diff --git a/goneonize/utils/encoder.go b/goneonize/utils/encoder.go
-index 997a9d3..886c734 100644
+index 11a2da1..0621d43 100644
 --- a/goneonize/utils/encoder.go
 +++ b/goneonize/utils/encoder.go
-@@ -473,6 +473,11 @@ func EncodeNewsletterMessage(message *types.NewsletterMessage) *defproto.Newslet
+@@ -509,6 +509,11 @@ func EncodeNewsletterMessage(message *types.NewsletterMessage) *defproto.Newslet
  		ViewsCount:      proto.Int64(int64(message.ViewsCount)),
  		Message:         message.Message, // may be nil for deleted messages — field is optional
  		ReactionCounts:  reacts,

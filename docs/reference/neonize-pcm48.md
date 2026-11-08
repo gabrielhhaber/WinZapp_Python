@@ -34,7 +34,7 @@ worker or enhancement model is added. Native record replacement closes the old
 queue; an old end callback cannot remove the replacement.
 
 The native implementation and tests are exported through meowcaller 0007 and
-neonize 0014. `test_call_pcm48.py` exercises bridge ownership/format behavior;
+neonize 0013. `test_call_pcm48.py` exercises bridge ownership/format behavior;
 `test_call_pcm48_bindings.py` uses fake ctypes targets and also checks the
 compiled exports without a client when that build is present. Native tests
 cover codec fallback, clock wrap, late negotiation/SRTP, group buffering and

@@ -1,0 +1,401 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: reffehcsoibaf <290818442+reffehcsoibaf@users.noreply.github.com>
+Date: Mon, 26 Oct 2026 01:14:09 -0300
+Subject: [PATCH] Lock-chat app-state event and media transfers with progress
+ and cancel
+
+The changes of the neonize test build 0.5.2-winzapp-teste.2 (fork
+reffehcsoibaf/neonize, branch feat/group-request-participants; upstream
+pull requests krypton-byte/neonize #227 to #232), merged upstream in neonize 0.8.0 (events 46-49 and 51-53, fetch_app_state,
+request_app_state_recovery, the PatchInfo fix, update_group_request_participants).
+What 0.8.0 lacks stays here, rebased on 0.10.0:
+
+- the lock-chat app-state event (50);
+- download to and upload from disk with progress and cancel.
+
+Original description (0.6.0):
+
+- app-state events from the phone: archive, pin, mute, mark-as-read,
+  lock, delete chat, delete-for-me and star (events 46 to 53);
+- fetch_app_state and request_app_state_recovery;
+- DecodePatchInfo maps PatchInfo.Type to the right collection;
+- download to and upload from disk with progress and cancel;
+- update_group_request_participants.
+
+Generated code (Neonize.pb.go, Neonize_pb2.py/.pyi) is not part of the
+patch: build_neonize.py regenerates it from Neonize.proto.
+---
+ goneonize/Neonize.proto          |   6 +
+ goneonize/defproto/Neonize.proto |   6 +
+ goneonize/main.go                | 181 +++++++++++++++++++++++++++++++
+ neonize/_binder.py               |  25 +++++
+ neonize/aioze/events.py          |   2 +
+ neonize/client.py                |  39 +++++++
+ neonize/events.py                |   2 +
+ 7 files changed, 261 insertions(+)
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index a48849d..d10d2fb 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -923,6 +923,12 @@ message ChatMarkAsRead { //49
+     required bool FromFullSync = 4;
+ }
+ // Chat deleted on the phone (app state sync).
++message ChatLock { //50
++    required JID JID = 1;
++    required int64 Timestamp = 2;
++    optional WAWebProtobufSyncAction.LockChatAction Action = 3;
++    required bool FromFullSync = 4;
++}
+ message ChatDelete { //51
+     required JID JID = 1;
+     required int64 Timestamp = 2;
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index a48849d..d10d2fb 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -923,6 +923,12 @@ message ChatMarkAsRead { //49
+     required bool FromFullSync = 4;
+ }
+ // Chat deleted on the phone (app state sync).
++message ChatLock { //50
++    required JID JID = 1;
++    required int64 Timestamp = 2;
++    optional WAWebProtobufSyncAction.LockChatAction Action = 3;
++    required bool FromFullSync = 4;
++}
+ message ChatDelete { //51
+     required JID JID = 1;
+     required int64 Timestamp = 2;
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 37c910a..d2759e9 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -18,8 +18,10 @@ import (
+ 	// "crypto/sha256"
+ 	// "encoding/hex"
+ 	"fmt"
++	"io"
+ 	"os"
+ 	"strings"
++	"sync/atomic"
+ 	"time"
+ 	"unsafe"
+ 
+@@ -1323,6 +1325,20 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 				}
+ 				eventChan <- &messageEvent
+ 			}
++		case *events.Lock:
++			if _, ok := subscribers[50]; ok {
++				chatState := defproto.ChatLock{
++					JID:          utils.EncodeJidProto(v.JID),
++					Timestamp:    proto.Int64(v.Timestamp.Unix()),
++					Action:       v.Action,
++					FromFullSync: proto.Bool(v.FromFullSync),
++				}
++				messageEvent := MessageEvent{
++					eventType: 50,
++					message:   &chatState,
++				}
++				eventChan <- &messageEvent
++			}
+ 		case *events.DeleteChat:
+ 			if _, ok := subscribers[51]; ok {
+ 				chatState := defproto.ChatDelete{
+@@ -3192,3 +3208,168 @@ func deleteEventChannel(id string) {
+ 	defer sessionsLock.Unlock()
+ 	delete(eventChannel, id)
+ }
++
++// ---- Transferencias de midia com progresso e cancelamento (WinZapp) ------
++// O download grava direto no arquivo (DownloadToFile, sem carregar a midia
++// inteira na memoria) e o upload le de um arquivo (UploadReader). Cada
++// transferencia tem uma chave dada por quem chama: TransferProgress devolve
++// 0..100 (no upload; no download quem chama olha o tamanho do arquivo) e
++// TransferCancel interrompe.
++
++type transferencia struct {
++	cancel    context.CancelFunc
++	progresso atomic.Int32
++}
++
++var transferencias sync.Map // chave -> *transferencia
++
++func novaTransferencia(chave string) (context.Context, *transferencia) {
++	ctx, cancel := context.WithCancel(context.Background())
++	t := &transferencia{cancel: cancel}
++	transferencias.Store(chave, t)
++	return ctx, t
++}
++
++//export TransferProgress
++func TransferProgress(key *C.char) C.int {
++	if t, ok := transferencias.Load(C.GoString(key)); ok {
++		return C.int(t.(*transferencia).progresso.Load())
++	}
++	return -1
++}
++
++//export TransferCancel
++func TransferCancel(key *C.char) {
++	if t, ok := transferencias.Load(C.GoString(key)); ok {
++		t.(*transferencia).cancel()
++	}
++}
++
++//export DownloadAnyToFile
++func DownloadAnyToFile(id *C.char, messageProto *C.uchar, size C.int, path *C.char, key *C.char) *C.char {
++	var message waE2E.Message
++	if err := proto.Unmarshal(getByteByAddr(messageProto, size), &message); err != nil {
++		return C.CString(err.Error())
++	}
++	var baixavel whatsmeow.DownloadableMessage
++	switch {
++	case message.ImageMessage != nil:
++		baixavel = message.ImageMessage
++	case message.VideoMessage != nil:
++		baixavel = message.VideoMessage
++	case message.AudioMessage != nil:
++		baixavel = message.AudioMessage
++	case message.DocumentMessage != nil:
++		baixavel = message.DocumentMessage
++	case message.StickerMessage != nil:
++		baixavel = message.StickerMessage
++	default:
++		return C.CString(whatsmeow.ErrNothingDownloadableFound.Error())
++	}
++	chave := C.GoString(key)
++	ctx, t := novaTransferencia(chave)
++	defer func() {
++		t.cancel()
++		transferencias.Delete(chave)
++	}()
++	arquivo, err := os.OpenFile(C.GoString(path), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
++	if err != nil {
++		return C.CString(err.Error())
++	}
++	err = clientFor(C.GoString(id)).DownloadToFile(ctx, baixavel, arquivo)
++	if cerr := arquivo.Close(); err == nil {
++		err = cerr
++	}
++	if err != nil {
++		return C.CString(err.Error())
++	}
++	return C.CString("")
++}
++
++// arquivoContador e o arquivo temporario do upload: conta o que se escreve
++// (cifrando, fase 1: de 0 a 10%) e o que se le (enviando, fase 2: de 10 a
++// 100%).
++type arquivoContador struct {
++	*os.File
++	t       *transferencia
++	total   int64
++	escrito atomic.Int64
++	lido    atomic.Int64
++	enviar  atomic.Bool
++}
++
++func (c *arquivoContador) Write(p []byte) (int, error) {
++	n, err := c.File.Write(p)
++	e := c.escrito.Add(int64(n))
++	if c.total > 0 {
++		v := e * 10 / c.total
++		if v > 10 {
++			v = 10
++		}
++		c.t.progresso.Store(int32(v))
++	}
++	return n, err
++}
++
++func (c *arquivoContador) Seek(off int64, whence int) (int64, error) {
++	if off == 0 && whence == io.SeekStart && c.escrito.Load() > 0 {
++		c.lido.Store(0)
++		c.enviar.Store(true)
++	}
++	return c.File.Seek(off, whence)
++}
++
++func (c *arquivoContador) Read(p []byte) (int, error) {
++	n, err := c.File.Read(p)
++	if c.enviar.Load() {
++		l := c.lido.Add(int64(n))
++		if e := c.escrito.Load(); e > 0 {
++			v := 10 + l*90/e
++			if v > 99 {
++				v = 99
++			}
++			c.t.progresso.Store(int32(v))
++		}
++	}
++	return n, err
++}
++
++//export UploadFile
++func UploadFile(id *C.char, path *C.char, mediatype C.int, key *C.char) *C.struct_BytesReturn {
++	return_ := defproto.UploadReturnFunction{}
++	origem, err := os.Open(C.GoString(path))
++	if err != nil {
++		return_.Error = proto.String(err.Error())
++		return ProtoReturnV3(&return_)
++	}
++	defer origem.Close()
++	info, err := origem.Stat()
++	if err != nil {
++		return_.Error = proto.String(err.Error())
++		return ProtoReturnV3(&return_)
++	}
++	temp, err := os.CreateTemp("", "winzapp-upload-*")
++	if err != nil {
++		return_.Error = proto.String(err.Error())
++		return ProtoReturnV3(&return_)
++	}
++	defer func() {
++		temp.Close()
++		os.Remove(temp.Name())
++	}()
++	chave := C.GoString(key)
++	ctx, t := novaTransferencia(chave)
++	defer func() {
++		t.cancel()
++		transferencias.Delete(chave)
++	}()
++	contador := &arquivoContador{File: temp, t: t, total: info.Size()}
++	resposta, err := clientFor(C.GoString(id)).UploadReader(ctx, origem, contador, utils.MediaType[int(mediatype)])
++	if err != nil {
++		return_.Error = proto.String(err.Error())
++	} else {
++		t.progresso.Store(100)
++	}
++	return_.UploadResponse = utils.EncodeUploadResponse(resposta)
++	return ProtoReturnV3(&return_)
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index d399259..b9944f6 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -841,6 +841,31 @@ if not os.environ.get("SPHINX"):
+         except AttributeError:
+             pass
+ 
++    # Transferencias de midia com progresso e cancelamento (WinZapp): so
++    # existem na DLL de teste; sem elas o cliente cai nas funcoes antigas.
++    if hasattr(gocode, "DownloadAnyToFile"):
++        gocode.DownloadAnyToFile.argtypes = [
++            ctypes.c_char_p,
++            ctypes.c_char_p,
++            ctypes.c_int,
++            ctypes.c_char_p,
++            ctypes.c_char_p,
++        ]
++        gocode.DownloadAnyToFile.restype = ctypes.c_void_p
++        gocode.DownloadAnyToFile.errcheck = consume_cstring
++        gocode.TransferProgress.argtypes = [ctypes.c_char_p]
++        gocode.TransferProgress.restype = ctypes.c_int
++        gocode.TransferCancel.argtypes = [ctypes.c_char_p]
++        gocode.TransferCancel.restype = None
++        gocode.UploadFile.argtypes = [
++            ctypes.c_char_p,
++            ctypes.c_char_p,
++            ctypes.c_int,
++            ctypes.c_char_p,
++        ]
++        gocode.UploadFile.restype = ctypes.POINTER(Bytes)
++        gocode.UploadFile.errcheck = consume_bytes_struct
++
+ else:
+     gocode: Any = object()
+ 
+diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
+index b315079..2ece7f2 100644
+--- a/neonize/aioze/events.py
++++ b/neonize/aioze/events.py
+@@ -22,6 +22,7 @@ from ..proto.Neonize_pb2 import CallTerminate as CallTerminateEv
+ from ..proto.Neonize_pb2 import CallTransport as CallTransportEv
+ from ..proto.Neonize_pb2 import ChatArchive as ChatArchiveEv
+ from ..proto.Neonize_pb2 import ChatDelete as ChatDeleteEv
++from ..proto.Neonize_pb2 import ChatLock as ChatLockEv
+ from ..proto.Neonize_pb2 import ChatMarkAsRead as ChatMarkAsReadEv
+ from ..proto.Neonize_pb2 import ChatMute as ChatMuteEv
+ from ..proto.Neonize_pb2 import ChatPin as ChatPinEv
+@@ -82,6 +83,7 @@ __all__ = [
+     "CallPreAcceptEv",
+     "CallRelayLatencyEv",
+     "ChatArchiveEv",
++    "ChatLockEv",
+     "ChatMarkAsReadEv",
+     "ChatMuteEv",
+     "ChatPinEv",
+diff --git a/neonize/client.py b/neonize/client.py
+index 46b85e0..9f87754 100644
+--- a/neonize/client.py
++++ b/neonize/client.py
+@@ -2204,6 +2204,45 @@ class NewClient:
+             return media.Binary
+         return None
+ 
++    def tem_transferencias(self) -> bool:
++        """True se a DLL tem download e upload por arquivo com progresso."""
++        return hasattr(self.__client, "DownloadAnyToFile")
++
++    def download_any_to_file(self, message: Message, path: str, key: str) -> None:
++        """Baixa direto para *path* (sem carregar a midia na memoria).
++        *key* identifica a transferencia em transfer_cancel.
++
++        :raises DownloadError: Se o download falhar ou for cancelado.
++        """
++        msg_protobuf = message.SerializeToString()
++        erro = self.__client.DownloadAnyToFile(
++            self.uuid, msg_protobuf, len(msg_protobuf), path.encode(), key.encode()
++        )
++        if erro:
++            raise DownloadError(erro.decode(errors="replace"))
++
++    def upload_file(self, path: str, media_type: MediaType, key: str) -> UploadResponse:
++        """Envia o arquivo de *path* lendo do disco. transfer_progress(key)
++        devolve 0..100 enquanto roda e transfer_cancel(key) interrompe.
++
++        :raises UploadError: Se o envio falhar ou for cancelado.
++        """
++        protobytes = self.__client.UploadFile(
++            self.uuid, path.encode(), media_type.value, key.encode()
++        )
++        modelo = UploadReturnFunction.FromString(protobytes)
++        if modelo.Error:
++            raise UploadError(modelo.Error)
++        return modelo.UploadResponse
++
++    def transfer_progress(self, key: str) -> int:
++        """Progresso (0..100) do upload *key*; -1 se nao ha."""
++        return self.__client.TransferProgress(key.encode())
++
++    def transfer_cancel(self, key: str) -> None:
++        """Cancela o download ou upload *key*."""
++        self.__client.TransferCancel(key.encode())
++
+     def download_media_with_path(
+         self,
+         direct_path: str,
+diff --git a/neonize/events.py b/neonize/events.py
+index 66581e5..dc1a03f 100644
+--- a/neonize/events.py
++++ b/neonize/events.py
+@@ -24,6 +24,7 @@ from .proto.Neonize_pb2 import CallTerminate as CallTerminateEv
+ from .proto.Neonize_pb2 import CallTransport as CallTransportEv
+ from .proto.Neonize_pb2 import ChatArchive as ChatArchiveEv
+ from .proto.Neonize_pb2 import ChatDelete as ChatDeleteEv
++from .proto.Neonize_pb2 import ChatLock as ChatLockEv
+ from .proto.Neonize_pb2 import ChatMarkAsRead as ChatMarkAsReadEv
+ from .proto.Neonize_pb2 import ChatMute as ChatMuteEv
+ from .proto.Neonize_pb2 import ChatPin as ChatPinEv
+@@ -113,6 +114,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
+     ChatPinEv: 47,
+     ChatMuteEv: 48,
+     ChatMarkAsReadEv: 49,
++    ChatLockEv: 50,
+     ChatDeleteEv: 51,
+     MessageDeleteForMeEv: 52,
+     MessageStarEv: 53,

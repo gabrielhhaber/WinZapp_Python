@@ -8,9 +8,7 @@ Subject: [PATCH] Preserve call PCM across bounded native reads and pace
  goneonize/calls.go          |  66 +++++-----------
  goneonize/calls_pcm.go      | 148 ++++++++++++++++++++++++++++++++++++
  goneonize/calls_pcm_test.go |  97 +++++++++++++++++++++++
- goneonize/go.mod            |   2 +-
- goneonize/go.sum            |   2 +
- 5 files changed, 267 insertions(+), 48 deletions(-)
+ 3 files changed, 264 insertions(+), 47 deletions(-)
  create mode 100644 goneonize/calls_pcm.go
  create mode 100644 goneonize/calls_pcm_test.go
 
@@ -388,29 +386,3 @@ index 0000000..7f3dd22
 +		t.Fatal("closed call consumed a stale microphone frame")
 +	}
 +}
-diff --git a/goneonize/go.mod b/goneonize/go.mod
-index b969d40..23b20f6 100644
---- a/goneonize/go.mod
-+++ b/goneonize/go.mod
-@@ -14,7 +14,7 @@ require (
- 	github.com/pion/datachannel v1.6.0 // indirect
- 	github.com/pion/dtls/v3 v3.1.2 // indirect
- 	github.com/pion/logging v0.2.4 // indirect
--	github.com/pion/opus v0.1.0 // indirect
-+	github.com/pion/opus v0.1.1-0.20261026214112-e7b8aa55508c // indirect
- 	github.com/pion/randutil v0.1.0 // indirect
- 	github.com/pion/sctp v1.9.4 // indirect
- 	github.com/pion/transport/v4 v4.0.1 // indirect
-diff --git a/goneonize/go.sum b/goneonize/go.sum
-index 2354917..b7ca8ac 100644
---- a/goneonize/go.sum
-+++ b/goneonize/go.sum
-@@ -35,6 +35,8 @@ github.com/pion/logging v0.2.4 h1:tTew+7cmQ+Mc1pTBLKH2puKsOvhm32dROumOZ655zB8=
- github.com/pion/logging v0.2.4/go.mod h1:DffhXTKYdNZU+KtJ5pyQDjvOAh/GsNSyv1lbkFbe3so=
- github.com/pion/opus v0.1.0 h1:GgK/a3DNDrffKjUFsK39rZKqfv7bQ2S2eqRKt0BnqAE=
- github.com/pion/opus v0.1.0/go.mod h1:t5Xog2n682JnawoykACE6nKVmupFvmJvkpM7x6bTv6g=
-+github.com/pion/opus v0.1.1-0.20261026214112-e7b8aa55508c h1:icxv25Ca9LiCVKigLyupvKvrZ6Vqvf3WQbXq8pcrnCI=
-+github.com/pion/opus v0.1.1-0.20261026214112-e7b8aa55508c/go.mod h1:shQv7gBOJYCF48/ElT1SH+se7rneJn88n5FVLFhPKqI=
- github.com/pion/randutil v0.1.0 h1:CFG1UdESneORglEsnimhUjf33Rwjubwj6xfiOXBa3mA=
- github.com/pion/randutil v0.1.0/go.mod h1:XcJrSMMbbMRhASFVOlj/5hQial/Y8oH/HVo7TBZq+j8=
- github.com/pion/sctp v1.9.4 h1:cMxEu0F5tbP4qH07bKf1Zjf4rUih9LIo0qQt424e258=

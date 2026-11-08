@@ -52,6 +52,8 @@ NOUTĂȚI
 
 - Apeluri: acum puteți adăuga persoane la apelul în curs, cu butonul "Adăugați participanți" din lista de participanți a apelului. Într-un apel de grup apar membrii grupului care nu sunt încă în apel; într-un apel privat, contactele dvs., iar apelul devine un apel cu mai multe persoane, ca în WhatsApp. Cine a fost deja apelat și nu a intrat este apelat din nou. Funcționează cu WPPConnect și cu Neonize.
 
+- Motorul experimental Neonize a fost actualizat de la versiunea 0.6.0 la 0.10.0. O conversație ștearsă pe telefon dispare acum și din WinZapp, iar marcarea unei conversații ca citită sau necitită pe telefon actualizează din nou contorul de necitite.
+
 - WPPConnect Server a fost actualizat la 2.10.78, care nu mai servește prin HTTP memoria cache privată a fișierelor media.
 
 - WPPConnect Server a fost actualizat la 2.10.75, care repară un webhook Chatwoot ce accepta cereri fără autentificare și remediază o vulnerabilitate din bibliotecile glob și minimatch.

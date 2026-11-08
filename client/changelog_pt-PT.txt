@@ -52,6 +52,8 @@ NOVIDADES
 
 - Chamadas: já é possível adicionar pessoas à chamada em curso, com o botão "Adicionar participantes" na lista de participantes da chamada. Numa chamada de grupo aparecem os membros do grupo que ainda não estão nela; numa chamada privada, os seus contactos, e a chamada passa a ter várias pessoas, como no WhatsApp. Quem já foi chamado e ainda não entrou é chamado outra vez. Funciona com a WPPConnect e com o Neonize.
 
+- O motor experimental Neonize foi atualizado da versão 0.6.0 para a 0.10.0. Uma conversa apagada no telemóvel passa a desaparecer também do WinZapp, e marcar uma conversa como lida ou não lida no telemóvel volta a atualizar o contador de não lidas.
+
 - O WPPConnect Server foi atualizado para a 2.10.78, que deixa de servir a cache privada de multimédia por HTTP.
 
 - O WPPConnect Server foi atualizado para a 2.10.75, que corrige um webhook do Chatwoot que aceitava pedidos sem autenticação e corrige uma vulnerabilidade nas bibliotecas glob e minimatch.

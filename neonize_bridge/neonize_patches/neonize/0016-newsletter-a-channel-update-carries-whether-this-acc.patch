@@ -14,7 +14,7 @@ updates as sent, as WhatsApp does.
  3 files changed, 4 insertions(+)
 
 diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index 63cbd7e..b7ea5ad 100644
+index f08b493..6a9832c 100644
 --- a/goneonize/Neonize.proto
 +++ b/goneonize/Neonize.proto
 @@ -407,6 +407,7 @@ message NewsletterMessage {
@@ -26,7 +26,7 @@ index 63cbd7e..b7ea5ad 100644
  
  message GetNewsletterMessageUpdateReturnFunction {
 diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index 63cbd7e..b7ea5ad 100644
+index f08b493..6a9832c 100644
 --- a/goneonize/defproto/Neonize.proto
 +++ b/goneonize/defproto/Neonize.proto
 @@ -407,6 +407,7 @@ message NewsletterMessage {
@@ -38,10 +38,10 @@ index 63cbd7e..b7ea5ad 100644
  
  message GetNewsletterMessageUpdateReturnFunction {
 diff --git a/goneonize/utils/encoder.go b/goneonize/utils/encoder.go
-index 886c734..0be7caf 100644
+index 0621d43..84dc721 100644
 --- a/goneonize/utils/encoder.go
 +++ b/goneonize/utils/encoder.go
-@@ -478,6 +478,8 @@ func EncodeNewsletterMessage(message *types.NewsletterMessage) *defproto.Newslet
+@@ -514,6 +514,8 @@ func EncodeNewsletterMessage(message *types.NewsletterMessage) *defproto.Newslet
  		MessageID: proto.String(string(message.MessageID)),
  		Timestamp: proto.Int64(message.Timestamp.Unix()),
  		Type:      proto.String(message.Type),
