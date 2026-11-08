@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 passavam a 9) até ressincronizar com F5. A contagem passa a olhar para as mensagens mais recentes da conversa, e não para as mais antigas.
+
 - Chamadas: a janela "Adicionar participantes" passa a funcionar com leitor de ecrã. As pessoas são marcadas com as mesmas teclas, som e anúncios das listas de conversas e mensagens (Ctrl+Espaço, Espaço enquanto houver algo marcado, Shift+setas, Ctrl+Shift+Espaço, Esc), e o resultado é dito em voz alta: quem foi convidado, quem não pôde ser adicionado ou porque falhou o pedido.
 
 - Chamadas: áudio, vídeo e tarefas de dispositivos ou câmara atrasados permanecem associados à chamada e ao fluxo de origem. O Neonize processa os dados em filas limitadas fora do ciclo do servidor e mantém o leitor após uma falha transitória de envio. Nomes WASAPI ambíguos deixam de selecionar o primeiro dispositivo correspondente. Os registos de chamadas do Neonize também incluem resumos do nível do sinal, sem guardar o conteúdo do áudio, para ajudar a investigar a ausência de som. Ao reabrir a saída de uma chamada, um fluxo antigo que não consegue fechar não pode consumir o áudio do novo fluxo; uma falha na referência de eco deixa de silenciar o áudio já preparado para reprodução.
