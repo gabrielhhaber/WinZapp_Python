@@ -47,6 +47,7 @@ import asyncio
 import logging
 import re
 
+import phonenumbers
 from aiohttp import web
 
 import raw_queries as rq
@@ -93,11 +94,31 @@ def channel_key(body) -> str:
     return match.group(1) if match else ""
 
 
-def directory_request(body):
+def account_country(me) -> str:
+    """The ISO region of the account's own number ("BR"), or "" unknown.
+
+    The directory list (a view or a category) is answered "Bad Request" with
+    no country at all: measured on 2026-11-08 over CDP, the same query read
+    20 channels with ["BR"] and failed with []. WhatsApp Web passes the
+    account's own country (WAWebCountryCodeUtils.getMyCountryCode).
+    """
+    digits = str(me or "").partition("@")[0].split(":")[0]
+    if not digits.isdigit():
+        return ""
+    try:
+        region = phonenumbers.region_code_for_number(phonenumbers.parse("+" + digits))
+    except phonenumbers.NumberParseException:
+        return ""
+    return region if region and region != "ZZ" else ""
+
+
+def directory_request(body, country=""):
     """(query id, variables, field) of a directory read: a search for the
     text, or the directory's list in a view (recommended, trending, popular,
     new), both narrowed to one category when one is given, as WhatsApp Web's
-    directory does. An unknown category or view is ignored, never sent."""
+    directory does. An unknown category or view is ignored, never sent.
+    *country* is account_country(): the lists are of that country, as in
+    WhatsApp Web."""
     body = body if isinstance(body, dict) else {}
     query = str(body.get("query") or "").strip()[:100]
     try:
@@ -108,15 +129,17 @@ def directory_request(body):
     categories = [category] if category in CATEGORIES else []
     view = str(body.get("view") or "").upper()
     view = view if view in VIEWS else ""
+    countries = [country] if country else []
     if query:
         return SEARCH_QUERY, {"input": {"search_text": query, "categories": categories,
                                         "limit": limit, "start_cursor": None},
                               "fetch_status_metadata": False}, SEARCH_FIELD
     if not categories and view in ("", "RECOMMENDED"):
-        return RECOMMENDED_QUERY, {"input": {"limit": limit, "country_codes": []},
+        return RECOMMENDED_QUERY, {"input": {"limit": limit, "country_codes": countries},
                                    "fetch_status_metadata": False}, RECOMMENDED_FIELD
     return LIST_QUERY, {"input": {"view": view or "RECOMMENDED",
-                                  "filters": {"country_codes": [], "categories": categories},
+                                  "filters": {"country_codes": countries,
+                                              "categories": categories},
                                   "limit": limit, "start_cursor": None},
                         "fetch_status_metadata": False}, LIST_FIELD
 
@@ -274,7 +297,8 @@ def register_routes(r, *, session, ok, jid_from_text):
         s = session(req)
         if not ready(s):
             return error("channels_unavailable")
-        query_id, variables, field = directory_request(await body_of(req))
+        query_id, variables, field = directory_request(
+            await body_of(req), account_country(getattr(s, "me", "")))
         answer = await mex(s, query_id, variables, field, "channels_unavailable")
         if isinstance(answer, web.Response):
             return answer

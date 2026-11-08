@@ -32,6 +32,45 @@ import type { Request, Response } from 'express';
 // the Neonize bridge sends the same queries and answers the same nodes, and the
 // client reads them once (client/core/channels.py).
 //
+// A channel's older updates, pulled into WhatsApp Web before a `before` page
+// of get-messages is read. They are on WhatsApp's server, not on the phone,
+// and the page holds only the newest few: measured on 2026-11-08, 16 of a
+// channel's 120, with noEarlierMsgs false, and every `before` page answered
+// empty, so scrolling up in a channel stopped at those 16. WhatsApp Web's own
+// scroll-up pulls them with WAWebChatLoadMessages.loadEarlierMsgs({ chat }),
+// 50 at a time from the server; the same here, until the anchor has
+// `targetCount` updates before it or the channel's start is reached. Bounded,
+// since the page also serves live traffic. Answers how many were loaded.
+//
+// Runs inside the page: self-contained, no closure over anything here.
+export async function pullChannelHistory(request: any): Promise<number> {
+  const root = globalThis as any;
+  const chatId = String(request?.chatId || '');
+  const anchorId = String(request?.anchorId || '');
+  const wanted = Math.max(1, Number(request?.targetCount) || 50);
+  if (!/^\d+@newsletter$/.test(chatId) || !anchorId || typeof root.require !== 'function') return 0;
+  let loader: any = null;
+  let channel: any = null;
+  try {
+    loader = root.require('WAWebChatLoadMessages');
+    channel = root.require('WAWebCollections')?.WAWebNewsletterCollection?.get?.(chatId);
+  } catch (_) {
+    return 0;
+  }
+  const msgs = channel?.msgs;
+  if (!msgs || typeof loader?.loadEarlierMsgs !== 'function') return 0;
+  const start = msgs.length;
+  for (let round = 0; round < 20; round++) {
+    if (msgs.msgLoadState?.noEarlierMsgs) break;
+    const before = msgs.getModelsArray().findIndex((m: any) => m?.id?._serialized === anchorId);
+    if (before >= wanted) break;
+    const held = msgs.length;
+    await loader.loadEarlierMsgs({ chat: channel });
+    if (msgs.length === held) break;
+  }
+  return msgs.length - start;
+}
+
 // Runs inside the page: self-contained, no closure over anything here.
 export async function readChannels(request: any): Promise<unknown> {
   const root = globalThis as any;
@@ -61,6 +100,15 @@ export async function readChannels(request: any): Promise<unknown> {
     const categoryName = categoryNames[String(request.category || '').toUpperCase()];
     const categories = categoryName && categoryEnum?.[categoryName] != null ? [categoryEnum[categoryName]] : [];
     const view = viewNames[String(request.view || '').toUpperCase()] ? String(request.view).toUpperCase() : '';
+    // The lists are per country, as in WhatsApp Web: a view or a category
+    // with no country is answered "Bad Request" (measured 2026-11-08: the
+    // same list read 20 channels with ['BR'] and failed with []).
+    let country = '';
+    try {
+      const own = await load('WAWebCountryCodeUtils')?.getMyCountryCode?.();
+      if (typeof own === 'string' && /^[A-Z]{2}$/.test(own)) country = own;
+    } catch (_) { country = ''; }
+    const countryCodes = country ? [country] : [];
     if (query) {
       const job = load('WAWebMexFetchNewsletterDirectorySearchResultsJob');
       if (typeof job?.mexFetchNewsletterDirectorySearchResults !== 'function') return null;
@@ -74,13 +122,13 @@ export async function readChannels(request: any): Promise<unknown> {
       const listView = viewEnum?.[viewNames[view] || 'Recommended'];
       if (typeof job?.mexFetchNewsletterDirectoryList !== 'function' || listView == null) return null;
       const data = await job.mexFetchNewsletterDirectoryList({
-        view: listView, categories, countryCodes: [], limit, cursorToken: null });
+        view: listView, categories, countryCodes, limit, cursorToken: null });
       const result = data?.xwa2_newsletters_directory_list?.result;
       return Array.isArray(result) ? result : null;
     }
     const job = load('WAWebMexFetchRecommendedNewslettersJob');
     if (typeof job?.mexFetchRecommendedNewsletters !== 'function') return null;
-    const data = await job.mexFetchRecommendedNewsletters(limit, []);
+    const data = await job.mexFetchRecommendedNewsletters(limit, countryCodes);
     const result = data?.xwa2_newsletters_recommended?.result;
     return Array.isArray(result) ? result : null;
   }

@@ -17,6 +17,7 @@ import { Chat } from '@wppconnect-team/wppconnect';
 import { Request, Response } from 'express';
 
 import { CONTACT_PRESENCE_SOURCE } from '../util/contactPresenceRuntime';
+import { pullChannelHistory } from './channelsPanelController';
 import {
   countJidFallback,
   countStoreRecovery,
@@ -2664,6 +2665,18 @@ export async function getMessages(req: Request, res: Response) {
       req.logger.info(
         `Fetching older messages before ${id} for ${phone} using browser-side sync...`
       );
+      if (/@newsletter$/.test(String(phone))) {
+        // A channel's older updates come from WhatsApp's server first: see
+        // pullChannelHistory().
+        try {
+          const pulled = await req.client.page.evaluate(pullChannelHistory, {
+            chatId: phone, anchorId: String(id), targetCount,
+          });
+          req.logger.info(`[channel-history] ${pulled} update(s) loaded before the page`);
+        } catch (e: any) {
+          req.logger.warn(`[channel-history] could not load older updates: ${e?.message || e}`);
+        }
+      }
       response = await req.client.page.evaluate(
         async ({ chatId, targetCount, id }) => {
           console.log(

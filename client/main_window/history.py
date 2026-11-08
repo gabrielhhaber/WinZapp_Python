@@ -12,6 +12,7 @@ from core.sync_lifecycle import capture_sync_context, sync_context_is_current, m
 from core.api_client import api_get
 from core.message_edit import is_edit_event
 from core.message_stars import stamp_star_snapshot
+from core import channels as channel_history
 from main_window import history_boundary
 
 
@@ -399,7 +400,8 @@ class HistoryMixin:
                 phone = anchor_jid
 
         limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}"
+        extra = channel_history.older_page_query(remote_jid, oldest_msg)
+        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}{extra}"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
@@ -462,7 +464,10 @@ class HistoryMixin:
                 # early-return at the top of this method would refuse to look
                 # again even after the messages have landed.
                 history_pending = False
-                if not wpp_messages:
+                if not wpp_messages and channel_history.history_ends_on_server(remote_jid):
+                    # Session only: scrolling up asks the server again.
+                    self.__dict__.setdefault("_exhausted_chats", set()).add(remote_jid)
+                elif not wpp_messages:
                     if not hasattr(self, "_exhausted_chats"):
                         self._exhausted_chats = set()
                     if not hasattr(self, "_older_requested_chats"):

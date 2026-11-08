@@ -183,6 +183,26 @@ def server_id_of(message) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
 
 
+def older_page_query(jid, oldest_msg) -> str:
+    """What a channel's `before` page of get-messages adds to its query: the
+    anchor's server id, so the Neonize bridge finds it even when it no longer
+    remembers the id (it remembers ids only while it runs). WPPConnect ignores
+    it. Empty for any other chat or an update with no server id."""
+    if not str(jid or "").endswith("@newsletter"):
+        return ""
+    server_id = server_id_of(oldest_msg)
+    return f"&serverId={server_id}" if server_id else ""
+
+
+def history_ends_on_server(jid) -> bool:
+    """True for a channel: its updates are on WhatsApp's server, which the
+    page (WPPConnect) or the bridge (Neonize) has just read back to the
+    channel's start, so an empty older page is the end. The phone has no
+    channel history to send, and asking it (a peer-data request) only shows
+    up on the phone."""
+    return str(jid or "").endswith("@newsletter")
+
+
 def pinned_ids(thread, now=None):
     """The server ids of a channel's pinned updates (thread_metadata's
     pinned_messages), leaving out a pin whose time has run out."""

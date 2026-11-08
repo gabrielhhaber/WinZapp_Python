@@ -24,6 +24,13 @@ log = logging.getLogger("bridge")
 
 #: how many update ids each session remembers for paging
 REMEMBERED = 2000
+#: the most updates one request asks for: WhatsApp Web's own ceiling
+#: (WAWebNewsletterGatingUtils.getMaxMsgCountFromServer(), 100 on 2026-11-08,
+#: which logs "newsletter-server-msg-count-exceeded" above it)
+PER_REQUEST = 100
+#: requests per get-messages call, so a sync's "everything" (count=100000)
+#: stays a few hundred updates
+MAX_REQUESTS = 5
 
 
 def kept_in_store(chat) -> bool:
@@ -89,20 +96,50 @@ def server_ids_of(s) -> ServerIds:
     return s._channel_server_ids
 
 
-def read(s, channel, count, before, jid_from_text):
+def anchor_server_id(value) -> int:
+    """The `serverId` the client sends beside a channel anchor, or 0."""
+    try:
+        number = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    return number if number > 0 else 0
+
+
+def read(s, channel, count, before, jid_from_text, before_server_id=0):
     """The page get-messages answers for `channel`. Runs on a thread. An
-    unknown anchor answers [] (never the newest), as for any other chat."""
+    unknown anchor answers [] (never the newest), as for any other chat.
+
+    The anchor's server id is the one remembered from the page that brought
+    it, or else *before_server_id*, the one the client stored with the update:
+    the remembered ids live only as long as the bridge, so after a restart
+    every scroll up in a channel used to answer [] and the client took the
+    channel's history for finished. A count above PER_REQUEST is asked in
+    pages of it, newest first, at most MAX_REQUESTS of them."""
     ids = server_ids_of(s)
     start = 0
     if before:
-        start = ids.of(before)
+        start = ids.of(before) or anchor_server_id(before_server_id)
         if not start:
             return []
-    try:
-        updates = s.client.get_newsletter_messages(jid_from_text(channel), int(count), int(start))
-    except Exception as error:
-        log.info("channel updates refused (%s)", type(error).__name__)
-        return []
-    pairs = updates_to_wpp(channel, updates)
-    ids.remember(pairs)
+    wanted = max(1, int(count))
+    jid = jid_from_text(channel)
+    pairs, seen = [], set()
+    for _request in range(MAX_REQUESTS):
+        asked = min(PER_REQUEST, wanted - len(pairs))
+        try:
+            updates = list(s.client.get_newsletter_messages(jid, asked, int(start)))
+        except Exception as error:
+            log.info("channel updates refused (%s)", type(error).__name__)
+            break
+        page = [p for p in updates_to_wpp(channel, updates) if p[0]["id"]["id"] not in seen]
+        seen.update(w["id"]["id"] for w, _server_id in page)
+        ids.remember(page)
+        pairs = page + pairs
+        oldest = min((int(u.MessageServerID or 0) for u in updates), default=0)
+        if len(updates) < asked or len(pairs) >= wanted or not oldest:
+            break
+        if start and oldest >= start:
+            break       # no progress: the server answered the same window
+        start = oldest
+    pairs.sort(key=lambda pair: (pair[0]["t"], pair[1]))
     return [w for w, _server_id in pairs]

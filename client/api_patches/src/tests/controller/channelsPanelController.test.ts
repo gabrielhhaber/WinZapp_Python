@@ -1,5 +1,6 @@
 import {
-  channelDirectory, channelInfo, channelKey, followChannel, listChannels, readChannels,
+  channelDirectory, channelInfo, channelKey, followChannel, listChannels, pullChannelHistory,
+  readChannels,
 } from '../../controller/channelsPanelController';
 
 function response() {
@@ -109,6 +110,24 @@ test('a category and a view use the directory list, with the page\'s own enums',
   ]);
 }));
 
+test('the directory lists are of the account\'s own country', () => withPage(async () => {
+  // A view or a category with no country is refused "Bad Request" by WhatsApp.
+  modules.WAWebCountryCodeUtils = { getMyCountryCode: async () => 'BR' };
+  try {
+    expect(await readChannels({ kind: 'directory', view: 'trending' })).toEqual([node]);
+    expect(await readChannels({ kind: 'directory' })).toEqual([node]);
+    modules.WAWebCountryCodeUtils = { getMyCountryCode: async () => { throw new Error('offline'); } };
+    expect(await readChannels({ kind: 'directory', category: 'NEWS' })).toEqual([node]);
+  } finally {
+    delete modules.WAWebCountryCodeUtils;
+  }
+  expect(calls).toEqual([
+    ['list', { view: 4, categories: [], countryCodes: ['BR'], limit: 20, cursorToken: null }],
+    ['recommended', 20, ['BR']],
+    ['list', { view: 0, categories: [4], countryCodes: [], limit: 20, cursorToken: null }],
+  ]);
+}));
+
 test('an update is pinned by its server id, through the page\'s action', () => withPage(async () => {
   const done = { id: '1@newsletter', serverId: 4977, pinned: true };
   expect(await readChannels({ kind: 'pin', id: '1@newsletter', serverId: 4977, pin: true })).toEqual(done);
@@ -189,4 +208,67 @@ test('a route never answers the native error, and refuses a bad key', async () =
   const notChannel = response();
   await followChannel({ body: { id: '1@g.us' } } as any, notChannel);
   expect(notChannel.statusCode).toBe(400);
+});
+
+function channelPage(total: number, held: number, perRound = 50) {
+  // The server holds updates 1..total; the page starts with the newest `held`.
+  const ids = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const state = { rounds: 0, list: ids(total - held + 1, total) };
+  const msgs: any = {
+    msgLoadState: { noEarlierMsgs: false },
+    get length() { return state.list.length; },
+    getModelsArray: () => state.list.map((n) => ({ id: { _serialized: `false_1@newsletter_${n}` } })),
+  };
+  const channel = { msgs };
+  const root = globalThis as any;
+  const previous = root.require;
+  root.require = (name: string) => ({
+    WAWebCollections: { WAWebNewsletterCollection: { get: (id: string) => (id === '1@newsletter' ? channel : undefined) } },
+    WAWebChatLoadMessages: { loadEarlierMsgs: async (o: any) => {
+      expect(o.chat).toBe(channel);
+      state.rounds++;
+      const first = state.list[0];
+      const from = Math.max(1, first - perRound);
+      state.list = ids(from, first - 1).concat(state.list);
+      if (from === 1) msgs.msgLoadState.noEarlierMsgs = true;
+    } },
+  } as any)[name];
+  return { state, restore: () => { root.require = previous; } };
+}
+
+test('a channel\'s older updates are pulled from the server before a page', async () => {
+  const page = channelPage(120, 16);
+  try {
+    // The anchor is the oldest held update (105): 30 before it take one round.
+    expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_105', targetCount: 30 })).toBe(50);
+    expect(page.state.rounds).toBe(1);
+    // Asking for more than the channel has stops at its start.
+    expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_105', targetCount: 500 })).toBe(54);
+    expect(page.state.list[0]).toBe(1);
+    expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_105', targetCount: 500 })).toBe(0);
+  } finally {
+    page.restore();
+  }
+});
+
+test('an anchor the page does not hold yet keeps loading until it appears', async () => {
+  const page = channelPage(400, 10);
+  try {
+    expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_300', targetCount: 20 })).toBe(150);
+    expect(page.state.list.indexOf(300)).toBeGreaterThanOrEqual(20);
+  } finally {
+    page.restore();
+  }
+});
+
+test('anything but a channel, or a page without the loader, loads nothing', async () => {
+  const page = channelPage(50, 5);
+  try {
+    expect(await pullChannelHistory({ chatId: '5511@c.us', anchorId: 'x', targetCount: 10 })).toBe(0);
+    expect(await pullChannelHistory({ chatId: '2@newsletter', anchorId: 'x', targetCount: 10 })).toBe(0);
+    expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: '', targetCount: 10 })).toBe(0);
+    expect(page.state.rounds).toBe(0);
+  } finally {
+    page.restore();
+  }
 });

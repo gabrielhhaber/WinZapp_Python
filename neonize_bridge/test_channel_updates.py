@@ -72,3 +72,52 @@ def test_the_remembered_ids_are_bounded():
 def test_an_update_an_admin_posts_is_never_stored():
     assert not cu.kept_in_store("120363000000000001@newsletter")
     assert cu.kept_in_store("5511999998888@s.whatsapp.net") and cu.kept_in_store("1203@g.us")
+
+
+class Server:
+    """A channel whose updates are server ids 1..total, newest first."""
+
+    def __init__(self, total):
+        self.total, self.asked = total, []
+
+    def get_newsletter_messages(self, jid, count, before):
+        self.asked.append((count, before))
+        top = (before - 1) if before else self.total
+        return [update(n, f"M{n}", n * 10, f"t{n}") for n in range(top, max(0, top - count), -1)]
+
+
+def test_a_large_count_is_asked_in_pages_of_whatsapps_ceiling():
+    s = N(client=Server(1000))
+    got = cu.read(s, CHANNEL, 250, None, lambda t: t)
+    assert len(got) == 250 and got[0]["id"]["id"] == "M751" and got[-1]["id"]["id"] == "M1000"
+    assert s.client.asked == [(100, 0), (100, 901), (50, 801)]
+
+
+def test_a_sync_asking_for_everything_stays_bounded():
+    s = N(client=Server(100000))
+    assert len(cu.read(s, CHANNEL, 100000, None, lambda t: t)) == cu.PER_REQUEST * cu.MAX_REQUESTS
+
+
+def test_the_channels_start_ends_the_pages():
+    s = N(client=Server(130))
+    assert len(cu.read(s, CHANNEL, 500, None, lambda t: t)) == 130
+    assert s.client.asked == [(100, 0), (100, 31)]
+
+
+def test_after_a_restart_the_anchor_is_found_by_the_server_id_the_client_sent():
+    s = N(client=Server(300))      # a fresh bridge: nothing remembered
+    assert cu.read(s, CHANNEL, 20, "M120", lambda t: t) == []
+    older = cu.read(s, CHANNEL, 20, "M120", lambda t: t, "120")
+    assert [w["id"]["id"] for w in older][:1] == ["M100"] and len(older) == 20
+    assert s.client.asked == [(20, 120)]
+    assert cu.read(s, CHANNEL, 20, "M120", lambda t: t, "junk") == []
+
+
+def test_a_refused_later_page_keeps_what_came_before():
+    class Flaky(Server):
+        def get_newsletter_messages(self, jid, count, before):
+            if before:
+                raise RuntimeError("rate limited")
+            return super().get_newsletter_messages(jid, count, before)
+    s = N(client=Flaky(500))
+    assert len(cu.read(s, CHANNEL, 300, None, lambda t: t)) == 100

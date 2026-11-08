@@ -2032,7 +2032,8 @@ def create_app(folder, fixed=""):
             if s.status != "CONNECTED" or s.client is None:
                 return ok(status="success", response=[])
             return ok(status="success", response=await in_thread(
-                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text))
+                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text,
+                q.get("serverId")))
         # the chat may be stored by the number or by the LID (or both)
         keys = await in_thread(s.chat_keys, jid) or [msgmap.jid_whatsmeow(jid)]
         count = int(q.get("count", 20))
