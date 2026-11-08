@@ -136,6 +136,7 @@ class _StubMainWindow:
         self.db = MagicMock()
         self._lid_to_phone = {}
         self._phone_to_lid = {}
+        self._lid_mapping_lock = threading.RLock()
         self._pending_lid_inserts = {}
         self._own_sent_ids = set()
         self._own_sent_ids_lock = threading.Lock()
