@@ -43,10 +43,10 @@ index 282275a..a76896a 100644
 +	return rawAnswer(map[string]any{"auth": conn.Auth, "ttl": conn.TTL, "hosts": hosts})
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 4075331..7b277ff 100644
+index aae2f15..ab6639a 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -846,6 +846,9 @@ if not os.environ.get("SPHINX"):
+@@ -873,6 +873,9 @@ if not os.environ.get("SPHINX"):
          gocode.SendMexIQ.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
          gocode.SendMexIQ.restype = ctypes.c_void_p
          gocode.SendMexIQ.errcheck = consume_cstring
@@ -57,10 +57,10 @@ index 4075331..7b277ff 100644
          # The call layer (goneonize/calls.go): plain C types, no protobuf; the
          # wrapper is neonize/calls.py.
 diff --git a/neonize/client.py b/neonize/client.py
-index a5a4b00..fd93d10 100644
+index 52958bb..a35a722 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
-@@ -2757,6 +2757,15 @@ class NewClient:
+@@ -2879,6 +2879,15 @@ class NewClient:
                                        json.dumps(variables).encode(), int(timeout_ms))
          return json.loads(raw.decode() or "{}")
  
@@ -74,5 +74,5 @@ index a5a4b00..fd93d10 100644
 +        return json.loads(raw.decode() or "{}")
 +
      def request_app_state_recovery(self, name: str):
-         """Asks the primary device to send a recovery snapshot of an app state
+         """Asks the primary device for a recovery snapshot of an app state
          collection that keeps failing with ``mismatching LTHash`` even after a

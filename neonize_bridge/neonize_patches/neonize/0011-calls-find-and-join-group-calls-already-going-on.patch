@@ -171,10 +171,10 @@ index 0000000..dfb3ecf
 +	}
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index dfdee61..295a08e 100644
+index 3b91fcd..958e9aa 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -888,6 +888,17 @@ if not os.environ.get("SPHINX"):
+@@ -915,6 +915,17 @@ if not os.environ.get("SPHINX"):
          gocode.CallReadVideo.restype = ctypes.c_int
          gocode.CallInfo.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
          gocode.CallInfo.restype = ctypes.c_int

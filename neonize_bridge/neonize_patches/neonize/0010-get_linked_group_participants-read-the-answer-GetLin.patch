@@ -10,10 +10,10 @@ The Go side answers a ReturnFunctionWithError with a JIDArray; the sync client p
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/neonize/client.py b/neonize/client.py
-index fd93d10..4af14f2 100644
+index a35a722..950360e 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
-@@ -3400,7 +3400,7 @@ class NewClient:
+@@ -3589,7 +3589,7 @@ class NewClient:
  
      def get_linked_group_participants(
          self, community: JID
@@ -22,7 +22,7 @@ index fd93d10..4af14f2 100644
          """Fetches the participants of a linked group in a community.
  
          :param community: The community in which the linked group belongs.
-@@ -3411,10 +3411,10 @@ class NewClient:
+@@ -3600,10 +3600,10 @@ class NewClient:
          """
          jidbyte = community.SerializeToString()
          protobytes = self.__client.GetLinkedGroupsParticipants(self.uuid, jidbyte, len(jidbyte))

@@ -21,8 +21,8 @@ build_neonize.py prepares next to this checkout.
  goneonize/calls.go | 527 +++++++++++++++++++++++++++++++++++++++++++++
  goneonize/go.mod   |  18 +-
  goneonize/go.sum   |  22 +-
- goneonize/main.go  |   4 +-
- 4 files changed, 567 insertions(+), 4 deletions(-)
+ goneonize/main.go  |   3 +-
+ 4 files changed, 566 insertions(+), 4 deletions(-)
  create mode 100644 goneonize/calls.go
 
 diff --git a/goneonize/calls.go b/goneonize/calls.go
@@ -559,10 +559,10 @@ index 0000000..3c6309e
 +	return 0
 +}
 diff --git a/goneonize/go.mod b/goneonize/go.mod
-index 0fe4470..b969d40 100644
+index 2e51b32..aa814ca 100644
 --- a/goneonize/go.mod
 +++ b/goneonize/go.mod
-@@ -9,6 +9,17 @@ require (
+@@ -10,6 +10,17 @@ require (
  	google.golang.org/protobuf v1.36.12
  )
  
@@ -571,7 +571,7 @@ index 0fe4470..b969d40 100644
 +	github.com/pion/datachannel v1.6.0 // indirect
 +	github.com/pion/dtls/v3 v3.1.2 // indirect
 +	github.com/pion/logging v0.2.4 // indirect
-+	github.com/pion/opus v0.1.0 // indirect
++	github.com/pion/opus v0.1.1-0.20261026214112-e7b8aa55508c // indirect
 +	github.com/pion/randutil v0.1.0 // indirect
 +	github.com/pion/sctp v1.9.4 // indirect
 +	github.com/pion/transport/v4 v4.0.1 // indirect
@@ -580,7 +580,7 @@ index 0fe4470..b969d40 100644
  require (
  	filippo.io/edwards25519 v1.2.0 // indirect
  	github.com/beeper/argo-go v1.1.2 // indirect
-@@ -18,7 +29,8 @@ require (
+@@ -19,7 +30,8 @@ require (
  	github.com/mattn/go-colorable v0.1.15 // indirect
  	github.com/mattn/go-isatty v0.0.24 // indirect
  	github.com/petermattis/goid v0.0.0-20260820044319-269ab09b5261 // indirect
@@ -589,7 +589,7 @@ index 0fe4470..b969d40 100644
 +	github.com/rs/zerolog v1.35.1
  	github.com/vektah/gqlparser/v2 v2.5.37 // indirect
  	go.mau.fi/libsignal v0.2.2 // indirect
- 	go.mau.fi/util v0.10.1 // indirect
+ 	golang.org/x/crypto v0.57.0 // indirect
 @@ -29,3 +41,7 @@ require (
  	golang.org/x/sys v0.48.0 // indirect
  	golang.org/x/text v0.42.0 // indirect
@@ -599,7 +599,7 @@ index 0fe4470..b969d40 100644
 +
 +replace github.com/purpshell/meowcaller => ../../meowcaller
 diff --git a/goneonize/go.sum b/goneonize/go.sum
-index 99e87e9..2354917 100644
+index 99e87e9..4b24028 100644
 --- a/goneonize/go.sum
 +++ b/goneonize/go.sum
 @@ -14,6 +14,9 @@ github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -622,8 +622,8 @@ index 99e87e9..2354917 100644
 +github.com/pion/dtls/v3 v3.1.2/go.mod h1:Hw/igcX4pdY69z1Hgv5x7wJFrUkdgHwAn/Q/uo7YHRo=
 +github.com/pion/logging v0.2.4 h1:tTew+7cmQ+Mc1pTBLKH2puKsOvhm32dROumOZ655zB8=
 +github.com/pion/logging v0.2.4/go.mod h1:DffhXTKYdNZU+KtJ5pyQDjvOAh/GsNSyv1lbkFbe3so=
-+github.com/pion/opus v0.1.0 h1:GgK/a3DNDrffKjUFsK39rZKqfv7bQ2S2eqRKt0BnqAE=
-+github.com/pion/opus v0.1.0/go.mod h1:t5Xog2n682JnawoykACE6nKVmupFvmJvkpM7x6bTv6g=
++github.com/pion/opus v0.1.1-0.20261026214112-e7b8aa55508c h1:icxv25Ca9LiCVKigLyupvKvrZ6Vqvf3WQbXq8pcrnCI=
++github.com/pion/opus v0.1.1-0.20261026214112-e7b8aa55508c/go.mod h1:shQv7gBOJYCF48/ElT1SH+se7rneJn88n5FVLFhPKqI=
 +github.com/pion/randutil v0.1.0 h1:CFG1UdESneORglEsnimhUjf33Rwjubwj6xfiOXBa3mA=
 +github.com/pion/randutil v0.1.0/go.mod h1:XcJrSMMbbMRhASFVOlj/5hQial/Y8oH/HVo7TBZq+j8=
 +github.com/pion/sctp v1.9.4 h1:cMxEu0F5tbP4qH07bKf1Zjf4rUih9LIo0qQt424e258=
@@ -656,10 +656,10 @@ index 99e87e9..2354917 100644
  google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
  google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 diff --git a/goneonize/main.go b/goneonize/main.go
-index fc83832..a48b164 100644
+index d2759e9..2cefeb4 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -60,7 +60,7 @@ var (
+@@ -61,7 +61,7 @@ var (
  
  // Defaults to sqlite otherwise use postgres database url
  func getDB(db *C.char, dbLog utils.Logger) (*sqlstore.Container, error) {
@@ -668,19 +668,11 @@ index fc83832..a48b164 100644
  	if strings.HasPrefix(C.GoString(db), "postgres") {
  		container, err = sqlstore.New(context.TODO(), "postgres", C.GoString(db), dbLog)
  	}
-@@ -749,6 +749,7 @@ func Stop(id *C.char) {
- 	if client, exists := clients[C.GoString(id)]; exists {
+@@ -746,6 +746,7 @@ func Stop(id *C.char) {
+ 	if client, exists := lookupClient(C.GoString(id)); exists {
  		client.Disconnect()
- 		delete(clients, C.GoString(id))
+ 		deleteClient(C.GoString(id))
 +		removerChamadas(C.GoString(id))
  	}
- 	if cancelFunc, exists := StopSignal[C.GoString(id)]; exists {
+ 	if cancelFunc, exists := lookupStopSignal(C.GoString(id)); exists {
  		cancelFunc()
-@@ -812,6 +813,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
- 	clientLog := utils.NewLogger("Client", C.GoString(logLevel), utils.Callback(logCb))
- 	client := whatsmeow.NewClient(deviceStore, clientLog)
- 	clients[uuid] = client
-+	instalarChamadas(uuid)
- 	sprStore := newSPRRetryStore(C.GoString(db))
- 	sprRetryStores.Store(uuid, sprStore)
- 	installSPRRetryHooks(client, sprStore)

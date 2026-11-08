@@ -18,10 +18,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
  create mode 100644 neonize/calls.py
 
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index d2339a0..9b804c0 100644
+index b9944f6..b8e0756 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -838,6 +838,27 @@ if not os.environ.get("SPHINX"):
+@@ -865,6 +865,27 @@ if not os.environ.get("SPHINX"):
          ]
          gocode.UploadFile.restype = ctypes.POINTER(Bytes)
          gocode.UploadFile.errcheck = consume_bytes_struct

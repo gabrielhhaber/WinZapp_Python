@@ -14,10 +14,10 @@ messages, and WinZapp's whatsmeow adds the one WhatsApp Web sends: two
  create mode 100644 goneonize/wabinary_test.go
 
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 8eb19a8..fa383e9 100644
+index ffaa9ec..acdd677 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -169,148 +169,16 @@ func shouldAddBotNode(isPrivate bool) bool {
+@@ -170,148 +170,16 @@ func shouldAddBotNode(isPrivate bool) bool {
  	}
  }
  

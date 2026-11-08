@@ -25,7 +25,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
  5 files changed, 101 insertions(+)
 
 diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index 8cf0cb3..a2b1aaf 100644
+index d10d2fb..cbdc7df 100644
 --- a/goneonize/Neonize.proto
 +++ b/goneonize/Neonize.proto
 @@ -956,6 +956,29 @@ message MessageStar { //53
@@ -59,7 +59,7 @@ index 8cf0cb3..a2b1aaf 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index 8cf0cb3..a2b1aaf 100644
+index d10d2fb..cbdc7df 100644
 --- a/goneonize/defproto/Neonize.proto
 +++ b/goneonize/defproto/Neonize.proto
 @@ -956,6 +956,29 @@ message MessageStar { //53
@@ -93,10 +93,10 @@ index 8cf0cb3..a2b1aaf 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/main.go b/goneonize/main.go
-index a48b164..8a4dbca 100644
+index 2cefeb4..5be445e 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -1374,6 +1374,49 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -1389,6 +1389,49 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  				}
  				eventChan <- &messageEvent
  			}
@@ -147,43 +147,43 @@ index a48b164..8a4dbca 100644
  			if _, ok := subscribers[45]; ok {
  				rot := defproto.RotateADVSecret{
 diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
-index 7331fd2..f26fcdf 100644
+index 2ece7f2..6fffb2a 100644
 --- a/neonize/aioze/events.py
 +++ b/neonize/aioze/events.py
-@@ -40,6 +40,9 @@ from ..proto.Neonize_pb2 import KeepAliveTimeout as KeepAliveTimeoutEv
- from ..proto.Neonize_pb2 import LoggedOut as LoggedOutEv
+@@ -41,6 +41,9 @@ from ..proto.Neonize_pb2 import LoggedOut as LoggedOutEv
  from ..proto.Neonize_pb2 import Message as MessageEv
+ from ..proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
  from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
 +from ..proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
 +from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
 +from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
- from ..proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
  from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
  from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
-@@ -86,6 +89,9 @@ __all__ = [
-     "ChatDeleteEv",
+ from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
+@@ -105,6 +108,9 @@ __all__ = [
      "MessageDeleteForMeEv",
+     "MessageEv",
      "MessageStarEv",
 +    "ContactUpdateEv",
 +    "PushNameUpdateEv",
 +    "AppStateSyncCompleteEv",
-     "ChatLockEv",
-     "ChatMarkAsReadEv",
-     "ChatMuteEv",
+     "NewsLetterMessageMetaEv",
+     "NewsletterJoinEv",
+     "NewsletterLeaveEv",
 diff --git a/neonize/events.py b/neonize/events.py
-index 5f3ac49..1b5b1da 100644
+index dc1a03f..1083346 100644
 --- a/neonize/events.py
 +++ b/neonize/events.py
-@@ -43,6 +43,9 @@ from .proto.Neonize_pb2 import KeepAliveTimeout as KeepAliveTimeoutEv
- from .proto.Neonize_pb2 import LoggedOut as LoggedOutEv
+@@ -44,6 +44,9 @@ from .proto.Neonize_pb2 import LoggedOut as LoggedOutEv
  from .proto.Neonize_pb2 import Message as MessageEv
+ from .proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
  from .proto.Neonize_pb2 import MessageStar as MessageStarEv
 +from .proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
 +from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
 +from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
- from .proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
  from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
  from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
 @@ -118,6 +121,9 @@ EVENT_TO_INT: dict[type[Message], int] = {
      ChatDeleteEv: 51,
      MessageDeleteForMeEv: 52,

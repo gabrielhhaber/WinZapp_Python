@@ -63,10 +63,10 @@ index ae422ce..e538a42 100644
 +	return escreverTexto(`{"ok":true}`, buf, cap)
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 0eddb0a..484c202 100644
+index fbb4a75..5a19e8c 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -908,6 +908,11 @@ if not os.environ.get("SPHINX"):
+@@ -935,6 +935,11 @@ if not os.environ.get("SPHINX"):
          gocode.CallJoinOngoing.restype = ctypes.c_int
          gocode.CallRoster.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
          gocode.CallRoster.restype = ctypes.c_int

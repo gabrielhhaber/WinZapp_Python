@@ -22,7 +22,7 @@ Subject: [PATCH] Raw info queries, MEX queries and every app state mutation
  create mode 100644 goneonize/rawiq.go
 
 diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index a2b1aaf..bb2706e 100644
+index cbdc7df..c79a8f8 100644
 --- a/goneonize/Neonize.proto
 +++ b/goneonize/Neonize.proto
 @@ -549,6 +549,8 @@ message MutationInfo {
@@ -54,7 +54,7 @@ index a2b1aaf..bb2706e 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index a2b1aaf..bb2706e 100644
+index cbdc7df..c79a8f8 100644
 --- a/goneonize/defproto/Neonize.proto
 +++ b/goneonize/defproto/Neonize.proto
 @@ -549,6 +549,8 @@ message MutationInfo {
@@ -86,10 +86,10 @@ index a2b1aaf..bb2706e 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 8a4dbca..8eb19a8 100644
+index 5be445e..ffaa9ec 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -1417,6 +1417,22 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -1432,6 +1432,22 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  				}
  				eventChan <- &messageEvent
  			}
@@ -396,10 +396,10 @@ index a758473..20e185b 100644
  
  func DecodePatchInfo(patchInfo *defproto.PatchInfo) *appstate.PatchInfo {
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 9b804c0..4075331 100644
+index b8e0756..aae2f15 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -838,6 +838,14 @@ if not os.environ.get("SPHINX"):
+@@ -865,6 +865,14 @@ if not os.environ.get("SPHINX"):
          ]
          gocode.UploadFile.restype = ctypes.POINTER(Bytes)
          gocode.UploadFile.errcheck = consume_bytes_struct
@@ -415,27 +415,27 @@ index 9b804c0..4075331 100644
          # The call layer (goneonize/calls.go): plain C types, no protobuf; the
          # wrapper is neonize/calls.py.
 diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
-index f26fcdf..13410ba 100644
+index 6fffb2a..f4150d4 100644
 --- a/neonize/aioze/events.py
 +++ b/neonize/aioze/events.py
-@@ -43,6 +43,7 @@ from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
+@@ -44,6 +44,7 @@ from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
  from ..proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
  from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
  from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
 +from ..proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
- from ..proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
  from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
  from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
-@@ -92,6 +93,7 @@ __all__ = [
+ from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
+@@ -111,6 +112,7 @@ __all__ = [
      "ContactUpdateEv",
      "PushNameUpdateEv",
      "AppStateSyncCompleteEv",
 +    "AppStateMutationEv",
-     "ChatLockEv",
-     "ChatMarkAsReadEv",
-     "ChatMuteEv",
+     "NewsLetterMessageMetaEv",
+     "NewsletterJoinEv",
+     "NewsletterLeaveEv",
 diff --git a/neonize/client.py b/neonize/client.py
-index c3cd369..a5a4b00 100644
+index 9f87754..52958bb 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
 @@ -2,6 +2,7 @@ from __future__ import annotations
@@ -446,7 +446,7 @@ index c3cd369..a5a4b00 100644
  import logging
  import re
  import struct
-@@ -2731,6 +2732,31 @@ class NewClient:
+@@ -2853,6 +2854,31 @@ class NewClient:
          if err:
              raise SendAppStateError(err)
  
@@ -476,20 +476,20 @@ index c3cd369..a5a4b00 100644
 +        return json.loads(raw.decode() or "{}")
 +
      def request_app_state_recovery(self, name: str):
-         """Asks the primary device to send a recovery snapshot of an app state
+         """Asks the primary device for a recovery snapshot of an app state
          collection that keeps failing with ``mismatching LTHash`` even after a
 diff --git a/neonize/events.py b/neonize/events.py
-index 1b5b1da..ac484a1 100644
+index 1083346..0ce8dd8 100644
 --- a/neonize/events.py
 +++ b/neonize/events.py
-@@ -46,6 +46,7 @@ from .proto.Neonize_pb2 import MessageStar as MessageStarEv
+@@ -47,6 +47,7 @@ from .proto.Neonize_pb2 import MessageStar as MessageStarEv
  from .proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
  from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
  from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
 +from .proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
- from .proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
  from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
  from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
 @@ -124,6 +125,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
      ContactUpdateEv: 54,
      PushNameUpdateEv: 55,
