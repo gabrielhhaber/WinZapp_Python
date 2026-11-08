@@ -43,6 +43,12 @@ CREATE TABLE IF NOT EXISTS comments(
     body TEXT DEFAULT '', from_me INTEGER DEFAULT 0, parent_serial TEXT DEFAULT '',
     PRIMARY KEY(chat, id));
 CREATE INDEX IF NOT EXISTS comments_by_parent ON comments(chat, parent_id, ts);
+-- a channel's updates, as a cache of what WhatsApp answered (channel_updates.py):
+-- never chats/msgs, so a channel never becomes a conversation
+CREATE TABLE IF NOT EXISTS channel_posts(
+    channel TEXT NOT NULL, id TEXT NOT NULL, server_id INTEGER NOT NULL,
+    ts INTEGER DEFAULT 0, data TEXT NOT NULL, raw BLOB, PRIMARY KEY(channel, id));
+CREATE INDEX IF NOT EXISTS channel_posts_by_server_id ON channel_posts(channel, server_id);
 """
 
 # Databases written before the bridge's names were in English use these table and
@@ -438,11 +444,75 @@ class Store:
         return json.loads(r["data"]) if r else None
 
     def media_record(self, msg_id):
-        """The media record of a message (any chat) or None."""
+        """The media record of a message (any chat, or a cached channel
+        update) or None."""
         with self._lock:
             r = self._conn.execute("SELECT raw FROM msgs WHERE id=? AND raw IS NOT NULL",
                                    (msg_id,)).fetchone()
+            if r is None:
+                r = self._conn.execute(
+                    "SELECT raw FROM channel_posts WHERE id=? AND raw IS NOT NULL",
+                    (msg_id,)).fetchone()
         return bytes(r["raw"]) if r else None
+
+    # ---------------------------------------------------- channel updates
+    def channel_posts_save(self, channel, rows):
+        """Rows (wpp, server id, raw) of *channel*, replacing what was cached."""
+        if not rows:
+            return
+        with self._lock:
+            self._conn.executemany(
+                "INSERT OR REPLACE INTO channel_posts(channel, id, server_id, ts, data, raw) "
+                "VALUES (?,?,?,?,?,?)",
+                [(channel, w["id"]["id"], int(sid), int(w.get("t") or 0), json.dumps(w), raw)
+                 for w, sid, raw in rows])
+            self._conn.commit()
+
+    def channel_posts_forget(self, channel, ids):
+        """Drops cached updates WhatsApp says were deleted."""
+        ids = [i for i in ids if i]
+        if not ids:
+            return
+        with self._lock:
+            self._conn.executemany("DELETE FROM channel_posts WHERE channel=? AND id=?",
+                                   [(channel, i) for i in ids])
+            self._conn.commit()
+
+    def channel_posts(self, channel, count, before_server_id=0):
+        """[(wpp, server id)] of the *count* newest cached updates (or the ones
+        before *before_server_id*), in chronological order."""
+        with self._lock:
+            if before_server_id:
+                rows = self._conn.execute(
+                    "SELECT data, server_id FROM channel_posts WHERE channel=? AND server_id<? "
+                    "ORDER BY server_id DESC LIMIT ?",
+                    (channel, int(before_server_id), int(count))).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT data, server_id FROM channel_posts WHERE channel=? "
+                    "ORDER BY server_id DESC LIMIT ?", (channel, int(count))).fetchall()
+        return [(json.loads(r["data"]), int(r["server_id"])) for r in reversed(rows)]
+
+    def channel_post(self, msg_id):
+        """(channel, wpp, server id) of a cached update, or None."""
+        with self._lock:
+            r = self._conn.execute(
+                "SELECT channel, data, server_id FROM channel_posts WHERE id=?",
+                (msg_id,)).fetchone()
+        return (r["channel"], json.loads(r["data"]), int(r["server_id"])) if r else None
+
+    def channel_post_change(self, msg_id, **fields):
+        """Changes fields of a cached update's JSON (an edit's new body)."""
+        with self._lock:
+            r = self._conn.execute("SELECT data FROM channel_posts WHERE id=?",
+                                   (msg_id,)).fetchone()
+            if r is None:
+                return
+            data = json.loads(r["data"])
+            data.update(fields)
+            self._conn.execute("UPDATE channel_posts SET data=? WHERE id=?",
+                               (json.dumps(data), msg_id))
+            self._conn.commit()
 
     def messages(self, chat, quantity=20, before=None):
         """The `quantity` most recent (or the ones before `before`, a message

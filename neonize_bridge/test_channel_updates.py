@@ -1,6 +1,8 @@
 """channel_updates.py: a channel's updates through get-messages, on Neonize."""
 from types import SimpleNamespace as N
 
+import pytest
+
 from neonize.proto.Neonize_pb2 import NewsletterMessage
 
 import channel_updates as cu
@@ -140,3 +142,91 @@ def test_the_channel_edit_rules():
     assert mr.channel_edit_refusal(True, dict(mine, fromMe=False), 1000) == "not_mine"
     assert mr.channel_edit_refusal(True, dict(mine, type="image"), 1000) == "not_stored"
     assert mr.channel_edit_refusal(True, None, 1000) == "not_stored"
+
+
+# ------------------------------------------------------------ the cache
+from store import Store  # noqa: E402
+
+
+class Counting(Server):
+    """Server whose answers can be switched off (WhatsApp unreachable)."""
+
+    def __init__(self, total):
+        super().__init__(total)
+        self.down = False
+
+    def get_newsletter_messages(self, jid, count, before):
+        if self.down:
+            raise RuntimeError("timeout")
+        return super().get_newsletter_messages(jid, count, before)
+
+
+@pytest.fixture
+def cached(tmp_path):
+    db = Store(str(tmp_path / "bridge.db"))
+    yield N(client=Counting(300), db=db)
+    db.close()
+
+
+def test_an_older_page_the_cache_holds_is_read_from_disk(cached):
+    cu.read(cached, CHANNEL, 100, None, lambda t: t)            # 201..300, cached
+    cu.read(cached, CHANNEL, 50, "M201", lambda t: t)            # 151..200, cached
+    asked = list(cached.client.asked)
+    again = cu.read(cached, CHANNEL, 50, "M201", lambda t: t)
+    assert [w["id"]["id"] for w in again][:1] == ["M151"] and len(again) == 50
+    assert cached.client.asked == asked                          # nothing asked of WhatsApp
+
+
+def test_the_newest_page_is_always_asked_of_whatsapp(cached):
+    cu.read(cached, CHANNEL, 20, None, lambda t: t)
+    cu.read(cached, CHANNEL, 20, None, lambda t: t)
+    assert cached.client.asked == [(20, 0), (20, 0)]
+
+
+def test_with_whatsapp_unreachable_the_cache_answers(cached):
+    cu.read(cached, CHANNEL, 30, None, lambda t: t)
+    cached.client.down = True
+    newest = cu.read(cached, CHANNEL, 30, None, lambda t: t)
+    assert [w["id"]["id"] for w in newest][-1] == "M300" and len(newest) == 30
+
+
+def test_after_a_restart_the_cache_finds_the_anchor(cached):
+    cu.read(cached, CHANNEL, 100, None, lambda t: t)
+    cached._channel_server_ids = None                            # a new bridge process
+    older = cu.read(cached, CHANNEL, 20, "M201", lambda t: t)
+    assert [w["id"]["id"] for w in older][:1] == ["M181"] and len(older) == 20
+
+
+def test_a_deleted_update_leaves_the_cache(cached):
+    cu.read(cached, CHANNEL, 10, None, lambda t: t)
+    assert cached.db.channel_post("M300") is not None
+    gone = NewsletterMessage(MessageServerID=300, MessageID="M300")
+    cached.db.channel_posts_forget(CHANNEL, cu.deleted_ids([gone, update(299, "M299", 1, "x")]))
+    assert cached.db.channel_post("M300") is None and cached.db.channel_post("M299") is not None
+
+
+def test_a_channel_never_becomes_a_conversation(cached):
+    cu.read(cached, CHANNEL, 10, None, lambda t: t)
+    assert cached.db.messages(CHANNEL, 10) == [] and cached.db.wpp_message("M300") is None
+
+
+def test_the_caption_of_a_cached_media_update_is_edited(cached):
+    class Media(Counting):
+        def get_newsletter_messages(self, jid, count, before):
+            photo = NewsletterMessage(MessageServerID=9, MessageID="PHOTO", Timestamp=1000,
+                                      IsSender=True)
+            photo.Message.imageMessage.caption = "antes"
+            photo.Message.imageMessage.directPath = "/v/t62/x"
+            return [photo]
+
+        def edit_message(self, chat, mid, new):
+            self.edited = (mid, new.imageMessage.caption, new.imageMessage.directPath)
+    cached.client = Media(1)
+    cu.read(cached, CHANNEL, 1, None, lambda t: t)
+    import message_rules as mr
+    details = cu.details_of(cached, "PHOTO")
+    assert mr.channel_edit_refusal(True, details, 1060, media_kept=True) == ""
+    assert mr.channel_edit_refusal(True, details, 1060, media_kept=False) == "not_stored"
+    assert cu.edit(cached, CHANNEL, "PHOTO", "depois") is True
+    assert cached.client.edited == ("PHOTO", "depois", "/v/t62/x")
+    assert cached.db.channel_post("PHOTO")[1]["caption"] == "depois"

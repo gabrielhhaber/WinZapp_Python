@@ -34,14 +34,14 @@ def refusal_reason(from_me, original, now):
     return ""
 
 
-def channel_edit_refusal(from_me, details, now):
+def channel_edit_refusal(from_me, details, now, media_kept=False):
     """refusal_reason() for a channel update, judged by what the bridge
-    remembered of it (channel_updates.ServerIds.details) since channel posts
-    are never stored. Only text is edited there: a caption would need the
-    media the bridge does not keep."""
+    remembered of it (channel_updates.details_of). Its text can be edited, and
+    the caption of a media update only when its media is cached
+    (*media_kept*): the edit sends the whole media message again."""
     if not from_me or (details is not None and not details.get("fromMe")):
         return "not_mine"
-    if details is None or details.get("type") != "chat":
+    if details is None or (details.get("type") != "chat" and not media_kept):
         return "not_stored"
     when = details.get("t") or 0
     if when and now - when > EDIT_WINDOW:

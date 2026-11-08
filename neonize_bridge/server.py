@@ -2816,7 +2816,8 @@ def create_app(folder, fixed=""):
         from_me, conversation, mid, _ = s.id_parts(body["id"])
         if channel_updates.is_channel(conversation):
             reason = message_rules.channel_edit_refusal(
-                from_me, channel_updates.server_ids_of(s).details(mid), time.time())
+                from_me, channel_updates.details_of(s, mid), time.time(),
+                media_kept=s.db.media_record(mid) is not None)
             if reason:
                 return responses.edit_refused(reason)
             done = await in_thread(channel_updates.edit, s, conversation, mid,

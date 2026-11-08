@@ -1,8 +1,9 @@
 """A channel's updates through `get-messages/<id>@newsletter`, so the channels
 window's "Open channel" reads a channel on Neonize as it does on WPPConnect.
 
-The store keeps nothing of channels (a channel post is not a conversation), so
-the updates are asked of WhatsApp each time: neonize's get_newsletter_messages,
+A channel post is not a conversation, so it never goes to the store's chats or
+messages; what WhatsApp answers is cached in channel_posts instead (read()).
+The updates are asked of WhatsApp: neonize's get_newsletter_messages,
 newest first from a server id. Each update goes out in the format of every
 other message (msgmap.build), with its server id and view count. Paging back
 names the oldest message's id; its server id is remembered from the page that
@@ -119,19 +120,65 @@ def is_channel(chat) -> bool:
     return str(chat or "").endswith("@newsletter")
 
 
+def _store(s):
+    return getattr(s, "db", None)
+
+
+def details_of(s, message_id):
+    """What an edit is judged by (ServerIds.details), from this session's
+    reads or, after a restart, from the cache."""
+    found = server_ids_of(s).details(message_id)
+    if found is None and _store(s) is not None:
+        cached = _store(s).channel_post(message_id)
+        if cached:
+            _channel, w, server_id = cached
+            found = {"server_id": server_id, "type": w.get("type") or "",
+                     "t": int(w.get("t") or 0), "fromMe": bool(w.get("fromMe"))}
+    return found
+
+
 def edit(s, channel, message_id, text):
-    """Edits an update this account posted in *channel* (whatsmeow form).
-    whatsmeow sends a channel's edit as an admin edit of the original id
-    (sendNewsletter), so nothing stored is needed. Runs on a thread."""
+    """Edits an update this account posted in *channel* (whatsmeow form):
+    its text, or the caption of a media update whose media is cached. whatsmeow
+    sends a channel's edit as an admin edit of the original id (sendNewsletter).
+    Runs on a thread."""
     from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
     from neonize.utils import build_jid
+    details = details_of(s, message_id) or {}
+    store = _store(s)
+    record = store.media_record(message_id) if store is not None else None
+    if details.get("type") not in ("", "chat") and record:
+        new = Message.FromString(record)
+        field = msgmap.media_field(new)
+        if not field:
+            return False
+        getattr(new, field).caption = text
+        fields = {"caption": text}
+    else:
+        new = Message(conversation=text)
+        fields = {"body": text}
     user, _, server = channel.partition("@")
     try:
-        s.client.edit_message(build_jid(user, server), message_id, Message(conversation=text))
+        s.client.edit_message(build_jid(user, server), message_id, new)
     except Exception as error:
         log.info("channel update edit refused (%s)", type(error).__name__)
         return False
+    if store is not None:
+        store.channel_post_change(message_id, **fields)
     return True
+
+
+def deleted_ids(updates):
+    """The ids of the updates WhatsApp answers with no content: deleted ones."""
+    return [update_id(u) for u in updates or () if not u.HasField("Message")]
+
+
+def _raw_records(updates):
+    out = {}
+    for update in updates or ():
+        if update.HasField("Message"):
+            out[update_id(update)] = msgmap.media_record_of(update.Message)
+    return out
 
 
 def read(s, channel, count, before, jid_from_text, before_server_id=0):
@@ -139,36 +186,60 @@ def read(s, channel, count, before, jid_from_text, before_server_id=0):
     unknown anchor answers [] (never the newest), as for any other chat.
 
     The anchor's server id is the one remembered from the page that brought
-    it, or else *before_server_id*, the one the client stored with the update:
-    the remembered ids live only as long as the bridge, so after a restart
-    every scroll up in a channel used to answer [] and the client took the
-    channel's history for finished. A count above PER_REQUEST is asked in
-    pages of it, newest first, at most MAX_REQUESTS of them."""
+    it, the one the client stored with the update (*before_server_id*), or the
+    cache's: after a restart every scroll up in a channel used to answer []
+    and the client took the channel's history for finished. A count above
+    PER_REQUEST is asked in pages of it, newest first, at most MAX_REQUESTS.
+
+    Every answer is cached in the store (channel_posts, never a chat). The
+    newest page is always asked of WhatsApp, which has the edits, deletions,
+    new updates and view counts; an older page the cache holds whole is read
+    from disk instead, and with WhatsApp unreachable the cache answers."""
     ids = server_ids_of(s)
+    store = _store(s)
     start = 0
     if before:
         start = ids.of(before) or anchor_server_id(before_server_id)
+        if not start and store is not None:
+            cached = store.channel_post(before)
+            start = cached[2] if cached else 0
         if not start:
             return []
-    wanted = max(1, int(count))
+    wanted = min(max(1, int(count)), PER_REQUEST * MAX_REQUESTS)
+    if start and store is not None:
+        cached = store.channel_posts(channel, wanted, start)
+        if len(cached) >= wanted:
+            ids.remember(cached)
+            return [w for w, _server_id in cached]
     jid = jid_from_text(channel)
-    pairs, seen = [], set()
+    pairs, seen, reached = [], set(), False
+    request_start = start
     for _request in range(MAX_REQUESTS):
         asked = min(PER_REQUEST, wanted - len(pairs))
         try:
-            updates = list(s.client.get_newsletter_messages(jid, asked, int(start)))
+            updates = list(s.client.get_newsletter_messages(jid, asked, int(request_start)))
         except Exception as error:
             log.info("channel updates refused (%s)", type(error).__name__)
             break
+        reached = True
         page = [p for p in updates_to_wpp(channel, updates) if p[0]["id"]["id"] not in seen]
         seen.update(w["id"]["id"] for w, _server_id in page)
         ids.remember(page)
+        if store is not None:
+            raws = _raw_records(updates)
+            store.channel_posts_save(
+                channel, [(w, sid, raws.get(w["id"]["id"])) for w, sid in page])
+            store.channel_posts_forget(channel, deleted_ids(updates))
         pairs = page + pairs
         oldest = min((int(u.MessageServerID or 0) for u in updates), default=0)
         if len(updates) < asked or len(pairs) >= wanted or not oldest:
             break
-        if start and oldest >= start:
+        if request_start and oldest >= request_start:
             break       # no progress: the server answered the same window
-        start = oldest
+        request_start = oldest
+    if not reached and store is not None:
+        cached = store.channel_posts(channel, wanted, start)
+        ids.remember(cached)
+        return [w for w, _server_id in cached]
     pairs.sort(key=lambda pair: (pair[0]["t"], pair[1]))
     return [w for w, _server_id in pairs]
