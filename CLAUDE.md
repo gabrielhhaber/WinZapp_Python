@@ -184,6 +184,14 @@ The `mattpocock-skills` plugin provides `/grill-with-docs` → `/to-spec` →
 `/diagnosing-bugs`. WinZapp's bounds on it:
 
 - Tests: the files for what changed, never `--run-wx-gui`.
+- **Project agents not in your agent list (`winzapp-reviewer`,
+  `winzapp-implementer`, `refactor-extractor`)?** Some sessions (cloud and
+  project threads) do not register `.claude/agents/*.md`, although the files
+  are valid. Do not skip the step: read `.claude/agents/<name>.md`, drop its
+  frontmatter, and run a `general-purpose` subagent with the body as the
+  prompt plus the task (for the reviewer: the PR number or the diff range).
+  Its `tools:` line still applies; give it no more than that. The same goes
+  for `.claude/skills/`: read the `SKILL.md` and follow it.
 - Commit only when the user asks, whatever `/implement` says.
 - **Open every PR as a draft** and keep it a draft until the reviewer
   (the `winzapp-reviewer` agent) has finished and approved. Only
