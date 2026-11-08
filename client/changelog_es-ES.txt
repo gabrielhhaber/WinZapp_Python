@@ -8,6 +8,8 @@ NOVEDADES
 
 - Atajos Alt+letra: en varias ventanas dos controles usaban la misma letra y Alt+letra solo alternaba entre ellos (por ejemplo «Actualizar» y «Añadir participantes» en la ventana de participantes de la llamada). Ahora cada control de una ventana tiene su propia letra, en todos los idiomas.
 
+- Lista de chats: cuando el filtro elegido (Sin leer, Grupos, Individuales), una lista de WhatsApp o la búsqueda no encuentra ningún chat, la lista muestra una fila que lo dice (por ejemplo «No hay chats sin leer.»), como ya hacía la lista de mensajes en un chat vacío, en lugar de no dejar nada que leer al lector de pantalla.
+
 - Llamadas: la ventana «Añadir participantes» ya funciona con lector de pantalla. Las personas se marcan con las mismas teclas, el mismo sonido y los mismos anuncios que en las listas de conversaciones y mensajes (Ctrl+Espacio, Espacio mientras haya algo marcado, Mayús+flechas, Ctrl+Mayús+Espacio, Esc), y se dice el resultado: quién fue invitado, a quién no se pudo añadir o por qué falló la solicitud.
 
 - Llamadas: los datos multimedia y las tareas de dispositivos o cámara que llegan tarde permanecen vinculados a su llamada y flujo originales. Neonize procesa los datos en colas limitadas fuera del bucle del servidor y conserva el lector tras un fallo transitorio de emisión. Los nombres WASAPI ambiguos ya no seleccionan el primer dispositivo coincidente. Los registros de llamadas de Neonize también incluyen resúmenes del nivel de la señal, sin guardar el contenido del audio, para ayudar a investigar la ausencia de sonido. Al reabrir la salida de una llamada, un flujo antiguo que no consigue cerrarse no puede consumir el audio del nuevo flujo; un fallo en la referencia de eco ya no silencia el audio preparado para reproducirse.

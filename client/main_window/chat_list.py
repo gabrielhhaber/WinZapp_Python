@@ -1997,6 +1997,21 @@ class ChatListMixin:
         # NOTE: chats_list was already overwritten by _apply_chat_lists before this
         # function runs, so we track what's truly rendered via _displayed_jids.
         new_jids = [c.get("remoteJid", "") for c in displayed_chats]
+        # One informative row when the filter, list or search leaves nothing
+        # (core/chat_list_placeholder.py); chats_list stays empty under it.
+        from core.chat_list_placeholder import empty_chat_list_key
+        _empty_key = "" if new_jids else empty_chat_list_key(search, conv_filter, wa_list_id)
+        placeholder = self.i18n.t(_empty_key) if _empty_key else ""
+        _shown_placeholder = getattr(self.conversations_panel, "_chat_list_placeholder", "")
+        if (placeholder and placeholder == _shown_placeholder and lst.GetItemCount() == 1
+                and not getattr(self.conversations_panel, "_displayed_jids", None)):
+            # Already showing exactly this row: rewriting it would make a
+            # screen reader read it again on every refresh.
+            self.conversations_panel.chats_list = []
+            self.conversations_panel.chat_names = []
+            if hasattr(self, "archived_conversations_panel"):
+                self._refresh_archived_chats_in_ui(arch_focused_jid)
+            return
 
         # Content fingerprint of exactly what this call would render. Used only
         # to skip the per-row GetItemText comparison loop below when nothing
@@ -2020,6 +2035,7 @@ class ChatListMixin:
         _fast_path_ok = False
         if (
             _displayed_jids is not None
+            and not placeholder
             and _displayed_jids == new_jids
             and lst.GetItemCount() == len(new_jids)
         ):
@@ -2059,6 +2075,7 @@ class ChatListMixin:
         # None and rebuilds as before.
         if (
             _displayed_jids is not None
+            and not placeholder
             and lst.GetItemCount() == len(_displayed_jids)
             and self._apply_chat_rows_incrementally(
                 lst, _displayed_jids, new_jids, new_item_texts, focused_jid
@@ -2104,8 +2121,11 @@ class ChatListMixin:
             lst.DeleteAllItems()
             for item_text in new_item_texts:
                 lst.Append((item_text,))
+            if placeholder:
+                lst.Append((placeholder,))
         finally:
             lst.Thaw()
+        self.conversations_panel._chat_list_placeholder = placeholder
 
         # Keep backing lists in sync with exactly what is displayed.
         self.conversations_panel.chats_list = displayed_chats
@@ -2122,7 +2142,13 @@ class ChatListMixin:
                     target_idx = i
                     break
 
-        if target_idx != -1:
+        if placeholder:
+            # Nothing to open: the row is there to be read where the list is.
+            if _lst_had_focus:
+                lst.Focus(0)
+                lst.Select(0)
+                lst.SetFocus()
+        elif target_idx != -1:
             if panel.conversations_list.GetFocusedItem() != target_idx:
                 panel.conversations_list.Focus(target_idx)
             if _lst_had_focus:

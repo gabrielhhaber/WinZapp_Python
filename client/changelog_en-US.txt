@@ -8,6 +8,8 @@ WHAT'S NEW
 
 - Alt+letter shortcuts: in several windows two controls used the same letter, so Alt+letter only moved between them (in some languages, for example, "Refresh" and "Add participants" in the call participants window). Each control in a window now has its own letter, in every language.
 
+- Chat list: when the chosen filter (Unread, Groups, Individual), a WhatsApp list or the search finds no chat, the list shows one row saying so (for example "No unread chats."), as the message list already did for an empty chat, instead of leaving the screen reader nothing to read.
+
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
 
 - Calls: delayed media and device/camera work stay with their original call and stream. Neonize processes media in bounded queues off the server loop and keeps its reader after a transient emission failure. Ambiguous WASAPI names no longer select the first matching device. Neonize call logs also include signal-level summaries without saving audio content, to help investigate silence. When call output is reopened, an old stream that fails to close cannot consume the new stream's audio; an echo-reference failure no longer silences rendered audio.

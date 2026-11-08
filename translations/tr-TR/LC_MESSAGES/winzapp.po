@@ -3350,12 +3350,12 @@ msgctxt "channels_nav"
 msgid "Channels alt+9"
 msgstr "Kanallar alt+9"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_none"
 msgid "You do not follow any channel."
 msgstr "Hiçbir kanalı takip etmiyorsunuz."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_nothing_found"
 msgid "No channel found."
 msgstr "Hiç kanal bulunamadı."
@@ -3587,6 +3587,31 @@ msgstr "Mesajlar ve aramalar uçtan uca şifrelidir."
 msgctxt "chat_is_empty"
 msgid "This chat is empty."
 msgstr "Bu sohbet boş."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_empty_list"
+msgid "No chats in this list."
+msgstr "Bu listede sohbet yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_groups"
+msgid "No groups."
+msgstr "Grup yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_individual"
+msgid "No individual chats."
+msgstr "Bireysel sohbet yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_search_results"
+msgid "No chat matches the search."
+msgstr "Aramayla eşleşen sohbet yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_unread"
+msgid "No unread chats."
+msgstr "Okunmamış sohbet yok."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 msgctxt "chat_load_failed"
@@ -8910,7 +8935,6 @@ msgid "No mentions found."
 msgstr "Bahsetme bulunamadı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "no_messages_in_conversation"
 msgid "No messages available in this chat."
 msgstr "Bu sohbette kullanılabilir mesaj yok."
@@ -8954,6 +8978,11 @@ msgstr "Sonuç bulunamadı."
 msgctxt "no_unread_in_conv"
 msgid "There are no unread messages in this chat."
 msgstr "Bu sohbette okunmamış mesaj yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "no_updates_in_channel"
+msgid "No updates in this channel yet."
+msgstr "Bu kanalda henüz güncelleme yok."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "node_download_cancel"

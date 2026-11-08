@@ -3361,12 +3361,12 @@ msgctxt "channels_nav"
 msgid "Channels alt+9"
 msgstr "Canale alt+9"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_none"
 msgid "You do not follow any channel."
 msgstr "Nu urmăriți niciun canal."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_nothing_found"
 msgid "No channel found."
 msgstr "Nu s-a găsit niciun canal."
@@ -3598,6 +3598,31 @@ msgstr "Mesajele și apelurile sunt criptate end-to-end."
 msgctxt "chat_is_empty"
 msgid "This chat is empty."
 msgstr "Această conversație este goală."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_empty_list"
+msgid "No chats in this list."
+msgstr "Nicio conversație în această listă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_groups"
+msgid "No groups."
+msgstr "Niciun grup."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_individual"
+msgid "No individual chats."
+msgstr "Nicio conversație individuală."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_search_results"
+msgid "No chat matches the search."
+msgstr "Nicio conversație nu corespunde căutării."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_unread"
+msgid "No unread chats."
+msgstr "Nicio conversație necitită."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 msgctxt "chat_load_failed"
@@ -8984,7 +9009,6 @@ msgid "No mentions found."
 msgstr "Nu au fost găsite mențiuni."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "no_messages_in_conversation"
 msgid "No messages available in this chat."
 msgstr "Nu există mesaje disponibile în această conversație."
@@ -9029,6 +9053,11 @@ msgstr "Nu s-au găsit rezultate."
 msgctxt "no_unread_in_conv"
 msgid "There are no unread messages in this chat."
 msgstr "Nu există mesaje necitite în această conversație."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "no_updates_in_channel"
+msgid "No updates in this channel yet."
+msgstr "Încă nu există actualizări în acest canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "node_download_cancel"

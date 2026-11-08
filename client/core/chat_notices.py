@@ -33,6 +33,15 @@ def encryption_lines(jid, i18n) -> list:
     return [f"{i18n.t('chat_encryption_label')}: {i18n.t('chat_encryption_notice')}"]
 
 
+def empty_conversation_key(jid) -> str:
+    """The key of the sentence an empty conversation's one row starts with:
+    a channel has updates, not messages, and a reader opening one with none
+    hears that rather than a chat's "no messages"."""
+    if isinstance(jid, str) and jid.endswith("@newsletter"):
+        return "no_updates_in_channel"
+    return "no_messages_in_conversation"
+
+
 def conversation_start_text(owner, jid, i18n, empty_text) -> str:
     """The text of the row an empty conversation shows.
 

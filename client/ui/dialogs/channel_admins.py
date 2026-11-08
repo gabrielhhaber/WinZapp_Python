@@ -83,6 +83,9 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._update_buttons()
+        # Until the people arrive the list says so (an empty list says nothing).
+        self._list.Set([i18n.t("loading")])
+        self._list.SetSelection(0)
         self._list.SetFocus()
         self.CentreOnParent()
         wx.CallAfter(self._load)
@@ -152,10 +155,12 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self._rows = ch.members(people or [], pending or [], self._me())
         self._list.Freeze()
         try:
-            self._list.Set([self._row_text(m) for m in self._rows])
+            # A failed read is one row saying so, not an empty list (the
+            # message list does the same); _rows stays empty under it.
+            self._list.Set([self._row_text(m) for m in self._rows]
+                           or [i18n.t("channel_people_unavailable")])
             index = next((i for i, m in enumerate(self._rows) if keep and m.jid == keep.jid), 0)
-            if self._rows:
-                self._list.SetSelection(index)
+            self._list.SetSelection(index)
         finally:
             self._list.Thaw()
         self._update_buttons()

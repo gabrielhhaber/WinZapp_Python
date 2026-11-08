@@ -51,6 +51,15 @@ def channel_label(channel, i18n, followed=()):
     return ", ".join(parts)
 
 
+def empty_list_text(mode, loaded, searched, i18n):
+    """The one row an empty channel list shows, so reaching it says why it is
+    empty instead of nothing (the message list does the same for an empty
+    conversation). It is not a channel: `_shown` stays empty under it."""
+    if mode == MINE:
+        return i18n.t("channels_none") if loaded else i18n.t("loading")
+    return i18n.t("channels_nothing_found") if searched else i18n.t("loading")
+
+
 def channel_details(channel, i18n, following):
     lines = [channel.description]
     if channel.followers is not None:
@@ -101,7 +110,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         i18n = self._i18n
         self._mode = MINE
         self._mine, self._found, self._shown = [], [], []
-        self._loaded = False
+        self._loaded = self._searched = False
         self.result = None
         super().__init__(parent, title=i18n.t("channels_title"), size=(620, 640),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -169,7 +178,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._sync_mode()
-        self._update_buttons()
+        self._show(self._mine)          # "loading" until the first answer
         self._list.SetFocus()
         self.CentreOnParent()
         wx.CallAfter(self._reload)
@@ -264,6 +273,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         if channels is None:
             logging.warning("[channels] read_failed")
+            self._show_failure(self._i18n.t("channels_unavailable"), MINE)
             self._announce(self._i18n.t("channels_unavailable"))
             return
         self._loaded = True
@@ -305,9 +315,11 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         if found is None:
             logging.warning("[channels] directory_failed")
+            self._show_failure(self._i18n.t("channels_directory_unavailable"), FIND)
             self._announce(self._i18n.t("channels_directory_unavailable"))
             return
         self._found = found
+        self._searched = True
         if self._mode == FIND:
             self._show(found)
         self._announce(self._i18n.t(key).format(count=len(found)) if found
@@ -322,13 +334,20 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._list.Freeze()
         try:
             self._list.Set([channel_label(self._mine_version(c), self._i18n, followed)
-                            for c in self._shown])
-            if self._shown:
+                            for c in self._shown]
+                           or [empty_list_text(self._mode, self._loaded, self._searched, self._i18n)])
+            if self._list.GetCount():
                 self._list.SetSelection(next(
                     (i for i, c in enumerate(self._shown) if c.jid == kept), 0))
         finally:
             self._list.Thaw()
         self._show_selected()
+
+    def _show_failure(self, text, mode):
+        """An empty list of *mode* says the read failed, not "loading"."""
+        if self._mode == mode and not self._shown:
+            self._list.Set([text])
+            self._list.SetSelection(0)
 
     def _show_selected(self):
         channel = self._mine_version(self._selected())

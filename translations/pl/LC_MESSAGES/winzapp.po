@@ -3389,12 +3389,12 @@ msgctxt "channels_nav"
 msgid "Channels alt+9"
 msgstr "Kanały alt+9"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_none"
 msgid "You do not follow any channel."
 msgstr "Nie obserwujesz żadnego kanału."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_nothing_found"
 msgid "No channel found."
 msgstr "Nie znaleziono żadnego kanału."
@@ -3626,6 +3626,31 @@ msgstr "Wiadomości i rozmowy są w pełni zaszyfrowane."
 msgctxt "chat_is_empty"
 msgid "This chat is empty."
 msgstr "Ten czat jest pusty."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_empty_list"
+msgid "No chats in this list."
+msgstr "Brak czatów na tej liście."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_groups"
+msgid "No groups."
+msgstr "Brak grup."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_individual"
+msgid "No individual chats."
+msgstr "Brak czatów osobistych."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_search_results"
+msgid "No chat matches the search."
+msgstr "Żaden czat nie pasuje do wyszukiwania."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_unread"
+msgid "No unread chats."
+msgstr "Brak nieprzeczytanych czatów."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 msgctxt "chat_load_failed"
@@ -8995,7 +9020,6 @@ msgid "No mentions found."
 msgstr "Nie znaleziono wzmianek."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "no_messages_in_conversation"
 msgid "No messages available in this chat."
 msgstr "Brak dostępnych wiadomości w tym czacie."
@@ -9039,6 +9063,11 @@ msgstr "Nie znaleziono wyników."
 msgctxt "no_unread_in_conv"
 msgid "There are no unread messages in this chat."
 msgstr "W tym czacie nie ma nieprzeczytanych wiadomości."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "no_updates_in_channel"
+msgid "No updates in this channel yet."
+msgstr "Na tym kanale nie ma jeszcze aktualizacji."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "node_download_cancel"
