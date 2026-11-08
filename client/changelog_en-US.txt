@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest.
+
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
 
 - Calls: delayed media and device/camera work stay with their original call and stream. Neonize processes media in bounded queues off the server loop and keeps its reader after a transient emission failure. Ambiguous WASAPI names no longer select the first matching device. Neonize call logs also include signal-level summaries without saving audio content, to help investigate silence. When call output is reopened, an old stream that fails to close cannot consume the new stream's audio; an echo-reference failure no longer silences rendered audio.

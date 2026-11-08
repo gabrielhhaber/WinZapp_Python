@@ -37,6 +37,27 @@ def _msg(message_type, from_me=False, **extra):
 
 
 class TestDiscountNonCountableUnread:
+    def test_newest_first_records_discount_the_newest_tail(self):
+        """The database loads a chat newest-first. The oldest message (an
+        encryption notice) must not be discounted for the unread ones."""
+        records = [
+            _msg("conversation", messageTimestamp=300),
+            _msg("conversation", messageTimestamp=200),
+            _msg("e2e_notification", messageTimestamp=100),
+        ]
+        assert _discount_non_countable_unread(records, 1) == 1
+        assert _discount_non_countable_unread(records[::-1], 1) == 1
+
+    def test_mixed_order_and_untimestamped_pending_send(self):
+        records = [
+            _msg("conversation", messageTimestamp=200),
+            _msg("e2e_notification", messageTimestamp=100),
+            _msg("conversation", messageTimestamp=300),
+        ]
+        assert _discount_non_countable_unread(records, 1) == 1
+        pending = _msg("conversation", from_me=True)
+        assert _discount_non_countable_unread([pending] + records, 1) == 0
+
     def test_system_event_in_the_tail_is_discounted(self):
         """The reported bug: a group promote (groupNotification) minted a
         phantom "1 unread".  It must be discounted just like fromMe."""

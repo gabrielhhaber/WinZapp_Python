@@ -154,6 +154,18 @@ def _discount_non_countable_unread(records: list, unread_count: int) -> int:
                if not (isinstance(m, dict) and m.get("messageType") == "reactionMessage")]
     if not records:
         return unread_count
+    # The tail is the NEWEST messages, but records are not always stored
+    # oldest-first: the database returns a chat newest-first, and a chat that
+    # is not re-fetched on a warm start keeps that order in memory. Cutting
+    # the tail of a newest-first list inspects the OLDEST messages instead
+    # (typically the chat's encryption notice or an own send), which
+    # discounted real unread messages to 0 after every restart or update.
+    # Stable sort, a record with no usable timestamp (a pending local send)
+    # counting as the newest.
+    records = sorted(
+        records,
+        key=lambda m: message_timestamp_seconds(m) or float("inf"),
+    )
     tail = records[-unread_count:] if unread_count <= len(records) else records
     discount = sum(
         1 for m in tail
