@@ -1689,3 +1689,39 @@ def test_manual_model_fields_exist_only_while_automatic_is_off(tmp_path, automat
     assert window.model.enabled is True  # never left disabled: that reads as read-only
     if automatic:
         assert window.model.value == ai_config.PROVIDERS["openai"].model
+
+
+def test_the_unread_summary_window_can_be_reopened_after_it_closes(ready, monkeypatch):
+    module, app = ready
+    import ui.dialogs.ai_result_dialog as dialog_module
+    built, focused = [], []
+    monkeypatch.setattr(module, "active_account_id", lambda: "account")
+    class WindowStub:
+        def __init__(self, panel, identity, kind, locked, config, app, loader, mime):
+            built.append((identity, kind))
+            self.session = MediaSession(*identity, kind, locked=locked)
+        def ShowModal(self):
+            return 0
+        def Raise(self):
+            built.append("raised")
+        def _dispose(self):
+            self.session.close()
+        def Destroy(self):
+            built.append("destroyed")
+    monkeypatch.setattr(dialog_module, "AIResultDialog", WindowStub)
+    mw = SimpleNamespace(_app_settings=app, IsShown=lambda: True, i18n=SimpleNamespace(t=lambda k: k),
+                         is_chat_locked=lambda jid: False, output=lambda text: None)
+    panel = SimpleNamespace(main_window=mw, conversation={"remoteJid": "c"}, _sorted_messages=[],
+                            messages_list=SimpleNamespace(Focus=lambda i: None, Select=lambda i: None,
+                                                          SetFocus=lambda: focused.append(True)),
+                            _summary_offered=lambda config=None: True,
+                            _unread_slice=lambda: [{"messageType": "conversation"}],
+                            _sender_label=lambda msg: "Ana")
+    monkeypatch.setattr(module, "build_unread_transcript", lambda messages, label: ("Ana: hola", 1))
+    for name in ("_ai_settings", "_restore_focus_after_ai"):
+        setattr(panel, name, getattr(AIActionsMixin, name).__get__(panel))
+    AIActionsMixin._on_summary_action(panel)
+    assert panel._ai_dialog is None and built[-1] == "destroyed" and focused == [True]
+    AIActionsMixin._on_summary_action(panel)  # the second activation opens a new window, not a silent Raise
+    assert "raised" not in built
+    assert [b for b in built if isinstance(b, tuple)] == [(("account", "c", "unread-summary"), "text")] * 2

@@ -295,3 +295,6 @@ class AIActionsMixin:
             dialog.ShowModal()
         finally:
             dialog._dispose()
+            self._ai_dialog = None
+            dialog.Destroy()
+            self._restore_focus_after_ai(identity, locked)
