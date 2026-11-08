@@ -48,6 +48,7 @@ import chat_aliases
 import chat_archive
 import chat_timers
 import read_receipts
+import phone_chat_delete
 import chat_remaining
 import groups
 import groups_extra
@@ -887,13 +888,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     log.info("read on the phone, but there is a newer message: kept")
                     return
                 fields, new = change
+                before = self.db.unread(jid)
                 self.db.chat(jid, **fields)
                 log.info("chat marked as %s on the phone -> app",
                          "read" if action.read else "unread")
-                chat_w = msgmap.jid_wpp(jid)
-                self.emit("chats-update", {"session": self.name, "data": [{
-                    "remoteJid": chat_w, "id": chat_w, "unreadCount": new,
-                    "previousUnreadCount": before}]})
+                announce_read(jid, before, new)
             except Exception:
                 log.exception("chat read on the phone")
 
@@ -941,6 +940,22 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 log.info("message deleted on the phone")
             except Exception:
                 log.exception("delete on the phone")
+
+        @cli.event(nev.ChatDeleteEv)
+        def _chat_deleted_on_phone(c, e):
+            """Chat deleted on the phone: the bridge forgets it, so list-chats and
+            the next history sync no longer bring it back."""
+            try:
+                jid = local_chat(c, e.JID)
+                last = self.db.raw_last(jid)
+                if not phone_chat_delete.applies(
+                        e.FromFullSync, msgmap.seconds(e.Timestamp),
+                        last["t"] if last is not None else None):
+                    return
+                self.db.delete_chat(jid)
+                log.info("chat deleted on the phone -> app")
+            except Exception:
+                log.exception("chat delete on the phone")
 
         @cli.event(nev.ChatLockEv)
         def _locked_on_phone(c, e):

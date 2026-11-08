@@ -6,6 +6,7 @@ httpx==0.28.1
 linkpreview==0.13.2
 phonenumbers==9.0.41
 pillow==13.0.0
+pycryptodome==3.23.0
 protobuf==7.36.2
 python-magic-bin==0.4.14 ; sys_platform == 'win32'
 tqdm==4.70.1
