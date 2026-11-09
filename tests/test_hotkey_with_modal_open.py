@@ -7,19 +7,19 @@ import types
 from core import dialog_foreground as df
 
 
-def _Dialog(shown=True, modal=True):
+def _modal_stub(shown=True, modal=True):
     return types.SimpleNamespace(IsShown=lambda: shown, IsModal=lambda: modal)
 
 
 def test_the_newest_modal_dialog_on_screen_is_picked():
     frame = types.SimpleNamespace(IsShown=lambda: True)
-    older, newer = _Dialog(), _Dialog()
+    older, newer = _modal_stub(), _modal_stub()
     assert df.open_modal_dialog([frame, older, newer]) is newer
-    assert df.open_modal_dialog([frame, older, _Dialog(modal=False)]) is older
+    assert df.open_modal_dialog([frame, older, _modal_stub(modal=False)]) is older
 
 
 def test_no_modal_open_is_none():
-    assert df.open_modal_dialog([_Dialog(shown=False), _Dialog(modal=False)]) is None
+    assert df.open_modal_dialog([_modal_stub(shown=False), _modal_stub(modal=False)]) is None
     assert df.open_modal_dialog([]) is None
 
 
