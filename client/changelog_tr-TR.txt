@@ -26,6 +26,8 @@ YENİLİKLER
 
 - Neonize ile kanallar: bir kanalı açmak veya eşitlemek WhatsApp'tan bir kerede bin güncelleme istiyordu; sunucu yanıt vermiyor, kanal boş kalıyor ve eşitleme her 30 saniyede bir yeniden deniyordu. Artık güncellemeler WhatsApp Web'in yaptığı gibi 100'er 100'er isteniyor.
 
+- Mesaj listesi: Brezilya (ABNT2) klavyesinde mesaj listesinde "/" tuşuna basmak mesaj alanına "Á" yazıyordu ve "ç" "º" olarak çıkıyordu. Artık listede yazdıklarınız alana klavyenin gerçekten yazdığı gibi gidiyor, noktalama işaretleri ise listede kalıyor.
+
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
 - Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.

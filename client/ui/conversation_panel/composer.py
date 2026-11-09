@@ -383,18 +383,30 @@ class ComposerMixin:
             event.Skip()
             return
 
-        key_code = event.GetUnicodeKey()
-        # EVT_CHAR_HOOK reports the raw (unshifted-case) key code for letters,
-        # so A-Z always arrives uppercase regardless of Shift/Caps Lock — apply
-        # the correct case ourselves instead of trusting the hook's casing.
-        if ord("A") <= key_code <= ord("Z"):
-            caps_on = wx.GetKeyState(wx.WXK_CAPITAL)
-            upper = event.ShiftDown() != caps_on
-            char = chr(key_code) if upper else chr(key_code).lower()
-        else:
-            char = chr(key_code)
+        char = self._typed_char(event)
+        if not char:
+            event.Skip()
+            return
         self.message_field.SetFocus()
         self.message_field.WriteText(char)
+
+    @staticmethod
+    def _typed_char(event) -> str:
+        """What the key of this EVT_CHAR_HOOK types (core/typed_key.py): the
+        hook's GetUnicodeKey() is a virtual key code for anything but A-Z and
+        0-9, and "/" on an ABNT2 keyboard came out as "Á"."""
+        from core.typed_key import ascii_letter_or_digit, typed_char
+        shift = event.ShiftDown()
+        caps = bool(wx.GetKeyState(wx.WXK_CAPITAL))
+        raw = getattr(event, "GetRawKeyCode", None)
+        flags = getattr(event, "GetRawKeyFlags", None)
+        typed = None
+        if callable(raw):
+            typed = typed_char(raw(), (flags() >> 16) & 0xFF if callable(flags) else 0,
+                               shift, caps)
+        if typed is None:
+            typed = ascii_letter_or_digit(event.GetUnicodeKey(), shift, caps)
+        return typed
 
     def _should_redirect_char_to_message(self, event) -> bool:
         if self.conversation is None or not self.conversation_panel.IsShown():
@@ -416,13 +428,10 @@ class ComposerMixin:
             # below would otherwise wave this straight through — see
             # _is_phantom_nvda_char()'s docstring.
             return False
-        try:
-            # Only redirect alphanumeric characters — this prevents special
-            # keys like Delete (127), Backspace (8), and other control/function
-            # characters from being swallowed and written into the message field.
-            if not chr(key).isalnum():
-                return False
-        except (ValueError, OverflowError):
+        # Only redirect a letter or a digit, as the keyboard layout types it —
+        # never Delete, Backspace, punctuation or a function key.
+        typed = self._typed_char(event)
+        if not typed or not typed.isalnum():
             return False
 
         focus = wx.Window.FindFocus()

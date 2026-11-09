@@ -26,6 +26,8 @@ WHAT'S NEW
 
 - Channels with Neonize: opening or syncing a channel asked WhatsApp for a thousand updates at once; the server did not answer, the channel stayed empty and the sync tried again every 30 seconds. Updates are now asked 100 at a time, as WhatsApp Web does.
 
+- Message list: on a Brazilian (ABNT2) keyboard, pressing "/" in the message list wrote "Á" into the message field, and "ç" came out as "º". Typing in the list now sends the field the letter or digit the keyboard really types, and punctuation stays in the list.
+
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
 
 - Calls: delayed media and device/camera work stay with their original call and stream. Neonize processes media in bounded queues off the server loop and keeps its reader after a transient emission failure. Ambiguous WASAPI names no longer select the first matching device. Neonize call logs also include signal-level summaries without saving audio content, to help investigate silence. When call output is reopened, an old stream that fails to close cannot consume the new stream's audio; an echo-reference failure no longer silences rendered audio.

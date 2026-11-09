@@ -26,6 +26,8 @@ NOWOŚCI
 
 - Kanały z Neonize: otwarcie lub synchronizacja kanału prosiły WhatsApp o tysiąc aktualizacji naraz; serwer nie odpowiadał, kanał zostawał pusty, a synchronizacja ponawiała próbę co 30 sekund. Teraz aktualizacje są pobierane po 100, jak robi to WhatsApp Web.
 
+- Lista wiadomości: na brazylijskiej klawiaturze (ABNT2) naciśnięcie "/" na liście wiadomości wpisywało "Á" w pole wiadomości, a "ç" pojawiało się jako "º". Teraz to, co piszesz na liście, trafia do pola tak, jak wpisuje to klawiatura, a znaki interpunkcyjne zostają na liście.
+
 - Połączenia: okno „Dodaj uczestników” działa teraz z czytnikiem ekranu. Osoby zaznacza się tymi samymi klawiszami, dźwiękiem i komunikatami co na listach czatów i wiadomości (Ctrl+Spacja, Spacja, gdy coś jest zaznaczone, Shift+strzałki, Ctrl+Shift+Spacja, Esc), a wynik jest odczytywany: kto został zaproszony, kogo nie udało się dodać lub dlaczego żądanie się nie powiodło.
 
 - Połączenia: opóźnione dane multimedialne oraz zadania urządzeń i kamery pozostają przypisane do pierwotnego połączenia i strumienia. Neonize przetwarza dane w ograniczonych kolejkach poza pętlą serwera i nie zatrzymuje odczytu po przejściowym błędzie wysyłania danych do klienta. Przy niejednoznacznej nazwie WASAPI nie jest już wybierane pierwsze pasujące urządzenie odtwarzające. Dzienniki połączeń Neonize zawierają również podsumowania poziomu sygnału bez zapisywania treści dźwięku, co pomaga badać przyczyny braku dźwięku. Po ponownym otwarciu wyjścia audio połączenia stary strumień, którego nie udało się zamknąć, nie może pobierać dźwięku z nowego strumienia; błąd sygnału odniesienia dla usuwania echa nie wycisza już dźwięku przygotowanego do odtwarzania.
