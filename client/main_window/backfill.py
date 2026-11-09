@@ -22,6 +22,7 @@ from core.api_client import (
 from core.utils import auto_download_enabled
 from core.page_heap import collect_after_batch
 from core.sync_progress import ProgressThrottle
+from core.media_on_disk import already_stored
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
@@ -1524,7 +1525,10 @@ class BackfillMixin:
             if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)
-            and self._media_sync_candidate(msg, explicit=explicit) is not None
+            and (kind := self._media_sync_candidate(msg, explicit=explicit)) is not None
+            # already downloaded in an earlier session: not counted as left to
+            # do (core/media_on_disk.py)
+            and not already_stored(msg, kind)
         ]
         if not tasks:
             return 0
@@ -1549,9 +1553,9 @@ class BackfillMixin:
                         downloaded += 1
                 except Exception:
                     pass
-                # "Processed" (not "downloaded") is the X: most candidates
-                # still end up skipped (already on disk, CDN expired), and a
-                # count of downloads alone looks stuck while the sweep moves.
+                # "Processed" (not "downloaded") is the X: some candidates
+                # still end up skipped (CDN expired, refused), and a count of
+                # downloads alone looks stuck while the sweep moves.
                 # Nothing is said once it has been superseded; a voice call is
                 # _report_sync_progress()'s to check.
                 if (progress is not None and progress.step()

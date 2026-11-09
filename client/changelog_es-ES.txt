@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Descarga de medios: "Descargando medios: X de Y" ahora cuenta solo los medios que faltan por descargar. Antes contaba también los ya descargados en sesiones anteriores, y parecía que casi nada se había descargado (por ejemplo "723 de 728 procesados (66 descargados)", cuando los otros 659 ya estaban en el ordenador).
+
 - Canales: en "Crear canal..." y "Editar canal...", la opción Reacciones define cómo pueden reaccionar los seguidores a las novedades (cualquier emoji, solo los emojis predeterminados o ninguna reacción), como en WhatsApp Web, con WPPConnect y Neonize.
 
 - Mensajes destacados: una nueva ventana muestra todos los mensajes destacados de todos los chats (Alt+0, o la fila "Mensajes destacados" de la lista de navegación), con un campo de búsqueda; Intro abre el chat en el mensaje y Supr quita el destacado. Sugerencia de la issue #708.

@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Pobieranie multimediów: "Pobieranie multimediów: X z Y" liczy teraz tylko to, co jeszcze trzeba pobrać. Wcześniej liczyło też pliki pobrane w poprzednich sesjach i wyglądało, jakby prawie nic nie zostało pobrane (na przykład "723 z 728 przetworzonych (66 pobranych)", gdy pozostałe 659 były już na komputerze).
+
 - Kanały: w "Utwórz kanał..." i "Edytuj kanał..." wybór Reakcje określa, jak obserwujący mogą reagować na aktualizacje (dowolne emoji, tylko domyślne emoji lub bez reakcji), jak w WhatsApp Web, z WPPConnect i Neonize.
 
 - Wiadomości oznaczone gwiazdką: nowe okno pokazuje wszystkie wiadomości oznaczone gwiazdką ze wszystkich czatów (Alt+0 lub wiersz "Wiadomości oznaczone gwiazdką" na liście nawigacji), z polem wyszukiwania; Enter otwiera czat na wiadomości, a Delete usuwa gwiazdkę. Propozycja ze zgłoszenia #708.

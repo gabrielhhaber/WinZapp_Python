@@ -266,3 +266,21 @@ class TestAutoDownloadTypeFilter:
                 self._msg(**kwargs)) is False
             assert _SyncIfMediaStub(allowed_types=[category]).sync_if_media(
                 self._msg(**kwargs)) is True
+
+
+class TestMediaAlreadyOnDiskIsNotLeftToDo:
+    """2026-11-09: "723 de 728 processadas (66 baixadas)" read as most media
+    missing, when 659 were already on disk from earlier sessions."""
+
+    def test_a_stored_file_is_neither_queued_nor_counted(self, monkeypatch):
+        import main_window.backfill as backfill
+        monkeypatch.setattr(backfill, "already_stored", lambda msg, kind: msg["key"]["id"] == "A")
+        totals = []
+        monkeypatch.setattr(backfill, "ProgressThrottle",
+                            lambda total: totals.append(total) or type(
+                                "P", (), {"step": lambda self: False, "done": 0, "total": total})())
+        s = _Stub(chats={"a@s.whatsapp.net": _chat(
+            _media_msg("A"), _media_msg("B"), _media_msg("C", "audioMessage"))},
+            downloads={"B": True, "C": True})
+        assert s.sync_media_for_all_chats() == 2
+        assert sorted(s.seen) == ["B", "C"] and totals == [2]

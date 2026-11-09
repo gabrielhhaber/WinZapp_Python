@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Descărcarea media: "Descărcare media: X din Y" numără acum doar fișierele care mai trebuie descărcate. Înainte le număra și pe cele descărcate în sesiunile anterioare și părea că aproape nimic nu fusese descărcat (de exemplu "723 din 728 procesate (66 descărcate)", când celelalte 659 erau deja pe computer).
+
 - Canale: în "Creați canal..." și "Editați canalul...", opțiunea Reacții stabilește cum pot reacționa urmăritorii la actualizări (orice emoji, doar emoji-urile implicite sau fără reacții), ca în WhatsApp Web, cu WPPConnect și Neonize.
 
 - Mesaje marcate cu stea: o fereastră nouă arată toate mesajele marcate cu stea din toate conversațiile (Alt+0 sau rândul "Mesaje marcate cu stea" din lista de navigare), cu un câmp de căutare; Enter deschide conversația la mesaj, iar Delete elimină steaua. Sugestie din issue #708.

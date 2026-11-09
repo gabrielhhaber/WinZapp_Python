@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Media downloads: "Downloading media: X of Y" now counts only the media still to download. It used to count the ones downloaded in earlier sessions too, and it looked as if almost nothing had come down (for example "723 of 728 processed (66 downloaded)", when the other 659 were already on the computer).
+
 - Channels: in "Create channel..." and "Edit channel...", Reactions sets who may react to the updates (any emoji, default emojis only or no reactions), as in WhatsApp Web, on WPPConnect and Neonize.
 
 - Starred messages: a new window lists every starred message of every chat (Alt+0, or the "Starred messages" row of the navigation list), with a search field; Enter opens the chat on the message, and Delete removes the star. Suggested in issue #708.
