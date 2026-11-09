@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Account manager: new check box "Connect all accounts when WinZapp starts". When it is on, starting WinZapp also opens every other paired account in the background.
+
 - Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.
 
 - Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest.

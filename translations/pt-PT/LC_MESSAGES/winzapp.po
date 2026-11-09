@@ -128,6 +128,11 @@ msgctxt "acc_btn_restore"
 msgid "Re&store"
 msgstr "Re&staurar"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+msgctxt "acc_chk_connect_all"
+msgid "Connect all accounts when WinZapp &starts"
+msgstr "Ligar todas as contas ao &iniciar o WinZapp"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 #, python-brace-format
@@ -193,6 +198,11 @@ msgstr ""
 msgctxt "acc_err_archive_not_paired"
 msgid "Only connected accounts can be archived."
 msgstr "Só é possível arquivar contas ligadas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "acc_err_connect_all_save"
+msgid "Could not save the setting."
+msgstr "Não foi possível guardar a definição."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_delete_current"

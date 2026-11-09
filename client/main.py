@@ -2052,6 +2052,25 @@ if __name__ == "__main__":
 
         setup_logging()
         logging.info("Instance lock acquired for account %s (%s).", _account_id, _account_name)
+        # "Connect all accounts at startup" (account manager check box): open the
+        # other paired accounts in the background. A sibling already running
+        # exits at its own instance lock, so a repeat is harmless.
+        try:
+            from account_bootstrap import accounts_to_connect
+            from account_launcher import build_launch_command
+            from app_settings import AppSettings
+            _already = set(_startup.get("background", [])) if _mode == "autostart_boot" else set()
+            for _other_id in accounts_to_connect(
+                    sys.argv, _registry, _account_id,
+                    AppSettings(gd).get("connect_all_accounts")):
+                if _other_id in _already:
+                    continue
+                subprocess.Popen(build_launch_command(
+                    sys.argv[0], sys.executable, _other_id,
+                    getattr(sys, "frozen", False),
+                    startup_source="autostart", background=True))
+        except Exception:
+            logging.exception("[startup] connecting all accounts failed")
         logging.info("Creating wx.App...")
         app = wx.App()
         # WinZapp only ever exits on purpose (real_exit(), the tray, Windows
