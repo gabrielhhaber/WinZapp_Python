@@ -120,6 +120,16 @@ def _commit_time(cwd, *args):
         return 0
 
 
+def _prepared_time(tree):
+    """When `prepare` applied the patches: the committer date of the tree's
+    oldest commit of its own (git am stamps them all at once). A later commit
+    of its own does not move it."""
+    result = subprocess.run(["git", "log", "--format=%ct", f"{BASE}..{BRANCH}"], cwd=tree,
+                            capture_output=True, text=True)
+    stamps = [int(line) for line in result.stdout.split() if line.isdigit()]         if result.returncode == 0 else []
+    return min(stamps) if stamps else _commit_time(tree, BRANCH)
+
+
 def patches_moved(name):
     """True when neonize_patches/<name> changed in the repository after this
     tree was prepared, and the tree does not hold that change.
@@ -130,16 +140,19 @@ def patches_moved(name):
     the patches before it, at the same pinned neonize version, so the version
     check passed, `export` put the old 0002 back and the DLL had no calls.
 
-    The tree's newest commit is when `prepare` applied the patches (git am
-    stamps the committer date), or a later commit of its own; the repository's
-    newest commit under neonize_patches/<name> is when the patches last
-    changed. Not a git checkout, or no workspace: never moved.
+    The tree's oldest commit of its own is when `prepare` applied the patches
+    (git am stamps the committer date); the repository's newest commit under
+    neonize_patches/<name> is when the patches last changed. Not the tree's
+    newest commit: a new commit on a stale tree (2026-11-08, the channel
+    media handle on the workspace from before #732) is newer than every
+    patch, and export rewrote 0002 without the call hook again. Not a git
+    checkout, or no workspace: never moved.
     """
     tree = tree_path(name)
     if not os.path.isdir(os.path.join(tree, ".git")):
         return False
     repo = _commit_time(HERE, "--", os.path.join(PATCHES, name))
-    work = _commit_time(tree, BRANCH)
+    work = _prepared_time(tree)
     if not repo or not work or repo <= work:
         return False
     return not matches_patches(name)

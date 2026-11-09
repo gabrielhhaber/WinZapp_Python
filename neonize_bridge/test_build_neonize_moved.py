@@ -19,6 +19,8 @@ def trees(tmp_path, monkeypatch):
         key = "repo:" + os.path.basename(args[-1]) if cwd == bn.HERE else "work:" + os.path.basename(cwd)
         return times.get(key, 0)
     monkeypatch.setattr(bn, "_commit_time", commit_time)
+    monkeypatch.setattr(bn, "_prepared_time",
+                        lambda tree: times.get("work:" + os.path.basename(tree), 0))
     matching = set(bn.TREES)
     monkeypatch.setattr(bn, "matches_patches", lambda name: name in matching)
     return times, matching
@@ -59,3 +61,27 @@ def test_export_refuses_and_writes_nothing(trees, monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as stop:
         bn.export()
     assert stop.value.code == bn.PATCHES_MOVED and written == []
+
+
+def test_a_new_commit_on_a_stale_workspace_does_not_hide_it(tmp_path, monkeypatch):
+    # 2026-11-08: the workspace from before #732 got a new commit, newer than
+    # every patch; export then rewrote 0002 without the call hook.
+    import subprocess
+    tree = tmp_path / "neonize"
+    tree.mkdir()
+
+    def git(*args, when):
+        env = dict(os.environ, GIT_COMMITTER_DATE=f"@{when} +0000", GIT_AUTHOR_DATE=f"@{when} +0000")
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *args], cwd=tree,
+                       check=True, capture_output=True, env=env)
+    git("init", "-q", "-b", bn.BRANCH, when=1_700_001_000)
+    git("commit", "-q", "--allow-empty", "-m", "upstream", when=1_700_001_000)
+    git("tag", bn.BASE, when=1_700_001_000)
+    git("commit", "-q", "--allow-empty", "-m", "0001 applied by prepare", when=1_700_002_000)
+    git("commit", "-q", "--allow-empty", "-m", "a new change", when=1_700_009_000)
+    assert bn._prepared_time(str(tree)) == 1_700_002_000
+
+    monkeypatch.setattr(bn, "tree_path", lambda name: str(tmp_path / name))
+    monkeypatch.setattr(bn, "_commit_time", lambda cwd, *args: 1_700_005_000 if cwd == bn.HERE else 0)
+    monkeypatch.setattr(bn, "matches_patches", lambda name: False)
+    assert bn.patches_moved("neonize")
