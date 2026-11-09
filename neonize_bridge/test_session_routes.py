@@ -245,7 +245,7 @@ async def test_pairing_history_is_stored_and_a_qr_on_screen_is_redone(tmp_path, 
                         lambda self: restarted.append(self.name) or True)
     client, token, _ = await _bridge(tmp_path)
     try:
-        response = await client.post(f"/api/{token}/pairing-history", json={"days": 7})
+        response = await client.post(f"/api/{token}/pairing-history", json={"days": -7})
         assert response.status == 400
         s = sessions["account1"]
         s.status = "QRCODE"
@@ -270,7 +270,7 @@ async def test_start_session_stores_the_history_chosen_before_pairing(tmp_path, 
         await client.post(f"/api/{token}/start-session", json={"historyDays": 365})
         s = sessions["account1"]
         assert pairing_history.load(s.folder, 0) == 365
-        await client.post(f"/api/{token}/start-session", json={"historyDays": 9})   # not a choice
+        await client.post(f"/api/{token}/start-session", json={"historyDays": "x"})   # not a number
         assert pairing_history.load(s.folder, 0) == 365
     finally:
         await client.close()

@@ -22,22 +22,25 @@ import os
 
 log = logging.getLogger("bridge")
 
-#: The choices offered: 0 is WhatsApp's own default (recent messages only),
-#: 3650 is "everything" (what the phone agrees to send, at most ten years).
+#: The ready-made choices: 0 is WhatsApp's own default (recent messages
+#: only), 3650 is "everything" (what the phone agrees to send, ten years).
 CHOICES = (0, 30, 180, 365, 3650)
+#: A custom choice (days, months or years in the dialog) may ask for up to
+#: twenty years: older than WhatsApp itself.
+MAX_DAYS = 7320
 #: When nothing was chosen: the bridge's --history-days (180 by default).
 FILE = "pairing_history.json"
 
 
 def chosen(value):
-    """`value` as one of CHOICES, or None when it is not one."""
+    """`value` as days to ask for (0, or 1 to MAX_DAYS), or None."""
     if isinstance(value, bool):
         return None
     try:
         days = int(value)
     except (TypeError, ValueError):
         return None
-    return days if days in CHOICES else None
+    return days if 0 <= days <= MAX_DAYS else None
 
 
 def load(folder, default):

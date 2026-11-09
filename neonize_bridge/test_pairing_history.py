@@ -6,11 +6,11 @@ import pairing_history as ph
 import server
 
 
-def test_only_the_offered_choices_are_taken():
-    for days in ph.CHOICES:
+def test_any_number_of_days_up_to_twenty_years_is_taken():
+    for days in ph.CHOICES + (1, 7, 548, ph.MAX_DAYS):
         assert ph.chosen(days) == days
         assert ph.chosen(str(days)) == days
-    for bad in (7, -1, "x", None, True, [], 999999):
+    for bad in (-1, ph.MAX_DAYS + 1, "x", None, True, [], 999999):
         assert ph.chosen(bad) is None
 
 
@@ -18,7 +18,7 @@ def test_the_choice_is_kept_in_the_session_folder(tmp_path):
     assert ph.load(str(tmp_path), 180) == 180          # nothing chosen: the default
     assert ph.save(str(tmp_path), 3650) is True
     assert ph.load(str(tmp_path), 180) == 3650
-    (tmp_path / ph.FILE).write_text('{"days": 12}', encoding="utf-8")
+    (tmp_path / ph.FILE).write_text('{"days": -12}', encoding="utf-8")
     assert ph.load(str(tmp_path), 180) == 180          # not a choice: the default
     (tmp_path / ph.FILE).write_text("junk", encoding="utf-8")
     assert ph.load(str(tmp_path), 30) == 30

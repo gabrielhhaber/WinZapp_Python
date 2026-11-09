@@ -9852,6 +9852,64 @@ msgid "All the history (can take long and use a lot of space)"
 msgstr "Todo o histórico (pode demorar e ocupar bastante espaço)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_days"
+msgid "Number of &days:"
+msgstr "Quantidade de &dias:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_months"
+msgid "Number of &months:"
+msgstr "Quantidade de m&eses:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_not_number"
+msgid "Type a whole number, digits only."
+msgstr "Escreva um número inteiro, só com algarismos."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_days"
+msgid "At most {max} days."
+msgstr "No máximo {max} dias."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_months"
+msgid "At most {max} months."
+msgstr "No máximo {max} meses."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_years"
+msgid "At most {max} years."
+msgstr "No máximo {max} anos."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_years"
+msgid "Number of &years:"
+msgstr "Quantidade de &anos:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_zero"
+msgid "The number must be greater than 0."
+msgstr "O número tem de ser maior do que 0."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_days"
+msgid "Custom (days)"
+msgstr "Personalizado (dias)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_months"
+msgid "Custom (months)"
+msgstr "Personalizado (meses)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_years"
+msgid "Custom (years)"
+msgstr "Personalizado (anos)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/connect_history.py
 msgctxt "pairing_history_label"
 msgid "Old messages to &bring when connecting:"

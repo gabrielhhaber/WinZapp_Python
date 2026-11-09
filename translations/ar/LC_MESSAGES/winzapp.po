@@ -9639,6 +9639,64 @@ msgid "All the history (can take long and use a lot of space)"
 msgstr "السجل كاملًا (قد يستغرق وقتًا ويشغل مساحة كبيرة)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_days"
+msgid "Number of &days:"
+msgstr "عدد الأ&يام:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_months"
+msgid "Number of &months:"
+msgstr "عدد الأ&شهر:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_not_number"
+msgid "Type a whole number, digits only."
+msgstr "اكتب عددًا صحيحًا بالأرقام فقط."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_days"
+msgid "At most {max} days."
+msgstr "{max} يومًا على الأكثر."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_months"
+msgid "At most {max} months."
+msgstr "{max} شهرًا على الأكثر."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_years"
+msgid "At most {max} years."
+msgstr "{max} سنة على الأكثر."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_years"
+msgid "Number of &years:"
+msgstr "عدد ال&سنوات:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_zero"
+msgid "The number must be greater than 0."
+msgstr "يجب أن يكون العدد أكبر من 0."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_days"
+msgid "Custom (days)"
+msgstr "مخصص (أيام)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_months"
+msgid "Custom (months)"
+msgstr "مخصص (أشهر)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_years"
+msgid "Custom (years)"
+msgstr "مخصص (سنوات)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/connect_history.py
 msgctxt "pairing_history_label"
 msgid "Old messages to &bring when connecting:"
