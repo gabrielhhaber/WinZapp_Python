@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Administrar cuentas: nueva casilla "Conectar todas las cuentas al iniciar WinZapp". Si está activada, al iniciar WinZapp también se abren en segundo plano todas las demás cuentas vinculadas.
+
 - Copia de seguridad: la copia de seguridad del perfil (en Ajustes > Almacenamiento y en el administrador de almacenamiento) ya no aparece cuando WinZapp funciona con el motor Neonize, que no tiene perfil de navegador que copiar.
 
 - Mensajes: las identidades alternativas contradictorias ya no desvían los mensajes enviados a otra persona o recibidos de ella al chat contigo mismo. Se ignoran las correspondencias no válidas; los mensajes permanecen en el chat original hasta que se resuelva la identidad.

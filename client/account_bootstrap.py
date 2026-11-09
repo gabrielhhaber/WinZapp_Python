@@ -66,6 +66,17 @@ def resolve_startup(argv, registry) -> dict:
     return _plain_start(registry)
 
 
+def accounts_to_connect(argv, registry, current_account_id, enabled) -> list:
+    """Ids of the paired accounts to open in the background next to this one
+    when "connect all accounts at startup" is on. Nothing for a process started
+    for one explicit account (--account: the switcher, or a sibling launched by
+    this very rule), so siblings never launch each other in a chain.
+    """
+    if not enabled or _arg_value(argv, "--account") is not None:
+        return []
+    return [a["id"] for a in registry.list_paired() if a["id"] != current_account_id]
+
+
 def _plain_start(registry) -> dict:
     paired = registry.list_paired()
     if paired:

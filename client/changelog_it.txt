@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Gestione account: nuova casella "Connetti tutti gli account all'avvio di WinZapp". Se attiva, all'avvio di WinZapp vengono aperti in background anche tutti gli altri account associati.
+
 - Backup: il backup del profilo (in Impostazioni > Archiviazione e nella gestione dell'archiviazione) non viene più mostrato quando WinZapp usa il motore Neonize, che non ha un profilo del browser da salvare.
 
 - Messaggi: le identità alternative in conflitto non spostano più i messaggi inviati a un'altra persona o ricevuti da essa nella chat con te stesso. Le associazioni non valide vengono ignorate; i messaggi rimangono nella chat originale finché l'identità non viene risolta.

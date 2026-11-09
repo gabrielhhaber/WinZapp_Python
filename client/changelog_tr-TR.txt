@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Hesap yöneticisi: yeni "WinZapp başladığında tüm hesaplara bağlan" onay kutusu. Açıkken WinZapp başlatıldığında eşleştirilmiş diğer tüm hesaplar da arka planda açılır.
+
 - Yedekleme: profil yedeği (Ayarlar > Depolama ve depolama yöneticisinde), tarayıcı profili olmayan Neonize motoruyla çalışırken artık gösterilmez.
 
 - Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.
