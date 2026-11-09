@@ -1598,16 +1598,19 @@ class SettingsMixin:
 
         return self._resolve_message_background_path()
 
-    def play_background_notification_sound(self, remote_jid: str):
+    def play_background_notification_sound(self, remote_jid: str,
+                                           respect_quiet_hours: bool = True):
         """Play the resolved background/toast notification sound for `remote_jid`.
 
         Skipped while Windows is in a state where it would itself suppress a
         toast's sound (Focus Assist, fullscreen app, presentation mode) —
         see core/quiet_hours.py for why this needs its own check: this sound
         is played directly through BASS, entirely outside the WinRT toast
-        pipeline Windows actually gates on Focus Assist.
+        pipeline Windows actually gates on Focus Assist. The foreground
+        message sound choice passes respect_quiet_hours=False: the window is in
+        front, so there is no toast for Windows to silence.
         """
-        if is_quiet_hours_active():
+        if respect_quiet_hours and is_quiet_hours_active():
             return
         path = self._resolve_background_sound_path(remote_jid)
         if not path:

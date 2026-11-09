@@ -225,6 +225,13 @@ SCENARIOS = {
         and d._alert_private_custom_field.GetValue().endswith("private.wav")
         and d._alert_group_custom_field.GetValue().endswith("group.wav"),
     ),
+    "foreground_sounds": dict(
+        saves={("foreground_sounds", "active"): "notification",
+               ("foreground_sounds", "other"): "notification"},
+        set=lambda d, t: [c.SetSelection(1) for c in d._foreground_sound_choice._combos.values()],
+        shows=lambda d, t: all(c.GetSelection() == 1
+                               for c in d._foreground_sound_choice._combos.values()),
+    ),
     "profile_backup_intervals": dict(
         saves={("profile_backup", "close_snapshot_min_hours"): 6,
                ("profile_backup", "live_snapshot_interval_hours"): 3},

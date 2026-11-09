@@ -13,6 +13,7 @@ from ui.dialogs import engine_picker
 from core.i18n import LANGUAGE_NAMES
 from core.combo_search import bind_incremental_search
 from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
+from ui.dialogs.foreground_sound_choice import ForegroundSoundChoice
 from core.sound_system import (
     SOUND_EVENTS, discover_alert_tone_choices, resolve_alert_tone_path,
     DEFAULT_PACK_ID, import_soundpack, AlertPreviewController,
@@ -1069,6 +1070,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         alert_sizer.Add(self._alert_group_custom_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
         self._alert_group_custom_field = wx.TextCtrl(self._alert_page, style=wx.TE_DONTWRAP)
         alert_sizer.Add(self._alert_group_custom_field, 0, wx.EXPAND | wx.ALL, 8)
+
+        self._foreground_sound_choice = ForegroundSoundChoice(
+            self, self._alert_page, alert_sizer)
 
         self._sound_events_page.SetSizer(se_sizer)
         self._sound_events_page.finish()
@@ -2786,6 +2790,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._set_alert_combo(self._alert_group_combo, tones.get("group", "default"))
             self._alert_group_custom_field.SetValue(tones.get("group_custom_path", ""))
             self._update_alert_custom_field_state()
+            self._foreground_sound_choice.load(self.main_window.settings)
 
         # Storage
         storage = self.main_window.settings.get("storage", {})
@@ -4450,6 +4455,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "group": group_choice,
                 "group_custom_path": self._alert_group_custom_field.GetValue().strip(),
             }
+            self._foreground_sound_choice.apply(self.main_window.settings)
         # Per-conversation overrides use resolved paths cached by object identity
         # (see play_background_notification_sound) — a changed alert-tone
         # default should not keep serving a stale cached Sound for "default".
@@ -4987,6 +4993,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._alert_private_custom_label.SetLabel(i18n.t("alert_tone_custom_path_label"))
             self._alert_group_custom_label.SetLabel(i18n.t("alert_tone_custom_path_label"))
             self._reload_alert_tone_choices()
+            self._foreground_sound_choice.relabel()
 
         if ready(self, "storage"):
             # Storage tab

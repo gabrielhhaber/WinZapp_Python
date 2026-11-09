@@ -6453,6 +6453,28 @@ msgid "Force reinstall"
 msgstr "Force reinstall"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_active_label"
+msgid ""
+"Sound for messages in the open chat while WinZapp is in the foreground:"
+msgstr ""
+"Sound for messages in the open chat while WinZapp is in the foreground:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_dedicated"
+msgid "Dedicated foreground sound"
+msgstr "Dedicated foreground sound"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_notification"
+msgid "Same as the background notification sound"
+msgstr "Same as the background notification sound"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_other_label"
+msgid "Sound for messages in other chats while WinZapp is in the foreground:"
+msgstr "Sound for messages in other chats while WinZapp is in the foreground:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
 msgctxt "forward_done"
 msgid "Message forwarded."

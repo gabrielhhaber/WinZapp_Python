@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Sounds: two new options in Settings, Sounds let you choose which sound plays for a new message while WinZapp is in the foreground, one for the open conversation and one for the other conversations. Each can keep the dedicated foreground sound, as before, or use the same notification sound you chose for messages in the background.
+
 - WhatsApp links: WinZapp now opens chat links. A wa.me or api.whatsapp.com link (for example from an airline, a shop or a website) opens the chat with that number, even if it is not in your contacts, puts the message from the link in the message field and leaves the focus there, ready for you to review and send. Links with only a number work too. The installed version now registers itself for WhatsApp links on its first launch, so WinZapp appears under Default apps in Windows; the portable version keeps the option in Settings, General.
 
 - Account manager: new check box "Connect all accounts when WinZapp starts". When it is on, starting WinZapp also opens every other paired account in the background.
