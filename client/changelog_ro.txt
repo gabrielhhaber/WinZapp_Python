@@ -14,6 +14,8 @@ NOUTĂȚI
 
 - Apeluri de grup: WinZapp spune acum cine intră și cine iese din apel (Setări > Apeluri, „Anunțați când cineva intră în apel” și „Anunțați când cineva iese din apel”, activate implicit), iar fereastra „Participanții la apel” se actualizează singură atunci, fără butonul Reîmprospătează; F5 citește lista din nou.
 
+- Comanda rapidă globală: cu o fereastră WinZapp care așteaptă un răspuns, cum ar fi anunțul de actualizare lăsat deschis cu programul în zona de notificare, comanda rapidă globală aduce acum acea fereastră în față. Înainte apărea fereastra principală, care nu răspundea la nimic.
+
 - Apeluri: fereastra „Adaugă participanți” funcționează acum cu cititorul de ecran. Persoanele se marchează cu aceleași taste, același sunet și aceleași anunțuri ca în listele de conversații și mesaje (Ctrl+Spațiu, Spațiu cât timp este ceva marcat, Shift+săgeți, Ctrl+Shift+Spațiu, Esc), iar rezultatul este rostit: cine a fost invitat, cine nu a putut fi adăugat sau de ce a eșuat cererea.
 
 - Apeluri: datele media și operațiile întârziate pentru dispozitive sau cameră rămân asociate apelului și fluxului de origine. Neonize procesează datele în cozi limitate, în afara buclei serverului, și păstrează cititorul după o eroare temporară de emitere. Numele WASAPI ambigue nu mai selectează primul dispozitiv găsit. Jurnalele apelurilor Neonize includ și rezumate ale nivelului semnalului, fără a salva conținutul audio, pentru a ajuta la investigarea lipsei sunetului. La redeschiderea ieșirii audio a unui apel, un flux vechi care nu se poate închide nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu mai reduce la tăcere sunetul pregătit pentru redare.

@@ -14,6 +14,8 @@ WHAT'S NEW
 
 - Group calls: WinZapp now says who joins and who leaves the call (Settings > Calls, "Announce when someone joins a call" and "Announce when someone leaves a call", on by default), and the "Call participants" window updates by itself when it happens, with no Refresh button; F5 reads the list again.
 
+- Global hotkey: with a WinZapp window waiting for an answer, such as the update prompt left open while the program was in the tray, the global hotkey now brings that window to the front. The main window used to come up and answer nothing.
+
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
 
 - Calls: delayed media and device/camera work stay with their original call and stream. Neonize processes media in bounded queues off the server loop and keeps its reader after a transient emission failure. Ambiguous WASAPI names no longer select the first matching device. Neonize call logs also include signal-level summaries without saving audio content, to help investigate silence. When call output is reopened, an old stream that fails to close cannot consume the new stream's audio; an echo-reference failure no longer silences rendered audio.

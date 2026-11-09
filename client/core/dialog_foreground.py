@@ -92,6 +92,36 @@ def force_foreground(hwnd, *, topmost: bool = False) -> bool:
     return user32.GetForegroundWindow() == hwnd
 
 
+def open_modal_dialog(windows):
+    """The modal dialog on screen, newest first, among *windows*
+    (wx.GetTopLevelWindows()), or None.
+
+    While one is open the main window is disabled: the global hotkey brought
+    the window forward and nothing in it answered, the dialog (an update
+    prompt left waiting in the tray) staying behind it. Reported as WinZapp
+    "unavailable" after the hotkey with the updater open."""
+    for window in reversed(list(windows or ())):
+        try:
+            # only a dialog has IsModal (a frame never disables the window)
+            is_modal = getattr(window, "IsModal", None)
+            if callable(is_modal) and window.IsShown() and is_modal():
+                return window
+        except RuntimeError:        # destroyed while being walked
+            continue
+    return None
+
+
+def bring_modal_to_front(window) -> bool:
+    """Raise *window* and give it the foreground; False when Windows kept it."""
+    try:
+        if not window.IsShown():
+            return False
+        window.Raise()
+        return force_foreground(window.GetHandle())
+    except RuntimeError:
+        return False
+
+
 def _speak(announce) -> None:
     if announce is None:
         return

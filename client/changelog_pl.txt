@@ -14,6 +14,8 @@ NOWOŚCI
 
 - Połączenia grupowe: WinZapp mówi teraz, kto dołącza do połączenia, a kto je opuszcza (Ustawienia > Połączenia, „Ogłaszaj, gdy ktoś dołącza do połączenia” i „Ogłaszaj, gdy ktoś opuszcza połączenie”, domyślnie włączone), a okno „Uczestnicy połączenia” odświeża się wtedy samo, bez przycisku Odśwież; F5 wczytuje listę ponownie.
 
+- Skrót globalny: gdy okno WinZapp czeka na odpowiedź, na przykład komunikat o aktualizacji pozostawiony przy programie w zasobniku, skrót globalny przenosi teraz to okno na wierzch. Wcześniej pojawiało się okno główne, które na nic nie reagowało.
+
 - Połączenia: okno „Dodaj uczestników” działa teraz z czytnikiem ekranu. Osoby zaznacza się tymi samymi klawiszami, dźwiękiem i komunikatami co na listach czatów i wiadomości (Ctrl+Spacja, Spacja, gdy coś jest zaznaczone, Shift+strzałki, Ctrl+Shift+Spacja, Esc), a wynik jest odczytywany: kto został zaproszony, kogo nie udało się dodać lub dlaczego żądanie się nie powiodło.
 
 - Połączenia: opóźnione dane multimedialne oraz zadania urządzeń i kamery pozostają przypisane do pierwotnego połączenia i strumienia. Neonize przetwarza dane w ograniczonych kolejkach poza pętlą serwera i nie zatrzymuje odczytu po przejściowym błędzie wysyłania danych do klienta. Przy niejednoznacznej nazwie WASAPI nie jest już wybierane pierwsze pasujące urządzenie odtwarzające. Dzienniki połączeń Neonize zawierają również podsumowania poziomu sygnału bez zapisywania treści dźwięku, co pomaga badać przyczyny braku dźwięku. Po ponownym otwarciu wyjścia audio połączenia stary strumień, którego nie udało się zamknąć, nie może pobierać dźwięku z nowego strumienia; błąd sygnału odniesienia dla usuwania echa nie wycisza już dźwięku przygotowanego do odtwarzania.
