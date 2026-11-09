@@ -16,6 +16,8 @@ NOVEDADES
 
 - Atajo global: con una ventana de WinZapp esperando respuesta, como el aviso de actualización dejado abierto con el programa en la bandeja, el atajo global ahora trae esa ventana al frente. Antes aparecía la ventana principal y no respondía a nada.
 
+- Descripción de imágenes con IA: cuando la cuenta del proveedor se queda sin crédito (OpenRouter responde 402), WinZapp ahora lo dice y sugiere añadir créditos o elegir un modelo gratuito, en lugar de pedir que se revise el identificador del modelo; con varios proveedores, pasa al siguiente.
+
 - Llamadas: la ventana «Añadir participantes» ya funciona con lector de pantalla. Las personas se marcan con las mismas teclas, el mismo sonido y los mismos anuncios que en las listas de conversaciones y mensajes (Ctrl+Espacio, Espacio mientras haya algo marcado, Mayús+flechas, Ctrl+Mayús+Espacio, Esc), y se dice el resultado: quién fue invitado, a quién no se pudo añadir o por qué falló la solicitud.
 
 - Llamadas: los datos multimedia y las tareas de dispositivos o cámara que llegan tarde permanecen vinculados a su llamada y flujo originales. Neonize procesa los datos en colas limitadas fuera del bucle del servidor y conserva el lector tras un fallo transitorio de emisión. Los nombres WASAPI ambiguos ya no seleccionan el primer dispositivo coincidente. Los registros de llamadas de Neonize también incluyen resúmenes del nivel de la señal, sin guardar el contenido del audio, para ayudar a investigar la ausencia de sonido. Al reabrir la salida de una llamada, un flujo antiguo que no consigue cerrarse no puede consumir el audio del nuevo flujo; un fallo en la referencia de eco ya no silencia el audio preparado para reproducirse.

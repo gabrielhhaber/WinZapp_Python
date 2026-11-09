@@ -851,6 +851,15 @@ msgstr ""
 "store, explicitly reset all AI keys first."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_credits"
+msgid ""
+"The provider's account has no credit left for this request. Add credits or "
+"choose a free model, then try again."
+msgstr ""
+"The provider's account has no credit left for this request. Add credits or "
+"choose a free model, then try again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_limit"
 msgid ""
 "This session reached its request or conversation limit. Close it before "

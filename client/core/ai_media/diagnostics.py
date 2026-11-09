@@ -11,7 +11,7 @@ _STAGES = frozenset({
     "ui_close_finished", "request_failed",
 })
 _CATEGORIES = frozenset({
-    "authentication", "quota", "server", "request", "media_size", "media_format",
+    "authentication", "quota", "credits", "server", "request", "media_size", "media_format",
     "refusal", "response", "network", "timeout", "cancelled", "busy", "question",
     "limit", "output_limit", "media", "credentials", "providers",
 })

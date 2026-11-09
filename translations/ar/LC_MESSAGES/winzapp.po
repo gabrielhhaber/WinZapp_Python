@@ -840,6 +840,11 @@ msgstr ""
 "جميع مفاتيح الذكاء الاصطناعي صراحة أولاً."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_credits"
+msgid "The provider's account has no credit left for this request. Add credits or choose a free model, then try again."
+msgstr "لا يوجد رصيد في حساب المزوّد لهذا الطلب. أضف رصيدًا أو اختر نموذجًا مجانيًا ثم حاول مرة أخرى."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_limit"
 msgid ""
 "This session reached its request or conversation limit. Close it before "

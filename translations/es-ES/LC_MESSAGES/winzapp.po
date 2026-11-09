@@ -861,6 +861,11 @@ msgstr ""
 "primero."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_credits"
+msgid "The provider's account has no credit left for this request. Add credits or choose a free model, then try again."
+msgstr "La cuenta del proveedor no tiene crédito para esta solicitud. Añade créditos o elige un modelo gratuito y vuelve a intentarlo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_limit"
 msgid ""
 "This session reached its request or conversation limit. Close it before "

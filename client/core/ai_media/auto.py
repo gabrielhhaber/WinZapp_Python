@@ -34,7 +34,7 @@ AUTO_KINDS = ("audio", "image", "sticker", "video")
 #: for a reason that will repeat (quota, key): one hour.
 PAUSE_SECONDS = 3600.0
 #: The failures that repeat for every message until the user fixes something.
-PAUSING_CATEGORIES = frozenset(("quota", "authentication", "credentials"))
+PAUSING_CATEGORIES = frozenset(("quota", "credits", "authentication", "credentials"))
 
 
 def day_key(now=None) -> str:

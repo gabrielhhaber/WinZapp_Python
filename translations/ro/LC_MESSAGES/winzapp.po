@@ -857,6 +857,11 @@ msgstr ""
 "este deteriorat, resetează explicit mai întâi toate cheile AI."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_credits"
+msgid "The provider's account has no credit left for this request. Add credits or choose a free model, then try again."
+msgstr "Contul furnizorului nu are credit pentru această solicitare. Adăugați credit sau alegeți un model gratuit, apoi încercați din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_limit"
 msgid ""
 "This session reached its request or conversation limit. Close it before "

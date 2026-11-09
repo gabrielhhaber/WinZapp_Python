@@ -259,7 +259,7 @@ class Operation:
 #: A local output limit also ends the action: do not spend another provider's
 #: quota automatically after receiving a result that cannot be shown in full.
 #: The other terminal errors include bad media, a cancel and the overall deadline.
-_NEXT_PROVIDER = frozenset({"authentication", "quota", "server", "request", "refusal",
+_NEXT_PROVIDER = frozenset({"authentication", "quota", "credits", "server", "request", "refusal",
                             "response", "network", "timeout"})
 
 

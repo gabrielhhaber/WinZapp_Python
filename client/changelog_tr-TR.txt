@@ -16,6 +16,8 @@ YENİLİKLER
 
 - Genel kısayol: WinZapp'ın yanıt bekleyen bir penceresi açıkken, örneğin program sistem tepsisindeyken açık kalan güncelleme uyarısı, genel kısayol artık o pencereyi öne getiriyor. Önceden ana pencere açılıyor ve hiçbir şeye yanıt vermiyordu.
 
+- Yapay zekâ ile görsel açıklama: sağlayıcı hesabında kredi bittiğinde (OpenRouter 402 yanıtı verir) WinZapp artık bunu söylüyor ve model kimliğini kontrol etmeyi istemek yerine kredi eklemeyi veya ücretsiz bir model seçmeyi öneriyor; birden çok sağlayıcı varsa sonrakine geçiyor.
+
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
 - Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.
