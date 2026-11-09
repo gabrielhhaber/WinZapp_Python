@@ -804,7 +804,18 @@ as an **inline** transcription (same record as Alt+Shift+N, so the row shows it)
 - Eligible: incoming `audioMessage`, no stored decision yet, younger than 5 min
   (backlogs and history syncs are never transcribed unasked), at most 10 min long.
   **Locked chats are skipped** (vault or phone lock).
-- One run at a time (a serial queue of at most 10; the rest of a burst is dropped).
+- **Age counts while WinZapp was listening** (`listening_gaps`, `too_old()`): the
+  wake detector (`account_link.py`) records the sleep, `_set_wa_connected` the time
+  offline after having been connected (not the first connection of a session, or a
+  startup would transcribe the backlog). Reported 2026-11: after a hibernation the
+  night's voice notes arrived at once, hours old by the clock, none transcribed.
+  The online AI's `wanted_kind()` uses the same rule.
+- **What the sync catches up is handed over too** (`caught_up_arrivals()`, from
+  `sync_chat_messages`): new to the cache and newer than anything it held, never
+  for a chat with no history yet. After a sleep the socket often comes back after
+  the sync fetched them, and the live event then finds them known.
+- One run at a time (a serial queue of at most 100; the rest of a burst is dropped;
+  a key already run is not run again, `REMEMBERED_KEYS`).
   A failure that means "not set up" (`SETUP_FAILURES`: no model, no program, corrupted…)
   pauses the queue 15 min and speaks `transcription_auto_paused` with the reason a
   manual run gives (`_auto_pause_reason()`, through `transcription_flow.

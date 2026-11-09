@@ -17,12 +17,23 @@ Rules, each one a way this could otherwise annoy or harm:
 * **Only what just arrived.** A message older than `MAX_AGE_SECONDS` (a replay
   after a reconnect, a history sync) is left alone: transcribing a backlog the
   user did not ask for would keep the machine busy for minutes.
+* **Age counts while WinZapp was listening.** The time the computer slept is
+  not age (`listening_gaps`, recorded by the wake detector): reported by a
+  user, every voice note received while the computer hibernated reached
+  WinZapp at once on waking, hours old by the clock, and none was
+  transcribed. Those that arrive through the sync rather than as live events
+  are handed over too (`caught_up_arrivals`).
 * **Only incoming audio and video, only once.** Our own messages and messages that
   already carry a transcription decision (a text, or a deletion) are skipped.
 * **Not the very long ones.** Past `MAX_AUDIO_SECONDS` the user can still ask
   for it by hand; doing it unasked would be an hour of CPU for an audiobook.
 * **Bounded.** At most `MAX_PENDING` waiting; a burst beyond that is dropped
-  (the newest), not queued without end.
+  (the newest), not queued without end. Enough for a night's voice notes
+  arriving together on waking (it was 10, and the rest of that burst went
+  untranscribed).
+* **Once per message.** A message already run is not run again when the
+  live event and the sync both bring it (`AutoTranscriptionQueue` remembers
+  the last `REMEMBERED_KEYS`).
 * **Paused when the setup is wrong.** A run that fails because there is no
   usable model or program stops the queue for `PAUSE_SECONDS` instead of
   failing the same way for every message; the glue says so once.
@@ -54,7 +65,11 @@ MAX_AGE_SECONDS = 300.0
 AGE_CHOICES_MINUTES = (5, 15, 30, 60)
 SETTING_MAX_AGE_MINUTES = "auto_max_age_minutes"
 MAX_AUDIO_SECONDS = 600
-MAX_PENDING = 10
+MAX_PENDING = 100
+#: How many finished keys the queue remembers, so a message is run once.
+REMEMBERED_KEYS = 2000
+#: How long a listening gap is kept (a message older than that is too old anyway).
+GAP_MEMORY_SECONDS = 7 * 24 * 3600.0
 PAUSE_SECONDS = 900.0
 
 ACCEPTED = "accepted"
@@ -103,9 +118,9 @@ def max_age_seconds(settings) -> float:
     return float(value) * 60.0
 
 
-def eligible(msg, now=None, max_age=None) -> bool:
+def eligible(msg, now=None, max_age=None, gaps=None) -> bool:
     """Whether `msg` is one the setting should transcribe. `max_age` (seconds)
-    defaults to MAX_AGE_SECONDS; statuses keep that."""
+    defaults to MAX_AGE_SECONDS; statuses keep that. `gaps`: see too_old()."""
     if not isinstance(msg, dict):
         return False
     key = msg.get("key") or {}
@@ -117,15 +132,108 @@ def eligible(msg, now=None, max_age=None) -> bool:
         return False
     if audio_seconds(msg) > MAX_AUDIO_SECONDS:
         return False
+    return not too_old(msg, now=now, max_age=max_age, gaps=gaps)
+
+
+class ListeningGaps:
+    """Stretches of wall-clock time WinZapp could not receive anything: the
+    computer was asleep. Thread-safe: the health-check thread adds, the wx
+    thread reads."""
+
+    def __init__(self, clock=time.time):
+        self._clock = clock
+        self._lock = threading.Lock()
+        self._gaps = []
+        self._online = False
+        self._offline_since = None
+
+    def add(self, start, end) -> None:
+        with self._lock:
+            self._add_locked(start, end)
+
+    def _add_locked(self, start, end) -> None:
+        start, end = float(start), float(end)
+        if end <= start:
+            return
+        horizon = self._clock() - GAP_MEMORY_SECONDS
+        self._gaps = [g for g in self._gaps if g[1] >= horizon]
+        self._gaps.append((start, end))
+
+    def connection_changed(self, connected, now=None) -> None:
+        """WhatsApp went offline or came back (MainWindow._set_wa_connected).
+        Only a drop after having been connected is a gap: the first connection
+        of a session is not, or a startup would transcribe the backlog of the
+        time WinZapp was closed. The reconnection after a sleep is part of the
+        gap too, the slow part (WhatsApp Web restarts)."""
+        when = self._clock() if now is None else float(now)
+        with self._lock:
+            if not connected:
+                if self._online and self._offline_since is None:
+                    self._offline_since = when
+                self._online = False
+                return
+            if self._offline_since is not None:
+                self._add_locked(self._offline_since, when)
+            self._offline_since = None
+            self._online = True
+
+    def snapshot(self) -> tuple:
+        with self._lock:
+            return tuple(self._gaps)
+
+
+#: The process's gaps (main_window/account_link.py records them on waking).
+listening_gaps = ListeningGaps()
+
+
+def listening_age(arrived, now, gaps=()) -> float:
+    """Seconds from `arrived` to `now` while WinZapp was listening: the time
+    inside `gaps` is not counted."""
+    age = float(now) - float(arrived)
+    for start, end in gaps or ():
+        overlap = min(float(end), float(now)) - max(float(start), float(arrived))
+        if overlap > 0:
+            age -= overlap
+    return max(age, 0.0)
+
+
+def too_old(msg, now=None, max_age=None, gaps=None) -> bool:
+    """Whether `msg` waited longer than `max_age` (default MAX_AGE_SECONDS)
+    while WinZapp was listening. `gaps` defaults to `listening_gaps`. A
+    message with no timestamp has no age to judge: it just arrived live."""
     try:
-        arrived = float(msg.get("messageTimestamp") or 0)
-    except (TypeError, ValueError):
+        arrived = float((msg or {}).get("messageTimestamp") or 0)
+    except (TypeError, ValueError, AttributeError):
         arrived = 0.0
-    # A message with no timestamp has no age to judge: it just arrived live.
-    limit = MAX_AGE_SECONDS if max_age is None else max_age
-    if arrived and (time.time() if now is None else now) - arrived > limit:
+    if not arrived:
         return False
-    return True
+    limit = MAX_AGE_SECONDS if max_age is None else max_age
+    when = time.time() if now is None else now
+    return listening_age(arrived, when,
+                         listening_gaps.snapshot() if gaps is None else gaps) > limit
+
+
+def caught_up_arrivals(messages, known_ids, newest_cached) -> list:
+    """The messages of a sync page that WinZapp should have received live:
+    new to the cache and newer than anything it held. After a sleep the
+    socket is often rebuilt after the sync has already fetched them, and the
+    live event then finds them known and hands nothing over. A chat with no
+    history yet (`newest_cached` 0) is a history load, never "caught up"."""
+    if not newest_cached:
+        return []
+    found = []
+    for msg in messages or ():
+        key = (msg or {}).get("key") or {}
+        mid = key.get("id")
+        if not mid or mid in known_ids:
+            continue
+        try:
+            ts = float(msg.get("messageTimestamp") or 0)
+        except (TypeError, ValueError):
+            continue
+        if ts > newest_cached:
+            found.append(msg)
+    return found
 
 
 def pauses_the_queue(error, resolution=None) -> bool:
@@ -188,6 +296,8 @@ class AutoTranscriptionQueue:
         self._lock = threading.Lock()
         self._queue = queue.Queue()
         self._pending_keys = set()
+        #: keys already run, oldest first (a dict keeps the order)
+        self._done_keys = {}
         self._paused_until = 0.0
         self._stopped = False
         self._thread = None
@@ -204,7 +314,7 @@ class AutoTranscriptionQueue:
                 return STOPPED
             if self._clock() < self._paused_until:
                 return PAUSED
-            if key in self._pending_keys:
+            if key in self._pending_keys or key in self._done_keys:
                 return DUPLICATE
             if len(self._pending_keys) >= self._max_pending:
                 return FULL
@@ -264,6 +374,10 @@ class AutoTranscriptionQueue:
         try:
             if not self.paused and not self._stopped:
                 self._run_one(item)
+                with self._lock:
+                    self._done_keys[key] = None
+                    while len(self._done_keys) > REMEMBERED_KEYS:
+                        self._done_keys.pop(next(iter(self._done_keys)))
         except Exception as exc:
             # The type only: what failed here touched a message.
             logging.warning("[transcription] an automatic transcription failed: %s",

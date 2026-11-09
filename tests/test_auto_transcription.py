@@ -1,6 +1,7 @@
 """MainWindow's glue for automatic transcription of received voice messages."""
 
 import time
+import types
 
 import pytest
 
@@ -581,3 +582,26 @@ class TestShutdownCallsIt:
 
         assert _Stub()._perform_shutdown() is True
         assert order == ["transcriptions", "server"]
+
+
+class TestCaughtUpBySync:
+    """Messages a sync brought that the live event missed (after a sleep)
+    get the same automatic handling as on arrival."""
+
+    def test_incoming_media_reach_both_hooks_and_the_rest_does_not(self):
+        calls = []
+        stub = types.SimpleNamespace(
+            _maybe_auto_transcribe=lambda jid, m: calls.append(("local", m["key"]["id"])),
+            _maybe_auto_ai_media=lambda jid, m: calls.append(("ai", m["key"]["id"])))
+        voice = _msg()
+        mine = dict(_msg(), key={"id": "OWN", "fromMe": True})
+        text = dict(_msg(), key={"id": "TXT", "fromMe": False}, messageType="conversation")
+        auto_transcription.AutoTranscriptionMixin._auto_process_caught_up(
+            stub, JID, [voice, mine, text, None])
+        assert calls == [("local", "M1"), ("ai", "M1")]
+
+    def test_the_sync_hands_over_what_it_caught_up(self):
+        import inspect
+        from main_window import conversation_sync
+        source = inspect.getsource(conversation_sync)
+        assert "caught_up_arrivals(" in source and "_auto_process_caught_up" in source
