@@ -4,12 +4,12 @@
 <ul>
   <li>Ustaw minimalny odstęp między kopiami tworzonymi przy zamykaniu WinZappa. Domyślnie wynosi on 24 godziny. Wartość 0 oznacza tworzenie kopii przy każdym zamknięciu programu.</li>
   <li>Możesz również włączyć tworzenie kopii podczas działania WinZappa i ustawić odstęp między nimi. Na czas tworzenia kopii połączenie z WhatsAppem jest przerywane; może to potrwać kilka minut. Opcjonalnie program pyta o zgodę przed każdą kopią. Nowa kopia zastępuje poprzednią dopiero po ponownym nawiązaniu połączenia z WhatsAppem.</li>
-  <li>"Nie przechowuj kopii zapasowych profilu" oszczędza miejsce, ale jeśli profil ulegnie uszkodzeniu, trzeba będzie sparować ponownie. Po zaznaczeniu WinZapp mówi, ile miejsca zajmują kopie, i pyta, czy chcesz je usunąć.</li>
+  <li>"Nie przechowuj kopii zapasowych profilu" oszczędza miejsce, ale jeśli profil ulegnie uszkodzeniu, trzeba będzie ponownie połączyć konto z WhatsAppem. Po zaznaczeniu WinZapp mówi, ile miejsca zajmują kopie, i pyta, czy chcesz je usunąć.</li>
 </ul>
-<p>Silnik Neonize nie używa wewnętrznej przeglądarki, więc nie ma profilu do skopiowania: kopia zapasowa profilu nie jest pokazywana w Ustawienia &gt; Pamięć ani w menedżerze pamięci.</p>
+<p>Silnik Neonize nie używa wewnętrznej przeglądarki, więc nie ma profilu do skopiowania: opcje kopii zapasowej profilu nie są pokazywane w Ustawienia &gt; Pamięć ani w menedżerze miejsca na dysku.</p>
 <p>Te kopie WinZapp wykorzystuje do samodzielnego odzyskiwania (zobacz sekcję Konta, zasobnik i synchronizacja). Aby zachować historię wiadomości i multimediów, skopiuj folder <code>data</code>.</p>
 
 <h3>Dzienniki</h3>
-<p>Dzienniki WinZapp (<code>log.log</code>) i serwera lokalnego (<code>wppconnect.log</code>) maskują numery telefonów, identyfikatory WhatsApp i nazwy kontaktów, więc można je wysyłać przy zgłaszaniu problemu bez ujawniania kontaktów. Znajdują się w <code>data\accounts\&lt;identyfikator konta&gt;\logs</code>, w folderze WinZapp. <code>log.log</code> jest zastępowany przy każdym uruchomieniu. Przy problemach z ponownym proszeniem o parowanie lub utratą sesji wyślij też <code>shutdown_audit.log</code>.</p>
+<p>Dzienniki WinZapp (<code>log.log</code>) i serwera lokalnego (<code>wppconnect.log</code>) maskują numery telefonów, identyfikatory WhatsApp i nazwy kontaktów, więc można je wysyłać przy zgłaszaniu problemu bez ujawniania kontaktów. Znajdują się w <code>data\accounts\&lt;identyfikator konta&gt;\logs</code>, w folderze WinZapp. <code>log.log</code> jest zastępowany przy każdym uruchomieniu. Przy problemach z ponownym wyświetlaniem prośby o połączenie z kontem lub utratą sesji wyślij też <code>shutdown_audit.log</code>.</p>
 <p>W Ustawienia &gt; Zaawansowane przycisk „Eksportuj logi tego konta...” zapisuje w tle plik .zip z dziennikami bieżącego konta i mostu Neonize oraz ogłasza zakończenie.</p>
 <p>Zgłaszaj problemy i proś o funkcje w Issues repozytorium (<code>github.com/gabrielhhaber/WinZapp_Python/issues</code>). Pomoc &gt; O programie pokazuje wersję, o którą pyta formularz błędu.</p>

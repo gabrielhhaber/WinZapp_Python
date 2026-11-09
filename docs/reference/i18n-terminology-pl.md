@@ -27,6 +27,7 @@ independently verifiable official source when recording future decisions.
 - [WhatsApp chat means czat](#whatsapp-chat-means-czat)
 - [Chat access protection and contact blocking](#chat-access-protection-and-contact-blocking)
 - [Other reviewed terms](#other-reviewed-terms)
+- [Device linking and channel roles](#device-linking-and-channel-roles)
 - [Meaning, sources and spoken wording](#meaning-sources-and-spoken-wording)
 - [Language review and technical references](#language-review-and-technical-references)
 
@@ -145,6 +146,53 @@ require replacing every descriptive use of `multimedia`.
 Keep the reviewed phone-linking label `Połącz, korzystając z &numeru telefonu`;
 the ampersand is a mnemonic. Preserve established reply terminology where it
 matches the same action; check context before borrowing a term from another app.
+
+## Device linking and channel roles
+
+The following additions were reviewed by @djgraco on 9 November 2026 after
+comparing WinZapp's behavior with the Polish strings in a supplied WhatsApp APK.
+That is the source of the phone-app labels below; it is not a claim that every
+APK string is displayed in every account or platform variant.
+
+| Meaning / UI role | Polish |
+| --- | --- |
+| keep chats archived | Pozostaw czaty zarchiwizowane |
+| invite channel administrators | Zaproś administratorów... |
+| invite a follower to become a channel administrator | Zaproś do roli administratora kanału... |
+| remove a channel administrator's role | Odwołaj z roli administratora... |
+| leave the channel administrator role | Zrezygnuj z roli administratora... |
+| cancel a channel administrator invitation | Odwołaj zaproszenie do roli administratora... |
+| transfer channel ownership | Przenieś prawa własności... |
+| News, the channel directory category | Wiadomości |
+| Linked devices, the WhatsApp phone menu | Połączone urządzenia |
+| Link a device, the WhatsApp phone action | Połącz urządzenie |
+| phone-linking code dialog title | Wprowadź kod na telefonie |
+| code label in that dialog | Kod: |
+| cancel device linking | Anuluj łączenie |
+
+For channels, use `zaproszenie do roli administratora` consistently in results,
+errors and pending states. Inviting does not grant the role immediately: the
+recipient becomes an administrator only after accepting. Removing that role
+does not remove the person from the channel. Do not apply these channel labels
+to community administration without checking the different behavior.
+
+Prefer `łączenie` and a contextual `kod` in the reviewed login flow rather
+than technical `parowanie` / `kod parowania`. Distinguish the phone-number
+route from a QR image: `qrcode_updated` announces a phone-linking code, whereas
+`qrcode_image_updated` announces the QR image. The phone-linking code can
+contain letters; do not describe it as an eight-digit number.
+
+Use the exact phone labels in the guide, including
+`Zamiast tego połącz, korzystając z numeru telefonu`. Preserve WinZapp's actual
+recovery instructions: a terminally expired code requires cancelling and
+trying again, and a rate limit requires waiting. Do not invent a
+`Wygeneruj nowy kod` button in WinZapp merely because WhatsApp has that label.
+
+These are contextual decisions, not a global replacement of every occurrence
+of `parowanie`, `Informacje`, `administrator` or `kod`. Keep the mnemonic
+`Pozost&aw czaty zarchiwizowane`, and preserve ellipses where another dialog
+opens. Apply the reviewed wording to quoted labels in the Polish guide and
+changelog as well as to the PO.
 
 ## Meaning, sources and spoken wording
 

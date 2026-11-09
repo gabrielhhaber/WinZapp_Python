@@ -275,7 +275,7 @@
 </table>
 <div class="callout warn">
   <div class="callout-title">⚠️ Dysk lokalny</div>
-  WinZapp nie działa z folderu sieciowego (takiego jak <code>\\serwer\folder</code> ani z folderu Pobrane na maszynie wirtualnej). Jeśli tak się stanie, program poinformuje o tym i wyjaśni, co zrobić: zainstalować przez WinZappInstaller albo przenieść folder na dysk własnego komputera.
+  WinZapp nie działa z folderu sieciowego (takiego jak <code>\\serwer\folder</code>) ani z folderu Pobrane na maszynie wirtualnej. Jeśli tak się stanie, program poinformuje o tym i wyjaśni, co zrobić: zainstalować przez WinZappInstaller albo przenieść folder na dysk własnego komputera.
 </div>
 <p>Wymagania: 64-bitowy Windows 10 lub 11, połączenie z internetem i konto WhatsApp na telefonie.</p>
 
@@ -287,18 +287,18 @@
 <p>Domyślnie dostajesz tylko wersje stabilne. Aby dostawać także alphy, zaznacz "Sprawdzaj aktualizacje alfa (niestabilne)" w Ustawienia &gt; Ogólne.</p>
 
 <h3>Pierwsze uruchomienie</h3>
-<p>Za pierwszym razem WinZapp samodzielnie pobiera i przygotowuje komponenty, które łączą się z WhatsApp Web (serwer WPPConnect i wewnętrzną przeglądarkę Chromium). Wymaga to internetu i pokazuje okno postępu z tytułem "Uruchamianie WPPConnect, proszę czekać...". Przy kolejnych uruchomieniach, gdy konto jest już połączone, główne okno i czaty pojawiają się od razu, a WhatsApp łączy się w tle. Wiadomości, które w tym czasie spróbujesz wysłać, trafiają do kolejki. WinZapp wyśle je po nawiązaniu połączenia. Tytuł okna pokazuje "uruchamianie WPPConnect...", dopóki wszystko nie będzie gotowe.</p>
+<p>Po wybraniu silnika WPPConnect WinZapp przy pierwszym uruchomieniu samodzielnie pobiera i przygotowuje składniki potrzebne do połączenia z WhatsApp Web: serwer WPPConnect i wewnętrzną przeglądarkę Chromium. Wymaga to internetu i pokazuje okno postępu z tytułem "Uruchamianie WPPConnect, proszę czekać...". Przy kolejnych uruchomieniach, gdy konto jest już połączone, główne okno i czaty pojawiają się od razu, a WhatsApp łączy się w tle. Wiadomości, które w tym czasie spróbujesz wysłać, trafiają do kolejki. WinZapp wyśle je po nawiązaniu połączenia. Tytuł okna pokazuje "uruchamianie WPPConnect...", dopóki wszystko nie będzie gotowe.</p>
 
 <h3>Połącz swoje konto</h3>
-<p>Ekran połączenia oferuje dwa sposoby parowania:</p>
+<p>Ekran połączenia oferuje dwa sposoby połączenia z kontem WhatsApp:</p>
 <ol class="steps">
-  <li><span class="step-num">1</span><div><strong>Numer telefonu:</strong> Jeśli konto nie zostało jeszcze sparowane, możesz wybrać WPPConnect lub Neonize na liście „Silnik połączenia”, znajdującej się przed listą krajów. Po zmianie silnika WinZapp prosi o potwierdzenie i uruchamia się ponownie. Następnie wybierz kraj, wpisz numer telefonu i przejdź dalej. Lista krajów jest uporządkowana alfabetycznie, uwzględnia kraj i język systemu Windows oraz pozwala wyszukiwać przez wpisanie kilku liter. WinZapp pokaże kod. Na telefonie otwórz WhatsApp, przejdź do Połączone urządzenia &gt; Połącz urządzenie i wybierz łączenie za pomocą numeru telefonu.</div></li>
-  <li><span class="step-num">2</span><div><strong>Kod QR:</strong> zeskanuj kod z ekranu aplikacją WhatsApp na telefonie, w sekcji Połączone urządzenia.</div></li>
+  <li><span class="step-num">1</span><div><strong>Numer telefonu:</strong> Jeśli konto nie zostało jeszcze połączone z WhatsAppem, możesz wybrać WPPConnect lub Neonize na liście „Silnik połączenia”, znajdującej się przed listą krajów. Po zmianie silnika WinZapp prosi o potwierdzenie i uruchamia się ponownie. Następnie wybierz kraj, wpisz numer telefonu i przejdź dalej. Lista krajów jest uporządkowana alfabetycznie, uwzględnia kraj i język systemu Windows oraz pozwala wyszukiwać przez wpisanie kilku liter. WinZapp pokaże kod w oknie „Wprowadź kod na telefonie”. Na telefonie otwórz WhatsApp, wybierz „Połączone urządzenia”, a następnie „Połącz urządzenie” i „Zamiast tego połącz, korzystając z numeru telefonu”. Wprowadź na telefonie kod wyświetlany w WinZappie. Kod może się zmieniać, dlatego korzystaj z jego aktualnie wyświetlanej wersji.</div></li>
+  <li><span class="step-num">2</span><div><strong>Kod QR:</strong> na telefonie otwórz WhatsApp, wybierz „Połączone urządzenia”, a następnie „Połącz urządzenie”. Skieruj telefon na ekran komputera i zeskanuj kod QR wyświetlany w WinZappie.</div></li>
 </ol>
 <p>WinZapp ogłasza, kiedy kod jest generowany, kiedy faktycznie się pojawia, kiedy wygasa i kiedy nie udało się go wygenerować. Jeśli WhatsApp odrzuci kod, komunikat wyjaśnia dlaczego.</p>
 <div class="callout tip">
   <div class="callout-title">💡 Łączenie innego numeru</div>
-  Zamknięcie lub anulowanie ekranu parowania nie usuwa czatów. Historia jest kasowana tylko wtedy, gdy rzeczywiście zostanie połączony inny numer telefonu, i wtedy WinZapp ostrzega.
+  Zamknięcie lub anulowanie okna łączenia z kontem nie usuwa czatów. Historia jest kasowana tylko wtedy, gdy rzeczywiście zostanie połączony inny numer telefonu, i wtedy WinZapp ostrzega.
 </div>
 
 <h3>Gdzie są twoje dane</h3>
@@ -336,6 +336,7 @@
   <tr><td class="field-name">Alt+6</td><td>Połączenia</td></tr>
   <tr><td class="field-name">Alt+7</td><td>Zabezpieczone czaty</td></tr>
   <tr><td class="field-name">Alt+8</td><td>Społeczności</td></tr>
+  <tr><td class="field-name">Alt+9</td><td>Kanały</td></tr>
   <tr><td class="field-name">Alt+W</td><td>Wiadomości: wraca do listy wiadomości otwartego czatu</td></tr>
   <tr><td class="field-name">Alt+N</td><td>Przenosi fokus do głównego menu nawigacji (litera pochodzi z etykiety w języku programu)</td></tr>
   <tr><td class="field-name">F1</td><td>Pokazuje wszystkie skróty klawiszowe</td></tr>
@@ -367,8 +368,8 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista czatów</h2>
 <p class="lead">Lista czatów (Alt+1) pokazuje nazwy osób i grup, nigdy kody wewnętrzne. Każdy wiersz odczytuje nazwę, ostatnią wiadomość i stan (nieprzeczytany, przypięty, wyciszony...).</p>
-<p>W Neonize czat jest oznaczany jako przeczytany tylko wtedy, gdy go otworzysz lub oznaczysz jako przeczytany, i jako przeczytany widać go też na telefonie i w WhatsApp Web.</p>
-<p>W Neonize, gdy dojdziesz do początku tego, co WinZapp ma z czatu, prosi on telefon o starsze wiadomości, tak jak WhatsApp Web; docierają po chwili, gdy telefon jest połączony.</p>
+<p>W Neonize czat jest oznaczany jako przeczytany po jego otwarciu lub ręcznym wybraniu tej czynności. Ten sam stan jest widoczny także na telefonie i w WhatsApp Web.</p>
+<p>W Neonize po dotarciu do najstarszych lokalnie dostępnych wiadomości WinZapp prosi telefon o wcześniejszą historię czatu, tak jak WhatsApp Web. Wiadomości docierają po chwili, jeśli telefon jest połączony.</p>
 
 <h3>Filtry i listy</h3>
 <ul>
@@ -442,7 +443,7 @@
 <p>Opcje "Używaj Spacji do zaznaczania/odznaczania, gdy coś jest już zaznaczone" i "Esc odznacza zaznaczone wiadomości przed zamknięciem czatu" można wyłączyć w Ustawienia &gt; Interfejs &gt; Czaty.</p>
 
 <h3>Zarchiwizowane czaty</h3>
-<p>Alt+4 otwiera zarchiwizowane czaty. Mają własne wyszukiwanie (Ctrl+F), takie samo zaznaczanie i te same akcje. Zarchiwizowany czat nie jest ogłaszany głosem, gdy przychodzi nowa wiadomość, a lista zarchiwizowanych nie jest na ekranie. W Neonize, gdy opcja WhatsApp "Zachowaj czaty zarchiwizowane" jest wyłączona, zarchiwizowany czat wraca na listę czatów po nadejściu nowej wiadomości, tak jak na telefonie.</p>
+<p>Alt+4 otwiera zarchiwizowane czaty. Mają własne wyszukiwanie (Ctrl+F), takie samo zaznaczanie i te same akcje. Zarchiwizowany czat nie jest ogłaszany głosem, gdy przychodzi nowa wiadomość, a lista zarchiwizowanych nie jest na ekranie. W Neonize, gdy opcja WhatsApp "Pozostaw czaty zarchiwizowane" jest wyłączona, zarchiwizowany czat wraca na listę czatów po nadejściu nowej wiadomości, tak jak na telefonie.</p>
 
   </section>
 
@@ -496,7 +497,7 @@
 <ul>
   <li><strong>Odpowiedź:</strong> jeśli oryginalnej wiadomości nie ma przed wysłaniem, WinZapp informuje, że brakuje cytatu, i zachowuje twój tekst do edycji przez menu wiadomości ("Edytuj niewysłaną odpowiedź bez cytatu"). Odpowiedź zawierająca wzmiankę zachowuje również cytowaną wiadomość. W Neonize cytowana wiadomość głosowa pokazuje swój czas trwania w cytacie widzianym przez drugą osobę.</li>
   <li><strong>Usuwanie multimediów:</strong> gdy usuwasz zdjęcie, film, nagranie audio lub dokument, potwierdzenie zawiera "Usuń też multimedia z telefonu", domyślnie zaznaczone. Odznacz, aby usunąć wiadomość i zachować plik zapisany na telefonie. Pole dotyczy też kilku zaznaczonych wiadomości i pojawia się tylko wtedy, gdy wśród nich są multimedia. W Ustawienia &gt; Interfejs &gt; Wiadomości wybierasz, czy opcja „Usuń też multimedia z telefonu” ma być domyślnie zaznaczona.</li>
-  <li><strong>Przekazywanie:</strong> wybierz miejsca docelowe na liście z wyszukiwaniem (strzałka w dół w polu przechodzi do pierwszego wyniku). Gdy się uda, czytnik ekranu mówi "Wiadomość przekazana." (lub ile ich było), bez okna do zamknięcia. Przekazane wiadomości głosowe docierają jako zwykłe audio, chyba że zaznaczysz "Przekazuj wiadomości głosowe jako wiadomości głosowe, a nie jako audio" w Ustawienia &gt; Dźwięk. W Neonize przekazana kopia pojawia się od razu w czacie docelowym. Gdy zaznaczona wiadomość ma podgląd linku, pole „Zachowaj podgląd linku” zaczyna zgodnie z ustawieniem „Domyślnie zachowuj podglądy linków przy przekazywaniu wiadomości” w Ustawienia &gt; Interfejs użytkownika &gt; Wiadomości. Z WPPConnect kopia jest wysyłana jako nowa wiadomość i nie jest oznaczona jako przekazana; z Neonize jest.</li>
+  <li><strong>Przekazywanie:</strong> wybierz miejsca docelowe na liście z wyszukiwaniem (strzałka w dół w polu przechodzi do pierwszego wyniku). Gdy się uda, czytnik ekranu mówi "Wiadomość przekazana." (lub ile ich było), bez okna do zamknięcia. Przekazane wiadomości głosowe docierają jako zwykłe audio, chyba że zaznaczysz "Przekazuj wiadomości głosowe jako wiadomości głosowe, a nie jako audio" w Ustawienia &gt; Dźwięk. W Neonize przekazana kopia pojawia się od razu w czacie docelowym. Gdy zaznaczona wiadomość ma podgląd linku, początkowy stan pola „Zachowaj podgląd linku” wynika z ustawienia „Domyślnie zachowuj podglądy linków przy przekazywaniu wiadomości” w Ustawienia &gt; Interfejs &gt; Wiadomości. Z WPPConnect kopia jest wysyłana jako nowa wiadomość i nie jest oznaczona jako przekazana; z Neonize jest.</li>
   <li><strong>Informacje o wiadomości:</strong> przy twojej wiadomości pokazują, kiedy została dostarczona, przeczytana i odtworzona, z pełną datą i godziną, przez zapytanie samego WhatsApp (więc pojawiają się także potwierdzenia, które dotarły, gdy WinZapp był zamknięty). W grupie wymieniają z nazwy, kto otrzymał i kto przeczytał.</li>
   <li><strong>Cytowane wiadomości:</strong> nawigacja po linkach w odpowiedzi obejmuje tylko linki z jej treści, bez linków z cytowanej wiadomości.</li>
 </ul>
@@ -519,9 +520,9 @@
 <p>Ctrl+Shift+F otwiera wyszukiwanie. F3 przechodzi do następnego wyniku, a Shift+F3 do poprzedniego, z dowolnego miejsca otwartego czatu; fokus podąża za wynikiem, a czytnik ekranu ogłasza pozycję. Przyciski "Poprzedni wynik" i "Następny wynik" też działają, a w polu wyszukiwania Enter i Shift+Enter robią to samo.</p>
 
 <h3>Linki</h3>
-<p>Wiadomość z dwoma lub więcej linkami staje się listą do nawigacji. Enter lub Spacja na linku otwiera go; Ctrl+C kopiuje link; menu kontekstowe ma "Otwórz link" i "Kopiuj link". Linki zaproszeń do grup (<code>chat.whatsapp.com/...</code>) otwierają okno "Dołącz do grupy przez link" w WinZapp, z podglądem grupy, zamiast przeglądarki; menu linku oferuje także "Dołącz do grupy przez link" i zachowuje "Otwórz link" dla tych, którzy wolą przeglądarkę. Wysyłane przez ciebie wiadomości również niosą podgląd linku.</p>
+<p>Wiadomość z dwoma lub więcej linkami staje się listą do nawigacji. Enter lub Spacja na linku otwiera go; Ctrl+C kopiuje link; menu kontekstowe ma "Otwórz link" i "Kopiuj link". Linki zaproszeń do grup (<code>chat.whatsapp.com/...</code>) otwierają okno "Dołącz do grupy przez link" w WinZapp, z podglądem grupy, zamiast przeglądarki; menu linku oferuje także "Dołącz do grupy przez link" i zachowuje "Otwórz link" dla tych, którzy wolą przeglądarkę. Wysyłane przez ciebie wiadomości również mogą zawierać podgląd linku.</p>
 <p>W podglądzie linku tytuł i opis pojawiają się z prawdziwymi znakami, bez kodów HTML takich jak &amp;amp; czy &amp;eacute;, zarówno w podglądzie wysyłanym przez WinZapp, jak i w tym, który czytasz.</p>
-<p>Gdy piszesz wiadomość z linkiem, czytnik ekranu mówi „Ładowanie podglądu...”, kiedy WinZapp zaczyna pobierać podgląd, „Dodano podgląd.”, kiedy podgląd zostaje dołączony do wiadomości, albo „Nie udało się załadować podglądu linku” wraz z przyczyną. W Ustawienia &gt; Dostępność &gt; Treść mówiona opcja „Ogłaszaj ładowanie i dodawanie podglądów linków” włącza lub wyłącza te trzy komunikaty.</p>
+<p>Gdy piszesz wiadomość z linkiem, czytnik ekranu mówi „Ładowanie podglądu...”, kiedy WinZapp zaczyna pobierać podgląd, „Dodano podgląd.”, kiedy podgląd zostaje dołączony do wiadomości, albo „Nie udało się załadować podglądu linku” wraz z przyczyną. W Ustawienia &gt; Dostępność &gt; Zawartość mówiona opcja „Ogłaszaj ładowanie i dodawanie podglądów linków” włącza lub wyłącza te trzy komunikaty.</p>
 
 <h3>Kontakty, ankiety i karty</h3>
 <ul>
@@ -554,7 +555,7 @@
 <p>Podczas odtwarzania klawisz Tab za listą wiadomości zatrzymuje się na przycisku prędkości i pasku czasu trwania, a przy wiadomości głosowej, zdjęciu lub filmie — na przycisku AI online. Możesz ukryć te elementy, aby klawisz Tab je pomijał. Służą do tego opcje: "Ukryj przycisk prędkości podczas odtwarzania (skróty prędkości nadal działają)" i "Ukryj pasek czasu trwania podczas odtwarzania (Tab go pomija)" w Ustawienia &gt; Dźwięk &gt; Odtwarzanie audio oraz "Ukryj przycisk AI online za listą wiadomości (menu wiadomości nadal go oferuje)" w AI online: transkrypcje i opisy. Skróty i menu wiadomości nadal działają.</p>
 
 <h3>Wiadomości we właściwym czacie</h3>
-<p>Wiadomości: sprzeczne identyfikatory alternatywne nie kierują już wiadomości wysyłanych do innej osoby ani odbieranych od niej do czatu z samym sobą. Nieprawidłowe powiązania są pomijane, a wiadomości pozostają w pierwotnym czacie do czasu ustalenia tożsamości.</p>
+<p>WinZapp pomija sprzeczne powiązania identyfikatorów kontaktów. Dopóki nie ustali, do kogo należy wiadomość, pozostawia ją w pierwotnym czacie zamiast przenosić do czatu z samym sobą.</p>
 
   </section>
 
@@ -588,7 +589,7 @@
 
 <h3>Automatyczne pobieranie</h3>
 <p>W Ustawienia &gt; Pamięć opcja "Automatycznie pobieraj multimedia" włącza pobieranie multimediów, a ty wybierasz rodzaje. Odznaczenie jej zatrzymuje to, co trwa; zaznaczenie (lub zaznaczenie jeszcze jednego rodzaju) od razu zaczyna pobieranie i dotyczy też multimediów wiadomości, które przychodzą, gdy WinZapp jest otwarty. Nawet przy wszystkim wyłączonym ręczne otwarcie multimedium pobiera je w tej chwili. "Synchronizuj multimedia" (menu Synchronizacja, Ctrl+Alt+Shift+B) uruchamia pobieranie, kiedy chcesz. WinZapp ogłasza postęp głosem, na przykład "Pobieranie multimediów: 30 z 120 przetworzonych (8 pobranych)".</p>
-<p>W Ustawienia &gt; Pamięć "Czyszczenie multimediów" zwalnia miejsce na dysku, usuwając pobrane pliki multimedialne z wybranych czatów; wiadomości zostają. Wybierasz czaty (z wierszem „Zaznacz wszystkie" i filtrem grup/indywidualnych), rodzaje multimediów (zdjęcia i naklejki, filmy, nagrania audio, wiadomości głosowe, dokumenty) i minimalny rozmiar w MB. „Zbierz dane" tylko odczytuje i podaje, ile plików i ile MB pasuje, według rodzaju; „Kontynuuj czyszczenie" prosi o potwierdzenie (domyślnie Nie), a potem usuwa dokładnie to, co pokazano. Pliki zapisane przez Zapisz jako nigdy nie są ruszane, tak samo jak multimedia niewysłanych wiadomości i zabezpieczonych czatów. WinZapp zapamiętuje, które pliki usunięto podczas czyszczenia. Automatyczne pobieranie i synchronizacja nie pobierają ich ponownie, a przy próbie pobrania na żądanie program o tym informuje. Informacja o usuniętych plikach jest czyszczona dopiero po wylogowaniu lub ponownym sparowaniu konta; F5 jej nie usuwa.</p>
+<p>W Ustawienia &gt; Pamięć "Czyszczenie multimediów" zwalnia miejsce na dysku, usuwając pobrane pliki multimedialne z wybranych czatów; wiadomości zostają. Wybierasz czaty (z wierszem „Zaznacz wszystkie" i filtrem grup/indywidualnych), rodzaje multimediów (zdjęcia i naklejki, filmy, nagrania audio, wiadomości głosowe, dokumenty) i minimalny rozmiar w MB. „Zbierz dane" tylko odczytuje i podaje, ile plików i ile MB pasuje, według rodzaju; „Kontynuuj czyszczenie" prosi o potwierdzenie (domyślnie Nie), a potem usuwa dokładnie to, co pokazano. Pliki zapisane przez Zapisz jako nigdy nie są ruszane, tak samo jak multimedia niewysłanych wiadomości i zabezpieczonych czatów. WinZapp zapamiętuje, które pliki usunięto podczas czyszczenia. Automatyczne pobieranie i synchronizacja nie pobierają ich ponownie, Przy ręcznej próbie pobrania poleceniem „Pobierz” program prosi o potwierdzenie ponownego pobrania tej jednej kopii. Nie znosi to blokad automatycznego pobierania ani blokad pozostałych plików, a plik może już być niedostępny w WhatsAppie. Informacja o usuniętych plikach jest czyszczona dopiero po wylogowaniu lub ponownym sparowaniu konta; F5 jej nie usuwa.</p>
 
   </section>
 
@@ -613,7 +614,7 @@
   <li>Używany mikrofon i głośnik znajdują się w Ustawienia &gt; Dźwięk.</li>
   <li>W Neonize wiadomość głosowa jest dostarczana także kontaktom na Androidzie.</li>
   <li>Jeśli biblioteka typów plików komputera (libmagic) się nie wczyta, Neonize rozpoznaje typ na podstawie samego pliku i wiadomość głosowa wychodzi normalnie.</li>
-  <li>Wiadomości głosowe mono są domyślnie nagrywane z przepływnością 64 kb/s, a stereo z 128 kb/s. W Ustawieniach &gt; Dźwięk opcje "Przepływność wiadomości głosowych (kb/s)" (mono) i "Przepływność stereofonicznych wiadomości głosowych (kb/s)" pozwalają wybrać od 32 do 256 kb/s.</li>
+  <li>Wiadomości głosowe mono są domyślnie kodowane z przepływnością 64 kb/s, a stereo — 128 kb/s. W Ustawieniach &gt; Dźwięk opcje "Przepływność wiadomości głosowych (kb/s)" (mono) i "Przepływność stereofonicznych wiadomości głosowych (kb/s)" pozwalają wybrać od 32 do 256 kb/s.</li>
 </ul>
 
 <h3>Słuchanie</h3>
@@ -637,7 +638,7 @@
     <h2 id="h-transcricao-ia">🤖 7. Transkrypcja i opis</h2>
 <p class="lead">WinZapp oferuje dwa sposoby przetwarzania multimediów: <strong>transkrypcję lokalną</strong>, która za pomocą Whispera zamienia nagranie na tekst na twoim komputerze, oraz <strong>AI online</strong>, które wysyła wybrane multimedia do skonfigurowanego dostawcy. Transkrypcja lokalna nie wysyła nagrania do usługi AI. Oba sposoby mają osobne polecenia.</p>
 
-<h3>Transkrypcja lokalna z Whisper</h3>
+<h3>Transkrypcja lokalna za pomocą Whispera</h3>
 <p>Zamienia wiadomości głosowe, audio i filmy na tekst na twoim komputerze. Wszystko konfiguruje się na karcie <strong>Transkrypcja lokalna</strong> w ustawieniach.</p>
 <table class="field-table">
   <tr><th>Skrót</th><th>Akcja</th></tr>
@@ -694,7 +695,7 @@
     <h2 id="h-status">🟢 8. Statusy</h2>
 <p class="lead">Karta Status (Alt+5) pokazuje statusy twoich kontaktów i pozwala publikować własne.</p>
 <ul>
-  <li><strong>Oglądanie:</strong> lista pokazuje statusy; Enter otwiera jeden. Statusy ze zdjęciem i filmem otwierają się w przeglądarce (osobnej lub w odtwarzaczu wewnątrz karty), a Ctrl+strzałka w lewo/w prawo przechodzi do poprzedniego/następnego statusu. Statusy z lokalizacją, ankietą, listą kontaktów i innymi typami pojawiają się na liście z własną etykietą (na przykład „Lokalizacja”) i otwierają się jako tekst. Statusy Neonize „Dodaj swój”, z pytaniem i z animowaną naklejką pokazują swój tekst lub zawartość.</li>
+  <li><strong>Oglądanie:</strong> lista pokazuje statusy; Enter otwiera jeden. Statusy ze zdjęciem i filmem otwierają się w przeglądarce (osobnej lub w odtwarzaczu wewnątrz karty), a Ctrl+strzałka w lewo/w prawo przechodzi do poprzedniego/następnego statusu. Statusy z lokalizacją, ankietą, listą kontaktów i innymi typami pojawiają się na liście z własną etykietą (na przykład „Lokalizacja”) i otwierają się jako tekst. Statusy „Dodaj swój”, z pytaniem lub animowaną naklejką, odebrane przez silnik Neonize, wyświetlają tekst lub odpowiednią zawartość.</li>
   <li><strong>Reakcja:</strong> "Polub ❤️".</li>
   <li><strong>Odpowiedź:</strong> "Odpowiedz na status" otwiera pole odpowiedzi; Enter wysyła ("Odpowiedź wysłana.").</li>
   <li><strong>Publikowanie:</strong> "Opublikuj tekst jako status" i "Wyślij multimedia jako status". "Status opublikowany pomyślnie." potwierdza. Twoje własne statusy są w "Mój status".</li>
@@ -741,7 +742,7 @@
 </table>
 
 <h3>Dodawanie osób do połączenia</h3>
-<p>Podczas połączenia "Uczestnicy połączenia" pokazuje, kto w nim jest, a przycisk "Dodaj uczestników" otwiera listę osób, które mogą dołączyć: w połączeniu grupowym członków grupy, których jeszcze w nim nie ma; w połączeniu prywatnym Twoje kontakty, a połączenie staje się połączeniem z kilkoma osobami. Zaznaczaj i odznaczaj osoby klawiszem Ctrl+Spacja; czytnik ekranu mówi Zaznaczone lub Odznaczone i odtwarza dźwięk, a gdy ktoś jest zaznaczony, Spacja także zaznacza i odznacza. Ctrl+Shift+Spacja zaznacza wszystkich, Shift+strzałki zaznaczają sąsiednie wiersze, a Esc odznacza wszystko. Naciśnij "Dodaj". Do osoby, która została już wezwana i nie dołączyła, dzwoni się ponownie. Czytnik ekranu podaje, kogo zaproszono i kogo nie udało się dodać, albo dlaczego żądanie się nie powiodło. Jeśli nikogo nie zaproszono, okno pozostaje otwarte, aby spróbować ponownie.</p>
+<p>Podczas połączenia otwórz okno „Uczestnicy połączenia”, aby sprawdzić, kto w nim uczestniczy. Przycisk „Dodaj uczestników” otwiera listę osób, które można zaprosić. W połączeniu grupowym są to pozostali członkowie grupy, a w połączeniu indywidualnym — twoje kontakty. Po dodaniu kolejnych osób połączenie indywidualne staje się połączeniem wieloosobowym. Zaznaczaj i odznaczaj osoby klawiszem Ctrl+Spacja; czytnik ekranu mówi Zaznaczone lub Odznaczone i odtwarza dźwięk, a gdy ktoś jest zaznaczony, Spacja także zaznacza i odznacza. Ctrl+Shift+Spacja zaznacza wszystkich, Shift+strzałki zaznaczają sąsiednie wiersze, a Esc odznacza wszystko. Naciśnij "Dodaj". Jeśli wcześniej zaproszona osoba jeszcze nie dołączyła, ponowne wybranie jej spowoduje ponowne wywołanie połączenia. Czytnik ekranu podaje, kogo zaproszono i kogo nie udało się dodać, albo dlaczego żądanie się nie powiodło. Jeśli nikogo nie zaproszono, okno pozostaje otwarte, aby spróbować ponownie.</p>
 
 <h3>Połączenie przychodzące</h3>
 <p>Okno ma "Odbierz", "Odrzuć" i "Wycisz alert"; w rozmowie wideo "Odbierz z wideo" i "Odbierz bez wideo". Skróty tego okna to tylko Alt + podkreślona litera (Alt+O odbiera, również z wideo, Alt+B odbiera bez wideo, Alt+R odrzuca, Alt+W wycisza alert, Alt+Z zamyka okno), aby przypadkowo naciśnięty klawisz nie odebrał ani nie odrzucił.</p>
@@ -765,7 +766,7 @@
 <p>Użyj przycisku "Uczestnicy połączenia" w oknie połączenia lub przy zaznaczonym trwającym połączeniu w sekcji Połączenia, aby zobaczyć nazwy połączonych osób. Lista odświeża się co dziesięć sekund; "Odśwież" pobiera bieżące dane, a "Zamknij" lub Esc zamyka okno. Osoby zaproszone lub rozłączone nie są wyświetlane. Przeglądanie listy nie dołącza do połączenia ani go nie kończy.</p>
 
 <h3>Ciągłość dźwięku w połączeniach</h3>
-<p>Neonize przypisuje opóźniony dźwięk, operacje kamery i zmiany urządzeń do połączenia i strumienia, które je rozpoczęły. Oczekujące dane zakończonego lub zastąpionego strumienia są odrzucane, a zaległe dane multimedialne mają ograniczony rozmiar. Przejściowy błąd przekazania ramki do klienta nie zatrzymuje na stałe odczytu dźwięku. Po ponownym otwarciu wyjścia stary strumień nie może pobierać dźwięku nowego; błąd sygnału odniesienia dla usuwania echa nie wycisza dźwięku przygotowanego do odtwarzania. Niejednoznaczne częściowe dopasowanie nazwy urządzenia WASAPI zachowuje pierwotne API zamiast wybierać przypadkowe dopasowanie.</p>
+<p>Neonize przypisuje opóźniony dźwięk, operacje kamery i zmiany urządzeń do połączenia i strumienia, które je rozpoczęły. Oczekujące dane zakończonego lub zastąpionego strumienia są odrzucane, a zaległe dane multimedialne mają ograniczony rozmiar. Przejściowy błąd przekazania ramki do klienta nie zatrzymuje na stałe odczytu dźwięku. Po ponownym otwarciu wyjścia stary strumień nie może pobierać dźwięku nowego; błąd sygnału odniesienia dla usuwania echa nie wycisza dźwięku przygotowanego do odtwarzania. Jeśli częściowa nazwa urządzenia WASAPI pasuje do kilku urządzeń, WinZapp zachowuje dotychczasowe API dźwięku zamiast wybierać przypadkowe urządzenie.</p>
 <p>Dzienniki połączeń Neonize zawierają liczbowe podsumowania sygnału do badania problemów, bez zapisywania treści dźwięku. Rozróżniają brak próbek, cyfrową ciszę i poziomy sygnału; nie potwierdzają, że druga osoba zrozumiała lub usłyszała mowę.</p>
 
   </section>
@@ -776,13 +777,13 @@
 <p>Ctrl+Shift+D (lub "Informacje o czacie" w menu kontekstowym) otwiera okno z kartami. Wszystkie przyciski i pola mają literę skrótu (Alt+litera).</p>
 <ul>
   <li><strong>Kontakt:</strong> karta Przegląd z nazwą, nazwą profilu wybraną przez kontakt, zweryfikowaną nazwą i informacją, czy konto jest kontem firmowym, czy powiadomienia są wyciszone (i do kiedy), z licznikiem znikających wiadomości oraz z informacją, że wiadomości i połączenia są szyfrowane end-to-end. Przycisk "Zdjęcie profilowe" (Alt+F) pokazuje zdjęcie, a "Otwórz w zewnętrznej przeglądarce" (Alt+A) otwiera je w domyślnym programie Windows; jeśli nie ma zdjęcia lub osoba nie pozwala ci go zobaczyć, WinZapp o tym mówi. Jest też karta <strong>Wspólne grupy</strong> (Enter otwiera grupę) i karta Media.</li>
-  <li><strong>Grupa:</strong> karta Przegląd (nazwa, opis, zdjęcie grupy, czy tylko administratorzy wysyłają wiadomości), karta Członkowie (Enter na uczestniku otwiera z nim czat prywatny; "Dodaj członka" przyjmuje kontakty lub dodatkowy numer) i karta Media. Dane pojawiają się, gdy tylko grupa odpowie, a brakujące nazwy i numery są uzupełniane zaraz potem. Na karcie Multimedia Ctrl+C na dokumencie, zdjęciu, filmie lub nagraniu audio kopiuje plik do schowka, tak jak na liście wiadomości.</li>
+  <li><strong>Grupa:</strong> karta Przegląd (nazwa, opis, zdjęcie grupy, czy tylko administratorzy wysyłają wiadomości), karta Członkowie (Enter na uczestniku otwiera z nim czat prywatny; "Dodaj członka" przyjmuje kontakty lub dodatkowy numer) i karta Media. Dane pojawiają się, gdy tylko grupa odpowie, a brakujące nazwy i numery są uzupełniane zaraz potem. Na karcie Media Ctrl+C na dokumencie, zdjęciu, filmie lub nagraniu audio kopiuje plik do schowka, tak jak na liście wiadomości.</li>
   <li><strong>Komunikaty:</strong> w grupach, w których tylko administratorzy wysyłają wiadomości, pole wiadomości jest tylko do odczytu i WinZapp o tym mówi.</li>
 </ul>
 
 <h3>Tworzenie grupy i zaproszenia</h3>
 <p>W "Nowy czat" utwórz grupę, podając nazwę i uczestników. W <strong>Zaproszenie do grupy</strong> można zobaczyć link zaproszenia i kod QR, skopiować je ("Kopiuj link"), zapisać ("Zapisz kod QR...") i zresetować z potwierdzeniem ("Zresetuj link zaproszenia..."). W <strong>Dołącz do grupy przez link</strong> wklej link (także te kończące się na <code>?mode=...</code>), zobacz "Podgląd grupy" i wybierz "Dołącz do grupy lub wyślij prośbę o zatwierdzenie". Wyniki oczekiwania na zatwierdzenie i niepotwierdzonego dołączenia są zgłaszane osobno.</p>
-<p>W Ustawienia &gt; Ogólne opcja "Pozwól systemowi Windows otwierać linki WhatsApp (zaproszenia do grup i czaty) w WinZappie" rejestruje WinZapp dla linków <code>whatsapp:</code>: gdy użyjesz przycisku dołączania na stronie zaproszenia otwartej w przeglądarce, Windows przekazuje zaproszenie do WinZapp, nawet gdy jest zamknięty. W ten sam sposób, gdy otworzysz link wa.me lub api.whatsapp.com (na przykład ze strony, od linii lotniczej lub ze sklepu), WinZapp otwiera czat z tym numerem, nawet jeśli nie ma go w kontaktach, wstawia wiadomość z linku w pole wiadomości i zostawia tam fokus, bez wysyłania. Wersja instalowana rejestruje się sama przy pierwszym uruchomieniu, więc WinZapp pojawia się w Aplikacjach domyślnych systemu Windows; w wersji przenośnej włącz opcję samodzielnie.</p>
+<p>W Ustawienia &gt; Ogólne opcja "Pozwól systemowi Windows otwierać linki WhatsApp (zaproszenia do grup i czaty) w WinZappie" rejestruje WinZapp dla linków <code>whatsapp:</code>: gdy użyjesz przycisku dołączania na stronie zaproszenia otwartej w przeglądarce, Windows przekazuje zaproszenie do WinZapp, nawet gdy jest zamknięty. Link wa.me lub api.whatsapp.com otwiera stronę internetową. Użyj znajdującego się na niej przycisku otwierającego czat w aplikacji. Windows przekaże link WhatsApp do WinZappa, jeśli wybierzesz go do obsługi takich linków. Program otworzy czat z podanym numerem, także niezapisanym w kontaktach. Jeżeli link zawiera tekst wiadomości, wstawi go do pola wiadomości i pozostawi tam fokus. Wiadomość nie zostanie wysłana automatycznie. Wersja instalowana rejestruje się sama przy pierwszym uruchomieniu, więc WinZapp pojawia się w Aplikacjach domyślnych systemu Windows; w wersji przenośnej włącz opcję samodzielnie.</p>
 
 <h3>Prośby o dołączenie (administratorzy)</h3>
 <p>W grupach, w których jesteś administratorem, przycisk "Prośby o dołączenie" wymienia, kto czeka (nazwa lub numer, jak dotarła prośba i kiedy). "Zatwierdź" i "Odrzuć" odpowiadają na wybraną prośbę; "Odśwież" sprawdza ponownie. WinZapp mówi, że prośba została rozpatrzona, dopiero gdy zniknie z listy w WhatsApp.</p>
@@ -791,8 +792,8 @@
 <p>Panel Społeczności (lub "Nowy czat" &gt; "Społeczności") wymienia społeczności, w których jesteś. Po wybraniu jednej widzisz opis, administratorów i grupy z niej, do których dołączyłeś, z oznaczoną grupą ogłoszeń i grupą ogólną; Enter lub "Otwórz grupę" przechodzi do grupy. Jeśli administrujesz społecznością: "Dodaj grupy", "Usuń grupę ze społeczności", "Nadaj uprawnienia administratora społeczności", "Odbierz uprawnienia administratora społeczności" i "Dezaktywuj społeczność". "Nowa społeczność" tworzy nową z nazwą, opisem i wybranymi grupami. Po każdej akcji WinZapp ponownie odczytuje społeczności i mówi, że skończył, dopiero gdy WhatsApp pokazuje zmianę; w przeciwnym razie mówi, że prośba została wysłana, ale nie jest potwierdzona, albo że została odrzucona.</p>
 
 <h3>Kanały (Alt+9)</h3>
-<p>Okno Kanały (Alt+9 albo pozycja Kanały na liście nawigacji) pokazuje "Moje kanały", czyli obserwowane kanały, albo "Znajdź kanały": wpisz tekst w "Szukaj kanałów" i naciśnij Enter; bez tekstu pojawiają się kanały polecane przez WhatsAppa. W "Szczegóły" są opis, liczba obserwujących, informacja, czy obserwujesz kanał, jesteś jego administratorem lub właścicielem, oraz link. Enter lub "Otwórz kanał" otwiera kanał, aby czytać jego aktualizacje. Przyciski "Obserwuj" i "Przestań obserwować", "Wycisz powiadomienia" i "Włącz powiadomienia", "Kopiuj link", "Obserwuj przez link..." (wklej link do kanału) i "Utwórz kanał..." działają dla każdego kanału; "Edytuj kanał..." pojawia się w kanałach, którymi administrujesz, a "Usuń kanał" w Twoich kanałach. Pokazywanie kanałów na liście czatów pozostaje opcją w Ustawienia &gt; Interfejs &gt; Czaty.</p>
-<p>W "Znajdź kanały" pola Kategoria i Lista zawężają katalog tak jak opcje WhatsApp Web: wybierz kategorię (albo "Wszystkie kategorie") i listę (polecane, na czasie, popularne lub nowe) i naciśnij Szukaj lub Enter. Gdy w "Szukaj kanałów" jest tekst, wyszukiwanie obejmuje tylko wybraną kategorię. W kanałach, którymi administrujesz, pole wiadomości jest dostępne po otwarciu kanału: wpisz tekst i wyślij, aby opublikować aktualizację tekstową (bez wiadomości głosowych i załączników). Z menu wiadomości lub skrótem Ctrl+Shift+P przypinasz lub odpinasz aktualizację, a przypięte widać pod przyciskiem "Przypięte wiadomości". Przycisk "Administratorzy i obserwujący..." w oknie Kanały podaje liczbę administratorów kanału; właściciel może też użyć "Zaproś administratora..." (wybierz kontakt i ewentualnie wiadomość: zaproszenie trafia na czat tej osoby, a zostaje ona administratorem po jego przyjęciu) oraz "Anuluj zaproszenie administratora...". To okno pokazuje właściciela, administratorów, oczekujące zaproszenia i obserwujących: właściciel może uczynić obserwującego administratorem, anulować zaproszenie, usunąć administratora lub uczynić administratora właścicielem, a administrator może przestać nim być.</p>
+<p>Okno Kanały (Alt+9 albo pozycja Kanały na liście nawigacji) pokazuje "Moje kanały", czyli obserwowane kanały, albo "Znajdź kanały": wpisz tekst w "Szukaj kanałów" i naciśnij Enter; bez tekstu pojawiają się kanały polecane przez WhatsAppa. W "Szczegóły" są opis, liczba obserwujących, informacja, czy obserwujesz kanał, jesteś jego administratorem lub właścicielem, oraz link. Enter lub "Otwórz kanał" otwiera kanał, aby czytać jego aktualizacje. Dostępne polecenia pozwalają obserwować kanał lub przestać go obserwować, wyciszyć lub włączyć powiadomienia oraz skopiować link. Polecenie „Obserwuj przez link...” przyjmuje link do kanału, a „Utwórz kanał...” pozwala utworzyć własny kanał; "Edytuj kanał..." pojawia się w kanałach, którymi administrujesz, a "Usuń kanał" w Twoich kanałach. Pokazywanie kanałów na liście czatów pozostaje opcją w Ustawienia &gt; Interfejs &gt; Czaty.</p>
+<p>W "Znajdź kanały" pola Kategoria i Lista zawężają katalog tak jak opcje WhatsApp Web: wybierz kategorię (albo "Wszystkie kategorie") i listę (polecane, na czasie, popularne lub nowe) i naciśnij Szukaj lub Enter. Gdy w "Szukaj kanałów" jest tekst, wyszukiwanie obejmuje tylko wybraną kategorię. W kanałach, którymi administrujesz, pole wiadomości jest dostępne po otwarciu kanału: wpisz tekst i wyślij, aby opublikować aktualizację tekstową (bez wiadomości głosowych i załączników). Z menu wiadomości lub skrótem Ctrl+Shift+P przypinasz lub odpinasz aktualizację, a przypięte widać pod przyciskiem "Przypięte wiadomości". Przycisk "Administratorzy i obserwujący..." w oknie Kanały podaje liczbę administratorów kanału; właściciel może też użyć "Zaproś administratorów..." (wybierz kontakt i ewentualnie wiadomość: zaproszenie trafia na czat tej osoby, a zostaje ona administratorem po jego przyjęciu) oraz "Odwołaj zaproszenie do roli administratora...". To okno pokazuje właściciela, administratorów, oczekujące zaproszenia i obserwujących: właściciel może zaprosić obserwującego do roli administratora kanału, odwołać zaproszenie, odwołać administratora z jego roli lub przenieść prawa własności kanału na administratora. Administrator może zrezygnować ze swojej roli.</p>
 
 <h3>Wzmianki i odpowiedzi</h3>
 <p>Osoba wspomniana z nazwy razem z @all zachowuje link; wzmianka o tobie, w powiadomieniu i w podglądzie, używa słowa wybranego w "Jak mam się do Ciebie zwracać?". W Ustawienia &gt; Interfejs &gt; Wiadomości opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" sprawia, że wiadomości od osób bez nazwy zaczynają się od razu od treści. W Ustawienia &gt; Interfejs &gt; Czaty opcja "Poprzedzaj nazwy niezapisanych kontaktów znakiem tyldy (~) w czatach i wiadomościach" (domyślnie włączona) pokazuje tyldę przed nazwą osoby, której nie zapisano, w czatach i w wiadomościach.</p>
@@ -843,7 +844,7 @@
     <h2 id="h-contas">👤 13. Konta, zasobnik i synchronizacja</h2>
 <h3>Wiele kont</h3>
 <p>Każde konto ma własne okno i własny serwer lokalny. Menu <strong>Konta</strong> przełącza między nimi; tak samo Ctrl+Alt+1 do 9. "Zamknij bieżące konto" (Ctrl+F4) kończy tylko konto, w którym jesteś, zwalnia jego pamięć i połączenie oraz przechodzi do innego otwartego konta. Aby otworzyć je ponownie, wybierz je w menu Konta innego konta lub użyj Ctrl+Alt z jego numerem. Jeśli jest jedynym otwartym, WinZapp najpierw pyta, bo jego zamknięcie kończy program.</p>
-<p>W Konta &gt; Zarządzaj kontami pole wyboru "Połącz wszystkie konta przy uruchomieniu WinZapp" sprawia, że WinZapp przy każdym uruchomieniu otwiera w tle wszystkie pozostałe sparowane konta. Domyślnie jest wyłączone i dotyczy całej instalacji, a nie jednego konta.</p>
+<p>W Konta &gt; Zarządzaj kontami pole wyboru "Połącz wszystkie konta przy uruchomieniu WinZappa" sprawia, że WinZapp przy każdym uruchomieniu otwiera w tle wszystkie pozostałe konta połączone z WhatsAppem. Domyślnie jest wyłączone i dotyczy całej instalacji, a nie jednego konta.</p>
 <p>Usunięcie konta (Konta &gt; Zarządzaj kontami, przycisk Usuń) kasuje wszystko, co do niego należy: wiadomości, multimedia, ustawienia, profil przeglądarki z logowaniem do WhatsApp i kopie zapasowe tego profilu. To, czego nie da się usunąć od razu, zostanie dokończone przy następnym uruchomieniu WinZapp. Gdy konto jest jedyne, również można je usunąć: WinZapp prosi o potwierdzenie (domyślnie Nie), zamyka się, a następne uruchomienie jest pierwszym uruchomieniem.</p>
 
 <h3>Synchronizacja</h3>
@@ -856,12 +857,12 @@
 </ul>
 
 <h3>Zasobnik i powiadomienia</h3>
-<p>W Ustawienia &gt; Ogólne &gt; Powiadomienia opcja "Treść powiadomień w tle" ma trzy poziomy: dźwięk, nazwa czatu i tekst wiadomości; dźwięk i nazwa czatu, bez tekstu; albo tylko dźwięk, bez powiadomienia na ekranie i bez niczego odczytywanego. Powiadomienia respektują Asystenta skupienia Windows, a przeczytanie czatu w WinZapp usuwa jego powiadomienie z obszaru powiadomień. W "Kolejność wiadomości grupowych w powiadomieniach toast:" wybierasz "Najpierw nazwa uczestnika" (domyślnie: "Gustavo w WinZapp | Deweloperzy i Testerzy") albo "Najpierw nazwa grupy" (jak w oficjalnym WhatsApp Desktop: "WinZapp | Deweloperzy i Testerzy, Gustavo"); wybór dotyczy tylko tekstu powiadomień toast, a nie tego, co czytnik ekranu ogłasza przy aktywnym oknie.</p>
+<p>W Ustawienia &gt; Ogólne &gt; Powiadomienia opcja "Treść powiadomień w tle" ma trzy poziomy: dźwięk, nazwa czatu i tekst wiadomości; dźwięk i nazwa czatu, bez tekstu; albo tylko dźwięk, bez powiadomienia na ekranie i bez komunikatu czytnika ekranu. Powiadomienia respektują Asystenta skupienia Windows, a przeczytanie czatu w WinZapp usuwa jego powiadomienie z obszaru powiadomień. W "Kolejność informacji w powiadomieniach o wiadomościach grupowych:" wybierasz "Najpierw nazwa uczestnika" (domyślnie: "Gustavo w WinZapp | Deweloperzy i Testerzy") albo "Najpierw nazwa grupy" (jak w oficjalnym WhatsApp Desktop: "WinZapp | Deweloperzy i Testerzy, Gustavo"); wybór dotyczy tylko tekstu powiadomień systemowych, a nie tego, co czytnik ekranu ogłasza przy aktywnym oknie.</p>
 
 <h3>Połączenie i odzyskiwanie</h3>
-<p>Połączenie z WhatsApp jest przechowywane w profilu wewnętrznej przeglądarki. WinZapp trzyma jego kopie zapasowe (Ustawienia &gt; Pamięć &gt; Kopia zapasowa) i przywraca je sam, gdy połączenie zostanie odrzucone, mówiąc na głos, że przywrócił i łączy się ponownie; prosi o ponowne sparowanie tylko wtedy, gdy nie ma użytecznej kopii. Jeśli wewnętrzna przeglądarka jest niekompletna (zwykle antywirus usunął jej część), WinZapp o tym mówi i wyjaśnia, co zrobić.</p>
-<p>Jeśli WhatsApp rozłączy sesję, WinZapp od razu ci o tym mówi i otwiera parowanie. W Ustawienia &gt; Połączenie możesz użyć własnego API (serwer zdalny); wtedy profil przeglądarki i kopie zapasowe pozostają po stronie serwera.</p>
-<p>Po otwarciu WinZapp po długiej przerwie w korzystaniu z WPPConnect WhatsApp Web może potrzebować kilku minut na nadrobienie zaległości. W tym czasie tytuł okna pokazuje "synchronizowanie z WhatsApp...": konto nie zostało rozłączone i nie trzeba nic robić.</p>
+<p>Przy korzystaniu z silnika WPPConnect dane sesji WhatsApp są przechowywane w profilu wewnętrznej przeglądarki. WinZapp trzyma jego kopie zapasowe (Ustawienia &gt; Pamięć &gt; Kopia zapasowa) i przywraca je sam, gdy połączenie zostanie odrzucone, mówiąc na głos, że przywrócił i łączy się ponownie; prosi o ponowne połączenie z kontem WhatsApp tylko wtedy, gdy nie ma użytecznej kopii. Jeśli wewnętrzna przeglądarka jest niekompletna (zwykle antywirus usunął jej część), WinZapp o tym mówi i wyjaśnia, co zrobić.</p>
+<p>Jeśli WhatsApp rozłączy sesję, WinZapp od razu ci o tym mówi i otwiera okno łączenia z kontem. W Ustawienia &gt; Połączenie możesz użyć własnego API (serwer zdalny); wtedy profil przeglądarki i kopie zapasowe pozostają po stronie serwera.</p>
+<p>Po otwarciu WinZapp po długiej przerwie w korzystaniu z WPPConnect WhatsApp Web może potrzebować kilku minut na nadrobienie zaległości. W tym czasie tytuł okna pokazuje "synchronizowanie z WhatsAppem...": konto nie zostało rozłączone i nie trzeba nic robić.</p>
 
   </section>
 
@@ -872,7 +873,7 @@
 
 <table class="field-table">
   <tr><th>Kategoria</th><th>Co znajdziesz</th></tr>
-  <tr><td class="field-name">Ogólne</td><td>Język (portugalski brazylijski i europejski, angielski, hiszpański, polski, turecki, rumuński, włoski); sprawdzanie pisowni (zgodnie z Windows, zawsze lub nigdy); zamiana emotikonów na emoji; normalizacja Unicode w wyszukiwaniach (dokładna, ignorowanie akcentów lub także formy równoważne); uruchamianie w tle przy logowaniu do Windows; otwieranie linków zaproszeń do grup w WinZapp; automatyczne sprawdzanie aktualizacji i alph; pobieranie aktualizacji i składników potrzebnych do transkrypcji w tle; skrót globalny do otwierania WinZapp lub ukrywania go w zasobniku; co robić przy przełączaniu kont (ukryć okno bieżącego konta czy zostawić otwarte okna wszystkich kont).</td></tr>
+  <tr><td class="field-name">Ogólne</td><td>Język (portugalski brazylijski i europejski, angielski, hiszpański, polski, turecki, rumuński, arabski, włoski); sprawdzanie pisowni (zgodnie z Windows, zawsze lub nigdy); zamiana emotikonów na emoji; normalizacja Unicode w wyszukiwaniach (dokładna, ignorowanie akcentów lub także formy równoważne); uruchamianie w tle przy logowaniu do Windows; otwieranie linków zaproszeń do grup w WinZapp; automatyczne sprawdzanie aktualizacji i alph; pobieranie aktualizacji i składników potrzebnych do transkrypcji w tle; skrót globalny do otwierania WinZapp lub ukrywania go w zasobniku; co robić przy przełączaniu kont (ukryć okno bieżącego konta czy zostawić otwarte okna wszystkich kont).</td></tr>
   <tr><td class="field-name">Ogólne &gt; Powiadomienia</td><td>Powiadomienia w tle i ich treść; utrzymywanie wyciszenia wyciszonych czatów nawet gdy są otwarte; ikona w zasobniku i licznik nieprzeczytanych.</td></tr>
   <tr><td class="field-name">Interfejs</td><td>Każdy przycisk otwiera okno jednego tematu: Wiadomości, Reakcje, Czaty, Potwierdzenia i Skróty klawiszowe.</td></tr>
   <tr><td class="field-name">Interfejs &gt; Wiadomości</td><td>Ile wiadomości pokazać po otwarciu czatu; ile pominąć klawiszami Page Up/Down; rodzaj listy wiadomości (klasyczna, z limitem 512 znaków, lub pole listy, z pełnymi wiadomościami); pokazywanie, kto pisze, jako ostatniego wiersza; "Jak mam się do Ciebie zwracać?"; ukrywanie nadawcy przy własnych wiadomościach; ukrywanie numerów nadawców bez nazwy; zachowanie wpisanej wiadomości jako podpisu; "wczoraj" zamiast daty; podglądy linków; "Przekazano" na początku wiadomości, przed nadawcą; początkowy stan "Usuń też multimedia z telefonu"; filmy i statusy w osobnym odtwarzaczu; rodzaje multimediów pokazywane domyślnie.</td></tr>
@@ -883,17 +884,17 @@
   <tr><td class="field-name">Interfejs &gt; Skróty klawiszowe</td><td>Wymienia wszystkie skróty programu, w tym globalny. Wybierz jeden, użyj "Zmień" i wpisz nową kombinację; albo wyłącz go, przywróć domyślny lub przywróć wszystkie. O konfliktach ostrzega się przed zastosowaniem, a zmiany zaczynają działać dopiero po Zastosuj lub OK.</td></tr>
   <tr><td class="field-name">Dostępność</td><td>Rozszerzona zgodność z czytnikiem ekranu (dodatkowe komunikaty) i użycie głosu SAPI, gdy żaden czytnik ekranu nie jest aktywny.</td></tr>
   <tr><td class="field-name">Dostępność &gt; Zawartość mówiona</td><td>Ogłaszanie, że kontakt pisze lub nagrywa; ogłaszanie początku i końca odświeżania czatu; mówiony postęp synchronizacji i pobierania multimediów; automatyczne mówienie wiadomości w aktywnym czacie i w innych; ogłaszanie synchronizacji, pobierania multimediów i automatycznego trybu offline.</td></tr>
-  <tr><td class="field-name">Dźwięk</td><td>Mikrofon, głośnik i wyjście efektów (alerty i dźwięki); redukcja szumów mikrofonu i jej model neuronowy, pobierany na tej samej stronie; pliki audio wklejone przez Ctrl+V jako audio lub dokument; gdzie ustawić fokus po nagraniu wiadomości głosowej (wyślij lub odrzuć); przekazywanie głosu jako głosu; odczyt wiadomości głosowej jako audio lub jako wiadomości głosowej; transkrybowanie przez Enter i Spację; wyciszanie komunikatów i przycisku wysyłania podczas nagrywania.</td></tr>  <tr><td class="field-name">Dźwięk &gt; Odtwarzanie audio</td><td>Szybkość domyślna; oznaczanie audio jako odtworzonego i ogłaszanie; automatyczne odtwarzanie wiadomości głosowych po kolei; przenoszenie fokusu na następne audio w sekwencji.</td></tr>
-  <tr><td class="field-name">Dźwięki zdarzeń</td><td>Pakiet dźwięków, import folderu z dźwiękami lub pliku ZIP oraz dźwięk każdego zdarzenia (w tym gdy ktoś zareaguje na twoją wiadomość i błędu pisowni); włączanie lub wyłączanie wszystkich; dźwięk powiadomienia w tle dla czatów prywatnych i dla grup, z podglądem dźwięku; dźwięk wiadomości, gdy WinZapp jest na pierwszym planie, osobno dla otwartego czatu i dla pozostałych czatów: dedykowany dźwięk pierwszego planu lub dźwięk powiadomienia w tle.</td></tr>
+  <tr><td class="field-name">Dźwięk</td><td>Mikrofon, głośnik i wyjście efektów (alerty i dźwięki); redukcja szumów mikrofonu i jej model neuronowy, pobierany na tej samej stronie; pliki audio wklejone przez Ctrl+V jako audio lub dokument; gdzie ustawić fokus po nagraniu wiadomości głosowej (wyślij lub odrzuć); przekazywanie wiadomości głosowych jako wiadomości głosowych; sposób odtwarzania i rozróżniania plików audio oraz wiadomości głosowych; transkrybowanie przez Enter i Spację; wyciszanie komunikatów i przycisku wysyłania podczas nagrywania.</td></tr>  <tr><td class="field-name">Dźwięk &gt; Odtwarzanie audio</td><td>Szybkość domyślna; oznaczanie audio jako odtworzonego i ogłaszanie; automatyczne odtwarzanie wiadomości głosowych po kolei; przenoszenie fokusu na następne audio w sekwencji.</td></tr>
+  <tr><td class="field-name">Dźwięki zdarzeń</td><td>Pakiet dźwięków, import folderu z dźwiękami lub pliku ZIP oraz dźwięk każdego zdarzenia (w tym gdy ktoś zareaguje na twoją wiadomość i błędu pisowni); włączanie lub wyłączanie wszystkich; dźwięk powiadomienia w tle dla czatów prywatnych i dla grup, z podglądem dźwięku; dźwięk wiadomości, gdy WinZapp jest na pierwszym planie, osobno dla otwartego czatu i dla pozostałych czatów: osobny dźwięk wiadomości lub taki sam dźwięk jak w powiadomieniu w tle.</td></tr>
   <tr><td class="field-name">Pamięć</td><td>Automatyczne pobieranie multimediów, rodzaje multimediów, limit w dniach i w MB (0 = bez limitu), ustalanie czasu trwania filmów podczas pobierania; folder, w którym otwierają się okna zapisu (ostatnio używany, Pobrane lub własny).</td></tr>
   <tr><td class="field-name">Pamięć &gt; Kopia zapasowa</td><td>Zobacz sekcję Kopie zapasowe i dzienniki.</td></tr>
   <tr><td class="field-name">Połączenia</td><td>Zezwalanie na alerty i otwieranie okna, gdy przychodzi połączenie; ustawienia audio i wideo połączeń, usuwanie echa, redukcja szumów i tryb wyłączny.</td></tr>
   <tr><td class="field-name">AI online: transkrypcje i opisy</td><td>Zobacz sekcję Transkrypcja i opis.</td></tr>
   <tr><td class="field-name">Transkrypcja lokalna</td><td>Zobacz sekcję Transkrypcja i opis.</td></tr>
   <tr><td class="field-name">Ustawienia WhatsApp</td><td>Prywatność i Profil: zobacz sekcję Ustawienia WhatsApp.</td></tr>
-  <tr><td class="field-name">Połączenie</td><td>Silnik połączenia: WPPConnect (domyślny), Neonize (eksperymentalny: łączy się z WhatsApp bez przeglądarki, przez lokalny most, który WinZapp uruchamia sam) lub serwer niestandardowy (adres serwera, adres WebSocket, port i klucz API). Zmiana silnika działa dopiero po ponownym uruchomieniu WinZapp; to pytanie zadawane jest też przy pierwszym uruchomieniu. Skompilowane wersje zawierają Neonize i zachowują obok niego zainstalowany WPPConnect; z klonu repozytorium najpierw uruchom neonize_bridge/prepare.py, jak opisuje README w tym folderze. Osoba, która nadal używa WPPConnect, widzi przy uruchomieniu jednorazowe powiadomienie z propozycją przejścia na Neonize (w nowym silniku trzeba sparować ponownie); każdy silnik zachowuje własną sesję połączenia, więc po powrocie do poprzedniego silnika można ją wznowić. Osoba, która jeszcze nie sparowała konta, może zmienić silnik w samym oknie parowania, na liście „Silnik połączenia” przed krajem: WinZapp prosi o potwierdzenie i uruchamia się ponownie z wybranym silnikiem. Skompilowane wersje nie zawierają Node.js; po wybraniu WPPConnect (przy pierwszym uruchomieniu, w oknie parowania lub w Ustawieniach) WinZapp pobiera zweryfikowany Node.js i instaluje moduły WPPConnect przed połączeniem.</td></tr>
+  <tr><td class="field-name">Połączenie</td><td>Silnik połączenia: WPPConnect (domyślny), Neonize (eksperymentalny: łączy się z WhatsApp bez przeglądarki, przez lokalny most, który WinZapp uruchamia sam) lub serwer niestandardowy (adres serwera, adres WebSocket, port i klucz API). Zmiana silnika działa dopiero po ponownym uruchomieniu WinZapp; to pytanie zadawane jest też przy pierwszym uruchomieniu. Skompilowane wersje zawierają Neonize i zachowują obok niego zainstalowany WPPConnect; z klonu repozytorium najpierw uruchom neonize_bridge/prepare.py, jak opisuje README w tym folderze. Osoba, która nadal używa WPPConnect, widzi przy uruchomieniu jednorazowe powiadomienie z propozycją przejścia na Neonize (w nowym silniku trzeba ponownie połączyć konto z WhatsAppem); każdy silnik zachowuje własną sesję połączenia, więc po powrocie do poprzedniego silnika można ją wznowić. Osoba, która jeszcze nie połączyła konta z WhatsAppem, może zmienić silnik w samym oknie łączenia z kontem, na liście „Silnik połączenia” przed krajem: WinZapp prosi o potwierdzenie i uruchamia się ponownie z wybranym silnikiem. Skompilowane wersje nie zawierają Node.js; po wybraniu WPPConnect (przy pierwszym uruchomieniu, w oknie łączenia z kontem lub w Ustawieniach) WinZapp pobiera zweryfikowany Node.js i instaluje moduły WPPConnect przed połączeniem.</td></tr>
 </table>
-<p>Powiadomienia o pisaniu: wybierz powtarzany dźwięk podczas pisania, sam czytnik ekranu, oba sposoby lub wyłącz powiadomienia. W ustawieniach zdarzeń dźwiękowych możesz wskazać własny plik. Dotychczasowy wybór ogłaszania pisania jest zachowany, a nowy dźwięk jest domyślnie wyłączony w obu silnikach połączenia. Odstęp można ustawić od 1 do 30 sekund (domyślnie 3). Dźwięk ustaje po zakończeniu pisania, nadejściu wiadomości od piszącej osoby lub opuszczeniu aktywnego czatu. Czytnik ekranu ogłasza rozpoczęcie raz. Ogłaszanie nagrywania, wizualny wiersz pisania i Alt+T działają jak dotychczas. Długi plik jest odtwarzany do końca przed powtórzeniem; brak własnego pliku powoduje użycie dźwięku pakietu.</p>
+<p>Powiadomienia o pisaniu: gdy ktoś pisze w aktywnym czacie, możesz słyszeć powtarzany dźwięk, komunikat czytnika ekranu albo oba rodzaje powiadomień. Możesz też je wyłączyć. W ustawieniach zdarzeń dźwiękowych możesz wskazać własny plik. Dotychczasowy wybór ogłaszania pisania jest zachowany, a nowy dźwięk jest domyślnie wyłączony w obu silnikach połączenia. Odstęp można ustawić od 1 do 30 sekund (domyślnie 3). Dźwięk ustaje po zakończeniu pisania, nadejściu wiadomości od piszącej osoby lub opuszczeniu aktywnego czatu. Czytnik ekranu ogłasza rozpoczęcie raz. Ogłaszanie nagrywania, wizualny wiersz pisania i Alt+T działają jak dotychczas. Długi plik jest odtwarzany do końca przed powtórzeniem; gdy nie wybierzesz własnego pliku, używany jest dźwięk z pakietu.</p>
 <p>Domyślnie dźwięk pisania jest wyciszony podczas nagrywania wiadomości głosowej i rozmów. Aby był wtedy odtwarzany, odznacz “Wycisz dźwięk pisania podczas nagrywania wiadomości głosowej i rozmów” w ustawieniach zdarzeń dźwiękowych. Opcja dotyczy tylko tego dźwięku; komunikaty czytnika ekranu i pozostałe dźwięki zachowują swoje ustawienia.</p>
 
 
@@ -916,8 +917,8 @@
 <h3>Przycisk Prywatność</h3>
 <ul>
   <li>Widziano oraz Kto widzi, że jestem online; Informacje; zdjęcie profilowe; potwierdzenia odczytu; kto może dodawać cię do grup; kto może widzieć twój status (moje kontakty, moje kontakty oprócz..., lub udostępnij tylko...).</li>
-  <li>Gdy potwierdzenia odczytu są wyłączone, działa to w obu kierunkach w czatach indywidualnych: nie wysyłasz potwierdzeń odczytu innym i nie widzisz statusu „przeczytano” wysłanych wiadomości. W grupach działa to jak w telefonie.</li>
-  <li>W sekcji "Czaty" opcja "Zachowaj czaty zarchiwizowane": gdy jest wyłączona, zarchiwizowany czat wraca na listę czatów po nadejściu nowej wiadomości. To opcja samego WhatsApp, więc działa też na telefonie i na pozostałych urządzeniach.</li>
+  <li>Gdy potwierdzenia odczytu są wyłączone, działa to w obu kierunkach w czatach indywidualnych: nie wysyłasz potwierdzeń odczytu innym i nie widzisz potwierdzenia „Wyświetlono” przy wysłanych wiadomościach. W grupach działa to jak w telefonie.</li>
+  <li>W sekcji "Czaty" opcja "Pozostaw czaty zarchiwizowane": gdy jest wyłączona, zarchiwizowany czat wraca na listę czatów po nadejściu nowej wiadomości. To opcja samego WhatsApp, więc działa też na telefonie i na pozostałych urządzeniach.</li>
   <li>Osoby dla statusu wybiera się spośród zsynchronizowanych kontaktów, na liście z wyszukiwaniem, w której każdą zaznacza się Spacją.</li>
   <li>Okno wczytuje bieżące wartości, wysyła tylko to, co zmieniłeś, a potem sprawdza, mówiąc, których ustawień WhatsApp nie potwierdził.</li>
 </ul>
@@ -942,13 +943,13 @@
 <ul>
   <li>Ustaw minimalny odstęp między kopiami tworzonymi przy zamykaniu WinZappa. Domyślnie wynosi on 24 godziny. Wartość 0 oznacza tworzenie kopii przy każdym zamknięciu programu.</li>
   <li>Możesz również włączyć tworzenie kopii podczas działania WinZappa i ustawić odstęp między nimi. Na czas tworzenia kopii połączenie z WhatsAppem jest przerywane; może to potrwać kilka minut. Opcjonalnie program pyta o zgodę przed każdą kopią. Nowa kopia zastępuje poprzednią dopiero po ponownym nawiązaniu połączenia z WhatsAppem.</li>
-  <li>"Nie przechowuj kopii zapasowych profilu" oszczędza miejsce, ale jeśli profil ulegnie uszkodzeniu, trzeba będzie sparować ponownie. Po zaznaczeniu WinZapp mówi, ile miejsca zajmują kopie, i pyta, czy chcesz je usunąć.</li>
+  <li>"Nie przechowuj kopii zapasowych profilu" oszczędza miejsce, ale jeśli profil ulegnie uszkodzeniu, trzeba będzie ponownie połączyć konto z WhatsAppem. Po zaznaczeniu WinZapp mówi, ile miejsca zajmują kopie, i pyta, czy chcesz je usunąć.</li>
 </ul>
-<p>Silnik Neonize nie używa wewnętrznej przeglądarki, więc nie ma profilu do skopiowania: kopia zapasowa profilu nie jest pokazywana w Ustawienia &gt; Pamięć ani w menedżerze pamięci.</p>
+<p>Silnik Neonize nie używa wewnętrznej przeglądarki, więc nie ma profilu do skopiowania: opcje kopii zapasowej profilu nie są pokazywane w Ustawienia &gt; Pamięć ani w menedżerze miejsca na dysku.</p>
 <p>Te kopie WinZapp wykorzystuje do samodzielnego odzyskiwania (zobacz sekcję Konta, zasobnik i synchronizacja). Aby zachować historię wiadomości i multimediów, skopiuj folder <code>data</code>.</p>
 
 <h3>Dzienniki</h3>
-<p>Dzienniki WinZapp (<code>log.log</code>) i serwera lokalnego (<code>wppconnect.log</code>) maskują numery telefonów, identyfikatory WhatsApp i nazwy kontaktów, więc można je wysyłać przy zgłaszaniu problemu bez ujawniania kontaktów. Znajdują się w <code>data\accounts\&lt;identyfikator konta&gt;\logs</code>, w folderze WinZapp. <code>log.log</code> jest zastępowany przy każdym uruchomieniu. Przy problemach z ponownym proszeniem o parowanie lub utratą sesji wyślij też <code>shutdown_audit.log</code>.</p>
+<p>Dzienniki WinZapp (<code>log.log</code>) i serwera lokalnego (<code>wppconnect.log</code>) maskują numery telefonów, identyfikatory WhatsApp i nazwy kontaktów, więc można je wysyłać przy zgłaszaniu problemu bez ujawniania kontaktów. Znajdują się w <code>data\accounts\&lt;identyfikator konta&gt;\logs</code>, w folderze WinZapp. <code>log.log</code> jest zastępowany przy każdym uruchomieniu. Przy problemach z ponownym wyświetlaniem prośby o połączenie z kontem lub utratą sesji wyślij też <code>shutdown_audit.log</code>.</p>
 <p>W Ustawienia &gt; Zaawansowane przycisk „Eksportuj logi tego konta...” zapisuje w tle plik .zip z dziennikami bieżącego konta i mostu Neonize oraz ogłasza zakończenie.</p>
 <p>Zgłaszaj problemy i proś o funkcje w Issues repozytorium (<code>github.com/gabrielhhaber/WinZapp_Python/issues</code>). Pomoc &gt; O programie pokazuje wersję, o którą pyta formularz błędu.</p>
 
@@ -969,40 +970,40 @@
   <section id="armazenamento" class="wiki-section" aria-labelledby="h-armazenamento">
     <h2 id="h-armazenamento">💾 18. Menedżer miejsca na dysku</h2>
 <h3>Podsumowanie miejsca na dysku</h3>
-<p>Otwórz Ustawienia → Pamięć → Menedżer miejsca na dysku. Tab przenosi między kontrolkami, a Ctrl+Tab między kartami. Na liście strzałki przesuwają kursor, a Spacja przełącza pole wyboru. Przesunięcie kursora nie zaznacza pliku do usunięcia. Strona zawiera najwyżej 200 elementów. Skanowanie i odświeżanie nie stosują planu czyszczenia.</p>
-<p>Rozmiary logiczne są liczone raz dla każdej tożsamości pliku. Zajęte bloki i wolne miejsce na dysku nie są mierzone. Pliki w przechowalni nadal zajmują miejsce. Pomiar obejmuje tylko tę instalację.</p>
+<p>Otwórz Ustawienia → Pamięć → Menedżer miejsca na dysku. Tab przenosi między kontrolkami, a Ctrl+Tab między kartami. Na liście plików strzałki przenoszą fokus, a Spacja zaznacza lub odznacza plik. Samo przeniesienie fokusu nie zaznacza pliku do usunięcia. Strona zawiera najwyżej 200 elementów. Skanowanie i odświeżanie nie wykonują operacji z podglądu czyszczenia.</p>
+<p>Podawane są logiczne rozmiary plików, bez wielokrotnego liczenia tego samego pliku. Rzeczywiste miejsce zajmowane na dysku i wolne miejsce nie są mierzone. Pliki w przechowalni nadal zajmują miejsce. Pomiar obejmuje tylko tę instalację.</p>
 <h3>Preferencje</h3>
-<p>Praca w tle jest opcjonalna. Zapis preferencji nie stosuje podglądu plików. Cel jest orientacyjny, a nie ścisłym limitem. Próg wolnego miejsca na dysku nie jest egzekwowany. Opcjonalne powiązanie odczytuje wybrane lokalne historie wiadomości. Modele zewnętrzne i inne konta służą tylko do informacji. Nowe foldery kont wymagają wyłączenia i ponownego włączenia tego zakresu.</p>
-<p>Jeśli powiązanie całego konta jest niepełne, wybierz mniej lokalnych czatów. Powiązanie odczytuje historię lokalną bez łączenia z WhatsApp. Treści wysłane, oczekujące, z błędem, z gwiazdką, z zabezpieczonym dostępem, ukryte i niepowiązane pozostają chronione. Przyciski modeli i kopii zapasowych otwierają ich istniejące ustawienia.</p>
-<p>Powiąż multimedia z wybranymi historiami lokalnymi → Wybierz lokalne historie do powiązania → Zapisz preferencje i szkice reguł</p>
-<h3>Podgląd zaznaczenia</h3>
+<p>Wszystkie operacje w tle są opcjonalne. Zapisanie preferencji nie wykonuje operacji z podglądu plików. Próg zajętości jest orientacyjny i nie stanowi sztywnego limitu. Menedżer nie wymusza utrzymywania określonej ilości wolnego miejsca na dysku. Opcjonalne powiązanie plików wymaga odczytania wybranych lokalnych historii wiadomości. Pliki modeli spoza folderów programu i pliki innych kont są uwzględniane tylko informacyjnie. Aby uwzględnić nowo dodane foldery kont, wyłącz i ponownie włącz odpowiednią opcję.</p>
+<p>Jeśli nie uda się w pełni powiązać plików z historią wszystkich czatów konta, wybierz mniej czatów. Analizowana jest tylko historia lokalna, bez łączenia z WhatsAppem. Chronione pozostają pliki wiadomości wysłanych, oczekujących na wysłanie, z błędem wysyłania lub oznaczonych gwiazdką, a także pliki z czatów ukrytych lub z zabezpieczonym dostępem oraz pliki niepowiązane z historią. Przyciski zarządzania modelami i kopiami zapasowymi otwierają ich osobne ustawienia.</p>
+<p>Powiąż pliki multimedialne z wybranymi lokalnymi historiami czatów → Wybierz czaty do powiązania z plikami → Zapisz preferencje i szkice reguł</p>
+<h3>Podgląd operacji na zaznaczonych plikach</h3>
 <ol>
 <li>Skanuj teraz</li>
 <li>Zastosuj filtry</li>
-<li>Zaznacz tę stronę</li>
-<li>Sposób operacji</li>
-<li>Podgląd zaznaczenia</li>
-<li>Zastosuj podgląd</li>
+<li>Zaznacz pliki na tej stronie</li>
+<li>Rodzaj operacji</li>
+<li>Podgląd operacji na zaznaczonych plikach</li>
+<li>Wykonaj operacje z podglądu</li>
 </ol>
-<p>Zaznacz najwyżej 500 odpowiednich plików na podgląd, a mniej przy bardzo długich ścieżkach. Żadna część tego zaznaczenia nie została zastosowana.</p>
-<p>Modele, środowiska wykonawcze, kopie zapasowe, dzienniki, bazy danych i dane logowania są tu chronione. Zarządzaj nimi w ich istniejących ustawieniach. Nieznane pliki nie są uznawane za zbędne. Do podglądu mogą wejść tylko zweryfikowane pliki pamięci podręcznej i powiązane kopie odebranych multimediów.</p>
+<p>Jeden podgląd może obejmować najwyżej 500 plików kwalifikujących się do operacji, a przy bardzo długich ścieżkach — mniej. Na żadnym z zaznaczonych plików nie wykonano operacji.</p>
+<p>Modele, środowiska wykonawcze, kopie zapasowe, dzienniki, bazy danych i dane logowania są tu chronione. Do zarządzania nimi służą ich osobne ustawienia. Nieznane pliki nie są uznawane za zbędne. Podgląd operacji może obejmować tylko zweryfikowane pliki pamięci podręcznej oraz kopie odebranych multimediów powiązane z historią czatów.</p>
 <h3>Ochrona</h3>
-<p>Ochrona ma pierwszeństwo przed ręcznym zaznaczeniem i regułami. Wspólna ochrona dotyczy kont w tej instalacji. Usunięcie ochrony nie zaznacza plików. Brakujące elementy lub elementy bez widocznej nazwy zachowują prywatną etykietę numeryczną.</p>
+<p>Ochrona ma pierwszeństwo przed ręcznym zaznaczeniem i regułami. Wspólna ochrona obowiązuje na wszystkich kontach tej instalacji. Usunięcie ochrony nie zaznacza plików do operacji. Elementy niedostępne lub bez widocznej nazwy zachowują etykietę z numerem, która nie ujawnia ich danych.</p>
 <p>Chroń zaznaczone pliki → Chroń zaznaczone czaty → Odśwież ochronę</p>
 <h3>Pliki w przechowalni</h3>
-<p>Przechowalnia przenosi lokalną kopię bez tworzenia kolejnej i nie zwalnia jej miejsca. Przywracanie nigdy nie nadpisuje bieżącego pliku. Trwałego usunięcia nie można tu cofnąć. Multimedia mogą być już niedostępne w WhatsApp.</p>
+<p>Przeniesienie lokalnej kopii do przechowalni nie tworzy dodatkowej kopii i nie zwalnia miejsca na dysku. Przywracanie nie nadpisuje istniejącego pliku. Trwałego usunięcia nie można tu cofnąć. Multimedia mogą być już niedostępne w WhatsAppie.</p>
 <p>Aby trwale usunąć multimedia z przechowalni, włącz powiązanie multimediów i wybierz czaty w Preferencjach, a następnie zapisz preferencje i spróbuj ponownie. Można usuwać tylko w pełni powiązane i nieobjęte ochroną multimedia z obecnie widocznych czatów bez zabezpieczenia dostępu.</p>
 <p>Odśwież pliki w przechowalni → Przywróć zaznaczone pliki z przechowalni → Trwale usuń zaznaczone pliki z przechowalni</p>
-<p>Dla wyczyszczonego zdjęcia, filmu, dokumentu lub nagrania zaznacz wiadomość i użyj Pobierz. Potwierdź osobne żądanie tej jednej kopii. To nie cofa czyszczenia ani nie gwarantuje, że WhatsApp ma plik. Żadna inna blokada pobierania nie jest znoszona.</p>
-<p>Usunąć puste zapisy operacji starsze niż dwa dni? Pliki w przechowalni i aktywne zapisy odzyskiwania pozostaną. Podglądy wygasają po jednym dniu.</p>
+<p>Aby ponownie pobrać zdjęcie, film, dokument lub nagranie, którego lokalną kopię usunięto lub przeniesiono do przechowalni, wybierz wiadomość i użyj polecenia „Pobierz”. Potwierdź pobranie tej jednej kopii. Plik może już być niedostępny w WhatsAppie. Pozostałe blokady pobierania, w tym blokada automatycznego pobierania tego pliku, pozostaną aktywne.</p>
+<p>Polecenie „Usuń wygasłe zapisy ukończonych operacji” usuwa puste zapisy starsze niż dwa dni. Zachowuje pliki w przechowalni i aktywne zapisy odzyskiwania. Podglądy operacji wygasają po jednym dniu.</p>
 <h3>Reguły</h3>
-<p>Wiek i rozmiar to warunki, a nie dowód zbędności. Ochrona ma pierwszeństwo. Reguła propozycji lub powiadomienia przeważa nad automatyczną dla tego samego pliku. Tryb automatyczny jest dostępny tylko dla zweryfikowanej, odtwarzalnej pamięci podręcznej kompilacji.</p>
-<p>Ręczny skan nie uruchamia automatycznego usuwania. Tylko osobno włączona reguła pamięci podręcznej może usuwać ograniczone partie plików przy zapisanej ocenie startowej lub okresowej. Wstrzymanie ocen zachowuje inne niezapisane szkice. Cel używa ostatniego nieanulowanego pomiaru i nie jest limitem dysku. Ręczne żądania i wysyłanie pozostają dostępne.</p>
+<p>Wiek i rozmiar pliku są warunkami reguł, ale nie dowodzą, że plik jest zbędny. Ochrona ma pierwszeństwo. Jeśli ten sam plik spełnia warunki reguły proponującej ręczny przegląd lub wysyłającej powiadomienie, nie zostanie usunięty przez regułę automatyczną. Tryb automatyczny jest dostępny tylko dla zweryfikowanej pamięci podręcznej kompilacji, którą można odtworzyć.</p>
+<p>Ręczne skanowanie nie uruchamia automatycznego usuwania. Osobno włączona reguła pamięci podręcznej może usuwać ograniczone partie plików podczas sprawdzania przy uruchomieniu lub w ustalonych odstępach. Wstrzymanie zaplanowanego sprawdzania zachowuje pozostałe niezapisane szkice ustawień. Orientacyjny próg zajętości jest sprawdzany na podstawie ostatniego nieanulowanego pomiaru; nie jest sztywnym limitem miejsca na dysku. Ręczne pobieranie i wysyłanie nadal są dostępne.</p>
 <p>Dodaj regułę → Włącz regułę po zapisaniu preferencji → Zapisz preferencje i szkice reguł</p>
 <p>To szkice. Zapisz preferencje, aby zastosować zmiany reguł i zakresu powiązań.</p>
-<p>Wczytano szablon do sprawdzenia. Reguły i harmonogram są wyłączone. Zapisz preferencje, aby zastosować wybory.</p>
-<p>Okres historii podsumowań w dniach; 0: wyłączona → Odśwież historię podsumowań → Wyczyść historię podsumowań</p>
-<p>Przywrócić domyślne preferencje miejsca na dysku, reguły i listę ochrony tego konta? Wspólna ochrona, przechowalnia i blokady pobierania pozostają. Żadne pliki nie zostaną wyczyszczone.</p>
+<p>Po zaimportowaniu szablonu sprawdź jego ustawienia. Reguły i harmonogram pozostają wyłączone. Zapisz preferencje, aby zastosować wybrane ustawienia.</p>
+<p>Liczba dni przechowywania historii podsumowań; 0: historia wyłączona → Odśwież historię podsumowań → Wyczyść historię podsumowań</p>
+<p>Przywrócić domyślne preferencje, reguły i listę ochrony menedżera miejsca na dysku dla tego konta? Wspólna ochrona, pliki w przechowalni i blokady pobierania pozostaną. Żadne pliki nie zostaną usunięte.</p>
 
   </section>
 
@@ -1044,7 +1045,7 @@
 <tr><td class="field-name">Ctrl+Shift+K</td><td>Zamknij i ukryj sejf zabezpieczonych czatów</td></tr>
 <tr><td class="field-name">Ctrl+Alt+1 do 9</td><td>Przełącz na odpowiednie połączone konto</td></tr>
 <tr><td class="field-name">Ctrl+F4</td><td>Zamknij bieżące konto, pozostawiając pozostałe otwarte</td></tr>
-<tr><td class="field-name">Ctrl+0 do 9</td><td>Ustaw zakładkę na zaznaczonej wiadomości lub przejdź do istniejącej zakładki</td></tr>
+<tr><td class="field-name">Ctrl+0 do 9</td><td>Ustaw zakładkę na wiadomości z fokusem lub przejdź do istniejącej zakładki</td></tr>
 </table>
 <h3>Listy (ogólnie)</h3>
 <table class="field-table">
@@ -1163,8 +1164,8 @@
 <tr><td class="field-name">Alt+C</td><td>Pokaż tekst wiadomości w okienku</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Edytuj wiadomość</td></tr>
 <tr><td class="field-name">Alt+L</td><td>Przeczytaj resztę wiadomości tekstowej skróconej na liście</td></tr>
-<tr><td class="field-name">Alt+Shift+L</td><td>Odczytaj status zaznaczonej wiadomości</td></tr>
-<tr><td class="field-name">Alt+Shift+K</td><td>Odczytaj datę i godzinę zaznaczonej wiadomości</td></tr>
+<tr><td class="field-name">Alt+Shift+L</td><td>Odczytaj status wiadomości z fokusem</td></tr>
+<tr><td class="field-name">Alt+Shift+K</td><td>Odczytaj datę i godzinę wiadomości z fokusem</td></tr>
 <tr><td class="field-name">Ctrl+Shift+S</td><td>Zapisz/pobierz multimedia</td></tr>
 <tr><td class="field-name">Ctrl+Shift+M</td><td>Oznacz jako przeczytane/nieprzeczytane</td></tr>
 <tr><td class="field-name">Ctrl+Shift+L</td><td>Wyczyść czat</td></tr>
@@ -1202,9 +1203,9 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+N</td><td>Transkrybuj zaznaczone wiadomości lokalnie za pomocą Whispera i wyświetl tekst w ich wierszach</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+Delete</td><td>Usuń zapisane lokalne transkrypcje zaznaczonych wiadomości</td></tr>
 <tr><td class="field-name">Ctrl+Shift+Delete</td><td>Usuń zaznaczone wiadomości</td></tr>
-<tr><td class="field-name">Ctrl+0 do 9</td><td>Ustaw zakładkę na zaznaczonej wiadomości lub przejdź do istniejącej zakładki</td></tr>
+<tr><td class="field-name">Ctrl+0 do 9</td><td>Ustaw zakładkę na wiadomości z fokusem lub przejdź do istniejącej zakładki</td></tr>
 <tr><td class="field-name">Ctrl+Shift+0 do 9</td><td>Usuń zakładkę</td></tr>
-<tr><td class="field-name">Alt+Shift+0 do 9</td><td>Ustaw zakładkę tymczasową na zaznaczonej wiadomości lub przejdź do istniejącej zakładki tymczasowej (usuwane po opuszczeniu czatu)</td></tr>
+<tr><td class="field-name">Alt+Shift+0 do 9</td><td>Ustaw zakładkę tymczasową na wiadomości z fokusem lub przejdź do istniejącej zakładki tymczasowej (zakładki są usuwane po opuszczeniu czatu)</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+0 do 9</td><td>Usuń zakładkę tymczasową</td></tr>
 </table>
 <h3>Lista wiadomości</h3>
@@ -1358,7 +1359,7 @@
     <h2 id="h-solucao-problemas">🧰 20. Rozwiązywanie problemów</h2>
 <table class="field-table">
   <tr><th>Sytuacja</th><th>Co zrobić</th></tr>
-  <tr><td>WinZapp prosi o ponowne sparowanie</td><td>Sparuj za pomocą numeru lub kodu QR. Twoje czaty są usuwane tylko wtedy, gdy połączysz inny numer. Jeśli stało się to bez powodu, zachowaj <code>log.log</code> i <code>shutdown_audit.log</code> przed ponownym otwarciem.</td></tr>
+  <tr><td>WinZapp prosi o ponowne połączenie z kontem WhatsApp</td><td>Połącz konto, korzystając z numeru telefonu lub kodu QR. Twoje czaty są usuwane tylko wtedy, gdy połączysz inny numer. Jeśli stało się to bez powodu, zachowaj <code>log.log</code> i <code>shutdown_audit.log</code> przed ponownym otwarciem.</td></tr>
   <tr><td>Wiadomości nie przychodzą lub lista wygląda na zawieszoną</td><td>Poczekaj na postęp synchronizacji; użyj Shift+F5 w czacie albo F5 dla wszystkich. Sprawdź też, czy tryb offline nie jest włączony. Jeśli lista synchronizuje się w kółko, zaktualizuj WinZapp: poprawka pozwala zakończyć synchronizację listy czatów.</td></tr>
   <tr><td>Lokalna transkrypcja na karcie graficznej NVIDIA kończy się błędem lub zawiesza</td><td>Zaktualizuj WinZapp: poprawka ładuje biblioteki CUDA w systemie Windows przed użyciem karty graficznej. Jeśli nie można ich załadować, WinZapp informuje o tym i proponuje transkrypcję na procesorze.</td></tr>
   <tr><td>WinZapp zawiesza się przy wysyłaniu lub odbieraniu dużych plików</td><td>Zaktualizuj WinZapp: poprawka zapobiega pobieraniu odebranego pliku razem z powiadomieniem o wiadomości oraz gromadzeniu aktualizacji ekranu przez postęp wysyłania i pobierania.</td></tr>
@@ -1381,11 +1382,11 @@
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości: sprzeczne identyfikatory alternatywne nie kierują już wiadomości wysyłanych do innej osoby ani odbieranych od niej do czatu z samym sobą. Nieprawidłowe powiązania są pomijane, a wiadomości pozostają w pierwotnym czacie do czasu ustalenia tożsamości.</td></tr>
-  <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: włoski dołącza do listy języków w Ustawieniach.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Podręcznik: uzupełniono listę języków w Ustawieniach o włoski.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Ustawienia &gt; Pamięć otrzymują Menedżer miejsca na dysku: rozmiary logiczne i zakres, powiązanie multimediów, ochrona, podgląd usuwania kopii lokalnych lub przenoszenia do przechowalni, przywracanie oraz opcjonalne reguły, ostrzeżenia i cele. Automatyczne usuwanie dotyczy tylko zweryfikowanej, odtwarzalnej pamięci podręcznej kompilacji; harmonogram jest domyślnie wyłączony. Można osobno pobrać wyczyszczony plik bez znoszenia blokad automatycznego pobierania.</td></tr>
-  <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: nowa rozmowa po numerze otwiera się z numerem używanym przez WhatsApp.</td></tr>
-  <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: kanały z kategoriami i listami katalogu, aktualizacje publikowane i przypinane przez administratorów oraz okno administratorów kanału.</td></tr>
-  <tr><td class="field-name">Jeszcze niewydane</td><td>Przewodnik: okno Kanały (Alt+9), dodawanie osób do trwającego połączenia, starsze wiadomości pobierane z telefonu w Neonize i położenie liczby nowych wiadomości na liście czatów.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Podręcznik: nowy czat po wpisaniu numeru otwiera się z numerem używanym przez WhatsApp.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Podręcznik: kanały z kategoriami i listami katalogu, aktualizacje publikowane i przypinane przez administratorów oraz okno administratorów kanału.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Podręcznik: okno Kanały (Alt+9), dodawanie osób do trwającego połączenia, starsze wiadomości pobierane z telefonu w Neonize i położenie liczby nowych wiadomości na liście czatów.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Skróty: F1 odróżnia sugestie wzmianek od wzmianek w wiadomości. W języku hiszpańskim i portugalskim z Portugalii Alt+P przenosi do pola wiadomości, a Alt+E edytuje wiadomości.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Grupy: gdy ktoś pisze, komunikat używa teraz jego nazwy zamiast samego numeru telefonu.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: wpisy z kanałów, które obserwujesz, nie pojawiają się już jako czaty i wiadomości.</td></tr>
@@ -1420,10 +1421,10 @@
 <tr><td class="field-name">Jeszcze niewydane</td><td>Rozmowy przez Neonize: zachowywana jest odpowiedź lub zakończenie otrzymane przed lokalną rejestracją połączenia; błędy rozmów grupowych rozróżniają limit żądań WhatsAppa i obsługiwane limity członków.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości głosowe: stereo (AAC) domyślnie 128 kb/s; mono pozostaje przy 64 kb/s.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Nagrywanie dźwięku komputera: krótkie zawieszenie nie przerywa już nagrywania.</td></tr>
-<tr><td class="field-name">Jeszcze niewydane</td><td>Powiadomienia toast grup: opcja pokazywania nazwy grupy przed nazwą uczestnika.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Powiadomienia o wiadomościach grupowych: opcja pokazywania nazwy grupy przed nazwą uczestnika.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: cytat wiadomości głosowej pokazuje jej czas trwania.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Statusy z lokalizacją, ankietą i innymi typami nie pokazują się już jako niezgodna wiadomość.</td></tr>
-<tr><td class="field-name">Jeszcze niewydane</td><td>Otwórz: plik otwarty w zewnętrznej przeglądarce zachowuje prawdziwą nazwę.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Otwieranie plików: plik otwarty w programie zewnętrznym zachowuje swoją oryginalną nazwę.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Przypisanie połączeń i strumieni, ograniczona obsługa multimediów i diagnostyka sygnału bez treści dźwięku.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Okno Dodaj uczestników działa z czytnikiem ekranu: zaznaczanie z dźwiękiem i komunikatami oraz odczytywany wynik.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: statusy „Dodaj swój”, z pytaniem i z animowaną naklejką nie pokazują się już jako niezgodna wiadomość.</td></tr>
