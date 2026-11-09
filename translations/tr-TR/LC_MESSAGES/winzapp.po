@@ -128,8 +128,8 @@ msgstr "&Geri yükle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 msgctxt "acc_chk_connect_all"
-msgid "Connect all accounts when WinZapp &starts"
-msgstr "WinZapp &başladığında tüm hesaplara bağlan"
+msgid "Connect all accounts &when WinZapp starts"
+msgstr "WinZapp başladığında &tüm hesaplara bağlan"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py

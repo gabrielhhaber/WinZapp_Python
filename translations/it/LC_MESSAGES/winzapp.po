@@ -131,8 +131,8 @@ msgstr "Ripri&Stina"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 msgctxt "acc_chk_connect_all"
-msgid "Connect all accounts when WinZapp &starts"
-msgstr "Connetti tutti gli account all'&avvio di WinZapp"
+msgid "Connect all accounts &when WinZapp starts"
+msgstr "Connetti &tutti gli account all'avvio di WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
