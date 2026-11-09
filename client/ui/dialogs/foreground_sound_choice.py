@@ -8,7 +8,6 @@ import wx
 
 from core.foreground_sound import (
     CHOICE_DEDICATED, CHOICES as _CHOICES, SCOPE_ACTIVE, SCOPE_OTHER,
-    SETTINGS_KEY, foreground_sound_choice,
 )
 
 _ROWS = (
@@ -34,16 +33,14 @@ class ForegroundSoundChoice:
         return [self._i18n.t("foreground_sound_dedicated"),
                 self._i18n.t("foreground_sound_notification")]
 
-    def load(self, settings: dict):
-        for scope, combo in self._combos.items():
-            combo.SetSelection(_CHOICES.index(foreground_sound_choice(settings, scope)))
+    def select(self, scope: str, choice: str):
+        """Show *choice* for *scope*; an unknown value shows the dedicated sound."""
+        self._combos[scope].SetSelection(
+            _CHOICES.index(choice) if choice in _CHOICES else 0)
 
-    def apply(self, settings: dict):
-        chosen = {}
-        for scope, combo in self._combos.items():
-            index = combo.GetSelection()
-            chosen[scope] = _CHOICES[index] if 0 <= index < len(_CHOICES) else CHOICE_DEDICATED
-        settings[SETTINGS_KEY] = chosen
+    def choice(self, scope: str) -> str:
+        index = self._combos[scope].GetSelection()
+        return _CHOICES[index] if 0 <= index < len(_CHOICES) else CHOICE_DEDICATED
 
     def relabel(self):
         for scope, label_key in _ROWS:

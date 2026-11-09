@@ -2790,7 +2790,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._set_alert_combo(self._alert_group_combo, tones.get("group", "default"))
             self._alert_group_custom_field.SetValue(tones.get("group_custom_path", ""))
             self._update_alert_custom_field_state()
-            self._foreground_sound_choice.load(self.main_window.settings)
+            foreground = self.main_window.settings.get("foreground_sounds", {})
+            self._foreground_sound_choice.select("active", foreground.get("active", "dedicated"))
+            self._foreground_sound_choice.select("other", foreground.get("other", "dedicated"))
 
         # Storage
         storage = self.main_window.settings.get("storage", {})
@@ -4455,7 +4457,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "group": group_choice,
                 "group_custom_path": self._alert_group_custom_field.GetValue().strip(),
             }
-            self._foreground_sound_choice.apply(self.main_window.settings)
+            self.main_window.settings["foreground_sounds"] = {
+                "active": self._foreground_sound_choice.choice("active"),
+                "other": self._foreground_sound_choice.choice("other"),
+            }
         # Per-conversation overrides use resolved paths cached by object identity
         # (see play_background_notification_sound) — a changed alert-tone
         # default should not keep serving a stale cached Sound for "default".
