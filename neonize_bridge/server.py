@@ -57,6 +57,7 @@ import older_history
 import call_invites
 import channels_panel
 import channel_events
+import channel_media
 import channel_updates
 import cleanup
 import msgmap
@@ -2301,8 +2302,12 @@ def create_app(folder, fixed=""):
 
     def send_media_message(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
                            client=None):
-        c = s.client if client is None else client
         caption = inputs.whole_text(caption)
+        if channel_media.is_channel(destination):
+            # unencrypted, with the upload's handle; not through the progress
+            # client, whose upload is the encrypted one
+            return channel_media.send(s.client, destination, kind, file, caption)
+        c = s.client if client is None else client
         # audio and video: not neonize's build_*_message, which need ffprobe
         # (WinZapp does not ship it)
         if kind in ("audio", "video"):
@@ -2765,6 +2770,9 @@ def create_app(folder, fixed=""):
         multiple = int((body.get("options") or {}).get("selectableCount", 1)) != 1
 
         def send():
+            if channel_media.is_channel(destination):
+                return channel_media.send_poll(s.client, destination, body["name"],
+                                               list(body["choices"]), multiple)
             created = s.client.build_poll_vote_creation(
                 body["name"], list(body["choices"]),
                 VoteType.MULTIPLE if multiple else VoteType.SINGLE)
@@ -2897,13 +2905,15 @@ def create_app(folder, fixed=""):
         calls_ready = media is not None and media.calls.enabled()
         can = calls.capabilities(media)
         # `channelMedia` / `channelPolls`: photos, videos and polls posted to a
-        # channel. Not yet: a channel's media goes out with the handle of its
-        # unencrypted upload, which neonize's SendMessage does not pass on.
+        # channel. Media goes out with the handle of its unencrypted upload and
+        # polls as WhatsApp Web posts them (channel_media.py), which needs
+        # WinZapp's neonize build.
+        channel = channel_media.can_post_media(getattr(session(req), "client", None))
         return ok(status="success", response={
             "compatible": True, "calls": calls_ready,
             "videoCalls": calls_ready and can["video"],
             "groupCalls": calls_ready and can["groupCalls"],
-            "channelMedia": False, "channelPolls": False})
+            "channelMedia": channel, "channelPolls": channel})
 
     async def media_of_socket(sid):
         try:

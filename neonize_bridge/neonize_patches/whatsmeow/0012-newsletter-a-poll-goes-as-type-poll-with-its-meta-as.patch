@@ -1,0 +1,100 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Sun, 8 Nov 2026 23:00:20 -0300
+Subject: [PATCH] newsletter: a poll goes as type poll with its meta, as
+ WhatsApp Web sends it
+
+sendNewsletter sent a channel's poll as <message type="text"> with only
+the plaintext. WhatsApp Web sends <message type="poll"> with
+<meta polltype="creation" contenttype="text"/> next to the plaintext,
+for pollCreationMessage and its V3 (single answer) alike.
+---
+ newsletterpoll_test.go | 28 ++++++++++++++++++++++++++++
+ send.go                | 29 ++++++++++++++++++++++++++++-
+ 2 files changed, 56 insertions(+), 1 deletion(-)
+ create mode 100644 newsletterpoll_test.go
+
+diff --git a/newsletterpoll_test.go b/newsletterpoll_test.go
+new file mode 100644
+index 0000000..4fc74b6
+--- /dev/null
++++ b/newsletterpoll_test.go
+@@ -0,0 +1,28 @@
++package whatsmeow
++
++import (
++	"testing"
++
++	"go.mau.fi/whatsmeow/proto/waE2E"
++	"google.golang.org/protobuf/proto"
++)
++
++func TestNewsletterPollMeta(t *testing.T) {
++	poll := &waE2E.PollCreationMessage{Name: proto.String("Q")}
++	for _, msg := range []*waE2E.Message{
++		{PollCreationMessage: poll},
++		{PollCreationMessageV3: poll},
++		{PollCreationMessageV5: poll},
++	} {
++		meta := newsletterPollMeta(msg)
++		if meta == nil || meta.Tag != "meta" || meta.Attrs["polltype"] != "creation" ||
++			meta.Attrs["contenttype"] != "text" {
++			t.Fatalf("poll %v: meta %v", msg, meta)
++		}
++	}
++	for _, msg := range []*waE2E.Message{nil, {Conversation: proto.String("hi")}} {
++		if meta := newsletterPollMeta(msg); meta != nil {
++			t.Fatalf("not a poll %v: meta %v", msg, meta)
++		}
++	}
++}
+diff --git a/send.go b/send.go
+index 1151380..1489e08 100644
+--- a/send.go
++++ b/send.go
+@@ -744,10 +744,15 @@ func (cli *Client) sendNewsletter(
+ 			plaintextNode.Attrs["mediatype"] = mediaType
+ 		}
+ 	}
++	content := []waBinary.Node{plaintextNode}
++	if meta := newsletterPollMeta(message); meta != nil {
++		attrs["type"] = "poll"
++		content = append(content, *meta)
++	}
+ 	node := waBinary.Node{
+ 		Tag:     "message",
+ 		Attrs:   attrs,
+-		Content: []waBinary.Node{plaintextNode},
++		Content: content,
+ 	}
+ 	start = time.Now()
+ 	data, err := cli.sendNodeAndGetData(ctx, node)
+@@ -923,6 +928,28 @@ func (cli *Client) sendDM(
+ 	return phash, data, nil
+ }
+ 
++// newsletterPollMeta is the <meta> a poll posted to a channel carries, or nil
++// for anything else. WhatsApp Web sends a channel's poll as
++// <message type="poll"><plaintext/><meta polltype="creation"
++// contenttype="text"/></message> (WASmaxOutMessagePublishContentTypePoll
++// CreationMixin, read on 2026-11-08), whichever poll version the message holds
++// (pollCreationMessage, or V3 for a single answer: WAWebPollsGeneratePoll
++// CreationMessageProto). sendNewsletter sent it as type "text" with no meta.
++func newsletterPollMeta(msg *waE2E.Message) *waBinary.Node {
++	if msg == nil {
++		return nil
++	}
++	if msg.PollCreationMessage == nil && msg.PollCreationMessageV2 == nil &&
++		msg.PollCreationMessageV3 == nil && msg.PollCreationMessageV5 == nil &&
++		msg.PollCreationMessageV6 == nil {
++		return nil
++	}
++	return &waBinary.Node{
++		Tag:   "meta",
++		Attrs: waBinary.Attrs{"polltype": "creation", "contenttype": "text"},
++	}
++}
++
+ func getTypeFromMessage(msg *waE2E.Message) string {
+ 	switch {
+ 	case msg.ViewOnceMessage != nil:
