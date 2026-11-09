@@ -22,6 +22,7 @@ tests/test_lid_merge_keeps_messages.py.
 """
 
 from main import MainWindow
+import threading
 
 MY_PHONE = "5511999999999@s.whatsapp.net"
 MY_LID = "11111111111111@lid"
@@ -173,6 +174,7 @@ class _HistoricalStub:
     _is_self_jid = MainWindow._is_self_jid
 
     def __init__(self, my_jid=""):
+        self._lid_mapping_lock = threading.RLock()
         self.my_jid = my_jid
         self.my_lid = ""
         self._lid_to_phone = {}

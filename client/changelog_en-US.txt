@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.
+
 - Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest. Group conversations whose latest entries were group notices (invites, members added, a description change) no longer vanish either: those notices no longer take the place of the real unread messages.
 
 - Alt+letter shortcuts: in several windows two controls used the same letter, so Alt+letter only moved between them (in some languages, for example, "Refresh" and "Add participants" in the call participants window). Each control in a window now has its own letter, in every language.

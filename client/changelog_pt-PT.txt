@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Mensagens: identidades alternativas em conflito já não encaminham mensagens enviadas a outra pessoa ou recebidas dela para a conversa consigo mesmo. As correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.
+
 - Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 passavam a 9) até ressincronizar com F5. A contagem passa a olhar para as mensagens mais recentes da conversa, e não para as mais antigas. Também deixaram de desaparecer as conversas de grupo cujas últimas entradas eram avisos do grupo (convites, membros adicionados, descrição alterada): esses avisos já não ocupam o lugar das mensagens não lidas reais.
 
 - Atalhos Alt+letra: em várias janelas dois controlos usavam a mesma letra, e Alt+letra só alternava entre eles (por exemplo "Atualizar" e "Adicionar participantes" na janela de participantes da chamada). Agora cada controlo de uma janela tem a sua letra, em todos os idiomas.

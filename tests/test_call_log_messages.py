@@ -10,6 +10,7 @@ plain stubs.
 """
 
 import time
+import threading
 
 import main as main_module
 from core.websocket_client import WebSocketClient
@@ -493,6 +494,7 @@ class _HistoricalStub:
 
     def __init__(self):
         self.my_jid = "5500000000000@s.whatsapp.net"
+        self._lid_mapping_lock = threading.RLock()
         self.my_lid = ME_LID
         self._lid_to_phone = {}
         self.chats = {}

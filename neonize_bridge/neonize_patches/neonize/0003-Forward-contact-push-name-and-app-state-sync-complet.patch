@@ -93,10 +93,10 @@ index d10d2fb..cbdc7df 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 2cefeb4..5be445e 100644
+index e705989..917988e 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -1389,6 +1389,49 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -1390,6 +1390,49 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  				}
  				eventChan <- &messageEvent
  			}

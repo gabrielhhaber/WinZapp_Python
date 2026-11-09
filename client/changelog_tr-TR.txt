@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.
+
 - Okunmamış filtresi: programı güncelledikten veya yeniden başlattıktan sonra okunmamış mesajı olan bazı sohbetler, F5 ile yeniden eşitleyene kadar filtreden kayboluyordu (örneğin 12 sohbet 9'a düşüyordu). Sayım artık sohbetin en eski mesajlarına değil, en yeni mesajlarına bakıyor. Son kayıtları grup bildirimleri (davetler, eklenen üyeler, açıklama değişikliği) olan grup sohbetleri de artık kaybolmuyor: bu bildirimler artık gerçek okunmamış mesajların yerini almıyor.
 
 - Alt+harf kısayolları: birkaç pencerede iki denetim aynı harfi kullanıyordu ve Alt+harf yalnızca aralarında geçiş yapıyordu. Artık bir penceredeki her denetimin kendi harfi var, tüm dillerde.

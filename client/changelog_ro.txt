@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesaje: identitățile alternative contradictorii nu mai direcționează mesajele trimise altei persoane sau primite de la aceasta către conversația cu tine însuți. Asocierile nevalide sunt ignorate; mesajele rămân în conversația originală până la identificarea persoanei.
+
 - Filtrul pentru necitite: după actualizarea sau repornirea programului, unele conversații cu mesaje necitite dispăreau din filtru (de exemplu, din 12 rămâneau 9) până când resincronizai cu F5. Numărătoarea ia acum în calcul cele mai noi mesaje ale conversației, nu cele mai vechi. Nu mai dispar nici conversațiile de grup ale căror ultime intrări erau notificări de grup (invitații, membri adăugați, descriere schimbată): aceste notificări nu mai iau locul mesajelor necitite reale.
 
 - Scurtăturile Alt+literă: în mai multe ferestre două controale foloseau aceeași literă, iar Alt+literă doar comuta între ele. Acum fiecare control dintr-o fereastră are propria literă, în toate limbile.

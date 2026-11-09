@@ -49,6 +49,8 @@ import pytest
 
 import main
 from main import MainWindow
+from main_window.chat_aliases import learn_snapshot_alias
+from core.jid_alias_guard import retire_cross_self_aliases
 from tests.god_modules import patch_main_global
 
 _extract_lid_mapping = MainWindow._extract_lid_mapping
@@ -69,11 +71,14 @@ class _TrackingLock:
         self._real = threading.RLock()
         self._guard = threading.Lock()
         self.enters = 0
+        self.entries_by_thread = {}
 
     def __enter__(self):
         self._real.acquire()
         with self._guard:
             self.enters += 1
+            ident = threading.get_ident()
+            self.entries_by_thread[ident] = self.entries_by_thread.get(ident, 0) + 1
         return self
 
     def __exit__(self, exc_type, exc, tb):
@@ -155,7 +160,10 @@ class TestConcurrentCallsAreSerialized:
         for t in threads:
             t.join(timeout=5)
 
-        assert stub._lid_mapping_lock.enters == 20
+        # Retirement and learning may take separate critical sections. Each
+        # caller must enter the lock, regardless of that implementation detail.
+        assert all(stub._lid_mapping_lock.entries_by_thread.get(t.ident, 0) >= 1
+                   for t in threads)
 
     def test_no_pair_is_lost_under_concurrency(self):
         stub = _Stub()
@@ -366,7 +374,8 @@ _MAPPING_WRITERS = [
     "register_jid_mapping",
     "resolve_self_lid",
     "get_contact_profile",
-    "get_remote_chats",
+    "learn_snapshot_alias",
+    "retire_cross_self_aliases",
     "_load_local_lid_cache",
     "clear_local_data",
     # Not writers of the bridge, but they take the same lock to change
@@ -385,8 +394,8 @@ class TestTheLockIsWiredUpStructurally:
 
     @pytest.mark.parametrize("method_name", _MAPPING_WRITERS)
     def test_every_mapping_writer_uses_the_lock(self, method_name):
-        src = inspect.getsource(getattr(MainWindow, method_name))
-        assert "with self._lid_mapping_lock:" in src
+        src = inspect.getsource(_mapping_writer(method_name))
+        assert any(f"with {owner}._lid_mapping_lock:" in src for owner in ("self", "owner"))
 
     @pytest.mark.parametrize("method_name", _MAPPING_WRITERS)
     def test_no_blocking_call_happens_under_the_lock(self, method_name):
@@ -404,7 +413,7 @@ class TestTheLockIsWiredUpStructurally:
         """
         blocking = ("self.db.", "wx.CallAfter", "api_get", "api_post",
                     "save_data(", "time.sleep", ".result(")
-        src = inspect.getsource(getattr(MainWindow, method_name))
+        src = inspect.getsource(_mapping_writer(method_name))
         inside = _lines_inside_the_lock(src)
         offenders = [line for line in inside
                      if any(token in line for token in blocking)]
@@ -418,6 +427,12 @@ class TestTheLockIsWiredUpStructurally:
         trap for whoever touches this next."""
         src = inspect.getsource(MainWindow.__init__)
         assert "_lid_mapping_lock = threading.RLock()" in src
+
+
+def _mapping_writer(name):
+    helpers = {"learn_snapshot_alias": learn_snapshot_alias,
+               "retire_cross_self_aliases": retire_cross_self_aliases}
+    return helpers[name] if name in helpers else getattr(MainWindow, name)
 
 
 def _lines_inside_the_lock(src):
@@ -438,6 +453,6 @@ def _lines_inside_the_lock(src):
                 inside.append(line.strip())
                 continue
             guard_indent = None
-        if line.strip() == "with self._lid_mapping_lock:":
+        if line.strip() in ("with self._lid_mapping_lock:", "with owner._lid_mapping_lock:"):
             guard_indent = indent
     return inside
