@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Sons: duas novas opções em Configurações, Sons permitem escolher o som tocado numa nova mensagem com o WinZapp em primeiro plano, uma para a conversa aberta e outra para as demais conversas. Cada uma pode manter o som dedicado de primeiro plano, como antes, ou usar o mesmo som de notificação escolhido para as mensagens em segundo plano.
+
 - Links do WhatsApp: o WinZapp agora abre links de conversa. Um link wa.me ou api.whatsapp.com (por exemplo, de uma companhia aérea, de uma loja ou de um site) abre a conversa com aquele número, mesmo que ele não esteja nos seus contatos, coloca a mensagem do link no campo de mensagem e deixa o foco ali, pronta para você revisar e enviar. Links só com o número também funcionam. A versão instalada agora se registra para links do WhatsApp na primeira vez que abre, e por isso o WinZapp aparece em Aplicativos padrão do Windows; na versão portátil a opção continua em Configurações, Geral.
 
 - Gerenciar contas: nova caixa de verificação "Conectar todas as contas ao iniciar o WinZapp". Quando ativada, ao iniciar o WinZapp todas as outras contas pareadas também são abertas em segundo plano.

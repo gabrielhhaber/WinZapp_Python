@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Sunete: două opțiuni noi în Setări, Sunete permit alegerea sunetului unui mesaj nou cât timp WinZapp este în prim-plan, una pentru conversația deschisă și una pentru celelalte conversații. Fiecare poate păstra sunetul dedicat de prim-plan, ca înainte, sau poate folosi același sunet de notificare ales pentru mesajele din fundal.
+
 - Linkuri WhatsApp: WinZapp deschide acum linkurile de conversație. Un link wa.me sau api.whatsapp.com (de exemplu de la o companie aeriană, de la un magazin sau de pe un site) deschide conversația cu acel număr, chiar dacă nu este în contactele dvs., pune mesajul din link în câmpul de mesaj și lasă focalizarea acolo, gata pentru a fi verificat și trimis. Funcționează și linkurile cu numărul singur. Versiunea instalată se înregistrează acum pentru linkurile WhatsApp la prima pornire, astfel încât WinZapp apare în Aplicații implicite din Windows; în versiunea portabilă opțiunea rămâne în Setări, General.
 
 - Gestionarea conturilor: casetă nouă "Conectează toate conturile la pornirea WinZapp". Când este bifată, la pornirea WinZapp se deschid în fundal și toate celelalte conturi asociate.

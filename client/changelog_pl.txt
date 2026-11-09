@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Dźwięki: dwie nowe opcje w Ustawienia, Dźwięki pozwalają wybrać dźwięk nowej wiadomości, gdy WinZapp jest na pierwszym planie, osobno dla otwartego czatu i dla pozostałych czatów. Każda może zachować dedykowany dźwięk pierwszego planu, jak dotąd, albo używać tego samego dźwięku powiadomienia, który wybrano dla wiadomości w tle.
+
 - Linki WhatsApp: WinZapp otwiera teraz linki do czatów. Link wa.me lub api.whatsapp.com (na przykład od linii lotniczej, ze sklepu lub ze strony internetowej) otwiera czat z danym numerem, nawet jeśli nie ma go w kontaktach, wstawia wiadomość z linku w pole wiadomości i zostawia tam fokus, gotową do sprawdzenia i wysłania. Działają też linki zawierające tylko numer. Wersja instalowana rejestruje się teraz dla linków WhatsApp przy pierwszym uruchomieniu, dzięki czemu WinZapp pojawia się w Aplikacjach domyślnych systemu Windows; w wersji przenośnej opcja pozostaje w Ustawieniach, Ogólne.
 
 - Zarządzanie kontami: nowe pole wyboru "Połącz wszystkie konta przy uruchomieniu WinZapp". Gdy jest włączone, uruchomienie WinZapp otwiera w tle także wszystkie pozostałe sparowane konta.
