@@ -6,6 +6,8 @@ NOVIDADES
 
 - Gerir contas: nova caixa de verificação "Ligar todas as contas ao iniciar o WinZapp". Quando ativada, ao iniciar o WinZapp todas as outras contas emparelhadas também são abertas em segundo plano.
 
+- Cópia de segurança: a cópia de segurança do perfil (em Definições > Armazenamento e no gestor de armazenamento) deixa de aparecer quando o WinZapp corre com o motor Neonize, que não tem perfil de navegador para copiar.
+
 - Mensagens: identidades alternativas em conflito já não encaminham mensagens enviadas a outra pessoa ou recebidas dela para a conversa consigo mesmo. As correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.
 
 - Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 passavam a 9) até ressincronizar com F5. A contagem passa a olhar para as mensagens mais recentes da conversa, e não para as mais antigas.

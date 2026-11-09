@@ -413,9 +413,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         add(index_of(self._audio_devices_page),
             i18n.t("tab_audio_playback").replace("&", ""), "_audio_page",
             lambda control=None: self._audio_dialog.open(control))
-        add(index_of(self._storage_page),
-            i18n.t("tab_profile_backup").replace("&", ""), "_profile_backup_page",
-            lambda control=None: self._backup_dialog.open(control))
+        if engines.uses_profile_backup(engines.loaded_engine(self.main_window)):
+            add(index_of(self._storage_page),
+                i18n.t("tab_profile_backup").replace("&", ""), "_profile_backup_page",
+                lambda control=None: self._backup_dialog.open(control))
         add(index_of(self._ai_holder), i18n.t("ai_auto_button").replace("&", "").rstrip(".… "),
             "_ai_page.auto_panel", lambda control=None: self._ai_page.open_auto(control))
         add(index_of(self._whatsapp_page),
@@ -1191,7 +1192,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         self._profile_backup_btn = wx.Button(
             self._storage_page, label=i18n.t("tab_profile_backup")
         )
-        storage_sizer.Add(self._profile_backup_btn, 0, wx.ALL, 8)
+        if engines.uses_profile_backup(engines.loaded_engine(self.main_window)):
+            storage_sizer.Add(self._profile_backup_btn, 0, wx.ALL, 8)
+        else:
+            self._profile_backup_btn.Hide()  # Neonize has no browser profile
 
         # Where saved files go and how a pasted audio file is sent belong with
         # the other storage options.
