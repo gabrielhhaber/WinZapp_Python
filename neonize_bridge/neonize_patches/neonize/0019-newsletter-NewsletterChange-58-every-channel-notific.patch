@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 9 Nov 2026 03:16:33 -0300
+Subject: [PATCH] newsletter: NewsletterChange (58), every channel notification
+ without an event of its own
+
+whatsmeow's events.NewsletterChange (op name, channel, JSON payload) as
+event 58 / NewsletterChangeEv: a channel's metadata, admins, owner, state
+or settings changed.
+---
+ goneonize/Neonize.proto          |  9 +++++++++
+ goneonize/defproto/Neonize.proto |  9 +++++++++
+ goneonize/main.go                | 15 +++++++++++++++
+ neonize/aioze/events.py          |  2 ++
+ neonize/events.py                |  2 ++
+ 5 files changed, 37 insertions(+)
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index 6a9832c..95327db 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -997,6 +997,15 @@ message AppStateMutation { //57
+     optional WAWebProtobufSyncAction.SyncActionValue Action = 5;
+     required bool FromFullSync = 6;
+ }
++// A channel notification with no event of its own (whatsmeow's
++// events.NewsletterChange): Op is its name without "xwa2_notify_newsletter_"
++// (on_metadata_update, admin_promote...), ID the channel when it names one,
++// Payload the notification's JSON.
++message NewsletterChange { //58
++    optional JID ID = 1;
++    required string Op = 2;
++    optional string Payload = 3;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index 6a9832c..95327db 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -997,6 +997,15 @@ message AppStateMutation { //57
+     optional WAWebProtobufSyncAction.SyncActionValue Action = 5;
+     required bool FromFullSync = 6;
+ }
++// A channel notification with no event of its own (whatsmeow's
++// events.NewsletterChange): Op is its name without "xwa2_notify_newsletter_"
++// (on_metadata_update, admin_promote...), ID the channel when it names one,
++// Payload the notification's JSON.
++message NewsletterChange { //58
++    optional JID ID = 1;
++    required string Op = 2;
++    optional string Payload = 3;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 88424f0..25985aa 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -1315,6 +1315,21 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 				}
+ 				eventChan <- &messageEvent
+ 			}
++		case *events.NewsletterChange:
++			if _, ok := subscribers[58]; ok {
++				change := defproto.NewsletterChange{
++					Op:      proto.String(v.Op),
++					Payload: proto.String(v.Payload),
++				}
++				if !v.ID.IsEmpty() {
++					change.ID = utils.EncodeJidProto(v.ID)
++				}
++				messageEvent := MessageEvent{
++					eventType: 58,
++					message:   &change,
++				}
++				eventChan <- &messageEvent
++			}
+ 		case *events.AppStateMutation:
+ 			if _, ok := subscribers[57]; ok {
+ 				mutation := defproto.AppStateMutation{
+diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
+index f4150d4..2f4955f 100644
+--- a/neonize/aioze/events.py
++++ b/neonize/aioze/events.py
+@@ -45,6 +45,7 @@ from ..proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
+ from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
+ from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+ from ..proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
++from ..proto.Neonize_pb2 import NewsletterChange as NewsletterChangeEv
+ from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
+@@ -113,6 +114,7 @@ __all__ = [
+     "PushNameUpdateEv",
+     "AppStateSyncCompleteEv",
+     "AppStateMutationEv",
++    "NewsletterChangeEv",
+     "NewsLetterMessageMetaEv",
+     "NewsletterJoinEv",
+     "NewsletterLeaveEv",
+diff --git a/neonize/events.py b/neonize/events.py
+index 0ce8dd8..59077da 100644
+--- a/neonize/events.py
++++ b/neonize/events.py
+@@ -48,6 +48,7 @@ from .proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
+ from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
+ from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+ from .proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
++from .proto.Neonize_pb2 import NewsletterChange as NewsletterChangeEv
+ from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
+@@ -126,6 +127,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
+     PushNameUpdateEv: 55,
+     AppStateSyncCompleteEv: 56,
+     AppStateMutationEv: 57,
++    NewsletterChangeEv: 58,
+ }
+ INT_TO_EVENT: dict[int, type[Message]] = {code: ev for ev, code in EVENT_TO_INT.items()}
+ 

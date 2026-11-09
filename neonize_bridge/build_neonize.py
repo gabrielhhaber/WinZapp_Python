@@ -126,13 +126,28 @@ def _prepared_time(tree):
     of its own does not move it."""
     result = subprocess.run(["git", "log", "--format=%ct", f"{BASE}..{BRANCH}"], cwd=tree,
                             capture_output=True, text=True)
-    stamps = [int(line) for line in result.stdout.split() if line.isdigit()]         if result.returncode == 0 else []
+    stamps = ([int(line) for line in result.stdout.split() if line.isdigit()]
+              if result.returncode == 0 else [])
     return min(stamps) if stamps else _commit_time(tree, BRANCH)
 
 
+def overwritten_patches(name):
+    """The files of neonize_patches/<name> an export would change or delete
+    (export writes the tree's commits over the folder)."""
+    probe = os.path.join(WORK, f".probe-{name}")
+    shutil.rmtree(probe, ignore_errors=True)
+    try:
+        format_patches(name, probe)
+        exported = _patch_files(probe)
+    finally:
+        shutil.rmtree(probe, ignore_errors=True)
+    current = _patch_files(os.path.join(PATCHES, name))
+    return sorted(file for file, data in current.items() if exported.get(file) != data)
+
+
 def patches_moved(name):
-    """True when neonize_patches/<name> changed in the repository after this
-    tree was prepared, and the tree does not hold that change.
+    """True when an export of this tree would overwrite a patch that changed in
+    the repository after the tree was prepared.
 
     Exporting such a tree writes its older commits over the newer patches, and
     building it builds the older code. Seen after pulling #732 (the call layer
@@ -140,22 +155,27 @@ def patches_moved(name):
     the patches before it, at the same pinned neonize version, so the version
     check passed, `export` put the old 0002 back and the DLL had no calls.
 
-    The tree's oldest commit of its own is when `prepare` applied the patches
-    (git am stamps the committer date); the repository's newest commit under
-    neonize_patches/<name> is when the patches last changed. Not the tree's
-    newest commit: a new commit on a stale tree (2026-11-08, the channel
-    media handle on the workspace from before #732) is newer than every
-    patch, and export rewrote 0002 without the call hook again. Not a git
-    checkout, or no workspace: never moved.
+    Per file, against when `prepare` applied the patches (the tree's oldest
+    commit of its own): a patch the export leaves as it is, or one that is new,
+    never counts, so committing new patches and then adding more commits in the
+    same workspace exports fine (2026-11-09, refused by a tree-wide check);
+    changing a patch that the repository has not changed since the prepare is
+    the workspace's own edit. Not the tree's newest commit either: a new commit
+    on a stale tree is newer than every patch (2026-11-08, export rewrote 0002
+    without the call hook again). Not a git checkout, or no workspace: never
+    moved.
     """
     tree = tree_path(name)
     if not os.path.isdir(os.path.join(tree, ".git")):
         return False
-    repo = _commit_time(HERE, "--", os.path.join(PATCHES, name))
-    work = _prepared_time(tree)
-    if not repo or not work or repo <= work:
+    prepared = _prepared_time(tree)
+    if not prepared:
         return False
-    return not matches_patches(name)
+    for file in overwritten_patches(name):
+        changed = _commit_time(HERE, "--", os.path.join(PATCHES, name, file))
+        if changed and changed > prepared:
+            return True
+    return False
 
 
 def moved_trees():

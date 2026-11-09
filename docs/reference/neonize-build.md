@@ -54,6 +54,9 @@ What the patches carry today:
   `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
   unencrypted (`upload_newsletter`) and out with the upload's handle, which
   whatsmeow sends as the node's `media_id` (`channel_media.py`).
+- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
+  whatsmeow event below; the bridge's `channel_events.py` sends the ones the
+  channels windows show as `channels-changed`.
 - **neonize 0010**: the sync client's `get_linked_group_participants` reads
   the `ReturnFunctionWithError` the Go side sends (it parsed another message
   and failed with "Wire format was corrupt"; the async client was right). It
@@ -83,7 +86,12 @@ What the patches carry today:
   recipients; from the first one on, the server answered every status with
   400. A LID whose number is unknown is left out); a poll posted to a channel
   goes as `type="poll"` with `<meta polltype="creation" contenttype="text">`,
-  as WhatsApp Web sends it (0012: it went as type text with no meta).
+  as WhatsApp Web sends it (0012: it went as type text with no meta);
+  every channel notification with no typed event (0013:
+  `events.NewsletterChange`, op name, channel and JSON payload): whatsmeow
+  dispatched only join, leave and mute and dropped admin promote/demote,
+  invite revoke, metadata, owner, state and user-setting updates and the rest
+  WhatsApp Web handles.
 - **meowcaller**: go.mod/go.sum on neonize's whatsmeow pin; accept 2 s after
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
@@ -199,9 +207,11 @@ prepares the workspace again from the patches (its commits kept in
 `neonize_build/stale-backup/`) instead of building the older code. Measured
 after #732: the version check passed, `export` put the old 0002 back and the
 DLL had no calls. The test is `patches_moved()`: the repository's newest
-commit under `neonize_patches/<tree>` is newer than the moment `prepare`
-applied the patches (the tree's oldest commit of its own, which `git am`
-stamps), and the tree does not export to the same files. Not the tree's
+export would change or delete a patch file whose newest commit in the
+repository is later than the moment `prepare` applied the patches (the tree's
+oldest commit of its own, which `git am` stamps). Per file: new patches, and
+commits added after committing some, export fine; a patch the repository has
+not changed since the prepare is the workspace's own edit. Not the tree's
 newest commit: a new commit made on a stale workspace is newer than every
 patch, and on 2026-11-08 `export` from such a workspace rewrote 0002 without
 the call hook again.
