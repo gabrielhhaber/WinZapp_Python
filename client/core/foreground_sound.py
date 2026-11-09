@@ -28,6 +28,8 @@ def foreground_sound_choice(settings: dict, scope: str) -> str:
 def play_foreground_message_sound(window, scope: str, remote_jid: str) -> None:
     """Play the sound chosen for *scope* on *window* (a MainWindow or stub)."""
     if foreground_sound_choice(window.settings, scope) == CHOICE_NOTIFICATION:
+        # If the user disabled the message_background sound event, this is
+        # silent on purpose: it is the same sound the background would play.
         # The window is in front, so Focus Assist / fullscreen detection (made
         # for toasts) must not silence it.
         window.play_background_notification_sound(

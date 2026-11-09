@@ -7,11 +7,10 @@ sound. The dialog's EVT_COMBOBOX handler already marks the page dirty.
 import wx
 
 from core.foreground_sound import (
-    CHOICE_DEDICATED, CHOICE_NOTIFICATION, SCOPE_ACTIVE, SCOPE_OTHER,
+    CHOICE_DEDICATED, CHOICES as _CHOICES, SCOPE_ACTIVE, SCOPE_OTHER,
     SETTINGS_KEY, foreground_sound_choice,
 )
 
-_CHOICES = (CHOICE_DEDICATED, CHOICE_NOTIFICATION)
 _ROWS = (
     (SCOPE_ACTIVE, "foreground_sound_active_label"),
     (SCOPE_OTHER, "foreground_sound_other_label"),
