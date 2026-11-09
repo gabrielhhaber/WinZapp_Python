@@ -1,6 +1,6 @@
 import {
   channelDirectory, channelInfo, channelKey, editChannelUpdate, followChannel, listChannels,
-  pullChannelHistory,
+  pullChannelHistory, readNewestChannelUpdates,
   readChannels,
 } from '../../controller/channelsPanelController';
 
@@ -295,5 +295,125 @@ test('an own channel update is edited through WhatsApp Web\'s own edit', async (
     expect(edits.length).toBe(1);
   } finally {
     [root.require, root.WPP] = previous;
+  }
+});
+
+
+function newestPage(held: number[], server: number[], options: any = {}) {
+  const root = globalThis as any;
+  const models: any[] = held.map((t) => ({ id: { _serialized: `false_1@newsletter_${t}` }, t }));
+  const msgLoadState: any = { noEarlierMsgs: false };
+  const channel: any = { msgs: { getModelsArray: () => models, get length() { return models.length; }, msgLoadState } };
+  const older: number[] = options.older ? [...options.older] : [];
+  let earlierRounds = 0;
+  const pulls: any[] = [];
+  const created: any[] = [];
+  const previous = { require: root.require, WAPI: root.WAPI };
+  let inCollection = !options.notHeld;
+  root.WAPI = { _serializeMessageObj: (m: any) => ({ id: m.id._serialized, t: m.t }) };
+  root.require = (name: string) => ({
+    WAWebCollections: { WAWebNewsletterCollection: { get: (id: string) => (id === '1@newsletter' && inCollection ? channel : undefined) } },
+    WAWebWidFactory: { createWid: (id: string) => ({ id }) },
+    WAWebFindChatAction: { findOrCreateLatestChat: async (wid: any, origin: string) => {
+      created.push([wid.id, origin]); inCollection = true; return { chat: channel, created: true };
+    } },
+    WAWebChatLoadMessages: { loadEarlierMsgs: async (o: any) => {
+      expect(o.chat).toBe(channel);
+      earlierRounds++;
+      const batch = older.splice(Math.max(0, older.length - 50));
+      for (const t of batch) models.unshift({ id: { _serialized: `false_1@newsletter_${t}` }, t });
+      if (!older.length) msgLoadState.noEarlierMsgs = true;
+    } },
+    WAWebNewsletterPullMessagesFromServerAction: options.noPull ? {} : {
+      pullNewsletterMessagesFromServer: async (chat: any, o: any) => {
+        expect(chat).toBe(channel);
+        pulls.push(o);
+        if (options.offline) throw new Error('offline');
+        for (const t of server) models.push({ id: { _serialized: `false_1@newsletter_${t}` }, t });
+        return [];
+      },
+    },
+  } as any)[name];
+  return { pulls, created, rounds: () => earlierRounds, restore: () => { root.require = previous.require; root.WAPI = previous.WAPI; } };
+}
+
+test("a channel's first page reads its newest updates from the server", async () => {
+  // the page held 2 old ones; the server has the 20 newest
+  const page = newestPage([1, 2], Array.from({ length: 20 }, (_, i) => 100 + i));
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 5 });
+    expect(got.map((m: any) => m.t)).toEqual([115, 116, 117, 118, 119]);
+    expect(page.pulls).toEqual([{ messageCount: 5, cursor: null, resetUnreadCount: false }]);
+  } finally {
+    page.restore();
+  }
+});
+
+test('a whole page of 200 comes in one newest read and older pages after it', async () => {
+  // the server's newest 100, then 150 older ones 50 at a time
+  const page = newestPage([], Array.from({ length: 100 }, (_, i) => 1000 + i),
+    { older: Array.from({ length: 150 }, (_, i) => 1 + i) });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 200 });
+    expect(page.pulls).toEqual([{ messageCount: 100, cursor: null, resetUnreadCount: false }]);
+    expect(page.rounds()).toBe(2);
+    expect(got.length).toBe(200);
+    expect(got[got.length - 1].t).toBe(1099);
+  } finally {
+    page.restore();
+  }
+});
+
+test('a channel shorter than the page stops at its start', async () => {
+  const page = newestPage([], [500, 501], { older: [1, 2, 3] });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 200 });
+    expect(got.map((m: any) => m.t)).toEqual([1, 2, 3, 500, 501]);
+    expect(page.rounds()).toBe(1);
+  } finally {
+    page.restore();
+  }
+});
+
+test("an admin's own new posts are on the first page", async () => {
+  // posted from here, never "received": they are in the collection, newest
+  const page = newestPage([10, 30, 20], []);
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 20 });
+    expect(got.map((m: any) => m.t)).toEqual([10, 20, 30]);
+  } finally {
+    page.restore();
+  }
+});
+
+test('a channel not followed is found the way WhatsApp Web previews it', async () => {
+  const page = newestPage([], [7], { notHeld: true });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 20 });
+    expect(page.created).toEqual([['1@newsletter', 'createChat']]);
+    expect(got.map((m: any) => m.t)).toEqual([7]);
+  } finally {
+    page.restore();
+  }
+});
+
+test('offline, the first page is what the page holds', async () => {
+  const page = newestPage([3, 4], [9], { offline: true });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 20 });
+    expect(got.map((m: any) => m.t)).toEqual([3, 4]);
+  } finally {
+    page.restore();
+  }
+});
+
+test('anything but a channel, or a page without WAPI, answers null', async () => {
+  const page = newestPage([1], []);
+  try {
+    expect(await readNewestChannelUpdates({ chatId: '5511@c.us', targetCount: 20 })).toBeNull();
+    (globalThis as any).WAPI = undefined;
+    expect(await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 20 })).toBeNull();
+  } finally {
+    page.restore();
   }
 });

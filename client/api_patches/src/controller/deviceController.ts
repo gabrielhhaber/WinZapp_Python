@@ -17,7 +17,7 @@ import { Chat } from '@wppconnect-team/wppconnect';
 import { Request, Response } from 'express';
 
 import { CONTACT_PRESENCE_SOURCE } from '../util/contactPresenceRuntime';
-import { pullChannelHistory } from './channelsPanelController';
+import { pullChannelHistory, readNewestChannelUpdates } from './channelsPanelController';
 import {
   countJidFallback,
   countStoreRecovery,
@@ -2917,7 +2917,19 @@ export async function getMessages(req: Request, res: Response) {
       // _reconcile_active_conversation_with_remote(), and was reported live
       // as a group's entire history vanishing from the open conversation
       // mid-read, "recovering" only once a new live message forced a repaint.
-      response = await req.client.page.evaluate(
+      if (/@newsletter$/.test(String(phone))) {
+        // A channel's newest updates come from WhatsApp's server: see
+        // readNewestChannelUpdates().
+        try {
+          response = await req.client.page.evaluate(readNewestChannelUpdates, {
+            chatId: phone, targetCount,
+          });
+        } catch (e: any) {
+          req.logger.warn(`[channel-history] could not read the newest updates: ${e?.message || e}`);
+          response = null;
+        }
+      }
+      if (!Array.isArray(response)) response = await req.client.page.evaluate(
         async ({ chatId, targetCount }) => {
           const keyOf = (m: any) =>
             (m && m.id && (m.id._serialized || m.id)) || null;

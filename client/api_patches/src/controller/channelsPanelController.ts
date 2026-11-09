@@ -97,6 +97,75 @@ export async function pullChannelHistory(request: any): Promise<number> {
   return msgs.length - start;
 }
 
+// A channel's newest updates, for get-messages' first page. The plain first
+// page (WAPI.getMessages without an anchor) answers what the page already
+// holds, before the chat's lastReceivedKey: a channel never opened on this
+// WhatsApp Web held 2 messages and The New York Times showed "no updates",
+// and the updates an admin posts are never "received", so a channel's own
+// new posts were left out (measured 2026-11-09). WhatsApp Web opens a
+// channel with WAWebNewsletterPullMessagesFromServerAction.
+// pullNewsletterMessagesFromServer(chat, { messageCount, cursor }), which reads
+// the newest updates from WhatsApp's server into the channel's collection; the
+// same here (the same channel: 20 asked, 20 updates, the newest of that
+// day). The server answers at most 100 at a time (WAWebNewsletterGatingUtils.
+// getMaxMsgCountFromServer()) and WinZapp asks a whole page, 200 by default
+// (Settings, messages_page_size): the rest come from older pages, as a scroll
+// up loads them (WAWebChatLoadMessages.loadEarlierMsgs, see
+// pullChannelHistory), until the page is full or the channel starts. Then the
+// newest `targetCount` of the collection, oldest first, as WAPI serializes
+// them. A channel the page does not hold yet (one not followed) is found or
+// created the way WhatsApp Web previews it. Unread counts are left alone.
+// Answers null when the page cannot do it (get-messages then reads as before).
+//
+// Runs inside the page: self-contained, no closure over anything here.
+export async function readNewestChannelUpdates(request: any): Promise<unknown[] | null> {
+  const root = globalThis as any;
+  const chatId = String(request?.chatId || '');
+  const wanted = Math.max(1, Math.min(500, Number(request?.targetCount) || 20));
+  const serialize = root.WAPI?._serializeMessageObj;
+  if (!/^\d+@newsletter$/.test(chatId) || typeof root.require !== 'function'
+      || typeof serialize !== 'function') return null;
+  let channel: any = null;
+  let pull: any = null;
+  let loader: any = null;
+  try {
+    const collection = root.require('WAWebCollections')?.WAWebNewsletterCollection;
+    channel = collection?.get?.(chatId);
+    if (!channel) {
+      const wid = root.require('WAWebWidFactory').createWid(chatId);
+      const found = await root.require('WAWebFindChatAction').findOrCreateLatestChat(wid, 'createChat');
+      channel = collection?.get?.(chatId) || found?.chat;
+    }
+    pull = root.require('WAWebNewsletterPullMessagesFromServerAction')?.pullNewsletterMessagesFromServer;
+    loader = root.require('WAWebChatLoadMessages');
+  } catch (_) {
+    return null;
+  }
+  const msgs = channel?.msgs;
+  if (!msgs || typeof msgs.getModelsArray !== 'function') return null;
+  if (typeof pull === 'function') {
+    try {
+      await pull(channel, { messageCount: Math.min(wanted, 100), cursor: null, resetUnreadCount: false });
+    } catch (_) {
+      // offline or refused: what the page holds
+    }
+  }
+  // Bounded, since the page also serves live traffic: 10 rounds of 50.
+  for (let round = 0; round < 10 && typeof loader?.loadEarlierMsgs === 'function'; round++) {
+    if (msgs.length >= wanted || msgs.msgLoadState?.noEarlierMsgs) break;
+    const held = msgs.length;
+    try {
+      await loader.loadEarlierMsgs({ chat: channel });
+    } catch (_) {
+      break;
+    }
+    if (msgs.length === held) break;
+  }
+  const held = msgs.getModelsArray().slice()
+    .sort((a: any, b: any) => (Number(a?.t) || 0) - (Number(b?.t) || 0));
+  return held.slice(-wanted).map((m: any) => serialize(m)).filter(Boolean);
+}
+
 // Runs inside the page: self-contained, no closure over anything here.
 export async function readChannels(request: any): Promise<unknown> {
   const root = globalThis as any;
