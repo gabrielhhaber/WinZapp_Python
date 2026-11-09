@@ -281,10 +281,10 @@ static void remove_registry_entry(void)
                                      &size) == ERROR_SUCCESS;
         RegCloseKey(scheme);
         if (ours)
-            RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\whatsapp");
+            SHDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Classes\\whatsapp");
     }
-    RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\WinZapp.WhatsAppLink");
-    RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\WinZapp\\Capabilities");
+    SHDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Classes\\WinZapp.WhatsAppLink");
+    SHDeleteKeyW(HKEY_CURRENT_USER, L"Software\\WinZapp\\Capabilities");
     RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\WinZapp");
     HKEY apps;
     if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\RegisteredApplications", 0,

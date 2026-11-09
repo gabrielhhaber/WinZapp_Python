@@ -110,8 +110,11 @@ class _Window:
             SetInsertionPointEnd=lambda: None,
             SetFocus=lambda: setattr(self.field, "focused", True))
         self.navigated = []
+        def put(text):
+            self.field.value = text
+
         self.conversations_panel = SimpleNamespace(
-            message_field=self.field,
+            message_field=self.field, _put_in_message_field=put,
             navigate_to_conversation=self.navigated.append)
         self._existing = existing
         self.scheduled = 0
@@ -196,6 +199,66 @@ def test_a_link_with_no_text_only_focuses_the_field(calls, find_chat):
     (fill, args), = calls.after
     fill(*args)
     assert window.field.value == "" and window.field.focused
+
+
+def test_line_breaks_in_the_text_become_editor_line_breaks(calls, find_chat):
+    window = _Window(existing={"remoteJid": "x"})
+    window._fill_message_field("a\nb")
+    assert window.field.value == "a\r\nb"
+
+
+class _Installer:
+    _register_whatsapp_links_for_install = (
+        GroupInvitationLinksMixin._register_whatsapp_links_for_install)
+    global_dir = "gd"
+
+
+@pytest.fixture
+def install(monkeypatch):
+    store = {}
+
+    class Settings:
+        def __init__(self, gd):
+            pass
+
+        def get(self, key):
+            return store.get(key, False)
+
+        def set(self, key, value):
+            store[key] = value
+
+    import app_settings
+    registered = []
+    monkeypatch.setattr(app_settings, "AppSettings", Settings)
+    monkeypatch.setattr(group_invitation_links.sys, "platform", "win32")
+    monkeypatch.setattr(group_invitation_links.whatsapp_link_association, "register",
+                        lambda: registered.append(1))
+    monkeypatch.setattr(group_invitation_links.whatsapp_link_association,
+                        "is_installed_build", lambda: True)
+    return SimpleNamespace(store=store, registered=registered)
+
+
+def test_an_installed_build_registers_once(install):
+    _Installer()._register_whatsapp_links_for_install()
+    _Installer()._register_whatsapp_links_for_install()
+    assert install.registered == [1]
+    assert install.store["whatsapp_links_auto_registered"] is True
+
+
+def test_a_portable_build_is_never_registered_on_its_own(install, monkeypatch):
+    monkeypatch.setattr(group_invitation_links.whatsapp_link_association,
+                        "is_installed_build", lambda: False)
+    _Installer()._register_whatsapp_links_for_install()
+    assert not install.registered and not install.store
+
+
+def test_a_failed_registration_is_retried_next_launch(install, monkeypatch):
+    def boom():
+        raise OSError("denied")
+
+    monkeypatch.setattr(group_invitation_links.whatsapp_link_association, "register", boom)
+    _Installer()._register_whatsapp_links_for_install()
+    assert not install.store
 
 
 def test_non_links_are_ignored(calls):

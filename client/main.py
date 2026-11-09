@@ -1937,9 +1937,8 @@ if __name__ == "__main__":
 
         background = "--background" in sys.argv
         startup_source = parse_startup_source(sys.argv)
-        # A group invitation link Windows handed over (the optional whatsapp:
+        # A group invitation or chat link Windows handed over (the whatsapp:
         # association, core/whatsapp_link_association.py).
-        # (a group invitation or a chat link with a number and text).
         from core.whatsapp_chat_link import whatsapp_link_argument
         _invitation_link = whatsapp_link_argument(sys.argv)
         if (_invitation_link and not getattr(sys, "frozen", False)

@@ -112,11 +112,14 @@ class GroupInvitationLinksMixin:
             logging.exception("[chat-link] could not open the chat")
 
     def _fill_message_field(self, text: str):
-        field = self.conversations_panel.message_field
+        panel = self.conversations_panel
+        field = panel.message_field
         if text:
+            from core.utils import to_editor_line_endings
             current = field.GetValue()
-            field.SetValue(f"{current} {text}" if current.strip() else text)
-            field.SetInsertionPointEnd()
+            text = to_editor_line_endings(text)
+            # Without telling the contact "typing..." for text nobody typed.
+            panel._put_in_message_field(f"{current} {text}" if current.strip() else text)
         field.SetFocus()
 
     def open_group_invitation_link(self, link: str, _deadline: float = None):
@@ -160,8 +163,8 @@ class GroupInvitationLinksMixin:
             settings = AppSettings(self.global_dir)
             if settings.get("whatsapp_links_auto_registered"):
                 return
-            settings.set("whatsapp_links_auto_registered", True)
             whatsapp_link_association.register()
+            settings.set("whatsapp_links_auto_registered", True)
         except Exception as exc:
             logging.warning("[invitation-link] automatic registration failed: %s",
                             type(exc).__name__)
