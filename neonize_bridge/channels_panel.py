@@ -50,6 +50,7 @@ import re
 import phonenumbers
 from aiohttp import web
 
+import channel_reactions
 import raw_queries as rq
 from channels import SERVER, channel_id
 
@@ -363,6 +364,21 @@ def register_routes(r, *, session, ok, jid_from_text):
             return answer
         return ok(status="success", response=done)
 
+    async def reactions(req):
+        s = session(req)
+        request = channel_reactions.reactions_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        from channel_admin import UPDATE_FIELD, UPDATE_QUERY
+        channel, variables = request
+        answer = await mex(s, UPDATE_QUERY, variables, UPDATE_FIELD, "channel_reactions_failed")
+        if isinstance(answer, web.Response):
+            return answer
+        value = variables["updates"]["settings"]["reaction_codes"]["value"]
+        return ok(status="success", response={"id": channel, "value": value})
+
     async def admins(req):
         s = session(req)
         channel = channel_id((await body_of(req)).get("id"))
@@ -480,6 +496,7 @@ def register_routes(r, *, session, ok, jid_from_text):
     r.add_post("/api/{tok}/channels/admin-revoke",
                person_mutation(REVOKE_QUERY, "channel_admin_revoke_failed"))
     r.add_post("/api/{tok}/channels/pin", pin)
+    r.add_post("/api/{tok}/channels/reactions", reactions)
     r.add_post("/api/{tok}/channels/mute", mute)
     r.add_post("/api/{tok}/channels/directory", directory)
     r.add_post("/api/{tok}/channels/info", info)

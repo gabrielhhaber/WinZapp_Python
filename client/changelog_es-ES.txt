@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Canales: en "Crear canal..." y "Editar canal...", la opción Reacciones define cómo pueden reaccionar los seguidores a las novedades (cualquier emoji, solo los emojis predeterminados o ninguna reacción), como en WhatsApp Web, con WPPConnect y Neonize.
+
 - Mensajes destacados: una nueva ventana muestra todos los mensajes destacados de todos los chats (Alt+0, o la fila "Mensajes destacados" de la lista de navegación), con un campo de búsqueda; Intro abre el chat en el mensaje y Supr quita el destacado. Sugerencia de la issue #708.
 
 - Mensajes: las identidades alternativas contradictorias ya no desvían los mensajes enviados a otra persona o recibidos de ella al chat contigo mismo. Se ignoran las correspondencias no válidas; los mensajes permanecen en el chat original hasta que se resuelva la identidad.

@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Kanały: w "Utwórz kanał..." i "Edytuj kanał..." wybór Reakcje określa, jak obserwujący mogą reagować na aktualizacje (dowolne emoji, tylko domyślne emoji lub bez reakcji), jak w WhatsApp Web, z WPPConnect i Neonize.
+
 - Wiadomości oznaczone gwiazdką: nowe okno pokazuje wszystkie wiadomości oznaczone gwiazdką ze wszystkich czatów (Alt+0 lub wiersz "Wiadomości oznaczone gwiazdką" na liście nawigacji), z polem wyszukiwania; Enter otwiera czat na wiadomości, a Delete usuwa gwiazdkę. Propozycja ze zgłoszenia #708.
 
 - Wiadomości: sprzeczne identyfikatory alternatywne nie kierują już wiadomości wysyłanych do innej osoby ani odbieranych od niej do czatu z samym sobą. Nieprawidłowe powiązania są pomijane, a wiadomości pozostają w pierwotnym czacie do czasu ustalenia tożsamości.

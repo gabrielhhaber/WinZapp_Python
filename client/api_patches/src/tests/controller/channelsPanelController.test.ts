@@ -417,3 +417,24 @@ test('anything but a channel, or a page without WAPI, answers null', async () =>
     page.restore();
   }
 });
+
+
+test('who may react goes through the update job of the page, with its enum', async () => {
+  const root = globalThis as any;
+  const previous = root.require;
+  const asked: any[] = [];
+  root.require = (name: string) => ({
+    WAWebCommonNewsletterEnums: { NewsletterReactionCodesSetting: { All: 0, Basic: 1, Blocklist: 2, None: 3 } },
+    WAWebMexUpdateNewsletterJob: { mexUpdateNewsletter: async (o: any) => { asked.push(o); return {}; } },
+  } as any)[name];
+  try {
+    expect(await readChannels({ kind: 'reactions', id: '1@newsletter', value: 'none' }))
+      .toEqual({ id: '1@newsletter', value: 'NONE' });
+    expect(asked).toEqual([{ newsletterID: '1@newsletter', reactionCodesSetting: 3 }]);
+    expect(await readChannels({ kind: 'reactions', id: '1@newsletter', value: 'BLOCKLIST' })).toBeNull();
+    expect(await readChannels({ kind: 'reactions', id: '5511@c.us', value: 'ALL' })).toBeNull();
+    expect(asked.length).toBe(1);
+  } finally {
+    root.require = previous;
+  }
+});

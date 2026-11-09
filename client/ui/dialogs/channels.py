@@ -23,6 +23,22 @@ from ui.dialogs.labelled_control import add_labelled
 MINE, FIND = 0, 1
 
 
+def create_with_reactions(connection, name, description, reactions):
+    """Create the channel, then set who may react when it is not WhatsApp's
+    default (any emoji). Runs off the main thread."""
+    jid = ch.create_channel(connection, name, description)
+    if jid and reactions and reactions != "ALL":
+        ch.set_channel_reactions(connection, jid, reactions)
+    return jid
+
+
+def edit_with_reactions(connection, channel, name, description, reactions):
+    """Edit the channel; its reactions only when they were chosen and differ."""
+    ch.edit_channel(connection, channel.jid, name, description)
+    if reactions and reactions != channel.reactions:
+        ch.set_channel_reactions(connection, channel.jid, reactions)
+
+
 def show_channels(mw, parent, keep="", state=None):
     """Show the window and open the channel the user chose, if any. *keep* is
     the channel selected once the list arrives (coming back from it); *state*,
@@ -103,13 +119,21 @@ def channel_details(channel, i18n, following):
         lines.append(i18n.t("channels_created_on").format(date=day))
     if channel.link:
         lines.append(i18n.t("channels_link_line").format(link=channel.link))
+    if channel.reactions in ch.REACTION_SETTINGS:
+        setting = ChannelEditDialog.REACTION_KEYS[ch.REACTION_SETTINGS.index(channel.reactions)]
+        lines.append(i18n.t("channels_reactions_line").format(setting=i18n.t(setting)))
     return "\n\n".join(line for line in lines if line)
 
 
 class ChannelEditDialog(wx.Dialog):
-    """Name and description of a channel being created or edited."""
+    """Name, description and who may react, of a channel being created or
+    edited. *reactions* is the channel's setting (core.channels
+    REACTION_SETTINGS), "" when unknown: then nothing is chosen, and nothing
+    is sent unless the admin chooses."""
 
-    def __init__(self, parent, i18n, title, name="", description=""):
+    REACTION_KEYS = ("channels_reactions_all", "channels_reactions_basic", "channels_reactions_none")
+
+    def __init__(self, parent, i18n, title, name="", description="", reactions="ALL"):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._name = add_labelled(self, sizer, i18n.t("channels_name"),
@@ -119,6 +143,10 @@ class ChannelEditDialog(wx.Dialog):
             self, value=description, style=wx.TE_MULTILINE), 1)
         # never cut without saying so: core/channels.py sends at most this
         self._description.SetMaxLength(ch.DESCRIPTION_LIMIT)
+        self._reactions = add_labelled(self, sizer, i18n.t("channels_reactions"), lambda: wx.Choice(
+            self, choices=[i18n.t(key) for key in self.REACTION_KEYS]))
+        if reactions in ch.REACTION_SETTINGS:
+            self._reactions.SetSelection(ch.REACTION_SETTINGS.index(reactions))
         buttons = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 8)
         self.SetSizer(sizer)
@@ -128,7 +156,10 @@ class ChannelEditDialog(wx.Dialog):
         self._name.SetFocus()
 
     def values(self):
-        return self._name.GetValue().strip(), self._description.GetValue().strip()
+        """(name, description, reactions): reactions "" when none was chosen."""
+        index = self._reactions.GetSelection()
+        reactions = ch.REACTION_SETTINGS[index] if 0 <= index < len(ch.REACTION_SETTINGS) else ""
+        return self._name.GetValue().strip(), self._description.GetValue().strip(), reactions
 
 
 class ChannelsDialog(BackgroundWork, wx.Dialog):
@@ -566,13 +597,13 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         with ChannelEditDialog(self, i18n, i18n.t("channels_create_title")) as dialog:
             if dialog.ShowModal() != wx.ID_OK:
                 return
-            name, description = dialog.values()
+            name, description, reactions = dialog.values()
         if not name:
             self._announce(i18n.t("channels_name_required"))
             return
         connection = self._connection
-        self._act(lambda: ch.create_channel(connection, name, description), "channels_created",
-                  "channel_create_failed")
+        self._act(lambda: create_with_reactions(connection, name, description, reactions),
+                  "channels_created", "channel_create_failed")
 
     def _on_edit(self, event=None):
         channel = self._mine_version(self._selected())
@@ -580,16 +611,16 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         i18n = self._i18n
         with ChannelEditDialog(self, i18n, i18n.t("channels_edit_title"), channel.name,
-                               channel.description) as dialog:
+                               channel.description, channel.reactions) as dialog:
             if dialog.ShowModal() != wx.ID_OK:
                 return
-            name, description = dialog.values()
+            name, description, reactions = dialog.values()
         if not name:
             self._announce(i18n.t("channels_name_required"))
             return
         connection, jid = self._connection, channel.jid
-        self._act(lambda: ch.edit_channel(connection, jid, name, description), "channels_edited",
-                  "channel_edit_failed", jid)
+        self._act(lambda: edit_with_reactions(connection, channel, name, description, reactions),
+                  "channels_edited", "channel_edit_failed", jid)
 
     def _on_admins(self, event=None):
         channel = self._mine_version(self._selected())

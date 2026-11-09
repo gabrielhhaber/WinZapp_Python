@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Kanallar: "Kanal oluştur..." ve "Kanalı düzenle..." içinde Tepkiler seçeneği, takipçilerin güncellemelere nasıl tepki verebileceğini belirler (herhangi bir emoji, yalnızca varsayılan emojiler veya tepki yok), WhatsApp Web'deki gibi, WPPConnect ve Neonize ile.
+
 - Yıldızlı mesajlar: yeni bir pencere tüm sohbetlerdeki tüm yıldızlı mesajları gösteriyor (Alt+0 veya gezinme listesindeki "Yıldızlı mesajlar" satırı), bir arama alanıyla; Enter sohbeti mesajda açar, Delete yıldızı kaldırır. #708 numaralı önerinin karşılığı.
 
 - Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.

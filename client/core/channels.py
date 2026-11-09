@@ -55,6 +55,7 @@ class Channel:
     invite: str
     created: int              # Unix seconds, 0 when unknown
     pinned: tuple = ()        # server ids of the pinned updates, when the answer said
+    reactions: str = ""       # ALL, BASIC or NONE (REACTION_SETTINGS), "" when unknown
 
     @property
     def following(self) -> bool:
@@ -252,6 +253,20 @@ def pinned_messages(records, pinned):
     return [dict(m, pinInChat=True) for m in records or () if server_id_of(m) in wanted]
 
 
+#: who may react to a channel's updates, as WhatsApp Web's channel settings
+#: offer it (NewsletterReactionCodesSetting All, Basic, None; its Blocklist
+#: is no choice of the settings screen)
+REACTION_SETTINGS = ("ALL", "BASIC", "NONE")
+
+
+def reaction_setting(thread) -> str:
+    """thread_metadata.settings.reaction_codes.value, "" when absent or unknown."""
+    settings = thread.get("settings") if isinstance(thread, dict) else None
+    codes = settings.get("reaction_codes") if isinstance(settings, dict) else None
+    value = str(codes.get("value") or "").upper() if isinstance(codes, dict) else ""
+    return value if value in REACTION_SETTINGS else ""
+
+
 def parse_channel(node, *, default_role=""):
     """A Channel from one XWA2Newsletter node, or None for anything that is
     not a channel, or one WhatsApp says is gone."""
@@ -274,7 +289,8 @@ def parse_channel(node, *, default_role=""):
         verified=str(thread.get("verification") or "").upper() == "VERIFIED",
         role=role, muted=True if mute == "ON" else False if mute == "OFF" else None,
         invite=invite.strip() if isinstance(invite, str) else "",
-        created=_int(thread.get("creation_time")) or 0, pinned=pinned_ids(thread))
+        created=_int(thread.get("creation_time")) or 0, pinned=pinned_ids(thread),
+        reactions=reaction_setting(thread))
 
 
 def parse_channels(body, *, default_role=""):
@@ -449,6 +465,14 @@ def create_channel(connection, name, description):
     data = body.get("response", body) if isinstance(body, dict) else {}
     jid = (data.get("idJid") or data.get("id")) if isinstance(data, dict) else ""
     return jid if isinstance(jid, str) and _CHANNEL.fullmatch(jid) else ""
+
+
+def set_channel_reactions(connection, jid, value):
+    """Who may react to the channel's updates (REACTION_SETTINGS)."""
+    if value not in REACTION_SETTINGS:
+        raise ValueError("channel_reactions_failed")
+    _post(connection, "channels/reactions", {"id": jid, "value": value},
+          "channel_reactions_failed", timeout=60)
 
 
 def edit_channel(connection, jid, name, description):

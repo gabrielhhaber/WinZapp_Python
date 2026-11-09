@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Canale: în "Creați canal..." și "Editați canalul...", opțiunea Reacții stabilește cum pot reacționa urmăritorii la actualizări (orice emoji, doar emoji-urile implicite sau fără reacții), ca în WhatsApp Web, cu WPPConnect și Neonize.
+
 - Mesaje marcate cu stea: o fereastră nouă arată toate mesajele marcate cu stea din toate conversațiile (Alt+0 sau rândul "Mesaje marcate cu stea" din lista de navigare), cu un câmp de căutare; Enter deschide conversația la mesaj, iar Delete elimină steaua. Sugestie din issue #708.
 
 - Mesaje: identitățile alternative contradictorii nu mai direcționează mesajele trimise altei persoane sau primite de la aceasta către conversația cu tine însuți. Asocierile nevalide sunt ignorate; mesajele rămân în conversația originală până la identificarea persoanei.

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Canais: em "Criar canal..." e "Editar canal...", a escolha Reações define como os seguidores podem reagir às atualizações (qualquer emoji, só os emojis predefinidos ou nenhuma reação), como no WhatsApp Web, na WPPConnect e no Neonize.
+
 - Mensagens marcadas com estrela: uma nova janela lista todas as mensagens marcadas com estrela de todas as conversas (Alt+0, ou a linha "Mensagens marcadas com estrela" da lista de navegação), com um campo de pesquisa; Enter abre a conversa na mensagem, e Delete retira a estrela. Sugestão da issue #708.
 
 - Mensagens: identidades alternativas em conflito já não encaminham mensagens enviadas a outra pessoa ou recebidas dela para a conversa consigo mesmo. As correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.

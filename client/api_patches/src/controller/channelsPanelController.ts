@@ -243,6 +243,23 @@ export async function readChannels(request: any): Promise<unknown> {
     await action(id);
     return { id };
   }
+  if (kind === 'reactions') {
+    // Who may react to the channel's updates: WAWebMexUpdateNewsletterJob with
+    // only reactionCodesSetting, as WhatsApp Web's channel settings send it
+    // (editNewsletterMetadataQuery, editReactionCodesSetting), with its enum
+    // NewsletterReactionCodesSetting (All 0, Basic 1, None 3; read 2026-11-09).
+    // The job, not the UI's editNewsletterMetadataAction, which logs a refusal
+    // and returns as if it had worked. The channel's metadata notification
+    // updates the page.
+    const id = typeof request.id === 'string' ? request.id : '';
+    const names: any = { ALL: 'All', BASIC: 'Basic', NONE: 'None' };
+    const setting = load('WAWebCommonNewsletterEnums')?.NewsletterReactionCodesSetting?.[
+      names[String(request.value || '').toUpperCase()]];
+    const job = load('WAWebMexUpdateNewsletterJob')?.mexUpdateNewsletter;
+    if (!/^\d+@newsletter$/.test(id) || setting == null || typeof job !== 'function') return null;
+    await job({ newsletterID: id, reactionCodesSetting: setting });
+    return { id, value: String(request.value).toUpperCase() };
+  }
   if (kind === 'pin') {
     // WhatsApp Web's own action (it also updates the page's pinned list), on
     // the page's channel; the job alone when the page has not loaded it.
@@ -426,6 +443,16 @@ export async function muteChannel(req: Request, res: Response) {
   const id = channelKey({ id: body.id });
   if (!id || typeof body.mute !== 'boolean') return res.status(400).json({ status: 'error', code: 'invalid_channel' });
   return answer(req, res, { kind: 'mute', id, mute: body.mute }, 'channel_mute_failed');
+}
+
+export async function setChannelReactions(req: Request, res: Response) {
+  const body = req.body || {};
+  const id = channelKey({ id: body.id });
+  const value = String(body.value || '').toUpperCase();
+  if (!id || !['ALL', 'BASIC', 'NONE'].includes(value)) {
+    return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  }
+  return answer(req, res, { kind: 'reactions', id, value }, 'channel_reactions_failed');
 }
 
 export async function pinChannelUpdate(req: Request, res: Response) {

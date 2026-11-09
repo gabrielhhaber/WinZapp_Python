@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Channels: in "Create channel..." and "Edit channel...", Reactions sets who may react to the updates (any emoji, default emojis only or no reactions), as in WhatsApp Web, on WPPConnect and Neonize.
+
 - Starred messages: a new window lists every starred message of every chat (Alt+0, or the "Starred messages" row of the navigation list), with a search field; Enter opens the chat on the message, and Delete removes the star. Suggested in issue #708.
 
 - Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.
