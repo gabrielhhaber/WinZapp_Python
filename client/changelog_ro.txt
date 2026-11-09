@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Copie de rezervă: copia de rezervă a profilului (în Setări > Stocare și în managerul de stocare) nu mai apare când WinZapp rulează cu motorul Neonize, care nu are un profil de browser de salvat.
+
 - Mesaje: identitățile alternative contradictorii nu mai direcționează mesajele trimise altei persoane sau primite de la aceasta către conversația cu tine însuți. Asocierile nevalide sunt ignorate; mesajele rămân în conversația originală până la identificarea persoanei.
 
 - Filtrul pentru necitite: după actualizarea sau repornirea programului, unele conversații cu mesaje necitite dispăreau din filtru (de exemplu, din 12 rămâneau 9) până când resincronizai cu F5. Numărătoarea ia acum în calcul cele mai noi mesaje ale conversației, nu cele mai vechi.

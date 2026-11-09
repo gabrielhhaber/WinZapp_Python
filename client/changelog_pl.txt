@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Kopia zapasowa: kopia zapasowa profilu (w Ustawieniach > Pamięć i w menedżerze pamięci) nie jest już pokazywana, gdy WinZapp działa z silnikiem Neonize, który nie ma profilu przeglądarki do skopiowania.
+
 - Wiadomości: sprzeczne identyfikatory alternatywne nie kierują już wiadomości wysyłanych do innej osoby ani odbieranych od niej do czatu z samym sobą. Nieprawidłowe powiązania są pomijane, a wiadomości pozostają w pierwotnym czacie do czasu ustalenia tożsamości.
 
 - Filtr nieprzeczytanych: po aktualizacji lub ponownym uruchomieniu programu niektóre rozmowy z nieprzeczytanymi wiadomościami znikały z filtra (na przykład z 12 robiło się 9), dopóki nie zsynchronizowano ponownie klawiszem F5. Liczenie bierze teraz pod uwagę najnowsze wiadomości rozmowy, a nie najstarsze.
