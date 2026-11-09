@@ -56,6 +56,7 @@ import history_progress
 import older_history
 import call_invites
 import channels_panel
+import channel_events
 import channel_updates
 import cleanup
 import msgmap
@@ -722,6 +723,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         presence.register_events(cli, self)
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
+        channel_events.register_events(cli, self)
         app_state_mirror.register_events(cli, self)
         pairing_repair.WATCH.add(self, generation, phone_number)
 

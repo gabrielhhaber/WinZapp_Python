@@ -24,11 +24,14 @@ MINE, FIND = 0, 1
 def show_channels(mw, parent):
     """Show the window and open the channel the user chose, if any."""
     dialog = ChannelsDialog(parent, mw)
+    # where a channels-changed event finds it (WebSocketClient.on_channels_changed)
+    mw._channels_dialog = dialog
     try:
         if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
             return False
         channel = dialog.result
     finally:
+        mw._channels_dialog = None
         dialog.Destroy()
     open_group_chat(mw, channel.jid, channel.name or mw.i18n.t("channels_unnamed"))
     return True
@@ -112,7 +115,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._mine, self._found, self._shown = [], [], []
         self._loaded = self._searched = False
         self._filter_timer = None
-        self._search_again = False
+        self._search_again = self._reload_again = False
         self.result = None
         super().__init__(parent, title=i18n.t("channels_title"), size=(620, 640),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -292,9 +295,25 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._run_async(lambda: ch.list_channels(connection),
                         lambda channels: self._finish_reload(channels, keep, quiet))
 
+    def on_channels_changed(self):
+        """WhatsApp said a followed channel changed (followed, left, muted,
+        role): read the list again, quietly, as Refresh would. Refresh stays
+        for a change no event announces (a channel's name or picture)."""
+        if not self._current():
+            return
+        if self._busy:
+            self._reload_again = True
+            return
+        self._reload(quiet=True)
+
     def _finish_reload(self, channels, keep="", quiet=False):
         self._set_busy(False)
         if not self._current():
+            return
+        if self._reload_again:
+            # a change was announced while this read was in flight
+            self._reload_again = False
+            self._reload(keep=keep, quiet=True)
             return
         if channels is None:
             logging.warning("[channels] read_failed")

@@ -372,6 +372,7 @@ class WebSocketClient:
         self.sio.on("presence.update", self.on_presence_update)
         self.sio.on("groups.update", self.on_groups_update)
         self.sio.on("announcement-replies", self.on_announcement_replies)
+        self.sio.on("channels-changed", self.on_channels_changed)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
         # WPPConnect emits asynchronously via Socket.IO after /start-session.
@@ -2430,6 +2431,24 @@ class WebSocketClient:
                 wx.CallAfter(self.main_window.on_announcement_reply_count, event)
         except Exception:
             logging.exception("[WebSocketClient] announcement-replies failed")
+
+    def on_channels_changed(self, data):
+        """A followed channel was followed, left, muted or changed role, here
+        or on another device (channelsWatchBridge.ts; channel_events.py on
+        Neonize): the open Channels window reads its list again."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            if not str(data.get("id") or "").endswith("@newsletter"):
+                return
+            wx.CallAfter(self._channels_changed_on_ui)
+        except Exception:
+            logging.exception("[WebSocketClient] channels-changed failed")
+
+    def _channels_changed_on_ui(self):
+        dialog = getattr(self.main_window, "_channels_dialog", None)
+        if dialog is not None:
+            dialog.on_channels_changed()
 
     def on_wpp_reaction(self, data):
         try:

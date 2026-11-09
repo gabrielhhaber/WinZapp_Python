@@ -69,6 +69,8 @@ MIRRORED_FILES = [
     "src/controller/pollController.ts",
     "src/util/communityCommentsRuntime.ts",
     "src/util/announcementReplyBridge.ts",
+    "src/util/channelsWatchBridge.ts",
+    "src/tests/util/channelsWatchBridge.test.ts",
     "src/controller/communityCommentsController.ts",
     "src/tests/controller/communityCommentsController.test.ts",
     "src/controller/channelsPanelController.ts",

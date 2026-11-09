@@ -68,3 +68,43 @@ def test_a_closed_window_reads_nothing(window):
     window._on_filter_changed()
     _Timer.made[-1].fire()
     assert window.searches == 0
+
+
+# ---------------------------------------------------- channels-changed
+def _dialog_stub():
+    stub = types.SimpleNamespace(_busy=False, _reload_again=False, reloads=[])
+    stub._current = lambda: True
+    stub._reload = lambda keep="", quiet=False: stub.reloads.append(quiet)
+    stub.on_channels_changed = types.MethodType(ChannelsDialog.on_channels_changed, stub)
+    return stub
+
+
+def test_a_change_announced_by_whatsapp_reloads_the_list_quietly():
+    stub = _dialog_stub()
+    stub.on_channels_changed()
+    assert stub.reloads == [True]
+
+
+def test_a_change_during_a_read_reloads_after_it():
+    stub = _dialog_stub()
+    stub._busy = True
+    stub.on_channels_changed()
+    assert stub.reloads == [] and stub._reload_again is True
+
+
+def test_the_socket_hands_a_channel_change_to_the_open_window(monkeypatch):
+    from core import websocket_client as wsc
+    calls = []
+    monkeypatch.setattr(wsc.wx, "CallAfter", lambda fn, *a: fn(*a))
+    dialog = types.SimpleNamespace(on_channels_changed=lambda: calls.append("reload"))
+    client = types.SimpleNamespace(main_window=types.SimpleNamespace(_channels_dialog=dialog),
+                                   _belongs_to_this_session=lambda data: data.get("session") == "me")
+    for name in ("on_channels_changed", "_channels_changed_on_ui"):
+        setattr(client, name, types.MethodType(getattr(wsc.WebSocketClient, name), client))
+    client.on_channels_changed({"session": "me", "kind": "left", "id": "1@newsletter"})
+    client.on_channels_changed({"session": "other", "kind": "left", "id": "1@newsletter"})
+    client.on_channels_changed({"session": "me", "kind": "left", "id": "5511@c.us"})
+    assert calls == ["reload"]
+    client.main_window._channels_dialog = None
+    client.on_channels_changed({"session": "me", "kind": "left", "id": "1@newsletter"})
+    assert calls == ["reload"]
