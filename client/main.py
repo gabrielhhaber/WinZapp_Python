@@ -1939,8 +1939,9 @@ if __name__ == "__main__":
         startup_source = parse_startup_source(sys.argv)
         # A group invitation link Windows handed over (the optional whatsapp:
         # association, core/whatsapp_link_association.py).
-        from core.group_invitation_link import invitation_link_argument
-        _invitation_link = invitation_link_argument(sys.argv)
+        # (a group invitation or a chat link with a number and text).
+        from core.whatsapp_chat_link import whatsapp_link_argument
+        _invitation_link = whatsapp_link_argument(sys.argv)
         if (_invitation_link and not getattr(sys, "frozen", False)
                 and not sys.argv[0].lower().endswith(".exe")):
             # A source checkout keeps its data under the working directory,
@@ -2038,7 +2039,7 @@ if __name__ == "__main__":
                 try:
                     import ipc
                     # The running process comes to the foreground either way;
-                    # with a link it also opens the join dialog.
+                    # with a link it also opens it (join dialog or chat).
                     if ((_invitation_link and ipc.request_open_link(
                             gd, _account_id, _invitation_link))
                             or ipc.request_activate(gd, _account_id, source=startup_source)):
@@ -2085,8 +2086,9 @@ if __name__ == "__main__":
                            startup_source=startup_source, resume_pending=_resume_pending,
                            registry=_registry, global_dir=gd)
         _main_frame_ref.append(frame)
+        wx.CallAfter(frame._register_whatsapp_links_for_install)
         if _invitation_link:
-            wx.CallAfter(frame.open_group_invitation_link, _invitation_link)
+            wx.CallAfter(frame.open_whatsapp_link, _invitation_link)
     except SystemExit:
         raise
     except KeyboardInterrupt:

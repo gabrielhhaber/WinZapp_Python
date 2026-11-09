@@ -38,7 +38,7 @@ import time
 from typing import Callable, Optional
 
 from coord_locks import canonical_dir
-from core.group_invitation_link import invitation_code
+from core.whatsapp_chat_link import is_whatsapp_link
 
 _IS_WINDOWS = sys.platform == "win32"
 
@@ -119,7 +119,7 @@ class IpcListener:
         # main_window/call_hotkeys.py). Answers whether something rang and is
         # being rejected; optional, like on_audio_device.
         self.on_reject_ringing_call = on_reject_ringing_call
-        # A group invitation link Windows handed to a second launch (see
+        # A group invitation or chat link Windows handed to a second launch (see
         # core/whatsapp_link_association.py). Optional, like on_audio_device.
         self.on_open_link = on_open_link
         # Quick audio-device switch passed on by another account (see
@@ -442,10 +442,11 @@ class IpcListener:
             replies.append(json.dumps({"request_id": rid, "ack": True}))
             self._dispatch_activate(req.get("source", "user"))
         elif cmd == "open_link" and self.on_open_link is not None:
-            # Only a link shaped like a group invitation is passed on; what it
-            # opens is a dialog the user still has to confirm.
+            # Only a link shaped like a group invitation or a chat link is
+            # passed on; what it opens is a dialog the user still has to
+            # confirm, or a chat with its text unsent.
             link = req.get("link")
-            if invitation_code(link):
+            if is_whatsapp_link(link):
                 replies.append(json.dumps({"request_id": rid, "ack": True}))
                 self._dispatch_open_link(link)
         elif cmd == "audio_device" and self.on_audio_device is not None:
@@ -573,8 +574,9 @@ def request_activate(global_dir: str, account_id: str, source: str = "user",
 
 def request_open_link(global_dir: str, account_id: str, link: str,
                       timeout: float = 3.0) -> bool:
-    """Ask the process owning account_id to open a group invitation link
-    (it comes to the foreground and shows the join dialog).
+    """Ask the process owning account_id to open a WhatsApp link (a group
+    invitation or a chat link): it comes to the foreground and shows the join
+    dialog, or opens the chat with the text in the message field.
 
     Returns True if a listener acknowledged; False if none is running or the
     link is not one.

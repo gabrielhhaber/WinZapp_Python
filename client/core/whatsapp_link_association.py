@@ -1,4 +1,13 @@
-"""Let Windows hand ``whatsapp:`` links to WinZapp (opt-in, current user only).
+"""Let Windows hand ``whatsapp:`` links to WinZapp (current user only).
+
+Opt-in in the portable build (Settings); an installed build registers itself
+once on its first launch (``is_installed_build``), so WinZapp is listed under
+Windows' "Default apps" without the user having to find the option. Either way
+the Settings check box shows and changes the registration.
+
+Two kinds of ``whatsapp:`` link end in WinZapp: a group invitation
+(``whatsapp://chat?code=...``) and a chat with a number, possibly with a text
+to send (``whatsapp://send?phone=...&text=...``, core/whatsapp_chat_link.py).
 
 The page behind an invitation link (https://chat.whatsapp.com/...) has one
 button, "Join chat", which asks the system to open ``whatsapp://chat?code=...``.
@@ -42,6 +51,14 @@ _COMMAND = "\\shell\\open\\command"
 #: Marks a ``whatsapp`` scheme key as WinZapp's own, so turning the option
 #: off removes exactly what turning it on created.
 _OWNER_VALUE = "WinZappOwned"
+
+
+def is_installed_build(executable_dir=None) -> bool:
+    """True for a copy put in place by the installer (it leaves
+    ``installed_files.dat`` next to the program); False for the portable zip
+    and a source checkout, where registering stays the user's choice."""
+    folder = executable_dir or os.path.dirname(os.path.abspath(sys.argv[0]))
+    return os.path.isfile(os.path.join(folder, "installed_files.dat"))
 
 
 def handler_command(argv0=None, executable=None, frozen=None) -> str:
