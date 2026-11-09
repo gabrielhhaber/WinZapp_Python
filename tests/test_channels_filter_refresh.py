@@ -97,14 +97,31 @@ def test_the_socket_hands_a_channel_change_to_the_open_window(monkeypatch):
     calls = []
     monkeypatch.setattr(wsc.wx, "CallAfter", lambda fn, *a: fn(*a))
     dialog = types.SimpleNamespace(on_channels_changed=lambda: calls.append("reload"))
-    client = types.SimpleNamespace(main_window=types.SimpleNamespace(_channels_dialog=dialog),
+    people = types.SimpleNamespace(on_channels_changed=lambda jid: calls.append(("people", jid)))
+    client = types.SimpleNamespace(main_window=types.SimpleNamespace(_channels_dialog=dialog,
+                                                                     _channel_people_dialog=people),
                                    _belongs_to_this_session=lambda data: data.get("session") == "me")
     for name in ("on_channels_changed", "_channels_changed_on_ui"):
         setattr(client, name, types.MethodType(getattr(wsc.WebSocketClient, name), client))
     client.on_channels_changed({"session": "me", "kind": "left", "id": "1@newsletter"})
     client.on_channels_changed({"session": "other", "kind": "left", "id": "1@newsletter"})
     client.on_channels_changed({"session": "me", "kind": "left", "id": "5511@c.us"})
-    assert calls == ["reload"]
-    client.main_window._channels_dialog = None
+    assert calls == ["reload", ("people", "1@newsletter")]
+    client.main_window._channels_dialog = client.main_window._channel_people_dialog = None
     client.on_channels_changed({"session": "me", "kind": "left", "id": "1@newsletter"})
-    assert calls == ["reload"]
+    assert len(calls) == 2
+
+
+def test_the_people_window_reloads_only_for_its_own_channel():
+    from ui.dialogs.channel_admins import ChannelAdminsDialog
+    loads = []
+    stub = types.SimpleNamespace(_channel=types.SimpleNamespace(jid="1@newsletter"), _busy=False,
+                                 _reload_again=False, _current=lambda: True,
+                                 _load=lambda quiet=False: loads.append(quiet))
+    stub.on_channels_changed = types.MethodType(ChannelAdminsDialog.on_channels_changed, stub)
+    stub.on_channels_changed("2@newsletter")
+    stub.on_channels_changed("1@newsletter")
+    assert loads == [True]
+    stub._busy = True
+    stub.on_channels_changed("1@newsletter")
+    assert loads == [True] and stub._reload_again is True

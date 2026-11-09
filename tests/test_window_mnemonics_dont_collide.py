@@ -40,7 +40,7 @@ def test_the_scan_sees_the_windows_it_has_to(screens):
                     if where.endswith("::ChannelsDialog") and screen == "self")
     keys = {k for slot in channels for k in slot}
     # the buttons the dialog's own helper creates from a bare key
-    assert {"channels_open", "channels_refresh", "channels_mine", "channels_category"} <= keys
+    assert {"channels_open", "channels_create", "channels_mine", "channels_category"} <= keys
 
 
 def test_an_alternative_label_of_one_control_is_not_a_collision():

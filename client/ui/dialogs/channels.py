@@ -176,7 +176,6 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._edit = button("channels_edit", self._on_edit)
         self._delete = button("channels_delete", self._on_delete)
         self._admins = button("channels_people", self._on_admins)
-        self._refresh = button("channels_refresh", self._reload)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
@@ -264,7 +263,6 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         channel = self._mine_version(self._selected()) if free else None
         following = self._is_following(channel)
         i18n = self._i18n
-        self._refresh.Enable(free)
         self._search_btn.Enable(free and self._mode == FIND)
         self._by_link.Enable(free)
         self._create.Enable(free and self._loaded)
@@ -416,6 +414,15 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         if enter and focus in (self._category, self._view):
             self._on_search()
             return
+        if event.GetKeyCode() == wx.WXK_F5 and not event.HasAnyModifiers():
+            # No Refresh button: the list follows WhatsApp's own events
+            # (on_channels_changed). F5 reads again what is shown, for what no
+            # event announces and after a read that failed.
+            if self._mode == FIND:
+                self._on_search()
+            else:
+                self._reload()
+            return
         event.Skip()
 
     # ── actions ───────────────────────────────────────────────────────────
@@ -558,10 +565,12 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         from ui.dialogs.channel_admins import ChannelAdminsDialog
         dialog = ChannelAdminsDialog(self, self._mw, channel)
+        self._mw._channel_people_dialog = dialog    # for channels-changed
         try:
             dialog.ShowModal()
             changed = dialog.changed
         finally:
+            self._mw._channel_people_dialog = None
             dialog.Destroy()
         if changed:     # handed over or left: the list's role is stale
             self._reload(keep=channel.jid, quiet=True)

@@ -2441,14 +2441,17 @@ class WebSocketClient:
                 return
             if not str(data.get("id") or "").endswith("@newsletter"):
                 return
-            wx.CallAfter(self._channels_changed_on_ui)
+            wx.CallAfter(self._channels_changed_on_ui, str(data["id"]))
         except Exception:
             logging.exception("[WebSocketClient] channels-changed failed")
 
-    def _channels_changed_on_ui(self):
+    def _channels_changed_on_ui(self, channel_id=""):
         dialog = getattr(self.main_window, "_channels_dialog", None)
         if dialog is not None:
             dialog.on_channels_changed()
+        people = getattr(self.main_window, "_channel_people_dialog", None)
+        if people is not None:
+            people.on_channels_changed(channel_id)
 
     def on_wpp_reaction(self, data):
         try:

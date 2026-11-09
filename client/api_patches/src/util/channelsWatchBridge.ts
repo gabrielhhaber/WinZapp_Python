@@ -4,8 +4,10 @@
 // WAWebCollections.WAWebNewsletterCollection: following one adds its model,
 // leaving one removes it, and muting changes its `muteExpiration`; a role
 // change (made an admin, the owner changed) is `membershipType` on its model
-// in WAWebNewsletterMetadataCollection. All of it also when done on the phone
-// or another device. Read over CDP on 2026-11-08 (2.3000.x).
+// in WAWebNewsletterMetadataCollection, and so are its `name` and
+// `description` when an admin edits them. All of it also when done on the
+// phone or another device; `adminCount` there changes with the channel's
+// admins. Read over CDP on 2026-11-08 (2.3000.x).
 //
 // Every change becomes one `channels-changed` socket event, coalesced over a
 // second (a page load adds every followed channel at once). Only the
@@ -13,7 +15,7 @@
 // neonize's NewsletterJoin/Leave/MuteChange (neonize_bridge/channel_events.py).
 
 const BINDING = '__winzappOnChannelsChanged';
-const KINDS = ['joined', 'left', 'muted', 'role'];
+const KINDS = ['joined', 'left', 'muted', 'role', 'edited', 'admins'];
 
 /** Runs inside the page; serialized by Puppeteer, so self-contained. */
 export function installChannelsWatchInPage(): boolean {
@@ -56,6 +58,10 @@ export function installChannelsWatchInPage(): boolean {
   channels.on('change:muteExpiration', (model: any) => send('muted', model));
   if (metadata && typeof metadata.on === 'function') {
     metadata.on('change:membershipType', (model: any) => send('role', model));
+    metadata.on('change:name change:description', (model: any) => send('edited', model));
+    // an admin promoted or gone, an invite accepted, a new owner (the
+    // followers have no event: WhatsApp Web reads them with the info open)
+    metadata.on('change:adminCount', (model: any) => send('admins', model));
   }
   channels.__winzappChannelsWatch = true;
   return true;

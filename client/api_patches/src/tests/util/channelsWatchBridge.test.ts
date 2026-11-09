@@ -40,9 +40,13 @@ test('following, leaving, muting and a role change are one coalesced event', () 
   jest.advanceTimersByTime(1000);
   metadata.fire('change:membershipType', model('2@newsletter'));
   jest.advanceTimersByTime(1000);
+  metadata.fire('change:name change:description', model('2@newsletter'));
+  jest.advanceTimersByTime(1000);
+  metadata.fire('change:adminCount', model('2@newsletter'));
+  jest.advanceTimersByTime(1000);
   channels.fire('remove', model('2@newsletter'));
   jest.advanceTimersByTime(1000);
-  expect(sent.slice(1).map((s) => JSON.parse(s).kind)).toEqual(['muted', 'role', 'left']);
+  expect(sent.slice(1).map((s) => JSON.parse(s).kind)).toEqual(['muted', 'role', 'edited', 'admins', 'left']);
 }));
 
 test('it installs once, and anything but a channel says nothing', () => withPage(({ sent, channels }) => {

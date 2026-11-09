@@ -76,12 +76,13 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self._demote = button("channel_admin_demote", self._on_demote)
         self._make_owner = button("channel_owner_make", self._on_make_owner)
         self._leave = button("channel_admin_leave", self._on_leave)
-        self._refresh = button("channels_refresh", self._load)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
+        self._reload_again = False
         self._update_buttons()
         # Until the people arrive the list says so (an empty list says nothing).
         self._list.Set([i18n.t("loading")])
@@ -145,8 +146,32 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self._run_async(lambda: read_people(connection, channel),
                         lambda found: self._finish_load(found, quiet))
 
+    def _on_char_hook(self, event):
+        # No Refresh button: admins, invites and the owner follow WhatsApp's
+        # own events (on_channels_changed); F5 reads the people again, for the
+        # followers (which nothing announces) and after a read that failed.
+        if event.GetKeyCode() == wx.WXK_F5 and not event.HasAnyModifiers():
+            self._load()
+            return
+        event.Skip()
+
+    def on_channels_changed(self, channel_id):
+        """WhatsApp said *channel_id* changed (an admin promoted or gone, an
+        invite accepted or revoked, a new owner): read its people again,
+        quietly, when it is this window's channel."""
+        if channel_id != self._channel.jid or not self._current():
+            return
+        if self._busy:
+            self._reload_again = True
+            return
+        self._load(quiet=True)
+
     def _finish_load(self, found, quiet=False):
         self._busy = False
+        if getattr(self, "_reload_again", False) and self._current():
+            self._reload_again = False      # announced while this read was in flight
+            self._load(quiet=True)
+            return
         i18n = self._i18n
         count, people, pending = found if found else (None, None, None)
         if people is None:
