@@ -55,7 +55,19 @@ def active_guard(root, state):
     return True if lease_busy(paths["lock"]) else None
 
 
-def await_ready(paths, timeout=15.0, clock=time.monotonic, sleep=time.sleep,
+#: How long the installer guardian (PowerShell) has to say it is ready. Was
+#: 15 s: on a busy PC (2026-11-08, a user's log: get-messages calls queued
+#: for 89 s) PowerShell did not reach its first line in 15 s four times in a
+#: row (guardian=unavailable: not even "stage:compile" written), and every
+#: update ended in "WinZapp could not verify that it is safe to install the
+#: update". A cold PowerShell scanned by the antivirus, then Add-Type
+#: compiling the job object, can take that long. Nothing is written to the
+#: install until the commit, so waiting longer is safe; it runs on the
+#: updater's worker thread, not the UI's.
+READY_TIMEOUT_SECONDS = 60.0
+
+
+def await_ready(paths, timeout=READY_TIMEOUT_SECONDS, clock=time.monotonic, sleep=time.sleep,
                 before_commit=lambda pid: True):
     deadline = clock() + timeout
     while clock() < deadline:

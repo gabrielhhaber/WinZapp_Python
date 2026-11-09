@@ -148,6 +148,21 @@ class TestGrantProtocol:
         assert not guard.await_ready(paths, timeout=1, clock=lambda: next(ticks), sleep=lambda _: None)
         assert not os.path.exists(paths["commit"])
 
+    def test_a_guardian_slower_than_15_seconds_still_gets_its_commit(self, tmp_path, monkeypatch):
+        # 2026-11-08: a busy PC's PowerShell took over 15 s to start, and every
+        # update was refused as "could not verify that it is safe"
+        paths = guard.guard_paths(str(tmp_path), "a" * 32)
+        monkeypatch.setattr(guard, "lease_busy", lambda path: True)
+        now = [0.0]
+
+        def sleep(seconds):
+            now[0] += 1.0
+            if now[0] >= 40 and not os.path.exists(paths["ready"]):
+                guard.write_signal(paths["ready"], "ready:4242")
+        assert guard.await_ready(paths, clock=lambda: now[0], sleep=sleep)
+        assert guard.read_signal(paths["commit"]) == "commit"
+        assert guard.READY_TIMEOUT_SECONDS >= 60
+
     def test_waiter_refusal_prevents_grant(self, tmp_path, monkeypatch):
         paths = guard.guard_paths(str(tmp_path), "a" * 32)
         guard.write_signal(paths["ready"], "ready:333")

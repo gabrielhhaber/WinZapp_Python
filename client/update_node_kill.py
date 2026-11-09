@@ -133,6 +133,49 @@ def own_node_pids(port: int, node_paths, netstat_output: "str | None" = None,
     return ours
 
 
+#: seconds the installer lets the Neonize bridge exit by itself, then after
+#: stopping it, before copying over neonize_bridge.exe
+BRIDGE_GRACE_SECONDS = 10
+BRIDGE_KILL_WAIT_SECONDS = 10
+
+
+def bridge_stop_lines(pids, log_path: str, image: str = "neonize_bridge.exe",
+                      grace: int = BRIDGE_GRACE_SECONDS,
+                      kill_wait: int = BRIDGE_KILL_WAIT_SECONDS) -> str:
+    """Batch text that waits for each of *pids* (the Neonize bridge found when
+    the update was prepared) to be gone before the copy.
+
+    Not node_kill_lines(): that stops a process only while it still listens
+    on its port. A bridge whose last window closed for the update shuts its
+    port first and then takes seconds to disconnect and close its stores,
+    with neonize_bridge.exe still open: it was left running and xcopy failed
+    with a sharing violation on it, the install left half done (a user's
+    update_install.log, 2026-11-08). Here the PID only has to still be
+    *image*; it gets *grace* seconds to exit, is then stopped, and the copy
+    waits up to *kill_wait* more seconds for it to go. Empty for no pids."""
+    blocks = []
+    for pid in pids:
+        label = f"WZ_BRIDGE_{int(pid)}"
+        blocks.append(
+            "set /a WZ_BRIDGE_WAIT=0\n"
+            f":{label}\n"
+            f'tasklist /FI "PID eq {pid}" /FI "IMAGENAME eq {image}" 2>NUL | find "{pid}" >NUL\n'
+            "if not errorlevel 1 (\n"
+            f"    if !WZ_BRIDGE_WAIT! EQU {grace} (\n"
+            f'        >> "{log_path}" echo stopping WinZapp {image} {pid}, still running after {grace}s\n'
+            "    )\n"
+            f"    if !WZ_BRIDGE_WAIT! GEQ {grace} taskkill /F /PID {pid} >NUL 2>&1\n"
+            f"    if !WZ_BRIDGE_WAIT! LSS {grace + kill_wait} (\n"
+            "        set /a WZ_BRIDGE_WAIT+=1\n"
+            "        timeout /t 1 /nobreak >NUL\n"
+            f"        goto {label}\n"
+            "    )\n"
+            f'    >> "{log_path}" echo WinZapp {image} {pid} did not exit\n'
+            ")\n"
+        )
+    return "".join(blocks)
+
+
 def node_kill_lines(pids, port: int, log_path: str, image: str = "node.exe") -> str:
     """Batch text that stops each of *pids* if it is still an *image* (WinZapp's
     node.exe, or the Neonize bridge's neonize_bridge.exe) listening on exactly
