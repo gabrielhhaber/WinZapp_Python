@@ -9618,6 +9618,37 @@ msgstr ""
 "لم يمكن لـ WinZapp إنهاء الاقتران مع واتساب. يرجى المحاولة بالاتصال مرة "
 "أخرى."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_1_year"
+msgid "Last year"
+msgstr "آخر سنة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_30_days"
+msgid "Last 30 days"
+msgstr "آخر 30 يومًا"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_6_months"
+msgid "Last 6 months"
+msgstr "آخر 6 أشهر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_all"
+msgid "All the history (can take long and use a lot of space)"
+msgstr "السجل كاملًا (قد يستغرق وقتًا ويشغل مساحة كبيرة)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/connect_history.py
+msgctxt "pairing_history_label"
+msgid "Old messages to &bring when connecting:"
+msgstr "الرسائل القديمة المراد &جلبها عند الاتصال:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_recent"
+msgid "Recent ones only (WhatsApp's default)"
+msgstr "الحديثة فقط (افتراضي WhatsApp)"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_instructions"
 msgid ""

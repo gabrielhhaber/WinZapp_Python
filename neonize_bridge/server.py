@@ -65,6 +65,7 @@ import pairing
 import commerce_routes
 import profile_privacy
 import presence
+import pairing_history
 import pairing_repair
 import group_receipts
 import message_rules
@@ -106,6 +107,10 @@ def device_props(days):
         props.historySyncConfig.fullSyncDaysLimit = days
         props.historySyncConfig.fullSyncSizeMbLimit = 102400
         props.historySyncConfig.storageQuotaMb = 102400
+    else:
+        # said outright: neonize merges these into one DeviceProps for the
+        # whole process, and an earlier session's full sync would stay on
+        props.requireFullSync = False
     return props
 
 
@@ -702,8 +707,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         if previous_media is not None:
             previous_media.close()
         self.call_media = None
-        cli = self.client = NewClient(os.path.join(self.folder, "session.db"),
-                                      props=device_props(HISTORY_DAYS))
+        # the history the user chose for this session in the pairing dialog
+        # (pairing_history.py); it only matters until the session pairs
+        cli = self.client = NewClient(
+            os.path.join(self.folder, "session.db"),
+            props=device_props(pairing_history.load(self.folder, HISTORY_DAYS)))
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
@@ -1107,6 +1115,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         log.warning("WhatsApp refused the pairing (%s)", kind)
         threading.Thread(target=self._repair_pairing, args=(generation, kind, phone_number),
                          daemon=True, name="pairing-repair").start()
+
+    def restart_pairing(self):
+        """A session showing a QR code starts over, so the next code carries
+        what changed (the history choice). True when it did. Never touches a
+        paired session or one that holds an identity."""
+        with self._lifecycle_lock:
+            if self.status != session_lifecycle.QRCODE or self._has_identity():
+                return False
+            self.stop(session_lifecycle.CLOSED)
+            thread = self.thread
+            if thread is not None and thread is not threading.current_thread():
+                thread.join(session_lifecycle.OLD_THREAD_DEADLINE)
+            if self._thread_alive():
+                log.warning("the old thread of session %s did not finish; pairing not restarted",
+                            redact(self.name))
+                return False
+            return self.begin()
 
     def _repair_pairing(self, generation, kind, phone_number):
         with self._lifecycle_lock:
@@ -1939,6 +1964,13 @@ def create_app(folder, fixed=""):
             body = await req.json()
         except Exception:
             body = {}
+        if not isinstance(body, dict):
+            body = {}
+        # the pairing dialog's history choice, stored before the session comes
+        # up so the device registers with it (pairing_history.py)
+        days = pairing_history.chosen(body.get("historyDays"))
+        if days is not None and s.status != "CONNECTED":
+            pairing_history.save(s.folder, days)
         # begin() waits for the old thread to finish: never inside the aiohttp loop
         await asyncio.get_running_loop().run_in_executor(None, s.begin, body.get("phone"))
         mark_active(key_of(req), True)
@@ -1950,6 +1982,30 @@ def create_app(folder, fixed=""):
             await sio.emit("session-logged", {"session": s.name, "status": True},
                            room=s.name)
         return ok(status=s.status, qrcode=None, urlcode=s.urlcode)
+
+    async def set_pairing_history(req):
+        """{days}: how much history the session asks for when it pairs
+        (pairing_history.CHOICES). A QR code on screen is replaced by one
+        carrying the choice; a paired session is left as it is."""
+        s = session(req)
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        days = pairing_history.chosen((body or {}).get("days"))
+        if days is None:
+            return web.json_response({"status": "error", "message": "invalid days"}, status=400)
+        stored = pairing_history.load(s.folder, HISTORY_DAYS)
+        store, restart, reason = pairing_history.answer(s.status, stored, days)
+        if store and not pairing_history.save(s.folder, days):
+            return web.json_response({"status": "error", "message": "not stored"}, status=500)
+        restarted = False
+        if restart:
+            restarted = bool(await asyncio.get_running_loop().run_in_executor(
+                None, s.restart_pairing))
+        log.info("pairing history: %s (%s days, restarted=%s)", reason, days, restarted)
+        return ok(status="success", response={"days": days, "reason": reason,
+                                              "restarted": restarted})
 
     async def status_session(req):
         s = session(req)
@@ -2090,6 +2146,7 @@ def create_app(folder, fixed=""):
     r = app.router
     r.add_post("/api/{session}/{key}/generate-token", generate_token)
     r.add_post("/api/{tok}/start-session", start_session)
+    r.add_post("/api/{tok}/pairing-history", set_pairing_history)
     r.add_get("/api/{tok}/status-session", status_session)
     r.add_get("/api/{tok}/check-connection-session", check_connection)
     r.add_post("/api/{tok}/close-session", close_session)

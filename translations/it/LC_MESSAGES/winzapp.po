@@ -9850,6 +9850,37 @@ msgstr ""
 "WinZapp non è riuscito a completare l'associazione con WhatsApp. Riprova a "
 "connetterti."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_1_year"
+msgid "Last year"
+msgstr "Ultimo anno"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_30_days"
+msgid "Last 30 days"
+msgstr "Ultimi 30 giorni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_6_months"
+msgid "Last 6 months"
+msgstr "Ultimi 6 mesi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_all"
+msgid "All the history (can take long and use a lot of space)"
+msgstr "Tutta la cronologia (può richiedere tempo e molto spazio)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/connect_history.py
+msgctxt "pairing_history_label"
+msgid "Old messages to &bring when connecting:"
+msgstr "Messaggi vecchi da &portare alla connessione:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_recent"
+msgid "Recent ones only (WhatsApp's default)"
+msgstr "Solo i recenti (predefinito di WhatsApp)"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_instructions"
 msgid ""

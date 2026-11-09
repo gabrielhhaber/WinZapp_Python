@@ -9721,6 +9721,37 @@ msgstr ""
 "WinZapp WhatsApp ile eşlemeyi tamamlayamadı. Lütfen tekrar bağlanmayı "
 "deneyin."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_1_year"
+msgid "Last year"
+msgstr "Son bir yıl"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_30_days"
+msgid "Last 30 days"
+msgstr "Son 30 gün"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_6_months"
+msgid "Last 6 months"
+msgstr "Son 6 ay"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_all"
+msgid "All the history (can take long and use a lot of space)"
+msgstr "Tüm geçmiş (uzun sürebilir ve çok yer kaplayabilir)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/connect_history.py
+msgctxt "pairing_history_label"
+msgid "Old messages to &bring when connecting:"
+msgstr "Bağlanırken getirilecek eski &iletiler:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_recent"
+msgid "Recent ones only (WhatsApp's default)"
+msgstr "Yalnızca yeniler (WhatsApp varsayılanı)"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_instructions"
 msgid ""

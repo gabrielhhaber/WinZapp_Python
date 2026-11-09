@@ -18,7 +18,7 @@ from io import BytesIO
 from countries import get_countries, get_default_country_index
 from core.combo_search import bind_incremental_search
 from core import app_restart, connection_engine, neonize_bridge_process
-from ui.dialogs import connect_engine
+from ui.dialogs import connect_engine, connect_history
 from core import qr_geometry
 import logging
 
@@ -171,9 +171,11 @@ class Connect:
             f"{self.main_window.wpp_server}"
             f":{self.main_window.wpp_port}/api/{token}/start-session"
         )
-        payload = {
-            "waitQrCode": False
-        }
+        # Neonize: the history the pairing asks for (connect_history.py)
+        payload = connect_history.with_history(
+            {"waitQrCode": False},
+            getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT),
+            self.main_window.settings)
         headers = self._wpp_headers(use_global_key=True)
 
         try:
@@ -649,6 +651,13 @@ class Connect:
             getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT))
         if self.engine_choice is not None:
             self.engine_choice.Bind(wx.EVT_CHOICE, self.on_engine_chosen)
+        # Neonize only: how much history the pairing brings (connect_history.py)
+        self.history_choice = connect_history.build_row(
+            self.connection_dial, main_sizer, self.i18n,
+            getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT),
+            self.main_window.settings)
+        if self.history_choice is not None:
+            self.history_choice.Bind(wx.EVT_CHOICE, self.on_history_chosen)
         main_sizer.Add(self.qrcode_panel, 1, wx.ALL | wx.EXPAND, 5)
         main_sizer.Add(self.phone_panel, 1, wx.ALL | wx.EXPAND, 5)
         main_sizer.Add(self.quit_btn, 0, wx.ALL | wx.CENTER, 5)
@@ -813,6 +822,13 @@ class Connect:
                 _close_api_session()
             else:
                 threading.Thread(target=_close_api_session, daemon=True).start()
+
+    def on_history_chosen(self, event):
+        """Keep the choice and tell the bridge: a QR code on screen is redone
+        so the one scanned carries it; a phone code takes it at Continue."""
+        days = connect_history.days_at(self.history_choice.GetSelection())
+        if connect_history.remember(self.main_window, days):
+            connect_history.send_to_bridge(self.main_window, days, api_post)
 
     def on_switch_to_phone(self, event):
         # _close_active_session() below clears WA_token — capture it first so
@@ -1560,7 +1576,10 @@ class Connect:
                     f"{self.main_window.wpp_server}"
                     f":{self.main_window.wpp_port}/api/{self.main_window.token}/start-session"
                 )
-                payload = {"phone": self.phone_number, "waitQrCode": False}
+                payload = connect_history.with_history(
+                    {"phone": self.phone_number, "waitQrCode": False},
+                    getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT),
+                    self.main_window.settings)
                 ws_ref = self.main_window.ws  # capture before thread starts
                 headers = self._wpp_headers(use_global_key=True)
 
