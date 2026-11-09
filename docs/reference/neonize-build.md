@@ -185,6 +185,16 @@ and branch `winzapp` has one commit per patch.
 4. `build_neonize.py export` and commit `neonize_bridge/neonize_patches/`
    with the bridge change that uses it.
 
+A pull that changes `neonize_patches/` leaves an existing workspace behind:
+same pinned version, older commits. `export` then refuses with exit code 5
+instead of writing those older commits over the new patches, and `all`
+prepares the workspace again from the patches (its commits kept in
+`neonize_build/stale-backup/`) instead of building the older code. Measured
+after #732: the version check passed, `export` put the old 0002 back and the
+DLL had no calls. The test is `patches_moved()`: the repository's newest
+commit under `neonize_patches/<tree>` is newer than the tree's own newest
+commit, and the tree does not export to the same files.
+
 A bridge handler for an event only WinZapp's build has registers behind
 `if hasattr(nev, "...")`, so an install still on an older build keeps
 starting (`contact_events.register_events`).

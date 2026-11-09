@@ -107,6 +107,61 @@ def matches_patches(name):
         shutil.rmtree(probe, ignore_errors=True)
 
 
+#: exit code of `export` refusing a workspace older than the repository's patches
+PATCHES_MOVED = 5
+
+
+def _commit_time(cwd, *args):
+    result = subprocess.run(["git", "log", "-1", "--format=%ct", *args], cwd=cwd,
+                            capture_output=True, text=True)
+    try:
+        return int(result.stdout.strip() or 0) if result.returncode == 0 else 0
+    except ValueError:
+        return 0
+
+
+def patches_moved(name):
+    """True when neonize_patches/<name> changed in the repository after this
+    tree was prepared, and the tree does not hold that change.
+
+    Exporting such a tree writes its older commits over the newer patches, and
+    building it builds the older code. Seen after pulling #732 (the call layer
+    hooked back into Neonize()): the workspace was still at the commits of
+    the patches before it, at the same pinned neonize version, so the version
+    check passed, `export` put the old 0002 back and the DLL had no calls.
+
+    The tree's newest commit is when `prepare` applied the patches (git am
+    stamps the committer date), or a later commit of its own; the repository's
+    newest commit under neonize_patches/<name> is when the patches last
+    changed. Not a git checkout, or no workspace: never moved.
+    """
+    tree = tree_path(name)
+    if not os.path.isdir(os.path.join(tree, ".git")):
+        return False
+    repo = _commit_time(HERE, "--", os.path.join(PATCHES, name))
+    work = _commit_time(tree, BRANCH)
+    if not repo or not work or repo <= work:
+        return False
+    return not matches_patches(name)
+
+
+def moved_trees():
+    return [name for name in TREES if patches_moved(name)]
+
+
+def back_up_workspace(folder=None):
+    """Keep every tree's commits as patches before a prepare replaces them."""
+    folder = folder or os.path.join(WORK, "stale-backup")
+    shutil.rmtree(folder, ignore_errors=True)
+    for name in TREES:
+        if os.path.isdir(os.path.join(tree_path(name), ".git")):
+            try:
+                format_patches(name, os.path.join(folder, name))
+            except SystemExit:
+                continue
+    say(f"the workspace's commits are kept in {folder}")
+
+
 def ensure_clean(name):
     """Refuse to throw away work: uncommitted changes outside the generated files,
     or workspace commits that are not exported yet."""
@@ -212,6 +267,12 @@ def workspace_ready():
 
 # ------------------------------------------------------------------ export
 def export():
+    moved = moved_trees()
+    if moved:
+        say(f"neonize_patches/ changed after the workspace was prepared ({', '.join(moved)}): "
+            "exporting would put the older patches back. Run `prepare --force` to take the "
+            "repository's patches (copy your own commits from the workspace first).")
+        sys.exit(PATCHES_MOVED)
     for name in TREES:
         target = os.path.join(PATCHES, name)
         for old in glob.glob(os.path.join(target, "*.patch")):
@@ -412,7 +473,14 @@ def main(argv=None):
     elif args.command in ("all", "check", "approve"):
         if args.command == "approve" and not (args.ref and args.version):
             sys.exit("approve needs --ref and --version.")
-        if args.command == "all" and workspace_ready() and not args.force:
+        moved = moved_trees() if args.command == "all" and workspace_ready() else []
+        if moved and not args.force:
+            # building it would build the code from before the pull
+            say(f"neonize_patches/ changed after the workspace was prepared ({', '.join(moved)}): "
+                "preparing it again from the repository's patches")
+            back_up_workspace()
+            commit = prepare(info, args.ref, True)
+        elif args.command == "all" and workspace_ready() and not args.force:
             # keeps the workspace (and any commit not exported yet) as it is
             commit = git(tree_path("neonize"), "rev-parse", BASE, capture=True)
             say("using the existing workspace (prepare rebuilds it from the patches)")
