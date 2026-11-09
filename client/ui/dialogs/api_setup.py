@@ -633,6 +633,15 @@ class ApiSetupDialog(wx.Dialog):
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch wa-js chat lookup: %s", exc)
 
+        # A post to a channel: chat.find() looked only in ChatStore, which
+        # never holds a channel's chat (wppconnect_newsletter_chat_patch.py).
+        try:
+            from core.wppconnect_newsletter_chat_patch import patch_newsletter_chat_bundle
+            ok, note = patch_newsletter_chat_bundle(api_dir)
+            logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch wa-js channel chat: %s", exc)
+
         # browser.js — a large account whose WhatsApp Web needs a little over
         # 30 s to be ready never connected (issue #414). Takes the outer
         # api_dir, like the wa-js patch.

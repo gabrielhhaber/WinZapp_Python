@@ -288,3 +288,4 @@ def test_every_node_modules_patch_still_matches_the_pinned_runtime():
             shutil.copy2(bundle, bundle_copy)
             assert setup_api._patch_wa_js_bundle(tmp)
             assert setup_api._patch_chat_lookup_bundle(tmp)
+            assert setup_api._patch_newsletter_chat_bundle(tmp)
