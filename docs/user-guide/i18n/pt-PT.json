@@ -55,6 +55,8 @@
   "status_reply": "Resposta a estados",
   "calls": "Separador Chamadas",
   "call": "Durante uma chamada",
-  "incoming": "Chamada recebida"
+  "incoming": "Chamada recebida",
+  "channels": "Janela Canais",
+  "channel_people": "Administradores e seguidores do canal"
  }
 }

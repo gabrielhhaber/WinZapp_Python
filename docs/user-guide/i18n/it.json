@@ -55,6 +55,8 @@
   "status_reply": "Risposta a uno stato",
   "calls": "Scheda Chiamate",
   "call": "Durante una chiamata",
-  "incoming": "Chiamata in arrivo"
+  "incoming": "Chiamata in arrivo",
+  "channels": "Finestra Canali",
+  "channel_people": "Amministratori e follower del canale"
  }
 }

@@ -55,6 +55,8 @@
   "status_reply": "Duruma yanıt",
   "calls": "Aramalar sekmesi",
   "call": "Arama sırasında",
-  "incoming": "Gelen arama"
+  "incoming": "Gelen arama",
+  "channels": "Kanallar penceresi",
+  "channel_people": "Kanal yöneticileri ve takipçileri"
  }
 }

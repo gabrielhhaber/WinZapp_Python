@@ -11731,6 +11731,16 @@ msgid "Change keyboard shortcut"
 msgstr "Modifică comanda rapidă"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_channel_people_f5_label"
+msgid "F5: read the admins and followers again"
+msgstr "F5: citiți din nou administratorii și urmăritorii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_channels_f5_label"
+msgid "F5: read the channels list again"
+msgstr "F5: citiți din nou lista de canale"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
 #, python-brace-format
 msgctxt "shortcut_conflict"
@@ -12538,6 +12548,11 @@ msgstr "Fereastra apelului"
 msgctxt "shortcuts_calls_section"
 msgid "Calls panel"
 msgstr "Panoul de apeluri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcuts_channel_people_section"
+msgid "Channel admins and followers"
+msgstr "Administratorii și urmăritorii canalului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_conv_section"

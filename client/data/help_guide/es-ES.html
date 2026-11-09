@@ -372,7 +372,7 @@
 
 <h3>Filtros y listas</h3>
 <ul>
-  <li><strong>Filtros:</strong> Todos, No leídos, Grupos e Individuales, como botones de opción. Alt+Shift+F te lleva a ellos; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G y Alt+Shift+I eligen Todos, No leídos, Grupos e Individuales directamente desde la lista.</li>
+  <li><strong>Filtros:</strong> Todos, No leídos, Grupos e Individuales, como botones de opción. Alt+Shift+F te lleva a ellos; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G y Alt+Shift+I eligen Todos, No leídos, Grupos e Individuales directamente desde la lista. Cuando el filtro, una lista de WhatsApp o la búsqueda no encuentran ningún chat, la lista muestra una fila que lo dice, por ejemplo "No hay chats sin leer.".</li>
   <li><strong>Listas de WhatsApp:</strong> tus listas personalizadas aparecen antes de los filtros. Puedes actualizarlas, filtrar por ellas, crear o renombrar una lista y añadir o quitar chats, en "Administrar listas de WhatsApp". Editar depende de que tu cuenta lo admita; cuando no es posible, el gestor dice por qué. Los chats bloqueados o no disponibles en local no aparecen en la selección, y los demás miembros de la lista se conservan.</li>
   <li><strong>Búsqueda:</strong> Ctrl+F te lleva al campo de búsqueda; la flecha abajo va al primer resultado. En Configuración &gt; Interfaz &gt; Chats, "Mantener la búsqueda de chats al abrir un chat, para que Esc vuelva a los resultados en lugar de a la lista completa" hace que Esc devuelva el foco a ese chat en los resultados en lugar de volver a la lista completa.</li>
 </ul>
@@ -793,6 +793,7 @@
 <h3>Canales (Alt+9)</h3>
 <p>La ventana Canales (Alt+9, o el elemento Canales de la lista de navegación) muestra "Mis canales", los canales que sigues, o "Buscar canales": escribe en "Buscar canales" y pulsa Intro; sin texto, aparecen los canales recomendados de WhatsApp. En "Detalles" están la descripción, el número de seguidores, si sigues, administras o eres propietario del canal, y su enlace. Intro o "Abrir canal" abre el canal para leer sus novedades. Los botones "Seguir" y "Dejar de seguir", "Silenciar notificaciones" y "Activar notificaciones", "Copiar enlace", "Seguir por enlace..." (pega el enlace del canal) y "Crear canal..." sirven para cualquier canal; "Editar canal..." aparece en los canales que administras y "Eliminar canal" en los tuyos. Mostrar los canales en la lista de chats sigue siendo una opción de Configuración &gt; Interfaz &gt; Chats.</p>
 <p>En "Buscar canales", las opciones Categoría y Lista filtran el directorio como las de WhatsApp Web: elige una categoría (o "Todas las categorías") y una lista (recomendados, tendencias, populares o nuevos) y pulsa Buscar o Intro. Con texto en "Buscar canales", la búsqueda se queda en la categoría elegida. En los canales que administras, el campo de mensaje se habilita al abrir el canal: escribe y envía para publicar una novedad de texto (sin audios ni adjuntos). Desde el menú del mensaje, o Ctrl+Shift+P, fijas o dejas de fijar una novedad, y las fijadas aparecen en el botón "Mensajes fijados". El botón "Administradores y seguidores..." de la ventana Canales dice cuántos administradores tiene el canal; su propietario también puede usar "Invitar administrador..." (elige el contacto y, si quieres, un mensaje: la invitación llega a su chat y será administrador cuando la acepte) y "Cancelar invitación de administrador...". Esa ventana muestra al propietario, los administradores, las invitaciones pendientes y los seguidores: el propietario puede hacer administrador a un seguidor, cancelar una invitación, quitar a un administrador o hacer propietario a un administrador, y un administrador puede dejar de serlo.</p>
+<p>En "Buscar canales", elegir otra categoría u otra lista ya vuelve a buscar. La ventana Canales y la ventana "Administradores y seguidores..." se actualizan solas cuando sigues, dejas de seguir o silencias un canal, cuando cambia tu rol, el nombre o la descripción de un canal y cuando cambia quién lo administra, también desde el teléfono. F5 vuelve a leer la lista (por ejemplo, para ver seguidores nuevos); el atajo se puede cambiar en la configuración. En los canales que administras, tus novedades de texto se pueden editar desde el menú del mensaje o con Alt+E, dentro del plazo de edición de WhatsApp.</p>
 
 <h3>Menciones y respuestas</h3>
 <p>Una persona mencionada por su nombre junto con @all conserva el enlace; la mención hacia ti, en la notificación y en la vista previa, usa la palabra elegida en "¿Cómo debo referirme a mí?". En Configuración &gt; Interfaz &gt; Mensajes, "Ocultar los números de teléfono de remitentes sin nombre en los mensajes" hace que los mensajes de personas sin nombre empiecen directamente con el contenido. En Configuración &gt; Interfaz &gt; Chats, "Anteponer una tilde (~) a los nombres de contactos no guardados en los chats y los mensajes" (activada por defecto) muestra una tilde antes del nombre de quien no has guardado, en los chats y en los mensajes.</p>
@@ -1334,6 +1335,16 @@
 <tr><td class="field-name">Alt+S</td><td>Silenciar alerta</td></tr>
 <tr><td class="field-name">Alt+E</td><td>Cerrar ventana</td></tr>
 </table>
+<h3>Ventana Canales</h3>
+<table class="field-table">
+<tr><th>Atajo</th><th>Acción</th></tr>
+<tr><td class="field-name">F5</td><td>Volver a leer la lista de canales</td></tr>
+</table>
+<h3>Administradores y seguidores del canal</h3>
+<table class="field-table">
+<tr><th>Atajo</th><th>Acción</th></tr>
+<tr><td class="field-name">F5</td><td>Volver a leer los administradores y seguidores</td></tr>
+</table>
 <h3>Comandos sin tecla asignada</h3>
 <p>Estos comandos existen en la pestaña Atajos de teclado de Configuración, pero vienen sin tecla. Elige una allí si quieres usarlos.</p>
 <table class="field-table">
@@ -1425,6 +1436,8 @@
 <tr><td class="field-name">Aún no publicado</td><td>Vinculación de llamadas y flujos, procesamiento multimedia limitado y diagnóstico de señal sin contenido de audio.</td></tr>
 <tr><td class="field-name">Aún no publicado</td><td>Ventana Añadir participantes accesible con lector de pantalla: marcado con sonido y anuncios, y resultado hablado.</td></tr>
 <tr><td class="field-name">Aún no publicado</td><td>Neonize: los estados "Añade el tuyo", de pregunta y de sticker animado ya no aparecen como mensaje incompatible.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Ventanas de canales actualizadas por los eventos de WhatsApp, F5 configurable y edición de tus novedades de texto.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Lista de chats: una fila que lo dice cuando el filtro, la lista o la búsqueda no encuentran ningún chat.</td></tr>
 </table>
 
   </section>

@@ -221,6 +221,8 @@ SHORTCUTS = (
     Shortcut('calls.ID_ALT_L', 'calls', 'ID_ALT_L', 'shortcut_calls_alt_l_label', 1, 76, 0),
     Shortcut('calls.ID_CTRL_SHIFT_R', 'calls', 'ID_CTRL_SHIFT_R', 'shortcut_calls_ctrl_shift_r_label', 6, 82, 0),
     Shortcut('calls.ID_F5', 'calls', 'ID_F5', 'shortcut_calls_f5_label', 0, 344, 0),
+    Shortcut('channels.ID_F5', 'channels', 'ID_F5', 'shortcut_channels_f5_label', 0, 344, 0),
+    Shortcut('channel_people.ID_F5', 'channel_people', 'ID_F5', 'shortcut_channel_people_f5_label', 0, 344, 0),
     Shortcut('media.ID_CTRL_LEFT', 'media', 'ID_CTRL_LEFT', 'shortcut_ctrl_left_label', 2, 314, 0),
     Shortcut('media.ID_CTRL_RIGHT', 'media', 'ID_CTRL_RIGHT', 'shortcut_ctrl_right_label', 2, 316, 0),
     Shortcut('media.ID_CTRL_SHIFT_S', 'media', 'ID_CTRL_SHIFT_S', 'shortcut_ctrl_shift_s_label', 6, 83, 0),

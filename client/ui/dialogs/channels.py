@@ -15,6 +15,7 @@ import wx
 from core import channels as ch
 from ui.conversation_panel.channel_conversation import remember_channel_roles
 from ui.dialogs.background_work import BackgroundWork
+from ui.shortcut_bindings import make_shortcut_table
 from ui.dialogs.group_join_dialog import open_group_chat
 from ui.dialogs.labelled_control import add_labelled
 
@@ -180,6 +181,10 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
         self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
+        self.ID_F5 = wx.NewIdRef()
+        self.SetAcceleratorTable(make_shortcut_table(self, "channels", [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
+        self.Bind(wx.EVT_MENU, self._on_read_again, id=self.ID_F5)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._sync_mode()
@@ -414,16 +419,17 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         if enter and focus in (self._category, self._view):
             self._on_search()
             return
-        if event.GetKeyCode() == wx.WXK_F5 and not event.HasAnyModifiers():
-            # No Refresh button: the list follows WhatsApp's own events
-            # (on_channels_changed). F5 reads again what is shown, for what no
-            # event announces and after a read that failed.
-            if self._mode == FIND:
-                self._on_search()
-            else:
-                self._reload()
-            return
         event.Skip()
+
+    def _on_read_again(self, event=None):
+        """F5 (Settings > Shortcuts, "channels.ID_F5"). No Refresh button: the
+        list follows WhatsApp's own events (on_channels_changed); this reads
+        again what is shown, for what no event announces and after a read
+        that failed."""
+        if self._mode == FIND:
+            self._on_search()
+        else:
+            self._reload()
 
     # ── actions ───────────────────────────────────────────────────────────
 

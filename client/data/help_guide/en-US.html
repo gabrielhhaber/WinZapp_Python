@@ -372,7 +372,7 @@
 
 <h3>Filters and lists</h3>
 <ul>
-  <li><strong>Filters:</strong> All, Unread, Groups and Individual, as radio buttons. Alt+Shift+F takes you to them; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the list.</li>
+  <li><strong>Filters:</strong> All, Unread, Groups and Individual, as radio buttons. Alt+Shift+F takes you to them; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the list. When the filter, a WhatsApp list or the search finds no chat, the list shows one row saying so, for example "No unread chats.".</li>
   <li><strong>WhatsApp lists:</strong> your custom lists appear before the filters. You can refresh them, filter by them, create or rename a list, and add or remove chats, in "Manage WhatsApp lists". Editing depends on your account's support; when it is not possible, the manager says why. Locked chats or chats unavailable locally do not show in the selection, and the other members of the list are preserved.</li>
   <li><strong>Search:</strong> Ctrl+F takes you to the search field; the down arrow goes to the first result. In Settings &gt; Interface &gt; Chats, "Keep the chat search when opening a chat" makes Esc return focus to that chat in the results instead of going back to the full list.</li>
 </ul>
@@ -793,6 +793,7 @@
 <h3>Channels (Alt+9)</h3>
 <p>The Channels window (Alt+9, or the Channels item of the navigation list) shows "My channels", the channels you follow, or "Find channels": type in "Search channels" and press Enter; with no text, WhatsApp's recommended channels appear. "Details" holds the description, the number of followers, whether you follow, administer or own the channel, and its link. Enter or "Open channel" opens the channel to read its updates. The "Follow" and "Unfollow", "Mute notifications" and "Unmute notifications", "Copy link", "Follow by link..." (paste the channel link) and "Create channel..." buttons work on any channel; "Edit channel..." appears on channels you administer and "Delete channel" on your own. Showing channels in the chat list is still an option of Settings &gt; Interface &gt; Chats.</p>
 <p>In "Find channels", the Category and View choices narrow the directory as WhatsApp Web's options do: pick a category (or "All categories") and a view (recommended, trending, popular or new) and press Search or Enter. With text in "Search channels", the search stays within the chosen category. In the channels you administer, the message field opens when you open the channel: type and send to post a text update (no voice notes or attachments). From the message menu, or Ctrl+Shift+P, you pin or unpin an update, and the pinned ones show under the "Pinned messages" button. The Channels window's "Admins and followers..." button says how many admins the channel has; its owner can also use "Invite admin..." (pick the contact and, if you like, a message: the invite reaches their chat and they become an admin when they accept it) and "Cancel admin invite...". That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.</p>
+<p>In "Find channels", picking another category or list searches again. The Channels window and the "Admins and followers..." window update by themselves when you follow, leave or mute a channel, when your role, a channel's name or description changes and when who administers it changes, from the phone too. F5 reads the list again (to see new followers, for example); the shortcut can be changed in Settings. In the channels you administer, your text updates can be edited from the message menu or with Alt+E, within WhatsApp's edit window.</p>
 
 <h3>Mentions and replies</h3>
 <p>A person mentioned by name together with @all keeps the link; the mention of you, in the notification and in the preview, uses the word chosen in "How should I be referred to?". In Settings &gt; Interface &gt; Messages, "Hide phone numbers of unnamed senders in messages" makes messages from people without a name start straight with the content. In Settings &gt; Interface &gt; Chats, "Precede names of unsaved contacts with a tilde (~) in conversations and messages" (on by default) shows a tilde before the name of anyone you have not saved, in conversations and in messages.</p>
@@ -1334,6 +1335,16 @@
 <tr><td class="field-name">Alt+S</td><td>Silence alert</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Close window</td></tr>
 </table>
+<h3>Channels window</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">F5</td><td>Read the channels list again</td></tr>
+</table>
+<h3>Channel admins and followers</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">F5</td><td>Read the admins and followers again</td></tr>
+</table>
 <h3>Commands with no key assigned</h3>
 <p>These commands exist in the Keyboard shortcuts tab of Settings but come with no key. Pick one there if you want to use them.</p>
 <table class="field-table">
@@ -1425,6 +1436,8 @@
 <tr><td class="field-name">Not yet released</td><td>Call/stream ownership, bounded media handling and content-free signal diagnostics.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Add participants window works with a screen reader: marking with sound and announcements, and a spoken result.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Neonize: "Add yours", question and animated sticker statuses no longer show as an incompatible message.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels windows updated by WhatsApp's own events, a configurable F5, and editing your text updates.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Chat list: a row saying so when the filter, the list or the search finds no chat.</td></tr>
 </table>
 
   </section>

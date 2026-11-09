@@ -55,6 +55,8 @@
   "status_reply": "Respuesta a estados",
   "calls": "Pestaña Llamadas",
   "call": "Durante una llamada",
-  "incoming": "Llamada entrante"
+  "incoming": "Llamada entrante",
+  "channels": "Ventana Canales",
+  "channel_people": "Administradores y seguidores del canal"
  }
 }

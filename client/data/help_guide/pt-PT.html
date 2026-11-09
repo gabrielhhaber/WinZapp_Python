@@ -372,7 +372,7 @@
 
 <h3>Filtros e listas</h3>
 <ul>
-  <li><strong>Filtros:</strong> Tudo, Não lidas, Grupos e Individuais, em botões de opção. Alt+Shift+F leva até eles; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Tudo, Não lidas, Grupos e Individuais direto da lista.</li>
+  <li><strong>Filtros:</strong> Tudo, Não lidas, Grupos e Individuais, em botões de opção. Alt+Shift+F leva até eles; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Tudo, Não lidas, Grupos e Individuais direto da lista. Quando o filtro, uma lista do WhatsApp ou a pesquisa não encontram nenhuma conversa, a lista mostra uma linha que o diz, por exemplo "Nenhuma conversa não lida.".</li>
   <li><strong>Listas do WhatsApp:</strong> as suas listas personalizadas aparecem antes dos filtros. Dá para atualizá-las, filtrar por elas, criar ou renomear uma lista e adicionar ou remover conversas, em "Gerir listas do WhatsApp". A edição depende do suporte da sua conta; quando não é possível, o gerenciador diz o motivo. Conversas trancadas ou indisponíveis localmente não aparecem na seleção, e os demais membros da lista são preservados.</li>
   <li><strong>Pesquisa:</strong> Ctrl+F leva ao campo de pesquisa; a seta para baixo vai ao primeiro resultado. Em Definições &gt; Interface &gt; Conversas, "Manter a pesquisa de conversas ao abrir uma conversa, para o Esc voltar aos resultados em vez da lista completa" faz o Esc devolver o foco à conversa nos resultados, em vez de voltar à lista completa.</li>
 </ul>
@@ -793,6 +793,7 @@
 <h3>Canais (Alt+9)</h3>
 <p>A janela Canais (Alt+9, ou o item Canais da lista de navegação) mostra "Os meus canais", os canais que segue, ou "Encontrar canais": escreva em "Procurar canais" e prima Enter; sem texto, aparecem os canais recomendados do WhatsApp. Em "Detalhes" ficam a descrição, o número de seguidores, se segue, administra ou é dono do canal, e a ligação. Enter ou "Abrir canal" abre o canal para ler as atualizações. Os botões "Seguir" e "Deixar de seguir", "Silenciar notificações" e "Ativar notificações", "Copiar ligação", "Seguir por ligação..." (cole a ligação do canal) e "Criar canal..." valem para qualquer canal; "Editar canal..." aparece nos canais que administra e "Eliminar canal" nos que são seus. Mostrar os canais na lista de conversas continua a ser uma opção de Definições &gt; Interface &gt; Conversas.</p>
 <p>Em "Encontrar canais", as escolhas Categoria e Lista filtram o diretório como as opções do WhatsApp Web: escolha uma categoria (ou "Todas as categorias") e uma lista (recomendados, tendências, populares ou novos) e prima Procurar ou Enter. Com texto em "Procurar canais", a pesquisa fica só na categoria escolhida. Nos canais que administra, o campo de mensagem fica disponível ao abrir o canal: escreva e envie para publicar uma atualização de texto (áudio e anexos não). Pelo menu da mensagem, ou Ctrl+Shift+P, afixa ou desafixa uma atualização, e as afixadas aparecem no botão "Mensagens afixadas". O botão "Administradores e seguidores..." da janela Canais diz quantos administradores o canal tem; o dono também pode usar "Convidar administrador..." (escolha o contacto e, se quiser, uma mensagem: o convite chega à conversa da pessoa e ela passa a ser administradora quando o aceitar) e "Cancelar convite de administrador...". Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de o ser.</p>
+<p>Em "Encontrar canais", escolher outra categoria ou outra lista já procura de novo. A janela Canais e a janela "Administradores e seguidores..." atualizam-se sozinhas quando segue, deixa de seguir ou silencia um canal, quando muda o seu papel, o nome ou a descrição de um canal e quando muda quem o administra, também a partir do telemóvel. F5 lê a lista de novo (por exemplo, para ver novos seguidores); é possível trocar este atalho nas Definições. Nos canais que administra, as suas atualizações de texto podem ser editadas pelo menu da mensagem ou com Alt+E, dentro do prazo de edição do WhatsApp.</p>
 
 <h3>Menções e respostas</h3>
 <p>Uma pessoa mencionada pelo nome com @todos mantém o chamada; a menção ao utilizador, na notificação e na prévia, usa a palavra escolhida em "Como se referir a mim?". Em Definições &gt; Interface &gt; Mensagens, "Ocultar números de telefone de remetentes sem nome nas mensagens" faz mensagens de pessoas sem nome começarem direto pelo conteúdo. Em Definições &gt; Interface &gt; Conversas, "Preceder os nomes de contactos não guardados com um sinal de til (~) nas conversas e mensagens" (ligada por predefinição) mostra um til antes do nome de quem não guardou, nas conversas e nas mensagens.</p>
@@ -1334,6 +1335,16 @@
 <tr><td class="field-name">Alt+S</td><td>Silenciar alerta</td></tr>
 <tr><td class="field-name">Alt+F</td><td>Fechar janela</td></tr>
 </table>
+<h3>Janela Canais</h3>
+<table class="field-table">
+<tr><th>Atalho</th><th>Ação</th></tr>
+<tr><td class="field-name">F5</td><td>Ler de novo a lista de canais</td></tr>
+</table>
+<h3>Administradores e seguidores do canal</h3>
+<table class="field-table">
+<tr><th>Atalho</th><th>Ação</th></tr>
+<tr><td class="field-name">F5</td><td>Ler de novo os administradores e seguidores</td></tr>
+</table>
 <h3>Comandos sem tecla definida</h3>
 <p>Estes comandos existem no separador Atalhos de teclado das Definições, mas vêm sem tecla. Escolha uma aí se os quiser usar.</p>
 <table class="field-table">
@@ -1425,6 +1436,8 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Associação de chamadas e fluxos, processamento limitado de dados e diagnóstico do sinal sem conteúdo de áudio.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Janela Adicionar participantes acessível com leitor de ecrã: marcação com som e anúncios, e resultado dito em voz alta.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Neonize: estados "Adiciona o teu", de pergunta e de autocolante animado deixam de aparecer como mensagem incompatível.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Janelas de canais atualizadas sozinhas pelos eventos do WhatsApp, F5 configurável e edição das suas atualizações de texto.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Lista de conversas: linha que o diz quando o filtro, a lista ou a pesquisa não encontram nenhuma conversa.</td></tr>
 </table>
 
   </section>

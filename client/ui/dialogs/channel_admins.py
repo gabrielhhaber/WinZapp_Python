@@ -22,6 +22,7 @@ import wx
 from core import channels as ch
 from ui.dialogs.attach_contact_dialog import AttachContactDialog
 from ui.dialogs.background_work import BackgroundWork
+from ui.shortcut_bindings import make_shortcut_table
 from ui.accessible import split_mnemonic
 from ui.dialogs.labelled_control import add_labelled
 
@@ -81,7 +82,14 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self.SetSizer(sizer)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
-        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
+        # No Refresh button: admins, invites and the owner follow WhatsApp's own
+        # events (on_channels_changed); F5 (Settings > Shortcuts,
+        # "channel_people.ID_F5") reads the people again, for the followers
+        # (which nothing announces) and after a read that failed.
+        self.ID_F5 = wx.NewIdRef()
+        self.SetAcceleratorTable(make_shortcut_table(self, "channel_people", [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
+        self.Bind(wx.EVT_MENU, lambda event: self._load(), id=self.ID_F5)
         self._reload_again = False
         self._update_buttons()
         # Until the people arrive the list says so (an empty list says nothing).
@@ -145,15 +153,6 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         connection, channel = self._connection, self._channel
         self._run_async(lambda: read_people(connection, channel),
                         lambda found: self._finish_load(found, quiet))
-
-    def _on_char_hook(self, event):
-        # No Refresh button: admins, invites and the owner follow WhatsApp's
-        # own events (on_channels_changed); F5 reads the people again, for the
-        # followers (which nothing announces) and after a read that failed.
-        if event.GetKeyCode() == wx.WXK_F5 and not event.HasAnyModifiers():
-            self._load()
-            return
-        event.Skip()
 
     def on_channels_changed(self, channel_id):
         """WhatsApp said *channel_id* changed (an admin promoted or gone, an

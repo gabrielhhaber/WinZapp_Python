@@ -30,6 +30,7 @@ SCOPE_LABELS = {
     'chat_selection': 'shortcuts_bulk_section', 'composer': 'type_message',
     'search': 'shortcuts_search_section', 'status': 'shortcuts_status_section',
     'calls': 'shortcuts_calls_section', 'media': 'media_viewer_title',
+    'channels': 'channels_title', 'channel_people': 'shortcuts_channel_people_section',
     'call': 'shortcuts_call_window_section', 'incoming': 'incoming_call_popup_title',
     'ai_result': 'tab_ai_accessibility',
     'emoji': 'emoji_picker_title', 'links': 'shortcut_scope_links',

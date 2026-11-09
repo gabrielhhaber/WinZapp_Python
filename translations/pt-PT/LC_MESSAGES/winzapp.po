@@ -11753,6 +11753,16 @@ msgid "Change keyboard shortcut"
 msgstr "Alterar atalho de teclado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_channel_people_f5_label"
+msgid "F5: read the admins and followers again"
+msgstr "F5: ler de novo os administradores e seguidores"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_channels_f5_label"
+msgid "F5: read the channels list again"
+msgstr "F5: ler de novo a lista de canais"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
 #, python-brace-format
 msgctxt "shortcut_conflict"
@@ -12555,6 +12565,11 @@ msgstr "Janela de chamada"
 msgctxt "shortcuts_calls_section"
 msgid "Calls panel"
 msgstr "Painel de chamadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcuts_channel_people_section"
+msgid "Channel admins and followers"
+msgstr "Administradores e seguidores do canal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_conv_section"
