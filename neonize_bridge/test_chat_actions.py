@@ -18,11 +18,6 @@ def test_keep_starred_by_default():
     assert ca.keep_starred({"keepStarred": "false"}) is False
 
 
-def test_clear_index():
-    assert ca.clear_index(True) == ("0", "1")
-    assert ca.clear_index(False) == ("1", "1")
-
-
 def test_phones_accepts_list_or_text():
     assert ca.phones({"phone": ["1@c.us", "2@c.us"]}) == ["1@c.us", "2@c.us"]
     assert ca.phones({"phone": "1@c.us"}) == ["1@c.us"]
@@ -184,3 +179,80 @@ def test_delete_chat_and_the_bulk_routes(tmp_path, monkeypatch):
 def test_chat_state_refuses_an_unknown_value(tmp_path):
     status, _ = ask(tmp_path, "/api/t/chat-state", {"phone": "55", "chatstate": 7})
     assert status == 400
+
+
+GROUP = "120363000000000001@g.us"
+
+
+def row(mid, t, from_me=False, author="", type_="chat"):
+    m = {"id": {"id": mid}, "t": t, "fromMe": from_me, "type": type_}
+    if author:
+        m["author"] = author
+    return m
+
+
+def test_the_clear_index_ends_in_zero_as_whatsapp_web_sends_it():
+    assert ca.clear_index(True) == ("0", "0")
+    assert ca.clear_index(False) == ("1", "0")
+
+
+def test_a_group_notification_without_author_is_never_a_key():
+    """The bridge listed only the newest stored item: in a group, often a
+    notification with no author, a key the phone refuses (the whole clear
+    dropped)."""
+    rows = [row("A", 100, author="9@lid"), row("B", 110, from_me=True),
+            row("N", 120, type_="gp2")]
+    plan = ca.range_plan(rows, GROUP, True)
+    assert plan["last"] == 110 and plan["last_system"] == 120
+    assert plan["messages"] == [(True, "B", "", 110), (False, "A", "9@lid", 100)]
+    assert all(own or participant for own, _mid, participant, _t in plan["messages"])
+
+
+def test_a_received_group_message_without_author_is_left_out():
+    plan = ca.range_plan([row("A", 100), row("B", 100, author="9@lid")], GROUP, True)
+    assert plan["messages"] == [(False, "B", "9@lid", 100)] and plan["last"] == 100
+
+
+def test_own_messages_from_the_newest_received_on_are_listed_by_key():
+    rows = [row("old", 50, from_me=True), row("in", 100), row("mine", 130, from_me=True)]
+    plan = ca.range_plan(rows, "111@lid", False)
+    assert plan["last"] == 130
+    assert [m[1] for m in plan["messages"]] == ["mine", "in"]
+    assert plan["chat"] == "111@lid"
+
+
+def test_an_empty_or_system_only_chat_still_has_an_end():
+    assert ca.range_plan([], GROUP, True)["last"] > 1_700_000_000
+    plan = ca.range_plan([row("N", 120, type_="gp2")], GROUP, True)
+    assert plan == {"last": 120, "last_system": 0, "messages": [], "chat": GROUP}
+
+
+def test_the_listed_keys_are_capped():
+    rows = [row(str(i), 1000 + i, from_me=True) for i in range(ca.RANGE_MESSAGES_LIMIT + 5)]
+    assert len(ca.range_plan(rows, GROUP, True)["messages"]) == ca.RANGE_MESSAGES_LIMIT
+
+
+def test_the_range_is_built_from_both_addresses_and_names_the_chat_as_the_index(tmp_path):
+    db = Store(str(tmp_path / "bridge.db"))
+    try:
+        db.messages_in_batch([("55@s.whatsapp.net", row("A", 100)),
+                              ("9@lid", row("B", 120, from_me=True))])
+        s = N(db=db, chat_keys=lambda jid: ["55@s.whatsapp.net", "9@lid"],
+              mutation_jid=lambda jid: "9@lid")
+        range_ = ca.chat_range(s, "55@s.whatsapp.net")
+        assert range_.lastMessageTimestamp == 120
+        assert [(m.key.ID, m.key.remoteJID, m.key.fromMe) for m in range_.messages] == [
+            ("B", "9@lid", True), ("A", "9@lid", False)]
+    finally:
+        db.close()
+
+
+def test_a_state_notice_names_a_persons_chat_by_its_lid():
+    import server
+    from neonize.proto.Neonize_pb2 import PatchInfo
+    sent = []
+    s = N(client=N(send_app_state=sent.append), status="CONNECTED",
+          mutation_jid=lambda jid: "9@lid" if jid == "55@s.whatsapp.net" else jid)
+    assert server.Session.send_state(s, "clearChat", 6, PatchInfo.REGULAR_HIGH, None,
+                                     "55@s.whatsapp.net", extra=("0", "0")) is True
+    assert list(sent[0].Mutations[0].Index) == ["clearChat", "9@lid", "0", "0"]

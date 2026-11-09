@@ -1576,12 +1576,16 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         threading.Thread(target=flush, daemon=True, name="pending-reads").start()
 
     def send_state(self, index, version, kind, value, conversation, extra=()):
-        """Generic state notice (archive, pin...): True if WhatsApp accepted."""
+        """Generic state notice (archive, pin...): True if WhatsApp accepted.
+        The chat goes in the index the way WhatsApp Web names it (a person's
+        chat by its LID, chat_aliases.mutation_index_jid), or the phone does
+        not find it."""
         from neonize.proto.Neonize_pb2 import MutationInfo, PatchInfo
         if self.client is None or self.status != "CONNECTED":
             return False
         patch = PatchInfo(Timestamp=time.time_ns(), Type=kind, Mutations=[
-            MutationInfo(Index=[index, conversation, *extra], Version=version, Value=value)])
+            MutationInfo(Index=[index, self.mutation_jid(conversation), *extra],
+                         Version=version, Value=value)])
         collection = {PatchInfo.REGULAR_LOW: "regular_low",
                       PatchInfo.REGULAR_HIGH: "regular_high"}.get(kind, "regular_low")
         try:
