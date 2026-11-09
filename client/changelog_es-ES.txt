@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Canales: "Ver estadísticas..." en la ventana Canales lee las estadísticas de un canal que administras, como las muestra WhatsApp Web (alcance, seguidores, balance, nuevos seguidores y quienes dejaron de seguir en 30 días, entre seguidores y no seguidores y por país), con WPPConnect y Neonize. WhatsApp las ofrece a partir de 100 seguidores.
+
 - Descarga de medios: "Descargando medios: X de Y" ahora cuenta solo los medios que faltan por descargar. Antes contaba también los ya descargados en sesiones anteriores, y parecía que casi nada se había descargado (por ejemplo "723 de 728 procesados (66 descargados)", cuando los otros 659 ya estaban en el ordenador).
 
 - Canales: en "Crear canal..." y "Editar canal...", la opción Reacciones define cómo pueden reaccionar los seguidores a las novedades (cualquier emoji, solo los emojis predeterminados o ninguna reacción), como en WhatsApp Web, con WPPConnect y Neonize.

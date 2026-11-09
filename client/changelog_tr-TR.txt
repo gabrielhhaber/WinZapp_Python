@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Kanallar: Kanallar penceresindeki "İstatistikleri görüntüle..." yönettiğiniz bir kanalın istatistiklerini WhatsApp Web'in gösterdiği gibi okur (30 gün içindeki erişim, takipçiler, net takipçi, yeni takipçiler ve takibi bırakanlar, takipçiler ve diğerleri ile ülkeye göre), WPPConnect ve Neonize ile. WhatsApp bunları 100 takipçiden itibaren sunar.
+
 - Medya indirme: "Medya indiriliyor: X / Y" artık yalnızca henüz indirilmemiş medyayı sayıyor. Önceden önceki oturumlarda indirilenleri de sayıyordu ve neredeyse hiçbir şey inmemiş gibi görünüyordu (örneğin "723 / 728 işlendi (66 indirildi)", oysa diğer 659 zaten bilgisayardaydı).
 
 - Kanallar: "Kanal oluştur..." ve "Kanalı düzenle..." içinde Tepkiler seçeneği, takipçilerin güncellemelere nasıl tepki verebileceğini belirler (herhangi bir emoji, yalnızca varsayılan emojiler veya tepki yok), WhatsApp Web'deki gibi, WPPConnect ve Neonize ile.
