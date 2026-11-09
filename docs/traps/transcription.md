@@ -742,11 +742,33 @@ recording. With the setting on, `WhisperCppBackend.transcribe()` asks it.
 - **Cancel kills the server**: it is the only way to stop a transcription it has
   begun. The next run starts it again.
 - One request at a time; a second transcription meanwhile is told "busy" and
-  runs on whisper-cli. A different model, device or filter restarts the server.
+  runs on whisper-cli. Through job.py that no longer happens (next section).
+  A different model, device or filter restarts the server.
 - Run end to end on a verified CPU build (the backend as the job calls it):
   same text and segment times as whisper-cli, cancel and restart, `release()`
   leaving no process and no temporary folder. **Not run on a card**: the gain
   there is the point, and it was not measured.
+
+## One model in memory on the whole machine (`machine_slot.py`)
+
+Reported from a user's logs (2026-11-07): switching accounts while voice notes
+were being transcribed took 9 GB of RAM in a minute and a half. whisper.cpp's
+large-v3 filled a 4 GB card (87 MB free); a second run found the server busy
+and ran whisper-cli, which loaded another copy, and Windows put it in shared
+memory (5.7 GB of RAM in two seconds). Each account is its own process with
+its own server, so a second account adds yet another copy.
+
+- `TranscriptionJob._decode` takes `machine_slot.slot` from the probe to the
+  end of the run: a second run, in this process or in another account's,
+  waits for the first (and stays cancellable) instead of loading a model.
+- On Windows the slot is the named mutex `Local\WinZapp.Transcription.Slot`
+  (one per Windows session; an abandoned one is still acquired) plus a
+  manual-reset event saying someone wants it.
+- `ModelResidency` watches that event once it has used a backend: an idle
+  model here is released when another process wants the slot, **even with
+  "Keep the model loaded" on**. Its own process's want is ignored.
+- Tests get a slot of their own process (`tests/conftest.py`): the named one
+  is shared with the developer's running WinZapp.
 
 ## CUDA libraries and whisper.cpp programs from another folder (`reused_runtimes.py`)
 

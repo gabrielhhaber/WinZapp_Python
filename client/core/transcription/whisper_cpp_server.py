@@ -30,9 +30,11 @@ The rules it keeps, which are whisper_cpp_backend's own:
   kills the server and its memory (the card's too) is given back. A server
   that cannot be put in the job is killed at once and not used.
 
-* **One at a time.** A second transcription while one is running does not
-  wait for the server: it is told the server is busy and runs on whisper-cli,
-  as two concurrent transcriptions always could.
+* **One at a time.** Runs take machine_slot's slot before they load a model,
+  so a second transcription waits for the first instead of reaching here
+  while the server is busy. Should one still get here (a run that does not
+  go through job.py), it is told the server is busy and runs on whisper-cli —
+  which loads a second copy of the model, the very thing the slot prevents.
 
 Run from the program's own folder with relative paths, at below-normal
 priority and with no console window, for the reasons whisper_cpp_cli.cli_paths()
