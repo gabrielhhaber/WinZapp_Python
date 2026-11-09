@@ -18,6 +18,8 @@ NOVIDADES
 
 - Descrição de imagens com IA: quando a conta do provedor fica sem crédito (o OpenRouter responde 402), o WinZapp agora diz isso e sugere adicionar créditos ou escolher um modelo gratuito, em vez de mandar conferir o identificador do modelo; com vários provedores, passa para o próximo.
 
+- Gravação com o áudio do computador: em computadores mais lentos, gravar o microfone junto com o áudio do computador (Ctrl+Shift+H) saía com cortes e engasgos, pior ainda com a fala do NVDA gravada à parte, porque a mistura dos sons não dava conta e pedaços do áudio se perdiam. A mistura agora é muitas vezes mais rápida e a gravação sai inteira.
+
 - Chamadas: a janela "Adicionar participantes" agora funciona com leitor de tela. As pessoas são marcadas com as mesmas teclas, som e anúncios das listas de conversas e mensagens (Ctrl+Espaço, Espaço enquanto houver algo marcado, Shift+setas, Ctrl+Shift+Espaço, Esc), e o resultado é falado: quem foi convidado, quem não pôde ser adicionado ou por que o pedido falhou.
 
 - Chamadas: áudio, vídeo e tarefas de dispositivos ou câmera atrasados permanecem vinculados à chamada e ao fluxo de origem. O Neonize processa a mídia em filas limitadas fora do loop do servidor e mantém o leitor após uma falha transitória de emissão. Nomes WASAPI ambíguos não escolhem mais o primeiro dispositivo correspondente. Os registros de chamadas do Neonize também incluem resumos do nível do sinal, sem salvar o conteúdo do áudio, para ajudar a investigar a ausência de som. Ao reabrir a saída de uma chamada, um fluxo antigo que não consegue fechar não pode consumir o áudio do novo fluxo; uma falha na referência de eco não silencia mais o áudio já preparado para reprodução.

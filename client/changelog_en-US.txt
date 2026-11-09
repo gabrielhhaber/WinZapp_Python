@@ -18,6 +18,8 @@ WHAT'S NEW
 
 - AI image descriptions: when the provider's account runs out of credit (OpenRouter answers 402), WinZapp now says so and suggests adding credits or choosing a free model, instead of asking to check the model identifier; with several providers it moves on to the next one.
 
+- Recording with computer audio: on slower computers, recording the microphone together with the computer's audio (Ctrl+Shift+H) skipped and stuttered, worst with NVDA's speech recorded separately, because mixing the sounds could not keep up and pieces of audio were lost. The mixing is now many times faster and the recording comes out whole.
+
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
 
 - Calls: delayed media and device/camera work stay with their original call and stream. Neonize processes media in bounded queues off the server loop and keeps its reader after a transient emission failure. Ambiguous WASAPI names no longer select the first matching device. Neonize call logs also include signal-level summaries without saving audio content, to help investigate silence. When call output is reopened, an old stream that fails to close cannot consume the new stream's audio; an echo-reference failure no longer silences rendered audio.

@@ -14,6 +14,8 @@ import queue
 import threading
 import time
 
+import numpy
+
 
 # Recording is not live monitoring: reserve 500ms for scheduling jitter.
 # This covers the observed 249/335ms stalls with margin, not a guarantee.
@@ -49,6 +51,11 @@ class TimelineMixer:
         self.late_packets, self.late_frames = [0] * source_count, [0] * source_count
         self.position = 0
         self._ring = array('f', [0]) * (self.capacity * channels)
+        # A NumPy view of the same float32 buffer: mixing and rendering work on
+        # whole packets instead of one sample at a time (issue #717: on a
+        # Ryzen 3 2300U with three streams the per-sample loops fell behind
+        # and every source lost ~2.5 s of a 53 s recording as late packets).
+        self._ring_view = numpy.frombuffer(self._ring, dtype=numpy.float32)
         self._pending = [None] * source_count
         self._last_stamp = [None] * source_count
         self._last_end = [None] * source_count
@@ -85,10 +92,7 @@ class TimelineMixer:
         packet = self._pending[source]
         if packet is None:
             return
-        samples = array('f')
-        samples.frombytes(packet.data)
-        if sys.byteorder != 'little':
-            samples.byteswap()
+        samples = numpy.frombuffer(packet.data, dtype='<f4')
         count = len(samples) // self.channels
         start = self._frame(packet.timestamp)
         last_end = self._last_end[source]
@@ -124,28 +128,40 @@ class TimelineMixer:
         if last_end is not None and start < last_end:
             if last_end - start > max(1, round(self.rate * .001)) or end <= last_end:
                 raise ValueError('Capture packets overlap')
-        for frame in range(begin, end):
-            location = (frame - start) * count / size
-            left = min(count - 1, int(location))
-            fraction = location - left
-            for channel in range(self.channels):
-                a = samples[left * self.channels + channel]
-                if left + 1 < count:
-                    b = samples[(left + 1) * self.channels + channel]
-                elif following is not None and size != count:
-                    # One lookahead sample keeps interpolation continuous at
-                    # packet boundaries; no Python/global device resampler.
-                    import struct
-                    b = struct.unpack_from('<f', following.data, channel * 4)[0]
-                else:
-                    b = a
-                a = max(-65536., min(65536., a)) if math.isfinite(a) else 0.
-                b = max(-65536., min(65536., b)) if math.isfinite(b) else 0.
-                value = a + fraction * (b - a)
-                offset = (frame % self.capacity) * self.channels + channel
-                self._ring[offset] += value * .5
+        if end > begin:
+            self._mix(samples, count, start, size, begin, end, following)
         self._last_end[source] = end
         self._pending[source] = None
+
+    def _mix(self, samples, count, start, size, begin, end, following):
+        """Add frames begin..end of a packet (*count* frames laid over *size*
+        timeline frames from *start*) to the ring, linearly interpolated, at
+        half gain. Whole-packet NumPy; the same arithmetic, in the same float64
+        and the same order, as the per-sample loop it replaces."""
+        channels = self.channels
+        data = samples.astype(numpy.float64).reshape(count, channels)
+        frames = numpy.arange(begin, end, dtype=numpy.int64)
+        location = (frames - start) * count / size
+        left = numpy.minimum(count - 1, location.astype(numpy.int64))
+        fraction = (location - left)[:, None]
+        a = data[left]
+        b = numpy.empty_like(a)
+        inside = left + 1 < count
+        b[inside] = data[left[inside] + 1]
+        if (~inside).any():
+            if following is not None and size != count:
+                # One lookahead sample keeps interpolation continuous at
+                # packet boundaries; no Python/global device resampler.
+                lookahead = numpy.frombuffer(following.data, dtype='<f4', count=channels)
+                b[~inside] = lookahead.astype(numpy.float64)
+            else:
+                b[~inside] = a[~inside]
+        a = numpy.where(numpy.isfinite(a), numpy.clip(a, -65536., 65536.), 0.)
+        b = numpy.where(numpy.isfinite(b), numpy.clip(b, -65536., 65536.), 0.)
+        value = a + fraction * (b - a)
+        offsets = ((frames % self.capacity) * channels)[:, None] + numpy.arange(channels)
+        ring = self._ring_view
+        ring[offsets] = (ring[offsets].astype(numpy.float64) + value * .5).astype(numpy.float32)
 
     def render_until(self, timestamp):
         end = max(self.position, self._frame(timestamp))
@@ -154,16 +170,16 @@ class TimelineMixer:
                 self._commit(source)
         if end - self.position > self.capacity:
             raise ValueError('Capture worker missed the bounded buffer deadline')
-        pcm = array('h')
-        while self.position < end:
-            for channel in range(self.channels):
-                offset = (self.position % self.capacity) * self.channels + channel
-                sample = self._ring[offset]
-                self._ring[offset] = 0
-                pcm.append(max(-32768, min(32767, round(sample * 32768))))
-            self.position += 1
-        if sys.byteorder != 'little':
-            pcm.byteswap()
+        if end <= self.position:
+            return b''
+        frames = numpy.arange(self.position, end, dtype=numpy.int64) % self.capacity
+        offsets = (frames * self.channels)[:, None] + numpy.arange(self.channels)
+        ring = self._ring_view
+        # round() rounds half to even, and so does rint()
+        sample = ring[offsets].astype(numpy.float64)
+        ring[offsets] = 0
+        pcm = numpy.clip(numpy.rint(sample * 32768), -32768, 32767).astype('<i2')
+        self.position = end
         return pcm.tobytes()
 
 
