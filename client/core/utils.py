@@ -1360,6 +1360,13 @@ DEFAULT_SETTINGS = {
         "group": "default",
         "group_custom_path": ""
     },
+    # Sound played for a message while the window is in front: "dedicated"
+    # (message_current / message_foreground) or "notification" (the
+    # background notification sound). New key: no migration.
+    "foreground_sounds": {
+        "active": "dedicated",
+        "other": "dedicated"
+    },
     "conversation_sounds": {},
     "conversation_auto_ai": {},
     "conversation_auto_ai_scope": "all",

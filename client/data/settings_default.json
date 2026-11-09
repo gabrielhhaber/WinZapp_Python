@@ -186,6 +186,10 @@
         "group": "default",
         "group_custom_path": ""
     },
+    "foreground_sounds": {
+        "active": "dedicated",
+        "other": "dedicated"
+    },
     "conversation_sounds": {},
     "conversation_auto_ai": {},
     "conversation_auto_ai_scope": "all",

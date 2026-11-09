@@ -1937,10 +1937,10 @@ if __name__ == "__main__":
 
         background = "--background" in sys.argv
         startup_source = parse_startup_source(sys.argv)
-        # A group invitation link Windows handed over (the optional whatsapp:
+        # A group invitation or chat link Windows handed over (the whatsapp:
         # association, core/whatsapp_link_association.py).
-        from core.group_invitation_link import invitation_link_argument
-        _invitation_link = invitation_link_argument(sys.argv)
+        from core.whatsapp_chat_link import whatsapp_link_argument
+        _invitation_link = whatsapp_link_argument(sys.argv)
         if (_invitation_link and not getattr(sys, "frozen", False)
                 and not sys.argv[0].lower().endswith(".exe")):
             # A source checkout keeps its data under the working directory,
@@ -2038,7 +2038,7 @@ if __name__ == "__main__":
                 try:
                     import ipc
                     # The running process comes to the foreground either way;
-                    # with a link it also opens the join dialog.
+                    # with a link it also opens it (join dialog or chat).
                     if ((_invitation_link and ipc.request_open_link(
                             gd, _account_id, _invitation_link))
                             or ipc.request_activate(gd, _account_id, source=startup_source)):
@@ -2052,6 +2052,25 @@ if __name__ == "__main__":
 
         setup_logging()
         logging.info("Instance lock acquired for account %s (%s).", _account_id, _account_name)
+        # "Connect all accounts at startup" (account manager check box): open the
+        # other paired accounts in the background. A sibling already running
+        # exits at its own instance lock, so a repeat is harmless.
+        try:
+            from account_bootstrap import accounts_to_connect
+            from account_launcher import build_launch_command
+            from app_settings import AppSettings
+            _already = set(_startup.get("background", [])) if _mode == "autostart_boot" else set()
+            for _other_id in accounts_to_connect(
+                    sys.argv, _registry, _account_id,
+                    AppSettings(gd).get("connect_all_accounts")):
+                if _other_id in _already:
+                    continue
+                subprocess.Popen(build_launch_command(
+                    sys.argv[0], sys.executable, _other_id,
+                    getattr(sys, "frozen", False),
+                    startup_source="autostart", background=True))
+        except Exception:
+            logging.exception("[startup] connecting all accounts failed")
         logging.info("Creating wx.App...")
         app = wx.App()
         # WinZapp only ever exits on purpose (real_exit(), the tray, Windows
@@ -2066,8 +2085,9 @@ if __name__ == "__main__":
                            startup_source=startup_source, resume_pending=_resume_pending,
                            registry=_registry, global_dir=gd)
         _main_frame_ref.append(frame)
+        wx.CallAfter(frame._register_whatsapp_links_for_install)
         if _invitation_link:
-            wx.CallAfter(frame.open_group_invitation_link, _invitation_link)
+            wx.CallAfter(frame.open_whatsapp_link, _invitation_link)
     except SystemExit:
         raise
     except KeyboardInterrupt:

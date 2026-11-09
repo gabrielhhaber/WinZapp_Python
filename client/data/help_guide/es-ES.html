@@ -783,7 +783,7 @@
 
 <h3>Crear un grupo e invitaciones</h3>
 <p>En "Nuevo chat", crea un grupo indicando un nombre y los participantes. En <strong>Invitación al grupo</strong> se puede ver el enlace de invitación y el código QR, copiarlos ("Copiar enlace"), guardarlos ("Guardar código QR...") y restablecerlos con confirmación ("Restablecer enlace de invitación..."). En <strong>Unirse a un grupo por enlace</strong>, pega el enlace (también los que terminan en <code>?mode=...</code>), mira la "Vista previa del grupo" y elige "Unirse al grupo o solicitar aprobación". Los resultados de aprobación pendiente y de unión sin confirmar se informan por separado.</p>
-<p>En Configuración &gt; General, "Permitir que Windows abra los enlaces de invitación a grupos de WhatsApp con WinZapp" registra WinZapp para los enlaces <code>whatsapp:</code>: cuando usas el botón de unirse de la página de invitación abierta en el navegador, Windows entrega la invitación a WinZapp, incluso cuando está cerrado.</p>
+<p>En Configuración &gt; General, "Permitir que Windows abra los enlaces de WhatsApp (invitaciones a grupos y chats) con WinZapp" registra WinZapp para los enlaces <code>whatsapp:</code>: cuando usas el botón de unirse de la página de invitación abierta en el navegador, Windows entrega la invitación a WinZapp, incluso cuando está cerrado. Del mismo modo, cuando abres un enlace de wa.me o api.whatsapp.com (de un sitio web, una aerolínea o una tienda, por ejemplo), WinZapp abre el chat con ese número, aunque no esté en tus contactos, pone el mensaje del enlace en el campo de mensaje y deja el foco allí, sin enviarlo. La versión instalada se registra sola la primera vez que se abre, así que WinZapp aparece en Aplicaciones predeterminadas de Windows; en la versión portátil, activa la opción tú mismo.</p>
 
 <h3>Solicitudes de ingreso (administradores)</h3>
 <p>En los grupos donde eres administrador, el botón "Solicitudes de unión que esperan aprobación" lista quién está esperando (nombre o número, cómo llegó la solicitud y cuándo). "Aprobar" y "Rechazar" responden a la solicitud seleccionada; "Actualizar" vuelve a comprobar. WinZapp solo dice que la solicitud fue respondida cuando ya ha salido de la lista en WhatsApp.</p>
@@ -845,6 +845,7 @@
     <h2 id="h-contas">👤 13. Cuentas, bandeja y sincronización</h2>
 <h3>Varias cuentas</h3>
 <p>Cada cuenta tiene su propia ventana y su propio servidor local. El menú <strong>Cuentas</strong> cambia entre ellas; Ctrl+Alt+1 a 9 también. "Cerrar cuenta actual" (Ctrl+F4) termina solo la cuenta en la que estás, libera su memoria y su conexión y pasa a otra cuenta abierta. Para abrirla de nuevo, elígela en el menú Cuentas de otra cuenta o usa Ctrl+Alt con su número. Si es la única abierta, WinZapp pregunta antes, porque cerrarla termina el programa.</p>
+<p>En Cuentas &gt; Administrar cuentas, la casilla "Conectar todas las cuentas al iniciar WinZapp" hace que WinZapp abra en segundo plano todas las demás cuentas vinculadas cada vez que se inicia. Viene desactivada y vale para toda la instalación, no solo para una cuenta.</p>
 <p>Eliminar una cuenta (Cuentas &gt; Administrar cuentas, botón Eliminar) borra todo lo que le pertenece: mensajes, multimedia, ajustes, el perfil del navegador que guarda el inicio de sesión de WhatsApp y las copias de seguridad de ese perfil. Lo que no se pueda eliminar en el momento se termina la próxima vez que se inicie WinZapp. Cuando la cuenta es la única, también se puede eliminar: WinZapp pide confirmación (No es la opción predeterminada), se cierra y el siguiente inicio es una primera ejecución.</p>
 
 <h3>Sincronización</h3>
@@ -885,7 +886,7 @@
   <tr><td class="field-name">Accesibilidad</td><td>Compatibilidad ampliada con el lector de pantalla (anuncios adicionales) y uso de la voz SAPI cuando no hay ningún lector de pantalla activo.</td></tr>
   <tr><td class="field-name">Accesibilidad &gt; Contenido hablado</td><td>Anunciar que un contacto escribe o graba; anunciar el inicio y el fin de la actualización del chat; progreso hablado de la sincronización y de la descarga de medios; leer los mensajes automáticamente en el chat activo y en los demás; anunciar sincronización, descargas de medios y modo sin conexión automático.</td></tr>
   <tr><td class="field-name">Audio</td><td>Micrófono, altavoz y salida de efectos (alertas y sonidos); reducción de ruido del micrófono y su modelo neuronal, descargado en la misma página; archivos de audio pegados con Ctrl+V como audio o documento; dónde poner el foco tras grabar un mensaje de voz (enviar o descartar); reenviar voz como voz; leer el mensaje de voz como audio o como mensaje de voz; Intro y Espacio transcribiendo; silenciar los anuncios y el botón de enviar durante la grabación.</td></tr>  <tr><td class="field-name">Audio &gt; Reproducción de audio</td><td>Velocidad predeterminada; marcar el audio como reproducido y anunciarlo; reproducir mensajes de voz en secuencia automáticamente; pasar el foco al siguiente audio en secuencia.</td></tr>
-  <tr><td class="field-name">Sonidos de eventos</td><td>Paquete de sonidos, importar una carpeta de sonidos o un archivo ZIP, y el sonido de cada evento (incluidos el de cuando alguien reacciona a tu mensaje y el de error ortográfico); activar o desactivar todos; sonido de notificación en segundo plano para chats privados y para grupos, con vista previa del sonido.</td></tr>
+  <tr><td class="field-name">Sonidos de eventos</td><td>Paquete de sonidos, importar una carpeta de sonidos o un archivo ZIP, y el sonido de cada evento (incluidos el de cuando alguien reacciona a tu mensaje y el de error ortográfico); activar o desactivar todos; sonido de notificación en segundo plano para chats privados y para grupos, con vista previa del sonido; sonido de los mensajes con WinZapp en primer plano, por separado para el chat abierto y para los demás chats: el sonido dedicado de primer plano o el sonido de notificación en segundo plano.</td></tr>
   <tr><td class="field-name">Almacenamiento</td><td>Descargar medios automáticamente, tipos de medios, límite en días y en MB (0 = ilimitado), averiguar la duración de los vídeos al descargar; carpeta donde se abren las ventanas de guardado (última usada, Descargas o personalizada).</td></tr>
   <tr><td class="field-name">Almacenamiento &gt; Copia de seguridad</td><td>Consulta la sección Copias de seguridad y registros.</td></tr>
   <tr><td class="field-name">Llamadas</td><td>Permitir alertas y abrir una ventana cuando llega una llamada; configuración de audio y de vídeo de las llamadas, cancelación de eco, reducción de ruido y modo exclusivo.</td></tr>
@@ -945,6 +946,7 @@
   <li>Activa la copia también mientras WinZapp está abierto, con el intervalo que elijas. WhatsApp se queda desconectado mientras se hace, lo que puede tardar unos minutos, y WinZapp puede preguntar antes de cada vez. La copia nueva solo sustituye a la anterior después de que WhatsApp vuelva a conectarse con ella.</li>
   <li>"No guardar copias de seguridad del perfil" ahorra espacio pero, si el perfil se daña, tendrás que emparejar de nuevo. Al marcarla, WinZapp dice cuánto espacio ocupan las copias y pregunta si quieres borrarlas.</li>
 </ul>
+<p>Con el motor Neonize, que no usa navegador interno, no hay perfil que copiar: la copia de seguridad del perfil no aparece en Configuración &gt; Almacenamiento ni en el administrador de almacenamiento.</p>
 <p>Estas copias son lo que WinZapp usa para recuperarse solo (consulta la sección Cuentas, bandeja y sincronización). Para conservar tu historial de mensajes y medios, copia la carpeta <code>data</code>.</p>
 
 <h3>Registros</h3>
@@ -1453,6 +1455,10 @@
 <tr><td class="field-name">Aún no publicado</td><td>Lista de mensajes: "/" ya no escribe "Á" en el campo de mensaje con un teclado ABNT2.</td></tr>
 <tr><td class="field-name">Aún no publicado</td><td>Mensajes destacados: ventana con los destacados de todos los chats (Alt+0).</td></tr>
 <tr><td class="field-name">Aún no publicado</td><td>Canales: opción Reacciones al crear y editar un canal.</td></tr>
+
+<tr><td class="field-name">Aún no publicado</td><td>Administrar cuentas: casilla para conectar todas las cuentas al iniciar WinZapp.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Enlaces de WhatsApp: los enlaces de chat (wa.me, api.whatsapp.com) abren el chat con el texto listo, y la versión instalada aparece en Aplicaciones predeterminadas.</td></tr>
+<tr><td class="field-name">Aún no publicado</td><td>Sonidos: elegir el sonido de los mensajes con WinZapp en primer plano, para el chat abierto y para los demás chats.</td></tr>
 </table>
 
   </section>

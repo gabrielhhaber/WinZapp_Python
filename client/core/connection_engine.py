@@ -78,6 +78,17 @@ def uses_custom_api(engine: str) -> bool:
     return engine != WPPCONNECT
 
 
+def loaded_engine(main_window) -> str:
+    """The engine this process was started with (WPPCONNECT when unknown)."""
+    return getattr(main_window, "wpp_engine", WPPCONNECT)
+
+
+def uses_profile_backup(engine: str) -> bool:
+    """Whether the browser-profile backup (restore points of the WhatsApp login
+    profile) means anything for the engine. Neonize has no browser profile."""
+    return engine != NEONIZE
+
+
 def fixed_address(engine: str):
     """(server, websocket server, port) the engine always uses, or None when
     the user (custom) or the bundled server (wppconnect) decides."""

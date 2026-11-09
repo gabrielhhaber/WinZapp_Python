@@ -51,6 +51,15 @@ _DEFAULTS: dict[str, Any] = {
     "wpp_all_updates": False,
     "show_tray_icon": True,
     "autostart": False,
+    # Open every paired account (in the background) whenever WinZapp starts,
+    # not only the one that would open. Edited by the account manager's check
+    # box; has no legacy flat-settings equivalent, so it is not in
+    # _GENERAL_GLOBAL.
+    "connect_all_accounts": False,
+    # The installed build registers itself for whatsapp: links once
+    # (core/whatsapp_link_association.py); after that the Settings check box
+    # is the only thing that changes it, so turning it off sticks.
+    "whatsapp_links_auto_registered": False,
     # install-wide one-time setup prompts (asked once per install, NOT per
     # account — a new account must not re-ask autostart/hotkey/api-type).
     "first_run": True,

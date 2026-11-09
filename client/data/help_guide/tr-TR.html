@@ -783,7 +783,7 @@
 
 <h3>Grup oluşturma ve davetler</h3>
 <p>"Yeni sohbet" içinde bir ad ve katılımcılar girerek grup oluşturun. <strong>Gruba davet</strong> bölümünde davet bağlantısı ve QR kodu görüntülenebilir, kopyalanabilir ("Bağlantıyı kopyala"), kaydedilebilir ("QR kodunu kaydet...") ve onayla sıfırlanabilir ("Davet bağlantısını sıfırla..."). <strong>Bağlantıyla gruba katıl</strong> bölümünde bağlantıyı yapıştırın (<code>?mode=...</code> ile bitenler dahil), "Grubu önizle" ile grubu görün ve "Gruba katıl veya onay iste" seçin. Onay bekleyen ve doğrulanmamış katılma sonuçları ayrı ayrı bildirilir.</p>
-<p>Ayarlar &gt; Genel içinde "Windows'un WhatsApp grup daveti bağlantılarını WinZapp ile açmasına izin ver" WinZapp'ı <code>whatsapp:</code> bağlantıları için kaydeder: tarayıcıda açılan davet sayfasındaki katıl düğmesini kullandığınızda, Windows daveti WinZapp kapalı olsa bile ona iletir.</p>
+<p>Ayarlar &gt; Genel içinde "Windows'un WhatsApp bağlantılarını (grup davetleri ve sohbetler) WinZapp ile açmasına izin ver" WinZapp'ı <code>whatsapp:</code> bağlantıları için kaydeder: tarayıcıda açılan davet sayfasındaki katıl düğmesini kullandığınızda, Windows daveti WinZapp kapalı olsa bile ona iletir. Aynı şekilde, bir wa.me veya api.whatsapp.com bağlantısını (örneğin bir web sitesinden, havayolundan veya mağazadan) açtığınızda WinZapp, rehberinizde olmasa bile o numarayla sohbeti açar, bağlantıdaki mesajı mesaj alanına yazar ve odağı orada bırakır; mesaj gönderilmez. Yüklü sürüm ilk açılışta kendini kaydeder, bu yüzden WinZapp Windows'un Varsayılan uygulamalar bölümünde görünür; taşınabilir sürümde seçeneği kendiniz açın.</p>
 
 <h3>Katılma istekleri (yöneticiler)</h3>
 <p>Yöneticisi olduğunuz gruplarda "Bekleyen katılma istekleri" düğmesi bekleyenleri listeler (ad veya numara, isteğin nasıl geldiği ve ne zaman). "Onayla" ve "Reddet" seçili isteği yanıtlar; "Yenile" yeniden kontrol eder. WinZapp isteğin yanıtlandığını yalnızca WhatsApp'ta listeden çıktıktan sonra söyler.</p>
@@ -845,6 +845,7 @@
     <h2 id="h-contas">👤 13. Hesaplar, tepsi ve eşitleme</h2>
 <h3>Birden fazla hesap</h3>
 <p>Her hesabın kendi penceresi ve kendi yerel sunucusu vardır. <strong>Hesaplar</strong> menüsü aralarında geçiş yapar; Ctrl+Alt+1 ile 9 da öyle. "Geçerli hesabı kapat" (Ctrl+F4) yalnızca içinde olduğunuz hesabı sonlandırır, belleğini ve bağlantısını serbest bırakır ve başka bir açık hesaba geçer. Yeniden açmak için onu başka bir hesabın Hesaplar menüsünden seçin ya da numarasıyla Ctrl+Alt kullanın. Açık tek hesap buysa WinZapp önce sorar, çünkü kapatmak programı sonlandırır.</p>
+<p>Hesaplar &gt; Hesapları yönet içindeki "WinZapp başladığında tüm hesaplara bağlan" onay kutusu, WinZapp her başladığında eşleştirilmiş diğer tüm hesapları arka planda açar. Varsayılan olarak kapalıdır ve tek bir hesap için değil, tüm kurulum için geçerlidir.</p>
 <p>Bir hesabı silmek (Hesaplar &gt; Hesapları yönet, Sil düğmesi) ona ait her şeyi kaldırır: mesajlar, medya, ayarlar, WhatsApp oturumunu tutan tarayıcı profili ve bu profilin yedekleri. Hemen kaldırılamayan her şey WinZapp'ın bir sonraki başlatılışında tamamlanır. Hesap tek hesapsa o da silinebilir: WinZapp onay ister (varsayılan Hayır), kapanır ve sonraki başlatma ilk çalıştırma olur.</p>
 
 <h3>Eşitleme</h3>
@@ -885,7 +886,7 @@
   <tr><td class="field-name">Erişilebilirlik</td><td>Genişletilmiş ekran okuyucu uyumluluğu (ek duyurular) ve etkin bir ekran okuyucu yokken SAPI sesinin kullanımı.</td></tr>
   <tr><td class="field-name">Erişilebilirlik &gt; Konuşulan içerik</td><td>Bir kişinin yazdığını veya kaydettiğini duyurma; sohbet yenilemesinin başlangıcını ve sonunu duyurma; eşitleme ve medya indirmenin sesli ilerlemesi; etkin sohbette ve diğerlerinde mesajları otomatik seslendirme; eşitleme, medya indirme ve otomatik çevrimdışı modu duyurma.</td></tr>
   <tr><td class="field-name">Ses</td><td>Mikrofon, hoparlör ve efekt çıkışı (uyarılar ve sesler); mikrofon gürültü azaltma ve aynı sayfadan indirilen sinirsel modeli; Ctrl+V ile yapıştırılan ses dosyalarının ses ya da belge olarak gönderilmesi; sesli mesaj kaydından sonra odağın nereye gideceği (gönder veya at); sesi ses olarak iletme; sesli mesajı ses ya da sesli mesaj olarak okuma; Enter ve Boşluk ile yazıya dökme; kayıt sırasında duyuruları ve gönder düğmesini susturma.</td></tr>  <tr><td class="field-name">Ses &gt; Ses oynatma</td><td>Varsayılan hız; sesi oynatıldı olarak işaretleme ve duyurma; sesli mesajları otomatik olarak sırayla çalma; odağı sırada sonraki sese taşıma.</td></tr>
-  <tr><td class="field-name">Olay sesleri</td><td>Ses paketi, bir ses klasörünü veya ZIP dosyasını içe aktarma ve her olayın sesi (biri mesajınıza tepki verdiğinde ve yazım hatası olanlar dahil); hepsini etkinleştirme veya devre dışı bırakma; özel sohbetler ve gruplar için arka plan bildirim sesi, ses önizlemesiyle.</td></tr>
+  <tr><td class="field-name">Olay sesleri</td><td>Ses paketi, bir ses klasörünü veya ZIP dosyasını içe aktarma ve her olayın sesi (biri mesajınıza tepki verdiğinde ve yazım hatası olanlar dahil); hepsini etkinleştirme veya devre dışı bırakma; özel sohbetler ve gruplar için arka plan bildirim sesi, ses önizlemesiyle; WinZapp ön plandayken mesajların sesi, açık sohbet ve diğer sohbetler için ayrı ayrı: ön plana özel ses veya arka plan bildirim sesi.</td></tr>
   <tr><td class="field-name">Depolama</td><td>Medyayı otomatik indirme, medya türleri, gün ve MB cinsinden sınır (0 = sınırsız), indirirken videoların süresini bulma; kaydetme pencerelerinin açıldığı klasör (son kullanılan, İndirilenler veya özel).</td></tr>
   <tr><td class="field-name">Depolama &gt; Profil yedekleme</td><td>Yedekler ve günlükler bölümüne bakın.</td></tr>
   <tr><td class="field-name">Aramalar</td><td>Arama geldiğinde uyarılara izin verme ve pencere açma; arama ses ve video ayarları, yankı engelleme, gürültü azaltma ve özel mod.</td></tr>
@@ -945,6 +946,7 @@
   <li>Yedeği WinZapp açıkken de, seçtiğiniz aralıkla açın. Yedek alınırken WhatsApp bağlantısız kalır, bu birkaç dakika sürebilir ve WinZapp her seferinde önce sorabilir. Yeni yedek, önceki yedeğin yerini yalnızca WhatsApp onunla yeniden bağlandıktan sonra alır.</li>
   <li>"Profil yedeklerini saklama" yer kazandırır ancak profil zarar görürse yeniden eşleştirmeniz gerekir. İşaretlediğinizde WinZapp yedeklerin ne kadar yer kapladığını söyler ve silmek isteyip istemediğinizi sorar.</li>
 </ul>
+<p>Dahili tarayıcısı olmayan Neonize motoruyla yedeklenecek bir profil yoktur: profil yedeği Ayarlar &gt; Depolama içinde ve depolama yöneticisinde gösterilmez.</p>
 <p>WinZapp'ın kendi kendine kurtarma için kullandığı yedekler bunlardır (Hesaplar, tepsi ve eşitleme bölümüne bakın). Mesaj ve medya geçmişinizi korumak için <code>data</code> klasörünü kopyalayın.</p>
 
 <h3>Günlükler</h3>
@@ -1453,6 +1455,10 @@
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Mesaj listesi: ABNT2 klavyede "/" artık mesaj alanına "Á" yazmıyor.</td></tr>
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Yıldızlı mesajlar: tüm sohbetlerin yıldızlı mesajlarını gösteren pencere (Alt+0).</td></tr>
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kanallar: kanal oluştururken ve düzenlerken Tepkiler seçeneği.</td></tr>
+
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Hesap yöneticisi: WinZapp başladığında tüm hesaplara bağlanan onay kutusu.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>WhatsApp bağlantıları: sohbet bağlantıları (wa.me, api.whatsapp.com) sohbeti metin hazır olarak açar, yüklü sürüm de Varsayılan uygulamalar bölümünde görünür.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Sesler: WinZapp ön plandayken mesajların sesini açık sohbet ve diğer sohbetler için seçme.</td></tr>
 </table>
 
   </section>

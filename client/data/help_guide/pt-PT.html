@@ -783,7 +783,7 @@
 
 <h3>Criar um grupo e convites</h3>
 <p>Em "Nova conversa", crie um grupo indicando o nome e os participantes. Em <strong>Convite para o grupo</strong>, o chamada de convite e o código QR podem ser visualizados, copiados ("Copiar ligação"), guardados ("Guardar código QR...") e redefinidos com confirmação ("Redefinir ligação de convite..."). Em <strong>Entrar no grupo por chamada</strong>, cole o chamada (inclusive os que terminam em <code>?mode=...</code>), veja a "Pré-visualizar grupo" e escolha "Entrar no grupo ou pedir aprovação". Os resultados de aprovação pendente e de entrada não confirmada são informados separadamente.</p>
-<p>Em Definições &gt; Geral, "Permitir que o Windows abra ligações de convite de grupo do WhatsApp com o WinZapp" regista o WinZapp para os chamadas <code>whatsapp:</code>: ao usar o botão de entrar na página de convite aberta no navegador, o Windows entrega o convite ao WinZapp, mesmo fechado.</p>
+<p>Em Definições &gt; Geral, "Permitir que o Windows abra ligações do WhatsApp (convites de grupo e conversas) com o WinZapp" regista o WinZapp para as ligações <code>whatsapp:</code>: ao usar o botão de entrar na página de convite aberta no navegador, o Windows entrega o convite ao WinZapp, mesmo fechado. Do mesmo modo, ao abrir uma ligação wa.me ou api.whatsapp.com (de um site, de uma companhia aérea ou de uma loja, por exemplo), o WinZapp abre a conversa com esse número, mesmo que não esteja nos seus contactos, coloca a mensagem da ligação no campo de mensagem e deixa o foco aí, sem enviar. A versão instalada regista-se sozinha na primeira abertura, pelo que o WinZapp aparece em Aplicações predefinidas do Windows; na versão portátil, ative a opção você mesmo.</p>
 
 <h3>Solicitações de entrada (administradores)</h3>
 <p>Nos grupos em que o utilizador é administrador, o botão "Pedidos de entrada que aguardam aprovação" lista quem aguarda (nome ou número, como o encomenda chegou e quando). "Aprovar" e "Rejeitar" respondem à solicitação selecionada; "Atualizar" consulta de novo. O WinZapp só diz que a solicitação foi respondida quando ela saiu da lista no WhatsApp.</p>
@@ -845,6 +845,7 @@
     <h2 id="h-contas">👤 13. Contas, bandeja e sincronização</h2>
 <h3>Várias contas</h3>
 <p>Cada conta tem a sua própria janela e o seu próprio servidor local. O menu <strong>Contas</strong> troca entre elas; Ctrl+Alt+1 a 9 também. "Fechar conta atual" (Ctrl+F4) encerra só a conta em que o utilizador está, libera memória e ligação e passa para outra conta aberta. Para abri-la de novo, escolha-a no menu Contas de outra conta ou use Ctrl+Alt com o número dela. Se for a única aberta, o WinZapp pergunta antes, porque fechá-la encerra o programa.</p>
+<p>Em Contas &gt; Gerir contas, a caixa "Ligar todas as contas ao iniciar o WinZapp" faz o WinZapp abrir em segundo plano todas as outras contas emparelhadas sempre que arranca. Vem desligada e vale para a instalação inteira, não só para uma conta.</p>
 <p>Eliminar uma conta (Contas &gt; Gerir contas, botão Eliminar) remove tudo o que ela possui: mensagens, multimédia, definições, o perfil do navegador que guarda o início de sessão do WhatsApp e as cópias de segurança desse perfil. O que não puder ser removido de imediato é concluído na próxima vez que o WinZapp arrancar. Quando a conta é a única, também pode ser eliminada: o WinZapp pede confirmação (com Não como predefinição), fecha, e o arranque seguinte é uma primeira execução.</p>
 
 <h3>Sincronização</h3>
@@ -885,7 +886,7 @@
   <tr><td class="field-name">Acessibilidade</td><td>Compatibilidade estendida com o leitor de ecrã (anúncios adicionais) e uso da voz SAPI quando nenhum leitor estiver ativo.</td></tr>
   <tr><td class="field-name">Acessibilidade &gt; Conteúdo falado</td><td>Anunciar contacto a escrever ou a gravar; anunciar início e fim da atualização de conversas; progresso falado da sincronização e do transferência de multimédia; falar mensagens automaticamente na conversa ativa e em outras; anunciar sincronização, transferência de multimédia e modo offline automático.</td></tr>
   <tr><td class="field-name">Áudio</td><td>Microfone, alto-falante e saída de efeitos (alertas e sons); redução de ruído do microfone e o modelo neuronal dela, transferido na mesma página; ficheiros de áudio colados com Ctrl+V como áudio ou documento; onde focar depois de gravar uma mensagem de voz (enviar ou descartar); reencaminhar voz como voz; ler mensagem de voz como áudio ou como mensagem de voz; Enter e Espaço transcreverem; silenciar anúncios e o botão enviar enquanto grava.</td></tr>  <tr><td class="field-name">Áudio &gt; Reprodução de áudio</td><td>Velocidade predefinição; marcar áudios como reproduzidos e anunciar; reproduzir mensagens de voz em sequência automaticamente; mover o foco para o próximo áudio em sequência.</td></tr>
-  <tr><td class="field-name">Sons de eventos</td><td>Pacote de som, importar pasta de sons ou ficheiro ZIP, e o som de cada evento (incluindo o de quando alguém reage à sua mensagem e o de erro ortográfico); ativar ou desativar todos; som de notificação em segundo plano para conversas privadas e para grupos, com prévia do som.</td></tr>
+  <tr><td class="field-name">Sons de eventos</td><td>Pacote de som, importar pasta de sons ou ficheiro ZIP, e o som de cada evento (incluindo o de quando alguém reage à sua mensagem e o de erro ortográfico); ativar ou desativar todos; som de notificação em segundo plano para conversas privadas e para grupos, com prévia do som; som das mensagens com o WinZapp em primeiro plano, separado para a conversa aberta e para as restantes conversas: o som dedicado de primeiro plano ou o som de notificação em segundo plano.</td></tr>
   <tr><td class="field-name">Armazenamento</td><td>Descarregar multimédia automaticamente, tipos de multimédia, limite de dias e de MB (0 = ilimitado), descobrir a duração de vídeos ao descarregar; pasta em que as janelas de guardar abrem (última usada, Downloads ou personalizada).</td></tr>
   <tr><td class="field-name">Armazenamento &gt; Cópia de segurança</td><td>Veja a seção Cópias de segurança.</td></tr>
   <tr><td class="field-name">Chamadas</td><td>Permitir alertas e abrir janela ao receber chamada; configurações de áudio e vídeo da chamada, cancelamento de eco, redução de ruído e modo exclusivo.</td></tr>
@@ -945,6 +946,7 @@
   <li>Ative a cópia também com o WinZapp aberto, no intervalo que escolher. O WhatsApp fica desconectado enquanto ela é feita, o que pode levar alguns minutos, e o WinZapp pode perguntar antes de cada vez. A nova cópia só substitui a anterior depois que o WhatsApp volta a ligar com ela.</li>
   <li>"Não guardar cópias de segurança do perfil" economiza espaço, mas, se o perfil for danificado, será preciso emparelhar de novo. Ao marcar, o WinZapp diz quanto espaço as cópias ocupam e pergunta se quer apagá-las.</li>
 </ul>
+<p>Com o motor Neonize, que não usa navegador interno, não existe perfil a copiar: a cópia de segurança do perfil não aparece em Definições &gt; Armazenamento nem no gestor de armazenamento.</p>
 <p>Essas cópias são o que o WinZapp usa para se recuperar sozinho (veja a seção Contas, bandeja e sincronização). Para guardar o seu histórico de mensagens e multimédia, copie a pasta <code>data</code>.</p>
 
 <h3>Registros (logs)</h3>
@@ -1453,6 +1455,10 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Lista de mensagens: "/" já não escreve "Á" no campo de mensagem num teclado ABNT2.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Mensagens marcadas com estrela: janela com as de todas as conversas (Alt+0).</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Canais: escolha Reações ao criar e editar um canal.</td></tr>
+
+<tr><td class="field-name">Ainda não lançado</td><td>Gerir contas: caixa para ligar todas as contas ao iniciar o WinZapp.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Ligações do WhatsApp: ligações de conversa (wa.me, api.whatsapp.com) abrem a conversa com o texto pronto, e a versão instalada aparece em Aplicações predefinidas.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Sons: escolha do som das mensagens com o WinZapp em primeiro plano, para a conversa aberta e para as restantes conversas.</td></tr>
 </table>
 
   </section>

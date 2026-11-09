@@ -8,6 +8,14 @@ NOVEDADES
 
 - Mensajes destacados: una nueva ventana muestra todos los mensajes destacados de todos los chats (Alt+0, o la fila "Mensajes destacados" de la lista de navegación), con un campo de búsqueda; Intro abre el chat en el mensaje y Supr quita el destacado. Sugerencia de la issue #708.
 
+- Sonidos: dos nuevas opciones en Ajustes, Sonidos permiten elegir el sonido que suena con un mensaje nuevo mientras WinZapp está en primer plano, una para el chat abierto y otra para los demás chats. Cada una puede mantener el sonido dedicado de primer plano, como antes, o usar el mismo sonido de notificación elegido para los mensajes en segundo plano.
+
+- Enlaces de WhatsApp: WinZapp ahora abre enlaces de chat. Un enlace wa.me o api.whatsapp.com (por ejemplo, de una aerolínea, una tienda o un sitio web) abre el chat con ese número, aunque no esté en tus contactos, pone el mensaje del enlace en el campo de mensaje y deja el foco allí, listo para que lo revises y lo envíes. También funcionan los enlaces que solo llevan el número. La versión instalada ahora se registra para los enlaces de WhatsApp la primera vez que se abre, así que WinZapp aparece en Aplicaciones predeterminadas de Windows; en la versión portátil la opción sigue en Configuración, General.
+
+- Administrar cuentas: nueva casilla "Conectar todas las cuentas al iniciar WinZapp". Si está activada, al iniciar WinZapp también se abren en segundo plano todas las demás cuentas vinculadas.
+
+- Copia de seguridad: la copia de seguridad del perfil (en Ajustes > Almacenamiento y en el administrador de almacenamiento) ya no aparece cuando WinZapp funciona con el motor Neonize, que no tiene perfil de navegador que copiar.
+
 - Mensajes: las identidades alternativas contradictorias ya no desvían los mensajes enviados a otra persona o recibidos de ella al chat contigo mismo. Se ignoran las correspondencias no válidas; los mensajes permanecen en el chat original hasta que se resuelva la identidad.
 
 - Filtro de no leídos: tras actualizar o reiniciar el programa, algunas conversaciones con mensajes no leídos desaparecían del filtro (por ejemplo, 12 pasaban a 9) hasta que resincronizabas con F5. Ahora el recuento mira los mensajes más recientes de la conversación y no los más antiguos. Tampoco desaparecen ya las conversaciones de grupo cuyas últimas entradas eran avisos del grupo (invitaciones, miembros añadidos, cambios de descripción): esos avisos ya no ocupan el lugar de los mensajes no leídos reales.

@@ -423,6 +423,11 @@ class AccountManagerDialog:
                   self.btn_restore, self.btn_delete):
             hbox.Add(b, 0, wx.ALL, 4)
         vbox.Add(hbox, 0, wx.ALL, 4)
+        # Install-wide: open every paired account when WinZapp starts.
+        self.chk_connect_all = wx.CheckBox(panel, label=i18n.t("acc_chk_connect_all"))
+        self.chk_connect_all.SetValue(self._connect_all_enabled())
+        self.chk_connect_all.Bind(wx.EVT_CHECKBOX, self._on_connect_all)
+        vbox.Add(self.chk_connect_all, 0, wx.ALL, 8)
         # Close button parented to the SAME panel as the sizer (wx requires the
         # sizer's managed widgets to share the sizer's window as parent, else
         # wxAssertionError CheckExpectedParentIs and the dialog never shows).
@@ -452,6 +457,26 @@ class AccountManagerDialog:
         self.lst.Bind(wx.EVT_LIST_ITEM_DESELECTED, lambda e: self._update_button_visibility())
         self._reload()
         self.lst.SetFocus()
+
+    # ── connect all accounts at startup ──────────────────────────────────
+    def _app_settings(self):
+        from app_settings import AppSettings
+        return AppSettings(self.global_dir)
+
+    def _connect_all_enabled(self) -> bool:
+        try:
+            return bool(self._app_settings().get("connect_all_accounts"))
+        except Exception:
+            logging.exception("[account manager] reading connect_all_accounts failed")
+            return False
+
+    def _on_connect_all(self, _e):
+        try:
+            self._app_settings().set("connect_all_accounts", self.chk_connect_all.GetValue())
+        except Exception:
+            logging.exception("[account manager] saving connect_all_accounts failed")
+            self.chk_connect_all.SetValue(self._connect_all_enabled())
+            self._error("acc_err_connect_all_save")
 
     # ── data ─────────────────────────────────────────────────────────────
     def _reload(self):

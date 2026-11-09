@@ -783,7 +783,7 @@
 
 <h3>Tworzenie grupy i zaproszenia</h3>
 <p>W "Nowy czat" utwórz grupę, podając nazwę i uczestników. W <strong>Zaproszenie do grupy</strong> można zobaczyć link zaproszenia i kod QR, skopiować je ("Kopiuj link"), zapisać ("Zapisz kod QR...") i zresetować z potwierdzeniem ("Zresetuj link zaproszenia..."). W <strong>Dołącz do grupy przez link</strong> wklej link (także te kończące się na <code>?mode=...</code>), zobacz "Podgląd grupy" i wybierz "Dołącz do grupy lub wyślij prośbę o zatwierdzenie". Wyniki oczekiwania na zatwierdzenie i niepotwierdzonego dołączenia są zgłaszane osobno.</p>
-<p>W Ustawienia &gt; Ogólne opcja "Pozwól systemowi Windows otwierać linki zaproszeń do grup WhatsApp w WinZappie" rejestruje WinZapp dla linków <code>whatsapp:</code>: gdy użyjesz przycisku dołączania na stronie zaproszenia otwartej w przeglądarce, Windows przekazuje zaproszenie do WinZapp, nawet gdy jest zamknięty.</p>
+<p>W Ustawienia &gt; Ogólne opcja "Pozwól systemowi Windows otwierać linki WhatsApp (zaproszenia do grup i czaty) w WinZappie" rejestruje WinZapp dla linków <code>whatsapp:</code>: gdy użyjesz przycisku dołączania na stronie zaproszenia otwartej w przeglądarce, Windows przekazuje zaproszenie do WinZapp, nawet gdy jest zamknięty. W ten sam sposób, gdy otworzysz link wa.me lub api.whatsapp.com (na przykład ze strony, od linii lotniczej lub ze sklepu), WinZapp otwiera czat z tym numerem, nawet jeśli nie ma go w kontaktach, wstawia wiadomość z linku w pole wiadomości i zostawia tam fokus, bez wysyłania. Wersja instalowana rejestruje się sama przy pierwszym uruchomieniu, więc WinZapp pojawia się w Aplikacjach domyślnych systemu Windows; w wersji przenośnej włącz opcję samodzielnie.</p>
 
 <h3>Prośby o dołączenie (administratorzy)</h3>
 <p>W grupach, w których jesteś administratorem, przycisk "Prośby o dołączenie" wymienia, kto czeka (nazwa lub numer, jak dotarła prośba i kiedy). "Zatwierdź" i "Odrzuć" odpowiadają na wybraną prośbę; "Odśwież" sprawdza ponownie. WinZapp mówi, że prośba została rozpatrzona, dopiero gdy zniknie z listy w WhatsApp.</p>
@@ -845,6 +845,7 @@
     <h2 id="h-contas">👤 13. Konta, zasobnik i synchronizacja</h2>
 <h3>Wiele kont</h3>
 <p>Każde konto ma własne okno i własny serwer lokalny. Menu <strong>Konta</strong> przełącza między nimi; tak samo Ctrl+Alt+1 do 9. "Zamknij bieżące konto" (Ctrl+F4) kończy tylko konto, w którym jesteś, zwalnia jego pamięć i połączenie oraz przechodzi do innego otwartego konta. Aby otworzyć je ponownie, wybierz je w menu Konta innego konta lub użyj Ctrl+Alt z jego numerem. Jeśli jest jedynym otwartym, WinZapp najpierw pyta, bo jego zamknięcie kończy program.</p>
+<p>W Konta &gt; Zarządzaj kontami pole wyboru "Połącz wszystkie konta przy uruchomieniu WinZapp" sprawia, że WinZapp przy każdym uruchomieniu otwiera w tle wszystkie pozostałe sparowane konta. Domyślnie jest wyłączone i dotyczy całej instalacji, a nie jednego konta.</p>
 <p>Usunięcie konta (Konta &gt; Zarządzaj kontami, przycisk Usuń) kasuje wszystko, co do niego należy: wiadomości, multimedia, ustawienia, profil przeglądarki z logowaniem do WhatsApp i kopie zapasowe tego profilu. To, czego nie da się usunąć od razu, zostanie dokończone przy następnym uruchomieniu WinZapp. Gdy konto jest jedyne, również można je usunąć: WinZapp prosi o potwierdzenie (domyślnie Nie), zamyka się, a następne uruchomienie jest pierwszym uruchomieniem.</p>
 
 <h3>Synchronizacja</h3>
@@ -885,7 +886,7 @@
   <tr><td class="field-name">Dostępność</td><td>Rozszerzona zgodność z czytnikiem ekranu (dodatkowe komunikaty) i użycie głosu SAPI, gdy żaden czytnik ekranu nie jest aktywny.</td></tr>
   <tr><td class="field-name">Dostępność &gt; Zawartość mówiona</td><td>Ogłaszanie, że kontakt pisze lub nagrywa; ogłaszanie początku i końca odświeżania czatu; mówiony postęp synchronizacji i pobierania multimediów; automatyczne mówienie wiadomości w aktywnym czacie i w innych; ogłaszanie synchronizacji, pobierania multimediów i automatycznego trybu offline.</td></tr>
   <tr><td class="field-name">Dźwięk</td><td>Mikrofon, głośnik i wyjście efektów (alerty i dźwięki); redukcja szumów mikrofonu i jej model neuronowy, pobierany na tej samej stronie; pliki audio wklejone przez Ctrl+V jako audio lub dokument; gdzie ustawić fokus po nagraniu wiadomości głosowej (wyślij lub odrzuć); przekazywanie głosu jako głosu; odczyt wiadomości głosowej jako audio lub jako wiadomości głosowej; transkrybowanie przez Enter i Spację; wyciszanie komunikatów i przycisku wysyłania podczas nagrywania.</td></tr>  <tr><td class="field-name">Dźwięk &gt; Odtwarzanie audio</td><td>Szybkość domyślna; oznaczanie audio jako odtworzonego i ogłaszanie; automatyczne odtwarzanie wiadomości głosowych po kolei; przenoszenie fokusu na następne audio w sekwencji.</td></tr>
-  <tr><td class="field-name">Dźwięki zdarzeń</td><td>Pakiet dźwięków, import folderu z dźwiękami lub pliku ZIP oraz dźwięk każdego zdarzenia (w tym gdy ktoś zareaguje na twoją wiadomość i błędu pisowni); włączanie lub wyłączanie wszystkich; dźwięk powiadomienia w tle dla czatów prywatnych i dla grup, z podglądem dźwięku.</td></tr>
+  <tr><td class="field-name">Dźwięki zdarzeń</td><td>Pakiet dźwięków, import folderu z dźwiękami lub pliku ZIP oraz dźwięk każdego zdarzenia (w tym gdy ktoś zareaguje na twoją wiadomość i błędu pisowni); włączanie lub wyłączanie wszystkich; dźwięk powiadomienia w tle dla czatów prywatnych i dla grup, z podglądem dźwięku; dźwięk wiadomości, gdy WinZapp jest na pierwszym planie, osobno dla otwartego czatu i dla pozostałych czatów: dedykowany dźwięk pierwszego planu lub dźwięk powiadomienia w tle.</td></tr>
   <tr><td class="field-name">Pamięć</td><td>Automatyczne pobieranie multimediów, rodzaje multimediów, limit w dniach i w MB (0 = bez limitu), ustalanie czasu trwania filmów podczas pobierania; folder, w którym otwierają się okna zapisu (ostatnio używany, Pobrane lub własny).</td></tr>
   <tr><td class="field-name">Pamięć &gt; Kopia zapasowa</td><td>Zobacz sekcję Kopie zapasowe i dzienniki.</td></tr>
   <tr><td class="field-name">Połączenia</td><td>Zezwalanie na alerty i otwieranie okna, gdy przychodzi połączenie; ustawienia audio i wideo połączeń, usuwanie echa, redukcja szumów i tryb wyłączny.</td></tr>
@@ -945,6 +946,7 @@
   <li>Możesz również włączyć tworzenie kopii podczas działania WinZappa i ustawić odstęp między nimi. Na czas tworzenia kopii połączenie z WhatsAppem jest przerywane; może to potrwać kilka minut. Opcjonalnie program pyta o zgodę przed każdą kopią. Nowa kopia zastępuje poprzednią dopiero po ponownym nawiązaniu połączenia z WhatsAppem.</li>
   <li>"Nie przechowuj kopii zapasowych profilu" oszczędza miejsce, ale jeśli profil ulegnie uszkodzeniu, trzeba będzie sparować ponownie. Po zaznaczeniu WinZapp mówi, ile miejsca zajmują kopie, i pyta, czy chcesz je usunąć.</li>
 </ul>
+<p>Silnik Neonize nie używa wewnętrznej przeglądarki, więc nie ma profilu do skopiowania: kopia zapasowa profilu nie jest pokazywana w Ustawienia &gt; Pamięć ani w menedżerze pamięci.</p>
 <p>Te kopie WinZapp wykorzystuje do samodzielnego odzyskiwania (zobacz sekcję Konta, zasobnik i synchronizacja). Aby zachować historię wiadomości i multimediów, skopiuj folder <code>data</code>.</p>
 
 <h3>Dzienniki</h3>
@@ -1453,6 +1455,10 @@
 <tr><td class="field-name">Jeszcze niewydane</td><td>Lista wiadomości: "/" nie wpisuje już "Á" w pole wiadomości na klawiaturze ABNT2.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości oznaczone gwiazdką: okno z nimi ze wszystkich czatów (Alt+0).</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: wybór Reakcje przy tworzeniu i edycji kanału.</td></tr>
+
+<tr><td class="field-name">Jeszcze niewydane</td><td>Zarządzanie kontami: pole wyboru łączące wszystkie konta przy uruchomieniu WinZapp.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Linki WhatsApp: linki do czatów (wa.me, api.whatsapp.com) otwierają czat z gotowym tekstem, a wersja instalowana pojawia się w Aplikacjach domyślnych.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Dźwięki: wybór dźwięku wiadomości, gdy WinZapp jest na pierwszym planie, dla otwartego czatu i dla pozostałych czatów.</td></tr>
 </table>
 
   </section>

@@ -114,3 +114,15 @@ def test_startup_source_parsed():
     reg = FakeRegistry([_acc(A)], last_fg=A)
     assert boot.parse_startup_source(["--startup-source", "autostart"]) == "autostart"
     assert boot.parse_startup_source([]) == "user"
+
+
+def test_accounts_to_connect_lists_other_paired_accounts():
+    reg = FakeRegistry([_acc(A, order=1), _acc(B, order=2), _acc("c" * 32, state="pending", order=3)])
+    assert boot.accounts_to_connect([], reg, A, True) == [B]
+
+
+def test_accounts_to_connect_off_or_explicit_account_is_empty():
+    reg = FakeRegistry([_acc(A, order=1), _acc(B, order=2)])
+    assert boot.accounts_to_connect([], reg, A, False) == []
+    # a process started for one account (switcher or a sibling) never chains
+    assert boot.accounts_to_connect(["--account", B], reg, B, True) == []

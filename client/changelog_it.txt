@@ -8,6 +8,14 @@ WHAT'S NEW
 
 - Starred messages: a new window lists every starred message of every chat (Alt+0, or the "Starred messages" row of the navigation list), with a search field; Enter opens the chat on the message, and Delete removes the star. Suggested in issue #708.
 
+- Suoni: due nuove opzioni in Impostazioni, Suoni permettono di scegliere il suono di un nuovo messaggio mentre WinZapp è in primo piano, una per la chat aperta e una per le altre chat. Ciascuna può mantenere il suono dedicato in primo piano, come prima, oppure usare lo stesso suono di notifica scelto per i messaggi in background.
+
+- Link di WhatsApp: WinZapp ora apre i link delle chat. Un link wa.me o api.whatsapp.com (per esempio di una compagnia aerea, di un negozio o di un sito) apre la chat con quel numero, anche se non è nei tuoi contatti, inserisce il messaggio del link nel campo del messaggio e lascia lì il focus, pronto per essere rivisto e inviato. Funzionano anche i link con il solo numero. La versione installata ora si registra per i link di WhatsApp al primo avvio, quindi WinZapp compare in App predefinite di Windows; nella versione portatile l'opzione resta in Impostazioni, Generale.
+
+- Gestione account: nuova casella "Connetti tutti gli account all'avvio di WinZapp". Se attiva, all'avvio di WinZapp vengono aperti in background anche tutti gli altri account associati.
+
+- Backup: il backup del profilo (in Impostazioni > Archiviazione e nella gestione dell'archiviazione) non viene più mostrato quando WinZapp usa il motore Neonize, che non ha un profilo del browser da salvare.
+
 - Messaggi: le identità alternative in conflitto non spostano più i messaggi inviati a un'altra persona o ricevuti da essa nella chat con te stesso. Le associazioni non valide vengono ignorate; i messaggi rimangono nella chat originale finché l'identità non viene risolta.
 
 - Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest. Non spariscono più nemmeno le conversazioni di gruppo le cui ultime voci erano avvisi del gruppo (inviti, membri aggiunti, descrizione modificata): questi avvisi non prendono più il posto dei veri messaggi non letti.

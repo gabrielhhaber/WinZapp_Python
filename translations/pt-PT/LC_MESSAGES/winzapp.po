@@ -128,6 +128,11 @@ msgctxt "acc_btn_restore"
 msgid "Re&store"
 msgstr "Re&staurar"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+msgctxt "acc_chk_connect_all"
+msgid "Connect all accounts &when WinZapp starts"
+msgstr "Ligar todas as contas ao &iniciar o WinZapp"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 #, python-brace-format
@@ -193,6 +198,11 @@ msgstr ""
 msgctxt "acc_err_archive_not_paired"
 msgid "Only connected accounts can be archived."
 msgstr "Só é possível arquivar contas ligadas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "acc_err_connect_all_save"
+msgid "Could not save the setting."
+msgstr "Não foi possível guardar a definição."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_delete_current"
@@ -3142,7 +3152,8 @@ msgstr "Estatísticas de {name}"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_insights_too_small"
 msgid "WhatsApp shows a channel's statistics from 100 followers on."
-msgstr "O WhatsApp mostra as estatísticas de um canal a partir de 100 seguidores."
+msgstr ""
+"O WhatsApp mostra as estatísticas de um canal a partir de 100 seguidores."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_insights_unavailable"
@@ -3789,6 +3800,20 @@ msgstr ""
 msgctxt "chat_is_empty"
 msgid "This chat is empty."
 msgstr "Esta conversa está vazia."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_link_not_connected"
+msgid ""
+"WhatsApp did not connect in time. Open the chat link again once WinZapp is "
+"connected."
+msgstr ""
+"O WhatsApp não se ligou a tempo. Abra novamente a ligação da conversa quando"
+" o WinZapp estiver ligado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_link_waiting"
+msgid "Chat link received. Waiting for WhatsApp to connect."
+msgstr "Ligação de conversa recebida. A aguardar a ligação do WhatsApp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "chat_list_empty_list"
@@ -6699,6 +6724,28 @@ msgid "Force reinstall"
 msgstr "Forçar reinstalação"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_active_label"
+msgid ""
+"Sound for messages in the open chat while WinZapp is in the foreground:"
+msgstr "Som das mensagens da conversa aberta com o WinZapp em primeiro plano:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_dedicated"
+msgid "Dedicated foreground sound"
+msgstr "Som dedicado de primeiro plano"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_notification"
+msgid "Same as the background notification sound"
+msgstr "O mesmo som de notificação em segundo plano"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_other_label"
+msgid "Sound for messages in other chats while WinZapp is in the foreground:"
+msgstr ""
+"Som das mensagens de outras conversas com o WinZapp em primeiro plano:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
 msgctxt "forward_done"
 msgid "Message forwarded."
@@ -7059,7 +7106,6 @@ msgid "Paste a valid HTTPS WhatsApp group invitation link."
 msgstr "Cole uma ligação HTTPS válida de convite para um grupo do WhatsApp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/group_invitation_links.py
 msgctxt "group_join_link_not_connected"
 msgid ""
 "WhatsApp did not connect in time. Open the invitation link again once "
@@ -7069,7 +7115,6 @@ msgstr ""
 "o WinZapp estiver ligado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/group_invitation_links.py
 msgctxt "group_join_link_waiting"
 msgid "Group invitation received. Waiting for WhatsApp to connect."
 msgstr "Convite de grupo recebido. A aguardar a ligação do WhatsApp."
@@ -20177,17 +20222,19 @@ msgstr "Novidades no WinZapp"
 msgctxt "whatsapp_links_enabled_message"
 msgid ""
 "WinZapp is now registered for WhatsApp links. When you use the join button "
-"on a group invitation page, Windows may ask which app to use the first time:"
-" choose WinZapp. If another WhatsApp app is installed, you can also choose "
-"WinZapp for the \"whatsapp\" link type in Windows Settings, under Apps, "
-"Default apps."
+"on a group invitation page, or the button that opens a chat from a wa.me or "
+"WhatsApp link, Windows may ask which app to use the first time: choose "
+"WinZapp. If another WhatsApp app is installed, you can also choose WinZapp "
+"for the \"whatsapp\" link type in Windows Settings, under Apps, Default "
+"apps."
 msgstr ""
 "O WinZapp está agora registado para ligações do WhatsApp. Quando usar o "
-"botão de entrar na página de um convite de grupo, o Windows pode perguntar, "
-"na primeira vez, que aplicação usar: escolha o WinZapp. Se estiver instalada"
-" outra aplicação do WhatsApp, também pode escolher o WinZapp para o tipo de "
-"ligação \"whatsapp\" nas Definições do Windows, em Aplicações, Aplicações "
-"predefinidas."
+"botão de entrar na página de um convite de grupo, ou o botão que abre uma "
+"conversa a partir de uma ligação wa.me ou do WhatsApp, o Windows pode "
+"perguntar, na primeira vez, que aplicação usar: escolha o WinZapp. Se "
+"estiver instalada outra aplicação do WhatsApp, também pode escolher o "
+"WinZapp para o tipo de ligação \"whatsapp\" nas Definições do Windows, em "
+"Aplicações, Aplicações predefinidas."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/group_invitation_links.py
@@ -20198,10 +20245,11 @@ msgstr "Não foi possível alterar o registo para ligações do WhatsApp."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "whatsapp_links_label"
-msgid "Let &Windows open WhatsApp group invitation links with WinZapp"
+msgid ""
+"Let &Windows open WhatsApp links (group invitations and chats) with WinZapp"
 msgstr ""
-"Permitir &que o Windows abra ligações de convite de grupo do WhatsApp com o "
-"WinZapp"
+"Permitir &que o Windows abra ligações do WhatsApp (convites de grupo e "
+"conversas) com o WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format

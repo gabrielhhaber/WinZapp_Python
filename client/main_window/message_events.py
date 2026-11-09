@@ -1238,6 +1238,9 @@ class MessageEventsMixin:
             format_notification_title, format_notification_body,
             format_foreground_message, format_locked_notification,
         )
+        from core.foreground_sound import (
+            SCOPE_ACTIVE, SCOPE_OTHER, play_foreground_message_sound,
+        )
 
         body  = format_notification_body(msg, self, self.i18n)
 
@@ -1294,7 +1297,7 @@ class MessageEventsMixin:
                 # via AO2 only when speak_active_conv_messages is on. Neither of
                 # these is the background toast this function's general.
                 # notifications_enabled setting is meant to gate — see below.
-                self.message_current_sound.play()
+                play_foreground_message_sound(self, SCOPE_ACTIVE, remote_jid)
                 if speech.get("speak_active_conv_messages", True):
                     self.output(format_foreground_message(msg, self, self.i18n, body))
                 # Mark the active conversation as read immediately, but only if the
@@ -1311,7 +1314,7 @@ class MessageEventsMixin:
                 # Scenario 2: message in a DIFFERENT conversation (window active)
                 # Play foreground sound (always), speak "Nova mensagem de X: body"
                 # via AO2 only when speak_other_conv_messages is on.
-                self.message_foreground_sound.play()
+                play_foreground_message_sound(self, SCOPE_OTHER, remote_jid)
                 if speech.get("speak_other_conv_messages", True):
                     title = format_notification_title(msg, self, self.i18n)
                     spoken = self.i18n.t("fg_new_msg").format(name=title) + f": {body}"

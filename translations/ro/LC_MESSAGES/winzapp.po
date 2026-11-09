@@ -127,6 +127,11 @@ msgctxt "acc_btn_restore"
 msgid "Re&store"
 msgstr "R&estaurează"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+msgctxt "acc_chk_connect_all"
+msgid "Connect all accounts &when WinZapp starts"
+msgstr "Conectează toate conturile la &pornirea WinZapp"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 #, python-brace-format
@@ -190,6 +195,11 @@ msgstr "Nu se poate arhiva contul în uz. Comutați mai întâi la alt cont."
 msgctxt "acc_err_archive_not_paired"
 msgid "Only connected accounts can be archived."
 msgstr "Numai conturile conectate pot fi arhivate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "acc_err_connect_all_save"
+msgid "Could not save the setting."
+msgstr "Setarea nu a putut fi salvată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_delete_current"
@@ -3768,6 +3778,20 @@ msgid "This chat is empty."
 msgstr "Această conversație este goală."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_link_not_connected"
+msgid ""
+"WhatsApp did not connect in time. Open the chat link again once WinZapp is "
+"connected."
+msgstr ""
+"WhatsApp nu s-a conectat la timp. Deschideți din nou linkul conversației "
+"după ce WinZapp este conectat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_link_waiting"
+msgid "Chat link received. Waiting for WhatsApp to connect."
+msgstr "Link de conversație primit. Se așteaptă conectarea WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "chat_list_empty_list"
 msgid "No chats in this list."
 msgstr "Nicio conversație în această listă."
@@ -6673,6 +6697,27 @@ msgid "Force reinstall"
 msgstr "Reinstalare forțată"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_active_label"
+msgid ""
+"Sound for messages in the open chat while WinZapp is in the foreground:"
+msgstr "Sunetul mesajelor din conversația deschisă cu WinZapp în prim-plan:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_dedicated"
+msgid "Dedicated foreground sound"
+msgstr "Sunet dedicat de prim-plan"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_notification"
+msgid "Same as the background notification sound"
+msgstr "Același sunet de notificare de fundal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_other_label"
+msgid "Sound for messages in other chats while WinZapp is in the foreground:"
+msgstr "Sunetul mesajelor din alte conversații cu WinZapp în prim-plan:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
 msgctxt "forward_done"
 msgid "Message forwarded."
@@ -7033,7 +7078,6 @@ msgid "Paste a valid HTTPS WhatsApp group invitation link."
 msgstr "Lipește un link HTTPS valid de invitație la un grup WhatsApp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/group_invitation_links.py
 msgctxt "group_join_link_not_connected"
 msgid ""
 "WhatsApp did not connect in time. Open the invitation link again once "
@@ -7043,7 +7087,6 @@ msgstr ""
 "după ce WinZapp este conectat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/group_invitation_links.py
 msgctxt "group_join_link_waiting"
 msgid "Group invitation received. Waiting for WhatsApp to connect."
 msgstr "Invitație în grup primită. Se așteaptă conectarea WhatsApp."
@@ -20164,13 +20207,15 @@ msgstr "Ce este nou în WinZapp"
 msgctxt "whatsapp_links_enabled_message"
 msgid ""
 "WinZapp is now registered for WhatsApp links. When you use the join button "
-"on a group invitation page, Windows may ask which app to use the first time:"
-" choose WinZapp. If another WhatsApp app is installed, you can also choose "
-"WinZapp for the \"whatsapp\" link type in Windows Settings, under Apps, "
-"Default apps."
+"on a group invitation page, or the button that opens a chat from a wa.me or "
+"WhatsApp link, Windows may ask which app to use the first time: choose "
+"WinZapp. If another WhatsApp app is installed, you can also choose WinZapp "
+"for the \"whatsapp\" link type in Windows Settings, under Apps, Default "
+"apps."
 msgstr ""
 "WinZapp este acum înregistrat pentru linkurile WhatsApp. Când folosiți "
-"butonul de alăturare de pe pagina unei invitații în grup, Windows poate "
+"butonul de alăturare de pe pagina unei invitații în grup sau butonul care "
+"deschide o conversație dintr-un link wa.me ori WhatsApp, Windows poate "
 "întreba prima dată ce aplicație să folosească: alegeți WinZapp. Dacă este "
 "instalată altă aplicație WhatsApp, puteți alege WinZapp pentru tipul de link"
 " „whatsapp” și din Setările Windows, la Aplicații, Aplicații implicite."
@@ -20184,10 +20229,11 @@ msgstr "Nu s-a putut modifica înregistrarea pentru linkurile WhatsApp."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "whatsapp_links_label"
-msgid "Let &Windows open WhatsApp group invitation links with WinZapp"
+msgid ""
+"Let &Windows open WhatsApp links (group invitations and chats) with WinZapp"
 msgstr ""
-"Permite ca Windows &să deschidă linkurile de invitație în grupuri WhatsApp "
-"cu WinZapp"
+"Permite ca Windows &să deschidă linkurile WhatsApp (invitații în grupuri și "
+"conversații) cu WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format

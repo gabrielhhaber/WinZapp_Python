@@ -8,6 +8,14 @@ YENİLİKLER
 
 - Yıldızlı mesajlar: yeni bir pencere tüm sohbetlerdeki tüm yıldızlı mesajları gösteriyor (Alt+0 veya gezinme listesindeki "Yıldızlı mesajlar" satırı), bir arama alanıyla; Enter sohbeti mesajda açar, Delete yıldızı kaldırır. #708 numaralı önerinin karşılığı.
 
+- Sesler: Ayarlar, Sesler bölümündeki iki yeni seçenek, WinZapp ön plandayken yeni bir mesajın hangi sesi çalacağını seçmenizi sağlar; biri açık sohbet, diğeri diğer sohbetler içindir. Her biri eskisi gibi ön plana özel sesi koruyabilir veya arka plandaki mesajlar için seçtiğiniz bildirim sesini kullanabilir.
+
+- WhatsApp bağlantıları: WinZapp artık sohbet bağlantılarını açıyor. Bir wa.me veya api.whatsapp.com bağlantısı (örneğin bir havayolu şirketinden, bir mağazadan ya da bir web sitesinden), rehberinizde olmasa bile o numarayla sohbeti açar, bağlantıdaki mesajı mesaj alanına yazar ve odağı orada bırakır; mesajı gözden geçirip gönderebilirsiniz. Yalnızca numara içeren bağlantılar da çalışır. Yüklü sürüm artık ilk açılışında WhatsApp bağlantıları için kendini kaydeder, bu yüzden WinZapp Windows'un Varsayılan uygulamalar bölümünde görünür; taşınabilir sürümde seçenek Ayarlar, Genel bölümünde kalır.
+
+- Hesap yöneticisi: yeni "WinZapp başladığında tüm hesaplara bağlan" onay kutusu. Açıkken WinZapp başlatıldığında eşleştirilmiş diğer tüm hesaplar da arka planda açılır.
+
+- Yedekleme: profil yedeği (Ayarlar > Depolama ve depolama yöneticisinde), tarayıcı profili olmayan Neonize motoruyla çalışırken artık gösterilmez.
+
 - Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.
 
 - Okunmamış filtresi: programı güncelledikten veya yeniden başlattıktan sonra okunmamış mesajı olan bazı sohbetler, F5 ile yeniden eşitleyene kadar filtreden kayboluyordu (örneğin 12 sohbet 9'a düşüyordu). Sayım artık sohbetin en eski mesajlarına değil, en yeni mesajlarına bakıyor. Son kayıtları grup bildirimleri (davetler, eklenen üyeler, açıklama değişikliği) olan grup sohbetleri de artık kaybolmuyor: bu bildirimler artık gerçek okunmamış mesajların yerini almıyor.

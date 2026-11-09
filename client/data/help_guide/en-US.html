@@ -783,7 +783,7 @@
 
 <h3>Create a group and invitations</h3>
 <p>In "New chat", create a group by entering a name and participants. In <strong>Invitation to the group</strong>, the invitation link and the QR code can be viewed, copied ("Copy link"), saved ("Save QR code...") and reset with confirmation ("Reset invitation link..."). In <strong>Join group by link</strong>, paste the link (including those that end in <code>?mode=...</code>), see the "Preview group" and choose "Join group or request approval". The results of pending approval and of unconfirmed joining are reported separately.</p>
-<p>In Settings &gt; General, "Let Windows open WhatsApp group invitation links with WinZapp" registers WinZapp for <code>whatsapp:</code> links: when you use the join button on the invitation page opened in the browser, Windows hands the invitation to WinZapp, even when it is closed.</p>
+<p>In Settings &gt; General, "Let Windows open WhatsApp links (group invitations and chats) with WinZapp" registers WinZapp for <code>whatsapp:</code> links: when you use the join button on the invitation page opened in the browser, Windows hands the invitation to WinZapp, even when it is closed. The same way, when you open a wa.me or api.whatsapp.com link (from a website, an airline or a shop, for example), WinZapp opens the chat with that number, even when it is not in your contacts, puts the message from the link in the message field and leaves the focus there, unsent. The installed version registers itself on its first launch, so WinZapp is listed under Default apps in Windows; in the portable version, turn the option on yourself.</p>
 
 <h3>Join requests (admins)</h3>
 <p>In groups where you are an admin, the "Pending join requests" button lists who is waiting (name or number, how the request arrived and when). "Approve" and "Reject" answer the selected request; "Refresh" checks again. WinZapp only says the request was answered once it has left the list on WhatsApp.</p>
@@ -845,6 +845,7 @@
     <h2 id="h-contas">👤 13. Accounts, tray and sync</h2>
 <h3>Multiple accounts</h3>
 <p>Each account has its own window and its own local server. The <strong>Accounts</strong> menu switches between them; so does Ctrl+Alt+1 to 9. "Close current account" (Ctrl+F4) ends only the account you are in, frees its memory and connection, and moves to another open account. To open it again, choose it in the Accounts menu of another account or use Ctrl+Alt with its number. If it is the only one open, WinZapp asks first, because closing it ends the program.</p>
+<p>In Accounts &gt; Manage accounts, the check box "Connect all accounts when WinZapp starts" makes WinZapp open every other paired account in the background each time it starts. It is off by default and applies to the whole installation, not to a single account.</p>
 <p>Deleting an account (Accounts &gt; Manage accounts, Delete button) removes everything it owns: messages, media, settings, the browser profile that holds the WhatsApp login and that profile's backups. Anything that cannot be removed right away is finished the next time WinZapp starts. When the account is the only one, it can be deleted too: WinZapp asks for confirmation (No is the default), closes, and the next start is a first run.</p>
 
 <h3>Sync</h3>
@@ -885,7 +886,7 @@
   <tr><td class="field-name">Accessibility</td><td>Extended screen reader compatibility (additional announcements) and use of the SAPI voice when no screen reader is active.</td></tr>
   <tr><td class="field-name">Accessibility &gt; Spoken content</td><td>Announce a contact typing or recording; announce the start and end of chat refresh; spoken progress of sync and media download; speak messages automatically in the active chat and in others; announce sync, media downloads and automatic offline mode.</td></tr>
   <tr><td class="field-name">Audio</td><td>Microphone, speaker and effects output (alerts and sounds); microphone noise reduction and its neural model, downloaded on the same page; audio files pasted with Ctrl+V as audio or document; where to put the focus after recording a voice message (send or discard); forward voice as voice; read voice message as audio or as voice message; Enter and Space transcribing; silence announcements and the send button while recording.</td></tr>  <tr><td class="field-name">Audio &gt; Audio playback</td><td>Default speed; mark audio as played and announce; play voice messages in sequence automatically; move focus to the next audio in sequence.</td></tr>
-  <tr><td class="field-name">Event sounds</td><td>Sound pack, import a sounds folder or ZIP file, and the sound of each event (including when someone reacts to your message and the spelling error one); enable or disable all; background notification sound for private chats and for groups, with sound preview.</td></tr>
+  <tr><td class="field-name">Event sounds</td><td>Sound pack, import a sounds folder or ZIP file, and the sound of each event (including when someone reacts to your message and the spelling error one); enable or disable all; background notification sound for private chats and for groups, with sound preview; sound for messages while WinZapp is in the foreground, separately for the open chat and for the other chats: the dedicated foreground sound or the background notification sound.</td></tr>
   <tr><td class="field-name">Storage</td><td>Automatically download media, media types, limit in days and in MB (0 = unlimited), find the duration of videos when downloading; folder where the save windows open (last used, Downloads or custom).</td></tr>
   <tr><td class="field-name">Storage &gt; Profile backup</td><td>See the Backups and logs section.</td></tr>
   <tr><td class="field-name">Calls</td><td>Allow alerts and open a window when a call arrives; call audio and video settings, echo cancellation, noise reduction and exclusive mode.</td></tr>
@@ -945,6 +946,7 @@
   <li>Turn on the backup also while WinZapp is open, at the interval you choose. WhatsApp stays disconnected while it is made, which can take a few minutes, and WinZapp can ask before each time. The new backup only replaces the previous one after WhatsApp connects again with it.</li>
   <li>"Don't keep profile backups" saves space but, if the profile gets damaged, you will have to pair again. When you check it, WinZapp says how much space the backups take and asks whether you want to delete them.</li>
 </ul>
+<p>With the Neonize engine, which has no internal browser, there is no profile to back up: the profile backup is not shown in Settings &gt; Storage or in the storage manager.</p>
 <p>These backups are what WinZapp uses to recover by itself (see the Accounts, tray and sync section). To keep your message and media history, copy the <code>data</code> folder.</p>
 
 <h3>Logs</h3>
@@ -1453,6 +1455,10 @@
 <tr><td class="field-name">Not yet released</td><td>Message list: "/" no longer writes "Á" into the message field on an ABNT2 keyboard.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Starred messages: a window with the starred messages of every chat (Alt+0).</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Channels: the Reactions choice when creating and editing a channel.</td></tr>
+
+<tr><td class="field-name">Not yet released</td><td>Account manager: check box to connect all accounts when WinZapp starts.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>WhatsApp links: chat links (wa.me, api.whatsapp.com) open the chat with the text ready, and the installed version is listed in Default apps.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Sounds: choose the sound of messages while WinZapp is in the foreground, for the open chat and for the other chats.</td></tr>
 </table>
 
   </section>

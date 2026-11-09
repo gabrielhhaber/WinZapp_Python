@@ -46,3 +46,17 @@ def test_only_a_different_engine_asks_for_a_restart():
 def test_the_first_run_question_hides_neonize_without_a_bridge():
     assert engines.first_run_engines(False) == (engines.WPPCONNECT, engines.CUSTOM)
     assert engines.first_run_engines(True) == engines.ENGINES
+
+
+def test_the_profile_backup_is_only_for_engines_with_a_browser_profile():
+    assert engines.uses_profile_backup(engines.WPPCONNECT)
+    assert engines.uses_profile_backup(engines.CUSTOM)
+    assert not engines.uses_profile_backup(engines.NEONIZE)
+
+
+def test_loaded_engine_defaults_to_wppconnect():
+    class Window:
+        wpp_engine = engines.NEONIZE
+
+    assert engines.loaded_engine(Window()) == engines.NEONIZE
+    assert engines.loaded_engine(object()) == engines.WPPCONNECT
