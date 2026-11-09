@@ -15,6 +15,7 @@ import wx
 from core import channels as ch
 from ui.conversation_panel.channel_conversation import remember_channel_roles
 from ui.dialogs.background_work import BackgroundWork
+from ui.dialogs.channels_return import restore, snapshot
 from ui.shortcut_bindings import make_shortcut_table
 from ui.dialogs.group_join_dialog import open_group_chat
 from ui.dialogs.labelled_control import add_labelled
@@ -22,17 +23,21 @@ from ui.dialogs.labelled_control import add_labelled
 MINE, FIND = 0, 1
 
 
-def show_channels(mw, parent, keep=""):
+def show_channels(mw, parent, keep="", state=None):
     """Show the window and open the channel the user chose, if any. *keep* is
-    the channel selected once the list arrives (coming back from it)."""
+    the channel selected once the list arrives (coming back from it); *state*,
+    the window as it was left to open it (channels_return.py)."""
     dialog = ChannelsDialog(parent, mw)
     dialog._keep_first = keep
+    if state is not None:
+        restore(dialog, state)
     # where a channels-changed event finds it (WebSocketClient.on_channels_changed)
     mw._channels_dialog = dialog
     try:
         if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
             return False
         channel = dialog.result
+        mw._channels_return_state = snapshot(dialog)
     finally:
         mw._channels_dialog = None
         dialog.Destroy()
@@ -48,10 +53,11 @@ def channel_closed(mw, closed_jid) -> bool:
     the channel the Channels window opened, show the window again, on that
     channel, and say so to the caller (True). The mark is used once."""
     opened = getattr(mw, "_channel_opened_from_window", "")
-    mw._channel_opened_from_window = ""
+    state = getattr(mw, "_channels_return_state", None)
+    mw._channel_opened_from_window, mw._channels_return_state = "", None
     if not opened or opened != closed_jid or getattr(mw, "_shutting_down", False):
         return False
-    wx.CallAfter(show_channels, mw, mw, opened)
+    wx.CallAfter(show_channels, mw, mw, opened, state)
     return True
 
 
@@ -208,7 +214,10 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._show(self._mine)          # "loading" until the first answer
         self._list.SetFocus()
         self.CentreOnParent()
-        wx.CallAfter(lambda: self._reload(keep=getattr(self, "_keep_first", "")))
+        # coming back from a channel (channels_return.restore): the list is
+        # already there, so it is read again without announcing its count
+        wx.CallAfter(lambda: self._reload(keep=getattr(self, "_keep_first", ""),
+                                          quiet=getattr(self, "_restored", False)))
 
     #: how long after the last change of a category or list the directory is read
     FILTER_DELAY_MS = 700

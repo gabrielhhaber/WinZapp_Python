@@ -131,9 +131,13 @@ def test_the_people_window_reloads_only_for_its_own_channel():
 def test_esc_in_a_channel_opened_from_the_window_shows_the_window_again(monkeypatch):
     shown = []
     monkeypatch.setattr(dialogs.wx, "CallAfter", lambda fn, *a: shown.append((fn, a)))
-    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter")
+    left = object()
+    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter",
+                               _channels_return_state=left)
     assert dialogs.channel_closed(mw, "1@newsletter") is True
-    assert shown == [(dialogs.show_channels, (mw, mw, "1@newsletter"))]
+    # with the window as it was left (channels_return.py)
+    assert shown == [(dialogs.show_channels, (mw, mw, "1@newsletter", left))]
+    assert mw._channels_return_state is None
     assert mw._channel_opened_from_window == ""
     # used once: the next Esc in it goes to the chat list as usual
     assert dialogs.channel_closed(mw, "1@newsletter") is False
