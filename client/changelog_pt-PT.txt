@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Ligações do WhatsApp: o WinZapp passa a abrir ligações de conversa. Uma ligação wa.me ou api.whatsapp.com (por exemplo, de uma companhia aérea, de uma loja ou de um site) abre a conversa com esse número, mesmo que não esteja nos seus contactos, coloca a mensagem da ligação no campo de mensagem e deixa o foco aí, pronta para rever e enviar. Ligações só com o número também funcionam. A versão instalada passa a registar-se para ligações do WhatsApp na primeira vez que abre, pelo que o WinZapp aparece em Aplicações predefinidas do Windows; na versão portátil a opção continua em Definições, Geral.
+
 - Gerir contas: nova caixa de verificação "Ligar todas as contas ao iniciar o WinZapp". Quando ativada, ao iniciar o WinZapp todas as outras contas emparelhadas também são abertas em segundo plano.
 
 - Cópia de segurança: a cópia de segurança do perfil (em Definições > Armazenamento e no gestor de armazenamento) deixa de aparecer quando o WinZapp corre com o motor Neonize, que não tem perfil de navegador para copiar.

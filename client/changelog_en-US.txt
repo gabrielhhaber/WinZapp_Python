@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WhatsApp links: WinZapp now opens chat links. A wa.me or api.whatsapp.com link (for example from an airline, a shop or a website) opens the chat with that number, even if it is not in your contacts, puts the message from the link in the message field and leaves the focus there, ready for you to review and send. Links with only a number work too. The installed version now registers itself for WhatsApp links on its first launch, so WinZapp appears under Default apps in Windows; the portable version keeps the option in Settings, General.
+
 - Account manager: new check box "Connect all accounts when WinZapp starts". When it is on, starting WinZapp also opens every other paired account in the background.
 
 - Backup: the profile backup (in Settings > Storage and the storage manager) is no longer shown when WinZapp runs with the Neonize engine, which has no browser profile to back up.

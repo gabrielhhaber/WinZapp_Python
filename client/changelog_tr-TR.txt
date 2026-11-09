@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WhatsApp bağlantıları: WinZapp artık sohbet bağlantılarını açıyor. Bir wa.me veya api.whatsapp.com bağlantısı (örneğin bir havayolu şirketinden, bir mağazadan ya da bir web sitesinden), rehberinizde olmasa bile o numarayla sohbeti açar, bağlantıdaki mesajı mesaj alanına yazar ve odağı orada bırakır; mesajı gözden geçirip gönderebilirsiniz. Yalnızca numara içeren bağlantılar da çalışır. Yüklü sürüm artık ilk açılışında WhatsApp bağlantıları için kendini kaydeder, bu yüzden WinZapp Windows'un Varsayılan uygulamalar bölümünde görünür; taşınabilir sürümde seçenek Ayarlar, Genel bölümünde kalır.
+
 - Hesap yöneticisi: yeni "WinZapp başladığında tüm hesaplara bağlan" onay kutusu. Açıkken WinZapp başlatıldığında eşleştirilmiş diğer tüm hesaplar da arka planda açılır.
 
 - Yedekleme: profil yedeği (Ayarlar > Depolama ve depolama yöneticisinde), tarayıcı profili olmayan Neonize motoruyla çalışırken artık gösterilmez.
