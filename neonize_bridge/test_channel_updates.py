@@ -95,6 +95,23 @@ def test_a_large_count_is_asked_in_pages_of_whatsapps_ceiling():
     assert s.client.asked == [(100, 0), (100, 901), (50, 801)]
 
 
+class SilentAbove(Server):
+    """WhatsApp's server: no answer above some hundreds (whatsmeow then
+    raises GetNewsletterMessagesError after its IQ timeout)."""
+
+    def get_newsletter_messages(self, jid, count, before):
+        if count > 300:
+            raise RuntimeError("info query timed out")
+        return super().get_newsletter_messages(jid, count, before)
+
+
+def test_the_clients_sync_of_1000_never_asks_more_than_whatsapp_answers():
+    s = N(client=SilentAbove(2000))
+    got = cu.read(s, CHANNEL, 1000, None, lambda t: t)
+    assert len(got) == cu.PER_REQUEST * cu.MAX_REQUESTS
+    assert max(count for count, _before in s.client.asked) <= 100
+
+
 def test_a_sync_asking_for_everything_stays_bounded():
     s = N(client=Server(100000))
     assert len(cu.read(s, CHANNEL, 100000, None, lambda t: t)) == cu.PER_REQUEST * cu.MAX_REQUESTS

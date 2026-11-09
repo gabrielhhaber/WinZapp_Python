@@ -27,7 +27,12 @@ log = logging.getLogger("bridge")
 REMEMBERED = 2000
 #: the most updates one request asks for: WhatsApp Web's own ceiling
 #: (WAWebNewsletterGatingUtils.getMaxMsgCountFromServer(), 100 on 2026-11-08,
-#: which logs "newsletter-server-msg-count-exceeded" above it)
+#: which logs "newsletter-server-msg-count-exceeded" above it). Above it the
+#: server stops answering: measured 2026-11-09, the same query answered 100,
+#: 200 and 300 at once and 500 and 1000 not in 20 s. A bridge that passed the
+#: client's count=1000 through got GetNewsletterMessagesError (whatsmeow's IQ
+#: timeout) for every channel, and get-messages timed out at 30 s (a user's
+#: bridge.log, 3.0.0.5353alpha: 4340 refusals in one log).
 PER_REQUEST = 100
 #: requests per get-messages call, so a sync's "everything" (count=100000)
 #: stays a few hundred updates
