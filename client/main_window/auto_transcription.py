@@ -71,7 +71,7 @@ class AutoTranscriptionMixin:
             if not self._local_auto_transcription_for(remote_jid):
                 return
             if not auto_queue.eligible(
-                    msg, max_age=auto_queue.max_age_seconds(self.settings)) \
+                    msg, max_age=auto_queue.local_max_age_seconds(self.settings)) \
                     or self.is_chat_locked(remote_jid):
                 return
             # A model chosen explicitly whose cache is off would run for

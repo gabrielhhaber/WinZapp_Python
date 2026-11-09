@@ -1315,6 +1315,9 @@ DEFAULT_SETTINGS = {
         # transcribed/described on its own, local or online: one of
         # auto_queue.AGE_CHOICES_MINUTES. See auto_queue.max_age_seconds().
         "auto_max_age_minutes": 5,
+        # Settings > Local transcription: the local automatic
+        # transcription takes messages however old (auto_queue).
+        "auto_any_age": False,
         # Keep results with the message so they are not redone (on), and the
         # per-model overrides {model id: bool}. See stored.cache_enabled_for().
         "cache_enabled": True,

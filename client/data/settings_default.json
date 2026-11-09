@@ -153,6 +153,7 @@
         "run_without_dialog": false,
         "auto_transcribe_received": false,
         "auto_max_age_minutes": 5,
+        "auto_any_age": false,
         "cache_enabled": true,
         "cache_by_model": {},
         "auto_transcribe_statuses": false,

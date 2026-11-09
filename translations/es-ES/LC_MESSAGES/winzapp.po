@@ -15677,6 +15677,18 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_auto_any_age_check"
+msgid ""
+"Also transcribe the ones that arrive late, however long ago they were sent "
+"(for e&xample, all those received at once when the computer comes back on or"
+" online)"
+msgstr ""
+"Transcribir también los &que lleguen con retraso, sin importar hace cuánto "
+"se enviaron (por ejemplo, todos los recibidos de una vez cuando el ordenador"
+" vuelve a encenderse o a tener Internet)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
 msgctxt "transcription_auto_both_on"
 msgid ""
 "Automatic transcription can be local or online, not both. Turn one of them "

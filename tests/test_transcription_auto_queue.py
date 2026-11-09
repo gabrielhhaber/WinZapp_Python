@@ -318,3 +318,31 @@ class TestCaughtUpBySync:
     def test_a_chat_without_history_is_a_history_load(self):
         assert auto_queue.caught_up_arrivals([_msg()], set(), 0) == []
 
+
+
+class TestHoweverOld:
+    """Settings > Local transcription's box: the local automatic transcription
+    takes messages however old they are; the online AI keeps the choice."""
+
+    def test_only_a_real_true_lifts_the_limit(self):
+        on = {"transcription": {"auto_any_age": True, "auto_max_age_minutes": 15}}
+        assert auto_queue.local_max_age_seconds(on) == float("inf")
+        assert auto_queue.max_age_seconds(on) == 15 * 60
+        for stored in (False, "yes", 1, None):
+            off = {"transcription": {"auto_any_age": stored, "auto_max_age_minutes": 15}}
+            assert auto_queue.local_max_age_seconds(off) == 15 * 60
+        assert auto_queue.local_max_age_seconds({}) == auto_queue.MAX_AGE_SECONDS
+
+    def test_a_message_of_last_week_qualifies_with_it(self):
+        old = _msg(messageTimestamp=NOW - 7 * 86400)
+        assert auto_queue.eligible(old, now=NOW, max_age=float("inf"), gaps=())
+        assert not auto_queue.eligible(old, now=NOW, gaps=())
+
+    def test_it_is_spelled_the_same_in_both_modules_and_off_by_default(self):
+        assert auto_queue.SETTING_ANY_AGE == preferences.SETTING_AUTO_ANY_AGE
+        assert preferences.DEFAULTS[preferences.SETTING_AUTO_ANY_AGE] is False
+
+    def test_the_box_shows_only_with_the_automatic_transcription(self):
+        from ui.dialogs.transcription_options import any_age_box_shown
+        assert any_age_box_shown(True) is True
+        assert any_age_box_shown(False) is False

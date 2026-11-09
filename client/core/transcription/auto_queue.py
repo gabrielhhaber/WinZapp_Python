@@ -49,6 +49,7 @@ Rules, each one a way this could otherwise annoy or harm:
 """
 
 import logging
+import math
 import queue
 import threading
 import time
@@ -116,6 +117,21 @@ def max_age_seconds(settings) -> float:
     if isinstance(value, bool) or value not in AGE_CHOICES_MINUTES:
         return MAX_AGE_SECONDS
     return float(value) * 60.0
+
+
+#: settings.json's "transcription" key for "however old they are".
+SETTING_ANY_AGE = "auto_any_age"
+
+
+def local_max_age_seconds(settings) -> float:
+    """How old a message may be for the LOCAL automatic transcription: the
+    shared choice (max_age_seconds), or no limit at all when the user ticked
+    Settings > Local transcription's box for it (only a real True). The
+    online AI keeps the shared choice."""
+    section = settings.get("transcription") if isinstance(settings, dict) else None
+    if isinstance(section, dict) and section.get(SETTING_ANY_AGE) is True:
+        return math.inf
+    return max_age_seconds(settings)
 
 
 def eligible(msg, now=None, max_age=None, gaps=None) -> bool:
