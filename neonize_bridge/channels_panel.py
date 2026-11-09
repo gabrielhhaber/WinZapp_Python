@@ -365,6 +365,22 @@ def register_routes(r, *, session, ok, jid_from_text):
             return answer
         return ok(status="success", response=done)
 
+    async def admin_profiles(req):
+        s = session(req)
+        request = channel_reactions.admin_profiles_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        from channel_admin import UPDATE_FIELD
+        channel, variables = request
+        answer = await mex(s, channel_reactions.ADMIN_PROFILES_QUERY, variables, UPDATE_FIELD,
+                           "channel_admin_profiles_failed")
+        if isinstance(answer, web.Response):
+            return answer
+        enabled = variables["updates"]["settings"]["admin_profiles_enabled"]
+        return ok(status="success", response={"id": channel, "enabled": enabled})
+
     async def insights(req):
         s = session(req)
         request = channel_insights.insights_request(await body_of(req))
@@ -513,6 +529,7 @@ def register_routes(r, *, session, ok, jid_from_text):
     r.add_post("/api/{tok}/channels/pin", pin)
     r.add_post("/api/{tok}/channels/reactions", reactions)
     r.add_post("/api/{tok}/channels/insights", insights)
+    r.add_post("/api/{tok}/channels/admin-profiles", admin_profiles)
     r.add_post("/api/{tok}/channels/mute", mute)
     r.add_post("/api/{tok}/channels/directory", directory)
     r.add_post("/api/{tok}/channels/info", info)

@@ -3286,6 +3286,11 @@ msgid "The channel could not be unfollowed."
 msgstr "Não foi possível deixar de seguir o canal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_admin_profiles"
+msgid "Show &admin profile on updates"
+msgstr "Mostrar o perfil do &administrador nas atualizações"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_category"
 msgid "Ca&tegory"
 msgstr "Ca&tegoria"

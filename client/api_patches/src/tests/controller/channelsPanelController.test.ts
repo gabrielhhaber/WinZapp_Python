@@ -438,3 +438,50 @@ test('who may react goes through the update job of the page, with its enum', asy
     root.require = previous;
   }
 });
+
+
+test('show admin profile goes through the page job, and the list carries what the page knows', async () => {
+  const root = globalThis as any;
+  const previous = root.require;
+  const asked: any[] = [];
+  const meta: any = { adminProfilesSettingEnabled: false, set(o: any) { Object.assign(meta, o); } };
+  root.require = (name: string) => ({
+    WAWebCollections: { WAWebNewsletterCollection: { get: (id: string) => (id === '1@newsletter' ? { newsletterMetadata: meta } : undefined) } },
+    WAWebNewsletterExtendedGatingUtils: { isNewsletterAdminProfilesSettingEnabled: () => true },
+    WAWebMexUpdateNewsletterAdminProfileSettingJob: {
+      mexUpdateNewsletterAdminProfileSetting: async (o: any) => { asked.push(o); return {}; },
+    },
+    WAWebMexFetchAllNewslettersMetadataJob: {
+      mexFetchAllNewsletters: async () => ({ xwa2_newsletter_subscribed: [{ id: '1@newsletter', thread_metadata: {} }] }),
+    },
+  } as any)[name];
+  try {
+    expect(await readChannels({ kind: 'admin-profiles', id: '1@newsletter', enabled: true }))
+      .toEqual({ id: '1@newsletter', enabled: true });
+    expect(asked).toEqual([{ newsletterID: '1@newsletter', adminProfilesEnabled: true }]);
+    const list: any = await readChannels({ kind: 'list' });
+    expect(list[0].thread_metadata.settings).toEqual({ admin_profiles_enabled: true });
+    expect(await readChannels({ kind: 'admin-profiles', id: '1@newsletter', enabled: 'yes' })).toBeNull();
+  } finally {
+    root.require = previous;
+  }
+});
+
+
+test('show admin profile is not reported where WhatsApp does not offer it', async () => {
+  const root = globalThis as any;
+  const previous = root.require;
+  root.require = (name: string) => ({
+    WAWebCollections: { WAWebNewsletterCollection: { get: () => ({ newsletterMetadata: { adminProfilesSettingEnabled: false } }) } },
+    WAWebNewsletterExtendedGatingUtils: { isNewsletterAdminProfilesSettingEnabled: () => false },
+    WAWebMexFetchAllNewslettersMetadataJob: {
+      mexFetchAllNewsletters: async () => ({ xwa2_newsletter_subscribed: [{ id: '1@newsletter', thread_metadata: {} }] }),
+    },
+  } as any)[name];
+  try {
+    const list: any = await readChannels({ kind: 'list' });
+    expect(list[0].thread_metadata.settings).toBeUndefined();
+  } finally {
+    root.require = previous;
+  }
+});

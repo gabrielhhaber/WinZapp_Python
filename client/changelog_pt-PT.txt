@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Canais: onde o WhatsApp o oferece à sua conta, "Editar canal..." tem "Mostrar o perfil do administrador nas atualizações", como no WhatsApp Web (WPPConnect).
+
 - Canais: "Ver estatísticas..." na janela Canais lê as estatísticas de um canal que administra, como o WhatsApp Web as mostra (alcance, seguidores, saldo, novos seguidores e quem deixou de seguir em 30 dias, entre quem segue e quem não segue e por país), na WPPConnect e no Neonize. O WhatsApp oferece-as a partir de 100 seguidores.
 
 - Descarga de ficheiros multimédia: "A descarregar ficheiros multimédia: X de Y" passa a contar só os que ainda faltam descarregar. Antes contava também os já descarregados em sessões anteriores, e parecia que quase nada tinha sido descarregado (por exemplo "723 de 728 processados (66 descarregados)", quando os outros 659 já estavam no computador).

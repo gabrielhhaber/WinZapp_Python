@@ -23,20 +23,26 @@ from ui.dialogs.labelled_control import add_labelled
 MINE, FIND = 0, 1
 
 
-def create_with_reactions(connection, name, description, reactions):
-    """Create the channel, then set who may react when it is not WhatsApp's
-    default (any emoji). Runs off the main thread."""
+def create_with_reactions(connection, name, description, reactions, admin_profiles=None):
+    """Create the channel, then set who may react and the admin profiles when
+    they are not WhatsApp's defaults (any emoji, profiles off). Runs off the
+    main thread."""
     jid = ch.create_channel(connection, name, description)
     if jid and reactions and reactions != "ALL":
         ch.set_channel_reactions(connection, jid, reactions)
+    if jid and admin_profiles:
+        ch.set_channel_admin_profiles(connection, jid, True)
     return jid
 
 
-def edit_with_reactions(connection, channel, name, description, reactions):
-    """Edit the channel; its reactions only when they were chosen and differ."""
+def edit_with_reactions(connection, channel, name, description, reactions, admin_profiles=None):
+    """Edit the channel; its reactions and admin profiles only when they were
+    chosen and differ."""
     ch.edit_channel(connection, channel.jid, name, description)
     if reactions and reactions != channel.reactions:
         ch.set_channel_reactions(connection, channel.jid, reactions)
+    if admin_profiles is not None and admin_profiles != channel.admin_profiles:
+        ch.set_channel_admin_profiles(connection, channel.jid, admin_profiles)
 
 
 def show_channels(mw, parent, keep="", state=None):
@@ -133,7 +139,8 @@ class ChannelEditDialog(wx.Dialog):
 
     REACTION_KEYS = ("channels_reactions_all", "channels_reactions_basic", "channels_reactions_none")
 
-    def __init__(self, parent, i18n, title, name="", description="", reactions="ALL"):
+    def __init__(self, parent, i18n, title, name="", description="", reactions="ALL",
+                 admin_profiles=None):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._name = add_labelled(self, sizer, i18n.t("channels_name"),
@@ -147,6 +154,13 @@ class ChannelEditDialog(wx.Dialog):
             self, choices=[i18n.t(key) for key in self.REACTION_KEYS]))
         if reactions in ch.REACTION_SETTINGS:
             self._reactions.SetSelection(ch.REACTION_SETTINGS.index(reactions))
+        # WhatsApp Web's "Show admin profile", shown as it does only when
+        # WhatsApp offers it to this account: the engine then says its state
+        # (WPPConnect; None on Neonize and when not offered)
+        self._admin_profiles = wx.CheckBox(self, label=i18n.t("channels_admin_profiles"))
+        self._admin_profiles.SetValue(bool(admin_profiles))
+        self._admin_profiles.Show(admin_profiles is not None)
+        sizer.Add(self._admin_profiles, 0, wx.ALL, 8)
         buttons = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 8)
         self.SetSizer(sizer)
@@ -156,10 +170,13 @@ class ChannelEditDialog(wx.Dialog):
         self._name.SetFocus()
 
     def values(self):
-        """(name, description, reactions): reactions "" when none was chosen."""
+        """(name, description, reactions, admin_profiles): reactions "" when
+        none was chosen, admin_profiles None when the setting is not offered."""
         index = self._reactions.GetSelection()
         reactions = ch.REACTION_SETTINGS[index] if 0 <= index < len(ch.REACTION_SETTINGS) else ""
-        return self._name.GetValue().strip(), self._description.GetValue().strip(), reactions
+        admin_profiles = self._admin_profiles.GetValue() if self._admin_profiles.IsShown() else None
+        return (self._name.GetValue().strip(), self._description.GetValue().strip(), reactions,
+                admin_profiles)
 
 
 class ChannelsDialog(BackgroundWork, wx.Dialog):
@@ -599,12 +616,13 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         with ChannelEditDialog(self, i18n, i18n.t("channels_create_title")) as dialog:
             if dialog.ShowModal() != wx.ID_OK:
                 return
-            name, description, reactions = dialog.values()
+            name, description, reactions, admin_profiles = dialog.values()
         if not name:
             self._announce(i18n.t("channels_name_required"))
             return
         connection = self._connection
-        self._act(lambda: create_with_reactions(connection, name, description, reactions),
+        self._act(lambda: create_with_reactions(connection, name, description, reactions,
+                                                admin_profiles),
                   "channels_created", "channel_create_failed")
 
     def _on_edit(self, event=None):
@@ -613,15 +631,17 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         i18n = self._i18n
         with ChannelEditDialog(self, i18n, i18n.t("channels_edit_title"), channel.name,
-                               channel.description, channel.reactions) as dialog:
+                               channel.description, channel.reactions,
+                               channel.admin_profiles) as dialog:
             if dialog.ShowModal() != wx.ID_OK:
                 return
-            name, description, reactions = dialog.values()
+            name, description, reactions, admin_profiles = dialog.values()
         if not name:
             self._announce(i18n.t("channels_name_required"))
             return
         connection, jid = self._connection, channel.jid
-        self._act(lambda: edit_with_reactions(connection, channel, name, description, reactions),
+        self._act(lambda: edit_with_reactions(connection, channel, name, description, reactions,
+                                              admin_profiles),
                   "channels_edited", "channel_edit_failed", jid)
 
     def _on_insights(self, event=None):

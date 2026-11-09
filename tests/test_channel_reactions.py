@@ -58,3 +58,37 @@ def test_the_details_say_the_setting():
     text = dialogs.channel_details(ch.parse_channel(node("BASIC")), i18n, True)
     assert "Reactions: Default emojis only" in text
     assert "Reactions" not in dialogs.channel_details(ch.parse_channel(node()), i18n, True)
+
+
+def ap_node(enabled=None):
+    n = node("ALL")
+    if enabled is not None:
+        n["thread_metadata"]["settings"]["admin_profiles_enabled"] = enabled
+    return n
+
+
+def test_show_admin_profile_is_read_when_the_engine_says():
+    assert ch.parse_channel(ap_node(True)).admin_profiles is True
+    assert ch.parse_channel(ap_node(False)).admin_profiles is False
+    assert ch.parse_channel(ap_node()).admin_profiles is None
+
+
+def test_show_admin_profile_is_sent_only_when_set_and_different(monkeypatch):
+    sent = []
+    monkeypatch.setattr(ch, "edit_channel", lambda *a: None)
+    monkeypatch.setattr(ch, "set_channel_reactions", lambda *a: None)
+    monkeypatch.setattr(ch, "set_channel_admin_profiles", lambda conn, jid, on: sent.append(on))
+    known, unknown = ch.parse_channel(ap_node(False)), ch.parse_channel(ap_node())
+    dialogs.edit_with_reactions(None, known, "T", "", "", None)      # left undetermined
+    dialogs.edit_with_reactions(None, known, "T", "", "", False)     # unchanged
+    dialogs.edit_with_reactions(None, known, "T", "", "", True)
+    dialogs.edit_with_reactions(None, unknown, "T", "", "", False)   # unknown before: sent
+    assert sent == [True, False]
+
+
+def test_the_admin_profiles_route(monkeypatch):
+    posted = []
+    monkeypatch.setattr(ch, "_post", lambda conn, endpoint, payload, code, timeout=30:
+                        posted.append((endpoint, payload)) or {"status": "success"})
+    ch.set_channel_admin_profiles(None, "1@newsletter", True)
+    assert posted == [("channels/admin-profiles", {"id": "1@newsletter", "enabled": True})]

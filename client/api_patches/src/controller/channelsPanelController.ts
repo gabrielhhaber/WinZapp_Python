@@ -172,13 +172,32 @@ export async function readChannels(request: any): Promise<unknown> {
   const load = (name: string): any => {
     try { return typeof root.require === 'function' ? root.require(name) : null; } catch (_) { return null; }
   };
+  // The channel queries do not carry "Show admin profile"; the page's own
+  // channel metadata does (adminProfilesSettingEnabled): added to the node as
+  // thread_metadata.settings.admin_profiles_enabled for the client, and only
+  // when WhatsApp offers the setting to this account
+  // (WAWebNewsletterExtendedGatingUtils.isNewsletterAdminProfilesSettingEnabled,
+  // false on 2026-11-09, when the server answered the setting Bad Request).
+  const withPageSettings = (node: any) => {
+    try {
+      const meta = load('WAWebCollections')?.WAWebNewsletterCollection?.get?.(node?.id)?.newsletterMetadata;
+      const offered = load('WAWebNewsletterExtendedGatingUtils')?.isNewsletterAdminProfilesSettingEnabled?.(meta);
+      const enabled = meta?.adminProfilesSettingEnabled;
+      if (offered === true && typeof enabled === 'boolean' && node?.thread_metadata) {
+        node.thread_metadata.settings = { ...(node.thread_metadata.settings || {}), admin_profiles_enabled: enabled };
+      }
+    } catch (_) {
+      // the node as it came
+    }
+    return node;
+  };
   const kind = request?.kind;
   if (kind === 'list') {
     const job = load('WAWebMexFetchAllNewslettersMetadataJob');
     if (typeof job?.mexFetchAllNewsletters !== 'function') return null;
     const data = await job.mexFetchAllNewsletters({ fetchWamoSub: false, fetchStatusMetadata: false });
     const list = data?.xwa2_newsletter_subscribed;
-    return Array.isArray(list) ? list : null;
+    return Array.isArray(list) ? list.map(withPageSettings) : null;
   }
   if (kind === 'directory') {
     const query = typeof request.query === 'string' ? request.query.trim().slice(0, 100) : '';
@@ -234,7 +253,7 @@ export async function readChannels(request: any): Promise<unknown> {
     if (typeof job?.mexGetNewsletter !== 'function') return null;
     const data = await job.mexGetNewsletter(key, 'GUEST', {
       fetchViewerMetadata: true, fetchCreationTime: true, fetchWamoSub: false, fetchStatusMetadata: false });
-    return data?.xwa2_newsletter ?? null;
+    return data?.xwa2_newsletter ? withPageSettings(data.xwa2_newsletter) : null;
   }
   if (kind === 'follow' || kind === 'unfollow') {
     const id = typeof request.id === 'string' ? request.id : '';
@@ -242,6 +261,34 @@ export async function readChannels(request: any): Promise<unknown> {
     if (!/^\d+@newsletter$/.test(id) || typeof action !== 'function') return null;
     await action(id);
     return { id };
+  }
+  if (kind === 'admin-profiles') {
+    // WhatsApp Web's "Show admin profile" (channel info, read 2026-11-09):
+    // WAWebMexUpdateNewsletterAdminProfileSettingJob, mutation 28226671310350649
+    // with settings.admin_profiles_enabled. Loaded with the channel's info, so
+    // the Bootloader fetches it here when the page has not.
+    const id = typeof request.id === 'string' ? request.id : '';
+    if (!/^\d+@newsletter$/.test(id) || typeof request.enabled !== 'boolean') return null;
+    const name = 'WAWebMexUpdateNewsletterAdminProfileSettingJob';
+    let job = load(name);
+    if (typeof job?.mexUpdateNewsletterAdminProfileSetting !== 'function') {
+      const boot = load('Bootloader');
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 15000);
+        try {
+          boot.loadModules([name], () => { clearTimeout(timer); resolve(); }, 'winzapp-admin-profiles');
+        } catch (_) {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
+      job = load(name);
+    }
+    if (typeof job?.mexUpdateNewsletterAdminProfileSetting !== 'function') return null;
+    await job.mexUpdateNewsletterAdminProfileSetting({ newsletterID: id, adminProfilesEnabled: request.enabled });
+    const meta = load('WAWebCollections')?.WAWebNewsletterCollection?.get?.(id)?.newsletterMetadata;
+    if (meta && typeof meta.set === 'function') meta.set({ adminProfilesSettingEnabled: request.enabled });
+    return { id, enabled: request.enabled };
   }
   if (kind === 'insights') {
     // A channel's statistics for its admins: WAWebMexFetchNewsletterInsightsJob
@@ -477,6 +524,16 @@ export async function muteChannel(req: Request, res: Response) {
   const id = channelKey({ id: body.id });
   if (!id || typeof body.mute !== 'boolean') return res.status(400).json({ status: 'error', code: 'invalid_channel' });
   return answer(req, res, { kind: 'mute', id, mute: body.mute }, 'channel_mute_failed');
+}
+
+export async function setChannelAdminProfiles(req: Request, res: Response) {
+  const body = req.body || {};
+  const id = channelKey({ id: body.id });
+  if (!id || typeof body.enabled !== 'boolean') {
+    return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  }
+  return answer(req, res, { kind: 'admin-profiles', id, enabled: body.enabled },
+    'channel_admin_profiles_failed');
 }
 
 export async function channelInsights(req: Request, res: Response) {

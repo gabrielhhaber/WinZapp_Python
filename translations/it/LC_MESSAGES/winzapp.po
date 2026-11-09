@@ -3308,6 +3308,11 @@ msgid "The channel could not be unfollowed."
 msgstr "Non è stato possibile smettere di seguire il canale."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_admin_profiles"
+msgid "Show &admin profile on updates"
+msgstr "Mostra il profilo dell'&amministratore negli aggiornamenti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_category"
 msgid "Ca&tegory"
 msgstr "C&ategoria"
@@ -15422,8 +15427,11 @@ msgstr "Impossibile scaricare media."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/backfill.py
 #, python-brace-format
 msgctxt "sync_media_progress"
-msgid "Downloading media: {done} of {total} processed ({downloaded} downloaded)"
-msgstr "Download dei media in corso: {done} di {total} elaborati ({downloaded} scaricati)"
+msgid ""
+"Downloading media: {done} of {total} processed ({downloaded} downloaded)"
+msgstr ""
+"Download dei media in corso: {done} di {total} elaborati ({downloaded} "
+"scaricati)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/backfill.py
 #: client/main_window/sync.py

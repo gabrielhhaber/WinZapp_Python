@@ -11,6 +11,9 @@ Tested in test_channel_reactions.py.
 from channels import channel_id
 
 VALUES = ("ALL", "BASIC", "NONE")
+#: WAWebMexUpdateNewsletterAdminProfileSettingJob (read 2026-11-09): "Show
+#: admin profile", settings.admin_profiles_enabled
+ADMIN_PROFILES_QUERY = "28226671310350649"
 
 
 def reactions_request(body):
@@ -22,3 +25,13 @@ def reactions_request(body):
         return None
     return channel, {"newsletter_id": channel,
                      "updates": {"settings": {"reaction_codes": {"value": value}}}}
+
+
+def admin_profiles_request(body):
+    """(channel, mutation variables) from the route's {id, enabled}, or None."""
+    body = body if isinstance(body, dict) else {}
+    channel = channel_id(body.get("id"))
+    if not channel or not isinstance(body.get("enabled"), bool):
+        return None
+    return channel, {"newsletter_id": channel,
+                     "updates": {"settings": {"admin_profiles_enabled": body["enabled"]}}}

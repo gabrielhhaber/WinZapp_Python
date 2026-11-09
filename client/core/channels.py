@@ -56,6 +56,7 @@ class Channel:
     created: int              # Unix seconds, 0 when unknown
     pinned: tuple = ()        # server ids of the pinned updates, when the answer said
     reactions: str = ""       # ALL, BASIC or NONE (REACTION_SETTINGS), "" when unknown
+    admin_profiles: bool | None = None  # "show admin profile", None when unknown
 
     @property
     def following(self) -> bool:
@@ -267,6 +268,14 @@ def reaction_setting(thread) -> str:
     return value if value in REACTION_SETTINGS else ""
 
 
+def admin_profiles_setting(thread):
+    """thread_metadata.settings.admin_profiles_enabled, None when absent (the
+    channel queries do not carry it; WPPConnect adds what its page knows)."""
+    settings = thread.get("settings") if isinstance(thread, dict) else None
+    value = settings.get("admin_profiles_enabled") if isinstance(settings, dict) else None
+    return value if isinstance(value, bool) else None
+
+
 def parse_channel(node, *, default_role=""):
     """A Channel from one XWA2Newsletter node, or None for anything that is
     not a channel, or one WhatsApp says is gone."""
@@ -290,7 +299,7 @@ def parse_channel(node, *, default_role=""):
         role=role, muted=True if mute == "ON" else False if mute == "OFF" else None,
         invite=invite.strip() if isinstance(invite, str) else "",
         created=_int(thread.get("creation_time")) or 0, pinned=pinned_ids(thread),
-        reactions=reaction_setting(thread))
+        reactions=reaction_setting(thread), admin_profiles=admin_profiles_setting(thread))
 
 
 def parse_channels(body, *, default_role=""):
@@ -473,6 +482,13 @@ def set_channel_reactions(connection, jid, value):
         raise ValueError("channel_reactions_failed")
     _post(connection, "channels/reactions", {"id": jid, "value": value},
           "channel_reactions_failed", timeout=60)
+
+
+def set_channel_admin_profiles(connection, jid, enabled):
+    """WhatsApp Web's "Show admin profile": each admin's own name and photo
+    on the updates they share."""
+    _post(connection, "channels/admin-profiles", {"id": jid, "enabled": bool(enabled)},
+          "channel_admin_profiles_failed", timeout=60)
 
 
 def edit_channel(connection, jid, name, description):

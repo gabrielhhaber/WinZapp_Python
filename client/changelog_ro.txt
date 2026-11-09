@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Canale: acolo unde WhatsApp vă oferă această opțiune, "Editați canalul..." are "Afișați profilul administratorului în actualizări", ca în WhatsApp Web (WPPConnect).
+
 - Canale: "Afișați statisticile..." din fereastra Canale citește statisticile unui canal pe care îl administrați, așa cum le arată WhatsApp Web (acoperire, urmăritori, bilanț, urmăritori noi și renunțări în 30 de zile, între urmăritori și ceilalți și pe țări), cu WPPConnect și Neonize. WhatsApp le oferă de la 100 de urmăritori.
 
 - Descărcarea media: "Descărcare media: X din Y" numără acum doar fișierele care mai trebuie descărcate. Înainte le număra și pe cele descărcate în sesiunile anterioare și părea că aproape nimic nu fusese descărcat (de exemplu "723 din 728 procesate (66 descărcate)", când celelalte 659 erau deja pe computer).

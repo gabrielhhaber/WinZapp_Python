@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Kanały: tam, gdzie WhatsApp udostępnia to twojemu kontu, "Edytuj kanał..." ma "Pokazuj profil administratora w aktualizacjach", jak w WhatsApp Web (WPPConnect).
+
 - Kanały: "Statystyki..." w oknie kanałów odczytuje statystyki kanału, którym administrujesz, tak jak pokazuje je WhatsApp Web (zasięg, obserwujący, bilans, nowi obserwujący i rezygnacje z 30 dni, wśród obserwujących i pozostałych oraz według kraju), z WPPConnect i Neonize. WhatsApp udostępnia je od 100 obserwujących.
 
 - Pobieranie multimediów: "Pobieranie multimediów: X z Y" liczy teraz tylko to, co jeszcze trzeba pobrać. Wcześniej liczyło też pliki pobrane w poprzednich sesjach i wyglądało, jakby prawie nic nie zostało pobrane (na przykład "723 z 728 przetworzonych (66 pobranych)", gdy pozostałe 659 były już na komputerze).
