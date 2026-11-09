@@ -231,6 +231,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._edit = button("channels_edit", self._on_edit)
         self._delete = button("channels_delete", self._on_delete)
         self._admins = button("channels_people", self._on_admins)
+        self._insights = button("channels_insights", self._on_insights)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
@@ -337,6 +338,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._edit.Enable(channel is not None and channel.admin)
         self._delete.Enable(channel is not None and channel.owner)
         self._admins.Enable(channel is not None and channel.admin)
+        self._insights.Enable(channel is not None and channel.admin)
 
     def _sync_mode(self):
         self._mode_radio.SetSelection(self._mode)
@@ -621,6 +623,14 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         connection, jid = self._connection, channel.jid
         self._act(lambda: edit_with_reactions(connection, channel, name, description, reactions),
                   "channels_edited", "channel_edit_failed", jid)
+
+    def _on_insights(self, event=None):
+        """The channel's statistics (channel_insights_dialog.py), for its admins."""
+        channel = self._mine_version(self._selected())
+        if channel is None or not channel.admin or self._refused_while_busy():
+            return
+        from ui.dialogs.channel_insights_dialog import show_channel_insights
+        show_channel_insights(self._mw, self, channel)
 
     def _on_admins(self, event=None):
         channel = self._mine_version(self._selected())

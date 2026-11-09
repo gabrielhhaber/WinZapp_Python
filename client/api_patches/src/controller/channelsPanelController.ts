@@ -243,6 +243,40 @@ export async function readChannels(request: any): Promise<unknown> {
     await action(id);
     return { id };
   }
+  if (kind === 'insights') {
+    // A channel's statistics for its admins: WAWebMexFetchNewsletterInsightsJob
+    // (read 2026-11-09) with the metrics the client sends (core/channel_insights.py).
+    // WhatsApp Web loads the job only when the channel's info opens; the
+    // Bootloader fetches its code here, showing nothing. Answered in the
+    // query's own shape, as the Neonize bridge answers it.
+    const id = typeof request.id === 'string' ? request.id : '';
+    const metrics = Array.isArray(request.metrics) ? request.metrics.slice(0, 20) : [];
+    if (!/^\d+@newsletter$/.test(id) || !metrics.length) return null;
+    let job = load('WAWebMexFetchNewsletterInsightsJob');
+    if (typeof job?.mexFetchNewsletterInsights !== 'function') {
+      const boot = load('Bootloader');
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 15000);
+        try {
+          boot.loadModules(['WAWebMexFetchNewsletterInsightsJob'], () => { clearTimeout(timer); resolve(); },
+            'winzapp-channel-insights');
+        } catch (_) {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
+      job = load('WAWebMexFetchNewsletterInsightsJob');
+    }
+    if (typeof job?.mexFetchNewsletterInsights !== 'function') return null;
+    const got = await job.mexFetchNewsletterInsights({ newsletterJid: id, requestedMetrics: metrics });
+    const map = got?.metricValueMap instanceof Map ? got.metricValueMap : new Map();
+    return {
+      newsletter_id: id,
+      metrics_status: String(got?.dataStatus || '').toLowerCase() === 'available' ? 'OK' : 'MISSING',
+      last_update_time: String(got?.lastUpdateTime || ''),
+      result: Array.from(map.entries()).map(([metric, values]: any) => ({ id: metric, values })),
+    };
+  }
   if (kind === 'reactions') {
     // Who may react to the channel's updates: WAWebMexUpdateNewsletterJob with
     // only reactionCodesSetting, as WhatsApp Web's channel settings send it
@@ -443,6 +477,15 @@ export async function muteChannel(req: Request, res: Response) {
   const id = channelKey({ id: body.id });
   if (!id || typeof body.mute !== 'boolean') return res.status(400).json({ status: 'error', code: 'invalid_channel' });
   return answer(req, res, { kind: 'mute', id, mute: body.mute }, 'channel_mute_failed');
+}
+
+export async function channelInsights(req: Request, res: Response) {
+  const body = req.body || {};
+  const id = channelKey({ id: body.id });
+  if (!id || !Array.isArray(body.metrics) || !body.metrics.length) {
+    return res.status(400).json({ status: 'error', code: 'invalid_channel' });
+  }
+  return answer(req, res, { kind: 'insights', id, metrics: body.metrics }, 'channel_insights_unavailable');
 }
 
 export async function setChannelReactions(req: Request, res: Response) {
