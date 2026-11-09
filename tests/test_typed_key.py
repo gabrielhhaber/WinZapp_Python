@@ -121,3 +121,11 @@ def test_the_slash_is_not_sent_to_the_message_field(monkeypatch):
         return e
     assert Stub()._should_redirect_char_to_message(event(VK_ABNT_C1)) is False
     assert Stub()._should_redirect_char_to_message(event(VK_OEM_1)) is True
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the Windows layout API")
+def test_the_key_nvda_injects_types_nothing_on_any_layout():
+    # VK 0xFF, injected so the Start menu does not open after a Windows-key
+    # gesture: its char-hook "unicode key" was 0xFF, a "ÿ" in the field
+    assert typed_char(0xFF, 0, False, False) == ""
+    assert typed_char(0xFF, 0, True, False) == ""

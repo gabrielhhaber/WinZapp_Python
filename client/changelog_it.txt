@@ -26,7 +26,7 @@ WHAT'S NEW
 
 - Channels with Neonize: opening or syncing a channel asked WhatsApp for a thousand updates at once; the server did not answer, the channel stayed empty and the sync tried again every 30 seconds. Updates are now asked 100 at a time, as WhatsApp Web does.
 
-- Message list: on a Brazilian (ABNT2) keyboard, pressing "/" in the message list wrote "Á" into the message field, and "ç" came out as "º". Typing in the list now sends the field the letter or digit the keyboard really types, and punctuation stays in the list.
+- Message list: on a Brazilian (ABNT2) keyboard, pressing "/" in the message list wrote "Á" into the message field, and "ç" came out as "º". Typing in the list now sends the field the letter or digit the keyboard really types, and punctuation stays in the list. For the same reason, the "ÿ" that NVDA gestures with the Windows key left in the field came from a key NVDA itself injects; only that key is ignored now, and a real "ÿ" can be typed.
 
 - Chiamate: la finestra «Aggiungi partecipanti» ora funziona con lo screen reader. Le persone si contrassegnano con gli stessi tasti, suoni e annunci degli elenchi di conversazioni e messaggi (Ctrl+Spazio, Spazio finché qualcosa è contrassegnato, Maiusc+frecce, Ctrl+Maiusc+Spazio, Esc) e il risultato viene letto: chi è stato invitato, chi non è stato possibile aggiungere o perché la richiesta è fallita.
 

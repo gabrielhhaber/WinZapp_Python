@@ -26,7 +26,7 @@ NOUTĂȚI
 
 - Canale cu Neonize: deschiderea sau sincronizarea unui canal cerea de la WhatsApp o mie de actualizări deodată; serverul nu răspundea, canalul rămânea gol și sincronizarea încerca din nou la fiecare 30 de secunde. Acum sunt cerute câte 100, cum face WhatsApp Web.
 
-- Lista de mesaje: pe o tastatură braziliană (ABNT2), apăsarea "/" în lista de mesaje scria "Á" în câmpul de mesaj, iar "ç" apărea ca "º". Acum ce tastați în listă ajunge în câmp așa cum îl scrie tastatura, iar semnele de punctuație rămân în listă.
+- Lista de mesaje: pe o tastatură braziliană (ABNT2), apăsarea "/" în lista de mesaje scria "Á" în câmpul de mesaj, iar "ç" apărea ca "º". Acum ce tastați în listă ajunge în câmp așa cum îl scrie tastatura, iar semnele de punctuație rămân în listă. Din același motiv, "ÿ"-ul pe care gesturile NVDA cu tasta Windows îl lăsau în câmp venea de la o tastă pe care o injectează chiar NVDA; acum doar acea tastă este ignorată și se poate tasta un "ÿ" adevărat.
 
 - Apeluri: fereastra „Adaugă participanți” funcționează acum cu cititorul de ecran. Persoanele se marchează cu aceleași taste, același sunet și aceleași anunțuri ca în listele de conversații și mesaje (Ctrl+Spațiu, Spațiu cât timp este ceva marcat, Shift+săgeți, Ctrl+Shift+Spațiu, Esc), iar rezultatul este rostit: cine a fost invitat, cine nu a putut fi adăugat sau de ce a eșuat cererea.
 

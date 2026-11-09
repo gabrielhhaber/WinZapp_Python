@@ -26,7 +26,7 @@ NOVEDADES
 
 - Canales con Neonize: abrir o sincronizar un canal pedía a WhatsApp mil novedades de una vez; el servidor no respondía, el canal quedaba vacío y la sincronización lo intentaba de nuevo cada 30 segundos. Ahora se piden de 100 en 100, como hace WhatsApp Web.
 
-- Lista de mensajes: en un teclado brasileño (ABNT2), pulsar "/" en la lista de mensajes escribía "Á" en el campo de mensaje, y la "ç" salía como "º". Ahora lo que escribes en la lista llega al campo tal como lo escribe el teclado, y los signos de puntuación se quedan en la lista.
+- Lista de mensajes: en un teclado brasileño (ABNT2), pulsar "/" en la lista de mensajes escribía "Á" en el campo de mensaje, y la "ç" salía como "º". Ahora lo que escribes en la lista llega al campo tal como lo escribe el teclado, y los signos de puntuación se quedan en la lista. Por el mismo motivo, la "ÿ" que los gestos de NVDA con la tecla Windows dejaban en el campo venía de una tecla que el propio NVDA inyecta; ahora solo se ignora esa tecla, y se puede escribir una "ÿ" de verdad.
 
 - Llamadas: la ventana «Añadir participantes» ya funciona con lector de pantalla. Las personas se marcan con las mismas teclas, el mismo sonido y los mismos anuncios que en las listas de conversaciones y mensajes (Ctrl+Espacio, Espacio mientras haya algo marcado, Mayús+flechas, Ctrl+Mayús+Espacio, Esc), y se dice el resultado: quién fue invitado, a quién no se pudo añadir o por qué falló la solicitud.
 

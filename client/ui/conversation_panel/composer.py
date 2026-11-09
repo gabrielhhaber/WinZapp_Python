@@ -606,10 +606,26 @@ class ComposerMixin:
         veto unconditionally rather than trying to special-case NVDA's own
         modifier state, which wx never sees. Checked at every entry point
         that can put a character into the message field — see
-        _on_conversation_char_hook() for the other one — because this exact
-        code point is never a legitimate keystroke.
+        _on_conversation_char_hook() for the other one.
+
+        The character comes from a key no keyboard has: VK 0xFF, which
+        NVDA (and Windows itself) injects so that releasing the Windows key
+        after a gesture does not open the Start menu. An injected key has no
+        scan code; a real "ÿ" (a dead "¨" then "y", or a layout that has the
+        letter) comes from a physical key with one. So only 0xFF *without* a
+        scan code is vetoed: the old check refused every "ÿ", and nobody
+        could type one in the message field. In the conversation's char hook
+        the phantom never gets as far as this either: the layout types
+        nothing for VK 0xFF (core/typed_key.py), where GetUnicodeKey() was
+        taken for the character. An event with no raw flags (no way to
+        tell) keeps the old veto.
         """
-        return event.GetUnicodeKey() == 0xFF
+        if event.GetUnicodeKey() != 0xFF:
+            return False
+        flags = getattr(event, "GetRawKeyFlags", None)
+        if not callable(flags):
+            return True
+        return (flags() >> 16) & 0xFF == 0
 
     def _on_message_field_char(self, event):
         if self._is_phantom_nvda_char(event):

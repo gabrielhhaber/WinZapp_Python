@@ -26,7 +26,7 @@ YENİLİKLER
 
 - Neonize ile kanallar: bir kanalı açmak veya eşitlemek WhatsApp'tan bir kerede bin güncelleme istiyordu; sunucu yanıt vermiyor, kanal boş kalıyor ve eşitleme her 30 saniyede bir yeniden deniyordu. Artık güncellemeler WhatsApp Web'in yaptığı gibi 100'er 100'er isteniyor.
 
-- Mesaj listesi: Brezilya (ABNT2) klavyesinde mesaj listesinde "/" tuşuna basmak mesaj alanına "Á" yazıyordu ve "ç" "º" olarak çıkıyordu. Artık listede yazdıklarınız alana klavyenin gerçekten yazdığı gibi gidiyor, noktalama işaretleri ise listede kalıyor.
+- Mesaj listesi: Brezilya (ABNT2) klavyesinde mesaj listesinde "/" tuşuna basmak mesaj alanına "Á" yazıyordu ve "ç" "º" olarak çıkıyordu. Artık listede yazdıklarınız alana klavyenin gerçekten yazdığı gibi gidiyor, noktalama işaretleri ise listede kalıyor. Aynı nedenle, NVDA'nın Windows tuşlu hareketlerinin alana bıraktığı "ÿ", NVDA'nın kendisinin gönderdiği bir tuştan geliyordu; artık yalnızca o tuş yok sayılıyor ve gerçek bir "ÿ" yazılabiliyor.
 
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
