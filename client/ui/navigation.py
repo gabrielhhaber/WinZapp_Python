@@ -59,7 +59,7 @@ class NavigationPanel(wx.Panel):
             self.main_window, "chat_lock_navigation_visible", lambda: False
         )():
             keys.append("locked")
-        keys.extend(["status", "calls", "communities", "channels", "settings"])
+        keys.extend(["status", "calls", "communities", "channels", "starred", "settings"])
         i18n = self.main_window.i18n
         labels = {
             "conversations": f"{i18n.t('conversations')} alt+1",
@@ -69,6 +69,7 @@ class NavigationPanel(wx.Panel):
             "calls": i18n.t("calls_nav"),
             "communities": i18n.t("communities_nav"),
             "channels": i18n.t("channels_nav"),
+            "starred": i18n.t("starred_nav"),
             "settings": f"{i18n.t('settings')} {i18n.t('settings_shortcut')}",
         }
         labels = {key: navigation_shortcut_label(self.main_window, key, label)
@@ -146,6 +147,11 @@ class NavigationPanel(wx.Panel):
         if key == "channels":
             from ui.dialogs.channels import show_channels
             show_channels(mw, mw)
+            return
+
+        if key == "starred":
+            from ui.dialogs.starred_messages import show_starred_messages
+            show_starred_messages(mw, mw)
             return
 
         lock_vault = getattr(mw, "lock_chat_vault", None)

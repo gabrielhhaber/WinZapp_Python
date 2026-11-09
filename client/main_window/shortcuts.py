@@ -34,6 +34,7 @@ class ShortcutsMixin:
         self.ID_CTRL_ALT_SHIFT_G = wx.NewIdRef()
         self.ID_COMMUNITIES      = wx.NewIdRef()
         self.ID_CHANNELS         = wx.NewIdRef()
+        self.ID_STARRED          = wx.NewIdRef()
 
         # navigation_panel's "&Navegação principal" label mnemonic is meant
         # to redirect Alt+N to nav_list, but that native StaticText-mnemonic
@@ -75,6 +76,8 @@ class ShortcutsMixin:
             (wx.ACCEL_ALT,    ord('8'),    self.ID_COMMUNITIES),
             # and the channels window, next to it (core/channels.py)
             (wx.ACCEL_ALT,    ord('9'),    self.ID_CHANNELS),
+            # and the starred messages of every chat (issue #708)
+            (wx.ACCEL_ALT,    ord('0'),    self.ID_STARRED),
         ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_alt_1,       id=self.ID_ALT_1)
@@ -94,6 +97,7 @@ class ShortcutsMixin:
         self.Bind(wx.EVT_MENU, self._on_quick_input_devices, id=self.ID_CTRL_ALT_SHIFT_G)
         self.Bind(wx.EVT_MENU, self._on_global_communities, id=self.ID_COMMUNITIES)
         self.Bind(wx.EVT_MENU, self._on_global_channels, id=self.ID_CHANNELS)
+        self.Bind(wx.EVT_MENU, self._on_global_starred, id=self.ID_STARRED)
         from ui.shortcut_bindings import refresh_mnemonics
         refresh_mnemonics(self)
 
@@ -109,6 +113,12 @@ class ShortcutsMixin:
         row of the navigation list)."""
         from ui.dialogs.channels import show_channels
         show_channels(self, self)
+
+    def _on_global_starred(self, event=None):
+        """Alt+0: the starred messages of every chat, from anywhere in the
+        window (also a row of the navigation list)."""
+        from ui.dialogs.starred_messages import show_starred_messages
+        show_starred_messages(self, self)
 
     def _on_alt_nav(self, event):
         """Alt+N (or the localized equivalent): focus the main navigation list."""

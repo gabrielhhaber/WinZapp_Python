@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens favoritas: uma nova janela lista todas as mensagens favoritas de todas as conversas (Alt+0, ou a linha "Mensagens favoritas" da lista de navegação), com um campo de pesquisa; Enter abre a conversa na mensagem, e Delete tira o favorito. Sugestão da issue #708.
+
 - Mensagens: identidades alternativas conflitantes não direcionam mais mensagens enviadas a outra pessoa ou recebidas dela para a conversa com você mesmo. Correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.
 
 - Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 viravam 9) até você ressincronizar com F5. A contagem agora olha as mensagens mais recentes da conversa, e não as mais antigas. Também deixaram de sumir as conversas de grupo cujas últimas mensagens eram avisos do grupo (convites, membros adicionados, descrição alterada): esses avisos não tomam mais o lugar das mensagens não lidas de verdade.

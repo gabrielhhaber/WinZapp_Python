@@ -862,8 +862,12 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_credits"
-msgid "The provider's account has no credit left for this request. Add credits or choose a free model, then try again."
-msgstr "La cuenta del proveedor no tiene crédito para esta solicitud. Añade créditos o elige un modelo gratuito y vuelve a intentarlo."
+msgid ""
+"The provider's account has no credit left for this request. Add credits or "
+"choose a free model, then try again."
+msgstr ""
+"La cuenta del proveedor no tiene crédito para esta solicitud. Añade créditos"
+" o elige un modelo gratuito y vuelve a intentarlo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_limit"
@@ -4288,6 +4292,7 @@ msgstr "Vaciar chats seleccionados"
 #: client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
+#: client/ui/dialogs/starred_messages.py
 #: client/ui/dialogs/storage_manager_views.py
 #: client/ui/dialogs/transcription_result.py client/ui/media_viewer.py
 msgctxt "close"
@@ -11324,6 +11329,11 @@ msgid "WinZapp | Settings"
 msgstr "WinZapp | Configuración"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_alt0_starred_label"
+msgid "Alt+0: open starred messages"
+msgstr "Alt+0: abrir los mensajes destacados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_alt1_label"
 msgid "Alt+1: go to chats"
@@ -13174,6 +13184,79 @@ msgid ""
 msgstr ""
 "No se pudo verificar este cambio de destacado. Actualiza el chat abierto con"
 " Shift+F5 antes de reintentar; puede que ya se haya aplicado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "starred_count"
+msgid "Starred messages: {count}"
+msgstr "Mensajes destacados: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_list"
+msgid "Starred &messages"
+msgstr "&Mensajes destacados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+msgctxt "starred_nav"
+msgid "Starred messages alt+0"
+msgstr "Mensajes destacados alt+0"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "starred_no_match"
+msgid "No starred message matches the search."
+msgstr "Ningún mensaje destacado coincide con la búsqueda."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/starred_list.py
+msgctxt "starred_no_text"
+msgid "(no text)"
+msgstr "(sin texto)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "starred_none"
+msgid "No starred messages."
+msgstr "No hay mensajes destacados."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_open"
+msgid "&Open in the conversation"
+msgstr "&Abrir en el chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "starred_row"
+msgid "{chat}: {text}"
+msgstr "{chat}: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "starred_row_sender"
+msgid "{chat}, {sender}: {text}"
+msgstr "{chat}, {sender}: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_search"
+msgid "&Search starred messages"
+msgstr "&Buscar en los destacados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_title"
+msgid "Starred messages"
+msgstr "Mensajes destacados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "starred_unavailable"
+msgid "The starred messages could not be read."
+msgstr "No se pudieron leer los mensajes destacados."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_unstar"
+msgid "&Remove star"
+msgstr "&Quitar destacado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/neonize_bridge.py

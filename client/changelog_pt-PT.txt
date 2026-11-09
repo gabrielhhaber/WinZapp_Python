@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Mensagens marcadas com estrela: uma nova janela lista todas as mensagens marcadas com estrela de todas as conversas (Alt+0, ou a linha "Mensagens marcadas com estrela" da lista de navegação), com um campo de pesquisa; Enter abre a conversa na mensagem, e Delete retira a estrela. Sugestão da issue #708.
+
 - Mensagens: identidades alternativas em conflito já não encaminham mensagens enviadas a outra pessoa ou recebidas dela para a conversa consigo mesmo. As correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.
 
 - Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 passavam a 9) até ressincronizar com F5. A contagem passa a olhar para as mensagens mais recentes da conversa, e não para as mais antigas. Também deixaram de desaparecer as conversas de grupo cujas últimas entradas eram avisos do grupo (convites, membros adicionados, descrição alterada): esses avisos já não ocupam o lugar das mensagens não lidas reais.

@@ -307,6 +307,9 @@ class DatabaseBridge:
     def get_call_logs(self, limit: int = 1000) -> list[tuple[str, dict]]:
         return self._call(self._db.get_call_logs(limit))
 
+    def get_starred_messages(self, limit: int = 2000) -> list[tuple[str, dict]]:
+        return self._call(self._db.get_starred_messages(limit), timeout=_BULK_CALL_TIMEOUT)
+
     def get_message_count(self, remote_jid: str) -> int:
         return self._call(self._db.get_message_count(remote_jid))
 

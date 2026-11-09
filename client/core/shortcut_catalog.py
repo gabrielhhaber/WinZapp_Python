@@ -26,6 +26,7 @@ SHORTCUTS = (
     Shortcut('main.ID_CTRL_ALT_SHIFT_G', 'main', 'ID_CTRL_ALT_SHIFT_G', 'shortcut_ctrl_alt_shift_g_label', 7, 71, 0),
     Shortcut('main.ID_COMMUNITIES', 'main', 'ID_COMMUNITIES', 'shortcut_alt8_communities_label', 1, 56, 0),
     Shortcut('main.ID_CHANNELS', 'main', 'ID_CHANNELS', 'shortcut_alt9_channels_label', 1, 57, 0),
+    Shortcut('main.ID_STARRED', 'main', 'ID_STARRED', 'shortcut_alt0_starred_label', 1, 48, 0),
     # F1..F9 select slots 1..9, and F10 selects slot 0.  Preserve every
     # existing numbered bookmark shortcut in the messages context.
     *(Shortcut(f'main.quick_chat_open[{digit}]', 'main', f'quick_chat_open[{digit}]',
