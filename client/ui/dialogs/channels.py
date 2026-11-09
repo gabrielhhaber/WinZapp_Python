@@ -22,9 +22,11 @@ from ui.dialogs.labelled_control import add_labelled
 MINE, FIND = 0, 1
 
 
-def show_channels(mw, parent):
-    """Show the window and open the channel the user chose, if any."""
+def show_channels(mw, parent, keep=""):
+    """Show the window and open the channel the user chose, if any. *keep* is
+    the channel selected once the list arrives (coming back from it)."""
     dialog = ChannelsDialog(parent, mw)
+    dialog._keep_first = keep
     # where a channels-changed event finds it (WebSocketClient.on_channels_changed)
     mw._channels_dialog = dialog
     try:
@@ -34,7 +36,22 @@ def show_channels(mw, parent):
     finally:
         mw._channels_dialog = None
         dialog.Destroy()
+    # Esc in that channel comes back here (channel_closed()), not to the
+    # chat list: it was opened from this window, not from the list.
+    mw._channel_opened_from_window = channel.jid
     open_group_chat(mw, channel.jid, channel.name or mw.i18n.t("channels_unnamed"))
+    return True
+
+
+def channel_closed(mw, closed_jid) -> bool:
+    """The open conversation *closed_jid* was just closed with Esc: when it is
+    the channel the Channels window opened, show the window again, on that
+    channel, and say so to the caller (True). The mark is used once."""
+    opened = getattr(mw, "_channel_opened_from_window", "")
+    mw._channel_opened_from_window = ""
+    if not opened or opened != closed_jid or getattr(mw, "_shutting_down", False):
+        return False
+    wx.CallAfter(show_channels, mw, mw, opened)
     return True
 
 
@@ -191,7 +208,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._show(self._mine)          # "loading" until the first answer
         self._list.SetFocus()
         self.CentreOnParent()
-        wx.CallAfter(self._reload)
+        wx.CallAfter(lambda: self._reload(keep=getattr(self, "_keep_first", "")))
 
     #: how long after the last change of a category or list the directory is read
     FILTER_DELAY_MS = 700

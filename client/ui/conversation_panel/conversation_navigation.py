@@ -663,6 +663,10 @@ class ConversationNavigationMixin:
         if not closed:
             return  # _close_conversation_core() only handled the mention popup
         mw = self.main_window
+        # A channel opened from the Channels window goes back to it.
+        from ui.dialogs.channels import channel_closed
+        if channel_closed(mw, closed_jid):
+            return
         # Esc returns to the list the conversation was opened from, whatever
         # the chat is (an archived chat found through the main search box
         # belongs to the main list). The archived and locked lists sit

@@ -125,3 +125,23 @@ def test_the_people_window_reloads_only_for_its_own_channel():
     stub._busy = True
     stub.on_channels_changed("1@newsletter")
     assert loads == [True] and stub._reload_again is True
+
+
+# ---------------------------------------- Esc goes back to the Channels window
+def test_esc_in_a_channel_opened_from_the_window_shows_the_window_again(monkeypatch):
+    shown = []
+    monkeypatch.setattr(dialogs.wx, "CallAfter", lambda fn, *a: shown.append((fn, a)))
+    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter")
+    assert dialogs.channel_closed(mw, "1@newsletter") is True
+    assert shown == [(dialogs.show_channels, (mw, mw, "1@newsletter"))]
+    assert mw._channel_opened_from_window == ""
+    # used once: the next Esc in it goes to the chat list as usual
+    assert dialogs.channel_closed(mw, "1@newsletter") is False
+
+
+def test_any_other_conversation_closes_as_usual_and_forgets_the_mark(monkeypatch):
+    monkeypatch.setattr(dialogs.wx, "CallAfter", lambda fn, *a: None)
+    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter")
+    assert dialogs.channel_closed(mw, "5511@s.whatsapp.net") is False
+    assert mw._channel_opened_from_window == ""
+    assert dialogs.channel_closed(types.SimpleNamespace(), "1@newsletter") is False
