@@ -666,3 +666,11 @@ def test_a_call_that_is_not_a_live_group_call_reports_nothing():
     fake.people = [{"jid": "1@lid", "state": "connected"}]
     m.report_rosters()
     assert [e for e, _d in sent if e == "call-participants"] == []
+
+
+def test_who_a_one_to_one_call_placed_here_called_is_remembered_for_its_end():
+    m, _ = media(GroupRoster([]))
+    assert m.dial("5511999990000@c.us") == "OUT1"
+    assert m.placed_peer("OUT1") == "5511999990000@c.us"
+    assert m.placed_group("OUT1") is None
+    assert m.placed_peer("OTHER") == ""

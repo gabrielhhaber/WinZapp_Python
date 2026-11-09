@@ -626,3 +626,14 @@ def test_a_hang_up_during_the_switch_cancels_its_follow_up(monkeypatch):
     body = MAIN_SRC[MAIN_SRC.index("    def end_active_call(self"):]
     body = body[: body.index("def _worker")]
     assert 'promote["cancelled"] = True' in body
+
+
+def test_an_event_naming_this_account_never_becomes_the_calls_peer():
+    """The end of a call placed here named this account as its peer (Neonize):
+    written over the call's peer, the call landed in the user's own chat."""
+    stub = _Stub(_voice_call())
+    stub._voice_call_last_announced_state = "ACTIVE"
+    stub._is_self_jid = lambda jid: jid == "81@lid"
+    event = dict(_event(is_video=False), peerJid="81@lid")
+    stub.on_voice_call_state_event(event)
+    assert stub._active_voice_call["peer_jid"] == PEER

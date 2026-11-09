@@ -181,6 +181,21 @@ def with_placed_group(data, placed) -> dict:
             "isVideo": bool(data["isVideo"] or placed.get("isVideo"))}
 
 
+def with_own_call(data, mine, placed_peer):
+    """The end of a call this account placed, told as one: outgoing, with the
+    person called as its peer. WhatsApp's <terminate> names the call's creator,
+    which for a call placed here (or from another device of this account) is
+    this account itself. Told as a received call, the client wrote the call
+    over its own peer and the record landed in the user's own chat, "as if
+    they had called themselves" (reported 2026-11-09). `mine` holds this
+    account's JIDs (number and LID, WPPConnect format); `placed_peer` is
+    CallMedia.placed_peer for the call ("" when not placed here: then no peer
+    at all, never this account)."""
+    if data.get("isGroup") or data.get("outgoing") or data.get("peerJid") not in mine:
+        return data
+    return {**data, "outgoing": True, "peerJid": msgmap.jid_wpp(placed_peer) if placed_peer else ""}
+
+
 def end_state(reason) -> tuple:
     """CallTerminate reason -> (event, state) that the client understands. Any
     state outside ringing already makes the client silence the alert; the
@@ -468,8 +483,15 @@ def register_events(cli, s):
         try:
             data = end_event(e, time.time())
             data = with_offer(data, s.ringing_calls.offer_of(data["id"]))
-            data = refine_end(data, s.ringing_calls.accepted(data["id"]))
             placed_media = getattr(s, "call_media", None)
+            mine = {msgmap.jid_wpp(getattr(s, "me", "") or ""),
+                    msgmap.jid_wpp(getattr(s, "lid", "") or "")} - {""}
+            data = with_own_call(data, mine, placed_media.placed_peer(data["id"])
+                                 if placed_media is not None else "")
+            if not data["outgoing"]:
+                # "answered on another device" is about a call received here;
+                # the CallAccept of a call placed here is the person answering
+                data = refine_end(data, s.ringing_calls.accepted(data["id"]))
             if placed_media is not None:
                 data = with_placed_group(data, placed_media.placed_group(data["id"]))
             was_ringing = s.ringing_calls.creator_of(data["id"]) is not None

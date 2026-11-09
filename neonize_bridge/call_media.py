@@ -60,7 +60,7 @@ ANSWERED_KEPT = 50
 # offer queued for minutes and no <terminate> ever arrives), and WhatsApp Web
 # ends the call itself, so the window would otherwise ring until hung up.
 OUTGOING_RING_LIMIT = 60
-# How long a group call placed here is remembered after its placement (its end can come later).
+# How long a call placed here is remembered after its placement (its end can come later).
 PLACED_GROUP_KEEP = 6 * 3600
 
 
@@ -421,7 +421,16 @@ class CallMedia(CallIngressMixin):
         """{"groupJid", "isVideo"} of a group call placed here, or None."""
         with self._lock:
             found = self._placed_groups.get(call_id)
-        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]} if found else None
+        if not found or not found.get("groupJid"):
+            return None
+        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]}
+
+    def placed_peer(self, call_id):
+        """Who a one-to-one call placed here called (the JID as placed), or
+        "" when the call was not placed here."""
+        with self._lock:
+            found = self._placed_groups.get(call_id)
+        return (found.get("peer") or "") if found and not found.get("groupJid") else ""
 
     def start_pump(self, keep_going):
         """Starts pump_events on its own thread, unless it is already going (a
@@ -848,11 +857,14 @@ class CallMedia(CallIngressMixin):
             if generation is not None:
                 call["native_generation"] = generation
             self._calls[call_id] = call
-            if group:
-                now = time.time()
-                self._placed_groups = {i: g for i, g in self._placed_groups.items()
-                                       if now - g["at"] < PLACED_GROUP_KEEP}
-                self._placed_groups[call_id] = {"groupJid": group, "isVideo": bool(video), "at": now}
+            # every call placed here, not only group ones: the <terminate> of
+            # a one-to-one call names this account as its creator, not the
+            # person called (calls.with_own_call)
+            now = time.time()
+            self._placed_groups = {i: g for i, g in self._placed_groups.items()
+                                   if now - g["at"] < PLACED_GROUP_KEEP}
+            self._placed_groups[call_id] = {"groupJid": group or "", "peer": peer or "",
+                                            "isVideo": bool(video), "at": now}
         if recovered is not None and (snapshot is None or snapshot["ended"]):
             self.handle({"ev": "end", "call": call_id, "generation": generation,
                          "reason": "ended_before_registration"})
