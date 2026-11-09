@@ -57,6 +57,7 @@
   "call": "Durante uma chamada",
   "incoming": "Chamada recebida",
   "channels": "Janela Canais",
-  "channel_people": "Administradores e seguidores do canal"
+  "channel_people": "Administradores e seguidores do canal",
+  "call_participants": "Participantes da chamada"
  }
 }

@@ -2620,6 +2620,20 @@ msgid "Voice call"
 msgstr "Połączenie głosowe"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_participants.py
+#, python-brace-format
+msgctxt "call_participant_joined"
+msgid "{name} joined the call"
+msgstr "{name} dołączył(a) do połączenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_participants.py
+#, python-brace-format
+msgctxt "call_participant_left"
+msgid "{name} left the call"
+msgstr "{name} opuścił(a) połączenie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_add"
 msgid "&Add participants"
@@ -2666,7 +2680,6 @@ msgid "Connected participants"
 msgstr "Połączeni uczestnicy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_refresh"
 msgid "&Refresh"
 msgstr "&Odśwież"
@@ -2693,6 +2706,18 @@ msgstr "Brak dostępnej kamery."
 msgctxt "calls_alerts_enabled_label"
 msgid "Allow &incoming call alerts"
 msgstr "Zezwalaj &na alerty o połączeniach przychodzących"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "calls_announce_joined_label"
+msgid "Announce when someone &joins a call"
+msgstr "Ogłaszaj, &gdy ktoś dołącza do połączenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "calls_announce_left_label"
+msgid "A&nnounce when someone leaves a call"
+msgstr "Ogłaszaj, gdy &ktoś opuszcza połączenie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -11662,6 +11687,11 @@ msgstr "Ctrl+Shift+Q: zakończ połączenie"
 msgctxt "shortcut_call_ctrl_v_label"
 msgid "Ctrl+V: turn video on or off in a video call"
 msgstr "Ctrl+V: włącz lub wyłącz wideo w połączeniu wideo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_call_participants_f5_label"
+msgid "F5: read the participants again"
+msgstr "F5: wczytaj ponownie uczestników"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

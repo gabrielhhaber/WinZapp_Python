@@ -57,6 +57,7 @@
   "call": "Durante una llamada",
   "incoming": "Llamada entrante",
   "channels": "Ventana Canales",
-  "channel_people": "Administradores y seguidores del canal"
+  "channel_people": "Administradores y seguidores del canal",
+  "call_participants": "Participantes de la llamada"
  }
 }

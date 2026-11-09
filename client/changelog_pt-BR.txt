@@ -12,6 +12,8 @@ NOVIDADES
 
 - Lista de conversas: quando o filtro escolhido (Não lidas, Grupos, Individuais), uma lista do WhatsApp ou a pesquisa não encontra nenhuma conversa, a lista mostra uma linha dizendo isso (por exemplo "Nenhuma conversa não lida."), como a lista de mensagens já fazia numa conversa vazia, em vez de não ter nada para o leitor de tela ler.
 
+- Ligações em grupo: o WinZapp agora diz quem entra e quem sai da ligação (Configurações > Chamadas, "Anunciar quando alguém entra na chamada" e "Anunciar quando alguém sai da chamada", ligadas por padrão), e a janela "Participantes da ligação" se atualiza sozinha nessas horas, sem o botão Atualizar; F5 lê a lista de novo.
+
 - Chamadas: a janela "Adicionar participantes" agora funciona com leitor de tela. As pessoas são marcadas com as mesmas teclas, som e anúncios das listas de conversas e mensagens (Ctrl+Espaço, Espaço enquanto houver algo marcado, Shift+setas, Ctrl+Shift+Espaço, Esc), e o resultado é falado: quem foi convidado, quem não pôde ser adicionado ou por que o pedido falhou.
 
 - Chamadas: áudio, vídeo e tarefas de dispositivos ou câmera atrasados permanecem vinculados à chamada e ao fluxo de origem. O Neonize processa a mídia em filas limitadas fora do loop do servidor e mantém o leitor após uma falha transitória de emissão. Nomes WASAPI ambíguos não escolhem mais o primeiro dispositivo correspondente. Os registros de chamadas do Neonize também incluem resumos do nível do sinal, sem salvar o conteúdo do áudio, para ajudar a investigar a ausência de som. Ao reabrir a saída de uma chamada, um fluxo antigo que não consegue fechar não pode consumir o áudio do novo fluxo; uma falha na referência de eco não silencia mais o áudio já preparado para reprodução.

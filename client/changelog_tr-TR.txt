@@ -12,6 +12,8 @@ YENİLİKLER
 
 - Sohbet listesi: seçilen filtre (Okunmamış, Gruplar, Bireysel), bir WhatsApp listesi veya arama hiç sohbet bulamadığında liste artık bunu söyleyen bir satır gösterir (örneğin "Okunmamış sohbet yok."); mesaj listesi boş bir sohbette bunu zaten yapıyordu. Önceden ekran okuyucunun okuyacak hiçbir şeyi olmuyordu.
 
+- Grup aramaları: WinZapp artık aramaya kimin katıldığını ve kimin ayrıldığını söylüyor (Ayarlar > Aramalar, "Biri aramaya katıldığında duyur" ve "Biri aramadan ayrıldığında duyur", varsayılan olarak açık) ve "Arama katılımcıları" penceresi bu anlarda Yenile düğmesi olmadan kendiliğinden güncelleniyor; F5 listeyi yeniden okur.
+
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
 - Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.

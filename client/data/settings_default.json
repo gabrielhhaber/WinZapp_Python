@@ -54,7 +54,9 @@
     },
     "calls": {
         "alerts_enabled": true,
-        "popup_enabled": true
+        "popup_enabled": true,
+        "announce_participant_joined": true,
+        "announce_participant_left": true
     },
     "profile_backup": {
         "snapshots_disabled": false,

@@ -1313,6 +1313,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         calls_sizer.Add(self._call_popup_check, 0, wx.ALL, 8)
 
+        # Said from the call-participants event (MainWindow.on_call_participants)
+        self._call_joined_check = wx.CheckBox(
+            self._calls_page, label=i18n.t("calls_announce_joined_label"))
+        calls_sizer.Add(self._call_joined_check, 0, wx.ALL, 8)
+        self._call_left_check = wx.CheckBox(
+            self._calls_page, label=i18n.t("calls_announce_left_label"))
+        calls_sizer.Add(self._call_left_check, 0, wx.ALL, 8)
+
         self._call_audio_settings_button = wx.Button(
             self._calls_page, label=i18n.t("calls_audio_settings_button")
         )
@@ -2367,6 +2375,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "calls"):
             self._call_alerts_check.SetValue(call_settings.get("alerts_enabled", True))
             self._call_popup_check.SetValue(call_settings.get("popup_enabled", True))
+            self._call_joined_check.SetValue(call_settings.get("announce_participant_joined", True))
+            self._call_left_check.SetValue(call_settings.get("announce_participant_left", True))
             self._update_call_fields_state()
 
         profile_backup = self.main_window.settings.get("profile_backup", {})
@@ -4343,6 +4353,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "calls"):
             calls["alerts_enabled"] = self._call_alerts_check.GetValue()
             calls["popup_enabled"] = self._call_popup_check.GetValue()
+            calls["announce_participant_joined"] = self._call_joined_check.GetValue()
+            calls["announce_participant_left"] = self._call_left_check.GetValue()
 
         profile_backup = self.main_window.settings.setdefault("profile_backup", {})
         if ready(self, "backup"):
@@ -4748,6 +4760,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "calls"):
             self._call_alerts_check.SetLabel(i18n.t("calls_alerts_enabled_label"))
             self._call_popup_check.SetLabel(i18n.t("calls_popup_enabled_label"))
+            self._call_joined_check.SetLabel(i18n.t("calls_announce_joined_label"))
+            self._call_left_check.SetLabel(i18n.t("calls_announce_left_label"))
             self._call_audio_settings_button.SetLabel(i18n.t("calls_audio_settings_button"))
             self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
         if ready(self, "notifications"):

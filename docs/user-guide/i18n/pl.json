@@ -58,6 +58,7 @@
   "call": "Podczas połączenia",
   "incoming": "Połączenie przychodzące",
   "channels": "Okno Kanały",
-  "channel_people": "Administratorzy i obserwujący kanału"
+  "channel_people": "Administratorzy i obserwujący kanału",
+  "call_participants": "Uczestnicy połączenia"
  }
 }

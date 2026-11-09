@@ -57,6 +57,7 @@
   "call": "Arama sırasında",
   "incoming": "Gelen arama",
   "channels": "Kanallar penceresi",
-  "channel_people": "Kanal yöneticileri ve takipçileri"
+  "channel_people": "Kanal yöneticileri ve takipçileri",
+  "call_participants": "Arama katılımcıları"
  }
 }

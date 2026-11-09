@@ -762,7 +762,7 @@
 </div>
 <p>When WPPConnect is reinstalled, WinZapp preserves a newer compatible WhatsApp Web catalogue and checks for a fresh one. Without internet, a usable catalogue is retained, but its freshness cannot be confirmed. If a call still cannot start, restore internet access and restart WinZapp. A confirmed VoIP mismatch that cannot be retried is reported without repeating initialization.</p>
 <p>While a group chat is open, WinZapp checks for an ongoing call about every ten seconds. A join button appears only when a call is available and disappears when it ends. Joining a video call starts with the camera off. Joining an existing call does not use the 32-member limit for starting a new group call. While a call is available, the "Join ongoing voice call" button or, for a video call, "Join ongoing video call (camera off)" replaces the voice and video start buttons. In Calls (Alt+6), the Ongoing filter lists joinable calls, including multiparty calls outside group chats; they also appear first in All. Select a call and press Enter or use the same join button. If you are already in that call, the button is "Return to call" and brings your current call window forward. The list refreshes about every ten seconds while Calls is open and includes only calls WhatsApp makes available to your account.</p>
-<p>Use the "Call participants" button in the call window, or on a selected ongoing call in Calls, to see the connected people by name. The list updates every ten seconds; "Refresh" updates it on demand and "Close" or Esc closes it. Invited and disconnected people are excluded. Reading the list does not join or end a call.</p>
+<p>Use the "Call participants" button in the call window, or on a selected ongoing call in Calls, to see the connected people by name. The list updates by itself when someone joins or leaves the call; F5 reads it again and "Close" or Esc closes it. In a group call WinZapp also says who joined and who left (Settings &gt; Calls, "Announce when someone joins a call" and "Announce when someone leaves a call", on by default). Invited and disconnected people are excluded. Reading the list does not join or end a call.</p>
 
 <h3>Call audio continuity</h3>
 <p>Neonize keeps delayed audio, camera work and device changes with the call and stream that started them. Pending data from an ended or replaced stream is discarded, and media backlog is limited. A temporary failure to forward a frame to the client does not permanently stop audio reading. Reopening the output prevents a retired stream from consuming the new stream's audio; an echo-reference failure does not silence audio already prepared for playback. An ambiguous partial WASAPI device-name match keeps the original API instead of choosing an arbitrary match.</p>
@@ -1335,6 +1335,11 @@
 <tr><td class="field-name">Alt+S</td><td>Silence alert</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Close window</td></tr>
 </table>
+<h3>Call participants</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">F5</td><td>Read the participants again</td></tr>
+</table>
 <h3>Channels window</h3>
 <table class="field-table">
 <tr><th>Shortcut</th><th>Action</th></tr>
@@ -1438,6 +1443,7 @@
 <tr><td class="field-name">Not yet released</td><td>Neonize: "Add yours", question and animated sticker statuses no longer show as an incompatible message.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Channels windows updated by WhatsApp's own events, a configurable F5, and editing your text updates.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Chat list: a row saying so when the filter, the list or the search finds no chat.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Group calls: who joins and who leaves is announced (two options in Settings &gt; Calls) and the participants list updates by itself; F5 reads it again.</td></tr>
 </table>
 
   </section>

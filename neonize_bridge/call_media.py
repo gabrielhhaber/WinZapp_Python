@@ -149,6 +149,14 @@ def finished_info(call, state, now) -> dict:
             "state": state, "activeAt": call.get("active_at"), "endedAt": now}
 
 
+def roster_connected(participants, mine) -> tuple:
+    """The people other than this account connected to a group call, from
+    its roster, in the form call/participants answers (a person's number
+    where the roster has it, the LID otherwise), sorted."""
+    rows = ongoing_calls.connected_rows(participants, mine, lambda jid, lid: "")
+    return tuple(sorted(row["jid"] for row in rows if not row["isSelf"]))
+
+
 def remote_members_connected(participants, mine) -> int:
     """How many people other than this account are connected to a group call,
     from the roster's participants ([{jid, pn, state}]). `mine` are the
@@ -379,6 +387,36 @@ class CallMedia(CallIngressMixin):
         self._set_state(call_id, "ACTIVE", expected=call)
         self._ensure_audio(call_id, call)
 
+    #: how often the group calls' rosters are compared, in seconds
+    ROSTER_EVERY = 2.0
+
+    def report_rosters(self):
+        """`call-participants` for each live group call whose connected
+        people changed since the last report: the whole list, as WPPConnect's
+        callParticipantsBridge.ts sends it, and the client says who joined or
+        left. The call layer has no roster event, so the roster it keeps is
+        compared here, from the event pump."""
+        with self._lock:
+            live = [(call_id, call) for call_id, call in self._calls.items()
+                    if call.get("group") and call.get("state") == "ACTIVE"]
+            reported = self.__dict__.setdefault("_reported_rosters", {})
+            for gone in set(reported) - {call_id for call_id, _call in live}:
+                reported.pop(gone, None)
+        mine = self.own_users()
+        for call_id, _call in live:
+            try:
+                participants = (self.calls.roster(call_id) or {}).get("participants")
+            except Exception:
+                log.exception("group call roster")
+                continue
+            connected = roster_connected(participants, mine)
+            with self._lock:
+                if reported.get(call_id) == connected:
+                    continue
+                reported[call_id] = connected
+            self.emit("call-participants", {"session": self.name, "callId": call_id,
+                                            "connected": list(connected)})
+
     def placed_group(self, call_id):
         """{"groupJid", "isVideo"} of a group call placed here, or None."""
         with self._lock:
@@ -400,6 +438,7 @@ class CallMedia(CallIngressMixin):
         """The call layer's events, while `keep_going()` (start_pump runs it)."""
         stopped = layer_error()
         try:
+            rosters_at = 0.0
             while keep_going():
                 try:
                     ev = self.calls.next_event(500)
@@ -410,6 +449,12 @@ class CallMedia(CallIngressMixin):
                         self.handle(ev)
                     except Exception:
                         log.exception("call event")
+                if time.monotonic() - rosters_at >= self.ROSTER_EVERY:
+                    rosters_at = time.monotonic()
+                    try:
+                        self.report_rosters()
+                    except Exception:
+                        log.exception("call rosters")
         finally:
             self._running = False
             self.close()

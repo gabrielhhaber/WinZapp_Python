@@ -31,6 +31,7 @@ import {
 } from './callMediaBridge';
 import { installAnnouncementReplyBridge } from './announcementReplyBridge';
 import { installChannelsWatchBridge } from './channelsWatchBridge';
+import { installCallParticipantsBridge } from './callParticipantsBridge';
 import {
   autoDownload,
   callWebHook,
@@ -1647,6 +1648,7 @@ export default class CreateSessionUtil {
     await this.onUnreadCountChanged(client, req);
     await installAnnouncementReplyBridge(client, req.io, req.logger);
     await installChannelsWatchBridge(client, req.io, req.logger);
+    await installCallParticipantsBridge(client, req.io, req.logger);
   }
 
   /**

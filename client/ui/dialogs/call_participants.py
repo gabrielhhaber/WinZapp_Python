@@ -6,6 +6,7 @@ import wx
 
 from core.call_log import list_update_plan
 from core.call_participants import parse_participants, participant_rows
+from ui.shortcut_bindings import make_shortcut_table
 
 
 class ParticipantListMixin:
@@ -119,9 +120,6 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         self._status = wx.StaticText(panel, label=i18n.t("loading"))
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT, 8)
         buttons = wx.BoxSizer(wx.HORIZONTAL)
-        self._refresh_btn = wx.Button(panel, label=i18n.t("call_participants_refresh"))
-        self._refresh_btn.Bind(wx.EVT_BUTTON, self._refresh_participants)
-        buttons.Add(self._refresh_btn, 0, wx.ALL, 8)
         if invite_chat:
             # Only for the call this device is in (show_call_participants)
             add = wx.Button(panel, label=i18n.t("call_participants_add"))
@@ -135,6 +133,13 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         outer = wx.BoxSizer(wx.VERTICAL)
         outer.Add(panel, 1, wx.EXPAND)
         self.SetSizer(outer)
+        # No Refresh button: the list follows who joins and leaves
+        # (MainWindow.on_call_participants); F5 (Settings > Shortcuts,
+        # "call_participants.ID_F5") reads it again and says how many there are.
+        self.ID_F5 = wx.NewIdRef()
+        self.SetAcceleratorTable(make_shortcut_table(self, "call_participants", [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
+        self.Bind(wx.EVT_MENU, lambda event: self._refresh_participants(event), id=self.ID_F5)
         self.SetMinSize((450, 330))
         self.Fit()
         self.CentreOnParent()

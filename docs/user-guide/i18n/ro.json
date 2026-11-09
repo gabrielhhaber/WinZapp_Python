@@ -57,6 +57,7 @@
   "call": "În timpul unui apel",
   "incoming": "Apel primit",
   "channels": "Fereastra Canale",
-  "channel_people": "Administratorii și urmăritorii canalului"
+  "channel_people": "Administratorii și urmăritorii canalului",
+  "call_participants": "Participanții la apel"
  }
 }

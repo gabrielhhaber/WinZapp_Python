@@ -2542,6 +2542,20 @@ msgid "Voice call"
 msgstr "مكالمة صوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_participants.py
+#, python-brace-format
+msgctxt "call_participant_joined"
+msgid "{name} joined the call"
+msgstr "انضم {name} إلى المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_participants.py
+#, python-brace-format
+msgctxt "call_participant_left"
+msgid "{name} left the call"
+msgstr "غادر {name} المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_add"
 msgid "&Add participants"
@@ -2586,7 +2600,6 @@ msgid "Connected participants"
 msgstr "المشاركون المتصلون"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_refresh"
 msgid "&Refresh"
 msgstr "تحدي&ث"
@@ -2613,6 +2626,18 @@ msgstr "لا توجد كاميرا متاحة."
 msgctxt "calls_alerts_enabled_label"
 msgid "Allow &incoming call alerts"
 msgstr "ال&سماح بتنبيهات المكالمات الواردة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "calls_announce_joined_label"
+msgid "Announce when someone &joins a call"
+msgstr "&الإعلان عند انضمام أحد إلى المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "calls_announce_left_label"
+msgid "A&nnounce when someone leaves a call"
+msgstr "الإعلان &عند مغادرة أحد للمكالمة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -11427,6 +11452,11 @@ msgstr "Ctrl+Shift+Q: إنهاء المكالمة"
 msgctxt "shortcut_call_ctrl_v_label"
 msgid "Ctrl+V: turn video on or off in a video call"
 msgstr "Ctrl+V: تشغيل أو إيقاف الفيديو في مكالمة فيديو"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_call_participants_f5_label"
+msgid "F5: read the participants again"
+msgstr "F5: إعادة قراءة المشاركين"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

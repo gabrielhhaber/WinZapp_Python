@@ -762,7 +762,7 @@
 </div>
 <p>La reinstalarea WPPConnect, WinZapp păstrează un catalog WhatsApp Web mai nou și compatibil și caută un catalog actualizat. Fără internet este păstrat un catalog utilizabil, dar actualitatea lui nu poate fi confirmată. Dacă apelul tot nu pornește, restabiliți conexiunea la internet și reporniți WinZapp. O incompatibilitate VoIP confirmată care nu permite reîncercarea este raportată fără repetarea inițializării.</p>
 <p>Cât timp conversația unui grup este deschisă, WinZapp verifică aproximativ la fiecare zece secunde dacă există un apel în desfășurare. Butonul de alăturare apare numai când există un apel disponibil și dispare când acesta se încheie. La alăturarea la un apel video, camera pornește oprită. Alăturarea la un apel existent nu folosește limita de 32 de membri pentru inițierea unui apel de grup nou. Când un apel este disponibil, butoanele de inițiere a apelurilor vocale și video sunt înlocuite de butonul "Alăturați-vă apelului vocal în desfășurare" sau, pentru un apel video, "Alăturați-vă apelului video în desfășurare (camera oprită)". În Apeluri (Alt+6), filtrul În desfășurare afișează apelurile la care vă puteți alătura, inclusiv apeluri între mai multe persoane în afara chaturilor de grup; acestea apar și primele în Toate. Selectați un apel și apăsați Enter sau folosiți același buton de alăturare. Dacă sunteți deja în acel apel, butonul se numește "Reveniți la apel" și aduce în față fereastra apelului curent. Lista se actualizează aproximativ la fiecare zece secunde cât timp Apeluri este deschis și include numai apelurile pe care WhatsApp le pune la dispoziția contului dvs.</p>
-<p>Folosiți butonul "Participanții la apel" din fereastra apelului sau pentru un apel în desfășurare selectat în Apeluri pentru a vedea numele persoanelor conectate. Lista se actualizează la fiecare zece secunde; "Reîmprospătează" solicită datele actuale, iar "Închide" sau Esc închide fereastra. Persoanele invitate sau deconectate nu sunt afișate. Consultarea listei nu vă alătură apelului și nu îl încheie.</p>
+<p>Folosiți butonul "Participanții la apel" din fereastra apelului sau pentru un apel în desfășurare selectat în Apeluri pentru a vedea numele persoanelor conectate. Lista se actualizează singură când cineva intră sau iese din apel; F5 o citește din nou, iar "Închide" sau Esc închide fereastra. Într-un apel de grup, WinZapp spune și cine a intrat și cine a ieșit (Setări &gt; Apeluri, "Anunțați când cineva intră în apel" și "Anunțați când cineva iese din apel", activate implicit). Persoanele invitate sau deconectate nu sunt afișate. Consultarea listei nu vă alătură apelului și nu îl încheie.</p>
 
 <h3>Continuitatea sunetului în apeluri</h3>
 <p>Neonize asociază sunetul întârziat, operațiile camerei și schimbările de dispozitive cu apelul și fluxul care le-au pornit. Datele în așteptare ale unui flux încheiat sau înlocuit sunt eliminate, iar acumularea datelor media este limitată. O eroare temporară la trimiterea unui cadru către client nu oprește definitiv citirea sunetului. La redeschiderea ieșirii, fluxul vechi nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu reduce la tăcere sunetul pregătit pentru redare. O potrivire parțială ambiguă a numelui unui dispozitiv WASAPI păstrează API-ul inițial, fără a alege o potrivire arbitrară.</p>
@@ -1334,6 +1334,11 @@
 <tr><td class="field-name">Alt+E</td><td>Respingeți</td></tr>
 <tr><td class="field-name">Alt+O</td><td>Opriți alerta</td></tr>
 </table>
+<h3>Participanții la apel</h3>
+<table class="field-table">
+<tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
+<tr><td class="field-name">F5</td><td>Citiți din nou participanții</td></tr>
+</table>
 <h3>Fereastra Canale</h3>
 <table class="field-table">
 <tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
@@ -1438,6 +1443,7 @@
 <tr><td class="field-name">Încă nepublicat</td><td>Neonize: statusurile „Adaugă-l pe al tău”, cu întrebare și cu autocolant animat nu mai apar ca mesaj incompatibil.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Ferestrele de canale actualizate de evenimentele WhatsApp, F5 configurabil și editarea actualizărilor text proprii.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Lista de conversații: un rând care spune asta când filtrul, lista sau căutarea nu găsește nicio conversație.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Apeluri de grup: se anunță cine intră și cine iese (două opțiuni în Setări &gt; Apeluri), iar lista participanților se actualizează singură; F5 o citește din nou.</td></tr>
 </table>
 
   </section>
