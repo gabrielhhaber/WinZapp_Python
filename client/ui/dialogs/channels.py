@@ -111,6 +111,8 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._mode = MINE
         self._mine, self._found, self._shown = [], [], []
         self._loaded = self._searched = False
+        self._filter_timer = None
+        self._search_again = False
         self.result = None
         super().__init__(parent, title=i18n.t("channels_title"), size=(620, 640),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -131,8 +133,9 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._search_btn.Bind(wx.EVT_BUTTON, self._on_search)
         row.Add(self._search_btn, 0, wx.LEFT, 8)
         sizer.Add(row, 0, wx.EXPAND | wx.ALL, 8)
-        # The directory's category and list, as WhatsApp Web's pills: read by
-        # Search (or Enter), never on each arrow press inside the choice.
+        # The directory's category and list, as WhatsApp Web's pills: picking
+        # one reads the directory again, a moment after the last change, so
+        # arrowing through the choice does not send one read per item passed.
         row = wx.BoxSizer(wx.HORIZONTAL)
         # literal keys, in the order of ch.CATEGORIES and ch.VIEWS
         self._category = self._labelled_choice(row, i18n.t("channels_category"), [
@@ -183,11 +186,33 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self.CentreOnParent()
         wx.CallAfter(self._reload)
 
+    #: how long after the last change of a category or list the directory is read
+    FILTER_DELAY_MS = 700
+
+    def _on_filter_changed(self, event=None):
+        """A category or list was picked: read the directory with it, once the
+        choice has settled (core/channels.py names what each one asks)."""
+        if self._mode != FIND:
+            return
+        if self._filter_timer is not None and self._filter_timer.IsRunning():
+            self._filter_timer.Stop()
+        self._filter_timer = wx.CallLater(self.FILTER_DELAY_MS, self._filter_settled)
+
+    def _filter_settled(self):
+        self._filter_timer = None
+        if not self._current():
+            return
+        if self._busy:
+            self._search_again = True   # read again when the one in flight answers
+            return
+        self._on_search()
+
     def _labelled_choice(self, row, label, items):
         row.Add(wx.StaticText(self, label=label), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         choice = wx.Choice(self, choices=items)
         choice.SetName(label.replace("&", ""))
         choice.SetSelection(0)
+        choice.Bind(wx.EVT_CHOICE, self._on_filter_changed)
         row.Add(choice, 1, wx.RIGHT, 8)
         return choice
 
@@ -312,6 +337,12 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
     def _finish_search(self, found, key):
         self._set_busy(False)
         if not self._current():
+            return
+        if self._search_again:
+            # the category or list changed while this read was in flight:
+            # its answer is for the old one
+            self._search_again = False
+            self._on_search()
             return
         if found is None:
             logging.warning("[channels] directory_failed")
