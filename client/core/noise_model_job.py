@@ -31,3 +31,10 @@ class NoiseModelDownloadJob(management.ManagementJob):
             should_cancel=self._should_cancel,
             session=self._session,
         )
+
+    def announcement(self, result, error):
+        """The noise model's own sentence on success (also when the main
+        window says it, for a download in the background)."""
+        if error is None:
+            return management.Announcement("noise_model_downloaded", management.OUTCOME_DONE)
+        return super().announcement(result, error)

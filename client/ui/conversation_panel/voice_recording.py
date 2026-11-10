@@ -831,9 +831,12 @@ class VoiceRecordingMixin:
                 try:
                     logging.info("[VOICE_TIMING] Applying microphone noise reduction...")
                     from core.neural_noise_reduction import reduce_voice_noise
-                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, channels)
+                    # Settings > Audio: the neural model, or the common reducer
+                    neural = mw.settings.get("general", {}).get("noise_reduction_neural", True) is not False
+                    audio_data, engine = reduce_voice_noise(audio_data, actual_rate, channels,
+                                                            neural=neural)
                     logging.info("[VOICE_TIMING] Noise reduction engine: %s", engine)
-                    if engine != "neural":
+                    if neural and engine != "neural":
                         # Never let the plain gate pass for the neural model.
                         announce = getattr(mw, "output", None)
                         if announce is not None:

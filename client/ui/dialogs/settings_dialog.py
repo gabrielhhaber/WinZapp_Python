@@ -43,7 +43,7 @@ from ui.dialogs.transcription_queue import TranscriptionQueueMixin
 from ui.dialogs.transcription_reuse import TranscriptionReuseMixin
 from ui.dialogs.transcription_windows import TranscriptionWindowsMixin
 from ui.dialogs.advanced_tab import AdvancedTabMixin
-from ui.dialogs.noise_model_section import NoiseModelSectionMixin
+from ui.dialogs.noise_reducer_dialog import NoiseReducerButtonMixin
 from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
@@ -236,7 +236,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                      TranscriptionBackgroundTabMixin, TranscriptionModelMarksMixin,
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
-                     TranscriptionWindowsMixin, AdvancedTabMixin, NoiseModelSectionMixin,
+                     TranscriptionWindowsMixin, AdvancedTabMixin, NoiseReducerButtonMixin,
                      VoiceRecordingOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
@@ -865,7 +865,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._audio_devices_page, label=i18n.t("noise_reduction_label")
         )
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
-        self._build_noise_model_section(self._audio_devices_page, adev_sizer)
+        # the model and the processor it runs on: in its own window
+        self._build_noise_reducer_button(self._audio_devices_page, adev_sizer)
         self._build_voice_recording_options(self._audio_devices_page, adev_sizer)
 
         # What an audio file pasted into the message field (Ctrl+V) is sent
@@ -2783,6 +2784,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         noise_red = self.main_window.settings.get("general", {}).get("noise_reduction_enabled", False)
         if wanted(unit, "audio"):
             self._noise_reduction_check.SetValue(noise_red)
+            self._load_noise_reducer_options()
             self._load_voice_recording_options()
 
         # Sound events / packs
@@ -4341,6 +4343,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["noise_reduction_enabled"] = (
                 self._noise_reduction_check.GetValue()
             )
+            self._save_noise_reducer_device()
             self._save_voice_recording_options()
 
         if ready(self, "notifications"):
@@ -4762,7 +4765,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._audio_effects_label.SetLabel(i18n.t("audio_effects_output_device_label"))
             self._reload_audio_device_choices()
             self._noise_reduction_check.SetLabel(i18n.t("noise_reduction_label"))
-            self._relabel_noise_model_section()
+            self._relabel_noise_reducer_button()
             self._relabel_voice_recording_options()
         if ready(self, "notifications"):
             self._notifications_check.SetLabel(i18n.t("notifications_label"))

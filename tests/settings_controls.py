@@ -47,6 +47,7 @@ FILES = (
     "transcription_queue.py", "transcription_result_field.py", "transcription_reuse.py",
     "transcription_tab.py", "transcription_whisper_cpp.py", "transcription_windows.py",
     "advanced_tab.py", "ai_auto_options.py",
+    "noise_reducer_dialog.py", "noise_model_section.py",
 )
 
 LABELLED = {"Button", "CheckBox", "RadioButton", "ToggleButton", "RadioBox", "StaticText",

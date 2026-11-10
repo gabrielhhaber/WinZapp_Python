@@ -85,6 +85,14 @@ both; branch with `isinstance(self.messages_list, CompatListBoxMessagesCtrl)`.
 Every string added also goes into every locale (`i18n-ui-string`). Speech and
 focus traps: `docs/traps/screen-reader-speech.md`.
 
+## Alt letters of a new window
+
+Every labelled control needs an Alt letter, and no two controls on one screen may share
+one. `tests/window_mnemonics.py` finds every window by itself; the settings dialog's
+windows are read by `tests/settings_controls.py`, whose `FILES` list is kept by hand:
+a new module with a window, page or panel reached from Settings is added there, or
+`tests/test_settings_mnemonics.py` never checks it.
+
 ## Verify
 
 ```

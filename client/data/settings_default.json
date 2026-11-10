@@ -21,6 +21,8 @@
         "background_update_downloads": false,
         "wpp_all_updates": false,
         "noise_reduction_enabled": false,
+        "noise_reduction_neural": true,
+        "noise_reduction_device": "cpu",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,

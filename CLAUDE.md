@@ -40,7 +40,11 @@ you open a matching file; the reasoning is in `docs/traps/` and
    (`docs/reference/neonize-build.md`).
 5. **All speech goes through `MainWindow.speak_output`**; plain wx controls
    only; list mutations inside `Freeze()`/`Thaw()`; titles and rows show
-   names, never raw JIDs. Skill: `accessible-ui`.
+   names, never raw JIDs. Skill: `accessible-ui`. **A new module holding a
+   window, page or panel reached from Settings goes into `FILES` of
+   `tests/settings_controls.py`** (hand-kept; every other window is found by
+   `tests/window_mnemonics.py` on its own), or its controls' Alt letters are
+   never checked by `tests/test_settings_mnemonics.py`.
 6. **Never grow a file just because it is open.** Put code in the module that
    owns the responsibility (`client/main_window/`,
    `client/ui/conversation_panel/`, `client/core/`) or create one. Pure logic

@@ -242,3 +242,25 @@ def _sweep(folder):
     """After a failed attempt: everything of the attempt goes (the folder is
     this component's alone, and RECORD is only ever written last)."""
     shutil.rmtree(folder, ignore_errors=True)
+
+
+def removable(device, root=None) -> list:
+    """The installed components of `device` that may be removed: never the
+    shared cuBLAS, which the local transcription uses (it is removed from the
+    Transcription tab)."""
+    return [cid for cid in STACKS.get(device, ())
+            if cid != SHARED_CUBLAS_CU12 and state(cid, root) != STATE_ABSENT]
+
+
+def remove(component_ids, root=None) -> list:
+    """Delete `component_ids`' folders. Returns those that could not go whole:
+    a DLL this process already loaded (the build in use) stays until WinZapp
+    restarts."""
+    left = []
+    for cid in component_ids:
+        folder = component_dir(cid, root)
+        with _locked(folder, None):
+            shutil.rmtree(folder, ignore_errors=True)
+        if os.path.exists(folder):
+            left.append(cid)
+    return left

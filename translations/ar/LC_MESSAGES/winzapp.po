@@ -5995,8 +5995,9 @@ msgid "&Disable all"
 msgstr "تعطيل ال&كل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
-#: client/core/noise_model_text.py client/core/notification_manager.py
-#: client/main_window/chat_list.py client/main_window/session_lifecycle.py
+#: client/core/cuda_components/text.py client/core/noise_model_text.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/main_window/session_lifecycle.py
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
@@ -9286,6 +9287,180 @@ msgstr ""
 msgctxt "noise_model_state_installed"
 msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "تم التنزيل. يستخدم تقليل الضوضاء النموذج العصبي."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_button"
+msgid "Noise reducer settin&gs..."
+msgstr "&إعدادات مخفض الضوضاء..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_background"
+msgid "The download goes on in the background. WinZapp says when it is over."
+msgstr "يستمر التنزيل في الخلفية. سيُعلمك WinZapp عند انتهائه."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+#, python-brace-format
+msgctxt "noise_reducer_components_confirm"
+msgid ""
+"Download {count} components, {size}? They are kept for every account and "
+"shared with the local transcription."
+msgstr ""
+"تنزيل {count} مكونات، {size}؟ تبقى لكل الحسابات وتُشارك مع التفريغ المحلي."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_components_done"
+msgid ""
+"The noise reducer's components are installed. They apply from the next time "
+"WinZapp starts."
+msgstr ""
+"ثُبتت مكونات مخفض الضوضاء. تسري من المرة القادمة التي يُفتح فيها WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_download"
+msgid "Download the &missing components"
+msgstr "تنزيل المكونات النا&قصة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_label"
+msgid "&Components:"
+msgstr "المكو&نات:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+#, python-brace-format
+msgctxt "noise_reducer_components_missing"
+msgid "{count} components missing ({size} to download):"
+msgstr "تنقص {count} مكونات ({size} للتنزيل):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_components_none_needed"
+msgid "This processor needs nothing downloaded."
+msgstr "لا يحتاج هذا المعالج إلى أي تنزيل."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_progress"
+msgid "Downloading the noise reducer's components"
+msgstr "جارٍ تنزيل مكونات مخفض الضوضاء"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_components_ready"
+msgid "Every component is installed."
+msgstr "كل المكونات مثبتة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_remove"
+msgid "&Remove this processor's components"
+msgstr "&إزالة مكونات هذا المعالج"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+#, python-brace-format
+msgctxt "noise_reducer_components_remove_confirm"
+msgid ""
+"Remove {count} components of this processor? The local transcription's "
+"cuBLAS stays."
+msgstr ""
+"إزالة {count} من مكونات هذا المعالج؟ يبقى cuBLAS الخاص بالتفريغ المحلي."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_components_removed"
+msgid "The components were removed."
+msgstr "أُزيلت المكونات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_components_removed_restart"
+msgid ""
+"The components were removed; the ones in use go once WinZapp is restarted."
+msgstr "أُزيلت المكونات؛ وتُزال المستخدمة منها عند إعادة تشغيل WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_coreml"
+msgid "Apple graphics and Neural Engine (Core ML)"
+msgstr "رسومات Apple والمحرك العصبي (Core ML)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_cpu"
+msgid "Computer processor (CPU)"
+msgstr "معالج الحاسوب (CPU)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_cuda12"
+msgid ""
+"NVIDIA graphics card, CUDA 12 (shares components with local transcription; "
+"older cards too)"
+msgstr ""
+"بطاقة رسومات NVIDIA، CUDA 12 (تشارك المكونات مع التفريغ المحلي؛ وللبطاقات "
+"الأقدم أيضًا)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_cuda13"
+msgid ""
+"NVIDIA graphics card, CUDA 13 (newer, components of its own, recent driver)"
+msgstr "بطاقة رسومات NVIDIA، CUDA 13 (أحدث، بمكونات خاصة، وتعريف حديث)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_device_label"
+msgid "&Processor the noise reducer runs on:"
+msgstr "ال&معالج الذي يعمل عليه مخفض الضوضاء:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_device_next_start"
+msgid "A new processor applies from the next time WinZapp starts."
+msgstr "يسري تغيير المعالج من المرة القادمة التي يُفتح فيها WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_model_remove"
+msgid "Remove &the neural model"
+msgstr "إزالة &النموذج العصبي"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_model_remove_confirm"
+msgid ""
+"Remove the neural noise reduction model? Noise reduction then uses the "
+"common reducer."
+msgstr ""
+"إزالة نموذج تخفيض الضوضاء العصبي؟ سيستخدم تخفيض الضوضاء المخفض العادي."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_model_removed"
+msgid "The neural model was removed."
+msgstr "أُزيل النموذج العصبي."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_shared_cublas"
+msgid "cuBLAS 12 (the local transcription's own)"
+msgstr "cuBLAS 12 (نفسه الخاص بالتفريغ المحلي)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_title"
+msgid "Noise reducer"
+msgstr "مخفض الضوضاء"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_use_neural"
+msgid ""
+"Use t&he neural noise reducer (more precise; untick for the common one, "
+"faster)"
+msgstr ""
+"استخدام مخفض الضوضاء العصبي (&أدق؛ ألغِ التحديد لاستخدام العادي الأسرع)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/voice_recording.py
@@ -16038,6 +16213,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
+#: client/ui/dialogs/noise_reducer_dialog.py
 #: client/ui/dialogs/transcription_queue.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_download_confirm_title"

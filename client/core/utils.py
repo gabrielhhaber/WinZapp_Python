@@ -1085,6 +1085,10 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
+        # the neural model when installed (False: the common reducer, faster)
+        "noise_reduction_neural": True,
+        # where the neural model runs: cpu, cuda12, cuda13, coreml (core/cuda_components)
+        "noise_reduction_device": "cpu",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,

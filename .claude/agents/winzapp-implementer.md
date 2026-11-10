@@ -63,6 +63,9 @@ Read-only unless the user asked for the action.
   that locale's existing terms (`i18n-ui-string`).
 - **Speech through `main_window.speak_output`**; list mutations inside
   `Freeze()`/`try`/`finally: Thaw()`; plain controls (`accessible-ui`).
+- **A new window, page or panel reached from Settings**: its module added to
+  `FILES` in `tests/settings_controls.py`, so `test_settings_mnemonics.py`
+  checks that every control has an Alt letter and none collide.
 - **Node-side edits in `client/api_patches/`**, never `client/api/`
   (`wppconnect-patch`).
 - **JIDs normalized** to `@s.whatsapp.net`; an `@lid` bridged before use.

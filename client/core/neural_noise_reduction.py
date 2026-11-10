@@ -154,13 +154,19 @@ _denoiser: NeuralDenoiser | None = None
 _denoiser_lock = threading.Lock()
 
 
-def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, str]:
+def reduce_voice_noise(audio: bytes, rate: int, channels: int,
+                       neural: bool = True) -> tuple[bytes, str]:
     """The recording with its noise reduced, and which engine did it.
 
     The engine is "neural", or "gate" when the model could not be used and the
     old noise gate ran instead; the caller decides what to tell the user.
+    `neural` False is the user's choice of the common reducer (Settings >
+    Audio, general.noise_reduction_neural): faster, the gate at once.
     """
     global _denoiser
+    if not neural:
+        from core.audio_processing import apply_noise_gate
+        return apply_noise_gate(audio, rate, channels, strict=True), "gate"
     try:
         with _denoiser_lock:
             if _denoiser is None:
@@ -174,3 +180,11 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, s
         from core.audio_processing import apply_noise_gate
         # strict: a gate failure must reach the caller, not look like success.
         return apply_noise_gate(audio, rate, channels, strict=True), "gate"
+
+
+def forget_denoiser() -> None:
+    """Drop the loaded model (its file was removed): the next recording
+    loads it again, or falls back to the gate when it is gone."""
+    global _denoiser
+    with _denoiser_lock:
+        _denoiser = None

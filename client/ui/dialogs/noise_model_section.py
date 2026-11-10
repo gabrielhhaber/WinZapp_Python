@@ -64,11 +64,22 @@ class NoiseModelSectionMixin:
             wx.YES_NO | wx.ICON_QUESTION, self,
         ) != wx.YES:
             return
+        def make_job(on_progress, on_finished):
+            return NoiseModelDownloadJob(on_progress=on_progress, on_finished=on_finished)
+
+        from update_background import background_downloads_enabled
+        if background_downloads_enabled(self.main_window.settings):
+            # Settings > General's "download in the background": the main
+            # window runs it and says the outcome, as for the transcription
+            # downloads; this window stays usable.
+            if self.main_window.start_transcription_background_job(
+                    make_job, i18n.t("noise_model_progress")):
+                self.main_window.speak_output.output(i18n.t("noise_reducer_components_background"))
+            self._noise_model_download_btn.Disable()
+            self._noise_model_field.SetFocus()
+            return
         dialog = TranscriptionProgressDialog(
-            self, i18n, self.main_window.speak_output,
-            lambda on_progress, on_finished: NoiseModelDownloadJob(
-                on_progress=on_progress, on_finished=on_finished
-            ),
+            self, i18n, self.main_window.speak_output, make_job,
             i18n.t("noise_model_progress"),
             title=i18n.t("noise_model_label"),
         )

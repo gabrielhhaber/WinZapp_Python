@@ -174,3 +174,53 @@ def test_the_finder_takes_onnxruntime_from_the_gpu_folder(tmp_path, monkeypatch)
     assert importlib.import_module("onnxruntime.capi").__file__.startswith(str(tmp_path))
     for name in [n for n in sys.modules if n == "onnxruntime" or n.startswith("onnxruntime.")]:
         monkeypatch.delitem(sys.modules, name)
+
+
+def test_the_components_field_says_what_is_missing_and_when_it_applies():
+    from core.cuda_components import text as ctext
+    i18n = types.SimpleNamespace(t=lambda key: {
+        "decimal_separator": ",",
+        "noise_reducer_components_none_needed": "Nothing to download.",
+        "noise_reducer_components_ready": "All installed.",
+        "noise_reducer_components_missing": "{count} missing ({size}):",
+        "noise_reducer_device_next_start": "Applies next start.",
+        "noise_reducer_shared_cublas": "cuBLAS 12 (shared)"}[key])
+    assert ctext.components_text(i18n, "cpu", [], 0, "cpu") == "Nothing to download."
+    assert ctext.components_text(i18n, "cuda12", [], 0, "cuda12") == "All installed."
+    text = ctext.components_text(i18n, "cuda12", ["cudart_cu12", model.SHARED_CUBLAS_CU12],
+                                 2 * 1024 ** 3, "cpu")
+    assert text.startswith("2 missing (2,0 GB): CUDA Runtime 12, cuBLAS 12 (shared).")
+    assert text.endswith("Applies next start.")
+
+
+def test_only_this_processors_own_components_may_be_removed(tmp_path, monkeypatch):
+    monkeypatch.setattr(store, "state", lambda cid, root=None: store.STATE_INSTALLED)
+    removable = store.removable("cuda12")
+    assert model.SHARED_CUBLAS_CU12 not in removable and "cudnn_cu12" in removable
+    monkeypatch.setattr(store, "models_lock", lambda *a, **k: types.SimpleNamespace(
+        acquire=lambda: None, release=lambda: None))
+    (tmp_path / "cudart_cu12").mkdir()
+    (tmp_path / "cudart_cu12" / "cudart64_12.dll").write_bytes(b"x")
+    assert store.remove(["cudart_cu12"], root=str(tmp_path)) == []
+    assert not (tmp_path / "cudart_cu12").exists()
+
+
+def test_the_neural_box_only_with_the_reducer_on_and_the_model_there():
+    from ui.dialogs.noise_reducer_dialog import neural_box_shown
+    assert neural_box_shown(True, True) is True
+    assert neural_box_shown(True, False) is False
+    assert neural_box_shown(False, True) is False
+
+
+def test_the_common_reducer_is_used_when_chosen(monkeypatch):
+    from core import neural_noise_reduction as nnr
+    import core.audio_processing as ap
+    monkeypatch.setattr(ap, "apply_noise_gate", lambda audio, rate, channels, strict: b"gated")
+    assert nnr.reduce_voice_noise(b"\x00\x00", 48000, 1, neural=False) == (b"gated", "gate")
+
+
+def test_the_components_job_says_the_reducers_own_sentence():
+    from core.cuda_components.job import ComponentsInstallJob, total_bytes
+    job = ComponentsInstallJob(["cudart_cu12"])
+    assert job.announcement(("cudart_cu12",), None).i18n_key == "noise_reducer_components_done"
+    assert total_bytes(["cudart_cu12"]) == catalog.COMPONENTS["cudart_cu12"].install_bytes
