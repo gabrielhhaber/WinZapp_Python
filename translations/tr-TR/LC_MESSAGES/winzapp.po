@@ -3139,6 +3139,18 @@ msgid "Updated by WhatsApp on {date}."
 msgstr "WhatsApp tarafından {date} tarihinde güncellendi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_invite_admin_row"
+msgid "Invitation to be an admin of the channel {name}"
+msgstr "{name} kanalında yönetici olma daveti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_invite_follow_row"
+msgid "Invitation to follow the channel {name}"
+msgstr "{name} kanalını takip etme daveti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_member_you"
 msgid "You"
@@ -3619,7 +3631,8 @@ msgctxt "channels_unmuted_done"
 msgid "Channel notifications unmuted."
 msgstr "Kanal bildirimlerinin sesi açıldı."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/channel_invites.py
+#: client/ui/conversation_panel/message_list.py
 #: client/ui/dialogs/channel_admins.py
 #: client/ui/dialogs/channel_insights_dialog.py client/ui/dialogs/channels.py
 msgctxt "channels_unnamed"

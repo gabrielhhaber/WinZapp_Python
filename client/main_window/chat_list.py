@@ -904,6 +904,8 @@ class ChatListMixin:
         CALL_LOG_MESSAGE_TYPE, LEGACY_CALL_LOG_TYPE,
         VIEW_ONCE_UNAVAILABLE_TYPE,
         ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE,
+        # core/channel_invites.py
+        "newsletterFollowerInviteMessage", "newsletterAdminInviteMessage",
     })
 
     @classmethod

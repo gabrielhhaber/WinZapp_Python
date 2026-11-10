@@ -290,6 +290,11 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     if msg_type == VIEW_ONCE_UNAVAILABLE_TYPE:
         return i18n.t("view_once_message")
 
+    # ── Channel invitation ────────────────────────────────────────────────────
+    from core import channel_invites
+    if msg_type in channel_invites.INVITE_TYPES:
+        return channel_invites.row_text(i18n, msg)
+
     # ── Contact ───────────────────────────────────────────────────────────────
     if msg_type == "contactMessage":
         contact = msg_obj.get("contactMessage") or {}

@@ -23,6 +23,7 @@ from core.message_stars import remote_star_state
 from core.reaction_echo import reaction_echo_keys, take_matching_send
 from core.meta_ai import rich_response_text
 from core.polls import poll_message_from_wpp
+from core import channel_invites
 from core.sync_contracts import observe_payload
 from core.vcard_payload import contact_message_payload
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
@@ -3085,6 +3086,11 @@ class WebSocketClient:
             message_content = {
                 "pollCreationMessage": poll_message_from_wpp(wpp_msg)
             }
+        elif msg_type in channel_invites.WPP_TYPES:
+            # an invitation to follow a channel or to be its admin
+            invite = channel_invites.from_wpp(msg_type, wpp_msg)
+            if invite is not None:
+                msg_type, message_content = invite
         elif msg_type == "buttons":
             message_content = {
                 "buttonsMessage": {
