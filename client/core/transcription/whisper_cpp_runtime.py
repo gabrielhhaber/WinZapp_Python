@@ -63,7 +63,6 @@ from core.transcription._fileops import (
 )
 from core.transcription.whisper_cpp_builds import (
     EXECUTABLE_NAME,
-    RELEASE_TAG,
     cuda_build_supported,
     locate_executable,
     safe_member_path,
@@ -168,7 +167,7 @@ def installation_state(build, root=None) -> RuntimeState:
         return RuntimeState(STATE_INCOMPLETE, (MANIFEST_FILENAME,))
 
     release = manifest.get("release")
-    if release != RELEASE_TAG:
+    if release != build.tag:
         return RuntimeState(STATE_INCOMPLETE, (), str(release or "") or None)
     if manifest.get("archive_sha256") != build.archive_sha256:
         # Same tag, another zip: not this build's install at all.
@@ -356,7 +355,7 @@ def install_build(build, root=None, progress=None, should_cancel=None, session=N
         raise errors.TranscriptionError(
             errors.WHISPER_CPP_CORRUPTED, f"{build.id}: not installed after the install"
         )
-    logging.info("[transcription] whisper.cpp %s %s is installed", build.id, RELEASE_TAG)
+    logging.info("[transcription] whisper.cpp %s %s is installed", build.id, build.tag)
     return executable
 
 
@@ -461,7 +460,7 @@ def _refuse_unsupported(build, compute_capability) -> None:
 def _staging_dir(root, build) -> str:
     # The tag is in the name so a crash under one pin never leaves a folder the
     # next pin would extract on top of.
-    return os.path.join(root, f"{build.id}-{RELEASE_TAG}{_PART_SUFFIX}")
+    return os.path.join(root, f"{build.id}-{build.tag}{_PART_SUFFIX}")
 
 
 def _leftovers(root, build) -> bool:
@@ -484,7 +483,7 @@ def _install_locked(build, root, root_created, progress, should_cancel, session)
         _sweep_leftovers(root, build)
         _sweep_aside(root, build)
         logging.info("[transcription] downloading whisper.cpp %s %s (%d bytes)",
-                     build.id, RELEASE_TAG, build.archive_bytes)
+                     build.id, build.tag, build.archive_bytes)
         model_store.download_verified_file(
             session, build.url, root, build.archive, build.archive_bytes,
             build.archive_sha256,
@@ -630,7 +629,7 @@ def _sweep_aside(root, build) -> None:
 
 def _write_manifest(staging, build, files, executable) -> None:
     manifest = {
-        "release": RELEASE_TAG,
+        "release": build.tag,
         "build": build.id,
         "archive_sha256": build.archive_sha256,
         "executable": executable,

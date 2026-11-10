@@ -50,10 +50,9 @@ _RELEASE_URL = "https://github.com/ggml-org/whisper.cpp/releases/download/{tag}/
 EXECUTABLE_NAME = "whisper-cli.exe"
 SERVER_NAME = "whisper-server.exe"
 
-# CUDA 12 has no Kepler (sm_3x) support; this release's CUDA builds have no
-# Blackwell (sm_120) kernels. See the module docstring.
-_CUDA_MIN_CAPABILITY = (5, 0)
-_CUDA_UNSUPPORTED_FROM_CAPABILITY = (12, 0)
+# The x64 CUDA 12.4 build: CUDA 12 has no Kepler (sm_3x) support, and this
+# release's CUDA builds have no Blackwell (sm_120) kernels: [5.0, 12.0), the
+# RuntimeBuild defaults. See the module docstring.
 
 # Names Windows maps to a device whatever the folder or the extension: a file
 # "nul.dll" written there goes nowhere, and "CON" opens the console.
@@ -78,10 +77,16 @@ class RuntimeBuild:
     #: Apart from `pinned_files` on purpose: those are what every run needs,
     #: and a folder without the server (a reused one may lack it) still runs.
     server_sha256: str = ""
+    #: The release this build's zip comes from (the ARM64 builds are a later
+    #: one: the pinned x64 release has none).
+    tag: str = RELEASE_TAG
+    #: Card capabilities the build has kernels for: [min, max).
+    min_capability: tuple = (5, 0)
+    max_capability: tuple = (12, 0)
 
     @property
     def url(self) -> str:
-        return _RELEASE_URL.format(tag=RELEASE_TAG, name=self.archive)
+        return _RELEASE_URL.format(tag=self.tag, name=self.archive)
 
 
 # Per-file digests of what is loaded or launched — whisper-cli.exe and every
@@ -173,7 +178,7 @@ _CUDA_FILES = (
 )
 
 
-BUILD_CPU = RuntimeBuild(
+_X64_CPU = RuntimeBuild(
     id="cpu",
     archive="whisper-bin-x64.zip",
     archive_bytes=8_361_840,
@@ -182,7 +187,7 @@ BUILD_CPU = RuntimeBuild(
     pinned_files=_CPU_FILES,
     server_sha256="9eb6ee297215f07ba77a6d588a6a2715f2235f665528529c377b775bbab3cd2d",
 )
-BUILD_CUDA = RuntimeBuild(
+_X64_CUDA = RuntimeBuild(
     id="cuda-12.4",
     archive="whisper-cublas-12.4.0-bin-x64.zip",
     archive_bytes=671_045_732,
@@ -193,18 +198,85 @@ BUILD_CUDA = RuntimeBuild(
     server_sha256="0b54514e66f5d2a445098857e346389816b58f9872f402fde76cf1c8163853af",
 )
 
+# Windows on ARM64 (machine_arch): release b5454, the first with ARM64 builds,
+# measured off its zips (GitHub's own digest of each zip agreed). A native
+# ARM64 whisper-cli instead of the x64 one under emulation, and the only
+# NVIDIA build there: CUDA 13.4, offered like the x64 CUDA build, as an option.
+# CUDA 13 dropped every card older than Turing (sm_75) and has Blackwell.
+ARM64_RELEASE_TAG = "b5454"
+_ARM64_CPU_FILES = (
+    ("Release/ggml-base.dll", "7c8698821411149cfdebf587a26263bcb43e7ab396759e24eb641f665b10b45e"),
+    ("Release/ggml-cpu.dll", "139a72c067da8862aea7d19246668884852c444af343761c1535dc32bed2ad81"),
+    ("Release/ggml.dll", "bd4a483fd315a95a66f43283c710f77d42cc13315829cb0a3ecffc30b843ac9f"),
+    ("Release/libomp140.aarch64.dll",
+     "d2649698fc68466ee88cf58ae3ab0fab106f29326e83aaaa5643d30651a962e3"),
+    ("Release/parakeet.dll", "6fd14777559fa4f068ed1a3735c1dbe0f065fe9316bd7172667cb4809d1af669"),
+    ("Release/whisper-cli.exe", "59dfbb9c0ecdb9a295b5646188005a2840e5c42a5fca134ff15bc95eba027e7c"),
+    ("Release/whisper.dll", "48214430bbfce6cd656125c06d1c368286412681dab0242061c5cafa57913419"),
+)
+_ARM64_CUDA_FILES = (
+    ("Release/cublas64_13.dll", "49e8fa23d88ac0cbae27e200fc092b894dd55b4de5cb4293993986e29fb9b65a"),
+    ("Release/cublasLt64_13.dll", "daf579ae36bb3c85e2340c57a1994f634e07c6f55ef70dd4cdc26695de21c752"),
+    ("Release/cudart64_13.dll", "bd927ddf03823eeead7c8b261a8669d96764b89109311f4ab6accde8b7d97ec2"),
+    ("Release/ggml-base.dll", "51d6774aa9d9046ffa76a3f777201ed3f085fa0176ec740f52a18c450a31e9f0"),
+    ("Release/ggml-cpu.dll", "79d28618e66188d519f94f8b7dde10610a7235c95aca8a4901765314cd31cc76"),
+    ("Release/ggml-cuda.dll", "16e9e3270b306a3bd8ab59d3e0cf4d2ef2d172c72d406d4ed824dfabd9202d28"),
+    ("Release/ggml.dll", "31ee7f066f12f5cef5b523f3bcb934a7af016a1d398d03ac4979d8d85071a33c"),
+    ("Release/libomp140.aarch64.dll",
+     "d2649698fc68466ee88cf58ae3ab0fab106f29326e83aaaa5643d30651a962e3"),
+    ("Release/parakeet.dll", "4471245a53c5b71dadc9da9768020d5fd3da6f22806da09b58e8d0a0ae9df19f"),
+    ("Release/whisper-cli.exe", "aa1e654a61031dcd8ffaafc334c7163017d24acf6ce5ab100bc561e789799e84"),
+    ("Release/whisper.dll", "7c957081d3dc74e8c291ea98d48b56621448f0f719e0f0e7550ef4cae297cfea"),
+)
+_ARM64_CPU = RuntimeBuild(
+    id="cpu-arm64",
+    archive="whisper-bin-win-cpu-arm64.zip",
+    archive_bytes=4_371_193,
+    archive_sha256="28c37e7b598c3d9bbfef94f3bd67f2ee6f12b7c86f3da5edcf5e4308d615ff6d",
+    uses_cuda=False,
+    pinned_files=_ARM64_CPU_FILES,
+    server_sha256="c5b3d51a2f327f0e8d793f02cbbb05f656b11b9e365976e84e88965d9de72f7c",
+    tag=ARM64_RELEASE_TAG,
+)
+_ARM64_CUDA = RuntimeBuild(
+    id="cuda-13.4-arm64",
+    archive="whisper-bin-win-cuda-13.4-arm64.zip",
+    archive_bytes=291_157_544,
+    archive_sha256="6184ae8887d38ea9add68e883b9c846e7bf562ba1bf619ffc7ee9f8ec7e1699c",
+    uses_cuda=True,
+    pinned_files=_ARM64_CUDA_FILES,
+    server_sha256="159da225d2faab84db0be93b5c83ac2c4c12be818ccbc32d4770d68449e8c3aa",
+    tag=ARM64_RELEASE_TAG,
+    min_capability=(7, 5),
+    max_capability=(13, 0),
+)
+
+
+def builds_for(arm64: bool) -> tuple:
+    """(processor build, CUDA build) for this machine's architecture."""
+    return (_ARM64_CPU, _ARM64_CUDA) if arm64 else (_X64_CPU, _X64_CUDA)
+
+
+def _machine_is_arm64() -> bool:
+    from core.transcription import machine_arch
+    return machine_arch.native_is_arm64()
+
+
+#: Chosen once, for the machine WinZapp runs on.
+BUILD_CPU, BUILD_CUDA = builds_for(_machine_is_arm64())
 BUILDS = (BUILD_CPU, BUILD_CUDA)
 
 
-def cuda_build_supported(compute_capability) -> bool:
+def cuda_build_supported(compute_capability, build=None) -> bool:
     """Whether the CUDA build may be offered to a card of this capability.
 
     None (NVML could not describe the card, or there is none) answers False.
     """
     if compute_capability is None:
         return False
+    build = build or BUILD_CUDA
     capability = tuple(compute_capability)
-    return _CUDA_MIN_CAPABILITY <= capability < _CUDA_UNSUPPORTED_FROM_CAPABILITY
+    return tuple(build.min_capability) <= capability < tuple(build.max_capability)
 
 
 def builds_offered(compute_capability) -> tuple[RuntimeBuild, ...]:
