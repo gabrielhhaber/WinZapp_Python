@@ -1233,8 +1233,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if history_end is not None:
                     ends.append((target, history_end))
                 count = len(rows)
-                rows.extend(Session._history_rows(target, c))
+                answer = Session._history_rows(target, c)
+                rows.extend(answer)
                 total += len(rows) - count
+                if older_history.brought_nothing_new(
+                        answer, lambda mid: self.db.wpp_message(mid) is not None):
+                    # Home asked and the phone has nothing more before this
+                    # anchor: it is not asked again (older_history.py)
+                    keys = self.chat_keys(target) or [target]
+                    anchor = self.db.oldest_real(keys)
+                    if anchor is not None:
+                        self.db.mark_history_exhausted(keys, anchor["id"])
                 continue
             fields = {"name": c.name or c.displayName or None,
                       "history_end": history_end,

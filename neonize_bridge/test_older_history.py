@@ -25,8 +25,22 @@ def test_a_chat_whose_history_ends_here_is_not_asked():
 
 
 @pytest.mark.parametrize("end", [2, 3])
-def test_a_chat_this_device_may_not_ask_more_of_is_phone_only(end):
-    assert older_history.verdict(end, True)["phoneOnly"] is True
+def test_home_asks_even_where_whatsapp_web_says_use_the_phone(end):
+    """WhatsApp Web stops at 2 and 3; the phone may still send another batch,
+    and an empty answer is what stops Home (the anchor is marked)."""
+    assert older_history.verdict(end, True) is None
+
+
+def test_an_anchor_the_phone_answered_with_nothing_is_not_asked_again():
+    answer = older_history.verdict(2, True, exhausted=True)
+    assert answer == {"requested": False, "primaryHasMore": False, "phoneOnly": False}
+
+
+def test_an_answer_with_only_stored_messages_brings_nothing_new():
+    rows = [("c", {"id": {"id": "A"}}), ("c", {"id": {"id": "B"}})]
+    assert older_history.brought_nothing_new(rows, lambda mid: True) is True
+    assert older_history.brought_nothing_new(rows, lambda mid: mid == "A") is False
+    assert older_history.brought_nothing_new([], lambda mid: False) is True
 
 
 @pytest.mark.parametrize("end", [None, 0])
@@ -122,10 +136,10 @@ async def test_a_chat_with_nothing_to_anchor_on_sends_nothing(tmp_path, sessions
 async def test_the_state_route_never_sends(tmp_path, sessions):
     http, token, s = await _open(tmp_path, sessions)
     try:
-        s.db.chat(LID, history_end=2)
+        s.db.chat(LID, history_end=1)
         s.db.message(LID, _msg("M1", 100, LID))
         body = await (await http.get(f"/api/{token}/older-history-state/{LID}")).json()
-        assert body["response"]["phoneOnly"] is True
+        assert body["response"]["primaryHasMore"] is False
         assert s.client.history_requests == []
     finally:
         await http.close()
@@ -240,5 +254,28 @@ async def test_an_answer_under_the_other_address_lands_in_the_stored_chat(tmp_pa
         assert s.db.history_end([LID]) == 2
         body = await (await http.get(f"/api/{token}/get-messages/{LID}?count=10")).json()
         assert [m["id"]["id"] for m in body["response"]] == ["M0", "M5"]
+    finally:
+        await http.close()
+
+
+@pytest.mark.asyncio
+async def test_home_goes_on_until_the_phone_sends_nothing_new(tmp_path, sessions):
+    http, token, s = await _open(tmp_path, sessions)
+    try:
+        s.db.chat(LID, ts=500, history_end=2)
+        s.db.message(LID, _msg("M5", 500, LID))
+        # asked although WhatsApp Web would say "use the phone"
+        await http.post(f"/api/{token}/request-older-messages/{LID}")
+        assert len(s.client.history_requests) == 1
+        # the phone answers with nothing: that anchor is not asked again
+        s._store_history(HistorySync(syncType=HistorySync.ON_DEMAND, conversations=[
+            Conversation(ID=LID, endOfHistoryTransferType=Conversation.COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY)]))
+        body = await (await http.post(f"/api/{token}/request-older-messages/{LID}")).json()
+        assert body["response"]["primaryHasMore"] is False
+        assert len(s.client.history_requests) == 1
+        # an older message (live or by another route) gives a new anchor: asked again
+        s.db.message(LID, _msg("M1", 100, LID))
+        await http.post(f"/api/{token}/request-older-messages/{LID}")
+        assert len(s.client.history_requests) == 2
     finally:
         await http.close()

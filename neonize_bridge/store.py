@@ -153,6 +153,10 @@ class Store:
                 self._conn.execute("ALTER TABLE chats ADD COLUMN history_end INTEGER")
             except sqlite3.OperationalError:
                 pass
+            try:    # the anchor the phone answered with nothing new (older_history.py)
+                self._conn.execute("ALTER TABLE chats ADD COLUMN history_exhausted TEXT")
+            except sqlite3.OperationalError:
+                pass
             lower_dates_raised_by_notices(self._conn)
 
     def close(self):
@@ -677,6 +681,29 @@ class Store:
             self._conn.executemany("UPDATE chats SET history_end=? WHERE jid=?",
                                    [(int(end), jid) for jid, end in rows])
             self._conn.commit()
+
+    def mark_history_exhausted(self, chats, anchor_id):
+        """The phone's answer to a request anchored on `anchor_id` brought
+        nothing new: that anchor is not asked again (older_history.py)."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats or not anchor_id:
+            return
+        with self._lock:
+            self._conn.executemany("UPDATE chats SET history_exhausted=? WHERE jid=?",
+                                   [(str(anchor_id), c) for c in chats])
+            self._conn.commit()
+
+    def history_exhausted(self, chats):
+        """The anchor ids the phone already answered with nothing new."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats:
+            return set()
+        marks = ",".join("?" * len(chats))
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT history_exhausted FROM chats WHERE jid IN ({marks}) "
+                "AND history_exhausted IS NOT NULL", chats).fetchall()
+        return {r["history_exhausted"] for r in rows}
 
     def oldest_real(self, chats):
         """The oldest stored message of the chat (its keys `chats`) that the
