@@ -336,6 +336,16 @@ class TestParticipantsArrivingAfterTheMessageWasSelected:
         assert s._group_participants_cache == []
         assert s.panels == []
 
+    def test_the_same_links_are_left_alone(self):
+        """A member joining or leaving the open group refreshes the cache: the
+        links did not change, and rebuilding them destroyed the focused one."""
+        msg = _text_msg(LID_TO_PHONE.values(), "bom dia")
+        s = _CacheStub(_FakeMainWindow(LID_TO_PHONE), [msg], 0)
+        s._set_group_participants_cache(PARTICIPANTS, "g1@g.us")
+        s._current_mentions = s.panels[-1]
+        s._set_group_participants_cache(PARTICIPANTS, "g1@g.us")
+        assert len(s.panels) == 1
+
     def test_nothing_selected_or_a_separator_rebuilds_nothing(self):
         for messages, selected in (([], -1), ([{"separator": True}], 0)):
             s = _CacheStub(_FakeMainWindow(LID_TO_PHONE), messages, selected)

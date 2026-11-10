@@ -149,3 +149,18 @@ def test_preview_time_is_the_hour_today_and_the_date_before():
     assert ":" in preview_time_text(NOON, i18n, today=today)
     assert preview_time_text(NOON, i18n, today=date(1999, 1, 1)) != preview_time_text(
         NOON, i18n, today=today)
+
+
+def test_a_channel_invitation_is_previewed_as_the_conversation_shows_it():
+    """It became the preview (it counts as a message) but fell through to
+    "unsupported message"."""
+    from core import channel_invites as ci
+    invite = {"key": {"id": "I", "fromMe": False}, "messageType": ci.FOLLOWER,
+              "message": {ci.FOLLOWER: {"newsletterJid": "1@newsletter",
+                                        "newsletterName": "Canal", "caption": "Siga!"}},
+              "messageTimestamp": NOON}
+    stub = _MainWindowStub()
+    text = stub._last_msg_preview({"remoteJid": "5511@s.whatsapp.net",
+                                   "messages": {"messages": {"records": [invite]}}})
+    assert ci.row_text(stub.i18n, invite) in text
+    assert STRINGS["notif_unsupported"] not in text

@@ -271,3 +271,11 @@ class TestTheGraceIsNotSoLongItStopsPersistingAtAll:
             j: t - (GRACE + 60) for j, t in stub._older_requested_chats.items()}
         reborn.fetch_older_messages(JID, ANCHOR)
         assert reborn.db.metadata["exhausted_chats"] == [JID]
+
+
+def test_a_channels_end_is_never_kept_across_launches():
+    """A channel's end is the server's answer for this session: scrolling up
+    after a restart asks again (it used to be written with the others)."""
+    from main_window.history import persisted_exhausted_chats
+    chats = {"5511999999999@s.whatsapp.net", "120363000000000001@newsletter", "1-2@g.us"}
+    assert persisted_exhausted_chats(chats) == ["1-2@g.us", "5511999999999@s.whatsapp.net"]

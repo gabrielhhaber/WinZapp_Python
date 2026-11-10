@@ -747,8 +747,13 @@ class ChatEventsMixin:
             .get("records", [])
         )
         if unread_count > 0 and records:
-            unread_count = _discount_non_countable_unread(
-                records, unread_count, chat.get("t", 0))
+            # No activity marker here (0): chats-update carries no `t`, and the
+            # stored one is never moved by a system event (on_new_message only
+            # raises it for a countable message), so every notification that
+            # arrived live was "newer than t" and left out of the tail. A group
+            # promote counted by the server then stayed as a phantom badge of 1.
+            # The marker is WhatsApp's own `t` in the list-chats merge.
+            unread_count = _discount_non_countable_unread(records, unread_count)
         # A zero has nothing to discount, so it counts as final either way.
         discounted = bool(records) or unread_count == 0
         old_count = int(chat.get("unreadCount") or 0)

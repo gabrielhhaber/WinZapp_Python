@@ -215,3 +215,20 @@ class TestRecordsCoverSnapshot:
         result = stub.get_remote_chats({}, persist_full=False, notify_errors=False)
 
         assert result[GROUP][_UNREAD_UNDISCOUNTED] is True
+
+
+class TestTheLivePathHasNoMarker:
+    def test_a_live_promote_is_discounted(self):
+        """A read group (stored t 1000) is promoted (a notification at 2000,
+        which never moves the stored t) and chats-update says 1 unread: the
+        tail is the promote, so the badge stays 0. Passing the stored t cut
+        the promote out of the tail and left a phantom 1."""
+        records = [{"key": {"id": "m1", "fromMe": False}, "messageType": "conversation",
+                    "message": {"conversation": "lida"}, "timestamp": 1000},
+                   {"key": {"id": "p1", "fromMe": False}, "messageType": "groupNotification",
+                    "message": {}, "timestamp": 2000}]
+        chat = {"remoteJid": GROUP, "t": 1000, "unreadCount": 0,
+                "messages": {"messages": {"records": records}}}
+        stub = _LiveStub(chat)
+        stub.on_chat_unread_update(GROUP, 1, previous_unread=0)
+        assert chat["unreadCount"] == 0

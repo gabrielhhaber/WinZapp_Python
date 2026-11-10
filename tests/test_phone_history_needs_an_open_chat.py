@@ -45,6 +45,7 @@ class _Stub:
 
 
 PHONE = "5511900000000@s.whatsapp.net"
+CHANNEL = "120363000000000001@newsletter"
 LID = "123456789012345@lid"
 
 
@@ -111,12 +112,13 @@ class TestItSurvivesARestart:
 
 
 class TestTheBackfillHonoursIt:
-    @pytest.mark.parametrize("opened", [False, True])
-    def test_the_phone_request_is_gated_on_it(self, monkeypatch, caplog, opened):
-        """Local history still runs for an unopened chat, but no phone ask does."""
+    @pytest.mark.parametrize("opened,target", [(False, PHONE), (True, PHONE), (True, CHANNEL)])
+    def test_the_phone_request_is_gated_on_it(self, monkeypatch, caplog, opened, target):
+        """Local history still runs for an unopened chat, but no phone ask does;
+        nor for a channel, whose updates are on the server, not the phone."""
         stub = _Stub()
         if opened:
-            stub._note_conversation_opened(PHONE)
+            stub._note_conversation_opened(target)
         clock = types.SimpleNamespace(now=1.0)
         synced, requested, persisted = [], [], []
         stub._sync_run_id, stub.token = 1, "synthetic:key"
@@ -130,7 +132,7 @@ class TestTheBackfillHonoursIt:
         stub._OLDER_REQUEST_GRACE, stub._MAX_PHONE_HISTORY_REQUESTS = 30, 2
         stub._older_requested_chats, stub._older_request_attempts = {}, {}
         stub._initial_backfill_delay = lambda *a: 1
-        stub._collapse_and_list_backfill_pending = lambda: [PHONE]
+        stub._collapse_and_list_backfill_pending = lambda: [target]
         stub._pending_name_resolution = stub._chats_needing_deep_history = lambda: []
         stub._voice_call_in_progress = lambda: False
         stub.refresh_history_still_landing = lambda **k: False
@@ -142,6 +144,8 @@ class TestTheBackfillHonoursIt:
         stub._oldest_stored_message = lambda jid: {"key": {"id": "oldest"}}
         stub._anchor_identity = lambda message: message["key"]["id"]
         stub._keep_backfill_pending = lambda *a: None
+        removed = []
+        stub._remove_backfill_pending = removed.append
         stub._persist_backfill_pending_state = stub._persist_history_gap_jids = lambda: None
         stub._persist_older_requested = lambda: persisted.append(dict(stub._older_requested_chats))
         context = capture_sync_context(stub)
@@ -184,8 +188,10 @@ class TestTheBackfillHonoursIt:
             monotonic=lambda: clock.now, time=lambda: clock.now,
             sleep=lambda delay: setattr(clock, "now", clock.now + delay)))
         MainWindow._backfill_empty_chats(stub, expected_context=context)
-        assert synced == [PHONE]
-        assert requested == ([PHONE] if opened else [])
-        assert stub._older_request_attempts == ({PHONE: 1} if opened else {})
-        assert persisted == ([{PHONE: 2.0}] if opened else [])
+        assert synced == [target]
+        asked = opened and target == PHONE
+        assert requested == ([target] if asked else [])
+        assert stub._older_request_attempts == ({target: 1} if asked else {})
+        assert persisted == ([{target: 2.0}] if asked else [])
+        assert removed == ([CHANNEL] if target == CHANNEL else [])
         assert not [record for record in caplog.records if record.levelno >= 30]

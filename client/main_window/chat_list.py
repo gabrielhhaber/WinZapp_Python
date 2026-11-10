@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core import channel_invites
 from core.chat_row_text import name_with_unread, unread_position
 from core.conversation_view import ARCHIVED
 from core.listed_chats import channels_listed, is_listed_chat
@@ -1286,6 +1287,10 @@ class ChatListMixin:
         elif msg_type == "listResponseMessage":
             response = msg_obj.get("listResponseMessage") or {}
             content = (response.get("title") or "").strip() or i18n.t("list_reply")
+        elif msg_type in channel_invites.INVITE_TYPES:
+            # an invitation to follow a channel or to be its admin: the row
+            # the conversation shows, not "unsupported message"
+            content = channel_invites.row_text(i18n, last)
         elif msg_type == "protocolMessage":
             protocol = msg_obj.get("protocolMessage") or {}
             p_type = protocol.get("type")

@@ -162,6 +162,19 @@ def test_refresh_pressed_during_the_timed_refresh_still_speaks_its_result(pollin
     assert len(view.requests) == 1
 
 
+def test_f5_says_how_many_are_connected(polling):
+    """F5 is the only refresh (no Refresh button): it said nothing when the
+    call had people in it."""
+    queued, _timers = polling
+    view = View()
+    view._refresh_participants(announce=True)      # opening: rows are read with the focus
+    queued.pop()()
+    assert view.spoken == []
+    view._refresh_participants(SimpleNamespace())  # F5
+    queued.pop()()
+    assert view.spoken == ["Connected: 1"]
+
+
 def test_membership_change_keeps_focus_on_the_same_person(polling):
     queued, timers = polling
     view = View()

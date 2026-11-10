@@ -218,7 +218,8 @@ class TestTheBridgeInTheInstaller:
         block = bridge_stop_lines([888], "log")
         assert "netstat" not in block and "WZ_LISTENS" not in block
         # its own grace first, then stopped, and the copy waits for it to go
-        assert block.index("if !WZ_BRIDGE_WAIT! GEQ 10 taskkill /F /PID 888")             < block.index("if !WZ_BRIDGE_WAIT! LSS 20 (") < block.index("goto WZ_BRIDGE_888")
+        assert (block.index("if !WZ_BRIDGE_WAIT! GEQ 10 taskkill /F /PID 888")
+                < block.index("if !WZ_BRIDGE_WAIT! LSS 20 (") < block.index("goto WZ_BRIDGE_888"))
         assert 'echo WinZapp neonize_bridge.exe 888 did not exit' in block
 
     def test_each_bridge_pid_gets_its_own_label(self):

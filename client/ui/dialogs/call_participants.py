@@ -17,7 +17,7 @@ class ParticipantListMixin:
             # A press during the timed refresh rides on it: its result is
             # spoken, or the press would be answered by silence.
             if announce or _event is not None:
-                self._announce_pending = True
+                self._announce_pending = "all" if _event is not None else True
             return
         if self._timer is not None:
             self._timer.Stop()
@@ -27,7 +27,10 @@ class ParticipantListMixin:
         # disable the Refresh button: the timed refresh would take focus off
         # it, and Windows hands focus to Close, so the next Space closes.
         self._inflight = token
-        announce = announce or _event is not None
+        # F5 says the result whatever it is (the only way to refresh now that
+        # there is no Refresh button); opening the window says only a failure
+        # or an empty list, the rows themselves being read with the focus
+        announce = "all" if _event is not None else announce
         if not self._allowed():
             self._finish_participants(token, None, True, announce)
             return
@@ -49,7 +52,8 @@ class ParticipantListMixin:
         if not self._alive or self._inflight is not token or getattr(self._mw, "_shutting_down", False):
             return
         self._inflight = None
-        announce = announce or getattr(self, "_announce_pending", False)
+        pending = getattr(self, "_announce_pending", False)
+        announce = "all" if "all" in (announce, pending) else (announce or pending)
         self._announce_pending = False
         if not self._allowed():
             data, failed = None, True
@@ -67,7 +71,7 @@ class ParticipantListMixin:
             status = i18n.t("call_participants_count").format(count=len(rows))
         if self._status.GetLabel() != status:
             self._status.SetLabel(status)
-        if announce and (failed or not rows):
+        if announce == "all" or (announce and (failed or not rows)):
             self._mw.output(status)
         if data is not None or failed:
             self._timer = wx.CallLater(10_000, self._refresh_participants)

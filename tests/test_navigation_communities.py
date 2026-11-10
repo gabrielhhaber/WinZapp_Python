@@ -67,3 +67,26 @@ def test_choosing_communities_opens_its_window_and_switches_no_panel(monkeypatch
     shown.assert_called_once_with(mw, mw)
     mw.lock_chat_vault.assert_not_called()
     mw.conversations_panel.Hide.assert_not_called()
+
+
+def test_the_starred_messages_row_opens_their_window(monkeypatch):
+    """Issue #708: a row before Settings, naming its shortcut (Alt+0)."""
+    shown = Mock()
+    monkeypatch.setattr("ui.dialogs.starred_messages.show_starred_messages", shown)
+    nav = _Nav()
+    nav.rebuild_items()
+    keys = nav._nav_keys
+    assert keys.index("starred") == keys.index("settings") - 1
+    assert nav.nav_list.rows[keys.index("starred")] == "Starred messages alt+0"
+    mw = nav.main_window
+    mw.lock_chat_vault = Mock()
+    mw.conversations_panel = SimpleNamespace(Hide=Mock())
+    nav.on_nav_item_selected(SimpleNamespace(GetIndex=lambda: keys.index("starred")))
+    shown.assert_called_once_with(mw, mw)
+    mw.conversations_panel.Hide.assert_not_called()
+
+
+def test_alt0_is_the_catalogs_starred_messages_shortcut():
+    from core.shortcut_catalog import SHORTCUTS
+    entry = next(s for s in SHORTCUTS if s.id == "main.ID_STARRED")
+    assert (entry.mod, entry.key) == (1, ord("0"))

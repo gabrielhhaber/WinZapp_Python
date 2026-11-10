@@ -155,7 +155,8 @@ def bridge_stop_lines(pids, log_path: str, image: str = "neonize_bridge.exe",
     waits up to *kill_wait* more seconds for it to go. Empty for no pids."""
     blocks = []
     for pid in pids:
-        label = f"WZ_BRIDGE_{int(pid)}"
+        pid = int(pid)          # once: it goes into every command below
+        label = f"WZ_BRIDGE_{pid}"
         blocks.append(
             "set /a WZ_BRIDGE_WAIT=0\n"
             f":{label}\n"

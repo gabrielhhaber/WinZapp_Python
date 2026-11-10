@@ -16,6 +16,12 @@ from core import channels as channel_history
 from main_window import history_boundary
 
 
+def persisted_exhausted_chats(chats) -> list:
+    """The exhausted chats kept across launches: every one but a channel,
+    whose end is the server's answer for this session only."""
+    return sorted(jid for jid in chats if not channel_history.history_ends_on_server(jid))
+
+
 class HistoryMixin:
     """On-demand older history: deep backfill, fetch_older_messages and the
     exhaustion bookkeeping.
@@ -285,8 +291,10 @@ class HistoryMixin:
         only costs one wasted round-trip per chat on the next launch."""
         try:
             if getattr(self, "db", None) is not None:
+                # never a channel: its end is known for this session only, and
+                # scrolling up after a restart asks the server again
                 self.db.set_metadata_json(
-                    "exhausted_chats", sorted(getattr(self, "_exhausted_chats", set())))
+                    "exhausted_chats", persisted_exhausted_chats(getattr(self, "_exhausted_chats", set())))
         except Exception as exc:
             logging.warning("[history] Could not persist exhausted_chats: %s", exc)
 

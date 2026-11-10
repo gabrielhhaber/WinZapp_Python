@@ -19,6 +19,7 @@ from core.api_client import (
     api_post,
     sync_throttled,
 )
+from core.channels import history_ends_on_server
 from core.utils import auto_download_enabled
 from core.page_heap import collect_after_batch
 from core.sync_progress import ProgressThrottle
@@ -1091,6 +1092,12 @@ class BackfillMixin:
                         attempts.pop(jid, None)
                         older_arrived.add(jid)
                     if now >= self.history_page_target() or now > was:
+                        continue
+                    if history_ends_on_server(jid):
+                        # A channel: its updates are on WhatsApp's server, read
+                        # back to its start already; the phone has none to send,
+                        # and a request would only light up its lock screen.
+                        self._remove_backfill_pending(jid)
                         continue
                     if jid in getattr(self, "_exhausted_chats", set()):
                         # Already answered, durably: the phone was asked and

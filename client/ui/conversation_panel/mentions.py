@@ -559,4 +559,10 @@ class MentionsMixin:
         index = self.messages_list.GetFirstSelected()
         if index < 0 or index >= len(messages) or self._is_separator(messages[index]):
             return
-        self._update_mentions_panel(self._extract_mentions(messages[index]))
+        mentions = self._extract_mentions(messages[index])
+        if mentions == getattr(self, "_current_mentions", None):
+            # the same links: rebuilding destroys them, and a focused one
+            # took the screen reader's focus with it (a member joining or
+            # leaving the open group runs this too)
+            return
+        self._update_mentions_panel(mentions)
