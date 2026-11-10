@@ -49,14 +49,6 @@ What the patches carry today:
   privacy and contact removal use them (`neonize_bridge/COVERAGE.md`).
 - **neonize 0006**: `MediaConn`, the media upload hosts and token, for the
   unencrypted upload of a catalog product's picture (`media_upload.py`).
-- **neonize 0018**: `SendNewsletterMessage` (Python
-  `send_newsletter_message`), `SendMessage` with
-  `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
-  unencrypted (`upload_newsletter`) and out with the upload's handle, which
-  whatsmeow sends as the node's `media_id` (`channel_media.py`).
-- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
-  whatsmeow event below; the bridge's `channel_events.py` sends the ones the
-  channels windows show as `channels-changed`.
 - **neonize 0010**: the sync client's `get_linked_group_participants` reads
   the `ReturnFunctionWithError` the Go side sends (it parsed another message
   and failed with "Wire format was corrupt"; the async client was right). It
@@ -106,6 +98,22 @@ What the patches carry today:
 - **neonize 0016 / whatsmeow 0011**: a channel update carries the server's
   `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
   update `fromMe` from: a channel's admin sees their own updates as sent.
+- **neonize 0018**: `SendNewsletterMessage` (Python
+  `send_newsletter_message`), `SendMessage` with
+  `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
+  unencrypted (`upload_newsletter`) and out with the upload's handle, which
+  whatsmeow sends as the node's `media_id` (`channel_media.py`).
+- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
+  whatsmeow event above; the bridge's `channel_events.py` sends the ones the
+  channels windows show as `channels-changed`.
+- **neonize 0020**: `AutomaticMessageRerequestFromPhone`, off by default in
+  whatsmeow: a message this device cannot decrypt (a group message without its
+  sender key) is asked of the account's own phone, as WhatsApp Web does
+  (`PLACEHOLDER_MESSAGE_RESEND`); it used to be lost when the sender's device
+  did not resend it.
+- **neonize 0021**: `send_newsletter_message`'s answer is turned into bytes like
+  `send_message`'s: a channel post went out and the call raised
+  `expected bytes, LP_Bytes found`, so a published post was reported as failed.
 - **neonize 0012 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.

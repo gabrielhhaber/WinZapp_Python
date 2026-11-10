@@ -47,7 +47,8 @@ CREATE INDEX IF NOT EXISTS comments_by_parent ON comments(chat, parent_id, ts);
 -- never chats/msgs, so a channel never becomes a conversation
 CREATE TABLE IF NOT EXISTS channel_posts(
     channel TEXT NOT NULL, id TEXT NOT NULL, server_id INTEGER NOT NULL,
-    ts INTEGER DEFAULT 0, data TEXT NOT NULL, raw BLOB, PRIMARY KEY(channel, id));
+    ts INTEGER DEFAULT 0, data TEXT NOT NULL, raw BLOB, upto INTEGER DEFAULT 0,
+    PRIMARY KEY(channel, id));
 CREATE INDEX IF NOT EXISTS channel_posts_by_server_id ON channel_posts(channel, server_id);
 """
 
@@ -155,6 +156,10 @@ class Store:
                 pass
             try:    # the anchor the phone answered with nothing new (older_history.py)
                 self._conn.execute("ALTER TABLE chats ADD COLUMN history_exhausted TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:    # how far up a cached channel update's answer reached (channel_updates.py)
+                self._conn.execute("ALTER TABLE channel_posts ADD COLUMN upto INTEGER DEFAULT 0")
             except sqlite3.OperationalError:
                 pass
             lower_dates_raised_by_notices(self._conn)
@@ -461,15 +466,21 @@ class Store:
 
     # ---------------------------------------------------- channel updates
     def channel_posts_save(self, channel, rows):
-        """Rows (wpp, server id, raw) of *channel*, replacing what was cached."""
+        """Rows (wpp, server id, raw, upto) of *channel*, replacing what was
+        cached. *upto* is the highest server id the WhatsApp answer that brought
+        the row covered with no hole (channel_updates.contiguous); a row seen
+        again keeps the higher of the two, since both answers were whole."""
         if not rows:
             return
         with self._lock:
             self._conn.executemany(
-                "INSERT OR REPLACE INTO channel_posts(channel, id, server_id, ts, data, raw) "
-                "VALUES (?,?,?,?,?,?)",
-                [(channel, w["id"]["id"], int(sid), int(w.get("t") or 0), json.dumps(w), raw)
-                 for w, sid, raw in rows])
+                "INSERT INTO channel_posts(channel, id, server_id, ts, data, raw, upto) "
+                "VALUES (?,?,?,?,?,?,?) ON CONFLICT(channel, id) DO UPDATE SET "
+                "server_id=excluded.server_id, ts=excluded.ts, data=excluded.data, "
+                "raw=excluded.raw, upto=max(upto, excluded.upto)",
+                [(channel, w["id"]["id"], int(sid), int(w.get("t") or 0), json.dumps(w), raw,
+                  int(upto or 0))
+                 for w, sid, raw, upto in rows])
             self._conn.commit()
 
     def channel_posts_forget(self, channel, ids):
@@ -483,19 +494,20 @@ class Store:
             self._conn.commit()
 
     def channel_posts(self, channel, count, before_server_id=0):
-        """[(wpp, server id)] of the *count* newest cached updates (or the ones
-        before *before_server_id*), in chronological order."""
+        """[(wpp, server id, upto)] of the *count* newest cached updates (or the
+        ones before *before_server_id*), in chronological order."""
         with self._lock:
             if before_server_id:
                 rows = self._conn.execute(
-                    "SELECT data, server_id FROM channel_posts WHERE channel=? AND server_id<? "
-                    "ORDER BY server_id DESC LIMIT ?",
+                    "SELECT data, server_id, upto FROM channel_posts WHERE channel=? "
+                    "AND server_id<? ORDER BY server_id DESC LIMIT ?",
                     (channel, int(before_server_id), int(count))).fetchall()
             else:
                 rows = self._conn.execute(
-                    "SELECT data, server_id FROM channel_posts WHERE channel=? "
+                    "SELECT data, server_id, upto FROM channel_posts WHERE channel=? "
                     "ORDER BY server_id DESC LIMIT ?", (channel, int(count))).fetchall()
-        return [(json.loads(r["data"]), int(r["server_id"])) for r in reversed(rows)]
+        return [(json.loads(r["data"]), int(r["server_id"]), int(r["upto"] or 0))
+                for r in reversed(rows)]
 
     def channel_post(self, msg_id):
         """(channel, wpp, server id) of a cached update, or None."""

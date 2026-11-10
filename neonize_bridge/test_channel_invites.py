@@ -7,10 +7,11 @@ import msgmap
 
 
 def fields_of(message):
-    field = next(f.name for f, _v in message.ListFields())
-    out = {}
-    assert field in msgmap.CHANNEL_INVITES
-    out.update(msgmap.channel_invite_fields(field, getattr(message, field)))
+    """What msgmap.build sends the client for *message* received in a chat:
+    the dispatch itself, so a lost CHANNEL_INVITES branch fails here."""
+    out = msgmap.build(chat="5511999998888@s.whatsapp.net", from_me=False, id="X",
+                       sender="5511999998888@s.whatsapp.net", ts=1, message=message)
+    assert out is not None
     return out
 
 

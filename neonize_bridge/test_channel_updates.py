@@ -194,6 +194,38 @@ def test_an_older_page_the_cache_holds_is_read_from_disk(cached):
     assert cached.client.asked == asked                          # nothing asked of WhatsApp
 
 
+def test_an_older_page_with_a_hole_in_the_cache_is_asked_of_whatsapp(cached):
+    """Yesterday 281..300 were cached; today the channel has 500 more. The
+    page before today's oldest (781) used to come from yesterday's rows, and
+    301..780 were never shown."""
+    cu.read(cached, CHANNEL, 20, None, lambda t: t)             # 281..300
+    cached.client.total = 800
+    cu.read(cached, CHANNEL, 20, None, lambda t: t)             # 781..800
+    older = cu.read(cached, CHANNEL, 20, "M781", lambda t: t)
+    assert [w["id"]["id"] for w in older][::19] == ["M761", "M780"]
+    assert cached.client.asked[-1] == (20, 781)
+
+
+def test_with_whatsapp_unreachable_the_cache_never_answers_past_a_hole(cached):
+    cu.read(cached, CHANNEL, 20, None, lambda t: t)             # 281..300
+    cached.client.total = 800
+    cu.read(cached, CHANNEL, 20, None, lambda t: t)             # 781..800
+    cached.client.down = True
+    assert cu.read(cached, CHANNEL, 20, "M781", lambda t: t) == []
+    newest = cu.read(cached, CHANNEL, 40, None, lambda t: t)
+    assert [w["id"]["id"] for w in newest][::19] == ["M781", "M800"]
+
+
+def test_the_cache_chain_breaks_where_an_answer_did_not_reach():
+    rows = [({"id": {"id": f"M{n}"}}, n, upto) for n, upto in
+            ((1, 3), (2, 3), (3, 5), (5, 9), (8, 9))]
+    assert [sid for _w, sid in cu.contiguous(rows, 9)] == [1, 2, 3, 5, 8]
+    assert [sid for _w, sid in cu.contiguous(rows, 10)] == []
+    broken = rows[:2] + [({"id": {"id": "M3"}}, 3, 4)] + rows[3:]
+    assert [sid for _w, sid in cu.contiguous(broken, 9)] == [5, 8]
+    assert [sid for _w, sid in cu.contiguous(rows, 0)] == [1, 2, 3, 5, 8]
+
+
 def test_the_newest_page_is_always_asked_of_whatsapp(cached):
     cu.read(cached, CHANNEL, 20, None, lambda t: t)
     cu.read(cached, CHANNEL, 20, None, lambda t: t)
@@ -263,6 +295,10 @@ def test_a_post_just_sent_is_known_with_its_server_id(tmp_path):
         assert cu.details_of(s, "3EB0X")["server_id"] == 105
         # after a restart, from the cache
         assert cu.details_of(SimpleNamespace(db=db), "3EB0X")["server_id"] == 105
+        # a photo's caption can be edited at once too: its media is cached
+        photo = {"id": {"id": "3EB0P"}, "type": "image", "t": 100, "fromMe": True}
+        assert cu.remember_sent(s, "1@newsletter", photo, 106, b"media") is True
+        assert db.media_record("3EB0P") == b"media"
         assert cu.remember_sent(s, "5511@s.whatsapp.net", w, 105) is False
         assert cu.remember_sent(s, "1@newsletter", w, 0) is False
     finally:

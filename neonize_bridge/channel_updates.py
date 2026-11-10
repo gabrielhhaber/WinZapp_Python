@@ -129,11 +129,12 @@ def _store(s):
     return getattr(s, "db", None)
 
 
-def remember_sent(s, channel, w, server_id) -> bool:
+def remember_sent(s, channel, w, server_id, raw=None) -> bool:
     """A post this account just sent, with the server id the send answered
     (SendResponse.ServerID, set for channels): remembered and cached at once,
-    so it can be edited before the channel is read again. Without it an edit
-    right after posting was refused as not stored."""
+    with its media record (*raw*), so it can be edited, a photo's caption
+    too, before the channel is read again. Without it an edit right after
+    posting was refused as not stored."""
     try:
         server_id = int(server_id or 0)
     except (TypeError, ValueError):
@@ -144,7 +145,8 @@ def remember_sent(s, channel, w, server_id) -> bool:
     server_ids_of(s).remember([(w, server_id)])
     store = _store(s)
     if store is not None:
-        store.channel_posts_save(channel, [(w, server_id, None)])
+        # it vouches for no neighbour: its answer covered only itself
+        store.channel_posts_save(channel, [(w, server_id, raw, server_id)])
     return True
 
 
@@ -171,7 +173,9 @@ def edit(s, channel, message_id, text):
     details = details_of(s, message_id) or {}
     store = _store(s)
     record = store.media_record(message_id) if store is not None else None
-    if details.get("type") not in ("", "chat") and record:
+    # text only when known as text, as message_rules.channel_edit_refusal
+    # judges it: a typeless record with media is a caption edit
+    if details.get("type") != "chat" and record:
         new = Message.FromString(record)
         field = msgmap.media_field(new)
         if not field:
@@ -197,6 +201,24 @@ def deleted_ids(updates):
     return [update_id(u) for u in updates or () if not u.HasField("Message")]
 
 
+def contiguous(rows, start):
+    """The cached *rows* ((wpp, server id, upto), oldest first) that go down
+    from *start* (an anchor's server id; 0 for the newest) with no hole, as
+    [(wpp, server id)]. A row's *upto* is the highest server id the WhatsApp
+    answer that brought it covered whole; the chain breaks at the first row
+    whose answer did not reach the one above it. Without this, posts cached
+    yesterday (281..300) answered the page before today's 781, and 301..780
+    were never shown."""
+    out, above = [], start
+    for w, server_id, upto in reversed(rows):
+        if above and upto < above:
+            break
+        out.append((w, server_id))
+        above = server_id
+    out.reverse()
+    return out
+
+
 def _raw_records(updates):
     out = {}
     for update in updates or ():
@@ -218,7 +240,8 @@ def read(s, channel, count, before, jid_from_text, before_server_id=0):
     Every answer is cached in the store (channel_posts, never a chat). The
     newest page is always asked of WhatsApp, which has the edits, deletions,
     new updates and view counts; an older page the cache holds whole is read
-    from disk instead, and with WhatsApp unreachable the cache answers."""
+    from disk instead, and with WhatsApp unreachable the cache answers; either
+    way only the part that continues the anchor with no hole (contiguous)."""
     ids = server_ids_of(s)
     store = _store(s)
     start = 0
@@ -231,7 +254,7 @@ def read(s, channel, count, before, jid_from_text, before_server_id=0):
             return []
     wanted = min(max(1, int(count)), PER_REQUEST * MAX_REQUESTS)
     if start and store is not None:
-        cached = store.channel_posts(channel, wanted, start)
+        cached = contiguous(store.channel_posts(channel, wanted, start), start)
         if len(cached) >= wanted:
             ids.remember(cached)
             return [w for w, _server_id in cached]
@@ -251,8 +274,12 @@ def read(s, channel, count, before, jid_from_text, before_server_id=0):
         ids.remember(page)
         if store is not None:
             raws = _raw_records(updates)
+            # the answer is whole from its anchor (or, for the newest page,
+            # from its own newest update) down to its oldest
+            upto = request_start or max(
+                (int(u.MessageServerID or 0) for u in updates), default=0)
             store.channel_posts_save(
-                channel, [(w, sid, raws.get(w["id"]["id"])) for w, sid in page])
+                channel, [(w, sid, raws.get(w["id"]["id"]), upto) for w, sid in page])
             store.channel_posts_forget(channel, deleted_ids(updates))
         pairs = page + pairs
         oldest = min((int(u.MessageServerID or 0) for u in updates), default=0)
@@ -262,7 +289,7 @@ def read(s, channel, count, before, jid_from_text, before_server_id=0):
             break       # no progress: the server answered the same window
         request_start = oldest
     if not reached and store is not None:
-        cached = store.channel_posts(channel, wanted, start)
+        cached = contiguous(store.channel_posts(channel, wanted, start), start)
         ids.remember(cached)
         return [w for w, _server_id in cached]
     pairs.sort(key=lambda pair: (pair[0]["t"], pair[1]))
