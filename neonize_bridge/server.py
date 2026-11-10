@@ -709,9 +709,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self.call_media = None
         # the history the user chose for this session in the pairing dialog
         # (pairing_history.py); it only matters until the session pairs
+        # what this client registers with, which pairing-history compares
+        self.pairing_days = pairing_history.load(self.folder, HISTORY_DAYS)
         cli = self.client = NewClient(
             os.path.join(self.folder, "session.db"),
-            props=device_props(pairing_history.load(self.folder, HISTORY_DAYS)))
+            props=device_props(self.pairing_days))
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
@@ -2001,20 +2003,40 @@ def create_app(folder, fixed=""):
             body = await req.json()
         except Exception:
             body = {}
-        days = pairing_history.chosen((body or {}).get("days"))
+        if not isinstance(body, dict):
+            body = {}
+        days = pairing_history.chosen(body.get("days"))
         if days is None:
             return web.json_response({"status": "error", "message": "invalid days"}, status=400)
         stored = pairing_history.load(s.folder, HISTORY_DAYS)
-        store, restart, reason = pairing_history.answer(s.status, stored, days)
+        store, restart, reason = pairing_history.answer(
+            s.status, stored, days, getattr(s, "pairing_days", None))
         if store and not pairing_history.save(s.folder, days):
             return web.json_response({"status": "error", "message": "not stored"}, status=500)
         restarted = False
-        if restart:
+        if restart and s.status == "QRCODE":
             restarted = bool(await asyncio.get_running_loop().run_in_executor(
                 None, s.restart_pairing))
+        elif restart:
+            # still starting: its first QR would carry the old choice
+            asyncio.ensure_future(redo_when_qr(s))
         log.info("pairing history: %s (%s days, restarted=%s)", reason, days, restarted)
         return ok(status="success", response={"days": days, "reason": reason,
                                               "restarted": restarted})
+
+    async def redo_when_qr(s, wait=30.0, step=0.5):
+        """Redoes the pairing of a session that was starting when the history
+        choice changed, once its QR code appears (pairing_history.answer)."""
+        waited = 0.0
+        while s.status not in ("QRCODE", "CONNECTED") and waited < wait:
+            await asyncio.sleep(step)
+            waited += step
+        if s.status != "QRCODE":
+            return
+        if pairing_history.load(s.folder, HISTORY_DAYS) == getattr(s, "pairing_days", None):
+            return
+        redone = await asyncio.get_running_loop().run_in_executor(None, s.restart_pairing)
+        log.info("pairing history: redone once the QR appeared (restarted=%s)", bool(redone))
 
     async def status_session(req):
         s = session(req)

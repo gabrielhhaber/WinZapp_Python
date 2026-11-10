@@ -25,15 +25,32 @@ def test_a_chat_whose_history_ends_here_is_not_asked():
 
 
 @pytest.mark.parametrize("end", [2, 3])
-def test_home_asks_even_where_whatsapp_web_says_use_the_phone(end):
-    """WhatsApp Web stops at 2 and 3; the phone may still send another batch,
-    and an empty answer is what stops Home (the anchor is marked)."""
-    assert older_history.verdict(end, True) is None
+def test_where_whatsapp_web_says_use_the_phone_only_home_asks(end):
+    """WhatsApp Web stops at 2 and 3 (issue #220: the phone often answers
+    nothing, "Sync paused"); the user's Home may ask, the backfill never."""
+    assert older_history.verdict(end, True) == {
+        "requested": False, "primaryHasMore": True, "phoneOnly": True}
+    assert older_history.verdict(end, True, user_asked=True) is None
+    assert older_history.marks_on_send(end) is True
+
+
+@pytest.mark.parametrize("end", [2, 3])
+def test_an_anchor_asked_where_the_rest_is_on_the_phone_says_so(end):
+    # the top of the chat says "on your phone", not "no older messages"
+    assert older_history.verdict(end, True, exhausted=True, user_asked=True) == {
+        "requested": False, "primaryHasMore": True, "phoneOnly": True}
 
 
 def test_an_anchor_the_phone_answered_with_nothing_is_not_asked_again():
-    answer = older_history.verdict(2, True, exhausted=True)
+    answer = older_history.verdict(None, True, exhausted=True, user_asked=True)
     assert answer == {"requested": False, "primaryHasMore": False, "phoneOnly": False}
+    assert older_history.marks_on_send(None) is False
+
+
+def test_only_the_clients_flag_says_the_user_asked():
+    assert older_history.user_asked_of({"userAsked": True}) is True
+    for body in ({}, {"userAsked": "true"}, [True], None):
+        assert older_history.user_asked_of(body) is False
 
 
 def test_an_answer_with_only_stored_messages_brings_nothing_new():
@@ -140,6 +157,22 @@ async def test_the_state_route_never_sends(tmp_path, sessions):
         s.db.message(LID, _msg("M1", 100, LID))
         body = await (await http.get(f"/api/{token}/older-history-state/{LID}")).json()
         assert body["response"]["primaryHasMore"] is False
+        assert s.client.history_requests == []
+    finally:
+        await http.close()
+
+
+@pytest.mark.asyncio
+async def test_the_state_route_says_phone_only_where_whatsapp_web_does(tmp_path, sessions):
+    http, token, s = await _open(tmp_path, sessions)
+    try:
+        s.db.chat(LID, history_end=2)
+        s.db.message(LID, _msg("M1", 100, LID))
+        body = await (await http.get(f"/api/{token}/older-history-state/{LID}")).json()
+        assert body["response"]["phoneOnly"] is True
+        # and the backfill (no userAsked) is refused the same way
+        body = await (await http.post(f"/api/{token}/request-older-messages/{LID}")).json()
+        assert body["response"]["phoneOnly"] is True
         assert s.client.history_requests == []
     finally:
         await http.close()
@@ -259,21 +292,52 @@ async def test_an_answer_under_the_other_address_lands_in_the_stored_chat(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_home_goes_on_until_the_phone_sends_nothing_new(tmp_path, sessions):
+async def test_home_asks_the_phone_once_per_anchor_while_it_brings_more(
+        tmp_path, sessions, monkeypatch):
+    """Where WhatsApp Web says "use the phone" (type 2), Home asks once per
+    anchor: a silent phone is never asked again for it, even after the two
+    minutes the gate forgets; a batch that does come gives a new anchor."""
     http, token, s = await _open(tmp_path, sessions)
+    home = {"userAsked": True}
+    clock = [1000.0]
+    monkeypatch.setattr(older_history.time, "monotonic", lambda: clock[0])
     try:
         s.db.chat(LID, ts=500, history_end=2)
         s.db.message(LID, _msg("M5", 500, LID))
-        # asked although WhatsApp Web would say "use the phone"
+        url = f"/api/{token}/request-older-messages/{LID}"
+        assert (await (await http.post(url, json=home)).json())["response"]["requested"] is True
+        assert len(s.client.history_requests) == 1
+        # the phone stays silent; Home again, minutes later: not asked again
+        clock[0] += 3 * older_history.SAME_ANCHOR_WINDOW
+        body = await (await http.post(url, json=home)).json()
+        assert body["response"] == {"requested": False, "primaryHasMore": True, "phoneOnly": True}
+        assert len(s.client.history_requests) == 1
+        # an older batch arrives (late, or by another route): a new anchor
+        s.db.message(LID, _msg("M1", 100, LID))
+        await http.post(url, json=home)
+        assert len(s.client.history_requests) == 2
+        # the backfill never asks in this state
+        s.db.message(LID, _msg("M0", 50, LID))
+        await http.post(url)
+        assert len(s.client.history_requests) == 2
+    finally:
+        await http.close()
+
+
+@pytest.mark.asyncio
+async def test_home_goes_on_until_the_phone_sends_nothing_new(tmp_path, sessions):
+    """A chat with no "use the phone" verdict: an empty answer marks the anchor."""
+    http, token, s = await _open(tmp_path, sessions)
+    try:
+        s.db.chat(LID, ts=500)
+        s.db.message(LID, _msg("M5", 500, LID))
         await http.post(f"/api/{token}/request-older-messages/{LID}")
         assert len(s.client.history_requests) == 1
-        # the phone answers with nothing: that anchor is not asked again
         s._store_history(HistorySync(syncType=HistorySync.ON_DEMAND, conversations=[
-            Conversation(ID=LID, endOfHistoryTransferType=Conversation.COMPLETE_ON_DEMAND_SYNC_BUT_MORE_MSG_REMAIN_ON_PRIMARY)]))
+            Conversation(ID=LID)]))
         body = await (await http.post(f"/api/{token}/request-older-messages/{LID}")).json()
         assert body["response"]["primaryHasMore"] is False
         assert len(s.client.history_requests) == 1
-        # an older message (live or by another route) gives a new anchor: asked again
         s.db.message(LID, _msg("M1", 100, LID))
         await http.post(f"/api/{token}/request-older-messages/{LID}")
         assert len(s.client.history_requests) == 2

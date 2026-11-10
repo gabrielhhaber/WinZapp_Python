@@ -72,7 +72,8 @@ class _Stub:
         self._ask_succeeds = ask_succeeds
         self.asks = []
 
-    def request_older_messages(self, jid, timeout=60, outcome_out=None, expected_context=None):
+    def request_older_messages(self, jid, timeout=60, outcome_out=None, expected_context=None,
+                               user_asked=False):
         self.asks.append(jid)
         return self._ask_succeeds
 

@@ -67,12 +67,24 @@ def save(folder, days) -> bool:
         return False
 
 
-def answer(status, stored, wanted):
-    """What `POST pairing-history` does: (store?, restart the pairing?, reason).
-    A paired session asks nothing any more; a session showing a QR code is
-    restarted when the choice changed, so the code carries it."""
+#: the statuses whose next QR code is made by the running client
+PAIRING = ("QRCODE", "INITIALIZING")
+
+
+def answer(status, stored, wanted, running=None):
+    """What `POST pairing-history` does: (store?, redo the pairing?, reason).
+    A paired session asks nothing any more. A session pairing is redone when
+    the choice differs from what its running client registered with
+    (*running*; the stored choice when unknown), not from the file: a choice
+    made while the session was still starting (INITIALIZING, before the QR) was
+    stored, the QR then carried the old days, and choosing again said
+    "unchanged". The route redoes a QRCODE session at once and an
+    INITIALIZING one as soon as its QR appears."""
     if status == "CONNECTED":
         return False, False, "paired"
-    if wanted == stored:
+    built = stored if running is None else running
+    store = wanted != stored
+    redo = status in PAIRING and wanted != built
+    if not store and not redo:
         return False, False, "unchanged"
-    return True, status == "QRCODE", "stored"
+    return store, redo, "stored"

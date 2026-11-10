@@ -31,6 +31,16 @@ def test_a_qr_on_screen_is_redone_and_a_paired_session_is_left_alone():
     assert ph.answer("CONNECTED", 180, 3650) == (False, False, "paired")
 
 
+def test_a_choice_made_while_the_session_starts_reaches_its_qr():
+    """Chosen in the dialog's first seconds (INITIALIZING): stored, and the
+    pairing is redone; choosing it again is compared with what the running
+    client registered with, not with the file."""
+    assert ph.answer("INITIALIZING", 180, 3650, running=180) == (True, True, "stored")
+    # stored already, but the QR on screen still carries 180 days
+    assert ph.answer("QRCODE", 3650, 3650, running=180) == (False, True, "stored")
+    assert ph.answer("QRCODE", 3650, 3650, running=3650) == (False, False, "unchanged")
+
+
 def test_the_device_asks_for_the_chosen_history():
     full = server.device_props(3650)
     assert full.requireFullSync and full.historySyncConfig.fullSyncDaysLimit == 3650

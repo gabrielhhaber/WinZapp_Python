@@ -219,6 +219,8 @@ class CallMedia(CallIngressMixin):
         # the account's own users (number and LID digits), set by the session
         # once it knows them: a roster lists this account too
         self.own_users = lambda: set()
+        # call id -> the connected people last reported (report_rosters)
+        self._reported_rosters = {}
         # called with the facts of each call that ended (finished_info), for
         # the session to write its call_log: WhatsApp Web writes no record of
         # a call this engine placed or hung up itself
@@ -399,16 +401,22 @@ class CallMedia(CallIngressMixin):
         with self._lock:
             live = [(call_id, call) for call_id, call in self._calls.items()
                     if call.get("group") and call.get("state") == "ACTIVE"]
-            reported = self.__dict__.setdefault("_reported_rosters", {})
+            reported = self._reported_rosters
             for gone in set(reported) - {call_id for call_id, _call in live}:
                 reported.pop(gone, None)
         mine = self.own_users()
         for call_id, _call in live:
             try:
-                participants = (self.calls.roster(call_id) or {}).get("participants")
+                roster = self.calls.roster(call_id)
             except Exception:
                 log.exception("group call roster")
                 continue
+            if roster is None:
+                # the call ended natively before its end event was handled:
+                # no roster is not an empty one, or the client would say
+                # that everyone left just as the call ends
+                continue
+            participants = roster.get("participants")
             connected = roster_connected(participants, mine)
             with self._lock:
                 if reported.get(call_id) == connected:

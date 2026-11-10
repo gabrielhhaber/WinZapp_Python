@@ -1335,7 +1335,8 @@ class BackfillMixin:
             return None
 
     def request_older_messages(self, remote_jid: str, timeout: int = 60,
-                               outcome_out=None, expected_context=None) -> bool | None:
+                               outcome_out=None, expected_context=None,
+                               user_asked: bool = False) -> bool | None:
         """Ask the phone for history older than what this device holds.
 
         Fire-and-forget by nature: the phone answers with a history-sync chunk
@@ -1345,6 +1346,10 @@ class BackfillMixin:
         False means an explicit no-more/phone-only verdict. None is temporary
         or unknown. outcome_out marks an ambiguous send so callers keep the
         reply grace and notification budget rather than blindly resending.
+
+        *user_asked*: the user pressed Home at the top of the chat. Only then
+        does the Neonize bridge ask the phone for a chat whose history ends on
+        the phone (types 2/3, older_history.py); the backfill never says so.
         """
         context = expected_context if expected_context is not None else capture_sync_context(self)
         if outcome_out is not None:
@@ -1358,6 +1363,7 @@ class BackfillMixin:
                 url,
                 headers={"Authorization": f"Bearer {self.token}",
                          "Content-Type": "application/json"},
+                json={"userAsked": True} if user_asked else None,
                 timeout=timeout,
             )
             body = {}

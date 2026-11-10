@@ -658,6 +658,20 @@ def test_a_group_call_reports_who_is_connected_when_it_changes():
                         "connected": ["3@lid", "5511@s.whatsapp.net"]}]
 
 
+def test_a_roster_gone_with_the_call_is_not_an_empty_one():
+    """The call ended natively before its end event was handled: roster()
+    answers None, and nobody is said to have left."""
+    fake = RosterCalls()
+    m, sent = media(fake)
+    _live_group(m)
+    fake.people = [{"jid": "1@lid", "state": "connected"}]
+    m.report_rosters()
+    fake.roster = lambda call_id: None
+    m.report_rosters()
+    reports = [d["connected"] for e, d in sent if e == "call-participants"]
+    assert reports == [["1@lid"]]
+
+
 def test_a_call_that_is_not_a_live_group_call_reports_nothing():
     fake = RosterCalls()
     m, sent = media(fake)

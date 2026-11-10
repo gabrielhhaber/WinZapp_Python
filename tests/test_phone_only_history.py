@@ -375,7 +375,8 @@ class _Scroller:
         self.asks = []
         self.probes = []
 
-    def request_older_messages(self, jid, timeout=60, outcome_out=None, expected_context=None):
+    def request_older_messages(self, jid, timeout=60, outcome_out=None, expected_context=None,
+                               user_asked=False):
         self.asks.append(jid)
         history_boundary.note_verdict(self, jid, self._ask_verdict)
         return self._ask_result

@@ -490,8 +490,11 @@ class HistoryMixin:
                         self._older_requested_chats[remote_jid] = asked_at
                         self._persist_older_requested()
                         outcome = {}
+                        # interactive (Home at the top): the Neonize bridge may
+                        # ask the phone even for a chat whose history ends there
                         request_result = self.request_older_messages(
-                            remote_jid, outcome_out=outcome, expected_context=context)
+                            remote_jid, outcome_out=outcome, expected_context=context,
+                            user_asked=True)
                         if not sync_context_is_current(self, context):
                             return None
                         requested = request_result is True
