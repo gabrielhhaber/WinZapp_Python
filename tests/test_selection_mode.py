@@ -37,6 +37,7 @@ from ui.conversations import (
     visible_jid_selected,
 )
 from tests.god_modules import conversations_method_source
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -111,7 +112,7 @@ def _separator():
     return {"_type": "unread_separator", "count": 1}
 
 
-class _Stub:
+class _Stub(ReadingPositionMixin):
     """Minimal stand-in for ConversationsPanel."""
 
     _is_separator = ConversationsPanel._is_separator

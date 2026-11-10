@@ -161,6 +161,7 @@ from ui.conversation_panel.message_actions import MessageActionsMixin
 from ui.conversation_panel.message_stars import StarActionsMixin
 from ui.conversation_panel.message_accels import MessageAccelsMixin
 from ui.conversation_panel.bookmarks import BookmarksMixin
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 from ui.conversation_panel.message_search import MessageSearchMixin
 from ui.conversation_panel.community_comments import CommunityCommentsPanelMixin
 from ui.conversation_panel.commerce import CommercePanelMixin
@@ -214,6 +215,7 @@ class ConversationsPanel(
     StarActionsMixin,
     MessageAccelsMixin,
     BookmarksMixin,
+    ReadingPositionMixin,
     MessageSearchMixin,
     CommunityCommentsPanelMixin,
     CommercePanelMixin,

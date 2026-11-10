@@ -45,6 +45,7 @@ from ui.dialogs.transcription_windows import TranscriptionWindowsMixin
 from ui.dialogs.advanced_tab import AdvancedTabMixin
 from ui.dialogs.noise_reducer_dialog import NoiseReducerButtonMixin
 from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
+from ui.dialogs.reading_position_options import ReadingPositionOptionsMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
@@ -237,7 +238,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
                      TranscriptionWindowsMixin, AdvancedTabMixin, NoiseReducerButtonMixin,
-                     VoiceRecordingOptionsMixin,
+                     VoiceRecordingOptionsMixin, ReadingPositionOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
@@ -1780,6 +1781,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         focus_sizer.Add(self._focus_unread_or_last_rb, 0, wx.LEFT | wx.TOP | wx.BOTTOM, 5)
 
         chats_sizer.Add(focus_sizer, 0, wx.EXPAND | wx.ALL, 8)
+        # Which row of the messages list an opened conversation lands on.
+        self._build_open_position_options(self._chats_page, chats_sizer)
+        # Bookmarks (Ctrl/Alt+Shift+digit) that go away after their first jump.
+        self._build_bookmark_removal_options(self._chats_page, chats_sizer)
 
         self._show_delivery_status_cb = wx.CheckBox(
             self._chats_page, label=i18n.t("ui_show_delivery_status_in_chat_list")
@@ -2491,6 +2496,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._focus_unread_or_last_rb.SetValue(True)
             else:
                 self._focus_message_field_rb.SetValue(True)
+            self._load_open_position_options()
+            self._load_bookmark_removal_options()
 
         voice_record_focus = self.main_window.settings.get("user_interface", {}).get(
             "voice_record_focus", "send"
@@ -4063,6 +4070,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 else "message_field"
             )
             self.main_window.settings.setdefault("user_interface", {})["focus_on_open"] = focus_on_open
+            self._save_open_position_options()
+            self._save_bookmark_removal_options()
 
         if ready(self, "audio"):
             # UI: focus when recording a voice message
@@ -4845,6 +4854,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._focus_box.SetLabel(i18n.t("ui_focus_label"))
             self._focus_message_field_rb.SetLabel(i18n.t("ui_focus_message_field"))
             self._focus_unread_or_last_rb.SetLabel(i18n.t("ui_focus_unread_or_last"))
+            self._relabel_open_position_options()
+            self._relabel_bookmark_removal_options()
         if ready(self, "audio"):
             self._voice_focus_box.SetLabel(i18n.t("ui_voice_record_focus_label"))
             self._voice_focus_send_rb.SetLabel(i18n.t("ui_voice_record_focus_send"))

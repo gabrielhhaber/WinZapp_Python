@@ -8388,6 +8388,7 @@ msgid "Volume"
 msgstr "الصوت"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py
 #: client/ui/conversation_panel/mentions.py
 msgctxt "mention_all_keyword"
 msgid "all"
@@ -18531,6 +18532,22 @@ msgstr ""
 "صندوق قائمة (الرسائل الكاملة، لا يعلن قارئ الشاش&ة عن الموضع أو عدد العناصر)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_message_list_open_position_label"
+msgid "Automatically focused position &in the messages list"
+msgstr "&الموضع المحدد تلقائيًا في قائمة الرسائل"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused"
+msgid "Continue where you left off (last focused message)"
+msgstr "المتابعة من حيث توقفت (آخر رسالة تم التركيز عليها)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_unread_or_last"
+msgid "Unread separator or last message"
+msgstr "فاصل الرسائل غير المقروءة أو آخر رسالة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_button"
 msgid "&Messages"
@@ -18563,6 +18580,18 @@ msgstr "رسائل للقفز إلى الأمام/الخلف باستخدام Pa
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "الإبقاء &على النص المكتوب كتوضيح عند الإرفاق"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_bookmarks_after_use"
+msgid "Remo&ve permanent bookmarks automatically after the first use"
+msgstr "إزالة العلامات الدائمة تلقائيًا &بعد أول استخدام"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_temp_bookmarks_after_use"
+msgid "Remove temporar&y bookmarks automatically after the first use"
+msgstr "إزالة الإشارات المؤقتة تلقائيًا بعد &أول استخدام"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

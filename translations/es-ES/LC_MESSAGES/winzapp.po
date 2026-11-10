@@ -8558,6 +8558,7 @@ msgid "Volume"
 msgstr "Volumen"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py
 #: client/ui/conversation_panel/mentions.py
 msgctxt "mention_all_keyword"
 msgid "all"
@@ -19006,6 +19007,22 @@ msgstr ""
 "posición ni la cantidad de elementos)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_message_list_open_position_label"
+msgid "Automatically focused position &in the messages list"
+msgstr "Posici&ón enfocada automáticamente en la lista de mensajes"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused"
+msgid "Continue where you left off (last focused message)"
+msgstr "Continuar donde lo dejaste (último mensaje enfocado)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_unread_or_last"
+msgid "Unread separator or last message"
+msgstr "Separador de no leídos o último mensaje"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_button"
 msgid "&Messages"
@@ -19038,6 +19055,18 @@ msgstr "Mensajes a avanzar/retroceder con Page Up y Page Down:"
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "Preservar el mensaje escrito &como leyenda al adjuntar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_bookmarks_after_use"
+msgid "Remo&ve permanent bookmarks automatically after the first use"
+msgstr "Eliminar marcadores permanentes autom&áticamente tras el primer uso"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_temp_bookmarks_after_use"
+msgid "Remove temporar&y bookmarks automatically after the first use"
+msgstr "&Quitar marcadores temporales automáticamente tras el primer uso"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
