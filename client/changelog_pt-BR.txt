@@ -4,6 +4,10 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Configurações > Interface do usuário > Conversas: nova opção "Posição focada automaticamente na lista de mensagens". Com "Continuar de onde você parou (última mensagem focada)", ao voltar para uma conversa (inclusive trocando de uma conversa para outra), a lista de mensagens fica na mensagem em que você estava quando saiu, haja ou não mensagens novas não lidas. O separador de não lidas e outras linhas que não são mensagens não contam como posição. O padrão continua sendo "Separador de não lidas ou última mensagem". A opção escolhe só a mensagem da lista: se o foco vai para a lista ou para o campo de mensagem continua sendo decidido pela opção que já existia.
+
+- Marcadores: duas novas caixas de verificação em Configurações > Interface do usuário > Conversas, "Remover marcadores permanentes automaticamente após o primeiro uso" e "Remover marcadores temporários automaticamente após o primeiro uso". Marcadas, ir até um marcador (Ctrl+0 a 9 nos permanentes, Alt+Shift+0 a 9 nos temporários) já o remove, e a mesma tecla cria um marcador novo na próxima vez, sem precisar removê-lo com Ctrl+Shift+número.
+
 - Sons: duas novas opções em Configurações, Sons permitem escolher o som tocado numa nova mensagem com o WinZapp em primeiro plano, uma para a conversa aberta e outra para as demais conversas. Cada uma pode manter o som dedicado de primeiro plano, como antes, ou usar o mesmo som de notificação escolhido para as mensagens em segundo plano.
 
 - Links do WhatsApp: o WinZapp agora abre links de conversa. Um link wa.me ou api.whatsapp.com (por exemplo, de uma companhia aérea, de uma loja ou de um site) abre a conversa com aquele número, mesmo que ele não esteja nos seus contatos, coloca a mensagem do link no campo de mensagem e deixa o foco ali, pronta para você revisar e enviar. Links só com o número também funcionam. A versão instalada agora se registra para links do WhatsApp na primeira vez que abre, e por isso o WinZapp aparece em Aplicativos padrão do Windows; na versão portátil a opção continua em Configurações, Geral.

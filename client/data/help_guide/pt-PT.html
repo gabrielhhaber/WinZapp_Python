@@ -378,7 +378,7 @@
 </ul>
 
 <h3>Abrir uma conversa</h3>
-<p>Enter abre a conversa selecionada. O foco vai para onde o utilizador definiu em Definições &gt; Interface &gt; Conversas (campo de mensagem, ou o separador de não lidas / a última mensagem). Esc ou Ctrl+W fecham a conversa.</p>
+<p>Enter abre a conversa selecionada. O foco vai para onde o utilizador definiu em Definições &gt; Interface &gt; Conversas (campo de mensagem, ou o separador de não lidas / a última mensagem). Esc ou Ctrl+W fecham a conversa. A mensagem em que a lista fica depende de "Posição focada automaticamente na lista de mensagens", na mesma página: "Separador de não lidas ou última mensagem" ou "Continuar de onde parou (última mensagem focada)", que volta à mensagem em que o utilizador estava quando saiu da conversa, mesmo ao trocar de uma conversa para outra e mesmo com mensagens novas por ler (o separador de não lidas não conta como posição).</p>
 
 <h3>O menu de contexto da conversa</h3>
 <p>Abra com a tecla Aplicações ou Shift+F10. Os itens variam com a conversa:</p>
@@ -511,7 +511,7 @@
 </ul>
 
 <h3>Marcadores</h3>
-<p>Marcadores são posições que o utilizador cria nas mensagens para voltar depois. Com a mensagem em foco, Ctrl+0 a Ctrl+9 cria um marcador (ou, se o número já existe, vai até ele); Ctrl+Shift+0 a 9 remove. Alt+Shift+0 a 9 cria marcadores temporários, eliminados quando o utilizador sai da conversa; Ctrl+Alt+Shift+0 a 9 remove os temporários.</p>
+<p>Marcadores são posições que o utilizador cria nas mensagens para voltar depois. Com a mensagem em foco, Ctrl+0 a Ctrl+9 cria um marcador (ou, se o número já existe, vai até ele); Ctrl+Shift+0 a 9 remove. Alt+Shift+0 a 9 cria marcadores temporários, eliminados quando o utilizador sai da conversa; Ctrl+Alt+Shift+0 a 9 remove os temporários. Em Definições &gt; Interface &gt; Conversas, "Remover marcadores permanentes automaticamente após a primeira utilização" e "Remover marcadores temporários automaticamente após a primeira utilização" fazem com que ir até um marcador o remova logo, e a mesma tecla cria um marcador novo da próxima vez.</p>
 <h3>Chats de acesso rápido</h3>
 <p>Com um chat focado na lista ou aberto, prima Ctrl+Alt+Shift+F1 a F10 para o atribuir a uma posição de acesso rápido. Ctrl+Shift+a mesma tecla de função abre o chat a partir de qualquer lugar da janela principal. F1 a F9 correspondem às posições 1 a 9; F10 corresponde à posição 0. As atribuições são separadas por conta e mantêm-se após reiniciar. Pode alterar os atalhos em Definições, Interface do utilizador, Atalhos de teclado, ou atribuir um chat pelo menu de contexto. Os chats protegidos não podem ser atribuídos.</p>
 
@@ -877,7 +877,7 @@
   <tr><td class="field-name">Interface</td><td>Cada botão abre a janela de um assunto: Mensagens, Reações, Conversas, Confirmações e Atalhos de teclado.</td></tr>
   <tr><td class="field-name">Interface &gt; Mensagens</td><td>Quantas mensagens mostrar ao abrir uma conversa; quantas pular com Page Up/Down; tipo de lista de mensagens (clássica, com limite de 512 caracteres, ou caixa de lista, com mensagens completas); mostrar quem está a escrever como última linha; "Como se referir a mim?"; ocultar o remetente nas suas mensagens; ocultar números de remetentes sem nome; preservar a mensagem digitada como legenda; "Ontem às {time}" no lugar da data; prévias de chamadas; "Reencaminhada" antes do remetente; marca inicial de "Eliminar também a multimédia do telemóvel"; vídeos e estados em player separado; tipos de multimédia exibidos por predefinição.</td></tr>
   <tr><td class="field-name">Interface &gt; Reações</td><td>Reações rápidas fixas e a escolha do emoji de cada posição.</td></tr>
-  <tr><td class="field-name">Interface &gt; Conversas</td><td>Onde focar ao abrir uma conversa; estados de entrega na lista de conversas; manter a ordem das conversas afixadas; substituir atalhos por ações em massa; comportamento de Espaço e Esc com seleção; manter a pesquisa de conversas ao abrir; posição do anúncio "selecionado"; mostrar canais na lista de conversas (desmarcado por predefinição); "Número de mensagens novas na lista de conversas", antes ou depois do nome da conversa.</td></tr>
+  <tr><td class="field-name">Interface &gt; Conversas</td><td>Onde focar ao abrir uma conversa; estados de entrega na lista de conversas; manter a ordem das conversas afixadas; substituir atalhos por ações em massa; comportamento de Espaço e Esc com seleção; manter a pesquisa de conversas ao abrir; posição do anúncio "selecionado"; mostrar canais na lista de conversas (desmarcado por predefinição); "Número de mensagens novas na lista de conversas", antes ou depois do nome da conversa; "Posição focada automaticamente na lista de mensagens" (separador de não lidas ou continuar de onde parou); "Remover marcadores permanentes automaticamente após a primeira utilização" e "Remover marcadores temporários automaticamente após a primeira utilização".</td></tr>
   <tr><td class="field-name">Interface &gt; Conversas &gt; Conversas trancadas</td><td>PIN do cofre, bloqueio por tempo sem uso e o código secreto (o botão aparece quando o cofre está disponível).</td></tr>
   <tr><td class="field-name">Interface &gt; Confirmações</td><td>As perguntas de confirmação (marcar tudo como lido, limpar, eliminar, F5, Shift+F5, gravar áudio do computador) e suas versões "Não mostrar novamente".</td></tr>
   <tr><td class="field-name">Interface &gt; Atalhos de teclado</td><td>Lista todos os atalhos do programa, inclusive o global. Selecione um, escolha "Alterar" e escreva a nova combinação; ou desative-o, restaure o predefinição ou restaure todos. Conflitos são avisados antes de aplicar, e as mudanças só valem com Aplicar ou OK.</td></tr>
@@ -1430,6 +1430,7 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Gerir contas: caixa para ligar todas as contas ao iniciar o WinZapp.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Ligações do WhatsApp: ligações de conversa (wa.me, api.whatsapp.com) abrem a conversa com o texto pronto, e a versão instalada aparece em Aplicações predefinidas.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Sons: escolha do som das mensagens com o WinZapp em primeiro plano, para a conversa aberta e para as restantes conversas.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde parou; marcadores removidos automaticamente após a primeira utilização.</td></tr>
 </table>
 
   </section>

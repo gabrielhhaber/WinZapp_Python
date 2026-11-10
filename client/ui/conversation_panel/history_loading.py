@@ -92,7 +92,8 @@ class HistoryLoadingMixin:
         """
         return history_window(
             displayable,
-            getattr(self, "_pinned_jump_id", "") or getattr(self, "_expanded_oldest_msg_id", ""),
+            getattr(self, "_pinned_jump_id", "") or getattr(self, "_expanded_oldest_msg_id", "")
+            or self._reading_resume_anchor(),
             getattr(self, "_expanded_visible_count", 0),
             limit,
             self._unread_sep_idx,

@@ -41,6 +41,22 @@ def _write(path):
 # tmp_path when the value depends on it), how to set the controls, and how to
 # tell the reopened dialog shows it. Every function receives (dialog, tmp_path).
 SCENARIOS = {
+    # Settings > Conversations (ui/dialogs/reading_position_options.py).
+    "message_list_open_position": dict(
+        saves={("user_interface", "message_list_open_position"): "last_focused"},
+        set=lambda d, t: d._open_position_radio.SetSelection(1),
+        shows=lambda d, t: d._open_position_radio.GetSelection() == 1,
+    ),
+    "remove_bookmarks_after_use": dict(
+        saves={("user_interface", "remove_bookmarks_after_use"): True},
+        set=lambda d, t: d._remove_bookmarks_after_use_cb.SetValue(True),
+        shows=lambda d, t: d._remove_bookmarks_after_use_cb.GetValue() is True,
+    ),
+    "remove_temp_bookmarks_after_use": dict(
+        saves={("user_interface", "remove_temp_bookmarks_after_use"): True},
+        set=lambda d, t: d._remove_temp_bookmarks_after_use_cb.SetValue(True),
+        shows=lambda d, t: d._remove_temp_bookmarks_after_use_cb.GetValue() is True,
+    ),
     "voice_recording_mode": dict(
         saves={("general", "voice_recording_mode"): "mono"},
         set=lambda d, t: d._voice_recording_mode_radio.SetSelection(1),

@@ -50,6 +50,7 @@ Where to look (and where new code goes):
     links                    links panel of the focused message
     mentions                 @mentions panel and suggestions
     bookmarks                message bookmarks
+    reading_position         "continue where you left off": the row each conversation was left on
     pinned_messages          pinned-message overview and history navigation
     channel_conversation     a channel's role (who posts and pins) and its pinned updates
     message_search           search inside the conversation

@@ -77,6 +77,7 @@ class _FakeMainWindow:
     def __init__(self):
         self.i18n = _FakeI18n()
         self.outputs = []
+        self.settings = {}
 
     def output(self, text, interrupt=False):
         self.outputs.append(text)
@@ -94,6 +95,7 @@ class _Stub:
     _focus_message_row = ConversationsPanel._focus_message_row
     _on_temp_bookmark_set_or_jump = ConversationsPanel._on_temp_bookmark_set_or_jump
     _on_temp_bookmark_remove = ConversationsPanel._on_temp_bookmark_remove
+    _drop_bookmark_after_use = ConversationsPanel._drop_bookmark_after_use
 
     def __init__(self, sorted_messages, focused_item=-1, conversation_jid=CONV,
                  list_has_focus=False):
@@ -297,3 +299,55 @@ class TestIndependentFromPermanentBookmarks:
 
         assert panel._msg_temp_bookmarks == {3: "A"}
         assert panel._msg_bookmarks == {3: (CONV, "B")}
+
+
+class TestRemoveAfterFirstUse:
+    """Settings > Messages, "Remover marcadores temporários automaticamente
+    após o primeiro uso"."""
+
+    def _on(self, panel):
+        panel.main_window.settings = {"user_interface": {"remove_temp_bookmarks_after_use": True}}
+
+    def test_off_by_default_the_bookmark_stays(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0)
+        panel._on_temp_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+        panel._on_temp_bookmark_set_or_jump(1)
+
+        assert panel._msg_temp_bookmarks == {1: "A"}
+
+    def test_the_jump_still_happens_and_removes_it(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0)
+        self._on(panel)
+        panel._on_temp_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+        panel.main_window.outputs.clear()
+
+        panel._on_temp_bookmark_set_or_jump(1)
+
+        assert panel.messages_list.focused_calls[-1] == 0
+        assert panel.main_window.outputs == [
+            "Movido para a posição 1 da lista (marcador temporário 1)"
+        ]
+        assert panel._msg_temp_bookmarks == {}
+
+    def test_the_same_key_then_sets_a_new_bookmark(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0)
+        self._on(panel)
+        panel._on_temp_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+        panel._on_temp_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+
+        panel._on_temp_bookmark_set_or_jump(1)
+
+        assert panel._msg_temp_bookmarks == {1: "B"}
+
+    def test_the_permanent_setting_does_not_touch_temporary_bookmarks(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=1)
+        panel.main_window.settings = {"user_interface": {"remove_bookmarks_after_use": True}}
+        panel._msg_temp_bookmarks[2] = "A"
+
+        panel._on_temp_bookmark_set_or_jump(2)
+
+        assert panel._msg_temp_bookmarks == {2: "A"}
