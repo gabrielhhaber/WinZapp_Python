@@ -32,7 +32,8 @@ const model = (id: string) => ({ id: { _serialized: id } });
 
 test('following, leaving, muting and a role change are one coalesced event', () => withPage(({ sent, channels, metadata }) => {
   expect(installChannelsWatchInPage()).toBe(true);
-  channels.fire('add', model('1@newsletter'));
+  channels.fire('add', model('2@newsletter'));
+  channels.fire('change:muteExpiration', model('2@newsletter'));
   channels.fire('add', model('2@newsletter'));
   jest.advanceTimersByTime(1000);
   expect(sent).toEqual(['{"kind":"joined","id":"2@newsletter"}']);
@@ -49,6 +50,15 @@ test('following, leaving, muting and a role change are one coalesced event', () 
   expect(sent.slice(1).map((s) => JSON.parse(s).kind)).toEqual(['muted', 'role', 'edited', 'admins', 'left']);
 }));
 
+test('two channels changed in the same second are both reported', () => withPage(({ sent, channels, metadata }) => {
+  // the admins window of channel 1 follows only channel 1
+  expect(installChannelsWatchInPage()).toBe(true);
+  metadata.fire('change:adminCount', model('1@newsletter'));
+  channels.fire('change:muteExpiration', model('2@newsletter'));
+  jest.advanceTimersByTime(1000);
+  expect(sent).toEqual(['{"kind":"admins","id":"1@newsletter"}', '{"kind":"muted","id":"2@newsletter"}']);
+}));
+
 test('it installs once, and anything but a channel says nothing', () => withPage(({ sent, channels }) => {
   expect(installChannelsWatchInPage()).toBe(true);
   expect(installChannelsWatchInPage()).toBe(true);
@@ -59,7 +69,7 @@ test('it installs once, and anything but a channel says nothing', () => withPage
   expect(sent).toEqual([]);
 }));
 
-test('the page not ready yet is retried', () => {
+test('a page not ready yet answers false, so the bridge tries the install again', () => {
   const root = globalThis as any;
   const previous = [root.window, root.require];
   root.window = root;

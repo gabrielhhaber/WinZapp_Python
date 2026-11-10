@@ -9,8 +9,10 @@
 // phone or another device; `adminCount` there changes with the channel's
 // admins. Read over CDP on 2026-11-08 (2.3000.x).
 //
-// Every change becomes one `channels-changed` socket event, coalesced over a
-// second (a page load adds every followed channel at once). Only the
+// Changes are coalesced over a second (a page load adds every followed
+// channel at once) into one `channels-changed` socket event per channel, its
+// last change: a window that follows one channel (the admins of A) must not
+// lose A's change to B's in the same second. Only the
 // channel's id leaves the page. The Neonize bridge sends the same event from
 // neonize's NewsletterJoin/Leave/MuteChange (neonize_bridge/channel_events.py).
 
@@ -33,21 +35,25 @@ export function installChannelsWatchInPage(): boolean {
     return false;
   }
   if (channels.__winzappChannelsWatch) return true;
-  let pending: any = null;
+  // channel id -> its last change in this burst (insertion order kept)
+  const pending = new Map<string, string>();
   let timer: any = null;
   const send = (kind: string, model: any) => {
     try {
       const id = String((model && model.id && (model.id._serialized || model.id)) || '');
       if (!/^\d+@newsletter$/.test(id)) return;
-      // the last change of the burst is the one reported; the window reads
-      // the whole list again anyway
-      pending = { kind, id };
+      // a channel's last change of the burst is the one reported; the
+      // windows read the whole list again anyway
+      pending.delete(id);
+      pending.set(id, kind);
       if (timer) return;
       timer = setTimeout(() => {
         timer = null;
-        const change = pending;
-        pending = null;
-        if (change) notify(JSON.stringify(change));
+        const changes = Array.from(pending.entries());
+        pending.clear();
+        for (const [channel, change] of changes) {
+          notify(JSON.stringify({ kind: change, id: channel }));
+        }
       }, 1000);
     } catch (_) {
       // one lost event, never the listener

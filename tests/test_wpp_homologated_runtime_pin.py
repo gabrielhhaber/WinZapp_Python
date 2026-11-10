@@ -289,3 +289,10 @@ def test_every_node_modules_patch_still_matches_the_pinned_runtime():
             assert setup_api._patch_wa_js_bundle(tmp)
             assert setup_api._patch_chat_lookup_bundle(tmp)
             assert setup_api._patch_newsletter_chat_bundle(tmp)
+            # both of its fixes, not one: "already applied" is also answered
+            # when only one of them matched, and text posts and polls to a
+            # channel would fail again with nothing flagging it
+            from core import wppconnect_newsletter_chat_patch as newsletter_chat
+            patched = bundle_copy.read_text(encoding="utf-8")
+            assert newsletter_chat._PATCHED.search(patched), "channel chat lookup not patched"
+            assert newsletter_chat._NAMED_JOB.search(patched), "channel send job not bound by name"

@@ -1,7 +1,7 @@
 import {
-  channelDirectory, channelInfo, channelKey, editChannelUpdate, followChannel, listChannels,
-  pullChannelHistory, readNewestChannelUpdates,
-  readChannels,
+  channelDirectory, channelInfo, channelInsights, channelKey, editChannelUpdate, followChannel,
+  listChannels, pullChannelHistory, readNewestChannelUpdates,
+  readChannels, setChannelAdminProfiles, setChannelReactions,
 } from '../../controller/channelsPanelController';
 
 function response() {
@@ -298,6 +298,29 @@ test('an own channel update is edited through WhatsApp Web\'s own edit', async (
   }
 });
 
+test('an edit WhatsApp Web would refuse is refused before anything is sent', async () => {
+  // past the edit window, or not this account's: canEditMsg says no, so the
+  // route can say "Cannot edit this message" and the client rolls back
+  const root = globalThis as any;
+  const previous = [root.require, root.WPP];
+  const edits: any[] = [];
+  const msg = { id: 'true_1@newsletter_3EB0AB' };
+  let allowed = false;
+  root.require = (name: string) => (name === 'WAWebSendMessageEditAction'
+    ? { sendMessageEdit: async (m: any) => { edits.push(m); } } : undefined);
+  root.WPP = { chat: { getMessageById: async () => msg },
+    whatsapp: { functions: { canEditMsg: (m: any) => { expect(m).toBe(msg); return allowed; } } } };
+  try {
+    expect(await editChannelUpdate({ id: msg.id, text: 'x' })).toEqual({ refused: true });
+    expect(edits).toEqual([]);
+    allowed = true;
+    expect(await editChannelUpdate({ id: msg.id, text: 'x' })).toEqual({ id: msg.id });
+    expect(edits).toEqual([msg]);
+  } finally {
+    [root.require, root.WPP] = previous;
+  }
+});
+
 
 function newestPage(held: number[], server: number[], options: any = {}) {
   const root = globalThis as any;
@@ -484,4 +507,157 @@ test('show admin profile is not reported where WhatsApp does not offer it', asyn
   } finally {
     root.require = previous;
   }
+});
+
+// A channel page whose models carry server ids, as WhatsApp Web's do.
+function serverPage(held: number[], server: number[], options: any = {}) {
+  const root = globalThis as any;
+  const make = (n: number) => ({ id: { _serialized: `false_1@newsletter_${n}` }, t: n, serverId: n });
+  const models: any[] = held.map(make);
+  const msgLoadState: any = { noEarlierMsgs: !options.older };
+  const older: number[] = options.older ? [...options.older] : [];
+  const fills: any[] = [];
+  const msgs: any = {
+    getModelsArray: () => models, get length() { return models.length; }, msgLoadState,
+    toArray: () => models.slice(),
+    add: (list: any[]) => {
+      for (const m of list) if (!models.some((x) => x.serverId === m.serverId)) models.push(m);
+    },
+    sort: () => models.sort((a, b) => a.serverId - b.serverId),
+  };
+  const channel: any = { id: { toJid: () => '1@newsletter', _serialized: '1@newsletter' }, msgs };
+  const previous = { require: root.require, WAPI: root.WAPI };
+  root.WAPI = { _serializeMessageObj: (m: any) => ({ id: m.id._serialized, t: m.t, serverId: m.serverId }) };
+  root.require = (name: string) => ({
+    WAWebCollections: { WAWebNewsletterCollection: { get: () => channel } },
+    WAWebChatLoadMessages: { loadEarlierMsgs: async () => {
+      const batch = older.splice(Math.max(0, older.length - 50));
+      for (const n of batch) models.unshift(make(n));
+      if (!older.length) msgLoadState.noEarlierMsgs = true;
+    } },
+    WAWebNewsletterPullMessagesFromServerAction: { pullNewsletterMessagesFromServer: async () => {
+      for (const n of server) if (!models.some((m) => m.serverId === n)) models.push(make(n));
+      return [];
+    } },
+    ...(options.fill ? {
+      WAWebNewsletterMsgHistoryUtils: { fillMsgHistoryGaps: async (o: any) => {
+        fills.push(o);
+        if (options.fill === 'offline') throw new Error('offline');
+        const ids = o.msgs.map((d: any) => d.serverId).sort((a: number, b: number) => a - b);
+        const whole: any[] = [];
+        for (let n = ids[0]; n <= ids[ids.length - 1]; n++) whole.push({ serverId: n });
+        return whole;
+      } },
+      WAWebMsgDataFromModel: { msgDataFromMsgModel: (m: any) => ({ serverId: m.serverId }) },
+      WAWebMsgModelFromData: { msgModelFromMsgData: (d: any) => make(d.serverId) },
+      WAWebNewsletterValidationUtils: { toNewsletterJidOrThrow: (jid: string) => jid },
+      WAWebNewsletterViewModeUIUtils: {
+        getHiddenMessageServerIdsForChat: () => new Set(options.hidden || []),
+      },
+    } : {}),
+  } as any)[name];
+  return { fills, models, restore: () => { root.require = previous.require; root.WAPI = previous.WAPI; } };
+}
+
+const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
+test('updates held from an earlier visit never make a page with a hole', async () => {
+  // held 281..300 from yesterday; today the newest 100 are 701..800 and the
+  // hole can not be filled (offline): only the run ending at the newest
+  const page = serverPage(range(281, 300), range(701, 800), { fill: 'offline' });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 200 });
+    expect(got.map((m: any) => m.serverId)).toEqual(range(701, 800));
+    expect(page.fills.length).toBe(1);
+  } finally {
+    page.restore();
+  }
+});
+
+test('the hole is filled the way WhatsApp Web repairs a channel', async () => {
+  const page = serverPage(range(281, 300), range(401, 500), { fill: true, hidden: [] });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 200 });
+    expect(got.map((m: any) => m.serverId)).toEqual(range(301, 500));
+    expect(page.fills[0].jid).toBe('1@newsletter');
+  } finally {
+    page.restore();
+  }
+});
+
+test('hidden updates and a post still sending do not break the run', async () => {
+  const page = serverPage([95, 97, 98], [99, 100], { fill: 'offline', hidden: [96] });
+  page.models.push({ id: { _serialized: 'true_1@newsletter_X' }, t: 101, serverId: 9007199254730993 });
+  try {
+    const got: any = await readNewestChannelUpdates({ chatId: '1@newsletter', targetCount: 20 });
+    expect(got.map((m: any) => m.serverId)).toEqual([95, 97, 98, 99, 100, 9007199254730993]);
+  } finally {
+    page.restore();
+  }
+});
+
+test('an older page fills the holes before it is read', async () => {
+  const page = serverPage([10, 11, 50, 51], [], { fill: true });
+  try {
+    expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_50',
+      targetCount: 2 })).toBe(38);
+    expect(page.models.map((m: any) => m.serverId).sort((a, b) => a - b)).toEqual(range(10, 51));
+  } finally {
+    page.restore();
+  }
+});
+
+test("a channel's statistics are WhatsApp Web's query, sent by id", () => withPage(async () => {
+  const metrics = [{ id: 6, type: 'FOLLOWER', group_by: { number_of_days: 30 } }, { id: 7 }, null];
+  const insights = { metrics_status: 'OK', result: [{ id: 6, values: [{ value: 120 }] }] };
+  const previous = modules.WAWebMexClient;
+  modules.WAWebMexClient = { fetchQuery: async (req: any, vars: any) => {
+    calls.push([req.params.id, req.params.name, req.params.operationKind, vars]);
+    return { xwa2_newsletter_admin_insights: insights };
+  } };
+  try {
+    expect(await readChannels({ kind: 'insights', id: '1@newsletter', metrics })).toEqual(insights);
+    expect(calls).toEqual([['9853618868050977', 'WAWebMexFetchNewsletterInsightsJobQuery', 'query',
+      { input: { newsletter_id: '1@newsletter', metrics: [metrics[0]] } }]]);
+    expect(await readChannels({ kind: 'insights', id: '1@newsletter', metrics: [{ id: 7 }] })).toBeNull();
+    expect(await readChannels({ kind: 'insights', id: 'x', metrics })).toBeNull();
+    modules.WAWebMexClient = { fetchQuery: async () => ({}) };
+    expect(await readChannels({ kind: 'insights', id: '1@newsletter', metrics })).toBeNull();
+  } finally {
+    modules.WAWebMexClient = previous;
+  }
+}));
+
+test('"Show admin profile" goes by id when the page has no job for it', () => withPage(async () => {
+  const previous = modules.WAWebMexClient;
+  modules.WAWebMexClient = { fetchQuery: async (req: any, vars: any) => {
+    calls.push([req.params.id, req.params.operationKind, vars]); return {};
+  } };
+  try {
+    expect(await readChannels({ kind: 'admin-profiles', id: '1@newsletter', enabled: true }))
+      .toEqual({ id: '1@newsletter', enabled: true });
+    expect(calls).toEqual([['28226671310350649', 'mutation',
+      { newsletter_id: '1@newsletter', updates: { settings: { admin_profiles_enabled: true } } }]]);
+    expect(await readChannels({ kind: 'admin-profiles', id: '1@newsletter', enabled: 'yes' })).toBeNull();
+  } finally {
+    modules.WAWebMexClient = previous;
+  }
+}));
+
+test('the new routes refuse a malformed body before the page is asked', async () => {
+  const req: any = { body: {}, client: { page: { evaluate: async () => { throw new Error('asked'); } } } };
+  for (const [route, body] of [
+    [setChannelReactions, { id: '1@newsletter', value: 'some' }],
+    [setChannelReactions, { id: 'x', value: 'ALL' }],
+    [channelInsights, { id: '1@newsletter', metrics: [] }],
+    [channelInsights, { id: '1@newsletter' }],
+    [setChannelAdminProfiles, { id: '1@newsletter', enabled: 1 }],
+  ] as any[]) {
+    const res = response();
+    await route({ ...req, body }, res);
+    expect([res.statusCode, res.body.code]).toEqual([400, 'invalid_channel']);
+  }
+  const res = response();
+  await channelInsights({ ...req, body: { id: '1@newsletter', metrics: [{ id: 1, type: 'FOLLOWER' }] } }, res);
+  expect([res.statusCode, res.body.code]).toEqual([503, 'channel_insights_unavailable']);
 });

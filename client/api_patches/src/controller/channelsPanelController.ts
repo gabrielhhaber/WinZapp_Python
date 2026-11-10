@@ -39,7 +39,10 @@ import type { Request, Response } from 'express';
 // channel's edit with WAWebNewsletterSendMsgAction.sendNewsletterEditMsg
 // (read on 2026-11-08, 2.3000.x). It checks itself whether the update can be
 // edited (its own, text or a caption, inside the edit window) and throws
-// otherwise. Answers { id } once sent, or null when the page cannot do it.
+// otherwise; WhatsApp Web's canEditMsg (wa-js's WPP.whatsapp.functions) is
+// asked first, so a refusal is known to be one: nothing was sent. Answers
+// { id } once sent, { refused: true } when canEditMsg says no, or null when
+// the page cannot do it (the update is not held, or the module is missing).
 //
 // Runs inside the page: self-contained, no closure over anything here.
 export async function editChannelUpdate(request: any): Promise<unknown> {
@@ -54,6 +57,12 @@ export async function editChannelUpdate(request: any): Promise<unknown> {
   if (typeof edit !== 'function' || typeof find !== 'function') return null;
   const msg = await find(id);
   if (!msg) return null;
+  const canEdit = root.WPP?.whatsapp?.functions?.canEditMsg;
+  if (typeof canEdit === 'function') {
+    let allowed = true;
+    try { allowed = !!canEdit(msg); } catch (_) { allowed = true; }
+    if (!allowed) return { refused: true };
+  }
   await edit(msg, text, {});
   return { id };
 }
@@ -93,6 +102,37 @@ export async function pullChannelHistory(request: any): Promise<number> {
     const held = msgs.length;
     await loader.loadEarlierMsgs({ chat: channel });
     if (msgs.length === held) break;
+  }
+  // Holes between the updates the collection holds are filled the way
+  // WhatsApp Web's repairNewsletterMsgHistory does it, without its gate
+  // (WAWebNewsletterGatingUtils.isProactiveGapFillingEnabled(), false on this
+  // account on 2026-11-10): WAWebNewsletterMsgHistoryUtils.fillMsgHistoryGaps
+  // asks the server for the missing server ids and answers the whole list
+  // (measured: an 11-update hole filled). A pull ADDS to the collection, so
+  // updates held from an earlier visit stay below the newest ones with a hole
+  // between them, and loadEarlierMsgs continues below those.
+  try {
+    const gaps = root.require('WAWebNewsletterMsgHistoryUtils');
+    const toData = root.require('WAWebMsgDataFromModel')?.msgDataFromMsgModel;
+    const toModel = root.require('WAWebMsgModelFromData')?.msgModelFromMsgData;
+    const jid = root.require('WAWebNewsletterValidationUtils')
+      ?.toNewsletterJidOrThrow?.(channel.id.toJid());
+    let skip: any = new Set();
+    try {
+      skip = root.require('WAWebNewsletterViewModeUIUtils')
+        ?.getHiddenMessageServerIdsForChat?.(channel.id) || skip;
+    } catch (_) { /* none hidden */ }
+    if (typeof gaps?.fillMsgHistoryGaps === 'function' && typeof toData === 'function'
+        && typeof toModel === 'function' && jid && typeof msgs.toArray === 'function') {
+      const whole = await gaps.fillMsgHistoryGaps({
+        jid, msgs: msgs.toArray().map(toData), serverIdsToSkip: skip });
+      if (Array.isArray(whole) && whole.length > msgs.length) {
+        msgs.add(whole.map(toModel), { silent: true });
+        msgs.sort?.({ silent: true });
+      }
+    }
+  } catch (_) {
+    // offline, or the page lacks the modules: the holes stay
   }
   return msgs.length - start;
 }
@@ -161,9 +201,67 @@ export async function readNewestChannelUpdates(request: any): Promise<unknown[] 
     }
     if (msgs.length === held) break;
   }
+  // Holes between the updates the collection holds are filled the way
+  // WhatsApp Web's repairNewsletterMsgHistory does it, without its gate
+  // (WAWebNewsletterGatingUtils.isProactiveGapFillingEnabled(), false on this
+  // account on 2026-11-10): WAWebNewsletterMsgHistoryUtils.fillMsgHistoryGaps
+  // asks the server for the missing server ids and answers the whole list
+  // (measured: an 11-update hole filled). A pull ADDS to the collection, so
+  // updates held from an earlier visit stay below the newest ones with a hole
+  // between them, and loadEarlierMsgs continues below those.
+  try {
+    const gaps = root.require('WAWebNewsletterMsgHistoryUtils');
+    const toData = root.require('WAWebMsgDataFromModel')?.msgDataFromMsgModel;
+    const toModel = root.require('WAWebMsgModelFromData')?.msgModelFromMsgData;
+    const jid = root.require('WAWebNewsletterValidationUtils')
+      ?.toNewsletterJidOrThrow?.(channel.id.toJid());
+    let skip: any = new Set();
+    try {
+      skip = root.require('WAWebNewsletterViewModeUIUtils')
+        ?.getHiddenMessageServerIdsForChat?.(channel.id) || skip;
+    } catch (_) { /* none hidden */ }
+    if (typeof gaps?.fillMsgHistoryGaps === 'function' && typeof toData === 'function'
+        && typeof toModel === 'function' && jid && typeof msgs.toArray === 'function') {
+      const whole = await gaps.fillMsgHistoryGaps({
+        jid, msgs: msgs.toArray().map(toData), serverIdsToSkip: skip });
+      if (Array.isArray(whole) && whole.length > msgs.length) {
+        msgs.add(whole.map(toModel), { silent: true });
+        msgs.sort?.({ silent: true });
+      }
+    }
+  } catch (_) {
+    // offline, or the page lacks the modules: the holes stay
+  }
   const held = msgs.getModelsArray().slice()
     .sort((a: any, b: any) => (Number(a?.t) || 0) - (Number(b?.t) || 0));
-  return held.slice(-wanted).map((m: any) => serialize(m)).filter(Boolean);
+  // Only the run that ends at the newest update with no hole in its server
+  // ids (what the fill could not close, offline say): the client pages back
+  // from the oldest update it gets, and a page that skipped a hole would
+  // leave it there for good. Server ids are dense (WhatsApp Web's own
+  // identifyMsgGaps counts any jump as a hole; a deleted update keeps its
+  // id); hidden ones are skipped, and an update without a server id (an own
+  // post still sending) never breaks the run.
+  let hidden: any = null;
+  try {
+    hidden = root.require('WAWebNewsletterViewModeUIUtils')
+      ?.getHiddenMessageServerIdsForChat?.(channel.id) || null;
+  } catch (_) { hidden = null; }
+  let from = 0;
+  let above = NaN;
+  for (let k = held.length - 1; k >= 0; k--) {
+    const id = Number(held[k]?.serverId);
+    if (!Number.isSafeInteger(id) || id <= 0 || id >= 1e15) continue;
+    if (Number.isFinite(above) && above - id > 1) {
+      // more missing ids than hidden ones: a hole without counting them
+      let missing = above - id - 1 > (Number(hidden?.size) || 0);
+      for (let gap = id + 1; gap < above && !missing; gap++) {
+        missing = !(hidden && typeof hidden.has === 'function' && hidden.has(gap));
+      }
+      if (missing) { from = k + 1; break; }
+    }
+    above = id;
+  }
+  return held.slice(from).slice(-wanted).map((m: any) => serialize(m)).filter(Boolean);
 }
 
 // Runs inside the page: self-contained, no closure over anything here.
@@ -265,64 +363,51 @@ export async function readChannels(request: any): Promise<unknown> {
   if (kind === 'admin-profiles') {
     // WhatsApp Web's "Show admin profile" (channel info, read 2026-11-09):
     // WAWebMexUpdateNewsletterAdminProfileSettingJob, mutation 28226671310350649
-    // with settings.admin_profiles_enabled. Loaded with the channel's info, so
-    // the Bootloader fetches it here when the page has not.
+    // with settings.admin_profiles_enabled. The job is loaded only with the
+    // channel's info open, and the Bootloader could not load it on 2026-11-10
+    // (15 s, never answered): the mutation goes by id through WAWebMexClient
+    // then, with the variables the Neonize bridge sends (channel_reactions.py).
     const id = typeof request.id === 'string' ? request.id : '';
     if (!/^\d+@newsletter$/.test(id) || typeof request.enabled !== 'boolean') return null;
-    const name = 'WAWebMexUpdateNewsletterAdminProfileSettingJob';
-    let job = load(name);
-    if (typeof job?.mexUpdateNewsletterAdminProfileSetting !== 'function') {
-      const boot = load('Bootloader');
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, 15000);
-        try {
-          boot.loadModules([name], () => { clearTimeout(timer); resolve(); }, 'winzapp-admin-profiles');
-        } catch (_) {
-          clearTimeout(timer);
-          resolve();
-        }
-      });
-      job = load(name);
+    const job = load('WAWebMexUpdateNewsletterAdminProfileSettingJob');
+    const client = load('WAWebMexClient');
+    if (typeof job?.mexUpdateNewsletterAdminProfileSetting === 'function') {
+      await job.mexUpdateNewsletterAdminProfileSetting({ newsletterID: id, adminProfilesEnabled: request.enabled });
+    } else if (typeof client?.fetchQuery === 'function') {
+      await client.fetchQuery({ kind: 'Request', params: { id: '28226671310350649', metadata: {},
+        name: 'WAWebMexUpdateNewsletterAdminProfileSettingJobMutation', operationKind: 'mutation', text: null } },
+      { newsletter_id: id, updates: { settings: { admin_profiles_enabled: request.enabled } } });
+    } else {
+      return null;
     }
-    if (typeof job?.mexUpdateNewsletterAdminProfileSetting !== 'function') return null;
-    await job.mexUpdateNewsletterAdminProfileSetting({ newsletterID: id, adminProfilesEnabled: request.enabled });
     const meta = load('WAWebCollections')?.WAWebNewsletterCollection?.get?.(id)?.newsletterMetadata;
     if (meta && typeof meta.set === 'function') meta.set({ adminProfilesSettingEnabled: request.enabled });
     return { id, enabled: request.enabled };
   }
   if (kind === 'insights') {
-    // A channel's statistics for its admins: WAWebMexFetchNewsletterInsightsJob
-    // (read 2026-11-09) with the metrics the client sends (core/channel_insights.py).
-    // WhatsApp Web loads the job only when the channel's info opens; the
-    // Bootloader fetches its code here, showing nothing. Answered in the
-    // query's own shape, as the Neonize bridge answers it.
+    // A channel's statistics for its admins: the MEX query of WhatsApp Web's
+    // WAWebMexFetchNewsletterInsightsJob (id 9853618868050977, variables
+    // {input: {newsletter_id, metrics}}), with the metrics the client sends
+    // (core/channel_insights.py), sent by id through WAWebMexClient as the
+    // followers' queries are and as the Neonize bridge sends it. Its answer,
+    // xwa2_newsletter_admin_insights, goes to the client as it comes. The job
+    // itself is loaded only with a channel's info open, and on 2026-11-10 the
+    // Bootloader could not load it at all (15 s, never answered): every read
+    // said "unavailable". Measured the same day: the query by id reaches the
+    // server, which answers Bad Request for a channel under 100 followers.
     const id = typeof request.id === 'string' ? request.id : '';
-    const metrics = Array.isArray(request.metrics) ? request.metrics.slice(0, 20) : [];
-    if (!/^\d+@newsletter$/.test(id) || !metrics.length) return null;
-    let job = load('WAWebMexFetchNewsletterInsightsJob');
-    if (typeof job?.mexFetchNewsletterInsights !== 'function') {
-      const boot = load('Bootloader');
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(resolve, 15000);
-        try {
-          boot.loadModules(['WAWebMexFetchNewsletterInsightsJob'], () => { clearTimeout(timer); resolve(); },
-            'winzapp-channel-insights');
-        } catch (_) {
-          clearTimeout(timer);
-          resolve();
-        }
-      });
-      job = load('WAWebMexFetchNewsletterInsightsJob');
+    const metrics = Array.isArray(request.metrics)
+      ? request.metrics.filter((m: any) => m && typeof m === 'object' && m.id && m.type).slice(0, 20)
+      : [];
+    const client = load('WAWebMexClient');
+    if (!/^\d+@newsletter$/.test(id) || !metrics.length || typeof client?.fetchQuery !== 'function') {
+      return null;
     }
-    if (typeof job?.mexFetchNewsletterInsights !== 'function') return null;
-    const got = await job.mexFetchNewsletterInsights({ newsletterJid: id, requestedMetrics: metrics });
-    const map = got?.metricValueMap instanceof Map ? got.metricValueMap : new Map();
-    return {
-      newsletter_id: id,
-      metrics_status: String(got?.dataStatus || '').toLowerCase() === 'available' ? 'OK' : 'MISSING',
-      last_update_time: String(got?.lastUpdateTime || ''),
-      result: Array.from(map.entries()).map(([metric, values]: any) => ({ id: metric, values })),
-    };
+    const data = await client.fetchQuery({ kind: 'Request', params: { id: '9853618868050977', metadata: {},
+      name: 'WAWebMexFetchNewsletterInsightsJobQuery', operationKind: 'query', text: null } },
+    { input: { newsletter_id: id, metrics } });
+    const node = data?.xwa2_newsletter_admin_insights;
+    return node && typeof node === 'object' ? node : null;
   }
   if (kind === 'reactions') {
     // Who may react to the channel's updates: WAWebMexUpdateNewsletterJob with

@@ -307,9 +307,12 @@ export async function editMessage(req: Request, res: Response) {
       const sent = page
         ? await page.evaluate(editChannelUpdate, { id, text: newText })
         : null;
-      if (!sent) {
-        res.status(400).json({ status: 'error', code: 'channel_edit_unsupported',
-          message: 'This channel update cannot be edited here' });
+      if (!sent || (sent as any).refused) {
+        // Nothing was sent: the client rolls the row back on this message
+        // (MainWindow.edit_message), as on a chat's and on Neonize's refusal.
+        res.status(400).json({ status: 'error',
+          code: sent ? 'channel_edit_refused' : 'channel_edit_unsupported',
+          message: 'Cannot edit this message' });
         return;
       }
       req.io.emit('edited-message', sent);
