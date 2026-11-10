@@ -56,8 +56,10 @@ async def update_star_state(manager, jid, message_id, state):
 
 log = logging.getLogger(__name__)
 
-#: system_metadata key set once messages.starred holds every row's star
-FILLED_KEY = "messages_starred_column_filled"
+#: system_metadata key: the last rowid messages.starred was filled up to.
+#: (The first version kept "1" under messages_starred_column_filled, filled
+#: once; that key is no longer read, so such a database is filled again.)
+FILLED_KEY = "messages_starred_filled_rowid"
 #: rows decrypted per step of that one-time fill
 FILL_CHUNK = 500
 
@@ -74,18 +76,32 @@ async def upgrade_starred_column(conn):
         "CREATE INDEX IF NOT EXISTS idx_msgs_starred ON messages(timestamp DESC) WHERE starred=1")
 
 
+def filled_up_to(value) -> int:
+    """The rowid the fill reached, from FILLED_KEY's value (0: none)."""
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 async def fill_starred_column(manager):
-    """Once per database: decrypt every row, a chunk at a time, and set
-    messages.starred from the star inside it."""
-    if await manager.get_metadata(FILLED_KEY) == "1":
-        return
-    last, marked = 0, 0
+    """Decrypt the rows not looked at yet, a chunk at a time, and set
+    messages.starred from the star inside them. Incremental: the next call
+    starts after the last rowid seen. A row rewritten by an older WinZapp
+    (INSERT OR REPLACE with no starred column) gets a new rowid, so it is read
+    again (from the last rowid itself: replacing the newest row may give the
+    same rowid back); a row this version writes carries its column already."""
+    start = filled_up_to(await manager.get_metadata(FILLED_KEY))
+    last, marked, first = start, 0, True
     while True:
         async with manager._write_lock:
             conn = await manager._ensure_conn()
             cursor = await conn.execute(
+                "SELECT rowid, message_json FROM messages WHERE rowid >= ? ORDER BY rowid LIMIT ?"
+                if first else
                 "SELECT rowid, message_json FROM messages WHERE rowid > ? ORDER BY rowid LIMIT ?",
                 (last, FILL_CHUNK))
+            first = False
             rows = await cursor.fetchall()
             if not rows:
                 break
@@ -97,7 +113,9 @@ async def fill_starred_column(manager):
                 await conn.commit()
             marked += len(starred)
             last = rows[-1]["rowid"]
-    await manager.set_metadata(FILLED_KEY, "1")
+    if last == start:
+        return
+    await manager.set_metadata(FILLED_KEY, str(last))
     log.info("[stars] messages.starred filled: %d starred message(s)", marked)
 
 

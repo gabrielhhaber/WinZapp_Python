@@ -101,3 +101,37 @@ def test_the_state_is_kept_when_a_channel_opens(monkeypatch):
     mw = types.SimpleNamespace(i18n=types.SimpleNamespace(t=lambda key: key))
     assert dialogs.show_channels(mw, None) is True
     assert mw._channels_return_state is kept and mw._channel_opened_from_window == "2@newsletter"
+
+
+# ------------------------------------- only the user's close goes back
+def _closing_panel(monkeypatch, shown):
+    import ui.conversation_panel.conversation_navigation as nav
+    from ui.conversations import ConversationsPanel
+    # one wx module for both: what was scheduled tells them apart
+    monkeypatch.setattr(nav.wx, "CallAfter", lambda fn, *a: shown.append(
+        ("channels" if fn is dialogs.show_channels else "list", a)))
+    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter",
+                               _channels_return_state=object())
+    panel = types.SimpleNamespace(main_window=mw, _conversation_origin=None,
+                                  _close_conversation_core=lambda: (True, "1@newsletter"),
+                                  _restore_conversation_selection=lambda: None)
+    panel.close_conversation = types.MethodType(ConversationsPanel.close_conversation, panel)
+    return panel, mw
+
+
+def test_esc_or_ctrl_w_on_the_channel_goes_back_to_the_channels_window(monkeypatch):
+    shown = []
+    panel, _mw = _closing_panel(monkeypatch, shown)
+    panel.close_conversation(None, from_user=True)
+    assert [kind for kind, _a in shown] == ["channels"]
+
+
+def test_winzapp_closing_the_channel_never_brings_the_window_back(monkeypatch):
+    """A full resync (F5), an account switch, or the channel archived or
+    deleted close the conversation too: the Channels window popped up,
+    modal, while the database was being wiped."""
+    shown = []
+    panel, mw = _closing_panel(monkeypatch, shown)
+    panel.close_conversation()
+    assert [kind for kind, _a in shown] == ["list"]
+    assert mw._channel_opened_from_window == "" and mw._channels_return_state is None

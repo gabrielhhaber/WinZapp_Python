@@ -3380,6 +3380,13 @@ msgid "Created on {date}"
 msgstr "Criado em {date}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_created_settings_not_saved"
+msgid ""
+"Channel created, but who may react or the admin profiles could not be set. "
+"Change them by editing the channel."
+msgstr "Canal criado, mas não foi possível definir as reações ou o perfil do administrador. Altere-os editando o canal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
 msgid "Delete c&hannel"
 msgstr "E&xcluir canal"

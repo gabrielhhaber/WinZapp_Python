@@ -51,6 +51,23 @@ def test_a_new_channel_keeps_whatsapps_default_unless_another_is_chosen(monkeypa
     assert sent == [("9@newsletter", "BASIC")]
 
 
+def test_a_setting_refused_after_creating_is_not_a_failed_creation(monkeypatch):
+    """The channel exists: saying "could not create" made the user create a
+    second one."""
+    monkeypatch.setattr(ch, "create_channel", lambda *a: "9@newsletter")
+
+    def refuse(*a):
+        raise ValueError("channel_reactions_failed")
+    monkeypatch.setattr(ch, "set_channel_reactions", refuse)
+    monkeypatch.setattr(ch, "set_channel_admin_profiles", lambda *a: None)
+    created = dialogs.create_with_reactions(None, "N", "", "NONE", admin_profiles=True)
+    assert created == "9@newsletter" and created.settings_saved is False
+    fine = dialogs.create_with_reactions(None, "N", "", "ALL", admin_profiles=True)
+    assert fine == "9@newsletter" and fine.settings_saved is True
+    monkeypatch.setattr(ch, "create_channel", lambda *a: "")
+    assert dialogs.create_with_reactions(None, "N", "", "NONE") == ""
+
+
 def test_the_details_say_the_setting():
     i18n = types.SimpleNamespace(t=lambda key: {
         "channels_reactions_line": "Reactions: {setting}", "channels_reactions_basic": "Default emojis only",

@@ -42,7 +42,34 @@ async def test_an_older_database_is_filled_once(in_memory_db):
     await conn.execute("DELETE FROM system_metadata WHERE key=?", (star_storage.FILLED_KEY,))
     await conn.commit()
     assert [m["key"]["id"] for _jid, m in await db.get_starred_messages()] == ["A1"]
-    assert await db.get_metadata(star_storage.FILLED_KEY) == "1"
+    assert int(await db.get_metadata(star_storage.FILLED_KEY)) >= 1
+
+
+async def test_rows_an_older_version_rewrote_are_filled_again(in_memory_db):
+    """Reinstalled an older WinZapp, then upgraded again: the rows it rewrote
+    have starred=0 and a new rowid. The fill reads them on the next opening
+    (the first version filled once, and they never came back)."""
+    db = in_memory_db
+    await db.insert_message(A, message("A1", 100, starred=True))
+    await db.insert_message(A, message("A2", 200))
+    assert len(await db.get_starred_messages()) == 1
+    conn = await db._ensure_conn()
+    # the older version: INSERT OR REPLACE with no starred column
+    cursor = await conn.execute("SELECT * FROM messages WHERE message_id='A1'")
+    row = dict(await cursor.fetchone())
+    await conn.execute("DELETE FROM messages WHERE message_id='A1'")
+    row["starred"] = 0
+    row.pop("rowid", None)
+    columns = ",".join(row)
+    await conn.execute(f"INSERT INTO messages ({columns}) VALUES ({','.join('?' for _ in row)})",
+                       tuple(row.values()))
+    await conn.commit()
+    assert [m["key"]["id"] for _jid, m in await db.get_starred_messages()] == ["A1"]
+
+
+def test_the_mark_is_a_rowid():
+    assert star_storage.filled_up_to("4321") == 4321
+    assert star_storage.filled_up_to(None) == 0 and star_storage.filled_up_to("x") == 0
 
 
 async def test_the_fill_walks_the_table_in_chunks(in_memory_db, monkeypatch):

@@ -136,6 +136,16 @@ def insight_lines(i18n, insights, format_date=str) -> list:
     return lines
 
 
+def failure_key(followers) -> str:
+    """What is said when the statistics could not be read: a channel known
+    to be under MIN_FOLLOWERS is too small for them (WhatsApp answers Bad
+    Request), anything else is "unavailable" (not an admin, offline, or the
+    count unknown)."""
+    if isinstance(followers, int) and not isinstance(followers, bool)             and followers < MIN_FOLLOWERS:
+        return "channel_insights_too_small"
+    return "channel_insights_unavailable"
+
+
 def fetch_insights(post, connection, jid) -> Insights:
     """`channels/insights` through *post* (core.channels._post). ValueError
     "channel_insights_unavailable" when it fails (fewer than 100 followers,

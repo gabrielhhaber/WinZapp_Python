@@ -6,6 +6,8 @@ thread); a search field narrows it; Enter or "Open in the conversation"
 opens the message's chat on that message, as the pinned messages do
 (_jump_to_pinned_message), and "Remove star" removes it the way the message
 menu does (_sync_message_stars: confirmed by WhatsApp, saved, announced).
+A chat the vault hides while it is closed is left out, as every other list
+that spans chats leaves it out.
 """
 import logging
 
@@ -27,7 +29,8 @@ def entry_for(mw, jid, msg) -> StarredEntry:
     if key.get("fromMe"):
         sender = mw.self_reference_label()
     elif str(jid).endswith("@g.us") and key.get("participant") and panel is not None:
-        sender = panel._get_participant_name(key.get("participant"), msg)
+        # never a lookup per row: up to LIMIT rows would start that many threads
+        sender = panel._get_participant_name(key.get("participant"), msg, resolve_missing=False)
     try:
         text = panel._get_message_content(msg) if panel is not None else ""
     except Exception:
@@ -35,6 +38,14 @@ def entry_for(mw, jid, msg) -> StarredEntry:
         text = ""
     when = panel._format_date(msg.get("messageTimestamp")) if panel is not None else ""
     return StarredEntry(jid, msg, row_text(mw.i18n, mw.chat_display_name(jid), sender, text, when))
+
+
+def entries_for(mw, rows):
+    """The rows of (jid, message) the window lists: a chat the vault hides
+    while it is closed is left out (its name and text, and that the vault
+    exists, would be read with no PIN asked)."""
+    hidden = getattr(mw, "is_chat_hidden_by_vault", lambda _jid: False)
+    return [entry_for(mw, jid, msg) for jid, msg in rows if not hidden(jid)]
 
 
 class StarredMessagesDialog(BackgroundWork, wx.Dialog):
@@ -93,7 +104,7 @@ class StarredMessagesDialog(BackgroundWork, wx.Dialog):
             self._list.Set([self._i18n.t("starred_unavailable")])
             self._announce(self._i18n.t("starred_unavailable"))
             return
-        self._entries = [entry_for(self._mw, jid, msg) for jid, msg in rows]
+        self._entries = entries_for(self._mw, rows)
         self._loaded = True
         self._show()
         count = len(self._entries)
@@ -162,7 +173,8 @@ class StarredMessagesDialog(BackgroundWork, wx.Dialog):
         panel = getattr(self._mw, "conversations_panel", None)
         if entry is None or panel is None:
             return
-        panel._sync_message_stars(entry.jid, [entry.message], False)
+        if not panel._sync_message_stars(entry.jid, [entry.message], False):
+            return      # refused (another star job is running): it stays starred
         index = self._list.GetSelection()
         self._entries = without(self._entries, entry)
         shown = without(self._shown, entry)

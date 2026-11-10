@@ -257,7 +257,11 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         def said(expiration):
             if not expiration:
                 return i18n.t("channel_admin_invited").format(name=name)
-            date = datetime.datetime.fromtimestamp(expiration).strftime("%x %X")
+            # in the app's language, as the conversation writes dates
+            panel = getattr(self._mw, "conversations_panel", None)
+            date = (panel._format_date(expiration) if panel is not None
+                    and hasattr(panel, "_format_date")
+                    else datetime.datetime.fromtimestamp(expiration).strftime("%x %X"))
             return i18n.t("channel_admin_invited_until").format(name=name, date=date)
 
         self._send(lambda connection, jid: ch.invite_admin(connection, jid, user,
@@ -325,6 +329,10 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
             if not outcome:
                 logging.warning("[channel-admins] action refused")
                 self._announce(failed_text)
+                if getattr(self, "_reload_again", False) and self._current():
+                    # a change announced while the action was in flight
+                    self._reload_again = False
+                    self._load(quiet=True)
                 return
             self._announce(done(outcome[1]))
             # A role changed: read the people again, quietly (the result was said).

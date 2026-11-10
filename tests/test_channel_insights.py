@@ -68,3 +68,11 @@ def test_an_answer_without_the_node_is_unavailable():
     import pytest
     with pytest.raises(ValueError):
         ci.fetch_insights(lambda *a: {"status": "success"}, None, "1@newsletter")
+
+
+def test_a_failure_says_too_small_only_for_a_channel_known_to_be_small():
+    from core.channel_insights import MIN_FOLLOWERS, failure_key
+    assert failure_key(MIN_FOLLOWERS - 1) == "channel_insights_too_small"
+    assert failure_key(MIN_FOLLOWERS) == "channel_insights_unavailable"
+    assert failure_key(None) == "channel_insights_unavailable"
+    assert failure_key(True) == "channel_insights_unavailable"

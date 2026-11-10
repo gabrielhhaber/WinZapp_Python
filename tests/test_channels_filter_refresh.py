@@ -70,6 +70,64 @@ def test_a_closed_window_reads_nothing(window):
     assert window.searches == 0
 
 
+# ------------------------------------------- what waits for a busy window
+def _busy_stub(monkeypatch, mode=FIND, found=()):
+    monkeypatch.setattr(dialogs.wx, "CallAfter", lambda fn, *a: fn(*a))
+    stub = types.SimpleNamespace(_busy=False, _reload_again=False, _search_again=False,
+                                 _mode=mode, _found=list(found), reads=[])
+    stub._current = lambda: True
+    stub._update_buttons = lambda: None
+    stub._show = lambda channels, keep="": None
+    stub._sync_mode = lambda: None
+    stub._mode_radio = types.SimpleNamespace(GetSelection=lambda: stub._mode)
+
+    def read(kind):
+        def start(*args, **kwargs):
+            stub.reads.append(kind)
+            stub._busy = True
+        return start
+    stub._reload = read("reload")
+    stub._on_search = read("search")
+    for name in ("_set_busy", "_run_pending", "_on_mode"):
+        setattr(stub, name, types.MethodType(getattr(ChannelsDialog, name), stub))
+    return stub
+
+
+def test_a_category_picked_during_a_quiet_reload_is_read_after_it(monkeypatch):
+    """A channels-changed reload was in flight when the filter timer fired:
+    the directory kept showing the old category (only _finish_search looked
+    at the flag)."""
+    stub = _busy_stub(monkeypatch)
+    stub._busy, stub._search_again = True, True
+    stub._set_busy(False)                 # the reload answered
+    assert stub.reads == ["search"] and stub._search_again is False
+
+
+def test_a_change_announced_during_a_search_reloads_after_it_then_searches(monkeypatch):
+    stub = _busy_stub(monkeypatch)
+    stub._busy, stub._reload_again, stub._search_again = True, True, True
+    stub._set_busy(False)
+    assert stub.reads == ["reload"]       # one at a time
+    stub._set_busy(False)                 # the reload answered
+    assert stub.reads == ["reload", "search"]
+
+
+def test_a_search_asked_for_in_my_channels_is_dropped(monkeypatch):
+    stub = _busy_stub(monkeypatch, mode=MINE)
+    stub._busy, stub._search_again = True, True
+    stub._set_busy(False)
+    assert stub.reads == []
+
+
+def test_find_chosen_during_a_read_searches_after_it(monkeypatch):
+    stub = _busy_stub(monkeypatch)
+    stub._busy = True
+    stub._on_mode()
+    assert stub.reads == [] and stub._search_again is True
+    stub._set_busy(False)
+    assert stub.reads == ["search"]
+
+
 # ---------------------------------------------------- channels-changed
 def _dialog_stub():
     stub = types.SimpleNamespace(_busy=False, _reload_again=False, reloads=[])

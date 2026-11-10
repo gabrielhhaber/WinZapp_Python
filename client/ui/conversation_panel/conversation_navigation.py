@@ -672,17 +672,23 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
-        self.close_conversation(event)
+        self.close_conversation(event, from_user=True)
 
-    def close_conversation(self, event=None):
+    def close_conversation(self, event=None, from_user=False):
+        """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close
+        menu item); every other caller closes it for WinZapp's own reasons
+        (a full resync, an account switch, the chat archived or deleted)."""
         origin = getattr(self, "_conversation_origin", None)
         closed, closed_jid = self._close_conversation_core()
         if not closed:
             return  # _close_conversation_core() only handled the mention popup
         mw = self.main_window
-        # A channel opened from the Channels window goes back to it.
-        from ui.dialogs.channels import channel_closed
-        if channel_closed(mw, closed_jid):
+        # A channel opened from the Channels window goes back to it, when the
+        # user closed it: a resync or an archive used to pop the window up.
+        from ui.dialogs.channels import channel_closed, forget_channel_return
+        if not from_user:
+            forget_channel_return(mw)
+        elif channel_closed(mw, closed_jid):
             return
         # Esc returns to the list the conversation was opened from, whatever
         # the chat is (an archived chat found through the main search box

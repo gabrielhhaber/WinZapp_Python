@@ -51,10 +51,23 @@ def test_the_row_names_the_offer_the_channel_and_the_words():
 
 
 def test_the_normalizer_keeps_it():
+    """A raw WPPConnect invitation goes through the socket's normalizer and
+    comes out as the client's message, not as nothing."""
     from core.websocket_client import WebSocketClient
-    import inspect
-    source = inspect.getsource(WebSocketClient._normalize_wpp_message)
-    assert "channel_invites.from_wpp" in source
+
+    class Normalizer:
+        _normalize_wpp_message = WebSocketClient._normalize_wpp_message
+        _clean_jid = WebSocketClient._clean_jid
+
+    raw = {"id": "false_777@lid_3EB0CCCCCCCCCCCCCCCC", "t": 1790000200, "from": "777@lid",
+           "to": "999@lid", "fromMe": False, "body": "",
+           "chatId": {"server": "lid", "user": "777", "_serialized": "777@lid"},
+           **wpp(info={"newsletterId": "120363000000000001@newsletter",
+                       "newsletterName": "Canal", "inviteMessage": "Siga!"})}
+    kept = Normalizer()._normalize_wpp_message(raw)
+    assert kept["messageType"] == ci.FOLLOWER
+    assert kept["message"] == {ci.FOLLOWER: {"newsletterJid": "120363000000000001@newsletter",
+                                             "newsletterName": "Canal", "caption": "Siga!"}}
 
 
 def test_it_counts_as_a_message_and_has_a_notification_text():

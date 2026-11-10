@@ -46,10 +46,13 @@ class MainWindow:
         names = {GROUP: "Family", PERSON: "Bruno"}
         self.chat_display_name = lambda jid: names.get(jid, jid)
         self.self_reference_label = lambda: "You"
-        self.navigated, self.jumped = [], []
+        self.navigated, self.jumped, self.lookups = [], [], []
+        self.vault_hidden = set()
+        self.is_chat_hidden_by_vault = lambda jid: jid in self.vault_hidden
         panel = types.SimpleNamespace(
             conversation=None,
-            _get_participant_name=lambda jid, m=None: {"ana@lid": "Ana"}.get(jid, jid),
+            _get_participant_name=lambda jid, m=None, resolve_missing=True: (
+                self.lookups.append(resolve_missing) or {"ana@lid": "Ana"}.get(jid, jid)),
             _get_message_content=lambda m: m["message"]["conversation"],
             _format_date=lambda ts: "today",
             _jump_to_pinned_message=lambda m: self.jumped.append(m["key"]["id"]))
@@ -68,6 +71,49 @@ def test_rows_name_the_sender_only_in_a_group_or_for_the_account():
     assert starred.entry_for(mw, PERSON, msg("2", "Oi")).text == "Bruno: Oi, today"
     assert starred.entry_for(mw, PERSON, msg("3", "Sent", from_me=True)).text == \
         "Bruno, You: Sent, today"
+
+
+def test_a_chat_the_closed_vault_hides_is_not_listed():
+    mw = MainWindow()
+    mw.vault_hidden = {GROUP}
+    rows = [(GROUP, msg("1", "PIN 1234", participant="ana@lid")), (PERSON, msg("2", "Oi"))]
+    assert [e.jid for e in starred.entries_for(mw, rows)] == [PERSON]
+    mw.vault_hidden = set()          # the vault opened
+    assert [e.jid for e in starred.entries_for(mw, rows)] == [GROUP, PERSON]
+
+
+def test_a_participant_is_never_looked_up_per_row():
+    mw = MainWindow()
+    starred.entry_for(mw, GROUP, msg("1", participant="ana@lid"))
+    assert mw.lookups == [False]
+
+
+class _UnstarWindow:
+    """What StarredMessagesDialog._on_unstar touches, with no window."""
+
+    def __init__(self, mw, entries, started):
+        self._mw, self._entries, self._shown = mw, list(entries), list(entries)
+        self.shown_with = []
+        self._list = types.SimpleNamespace(GetSelection=lambda: 0)
+        mw.conversations_panel._sync_message_stars = lambda jid, ms, star: started
+
+    def _selected(self):
+        return self._shown[0] if self._shown else None
+
+    def _show(self, keep=None):
+        self.shown_with.append(keep)
+        self._shown = list(self._entries)
+
+
+def test_delete_drops_the_row_only_when_the_unstar_started():
+    mw = MainWindow()
+    entries = [starred.entry_for(mw, PERSON, msg("1")), starred.entry_for(mw, PERSON, msg("2"))]
+    refused = _UnstarWindow(mw, entries, started=False)
+    starred.StarredMessagesDialog._on_unstar(refused)
+    assert [e.message_id for e in refused._entries] == ["1", "2"] and refused.shown_with == []
+    started = _UnstarWindow(mw, entries, started=True)
+    starred.StarredMessagesDialog._on_unstar(started)
+    assert [e.message_id for e in started._entries] == ["2"]
 
 
 def test_enter_opens_the_conversation_on_the_message(monkeypatch):

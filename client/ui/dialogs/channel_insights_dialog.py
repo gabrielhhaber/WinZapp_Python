@@ -9,7 +9,7 @@ import datetime
 import wx
 
 from core import channels as ch
-from core.channel_insights import MIN_FOLLOWERS, fetch_insights, insight_lines
+from core.channel_insights import failure_key, fetch_insights, insight_lines
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.labelled_control import add_labelled
 
@@ -50,16 +50,21 @@ class ChannelInsightsDialog(BackgroundWork, wx.Dialog):
         connection, jid = self._connection, self._channel.jid
         self._run_async(lambda: fetch_insights(ch._post, connection, jid), self._finish)
 
+    def _date(self, seconds):
+        """In the app's language, as the conversation writes dates (the
+        process locale's %x is the system's, not the app's)."""
+        panel = getattr(self._mw, "conversations_panel", None)
+        if panel is not None and hasattr(panel, "_format_date"):
+            return panel._format_date(seconds)
+        return _date(seconds)
+
     def _finish(self, insights):
         if not self._current():
             return
         if insights is None:
-            followers = self._channel.followers
-            key = ("channel_insights_too_small" if followers is not None
-                   and followers < MIN_FOLLOWERS else "channel_insights_unavailable")
-            text = self._i18n.t(key)
+            text = self._i18n.t(failure_key(self._channel.followers))
         else:
-            text = "\n".join(insight_lines(self._i18n, insights, _date))
+            text = "\n".join(insight_lines(self._i18n, insights, self._date))
         self._text.ChangeValue(text)
         self._text.SetInsertionPoint(0)
         self._announce(text.splitlines()[0] if text else "")

@@ -23,16 +23,34 @@ from ui.dialogs.labelled_control import add_labelled
 MINE, FIND = 0, 1
 
 
+class CreatedChannel(str):
+    """A new channel's id. *settings_saved* is False when a setting chosen
+    with it (who may react, admin profiles) was refused after the channel was
+    made: the channel exists, and saying "could not create" made the user
+    create it again."""
+    settings_saved = True
+
+
 def create_with_reactions(connection, name, description, reactions, admin_profiles=None):
     """Create the channel, then set who may react and the admin profiles when
     they are not WhatsApp's defaults (any emoji, profiles off). Runs off the
-    main thread."""
+    main thread. "" when the channel was not created."""
     jid = ch.create_channel(connection, name, description)
-    if jid and reactions and reactions != "ALL":
-        ch.set_channel_reactions(connection, jid, reactions)
-    if jid and admin_profiles:
-        ch.set_channel_admin_profiles(connection, jid, True)
-    return jid
+    if not jid:
+        return jid
+    created = CreatedChannel(jid)
+    settings = []
+    if reactions and reactions != "ALL":
+        settings.append(lambda: ch.set_channel_reactions(connection, jid, reactions))
+    if admin_profiles:
+        settings.append(lambda: ch.set_channel_admin_profiles(connection, jid, True))
+    for setting in settings:
+        try:
+            setting()
+        except Exception as error:      # refused, or no answer: the channel stays
+            logging.warning("[channels] setting after create failed: %s", type(error).__name__)
+            created.settings_saved = False
+    return created
 
 
 def edit_with_reactions(connection, channel, name, description, reactions, admin_profiles=None):
@@ -81,6 +99,13 @@ def channel_closed(mw, closed_jid) -> bool:
         return False
     wx.CallAfter(show_channels, mw, mw, opened, state)
     return True
+
+
+def forget_channel_return(mw):
+    """A conversation was closed by WinZapp, not by the user (a full resync,
+    an account switch, the channel archived or deleted): nothing goes back to
+    the Channels window, and the mark is dropped so no later close does."""
+    mw._channel_opened_from_window, mw._channels_return_state = "", None
 
 
 def channel_label(channel, i18n, followed=()):
@@ -334,6 +359,25 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
     def _set_busy(self, busy):
         self._busy = busy
         self._update_buttons()
+        if not busy and (self._reload_again or self._search_again):
+            # asked for while a read or an action was in flight, whichever it
+            # was: a category picked during a quiet reload used to be lost
+            wx.CallAfter(self._run_pending)
+
+    def _run_pending(self):
+        """Runs what was asked for while the window was busy: the followed
+        list first (a change WhatsApp announced), then the directory (a
+        category or list picked, or Find chosen). One at a time: the read it
+        starts makes the window busy, and its end comes back here."""
+        if self._busy or not self._current():
+            return
+        if self._reload_again:
+            self._reload_again = False
+            self._reload(quiet=True)
+        elif self._search_again:
+            self._search_again = False
+            if self._mode == FIND:
+                self._on_search()
 
     def _update_buttons(self):
         # Not disabled while busy: the handlers refuse a second press, and a
@@ -376,8 +420,8 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
 
     def on_channels_changed(self):
         """WhatsApp said a followed channel changed (followed, left, muted,
-        role): read the list again, quietly, as Refresh would. Refresh stays
-        for a change no event announces (a channel's name or picture)."""
+        role, name): read the list again, quietly, as F5 would. F5 stays for
+        a change no event announces (a channel's picture)."""
         if not self._current():
             return
         if self._busy:
@@ -418,7 +462,13 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         self._show(self._found)
         if not self._found:
-            self._on_search()           # the recommended channels, as WhatsApp opens on
+            # the recommended channels, as WhatsApp opens on; after the read
+            # in flight when there is one (it used to be refused silently,
+            # the list saying "Loading" with nothing loading)
+            if self._busy:
+                self._search_again = True
+            else:
+                self._on_search()
 
     def _on_search(self, event=None):
         if self._busy or not self._current() or self._mode != FIND:
@@ -539,7 +589,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
                 logging.warning("[channels] action_failed key=%s", failed_key)
                 self._announce(self._i18n.t(failed_key))
                 return
-            self._announce(self._i18n.t(done_key))
+            self._announce(self._i18n.t(done_key(outcome) if callable(done_key) else done_key))
             # a channel just created comes back selected (its id is the result)
             self._reload(keep=outcome if isinstance(outcome, str) else keep, quiet=True)
             self._list.SetFocus()
@@ -623,7 +673,10 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         connection = self._connection
         self._act(lambda: create_with_reactions(connection, name, description, reactions,
                                                 admin_profiles),
-                  "channels_created", "channel_create_failed")
+                  lambda created: ("channels_created"
+                                   if getattr(created, "settings_saved", True)
+                                   else "channels_created_settings_not_saved"),
+                  "channel_create_failed")
 
     def _on_edit(self, event=None):
         channel = self._mine_version(self._selected())
