@@ -17,7 +17,9 @@ import { Chat } from '@wppconnect-team/wppconnect';
 import { Request, Response } from 'express';
 
 import { CONTACT_PRESENCE_SOURCE } from '../util/contactPresenceRuntime';
-import { pullChannelHistory, readNewestChannelUpdates } from './channelsPanelController';
+import {
+  channelOlderPageIncomplete, pullChannelHistory, readNewestChannelUpdates,
+} from './channelsPanelController';
 import {
   countJidFallback,
   countStoreRecovery,
@@ -2675,6 +2677,19 @@ export async function getMessages(req: Request, res: Response) {
           req.logger.info(`[channel-history] ${pulled} update(s) loaded before the page`);
         } catch (e: any) {
           req.logger.warn(`[channel-history] could not load older updates: ${e?.message || e}`);
+        }
+        // A hole right below the anchor that could not be filled (offline):
+        // the old updates under it are not this page. 503, so the client
+        // asks again later instead of storing them and keeping the hole.
+        let incomplete = false;
+        try {
+          incomplete = !!(await req.client.page.evaluate(channelOlderPageIncomplete, { chatId: phone }));
+        } catch (_) {
+          incomplete = false;
+        }
+        if (incomplete) {
+          req.logger.warn('[channel-history] a hole below the page could not be filled');
+          return res.status(503).json({ status: 'error', code: 'channel_history_incomplete' });
         }
       }
       response = await req.client.page.evaluate(

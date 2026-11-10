@@ -95,6 +95,92 @@ export async function pullChannelHistory(request: any): Promise<number> {
   const msgs = channel?.msgs;
   if (!msgs || typeof loader?.loadEarlierMsgs !== 'function') return 0;
   const start = msgs.length;
+  msgs.__winzappOlderIncomplete = false;
+  // A hole right below the anchor (updates held from an earlier visit, under
+  // newer ones a pull ADDED) is dealt with first, or loadEarlierMsgs, which
+  // continues below the collection's oldest update, pages below those old
+  // ones and the client keeps the hole for good:
+  // - a hole of at most FILL_SPAN ids is filled the way WhatsApp Web's
+  //   repairNewsletterMsgHistory does it, without its gate
+  //   (WAWebNewsletterGatingUtils.isProactiveGapFillingEnabled(), false on
+  //   this account on 2026-11-10): WAWebNewsletterMsgHistoryUtils.
+  //   fillMsgHistoryGaps asks the server for the missing server ids, 100 at a
+  //   time, and answers the whole list (measured: an 11-update hole filled).
+  //   It is handed only the updates down to the first one below the hole, so
+  //   older holes never cost requests here. When it cannot run (offline, the
+  //   modules missing) the page is marked incomplete and get-messages answers
+  //   503: the client tries again later instead of storing the old updates.
+  // - a wider hole is not asked id by id (hundreds of requests inside the one
+  //   page that serves everything): the old updates below it are dropped from
+  //   the collection, so loadEarlierMsgs pages on from the anchor.
+  const FILL_SPAN = 500;
+  let hidden: any = null;
+  try {
+    hidden = root.require('WAWebNewsletterViewModeUIUtils')
+      ?.getHiddenMessageServerIdsForChat?.(channel.id) || null;
+  } catch (_) { hidden = null; }
+  const real = (m: any) => {
+    const id = Number(m?.serverId);
+    return Number.isSafeInteger(id) && id > 0 && id < 1e15 ? id : 0;
+  };
+  const missingBetween = (low: number, high: number) => {
+    const span = high - low - 1;
+    if (span <= 0) return 0;
+    if (span > (Number(hidden?.size) || 0)) return span;
+    let missing = 0;
+    for (let id = low + 1; id < high; id++) {
+      if (!(hidden && typeof hidden.has === 'function' && hidden.has(id))) missing++;
+    }
+    return missing;
+  };
+  const anchor = msgs.getModelsArray().find((m: any) => m?.id?._serialized === anchorId);
+  const anchorServerId = real(anchor);
+  if (anchorServerId) {
+    const below = msgs.getModelsArray().map(real).filter((id: number) => id && id < anchorServerId)
+      .sort((a: number, b: number) => b - a);
+    let above = anchorServerId;
+    let staleTop = 0;
+    for (const id of below) {
+      if (missingBetween(id, above) > 0) { staleTop = id; break; }
+      above = id;
+    }
+    if (staleTop) {
+      const hole = missingBetween(staleTop, above);
+      if (hole <= FILL_SPAN) {
+        let filled = false;
+        try {
+          const gaps = root.require('WAWebNewsletterMsgHistoryUtils');
+          const toData = root.require('WAWebMsgDataFromModel')?.msgDataFromMsgModel;
+          const toModel = root.require('WAWebMsgModelFromData')?.msgModelFromMsgData;
+          const jid = root.require('WAWebNewsletterValidationUtils')
+            ?.toNewsletterJidOrThrow?.(channel.id.toJid());
+          if (typeof gaps?.fillMsgHistoryGaps === 'function' && typeof toData === 'function'
+              && typeof toModel === 'function' && jid && typeof msgs.toArray === 'function') {
+            const near = msgs.toArray().filter((m: any) => real(m) >= staleTop);
+            const whole = await gaps.fillMsgHistoryGaps({
+              jid, msgs: near.map(toData), serverIdsToSkip: hidden || new Set() });
+            if (Array.isArray(whole)) {
+              filled = true;
+              if (whole.length > near.length) {
+                msgs.add(whole.map(toModel), { silent: true });
+                msgs.sort?.({ silent: true });
+              }
+            }
+          }
+        } catch (_) {
+          filled = false;
+        }
+        msgs.__winzappOlderIncomplete = !filled;
+      } else if (typeof msgs.remove === 'function') {
+        const stale = msgs.getModelsArray().filter((m: any) => {
+          const id = real(m);
+          return id && id <= staleTop;
+        });
+        msgs.remove(stale, { silent: true });
+      }
+    }
+  }
+  if (msgs.__winzappOlderIncomplete) return msgs.length - start;
   for (let round = 0; round < 20; round++) {
     if (msgs.msgLoadState?.noEarlierMsgs) break;
     const before = msgs.getModelsArray().findIndex((m: any) => m?.id?._serialized === anchorId);
@@ -103,38 +189,24 @@ export async function pullChannelHistory(request: any): Promise<number> {
     await loader.loadEarlierMsgs({ chat: channel });
     if (msgs.length === held) break;
   }
-  // Holes between the updates the collection holds are filled the way
-  // WhatsApp Web's repairNewsletterMsgHistory does it, without its gate
-  // (WAWebNewsletterGatingUtils.isProactiveGapFillingEnabled(), false on this
-  // account on 2026-11-10): WAWebNewsletterMsgHistoryUtils.fillMsgHistoryGaps
-  // asks the server for the missing server ids and answers the whole list
-  // (measured: an 11-update hole filled). A pull ADDS to the collection, so
-  // updates held from an earlier visit stay below the newest ones with a hole
-  // between them, and loadEarlierMsgs continues below those.
-  try {
-    const gaps = root.require('WAWebNewsletterMsgHistoryUtils');
-    const toData = root.require('WAWebMsgDataFromModel')?.msgDataFromMsgModel;
-    const toModel = root.require('WAWebMsgModelFromData')?.msgModelFromMsgData;
-    const jid = root.require('WAWebNewsletterValidationUtils')
-      ?.toNewsletterJidOrThrow?.(channel.id.toJid());
-    let skip: any = new Set();
-    try {
-      skip = root.require('WAWebNewsletterViewModeUIUtils')
-        ?.getHiddenMessageServerIdsForChat?.(channel.id) || skip;
-    } catch (_) { /* none hidden */ }
-    if (typeof gaps?.fillMsgHistoryGaps === 'function' && typeof toData === 'function'
-        && typeof toModel === 'function' && jid && typeof msgs.toArray === 'function') {
-      const whole = await gaps.fillMsgHistoryGaps({
-        jid, msgs: msgs.toArray().map(toData), serverIdsToSkip: skip });
-      if (Array.isArray(whole) && whole.length > msgs.length) {
-        msgs.add(whole.map(toModel), { silent: true });
-        msgs.sort?.({ silent: true });
-      }
-    }
-  } catch (_) {
-    // offline, or the page lacks the modules: the holes stay
-  }
   return msgs.length - start;
+}
+
+// Whether the last pullChannelHistory() of *chatId* left a hole right below
+// its anchor that it could not fill (offline): get-messages then answers 503
+// for that older page, and the client asks again later.
+//
+// Runs inside the page: self-contained, no closure over anything here.
+export function channelOlderPageIncomplete(request: any): boolean {
+  const root = globalThis as any;
+  const chatId = String(request?.chatId || '');
+  if (!/^\d+@newsletter$/.test(chatId) || typeof root.require !== 'function') return false;
+  try {
+    const channel = root.require('WAWebCollections')?.WAWebNewsletterCollection?.get?.(chatId);
+    return !!channel?.msgs?.__winzappOlderIncomplete;
+  } catch (_) {
+    return false;
+  }
 }
 
 // A channel's newest updates, for get-messages' first page. The plain first
@@ -240,28 +312,32 @@ export async function readNewestChannelUpdates(request: any): Promise<unknown[] 
   // leave it there for good. Server ids are dense (WhatsApp Web's own
   // identifyMsgGaps counts any jump as a hole; a deleted update keeps its
   // id); hidden ones are skipped, and an update without a server id (an own
-  // post still sending) never breaks the run.
+  // post still sending) never breaks the run. Walked in server id order:
+  // two updates of the same second may come in either order by date.
   let hidden: any = null;
   try {
     hidden = root.require('WAWebNewsletterViewModeUIUtils')
       ?.getHiddenMessageServerIdsForChat?.(channel.id) || null;
   } catch (_) { hidden = null; }
-  let from = 0;
-  let above = NaN;
-  for (let k = held.length - 1; k >= 0; k--) {
-    const id = Number(held[k]?.serverId);
-    if (!Number.isSafeInteger(id) || id <= 0 || id >= 1e15) continue;
-    if (Number.isFinite(above) && above - id > 1) {
-      // more missing ids than hidden ones: a hole without counting them
-      let missing = above - id - 1 > (Number(hidden?.size) || 0);
-      for (let gap = id + 1; gap < above && !missing; gap++) {
-        missing = !(hidden && typeof hidden.has === 'function' && hidden.has(gap));
-      }
-      if (missing) { from = k + 1; break; }
+  const real = (m: any) => {
+    const id = Number(m?.serverId);
+    return Number.isSafeInteger(id) && id > 0 && id < 1e15 ? id : 0;
+  };
+  const ids = held.map(real).filter((id: number) => id).sort((a: number, b: number) => b - a);
+  let floor = 0;
+  for (let k = 1; k < ids.length; k++) {
+    const above = ids[k - 1];
+    const id = ids[k];
+    if (above - id <= 1) continue;
+    // more missing ids than hidden ones: a hole without counting them
+    let missing = above - id - 1 > (Number(hidden?.size) || 0);
+    for (let gap = id + 1; gap < above && !missing; gap++) {
+      missing = !(hidden && typeof hidden.has === 'function' && hidden.has(gap));
     }
-    above = id;
+    if (missing) { floor = above; break; }
   }
-  return held.slice(from).slice(-wanted).map((m: any) => serialize(m)).filter(Boolean);
+  const run = floor ? held.filter((m: any) => !real(m) || real(m) >= floor) : held;
+  return run.slice(-wanted).map((m: any) => serialize(m)).filter(Boolean);
 }
 
 // Runs inside the page: self-contained, no closure over anything here.

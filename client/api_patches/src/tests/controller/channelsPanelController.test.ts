@@ -1,5 +1,6 @@
 import {
-  channelDirectory, channelInfo, channelInsights, channelKey, editChannelUpdate, followChannel,
+  channelDirectory, channelInfo, channelInsights, channelKey, channelOlderPageIncomplete,
+  editChannelUpdate, followChannel,
   listChannels, pullChannelHistory, readNewestChannelUpdates,
   readChannels, setChannelAdminProfiles, setChannelReactions,
 } from '../../controller/channelsPanelController';
@@ -524,6 +525,9 @@ function serverPage(held: number[], server: number[], options: any = {}) {
       for (const m of list) if (!models.some((x) => x.serverId === m.serverId)) models.push(m);
     },
     sort: () => models.sort((a, b) => a.serverId - b.serverId),
+    remove: (list: any[]) => {
+      for (const m of list) models.splice(models.indexOf(m), 1);
+    },
   };
   const channel: any = { id: { toJid: () => '1@newsletter', _serialized: '1@newsletter' }, msgs };
   const previous = { require: root.require, WAPI: root.WAPI };
@@ -602,6 +606,42 @@ test('an older page fills the holes before it is read', async () => {
     expect(await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_50',
       targetCount: 2 })).toBe(38);
     expect(page.models.map((m: any) => m.serverId).sort((a, b) => a - b)).toEqual(range(10, 51));
+  } finally {
+    page.restore();
+  }
+});
+
+test('an older page whose hole cannot be filled offline is marked incomplete', async () => {
+  // the first page was cut to 701..800; scrolling up while still offline
+  // must not answer yesterday's 281..300 under it
+  const page = serverPage([...range(281, 300), ...range(701, 800)], [], { fill: 'offline' });
+  try {
+    await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_701', targetCount: 20 });
+    expect(channelOlderPageIncomplete({ chatId: '1@newsletter' })).toBe(true);
+    expect(page.fills[0].msgs.map((d: any) => d.serverId)[0]).toBe(300);   // only from the hole up
+  } finally {
+    page.restore();
+  }
+});
+
+test('a filled hole, or none, leaves the older page complete', async () => {
+  const page = serverPage([...range(281, 300), ...range(701, 800)], [], { fill: true });
+  try {
+    await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_701', targetCount: 20 });
+    expect(channelOlderPageIncomplete({ chatId: '1@newsletter' })).toBe(false);
+    expect(page.models.length).toBe(520);
+  } finally {
+    page.restore();
+  }
+});
+
+test('a hole too wide to ask id by id drops the old updates below it', async () => {
+  const page = serverPage([...range(1, 20), ...range(5001, 5100)], [], { fill: true });
+  try {
+    await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_5001', targetCount: 20 });
+    expect(page.fills).toEqual([]);
+    expect(page.models.map((m: any) => m.serverId)).toEqual(range(5001, 5100));
+    expect(channelOlderPageIncomplete({ chatId: '1@newsletter' })).toBe(false);
   } finally {
     page.restore();
   }
