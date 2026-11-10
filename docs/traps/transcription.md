@@ -77,6 +77,12 @@ re-read 2026-10-05). What crosses modules:
   no Blackwell kernels, so `device.resolve_whisper_cpp_device()` sends sm_120
   or an unknown capability to the processor with
   `REASON_CUDA_BUILD_UNSUPPORTED`, said even under "automatic".
+- **Windows on ARM64 has its own pin: release b5454**
+  (`whisper_cpp_builds.ARM64_RELEASE_TAG`, the first with ARM64 builds,
+  chosen through `machine_arch`): a native ARM64 whisper-cli, and its only
+  NVIDIA build, CUDA 13.4, offered for capability **[7.5, 13.0)** (CUDA 13
+  dropped every card before Turing and has Blackwell). Its zips and files are
+  pinned like the x64 ones.
 - **whisper-cli's `-l` defaults to "en"**, so
   `client/core/transcription/whisper_cpp_cli.py` always passes one: `auto`
   unless a language is forced. Forgotten, a Portuguese note comes back as fluent
@@ -270,7 +276,8 @@ On it today:
 - Node.js (`client/ui/dialogs/node_download.py`) and the updater
   (`client/updater.py`);
 - the WhatsApp reachability probe (`client/main_window/connection.py`);
-- the online AI (`client/core/ai_media/`).
+- the online AI (`client/core/ai_media/`);
+- the noise reducer's CUDA components (`client/core/cuda_components/store.py`).
 
 Still outside it: `client/ui/dialogs/api_setup.py` (the GitHub release lookup
 and the WPPConnect Server download) and `client/core/link_preview.py`.
@@ -416,6 +423,30 @@ faster-whisper's filter is onnxruntime, reached only from inside
 faster-whisper. That is why `build.py` carries `--collect-all onnxruntime`:
 without it the frozen build alone loses the filter, and every note then
 carries that warning.
+
+## The noise reducer's GPU build (`client/core/cuda_components/`)
+
+Not the transcription, but it shares its runtime and its traps.
+
+- **Two onnxruntime builds cannot share a process**: both load a DLL named
+  `onnxruntime.dll`, and Windows hands the second import the first one's.
+  `cuda_components.runtime.activate()` therefore runs at startup **before
+  anything imports onnxruntime**, and puts the GPU build first with a meta
+  path finder (which also beats PyInstaller's importer). If onnxruntime was
+  imported already it keeps the processor and the change applies from the
+  next start. `tests/test_cuda_components.py` pins that `import main` alone
+  never imports onnxruntime; a top-level import of it (or of faster-whisper)
+  anywhere on that path breaks the GPU build silently.
+- **Checked by size only, at startup.** `store.state()` compares each kept
+  file with the size in the wheel's RECORD; the sha256 is checked only at
+  download. Decided by the maintainer (2026-11-10), the same trade as the
+  transcription's cuBLAS and unlike whisper.cpp's program, which is hashed on
+  every launch: hashing hundreds of MB of DLLs before every start costs more
+  than it protects, and a file swapped at the same size is an accepted limit.
+- **CUDA 12 shares the transcription's cuBLAS** (`SHARED_CUBLAS_CU12`, the
+  folder `cuda_runtime` installs): never a second copy, and never removed from
+  the noise reducer's window (`store.removable()` leaves it out, as it leaves
+  out a component still downloading).
 
 ## Persistence
 
@@ -742,11 +773,33 @@ recording. With the setting on, `WhisperCppBackend.transcribe()` asks it.
 - **Cancel kills the server**: it is the only way to stop a transcription it has
   begun. The next run starts it again.
 - One request at a time; a second transcription meanwhile is told "busy" and
-  runs on whisper-cli. A different model, device or filter restarts the server.
+  runs on whisper-cli. Through job.py that no longer happens (next section).
+  A different model, device or filter restarts the server.
 - Run end to end on a verified CPU build (the backend as the job calls it):
   same text and segment times as whisper-cli, cancel and restart, `release()`
   leaving no process and no temporary folder. **Not run on a card**: the gain
   there is the point, and it was not measured.
+
+## One model in memory on the whole machine (`machine_slot.py`)
+
+Reported from a user's logs (2026-11-07): switching accounts while voice notes
+were being transcribed took 9 GB of RAM in a minute and a half. whisper.cpp's
+large-v3 filled a 4 GB card (87 MB free); a second run found the server busy
+and ran whisper-cli, which loaded another copy, and Windows put it in shared
+memory (5.7 GB of RAM in two seconds). Each account is its own process with
+its own server, so a second account adds yet another copy.
+
+- `TranscriptionJob._decode` takes `machine_slot.slot` from the probe to the
+  end of the run: a second run, in this process or in another account's,
+  waits for the first (and stays cancellable) instead of loading a model.
+- On Windows the slot is the named mutex `Local\WinZapp.Transcription.Slot`
+  (one per Windows session; an abandoned one is still acquired) plus a
+  manual-reset event saying someone wants it.
+- `ModelResidency` watches that event once it has used a backend: an idle
+  model here is released when another process wants the slot, **even with
+  "Keep the model loaded" on**. Its own process's want is ignored.
+- Tests get a slot of their own process (`tests/conftest.py`): the named one
+  is shared with the developer's running WinZapp.
 
 ## CUDA libraries and whisper.cpp programs from another folder (`reused_runtimes.py`)
 
@@ -782,7 +835,18 @@ as an **inline** transcription (same record as Alt+Shift+N, so the row shows it)
 - Eligible: incoming `audioMessage`, no stored decision yet, younger than 5 min
   (backlogs and history syncs are never transcribed unasked), at most 10 min long.
   **Locked chats are skipped** (vault or phone lock).
-- One run at a time (a serial queue of at most 10; the rest of a burst is dropped).
+- **Age counts while WinZapp was listening** (`listening_gaps`, `too_old()`): the
+  wake detector (`account_link.py`) records the sleep, `_set_wa_connected` the time
+  offline after having been connected (not the first connection of a session, or a
+  startup would transcribe the backlog). Reported 2026-11: after a hibernation the
+  night's voice notes arrived at once, hours old by the clock, none transcribed.
+  The online AI's `wanted_kind()` uses the same rule.
+- **What the sync catches up is handed over too** (`caught_up_arrivals()`, from
+  `sync_chat_messages`): new to the cache and newer than anything it held, never
+  for a chat with no history yet. After a sleep the socket often comes back after
+  the sync fetched them, and the live event then finds them known.
+- One run at a time (a serial queue of at most 100; the rest of a burst is dropped;
+  a key already run is not run again, `REMEMBERED_KEYS`).
   A failure that means "not set up" (`SETUP_FAILURES`: no model, no program, corrupted…)
   pauses the queue 15 min and speaks `transcription_auto_paused` with the reason a
   manual run gives (`_auto_pause_reason()`, through `transcription_flow.

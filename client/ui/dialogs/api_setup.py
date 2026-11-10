@@ -190,6 +190,10 @@ _CUSTOM_SRC_FILES = [
     "src/controller/pollController.ts",
     "src/util/communityCommentsRuntime.ts",
     "src/util/announcementReplyBridge.ts",
+    "src/util/channelsWatchBridge.ts",
+    "src/tests/util/channelsWatchBridge.test.ts",
+    "src/util/callParticipantsBridge.ts",
+    "src/tests/util/callParticipantsBridge.test.ts",
     "src/controller/communityCommentsController.ts",
     "src/tests/controller/communityCommentsController.test.ts",
     "src/controller/channelsPanelController.ts",
@@ -628,6 +632,15 @@ class ApiSetupDialog(wx.Dialog):
             logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch wa-js chat lookup: %s", exc)
+
+        # A post to a channel: chat.find() looked only in ChatStore, which
+        # never holds a channel's chat (wppconnect_newsletter_chat_patch.py).
+        try:
+            from core.wppconnect_newsletter_chat_patch import patch_newsletter_chat_bundle
+            ok, note = patch_newsletter_chat_bundle(api_dir)
+            logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch wa-js channel chat: %s", exc)
 
         # browser.js — a large account whose WhatsApp Web needs a little over
         # 30 s to be ready never connected (issue #414). Takes the outer

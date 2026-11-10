@@ -47,8 +47,11 @@ import asyncio
 import logging
 import re
 
+import phonenumbers
 from aiohttp import web
 
+import channel_insights
+import channel_reactions
 import raw_queries as rq
 from channels import SERVER, channel_id
 
@@ -93,11 +96,31 @@ def channel_key(body) -> str:
     return match.group(1) if match else ""
 
 
-def directory_request(body):
+def account_country(me) -> str:
+    """The ISO region of the account's own number ("BR"), or "" unknown.
+
+    The directory list (a view or a category) is answered "Bad Request" with
+    no country at all: measured on 2026-11-08 over CDP, the same query read
+    20 channels with ["BR"] and failed with []. WhatsApp Web passes the
+    account's own country (WAWebCountryCodeUtils.getMyCountryCode).
+    """
+    digits = str(me or "").partition("@")[0].split(":")[0]
+    if not digits.isdigit():
+        return ""
+    try:
+        region = phonenumbers.region_code_for_number(phonenumbers.parse("+" + digits))
+    except phonenumbers.NumberParseException:
+        return ""
+    return region if region and region != "ZZ" else ""
+
+
+def directory_request(body, country=""):
     """(query id, variables, field) of a directory read: a search for the
     text, or the directory's list in a view (recommended, trending, popular,
     new), both narrowed to one category when one is given, as WhatsApp Web's
-    directory does. An unknown category or view is ignored, never sent."""
+    directory does. An unknown category or view is ignored, never sent.
+    *country* is account_country(): the lists are of that country, as in
+    WhatsApp Web."""
     body = body if isinstance(body, dict) else {}
     query = str(body.get("query") or "").strip()[:100]
     try:
@@ -108,15 +131,17 @@ def directory_request(body):
     categories = [category] if category in CATEGORIES else []
     view = str(body.get("view") or "").upper()
     view = view if view in VIEWS else ""
+    countries = [country] if country else []
     if query:
         return SEARCH_QUERY, {"input": {"search_text": query, "categories": categories,
                                         "limit": limit, "start_cursor": None},
                               "fetch_status_metadata": False}, SEARCH_FIELD
     if not categories and view in ("", "RECOMMENDED"):
-        return RECOMMENDED_QUERY, {"input": {"limit": limit, "country_codes": []},
+        return RECOMMENDED_QUERY, {"input": {"limit": limit, "country_codes": countries},
                                    "fetch_status_metadata": False}, RECOMMENDED_FIELD
     return LIST_QUERY, {"input": {"view": view or "RECOMMENDED",
-                                  "filters": {"country_codes": [], "categories": categories},
+                                  "filters": {"country_codes": countries,
+                                              "categories": categories},
                                   "limit": limit, "start_cursor": None},
                         "fetch_status_metadata": False}, LIST_FIELD
 
@@ -274,7 +299,8 @@ def register_routes(r, *, session, ok, jid_from_text):
         s = session(req)
         if not ready(s):
             return error("channels_unavailable")
-        query_id, variables, field = directory_request(await body_of(req))
+        query_id, variables, field = directory_request(
+            await body_of(req), account_country(getattr(s, "me", "")))
         answer = await mex(s, query_id, variables, field, "channels_unavailable")
         if isinstance(answer, web.Response):
             return answer
@@ -338,6 +364,51 @@ def register_routes(r, *, session, ok, jid_from_text):
         if isinstance(answer, web.Response):
             return answer
         return ok(status="success", response=done)
+
+    async def admin_profiles(req):
+        s = session(req)
+        request = channel_reactions.admin_profiles_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        from channel_admin import UPDATE_FIELD
+        channel, variables = request
+        answer = await mex(s, channel_reactions.ADMIN_PROFILES_QUERY, variables, UPDATE_FIELD,
+                           "channel_admin_profiles_failed")
+        if isinstance(answer, web.Response):
+            return answer
+        enabled = variables["updates"]["settings"]["admin_profiles_enabled"]
+        return ok(status="success", response={"id": channel, "enabled": enabled})
+
+    async def insights(req):
+        s = session(req)
+        request = channel_insights.insights_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        _channel, variables = request
+        answer = await mex(s, channel_insights.QUERY, variables, channel_insights.FIELD,
+                           "channel_insights_unavailable")
+        if isinstance(answer, web.Response):
+            return answer
+        return ok(status="success", response=answer if isinstance(answer, dict) else {})
+
+    async def reactions(req):
+        s = session(req)
+        request = channel_reactions.reactions_request(await body_of(req))
+        if request is None:
+            return error("invalid_channel", 400)
+        if not ready(s):
+            return error("channels_unavailable")
+        from channel_admin import UPDATE_FIELD, UPDATE_QUERY
+        channel, variables = request
+        answer = await mex(s, UPDATE_QUERY, variables, UPDATE_FIELD, "channel_reactions_failed")
+        if isinstance(answer, web.Response):
+            return answer
+        value = variables["updates"]["settings"]["reaction_codes"]["value"]
+        return ok(status="success", response={"id": channel, "value": value})
 
     async def admins(req):
         s = session(req)
@@ -456,6 +527,9 @@ def register_routes(r, *, session, ok, jid_from_text):
     r.add_post("/api/{tok}/channels/admin-revoke",
                person_mutation(REVOKE_QUERY, "channel_admin_revoke_failed"))
     r.add_post("/api/{tok}/channels/pin", pin)
+    r.add_post("/api/{tok}/channels/reactions", reactions)
+    r.add_post("/api/{tok}/channels/insights", insights)
+    r.add_post("/api/{tok}/channels/admin-profiles", admin_profiles)
     r.add_post("/api/{tok}/channels/mute", mute)
     r.add_post("/api/{tok}/channels/directory", directory)
     r.add_post("/api/{tok}/channels/info", info)

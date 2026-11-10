@@ -111,6 +111,22 @@ sync's replay or a newer message is stored (`phone_chat_delete.applies`). WinZap
 has no socket event for a chat that disappears, so the app's list drops it on
 its next `list-chats`.
 
+## Changes made here (app state the bridge sends)
+
+`Session.send_state` names a person's chat by its LID in every mutation index
+(`chat_aliases.mutation_index_jid`), as WhatsApp Web does
+(`WAWebSyncdGetChat.getChatJidMutationIndexForChat`, read 2026-11-09): a phone
+does not find a chat named by its number and keeps the mutation as an orphan.
+A clear or delete carries a message range built as WhatsApp Web builds it
+(`chat_actions.range_plan`): the newest message's time, the newest system
+message's when newer, and our own messages from the newest received one on by
+key. A key the phone's check refuses (a received group message with no
+`participant`) is never listed, since one such key drops the whole mutation.
+The clear's index ends in `"0"`, like WhatsApp Web's and Baileys'. Reported
+2026-11-05: chats cleared in WinZapp stayed full on the phone, because the
+bridge listed only the newest stored item, often a group notification with no
+author.
+
 ## Reading a chat writes no app state
 
 A read goes out as read receipts, the way WhatsApp's own clients do it:

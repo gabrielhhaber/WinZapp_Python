@@ -322,3 +322,14 @@ def test_rewrite_writes_each_flag_again():
     panel._rewrite_star_states("test@s.whatsapp.net", [("1", {"starred": True}), ("2", {"starred": False})])
     assert panel.writes == [("test@s.whatsapp.net", "1", {"starred": True}),
                             ("test@s.whatsapp.net", "2", {"starred": False})]
+
+
+def test_it_says_whether_the_job_started(queue):
+    """The starred window drops a row only when the unstar started."""
+    msgs = [message("1")]
+    panel = Panel(msgs)
+    assert panel._sync_message_stars("test@s.whatsapp.net", msgs, False) is True
+    # a second one while the first runs is refused
+    assert panel._sync_message_stars("test@s.whatsapp.net", msgs, False) is False
+    drain(queue)
+    assert panel._sync_message_stars("test@s.whatsapp.net", [], False) is False

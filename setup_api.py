@@ -129,6 +129,10 @@ CUSTOM_SRC_FILES = [
     "src/controller/pollController.ts",
     "src/util/communityCommentsRuntime.ts",
     "src/util/announcementReplyBridge.ts",
+    "src/util/channelsWatchBridge.ts",
+    "src/tests/util/channelsWatchBridge.test.ts",
+    "src/util/callParticipantsBridge.ts",
+    "src/tests/util/callParticipantsBridge.test.ts",
     "src/controller/communityCommentsController.ts",
     "src/tests/controller/communityCommentsController.test.ts",
     "src/controller/channelsPanelController.ts",
@@ -477,6 +481,8 @@ from core.wppconnect_welcome_layer_patch import (
 )
 from core.wppconnect_wa_js_patch import patch_wa_js_bundle as _patch_wa_js_bundle_file
 from core.wppconnect_wa_js_patch import patch_chat_lookup_bundle as _patch_chat_lookup_bundle_file
+from core.wppconnect_newsletter_chat_patch import (
+    patch_newsletter_chat_bundle as _patch_newsletter_chat_bundle_file)
 from core.wppconnect_browser_layer_patch import patch_browser_controller as _patch_browser_controller_file
 from core.wpp_runtime import homologated_wpp_tag
 
@@ -722,6 +728,13 @@ def _patch_wa_js_bundle(client_api_dir: str = None) -> bool:
 def _patch_chat_lookup_bundle(client_api_dir: str = None) -> bool:
     """Use WhatsApp's cache-aware action rather than its low-level DB lookup."""
     ok, note = _patch_chat_lookup_bundle_file(client_api_dir or CLIENT_API_DIR)
+    print(f"[{'OK' if ok else 'WARNING'}] {note}")
+    return ok
+
+
+def _patch_newsletter_chat_bundle(client_api_dir: str = None) -> bool:
+    """A post to a channel finds the channel's chat (NewsletterStore)."""
+    ok, note = _patch_newsletter_chat_bundle_file(client_api_dir or CLIENT_API_DIR)
     print(f"[{'OK' if ok else 'WARNING'}] {note}")
     return ok
 
@@ -1210,6 +1223,11 @@ def _main_with_catalogue(refresh_catalogue):
             _patch_chat_lookup_bundle()
         except Exception as e:
             print(f"[WARNING] Failed to patch wppconnect-wa.js chat lookup: {e}")
+
+        try:
+            _patch_newsletter_chat_bundle()
+        except Exception as e:
+            print(f"[WARNING] Failed to patch wppconnect-wa.js channel chat: {e}")
 
         # A large account whose WhatsApp Web takes a little over 30 s to be
         # ready never connected (issue #414) — see _patch_wppconnect_browser()'s

@@ -1085,6 +1085,10 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
+        # the neural model when installed (False: the common reducer, faster)
+        "noise_reduction_neural": True,
+        # where the neural model runs: cpu, cuda12, cuda13, coreml (core/cuda_components)
+        "noise_reduction_device": "cpu",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,
@@ -1138,7 +1142,10 @@ DEFAULT_SETTINGS = {
     },
     "calls": {
         "alerts_enabled": True,
-        "popup_enabled": True
+        "popup_enabled": True,
+        # say who joins or leaves a group call held here (call_participants.py)
+        "announce_participant_joined": True,
+        "announce_participant_left": True
     },
     "profile_backup": {
         # Settings > Cópia de segurança: keep no restore point at all
@@ -1315,6 +1322,9 @@ DEFAULT_SETTINGS = {
         # transcribed/described on its own, local or online: one of
         # auto_queue.AGE_CHOICES_MINUTES. See auto_queue.max_age_seconds().
         "auto_max_age_minutes": 5,
+        # Settings > Local transcription: the local automatic
+        # transcription takes messages however old (auto_queue).
+        "auto_any_age": False,
         # Keep results with the message so they are not redone (on), and the
         # per-model overrides {model id: bool}. See stored.cache_enabled_for().
         "cache_enabled": True,

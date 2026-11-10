@@ -339,3 +339,38 @@ async def test_async_download_without_a_body_uses_the_old_path():
     data = await t.download_with_progress_async(
         c, N(imageMessage=N(fileLength=10)), None, lambda *a: None, "s")
     assert data == b"data"
+
+
+def test_the_proxy_keeps_what_the_session_wrapped_on_the_client(tmp_path):
+    """chat_timers.install wraps the client's own send_message; the proxy
+    rebinding the class's skipped it, and a file sent with progress went out
+    without the chat's disappearing-messages timer."""
+    c = ForkClient()
+    c.release.set()
+    wrapped = []
+    original = c.send_message
+
+    def send_message(to, message, *args, **kwargs):
+        wrapped.append(to)
+        return original(to, message, *args, **kwargs)
+
+    c.send_message = send_message
+    path = _png(tmp_path)
+    proxy = t.ClientWithProgress(c, path, "k", kind_from_content=_kind)
+    proxy.send_image("dest", path)
+    assert wrapped == ["dest"]
+    # the upload still goes through the proxy (the disk, with progress)
+    assert c.uploads[0][0] == "file"
+
+
+def test_a_timer_reaches_an_audio_sent_with_progress(tmp_path):
+    from types import SimpleNamespace
+    import chat_timers
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import AudioMessage, Message
+    c = ForkClient()
+    chat_timers.install(c, lambda jid: (86400, 7))
+    proxy = t.ClientWithProgress(c, _png(tmp_path), "k", kind_from_content=_kind)
+    proxy.send_message(SimpleNamespace(User="55", Server="s.whatsapp.net"),
+                       Message(audioMessage=AudioMessage(seconds=3)))
+    sent = c.sent[0][1]
+    assert sent.audioMessage.contextInfo.expiration == 86400

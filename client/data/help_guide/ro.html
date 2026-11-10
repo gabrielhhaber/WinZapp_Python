@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>Valoarea trebuie să se potrivească cu cea de pe linia fișierului. Dacă diferă, șterge fișierul și descarcă-l din nou. Actualizatorul WinZapp verifică și el suma de control (și, în versiunile mai noi, semnătura) înainte de instalare.</p>
 
+<p>În motorul Neonize, fereastra de conectare întreabă cât istoric să aducă la conectare: doar mesajele recente, 30 de zile, 6 luni, un an, tot istoricul sau o perioadă personalizată (zile, luni sau ani, scrisă în câmpul care apare dedesubt). Telefonul trimite istoricul o singură dată, la conectare; mesajele mai vechi de aproximativ un an ajung doar așa. Dacă schimbați alegerea cu codul QR pe ecran, se generează un cod QR nou cu ea.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -372,7 +374,7 @@
 
 <h3>Filtre și liste</h3>
 <ul>
-  <li><strong>Filtre:</strong> Toate, Necitite, Grupuri și Individuale, ca butoane radio. Alt+Shift+F te duce la ele; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G și Alt+Shift+I aleg Toate, Necitite, Grupuri și Individuale direct din listă.</li>
+  <li><strong>Filtre:</strong> Toate, Necitite, Grupuri și Individuale, ca butoane radio. Alt+Shift+F te duce la ele; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G și Alt+Shift+I aleg Toate, Necitite, Grupuri și Individuale direct din listă. Când filtrul, o listă WhatsApp sau căutarea nu găsește nicio conversație, lista afișează un rând care spune asta, de exemplu "Nicio conversație necitită.".</li>
   <li><strong>Listele WhatsApp:</strong> listele tale personalizate apar înaintea filtrelor. Le poți actualiza, filtra după ele, crea sau redenumi o listă și adăuga ori elimina conversații, în "Gestionează listele WhatsApp". Editarea depinde de suportul contului tău; când nu este posibilă, managerul spune de ce. Conversațiile blocate sau indisponibile local nu apar în selecție, iar ceilalți membri ai listei sunt păstrați.</li>
   <li><strong>Căutare:</strong> Ctrl+F te duce la câmpul de căutare; săgeata în jos merge la primul rezultat. În Setări &gt; Interfață &gt; Conversații, "Păstrați căutarea conversațiilor la deschiderea unei conversații, pentru ca Esc să revină la rezultate, nu la lista completă" face ca Esc să readucă focalizarea pe acea conversație din rezultate, în loc să revină la lista completă.</li>
 </ul>
@@ -507,6 +509,7 @@
 <h3>Stea și fixare</h3>
 <ul>
   <li><strong>Stea</strong> (Ctrl+Shift+O): stelele sunt sincronizate cu WhatsApp, iar fiecare modificare este verificată. Pentru a trimite la WhatsApp stelele tale locale vechi, folosește "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației.</li>
+  <li><strong>Mesaje marcate cu stea</strong> (Alt+0 sau rândul "Mesaje marcate cu stea" din lista de navigare): toate mesajele marcate cu stea din toate conversațiile, de la cele mai noi, citite ca conversație, expeditor, text și dată. "Căutați în mesajele marcate cu stea" restrânge lista după orice cuvânt, fără a ține cont de diacritice sau majuscule; Enter sau "Deschideți în conversație" deschide conversația la acel mesaj, iar Delete sau "Eliminați marcajul cu stea" elimină steaua.</li>
   <li><strong>Fixarea unui mesaj</strong> (Ctrl+Shift+P, când nu înregistrezi): un buton din fiecare conversație listează mesajele fixate în WhatsApp, inclusiv cele vechi; Enter te duce la mesajul din istoric. Când deschizi conversația, numărul de mesaje fixate este anunțat fără a schimba focalizarea.</li>
 </ul>
 
@@ -555,6 +558,8 @@
 
 <h3>Mesajele în conversația corectă</h3>
 <p>Mesaje: identitățile alternative contradictorii nu mai direcționează mesajele trimise altei persoane sau primite de la aceasta către conversația cu tine însuți. Asocierile nevalide sunt ignorate; mesajele rămân în conversația originală până la identificarea persoanei.</p>
+
+<p>În motorul Neonize, tasta Home la începutul conversației cere telefonului mesajele mai vechi, câte un lot, până când nu mai are nimic de trimis din acea conversație. Telefonul dă de obicei astfel aproximativ un an în urmă; pentru mai mult, alegeți perioada la conectare.</p>
 
   </section>
 
@@ -631,6 +636,8 @@
 <h3>Schimbarea dispozitivului audio pe loc</h3>
 <p>Ctrl+Alt+Shift+H deschide lista dispozitivelor de redare, iar Ctrl+Alt+Shift+G pe cea a dispozitivelor de înregistrare, numerotate de la 1 la 0: apasă numărul pentru a schimba imediat sau folosește săgețile și Enter. Schimbarea se aplică sunetelor, mesajelor vocale și apelurilor (un apel în curs se schimbă fără să se întrerupă), în toate conturile deschise, până închizi WinZapp. Dispozitivele alese în setări nu se schimbă.</p>
 
+<p>În Setări > Audio, butonul "Setările reducerii zgomotului" deschide fereastra reducerii: starea modelului neural și butonul care îl descarcă, procesorul pe care rulează (al computerului, o placă NVIDIA cu CUDA 12 sau CUDA 13, ori Core ML pe Mac), componentele de care acel procesor mai are nevoie, cu butonul care descarcă doar pe cele lipsă, și butoane care elimină componentele și modelul. CUDA 12 folosește cuBLAS-ul transcrierii locale, iar schimbarea procesorului se aplică de la următoarea pornire a WinZapp. Cu reducerea zgomotului pornită și modelul instalat, caseta "Folosiți reducerea neurală a zgomotului" alege între ea și reducerea obișnuită, mai rapidă.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -687,6 +694,8 @@
 <p>Datele conversației au o singură alegere pentru transcrierea automată: Niciuna, Online cu AI sau Local cu Whisper. Astfel același mesaj nu este transcris niciodată de două ori, iar alegerea urmează la început opțiunea generală, până o schimbați acolo.</p>
 <p>Enter și Spațiu, când transcriu, transcriu și audio și video trimise ca fișier.</p>
 <p>Mistral folosește trei modele diferite: modelul pentru mesaje vocale pentru audio, implicit Ministral 3 3B pentru fotografii, autocolante și cadre video, și mistral-ocr-4 pentru extragerea textului din PDF. Alegeți modelul audio în „Model pentru mesaje vocale”: Voxtral Mini Transcribe 3 (implicit) sau Voxtral Small Transcribe 3, mai precis. Ambele sunt în previzualizare, deci Mistral le poate modifica sau retrage. Câmpul Model și obținerea modelelor aleg doar modelul vizual; schimbarea lui nu modifică transcrierea sau OCR. OpenAI și Groq folosesc și ele modele audio fixe, separat de modelul vizual ales; Groq nu procesează PDF aici. Gemini folosește modelul ales pentru toate tipurile acceptate. Disponibilitatea nu garantează utilizarea gratuită: verificați cota inclusă și limitele furnizorului. OCR Mistral extrage textul, fără descrierea imaginilor din PDF. În planul gratuit Experiment al Mistral, cererile pot fi folosite pentru antrenarea modelelor sale, cu excepția cazului în care dezactivați acest lucru din contul Mistral; WinZapp vă anunță acest lucru înainte de a trimite conținut către Mistral.</p>
+
+<p>Cu transcrierea automată pornită, opțiunea "Transcrieți și pe cele care sosesc cu întârziere" transcrie mesajele primite indiferent de vechime (de exemplu, toate cele care sosesc deodată când computerul pornește din nou). Fără ea se aplică limita de vechime aleasă; timpul în care computerul a dormit sau a fost fără internet nu contează ca vechime. Pe computerele cu Windows ARM64, whisper.cpp folosește versiunea nativă ARM64, iar versiunea pentru plăci NVIDIA cu CUDA 13 este oferită opțional.</p>
 
   </section>
 
@@ -762,7 +771,7 @@
 </div>
 <p>La reinstalarea WPPConnect, WinZapp păstrează un catalog WhatsApp Web mai nou și compatibil și caută un catalog actualizat. Fără internet este păstrat un catalog utilizabil, dar actualitatea lui nu poate fi confirmată. Dacă apelul tot nu pornește, restabiliți conexiunea la internet și reporniți WinZapp. O incompatibilitate VoIP confirmată care nu permite reîncercarea este raportată fără repetarea inițializării.</p>
 <p>Cât timp conversația unui grup este deschisă, WinZapp verifică aproximativ la fiecare zece secunde dacă există un apel în desfășurare. Butonul de alăturare apare numai când există un apel disponibil și dispare când acesta se încheie. La alăturarea la un apel video, camera pornește oprită. Alăturarea la un apel existent nu folosește limita de 32 de membri pentru inițierea unui apel de grup nou. Când un apel este disponibil, butoanele de inițiere a apelurilor vocale și video sunt înlocuite de butonul "Alăturați-vă apelului vocal în desfășurare" sau, pentru un apel video, "Alăturați-vă apelului video în desfășurare (camera oprită)". În Apeluri (Alt+6), filtrul În desfășurare afișează apelurile la care vă puteți alătura, inclusiv apeluri între mai multe persoane în afara chaturilor de grup; acestea apar și primele în Toate. Selectați un apel și apăsați Enter sau folosiți același buton de alăturare. Dacă sunteți deja în acel apel, butonul se numește "Reveniți la apel" și aduce în față fereastra apelului curent. Lista se actualizează aproximativ la fiecare zece secunde cât timp Apeluri este deschis și include numai apelurile pe care WhatsApp le pune la dispoziția contului dvs.</p>
-<p>Folosiți butonul "Participanții la apel" din fereastra apelului sau pentru un apel în desfășurare selectat în Apeluri pentru a vedea numele persoanelor conectate. Lista se actualizează la fiecare zece secunde; "Reîmprospătează" solicită datele actuale, iar "Închide" sau Esc închide fereastra. Persoanele invitate sau deconectate nu sunt afișate. Consultarea listei nu vă alătură apelului și nu îl încheie.</p>
+<p>Folosiți butonul "Participanții la apel" din fereastra apelului sau pentru un apel în desfășurare selectat în Apeluri pentru a vedea numele persoanelor conectate. Lista se actualizează singură când cineva intră sau iese din apel; F5 o citește din nou, iar "Închide" sau Esc închide fereastra. Într-un apel de grup, WinZapp spune și cine a intrat și cine a ieșit (Setări &gt; Apeluri, "Anunțați când cineva intră în apel" și "Anunțați când cineva iese din apel", activate implicit). Persoanele invitate sau deconectate nu sunt afișate. Consultarea listei nu vă alătură apelului și nu îl încheie.</p>
 
 <h3>Continuitatea sunetului în apeluri</h3>
 <p>Neonize asociază sunetul întârziat, operațiile camerei și schimbările de dispozitive cu apelul și fluxul care le-au pornit. Datele în așteptare ale unui flux încheiat sau înlocuit sunt eliminate, iar acumularea datelor media este limitată. O eroare temporară la trimiterea unui cadru către client nu oprește definitiv citirea sunetului. La redeschiderea ieșirii, fluxul vechi nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu reduce la tăcere sunetul pregătit pentru redare. O potrivire parțială ambiguă a numelui unui dispozitiv WASAPI păstrează API-ul inițial, fără a alege o potrivire arbitrară.</p>
@@ -791,14 +800,17 @@
 <p>Panoul Comunități (sau "Conversație nouă" &gt; "Comunități") listează comunitățile din care faci parte. Când alegi una, vezi descrierea, administratorii și grupurile ei la care te-ai alăturat, cu grupul de anunțuri și grupul general identificate; Enter sau "Deschideți grupul" te duce la grup. Dacă administrezi comunitatea: "Adăugați grupuri", "Eliminați grupul din comunitate", "Promovați ca administrator al comunității", "Eliminați ca administrator al comunității" și "Dezactivați comunitatea". "Comunitate nouă" creează una cu un nume, o descriere și grupurile alese. După fiecare acțiune, WinZapp citește din nou comunitățile și spune că a terminat doar când WhatsApp arată modificarea; altfel îți spune că cererea a fost trimisă dar nu este confirmată, sau că a fost refuzată.</p>
 
 <h3>Canale (Alt+9)</h3>
-<p>Fereastra Canale (Alt+9 sau elementul Canale din lista de navigare) arată "Canalele mele", canalele pe care le urmărești, sau "Găsiți canale": scrie în "Căutați canale" și apasă Enter; fără text, apar canalele recomandate de WhatsApp. În "Detalii" sunt descrierea, numărul de urmăritori, dacă urmărești, administrezi sau deții canalul și linkul lui. Enter sau "Deschideți canalul" deschide canalul pentru a-i citi actualizările. Butoanele "Urmăriți" și "Nu mai urmăriți", "Dezactivați notificările" și "Activați notificările", "Copiați linkul", "Urmăriți prin link..." (lipește linkul canalului) și "Creați un canal..." funcționează pentru orice canal; "Editați canalul..." apare la canalele pe care le administrezi, iar "Ștergeți canalul" la ale tale. Afișarea canalelor în lista de conversații rămâne o opțiune din Setări &gt; Interfață &gt; Conversații.</p>
-<p>În "Găsiți canale", alegerile Categorie și Listă restrâng directorul ca opțiunile din WhatsApp Web: alegeți o categorie (sau "Toate categoriile") și o listă (recomandate, în tendințe, populare sau noi) și apăsați Căutați sau Enter. Cu text în "Căutați canale", căutarea rămâne în categoria aleasă. În canalele pe care le administrați, câmpul de mesaj se deschide când deschideți canalul: scrieți și trimiteți pentru a publica o actualizare text (fără mesaje vocale sau atașamente). Din meniul mesajului sau cu Ctrl+Shift+P fixați sau anulați fixarea unei actualizări, iar cele fixate apar la butonul "Mesaje fixate". Butonul "Administratori și urmăritori..." din fereastra Canale spune câți administratori are canalul; proprietarul poate folosi și "Invitați un administrator..." (alegeți contactul și, dacă doriți, un mesaj: invitația ajunge în conversația persoanei, care devine administrator când o acceptă) și "Anulați invitația de administrator...". Fereastra arată proprietarul, administratorii, invitațiile în așteptare și urmăritorii: proprietarul poate face administrator un urmăritor, poate anula o invitație, poate elimina un administrator sau poate face proprietar un administrator, iar un administrator poate renunța la rol.</p>
+<p>Fereastra Canale (Alt+9 sau elementul Canale din lista de navigare) arată "Canalele mele", canalele pe care le urmărești, sau "Găsiți canale": scrie în "Căutați canale" și apasă Enter; fără text, apar canalele recomandate de WhatsApp. În "Detalii" sunt descrierea, numărul de urmăritori, dacă urmărești, administrezi sau deții canalul și linkul lui. Enter sau "Deschideți canalul" deschide canalul pentru a-i citi actualizările. Butoanele "Urmăriți" și "Nu mai urmăriți", "Dezactivați notificările" și "Activați notificările", "Copiați linkul", "Urmăriți prin link..." (lipește linkul canalului) și "Creați un canal..." funcționează pentru orice canal; "Editați canalul..." apare la canalele pe care le administrezi, iar "Ștergeți canalul" la ale tale. Afișarea canalelor în lista de conversații rămâne o opțiune din Setări &gt; Interfață &gt; Conversații. În "Creați un canal..." și "Editați canalul...", opțiunea Reacții stabilește cum pot reacționa urmăritorii la actualizări, ca în setările de canal din WhatsApp Web: orice emoji, doar emoji-urile implicite sau fără reacții; Detaliile arată alegerea canalului. Într-un canal pe care îl administrați, "Afișați statisticile..." citește statisticile din ultimele 30 de zile, așa cum le arată WhatsApp Web: conturi atinse, urmăritori, bilanțul urmăritorilor, urmăritori noi și cei care au încetat să urmărească, acoperirea între urmăritori și ceilalți și pe țări. WhatsApp le oferă de la 100 de urmăritori. Acolo unde WhatsApp vă oferă această opțiune, "Editați canalul..." are și "Afișați profilul administratorului în actualizări", ca în informațiile canalului din WhatsApp Web (WPPConnect).</p>
+<p>În "Găsiți canale", alegerile Categorie și Listă restrâng directorul ca opțiunile din WhatsApp Web: alegeți o categorie (sau "Toate categoriile") și o listă (recomandate, în tendințe, populare sau noi) și apăsați Căutați sau Enter. Cu text în "Căutați canale", căutarea rămâne în categoria aleasă. În canalele pe care le administrați, câmpul de mesaj se deschide când deschideți canalul: scrieți și trimiteți pentru a publica o actualizare text; puteți publica și fotografii, videoclipuri și sondaje, cu aceleași comenzi de atașare și de creare a sondajului ca într-o conversație (fără mesaje vocale sau alte fișiere). Din meniul mesajului sau cu Ctrl+Shift+P fixați sau anulați fixarea unei actualizări, iar cele fixate apar la butonul "Mesaje fixate". Butonul "Administratori și urmăritori..." din fereastra Canale spune câți administratori are canalul; proprietarul poate folosi și "Invitați un administrator..." (alegeți contactul și, dacă doriți, un mesaj: invitația ajunge în conversația persoanei, care devine administrator când o acceptă) și "Anulați invitația de administrator...". Fereastra arată proprietarul, administratorii, invitațiile în așteptare și urmăritorii: proprietarul poate face administrator un urmăritor, poate anula o invitație, poate elimina un administrator sau poate face proprietar un administrator, iar un administrator poate renunța la rol.</p>
+<p>În "Găsiți canale", alegerea altei categorii sau a altei liste caută din nou. Fereastra Canale și fereastra "Administratori și urmăritori..." se actualizează singure când urmăriți, nu mai urmăriți sau dezactivați notificările unui canal, când se schimbă rolul dvs., numele sau descrierea unui canal și când se schimbă cine îl administrează, inclusiv de pe telefon. F5 citește din nou lista (de exemplu, pentru urmăritori noi); scurtătura se poate schimba în setări. În canalele pe care le administrați, actualizările text proprii se pot edita din meniul mesajului sau cu Alt+E, în intervalul de editare al WhatsApp. Într-un canal deschis din fereastra Canale, Esc revine la acea fereastră cum ați lăsat-o: aceeași listă, căutare, categorie și canal selectat. Un canal se deschide cu o pagină întreagă de actualizări recente, citite de pe serverul WhatsApp.</p>
 
 <h3>Mențiuni și răspunsuri</h3>
 <p>O persoană menționată pe nume împreună cu @all păstrează legătura; mențiunea ta, în notificare și în previzualizare, folosește cuvântul ales la "Cum să se facă referire la mine?". În Setări &gt; Interfață &gt; Mesaje, "Ascunde numerele de telefon ale expeditorilor fără nume în mesaje" face ca mesajele de la persoane fără nume să înceapă direct cu conținutul. În Setări &gt; Interfață &gt; Conversații, "Precedă numele contactelor nesalvate cu semnul tilde (~) în conversații și mesaje" (activată implicit) arată un tilde înaintea numelui celor pe care nu i-ai salvat, în conversații și în mesaje.</p>
 
 <h3>Grupurile unei comunități</h3>
 <p>În lista de comunități, Enter duce la grupurile comunității, iar "Deschideți grupul cu activitatea cea mai recentă" deschide grupul cu cea mai recentă activitate, spunându-i numele. "Filtrați grupurile" arată toate grupurile, grupurile din care faceți parte sau cele din care nu faceți parte; un grup din care nu faceți parte spune asta în rândul lui. Pe unul dintre ele, "Intrați în grup" vă face membru sau, când grupul cere aprobare, "Cereți să intrați în grup" trimite cererea, pe care "Anulați cererea de a intra în grup" o retrage.</p>
+
+<p>Invitațiile de a urmări un canal sau de a-i fi administrator apar în conversație ca "Invitație de a urmări canalul..." (sau "de a fi administrator al canalului..."), cu mesajul celui care a invitat. Enter deschide canalul, unde îl puteți urmări.</p>
 
   </section>
 
@@ -1032,6 +1044,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Schimbați dispozitivul de înregistrare până la închiderea WinZapp, în toate conturile deschise (apoi 1 la 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Deschide comunitățile</td></tr>
 <tr><td class="field-name">Alt+9</td><td>Deschideți canalele</td></tr>
+<tr><td class="field-name">Alt+0</td><td>Deschideți mesajele marcate cu stea</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 a 9</td><td>Deschide un chat atribuit pentru acces rapid</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 a 9</td><td>Atribuie chatul focalizat unui număr de acces rapid</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Marcați toate conversațiile ca citite</td></tr>
@@ -1335,6 +1348,21 @@
 <tr><td class="field-name">Alt+E</td><td>Respingeți</td></tr>
 <tr><td class="field-name">Alt+O</td><td>Opriți alerta</td></tr>
 </table>
+<h3>Participanții la apel</h3>
+<table class="field-table">
+<tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
+<tr><td class="field-name">F5</td><td>Citiți din nou participanții</td></tr>
+</table>
+<h3>Fereastra Canale</h3>
+<table class="field-table">
+<tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
+<tr><td class="field-name">F5</td><td>Citiți din nou lista de canale</td></tr>
+</table>
+<h3>Administratorii și urmăritorii canalului</h3>
+<table class="field-table">
+<tr><th>Comandă rapidă</th><th>Acțiune</th></tr>
+<tr><td class="field-name">F5</td><td>Citiți din nou administratorii și urmăritorii</td></tr>
+</table>
 <h3>Comenzi fără tastă atribuită</h3>
 <p>Aceste comenzi există în fila Comenzi rapide de la tastatură din Setări, dar vin fără tastă. Alege acolo una dacă vrei să le folosești.</p>
 <table class="field-table">
@@ -1427,9 +1455,36 @@
 <tr><td class="field-name">Încă nepublicat</td><td>Asocierea apelurilor și fluxurilor, procesare media limitată și diagnosticarea semnalului fără conținut audio.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Fereastra Adăugați participanți funcționează cu cititorul de ecran: marcare cu sunet și anunțuri, iar rezultatul este rostit.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Neonize: statusurile „Adaugă-l pe al tău”, cu întrebare și cu autocolant animat nu mai apar ca mesaj incompatibil.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Ferestrele de canale actualizate de evenimentele WhatsApp, F5 configurabil și editarea actualizărilor text proprii.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Lista de conversații: un rând care spune asta când filtrul, lista sau căutarea nu găsește nicio conversație.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Apeluri de grup: se anunță cine intră și cine iese (două opțiuni în Setări &gt; Apeluri), iar lista participanților se actualizează singură; F5 o citește din nou.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Înregistrarea cu sunetul computerului nu mai are întreruperi și sacadări pe computerele mai lente.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale în WPPConnect: publicarea funcționează din nou, iar canalul se deschide cu o pagină întreagă de actualizări recente; Esc revine la fereastra Canale cum ați lăsat-o.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Actualizări: PowerShell-ul care protejează instalarea are până la un minut să pornească, iar cu Neonize instalatorul așteaptă închiderea punții înainte de copiere.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale cu Neonize: actualizările sunt cerute câte 100, iar canalul nu mai rămâne gol.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Lista de mesaje: "/" nu mai scrie "Á" în câmpul de mesaj pe o tastatură ABNT2.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje marcate cu stea: o fereastră cu cele din toate conversațiile (Alt+0).</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale: opțiunea Reacții la crearea și editarea unui canal.</td></tr>
+
 <tr><td class="field-name">Încă nepublicat</td><td>Gestionarea conturilor: casetă pentru conectarea tuturor conturilor la pornirea WinZapp.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Linkuri WhatsApp: linkurile de conversație (wa.me, api.whatsapp.com) deschid conversația cu textul pregătit, iar versiunea instalată apare în Aplicații implicite.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Sunete: alegerea sunetului mesajelor cu WinZapp în prim-plan, pentru conversația deschisă și pentru celelalte conversații.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Descărcarea media: numărătoarea include doar fișierele care mai trebuie descărcate.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale: statisticile canalului pentru administratori.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale: Afișați profilul administratorului în actualizări, acolo unde WhatsApp îl oferă.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: un singur model încărcat odată.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Golire conversație (Neonize): și pe telefon.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere automată după hibernare sau fără internet.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: și pe cele care sosesc cu întârziere.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje temporare (Neonize): înregistrările și fișierele respectă durata.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Apeluri (Neonize): apelul făcut nu mai ajunge în conversația personală.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje de grup (Neonize): cerute telefonului când nu se deschid.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Asociere (Neonize): alegerea istoricului adus.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje vechi (Neonize): Home cere până nu mai e nimic.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale: invitațiile de urmărire sau administrare apar în conversație.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Reducerea zgomotului: fereastră proprie, procesor, componente, neurală sau obișnuită.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: whisper.cpp nativ pe Windows ARM64, cu CUDA 13.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mențiuni: @toți nu mai enumeră fiecare participant la deschiderea grupului.</td></tr>
 <tr><td class="field-name">Nelansat încă</td><td>Conversații: opțiune pentru ca lista de mesaje să continue de unde ai rămas; marcaje eliminate automat după prima utilizare.</td></tr>
 </table>
 

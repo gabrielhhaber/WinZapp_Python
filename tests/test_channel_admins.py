@@ -163,3 +163,22 @@ def test_delete_while_busy_is_refused_before_asking():
     stub = BusyStub()
     stub._on_delete()          # no confirmation dialog is built: it would raise here
     assert stub.said == ["loading"]
+
+
+def test_a_failed_action_still_reads_a_change_announced_during_it():
+    """The list is read again after an action, but a failed one returned
+    before that and dropped a change WhatsApp announced in the meantime."""
+    loads, said = [], []
+    stub = SimpleNamespace(_busy=False, _reload_again=False, _connection=None,
+                           _channel=SimpleNamespace(jid="1@newsletter"),
+                           _i18n=SimpleNamespace(t=lambda key: key),
+                           _status=SimpleNamespace(SetLabel=lambda text: None),
+                           _announce=said.append, _current=lambda: True,
+                           _load=lambda quiet=False: loads.append(quiet))
+
+    def run_async(run, finish):
+        stub._reload_again = True          # announced while the action ran
+        finish(None)
+    stub._run_async = run_async
+    ChannelAdminsDialog._send(stub, lambda c, j: None, lambda r: "done", "failed")
+    assert said == ["failed"] and loads == [True] and stub._reload_again is False

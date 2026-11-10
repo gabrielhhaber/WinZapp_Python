@@ -15,23 +15,97 @@ import wx
 from core import channels as ch
 from ui.conversation_panel.channel_conversation import remember_channel_roles
 from ui.dialogs.background_work import BackgroundWork
+from ui.dialogs.channels_return import restore, snapshot
+from ui.shortcut_bindings import make_shortcut_table
 from ui.dialogs.group_join_dialog import open_group_chat
 from ui.dialogs.labelled_control import add_labelled
 
 MINE, FIND = 0, 1
 
 
-def show_channels(mw, parent):
-    """Show the window and open the channel the user chose, if any."""
+class CreatedChannel(str):
+    """A new channel's id. *settings_saved* is False when a setting chosen
+    with it (who may react, admin profiles) was refused after the channel was
+    made: the channel exists, and saying "could not create" made the user
+    create it again."""
+    settings_saved = True
+
+
+def create_with_reactions(connection, name, description, reactions, admin_profiles=None):
+    """Create the channel, then set who may react and the admin profiles when
+    they are not WhatsApp's defaults (any emoji, profiles off). Runs off the
+    main thread. "" when the channel was not created."""
+    jid = ch.create_channel(connection, name, description)
+    if not jid:
+        return jid
+    created = CreatedChannel(jid)
+    settings = []
+    if reactions and reactions != "ALL":
+        settings.append(lambda: ch.set_channel_reactions(connection, jid, reactions))
+    if admin_profiles:
+        settings.append(lambda: ch.set_channel_admin_profiles(connection, jid, True))
+    for setting in settings:
+        try:
+            setting()
+        except Exception as error:      # refused, or no answer: the channel stays
+            logging.warning("[channels] setting after create failed: %s", type(error).__name__)
+            created.settings_saved = False
+    return created
+
+
+def edit_with_reactions(connection, channel, name, description, reactions, admin_profiles=None):
+    """Edit the channel; its reactions and admin profiles only when they were
+    chosen and differ."""
+    ch.edit_channel(connection, channel.jid, name, description)
+    if reactions and reactions != channel.reactions:
+        ch.set_channel_reactions(connection, channel.jid, reactions)
+    if admin_profiles is not None and admin_profiles != channel.admin_profiles:
+        ch.set_channel_admin_profiles(connection, channel.jid, admin_profiles)
+
+
+def show_channels(mw, parent, keep="", state=None):
+    """Show the window and open the channel the user chose, if any. *keep* is
+    the channel selected once the list arrives (coming back from it); *state*,
+    the window as it was left to open it (channels_return.py)."""
     dialog = ChannelsDialog(parent, mw)
+    dialog._keep_first = keep
+    if state is not None:
+        restore(dialog, state)
+    # where a channels-changed event finds it (WebSocketClient.on_channels_changed)
+    mw._channels_dialog = dialog
     try:
         if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
             return False
         channel = dialog.result
+        mw._channels_return_state = snapshot(dialog)
     finally:
+        mw._channels_dialog = None
         dialog.Destroy()
+    # Esc in that channel comes back here (channel_closed()), not to the
+    # chat list: it was opened from this window, not from the list.
+    mw._channel_opened_from_window = channel.jid
     open_group_chat(mw, channel.jid, channel.name or mw.i18n.t("channels_unnamed"))
     return True
+
+
+def channel_closed(mw, closed_jid) -> bool:
+    """The open conversation *closed_jid* was just closed with Esc: when it is
+    the channel the Channels window opened, show the window again, on that
+    channel, and say so to the caller (True). The mark is used once."""
+    opened = getattr(mw, "_channel_opened_from_window", "")
+    state = getattr(mw, "_channels_return_state", None)
+    mw._channel_opened_from_window, mw._channels_return_state = "", None
+    if not opened or opened != closed_jid or getattr(mw, "_shutting_down", False):
+        return False
+    wx.CallAfter(show_channels, mw, mw, opened, state)
+    return True
+
+
+def forget_channel_return(mw):
+    """A conversation was closed by WinZapp, not by the user (a full resync,
+    an account switch, the channel archived or deleted): nothing goes back to
+    the Channels window, and the mark is dropped so no later close does."""
+    mw._channel_opened_from_window, mw._channels_return_state = "", None
 
 
 def channel_label(channel, i18n, followed=()):
@@ -51,6 +125,15 @@ def channel_label(channel, i18n, followed=()):
     return ", ".join(parts)
 
 
+def empty_list_text(mode, loaded, searched, i18n):
+    """The one row an empty channel list shows, so reaching it says why it is
+    empty instead of nothing (the message list does the same for an empty
+    conversation). It is not a channel: `_shown` stays empty under it."""
+    if mode == MINE:
+        return i18n.t("channels_none") if loaded else i18n.t("loading")
+    return i18n.t("channels_nothing_found") if searched else i18n.t("loading")
+
+
 def channel_details(channel, i18n, following):
     lines = [channel.description]
     if channel.followers is not None:
@@ -67,13 +150,22 @@ def channel_details(channel, i18n, following):
         lines.append(i18n.t("channels_created_on").format(date=day))
     if channel.link:
         lines.append(i18n.t("channels_link_line").format(link=channel.link))
+    if channel.reactions in ch.REACTION_SETTINGS:
+        setting = ChannelEditDialog.REACTION_KEYS[ch.REACTION_SETTINGS.index(channel.reactions)]
+        lines.append(i18n.t("channels_reactions_line").format(setting=i18n.t(setting)))
     return "\n\n".join(line for line in lines if line)
 
 
 class ChannelEditDialog(wx.Dialog):
-    """Name and description of a channel being created or edited."""
+    """Name, description and who may react, of a channel being created or
+    edited. *reactions* is the channel's setting (core.channels
+    REACTION_SETTINGS), "" when unknown: then nothing is chosen, and nothing
+    is sent unless the admin chooses."""
 
-    def __init__(self, parent, i18n, title, name="", description=""):
+    REACTION_KEYS = ("channels_reactions_all", "channels_reactions_basic", "channels_reactions_none")
+
+    def __init__(self, parent, i18n, title, name="", description="", reactions="ALL",
+                 admin_profiles=None):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._name = add_labelled(self, sizer, i18n.t("channels_name"),
@@ -83,6 +175,17 @@ class ChannelEditDialog(wx.Dialog):
             self, value=description, style=wx.TE_MULTILINE), 1)
         # never cut without saying so: core/channels.py sends at most this
         self._description.SetMaxLength(ch.DESCRIPTION_LIMIT)
+        self._reactions = add_labelled(self, sizer, i18n.t("channels_reactions"), lambda: wx.Choice(
+            self, choices=[i18n.t(key) for key in self.REACTION_KEYS]))
+        if reactions in ch.REACTION_SETTINGS:
+            self._reactions.SetSelection(ch.REACTION_SETTINGS.index(reactions))
+        # WhatsApp Web's "Show admin profile", shown as it does only when
+        # WhatsApp offers it to this account: the engine then says its state
+        # (WPPConnect; None on Neonize and when not offered)
+        self._admin_profiles = wx.CheckBox(self, label=i18n.t("channels_admin_profiles"))
+        self._admin_profiles.SetValue(bool(admin_profiles))
+        self._admin_profiles.Show(admin_profiles is not None)
+        sizer.Add(self._admin_profiles, 0, wx.ALL, 8)
         buttons = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 8)
         self.SetSizer(sizer)
@@ -92,7 +195,13 @@ class ChannelEditDialog(wx.Dialog):
         self._name.SetFocus()
 
     def values(self):
-        return self._name.GetValue().strip(), self._description.GetValue().strip()
+        """(name, description, reactions, admin_profiles): reactions "" when
+        none was chosen, admin_profiles None when the setting is not offered."""
+        index = self._reactions.GetSelection()
+        reactions = ch.REACTION_SETTINGS[index] if 0 <= index < len(ch.REACTION_SETTINGS) else ""
+        admin_profiles = self._admin_profiles.GetValue() if self._admin_profiles.IsShown() else None
+        return (self._name.GetValue().strip(), self._description.GetValue().strip(), reactions,
+                admin_profiles)
 
 
 class ChannelsDialog(BackgroundWork, wx.Dialog):
@@ -101,7 +210,9 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         i18n = self._i18n
         self._mode = MINE
         self._mine, self._found, self._shown = [], [], []
-        self._loaded = False
+        self._loaded = self._searched = False
+        self._filter_timer = None
+        self._search_again = self._reload_again = False
         self.result = None
         super().__init__(parent, title=i18n.t("channels_title"), size=(620, 640),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -122,8 +233,9 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._search_btn.Bind(wx.EVT_BUTTON, self._on_search)
         row.Add(self._search_btn, 0, wx.LEFT, 8)
         sizer.Add(row, 0, wx.EXPAND | wx.ALL, 8)
-        # The directory's category and list, as WhatsApp Web's pills: read by
-        # Search (or Enter), never on each arrow press inside the choice.
+        # The directory's category and list, as WhatsApp Web's pills: picking
+        # one reads the directory again, a moment after the last change, so
+        # arrowing through the choice does not send one read per item passed.
         row = wx.BoxSizer(wx.HORIZONTAL)
         # literal keys, in the order of ch.CATEGORIES and ch.VIEWS
         self._category = self._labelled_choice(row, i18n.t("channels_category"), [
@@ -161,24 +273,53 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._edit = button("channels_edit", self._on_edit)
         self._delete = button("channels_delete", self._on_delete)
         self._admins = button("channels_people", self._on_admins)
-        self._refresh = button("channels_refresh", self._reload)
+        self._insights = button("channels_insights", self._on_insights)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
         self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
+        self.ID_F5 = wx.NewIdRef()
+        self.SetAcceleratorTable(make_shortcut_table(self, "channels", [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
+        self.Bind(wx.EVT_MENU, self._on_read_again, id=self.ID_F5)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._sync_mode()
-        self._update_buttons()
+        self._show(self._mine)          # "loading" until the first answer
         self._list.SetFocus()
         self.CentreOnParent()
-        wx.CallAfter(self._reload)
+        # coming back from a channel (channels_return.restore): the list is
+        # already there, so it is read again without announcing its count
+        wx.CallAfter(lambda: self._reload(keep=getattr(self, "_keep_first", ""),
+                                          quiet=getattr(self, "_restored", False)))
+
+    #: how long after the last change of a category or list the directory is read
+    FILTER_DELAY_MS = 700
+
+    def _on_filter_changed(self, event=None):
+        """A category or list was picked: read the directory with it, once the
+        choice has settled (core/channels.py names what each one asks)."""
+        if self._mode != FIND:
+            return
+        if self._filter_timer is not None and self._filter_timer.IsRunning():
+            self._filter_timer.Stop()
+        self._filter_timer = wx.CallLater(self.FILTER_DELAY_MS, self._filter_settled)
+
+    def _filter_settled(self):
+        self._filter_timer = None
+        if not self._current():
+            return
+        if self._busy:
+            self._search_again = True   # read again when the one in flight answers
+            return
+        self._on_search()
 
     def _labelled_choice(self, row, label, items):
         row.Add(wx.StaticText(self, label=label), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         choice = wx.Choice(self, choices=items)
         choice.SetName(label.replace("&", ""))
         choice.SetSelection(0)
+        choice.Bind(wx.EVT_CHOICE, self._on_filter_changed)
         row.Add(choice, 1, wx.RIGHT, 8)
         return choice
 
@@ -218,6 +359,25 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
     def _set_busy(self, busy):
         self._busy = busy
         self._update_buttons()
+        if not busy and (self._reload_again or self._search_again):
+            # asked for while a read or an action was in flight, whichever it
+            # was: a category picked during a quiet reload used to be lost
+            wx.CallAfter(self._run_pending)
+
+    def _run_pending(self):
+        """Runs what was asked for while the window was busy: the followed
+        list first (a change WhatsApp announced), then the directory (a
+        category or list picked, or Find chosen). One at a time: the read it
+        starts makes the window busy, and its end comes back here."""
+        if self._busy or not self._current():
+            return
+        if self._reload_again:
+            self._reload_again = False
+            self._reload(quiet=True)
+        elif self._search_again:
+            self._search_again = False
+            if self._mode == FIND:
+                self._on_search()
 
     def _update_buttons(self):
         # Not disabled while busy: the handlers refuse a second press, and a
@@ -227,7 +387,6 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         channel = self._mine_version(self._selected()) if free else None
         following = self._is_following(channel)
         i18n = self._i18n
-        self._refresh.Enable(free)
         self._search_btn.Enable(free and self._mode == FIND)
         self._by_link.Enable(free)
         self._create.Enable(free and self._loaded)
@@ -240,6 +399,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._edit.Enable(channel is not None and channel.admin)
         self._delete.Enable(channel is not None and channel.owner)
         self._admins.Enable(channel is not None and channel.admin)
+        self._insights.Enable(channel is not None and channel.admin)
 
     def _sync_mode(self):
         self._mode_radio.SetSelection(self._mode)
@@ -258,12 +418,29 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._run_async(lambda: ch.list_channels(connection),
                         lambda channels: self._finish_reload(channels, keep, quiet))
 
+    def on_channels_changed(self):
+        """WhatsApp said a followed channel changed (followed, left, muted,
+        role, name): read the list again, quietly, as F5 would. F5 stays for
+        a change no event announces (a channel's picture)."""
+        if not self._current():
+            return
+        if self._busy:
+            self._reload_again = True
+            return
+        self._reload(quiet=True)
+
     def _finish_reload(self, channels, keep="", quiet=False):
         self._set_busy(False)
         if not self._current():
             return
+        if self._reload_again:
+            # a change was announced while this read was in flight
+            self._reload_again = False
+            self._reload(keep=keep, quiet=True)
+            return
         if channels is None:
             logging.warning("[channels] read_failed")
+            self._show_failure(self._i18n.t("channels_unavailable"), MINE)
             self._announce(self._i18n.t("channels_unavailable"))
             return
         self._loaded = True
@@ -285,7 +462,13 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         self._show(self._found)
         if not self._found:
-            self._on_search()           # the recommended channels, as WhatsApp opens on
+            # the recommended channels, as WhatsApp opens on; after the read
+            # in flight when there is one (it used to be refused silently,
+            # the list saying "Loading" with nothing loading)
+            if self._busy:
+                self._search_again = True
+            else:
+                self._on_search()
 
     def _on_search(self, event=None):
         if self._busy or not self._current() or self._mode != FIND:
@@ -303,11 +486,19 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._set_busy(False)
         if not self._current():
             return
+        if self._search_again:
+            # the category or list changed while this read was in flight:
+            # its answer is for the old one
+            self._search_again = False
+            self._on_search()
+            return
         if found is None:
             logging.warning("[channels] directory_failed")
+            self._show_failure(self._i18n.t("channels_directory_unavailable"), FIND)
             self._announce(self._i18n.t("channels_directory_unavailable"))
             return
         self._found = found
+        self._searched = True
         if self._mode == FIND:
             self._show(found)
         self._announce(self._i18n.t(key).format(count=len(found)) if found
@@ -322,13 +513,20 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._list.Freeze()
         try:
             self._list.Set([channel_label(self._mine_version(c), self._i18n, followed)
-                            for c in self._shown])
-            if self._shown:
+                            for c in self._shown]
+                           or [empty_list_text(self._mode, self._loaded, self._searched, self._i18n)])
+            if self._list.GetCount():
                 self._list.SetSelection(next(
                     (i for i, c in enumerate(self._shown) if c.jid == kept), 0))
         finally:
             self._list.Thaw()
         self._show_selected()
+
+    def _show_failure(self, text, mode):
+        """An empty list of *mode* says the read failed, not "loading"."""
+        if self._mode == mode and not self._shown:
+            self._list.Set([text])
+            self._list.SetSelection(0)
 
     def _show_selected(self):
         channel = self._mine_version(self._selected())
@@ -348,6 +546,16 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             self._on_search()
             return
         event.Skip()
+
+    def _on_read_again(self, event=None):
+        """F5 (Settings > Shortcuts, "channels.ID_F5"). No Refresh button: the
+        list follows WhatsApp's own events (on_channels_changed); this reads
+        again what is shown, for what no event announces and after a read
+        that failed."""
+        if self._mode == FIND:
+            self._on_search()
+        else:
+            self._reload()
 
     # ── actions ───────────────────────────────────────────────────────────
 
@@ -381,7 +589,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
                 logging.warning("[channels] action_failed key=%s", failed_key)
                 self._announce(self._i18n.t(failed_key))
                 return
-            self._announce(self._i18n.t(done_key))
+            self._announce(self._i18n.t(done_key(outcome) if callable(done_key) else done_key))
             # a channel just created comes back selected (its id is the result)
             self._reload(keep=outcome if isinstance(outcome, str) else keep, quiet=True)
             self._list.SetFocus()
@@ -458,12 +666,16 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         with ChannelEditDialog(self, i18n, i18n.t("channels_create_title")) as dialog:
             if dialog.ShowModal() != wx.ID_OK:
                 return
-            name, description = dialog.values()
+            name, description, reactions, admin_profiles = dialog.values()
         if not name:
             self._announce(i18n.t("channels_name_required"))
             return
         connection = self._connection
-        self._act(lambda: ch.create_channel(connection, name, description), "channels_created",
+        self._act(lambda: create_with_reactions(connection, name, description, reactions,
+                                                admin_profiles),
+                  lambda created: ("channels_created"
+                                   if getattr(created, "settings_saved", True)
+                                   else "channels_created_settings_not_saved"),
                   "channel_create_failed")
 
     def _on_edit(self, event=None):
@@ -472,16 +684,26 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         i18n = self._i18n
         with ChannelEditDialog(self, i18n, i18n.t("channels_edit_title"), channel.name,
-                               channel.description) as dialog:
+                               channel.description, channel.reactions,
+                               channel.admin_profiles) as dialog:
             if dialog.ShowModal() != wx.ID_OK:
                 return
-            name, description = dialog.values()
+            name, description, reactions, admin_profiles = dialog.values()
         if not name:
             self._announce(i18n.t("channels_name_required"))
             return
         connection, jid = self._connection, channel.jid
-        self._act(lambda: ch.edit_channel(connection, jid, name, description), "channels_edited",
-                  "channel_edit_failed", jid)
+        self._act(lambda: edit_with_reactions(connection, channel, name, description, reactions,
+                                              admin_profiles),
+                  "channels_edited", "channel_edit_failed", jid)
+
+    def _on_insights(self, event=None):
+        """The channel's statistics (channel_insights_dialog.py), for its admins."""
+        channel = self._mine_version(self._selected())
+        if channel is None or not channel.admin or self._refused_while_busy():
+            return
+        from ui.dialogs.channel_insights_dialog import show_channel_insights
+        show_channel_insights(self._mw, self, channel)
 
     def _on_admins(self, event=None):
         channel = self._mine_version(self._selected())
@@ -489,10 +711,12 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             return
         from ui.dialogs.channel_admins import ChannelAdminsDialog
         dialog = ChannelAdminsDialog(self, self._mw, channel)
+        self._mw._channel_people_dialog = dialog    # for channels-changed
         try:
             dialog.ShowModal()
             changed = dialog.changed
         finally:
+            self._mw._channel_people_dialog = None
             dialog.Destroy()
         if changed:     # handed over or left: the list's role is stale
             self._reload(keep=channel.jid, quiet=True)

@@ -624,3 +624,67 @@ def test_a_failing_finish_hook_does_not_break_the_end_of_the_call():
     m.dial("5511999990000@c.us")
     m.handle({"ev": "end", "call": "OUT1", "reason": "hangup"})
     assert states(sent)[-1] == "ENDED"
+
+
+# ------------------------------------------------- call-participants
+class RosterCalls(FakeCalls):
+    def __init__(self):
+        super().__init__()
+        self.people = []
+
+    def roster(self, call_id):
+        return {"group": True, "participants": self.people}
+
+
+def _live_group(m, call_id="G1"):
+    m._calls[call_id] = {"id": call_id, "group": True, "state": "ACTIVE", "outgoing": False}
+
+
+def test_a_group_call_reports_who_is_connected_when_it_changes():
+    fake = RosterCalls()
+    m, sent = media(fake)
+    m.own_users = lambda: {"555"}
+    _live_group(m)
+    fake.people = [{"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+                   {"jid": "555@lid", "state": "connected"},
+                   {"jid": "2@lid", "state": "ringing"}]
+    m.report_rosters()
+    m.report_rosters()                              # unchanged: nothing more
+    fake.people.append({"jid": "3@lid", "state": "connected"})
+    m.report_rosters()
+    reports = [d for e, d in sent if e == "call-participants"]
+    assert reports == [{"session": "s1", "callId": "G1", "connected": ["5511@s.whatsapp.net"]},
+                       {"session": "s1", "callId": "G1",
+                        "connected": ["3@lid", "5511@s.whatsapp.net"]}]
+
+
+def test_a_roster_gone_with_the_call_is_not_an_empty_one():
+    """The call ended natively before its end event was handled: roster()
+    answers None, and nobody is said to have left."""
+    fake = RosterCalls()
+    m, sent = media(fake)
+    _live_group(m)
+    fake.people = [{"jid": "1@lid", "state": "connected"}]
+    m.report_rosters()
+    fake.roster = lambda call_id: None
+    m.report_rosters()
+    reports = [d["connected"] for e, d in sent if e == "call-participants"]
+    assert reports == [["1@lid"]]
+
+
+def test_a_call_that_is_not_a_live_group_call_reports_nothing():
+    fake = RosterCalls()
+    m, sent = media(fake)
+    m._calls["P1"] = {"id": "P1", "group": False, "state": "ACTIVE"}
+    m._calls["G2"] = {"id": "G2", "group": True, "state": "RINGING"}
+    fake.people = [{"jid": "1@lid", "state": "connected"}]
+    m.report_rosters()
+    assert [e for e, _d in sent if e == "call-participants"] == []
+
+
+def test_who_a_one_to_one_call_placed_here_called_is_remembered_for_its_end():
+    m, _ = media(GroupRoster([]))
+    assert m.dial("5511999990000@c.us") == "OUT1"
+    assert m.placed_peer("OUT1") == "5511999990000@c.us"
+    assert m.placed_group("OUT1") is None
+    assert m.placed_peer("OTHER") == ""

@@ -18,7 +18,8 @@ TECLAS.update({340 + i: f'F{i + 1}' for i in range(12)})
 
 GRUPOS = ['main', 'navigation', 'device', 'chats', 'chat_selection', 'archived', 'locked', 'search',
           'messages', 'message_list', 'composer', 'links', 'mention', 'autocomplete', 'media', 'emoji',
-          'ai_result', 'status', 'status_list', 'status_reply', 'calls', 'call', 'incoming']
+          'ai_result', 'status', 'status_list', 'status_reply', 'calls', 'call', 'incoming',
+          'call_participants', 'channels', 'channel_people']
 
 # Textos do próprio programa que descrevem a ação errada; corrigidos aqui.
 CORRECOES = {  # id do atalho -> chave do PO com o texto certo

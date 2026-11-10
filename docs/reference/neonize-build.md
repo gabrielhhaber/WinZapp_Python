@@ -76,7 +76,14 @@ What the patches carry today:
   store keys a saved name by the JID of the mutation that carried it, and a
   `contact[lid]` mutation put a `<user>@lid` among the numbers of the status
   recipients; from the first one on, the server answered every status with
-  400. A LID whose number is unknown is left out).
+  400. A LID whose number is unknown is left out); a poll posted to a channel
+  goes as `type="poll"` with `<meta polltype="creation" contenttype="text">`,
+  as WhatsApp Web sends it (0012: it went as type text with no meta);
+  every channel notification with no typed event (0013:
+  `events.NewsletterChange`, op name, channel and JSON payload): whatsmeow
+  dispatched only join, leave and mute and dropped admin promote/demote,
+  invite revoke, metadata, owner, state and user-setting updates and the rest
+  WhatsApp Web handles.
 - **meowcaller**: go.mod/go.sum on neonize's whatsmeow pin; accept 2 s after
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
@@ -91,6 +98,22 @@ What the patches carry today:
 - **neonize 0016 / whatsmeow 0011**: a channel update carries the server's
   `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
   update `fromMe` from: a channel's admin sees their own updates as sent.
+- **neonize 0018**: `SendNewsletterMessage` (Python
+  `send_newsletter_message`), `SendMessage` with
+  `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
+  unencrypted (`upload_newsletter`) and out with the upload's handle, which
+  whatsmeow sends as the node's `media_id` (`channel_media.py`).
+- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
+  whatsmeow event above; the bridge's `channel_events.py` sends the ones the
+  channels windows show as `channels-changed`.
+- **neonize 0020**: `AutomaticMessageRerequestFromPhone`, off by default in
+  whatsmeow: a message this device cannot decrypt (a group message without its
+  sender key) is asked of the account's own phone, as WhatsApp Web does
+  (`PLACEHOLDER_MESSAGE_RESEND`); it used to be lost when the sender's device
+  did not resend it.
+- **neonize 0021**: `send_newsletter_message`'s answer is turned into bytes like
+  `send_message`'s: a channel post went out and the call raised
+  `expected bytes, LP_Bytes found`, so a published post was reported as failed.
 - **neonize 0012 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.
@@ -184,6 +207,25 @@ and branch `winzapp` has one commit per patch.
 3. `build_neonize.py all --install`, then the bridge's tests.
 4. `build_neonize.py export` and commit `neonize_bridge/neonize_patches/`
    with the bridge change that uses it.
+
+A pull that changes `neonize_patches/` leaves an existing workspace behind:
+same pinned version, older commits. `export` then refuses with exit code 5
+instead of writing those older commits over the new patches, and `all`
+prepares the workspace again from the patches (its commits kept in
+`neonize_build/stale-backup/`) instead of building the older code. Measured
+after #732: the version check passed, `export` put the old 0002 back and the
+DLL had no calls. The test is `patches_moved()`, by content: `prepare` and
+`export` note the hash of every patch file they left
+(`neonize_build/<tree>.synced.json`), and a tree has moved when the export
+would change or delete a patch whose repository copy is no longer the one
+noted. Per file: new patches, commits added after exporting some, and
+amending a patch this workspace exported itself all export fine. Commit
+times are not used: `main` is squash-merged, so a patch's commit time is
+the merge's, and they missed a teammate's patch merged before an older
+branch's prepare and refused amending a patch just exported (review,
+2026-11-10). A workspace prepared before the note existed falls back to
+them, against the tree's oldest commit of its own (its newest let a new
+commit on a stale workspace hide it on 2026-11-08).
 
 A bridge handler for an event only WinZapp's build has registers behind
 `if hasattr(nev, "...")`, so an install still on an older build keeps

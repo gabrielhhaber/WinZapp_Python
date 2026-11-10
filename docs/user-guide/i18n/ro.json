@@ -55,6 +55,9 @@
   "status_reply": "Răspuns la status",
   "calls": "Fila Apeluri",
   "call": "În timpul unui apel",
-  "incoming": "Apel primit"
+  "incoming": "Apel primit",
+  "channels": "Fereastra Canale",
+  "channel_people": "Administratorii și urmăritorii canalului",
+  "call_participants": "Participanții la apel"
  }
 }

@@ -13,7 +13,7 @@ import re
 import pytest
 
 import updater
-from update_node_kill import listening_pids, node_kill_lines, own_node_pids
+from update_node_kill import bridge_stop_lines, listening_pids, node_kill_lines, own_node_pids
 
 NETSTAT = """
 Active Connections
@@ -206,12 +206,26 @@ class TestTheBridgeInTheInstaller:
     """A compiled install ships neonize_bridge.exe; one still running (its client
     crashed) would hold the file open and fail the copy."""
 
-    def test_a_bridge_is_stopped_only_if_it_is_still_the_bridge_on_its_port(self):
+    def test_a_bridge_is_stopped_only_if_it_is_still_the_bridge(self):
         s = _script(bridge_pids=[888])
-        assert '"!WZ_PID!"=="888"' in s and '"!WZ_LOCAL:~-5!"==":6300"' in s
         assert 'tasklist /FI "PID eq 888" /FI "IMAGENAME eq neonize_bridge.exe"' in s
         assert s.index('IMAGENAME eq neonize_bridge.exe') < s.index("taskkill /F /PID 888")
         assert s.index('"PID eq 4242"') < s.index("taskkill /F /PID 888") < s.index("xcopy")
+
+    def test_a_bridge_shutting_down_off_its_port_is_still_waited_for(self):
+        # 2026-11-08: the bridge had closed its port but still held
+        # neonize_bridge.exe; the listening check skipped it and xcopy failed
+        block = bridge_stop_lines([888], "log")
+        assert "netstat" not in block and "WZ_LISTENS" not in block
+        # its own grace first, then stopped, and the copy waits for it to go
+        assert (block.index("if !WZ_BRIDGE_WAIT! GEQ 10 taskkill /F /PID 888")
+                < block.index("if !WZ_BRIDGE_WAIT! LSS 20 (") < block.index("goto WZ_BRIDGE_888"))
+        assert 'echo WinZapp neonize_bridge.exe 888 did not exit' in block
+
+    def test_each_bridge_pid_gets_its_own_label(self):
+        block = bridge_stop_lines([1, 2], "log")
+        assert ":WZ_BRIDGE_1\n" in block and ":WZ_BRIDGE_2\n" in block
+        assert bridge_stop_lines([], "log") == ""
 
     def test_the_node_lines_still_look_for_node_exe(self):
         s = _script(node_pids=[777], bridge_pids=[888])

@@ -6,6 +6,7 @@ import wx
 
 from core.call_log import list_update_plan
 from core.call_participants import parse_participants, participant_rows
+from ui.shortcut_bindings import make_shortcut_table
 
 
 class ParticipantListMixin:
@@ -16,7 +17,7 @@ class ParticipantListMixin:
             # A press during the timed refresh rides on it: its result is
             # spoken, or the press would be answered by silence.
             if announce or _event is not None:
-                self._announce_pending = True
+                self._announce_pending = "all" if _event is not None else True
             return
         if self._timer is not None:
             self._timer.Stop()
@@ -26,7 +27,10 @@ class ParticipantListMixin:
         # disable the Refresh button: the timed refresh would take focus off
         # it, and Windows hands focus to Close, so the next Space closes.
         self._inflight = token
-        announce = announce or _event is not None
+        # F5 says the result whatever it is (the only way to refresh now that
+        # there is no Refresh button); opening the window says only a failure
+        # or an empty list, the rows themselves being read with the focus
+        announce = "all" if _event is not None else announce
         if not self._allowed():
             self._finish_participants(token, None, True, announce)
             return
@@ -48,7 +52,8 @@ class ParticipantListMixin:
         if not self._alive or self._inflight is not token or getattr(self._mw, "_shutting_down", False):
             return
         self._inflight = None
-        announce = announce or getattr(self, "_announce_pending", False)
+        pending = getattr(self, "_announce_pending", False)
+        announce = "all" if "all" in (announce, pending) else (announce or pending)
         self._announce_pending = False
         if not self._allowed():
             data, failed = None, True
@@ -66,7 +71,7 @@ class ParticipantListMixin:
             status = i18n.t("call_participants_count").format(count=len(rows))
         if self._status.GetLabel() != status:
             self._status.SetLabel(status)
-        if announce and (failed or not rows):
+        if announce == "all" or (announce and (failed or not rows)):
             self._mw.output(status)
         if data is not None or failed:
             self._timer = wx.CallLater(10_000, self._refresh_participants)
@@ -119,9 +124,6 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         self._status = wx.StaticText(panel, label=i18n.t("loading"))
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT, 8)
         buttons = wx.BoxSizer(wx.HORIZONTAL)
-        self._refresh_btn = wx.Button(panel, label=i18n.t("call_participants_refresh"))
-        self._refresh_btn.Bind(wx.EVT_BUTTON, self._refresh_participants)
-        buttons.Add(self._refresh_btn, 0, wx.ALL, 8)
         if invite_chat:
             # Only for the call this device is in (show_call_participants)
             add = wx.Button(panel, label=i18n.t("call_participants_add"))
@@ -135,6 +137,13 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         outer = wx.BoxSizer(wx.VERTICAL)
         outer.Add(panel, 1, wx.EXPAND)
         self.SetSizer(outer)
+        # No Refresh button: the list follows who joins and leaves
+        # (MainWindow.on_call_participants); F5 (Settings > Shortcuts,
+        # "call_participants.ID_F5") reads it again and says how many there are.
+        self.ID_F5 = wx.NewIdRef()
+        self.SetAcceleratorTable(make_shortcut_table(self, "call_participants", [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
+        self.Bind(wx.EVT_MENU, lambda event: self._refresh_participants(event), id=self.ID_F5)
         self.SetMinSize((450, 330))
         self.Fit()
         self.CentreOnParent()

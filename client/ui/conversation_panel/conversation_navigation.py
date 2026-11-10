@@ -644,6 +644,11 @@ class ConversationNavigationMixin:
         self.Layout()
         return True, closed_jid
 
+    def _on_ctrl_w_conversation(self, event=None):
+        """Ctrl+W in the open conversation: the user's own close, so a
+        channel opened from the Channels window goes back to it."""
+        self.close_conversation(event, from_user=True)
+
     def _on_escape_conversation(self, event):
         """First Esc clears an active message selection instead of closing
         (issue #99); the next one closes as it always did.
@@ -672,14 +677,24 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
-        self.close_conversation(event)
+        self.close_conversation(event, from_user=True)
 
-    def close_conversation(self, event=None):
+    def close_conversation(self, event=None, from_user=False):
+        """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close
+        menu item); every other caller closes it for WinZapp's own reasons
+        (a full resync, an account switch, the chat archived or deleted)."""
         origin = getattr(self, "_conversation_origin", None)
         closed, closed_jid = self._close_conversation_core()
         if not closed:
             return  # _close_conversation_core() only handled the mention popup
         mw = self.main_window
+        # A channel opened from the Channels window goes back to it, when the
+        # user closed it: a resync or an archive used to pop the window up.
+        from ui.dialogs.channels import channel_closed, forget_channel_return
+        if not from_user:
+            forget_channel_return(mw)
+        elif channel_closed(mw, closed_jid):
+            return
         # Esc returns to the list the conversation was opened from, whatever
         # the chat is (an archived chat found through the main search box
         # belongs to the main list). The archived and locked lists sit

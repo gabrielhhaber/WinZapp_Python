@@ -788,6 +788,7 @@ class TestEverySettingIsReadBackAndWritten:
             "keep_model_loaded": False,
             "run_without_dialog": False,
             "auto_transcribe_received": False,
+            "auto_any_age": False,
             "cache_enabled": True,
             "cache_by_model": {},
             "auto_transcribe_statuses": False,

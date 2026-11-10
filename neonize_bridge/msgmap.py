@@ -283,6 +283,8 @@ def _content(inner, field, chat_w, out) -> bool:
                    pollSelectableOptionsCount=int(poll.selectableOptionsCount or 0),
                    pollOptions=[{"name": o.optionName, "localId": i}
                                 for i, o in enumerate(poll.options)])
+    elif field in CHANNEL_INVITES:
+        out.update(channel_invite_fields(field, getattr(inner, field)))
     elif field == "orderMessage":
         out.update(commerce_messages.order_fields(inner.orderMessage))
     elif field == "productMessage":
@@ -298,6 +300,27 @@ def _content(inner, field, chat_w, out) -> bool:
         log.info("message with no mapping: field=%s", field)
         out.update(buttons.button_fields(inner))
     return True
+
+
+#: A channel invitation received in a chat -> WhatsApp Web's type and the
+#: model field wa-js serializes it under (client/core/channel_invites.py reads both)
+CHANNEL_INVITES = {
+    "newsletterFollowerInviteMessageV2": ("newsletter_follower_invite",
+                                          "newsletterFollowerInviteInfo"),
+    "newsletterAdminInviteMessage": ("newsletter_admin_invite", "newsletterAdminInviteInfo"),
+}
+
+
+def channel_invite_fields(field, invite) -> dict:
+    """An invitation to follow a channel or to be its admin, in the shape
+    WhatsApp Web's model gives it (WAWebParseNewsletter...InviteMessageProto)."""
+    kind, info_field = CHANNEL_INVITES[field]
+    info = {"newsletterId": invite.newsletterJID, "newsletterName": invite.newsletterName,
+            "inviteMessage": invite.caption}
+    expiration = int(getattr(invite, "inviteExpiration", 0) or 0)
+    if expiration:
+        info["inviteExpiration"] = expiration
+    return {"type": kind, "body": invite.caption, info_field: info}
 
 
 def rich_response_fields(rich) -> dict:

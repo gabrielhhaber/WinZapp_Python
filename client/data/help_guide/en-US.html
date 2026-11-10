@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>The value must match the one on the file's line. If it differs, delete the file and download it again. WinZapp's updater also checks the checksum (and, on newer versions, the signature) before installing.</p>
 
+<p>On the Neonize engine, the connection window asks how much history to bring when connecting: recent messages only, 30 days, 6 months, 1 year, all the history or a custom period (days, months or years, typed in the field that appears below). The phone sends the history once, when connecting; messages older than about a year only arrive this way. Changing the choice with the QR code on screen makes a new QR code that carries it.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -372,7 +374,7 @@
 
 <h3>Filters and lists</h3>
 <ul>
-  <li><strong>Filters:</strong> All, Unread, Groups and Individual, as radio buttons. Alt+Shift+F takes you to them; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the list.</li>
+  <li><strong>Filters:</strong> All, Unread, Groups and Individual, as radio buttons. Alt+Shift+F takes you to them; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G and Alt+Shift+I pick All, Unread, Groups and Individual straight from the list. When the filter, a WhatsApp list or the search finds no chat, the list shows one row saying so, for example "No unread chats.".</li>
   <li><strong>WhatsApp lists:</strong> your custom lists appear before the filters. You can refresh them, filter by them, create or rename a list, and add or remove chats, in "Manage WhatsApp lists". Editing depends on your account's support; when it is not possible, the manager says why. Locked chats or chats unavailable locally do not show in the selection, and the other members of the list are preserved.</li>
   <li><strong>Search:</strong> Ctrl+F takes you to the search field; the down arrow goes to the first result. In Settings &gt; Interface &gt; Chats, "Keep the chat search when opening a chat" makes Esc return focus to that chat in the results instead of going back to the full list.</li>
 </ul>
@@ -507,6 +509,7 @@
 <h3>Star and pin</h3>
 <ul>
   <li><strong>Star</strong> (Ctrl+Shift+O): stars are synced with WhatsApp, and each change is verified. To send your old local stars to WhatsApp, use "Sync old local stars with WhatsApp" in the chat menu.</li>
+  <li><strong>Starred messages</strong> (Alt+0, or the "Starred messages" row of the navigation list): every starred message of every chat, newest first, read as chat, sender, text and date. "Search starred messages" narrows the list by any word, accents and case ignored; Enter or "Open in the conversation" opens the chat on that message, and Delete or "Remove star" removes the star.</li>
   <li><strong>Pin a message</strong> (Ctrl+Shift+P, when you are not recording): a button in each chat lists the messages pinned on WhatsApp, including old ones; Enter takes you to the message in the history. When you open the chat, the number of pinned messages is announced without changing focus.</li>
 </ul>
 
@@ -555,6 +558,8 @@
 
 <h3>Keeping messages in the correct chat</h3>
 <p>Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.</p>
+
+<p>On the Neonize engine, the Home key at the top of a chat asks the phone for older messages, one batch at a time, until it has nothing more to send for that chat. The phone usually gives about a year back this way; to bring more, choose the period when connecting.</p>
 
   </section>
 
@@ -631,6 +636,8 @@
 <h3>Switch the audio device on the spot</h3>
 <p>Ctrl+Alt+Shift+H opens the list of playback devices and Ctrl+Alt+Shift+G the list of recording devices, numbered 1 to 0: press the number to switch right away, or use the arrows and Enter. The switch applies to sounds, voice messages and calls (a call in progress changes without dropping), for all open accounts, until you close WinZapp. The devices chosen in Settings do not change.</p>
 
+<p>In Settings > Audio, the "Noise reducer settings" button opens the reducer's window: the neural model's state and the button that downloads it, the processor it runs on (the computer's, an NVIDIA card with CUDA 12 or CUDA 13, or Core ML on a Mac), the components that processor still needs, with the button that downloads only the missing ones, and buttons that remove the components and the model. CUDA 12 uses the local transcription's cuBLAS, and a new processor applies from the next time WinZapp starts. With noise reduction on and the model installed, the "Use the neural noise reducer" box chooses between it and the common reducer, which is faster.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -687,6 +694,8 @@
 <p>The conversation details have a single choice for automatic transcription: None, Online with AI or Local with Whisper. This way the same message is never transcribed twice, and the choice starts out following the general option until you change it there.</p>
 <p>Enter and Space, when set to transcribe, also transcribe audio and video sent as a file.</p>
 <p>Mistral uses three different models: the voice message model for audio, Ministral 3 3B by default for photos, stickers and video frames, and mistral-ocr-4 for PDF text extraction. Choose the audio model in "Voice message model": Voxtral Mini Transcribe 3 (the default) or Voxtral Small Transcribe 3, which is more accurate. Both are in preview, so Mistral may change or withdraw them. The Model field and Get models select a vision model only; changing it does not change transcription or OCR. OpenAI and Groq also use fixed audio models, independently of their selected vision model; Groq does not process PDFs here. Gemini uses its selected model for all supported media. Provider availability does not guarantee free usage: review the provider’s included quota and rate limits. Mistral OCR extracts document text; it does not add descriptions of the pictures inside a PDF. On Mistral's free Experiment plan, requests may be used to train its models unless you opt out in your Mistral account; WinZapp says so before sending media to Mistral.</p>
+
+<p>With automatic transcription on, the option "Also transcribe the ones that arrive late" transcribes received messages however old they are (for example, all those that arrive at once when the computer comes back on). Without it, the age limit you chose applies; the time the computer slept or was offline does not count as age. On Windows ARM64 computers, whisper.cpp uses the native ARM64 build, and the build for NVIDIA cards with CUDA 13 is offered as an option.</p>
 
   </section>
 
@@ -762,7 +771,7 @@
 </div>
 <p>When WPPConnect is reinstalled, WinZapp preserves a newer compatible WhatsApp Web catalogue and checks for a fresh one. Without internet, a usable catalogue is retained, but its freshness cannot be confirmed. If a call still cannot start, restore internet access and restart WinZapp. A confirmed VoIP mismatch that cannot be retried is reported without repeating initialization.</p>
 <p>While a group chat is open, WinZapp checks for an ongoing call about every ten seconds. A join button appears only when a call is available and disappears when it ends. Joining a video call starts with the camera off. Joining an existing call does not use the 32-member limit for starting a new group call. While a call is available, the "Join ongoing voice call" button or, for a video call, "Join ongoing video call (camera off)" replaces the voice and video start buttons. In Calls (Alt+6), the Ongoing filter lists joinable calls, including multiparty calls outside group chats; they also appear first in All. Select a call and press Enter or use the same join button. If you are already in that call, the button is "Return to call" and brings your current call window forward. The list refreshes about every ten seconds while Calls is open and includes only calls WhatsApp makes available to your account.</p>
-<p>Use the "Call participants" button in the call window, or on a selected ongoing call in Calls, to see the connected people by name. The list updates every ten seconds; "Refresh" updates it on demand and "Close" or Esc closes it. Invited and disconnected people are excluded. Reading the list does not join or end a call.</p>
+<p>Use the "Call participants" button in the call window, or on a selected ongoing call in Calls, to see the connected people by name. The list updates by itself when someone joins or leaves the call; F5 reads it again and "Close" or Esc closes it. In a group call WinZapp also says who joined and who left (Settings &gt; Calls, "Announce when someone joins a call" and "Announce when someone leaves a call", on by default). Invited and disconnected people are excluded. Reading the list does not join or end a call.</p>
 
 <h3>Call audio continuity</h3>
 <p>Neonize keeps delayed audio, camera work and device changes with the call and stream that started them. Pending data from an ended or replaced stream is discarded, and media backlog is limited. A temporary failure to forward a frame to the client does not permanently stop audio reading. Reopening the output prevents a retired stream from consuming the new stream's audio; an echo-reference failure does not silence audio already prepared for playback. An ambiguous partial WASAPI device-name match keeps the original API instead of choosing an arbitrary match.</p>
@@ -791,14 +800,17 @@
 <p>The Communities panel (or "New chat" &gt; "Communities") lists the communities you are in. When you choose one, you see the description, the admins and the groups of it you joined, with the announcements group and the general group identified; Enter or "Open group" goes to the group. If you administer the community: "Add groups", "Remove group from the community", "Promote to community admin", "Demote community admin" and "Deactivate community". "New community" creates one with a name, description and the groups you choose. After each action WinZapp reads the communities again and only says it finished when WhatsApp shows the change; otherwise it tells you the request was sent but is not confirmed, or that it was refused.</p>
 
 <h3>Channels (Alt+9)</h3>
-<p>The Channels window (Alt+9, or the Channels item of the navigation list) shows "My channels", the channels you follow, or "Find channels": type in "Search channels" and press Enter; with no text, WhatsApp's recommended channels appear. "Details" holds the description, the number of followers, whether you follow, administer or own the channel, and its link. Enter or "Open channel" opens the channel to read its updates. The "Follow" and "Unfollow", "Mute notifications" and "Unmute notifications", "Copy link", "Follow by link..." (paste the channel link) and "Create channel..." buttons work on any channel; "Edit channel..." appears on channels you administer and "Delete channel" on your own. Showing channels in the chat list is still an option of Settings &gt; Interface &gt; Chats.</p>
-<p>In "Find channels", the Category and View choices narrow the directory as WhatsApp Web's options do: pick a category (or "All categories") and a view (recommended, trending, popular or new) and press Search or Enter. With text in "Search channels", the search stays within the chosen category. In the channels you administer, the message field opens when you open the channel: type and send to post a text update (no voice notes or attachments). From the message menu, or Ctrl+Shift+P, you pin or unpin an update, and the pinned ones show under the "Pinned messages" button. The Channels window's "Admins and followers..." button says how many admins the channel has; its owner can also use "Invite admin..." (pick the contact and, if you like, a message: the invite reaches their chat and they become an admin when they accept it) and "Cancel admin invite...". That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.</p>
+<p>The Channels window (Alt+9, or the Channels item of the navigation list) shows "My channels", the channels you follow, or "Find channels": type in "Search channels" and press Enter; with no text, WhatsApp's recommended channels appear. "Details" holds the description, the number of followers, whether you follow, administer or own the channel, and its link. Enter or "Open channel" opens the channel to read its updates. The "Follow" and "Unfollow", "Mute notifications" and "Unmute notifications", "Copy link", "Follow by link..." (paste the channel link) and "Create channel..." buttons work on any channel; "Edit channel..." appears on channels you administer and "Delete channel" on your own. Showing channels in the chat list is still an option of Settings &gt; Interface &gt; Chats. In "Create channel..." and "Edit channel...", Reactions sets who may react to the updates, as in WhatsApp Web's channel settings: any emoji, default emojis only or no reactions; the Details say the channel's choice. In a channel you administer, "Insights..." reads its statistics for the last 30 days, as WhatsApp Web shows them: accounts reached, followers, net followers, new followers and unfollows, reach among followers and others, and by country. WhatsApp has them from 100 followers on. Where WhatsApp offers it to your account, "Edit channel..." also has "Show admin profile on updates", as in WhatsApp Web's channel info (WPPConnect).</p>
+<p>In "Find channels", the Category and View choices narrow the directory as WhatsApp Web's options do: pick a category (or "All categories") and a view (recommended, trending, popular or new) and press Search or Enter. With text in "Search channels", the search stays within the chosen category. In the channels you administer, the message field opens when you open the channel: type and send to post a text update; photos, videos and polls can be posted too, with the same attach and create poll commands as in a chat (no voice notes or other files). From the message menu, or Ctrl+Shift+P, you pin or unpin an update, and the pinned ones show under the "Pinned messages" button. The Channels window's "Admins and followers..." button says how many admins the channel has; its owner can also use "Invite admin..." (pick the contact and, if you like, a message: the invite reaches their chat and they become an admin when they accept it) and "Cancel admin invite...". That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.</p>
+<p>In "Find channels", picking another category or list searches again. The Channels window and the "Admins and followers..." window update by themselves when you follow, leave or mute a channel, when your role, a channel's name or description changes and when who administers it changes, from the phone too. F5 reads the list again (to see new followers, for example); the shortcut can be changed in Settings. In the channels you administer, your text updates can be edited from the message menu or with Alt+E, within WhatsApp's edit window. In a channel opened from the Channels window, Esc goes back to that window as you left it: the same list, search, category and selected channel. A channel opens on a whole page of its newest updates, read from WhatsApp's server.</p>
 
 <h3>Mentions and replies</h3>
 <p>A person mentioned by name together with @all keeps the link; the mention of you, in the notification and in the preview, uses the word chosen in "How should I be referred to?". In Settings &gt; Interface &gt; Messages, "Hide phone numbers of unnamed senders in messages" makes messages from people without a name start straight with the content. In Settings &gt; Interface &gt; Chats, "Precede names of unsaved contacts with a tilde (~) in conversations and messages" (on by default) shows a tilde before the name of anyone you have not saved, in conversations and in messages.</p>
 
 <h3>Groups of a community</h3>
 <p>In the list of communities, Enter goes to the community's groups, and "Open the most recent group" opens the group with the latest activity, saying its name. "Filter groups" shows all groups, the groups you are in or the ones you are not in; a group you are not in says so in its line. On one of those, "Join group" joins it or, when the group needs approval, "Request to join" sends the request, which "Cancel join request" withdraws.</p>
+
+<p>Invitations to follow a channel or to be one of its admins show in the chat as "Invitation to follow the channel..." (or "to be an admin of the channel..."), with the inviter's words. Enter opens the channel, where you can follow it.</p>
 
   </section>
 
@@ -1032,6 +1044,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Switch the recording device until WinZapp closes, in every open account (then 1 to 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Open communities</td></tr>
 <tr><td class="field-name">Alt+9</td><td>Open channels</td></tr>
+<tr><td class="field-name">Alt+0</td><td>Open starred messages</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 a 9</td><td>Open an assigned quick chat</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 a 9</td><td>Assign the focused chat to a quick number</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Mark all chats as read</td></tr>
@@ -1336,6 +1349,21 @@
 <tr><td class="field-name">Alt+S</td><td>Silence alert</td></tr>
 <tr><td class="field-name">Alt+C</td><td>Close window</td></tr>
 </table>
+<h3>Call participants</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">F5</td><td>Read the participants again</td></tr>
+</table>
+<h3>Channels window</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">F5</td><td>Read the channels list again</td></tr>
+</table>
+<h3>Channel admins and followers</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">F5</td><td>Read the admins and followers again</td></tr>
+</table>
 <h3>Commands with no key assigned</h3>
 <p>These commands exist in the Keyboard shortcuts tab of Settings but come with no key. Pick one there if you want to use them.</p>
 <table class="field-table">
@@ -1427,9 +1455,36 @@
 <tr><td class="field-name">Not yet released</td><td>Call/stream ownership, bounded media handling and content-free signal diagnostics.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Add participants window works with a screen reader: marking with sound and announcements, and a spoken result.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Neonize: "Add yours", question and animated sticker statuses no longer show as an incompatible message.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels windows updated by WhatsApp's own events, a configurable F5, and editing your text updates.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Chat list: a row saying so when the filter, the list or the search finds no chat.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Group calls: who joins and who leaves is announced (two options in Settings &gt; Calls) and the participants list updates by itself; F5 reads it again.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Recording with computer audio no longer skips or stutters on slower computers.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels on WPPConnect: posting works again and a channel opens on a whole page of its newest updates; Esc goes back to the Channels window as you left it.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Updates: the PowerShell that guards the install gets up to a minute to start, and with Neonize the installer waits for the bridge to close before copying.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels with Neonize: updates are asked 100 at a time, and a channel no longer stays empty.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Message list: "/" no longer writes "Á" into the message field on an ABNT2 keyboard.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Starred messages: a window with the starred messages of every chat (Alt+0).</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels: the Reactions choice when creating and editing a channel.</td></tr>
+
 <tr><td class="field-name">Not yet released</td><td>Account manager: check box to connect all accounts when WinZapp starts.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>WhatsApp links: chat links (wa.me, api.whatsapp.com) open the chat with the text ready, and the installed version is listed in Default apps.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Sounds: choose the sound of messages while WinZapp is in the foreground, for the open chat and for the other chats.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Media downloads: the count covers only the media still to download.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels: a channel's statistics for its admins.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels: Show admin profile on updates, where WhatsApp offers it.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Local transcription: one model loaded at a time on the computer.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Clear chat (Neonize): clears it on the phone too.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Automatic transcription after hibernation or time offline.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Local transcription: also transcribe the ones that arrive late.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Disappearing messages (Neonize): audio and files follow the timer.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Calls (Neonize): a call you place no longer lands in your own chat.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Group messages (Neonize): asked of the phone when they cannot be opened.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Pairing (Neonize): choice of how much history to bring.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Older messages (Neonize): Home asks until there is nothing more.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Channels: invitations to follow or to admin show in the chat.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Noise reducer: its own window, processor, components and neural or common.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Local transcription: native whisper.cpp on Windows ARM64, with CUDA 13.</td></tr>
+<tr><td class="field-name">Not yet released</td><td>Mentions: @all no longer lists every member when a group opens.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>Chats: option for the messages list to continue where you left off; bookmarks removed automatically after the first use.</td></tr>
 </table>
 

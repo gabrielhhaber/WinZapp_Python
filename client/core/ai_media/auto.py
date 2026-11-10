@@ -34,7 +34,7 @@ AUTO_KINDS = ("audio", "image", "sticker", "video")
 #: for a reason that will repeat (quota, key): one hour.
 PAUSE_SECONDS = 3600.0
 #: The failures that repeat for every message until the user fixes something.
-PAUSING_CATEGORIES = frozenset(("quota", "authentication", "credentials"))
+PAUSING_CATEGORIES = frozenset(("quota", "credits", "authentication", "credentials"))
 
 
 def day_key(now=None) -> str:
@@ -75,7 +75,8 @@ def pauses(error) -> bool:
     return getattr(error, "category", None) in PAUSING_CATEGORIES
 
 
-def wanted_kind(msg, config, local_auto_transcription=False, now=None, max_age=None):
+def wanted_kind(msg, config, local_auto_transcription=False, now=None, max_age=None,
+                gaps=None):
     """The kind to process `msg` as on arrival, or None.
 
     `config` is core.ai_media.config.preferences(); `local_auto_transcription`
@@ -98,12 +99,8 @@ def wanted_kind(msg, config, local_auto_transcription=False, now=None, max_age=N
             return None
     elif not config.get("auto_describe"):
         return None
-    try:
-        arrived = float(msg.get("messageTimestamp") or 0)
-    except (TypeError, ValueError):
-        arrived = 0.0
-    limit = auto_queue.MAX_AGE_SECONDS if max_age is None else max_age
-    if arrived and (time.time() if now is None else now) - arrived > limit:
+    # The time the computer slept is not age (auto_queue.listening_gaps).
+    if auto_queue.too_old(msg, now=now, max_age=max_age, gaps=gaps):
         return None
     info = ((msg.get("message") or {}).get(msg.get("messageType")) or {})
     try:

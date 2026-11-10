@@ -7,10 +7,11 @@ ConversationsPanel.__init__/init_UI is available here.
 
 import logging
 import threading
-from core.chat_notices import conversation_start_text
+from core.chat_notices import conversation_start_text, empty_conversation_key
 from core.community_comments import comment_count
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.polls import POLL_MESSAGE_TYPES, poll_content, poll_row_text
+from core import channel_invites
 from core.call_log import (
     CALL_LOG_MESSAGE_TYPE,
     LEGACY_CALL_LOG_TYPE,
@@ -329,6 +330,10 @@ class MessageRenderingMixin:
         # ── Contact ──────────────────────────────────────────────────────────
         if msg_type == "contactMessage":
             return i18n.t("contact_message").format(name=self._contact_display_name(msg))
+
+        # ── Channel invitation (to follow, or to be an admin) ───────────────
+        if msg_type in channel_invites.INVITE_TYPES:
+            return channel_invites.row_text(i18n, msg)
 
         if msg_type == "contactsArrayMessage":
             arr = msg_obj.get("contactsArrayMessage") or {}
@@ -1206,11 +1211,10 @@ class MessageRenderingMixin:
             # shows at the top of one (encryption and, if running, the
             # disappearing-messages timer). One row, text only: it adds no row
             # to the list and so shifts no index.
+            jid = (getattr(self, "conversation", None) or {}).get("remoteJid", "")
             return conversation_start_text(
-                self.main_window,
-                (getattr(self, "conversation", None) or {}).get("remoteJid", ""),
-                self.main_window.i18n,
-                self.main_window.i18n.t("no_messages_in_conversation"),
+                self.main_window, jid, self.main_window.i18n,
+                self.main_window.i18n.t(empty_conversation_key(jid)),
             )
         # Unread separator sentinel
         if self._is_separator(msg):

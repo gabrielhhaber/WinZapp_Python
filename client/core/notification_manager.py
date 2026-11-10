@@ -35,7 +35,6 @@ import ctypes
 import logging
 import os
 import queue
-import re as _re
 import sys
 import threading
 import time
@@ -43,6 +42,7 @@ import uuid
 import wx
 from app_paths import _is_frozen
 from core.i18n import I18n
+from core.mention_all import says_everyone
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.commerce import message_label as commerce_message_label
 from core.message_queue import PendingMessage
@@ -148,7 +148,7 @@ def _build_notif_prefix(msg: dict, main_window, i18n) -> str:
 
     # @all / @todos / @everyone — check text for the keyword
     text = _extract_msg_text(msg)
-    if _re.search(r"@(all|todos|everyone)\b", text, _re.IGNORECASE):
+    if says_everyone(text, i18n.t("mention_all_keyword")):
         return i18n.t("notif_mentioned_all")
 
     # Direct @mention of the user
@@ -289,6 +289,11 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     # ── View once (only on the phone — core/view_once.py) ─────────────────────
     if msg_type == VIEW_ONCE_UNAVAILABLE_TYPE:
         return i18n.t("view_once_message")
+
+    # ── Channel invitation ────────────────────────────────────────────────────
+    from core import channel_invites
+    if msg_type in channel_invites.INVITE_TYPES:
+        return channel_invites.row_text(i18n, msg)
 
     # ── Contact ───────────────────────────────────────────────────────────────
     if msg_type == "contactMessage":

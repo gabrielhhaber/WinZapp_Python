@@ -527,6 +527,10 @@ class MainWindow(
             "MainWindow: CUDA transcription libraries registered=%s",
             cuda_runtime.register_installed_runtime(),
         )
+        # The noise reducer's ONNX Runtime build, before anything imports it
+        # (core/cuda_components/runtime.py).
+        from core.cuda_components import runtime as noise_runtime
+        noise_runtime.activate(self.settings)
         # Decrypted audio a run killed mid-way left in %TEMP% (privacy).
         temp_sweep.sweep_stale_temporaries()
         # What past updates left in %TEMP% (a full copy of every release

@@ -56,6 +56,8 @@ import history_progress
 import older_history
 import call_invites
 import channels_panel
+import channel_events
+import channel_media
 import channel_updates
 import cleanup
 import msgmap
@@ -63,6 +65,7 @@ import pairing
 import commerce_routes
 import profile_privacy
 import presence
+import pairing_history
 import pairing_repair
 import group_receipts
 import message_rules
@@ -104,6 +107,10 @@ def device_props(days):
         props.historySyncConfig.fullSyncDaysLimit = days
         props.historySyncConfig.fullSyncSizeMbLimit = 102400
         props.historySyncConfig.storageQuotaMb = 102400
+    else:
+        # said outright: neonize merges these into one DeviceProps for the
+        # whole process, and an earlier session's full sync would stay on
+        props.requireFullSync = False
     return props
 
 
@@ -700,8 +707,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         if previous_media is not None:
             previous_media.close()
         self.call_media = None
-        cli = self.client = NewClient(os.path.join(self.folder, "session.db"),
-                                      props=device_props(HISTORY_DAYS))
+        # the history the user chose for this session in the pairing dialog
+        # (pairing_history.py); it only matters until the session pairs
+        # what this client registers with, which pairing-history compares
+        self.pairing_days = pairing_history.load(self.folder, HISTORY_DAYS)
+        cli = self.client = NewClient(
+            os.path.join(self.folder, "session.db"),
+            props=device_props(self.pairing_days))
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
@@ -722,6 +734,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         presence.register_events(cli, self)
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
+        channel_events.register_events(cli, self)
         app_state_mirror.register_events(cli, self)
         pairing_repair.WATCH.add(self, generation, phone_number)
 
@@ -1105,6 +1118,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         threading.Thread(target=self._repair_pairing, args=(generation, kind, phone_number),
                          daemon=True, name="pairing-repair").start()
 
+    def restart_pairing(self):
+        """A session showing a QR code starts over, so the next code carries
+        what changed (the history choice). True when it did. Never touches a
+        paired session or one that holds an identity."""
+        with self._lifecycle_lock:
+            if self.status != session_lifecycle.QRCODE or self._has_identity():
+                return False
+            self.stop(session_lifecycle.CLOSED)
+            thread = self.thread
+            if thread is not None and thread is not threading.current_thread():
+                thread.join(session_lifecycle.OLD_THREAD_DEADLINE)
+            if self._thread_alive():
+                log.warning("the old thread of session %s did not finish; pairing not restarted",
+                            redact(self.name))
+                return False
+            return self.begin()
+
     def _repair_pairing(self, generation, kind, phone_number):
         with self._lifecycle_lock:
             if not self.lifecycle.current(generation):
@@ -1205,8 +1235,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if history_end is not None:
                     ends.append((target, history_end))
                 count = len(rows)
-                rows.extend(Session._history_rows(target, c))
+                answer = Session._history_rows(target, c)
+                rows.extend(answer)
                 total += len(rows) - count
+                if older_history.brought_nothing_new(
+                        answer, lambda mid: self.db.wpp_message(mid) is not None):
+                    # Home asked and the phone has nothing more before this
+                    # anchor: it is not asked again (older_history.py)
+                    keys = self.chat_keys(target) or [target]
+                    anchor = self.db.oldest_real(keys)
+                    if anchor is not None:
+                        self.db.mark_history_exhausted(keys, anchor["id"])
                 continue
             fields = {"name": c.name or c.displayName or None,
                       "history_end": history_end,
@@ -1573,12 +1612,16 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         threading.Thread(target=flush, daemon=True, name="pending-reads").start()
 
     def send_state(self, index, version, kind, value, conversation, extra=()):
-        """Generic state notice (archive, pin...): True if WhatsApp accepted."""
+        """Generic state notice (archive, pin...): True if WhatsApp accepted.
+        The chat goes in the index the way WhatsApp Web names it (a person's
+        chat by its LID, chat_aliases.mutation_index_jid), or the phone does
+        not find it."""
         from neonize.proto.Neonize_pb2 import MutationInfo, PatchInfo
         if self.client is None or self.status != "CONNECTED":
             return False
         patch = PatchInfo(Timestamp=time.time_ns(), Type=kind, Mutations=[
-            MutationInfo(Index=[index, conversation, *extra], Version=version, Value=value)])
+            MutationInfo(Index=[index, self.mutation_jid(conversation), *extra],
+                         Version=version, Value=value)])
         collection = {PatchInfo.REGULAR_LOW: "regular_low",
                       PatchInfo.REGULAR_HIGH: "regular_high"}.get(kind, "regular_low")
         try:
@@ -1932,6 +1975,13 @@ def create_app(folder, fixed=""):
             body = await req.json()
         except Exception:
             body = {}
+        if not isinstance(body, dict):
+            body = {}
+        # the pairing dialog's history choice, stored before the session comes
+        # up so the device registers with it (pairing_history.py)
+        days = pairing_history.chosen(body.get("historyDays"))
+        if days is not None and s.status != "CONNECTED":
+            pairing_history.save(s.folder, days)
         # begin() waits for the old thread to finish: never inside the aiohttp loop
         await asyncio.get_running_loop().run_in_executor(None, s.begin, body.get("phone"))
         mark_active(key_of(req), True)
@@ -1943,6 +1993,39 @@ def create_app(folder, fixed=""):
             await sio.emit("session-logged", {"session": s.name, "status": True},
                            room=s.name)
         return ok(status=s.status, qrcode=None, urlcode=s.urlcode)
+
+    async def set_pairing_history(req):
+        """{days}: how much history the session asks for when it pairs
+        (pairing_history.CHOICES). A QR code on screen is replaced by one
+        carrying the choice; a paired session is left as it is."""
+        s = session(req)
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        days = pairing_history.chosen(body.get("days"))
+        if days is None:
+            return web.json_response({"status": "error", "message": "invalid days"}, status=400)
+        stored = pairing_history.load(s.folder, HISTORY_DAYS)
+        store, restart, reason = pairing_history.answer(
+            s.status, stored, days, getattr(s, "pairing_days", None))
+        if store and not pairing_history.save(s.folder, days):
+            return web.json_response({"status": "error", "message": "not stored"}, status=500)
+        restarted = False
+        if restart and s.status == "QRCODE":
+            restarted = bool(await asyncio.get_running_loop().run_in_executor(
+                None, s.restart_pairing))
+        elif restart:
+            # still starting: its first QR would carry the old choice
+            async def restart():
+                return await asyncio.get_running_loop().run_in_executor(None, s.restart_pairing)
+            asyncio.ensure_future(pairing_history.redo_when_qr(
+                s, lambda: pairing_history.load(s.folder, HISTORY_DAYS), restart, asyncio.sleep))
+        log.info("pairing history: %s (%s days, restarted=%s)", reason, days, restarted)
+        return ok(status="success", response={"days": days, "reason": reason,
+                                              "restarted": restarted})
 
     async def status_session(req):
         s = session(req)
@@ -2032,7 +2115,8 @@ def create_app(folder, fixed=""):
             if s.status != "CONNECTED" or s.client is None:
                 return ok(status="success", response=[])
             return ok(status="success", response=await in_thread(
-                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text))
+                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text,
+                q.get("serverId")))
         # the chat may be stored by the number or by the LID (or both)
         keys = await in_thread(s.chat_keys, jid) or [msgmap.jid_whatsmeow(jid)]
         count = int(q.get("count", 20))
@@ -2082,6 +2166,7 @@ def create_app(folder, fixed=""):
     r = app.router
     r.add_post("/api/{session}/{key}/generate-token", generate_token)
     r.add_post("/api/{tok}/start-session", start_session)
+    r.add_post("/api/{tok}/pairing-history", set_pairing_history)
     r.add_get("/api/{tok}/status-session", status_session)
     r.add_get("/api/{tok}/check-connection-session", check_connection)
     r.add_post("/api/{tok}/close-session", close_session)
@@ -2260,6 +2345,9 @@ def create_app(folder, fixed=""):
         if w is not None and channel_updates.kept_in_store(chat):
             s.db.message(chat, w, msgmap.media_record_of(resp.Message))
             s.db.on_arrival(chat, w["t"], True)
+        # a channel post: known at once, with its server id, for an edit
+        channel_updates.remember_sent(s, chat, w, getattr(resp, "ServerID", 0),
+                                      msgmap.media_record_of(resp.Message))
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"
         chat_w = msgmap.jid_wpp(chat)
         # WPPConnect says "sent" (ack 1) right after the send; the app only
@@ -2298,8 +2386,12 @@ def create_app(folder, fixed=""):
 
     def send_media_message(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
                            client=None):
-        c = s.client if client is None else client
         caption = inputs.whole_text(caption)
+        if channel_media.is_channel(destination):
+            # unencrypted, with the upload's handle; not through the progress
+            # client, whose upload is the encrypted one
+            return channel_media.send(s.client, destination, kind, file, caption)
+        c = s.client if client is None else client
         # audio and video: not neonize's build_*_message, which need ffprobe
         # (WinZapp does not ship it)
         if kind in ("audio", "video"):
@@ -2762,6 +2854,9 @@ def create_app(folder, fixed=""):
         multiple = int((body.get("options") or {}).get("selectableCount", 1)) != 1
 
         def send():
+            if channel_media.is_channel(destination):
+                return channel_media.send_poll(s.client, destination, body["name"],
+                                               list(body["choices"]), multiple)
             created = s.client.build_poll_vote_creation(
                 body["name"], list(body["choices"]),
                 VoteType.MULTIPLE if multiple else VoteType.SINGLE)
@@ -2812,7 +2907,19 @@ def create_app(folder, fixed=""):
             return error
         # refusals that happen before anything is sent: the client only undoes the
         # optimistic text when the body says so (responses.edit_refused)
-        from_me, _, mid, _ = s.id_parts(body["id"])
+        from_me, conversation, mid, _ = s.id_parts(body["id"])
+        if channel_updates.is_channel(conversation):
+            reason = message_rules.channel_edit_refusal(
+                from_me, channel_updates.details_of(s, mid), time.time(),
+                media_kept=s.db.media_record(mid) is not None)
+            if reason:
+                return responses.edit_refused(reason)
+            done = await in_thread(channel_updates.edit, s, conversation, mid,
+                                   inputs.whole_text(body["newText"]))
+            if not done:
+                return web.json_response({"status": "error", "message": "not accepted"},
+                                         status=500)
+            return ok(status="success", response={"edited": True})
         reason = message_rules.refusal_reason(from_me, s.db.wpp_message(mid), time.time())
         if reason:
             return responses.edit_refused(reason)
@@ -2881,10 +2988,16 @@ def create_app(folder, fixed=""):
         media = getattr(session(req), "call_media", None)
         calls_ready = media is not None and media.calls.enabled()
         can = calls.capabilities(media)
+        # `channelMedia` / `channelPolls`: photos, videos and polls posted to a
+        # channel. Media goes out with the handle of its unencrypted upload and
+        # polls as WhatsApp Web posts them (channel_media.py), which needs
+        # WinZapp's neonize build.
+        channel = channel_media.can_post_media(getattr(session(req), "client", None))
         return ok(status="success", response={
             "compatible": True, "calls": calls_ready,
             "videoCalls": calls_ready and can["video"],
-            "groupCalls": calls_ready and can["groupCalls"]})
+            "groupCalls": calls_ready and can["groupCalls"],
+            "channelMedia": channel, "channelPolls": channel})
 
     async def media_of_socket(sid):
         try:

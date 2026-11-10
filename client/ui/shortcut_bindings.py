@@ -234,7 +234,7 @@ def navigation_shortcut_label(window, row, label):
     shortcut_id = {'conversations': 'main.ID_ALT_1', 'archived': 'main.ID_ALT_4',
                    'locked': 'main.ID_ALT_7', 'status': 'main.ID_ALT_5',
                    'calls': 'main.ID_ALT_6', 'communities': 'main.ID_COMMUNITIES',
-                   'channels': 'main.ID_CHANNELS',
+                   'channels': 'main.ID_CHANNELS', 'starred': 'main.ID_STARRED',
                    'settings': 'main.ID_CTRL_COMMA'}[row]
     overrides = getattr(window, 'settings', {}).get(SECTION, {})
     if shortcut_id not in overrides:

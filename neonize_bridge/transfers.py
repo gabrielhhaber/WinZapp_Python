@@ -95,7 +95,14 @@ class ClientWithProgress:
             self._path, media_type or self._kind(binary), self._key)
 
     def __getattr__(self, name):
-        # only what the class does not define gets here
+        # only what the class does not define gets here. What the session put
+        # on the client itself wins over the class, as on the client: rebinding
+        # the class's send_message skipped chat_timers.install's wrapper, and
+        # every file sent with progress (an audio, a photo, a document) went
+        # out without the chat's disappearing-messages timer.
+        own = vars(self._client).get(name) if hasattr(self._client, "__dict__") else None
+        if callable(own):
+            return own
         func = getattr(type(self._client), name, None)
         if inspect.isfunction(func):
             return types.MethodType(func, self)

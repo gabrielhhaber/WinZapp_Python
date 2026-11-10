@@ -64,7 +64,7 @@ These need WinZapp's neonize build (`neonize_patches/neonize/0006`, `whatsmeow/0
 
 ## Older history from the phone
 
-- `request-older-messages/:phone`, `older-history-state/:phone` (`older_history.py`): neonize 0.6.0's `request_history_sync`, the peer message WhatsApp Web sends for "get older messages from your phone", anchored on the oldest message stored for the chat (any address, never a notice the bridge made up), 50 messages. The phone's ON_DEMAND block stores its messages and the chat's `endOfHistoryTransferType`, never its date, unread count or archiving. No anchor, or a history that ends there (1) or forbids more (2, 3), answers without sending; the same anchor is not sent twice within 2 minutes. Not yet run against a real account.
+- `request-older-messages/:phone`, `older-history-state/:phone` (`older_history.py`): neonize 0.6.0's `request_history_sync`, the peer message WhatsApp Web sends for "get older messages from your phone", anchored on the oldest message stored for the chat (any address, never a notice the bridge made up), 50 messages. The phone's ON_DEMAND block stores its messages and the chat's `endOfHistoryTransferType`, never its date, unread count or archiving. No anchor, or a history that ends there (1), answers without sending; one that says the rest is on the phone (2, 3) answers `phoneOnly` unless the user pressed Home (`{"userAsked": true}`), and then the anchor is asked once (marked as the request goes out: the phone often never answers). An anchor the phone answered with nothing new is not asked again, and the same anchor is not sent twice within 2 minutes. Not yet run against a real account.
 
 ## Commerce and interactive messages (WinZapp's neonize build)
 

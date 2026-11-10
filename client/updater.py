@@ -40,7 +40,7 @@ from update_package import discard_package, download_update_package, extraction_
 from core.update_handoff import InstallHandoff
 from update_progress import UpdateProgressLifecycle, update_control_if_alive
 from ui.modal_utils import end_modal_if_running
-from update_node_kill import node_kill_lines, own_node_pids
+from update_node_kill import bridge_stop_lines, node_kill_lines, own_node_pids
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
@@ -689,8 +689,9 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # Give child processes a moment to exit, then kill stragglers holding file locks.
         "timeout /t 2 /nobreak >NUL\n"
         + node_kill_lines(node_pids, api_port, log_path) +
-        # A bridge still running (its client crashed) holds neonize_bridge.exe open.
-        node_kill_lines(bridge_pids, BRIDGE_PORT, log_path, image=BRIDGE_EXE) +
+        # A bridge still running (shutting down, or its client crashed) holds
+        # neonize_bridge.exe open: wait for it to go, stopping it if needed.
+        bridge_stop_lines(bridge_pids, log_path, image=BRIDGE_EXE) +
         "timeout /t 1 /nobreak >NUL\n"
         # xcopy's exit code was previously never checked, so a failed copy
         # (locked file, disk full, permissions) silently relaunched whatever

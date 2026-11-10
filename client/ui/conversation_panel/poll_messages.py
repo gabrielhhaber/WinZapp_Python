@@ -21,7 +21,7 @@ class PollMessagesMixin:
     """Sending polls and showing a poll's options."""
 
     def _on_attach_poll(self, event=None):
-        if refuse_in_channel(self):
+        if refuse_in_channel(self, "poll"):
             return
         from ui.dialogs.new_poll_dialog import NewPollDialog
 

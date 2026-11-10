@@ -185,7 +185,7 @@ class ChatMenuMixin:
 
     def on_context_menu_close(self, event):
         if self.conversation_panel.IsShown():
-            self.close_conversation(event)
+            self.close_conversation(event, from_user=True)
             return
         # Ctrl+W with nothing open used to do nothing at all, silently — see
         # _no_conversation_open_announced() (issue #86).

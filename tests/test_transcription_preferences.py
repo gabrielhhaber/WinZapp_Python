@@ -132,7 +132,10 @@ class TestTheDefaultsAreOneThing:
                                          preferences.SETTING_RUN_WITHOUT_DIALOG,
                                          # A number of minutes, not a choice
                                          # of "auto".
-                                         preferences.SETTING_AUTO_MAX_AGE_MINUTES}
+                                         preferences.SETTING_AUTO_MAX_AGE_MINUTES,
+                                         # A checkbox: no age limit for the
+                                         # local automatic transcription.
+                                         preferences.SETTING_AUTO_ANY_AGE}
         ), "a third setting became an exception without saying why"
 
     def test_keeping_the_model_loaded_is_a_bool_and_starts_off(self):
@@ -534,7 +537,7 @@ class TestSanitizingWhatIsOnDisk:
                              cache_enabled="no", cache_by_model="junk",
                              auto_transcribe_statuses="yes",
                              status_cache_enabled="no", run_without_dialog="yes",
-                             auto_max_age_minutes=5)
+                             auto_max_age_minutes=5, auto_any_age="yes")
         assert preferences.sanitize_section(settings) is True
         assert settings[preferences.SECTION] == preferences.DEFAULTS
 

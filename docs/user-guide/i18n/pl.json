@@ -56,6 +56,9 @@
   "status_reply": "Odpowiedź na status",
   "calls": "Karta Połączenia",
   "call": "Podczas połączenia",
-  "incoming": "Połączenie przychodzące"
+  "incoming": "Połączenie przychodzące",
+  "channels": "Okno Kanały",
+  "channel_people": "Administratorzy i obserwujący kanału",
+  "call_participants": "Uczestnicy połączenia"
  }
 }

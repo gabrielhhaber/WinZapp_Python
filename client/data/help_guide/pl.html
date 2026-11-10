@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>Wartość musi zgadzać się z tą z wiersza dotyczącego pliku. Jeśli się różni, usuń plik i pobierz go ponownie. Program aktualizujący WinZapp również sprawdza sumę kontrolną (a w nowszych wersjach także podpis) przed instalacją.</p>
 
+<p>W silniku Neonize okno połączenia pyta, ile historii pobrać przy łączeniu: tylko najnowsze wiadomości, 30 dni, 6 miesięcy, rok, całą historię lub własny okres (dni, miesiące lub lata wpisane w polu, które pojawi się poniżej). Telefon wysyła historię raz, przy łączeniu; wiadomości starsze niż około rok docierają tylko w ten sposób. Zmiana wyboru przy widocznym kodzie QR tworzy nowy kod QR z tym wyborem.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -373,7 +375,7 @@
 
 <h3>Filtry i listy</h3>
 <ul>
-  <li><strong>Filtry:</strong> Wszystkie, Nieprzeczytane, Grupy i Osobiste, jako przyciski opcji. Alt+Shift+F przenosi do nich; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G i Alt+Shift+I wybierają Wszystkie, Nieprzeczytane, Grupy i Osobiste bezpośrednio z listy.</li>
+  <li><strong>Filtry:</strong> Wszystkie, Nieprzeczytane, Grupy i Osobiste, jako przyciski opcji. Alt+Shift+F przenosi do nich; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G i Alt+Shift+I wybierają Wszystkie, Nieprzeczytane, Grupy i Osobiste bezpośrednio z listy. Gdy filtr, lista WhatsApp lub wyszukiwanie nie znajduje żadnego czatu, lista pokazuje jeden wiersz, który o tym mówi, na przykład "Brak nieprzeczytanych czatów.".</li>
   <li><strong>Listy WhatsApp:</strong> twoje własne listy pojawiają się przed filtrami. Możesz je odświeżać, filtrować według nich, tworzyć lub zmieniać nazwę listy oraz dodawać i usuwać czaty w oknie "Zarządzaj listami WhatsApp". Edycja zależy od obsługi przez twoje konto; gdy nie jest możliwa, menedżer mówi dlaczego. Zabezpieczone czaty lub niedostępne lokalnie nie pojawiają się w wyborze, a pozostali członkowie listy są zachowani.</li>
   <li><strong>Wyszukiwanie:</strong> Ctrl+F przenosi do pola wyszukiwania; strzałka w dół przechodzi do pierwszego wyniku. W Ustawienia &gt; Interfejs &gt; Czaty opcja "Zachowaj wyszukiwanie czatów po otwarciu czatu, aby Esc wracał do wyników zamiast do pełnej listy" sprawia, że Esc zwraca fokus na ten czat w wynikach, zamiast wracać do pełnej listy.</li>
 </ul>
@@ -508,6 +510,7 @@
 <h3>Gwiazdka i przypinanie</h3>
 <ul>
   <li><strong>Gwiazdka</strong> (Ctrl+Shift+O): gwiazdki są synchronizowane z WhatsApp, a każda zmiana jest sprawdzana. Aby wysłać do WhatsApp swoje stare lokalne gwiazdki, użyj "Synchronizuj wcześniejsze lokalne oznaczenia gwiazdką z WhatsApp" w menu czatu.</li>
+  <li><strong>Wiadomości oznaczone gwiazdką</strong> (Alt+0 lub wiersz "Wiadomości oznaczone gwiazdką" na liście nawigacji): wszystkie wiadomości oznaczone gwiazdką ze wszystkich czatów, od najnowszych, czytane jako czat, nadawca, tekst i data. "Szukaj w oznaczonych gwiazdką" zawęża listę po dowolnym słowie, bez względu na znaki diakrytyczne i wielkość liter; Enter lub "Otwórz w czacie" otwiera czat na tej wiadomości, a Delete lub "Usuń gwiazdkę" usuwa gwiazdkę.</li>
   <li><strong>Przypięcie wiadomości</strong> (Ctrl+Shift+P, gdy nie nagrywasz): przycisk w każdym czacie wymienia wiadomości przypięte w WhatsApp, także stare; Enter przenosi do wiadomości w historii. Po otwarciu czatu liczba przypiętych wiadomości jest ogłaszana bez zmiany fokusu.</li>
 </ul>
 
@@ -556,6 +559,8 @@
 
 <h3>Wiadomości we właściwym czacie</h3>
 <p>WinZapp pomija sprzeczne powiązania identyfikatorów kontaktów. Dopóki nie ustali, do kogo należy wiadomość, pozostawia ją w pierwotnym czacie zamiast przenosić do czatu z samym sobą.</p>
+
+<p>W silniku Neonize klawisz Home na początku czatu prosi telefon o starsze wiadomości, partia po partii, dopóki nie będzie miał nic więcej z tego czatu. Telefon zwykle oddaje w ten sposób około roku wstecz; aby pobrać więcej, wybierz okres przy łączeniu.</p>
 
   </section>
 
@@ -632,6 +637,8 @@
 <h3>Zmiana urządzenia audio na bieżąco</h3>
 <p>Ctrl+Alt+Shift+H otwiera listę urządzeń odtwarzających, a Ctrl+Alt+Shift+G — nagrywających. Do szybkiego wyboru służą cyfry 1–9 oraz 0. Naciśnij odpowiednią cyfrę albo wybierz urządzenie strzałkami i zatwierdź klawiszem Enter. Zmiana obejmuje dźwięki, wiadomości głosowe i połączenia we wszystkich otwartych kontach. Działa również podczas trwającego połączenia, bez jego przerywania. Obowiązuje do zamknięcia WinZappa i nie zmienia wyboru zapisanego w ustawieniach.</p>
 
+<p>W Ustawienia > Dźwięk przycisk "Ustawienia redukcji szumów" otwiera okno redukcji: stan modelu neuronowego i przycisk do jego pobrania, procesor, na którym działa (procesor komputera, karta NVIDIA z CUDA 12 lub CUDA 13, albo Core ML na Macu), składniki, których ten procesor jeszcze potrzebuje, z przyciskiem pobierającym tylko brakujące, oraz przyciski usuwające składniki i model. CUDA 12 korzysta z cuBLAS lokalnej transkrypcji, a zmiana procesora obowiązuje od następnego uruchomienia WinZapp. Przy włączonej redukcji szumów i zainstalowanym modelu pole "Używaj neuronowej redukcji szumów" wybiera między nią a zwykłą, szybszą.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -688,6 +695,8 @@
 <p>W oknie „Informacje o czacie” wybierasz jeden sposób automatycznej transkrypcji: „Brak”, „Online, za pomocą usług AI” albo „Lokalnie, za pomocą Whispera”. Dzięki temu przetwarzaniem danej wiadomości zajmuje się tylko jeden z tych mechanizmów. Dopóki nie zmienisz wyboru dla tego czatu, wynika on z ustawień ogólnych.</p>
 <p>Enter i spacja, gdy transkrybują, transkrybują też audio i wideo wysłane jako plik.</p>
 <p>Mistral używa trzech różnych modeli: modelu dla wiadomości głosowych do dźwięku, domyślnie Ministral 3 3B do zdjęć, naklejek i klatek wideo oraz mistral-ocr-4 do odczytywania tekstu z PDF. Model dźwięku wybierasz w polu "Model dla wiadomości głosowych": Voxtral Mini Transcribe 3 (domyślny) lub dokładniejszy Voxtral Small Transcribe 3. Oba są w wersji zapoznawczej, więc Mistral może je zmienić lub wycofać. Pole „Model” oraz przycisk „Pobierz listę modeli” dotyczą wyłącznie modelu wizyjnego; jego zmiana nie zmienia transkrypcji ani OCR. OpenAI i Groq również używają stałych modeli audio, niezależnych od wybranego modelu wizyjnego; Groq nie przetwarza tu PDF. Gemini używa wybranego modelu do wszystkich obsługiwanych multimediów. Obecność modelu na liście nie oznacza, że można z niego korzystać bezpłatnie. Sprawdź u dostawcy warunki swojego planu oraz limity użycia. OCR Mistrala odczytuje tekst, ale nie opisuje obrazów w PDF. W bezpłatnym planie Experiment firma Mistral może wykorzystywać żądania do trenowania swoich modeli, chyba że wyłączysz to na swoim koncie Mistral; WinZapp informuje o tym przed wysłaniem multimediów do Mistrala.</p>
+
+<p>Przy włączonej automatycznej transkrypcji opcja "Transkrybuj także te, które dotrą z opóźnieniem" transkrybuje odebrane wiadomości niezależnie od ich wieku (na przykład wszystkie, które docierają naraz po ponownym włączeniu komputera). Bez niej obowiązuje wybrany limit wieku; czas uśpienia komputera lub braku internetu nie liczy się do wieku. Na komputerach z Windows ARM64 whisper.cpp używa natywnej wersji ARM64, a wersja dla kart NVIDIA z CUDA 13 jest oferowana opcjonalnie.</p>
 
   </section>
 
@@ -763,7 +772,7 @@
 </div>
 <p>Podczas ponownej instalacji WPPConnect WinZapp zachowuje nowszą, zgodną listę dostępnych wersji WhatsApp Web i sprawdza dostępność jej aktualizacji. Bez internetu zachowuje dotychczasową listę, ale nie może potwierdzić jej aktualności. Jeśli połączenie nadal się nie rozpoczyna, przywróć dostęp do internetu i uruchom WinZapp ponownie. Jeśli wykryta niezgodność z mechanizmem połączeń WhatsApp Web nie pozwala na skuteczne ponowienie próby, WinZapp zgłasza ją i przestaje ponawiać inicjalizację.</p>
 <p>Gdy czat grupowy jest otwarty, WinZapp sprawdza trwające połączenie mniej więcej co dziesięć sekund. Przycisk dołączenia pojawia się tylko wtedy, gdy połączenie jest dostępne, i znika po jego zakończeniu. Dołączenie do połączenia wideo rozpoczyna się z wyłączoną kamerą. Dołączenie do istniejącego połączenia nie podlega limitowi 32 członków dotyczącemu rozpoczynania nowego połączenia grupowego. Gdy połączenie jest dostępne, przyciski rozpoczynania połączeń głosowych i wideo zastępuje przycisk "Dołącz do trwającego połączenia głosowego" lub, w przypadku połączenia wideo, "Dołącz do trwającego połączenia wideo (kamera wyłączona)". W sekcji Połączenia (Alt+6) filtr Trwające pokazuje połączenia, do których można dołączyć, w tym połączenia wielu osób poza czatami grupowymi; pojawiają się one również na początku listy Wszystkie. Wybierz połączenie i naciśnij Enter lub użyj tego samego przycisku dołączenia. Jeśli już uczestniczysz w tym połączeniu, przycisk nazywa się "Powrót do połączenia" i przywołuje okno bieżącego połączenia. Lista odświeża się mniej więcej co dziesięć sekund, gdy sekcja Połączenia jest otwarta, i zawiera tylko połączenia udostępnione przez WhatsApp Twojemu kontu.</p>
-<p>Użyj przycisku "Uczestnicy połączenia" w oknie połączenia lub przy zaznaczonym trwającym połączeniu w sekcji Połączenia, aby zobaczyć nazwy połączonych osób. Lista odświeża się co dziesięć sekund; "Odśwież" pobiera bieżące dane, a "Zamknij" lub Esc zamyka okno. Osoby zaproszone lub rozłączone nie są wyświetlane. Przeglądanie listy nie dołącza do połączenia ani go nie kończy.</p>
+<p>Użyj przycisku "Uczestnicy połączenia" w oknie połączenia lub przy zaznaczonym trwającym połączeniu w sekcji Połączenia, aby zobaczyć nazwy połączonych osób. Lista odświeża się sama, gdy ktoś dołącza do połączenia lub je opuszcza; F5 wczytuje ją ponownie, a "Zamknij" lub Esc zamyka okno. W połączeniu grupowym WinZapp mówi też, kto dołączył, a kto wyszedł (Ustawienia &gt; Połączenia, "Ogłaszaj, gdy ktoś dołącza do połączenia" i "Ogłaszaj, gdy ktoś opuszcza połączenie", domyślnie włączone). Osoby zaproszone lub rozłączone nie są wyświetlane. Przeglądanie listy nie dołącza do połączenia ani go nie kończy.</p>
 
 <h3>Ciągłość dźwięku w połączeniach</h3>
 <p>Neonize przypisuje opóźniony dźwięk, operacje kamery i zmiany urządzeń do połączenia i strumienia, które je rozpoczęły. Oczekujące dane zakończonego lub zastąpionego strumienia są odrzucane, a zaległe dane multimedialne mają ograniczony rozmiar. Przejściowy błąd przekazania ramki do klienta nie zatrzymuje na stałe odczytu dźwięku. Po ponownym otwarciu wyjścia stary strumień nie może pobierać dźwięku nowego; błąd sygnału odniesienia dla usuwania echa nie wycisza dźwięku przygotowanego do odtwarzania. Jeśli częściowa nazwa urządzenia WASAPI pasuje do kilku urządzeń, WinZapp zachowuje dotychczasowe API dźwięku zamiast wybierać przypadkowe urządzenie.</p>
@@ -792,14 +801,17 @@
 <p>Panel Społeczności (lub "Nowy czat" &gt; "Społeczności") wymienia społeczności, w których jesteś. Po wybraniu jednej widzisz opis, administratorów i grupy z niej, do których dołączyłeś, z oznaczoną grupą ogłoszeń i grupą ogólną; Enter lub "Otwórz grupę" przechodzi do grupy. Jeśli administrujesz społecznością: "Dodaj grupy", "Usuń grupę ze społeczności", "Nadaj uprawnienia administratora społeczności", "Odbierz uprawnienia administratora społeczności" i "Dezaktywuj społeczność". "Nowa społeczność" tworzy nową z nazwą, opisem i wybranymi grupami. Po każdej akcji WinZapp ponownie odczytuje społeczności i mówi, że skończył, dopiero gdy WhatsApp pokazuje zmianę; w przeciwnym razie mówi, że prośba została wysłana, ale nie jest potwierdzona, albo że została odrzucona.</p>
 
 <h3>Kanały (Alt+9)</h3>
-<p>Okno Kanały (Alt+9 albo pozycja Kanały na liście nawigacji) pokazuje "Moje kanały", czyli obserwowane kanały, albo "Znajdź kanały": wpisz tekst w "Szukaj kanałów" i naciśnij Enter; bez tekstu pojawiają się kanały polecane przez WhatsAppa. W "Szczegóły" są opis, liczba obserwujących, informacja, czy obserwujesz kanał, jesteś jego administratorem lub właścicielem, oraz link. Enter lub "Otwórz kanał" otwiera kanał, aby czytać jego aktualizacje. Dostępne polecenia pozwalają obserwować kanał lub przestać go obserwować, wyciszyć lub włączyć powiadomienia oraz skopiować link. Polecenie „Obserwuj przez link...” przyjmuje link do kanału, a „Utwórz kanał...” pozwala utworzyć własny kanał; "Edytuj kanał..." pojawia się w kanałach, którymi administrujesz, a "Usuń kanał" w Twoich kanałach. Pokazywanie kanałów na liście czatów pozostaje opcją w Ustawienia &gt; Interfejs &gt; Czaty.</p>
-<p>W "Znajdź kanały" pola Kategoria i Lista zawężają katalog tak jak opcje WhatsApp Web: wybierz kategorię (albo "Wszystkie kategorie") i listę (polecane, na czasie, popularne lub nowe) i naciśnij Szukaj lub Enter. Gdy w "Szukaj kanałów" jest tekst, wyszukiwanie obejmuje tylko wybraną kategorię. W kanałach, którymi administrujesz, pole wiadomości jest dostępne po otwarciu kanału: wpisz tekst i wyślij, aby opublikować aktualizację tekstową (bez wiadomości głosowych i załączników). Z menu wiadomości lub skrótem Ctrl+Shift+P przypinasz lub odpinasz aktualizację, a przypięte widać pod przyciskiem "Przypięte wiadomości". Przycisk "Administratorzy i obserwujący..." w oknie Kanały podaje liczbę administratorów kanału; właściciel może też użyć "Zaproś administratorów..." (wybierz kontakt i ewentualnie wiadomość: zaproszenie trafia na czat tej osoby, a zostaje ona administratorem po jego przyjęciu) oraz "Odwołaj zaproszenie do roli administratora...". To okno pokazuje właściciela, administratorów, oczekujące zaproszenia i obserwujących: właściciel może zaprosić obserwującego do roli administratora kanału, odwołać zaproszenie, odwołać administratora z jego roli lub przenieść prawa własności kanału na administratora. Administrator może zrezygnować ze swojej roli.</p>
+<p>Okno Kanały (Alt+9 albo pozycja Kanały na liście nawigacji) pokazuje "Moje kanały", czyli obserwowane kanały, albo "Znajdź kanały": wpisz tekst w "Szukaj kanałów" i naciśnij Enter; bez tekstu pojawiają się kanały polecane przez WhatsAppa. W "Szczegóły" są opis, liczba obserwujących, informacja, czy obserwujesz kanał, jesteś jego administratorem lub właścicielem, oraz link. Enter lub "Otwórz kanał" otwiera kanał, aby czytać jego aktualizacje. Dostępne polecenia pozwalają obserwować kanał lub przestać go obserwować, wyciszyć lub włączyć powiadomienia oraz skopiować link. Polecenie „Obserwuj przez link...” przyjmuje link do kanału, a „Utwórz kanał...” pozwala utworzyć własny kanał; "Edytuj kanał..." pojawia się w kanałach, którymi administrujesz, a "Usuń kanał" w Twoich kanałach. Pokazywanie kanałów na liście czatów pozostaje opcją w Ustawienia &gt; Interfejs &gt; Czaty. W "Utwórz kanał..." i "Edytuj kanał..." wybór Reakcje określa, jak obserwujący mogą reagować na aktualizacje, tak jak w ustawieniach kanału w WhatsApp Web: dowolne emoji, tylko domyślne emoji lub bez reakcji; Szczegóły podają wybór kanału. W kanale, którym administrujesz, "Statystyki..." odczytuje statystyki z ostatnich 30 dni, tak jak pokazuje je WhatsApp Web: osiągnięte konta, obserwujący, bilans obserwujących, nowi obserwujący i ci, którzy przestali obserwować, zasięg wśród obserwujących i pozostałych oraz według kraju. WhatsApp udostępnia je od 100 obserwujących. Tam, gdzie WhatsApp udostępnia to twojemu kontu, "Edytuj kanał..." ma też "Pokazuj profil administratora w aktualizacjach", jak w informacjach o kanale w WhatsApp Web (WPPConnect).</p>
+<p>W "Znajdź kanały" pola Kategoria i Lista zawężają katalog tak jak opcje WhatsApp Web: wybierz kategorię (albo "Wszystkie kategorie") i listę (polecane, na czasie, popularne lub nowe) i naciśnij Szukaj lub Enter. Gdy w "Szukaj kanałów" jest tekst, wyszukiwanie obejmuje tylko wybraną kategorię. W kanałach, którymi administrujesz, pole wiadomości jest dostępne po otwarciu kanału: wpisz tekst i wyślij, aby opublikować aktualizację tekstową; można też publikować zdjęcia, filmy i ankiety tymi samymi poleceniami dołączania i tworzenia ankiety co w czacie (bez wiadomości głosowych i innych plików). Z menu wiadomości lub skrótem Ctrl+Shift+P przypinasz lub odpinasz aktualizację, a przypięte widać pod przyciskiem "Przypięte wiadomości". Przycisk "Administratorzy i obserwujący..." w oknie Kanały podaje liczbę administratorów kanału; właściciel może też użyć "Zaproś administratorów..." (wybierz kontakt i ewentualnie wiadomość: zaproszenie trafia na czat tej osoby, a zostaje ona administratorem po jego przyjęciu) oraz "Odwołaj zaproszenie do roli administratora...". To okno pokazuje właściciela, administratorów, oczekujące zaproszenia i obserwujących: właściciel może zaprosić obserwującego do roli administratora kanału, odwołać zaproszenie, odwołać administratora z jego roli lub przenieść prawa własności kanału na administratora. Administrator może zrezygnować ze swojej roli.</p>
+<p>W "Znajdź kanały" wybranie innej kategorii lub listy od razu wyszukuje ponownie. Okno kanałów i okno "Administratorzy i obserwujący..." odświeżają się same, gdy obserwujesz kanał, przestajesz go obserwować lub go wyciszasz, gdy zmienia się Twoja rola, nazwa lub opis kanału oraz gdy zmienia się to, kto nim administruje, także z telefonu. F5 wczytuje listę ponownie (na przykład, żeby zobaczyć nowych obserwujących); skrót można zmienić w ustawieniach. W kanałach, którymi administrujesz, swoje aktualizacje tekstowe można edytować z menu wiadomości lub skrótem Alt+E, w czasie, na który pozwala WhatsApp. W kanale otwartym z okna kanałów Esc wraca do tego okna takiego, jak je zostawiono: ta sama lista, wyszukiwanie, kategoria i wybrany kanał. Kanał otwiera się na pełnej stronie najnowszych aktualizacji, pobranych z serwera WhatsApp.</p>
 
 <h3>Wzmianki i odpowiedzi</h3>
 <p>Osoba wspomniana z nazwy razem z @all zachowuje link; wzmianka o tobie, w powiadomieniu i w podglądzie, używa słowa wybranego w "Jak mam się do Ciebie zwracać?". W Ustawienia &gt; Interfejs &gt; Wiadomości opcja "Ukrywaj numery telefonów nadawców bez nazwy w wiadomościach" sprawia, że wiadomości od osób bez nazwy zaczynają się od razu od treści. W Ustawienia &gt; Interfejs &gt; Czaty opcja "Poprzedzaj nazwy niezapisanych kontaktów znakiem tyldy (~) w czatach i wiadomościach" (domyślnie włączona) pokazuje tyldę przed nazwą osoby, której nie zapisano, w czatach i w wiadomościach.</p>
 
 <h3>Grupy społeczności</h3>
 <p>Na liście społeczności Enter przechodzi do grup społeczności, a "Otwórz grupę z ostatnią aktywnością" otwiera grupę z najnowszą aktywnością, podając jej nazwę. "Filtruj grupy" pokazuje wszystkie grupy, grupy, do których należysz, albo te, do których nie należysz; grupa, do której nie należysz, mówi to w swoim wierszu. Na takiej grupie "Dołącz do grupy" dołącza do niej albo, gdy grupa wymaga zatwierdzenia, "Poproś o dołączenie do grupy" wysyła prośbę, którą "Anuluj prośbę o dołączenie" wycofuje.</p>
+
+<p>Zaproszenia do obserwowania kanału lub do zostania jego administratorem pojawiają się w czacie jako "Zaproszenie do obserwowania kanału..." (lub "do zostania administratorem kanału..."), ze słowami zapraszającego. Enter otwiera kanał, gdzie możesz go obserwować.</p>
 
   </section>
 
@@ -1033,6 +1045,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Zmień urządzenie nagrywające we wszystkich otwartych kontach do czasu zamknięcia programu WinZapp (następnie naciśnij 1–9 lub 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Otwórz społeczności</td></tr>
 <tr><td class="field-name">Alt+9</td><td>Otwórz kanały</td></tr>
+<tr><td class="field-name">Alt+0</td><td>Otwórz wiadomości oznaczone gwiazdką</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 do 9</td><td>Otwórz przypisany szybki czat</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 do 9</td><td>Przypisz czat z fokusem do cyfry szybkiego dostępu</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Oznacz wszystkie czaty jako przeczytane</td></tr>
@@ -1337,6 +1350,21 @@
 <tr><td class="field-name">Alt+W</td><td>Wycisz alert</td></tr>
 <tr><td class="field-name">Alt+Z</td><td>Zamknij okno</td></tr>
 </table>
+<h3>Uczestnicy połączenia</h3>
+<table class="field-table">
+<tr><th>Skrót</th><th>Działanie</th></tr>
+<tr><td class="field-name">F5</td><td>Wczytaj ponownie uczestników</td></tr>
+</table>
+<h3>Okno Kanały</h3>
+<table class="field-table">
+<tr><th>Skrót</th><th>Działanie</th></tr>
+<tr><td class="field-name">F5</td><td>Wczytaj ponownie listę kanałów</td></tr>
+</table>
+<h3>Administratorzy i obserwujący kanału</h3>
+<table class="field-table">
+<tr><th>Skrót</th><th>Działanie</th></tr>
+<tr><td class="field-name">F5</td><td>Wczytaj ponownie administratorów i obserwujących</td></tr>
+</table>
 <h3>Polecenia bez przypisanego klawisza</h3>
 <p>Te polecenia są na karcie Skróty klawiszowe w Ustawieniach, ale nie mają przypisanego klawisza. Wybierz tam klawisz, jeśli chcesz z nich korzystać.</p>
 <table class="field-table">
@@ -1428,9 +1456,36 @@
 <tr><td class="field-name">Jeszcze niewydane</td><td>Przypisanie połączeń i strumieni, ograniczona obsługa multimediów i diagnostyka sygnału bez treści dźwięku.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Okno Dodaj uczestników działa z czytnikiem ekranu: zaznaczanie z dźwiękiem i komunikatami oraz odczytywany wynik.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: statusy „Dodaj swój”, z pytaniem i z animowaną naklejką nie pokazują się już jako niezgodna wiadomość.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Okna kanałów odświeżane przez zdarzenia WhatsApp, konfigurowalny F5 i edycja własnych aktualizacji tekstowych.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lista czatów: wiersz, który o tym mówi, gdy filtr, lista lub wyszukiwanie nie znajduje żadnego czatu.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia grupowe: ogłaszanie, kto dołącza i kto wychodzi (dwie opcje w Ustawienia &gt; Połączenia), a lista uczestników odświeża się sama; F5 wczytuje ją ponownie.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Nagrywanie z dźwiękiem komputera nie rwie się już i nie zacina na wolniejszych komputerach.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały w WPPConnect: publikowanie znowu działa, a kanał otwiera się na pełnej stronie najnowszych aktualizacji; Esc wraca do okna kanałów takiego, jak je zostawiono.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Aktualizacje: PowerShell pilnujący instalacji ma do minuty na uruchomienie, a z Neonize instalator czeka na zamknięcie mostu przed kopiowaniem.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały z Neonize: aktualizacje są pobierane po 100, a kanał nie zostaje już pusty.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lista wiadomości: "/" nie wpisuje już "Á" w pole wiadomości na klawiaturze ABNT2.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości oznaczone gwiazdką: okno z nimi ze wszystkich czatów (Alt+0).</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: wybór Reakcje przy tworzeniu i edycji kanału.</td></tr>
+
 <tr><td class="field-name">Jeszcze niewydane</td><td>Zarządzanie kontami: pole wyboru łączące wszystkie konta przy uruchomieniu WinZapp.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Linki WhatsApp: linki do czatów (wa.me, api.whatsapp.com) otwierają czat z gotowym tekstem, a wersja instalowana pojawia się w Aplikacjach domyślnych.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Dźwięki: wybór dźwięku wiadomości, gdy WinZapp jest na pierwszym planie, dla otwartego czatu i dla pozostałych czatów.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Pobieranie multimediów: licznik obejmuje tylko pliki, które trzeba jeszcze pobrać.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: statystyki kanału dla administratorów.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: Pokazuj profil administratora w aktualizacjach, tam gdzie WhatsApp to udostępnia.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: jeden model załadowany naraz.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Wyczyść czat (Neonize): także w telefonie.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Automatyczna transkrypcja po hibernacji lub braku internetu.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: także wiadomości, które dotrą z opóźnieniem.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Znikające wiadomości (Neonize): nagrania i pliki respektują czas.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia (Neonize): wykonane połączenie nie trafia do własnego czatu.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości grupowe (Neonize): żądane od telefonu, gdy się nie otwierają.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Parowanie (Neonize): wybór, ile historii pobrać.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Starsze wiadomości (Neonize): Home prosi, dopóki jest coś więcej.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: zaproszenia do obserwowania lub administrowania w czacie.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Redukcja szumów: własne okno, procesor, składniki, neuronowa lub zwykła.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: natywny whisper.cpp na Windows ARM64, z CUDA 13.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Wzmianki: @wszyscy nie wymienia już każdego uczestnika po otwarciu grupy.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Czaty: opcja, dzięki której lista wiadomości kontynuuje od miejsca, w którym przerwano; zakładki usuwane automatycznie po pierwszym użyciu.</td></tr>
 </table>
 

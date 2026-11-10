@@ -21,6 +21,8 @@
         "background_update_downloads": false,
         "wpp_all_updates": false,
         "noise_reduction_enabled": false,
+        "noise_reduction_neural": true,
+        "noise_reduction_device": "cpu",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,
@@ -54,7 +56,9 @@
     },
     "calls": {
         "alerts_enabled": true,
-        "popup_enabled": true
+        "popup_enabled": true,
+        "announce_participant_joined": true,
+        "announce_participant_left": true
     },
     "profile_backup": {
         "snapshots_disabled": false,
@@ -154,6 +158,7 @@
         "run_without_dialog": false,
         "auto_transcribe_received": false,
         "auto_max_age_minutes": 5,
+        "auto_any_age": false,
         "cache_enabled": true,
         "cache_by_model": {},
         "auto_transcribe_statuses": false,

@@ -49,6 +49,31 @@ def test_a_category_narrows_the_search_and_the_list():
     assert variables["input"] == {"limit": 20, "country_codes": []}       # neither is sent
 
 
+def test_the_lists_are_of_the_accounts_own_country():
+    """A view or a category with no country is refused "Bad Request"
+    (measured over CDP: 20 channels with ["BR"], an error with [])."""
+    _, variables, _ = cp.directory_request({"view": "TRENDING"}, "BR")
+    assert variables["input"]["filters"] == {"country_codes": ["BR"], "categories": []}
+    _, variables, _ = cp.directory_request({}, "BR")
+    assert variables["input"] == {"limit": 20, "country_codes": ["BR"]}
+    _, variables, _ = cp.directory_request({"query": "gol"}, "BR")
+    assert "country_codes" not in variables["input"]
+
+
+@pytest.mark.parametrize("me, country", [
+    ("5535999990000:12@s.whatsapp.net", "BR"),
+    ("5535999990000@s.whatsapp.net", "BR"),
+    ("14155550123@s.whatsapp.net", "US"),
+    ("351912345678", "PT"),
+    ("", ""),
+    (None, ""),
+    ("abc@lid", ""),
+    ("999@s.whatsapp.net", ""),
+])
+def test_the_country_comes_from_the_accounts_own_number(me, country):
+    assert cp.account_country(me) == country
+
+
 def test_one_channel_is_read_by_jid_or_by_invite():
     assert cp.channel_request("1@newsletter")["input"] == {
         "key": "1@newsletter", "type": "JID", "view_role": "GUEST"}

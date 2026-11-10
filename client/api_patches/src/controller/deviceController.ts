@@ -18,6 +18,9 @@ import { Request, Response } from 'express';
 
 import { CONTACT_PRESENCE_SOURCE } from '../util/contactPresenceRuntime';
 import {
+  channelOlderPageIncomplete, pullChannelHistory, readNewestChannelUpdates,
+} from './channelsPanelController';
+import {
   countJidFallback,
   countStoreRecovery,
   observeEvaluate,
@@ -2664,6 +2667,31 @@ export async function getMessages(req: Request, res: Response) {
       req.logger.info(
         `Fetching older messages before ${id} for ${phone} using browser-side sync...`
       );
+      if (/@newsletter$/.test(String(phone))) {
+        // A channel's older updates come from WhatsApp's server first: see
+        // pullChannelHistory().
+        try {
+          const pulled = await req.client.page.evaluate(pullChannelHistory, {
+            chatId: phone, anchorId: String(id), targetCount,
+          });
+          req.logger.info(`[channel-history] ${pulled} update(s) loaded before the page`);
+        } catch (e: any) {
+          req.logger.warn(`[channel-history] could not load older updates: ${e?.message || e}`);
+        }
+        // A hole right below the anchor that could not be filled (offline):
+        // the old updates under it are not this page. 503, so the client
+        // asks again later instead of storing them and keeping the hole.
+        let incomplete = false;
+        try {
+          incomplete = !!(await req.client.page.evaluate(channelOlderPageIncomplete, { chatId: phone }));
+        } catch (_) {
+          incomplete = false;
+        }
+        if (incomplete) {
+          req.logger.warn('[channel-history] a hole below the page could not be filled');
+          return res.status(503).json({ status: 'error', code: 'channel_history_incomplete' });
+        }
+      }
       response = await req.client.page.evaluate(
         async ({ chatId, targetCount, id }) => {
           console.log(
@@ -2904,7 +2932,19 @@ export async function getMessages(req: Request, res: Response) {
       // _reconcile_active_conversation_with_remote(), and was reported live
       // as a group's entire history vanishing from the open conversation
       // mid-read, "recovering" only once a new live message forced a repaint.
-      response = await req.client.page.evaluate(
+      if (/@newsletter$/.test(String(phone))) {
+        // A channel's newest updates come from WhatsApp's server: see
+        // readNewestChannelUpdates().
+        try {
+          response = await req.client.page.evaluate(readNewestChannelUpdates, {
+            chatId: phone, targetCount,
+          });
+        } catch (e: any) {
+          req.logger.warn(`[channel-history] could not read the newest updates: ${e?.message || e}`);
+          response = null;
+        }
+      }
+      if (!Array.isArray(response)) response = await req.client.page.evaluate(
         async ({ chatId, targetCount }) => {
           const keyOf = (m: any) =>
             (m && m.id && (m.id._serialized || m.id)) || null;

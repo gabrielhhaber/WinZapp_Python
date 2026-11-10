@@ -18,7 +18,7 @@ from io import BytesIO
 from countries import get_countries, get_default_country_index
 from core.combo_search import bind_incremental_search
 from core import app_restart, connection_engine, neonize_bridge_process
-from ui.dialogs import connect_engine
+from ui.dialogs import connect_engine, connect_history
 from core import qr_geometry
 import logging
 
@@ -171,9 +171,11 @@ class Connect:
             f"{self.main_window.wpp_server}"
             f":{self.main_window.wpp_port}/api/{token}/start-session"
         )
-        payload = {
-            "waitQrCode": False
-        }
+        # Neonize: the history the pairing asks for (connect_history.py)
+        payload = connect_history.with_history(
+            {"waitQrCode": False},
+            getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT),
+            self.main_window.settings)
         headers = self._wpp_headers(use_global_key=True)
 
         try:
@@ -649,6 +651,11 @@ class Connect:
             getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT))
         if self.engine_choice is not None:
             self.engine_choice.Bind(wx.EVT_CHOICE, self.on_engine_chosen)
+        # Neonize only: how much history the pairing brings (connect_history.py)
+        self.history_row = connect_history.HistoryRow.build(
+            self.connection_dial, main_sizer, self.i18n,
+            getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT),
+            self.main_window, api_post)
         main_sizer.Add(self.qrcode_panel, 1, wx.ALL | wx.EXPAND, 5)
         main_sizer.Add(self.phone_panel, 1, wx.ALL | wx.EXPAND, 5)
         main_sizer.Add(self.quit_btn, 0, wx.ALL | wx.CENTER, 5)
@@ -1560,7 +1567,10 @@ class Connect:
                     f"{self.main_window.wpp_server}"
                     f":{self.main_window.wpp_port}/api/{self.main_window.token}/start-session"
                 )
-                payload = {"phone": self.phone_number, "waitQrCode": False}
+                payload = connect_history.with_history(
+                    {"phone": self.phone_number, "waitQrCode": False},
+                    getattr(self.main_window, "wpp_engine", connection_engine.WPPCONNECT),
+                    self.main_window.settings)
                 ws_ref = self.main_window.ws  # capture before thread starts
                 headers = self._wpp_headers(use_global_key=True)
 

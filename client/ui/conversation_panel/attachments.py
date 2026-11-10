@@ -12,7 +12,8 @@ import threading
 import time
 import uuid
 import wx
-from ui.conversation_panel.channel_conversation import refuse_in_channel
+from ui.conversation_panel.channel_conversation import (
+    refuse_attachments_in_channel, refuse_in_channel)
 from core.utils import (
     MEASURED_SECONDS_KEY,
     encrypt,
@@ -54,7 +55,7 @@ class AttachmentsMixin:
         menu.Destroy()
 
     def _on_attach_photo_video(self, event):
-        if refuse_in_channel(self):
+        if refuse_in_channel(self, "photo_video"):
             return
         i18n = self.main_window.i18n
         wildcard = (
@@ -296,7 +297,7 @@ class AttachmentsMixin:
 
     def _on_send_attachment(self, event=None):
         """Enqueue all staged attachments as outgoing messages."""
-        if refuse_in_channel(self):
+        if refuse_attachments_in_channel(self, self._staged_attachments):
             return
         if not self._staged_attachments or self.conversation is None:
             return

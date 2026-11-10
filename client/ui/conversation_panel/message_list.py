@@ -13,6 +13,7 @@ import threading
 import wx
 from core.group_invitation_link import invitation_code
 from core.polls import POLL_MESSAGE_TYPES
+from core import channel_invites
 from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES, cached_media_path
 from core.call_log import (
     call_log_is_video,
@@ -331,6 +332,15 @@ class MessageListMixin:
             # An order opens like a poll does: its items, and for a business
             # account that received it, the answer (ui/conversation_panel/commerce.py).
             self._show_order(msg)
+
+        elif msg_type in channel_invites.INVITE_TYPES:
+            # Enter on a channel invitation opens the channel, where it can be
+            # followed (an admin one is accepted on the phone, as on WhatsApp Web)
+            channel = channel_invites.channel_of(msg)
+            if channel is not None:
+                from ui.dialogs.group_join_dialog import open_group_chat
+                open_group_chat(self.main_window, channel[0],
+                                channel[1] or self.main_window.i18n.t("channels_unnamed"))
 
         elif msg_type == "contactMessage":
             # Enter on a contact message → open a conversation with that

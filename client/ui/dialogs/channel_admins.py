@@ -22,6 +22,8 @@ import wx
 from core import channels as ch
 from ui.dialogs.attach_contact_dialog import AttachContactDialog
 from ui.dialogs.background_work import BackgroundWork
+from ui.shortcut_bindings import make_shortcut_table
+from ui.accessible import split_mnemonic
 from ui.dialogs.labelled_control import add_labelled
 
 
@@ -75,13 +77,24 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self._demote = button("channel_admin_demote", self._on_demote)
         self._make_owner = button("channel_owner_make", self._on_make_owner)
         self._leave = button("channel_admin_leave", self._on_leave)
-        self._refresh = button("channels_refresh", self._load)
         button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
+        # No Refresh button: admins, invites and the owner follow WhatsApp's own
+        # events (on_channels_changed); F5 (Settings > Shortcuts,
+        # "channel_people.ID_F5") reads the people again, for the followers
+        # (which nothing announces) and after a read that failed.
+        self.ID_F5 = wx.NewIdRef()
+        self.SetAcceleratorTable(make_shortcut_table(self, "channel_people", [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
+        self.Bind(wx.EVT_MENU, lambda event: self._load(), id=self.ID_F5)
+        self._reload_again = False
         self._update_buttons()
+        # Until the people arrive the list says so (an empty list says nothing).
+        self._list.Set([i18n.t("loading")])
+        self._list.SetSelection(0)
         self._list.SetFocus()
         self.CentreOnParent()
         wx.CallAfter(self._load)
@@ -141,8 +154,23 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self._run_async(lambda: read_people(connection, channel),
                         lambda found: self._finish_load(found, quiet))
 
+    def on_channels_changed(self, channel_id):
+        """WhatsApp said *channel_id* changed (an admin promoted or gone, an
+        invite accepted or revoked, a new owner): read its people again,
+        quietly, when it is this window's channel."""
+        if channel_id != self._channel.jid or not self._current():
+            return
+        if self._busy:
+            self._reload_again = True
+            return
+        self._load(quiet=True)
+
     def _finish_load(self, found, quiet=False):
         self._busy = False
+        if getattr(self, "_reload_again", False) and self._current():
+            self._reload_again = False      # announced while this read was in flight
+            self._load(quiet=True)
+            return
         i18n = self._i18n
         count, people, pending = found if found else (None, None, None)
         if people is None:
@@ -151,10 +179,12 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         self._rows = ch.members(people or [], pending or [], self._me())
         self._list.Freeze()
         try:
-            self._list.Set([self._row_text(m) for m in self._rows])
+            # A failed read is one row saying so, not an empty list (the
+            # message list does the same); _rows stays empty under it.
+            self._list.Set([self._row_text(m) for m in self._rows]
+                           or [i18n.t("channel_people_unavailable")])
             index = next((i for i, m in enumerate(self._rows) if keep and m.jid == keep.jid), 0)
-            if self._rows:
-                self._list.SetSelection(index)
+            self._list.SetSelection(index)
         finally:
             self._list.Thaw()
         self._update_buttons()
@@ -216,8 +246,9 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
 
     def _invite_person(self, user, name):
         i18n = self._i18n
+        # The button's label, without its mnemonic, as the dialog's title.
         with wx.TextEntryDialog(self, i18n.t("channel_admin_invite_message"),
-                                i18n.t("channel_admin_invite")) as ask:
+                                split_mnemonic(i18n.t("channel_admin_invite"))[0]) as ask:
             ask.SetMaxLength(ch.INVITE_MESSAGE_LIMIT)
             if ask.ShowModal() != wx.ID_OK:
                 return
@@ -226,7 +257,11 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
         def said(expiration):
             if not expiration:
                 return i18n.t("channel_admin_invited").format(name=name)
-            date = datetime.datetime.fromtimestamp(expiration).strftime("%x %X")
+            # in the app's language, as the conversation writes dates
+            panel = getattr(self._mw, "conversations_panel", None)
+            date = (panel._format_date(expiration) if panel is not None
+                    and hasattr(panel, "_format_date")
+                    else datetime.datetime.fromtimestamp(expiration).strftime("%x %X"))
             return i18n.t("channel_admin_invited_until").format(name=name, date=date)
 
         self._send(lambda connection, jid: ch.invite_admin(connection, jid, user,
@@ -294,6 +329,10 @@ class ChannelAdminsDialog(BackgroundWork, wx.Dialog):
             if not outcome:
                 logging.warning("[channel-admins] action refused")
                 self._announce(failed_text)
+                if getattr(self, "_reload_again", False) and self._current():
+                    # a change announced while the action was in flight
+                    self._reload_again = False
+                    self._load(quiet=True)
                 return
             self._announce(done(outcome[1]))
             # A role changed: read the people again, quietly (the result was said).

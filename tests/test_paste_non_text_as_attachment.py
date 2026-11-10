@@ -246,14 +246,16 @@ class TestPasteFromMessagesList:
 
 
 class TestPasteInAChannel:
-    """An admin's channel takes text only: a file is refused with the reason,
-    text still pastes (channel_conversation.refuse_in_channel)."""
+    """A channel takes text, and photos, videos and polls when the engine
+    posts them: otherwise a file is refused with the reason, and text still
+    pastes (channel_conversation.refuse_in_channel)."""
 
-    def _stub(self):
+    def _stub(self, kinds=frozenset()):
         stub = _Stub(conversation={"remoteJid": "120363000000000001@newsletter"})
         stub.said = []
         stub.main_window = types.SimpleNamespace(
-            settings={}, output=stub.said.append, i18n=types.SimpleNamespace(t=lambda key: key))
+            settings={}, output=stub.said.append, i18n=types.SimpleNamespace(t=lambda key: key),
+            _channel_post_kinds=set(kinds))
         return stub
 
     def _paste(self, stub):
@@ -273,6 +275,16 @@ class TestPasteInAChannel:
         assert self._paste(stub) is True
         assert stub._staged_attachments == [] and stub.panel_shown_calls == 0
         assert stub.said == ["channel_text_only"]
+
+    def test_a_photo_is_staged_when_the_engine_posts_media(self, wx_app, tmp_path):
+        f = tmp_path / "photo.png"
+        f.write_bytes(b"PNG")
+        if not _set_clipboard_files([str(f)]):
+            pytest.skip("clipboard unavailable")
+        stub = self._stub({"photo_video"})
+        assert self._paste(stub) is True
+        assert [a["media_type"] for a in stub._staged_attachments] == ["image"]
+        assert stub.said == []
 
     def test_text_still_pastes(self, wx_app):
         if not _set_clipboard_text("Novidade do canal"):

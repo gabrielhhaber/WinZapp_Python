@@ -46,6 +46,8 @@ _DOWNLOADERS = (
     os.path.join("client", "core", "transcription", "model_store.py"),
     os.path.join("client", "core", "transcription", "cuda_runtime.py"),
     os.path.join("client", "core", "transcription", "whisper_cpp_runtime.py"),
+    # The noise reducer's CUDA components (pinned wheels from PyPI).
+    os.path.join("client", "core", "cuda_components", "store.py"),
     # The AI image/audio description providers: HTTPS to third-party APIs, with
     # the session injectable (session_factory=tls_trust.create_session).
     os.path.join("client", "core", "ai_media", "service.py"),

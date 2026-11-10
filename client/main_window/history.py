@@ -12,7 +12,14 @@ from core.sync_lifecycle import capture_sync_context, sync_context_is_current, m
 from core.api_client import api_get
 from core.message_edit import is_edit_event
 from core.message_stars import stamp_star_snapshot
+from core import channels as channel_history
 from main_window import history_boundary
+
+
+def persisted_exhausted_chats(chats) -> list:
+    """The exhausted chats kept across launches: every one but a channel,
+    whose end is the server's answer for this session only."""
+    return sorted(jid for jid in chats if not channel_history.history_ends_on_server(jid))
 
 
 class HistoryMixin:
@@ -284,8 +291,10 @@ class HistoryMixin:
         only costs one wasted round-trip per chat on the next launch."""
         try:
             if getattr(self, "db", None) is not None:
+                # never a channel: its end is known for this session only, and
+                # scrolling up after a restart asks the server again
                 self.db.set_metadata_json(
-                    "exhausted_chats", sorted(getattr(self, "_exhausted_chats", set())))
+                    "exhausted_chats", persisted_exhausted_chats(getattr(self, "_exhausted_chats", set())))
         except Exception as exc:
             logging.warning("[history] Could not persist exhausted_chats: %s", exc)
 
@@ -399,7 +408,8 @@ class HistoryMixin:
                 phone = anchor_jid
 
         limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}"
+        extra = channel_history.older_page_query(remote_jid, oldest_msg)
+        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}{extra}"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
@@ -462,7 +472,10 @@ class HistoryMixin:
                 # early-return at the top of this method would refuse to look
                 # again even after the messages have landed.
                 history_pending = False
-                if not wpp_messages:
+                if not wpp_messages and channel_history.history_ends_on_server(remote_jid):
+                    # Session only: scrolling up asks the server again.
+                    self.__dict__.setdefault("_exhausted_chats", set()).add(remote_jid)
+                elif not wpp_messages:
                     if not hasattr(self, "_exhausted_chats"):
                         self._exhausted_chats = set()
                     if not hasattr(self, "_older_requested_chats"):
@@ -485,8 +498,11 @@ class HistoryMixin:
                         self._older_requested_chats[remote_jid] = asked_at
                         self._persist_older_requested()
                         outcome = {}
+                        # interactive (Home at the top): the Neonize bridge may
+                        # ask the phone even for a chat whose history ends there
                         request_result = self.request_older_messages(
-                            remote_jid, outcome_out=outcome, expected_context=context)
+                            remote_jid, outcome_out=outcome, expected_context=context,
+                            user_asked=True)
                         if not sync_context_is_current(self, context):
                             return None
                         requested = request_result is True

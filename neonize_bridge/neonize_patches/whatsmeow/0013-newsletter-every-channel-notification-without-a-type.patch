@@ -1,0 +1,146 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 9 Nov 2026 03:15:57 -0300
+Subject: [PATCH] newsletter: every channel notification without a typed event
+ arrives as NewsletterChange
+
+handleMexNotification dispatched only on_join, on_leave and on_mute_change
+and dropped the rest. WhatsApp Web handles more: admin promote, demote and
+invite revoke, metadata, admin and owner metadata updates, state, user
+settings, milestones, AI content, paid partnerships, blocked users and
+question responses. Each now arrives as events.NewsletterChange with the
+op name (xwa2_notify_newsletter_ removed), the channel and the JSON payload.
+---
+ newsletterchange_test.go | 34 ++++++++++++++++++++++++++++++++
+ notification.go          | 42 ++++++++++++++++++++++++++++++++++++++++
+ types/events/events.go   | 14 ++++++++++++++
+ 3 files changed, 90 insertions(+)
+ create mode 100644 newsletterchange_test.go
+
+diff --git a/newsletterchange_test.go b/newsletterchange_test.go
+new file mode 100644
+index 0000000..3463364
+--- /dev/null
++++ b/newsletterchange_test.go
+@@ -0,0 +1,34 @@
++package whatsmeow
++
++import (
++	"testing"
++)
++
++func TestNewsletterChangesNameTheOpAndTheChannel(t *testing.T) {
++	data := []byte(`{"data":{"xwa2_notify_newsletter_on_metadata_update":{"id":"120363000000000001@newsletter","thread_metadata":{}}}}`)
++	changes := newsletterChanges(data)
++	if len(changes) != 1 || changes[0].Op != "on_metadata_update" ||
++		changes[0].ID.String() != "120363000000000001@newsletter" ||
++		changes[0].Payload != `{"id":"120363000000000001@newsletter","thread_metadata":{}}` {
++		t.Fatalf("changes: %+v", changes)
++	}
++}
++
++func TestNewsletterChangesSkipTheTypedOnesAndOthers(t *testing.T) {
++	for _, data := range []string{
++		`{"data":{"xwa2_notify_newsletter_on_join":{"id":"1@newsletter"}}}`,
++		`{"data":{"xwa2_notify_account_reachout_timelock":{}}}`,
++		`not json`,
++	} {
++		if changes := newsletterChanges([]byte(data)); len(changes) != 0 {
++			t.Fatalf("%s: %+v", data, changes)
++		}
++	}
++}
++
++func TestNewsletterChangeWithoutAnIdStillArrives(t *testing.T) {
++	changes := newsletterChanges([]byte(`{"data":{"xwa2_notify_newsletter_admin_promote":{"role":"ADMIN"}}}`))
++	if len(changes) != 1 || changes[0].Op != "admin_promote" || !changes[0].ID.IsEmpty() {
++		t.Fatalf("changes: %+v", changes)
++	}
++}
+diff --git a/notification.go b/notification.go
+index aa01551..0e807bd 100644
+--- a/notification.go
++++ b/notification.go
+@@ -11,6 +11,7 @@ import (
+ 	"encoding/json"
+ 	"errors"
+ 	"slices"
++	"strings"
+ 	"time"
+ 
+ 	"google.golang.org/protobuf/proto"
+@@ -434,8 +435,49 @@ func (cli *Client) handleMexNotification(ctx context.Context, node *waBinary.Nod
+ 		} else if wrapper.Data.NotifyAccountReachoutTimelock != nil {
+ 			wrapper.Data.NotifyAccountReachoutTimelock.Mex = mnd
+ 			cli.dispatchEvent(wrapper.Data.NotifyAccountReachoutTimelock)
++		} else {
++			for _, change := range newsletterChanges(childData) {
++				change.Mex = mnd
++				cli.dispatchEvent(change)
++			}
++		}
++	}
++}
++
++const newsletterNotifyPrefix = "xwa2_notify_newsletter_"
++
++// newsletterChanges are the channel notifications in a mex update that have no
++// typed event (see events.NewsletterChange). The channel is the payload's "id",
++// or its "newsletter_id" / "jid"; an unparseable one leaves ID empty.
++func newsletterChanges(data []byte) []*events.NewsletterChange {
++	var wrapper struct {
++		Data map[string]json.RawMessage `json:"data"`
++	}
++	if json.Unmarshal(data, &wrapper) != nil {
++		return nil
++	}
++	var changes []*events.NewsletterChange
++	for key, raw := range wrapper.Data {
++		op, ok := strings.CutPrefix(key, newsletterNotifyPrefix)
++		if !ok || op == "on_join" || op == "on_leave" || op == "on_mute_change" {
++			continue
++		}
++		var ids struct {
++			ID           string `json:"id"`
++			NewsletterID string `json:"newsletter_id"`
++			JID          string `json:"jid"`
++		}
++		_ = json.Unmarshal(raw, &ids)
++		change := &events.NewsletterChange{Op: op, Payload: string(raw)}
++		for _, text := range []string{ids.ID, ids.NewsletterID, ids.JID} {
++			if jid, err := types.ParseJID(text); err == nil && text != "" {
++				change.ID = jid
++				break
++			}
+ 		}
++		changes = append(changes, change)
+ 	}
++	return changes
+ }
+ 
+ func (cli *Client) handleStatusNotification(ctx context.Context, node *waBinary.Node) {
+diff --git a/types/events/events.go b/types/events/events.go
+index 98bd242..f463e95 100644
+--- a/types/events/events.go
++++ b/types/events/events.go
+@@ -656,6 +656,20 @@ type NewsletterMuteChange struct {
+ 	Mute types.NewsletterMuteState `json:"mute"`
+ }
+ 
++// NewsletterChange is a channel notification with no typed event of its own:
++// a channel's metadata, admins, owner, state or settings changed (on this or
++// another device, or by another admin). Op is the notification's name without
++// "xwa2_notify_newsletter_" (on_metadata_update, admin_promote, ...), ID the
++// channel when the notification names it. WhatsApp Web handles each with a
++// WAWebMex...NotificationHandler; whatsmeow used to drop them. Payload is the
++// notification's JSON as the server sent it, for what each one carries.
++type NewsletterChange struct {
++	Mex     MexNotificationData `json:"-"`
++	ID      types.JID
++	Op      string
++	Payload string
++}
++
+ type NewsletterLiveUpdate struct {
+ 	JID      types.JID
+ 	Time     time.Time

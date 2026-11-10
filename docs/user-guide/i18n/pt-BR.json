@@ -55,6 +55,9 @@
   "status_reply": "Resposta a status",
   "calls": "Aba Ligações",
   "call": "Durante uma ligação",
-  "incoming": "Ligação recebida"
+  "incoming": "Ligação recebida",
+  "channels": "Janela Canais",
+  "channel_people": "Administradores e seguidores do canal",
+  "call_participants": "Participantes da chamada"
  }
 }

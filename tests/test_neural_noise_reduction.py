@@ -186,6 +186,26 @@ def test_model_catalogue_is_pinned_and_flat_locally(tmp_path):
     assert not noise_model.is_installed(str(tmp_path))
 
 
+def test_removing_the_model_deletes_its_file_and_forgets_the_loaded_one(
+        monkeypatch, tmp_path):
+    from core import noise_model
+    path = noise_model.installed_path(str(tmp_path))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as fh:
+        fh.write(b"onnx")
+    keep = os.path.join(os.path.dirname(path), "not_ours.txt")
+    with open(keep, "w", encoding="utf-8") as fh:
+        fh.write("user file")
+    monkeypatch.setattr(nnr, "_denoiser", object())
+    assert noise_model.remove(str(tmp_path)) is True
+    assert not os.path.exists(path) and os.path.exists(keep)
+    assert nnr._denoiser is None
+    # Nothing left: says so, and still forgets.
+    monkeypatch.setattr(nnr, "_denoiser", object())
+    assert noise_model.remove(str(tmp_path)) is False
+    assert nnr._denoiser is None
+
+
 def test_every_locale_has_the_fallback_notice():
     import polib, glob
     files = glob.glob(os.path.join(os.path.dirname(__file__), "..", "translations", "*", "LC_MESSAGES", "winzapp.po"))

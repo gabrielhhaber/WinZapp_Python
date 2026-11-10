@@ -17,6 +17,12 @@ from core.transcription import stored as stored_transcription
 from ui.dialogs.settings_pages import dialog_owner
 
 
+def any_age_box_shown(auto_on) -> bool:
+    """Whether "however old they are" is on screen: only with the automatic
+    transcription on, the only thing it changes."""
+    return bool(auto_on)
+
+
 class TranscriptionOptionsMixin:
     """`keep_model_loaded` and `auto_transcribe_received` for `SettingsDialog`."""
 
@@ -43,6 +49,13 @@ class TranscriptionOptionsMixin:
         # Transcriptions & Descriptions) and this one would write two texts for
         # the same message: turning either on turns the other off, after asking.
         self._transcription_auto_check.Bind(wx.EVT_CHECKBOX, self._on_local_auto_toggle)
+        # However old the messages are: only while the box above is ticked
+        # (shown and hidden with it, _sync_any_age_box).
+        self._transcription_any_age_check = wx.CheckBox(
+            page, label=i18n.t("transcription_auto_any_age_check")
+        )
+        sizer.Add(self._transcription_any_age_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        self._transcription_options_page = page
         # Only an AI page already built: one built later connects itself.
         ai_page = vars(self).get("_ai_page")
         if ai_page is not None:
@@ -85,10 +98,25 @@ class TranscriptionOptionsMixin:
         if self._transcription_auto_check.GetValue() and self._automatic_transcriptions()[1]:
             if not self._ask_replace_automatic("transcription_auto_replaces_online"):
                 self._transcription_auto_check.SetValue(False)
+                self._sync_any_age_box()
                 return
             # The AI page saves that choice: built now if it never was.
             self._ai_page.auto_transcribe.SetValue(False)
+        self._sync_any_age_box()
         event.Skip()
+
+    def _sync_any_age_box(self) -> None:
+        """"However old" means something only while the automatic
+        transcription is on: shown with it, hidden without it."""
+        box = vars(self).get("_transcription_any_age_check")
+        if box is None:
+            return
+        shown = any_age_box_shown(self._transcription_auto_check.GetValue())
+        if box.IsShown() != shown:
+            box.Show(shown)
+            page = vars(self).get("_transcription_options_page")
+            if page is not None:
+                page.Layout()
 
     def _confirm_online_replaces_local(self) -> bool:
         """The online automatic transcription is being turned on: True when the
@@ -98,6 +126,7 @@ class TranscriptionOptionsMixin:
         if not self._ask_replace_automatic("transcription_online_auto_replaces_local"):
             return False
         self._transcription_auto_check.SetValue(False)
+        self._sync_any_age_box()
         return True
 
     def _automatic_transcriptions(self) -> tuple:
@@ -182,6 +211,10 @@ class TranscriptionOptionsMixin:
         self._transcription_auto_check.SetValue(
             bool(section.get("auto_transcribe_received", False))
         )
+        self._transcription_any_age_check.SetValue(
+            bool(section.get("auto_any_age", False))
+        )
+        self._sync_any_age_box()
         self._transcription_no_dialog_check.SetValue(
             bool(section.get("run_without_dialog", False))
         )
@@ -190,6 +223,7 @@ class TranscriptionOptionsMixin:
         section = self.main_window.settings.setdefault("transcription", {})
         section["keep_model_loaded"] = self._transcription_keep_loaded_check.GetValue()
         section["auto_transcribe_received"] = self._transcription_auto_check.GetValue()
+        section["auto_any_age"] = self._transcription_any_age_check.GetValue()
         section["run_without_dialog"] = self._transcription_no_dialog_check.GetValue()
         section["auto_transcribe_statuses"] = self._transcription_status_auto_check.GetValue()
         section["status_cache_enabled"] = self._transcription_status_cache_check.GetValue()
@@ -214,6 +248,9 @@ class TranscriptionOptionsMixin:
         )
         self._transcription_auto_check.SetLabel(
             i18n.t("transcription_auto_transcribe_check")
+        )
+        self._transcription_any_age_check.SetLabel(
+            i18n.t("transcription_auto_any_age_check")
         )
         self._transcription_no_dialog_check.SetLabel(
             i18n.t("transcription_no_dialog_check")

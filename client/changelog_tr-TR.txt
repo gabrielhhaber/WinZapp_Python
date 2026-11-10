@@ -4,6 +4,42 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
+
+- Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler ve beklediğini söyler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.
+
+- Sohbeti temizle (Neonize): WinZapp'te bir sohbeti temizlemek artık telefonda da temizler. Önceden bildirim telefona ulaşmıyor, mesajlar sonraki eşitlemede geri geliyordu.
+
+- Otomatik yazıya dökme: bilgisayar hazırda bekletmeden ya da internetsiz kaldıktan sonra bir anda gelen sesli mesajlar artık yazıya dökülüyor. Bilgisayarın uyuduğu ya da bağlantısız kaldığı süre artık mesajın yaşına sayılmıyor ve kuyruk 100 mesaja kadar tutuyor.
+
+- Yerel yazıya dökme: otomatik yazıya dökme açıkken görünen yeni "…geç gelenleri de yazıya dök" seçeneği, alınan mesajları ne kadar eski olursa olsun yazıya döker.
+
+- Süreli mesajlar (Neonize): Ctrl+Shift+H ile kaydedilen sesler, fotoğraflar, videolar ve belgeler artık sohbetin süreli mesaj ayarına uyuyor.
+
+- Aramalar (Neonize): bir kişiye yaptığınız arama artık kendinizi aramışsınız gibi kendi sohbetinizde görünmüyor.
+
+- Grup mesajları (Neonize): bu bilgisayarın açamadığı bir mesaj artık WhatsApp Web'deki gibi telefonunuzdan da isteniyor. Önceden gönderenin cihazı yeniden göndermezse kayboluyordu.
+
+- Eşleştirme (Neonize): bağlanırken ne kadar geçmiş getirileceğini seçersiniz: yalnızca yeni mesajlar, 30 gün, 6 ay, 1 yıl, tüm geçmiş ya da gün, ay veya yıl olarak özel bir süre. Yaklaşık bir yıldan eski mesajlar yalnızca bu yolla gelir.
+
+- Eski mesajlar (Neonize): Home tuşu, WhatsApp Web'in durduğu yerde bile, telefonda başka mesaj kalmayana kadar daha eski mesajları istemeyi sürdürür.
+
+- Kanallar: bir kanalı takip etme ya da yöneticisi olma davetleri artık sohbette, kanalın adı ve davet edenin sözleriyle görünüyor. Enter kanalı açar.
+
+- Gürültü azaltıcı: Ayarlar, Ses içinde yeni "Gürültü azaltıcı ayarları" penceresi; sinirsel model ve çalıştığı işlemci: bilgisayarınki, CUDA 12 (yerel yazıya dökmenin bileşenlerini kullanır) ya da CUDA 13 ile bir NVIDIA kartı, veya Mac'te Core ML. Yalnızca eksik bileşenler, arka planda indirme seçeneğine uyularak indirilir ve oradan kaldırılabilir. Yeni bir kutu, sinirsel azaltıcı ile daha hızlı olan normal azaltıcı arasında seçim yapar.
+
+- Yerel yazıya dökme (whisper.cpp): Windows ARM64 bilgisayarlarda WinZapp yerel ARM64 sürümünü kullanır ve seçenek olarak CUDA 13'lü NVIDIA kartları için sürümü sunar.
+
+- Kanallar: WhatsApp hesabınıza sunduğunda "Kanalı düzenle..." içinde WhatsApp Web'deki gibi "Yönetici profilini güncellemelerde göster" var (WPPConnect).
+
+- Kanallar: Kanallar penceresindeki "İstatistikleri görüntüle..." yönettiğiniz bir kanalın istatistiklerini WhatsApp Web'in gösterdiği gibi okur (30 gün içindeki erişim, takipçiler, net takipçi, yeni takipçiler ve takibi bırakanlar, takipçiler ve diğerleri ile ülkeye göre), WPPConnect ve Neonize ile. WhatsApp bunları 100 takipçiden itibaren sunar.
+
+- Medya indirme: "Medya indiriliyor: X / Y" artık yalnızca henüz indirilmemiş medyayı sayıyor. Önceden önceki oturumlarda indirilenleri de sayıyordu ve neredeyse hiçbir şey inmemiş gibi görünüyordu (örneğin "723 / 728 işlendi (66 indirildi)", oysa diğer 659 zaten bilgisayardaydı).
+
+- Kanallar: "Kanal oluştur..." ve "Kanalı düzenle..." içinde Tepkiler seçeneği, takipçilerin güncellemelere nasıl tepki verebileceğini belirler (herhangi bir emoji, yalnızca varsayılan emojiler veya tepki yok), WhatsApp Web'deki gibi, WPPConnect ve Neonize ile.
+
+- Yıldızlı mesajlar: yeni bir pencere tüm sohbetlerdeki tüm yıldızlı mesajları gösteriyor (Alt+0 veya gezinme listesindeki "Yıldızlı mesajlar" satırı), bir arama alanıyla; Enter sohbeti mesajda açar, Delete yıldızı kaldırır. #708 numaralı önerinin karşılığı.
+
 - Ayarlar > Kullanıcı Arayüzü > Sohbetler: yeni "Mesaj listesinde otomatik odaklanan konum" seçeneği. "Kaldığınız yerden devam edin (son odaklanılan mesaj)" seçildiğinde, bir sohbete döndüğünüzde (bir sohbetten diğerine geçerken de) mesaj listesi, yeni okunmamış mesaj gelmiş olsun ya da olmasın, çıktığınızda bulunduğunuz mesajda olur. Okunmamış ayırıcısı ve mesaj olmayan diğer satırlar konum sayılmaz. Varsayılan yine "Okunmamış ayırıcısı veya son mesaj" seçeneğidir. Seçenek yalnızca listedeki mesajı belirler: odağın listeye mi yoksa mesaj alanına mı gideceğine hâlâ mevcut seçenek karar verir.
 
 - Yer işaretleri: Ayarlar > Kullanıcı Arayüzü > Sohbetler altında iki yeni onay kutusu, "Kalıcı yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır" ve "Geçici yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır". İşaretliyken bir yer işaretine gitmek (kalıcılar için Ctrl+0-9, geçiciler için Alt+Shift+0-9) onu hemen kaldırır; böylece aynı tuş bir dahaki sefere, Ctrl+Shift+rakam ile kaldırmaya gerek kalmadan yeni bir yer işareti oluşturur.
@@ -18,7 +54,27 @@ YENİLİKLER
 
 - Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.
 
-- Okunmamış filtresi: programı güncelledikten veya yeniden başlattıktan sonra okunmamış mesajı olan bazı sohbetler, F5 ile yeniden eşitleyene kadar filtreden kayboluyordu (örneğin 12 sohbet 9'a düşüyordu). Sayım artık sohbetin en eski mesajlarına değil, en yeni mesajlarına bakıyor.
+- Okunmamış filtresi: programı güncelledikten veya yeniden başlattıktan sonra okunmamış mesajı olan bazı sohbetler, F5 ile yeniden eşitleyene kadar filtreden kayboluyordu (örneğin 12 sohbet 9'a düşüyordu). Sayım artık sohbetin en eski mesajlarına değil, en yeni mesajlarına bakıyor. Son kayıtları grup bildirimleri (davetler, eklenen üyeler, açıklama değişikliği) olan grup sohbetleri de artık kaybolmuyor: bu bildirimler artık gerçek okunmamış mesajların yerini almıyor.
+
+- Alt+harf kısayolları: birkaç pencerede iki denetim aynı harfi kullanıyordu ve Alt+harf yalnızca aralarında geçiş yapıyordu. Artık bir penceredeki her denetimin kendi harfi var, tüm dillerde.
+
+- Sohbet listesi: seçilen filtre (Okunmamış, Gruplar, Bireysel), bir WhatsApp listesi veya arama hiç sohbet bulamadığında liste artık bunu söyleyen bir satır gösterir (örneğin "Okunmamış sohbet yok."); mesaj listesi boş bir sohbette bunu zaten yapıyordu. Önceden ekran okuyucunun okuyacak hiçbir şeyi olmuyordu.
+
+- Grup aramaları: WinZapp artık aramaya kimin katıldığını ve kimin ayrıldığını söylüyor (Ayarlar > Aramalar, "Biri aramaya katıldığında duyur" ve "Biri aramadan ayrıldığında duyur", varsayılan olarak açık) ve "Arama katılımcıları" penceresi bu anlarda Yenile düğmesi olmadan kendiliğinden güncelleniyor; F5 listeyi yeniden okur.
+
+- Genel kısayol: WinZapp'ın yanıt bekleyen bir penceresi açıkken, örneğin program sistem tepsisindeyken açık kalan güncelleme uyarısı, genel kısayol artık o pencereyi öne getiriyor. Önceden ana pencere açılıyor ve hiçbir şeye yanıt vermiyordu.
+
+- Yapay zekâ ile görsel açıklama: sağlayıcı hesabında kredi bittiğinde (OpenRouter 402 yanıtı verir) WinZapp artık bunu söylüyor ve model kimliğini kontrol etmeyi istemek yerine kredi eklemeyi veya ücretsiz bir model seçmeyi öneriyor; birden çok sağlayıcı varsa sonrakine geçiyor.
+
+- Bilgisayar sesiyle kayıt: yavaş bilgisayarlarda mikrofonu bilgisayar sesiyle birlikte kaydetmek (Ctrl+Shift+H) kesiliyor ve takılıyordu, NVDA'nın konuşması ayrı kaydedildiğinde daha da kötüsü; çünkü seslerin karıştırılması yetişemiyor ve kaydın parçaları kayboluyordu. Karıştırma artık kat kat daha hızlı ve kayıt eksiksiz çıkıyor.
+
+- Kanallar: WPPConnect'te yönettiğiniz bir kanalda paylaşım (metin, fotoğraf, video veya anket) WhatsApp'a ulaşmadan başarısız oluyordu ve açılan bir kanal yalnızca WhatsApp Web'de zaten olanı gösteriyordu; çoğu zaman hiç güncelleme yoktu (örneğin The New York Times) ve kendi yeni paylaşımlarınız da yoktu. Artık paylaşımlar gidiyor ve kanal, WhatsApp sunucusundan okunan en yeni güncellemelerin tam bir sayfasıyla açılıyor. Bir kanaldan Esc ile dönünce Kanallar penceresi bıraktığınız gibi: aynı liste, arama, kategori ve seçili kanal.
+
+- Güncellemeler: meşgul bir bilgisayarda güncelleme "WinZapp güncellemenin güvenle kurulabileceğini doğrulayamadı. Kurulum başlatılmadı." iletisiyle durabiliyordu, çünkü kurulumu koruyan PowerShell 15 saniyeden uzun sürede başlıyordu; artık bir dakikaya kadar süresi var. Neonize ile güncelleme yarıda da kalabiliyordu, köprü arka planda kapanmaya devam edip dosyasını açık tuttuğu için: kurulum programı artık dosyaları kopyalamadan önce onun kapanmasını bekliyor, gerekirse kapatıyor.
+
+- Neonize ile kanallar: bir kanalı açmak veya eşitlemek WhatsApp'tan bir kerede bin güncelleme istiyordu; sunucu yanıt vermiyor, kanal boş kalıyor ve eşitleme her 30 saniyede bir yeniden deniyordu. Artık güncellemeler WhatsApp Web'in yaptığı gibi 100'er 100'er isteniyor.
+
+- Mesaj listesi: Brezilya (ABNT2) klavyesinde mesaj listesinde "/" tuşuna basmak mesaj alanına "Á" yazıyordu ve "ç" "º" olarak çıkıyordu. Artık listede yazdıklarınız alana klavyenin gerçekten yazdığı gibi gidiyor, noktalama işaretleri ise listede kalıyor. Aynı nedenle, NVDA'nın Windows tuşlu hareketlerinin alana bıraktığı "ÿ", NVDA'nın kendisinin gönderdiği bir tuştan geliyordu; artık yalnızca o tuş yok sayılıyor ve gerçek bir "ÿ" yazılabiliyor.
 
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
@@ -62,7 +118,7 @@ YENİLİKLER
 - Ayarlar > Kullanıcı Arayüzü > Sohbetler: ekran okuyucunun yeni mesaj sayısını sohbet adından sonra değil önce söylemesi için yeni "Sohbet listesindeki yeni mesaj sayısı" seçeneği. Sohbet listesi, arşivlenmiş ve kilitli sohbetler için geçerlidir. (Michal Suchý'nin önerisi)
 
 - Yeni Kanallar penceresi (Alt+9, gezinti listesinde de var): takip ettiğiniz kanalları gösterir ya da WhatsApp kanal dizininde arama yapar (metin yazılmazsa önerilen kanallar görünür). Seçilen kanalı açıp güncellemelerini okuyabilir, takip edebilir ya da takibi bırakabilir, bildirimlerini sessize alabilir ya da açabilir, bağlantısını kopyalayabilir ve kendi kanallarınızda düzenleyebilir ya da silebilirsiniz. Bir kanalı bağlantısından takip edebilir ve kanal oluşturabilirsiniz. Kanalları sohbet listesinde göstermek ayrı bir ayar olarak kalır. WPPConnect ve Neonize ile çalışır.
-- WhatsApp Web'deki gibi kanallar: "Kanal bul" bölümünde Kategori (işletme, eğlence, yaşam tarzı, haberler, kuruluşlar, kişiler, spor) ve Görünüm (önerilenler, gündemdekiler, popüler, yeni) dizini daraltır. Yönettiğiniz kanallarda mesaj alanı metin güncellemeleri paylaşmak için açılır, bir güncelleme mesaj menüsünden (Ctrl+Shift+P) sabitlenebilir veya sabitlemesi kaldırılabilir ve sabitlenenler "Sabitlenen mesajlar" içinde görünür; "Yöneticiler ve takipçiler..." düğmesi kanalın kaç yöneticisi olduğunu söyler ve kanal sahibi için bir kişiyi yönetici olmaya davet eder veya daveti iptal eder. WPPConnect ve Neonize ile çalışır. Bu pencere sahibi, yöneticileri, bekleyen davetleri ve takipçileri listeler: sahip bir takipçiyi yönetici yapabilir, bir daveti iptal edebilir, bir yöneticiyi kaldırabilir veya bir yöneticiyi sahip yapabilir; bir yönetici de yöneticilikten ayrılabilir.
+- WhatsApp Web'deki gibi kanallar: "Kanal bul" bölümünde Kategori (işletme, eğlence, yaşam tarzı, haberler, kuruluşlar, kişiler, spor) ve Görünüm (önerilenler, gündemdekiler, popüler, yeni) dizini daraltır. Yönettiğiniz kanallarda mesaj alanı metin güncellemeleri, fotoğraf, video ve anket paylaşmak için açılır, kendi güncellemeleriniz WhatsApp'ın izin verdiği süre içinde mesaj menüsünden (Alt+E) düzenlenebilir, bir güncelleme mesaj menüsünden (Ctrl+Shift+P) sabitlenebilir veya sabitlemesi kaldırılabilir ve sabitlenenler "Sabitlenen mesajlar" içinde görünür; "Yöneticiler ve takipçiler..." düğmesi kanalın kaç yöneticisi olduğunu söyler ve kanal sahibi için bir kişiyi yönetici olmaya davet eder veya daveti iptal eder. WPPConnect ve Neonize ile çalışır. Bu pencere sahibi, yöneticileri, bekleyen davetleri ve takipçileri listeler: sahip bir takipçiyi yönetici yapabilir, bir daveti iptal edebilir, bir yöneticiyi kaldırabilir veya bir yöneticiyi sahip yapabilir; bir yönetici de yöneticilikten ayrılabilir.
 
 - Aramalar: artık aramanın katılımcı listesindeki "Katılımcı ekle" düğmesiyle devam eden aramaya kişi ekleyebilirsiniz. Grup aramasında grubun henüz aramada olmayan üyeleri, özel aramada ise kişileriniz görünür ve arama, WhatsApp'ta olduğu gibi birkaç kişilik bir aramaya dönüşür. Daha önce aranıp henüz katılmamış kişi yeniden aranır. WPPConnect ve Neonize ile çalışır.
 

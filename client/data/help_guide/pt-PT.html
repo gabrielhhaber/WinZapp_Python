@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>O valor deve ser igual ao da linha do ficheiro. Se for diferente, elimine e descarregue de novo. O atualizador do WinZapp também verifica a soma (e, nas versões mais novas, a assinatura) antes de instalar.</p>
 
+<p>No motor Neonize, a janela de ligação pergunta quanto histórico trazer ao ligar: só as mensagens recentes, 30 dias, 6 meses, 1 ano, todo o histórico ou um período personalizado (dias, meses ou anos, escrito no campo que aparece por baixo). O telemóvel envia o histórico uma vez, ao ligar; mensagens com mais de cerca de um ano só chegam assim. Se mudar a escolha com o código QR no ecrã, é gerado um novo código QR com ela.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -372,7 +374,7 @@
 
 <h3>Filtros e listas</h3>
 <ul>
-  <li><strong>Filtros:</strong> Tudo, Não lidas, Grupos e Individuais, em botões de opção. Alt+Shift+F leva até eles; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Tudo, Não lidas, Grupos e Individuais direto da lista.</li>
+  <li><strong>Filtros:</strong> Tudo, Não lidas, Grupos e Individuais, em botões de opção. Alt+Shift+F leva até eles; Alt+Shift+A, Alt+Shift+U, Alt+Shift+G e Alt+Shift+I escolhem Tudo, Não lidas, Grupos e Individuais direto da lista. Quando o filtro, uma lista do WhatsApp ou a pesquisa não encontram nenhuma conversa, a lista mostra uma linha que o diz, por exemplo "Nenhuma conversa não lida.".</li>
   <li><strong>Listas do WhatsApp:</strong> as suas listas personalizadas aparecem antes dos filtros. Dá para atualizá-las, filtrar por elas, criar ou renomear uma lista e adicionar ou remover conversas, em "Gerir listas do WhatsApp". A edição depende do suporte da sua conta; quando não é possível, o gerenciador diz o motivo. Conversas trancadas ou indisponíveis localmente não aparecem na seleção, e os demais membros da lista são preservados.</li>
   <li><strong>Pesquisa:</strong> Ctrl+F leva ao campo de pesquisa; a seta para baixo vai ao primeiro resultado. Em Definições &gt; Interface &gt; Conversas, "Manter a pesquisa de conversas ao abrir uma conversa, para o Esc voltar aos resultados em vez da lista completa" faz o Esc devolver o foco à conversa nos resultados, em vez de voltar à lista completa.</li>
 </ul>
@@ -507,6 +509,7 @@
 <h3>Marcar com estrela e afixar</h3>
 <ul>
   <li><strong>Marcar com estrela</strong> (Ctrl+Shift+O): os marcadas com estrela são sincronizados com o WhatsApp, e cada alteração é verificada. Para enviar ao WhatsApp os marcadas com estrela locais antigos, use "Sincronizar estrelas locais antigas com o WhatsApp" no menu da conversa.</li>
+  <li><strong>Mensagens marcadas com estrela</strong> (Alt+0, ou a linha "Mensagens marcadas com estrela" da lista de navegação): todas as mensagens marcadas com estrela de todas as conversas, das mais recentes para as mais antigas, lidas como conversa, remetente, texto e data. "Pesquisar nas marcadas com estrela" filtra a lista por qualquer palavra, sem diferenciar acentos nem maiúsculas; Enter ou "Abrir na conversa" abre a conversa nessa mensagem, e Delete ou "Desmarcar estrela" retira a estrela.</li>
   <li><strong>Afixar mensagem</strong> (Ctrl+Shift+P, quando o utilizador não está a gravar): um botão em cada conversa lista as mensagens afixadas no WhatsApp, inclusive antigas; Enter leva até a mensagem no histórico. Ao abrir a conversa, a quantidade de afixadas é anunciada sem mudar o foco.</li>
 </ul>
 
@@ -555,6 +558,8 @@
 
 <h3>Mensagens no chat correto</h3>
 <p>Mensagens: identidades alternativas em conflito já não encaminham mensagens enviadas a outra pessoa ou recebidas dela para a conversa consigo mesmo. As correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.</p>
+
+<p>No motor Neonize, a tecla Home no início da conversa pede ao telemóvel as mensagens mais antigas, um lote de cada vez, até ele não ter mais nada para enviar dessa conversa. O telemóvel costuma entregar assim cerca de um ano para trás; para trazer mais, escolha o período ao ligar.</p>
 
   </section>
 
@@ -631,6 +636,8 @@
 <h3>Trocar o dispositivo de áudio na hora</h3>
 <p>Ctrl+Alt+Shift+H abre a lista de dispositivos de reprodução e Ctrl+Alt+Shift+G a dos de gravação, numerados de 1 a 0: aperte o número para trocar na hora, ou use as setas e Enter. A troca vale para sons, mensagens de voz e chamadas (uma chamada em andamento muda sem cair), para todas as contas abertas, até o utilizador fechar o WinZapp. Os dispositivos definidos nas Definições não mudam.</p>
 
+<p>Em Definições > Áudio, o botão "Definições do redutor de ruído" abre a janela do redutor: o estado do modelo neural e o botão para o transferir, o processador em que funciona (o do computador, uma placa NVIDIA com CUDA 12 ou CUDA 13, ou o Core ML no Mac), os componentes de que esse processador ainda precisa, com o botão que transfere só os que faltam, e botões para remover os componentes e o modelo. O CUDA 12 aproveita o cuBLAS da transcrição local, e a troca de processador aplica-se a partir da próxima vez que o WinZapp abrir. Com a redução de ruído ligada e o modelo instalado, a caixa "Usar o redutor de ruído neural" escolhe entre ele e o redutor comum, mais rápido.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -687,6 +694,8 @@
 <p>Os dados da conversa têm uma única escolha para a transcrição automática: Nenhuma, Online com IA ou Local com Whisper. Assim a mesma mensagem nunca é transcrita duas vezes, e a escolha começa por seguir a opção geral até a mudar ali.</p>
 <p>Enter e Espaço, quando transcrevem, também transcrevem áudio e vídeo enviados como ficheiro.</p>
 <p>Mistral utiliza três modelos diferentes: o modelo para mensagens de voz para áudio, Ministral 3 3B por predefinição para fotografias, autocolantes e fotogramas de vídeo, e mistral-ocr-4 para extrair texto de PDFs. Escolha o modelo de áudio em "Modelo para mensagens de voz": Voxtral Mini Transcribe 3 (a predefinição) ou Voxtral Small Transcribe 3, mais preciso. Ambos estão em pré-visualização, pelo que a Mistral os pode alterar ou retirar. O campo Modelo e a obtenção de modelos selecionam apenas um modelo de visão; alterá-lo não muda a transcrição nem o OCR. OpenAI e Groq também utilizam modelos de áudio fixos, separados do modelo de visão escolhido; Groq não processa PDFs aqui. Gemini utiliza o modelo escolhido para todos os conteúdos compatíveis. A disponibilidade não garante utilização gratuita: consulte a quota incluída e os limites do fornecedor. O OCR da Mistral extrai texto, sem descrever as imagens dentro do PDF. No plano gratuito Experiment da Mistral, os pedidos podem ser utilizados para treinar os seus modelos, a menos que desative esta opção na sua conta Mistral; o WinZapp avisa disso antes de enviar conteúdos para a Mistral.</p>
+
+<p>Com a transcrição automática ligada, a opção "Transcrever também as que chegarem atrasadas" transcreve as mensagens recebidas por mais antigas que sejam (por exemplo, todas as que chegam de uma vez quando o computador volta a ligar). Sem ela, vale o limite de idade escolhido; o tempo em que o computador dormiu ou esteve sem Internet não conta como idade. Em computadores com Windows ARM64, o whisper.cpp usa a versão nativa para ARM64, e a versão para placas NVIDIA com CUDA 13 é oferecida como opção.</p>
 
   </section>
 
@@ -762,7 +771,7 @@
 </div>
 <p>Ao reinstalar a WPPConnect, o WinZapp preserva um catálogo mais recente e compatível do WhatsApp Web e procura um catálogo atualizado. Sem internet, um catálogo utilizável é mantido, mas não é possível confirmar se está atualizado. Se a chamada ainda não iniciar, restabeleça a internet e reinicie o WinZapp. Uma incompatibilidade confirmada do VoIP que não permite nova tentativa é comunicada sem repetir a inicialização.</p>
 <p>Enquanto a conversa de um grupo está aberta, o WinZapp verifica se há uma chamada em curso aproximadamente a cada dez segundos. O botão para entrar aparece apenas quando há uma chamada disponível e desaparece quando termina. Ao entrar numa chamada de vídeo, a câmara começa desligada. Entrar numa chamada existente não utiliza o limite de 32 membros para iniciar uma nova chamada de grupo. Quando há uma chamada disponível, o botão "Entrar na chamada de voz em curso" ou, numa chamada de vídeo, "Entrar na chamada de vídeo em curso (câmara desligada)" substitui os botões de iniciar chamadas de voz e vídeo. Em Chamadas (Alt+6), o filtro Em curso lista as chamadas em que pode entrar, incluindo chamadas entre várias pessoas fora dos grupos; também aparecem primeiro em Todas. Selecione uma chamada e prima Enter ou utilize o mesmo botão para entrar. Se já estiver nessa chamada, o botão chama-se "Voltar à chamada" e traz a janela da chamada atual para a frente. A lista é atualizada aproximadamente a cada dez segundos enquanto Chamadas está aberta e inclui apenas chamadas que o WhatsApp disponibiliza para a sua conta.</p>
-<p>Utilize o botão "Participantes da chamada" na janela da chamada ou numa chamada em curso selecionada em Chamadas para ver os nomes das pessoas ligadas. A lista é atualizada a cada dez segundos; "Atualizar" pede os dados atuais e "Fechar" ou Esc fecha a janela. Pessoas convidadas ou desligadas não aparecem. Consultar a lista não o faz entrar na chamada nem a termina.</p>
+<p>Utilize o botão "Participantes da chamada" na janela da chamada ou numa chamada em curso selecionada em Chamadas para ver os nomes das pessoas ligadas. A lista atualiza-se sozinha quando alguém entra ou sai da chamada; F5 lê de novo e "Fechar" ou Esc fecha a janela. Numa chamada de grupo, o WinZapp também diz quem entrou e quem saiu (Definições &gt; Chamadas, "Anunciar quando alguém entra na chamada" e "Anunciar quando alguém sai da chamada", ativadas por predefinição). Pessoas convidadas ou desligadas não aparecem. Consultar a lista não o faz entrar na chamada nem a termina.</p>
 
 <h3>Continuidade do áudio das chamadas</h3>
 <p>O Neonize mantém áudio atrasado, tarefas de câmara e mudanças de dispositivo associados à chamada e ao fluxo que os iniciaram. Os dados pendentes de um fluxo terminado ou substituído são descartados, e a acumulação de dados é limitada. Uma falha temporária ao encaminhar um quadro para o cliente não interrompe permanentemente a leitura de áudio. Ao reabrir a saída, o fluxo antigo não pode consumir o áudio do novo fluxo; uma falha na referência de eco não silencia o áudio já preparado para reprodução. Uma correspondência parcial ambígua do nome de um dispositivo WASAPI mantém a API original, sem escolher uma correspondência arbitrária.</p>
@@ -791,14 +800,17 @@
 <p>O painel Comunidades (ou "Nova conversa" &gt; "Comunidades") lista as comunidades em que o utilizador está. Ao escolher uma, aparecem a descrição, os administradores e os grupos dela em que o utilizador entrou, com o grupo de avisos e o grupo geral identificados; Enter ou "Abrir grupo" vai ao grupo. Se o utilizador administra a comunidade: "Adicionar grupos", "Remover grupo da comunidade", "Promover a administrador da comunidade", "Despromover administrador da comunidade" e "Desativar comunidade". "Nova comunidade" cria uma com nome, descrição e os grupos escolhidos. Depois de cada ação o WinZapp lê as comunidades de novo e só diz que terminou quando o WhatsApp mostra a alteração; senão avisa que o encomenda foi enviado mas não está confirmado, ou que foi recusado.</p>
 
 <h3>Canais (Alt+9)</h3>
-<p>A janela Canais (Alt+9, ou o item Canais da lista de navegação) mostra "Os meus canais", os canais que segue, ou "Encontrar canais": escreva em "Procurar canais" e prima Enter; sem texto, aparecem os canais recomendados do WhatsApp. Em "Detalhes" ficam a descrição, o número de seguidores, se segue, administra ou é dono do canal, e a ligação. Enter ou "Abrir canal" abre o canal para ler as atualizações. Os botões "Seguir" e "Deixar de seguir", "Silenciar notificações" e "Ativar notificações", "Copiar ligação", "Seguir por ligação..." (cole a ligação do canal) e "Criar canal..." valem para qualquer canal; "Editar canal..." aparece nos canais que administra e "Eliminar canal" nos que são seus. Mostrar os canais na lista de conversas continua a ser uma opção de Definições &gt; Interface &gt; Conversas.</p>
-<p>Em "Encontrar canais", as escolhas Categoria e Lista filtram o diretório como as opções do WhatsApp Web: escolha uma categoria (ou "Todas as categorias") e uma lista (recomendados, tendências, populares ou novos) e prima Procurar ou Enter. Com texto em "Procurar canais", a pesquisa fica só na categoria escolhida. Nos canais que administra, o campo de mensagem fica disponível ao abrir o canal: escreva e envie para publicar uma atualização de texto (áudio e anexos não). Pelo menu da mensagem, ou Ctrl+Shift+P, afixa ou desafixa uma atualização, e as afixadas aparecem no botão "Mensagens afixadas". O botão "Administradores e seguidores..." da janela Canais diz quantos administradores o canal tem; o dono também pode usar "Convidar administrador..." (escolha o contacto e, se quiser, uma mensagem: o convite chega à conversa da pessoa e ela passa a ser administradora quando o aceitar) e "Cancelar convite de administrador...". Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de o ser.</p>
+<p>A janela Canais (Alt+9, ou o item Canais da lista de navegação) mostra "Os meus canais", os canais que segue, ou "Encontrar canais": escreva em "Procurar canais" e prima Enter; sem texto, aparecem os canais recomendados do WhatsApp. Em "Detalhes" ficam a descrição, o número de seguidores, se segue, administra ou é dono do canal, e a ligação. Enter ou "Abrir canal" abre o canal para ler as atualizações. Os botões "Seguir" e "Deixar de seguir", "Silenciar notificações" e "Ativar notificações", "Copiar ligação", "Seguir por ligação..." (cole a ligação do canal) e "Criar canal..." valem para qualquer canal; "Editar canal..." aparece nos canais que administra e "Eliminar canal" nos que são seus. Mostrar os canais na lista de conversas continua a ser uma opção de Definições &gt; Interface &gt; Conversas. Em "Criar canal..." e "Editar canal...", a escolha Reações define como os seguidores podem reagir às atualizações, como nas definições de canal do WhatsApp Web: qualquer emoji, só os emojis predefinidos ou nenhuma reação; os Detalhes indicam a escolha do canal. Num canal que administra, "Ver estatísticas..." lê as estatísticas dos últimos 30 dias, como o WhatsApp Web as mostra: contas alcançadas, seguidores, saldo de seguidores, novos seguidores e quem deixou de seguir, o alcance entre quem segue e quem não segue, e por país. O WhatsApp oferece-as a partir de 100 seguidores. Onde o WhatsApp o oferece à sua conta, "Editar canal..." também tem "Mostrar o perfil do administrador nas atualizações", como nas informações do canal do WhatsApp Web (WPPConnect).</p>
+<p>Em "Encontrar canais", as escolhas Categoria e Lista filtram o diretório como as opções do WhatsApp Web: escolha uma categoria (ou "Todas as categorias") e uma lista (recomendados, tendências, populares ou novos) e prima Procurar ou Enter. Com texto em "Procurar canais", a pesquisa fica só na categoria escolhida. Nos canais que administra, o campo de mensagem fica disponível ao abrir o canal: escreva e envie para publicar uma atualização de texto; também é possível publicar fotografias, vídeos e sondagens, com os mesmos comandos de anexar e de criar sondagem das conversas (áudio e outros ficheiros não). Pelo menu da mensagem, ou Ctrl+Shift+P, afixa ou desafixa uma atualização, e as afixadas aparecem no botão "Mensagens afixadas". O botão "Administradores e seguidores..." da janela Canais diz quantos administradores o canal tem; o dono também pode usar "Convidar administrador..." (escolha o contacto e, se quiser, uma mensagem: o convite chega à conversa da pessoa e ela passa a ser administradora quando o aceitar) e "Cancelar convite de administrador...". Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de o ser.</p>
+<p>Em "Encontrar canais", escolher outra categoria ou outra lista já procura de novo. A janela Canais e a janela "Administradores e seguidores..." atualizam-se sozinhas quando segue, deixa de seguir ou silencia um canal, quando muda o seu papel, o nome ou a descrição de um canal e quando muda quem o administra, também a partir do telemóvel. F5 lê a lista de novo (por exemplo, para ver novos seguidores); é possível trocar este atalho nas Definições. Nos canais que administra, as suas atualizações de texto podem ser editadas pelo menu da mensagem ou com Alt+E, dentro do prazo de edição do WhatsApp. Num canal aberto pela janela Canais, Esc volta a essa janela como a deixou: a mesma lista, pesquisa, categoria e canal selecionado. Um canal abre com uma página inteira das atualizações mais recentes, lidas do servidor do WhatsApp.</p>
 
 <h3>Menções e respostas</h3>
 <p>Uma pessoa mencionada pelo nome com @todos mantém o chamada; a menção ao utilizador, na notificação e na prévia, usa a palavra escolhida em "Como se referir a mim?". Em Definições &gt; Interface &gt; Mensagens, "Ocultar números de telefone de remetentes sem nome nas mensagens" faz mensagens de pessoas sem nome começarem direto pelo conteúdo. Em Definições &gt; Interface &gt; Conversas, "Preceder os nomes de contactos não guardados com um sinal de til (~) nas conversas e mensagens" (ligada por predefinição) mostra um til antes do nome de quem não guardou, nas conversas e nas mensagens.</p>
 
 <h3>Grupos de uma comunidade</h3>
 <p>Na lista de comunidades, Enter vai para os grupos da comunidade, e "Abrir o grupo mais recente" abre o grupo com atividade mais recente, dizendo o nome dele. "Filtrar grupos" mostra todos os grupos, aqueles em que participa ou aqueles em que não participa; um grupo em que não participa di-lo na linha. Num deles, "Entrar no grupo" faz com que entre ou, quando o grupo exige aprovação, "Pedir para entrar no grupo" envia o pedido, que "Cancelar pedido para entrar no grupo" retira.</p>
+
+<p>Convites para seguir um canal ou para ser administrador dele aparecem na conversa como "Convite para seguir o canal..." (ou "para ser administrador do canal..."), com a mensagem de quem convidou. Enter abre o canal, onde o pode seguir.</p>
 
   </section>
 
@@ -1032,6 +1044,7 @@
 <tr><td class="field-name">Ctrl+Alt+Shift+G</td><td>Mudar o dispositivo de gravação até fechar o WinZapp, em todas as contas abertas (em seguida, 1 a 0)</td></tr>
 <tr><td class="field-name">Alt+8</td><td>Abrir comunidades</td></tr>
 <tr><td class="field-name">Alt+9</td><td>Abrir canais</td></tr>
+<tr><td class="field-name">Alt+0</td><td>Abrir mensagens marcadas com estrela</td></tr>
 <tr><td class="field-name">Ctrl+Shift+F10 a 9</td><td>Abrir um chat de acesso rápido atribuído</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+F10 a 9</td><td>Atribuir o chat com foco a um número de acesso rápido</td></tr>
 <tr><td class="field-name">Ctrl+Alt+Shift+M</td><td>Marcar todas as conversas como lidas</td></tr>
@@ -1336,6 +1349,21 @@
 <tr><td class="field-name">Alt+S</td><td>Silenciar alerta</td></tr>
 <tr><td class="field-name">Alt+F</td><td>Fechar janela</td></tr>
 </table>
+<h3>Participantes da chamada</h3>
+<table class="field-table">
+<tr><th>Atalho</th><th>Ação</th></tr>
+<tr><td class="field-name">F5</td><td>Ler de novo os participantes</td></tr>
+</table>
+<h3>Janela Canais</h3>
+<table class="field-table">
+<tr><th>Atalho</th><th>Ação</th></tr>
+<tr><td class="field-name">F5</td><td>Ler de novo a lista de canais</td></tr>
+</table>
+<h3>Administradores e seguidores do canal</h3>
+<table class="field-table">
+<tr><th>Atalho</th><th>Ação</th></tr>
+<tr><td class="field-name">F5</td><td>Ler de novo os administradores e seguidores</td></tr>
+</table>
 <h3>Comandos sem tecla definida</h3>
 <p>Estes comandos existem no separador Atalhos de teclado das Definições, mas vêm sem tecla. Escolha uma aí se os quiser usar.</p>
 <table class="field-table">
@@ -1427,9 +1455,36 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Associação de chamadas e fluxos, processamento limitado de dados e diagnóstico do sinal sem conteúdo de áudio.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Janela Adicionar participantes acessível com leitor de ecrã: marcação com som e anúncios, e resultado dito em voz alta.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Neonize: estados "Adiciona o teu", de pergunta e de autocolante animado deixam de aparecer como mensagem incompatível.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Janelas de canais atualizadas sozinhas pelos eventos do WhatsApp, F5 configurável e edição das suas atualizações de texto.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Lista de conversas: linha que o diz quando o filtro, a lista ou a pesquisa não encontram nenhuma conversa.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Chamadas de grupo: quem entra e quem sai é anunciado (duas opções em Definições &gt; Chamadas) e a lista de participantes atualiza-se sozinha; F5 lê de novo.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Gravação com o áudio do computador sem cortes nem engasgos em computadores mais lentos.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais na WPPConnect: publicar volta a funcionar e o canal abre com uma página inteira das atualizações mais recentes; Esc volta à janela Canais como a deixou.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Atualização: o PowerShell que protege a instalação tem até um minuto para arrancar, e no Neonize o instalador espera que a ponte feche antes de copiar.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais no Neonize: as atualizações são pedidas de 100 em 100, e o canal já não fica vazio.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Lista de mensagens: "/" já não escreve "Á" no campo de mensagem num teclado ABNT2.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens marcadas com estrela: janela com as de todas as conversas (Alt+0).</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais: escolha Reações ao criar e editar um canal.</td></tr>
+
 <tr><td class="field-name">Ainda não lançado</td><td>Gerir contas: caixa para ligar todas as contas ao iniciar o WinZapp.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Ligações do WhatsApp: ligações de conversa (wa.me, api.whatsapp.com) abrem a conversa com o texto pronto, e a versão instalada aparece em Aplicações predefinidas.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Sons: escolha do som das mensagens com o WinZapp em primeiro plano, para a conversa aberta e para as restantes conversas.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Descarga de ficheiros multimédia: a contagem considera só os que ainda faltam descarregar.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais: estatísticas do canal para quem o administra.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais: Mostrar o perfil do administrador nas atualizações, onde o WhatsApp o oferece.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: um modelo carregado de cada vez no computador.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Limpar conversa (Neonize): limpa também no telemóvel.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição automática depois de hibernar ou ficar sem Internet.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: transcrever também as que chegarem atrasadas.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens temporárias (Neonize): áudios e ficheiros seguem a duração.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Chamadas (Neonize): a chamada feita já não vai para a conversa pessoal.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens de grupo (Neonize): pedidas ao telemóvel quando não abrem.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Associação (Neonize): escolha de quanto histórico trazer.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens antigas (Neonize): Home pede até não haver mais.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais: convites para seguir ou administrar aparecem na conversa.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Redutor de ruído: janela própria, processador, componentes e neural ou comum.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: whisper.cpp nativo no Windows ARM64, com CUDA 13.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Menções: @todos já não lista cada participante ao abrir o grupo.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde parou; marcadores removidos automaticamente após a primeira utilização.</td></tr>
 </table>
 

@@ -718,6 +718,21 @@ class ConversationSyncMixin:
         # Snapshot the actual response before merging preserved/late cache rows.
         refresh_summary = fetched_page_summary(
             all_messages, known_ids_before, newest_cached_before) if api_ok else None
+        hand_over = getattr(self, "_auto_process_caught_up", None)
+        if api_ok and callable(hand_over):
+            # Messages the live event missed (a sleep, a dropped socket) reach
+            # the automatic transcription/descriptions from here instead. Never
+            # at the cost of the sync itself.
+            try:
+                from core.transcription import auto_queue
+                caught_up = auto_queue.caught_up_arrivals(
+                    all_messages, known_ids_before, newest_cached_before)
+                if caught_up:
+                    wx.CallAfter(hand_over, remote_jid, caught_up)
+            except Exception as exc:
+                logging.warning("[sync_chat_messages] could not hand caught-up "
+                                "messages to the automatic processing: %s",
+                                type(exc).__name__)
         if fetched_ids_out is not None and api_ok:
             fetched_ids_out.update(
                 (m.get("key") or {}).get("id") for m in all_messages

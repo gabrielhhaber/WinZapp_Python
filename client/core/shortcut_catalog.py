@@ -26,6 +26,7 @@ SHORTCUTS = (
     Shortcut('main.ID_CTRL_ALT_SHIFT_G', 'main', 'ID_CTRL_ALT_SHIFT_G', 'shortcut_ctrl_alt_shift_g_label', 7, 71, 0),
     Shortcut('main.ID_COMMUNITIES', 'main', 'ID_COMMUNITIES', 'shortcut_alt8_communities_label', 1, 56, 0),
     Shortcut('main.ID_CHANNELS', 'main', 'ID_CHANNELS', 'shortcut_alt9_channels_label', 1, 57, 0),
+    Shortcut('main.ID_STARRED', 'main', 'ID_STARRED', 'shortcut_alt0_starred_label', 1, 48, 0),
     # F1..F9 select slots 1..9, and F10 selects slot 0.  Preserve every
     # existing numbered bookmark shortcut in the messages context.
     *(Shortcut(f'main.quick_chat_open[{digit}]', 'main', f'quick_chat_open[{digit}]',
@@ -221,6 +222,9 @@ SHORTCUTS = (
     Shortcut('calls.ID_ALT_L', 'calls', 'ID_ALT_L', 'shortcut_calls_alt_l_label', 1, 76, 0),
     Shortcut('calls.ID_CTRL_SHIFT_R', 'calls', 'ID_CTRL_SHIFT_R', 'shortcut_calls_ctrl_shift_r_label', 6, 82, 0),
     Shortcut('calls.ID_F5', 'calls', 'ID_F5', 'shortcut_calls_f5_label', 0, 344, 0),
+    Shortcut('channels.ID_F5', 'channels', 'ID_F5', 'shortcut_channels_f5_label', 0, 344, 0),
+    Shortcut('channel_people.ID_F5', 'channel_people', 'ID_F5', 'shortcut_channel_people_f5_label', 0, 344, 0),
+    Shortcut('call_participants.ID_F5', 'call_participants', 'ID_F5', 'shortcut_call_participants_f5_label', 0, 344, 0),
     Shortcut('media.ID_CTRL_LEFT', 'media', 'ID_CTRL_LEFT', 'shortcut_ctrl_left_label', 2, 314, 0),
     Shortcut('media.ID_CTRL_RIGHT', 'media', 'ID_CTRL_RIGHT', 'shortcut_ctrl_right_label', 2, 316, 0),
     Shortcut('media.ID_CTRL_SHIFT_S', 'media', 'ID_CTRL_SHIFT_S', 'shortcut_ctrl_shift_s_label', 6, 83, 0),

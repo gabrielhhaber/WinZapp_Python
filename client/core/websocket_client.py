@@ -23,6 +23,7 @@ from core.message_stars import remote_star_state
 from core.reaction_echo import reaction_echo_keys, take_matching_send
 from core.meta_ai import rich_response_text
 from core.polls import poll_message_from_wpp
+from core import channel_invites
 from core.sync_contracts import observe_payload
 from core.vcard_payload import contact_message_payload
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
@@ -372,6 +373,8 @@ class WebSocketClient:
         self.sio.on("presence.update", self.on_presence_update)
         self.sio.on("groups.update", self.on_groups_update)
         self.sio.on("announcement-replies", self.on_announcement_replies)
+        self.sio.on("channels-changed", self.on_channels_changed)
+        self.sio.on("call-participants", self.on_call_participants)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
         # WPPConnect emits asynchronously via Socket.IO after /start-session.
@@ -2431,6 +2434,41 @@ class WebSocketClient:
         except Exception:
             logging.exception("[WebSocketClient] announcement-replies failed")
 
+    def on_channels_changed(self, data):
+        """A followed channel was followed, left, muted or changed role, here
+        or on another device (channelsWatchBridge.ts; channel_events.py on
+        Neonize): the open Channels window reads its list again."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            if not str(data.get("id") or "").endswith("@newsletter"):
+                return
+            wx.CallAfter(self._channels_changed_on_ui, str(data["id"]))
+        except Exception:
+            logging.exception("[WebSocketClient] channels-changed failed")
+
+    def on_call_participants(self, data):
+        """Who is connected to a group call changed (callParticipantsBridge.ts;
+        call_media.report_rosters on Neonize): the whole connected list."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            call_id, connected = data.get("callId"), data.get("connected")
+            if (not isinstance(call_id, str) or not call_id or not isinstance(connected, list)
+                    or len(connected) > 1024 or not all(isinstance(j, str) for j in connected)):
+                return
+            wx.CallAfter(self.main_window.on_call_participants, call_id, list(connected))
+        except Exception:
+            logging.exception("[WebSocketClient] call-participants failed")
+
+    def _channels_changed_on_ui(self, channel_id=""):
+        dialog = getattr(self.main_window, "_channels_dialog", None)
+        if dialog is not None:
+            dialog.on_channels_changed()
+        people = getattr(self.main_window, "_channel_people_dialog", None)
+        if people is not None:
+            people.on_channels_changed(channel_id)
+
     def on_wpp_reaction(self, data):
         try:
             if not isinstance(data, dict) or not self._belongs_to_this_session(data):
@@ -3048,6 +3086,11 @@ class WebSocketClient:
             message_content = {
                 "pollCreationMessage": poll_message_from_wpp(wpp_msg)
             }
+        elif msg_type in channel_invites.WPP_TYPES:
+            # an invitation to follow a channel or to be its admin
+            invite = channel_invites.from_wpp(msg_type, wpp_msg)
+            if invite is not None:
+                msg_type, message_content = invite
         elif msg_type == "buttons":
             message_content = {
                 "buttonsMessage": {

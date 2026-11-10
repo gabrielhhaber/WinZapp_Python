@@ -104,7 +104,8 @@ class _Stub:
             self._exhausted_chats.add(jid)
         return page
 
-    def request_older_messages(self, jid, outcome_out=None, expected_context=None):
+    def request_older_messages(self, jid, outcome_out=None, expected_context=None,
+                               user_asked=False):
         self.requested.append(jid)
         return True
 

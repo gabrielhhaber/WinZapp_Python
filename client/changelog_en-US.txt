@@ -4,6 +4,42 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.
+
+- Local transcription: switching accounts while voice notes are transcribed no longer fills the computer's memory. One model is loaded at a time: a second transcription, of the same account or another, waits for the first and says it is waiting, and an account's idle model is released when another one needs the card.
+
+- Clear chat (Neonize): clearing a chat in WinZapp now clears it on the phone too. The notice used to miss the phone, and the messages came back at the next sync.
+
+- Automatic transcription: voice notes that arrive all at once after the computer hibernated or was offline are now transcribed. The time the computer slept or was offline no longer counts as a message's age, and the queue holds up to 100 messages.
+
+- Local transcription: a new option, "Also transcribe the ones that arrive late", shown with automatic transcription on, transcribes received messages however long ago they were sent.
+
+- Disappearing messages (Neonize): audio recorded with Ctrl+Shift+H, photos, videos and documents now follow the chat's disappearing messages timer.
+
+- Calls (Neonize): a call you place to a contact no longer shows up in your own chat, as if you had called yourself.
+
+- Group messages (Neonize): a message this computer could not open is now asked of your phone too, as WhatsApp Web does. It used to be lost when the sender's device did not send it again.
+
+- Pairing (Neonize): when connecting, you choose how much history to bring: recent messages only, 30 days, 6 months, 1 year, all the history or a custom period in days, months or years. Messages older than about a year only arrive this way.
+
+- Older messages (Neonize): the Home key goes on asking the phone for older messages until it has nothing more, even where WhatsApp Web stops.
+
+- Channels: invitations to follow a channel or to be one of its admins now show in the chat, with the channel's name and the inviter's words. Enter opens the channel.
+
+- Noise reducer: a new "Noise reducer settings" window in Settings, Audio, with the neural model and the processor it runs on: the computer's, an NVIDIA card with CUDA 12 (which uses the local transcription's components) or with CUDA 13, or Core ML on a Mac. Only the missing components are downloaded, following the option to download in the background, and they can be removed there. A new box chooses between the neural reducer and the common one, which is faster.
+
+- Local transcription (whisper.cpp): on Windows ARM64 computers WinZapp uses the native ARM64 build and offers, as an option, the build for NVIDIA cards with CUDA 13.
+
+- Channels: where WhatsApp offers it to your account, "Edit channel..." has "Show admin profile on updates", as in WhatsApp Web (WPPConnect).
+
+- Channels: "Insights..." in the Channels window reads the statistics of a channel you administer, as WhatsApp Web shows them (reach, followers, net followers, new followers and unfollows over 30 days, by followers and others and by country), on WPPConnect and Neonize. WhatsApp has them from 100 followers on.
+
+- Media downloads: "Downloading media: X of Y" now counts only the media still to download. It used to count the ones downloaded in earlier sessions too, and it looked as if almost nothing had come down (for example "723 of 728 processed (66 downloaded)", when the other 659 were already on the computer).
+
+- Channels: in "Create channel..." and "Edit channel...", Reactions sets who may react to the updates (any emoji, default emojis only or no reactions), as in WhatsApp Web, on WPPConnect and Neonize.
+
+- Starred messages: a new window lists every starred message of every chat (Alt+0, or the "Starred messages" row of the navigation list), with a search field; Enter opens the chat on the message, and Delete removes the star. Suggested in issue #708.
+
 - Settings > User Interface > Chats: new option "Automatically focused position in the messages list". With "Continue where you left off (last focused message)", going back to a chat (including switching from one chat to another) puts the messages list on the message you were on when you left, whether or not new unread messages arrived. The unread separator and other rows that are not messages never count as a position. The default is still "Unread separator or last message". The option only chooses the message in the list: whether focus goes to the list or to the message field is still decided by the existing option.
 
 - Bookmarks: two new checkboxes in Settings > User Interface > Chats, "Remove permanent bookmarks automatically after the first use" and "Remove temporary bookmarks automatically after the first use". When checked, jumping to a bookmark (Ctrl+0 to 9 for permanent ones, Alt+Shift+0 to 9 for temporary ones) removes it right away, so the same key sets a new bookmark next time, without removing it with Ctrl+Shift+number.
@@ -18,7 +54,27 @@ WHAT'S NEW
 
 - Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.
 
-- Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest.
+- Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest. Group conversations whose latest entries were group notices (invites, members added, a description change) no longer vanish either: those notices no longer take the place of the real unread messages.
+
+- Alt+letter shortcuts: in several windows two controls used the same letter, so Alt+letter only moved between them (in some languages, for example, "Refresh" and "Add participants" in the call participants window). Each control in a window now has its own letter, in every language.
+
+- Chat list: when the chosen filter (Unread, Groups, Individual), a WhatsApp list or the search finds no chat, the list shows one row saying so (for example "No unread chats."), as the message list already did for an empty chat, instead of leaving the screen reader nothing to read.
+
+- Group calls: WinZapp now says who joins and who leaves the call (Settings > Calls, "Announce when someone joins a call" and "Announce when someone leaves a call", on by default), and the "Call participants" window updates by itself when it happens, with no Refresh button; F5 reads the list again.
+
+- Global hotkey: with a WinZapp window waiting for an answer, such as the update prompt left open while the program was in the tray, the global hotkey now brings that window to the front. The main window used to come up and answer nothing.
+
+- AI image descriptions: when the provider's account runs out of credit (OpenRouter answers 402), WinZapp now says so and suggests adding credits or choosing a free model, instead of asking to check the model identifier; with several providers it moves on to the next one.
+
+- Recording with computer audio: on slower computers, recording the microphone together with the computer's audio (Ctrl+Shift+H) skipped and stuttered, worst with NVDA's speech recorded separately, because mixing the sounds could not keep up and pieces of audio were lost. The mixing is now many times faster and the recording comes out whole.
+
+- Channels: on WPPConnect, posting to a channel you administer (text, photo, video or poll) failed before reaching WhatsApp, and an open channel showed only what WhatsApp Web already held, often no updates at all (The New York Times, for example) and none of your own new posts. Posts now go out, and a channel opens on a whole page of its newest updates, read from WhatsApp's server. Coming back from a channel with Esc, the Channels window is as you left it: the same list, search, category and selected channel.
+
+- Updates: on a busy computer an update could stop with "WinZapp could not verify that it is safe to install the update. Installation was not started.", because the PowerShell that guards the install took more than 15 seconds to start; it now gets up to a minute. With Neonize, an update could also stop halfway, the bridge still closing in the background and holding its file: the installer now waits for it to close, and closes it if needed, before copying the files.
+
+- Channels with Neonize: opening or syncing a channel asked WhatsApp for a thousand updates at once; the server did not answer, the channel stayed empty and the sync tried again every 30 seconds. Updates are now asked 100 at a time, as WhatsApp Web does.
+
+- Message list: on a Brazilian (ABNT2) keyboard, pressing "/" in the message list wrote "Á" into the message field, and "ç" came out as "º". Typing in the list now sends the field the letter or digit the keyboard really types, and punctuation stays in the list. For the same reason, the "ÿ" that NVDA gestures with the Windows key left in the field came from a key NVDA itself injects; only that key is ignored now, and a real "ÿ" can be typed.
 
 - Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
 
@@ -62,7 +118,7 @@ WHAT'S NEW
 - Settings > User Interface > Chats: new option "Number of new messages in the chat list", so the screen reader says the number of new messages before the chat name instead of after it. It applies to the chat list, the archived chats and the locked chats. (suggested by Michal Suchý)
 
 - New Channels window (Alt+9, also in the navigation list): it shows the channels you follow or searches WhatsApp's channel directory (with no text, the recommended channels). For the chosen channel you can open it and read its updates, follow or unfollow it, mute or unmute its notifications, copy its link and, for your own channels, edit or delete it. You can also follow a channel from its link and create a channel. Showing channels in the conversation list is still a separate setting. Works with WPPConnect and Neonize.
-- Channels, as on WhatsApp Web: in "Find channels", Category (business, entertainment, lifestyle, news, organizations, people, sports) and View (recommended, trending, popular, new) narrow the directory. In the channels you administer, the message field opens to post text updates, an update can be pinned or unpinned from the message menu (Ctrl+Shift+P) and the pinned ones show in "Pinned messages"; the "Admins and followers..." button says how many admins the channel has and, for its owner, invites a contact to be an admin or cancels the invite. Works with WPPConnect and Neonize. That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.
+- Channels, as on WhatsApp Web: in "Find channels", Category (business, entertainment, lifestyle, news, organizations, people, sports) and View (recommended, trending, popular, new) narrow the directory. In the channels you administer, the message field opens to post text updates, photos, videos and polls, your own can be edited from the message menu (Alt+E) within WhatsApp's edit window, an update can be pinned or unpinned from the message menu (Ctrl+Shift+P) and the pinned ones show in "Pinned messages"; the "Admins and followers..." button says how many admins the channel has and, for its owner, invites a contact to be an admin or cancels the invite. Works with WPPConnect and Neonize. That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.
 
 - Calls: you can now add people to the call in progress, with the "Add participants" button in the call's participant list. A group call offers the group's members who are not in it yet; a private call offers your contacts, and the call then has several people, as on WhatsApp. Someone already called who has not joined is rung again. Works with WPPConnect and Neonize.
 

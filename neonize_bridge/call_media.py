@@ -60,7 +60,7 @@ ANSWERED_KEPT = 50
 # offer queued for minutes and no <terminate> ever arrives), and WhatsApp Web
 # ends the call itself, so the window would otherwise ring until hung up.
 OUTGOING_RING_LIMIT = 60
-# How long a group call placed here is remembered after its placement (its end can come later).
+# How long a call placed here is remembered after its placement (its end can come later).
 PLACED_GROUP_KEEP = 6 * 3600
 
 
@@ -149,6 +149,14 @@ def finished_info(call, state, now) -> dict:
             "state": state, "activeAt": call.get("active_at"), "endedAt": now}
 
 
+def roster_connected(participants, mine) -> tuple:
+    """The people other than this account connected to a group call, from
+    its roster, in the form call/participants answers (a person's number
+    where the roster has it, the LID otherwise), sorted."""
+    rows = ongoing_calls.connected_rows(participants, mine, lambda jid, lid: "")
+    return tuple(sorted(row["jid"] for row in rows if not row["isSelf"]))
+
+
 def remote_members_connected(participants, mine) -> int:
     """How many people other than this account are connected to a group call,
     from the roster's participants ([{jid, pn, state}]). `mine` are the
@@ -211,6 +219,8 @@ class CallMedia(CallIngressMixin):
         # the account's own users (number and LID digits), set by the session
         # once it knows them: a roster lists this account too
         self.own_users = lambda: set()
+        # call id -> the connected people last reported (report_rosters)
+        self._reported_rosters = {}
         # called with the facts of each call that ended (finished_info), for
         # the session to write its call_log: WhatsApp Web writes no record of
         # a call this engine placed or hung up itself
@@ -379,11 +389,56 @@ class CallMedia(CallIngressMixin):
         self._set_state(call_id, "ACTIVE", expected=call)
         self._ensure_audio(call_id, call)
 
+    #: how often the group calls' rosters are compared, in seconds
+    ROSTER_EVERY = 2.0
+
+    def report_rosters(self):
+        """`call-participants` for each live group call whose connected
+        people changed since the last report: the whole list, as WPPConnect's
+        callParticipantsBridge.ts sends it, and the client says who joined or
+        left. The call layer has no roster event, so the roster it keeps is
+        compared here, from the event pump."""
+        with self._lock:
+            live = [(call_id, call) for call_id, call in self._calls.items()
+                    if call.get("group") and call.get("state") == "ACTIVE"]
+            reported = self._reported_rosters
+            for gone in set(reported) - {call_id for call_id, _call in live}:
+                reported.pop(gone, None)
+        mine = self.own_users()
+        for call_id, _call in live:
+            try:
+                roster = self.calls.roster(call_id)
+            except Exception:
+                log.exception("group call roster")
+                continue
+            if roster is None:
+                # the call ended natively before its end event was handled:
+                # no roster is not an empty one, or the client would say
+                # that everyone left just as the call ends
+                continue
+            participants = roster.get("participants")
+            connected = roster_connected(participants, mine)
+            with self._lock:
+                if reported.get(call_id) == connected:
+                    continue
+                reported[call_id] = connected
+            self.emit("call-participants", {"session": self.name, "callId": call_id,
+                                            "connected": list(connected)})
+
     def placed_group(self, call_id):
         """{"groupJid", "isVideo"} of a group call placed here, or None."""
         with self._lock:
             found = self._placed_groups.get(call_id)
-        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]} if found else None
+        if not found or not found.get("groupJid"):
+            return None
+        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]}
+
+    def placed_peer(self, call_id):
+        """Who a one-to-one call placed here called (the JID as placed), or
+        "" when the call was not placed here."""
+        with self._lock:
+            found = self._placed_groups.get(call_id)
+        return (found.get("peer") or "") if found and not found.get("groupJid") else ""
 
     def start_pump(self, keep_going):
         """Starts pump_events on its own thread, unless it is already going (a
@@ -400,6 +455,7 @@ class CallMedia(CallIngressMixin):
         """The call layer's events, while `keep_going()` (start_pump runs it)."""
         stopped = layer_error()
         try:
+            rosters_at = 0.0
             while keep_going():
                 try:
                     ev = self.calls.next_event(500)
@@ -410,6 +466,12 @@ class CallMedia(CallIngressMixin):
                         self.handle(ev)
                     except Exception:
                         log.exception("call event")
+                if time.monotonic() - rosters_at >= self.ROSTER_EVERY:
+                    rosters_at = time.monotonic()
+                    try:
+                        self.report_rosters()
+                    except Exception:
+                        log.exception("call rosters")
         finally:
             self._running = False
             self.close()
@@ -803,11 +865,14 @@ class CallMedia(CallIngressMixin):
             if generation is not None:
                 call["native_generation"] = generation
             self._calls[call_id] = call
-            if group:
-                now = time.time()
-                self._placed_groups = {i: g for i, g in self._placed_groups.items()
-                                       if now - g["at"] < PLACED_GROUP_KEEP}
-                self._placed_groups[call_id] = {"groupJid": group, "isVideo": bool(video), "at": now}
+            # every call placed here, not only group ones: the <terminate> of
+            # a one-to-one call names this account as its creator, not the
+            # person called (calls.with_own_call)
+            now = time.time()
+            self._placed_groups = {i: g for i, g in self._placed_groups.items()
+                                   if now - g["at"] < PLACED_GROUP_KEEP}
+            self._placed_groups[call_id] = {"groupJid": group or "", "peer": peer or "",
+                                            "isVideo": bool(video), "at": now}
         if recovered is not None and (snapshot is None or snapshot["ended"]):
             self.handle({"ev": "end", "call": call_id, "generation": generation,
                          "reason": "ended_before_registration"})

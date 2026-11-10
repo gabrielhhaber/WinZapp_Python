@@ -258,6 +258,20 @@ def _no_do_not_disturb(request, monkeypatch):
     quiet_hours.invalidate_cache()
 
 
+@pytest.fixture(autouse=True)
+def _transcription_slot_of_this_process(monkeypatch):
+    """The machine-wide transcription slot is a named mutex shared with the
+    WinZapp the developer has running: a test transcription must never wait
+    for theirs, nor make theirs let its model go. Tests get a slot of their
+    own process only (test_transcription_machine_slot.py builds its own)."""
+    from core.transcription import machine_slot
+    monkeypatch.setattr(machine_slot, "slot",
+                        machine_slot.MachineSlot(native_factory=machine_slot._LocalNative))
+    # and no gap a connection test recorded reaches the age of another test's message
+    from core.transcription import auto_queue
+    monkeypatch.setattr(auto_queue, "listening_gaps", auto_queue.ListeningGaps())
+
+
 # ── Fixtures: Keys / Encryption ───────────────────────────────────────────────
 
 

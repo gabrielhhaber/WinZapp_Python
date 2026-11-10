@@ -71,7 +71,7 @@ class AutoTranscriptionMixin:
             if not self._local_auto_transcription_for(remote_jid):
                 return
             if not auto_queue.eligible(
-                    msg, max_age=auto_queue.max_age_seconds(self.settings)) \
+                    msg, max_age=auto_queue.local_max_age_seconds(self.settings)) \
                     or self.is_chat_locked(remote_jid):
                 return
             # A model chosen explicitly whose cache is off would run for
@@ -88,6 +88,23 @@ class AutoTranscriptionMixin:
             # when it cannot tell whether the chat is locked, it leaves it alone.
             logging.warning("[transcription] could not queue an automatic transcription: %s",
                             type(exc).__name__)
+
+    def _auto_process_caught_up(self, remote_jid: str, messages) -> None:
+        """Messages a sync brought that the live event should have (after a
+        sleep the socket is rebuilt after the sync fetched them): the same
+        automatic handling as on arrival, on the wx thread. Each hook keeps
+        its own rules, age (minus the sleep) included; a message the live
+        event also brought is run once (the queue remembers it)."""
+        for msg in messages or ():
+            if not isinstance(msg, dict) or (msg.get("key") or {}).get("fromMe"):
+                continue
+            if msg.get("messageType") not in auto_queue.AUTO_TYPES + (
+                    "imageMessage", "stickerMessage", "documentMessage"):
+                continue
+            self._maybe_auto_transcribe(remote_jid, msg)
+            ai_media = getattr(self, "_maybe_auto_ai_media", None)
+            if callable(ai_media):
+                ai_media(remote_jid, msg)
 
     def _auto_transcription_queue_get(self):
         queue = getattr(self, "_auto_transcription_queue", None)

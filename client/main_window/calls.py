@@ -1838,6 +1838,13 @@ class CallsMixin:
             group_jid = peer_jid
         is_group_event = group_jid.endswith("@g.us")
         call_peer_jid = group_jid if is_group_event else peer_jid
+        is_self = getattr(self, "_is_self_jid", None)
+        if call_peer_jid and not is_group_event and callable(is_self) and is_self(call_peer_jid):
+            # A call's peer is never this account. The end of a call placed
+            # here names its creator -- this account -- and written over the
+            # call's peer it filed the call in the user's own chat, "as if
+            # they had called themselves" (Neonize, reported 2026-11-09).
+            call_peer_jid = ""
         active = getattr(self, "_active_voice_call", None)
         if not active:
             # A call answered on the phone or from the page controls is adopted

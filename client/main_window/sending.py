@@ -19,6 +19,7 @@ import time
 import wx
 from ui.conversation_panel.call_capabilities import refresh_call_controls
 from core.message_queue import MessageCancelled
+from core.channels import channel_post_kinds
 from core.reply_failure import mark_missing_reply_quote, quote_missing_before_send
 from core.connection_lifecycle import schedule_connection_check
 from core.meta_ai import (
@@ -211,6 +212,7 @@ class SendingMixin:
                 self._neonize_calls = details.get("calls") is True
                 self._neonize_video_calls = details.get("videoCalls") is True
                 self._neonize_group_calls = details.get("groupCalls") is True
+                self._channel_post_kinds = channel_post_kinds(details)
                 wx.CallAfter(refresh_call_controls, self)
                 if details.get("compatible") is True:
                     logging.info("[startup] Send compatibility probe passed: %s", details)
@@ -1533,6 +1535,9 @@ class SendingMixin:
                 post_data["isGroup"] = "true"
             if dest.endswith("@lid"):
                 post_data["isLid"] = "true"
+            if dest.endswith("@newsletter"):
+                # contactToArray() suffixes a bare id with @c.us otherwise
+                post_data["isNewsletter"] = "true"
             body = StreamingMultipartBody(
                 file_path=upload_path,
                 filename=filename,

@@ -56,10 +56,17 @@ def model_path() -> str:
 def _load_session(path: str):
     import onnxruntime as ort
 
+    from core.cuda_components import runtime as noise_runtime
+
     options = ort.SessionOptions()
     options.intra_op_num_threads = 1
     options.inter_op_num_threads = 1
-    session = ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
+    # The graphics card when the user chose one and its build is in place
+    # (CUDA on Windows, Core ML on macOS), else the processor; the session
+    # falls back to the next provider by itself if the first will not start.
+    providers = noise_runtime.providers(ort.get_available_providers())
+    session = ort.InferenceSession(path, sess_options=options, providers=providers)
+    logging.info("[noise_reduction] model on %s", session.get_providers()[0])
     meta = session.get_modelmeta().custom_metadata_map
     erb = np.array(meta["erb_norm_init"].split(","), dtype=np.float32)
     spec = np.array(meta["spec_norm_init"].split(","), dtype=np.float32)
@@ -147,13 +154,19 @@ _denoiser: NeuralDenoiser | None = None
 _denoiser_lock = threading.Lock()
 
 
-def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, str]:
+def reduce_voice_noise(audio: bytes, rate: int, channels: int,
+                       neural: bool = True) -> tuple[bytes, str]:
     """The recording with its noise reduced, and which engine did it.
 
     The engine is "neural", or "gate" when the model could not be used and the
     old noise gate ran instead; the caller decides what to tell the user.
+    `neural` False is the user's choice of the common reducer (Settings >
+    Audio, general.noise_reduction_neural): faster, the gate at once.
     """
     global _denoiser
+    if not neural:
+        from core.audio_processing import apply_noise_gate
+        return apply_noise_gate(audio, rate, channels, strict=True), "gate"
     try:
         with _denoiser_lock:
             if _denoiser is None:
@@ -167,3 +180,11 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, s
         from core.audio_processing import apply_noise_gate
         # strict: a gate failure must reach the caller, not look like success.
         return apply_noise_gate(audio, rate, channels, strict=True), "gate"
+
+
+def forget_denoiser() -> None:
+    """Drop the loaded model (its file was removed): the next recording
+    loads it again, or falls back to the gate when it is gone."""
+    global _denoiser
+    with _denoiser_lock:
+        _denoiser = None

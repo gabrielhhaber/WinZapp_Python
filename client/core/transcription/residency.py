@@ -47,11 +47,17 @@ def keep_loaded_from_settings(settings) -> bool:
 class ModelResidency:
     """Decides when a backend's cached model is let go."""
 
-    def __init__(self, idle_seconds=IDLE_RELEASE_SECONDS, timer_factory=threading.Timer):
+    def __init__(self, idle_seconds=IDLE_RELEASE_SECONDS, timer_factory=threading.Timer,
+                 slot=None):
         self._idle_seconds = float(idle_seconds)
         self._timer_factory = timer_factory
         self._lock = threading.Lock()
         self._keep = False
+        #: machine_slot's slot (None: the process-wide one, looked up on first use)
+        self._slot = slot
+        self._watching = False
+        #: id(backend) of every backend that may still hold a model.
+        self._loaded = set()
         #: id(backend) -> backend, for every backend that has been used.
         self._backends = {}
         #: id(backend) -> how many transcriptions are using it right now.
@@ -98,8 +104,43 @@ class ModelResidency:
                 self._busy[key] = count
                 return
             self._busy.pop(key, None)
+            self._loaded.add(key)
             if not self._keep:
                 self._arm_locked(key, backend)
+            watch = not self._watching
+            self._watching = True
+        if watch:
+            self._get_slot().release_when_wanted(self.release_for_other_process)
+
+    def _get_slot(self):
+        if self._slot is None:
+            from core.transcription import machine_slot
+            self._slot = machine_slot.slot
+        return self._slot
+
+    def release_for_other_process(self) -> None:
+        """Another account's process wants to load a model: let every idle one
+        here go, even with "Keep the model loaded" on — two copies of a large
+        model do not fit on a card, and Windows puts the second in RAM. The
+        next run here loads it again, after that one is done."""
+        released = False
+        with self._lock:
+            for key in list(self._loaded):
+                if self._busy.get(key):
+                    continue
+                self._cancel_locked(key)
+                self._loaded.discard(key)
+                backend = self._backends.get(key)
+                if backend is None:
+                    continue
+                try:
+                    backend.release()
+                    released = True
+                except Exception as exc:
+                    logging.warning("[transcription] releasing a model for another process failed: %s",
+                                    type(exc).__name__)
+        if released:
+            logging.info("[transcription] released the idle model for another WinZapp process")
 
     def using(self, backend):
         """`with residency.using(backend): ...` around a load and a run."""
@@ -149,6 +190,7 @@ class ModelResidency:
                 logging.warning("[transcription] releasing an idle model failed: %s",
                                 type(exc).__name__)
                 return
+            self._loaded.discard(key)
         logging.info("[transcription] released the idle model")
 
 

@@ -55,6 +55,9 @@
   "status_reply": "Status reply",
   "calls": "Calls tab",
   "call": "During a call",
-  "incoming": "Incoming call"
+  "incoming": "Incoming call",
+  "channels": "Channels window",
+  "channel_people": "Channel admins and followers",
+  "call_participants": "Call participants"
  }
 }

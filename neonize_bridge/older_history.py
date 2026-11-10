@@ -16,11 +16,25 @@ one when it can be answered:
 - no message of the chat is stored: there is nothing to anchor on, and only
   the phone has the chat (`phoneOnly`);
 - the history said the chat ends here (`endOfHistoryTransferType` 1:
-  `primaryHasMore` false), or that this device may not ask for more (2 and 3,
-  WhatsApp Web's "Use WhatsApp on your phone to see older messages":
-  `phoneOnly`);
+  `primaryHasMore` false);
+- the phone already answered this very anchor with nothing new
+  (`history_exhausted`, kept in the store): Home goes on asking until the
+  phone has nothing more, and stops there (`primaryHasMore` false) until an
+  older message gives it a new anchor;
 - the same anchor was asked a moment ago: the answer is still on its way, so
   it says `requested` without sending a second one.
+
+WhatsApp Web stops at types 2 and 3 ("Use WhatsApp on your phone to see older
+messages"), and so does the bridge (`phoneOnly`), except when the user asked
+(Home at the top of the chat: the client sends {"userAsked": true}; the
+automatic backfill never does). Then the phone is asked once per anchor, as
+TeleZapp asks it: that anchor is marked exhausted as the request goes out,
+not when an answer comes, since in that state the phone often answers
+nothing at all ("Sync paused", docs/traps/sync-completion.md, issue #220).
+A batch that does come brings older messages and so a new anchor, which Home
+may ask again; a silent phone costs one notification per anchor, never one
+every two minutes. An exhausted anchor of such a chat says `phoneOnly`, so
+the top of the conversation says the older messages are on the phone.
 
 The GET route gives the same verdict and never sends. The pure functions are
 at the top (tested in test_older_history.py).
@@ -54,17 +68,37 @@ def is_on_demand(data) -> bool:
         return False
 
 
-def verdict(history_end, has_anchor):
+def verdict(history_end, has_anchor, exhausted=False, user_asked=False):
     """What to answer without sending anything, or None when the phone may be
     asked. `history_end` is the chat's stored endOfHistoryTransferType (None
-    when the history never said)."""
+    when the history never said); `exhausted`, that the current anchor was
+    already asked and brought nothing new (or, for types 2/3, was asked at
+    all); `user_asked`, that the user pressed Home (types 2/3 only then)."""
     if not has_anchor:
         return {"requested": False, "primaryHasMore": True, "phoneOnly": True}
-    if history_end == NO_MORE_ON_PRIMARY:
-        return {"requested": False, "primaryHasMore": False, "phoneOnly": False}
-    if history_end in PHONE_ONLY_TYPES:
+    phone_only = history_end in PHONE_ONLY_TYPES
+    if phone_only and (exhausted or not user_asked):
         return {"requested": False, "primaryHasMore": True, "phoneOnly": True}
+    if history_end == NO_MORE_ON_PRIMARY or exhausted:
+        return {"requested": False, "primaryHasMore": False, "phoneOnly": False}
     return None
+
+
+def marks_on_send(history_end) -> bool:
+    """Whether the anchor is marked exhausted when the request goes out (types
+    2/3: the phone may never answer), not only when an empty answer comes."""
+    return history_end in PHONE_ONLY_TYPES
+
+
+def user_asked_of(body) -> bool:
+    """The client's {"userAsked": true}: Home pressed, not the backfill."""
+    return isinstance(body, dict) and body.get("userAsked") is True
+
+
+def brought_nothing_new(rows, already_stored) -> bool:
+    """Whether an on-demand answer's rows (chat, message, ...) hold no message
+    that `already_stored(id)` says is missing."""
+    return not any(not already_stored(row[1]["id"]["id"]) for row in rows)
 
 
 class AnchorGate:
@@ -98,10 +132,14 @@ def anchor_jid(chat):
 def register_routes(r, *, session, ok, in_thread):
     gate = AnchorGate()
 
-    def state_of(s, jid):
+    def state_of(s, jid, user_asked=False):
         keys = s.chat_keys(jid) or []
         anchor = s.db.oldest_real(keys) if keys else None
-        return anchor, verdict(s.db.history_end(keys) if keys else None, anchor is not None)
+        exhausted = anchor is not None and anchor["id"] in s.db.history_exhausted(keys)
+        history_end = s.db.history_end(keys) if keys else None
+        if anchor is not None:
+            anchor = dict(anchor, keys=keys, history_end=history_end)
+        return anchor, verdict(history_end, anchor is not None, exhausted, user_asked)
 
     async def request_older(req):
         s = session(req)
@@ -109,7 +147,11 @@ def register_routes(r, *, session, ok, in_thread):
             return ok(status="error", response={
                 "requested": False, "primaryHasMore": True, "phoneOnly": False,
                 "error": "not connected"})
-        anchor, answer = await in_thread(state_of, s, req.match_info["jid"])
+        try:
+            body = await req.json() if req.can_read_body else {}
+        except Exception:
+            body = {}
+        anchor, answer = await in_thread(state_of, s, req.match_info["jid"], user_asked_of(body))
         if answer is not None:
             return ok(status="success", response=answer)
         ask = getattr(s.client, "request_history_sync", None)
@@ -127,6 +169,10 @@ def register_routes(r, *, session, ok, in_thread):
                 "requested": True, "primaryHasMore": True, "phoneOnly": False})
 
         def send():
+            if marks_on_send(anchor["history_end"]):
+                # before the send: a send that fails waiting for the server
+                # may still have lit up the phone
+                s.db.mark_history_exhausted(anchor["keys"], anchor["id"])
             ask(anchor_jid(anchor["chat"]), anchor["id"], anchor["fromMe"], anchor["ts"], PAGE)
         try:
             await in_thread(send)

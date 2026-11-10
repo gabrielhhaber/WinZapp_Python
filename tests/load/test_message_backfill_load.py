@@ -216,7 +216,8 @@ class _SweepLoadStub:
     def _sync_older_chat_history_from_phone(self, target, run_id=None):
         return False
 
-    def request_older_messages(self, jid, outcome_out=None, expected_context=None):
+    def request_older_messages(self, jid, outcome_out=None, expected_context=None,
+                               user_asked=False):
         return False
 
     def _persist_older_requested(self):

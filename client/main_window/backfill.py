@@ -19,9 +19,11 @@ from core.api_client import (
     api_post,
     sync_throttled,
 )
+from core.channels import history_ends_on_server
 from core.utils import auto_download_enabled
 from core.page_heap import collect_after_batch
 from core.sync_progress import ProgressThrottle
+from core.media_on_disk import already_stored
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
@@ -1091,6 +1093,12 @@ class BackfillMixin:
                         older_arrived.add(jid)
                     if now >= self.history_page_target() or now > was:
                         continue
+                    if history_ends_on_server(jid):
+                        # A channel: its updates are on WhatsApp's server, read
+                        # back to its start already; the phone has none to send,
+                        # and a request would only light up its lock screen.
+                        self._remove_backfill_pending(jid)
+                        continue
                     if jid in getattr(self, "_exhausted_chats", set()):
                         # Already answered, durably: the phone was asked and
                         # had nothing older. Re-queuing it here is what made
@@ -1334,7 +1342,8 @@ class BackfillMixin:
             return None
 
     def request_older_messages(self, remote_jid: str, timeout: int = 60,
-                               outcome_out=None, expected_context=None) -> bool | None:
+                               outcome_out=None, expected_context=None,
+                               user_asked: bool = False) -> bool | None:
         """Ask the phone for history older than what this device holds.
 
         Fire-and-forget by nature: the phone answers with a history-sync chunk
@@ -1344,6 +1353,10 @@ class BackfillMixin:
         False means an explicit no-more/phone-only verdict. None is temporary
         or unknown. outcome_out marks an ambiguous send so callers keep the
         reply grace and notification budget rather than blindly resending.
+
+        *user_asked*: the user pressed Home at the top of the chat. Only then
+        does the Neonize bridge ask the phone for a chat whose history ends on
+        the phone (types 2/3, older_history.py); the backfill never says so.
         """
         context = expected_context if expected_context is not None else capture_sync_context(self)
         if outcome_out is not None:
@@ -1357,6 +1370,7 @@ class BackfillMixin:
                 url,
                 headers={"Authorization": f"Bearer {self.token}",
                          "Content-Type": "application/json"},
+                json={"userAsked": True} if user_asked else None,
                 timeout=timeout,
             )
             body = {}
@@ -1524,7 +1538,10 @@ class BackfillMixin:
             if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)
-            and self._media_sync_candidate(msg, explicit=explicit) is not None
+            and (kind := self._media_sync_candidate(msg, explicit=explicit)) is not None
+            # already downloaded in an earlier session: not counted as left to
+            # do (core/media_on_disk.py)
+            and not already_stored(msg, kind)
         ]
         if not tasks:
             return 0
@@ -1549,9 +1566,9 @@ class BackfillMixin:
                         downloaded += 1
                 except Exception:
                     pass
-                # "Processed" (not "downloaded") is the X: most candidates
-                # still end up skipped (already on disk, CDN expired), and a
-                # count of downloads alone looks stuck while the sweep moves.
+                # "Processed" (not "downloaded") is the X: some candidates
+                # still end up skipped (CDN expired, refused), and a count of
+                # downloads alone looks stuck while the sweep moves.
                 # Nothing is said once it has been superseded; a voice call is
                 # _report_sync_progress()'s to check.
                 if (progress is not None and progress.step()

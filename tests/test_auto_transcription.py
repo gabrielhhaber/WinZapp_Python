@@ -1,6 +1,7 @@
 """MainWindow's glue for automatic transcription of received voice messages."""
 
 import time
+import types
 
 import pytest
 
@@ -581,3 +582,63 @@ class TestShutdownCallsIt:
 
         assert _Stub()._perform_shutdown() is True
         assert order == ["transcriptions", "server"]
+
+
+class TestCaughtUpBySync:
+    """Messages a sync brought that the live event missed (after a sleep)
+    get the same automatic handling as on arrival."""
+
+    def test_incoming_media_reach_both_hooks_and_the_rest_does_not(self):
+        calls = []
+        stub = types.SimpleNamespace(
+            _maybe_auto_transcribe=lambda jid, m: calls.append(("local", m["key"]["id"])),
+            _maybe_auto_ai_media=lambda jid, m: calls.append(("ai", m["key"]["id"])))
+        voice = _msg()
+        mine = dict(_msg(), key={"id": "OWN", "fromMe": True})
+        text = dict(_msg(), key={"id": "TXT", "fromMe": False}, messageType="conversation")
+        auto_transcription.AutoTranscriptionMixin._auto_process_caught_up(
+            stub, JID, [voice, mine, text, None])
+        assert calls == [("local", "M1"), ("ai", "M1")]
+
+    # The real sync_chat_messages() on the stub its own tests use
+    # (tests/test_incremental_delta_outcomes.py), wx.CallAfter run at once.
+    WARM_JID = "5511900000000@s.whatsapp.net"
+
+    def _sync(self, monkeypatch, timestamps, warm=True, status=200):
+        import main as main_module
+        from main import MainWindow
+        from main_window import conversation_sync
+        from tests.test_incremental_delta_outcomes import _DeltaStub, _Resp, _seed_warm_chat
+        normalized = [{
+            "key": {"remoteJid": self.WARM_JID, "id": f"N{ts}", "fromMe": False},
+            "message": {"audioMessage": {"ptt": True}},
+            "messageType": "audioMessage",
+            "messageTimestamp": ts,
+        } for ts in timestamps]
+        body = ({"response": [{"id": m["key"]["id"]} for m in normalized]}
+                if status == 200 else {"error": "boom"})
+        monkeypatch.setattr(main_module.requests, "get",
+                            lambda url, **kwargs: _Resp(status, body))
+        monkeypatch.setattr(main_module.time, "sleep", lambda *_: None)
+        monkeypatch.setattr(conversation_sync.wx, "CallAfter",
+                            lambda fn, *args, **kwargs: fn(*args, **kwargs))
+        stub = _DeltaStub(normalized=normalized)
+        handed = []
+        stub._auto_process_caught_up = lambda jid, msgs: handed.append(
+            (jid, [m["key"]["id"] for m in msgs]))
+        if warm:
+            _seed_warm_chat(stub, self.WARM_JID)
+        MainWindow.sync_chat_messages(
+            stub, {"remoteJid": self.WARM_JID, "t": 200}, sync_mode="incremental")
+        return handed
+
+    def test_the_sync_hands_over_what_it_caught_up(self, monkeypatch):
+        # The warm chat's newest cached message is at 50: 150 arrived while
+        # the live event was missed, 40 is older history and stays out.
+        assert self._sync(monkeypatch, [40, 150]) == [(self.WARM_JID, ["N150"])]
+
+    def test_a_chat_with_nothing_cached_is_a_history_load(self, monkeypatch):
+        assert self._sync(monkeypatch, [150], warm=False) == []
+
+    def test_a_failed_fetch_hands_over_nothing(self, monkeypatch):
+        assert self._sync(monkeypatch, [150], status=500) == []

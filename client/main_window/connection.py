@@ -891,6 +891,10 @@ class ConnectionMixin:
             return
         was = bool(getattr(self, "_wa_connected", False))
         self._wa_connected = connected
+        if was != connected:
+            # Time offline is not a message's age for automatic transcription.
+            from core.transcription import auto_queue
+            auto_queue.listening_gaps.connection_changed(connected)
         if was != connected and hasattr(self, "_sync_online_presence"):
             wx.CallAfter(self._sync_online_presence)
         if was != connected and hasattr(self, "_invalidate_contact_presence"):

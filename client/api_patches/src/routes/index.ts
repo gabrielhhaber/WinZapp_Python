@@ -1288,6 +1288,12 @@ routes.post('/api/:session/channels/mute', verifyToken, statusConnection,
   ChannelsPanelController.muteChannel);
 routes.post('/api/:session/channels/pin', verifyToken, statusConnection,
   ChannelsPanelController.pinChannelUpdate);
+routes.post('/api/:session/channels/reactions', verifyToken, statusConnection,
+  ChannelsPanelController.setChannelReactions);
+routes.post('/api/:session/channels/insights', verifyToken, statusConnection,
+  ChannelsPanelController.channelInsights);
+routes.post('/api/:session/channels/admin-profiles', verifyToken, statusConnection,
+  ChannelsPanelController.setChannelAdminProfiles);
 routes.post('/api/:session/channels/admins', verifyToken, statusConnection,
   ChannelsPanelController.channelAdmins);
 routes.post('/api/:session/channels/admin-invite', verifyToken, statusConnection,
