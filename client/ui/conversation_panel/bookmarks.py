@@ -57,7 +57,7 @@ class BookmarksMixin:
         self.main_window.output(text, interrupt=True)
 
     def _drop_bookmark_after_use(self, digit: int, used, temporary: bool):
-        """Remove the bookmark a jump just used, when Settings > Messages asks
+        """Remove the bookmark a jump just used, when Settings > Interface > Chats asks
         for that kind to go away after its first use, so the same key sets a
         new one next time (core/bookmark_settings.py). Only if the digit still
         holds the bookmark that was used: the permanent jump into another

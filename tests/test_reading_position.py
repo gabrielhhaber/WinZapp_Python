@@ -193,6 +193,72 @@ class TestRememberAndResume:
         assert panel._reading_resume_row_for_open_conversation() == -1
 
 
+class _Db:
+    def __init__(self, rows):
+        self.rows = rows
+        self.limits = []
+
+    def get_messages(self, jid, limit):
+        self.limits.append(limit)
+        return list(reversed(self.rows))[:limit]
+
+    def get_message_count(self, jid):
+        return len(self.rows)
+
+
+class _OpeningStub(_Stub):
+    _load_conversation_page_from_db = ConversationsPanel._load_conversation_page_from_db
+    _history_window_for_rebuild = ConversationsPanel._history_window_for_rebuild
+    _reset_expanded_window = ConversationsPanel._reset_expanded_window
+
+
+class TestOpeningReachesTheRememberedMessage:
+    def _left_far_back(self):
+        rows = [_msg(str(i), i) for i in range(600)]
+        panel = _OpeningStub(rows, focused=100, settings=ON)
+        panel.main_window.settings["user_interface"]["messages_page_size"] = 200
+        panel.main_window.db = _Db(rows)
+        panel._remember_reading_position()      # message "100", 500 records back
+        panel._arm_reading_resume(JID_A)
+        return panel, rows
+
+    def test_the_database_fetch_is_widened(self):
+        panel, _ = self._left_far_back()
+        conversation = {"remoteJid": JID_A}
+        panel._load_conversation_page_from_db(conversation)
+
+        records = conversation["messages"]["messages"]["records"]
+        assert panel.main_window.db.limits == [500 + 50]
+        assert any(r["key"]["id"] == "100" for r in records)
+
+    def test_without_a_resume_the_fetch_is_the_page_size(self):
+        panel, _ = self._left_far_back()
+        panel._disarm_reading_resume()
+        panel._load_conversation_page_from_db({"remoteJid": JID_A})
+        from core.utils import db_fetch_limit
+        assert panel.main_window.db.limits == [db_fetch_limit(200, 0)]
+
+    def test_the_window_keeps_the_message_in_view(self):
+        panel, rows = self._left_far_back()
+        panel._reset_expanded_window()
+        panel._unread_sep_idx = -1
+        offset, _sep = panel._history_window_for_rebuild(rows, 200)
+
+        assert offset <= 100
+
+
+class TestClosingRemembersIt:
+    def test_close_records_the_focused_message(self):
+        from tests.test_close_conversation_for_panel_switch import _Stub as _CloseStub
+        stub = _CloseStub({"remoteJid": JID_A})
+        stub._sorted_messages = [_msg("A"), _msg("B")]
+        stub.messages_list = _List(1)
+        ConversationsPanel._close_conversation_core(stub)
+
+        assert stub.conversation is None
+        assert stub._reading_positions()[JID_A][0] == "B"
+
+
 class TestWiring:
     """navigate_to_conversation() and populate_messages() cannot run against a
     stub; their source must still call the pieces above."""
@@ -203,13 +269,6 @@ class TestWiring:
         assert src.index("_arm_reading_resume(") < src.index("self.populate_messages()")
         assert "_disarm_reading_resume()" in src
 
-    def test_closing_remembers_it(self):
-        assert "_remember_reading_position()" in conversations_method_source("_close_conversation_core")
-
     def test_the_opening_rebuild_lands_on_it(self):
         src = conversations_method_source("populate_messages")
         assert src.index("_take_reading_resume_row()") < src.index("self._unread_sep_idx >= 0:\n                    last")
-
-    def test_the_window_and_the_fetch_reach_it(self):
-        assert "_reading_resume_anchor()" in conversations_method_source("_history_window_for_rebuild")
-        assert "_reading_resume_fetch_limit(" in conversations_method_source("_load_conversation_page_from_db")

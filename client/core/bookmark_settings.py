@@ -1,6 +1,6 @@
 """Bookmarks that remove themselves after the first jump.
 
-Settings > Interface > Messages has one checkbox per kind: a permanent
+Settings > Interface > Chats has one checkbox per kind: a permanent
 (Ctrl+digit) or temporary (Alt+Shift+digit) bookmark is removed by the very
 jump that used it, so the same key sets a new one the next time instead of
 jumping to the old one. For someone who reuses the same digits and uses each

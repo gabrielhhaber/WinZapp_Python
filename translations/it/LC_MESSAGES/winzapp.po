@@ -18589,7 +18589,7 @@ msgstr ""
 msgctxt "ui_remove_temp_bookmarks_after_use"
 msgid "Remove temporar&y bookmarks automatically after the first use"
 msgstr ""
-"Rimuo&vi automaticamente i preferiti temporanei dopo il primo utilizzo"
+"Rimuo&vi automaticamente i segnalibri temporanei dopo il primo utilizzo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
