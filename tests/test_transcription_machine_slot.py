@@ -44,17 +44,16 @@ def two_processes():
 def test_a_second_run_of_the_same_process_waits_for_the_first():
     slot, _other, _native = two_processes()
     order = []
-    first_in = threading.Event()
+    waiting = threading.Event()
 
     def second():
-        with slot.held():
+        with slot.held(waiting.set):          # called while it waits
             order.append("second")
 
     with slot.held():
-        first_in.set()
         thread = threading.Thread(target=second)
         thread.start()
-        time.sleep(0.1)
+        assert waiting.wait(2)
         order.append("first")
     thread.join(2)
     assert order == ["first", "second"]
@@ -63,10 +62,11 @@ def test_a_second_run_of_the_same_process_waits_for_the_first():
 def test_another_process_waits_too_and_says_it_wants_the_slot():
     a, b, native = two_processes()
     got = []
+    waiting = threading.Event()
     with a.held():
-        thread = threading.Thread(target=lambda: b.held().__enter__() and got.append(True))
+        thread = threading.Thread(target=lambda: b.held(waiting.set).__enter__() and got.append(True))
         thread.start()
-        time.sleep(0.1)
+        assert waiting.wait(2)
         assert got == [] and native.event.is_set()
     thread.join(2)
     assert got == [True] and b.holding
@@ -89,23 +89,20 @@ def test_a_cancelled_run_stops_waiting():
 
 def test_an_idle_model_is_let_go_when_another_process_wants_the_slot():
     a, b, _native = two_processes()
-    released = []
+    released = threading.Event()
 
     class Backend:
         def release(self):
-            released.append(True)
+            released.set()
 
     here = residency_module.ModelResidency(timer_factory=_NoTimer, slot=a)
     here.configure(True)                          # "Keep the model loaded" on
     backend = Backend()
     with here.using(backend):
         pass
-    assert released == []
+    assert not released.is_set()
     with b.held():                                # the other account loads
-        deadline = time.monotonic() + 3
-        while not released and time.monotonic() < deadline:
-            time.sleep(0.02)
-    assert released == [True]
+        assert released.wait(3)
 
 
 def test_a_busy_model_is_not_let_go_and_releasing_twice_does_nothing():
@@ -127,8 +124,28 @@ def test_a_busy_model_is_not_let_go_and_releasing_twice_does_nothing():
     assert released == [True]
 
 
+class SlowWantNative(SharedNative):
+    """want() through ctypes lets another thread run before the slot is held:
+    the watcher saw the event set while this process did not hold it yet."""
+
+    def __init__(self):
+        super().__init__()
+        self.watcher_saw = threading.Event()
+
+    def want(self):
+        super().want()
+        self.watcher_saw.wait(0.05)               # the watcher's turn
+
+    def wanted(self, seconds):
+        got = super().wanted(seconds)
+        if got:
+            self.watcher_saw.set()
+        return got
+
+
 def test_its_own_want_does_not_make_a_process_drop_its_model():
-    a, _b, native = two_processes()
+    native = SlowWantNative()
+    a = machine_slot.MachineSlot(lambda: native, poll_seconds=0.01)
     released = []
 
     class Backend:
@@ -137,10 +154,14 @@ def test_its_own_want_does_not_make_a_process_drop_its_model():
 
     here = residency_module.ModelResidency(timer_factory=_NoTimer, slot=a)
     here.configure(True)
-    with here.using(Backend()):
+    backend = Backend()
+    with here.using(backend):                     # loaded, then idle and kept
         pass
-    with a.held():                                # this process's next run
-        time.sleep(0.2)
+    for _run in range(10):                        # this process's next runs
+        native.watcher_saw.clear()
+        with a.held():                            # as TranscriptionJob._decode
+            with here.using(backend):
+                pass
     assert released == [] and not native.event.is_set()
 
 

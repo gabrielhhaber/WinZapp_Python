@@ -9383,17 +9383,20 @@ msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "Downloaded. Noise reduction uses the neural model."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_reducer_background_busy"
+msgid ""
+"Another download is still going on in the background. Try again once WinZapp"
+" says it is over."
+msgstr ""
+"Another download is still going on in the background. Try again once WinZapp"
+" says it is over."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_button"
 msgid "Noise reducer settin&gs..."
 msgstr "Noise reducer settin&gs..."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_model_section.py
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_components_background"
-msgid "The download goes on in the background. WinZapp says when it is over."
-msgstr "The download goes on in the background. WinZapp says when it is over."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -16410,6 +16413,7 @@ msgid "Transcription cancelled."
 msgstr "Transcription cancelled."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "transcription_error_cuda_runtime_busy"
 msgid ""
 "Another WinZapp window is using the CUDA libraries folder. Wait for it to "

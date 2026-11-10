@@ -106,14 +106,13 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
                                         on_finished=on_finished)
 
         status = i18n.t("noise_reducer_components_progress")
-        if in_background(self.main_window.settings):
+        from update_background import background_downloads_enabled
+        if background_downloads_enabled(self.main_window.settings):
             # Settings > General's "download in the background": the main
             # window owns the job and says its outcome; this window stays usable
             # (as the Transcription tab's downloads do).
-            if self.main_window.start_transcription_background_job(make_job, status):
-                self.main_window.speak_output.output(i18n.t("noise_reducer_components_background"))
-            self._components_btn.Disable()
-            self._components_field.SetFocus()
+            self._start_in_background(make_job, status, self._components_btn,
+                                      self._components_field)
             return
         dialog = TranscriptionProgressDialog(
             self, i18n, self.main_window.speak_output, make_job, status,
@@ -131,11 +130,14 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         target = self._components_btn if self._components_btn.IsEnabled() else self._components_field
         target.SetFocus()
 
-
     def _on_remove_components(self, _event):
         """Remove this processor's components (never the transcription's
-        cuBLAS); a build in use stays until WinZapp restarts."""
+        cuBLAS); a build in use stays until WinZapp restarts. Never while a
+        download runs (it would wait on the wx thread for the whole download,
+        then delete what it just installed)."""
         i18n = self.main_window.i18n
+        if self._background_busy():
+            return
         ids = store.removable(self.device)
         if not ids:
             return
@@ -143,7 +145,12 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
                          i18n.t("noise_reducer_title"), wx.YES_NO | wx.ICON_QUESTION,
                          self) != wx.YES:
             return
-        left = store.remove(ids)
+        try:
+            left = store.remove(ids)
+        except store.ComponentError:
+            # another window's download holds the folder
+            self.main_window.speak_output.output(i18n.t("transcription_error_cuda_runtime_busy"))
+            return
         key = "noise_reducer_components_removed_restart" if left else "noise_reducer_components_removed"
         self.main_window.speak_output.output(i18n.t(key))
         self._refresh_components()
@@ -153,6 +160,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
     def _on_remove_model(self, _event):
         from core import noise_model
         i18n = self.main_window.i18n
+        if self._background_busy():
+            return
         if wx.MessageBox(i18n.t("noise_reducer_model_remove_confirm"), i18n.t("noise_reducer_title"),
                          wx.YES_NO | wx.ICON_QUESTION, self) != wx.YES:
             return
@@ -169,12 +178,6 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         else:
             self._components_field.SetFocus()
 
-
-def in_background(settings) -> bool:
-    """Whether the components download without a progress window: Settings >
-    General's "download in the background" (update_background)."""
-    from update_background import background_downloads_enabled
-    return background_downloads_enabled(settings)
 
 
 def neural_box_shown(reduction_on, model_installed) -> bool:

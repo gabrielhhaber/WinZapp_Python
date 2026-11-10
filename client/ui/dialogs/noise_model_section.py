@@ -45,6 +45,41 @@ class NoiseModelSectionMixin:
         self._noise_model_download_btn.SetLabel(i18n.t("noise_model_download_btn"))
         self._refresh_noise_model_section()
 
+    def _start_in_background(self, make_job, status, button, field):
+        """Hand a download to the main window (Settings > General's "download
+        in the background"). It says the start and the end itself; this window
+        only refreshes once the run is over. Refused out loud while another
+        background run is going (it used to say nothing, the button off)."""
+        mw = self.main_window
+        if not mw.start_transcription_background_job(make_job, status):
+            mw.speak_output.output(mw.i18n.t("noise_reducer_background_busy"))
+            return False
+        mw.watch_transcription_background(self._background_ended)
+        button.Disable()
+        field.SetFocus()
+        return True
+
+    def _background_ended(self, job, result, error, last):
+        """watch_transcription_background's listener: once the run is over,
+        what is installed now is shown (the field still listed the
+        components as missing). The main window says the outcome."""
+        if not self or not last:
+            return False
+        refresh = getattr(self, "_refresh_components", None)
+        if refresh is not None:
+            refresh()
+        self._refresh_noise_model_section()
+        return False
+
+    def _background_busy(self) -> bool:
+        """True (and says so) while a background download runs: removing
+        what it installs, or starting another, waits for it to end."""
+        mw = self.main_window
+        if not mw.transcription_background_running():
+            return False
+        mw.speak_output.output(mw.i18n.t("noise_reducer_background_busy"))
+        return True
+
     def _refresh_noise_model_section(self):
         i18n = self.main_window.i18n
         try:
@@ -72,11 +107,8 @@ class NoiseModelSectionMixin:
             # Settings > General's "download in the background": the main
             # window runs it and says the outcome, as for the transcription
             # downloads; this window stays usable.
-            if self.main_window.start_transcription_background_job(
-                    make_job, i18n.t("noise_model_progress")):
-                self.main_window.speak_output.output(i18n.t("noise_reducer_components_background"))
-            self._noise_model_download_btn.Disable()
-            self._noise_model_field.SetFocus()
+            self._start_in_background(make_job, i18n.t("noise_model_progress"),
+                                      self._noise_model_download_btn, self._noise_model_field)
             return
         dialog = TranscriptionProgressDialog(
             self, i18n, self.main_window.speak_output, make_job,

@@ -224,3 +224,36 @@ def test_the_components_job_says_the_reducers_own_sentence():
     job = ComponentsInstallJob(["cudart_cu12"])
     assert job.announcement(("cudart_cu12",), None).i18n_key == "noise_reducer_components_done"
     assert total_bytes(["cudart_cu12"]) == catalog.COMPONENTS["cudart_cu12"].install_bytes
+
+
+def test_a_component_being_downloaded_is_not_offered_for_removal(tmp_path, monkeypatch):
+    device = next(d for d, ids in model.STACKS.items()
+                  if any(c != model.SHARED_CUBLAS_CU12 for c in ids))
+    cid = next(c for c in model.STACKS[device] if c != model.SHARED_CUBLAS_CU12)
+    monkeypatch.setattr(store, "state", lambda c, root=None: store.STATE_INCOMPLETE)
+    folder = tmp_path / cid
+    folder.mkdir()
+    (folder / ("x.whl" + store._PART)).write_bytes(b"")
+    assert cid not in store.removable(device, str(tmp_path))
+    (folder / ("x.whl" + store._PART)).unlink()
+    assert cid in store.removable(device, str(tmp_path))
+
+
+def test_a_removal_never_waits_for_an_install_holding_the_folder(tmp_path, monkeypatch):
+    """It runs on the wx thread: it used to wait up to 12 hours on the lock."""
+    from coord_locks import LockTimeout
+    waited = []
+
+    class Busy:
+        def __init__(self, *a, timeout=None, **k):
+            waited.append(timeout)
+
+        def acquire(self):
+            raise LockTimeout("held")
+
+        def release(self):
+            pass
+    monkeypatch.setattr(store, "models_lock", Busy)
+    with pytest.raises(store.ComponentError) as busy:
+        store.remove(["x"], root=str(tmp_path), lock_timeout=0.01)
+    assert busy.value.code == "busy" and max(waited) <= store.REMOVE_LOCK_SECONDS

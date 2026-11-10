@@ -38,6 +38,9 @@ _CHUNK = 1024 * 1024
 _HTTP_TIMEOUT = (30, 300)
 _LOCK_POLL_SECONDS = 2.0
 _LOCK_TIMEOUT_SECONDS = 12 * 60 * 60.0
+#: how long a removal waits for the folder's lock: it runs on the wx thread,
+#: and an install holding the lock can take many minutes (cuDNN, 700 MB)
+REMOVE_LOCK_SECONDS = 2.0
 
 STATE_ABSENT = "absent"
 STATE_INCOMPLETE = "incomplete"
@@ -114,10 +117,10 @@ def bytes_to_download(component_ids) -> int:
 
 
 @contextlib.contextmanager
-def _locked(folder, should_cancel):
-    deadline = time.monotonic() + _LOCK_TIMEOUT_SECONDS
+def _locked(folder, should_cancel, timeout=_LOCK_TIMEOUT_SECONDS):
+    deadline = time.monotonic() + timeout
     while True:
-        lock = models_lock(folder, global_dir(), timeout=_LOCK_POLL_SECONDS)
+        lock = models_lock(folder, global_dir(), timeout=min(_LOCK_POLL_SECONDS, timeout))
         try:
             lock.acquire()
             break
@@ -244,22 +247,35 @@ def _sweep(folder):
     shutil.rmtree(folder, ignore_errors=True)
 
 
+def installing(component_id, root=None) -> bool:
+    """Whether a download of `component_id` is writing its folder now (its
+    `.part` files are there)."""
+    folder = component_dir(component_id, root)
+    try:
+        return any(name.endswith(_PART) for name in os.listdir(folder))
+    except OSError:
+        return False
+
+
 def removable(device, root=None) -> list:
     """The installed components of `device` that may be removed: never the
     shared cuBLAS, which the local transcription uses (it is removed from the
-    Transcription tab)."""
+    Transcription tab), nor one being downloaded (its `.part` files)."""
     return [cid for cid in STACKS.get(device, ())
-            if cid != SHARED_CUBLAS_CU12 and state(cid, root) != STATE_ABSENT]
+            if cid != SHARED_CUBLAS_CU12 and state(cid, root) != STATE_ABSENT
+            and not installing(cid, root)]
 
 
-def remove(component_ids, root=None) -> list:
+def remove(component_ids, root=None, lock_timeout=REMOVE_LOCK_SECONDS) -> list:
     """Delete `component_ids`' folders. Returns those that could not go whole:
     a DLL this process already loaded (the build in use) stays until WinZapp
-    restarts."""
+    restarts. ComponentError("busy") when another window holds a folder's
+    lock for longer than *lock_timeout* (an install): it runs on the wx thread
+    and used to wait for the whole download."""
     left = []
     for cid in component_ids:
         folder = component_dir(cid, root)
-        with _locked(folder, None):
+        with _locked(folder, None, lock_timeout):
             shutil.rmtree(folder, ignore_errors=True)
         if os.path.exists(folder):
             left.append(cid)

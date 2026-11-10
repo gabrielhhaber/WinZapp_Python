@@ -3403,7 +3403,9 @@ msgctxt "channels_created_settings_not_saved"
 msgid ""
 "Channel created, but who may react or the admin profiles could not be set. "
 "Change them by editing the channel."
-msgstr "Utworzono kanał, ale nie udało się ustawić reakcji ani profilu administratora. Zmień je, edytując kanał."
+msgstr ""
+"Utworzono kanał, ale nie udało się ustawić reakcji ani profilu "
+"administratora. Zmień je, edytując kanał."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
@@ -9483,17 +9485,18 @@ msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "Pobrano. Redukcja szumów używa modelu neuronowego."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_reducer_background_busy"
+msgid ""
+"Another download is still going on in the background. Try again once WinZapp"
+" says it is over."
+msgstr "W tle trwa jeszcze inne pobieranie. Spróbuj ponownie, gdy WinZapp poinformuje, że się zakończyło."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_button"
 msgid "Noise reducer settin&gs..."
 msgstr "Ustawie&nia redukcji szumów..."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_model_section.py
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_components_background"
-msgid "The download goes on in the background. WinZapp says when it is over."
-msgstr "Pobieranie trwa w tle. WinZapp powiadomi o zakończeniu."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -16654,6 +16657,7 @@ msgid "Transcription cancelled."
 msgstr "Transkrypcja anulowana."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
 #| msgctxt "wpp_update_other_account_msg"
 #| msgid ""
 #| "Another WinZapp account is still using the WPPConnect Server. Close the "
@@ -20911,6 +20915,10 @@ msgstr "&Tak"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Wczoraj o {time}"
+
+#~ msgctxt "noise_reducer_components_background"
+#~ msgid "The download goes on in the background. WinZapp says when it is over."
+#~ msgstr "Pobieranie trwa w tle. WinZapp powiadomi o zakończeniu."
 
 #, python-brace-format
 #~ msgctxt "call_invite_sent"

@@ -132,6 +132,10 @@ class MachineSlot:
         #: re-entrant for its owning thread and would not keep them apart.
         self._turn = threading.Lock()
         self._holding = threading.Event()
+        #: Set from this process's own want() until the slot is held (or the
+        #: wait gave up): the watcher must not take that signal for another
+        #: process's and let this process's own idle model go.
+        self._wanting = threading.Event()
         self._watchers = []
         self._watcher_thread = None
         #: Never set: only waited on, as a sleep.
@@ -155,6 +159,7 @@ class MachineSlot:
         while not self._turn.acquire(timeout=self._poll):
             if check is not None:
                 check()
+        self._wanting.set()
         try:
             native = self._get_native()
             native.want()
@@ -163,12 +168,14 @@ class MachineSlot:
                 if check is not None:
                     check()
         except BaseException:
+            self._wanting.clear()
             self._turn.release()
             raise
         # Said again once held: another waiter that got the slot first may
         # have cleared it when it was done.
         native.want()
         self._holding.set()
+        self._wanting.clear()
 
     def _release(self) -> None:
         native = self._get_native()
@@ -201,9 +208,12 @@ class MachineSlot:
                 return
             if not wanted:
                 continue
-            if self.holding:
-                # Our own run said it: wait for it to be done.
-                while self.holding:
+            if self.holding or self._wanting.is_set():
+                # Our own run said it (holding, or still on its way to hold:
+                # want() goes through ctypes, which lets this thread run before
+                # the slot is held, and 5 runs in 20 lost their own model to
+                # it): wait for it to be done.
+                while self.holding or self._wanting.is_set():
                     self._pause.wait(self._poll)
                 continue
             self.notify_wanted()

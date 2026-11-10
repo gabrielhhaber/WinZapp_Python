@@ -3375,7 +3375,9 @@ msgctxt "channels_created_settings_not_saved"
 msgid ""
 "Channel created, but who may react or the admin profiles could not be set. "
 "Change them by editing the channel."
-msgstr "Canalul a fost creat, dar nu s-au putut seta reacțiile sau profilul administratorului. Modificați-le editând canalul."
+msgstr ""
+"Canalul a fost creat, dar nu s-au putut seta reacțiile sau profilul "
+"administratorului. Modificați-le editând canalul."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
@@ -9471,17 +9473,18 @@ msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "Descărcat. Reducerea zgomotului folosește modelul neuronal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_reducer_background_busy"
+msgid ""
+"Another download is still going on in the background. Try again once WinZapp"
+" says it is over."
+msgstr "O altă descărcare este încă în curs în fundal. Încercați din nou după ce WinZapp anunță că s-a terminat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_button"
 msgid "Noise reducer settin&gs..."
 msgstr "Set&ările reducerii zgomotului..."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_model_section.py
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_components_background"
-msgid "The download goes on in the background. WinZapp says when it is over."
-msgstr "Descărcarea continuă în fundal. WinZapp anunță când se termină."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -16594,6 +16597,7 @@ msgid "Transcription cancelled."
 msgstr "Transcriere anulată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "transcription_error_cuda_runtime_busy"
 msgid ""
 "Another WinZapp window is using the CUDA libraries folder. Wait for it to "
@@ -20766,6 +20770,10 @@ msgstr "&Da"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri la {time}"
+
+#~ msgctxt "noise_reducer_components_background"
+#~ msgid "The download goes on in the background. WinZapp says when it is over."
+#~ msgstr "Descărcarea continuă în fundal. WinZapp anunță când se termină."
 
 #, python-brace-format
 #~ msgctxt "call_invite_sent"
