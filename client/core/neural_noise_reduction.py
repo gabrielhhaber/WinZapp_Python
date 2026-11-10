@@ -56,10 +56,17 @@ def model_path() -> str:
 def _load_session(path: str):
     import onnxruntime as ort
 
+    from core.cuda_components import runtime as noise_runtime
+
     options = ort.SessionOptions()
     options.intra_op_num_threads = 1
     options.inter_op_num_threads = 1
-    session = ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
+    # The graphics card when the user chose one and its build is in place
+    # (CUDA on Windows, Core ML on macOS), else the processor; the session
+    # falls back to the next provider by itself if the first will not start.
+    providers = noise_runtime.providers(ort.get_available_providers())
+    session = ort.InferenceSession(path, sess_options=options, providers=providers)
+    logging.info("[noise_reduction] model on %s", session.get_providers()[0])
     meta = session.get_modelmeta().custom_metadata_map
     erb = np.array(meta["erb_norm_init"].split(","), dtype=np.float32)
     spec = np.array(meta["spec_norm_init"].split(","), dtype=np.float32)
