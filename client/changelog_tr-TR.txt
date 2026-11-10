@@ -6,7 +6,7 @@ YENİLİKLER
 
 - Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
 
-- Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.
+- Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler ve beklediğini söyler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.
 
 - Sohbeti temizle (Neonize): WinZapp'te bir sohbeti temizlemek artık telefonda da temizler. Önceden bildirim telefona ulaşmıyor, mesajlar sonraki eşitlemede geri geliyordu.
 

@@ -6,7 +6,7 @@ NOVEDADES
 
 - Menciones: en un mensaje de grupo con @todos, el Tabulador ya no recorre un enlace por cada participante justo después de abrir el chat. Antes ocurría hasta que los participantes del grupo terminaban de cargarse y el mensaje perdía el foco.
 
-- Transcripción local: cambiar de cuenta mientras se transcriben audios ya no llena la memoria del ordenador. Solo se carga un modelo a la vez: una segunda transcripción, de la misma cuenta o de otra, espera a la primera, y el modelo inactivo de una cuenta se libera cuando otra lo necesita.
+- Transcripción local: cambiar de cuenta mientras se transcriben audios ya no llena la memoria del ordenador. Solo se carga un modelo a la vez: una segunda transcripción, de la misma cuenta o de otra, espera a la primera y avisa de que está esperando, y el modelo inactivo de una cuenta se libera cuando otra lo necesita.
 
 - Vaciar chat (Neonize): vaciar un chat en WinZapp ahora lo vacía también en el teléfono. Antes el aviso no llegaba al teléfono y los mensajes volvían en la siguiente sincronización.
 

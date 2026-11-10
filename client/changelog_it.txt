@@ -4,41 +4,41 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
-- Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.
+- Menzioni: in un messaggio di gruppo con @tutti, Tab non passa più per un link per ogni membro subito dopo l'apertura della chat. Prima succedeva finché i membri del gruppo non finivano di caricarsi e il messaggio perdeva il focus.
 
-- Local transcription: switching accounts while voice notes are transcribed no longer fills the computer's memory. One model is loaded at a time: a second transcription, of the same account or another, waits for the first, and an account's idle model is released when another one needs the card.
+- Trascrizione locale: cambiare account mentre si trascrivono i messaggi vocali non riempie più la memoria del computer. Si carica un solo modello alla volta: una seconda trascrizione, dello stesso account o di un altro, aspetta la prima e avvisa che è in attesa, e il modello inattivo di un account viene liberato quando un altro ne ha bisogno.
 
-- Clear chat (Neonize): clearing a chat in WinZapp now clears it on the phone too. The notice used to miss the phone, and the messages came back at the next sync.
+- Svuota chat (Neonize): svuotare una chat in WinZapp ora la svuota anche sul telefono. L'avviso non arrivava al telefono e i messaggi tornavano alla sincronizzazione successiva.
 
-- Automatic transcription: voice notes that arrive all at once after the computer hibernated or was offline are now transcribed. The time the computer slept or was offline no longer counts as a message's age, and the queue holds up to 100 messages.
+- Trascrizione automatica: i messaggi vocali che arrivano tutti insieme dopo che il computer è andato in ibernazione o è rimasto offline ora vengono trascritti. Il tempo in cui il computer era sospeso o offline non conta più come età del messaggio, e la coda contiene fino a 100 messaggi.
 
-- Local transcription: a new option, "Also transcribe the ones that arrive late", shown with automatic transcription on, transcribes received messages however long ago they were sent.
+- Trascrizione locale: una nuova opzione, «Trascrivi anche quelli che arrivano in ritardo», mostrata con la trascrizione automatica attiva, trascrive i messaggi ricevuti indipendentemente da quanto tempo fa sono stati inviati.
 
-- Disappearing messages (Neonize): audio recorded with Ctrl+Shift+H, photos, videos and documents now follow the chat's disappearing messages timer.
+- Messaggi effimeri (Neonize): l'audio registrato con Ctrl+Shift+H, le foto, i video e i documenti ora seguono il timer dei messaggi effimeri della chat.
 
-- Calls (Neonize): a call you place to a contact no longer shows up in your own chat, as if you had called yourself.
+- Chiamate (Neonize): una chiamata che fai a un contatto non compare più nella tua chat, come se avessi chiamato te stesso.
 
-- Group messages (Neonize): a message this computer could not open is now asked of your phone too, as WhatsApp Web does. It used to be lost when the sender's device did not send it again.
+- Messaggi di gruppo (Neonize): un messaggio che questo computer non è riuscito ad aprire ora viene chiesto anche al telefono, come fa WhatsApp Web. Prima andava perso quando il dispositivo del mittente non lo inviava di nuovo.
 
-- Pairing (Neonize): when connecting, you choose how much history to bring: recent messages only, 30 days, 6 months, 1 year, all the history or a custom period in days, months or years. Messages older than about a year only arrive this way.
+- Associazione (Neonize): durante la connessione scegli quanta cronologia portare: solo i messaggi recenti, 30 giorni, 6 mesi, 1 anno, tutta la cronologia o un periodo personalizzato in giorni, mesi o anni. I messaggi più vecchi di circa un anno arrivano solo così.
 
-- Older messages (Neonize): the Home key goes on asking the phone for older messages until it has nothing more, even where WhatsApp Web stops.
+- Messaggi meno recenti (Neonize): il tasto Home continua a chiedere al telefono i messaggi più vecchi finché non ne ha più, anche dove WhatsApp Web si ferma.
 
-- Channels: invitations to follow a channel or to be one of its admins now show in the chat, with the channel's name and the inviter's words. Enter opens the channel.
+- Canali: gli inviti a seguire un canale o a esserne amministratore ora compaiono nella chat, con il nome del canale e le parole di chi invita. Invio apre il canale.
 
-- Noise reducer: a new "Noise reducer settings" window in Settings, Audio, with the neural model and the processor it runs on: the computer's, an NVIDIA card with CUDA 12 (which uses the local transcription's components) or with CUDA 13, or Core ML on a Mac. Only the missing components are downloaded, following the option to download in the background, and they can be removed there. A new box chooses between the neural reducer and the common one, which is faster.
+- Riduttore di rumore: una nuova finestra «Configura il riduttore di rumore...» in Impostazioni, Audio, con il modello neurale e il processore su cui funziona: quello del computer, una scheda NVIDIA con CUDA 12 (che usa i componenti della trascrizione locale) o con CUDA 13, oppure Core ML su Mac. Si scaricano solo i componenti mancanti, seguendo l'opzione di scaricare in background, e lì si possono rimuovere. Una nuova casella sceglie tra il riduttore neurale e quello comune, più veloce.
 
-- Local transcription (whisper.cpp): on Windows ARM64 computers WinZapp uses the native ARM64 build and offers, as an option, the build for NVIDIA cards with CUDA 13.
+- Trascrizione locale (whisper.cpp): sui computer Windows ARM64 WinZapp usa la versione nativa per ARM64 e offre, come opzione, la versione per schede NVIDIA con CUDA 13.
 
-- Channels: where WhatsApp offers it to your account, "Edit channel..." has "Show admin profile on updates", as in WhatsApp Web (WPPConnect).
+- Canali: dove WhatsApp lo offre al tuo account, «Modifica canale...» ha «Mostra il profilo dell'amministratore negli aggiornamenti», come in WhatsApp Web (WPPConnect).
 
-- Channels: "Insights..." in the Channels window reads the statistics of a channel you administer, as WhatsApp Web shows them (reach, followers, net followers, new followers and unfollows over 30 days, by followers and others and by country), on WPPConnect and Neonize. WhatsApp has them from 100 followers on.
+- Canali: «Statistiche...» nella finestra dei Canali legge le statistiche di un canale che amministri, come le mostra WhatsApp Web (copertura, follower, follower netti, nuovi follower e abbandoni negli ultimi 30 giorni, per follower e altri e per paese), su WPPConnect e Neonize. WhatsApp le ha a partire da 100 follower.
 
 - Download dei media: "Download dei media in corso: X di Y" ora conta solo i media ancora da scaricare. Prima contava anche quelli già scaricati nelle sessioni precedenti, e sembrava che quasi nulla fosse stato scaricato (per esempio "723 di 728 elaborati (66 scaricati)", quando gli altri 659 erano già sul computer).
 
-- Channels: in "Create channel..." and "Edit channel...", Reactions sets who may react to the updates (any emoji, default emojis only or no reactions), as in WhatsApp Web, on WPPConnect and Neonize.
+- Canali: in «Crea canale...» e «Modifica canale...», Reazioni stabilisce chi può reagire agli aggiornamenti (qualsiasi emoji, solo le emoji predefinite o nessuna reazione), come in WhatsApp Web, su WPPConnect e Neonize.
 
-- Starred messages: a new window lists every starred message of every chat (Alt+0, or the "Starred messages" row of the navigation list), with a search field; Enter opens the chat on the message, and Delete removes the star. Suggested in issue #708.
+- Messaggi con stella: una nuova finestra elenca tutti i messaggi con stella di tutte le chat (Alt+0, o la riga «Messaggi con stella» dell'elenco di navigazione), con un campo di ricerca; Invio apre la chat sul messaggio e Canc toglie la stella. Suggerito nella issue #708.
 
 - Impostazioni > Interfaccia utente > Chat: nuova opzione "Posizione evidenziata automaticamente nell'elenco dei messaggi". Con "Continua da dove eri rimasto (ultimo messaggio evidenziato)", tornando a una chat (anche passando da una chat all'altra) l'elenco dei messaggi resta sul messaggio in cui eri quando sei uscito, che siano arrivati o no nuovi messaggi non letti. Il separatore dei non letti e le altre righe che non sono messaggi non contano come posizione. L'impostazione predefinita resta "Separatore dei non letti o ultimo messaggio". L'opzione sceglie solo il messaggio dell'elenco: se lo stato attivo va all'elenco o al campo del messaggio lo decide ancora l'opzione già esistente.
 
@@ -54,7 +54,7 @@ WHAT'S NEW
 
 - Messaggi: le identità alternative in conflitto non spostano più i messaggi inviati a un'altra persona o ricevuti da essa nella chat con te stesso. Le associazioni non valide vengono ignorate; i messaggi rimangono nella chat originale finché l'identità non viene risolta.
 
-- Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest. Non spariscono più nemmeno le conversazioni di gruppo le cui ultime voci erano avvisi del gruppo (inviti, membri aggiunti, descrizione modificata): questi avvisi non prendono più il posto dei veri messaggi non letti.
+- Filtro Non letto: dopo aver aggiornato o riavviato il programma, alcune conversazioni con messaggi non letti sparivano dal filtro (per esempio, 12 diventavano 9) finché non si risincronizzava con F5. Il conteggio ora guarda i messaggi più recenti della conversazione invece dei più vecchi. Non spariscono più nemmeno le conversazioni di gruppo le cui ultime voci erano avvisi del gruppo (inviti, membri aggiunti, descrizione modificata): questi avvisi non prendono più il posto dei veri messaggi non letti.
 
 - Scorciatoie Alt+lettera: in diverse finestre due controlli usavano la stessa lettera, quindi Alt+lettera passava solo dall'uno all'altro (per esempio «Aggiorna» e «Aggiungi partecipanti» nella finestra dei partecipanti alla chiamata). Ora ogni controllo di una finestra ha la sua lettera, in tutte le lingue.
 
@@ -66,15 +66,15 @@ WHAT'S NEW
 
 - Descrizioni delle immagini con IA: quando l'account del provider resta senza credito (OpenRouter risponde 402), WinZapp ora lo dice e suggerisce di aggiungere credito o scegliere un modello gratuito, invece di far controllare l'identificatore del modello; con più provider passa al successivo.
 
-- Recording with computer audio: on slower computers, recording the microphone together with the computer's audio (Ctrl+Shift+H) skipped and stuttered, worst with NVDA's speech recorded separately, because mixing the sounds could not keep up and pieces of audio were lost. The mixing is now many times faster and the recording comes out whole.
+- Registrazione con l'audio del computer: sui computer più lenti, registrare il microfono insieme all'audio del computer (Ctrl+Shift+H) saltava e si interrompeva, soprattutto con la voce di NVDA registrata a parte, perché il missaggio dei suoni non teneva il passo e si perdevano pezzi di audio. Il missaggio ora è molte volte più veloce e la registrazione esce intera.
 
-- Channels: on WPPConnect, posting to a channel you administer (text, photo, video or poll) failed before reaching WhatsApp, and an open channel showed only what WhatsApp Web already held, often no updates at all (The New York Times, for example) and none of your own new posts. Posts now go out, and a channel opens on a whole page of its newest updates, read from WhatsApp's server. Coming back from a channel with Esc, the Channels window is as you left it: the same list, search, category and selected channel.
+- Canali: su WPPConnect, pubblicare in un canale che amministri (testo, foto, video o sondaggio) falliva prima di arrivare a WhatsApp, e un canale aperto mostrava solo ciò che WhatsApp Web aveva già, spesso nessun aggiornamento (The New York Times, per esempio) e nessuno dei tuoi nuovi post. Ora i post partono e un canale si apre su una pagina intera dei suoi aggiornamenti più recenti, letti dal server di WhatsApp. Tornando da un canale con Esc, la finestra dei Canali è come l'hai lasciata: lo stesso elenco, la stessa ricerca, la stessa categoria e lo stesso canale selezionato.
 
 - Updates: on a busy computer an update could stop with "WinZapp non è riuscito a verificare che l'installazione dell'aggiornamento sia sicura. L'installazione non è stata avviata.", because the PowerShell that guards the install took more than 15 seconds to start; it now gets up to a minute. With Neonize, an update could also stop halfway, the bridge still closing in the background and holding its file: the installer now waits for it to close, and closes it if needed, before copying the files.
 
-- Channels with Neonize: opening or syncing a channel asked WhatsApp for a thousand updates at once; the server did not answer, the channel stayed empty and the sync tried again every 30 seconds. Updates are now asked 100 at a time, as WhatsApp Web does.
+- Canali con Neonize: aprire o sincronizzare un canale chiedeva a WhatsApp mille aggiornamenti alla volta; il server non rispondeva, il canale restava vuoto e la sincronizzazione riprovava ogni 30 secondi. Ora gli aggiornamenti si chiedono 100 alla volta, come fa WhatsApp Web.
 
-- Message list: on a Brazilian (ABNT2) keyboard, pressing "/" in the message list wrote "Á" into the message field, and "ç" came out as "º". Typing in the list now sends the field the letter or digit the keyboard really types, and punctuation stays in the list. For the same reason, the "ÿ" that NVDA gestures with the Windows key left in the field came from a key NVDA itself injects; only that key is ignored now, and a real "ÿ" can be typed.
+- Elenco dei messaggi: con una tastiera brasiliana (ABNT2), premere «/» nell'elenco dei messaggi scriveva «Á» nel campo del messaggio, e «ç» usciva come «º». Digitare nell'elenco ora manda al campo la lettera o la cifra che la tastiera digita davvero, e la punteggiatura resta nell'elenco. Per lo stesso motivo, la «ÿ» che i gesti di NVDA con il tasto Windows lasciavano nel campo veniva da un tasto che NVDA stesso inserisce; ora si ignora solo quel tasto, e si può digitare una vera «ÿ».
 
 - Chiamate: la finestra «Aggiungi partecipanti» ora funziona con lo screen reader. Le persone si contrassegnano con gli stessi tasti, suoni e annunci degli elenchi di conversazioni e messaggi (Ctrl+Spazio, Spazio finché qualcosa è contrassegnato, Maiusc+frecce, Ctrl+Maiusc+Spazio, Esc) e il risultato viene letto: chi è stato invitato, chi non è stato possibile aggiungere o perché la richiesta è fallita.
 
@@ -118,7 +118,7 @@ WHAT'S NEW
 - Settings > User Interface > Chats: new option "Number of new messages in the chat list", so the screen reader says the number of new messages before the chat name instead of after it. It applies to the chat list, the archived chats and the locked chats. (suggested by Michal Suchý)
 
 - New Channels window (Alt+9, also in the navigation list): it shows the channels you follow or searches WhatsApp's channel directory (with no text, the recommended channels). For the chosen channel you can open it and read its updates, follow or unfollow it, mute or unmute its notifications, copy its link and, for your own channels, edit or delete it. You can also follow a channel from its link and create a channel. Showing channels in the conversation list is still a separate setting. Works with WPPConnect and Neonize.
-- Channels, as on WhatsApp Web: in "Find channels", Category (business, entertainment, lifestyle, news, organizations, people, sports) and View (recommended, trending, popular, new) narrow the directory. In the channels you administer, the message field opens to post text updates, photos, videos and polls, your own can be edited from the message menu (Alt+E) within WhatsApp's edit window, an update can be pinned or unpinned from the message menu (Ctrl+Shift+P) and the pinned ones show in "Pinned messages"; the "Admins and followers..." button says how many admins the channel has and, for its owner, invites a contact to be an admin or cancels the invite. Works with WPPConnect and Neonize. That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.
+- Canali, come su WhatsApp Web: in «Trova canali», Categoria (aziende, intrattenimento, stile di vita, notizie, organizzazioni, persone, sport) e Visualizza (consigliati, di tendenza, popolari, nuovi) restringono la directory. Nei canali che amministri, il campo del messaggio si apre per pubblicare aggiornamenti di testo, foto, video e sondaggi, i tuoi si possono modificare dal menu del messaggio (Alt+E) entro il tempo di modifica di WhatsApp, un aggiornamento si può fissare o sbloccare dal menu del messaggio (Ctrl+Shift+P) e quelli fissati compaiono in «Messaggi fissati»; il pulsante «Amministratori e follower...» dice quanti amministratori ha il canale e, per il proprietario, invita un contatto a diventare amministratore o annulla l'invito. Funziona con WPPConnect e Neonize. Quella finestra elenca il proprietario, gli amministratori, gli inviti in attesa e i follower: il proprietario può rendere amministratore un follower, annullare un invito, rimuovere un amministratore o rendere proprietario un amministratore, e un amministratore può smettere di esserlo.
 
 - Calls: you can now add people to the call in progress, with the "Add participants" button in the call's participant list. A group call offers the group's members who are not in it yet; a private call offers your contacts, and the call then has several people, as on WhatsApp. Someone already called who has not joined is rung again. Works with WPPConnect and Neonize.
 

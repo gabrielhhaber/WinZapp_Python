@@ -172,8 +172,16 @@ class ListeningGaps:
         if end <= start:
             return
         horizon = self._clock() - GAP_MEMORY_SECONDS
-        self._gaps = [g for g in self._gaps if g[1] >= horizon]
-        self._gaps.append((start, end))
+        # Kept disjoint: a sleep inside an offline stretch (both recorded) is
+        # one gap, or listening_age() would take the overlap off twice.
+        merged = []
+        for gap_start, gap_end in sorted(
+                [g for g in self._gaps if g[1] >= horizon] + [(start, end)]):
+            if merged and gap_start <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], gap_end))
+            else:
+                merged.append((gap_start, gap_end))
+        self._gaps = merged
 
     def connection_changed(self, connected, now=None) -> None:
         """WhatsApp went offline or came back (MainWindow._set_wa_connected).

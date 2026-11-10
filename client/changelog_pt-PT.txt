@@ -6,7 +6,7 @@ NOVIDADES
 
 - Menções: numa mensagem de grupo com @todos, o Tab já não passa por uma ligação para cada participante logo depois de abrir a conversa. Antes isso acontecia até os participantes do grupo terminarem de carregar e a mensagem perder o foco.
 
-- Transcrição local: mudar de conta enquanto áudios são transcritos já não enche a memória do computador. Só um modelo fica carregado de cada vez: uma segunda transcrição, da mesma conta ou de outra, espera pela primeira, e o modelo parado de uma conta é libertado quando outra precisa.
+- Transcrição local: mudar de conta enquanto áudios são transcritos já não enche a memória do computador. Só um modelo fica carregado de cada vez: uma segunda transcrição, da mesma conta ou de outra, espera pela primeira e avisa que está a aguardar, e o modelo parado de uma conta é libertado quando outra precisa.
 
 - Limpar conversa (Neonize): limpar uma conversa no WinZapp passa a limpá-la também no telemóvel. Antes o aviso não chegava ao telemóvel e as mensagens voltavam na sincronização seguinte.
 

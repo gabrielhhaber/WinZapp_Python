@@ -306,6 +306,16 @@ class TestAgeWhileListening:
         gaps.add(5, 5)                                     # empty: ignored
         assert len(gaps.snapshot()) == 1
 
+    def test_overlapping_gaps_count_once(self):
+        """A sleep inside an offline stretch is recorded twice (wake detector
+        and connection); its time must come off a message's age only once."""
+        gaps = auto_queue.ListeningGaps(clock=lambda: NOW)
+        gaps.add(NOW - 1000, NOW - 400)
+        gaps.add(NOW - 800, NOW - 200)
+        gaps.add(NOW - 100, NOW - 50)
+        assert gaps.snapshot() == ((NOW - 1000, NOW - 200), (NOW - 100, NOW - 50))
+        assert auto_queue.listening_age(NOW - 2000, NOW, gaps.snapshot()) == 2000 - 850
+
 
 class TestCaughtUpBySync:
     def test_only_new_and_newer_than_the_cache(self):

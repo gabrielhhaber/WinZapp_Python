@@ -172,8 +172,10 @@ def test_the_finder_takes_onnxruntime_from_the_gpu_folder(tmp_path, monkeypatch)
     module = importlib.import_module("onnxruntime")
     assert module.WHERE == "gpu"
     assert importlib.import_module("onnxruntime.capi").__file__.startswith(str(tmp_path))
+    # The fakes are popped, not monkeypatch.delitem'd: monkeypatch would put
+    # them back at teardown, and the next test would import the fake package.
     for name in [n for n in sys.modules if n == "onnxruntime" or n.startswith("onnxruntime.")]:
-        monkeypatch.delitem(sys.modules, name)
+        sys.modules.pop(name, None)
 
 
 def test_the_components_field_says_what_is_missing_and_when_it_applies():
@@ -226,6 +228,36 @@ def test_the_components_job_says_the_reducers_own_sentence():
     assert total_bytes(["cudart_cu12"]) == catalog.COMPONENTS["cudart_cu12"].install_bytes
 
 
+@pytest.mark.parametrize("code, expected", [
+    ("no_space", "NO_DISK_SPACE"),
+    ("corrupted", "CUDA_RUNTIME_CORRUPTED"),
+    ("busy", "CUDA_RUNTIME_BUSY"),
+    ("in_use", "CUDA_RUNTIME_IN_USE"),
+    ("download_failed", "CUDA_RUNTIME_DOWNLOAD_FAILED"),
+    ("something new", "CUDA_RUNTIME_DOWNLOAD_FAILED"),
+])
+def test_the_components_job_says_why_an_install_failed(monkeypatch, code, expected):
+    from core.cuda_components.job import ComponentsInstallJob
+    from core.transcription import errors
+
+    def fail(cid, **kwargs):
+        raise store.ComponentError(code, "detail")
+    monkeypatch.setattr(store, "install", fail)
+    with pytest.raises(errors.TranscriptionError) as caught:
+        ComponentsInstallJob(["cudart_cu12"])._perform()
+    assert caught.value.code == getattr(errors, expected)
+
+
+def test_the_components_job_installs_each_one_in_order(monkeypatch):
+    from core.cuda_components.job import ComponentsInstallJob
+    installed = []
+    monkeypatch.setattr(store, "install",
+                        lambda cid, **kwargs: installed.append((cid, kwargs["root"])))
+    ids = ["cudart_cu12", model.SHARED_CUBLAS_CU12]
+    assert ComponentsInstallJob(ids, root="R")._perform() == tuple(ids)
+    assert installed == [(cid, "R") for cid in ids]
+
+
 def test_a_component_being_downloaded_is_not_offered_for_removal(tmp_path, monkeypatch):
     device = next(d for d, ids in model.STACKS.items()
                   if any(c != model.SHARED_CUBLAS_CU12 for c in ids))
@@ -257,3 +289,85 @@ def test_a_removal_never_waits_for_an_install_holding_the_folder(tmp_path, monke
     with pytest.raises(store.ComponentError) as busy:
         store.remove(["x"], root=str(tmp_path), lock_timeout=0.01)
     assert busy.value.code == "busy" and max(waited) <= store.REMOVE_LOCK_SECONDS
+
+
+# ── runtime.activate(): which build the process starts with ─────────────────
+
+def _cuda_settings(device="cuda12"):
+    return {"general": {"noise_reduction_device": device}}
+
+
+@pytest.fixture
+def activation(monkeypatch, tmp_path):
+    """activate() on "Windows" with nothing really added to the loader."""
+    from core.transcription import cuda_runtime
+    added = []
+    monkeypatch.setattr(runtime, "_active", None)
+    monkeypatch.setattr(runtime.sys, "platform", "win32")
+    monkeypatch.setattr(runtime.os, "add_dll_directory", added.append, raising=False)
+    monkeypatch.setenv("PATH", "ORIGINAL")
+    monkeypatch.setattr(store, "missing", lambda device, root=None: [])
+    monkeypatch.setattr(store, "component_dir", lambda cid, root=None: str(tmp_path / cid))
+    monkeypatch.setattr(cuda_runtime, "default_cuda_runtime_dir", lambda: str(tmp_path / "rt"))
+    monkeypatch.delitem(sys.modules, "onnxruntime", raising=False)
+    monkeypatch.setattr(sys, "meta_path", list(sys.meta_path))
+    return added
+
+
+def test_activate_on_the_processor_changes_nothing(activation):
+    assert runtime.activate(_cuda_settings("cpu")) == "cpu"
+    assert activation == [] and runtime.active() == "cpu"
+
+
+def test_activate_off_windows_never_touches_the_loader(activation, monkeypatch):
+    monkeypatch.setattr(runtime.sys, "platform", "darwin")
+    assert runtime.activate(_cuda_settings("coreml")) == "coreml"
+    monkeypatch.setattr(runtime.sys, "platform", "linux")
+    assert runtime.activate(_cuda_settings("cuda12")) == "cpu"
+    assert activation == []
+
+
+def test_activate_with_a_component_missing_uses_the_processor(activation, monkeypatch):
+    monkeypatch.setattr(store, "missing", lambda device, root=None: ["cudnn_cu12"])
+    assert runtime.activate(_cuda_settings()) == "cpu"
+    assert activation == [] and os.environ["PATH"] == "ORIGINAL"
+
+
+def test_activate_after_onnxruntime_was_imported_waits_for_the_next_start(
+        activation, monkeypatch):
+    monkeypatch.setitem(sys.modules, "onnxruntime", types.ModuleType("onnxruntime"))
+    assert runtime.activate(_cuda_settings()) == "cpu"
+    assert activation == []
+
+
+def test_activate_puts_the_gpu_build_first(activation):
+    assert runtime.activate(_cuda_settings("cuda13")) == "cuda13"
+    assert runtime.active() == "cuda13"
+    assert activation and os.environ["PATH"].endswith("ORIGINAL")
+    assert all(folder in os.environ["PATH"] for folder in activation)
+    finder = sys.meta_path[0]
+    assert isinstance(finder, runtime._OnnxRuntimeFinder)
+    assert finder.root.endswith(model.ONNXRUNTIME_OF["cuda13"])
+
+
+def test_activate_falls_back_to_the_processor_when_the_loader_refuses(
+        activation, monkeypatch):
+    def refuse(folder):
+        raise OSError("no such folder")
+    monkeypatch.setattr(runtime.os, "add_dll_directory", refuse, raising=False)
+    assert runtime.activate(_cuda_settings()) == "cpu"
+    assert not isinstance(sys.meta_path[0], runtime._OnnxRuntimeFinder)
+
+
+def test_starting_winzapp_never_imports_onnxruntime():
+    """activate() must run before the first import of onnxruntime, or the GPU
+    build never applies (docs/traps/transcription.md). A child process, since
+    this one may have imported it for another test."""
+    import subprocess
+    client = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "client")
+    code = ("import sys; sys.path.insert(0, %r); import main; "
+            "print('onnxruntime' in sys.modules)" % client)
+    out = subprocess.run([sys.executable, "-c", code], cwd=client, capture_output=True,
+                         text=True, timeout=120)
+    assert out.returncode == 0, out.stderr[-2000:]
+    assert out.stdout.strip().splitlines()[-1] == "False"

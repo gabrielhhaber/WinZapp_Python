@@ -64,6 +64,9 @@ from core.transcription import machine_slot, residency as residency_module
 # one. No i18n keys here on purpose: part 6 owns the wording, and these are the
 # codes it maps — the same arrangement as errors.ERROR_CODES.
 PHASE_PREPARING_AUDIO = "preparing_audio"
+#: Only when another run (this account's or another's) holds the machine slot:
+#: without it the wait for that run is silence (machine_slot).
+PHASE_WAITING_FOR_SLOT = "waiting_for_slot"
 PHASE_LOADING_MODEL = "loading_model"
 PHASE_TRANSCRIBING = "transcribing"
 PHASE_DONE = "done"
@@ -72,6 +75,7 @@ PHASE_FAILED = "failed"
 
 PHASES = (
     PHASE_PREPARING_AUDIO,
+    PHASE_WAITING_FOR_SLOT,
     PHASE_LOADING_MODEL,
     PHASE_TRANSCRIBING,
     PHASE_DONE,
@@ -267,7 +271,10 @@ class TranscriptionJob:
         model in memory at a time on the whole machine (machine_slot): a
         second run, here or in another account's process, waits for this one
         instead of loading another copy."""
-        with machine_slot.slot.held(self._check_cancel):
+        with machine_slot.slot.held(
+            self._check_cancel,
+            on_wait=lambda: self._enter(PHASE_WAITING_FOR_SLOT),
+        ):
             return self._decode_held(backend, prepared)
 
     def _decode_held(self, backend, prepared):

@@ -2699,11 +2699,6 @@ msgid "Connected participants"
 msgstr "Połączeni uczestnicy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "call_participants_refresh"
-msgid "&Refresh"
-msgstr "&Odśwież"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
 #, python-brace-format
 msgctxt "call_participants_title"
@@ -9490,7 +9485,9 @@ msgctxt "noise_reducer_background_busy"
 msgid ""
 "Another download is still going on in the background. Try again once WinZapp"
 " says it is over."
-msgstr "W tle trwa jeszcze inne pobieranie. Spróbuj ponownie, gdy WinZapp poinformuje, że się zakończyło."
+msgstr ""
+"W tle trwa jeszcze inne pobieranie. Spróbuj ponownie, gdy WinZapp "
+"poinformuje, że się zakończyło."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -9534,7 +9531,7 @@ msgstr "&Składniki:"
 #: client/core/cuda_components/text.py
 #, python-brace-format
 msgctxt "noise_reducer_components_missing"
-msgid "{count} components missing ({size} to download):"
+msgid "Components missing: {count} ({size} to download):"
 msgstr "Brakuje składników: {count} ({size} do pobrania):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -18037,6 +18034,11 @@ msgstr "Przygotowywanie dźwięku..."
 msgctxt "transcription_phase_transcribing"
 msgid "Transcribing the message..."
 msgstr "Transkrypcja wiadomości..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_phase_waiting_for_slot"
+msgid "Waiting for another transcription to finish..."
+msgstr "Oczekiwanie na zakończenie innej transkrypcji..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_precision_bfloat16"

@@ -77,6 +77,12 @@ re-read 2026-10-05). What crosses modules:
   no Blackwell kernels, so `device.resolve_whisper_cpp_device()` sends sm_120
   or an unknown capability to the processor with
   `REASON_CUDA_BUILD_UNSUPPORTED`, said even under "automatic".
+- **Windows on ARM64 has its own pin: release b5454**
+  (`whisper_cpp_builds.ARM64_RELEASE_TAG`, the first with ARM64 builds,
+  chosen through `machine_arch`): a native ARM64 whisper-cli, and its only
+  NVIDIA build, CUDA 13.4, offered for capability **[7.5, 13.0)** (CUDA 13
+  dropped every card before Turing and has Blackwell). Its zips and files are
+  pinned like the x64 ones.
 - **whisper-cli's `-l` defaults to "en"**, so
   `client/core/transcription/whisper_cpp_cli.py` always passes one: `auto`
   unless a language is forced. Forgotten, a Portuguese note comes back as fluent
@@ -270,7 +276,8 @@ On it today:
 - Node.js (`client/ui/dialogs/node_download.py`) and the updater
   (`client/updater.py`);
 - the WhatsApp reachability probe (`client/main_window/connection.py`);
-- the online AI (`client/core/ai_media/`).
+- the online AI (`client/core/ai_media/`);
+- the noise reducer's CUDA components (`client/core/cuda_components/store.py`).
 
 Still outside it: `client/ui/dialogs/api_setup.py` (the GitHub release lookup
 and the WPPConnect Server download) and `client/core/link_preview.py`.
@@ -416,6 +423,30 @@ faster-whisper's filter is onnxruntime, reached only from inside
 faster-whisper. That is why `build.py` carries `--collect-all onnxruntime`:
 without it the frozen build alone loses the filter, and every note then
 carries that warning.
+
+## The noise reducer's GPU build (`client/core/cuda_components/`)
+
+Not the transcription, but it shares its runtime and its traps.
+
+- **Two onnxruntime builds cannot share a process**: both load a DLL named
+  `onnxruntime.dll`, and Windows hands the second import the first one's.
+  `cuda_components.runtime.activate()` therefore runs at startup **before
+  anything imports onnxruntime**, and puts the GPU build first with a meta
+  path finder (which also beats PyInstaller's importer). If onnxruntime was
+  imported already it keeps the processor and the change applies from the
+  next start. `tests/test_cuda_components.py` pins that `import main` alone
+  never imports onnxruntime; a top-level import of it (or of faster-whisper)
+  anywhere on that path breaks the GPU build silently.
+- **Checked by size only, at startup.** `store.state()` compares each kept
+  file with the size in the wheel's RECORD; the sha256 is checked only at
+  download. Decided by the maintainer (2026-11-10), the same trade as the
+  transcription's cuBLAS and unlike whisper.cpp's program, which is hashed on
+  every launch: hashing hundreds of MB of DLLs before every start costs more
+  than it protects, and a file swapped at the same size is an accepted limit.
+- **CUDA 12 shares the transcription's cuBLAS** (`SHARED_CUBLAS_CU12`, the
+  folder `cuda_runtime` installs): never a second copy, and never removed from
+  the noise reducer's window (`store.removable()` leaves it out, as it leaves
+  out a component still downloading).
 
 ## Persistence
 

@@ -170,7 +170,7 @@ def test_the_job_takes_the_slot_around_the_load_and_the_run(monkeypatch):
     seen = []
 
     class Slot:
-        def held(self, check=None):
+        def held(self, check=None, on_wait=None):
             seen.append(check)
             return _Context(seen)
 
@@ -209,3 +209,44 @@ class _NoTimer:
 class _QuietSlot:
     def release_when_wanted(self, callback):
         pass
+
+
+def test_waiting_is_said_only_when_another_run_holds_the_slot():
+    """PHASE_WAITING_FOR_SLOT: a free slot is taken in silence; a held one
+    says once that the run waits, however long the wait."""
+    first, second, _native = two_processes()
+    told = []
+    with first.held(on_wait=lambda: told.append("free?")):
+        pass
+    assert told == []
+
+    started = threading.Event()
+
+    def other_process():
+        with second.held(on_wait=lambda: (told.append("waiting"), started.set())):
+            told.append("held")
+
+    with first.held():
+        thread = threading.Thread(target=other_process)
+        thread.start()
+        assert started.wait(2)
+    thread.join(2)
+    assert told == ["waiting", "held"]
+
+
+def test_the_job_says_it_waits_for_the_slot(monkeypatch):
+    from core.transcription import job as job_module
+    phases = []
+
+    class Slot:
+        def held(self, check=None, on_wait=None):
+            on_wait()
+            return _Context([])
+
+    monkeypatch.setattr(machine_slot, "slot", Slot())
+    monkeypatch.setattr(job_module.TranscriptionJob, "_decode_held",
+                        lambda self, backend, prepared: "result")
+    job = job_module.TranscriptionJob.__new__(job_module.TranscriptionJob)
+    job._on_phase = phases.append
+    job._decode(object(), object())
+    assert phases == [job_module.PHASE_WAITING_FOR_SLOT]

@@ -152,21 +152,36 @@ class MachineSlot:
         """Whether a run of this process holds the slot right now."""
         return self._holding.is_set()
 
-    def held(self, check=None):
-        return _Held(self, check)
+    def held(self, check=None, on_wait=None):
+        """`on_wait()` is called once, only when the slot is not free at once
+        (another run holds it): the UI says it is waiting for that run, and an
+        uncontended run says nothing more than before."""
+        return _Held(self, check, on_wait)
 
-    def _acquire(self, check) -> None:
-        while not self._turn.acquire(timeout=self._poll):
-            if check is not None:
-                check()
+    def _acquire(self, check, on_wait=None) -> None:
+        told = False
+
+        def waiting():
+            nonlocal told
+            if not told and on_wait is not None:
+                told = True
+                on_wait()
+
+        if not self._turn.acquire(blocking=False):
+            waiting()
+            while not self._turn.acquire(timeout=self._poll):
+                if check is not None:
+                    check()
         self._wanting.set()
         try:
             native = self._get_native()
             native.want()
-            while not native.acquire(self._poll):
-                native.want()
-                if check is not None:
-                    check()
+            if not native.acquire(0):
+                waiting()
+                while not native.acquire(self._poll):
+                    native.want()
+                    if check is not None:
+                        check()
         except BaseException:
             self._wanting.clear()
             self._turn.release()
@@ -231,12 +246,13 @@ class MachineSlot:
 
 
 class _Held:
-    def __init__(self, slot, check):
+    def __init__(self, slot, check, on_wait=None):
         self._slot = slot
         self._check = check
+        self._on_wait = on_wait
 
     def __enter__(self):
-        self._slot._acquire(self._check)
+        self._slot._acquire(self._check, self._on_wait)
         return self
 
     def __exit__(self, *exc_info):

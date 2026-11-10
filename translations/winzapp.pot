@@ -2452,11 +2452,6 @@ msgid "Connected participants"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "call_participants_refresh"
-msgid "&Refresh"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
 #, python-brace-format
 msgctxt "call_participants_title"
@@ -8934,7 +8929,7 @@ msgstr ""
 #: client/core/cuda_components/text.py
 #, python-brace-format
 msgctxt "noise_reducer_components_missing"
-msgid "{count} components missing ({size} to download):"
+msgid "Components missing: {count} ({size} to download):"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -16637,6 +16632,11 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_phase_transcribing"
 msgid "Transcribing the message..."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_phase_waiting_for_slot"
+msgid "Waiting for another transcription to finish..."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
