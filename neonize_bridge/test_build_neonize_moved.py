@@ -15,6 +15,7 @@ def trees(tmp_path, monkeypatch):
     for name in bn.TREES:
         os.makedirs(tmp_path / name / ".git")
     monkeypatch.setattr(bn, "tree_path", lambda name: str(tmp_path / name))
+    monkeypatch.setattr(bn, "WORK", str(tmp_path))      # no record: commit times decide
     changed, prepared, overwritten = {}, {}, {}
     monkeypatch.setattr(bn, "_commit_time",
                         lambda cwd, *args: changed.get(os.path.basename(args[-1]), 0))
@@ -105,6 +106,77 @@ def test_a_new_commit_on_a_stale_workspace_does_not_hide_it(tmp_path, monkeypatc
     assert bn._prepared_time(str(tree)) == 1_700_002_000
 
     monkeypatch.setattr(bn, "tree_path", lambda name: str(tmp_path / name))
+    monkeypatch.setattr(bn, "WORK", str(tmp_path))
     monkeypatch.setattr(bn, "_commit_time", lambda cwd, *args: 1_700_005_000 if cwd == bn.HERE else 0)
     monkeypatch.setattr(bn, "overwritten_patches", lambda name: ["0002-calls.patch"])
     assert bn.patches_moved("neonize")
+
+
+# ------------------------------------------- by content, against the record
+@pytest.fixture
+def synced(tmp_path, monkeypatch):
+    """A workspace whose export gives *exported*, beside a repository folder
+    of patches; record() is what prepare/export note."""
+    (tmp_path / "neonize" / ".git").mkdir(parents=True)
+    repo = tmp_path / "patches" / "neonize"
+    repo.mkdir(parents=True)
+    monkeypatch.setattr(bn, "tree_path", lambda name: str(tmp_path / name))
+    monkeypatch.setattr(bn, "PATCHES", str(tmp_path / "patches"))
+    monkeypatch.setattr(bn, "WORK", str(tmp_path / "work"))
+    os.makedirs(tmp_path / "work")
+    exported = {}
+
+    def export_to(name, target):
+        os.makedirs(target, exist_ok=True)
+        for file, data in exported.items():
+            (tmp_path / target / file).write_bytes(data)
+    monkeypatch.setattr(bn, "format_patches", export_to)
+    # commit times would say the opposite of the truth in both cases below
+    monkeypatch.setattr(bn, "_commit_time", lambda cwd, *args: 1)
+    monkeypatch.setattr(bn, "_prepared_time", lambda tree: 2)
+
+    def write(file, data):
+        (repo / file).write_bytes(data)
+    return write, exported
+
+
+def test_a_teammates_patch_merged_before_an_older_prepare_is_not_overwritten(synced):
+    # prepared from the old 0001; main (squash-merged earlier) brings the new
+    # one when merged into this branch: the export would put the old one back
+    write, exported = synced
+    write("0001-lock.patch", b"old")
+    bn.record_synced("neonize")
+    write("0001-lock.patch", b"teammate")
+    exported["0001-lock.patch"] = b"old"
+    assert bn.patches_moved("neonize")
+
+
+def test_a_patch_added_by_the_repository_is_not_dropped(synced):
+    write, exported = synced
+    write("0001-lock.patch", b"same")
+    bn.record_synced("neonize")
+    write("0002-calls.patch", b"pulled")
+    exported["0001-lock.patch"] = b"same"
+    assert bn.patches_moved("neonize")
+
+
+def test_amending_a_patch_this_workspace_exported_exports(synced):
+    write, exported = synced
+    write("0002-calls.patch", b"first")
+    bn.record_synced("neonize")              # export, then commit it
+    exported["0002-calls.patch"] = b"amended"
+    exported["0003-new.patch"] = b"new"
+    assert not bn.patches_moved("neonize")
+
+
+def test_export_and_prepare_record_what_they_left(synced, monkeypatch):
+    write, exported = synced
+    write("0001-lock.patch", b"old")
+    exported["0001-lock.patch"] = b"mine"
+    bn.record_synced("neonize")
+    monkeypatch.setattr(bn, "TREES", ("neonize",))
+    bn.export()
+    write_after = bn._synced("neonize")
+    assert write_after == bn._patch_hashes("neonize")
+    exported["0001-lock.patch"] = b"mine again"
+    assert not bn.patches_moved("neonize")

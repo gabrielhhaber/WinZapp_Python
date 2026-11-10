@@ -214,15 +214,18 @@ instead of writing those older commits over the new patches, and `all`
 prepares the workspace again from the patches (its commits kept in
 `neonize_build/stale-backup/`) instead of building the older code. Measured
 after #732: the version check passed, `export` put the old 0002 back and the
-DLL had no calls. The test is `patches_moved()`: the repository's newest
-export would change or delete a patch file whose newest commit in the
-repository is later than the moment `prepare` applied the patches (the tree's
-oldest commit of its own, which `git am` stamps). Per file: new patches, and
-commits added after committing some, export fine; a patch the repository has
-not changed since the prepare is the workspace's own edit. Not the tree's
-newest commit: a new commit made on a stale workspace is newer than every
-patch, and on 2026-11-08 `export` from such a workspace rewrote 0002 without
-the call hook again.
+DLL had no calls. The test is `patches_moved()`, by content: `prepare` and
+`export` note the hash of every patch file they left
+(`neonize_build/<tree>.synced.json`), and a tree has moved when the export
+would change or delete a patch whose repository copy is no longer the one
+noted. Per file: new patches, commits added after exporting some, and
+amending a patch this workspace exported itself all export fine. Commit
+times are not used: `main` is squash-merged, so a patch's commit time is
+the merge's, and they missed a teammate's patch merged before an older
+branch's prepare and refused amending a patch just exported (review,
+2026-11-10). A workspace prepared before the note existed falls back to
+them, against the tree's oldest commit of its own (its newest let a new
+commit on a stale workspace hide it on 2026-11-08).
 
 A bridge handler for an event only WinZapp's build has registers behind
 `if hasattr(nev, "...")`, so an install still on an older build keeps

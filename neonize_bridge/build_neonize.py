@@ -145,9 +145,36 @@ def overwritten_patches(name):
     return sorted(file for file, data in current.items() if exported.get(file) != data)
 
 
+def _synced_path(name):
+    return os.path.join(WORK, f"{name}.synced.json")
+
+
+def _patch_hashes(name):
+    return {file: hashlib.sha256(data).hexdigest()
+            for file, data in _patch_files(os.path.join(PATCHES, name)).items()}
+
+
+def record_synced(name):
+    """Notes what neonize_patches/<name> held when this tree last matched it
+    (after `prepare` applied it, or `export` wrote it): patches_moved() tells
+    the repository's later changes from the workspace's own by it."""
+    with open(_synced_path(name), "w", encoding="utf-8", newline="\n") as f:
+        json.dump(_patch_hashes(name), f, indent=1, sort_keys=True)
+        f.write("\n")
+
+
+def _synced(name):
+    try:
+        with open(_synced_path(name), encoding="utf-8") as f:
+            found = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return found if isinstance(found, dict) else None
+
+
 def patches_moved(name):
     """True when an export of this tree would overwrite a patch that changed in
-    the repository after the tree was prepared.
+    the repository after the tree last matched it.
 
     Exporting such a tree writes its older commits over the newer patches, and
     building it builds the older code. Seen after pulling #732 (the call layer
@@ -155,19 +182,35 @@ def patches_moved(name):
     the patches before it, at the same pinned neonize version, so the version
     check passed, `export` put the old 0002 back and the DLL had no calls.
 
-    Per file, against when `prepare` applied the patches (the tree's oldest
-    commit of its own): a patch the export leaves as it is, or one that is new,
-    never counts, so committing new patches and then adding more commits in the
-    same workspace exports fine (2026-11-09, refused by a tree-wide check);
-    changing a patch that the repository has not changed since the prepare is
-    the workspace's own edit. Not the tree's newest commit either: a new commit
-    on a stale tree is newer than every patch (2026-11-08, export rewrote 0002
-    without the call hook again). Not a git checkout, or no workspace: never
+    Per file, by content: a patch the export would change or delete counts
+    when the repository's copy is not the one recorded at the last `prepare`
+    or `export` (record_synced). A patch the export leaves as it is, or one it
+    adds, never counts, so new patches and more commits in the same workspace
+    export fine (2026-11-09), and the workspace may amend what it exported
+    itself. Commit times were used before and fail both ways on this
+    repository, whose main is squash-merged: a teammate's patch merged before
+    the prepare of an older branch was missed, and amending a patch this
+    workspace had just exported and committed was refused (review,
+    2026-11-10). A workspace prepared before the record existed falls back to
+    those times (_moved_by_time). Not a git checkout, or no workspace: never
     moved.
     """
     tree = tree_path(name)
     if not os.path.isdir(os.path.join(tree, ".git")):
         return False
+    synced = _synced(name)
+    if synced is None:
+        return _moved_by_time(name, tree)
+    current = _patch_hashes(name)
+    return any(file in current and synced.get(file) != current[file]
+               for file in overwritten_patches(name))
+
+
+def _moved_by_time(name, tree):
+    """patches_moved() for a workspace with no record: a patch the export
+    would overwrite counts when its last commit in the repository is newer
+    than the prepare (the tree's oldest commit of its own; its newest would
+    let a new commit on a stale tree hide it, 2026-11-08)."""
     prepared = _prepared_time(tree)
     if not prepared:
         return False
@@ -226,6 +269,10 @@ def _writable_retry(function, path, _error):
 
 def apply_patches(tree, name):
     patches = sorted(glob.glob(os.path.join(PATCHES, name, "*.patch")))
+    try:            # a prepare that stops half way matches nothing
+        os.remove(_synced_path(name))
+    except FileNotFoundError:
+        pass
     git(tree, "checkout", "-q", "-f", "-B", BRANCH, BASE)
     for patch in patches:
         result = subprocess.run(["git", *GIT_ID, "am", "-q", "--3way", "--keep-cr", patch],
@@ -233,6 +280,7 @@ def apply_patches(tree, name):
         if result.returncode != 0:
             sys.exit(f"{os.path.basename(patch)} does not apply to {name}:\n{result.stdout}"
                      f"{result.stderr}\nResolve it in {tree} (git am --continue), then `export`.")
+    record_synced(name)
     say(f"{name}: {len(patches)} patch(es) applied")
 
 
@@ -311,6 +359,7 @@ def export():
         for old in glob.glob(os.path.join(target, "*.patch")):
             os.remove(old)
         format_patches(name, target)
+        record_synced(name)
         say(f"{name}: {len(glob.glob(os.path.join(target, '*.patch')))} patch(es) exported")
 
 
