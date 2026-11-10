@@ -535,6 +535,7 @@ function serverPage(held: number[], server: number[], options: any = {}) {
   root.require = (name: string) => ({
     WAWebCollections: { WAWebNewsletterCollection: { get: () => channel } },
     WAWebChatLoadMessages: { loadEarlierMsgs: async () => {
+      if (options.loaderOffline) throw new Error('offline');
       const batch = older.splice(Math.max(0, older.length - 50));
       for (const n of batch) models.unshift(make(n));
       if (!older.length) msgLoadState.noEarlierMsgs = true;
@@ -635,13 +636,31 @@ test('a filled hole, or none, leaves the older page complete', async () => {
   }
 });
 
-test('a hole too wide to ask id by id drops the old updates below it', async () => {
-  const page = serverPage([...range(1, 20), ...range(5001, 5100)], [], { fill: true });
+test('a hole too wide to ask id by id drops the old updates and pages on from the anchor', async () => {
+  // an earlier visit paged 1..20 down to the channel's start (no earlier
+  // messages): that must not stop the page below 5001
+  const page = serverPage([...range(1, 20), ...range(5001, 5100)], [], { fill: true,
+    older: range(4901, 5000) });
+  (globalThis as any).require('WAWebCollections').WAWebNewsletterCollection.get().msgs
+    .msgLoadState.noEarlierMsgs = true;
   try {
     await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_5001', targetCount: 20 });
     expect(page.fills).toEqual([]);
-    expect(page.models.map((m: any) => m.serverId)).toEqual(range(5001, 5100));
+    const ids = page.models.map((m: any) => m.serverId);
+    expect(ids).not.toContain(20);
+    expect(ids).toContain(4951);
     expect(channelOlderPageIncomplete({ chatId: '1@newsletter' })).toBe(false);
+  } finally {
+    page.restore();
+  }
+});
+
+test('a wide hole with nothing loaded below the anchor is marked incomplete', async () => {
+  const page = serverPage([...range(1, 20), ...range(5001, 5100)], [], { fill: true,
+    older: range(4901, 5000), loaderOffline: true });
+  try {
+    await pullChannelHistory({ chatId: '1@newsletter', anchorId: 'false_1@newsletter_5001', targetCount: 20 });
+    expect(channelOlderPageIncomplete({ chatId: '1@newsletter' })).toBe(true);
   } finally {
     page.restore();
   }

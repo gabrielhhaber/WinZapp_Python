@@ -135,6 +135,7 @@ export async function pullChannelHistory(request: any): Promise<number> {
   };
   const anchor = msgs.getModelsArray().find((m: any) => m?.id?._serialized === anchorId);
   const anchorServerId = real(anchor);
+  let dropped = false;
   if (anchorServerId) {
     const below = msgs.getModelsArray().map(real).filter((id: number) => id && id < anchorServerId)
       .sort((a: number, b: number) => b - a);
@@ -177,6 +178,12 @@ export async function pullChannelHistory(request: any): Promise<number> {
           return id && id <= staleTop;
         });
         msgs.remove(stale, { silent: true });
+        dropped = true;
+        // The visit that held them may have paged to the channel's start:
+        // "no earlier messages" is not true below the anchor any more.
+        const state = msgs.msgLoadState;
+        if (state && typeof state.set === 'function') state.set({ noEarlierMsgs: false });
+        else if (state) state.noEarlierMsgs = false;
       }
     }
   }
@@ -186,8 +193,18 @@ export async function pullChannelHistory(request: any): Promise<number> {
     const before = msgs.getModelsArray().findIndex((m: any) => m?.id?._serialized === anchorId);
     if (before >= wanted) break;
     const held = msgs.length;
-    await loader.loadEarlierMsgs({ chat: channel });
+    try {
+      await loader.loadEarlierMsgs({ chat: channel });
+    } catch (_) {
+      break;
+    }
     if (msgs.length === held) break;
+  }
+  if (dropped && anchorServerId
+      && !msgs.getModelsArray().some((m: any) => real(m) && real(m) < anchorServerId)) {
+    // nothing came below the anchor (offline): an empty page would read as
+    // the channel's start, and the store may still hold the old updates
+    msgs.__winzappOlderIncomplete = true;
   }
   return msgs.length - start;
 }
