@@ -67,6 +67,26 @@ def save(folder, days) -> bool:
         return False
 
 
+async def redo_when_qr(session, stored, restart, sleep, wait=30.0, step=0.5):
+    """Redoes the pairing of a session that was starting (INITIALIZING) when
+    the history choice changed, once its QR code appears: its first code would
+    carry the old days. *stored()* reads the choice, *restart()* (async) redoes
+    the pairing, *sleep* waits (asyncio.sleep). Nothing when the session paired
+    or never showed a code within *wait*, or when the client it is running was
+    built with the stored choice already. True when it restarted."""
+    waited = 0.0
+    while session.status not in ("QRCODE", "CONNECTED") and waited < wait:
+        await sleep(step)
+        waited += step
+    if session.status != "QRCODE":
+        return False
+    if stored() == getattr(session, "pairing_days", None):
+        return False
+    redone = bool(await restart())
+    log.info("pairing history: redone once the QR appeared (restarted=%s)", redone)
+    return redone
+
+
 #: the statuses whose next QR code is made by the running client
 PAIRING = ("QRCODE", "INITIALIZING")
 

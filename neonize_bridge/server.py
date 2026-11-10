@@ -2019,24 +2019,13 @@ def create_app(folder, fixed=""):
                 None, s.restart_pairing))
         elif restart:
             # still starting: its first QR would carry the old choice
-            asyncio.ensure_future(redo_when_qr(s))
+            async def restart():
+                return await asyncio.get_running_loop().run_in_executor(None, s.restart_pairing)
+            asyncio.ensure_future(pairing_history.redo_when_qr(
+                s, lambda: pairing_history.load(s.folder, HISTORY_DAYS), restart, asyncio.sleep))
         log.info("pairing history: %s (%s days, restarted=%s)", reason, days, restarted)
         return ok(status="success", response={"days": days, "reason": reason,
                                               "restarted": restarted})
-
-    async def redo_when_qr(s, wait=30.0, step=0.5):
-        """Redoes the pairing of a session that was starting when the history
-        choice changed, once its QR code appears (pairing_history.answer)."""
-        waited = 0.0
-        while s.status not in ("QRCODE", "CONNECTED") and waited < wait:
-            await asyncio.sleep(step)
-            waited += step
-        if s.status != "QRCODE":
-            return
-        if pairing_history.load(s.folder, HISTORY_DAYS) == getattr(s, "pairing_days", None):
-            return
-        redone = await asyncio.get_running_loop().run_in_executor(None, s.restart_pairing)
-        log.info("pairing history: redone once the QR appeared (restarted=%s)", bool(redone))
 
     async def status_session(req):
         s = session(req)

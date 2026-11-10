@@ -57,3 +57,36 @@ def test_a_restart_never_touches_a_paired_session():
     s.status, s._has_identity = "QRCODE", lambda: True
     assert server.Session.restart_pairing(s) is False
     assert stopped == []
+
+
+def _redo(session, stored):
+    import asyncio
+    restarts = []
+
+    async def restart():
+        restarts.append(session.status)
+        return True
+
+    async def sleep(_seconds):
+        session.steps.pop(0)(session) if session.steps else None
+
+    done = asyncio.run(ph.redo_when_qr(session, lambda: stored, restart, sleep, wait=5, step=1))
+    return done, restarts
+
+
+def test_a_choice_made_while_starting_redoes_the_pairing_once_the_qr_shows():
+    s = N(status="INITIALIZING", pairing_days=180,
+          steps=[lambda s: None, lambda s: setattr(s, "status", "QRCODE")])
+    assert _redo(s, 3650) == (True, ["QRCODE"])
+
+
+def test_nothing_is_redone_when_the_client_already_asks_for_the_choice():
+    s = N(status="INITIALIZING", pairing_days=3650, steps=[lambda s: setattr(s, "status", "QRCODE")])
+    assert _redo(s, 3650) == (False, [])
+
+
+def test_nothing_is_redone_once_paired_or_when_no_code_ever_shows():
+    paired = N(status="INITIALIZING", pairing_days=180, steps=[lambda s: setattr(s, "status", "CONNECTED")])
+    assert _redo(paired, 3650) == (False, [])
+    stuck = N(status="INITIALIZING", pairing_days=180, steps=[])
+    assert _redo(stuck, 3650) == (False, [])
