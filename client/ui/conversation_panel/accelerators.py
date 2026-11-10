@@ -375,7 +375,7 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_order_create,        id=self.ID_ORDER_CREATE)
         self.Bind(wx.EVT_MENU, self._on_accel_jump_last,           id=self.ID_ALT_2)
         self.Bind(wx.EVT_MENU, self._on_escape_conversation,        id=self.ID_ESC)
-        self.Bind(wx.EVT_MENU, self.close_conversation,            id=self.CTRL_W)
+        self.Bind(wx.EVT_MENU, self._on_ctrl_w_conversation,       id=self.CTRL_W)
         self.Bind(wx.EVT_MENU, self._on_ctrl_shift_d,              id=self.ID_CTRL_SHIFT_D)
         self.Bind(wx.EVT_MENU, self.on_add_attachment,             id=self.ID_CTRL_SHIFT_A)
         self.Bind(wx.EVT_MENU, self._on_action_save_as,            id=self.ID_CTRL_SHIFT_S)

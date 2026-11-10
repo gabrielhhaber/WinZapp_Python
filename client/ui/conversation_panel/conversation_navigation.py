@@ -644,6 +644,11 @@ class ConversationNavigationMixin:
         self.Layout()
         return True, closed_jid
 
+    def _on_ctrl_w_conversation(self, event=None):
+        """Ctrl+W in the open conversation: the user's own close, so a
+        channel opened from the Channels window goes back to it."""
+        self.close_conversation(event, from_user=True)
+
     def _on_escape_conversation(self, event):
         """First Esc clears an active message selection instead of closing
         (issue #99); the next one closes as it always did.

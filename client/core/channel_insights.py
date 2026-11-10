@@ -141,7 +141,8 @@ def failure_key(followers) -> str:
     to be under MIN_FOLLOWERS is too small for them (WhatsApp answers Bad
     Request), anything else is "unavailable" (not an admin, offline, or the
     count unknown)."""
-    if isinstance(followers, int) and not isinstance(followers, bool)             and followers < MIN_FOLLOWERS:
+    if (isinstance(followers, int) and not isinstance(followers, bool)
+            and followers < MIN_FOLLOWERS):
         return "channel_insights_too_small"
     return "channel_insights_unavailable"
 

@@ -135,3 +135,13 @@ def test_winzapp_closing_the_channel_never_brings_the_window_back(monkeypatch):
     panel.close_conversation()
     assert [kind for kind, _a in shown] == ["list"]
     assert mw._channel_opened_from_window == "" and mw._channels_return_state is None
+
+
+def test_ctrl_w_in_the_conversation_is_the_users_close(monkeypatch):
+    """The conversation's own Ctrl+W called close_conversation(event) with
+    no from_user, and landed on the chat list."""
+    from ui.conversations import ConversationsPanel
+    shown = []
+    panel, _mw = _closing_panel(monkeypatch, shown)
+    ConversationsPanel._on_ctrl_w_conversation(panel, None)
+    assert [kind for kind, _a in shown] == ["channels"]
