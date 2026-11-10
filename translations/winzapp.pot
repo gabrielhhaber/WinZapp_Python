@@ -8902,8 +8902,8 @@ msgstr ""
 #, python-brace-format
 msgctxt "noise_reducer_components_confirm"
 msgid ""
-"Download {count} components, {size}? They are kept for every account and "
-"shared with the local transcription."
+"Components to download: {count} ({size}). Download them? They are kept for "
+"every account and shared with the local transcription."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -8961,8 +8961,8 @@ msgstr ""
 #, python-brace-format
 msgctxt "noise_reducer_components_remove_confirm"
 msgid ""
-"Remove {count} components of this processor? The local transcription's "
-"cuBLAS stays."
+"Components of this processor to remove: {count}. Remove them? The local "
+"transcription's cuBLAS stays."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

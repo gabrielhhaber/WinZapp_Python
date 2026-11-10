@@ -12,7 +12,7 @@ YENİLİKLER
 
 - Otomatik yazıya dökme: bilgisayar hazırda bekletmeden ya da internetsiz kaldıktan sonra bir anda gelen sesli mesajlar artık yazıya dökülüyor. Bilgisayarın uyuduğu ya da bağlantısız kaldığı süre artık mesajın yaşına sayılmıyor ve kuyruk 100 mesaja kadar tutuyor.
 
-- Yerel yazıya dökme: otomatik yazıya dökme açıkken görünen yeni "Geç gelenleri de yazıya dök" seçeneği, alınan mesajları ne kadar eski olursa olsun yazıya döker.
+- Yerel yazıya dökme: otomatik yazıya dökme açıkken görünen yeni "…geç gelenleri de yazıya dök" seçeneği, alınan mesajları ne kadar eski olursa olsun yazıya döker.
 
 - Süreli mesajlar (Neonize): Ctrl+Shift+H ile kaydedilen sesler, fotoğraflar, videolar ve belgeler artık sohbetin süreli mesaj ayarına uyuyor.
 

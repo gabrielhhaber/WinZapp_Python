@@ -250,3 +250,77 @@ def test_the_job_says_it_waits_for_the_slot(monkeypatch):
     job._on_phase = phases.append
     job._decode(object(), object())
     assert phases == [job_module.PHASE_WAITING_FOR_SLOT]
+
+
+def test_a_process_waiting_for_another_still_lets_its_idle_model_go():
+    """B finishes a run with a second one queued behind it, and A (another
+    account) gets the slot: B's idle model must go while A runs. B's waiting
+    run used to hold `_wanting` for the whole wait, so B's watcher took every
+    want for its own and two models stayed loaded (the 9 GB case)."""
+    native = SharedNative()
+    gate = threading.Event()
+    gate.set()
+
+    class GatedNative(SharedNative):
+        """B's view: while the gate is shut its tries fail, so A (waiting
+        already) is the one that gets the slot after B's first run."""
+
+        def __init__(self):
+            self.mutex, self.event = native.mutex, native.event
+
+        def acquire(self, seconds):
+            if not gate.is_set():
+                gate.wait(seconds)
+                return False
+            return native.acquire(seconds)
+
+    a = machine_slot.MachineSlot(lambda: native, poll_seconds=0.01)
+    b = machine_slot.MachineSlot(GatedNative, poll_seconds=0.01)
+    released = threading.Event()
+
+    class Backend:
+        def release(self):
+            released.set()
+
+    here = residency_module.ModelResidency(timer_factory=_NoTimer, slot=b)
+    here.configure(True)
+    backend = Backend()
+    first_in, first_go = threading.Event(), threading.Event()
+    second_queued, a_waiting = threading.Event(), threading.Event()
+    a_holds, a_done = threading.Event(), threading.Event()
+
+    def b_first():
+        with b.held():
+            with here.using(backend):
+                first_in.set()
+                first_go.wait(5)
+
+    def b_second():
+        with b.held(second_queued.set):
+            with here.using(backend):
+                pass
+
+    def a_run():
+        with a.held(a_waiting.set):
+            a_holds.set()
+            gate.set()                          # B may try again: it waits
+            a_done.wait(5)
+
+    threads = [threading.Thread(target=b_first)]
+    threads[0].start()
+    assert first_in.wait(2)
+    gate.clear()
+    threads.append(threading.Thread(target=b_second))
+    threads[1].start()
+    assert second_queued.wait(2)
+    threads.append(threading.Thread(target=a_run))
+    threads[2].start()
+    assert a_waiting.wait(2)
+    first_go.set()
+    try:
+        assert a_holds.wait(5)
+        assert released.wait(3), "B kept its idle model loaded while A ran"
+    finally:
+        a_done.set()
+        for thread in threads:
+            thread.join(5)

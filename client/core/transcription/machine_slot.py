@@ -177,11 +177,18 @@ class MachineSlot:
             native = self._get_native()
             native.want()
             if not native.acquire(0):
+                # Another process holds the slot: while this run waits, the
+                # want is that process's business too, and this process's own
+                # idle model must go (the watcher skips while `_wanting` is
+                # set, which kept two models loaded). Only the uncontended
+                # acquire, a ctypes call away from holding, keeps it set.
+                self._wanting.clear()
                 waiting()
                 while not native.acquire(self._poll):
                     native.want()
                     if check is not None:
                         check()
+                self._wanting.set()
         except BaseException:
             self._wanting.clear()
             self._turn.release()

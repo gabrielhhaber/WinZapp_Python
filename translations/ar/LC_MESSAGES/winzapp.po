@@ -855,7 +855,7 @@ msgid ""
 "The provider's account has no credit left for this request. Add credits or "
 "choose a free model, then try again."
 msgstr ""
-"لا يوجد رصيد في حساب المزوّد لهذا الطلب. أضف رصيدًا أو اختر نموذجًا مجانيًا "
+"لا يوجد رصيد في حساب الموفّر لهذا الطلب. أضف رصيدًا أو اختر نموذجًا مجانيًا "
 "ثم حاول مرة أخرى."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -3010,7 +3010,7 @@ msgstr "متابعون جدد: {count}"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_insights_missing"
 msgid "WhatsApp has no statistics for this channel yet."
-msgstr "لا تتوفر لدى WhatsApp إحصائيات لهذه القناة بعد."
+msgstr "لا تتوفر لدى واتساب إحصائيات لهذه القناة بعد."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3064,7 +3064,7 @@ msgstr "إحصائيات {name}"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_insights_too_small"
 msgid "WhatsApp shows a channel's statistics from 100 followers on."
-msgstr "يعرض WhatsApp إحصائيات القناة بدءًا من 100 متابع."
+msgstr "يعرض واتساب إحصائيات القناة بدءًا من 100 متابع."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_insights_unavailable"
@@ -3081,7 +3081,7 @@ msgstr "ألغوا المتابعة: {count}"
 #, python-brace-format
 msgctxt "channel_insights_updated"
 msgid "Updated by WhatsApp on {date}."
-msgstr "حدّثها WhatsApp في {date}."
+msgstr "حدّثها واتساب في {date}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3309,7 +3309,7 @@ msgid ""
 "Channel created, but who may react or the admin profiles could not be set. "
 "Change them by editing the channel."
 msgstr ""
-"تم إنشاء القناة، لكن تعذّر ضبط التفاعلات أو ملف المشرف. غيّرها بتعديل "
+"تم إنشاء القناة، لكن تعذّر ضبط ردود الفعل أو ملف المشرف. غيّرها بتعديل "
 "القناة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -3494,7 +3494,7 @@ msgstr "المشرفون &والمتابعون..."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_reactions"
 msgid "&Reactions"
-msgstr "ال&تفاعلات"
+msgstr "&ردود الفعل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_reactions_all"
@@ -3510,12 +3510,12 @@ msgstr "الرموز التعبيرية الافتراضية فقط"
 #, python-brace-format
 msgctxt "channels_reactions_line"
 msgid "Reactions: {setting}"
-msgstr "التفاعلات: {setting}"
+msgstr "ردود الفعل: {setting}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_reactions_none"
 msgid "No reactions"
-msgstr "بدون تفاعلات"
+msgstr "بدون ردود فعل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -9314,10 +9314,11 @@ msgstr "&إعدادات مخفض الضوضاء..."
 #, python-brace-format
 msgctxt "noise_reducer_components_confirm"
 msgid ""
-"Download {count} components, {size}? They are kept for every account and "
-"shared with the local transcription."
+"Components to download: {count} ({size}). Download them? They are kept for "
+"every account and shared with the local transcription."
 msgstr ""
-"تنزيل {count} مكونات، {size}؟ تبقى لكل الحسابات وتُشارك مع التفريغ المحلي."
+"المكونات المراد تنزيلها: {count} ({size}). هل تريد تنزيلها؟ تبقى لكل "
+"الحسابات وتُشارك مع التفريغ النصي المحلي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_components_done"
@@ -9375,10 +9376,11 @@ msgstr "&إزالة مكونات هذا المعالج"
 #, python-brace-format
 msgctxt "noise_reducer_components_remove_confirm"
 msgid ""
-"Remove {count} components of this processor? The local transcription's "
-"cuBLAS stays."
+"Components of this processor to remove: {count}. Remove them? The local "
+"transcription's cuBLAS stays."
 msgstr ""
-"إزالة {count} من مكونات هذا المعالج؟ يبقى cuBLAS الخاص بالتفريغ المحلي."
+"مكونات هذا المعالج المراد إزالتها: {count}. هل تريد إزالتها؟ يبقى cuBLAS "
+"الخاص بالتفريغ النصي المحلي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_components_removed"
@@ -9407,8 +9409,8 @@ msgid ""
 "NVIDIA graphics card, CUDA 12 (shares components with local transcription; "
 "older cards too)"
 msgstr ""
-"بطاقة رسومات NVIDIA، CUDA 12 (تشارك المكونات مع التفريغ المحلي؛ وللبطاقات "
-"الأقدم أيضًا)"
+"بطاقة رسومات NVIDIA، CUDA 12 (تشارك المكونات مع التفريغ النصي المحلي؛ "
+"وللبطاقات الأقدم أيضًا)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_device_cuda13"
@@ -9453,7 +9455,7 @@ msgstr "أُزيل النموذج العصبي."
 #: client/core/cuda_components/text.py
 msgctxt "noise_reducer_shared_cublas"
 msgid "cuBLAS 12 (the local transcription's own)"
-msgstr "cuBLAS 12 (نفسه الخاص بالتفريغ المحلي)"
+msgstr "cuBLAS 12 (نفسه الخاص بالتفريغ النصي المحلي)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -9901,7 +9903,7 @@ msgstr "الرسائل القديمة المراد &جلبها عند الاتص
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "pairing_history_recent"
 msgid "Recent ones only (WhatsApp's default)"
-msgstr "الحديثة فقط (افتراضي WhatsApp)"
+msgstr "الحديثة فقط (افتراضي واتساب)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_instructions"
@@ -13445,7 +13447,7 @@ msgstr "تعذرت قراءة الرسائل المميزة."
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_unstar"
 msgid "&Remove star"
-msgstr "إزالة ال&تمييز"
+msgstr "إزالة ال&نجمة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/neonize_bridge.py

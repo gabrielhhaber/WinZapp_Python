@@ -247,23 +247,15 @@ def _sweep(folder):
     shutil.rmtree(folder, ignore_errors=True)
 
 
-def installing(component_id, root=None) -> bool:
-    """Whether a download of `component_id` is writing its folder now (its
-    `.part` files are there)."""
-    folder = component_dir(component_id, root)
-    try:
-        return any(name.endswith(_PART) for name in os.listdir(folder))
-    except OSError:
-        return False
-
-
 def removable(device, root=None) -> list:
-    """The installed components of `device` that may be removed: never the
-    shared cuBLAS, which the local transcription uses (it is removed from the
-    Transcription tab), nor one being downloaded (its `.part` files)."""
+    """The components of `device` with anything on disk, which may be removed:
+    never the shared cuBLAS, which the local transcription uses (it is removed
+    from the Transcription tab). One with a `.part` file stays offered: after
+    a crash that file is an orphan the user must be able to clear, and a
+    download really running is refused by the dialog (_background_busy) or by
+    remove()'s lock ("busy")."""
     return [cid for cid in STACKS.get(device, ())
-            if cid != SHARED_CUBLAS_CU12 and state(cid, root) != STATE_ABSENT
-            and not installing(cid, root)]
+            if cid != SHARED_CUBLAS_CU12 and state(cid, root) != STATE_ABSENT]
 
 
 def remove(component_ids, root=None, lock_timeout=REMOVE_LOCK_SECONDS) -> list:

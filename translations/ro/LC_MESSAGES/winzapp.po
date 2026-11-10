@@ -3083,7 +3083,7 @@ msgstr "Bilanțul urmăritorilor: {count}"
 #, python-brace-format
 msgctxt "channel_insights_period"
 msgid "Last {days} days:"
-msgstr "Ultimele {days} zile:"
+msgstr "Ultimele {days} de zile:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -9488,11 +9488,11 @@ msgstr "Set&ările reducerii zgomotului..."
 #, python-brace-format
 msgctxt "noise_reducer_components_confirm"
 msgid ""
-"Download {count} components, {size}? They are kept for every account and "
-"shared with the local transcription."
+"Components to download: {count} ({size}). Download them? They are kept for "
+"every account and shared with the local transcription."
 msgstr ""
-"Descărcați {count} componente, {size}? Rămân pentru toate conturile și sunt "
-"comune cu transcrierea locală."
+"Componente de descărcat: {count} ({size}). Le descărcați? Rămân pentru toate"
+" conturile și sunt comune cu transcrierea locală."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_components_done"
@@ -9551,11 +9551,11 @@ msgstr "&Eliminați componentele acestui procesor"
 #, python-brace-format
 msgctxt "noise_reducer_components_remove_confirm"
 msgid ""
-"Remove {count} components of this processor? The local transcription's "
-"cuBLAS stays."
+"Components of this processor to remove: {count}. Remove them? The local "
+"transcription's cuBLAS stays."
 msgstr ""
-"Eliminați {count} componente ale acestui procesor? cuBLAS-ul transcrierii "
-"locale rămâne."
+"Componente ale acestui procesor de eliminat: {count}. Le eliminați? cuBLAS-"
+"ul transcrierii locale rămâne."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_components_removed"
@@ -10041,19 +10041,19 @@ msgstr "Introduceți un număr întreg, doar cifre."
 #, python-brace-format
 msgctxt "pairing_history_amount_too_big_days"
 msgid "At most {max} days."
-msgstr "Cel mult {max} zile."
+msgstr "Cel mult {max} de zile."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "pairing_history_amount_too_big_months"
 msgid "At most {max} months."
-msgstr "Cel mult {max} luni."
+msgstr "Cel mult {max} de luni."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "pairing_history_amount_too_big_years"
 msgid "At most {max} years."
-msgstr "Cel mult {max} ani."
+msgstr "Cel mult {max} de ani."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "pairing_history_amount_years"
@@ -13726,7 +13726,7 @@ msgstr "Mesajele marcate cu stea nu au putut fi citite."
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_unstar"
 msgid "&Remove star"
-msgstr "&Eliminați steaua"
+msgstr "&Eliminați marcajul cu stea"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/neonize_bridge.py

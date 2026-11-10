@@ -258,7 +258,9 @@ def test_the_components_job_installs_each_one_in_order(monkeypatch):
     assert installed == [(cid, "R") for cid in ids]
 
 
-def test_a_component_being_downloaded_is_not_offered_for_removal(tmp_path, monkeypatch):
+def test_an_orphan_download_is_still_offered_for_removal(tmp_path, monkeypatch):
+    """A `.part` left by a crash must not hide the component from Remove for
+    good; a download really running is refused by the folder lock instead."""
     device = next(d for d, ids in model.STACKS.items()
                   if any(c != model.SHARED_CUBLAS_CU12 for c in ids))
     cid = next(c for c in model.STACKS[device] if c != model.SHARED_CUBLAS_CU12)
@@ -266,9 +268,8 @@ def test_a_component_being_downloaded_is_not_offered_for_removal(tmp_path, monke
     folder = tmp_path / cid
     folder.mkdir()
     (folder / ("x.whl" + store._PART)).write_bytes(b"")
-    assert cid not in store.removable(device, str(tmp_path))
-    (folder / ("x.whl" + store._PART)).unlink()
     assert cid in store.removable(device, str(tmp_path))
+    assert model.SHARED_CUBLAS_CU12 not in store.removable(device, str(tmp_path))
 
 
 def test_a_removal_never_waits_for_an_install_holding_the_folder(tmp_path, monkeypatch):

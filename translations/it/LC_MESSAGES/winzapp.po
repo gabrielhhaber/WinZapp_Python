@@ -9535,11 +9535,11 @@ msgstr "Confi&gura il riduttore di rumore..."
 #, python-brace-format
 msgctxt "noise_reducer_components_confirm"
 msgid ""
-"Download {count} components, {size}? They are kept for every account and "
-"shared with the local transcription."
+"Components to download: {count} ({size}). Download them? They are kept for "
+"every account and shared with the local transcription."
 msgstr ""
-"Scaricare {count} componenti, {size}? Restano per tutti gli account e sono "
-"condivisi con la trascrizione locale."
+"Componenti da scaricare: {count} ({size}). Scaricarli? Restano per tutti gli"
+" account e sono condivisi con la trascrizione locale."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_components_done"
@@ -9598,11 +9598,11 @@ msgstr "&Rimuovi i componenti di questo processore"
 #, python-brace-format
 msgctxt "noise_reducer_components_remove_confirm"
 msgid ""
-"Remove {count} components of this processor? The local transcription's "
-"cuBLAS stays."
+"Components of this processor to remove: {count}. Remove them? The local "
+"transcription's cuBLAS stays."
 msgstr ""
-"Rimuovere {count} componenti di questo processore? Il cuBLAS della "
-"trascrizione locale resta."
+"Componenti di questo processore da rimuovere: {count}. Rimuoverli? Il cuBLAS"
+" della trascrizione locale resta."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_components_removed"

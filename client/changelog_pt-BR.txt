@@ -26,7 +26,7 @@ NOVIDADES
 
 - Canais: convites para seguir um canal ou para ser administrador dele agora aparecem na conversa, com o nome do canal e a mensagem de quem convidou. Enter abre o canal.
 
-- Redutor de ruído: nova janela "Opções avançadas do redutor de ruído" em Configurações, Áudio, com o modelo neural e o processador em que ele roda: o do computador, uma placa NVIDIA com CUDA 12 (que aproveita os componentes da transcrição local) ou com CUDA 13, ou o Core ML no Mac. Só os componentes que faltam são baixados, seguindo a opção de baixar em segundo plano, e eles podem ser removidos ali. Uma nova caixa escolhe entre o redutor neural e o comum, mais rápido.
+- Redutor de ruído: nova janela "Configurações avançadas do redutor de ruído" em Configurações, Áudio, com o modelo neural e o processador em que ele roda: o do computador, uma placa NVIDIA com CUDA 12 (que aproveita os componentes da transcrição local) ou com CUDA 13, ou o Core ML no Mac. Só os componentes que faltam são baixados, seguindo a opção de baixar em segundo plano, e eles podem ser removidos ali. Uma nova caixa escolhe entre o redutor neural e o comum, mais rápido.
 
 - Transcrição local (whisper.cpp): em computadores com Windows ARM64, o WinZapp usa a versão nativa para ARM64 e oferece, como opção, a versão para placas NVIDIA com CUDA 13.
 
