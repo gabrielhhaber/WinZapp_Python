@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mențiuni: într-un mesaj de grup cu @toți, Tab nu mai trece printr-un link pentru fiecare participant imediat după deschiderea conversației. Înainte se întâmpla până când participanții grupului terminau de încărcat și mesajul pierdea focusul.
+
 - Transcriere locală: schimbarea contului în timp ce se transcriu mesaje vocale nu mai umple memoria computerului. Se încarcă un singur model odată: o a doua transcriere, a aceluiași cont sau a altuia, o așteaptă pe prima, iar modelul inactiv al unui cont este eliberat când altul are nevoie.
 
 - Golire conversație (Neonize): golirea unei conversații în WinZapp o golește acum și pe telefon. Înainte anunțul nu ajungea la telefon, iar mesajele reveneau la următoarea sincronizare.

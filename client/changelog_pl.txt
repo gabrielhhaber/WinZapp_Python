@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wzmianki: w wiadomości grupowej z @wszyscy klawisz Tab nie przechodzi już przez osobny link dla każdego uczestnika zaraz po otwarciu czatu. Wcześniej działo się tak, dopóki uczestnicy grupy się nie wczytali, a wiadomość nie straciła fokusu.
+
 - Lokalna transkrypcja: przełączanie kont podczas transkrypcji wiadomości głosowych nie zapełnia już pamięci komputera. Naraz ładowany jest jeden model: druga transkrypcja, tego samego lub innego konta, czeka na pierwszą, a nieużywany model jednego konta jest zwalniany, gdy potrzebuje go inne.
 
 - Wyczyść czat (Neonize): wyczyszczenie czatu w WinZapp czyści go teraz także w telefonie. Wcześniej informacja nie docierała do telefonu i wiadomości wracały przy kolejnej synchronizacji.
