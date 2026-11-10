@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>Değer, dosyanın satırındakiyle eşleşmelidir. Farklıysa dosyayı silin ve yeniden indirin. WinZapp'ın güncelleyicisi de kurmadan önce sağlama toplamını (ve daha yeni sürümlerde imzayı) doğrular.</p>
 
+<p>Neonize motorunda bağlantı penceresi, bağlanırken ne kadar geçmiş getirileceğini sorar: yalnızca yeni mesajlar, 30 gün, 6 ay, 1 yıl, tüm geçmiş ya da özel bir süre (altta açılan alana gün, ay veya yıl olarak yazılır). Telefon geçmişi bir kez, bağlanırken gönderir; yaklaşık bir yıldan eski mesajlar yalnızca bu yolla gelir. QR kodu ekrandayken seçimi değiştirirseniz seçimi taşıyan yeni bir QR kodu oluşturulur.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -557,6 +559,8 @@
 <h3>Mesajların doğru sohbette kalması</h3>
 <p>Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.</p>
 
+<p>Neonize motorunda, sohbetin başındayken Home tuşu telefondan daha eski mesajları parça parça, o sohbet için gönderecek başka bir şey kalmayana kadar ister. Telefon bu yolla genellikle yaklaşık bir yıl geriye kadar verir; daha fazlası için bağlanırken süreyi seçin.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -632,6 +636,8 @@
 <h3>Ses cihazını anında değiştirme</h3>
 <p>Ctrl+Alt+Shift+H oynatma cihazları listesini, Ctrl+Alt+Shift+G kayıt cihazları listesini açar; 1'den 0'a numaralıdır: hemen geçmek için numaraya basın ya da oklarla ve Enter ile seçin. Değişiklik sesler, sesli mesajlar ve aramalar için geçerlidir (süren bir arama kopmadan değişir), açık tüm hesaplarda, WinZapp'ı kapatana kadar. Ayarlarda seçilen cihazlar değişmez.</p>
 
+<p>Ayarlar > Ses içindeki "Gürültü azaltıcı ayarları" düğmesi azaltıcının penceresini açar: sinirsel modelin durumu ve onu indiren düğme, çalıştığı işlemci (bilgisayarınki, CUDA 12 ya da CUDA 13'lü bir NVIDIA kartı, veya Mac'te Core ML), bu işlemcinin hâlâ ihtiyaç duyduğu bileşenler ve yalnızca eksikleri indiren düğme, bileşenleri ve modeli kaldıran düğmeler. CUDA 12, yerel yazıya dökmenin cuBLAS'ını kullanır; işlemci değişikliği WinZapp'in bir sonraki açılışından itibaren geçerlidir. Gürültü azaltma açık ve model yüklüyken "Sinirsel gürültü azaltıcıyı kullan" kutusu onunla daha hızlı olan normal azaltıcı arasında seçim yapar.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -688,6 +694,8 @@
 <p>Sohbet bilgileri otomatik yazıya döküm için tek bir seçim sunar: Yok, Yapay zekâ ile çevrimiçi veya Whisper ile yerel. Böylece aynı mesaj asla iki kez yazıya dökülmez; seçim, siz orada değiştirene kadar genel seçeneği izler.</p>
 <p>Döküm yapacak şekilde ayarlanan Enter ve Boşluk, dosya olarak gönderilen ses ve videoları da döker.</p>
 <p>Mistral üç ayrı model kullanır: ses için sesli mesaj modeli, fotoğraflar, çıkartmalar ve video kareleri için varsayılan olarak Ministral 3 3B, PDF metni çıkarma için mistral-ocr-4. Ses modelini "Sesli mesaj modeli" alanından seçin: Voxtral Mini Transcribe 3 (varsayılan) veya daha doğru sonuç veren Voxtral Small Transcribe 3. İkisi de önizlemede olduğundan Mistral bunları değiştirebilir veya kaldırabilir. Model alanı ve model listesini getirme yalnızca görüntü modelini seçer; değişiklik ses dökümünü veya OCR modelini değiştirmez. OpenAI ve Groq da seçilen görüntü modelinden bağımsız sabit ses modelleri kullanır; Groq burada PDF işlemez. Gemini desteklenen tüm medya türleri için seçilen modeli kullanır. Bir modelin kullanılabilir olması ücretsiz olduğu anlamına gelmez; sağlayıcının dahil edilen kotasını ve hız sınırlarını kontrol edin. Mistral OCR metni çıkarır, PDF içindeki görüntüleri açıklamaz. Mistral'in ücretsiz Experiment planında istekler, Mistral hesabınızdan devre dışı bırakmadığınız sürece modellerini eğitmek için kullanılabilir; WinZapp Mistral'e medya göndermeden önce bunu belirtir.</p>
+
+<p>Otomatik yazıya dökme açıkken "Geç gelenleri de yazıya dök" seçeneği, alınan mesajları ne kadar eski olursa olsun yazıya döker (örneğin bilgisayar yeniden açıldığında bir anda gelenlerin tümünü). Seçenek kapalıyken seçtiğiniz yaş sınırı geçerlidir; bilgisayarın uyuduğu ya da internetsiz kaldığı süre yaşa sayılmaz. Windows ARM64 bilgisayarlarda whisper.cpp yerel ARM64 sürümünü kullanır ve CUDA 13'lü NVIDIA kartları için sürüm seçenek olarak sunulur.</p>
 
   </section>
 
@@ -801,6 +809,8 @@
 
 <h3>Bir topluluğun grupları</h3>
 <p>Topluluk listesinde Enter topluluğun gruplarına gider; "En son etkin grubu aç" en son etkinliği olan grubu adını söyleyerek açar. "Grupları filtrele" tüm grupları, katıldığınız grupları veya katılmadıklarınızı gösterir; katılmadığınız bir grup bunu kendi satırında söyler. Bunlardan birinde "Gruba katıl" sizi gruba katar ya da grup onay istiyorsa "Katılma isteği gönder" isteği gönderir; "Katılma isteğini iptal et" isteği geri çeker.</p>
+
+<p>Bir kanalı takip etme ya da yöneticisi olma davetleri sohbette "... kanalını takip etme daveti" (ya da "... kanalında yönetici olma daveti") olarak, davet edenin sözleriyle görünür. Enter kanalı açar; orada takip edebilirsiniz.</p>
 
   </section>
 
@@ -1462,6 +1472,18 @@
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Medya indirme: sayaç yalnızca henüz indirilmemiş medyayı kapsıyor.</td></tr>
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kanallar: yöneticiler için kanal istatistikleri.</td></tr>
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kanallar: WhatsApp sunduğunda Yönetici profilini güncellemelerde göster.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Yerel yazıya dökme: bilgisayarda aynı anda tek model.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Sohbeti temizle (Neonize): telefonda da temizler.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Hazırda bekletme ya da internetsizlik sonrası otomatik yazıya dökme.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Yerel yazıya dökme: geç gelenleri de yazıya dök.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Süreli mesajlar (Neonize): sesler ve dosyalar süreye uyar.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Aramalar (Neonize): yaptığınız arama kendi sohbetinize düşmüyor.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Grup mesajları (Neonize): açılamazsa telefondan istenir.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Eşleştirme (Neonize): getirilecek geçmişin seçimi.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Eski mesajlar (Neonize): Home, başka kalmayana kadar ister.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Kanallar: takip ve yöneticilik davetleri sohbette görünür.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Gürültü azaltıcı: kendi penceresi, işlemci, bileşenler, sinirsel ya da normal.</td></tr>
+<tr><td class="field-name">Henüz yayımlanmadı</td><td>Yerel yazıya dökme: Windows ARM64'te yerel whisper.cpp, CUDA 13 ile.</td></tr>
 </table>
 
   </section>

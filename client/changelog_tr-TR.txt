@@ -4,6 +4,30 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.
+
+- Sohbeti temizle (Neonize): WinZapp'te bir sohbeti temizlemek artık telefonda da temizler. Önceden bildirim telefona ulaşmıyor, mesajlar sonraki eşitlemede geri geliyordu.
+
+- Otomatik yazıya dökme: bilgisayar hazırda bekletmeden ya da internetsiz kaldıktan sonra bir anda gelen sesli mesajlar artık yazıya dökülüyor. Bilgisayarın uyuduğu ya da bağlantısız kaldığı süre artık mesajın yaşına sayılmıyor ve kuyruk 100 mesaja kadar tutuyor.
+
+- Yerel yazıya dökme: otomatik yazıya dökme açıkken görünen yeni "Geç gelenleri de yazıya dök" seçeneği, alınan mesajları ne kadar eski olursa olsun yazıya döker.
+
+- Süreli mesajlar (Neonize): Ctrl+Shift+H ile kaydedilen sesler, fotoğraflar, videolar ve belgeler artık sohbetin süreli mesaj ayarına uyuyor.
+
+- Aramalar (Neonize): bir kişiye yaptığınız arama artık kendinizi aramışsınız gibi kendi sohbetinizde görünmüyor.
+
+- Grup mesajları (Neonize): bu bilgisayarın açamadığı bir mesaj artık WhatsApp Web'deki gibi telefonunuzdan da isteniyor. Önceden gönderenin cihazı yeniden göndermezse kayboluyordu.
+
+- Eşleştirme (Neonize): bağlanırken ne kadar geçmiş getirileceğini seçersiniz: yalnızca yeni mesajlar, 30 gün, 6 ay, 1 yıl, tüm geçmiş ya da gün, ay veya yıl olarak özel bir süre. Yaklaşık bir yıldan eski mesajlar yalnızca bu yolla gelir.
+
+- Eski mesajlar (Neonize): Home tuşu, WhatsApp Web'in durduğu yerde bile, telefonda başka mesaj kalmayana kadar daha eski mesajları istemeyi sürdürür.
+
+- Kanallar: bir kanalı takip etme ya da yöneticisi olma davetleri artık sohbette, kanalın adı ve davet edenin sözleriyle görünüyor. Enter kanalı açar.
+
+- Gürültü azaltıcı: Ayarlar, Ses içinde yeni "Gürültü azaltıcı ayarları" penceresi; sinirsel model ve çalıştığı işlemci: bilgisayarınki, CUDA 12 (yerel yazıya dökmenin bileşenlerini kullanır) ya da CUDA 13 ile bir NVIDIA kartı, veya Mac'te Core ML. Yalnızca eksik bileşenler, arka planda indirme seçeneğine uyularak indirilir ve oradan kaldırılabilir. Yeni bir kutu, sinirsel azaltıcı ile daha hızlı olan normal azaltıcı arasında seçim yapar.
+
+- Yerel yazıya dökme (whisper.cpp): Windows ARM64 bilgisayarlarda WinZapp yerel ARM64 sürümünü kullanır ve seçenek olarak CUDA 13'lü NVIDIA kartları için sürümü sunar.
+
 - Kanallar: WhatsApp hesabınıza sunduğunda "Kanalı düzenle..." içinde WhatsApp Web'deki gibi "Yönetici profilini güncellemelerde göster" var (WPPConnect).
 
 - Kanallar: Kanallar penceresindeki "İstatistikleri görüntüle..." yönettiğiniz bir kanalın istatistiklerini WhatsApp Web'in gösterdiği gibi okur (30 gün içindeki erişim, takipçiler, net takipçi, yeni takipçiler ve takibi bırakanlar, takipçiler ve diğerleri ile ülkeye göre), WPPConnect ve Neonize ile. WhatsApp bunları 100 takipçiden itibaren sunar.

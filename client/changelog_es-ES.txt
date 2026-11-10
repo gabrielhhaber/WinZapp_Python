@@ -4,6 +4,30 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Transcripción local: cambiar de cuenta mientras se transcriben audios ya no llena la memoria del ordenador. Solo se carga un modelo a la vez: una segunda transcripción, de la misma cuenta o de otra, espera a la primera, y el modelo inactivo de una cuenta se libera cuando otra lo necesita.
+
+- Vaciar chat (Neonize): vaciar un chat en WinZapp ahora lo vacía también en el teléfono. Antes el aviso no llegaba al teléfono y los mensajes volvían en la siguiente sincronización.
+
+- Transcripción automática: los mensajes de voz que llegan todos a la vez después de que el ordenador hibernara o se quedara sin Internet ahora se transcriben. El tiempo que el ordenador estuvo apagado o sin conexión ya no cuenta como antigüedad del mensaje, y la cola guarda hasta 100 mensajes.
+
+- Transcripción local: nueva opción "Transcribir también los que lleguen con retraso", que aparece con la transcripción automática activada, para transcribir los mensajes recibidos por antiguos que sean.
+
+- Mensajes temporales (Neonize): los audios grabados con Ctrl+Shift+H, las fotos, los vídeos y los documentos ahora siguen la duración de los mensajes temporales del chat.
+
+- Llamadas (Neonize): una llamada que haces a un contacto ya no aparece en tu chat personal, como si te hubieras llamado a ti mismo.
+
+- Mensajes de grupo (Neonize): un mensaje que este ordenador no pudo abrir ahora también se pide a tu teléfono, como hace WhatsApp Web. Antes se perdía cuando el dispositivo de quien lo envió no lo reenviaba.
+
+- Vinculación (Neonize): al conectar eliges cuánto historial traer: solo los mensajes recientes, 30 días, 6 meses, 1 año, todo el historial o un periodo personalizado en días, meses o años. Los mensajes de hace más de un año solo llegan así.
+
+- Mensajes antiguos (Neonize): la tecla Inicio sigue pidiendo al teléfono los mensajes más antiguos hasta que no tenga más, incluso donde WhatsApp Web se detiene.
+
+- Canales: las invitaciones para seguir un canal o para ser su administrador ahora aparecen en el chat, con el nombre del canal y el mensaje de quien invitó. Intro abre el canal.
+
+- Reductor de ruido: nueva ventana "Ajustes del reductor de ruido" en Configuración, Audio, con el modelo neural y el procesador en el que funciona: el del ordenador, una tarjeta NVIDIA con CUDA 12 (que aprovecha los componentes de la transcripción local) o con CUDA 13, o Core ML en el Mac. Solo se descargan los componentes que faltan, según la opción de descargar en segundo plano, y se pueden quitar ahí. Una nueva casilla elige entre el reductor neural y el común, más rápido.
+
+- Transcripción local (whisper.cpp): en ordenadores con Windows ARM64, WinZapp usa la versión nativa para ARM64 y ofrece, como opción, la versión para tarjetas NVIDIA con CUDA 13.
+
 - Canales: donde WhatsApp lo ofrece a tu cuenta, "Editar canal..." tiene "Mostrar el perfil del administrador en las novedades", como en WhatsApp Web (WPPConnect).
 
 - Canales: "Ver estadísticas..." en la ventana Canales lee las estadísticas de un canal que administras, como las muestra WhatsApp Web (alcance, seguidores, balance, nuevos seguidores y quienes dejaron de seguir en 30 días, entre seguidores y no seguidores y por país), con WPPConnect y Neonize. WhatsApp las ofrece a partir de 100 seguidores.

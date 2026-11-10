@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>Valoarea trebuie să se potrivească cu cea de pe linia fișierului. Dacă diferă, șterge fișierul și descarcă-l din nou. Actualizatorul WinZapp verifică și el suma de control (și, în versiunile mai noi, semnătura) înainte de instalare.</p>
 
+<p>În motorul Neonize, fereastra de conectare întreabă cât istoric să aducă la conectare: doar mesajele recente, 30 de zile, 6 luni, un an, tot istoricul sau o perioadă personalizată (zile, luni sau ani, scrisă în câmpul care apare dedesubt). Telefonul trimite istoricul o singură dată, la conectare; mesajele mai vechi de aproximativ un an ajung doar așa. Dacă schimbați alegerea cu codul QR pe ecran, se generează un cod QR nou cu ea.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -557,6 +559,8 @@
 <h3>Mesajele în conversația corectă</h3>
 <p>Mesaje: identitățile alternative contradictorii nu mai direcționează mesajele trimise altei persoane sau primite de la aceasta către conversația cu tine însuți. Asocierile nevalide sunt ignorate; mesajele rămân în conversația originală până la identificarea persoanei.</p>
 
+<p>În motorul Neonize, tasta Home la începutul conversației cere telefonului mesajele mai vechi, câte un lot, până când nu mai are nimic de trimis din acea conversație. Telefonul dă de obicei astfel aproximativ un an în urmă; pentru mai mult, alegeți perioada la conectare.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -632,6 +636,8 @@
 <h3>Schimbarea dispozitivului audio pe loc</h3>
 <p>Ctrl+Alt+Shift+H deschide lista dispozitivelor de redare, iar Ctrl+Alt+Shift+G pe cea a dispozitivelor de înregistrare, numerotate de la 1 la 0: apasă numărul pentru a schimba imediat sau folosește săgețile și Enter. Schimbarea se aplică sunetelor, mesajelor vocale și apelurilor (un apel în curs se schimbă fără să se întrerupă), în toate conturile deschise, până închizi WinZapp. Dispozitivele alese în setări nu se schimbă.</p>
 
+<p>În Setări > Audio, butonul "Setările reducerii zgomotului" deschide fereastra reducerii: starea modelului neural și butonul care îl descarcă, procesorul pe care rulează (al computerului, o placă NVIDIA cu CUDA 12 sau CUDA 13, ori Core ML pe Mac), componentele de care acel procesor mai are nevoie, cu butonul care descarcă doar pe cele lipsă, și butoane care elimină componentele și modelul. CUDA 12 folosește cuBLAS-ul transcrierii locale, iar schimbarea procesorului se aplică de la următoarea pornire a WinZapp. Cu reducerea zgomotului pornită și modelul instalat, caseta "Folosiți reducerea neurală a zgomotului" alege între ea și reducerea obișnuită, mai rapidă.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -688,6 +694,8 @@
 <p>Datele conversației au o singură alegere pentru transcrierea automată: Niciuna, Online cu AI sau Local cu Whisper. Astfel același mesaj nu este transcris niciodată de două ori, iar alegerea urmează la început opțiunea generală, până o schimbați acolo.</p>
 <p>Enter și Spațiu, când transcriu, transcriu și audio și video trimise ca fișier.</p>
 <p>Mistral folosește trei modele diferite: modelul pentru mesaje vocale pentru audio, implicit Ministral 3 3B pentru fotografii, autocolante și cadre video, și mistral-ocr-4 pentru extragerea textului din PDF. Alegeți modelul audio în „Model pentru mesaje vocale”: Voxtral Mini Transcribe 3 (implicit) sau Voxtral Small Transcribe 3, mai precis. Ambele sunt în previzualizare, deci Mistral le poate modifica sau retrage. Câmpul Model și obținerea modelelor aleg doar modelul vizual; schimbarea lui nu modifică transcrierea sau OCR. OpenAI și Groq folosesc și ele modele audio fixe, separat de modelul vizual ales; Groq nu procesează PDF aici. Gemini folosește modelul ales pentru toate tipurile acceptate. Disponibilitatea nu garantează utilizarea gratuită: verificați cota inclusă și limitele furnizorului. OCR Mistral extrage textul, fără descrierea imaginilor din PDF. În planul gratuit Experiment al Mistral, cererile pot fi folosite pentru antrenarea modelelor sale, cu excepția cazului în care dezactivați acest lucru din contul Mistral; WinZapp vă anunță acest lucru înainte de a trimite conținut către Mistral.</p>
+
+<p>Cu transcrierea automată pornită, opțiunea "Transcrieți și pe cele care sosesc cu întârziere" transcrie mesajele primite indiferent de vechime (de exemplu, toate cele care sosesc deodată când computerul pornește din nou). Fără ea se aplică limita de vechime aleasă; timpul în care computerul a dormit sau a fost fără internet nu contează ca vechime. Pe computerele cu Windows ARM64, whisper.cpp folosește versiunea nativă ARM64, iar versiunea pentru plăci NVIDIA cu CUDA 13 este oferită opțional.</p>
 
   </section>
 
@@ -801,6 +809,8 @@
 
 <h3>Grupurile unei comunități</h3>
 <p>În lista de comunități, Enter duce la grupurile comunității, iar "Deschideți grupul cu activitatea cea mai recentă" deschide grupul cu cea mai recentă activitate, spunându-i numele. "Filtrați grupurile" arată toate grupurile, grupurile din care faceți parte sau cele din care nu faceți parte; un grup din care nu faceți parte spune asta în rândul lui. Pe unul dintre ele, "Intrați în grup" vă face membru sau, când grupul cere aprobare, "Cereți să intrați în grup" trimite cererea, pe care "Anulați cererea de a intra în grup" o retrage.</p>
+
+<p>Invitațiile de a urmări un canal sau de a-i fi administrator apar în conversație ca "Invitație de a urmări canalul..." (sau "de a fi administrator al canalului..."), cu mesajul celui care a invitat. Enter deschide canalul, unde îl puteți urmări.</p>
 
   </section>
 
@@ -1462,6 +1472,18 @@
 <tr><td class="field-name">Încă nepublicat</td><td>Descărcarea media: numărătoarea include doar fișierele care mai trebuie descărcate.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Canale: statisticile canalului pentru administratori.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Canale: Afișați profilul administratorului în actualizări, acolo unde WhatsApp îl oferă.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: un singur model încărcat odată.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Golire conversație (Neonize): și pe telefon.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere automată după hibernare sau fără internet.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: și pe cele care sosesc cu întârziere.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje temporare (Neonize): înregistrările și fișierele respectă durata.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Apeluri (Neonize): apelul făcut nu mai ajunge în conversația personală.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje de grup (Neonize): cerute telefonului când nu se deschid.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Asociere (Neonize): alegerea istoricului adus.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Mesaje vechi (Neonize): Home cere până nu mai e nimic.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Canale: invitațiile de urmărire sau administrare apar în conversație.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Reducerea zgomotului: fereastră proprie, procesor, componente, neurală sau obișnuită.</td></tr>
+<tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: whisper.cpp nativ pe Windows ARM64, cu CUDA 13.</td></tr>
 </table>
 
   </section>

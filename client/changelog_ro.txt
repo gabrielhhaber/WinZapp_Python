@@ -4,6 +4,30 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Transcriere locală: schimbarea contului în timp ce se transcriu mesaje vocale nu mai umple memoria computerului. Se încarcă un singur model odată: o a doua transcriere, a aceluiași cont sau a altuia, o așteaptă pe prima, iar modelul inactiv al unui cont este eliberat când altul are nevoie.
+
+- Golire conversație (Neonize): golirea unei conversații în WinZapp o golește acum și pe telefon. Înainte anunțul nu ajungea la telefon, iar mesajele reveneau la următoarea sincronizare.
+
+- Transcriere automată: mesajele vocale care sosesc toate odată după ce computerul a hibernat sau a fost fără internet sunt acum transcrise. Timpul în care computerul a dormit sau a fost fără conexiune nu mai contează ca vechime a mesajului, iar coada păstrează până la 100 de mesaje.
+
+- Transcriere locală: o opțiune nouă, "Transcrieți și pe cele care sosesc cu întârziere", afișată cu transcrierea automată pornită, transcrie mesajele primite indiferent de vechime.
+
+- Mesaje temporare (Neonize): înregistrările cu Ctrl+Shift+H, fotografiile, videoclipurile și documentele respectă acum durata mesajelor temporare ale conversației.
+
+- Apeluri (Neonize): un apel făcut către un contact nu mai apare în conversația dvs. personală, ca și cum v-ați fi sunat singur.
+
+- Mesaje de grup (Neonize): un mesaj pe care acest computer nu l-a putut deschide este cerut acum și telefonului dvs., cum face WhatsApp Web. Înainte se pierdea când dispozitivul expeditorului nu îl retrimitea.
+
+- Asociere (Neonize): la conectare alegeți cât istoric să aduceți: doar mesajele recente, 30 de zile, 6 luni, un an, tot istoricul sau o perioadă personalizată în zile, luni sau ani. Mesajele mai vechi de aproximativ un an ajung doar așa.
+
+- Mesaje vechi (Neonize): tasta Home cere în continuare telefonului mesajele mai vechi până când nu mai are nimic, chiar și acolo unde WhatsApp Web se oprește.
+
+- Canale: invitațiile de a urmări un canal sau de a-i fi administrator apar acum în conversație, cu numele canalului și mesajul celui care a invitat. Enter deschide canalul.
+
+- Reducerea zgomotului: o fereastră nouă, "Setările reducerii zgomotului", în Setări, Audio, cu modelul neural și procesorul pe care rulează: al computerului, o placă NVIDIA cu CUDA 12 (care folosește componentele transcrierii locale) sau cu CUDA 13, ori Core ML pe Mac. Se descarcă doar componentele care lipsesc, după opțiunea de descărcare în fundal, și pot fi eliminate de acolo. O casetă nouă alege între reducerea neurală și cea obișnuită, mai rapidă.
+
+- Transcriere locală (whisper.cpp): pe computerele cu Windows ARM64, WinZapp folosește versiunea nativă ARM64 și oferă opțional versiunea pentru plăci NVIDIA cu CUDA 13.
+
 - Canale: acolo unde WhatsApp vă oferă această opțiune, "Editați canalul..." are "Afișați profilul administratorului în actualizări", ca în WhatsApp Web (WPPConnect).
 
 - Canale: "Afișați statisticile..." din fereastra Canale citește statisticile unui canal pe care îl administrați, așa cum le arată WhatsApp Web (acoperire, urmăritori, bilanț, urmăritori noi și renunțări în 30 de zile, între urmăritori și ceilalți și pe țări), cu WPPConnect și Neonize. WhatsApp le oferă de la 100 de urmăritori.

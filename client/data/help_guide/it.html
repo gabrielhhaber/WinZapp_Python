@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>The value must match the one on the file's line. If it differs, delete the file and download it again. WinZapp's updater also checks the checksum (and, on newer versions, the signature) before installing.</p>
 
+<p>On the Neonize engine, the connection window asks how much history to bring when connecting: recent messages only, 30 days, 6 months, 1 year, all the history or a custom period (days, months or years, typed in the field that appears below). The phone sends the history once, when connecting; messages older than about a year only arrive this way. Changing the choice with the QR code on screen makes a new QR code that carries it.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -557,6 +559,8 @@
 <h3>Messaggi nella chat corretta</h3>
 <p>Messaggi: le identità alternative in conflitto non spostano più i messaggi inviati a un'altra persona o ricevuti da essa nella chat con te stesso. Le associazioni non valide vengono ignorate; i messaggi rimangono nella chat originale finché l'identità non viene risolta.</p>
 
+<p>On the Neonize engine, the Home key at the top of a chat asks the phone for older messages, one batch at a time, until it has nothing more to send for that chat. The phone usually gives about a year back this way; to bring more, choose the period when connecting.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -632,6 +636,8 @@
 <h3>Switch the audio device on the spot</h3>
 <p>Ctrl+Alt+Shift+H opens the list of playback devices and Ctrl+Alt+Shift+G the list of recording devices, numbered 1 to 0: press the number to switch right away, or use the arrows and Enter. The switch applies to sounds, voice messages and calls (a call in progress changes without dropping), for all open accounts, until you close WinZapp. The devices chosen in Settings do not change.</p>
 
+<p>In Settings > Audio, the "Noise reducer settings" button opens the reducer's window: the neural model's state and the button that downloads it, the processor it runs on (the computer's, an NVIDIA card with CUDA 12 or CUDA 13, or Core ML on a Mac), the components that processor still needs, with the button that downloads only the missing ones, and buttons that remove the components and the model. CUDA 12 uses the local transcription's cuBLAS, and a new processor applies from the next time WinZapp starts. With noise reduction on and the model installed, the "Use the neural noise reducer" box chooses between it and the common reducer, which is faster.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -688,6 +694,8 @@
 <p>The conversation details have a single choice for automatic transcription: None, Online with AI or Local with Whisper. This way the same message is never transcribed twice, and the choice starts out following the general option until you change it there.</p>
 <p>Enter and Space, when set to transcribe, also transcribe audio and video sent as a file.</p>
 <p>Mistral uses three different models: the voice message model for audio, Ministral 3 3B by default for photos, stickers and video frames, and mistral-ocr-4 for PDF text extraction. Choose the audio model in "Voice message model": Voxtral Mini Transcribe 3 (the default) or Voxtral Small Transcribe 3, which is more accurate. Both are in preview, so Mistral may change or withdraw them. The Model field and Get models select a vision model only; changing it does not change transcription or OCR. OpenAI and Groq also use fixed audio models, independently of their selected vision model; Groq does not process PDFs here. Gemini uses its selected model for all supported media. Provider availability does not guarantee free usage: review the provider’s included quota and rate limits. Mistral OCR extracts document text; it does not add descriptions of the pictures inside a PDF. On Mistral's free Experiment plan, requests may be used to train its models unless you opt out in your Mistral account; WinZapp says so before sending media to Mistral.</p>
+
+<p>With automatic transcription on, the option "Also transcribe the ones that arrive late" transcribes received messages however old they are (for example, all those that arrive at once when the computer comes back on). Without it, the age limit you chose applies; the time the computer slept or was offline does not count as age. On Windows ARM64 computers, whisper.cpp uses the native ARM64 build, and the build for NVIDIA cards with CUDA 13 is offered as an option.</p>
 
   </section>
 
@@ -801,6 +809,8 @@
 
 <h3>Groups of a community</h3>
 <p>In the list of communities, Enter goes to the community's groups, and "Open the most recent group" opens the group with the latest activity, saying its name. "Filter groups" shows all groups, the groups you are in or the ones you are not in; a group you are not in says so in its line. On one of those, "Join group" joins it or, when the group needs approval, "Request to join" sends the request, which "Cancel join request" withdraws.</p>
+
+<p>Invitations to follow a channel or to be one of its admins show in the chat as "Invitation to follow the channel..." (or "to be an admin of the channel..."), with the inviter's words. Enter opens the channel, where you can follow it.</p>
 
   </section>
 
@@ -1461,6 +1471,18 @@
 <tr><td class="field-name">Non ancora rilasciato</td><td>Media downloads: the count covers only the media still to download.</td></tr>
 <tr><td class="field-name">Non ancora rilasciato</td><td>Channels: a channel's statistics for its admins.</td></tr>
 <tr><td class="field-name">Non ancora rilasciato</td><td>Channels: Show admin profile on updates, where WhatsApp offers it.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Local transcription: one model loaded at a time on the computer.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Clear chat (Neonize): clears it on the phone too.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Automatic transcription after hibernation or time offline.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Local transcription: also transcribe the ones that arrive late.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Disappearing messages (Neonize): audio and files follow the timer.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Calls (Neonize): a call you place no longer lands in your own chat.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Group messages (Neonize): asked of the phone when they cannot be opened.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Pairing (Neonize): choice of how much history to bring.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Older messages (Neonize): Home asks until there is nothing more.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Channels: invitations to follow or to admin show in the chat.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Noise reducer: its own window, processor, components and neural or common.</td></tr>
+<tr><td class="field-name">Non ancora rilasciato</td><td>Local transcription: native whisper.cpp on Windows ARM64, with CUDA 13.</td></tr>
 </table>
 
   </section>

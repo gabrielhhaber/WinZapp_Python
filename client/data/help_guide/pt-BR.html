@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>O valor deve ser igual ao da linha do arquivo. Se for diferente, apague e baixe de novo. O atualizador do WinZapp também confere a soma (e, nas versões mais novas, a assinatura) antes de instalar.</p>
 
+<p>No motor Neonize, a janela de conexão pergunta quanto histórico trazer ao conectar: só as mensagens recentes, 30 dias, 6 meses, 1 ano, todo o histórico ou um período personalizado (dias, meses ou anos, digitado no campo que aparece embaixo). O celular manda o histórico uma vez, ao conectar; mensagens com mais de cerca de um ano só chegam assim. Se mudar a escolha com o QR code na tela, um novo QR code é gerado com ela.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -557,6 +559,8 @@
 <h3>Mensagens no chat correto</h3>
 <p>Mensagens: identidades alternativas conflitantes não direcionam mais mensagens enviadas a outra pessoa ou recebidas dela para a conversa com você mesmo. Correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.</p>
 
+<p>No motor Neonize, a tecla Home no começo da conversa pede ao celular as mensagens mais antigas, um lote a cada vez, até ele não ter mais nada para mandar daquela conversa. O celular costuma entregar assim cerca de um ano para trás; para trazer mais, escolha o período ao conectar.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -632,6 +636,8 @@
 <h3>Trocar o dispositivo de áudio na hora</h3>
 <p>Ctrl+Alt+Shift+H abre a lista de dispositivos de reprodução e Ctrl+Alt+Shift+G a dos de gravação, numerados de 1 a 0: aperte o número para trocar na hora, ou use as setas e Enter. A troca vale para sons, mensagens de voz e ligações (uma ligação em andamento muda sem cair), para todas as contas abertas, até você fechar o WinZapp. Os dispositivos definidos nas Configurações não mudam.</p>
 
+<p>Em Configurações > Áudio, o botão "Opções avançadas do redutor de ruído" abre a janela do redutor: o estado do modelo neural e o botão para baixá-lo, o processador em que ele roda (o do computador, uma placa NVIDIA com CUDA 12 ou CUDA 13, ou o Core ML no Mac), os componentes que esse processador ainda precisa, com o botão que baixa só os que faltam, e botões para remover os componentes e o modelo. O CUDA 12 aproveita o cuBLAS da transcrição local, e a troca de processador vale a partir da próxima vez que o WinZapp abrir. Com a redução de ruído ligada e o modelo instalado, a caixa "Usar o redutor de ruído neural" escolhe entre ele e o redutor comum, mais rápido.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -688,6 +694,8 @@
 <p>Os dados da conversa têm uma única escolha para a transcrição automática: Nenhuma, Online com IA ou Local com Whisper. Assim a mesma mensagem nunca é transcrita duas vezes, e a escolha começa seguindo a opção geral até você mudá-la ali.</p>
 <p>Enter e Espaço, quando transcrevem, também transcrevem áudio e vídeo enviados como arquivo.</p>
 <p>Mistral usa três modelos diferentes: o modelo para mensagens de voz para áudio, Ministral 3 3B por padrão para fotos, figurinhas e quadros de vídeo, e mistral-ocr-4 para extrair texto de PDFs. Escolha o modelo de áudio em "Modelo para mensagens de voz": Voxtral Mini Transcribe 3 (o padrão) ou Voxtral Small Transcribe 3, mais preciso. Os dois estão em prévia, então a Mistral pode alterá-los ou retirá-los. O campo Modelo e a obtenção de modelos selecionam apenas um modelo de visão; alterá-lo não muda a transcrição nem o OCR. OpenAI e Groq também usam modelos de áudio fixos, separados do modelo de visão escolhido; Groq não processa PDFs aqui. Gemini usa o modelo escolhido para todas as mídias compatíveis. A disponibilidade não garante uso gratuito: confira a cota incluída e os limites do provedor. O OCR da Mistral extrai texto, sem descrever as imagens dentro do PDF. No plano gratuito Experiment da Mistral, as solicitações podem ser usadas para treinar os modelos dela, a menos que você desative isso na sua conta da Mistral; o WinZapp avisa sobre isso antes de enviar mídia para a Mistral.</p>
+
+<p>Com a transcrição automática ligada, a opção "Transcrever também as que chegarem atrasadas" transcreve as mensagens recebidas por mais antigas que sejam (por exemplo, todas as que chegam de uma vez quando o computador volta a ligar). Sem ela, vale o limite de idade escolhido; o tempo em que o computador dormiu ou ficou sem internet não conta como idade. Em computadores com Windows ARM64, o whisper.cpp usa a versão nativa para ARM64, e a versão para placas NVIDIA com CUDA 13 é oferecida como opção.</p>
 
   </section>
 
@@ -801,6 +809,8 @@
 
 <h3>Grupos de uma comunidade</h3>
 <p>Na lista de comunidades, Enter vai aos grupos da comunidade, e "Abrir o grupo mais recente" abre o grupo com atividade mais recente, dizendo o nome dele. "Filtrar grupos" mostra todos os grupos, os grupos em que você participa ou os em que não participa; um grupo em que você não participa diz isso na linha. Num deles, "Entrar no grupo" faz você entrar ou, quando o grupo exige aprovação, "Pedir para entrar no grupo" envia o pedido, que "Cancelar pedido para entrar no grupo" retira.</p>
+
+<p>Convites para seguir um canal ou para ser administrador dele aparecem na conversa como "Convite para seguir o canal..." (ou "para ser administrador do canal..."), com a mensagem de quem convidou. Enter abre o canal, onde você pode segui-lo.</p>
 
   </section>
 
@@ -1462,6 +1472,18 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Download de mídias: a contagem considera só as mídias que ainda faltam baixar.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Canais: estatísticas do canal para quem o administra.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Canais: Mostrar o perfil do administrador nas atualizações, onde o WhatsApp oferece.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: um modelo carregado por vez no computador.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Limpar conversa (Neonize): limpa também no celular.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição automática depois de hibernar ou ficar sem internet.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: transcrever também as que chegarem atrasadas.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens temporárias (Neonize): áudios e arquivos seguem a duração.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Ligações (Neonize): a ligação feita não vai mais para a conversa pessoal.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens de grupo (Neonize): pedidas ao celular quando não abrem.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Pareamento (Neonize): escolha de quanto histórico trazer.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Mensagens antigas (Neonize): Home pede até não haver mais.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Canais: convites para seguir ou administrar aparecem na conversa.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Redutor de ruído: janela própria, processador, componentes e neural ou comum.</td></tr>
+<tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: whisper.cpp nativo no Windows ARM64, com CUDA 13.</td></tr>
 </table>
 
   </section>

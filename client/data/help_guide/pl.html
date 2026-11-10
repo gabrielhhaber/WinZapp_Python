@@ -320,6 +320,8 @@
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>Wartość musi zgadzać się z tą z wiersza dotyczącego pliku. Jeśli się różni, usuń plik i pobierz go ponownie. Program aktualizujący WinZapp również sprawdza sumę kontrolną (a w nowszych wersjach także podpis) przed instalacją.</p>
 
+<p>W silniku Neonize okno połączenia pyta, ile historii pobrać przy łączeniu: tylko najnowsze wiadomości, 30 dni, 6 miesięcy, rok, całą historię lub własny okres (dni, miesiące lub lata wpisane w polu, które pojawi się poniżej). Telefon wysyła historię raz, przy łączeniu; wiadomości starsze niż około rok docierają tylko w ten sposób. Zmiana wyboru przy widocznym kodzie QR tworzy nowy kod QR z tym wyborem.</p>
+
   </section>
 
   <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
@@ -557,6 +559,8 @@
 <h3>Wiadomości we właściwym czacie</h3>
 <p>Wiadomości: sprzeczne identyfikatory alternatywne nie kierują już wiadomości wysyłanych do innej osoby ani odbieranych od niej do czatu z samym sobą. Nieprawidłowe powiązania są pomijane, a wiadomości pozostają w pierwotnym czacie do czasu ustalenia tożsamości.</p>
 
+<p>W silniku Neonize klawisz Home na początku czatu prosi telefon o starsze wiadomości, partia po partii, dopóki nie będzie miał nic więcej z tego czatu. Telefon zwykle oddaje w ten sposób około roku wstecz; aby pobrać więcej, wybierz okres przy łączeniu.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -632,6 +636,8 @@
 <h3>Zmiana urządzenia audio na bieżąco</h3>
 <p>Ctrl+Alt+Shift+H otwiera listę urządzeń odtwarzających, a Ctrl+Alt+Shift+G — nagrywających. Do szybkiego wyboru służą cyfry 1–9 oraz 0. Naciśnij odpowiednią cyfrę albo wybierz urządzenie strzałkami i zatwierdź klawiszem Enter. Zmiana obejmuje dźwięki, wiadomości głosowe i połączenia we wszystkich otwartych kontach. Działa również podczas trwającego połączenia, bez jego przerywania. Obowiązuje do zamknięcia WinZappa i nie zmienia wyboru zapisanego w ustawieniach.</p>
 
+<p>W Ustawienia > Dźwięk przycisk "Ustawienia redukcji szumów" otwiera okno redukcji: stan modelu neuronowego i przycisk do jego pobrania, procesor, na którym działa (procesor komputera, karta NVIDIA z CUDA 12 lub CUDA 13, albo Core ML na Macu), składniki, których ten procesor jeszcze potrzebuje, z przyciskiem pobierającym tylko brakujące, oraz przyciski usuwające składniki i model. CUDA 12 korzysta z cuBLAS lokalnej transkrypcji, a zmiana procesora obowiązuje od następnego uruchomienia WinZapp. Przy włączonej redukcji szumów i zainstalowanym modelu pole "Używaj neuronowej redukcji szumów" wybiera między nią a zwykłą, szybszą.</p>
+
   </section>
 
   <section id="transcricao-ia" class="wiki-section" aria-labelledby="h-transcricao-ia">
@@ -688,6 +694,8 @@
 <p>W oknie „Informacje o czacie” wybierasz jeden sposób automatycznej transkrypcji: „Brak”, „Online, za pomocą usług AI” albo „Lokalnie, za pomocą Whispera”. Dzięki temu przetwarzaniem danej wiadomości zajmuje się tylko jeden z tych mechanizmów. Dopóki nie zmienisz wyboru dla tego czatu, wynika on z ustawień ogólnych.</p>
 <p>Enter i spacja, gdy transkrybują, transkrybują też audio i wideo wysłane jako plik.</p>
 <p>Mistral używa trzech różnych modeli: modelu dla wiadomości głosowych do dźwięku, domyślnie Ministral 3 3B do zdjęć, naklejek i klatek wideo oraz mistral-ocr-4 do odczytywania tekstu z PDF. Model dźwięku wybierasz w polu "Model dla wiadomości głosowych": Voxtral Mini Transcribe 3 (domyślny) lub dokładniejszy Voxtral Small Transcribe 3. Oba są w wersji zapoznawczej, więc Mistral może je zmienić lub wycofać. Pole „Model” oraz przycisk „Pobierz listę modeli” dotyczą wyłącznie modelu wizyjnego; jego zmiana nie zmienia transkrypcji ani OCR. OpenAI i Groq również używają stałych modeli audio, niezależnych od wybranego modelu wizyjnego; Groq nie przetwarza tu PDF. Gemini używa wybranego modelu do wszystkich obsługiwanych multimediów. Obecność modelu na liście nie oznacza, że można z niego korzystać bezpłatnie. Sprawdź u dostawcy warunki swojego planu oraz limity użycia. OCR Mistrala odczytuje tekst, ale nie opisuje obrazów w PDF. W bezpłatnym planie Experiment firma Mistral może wykorzystywać żądania do trenowania swoich modeli, chyba że wyłączysz to na swoim koncie Mistral; WinZapp informuje o tym przed wysłaniem multimediów do Mistrala.</p>
+
+<p>Przy włączonej automatycznej transkrypcji opcja "Transkrybuj także te, które dotrą z opóźnieniem" transkrybuje odebrane wiadomości niezależnie od ich wieku (na przykład wszystkie, które docierają naraz po ponownym włączeniu komputera). Bez niej obowiązuje wybrany limit wieku; czas uśpienia komputera lub braku internetu nie liczy się do wieku. Na komputerach z Windows ARM64 whisper.cpp używa natywnej wersji ARM64, a wersja dla kart NVIDIA z CUDA 13 jest oferowana opcjonalnie.</p>
 
   </section>
 
@@ -801,6 +809,8 @@
 
 <h3>Grupy społeczności</h3>
 <p>Na liście społeczności Enter przechodzi do grup społeczności, a "Otwórz grupę z ostatnią aktywnością" otwiera grupę z najnowszą aktywnością, podając jej nazwę. "Filtruj grupy" pokazuje wszystkie grupy, grupy, do których należysz, albo te, do których nie należysz; grupa, do której nie należysz, mówi to w swoim wierszu. Na takiej grupie "Dołącz do grupy" dołącza do niej albo, gdy grupa wymaga zatwierdzenia, "Poproś o dołączenie do grupy" wysyła prośbę, którą "Anuluj prośbę o dołączenie" wycofuje.</p>
+
+<p>Zaproszenia do obserwowania kanału lub do zostania jego administratorem pojawiają się w czacie jako "Zaproszenie do obserwowania kanału..." (lub "do zostania administratorem kanału..."), ze słowami zapraszającego. Enter otwiera kanał, gdzie możesz go obserwować.</p>
 
   </section>
 
@@ -1462,6 +1472,18 @@
 <tr><td class="field-name">Jeszcze niewydane</td><td>Pobieranie multimediów: licznik obejmuje tylko pliki, które trzeba jeszcze pobrać.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: statystyki kanału dla administratorów.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: Pokazuj profil administratora w aktualizacjach, tam gdzie WhatsApp to udostępnia.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: jeden model załadowany naraz.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Wyczyść czat (Neonize): także w telefonie.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Automatyczna transkrypcja po hibernacji lub braku internetu.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: także wiadomości, które dotrą z opóźnieniem.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Znikające wiadomości (Neonize): nagrania i pliki respektują czas.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia (Neonize): wykonane połączenie nie trafia do własnego czatu.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości grupowe (Neonize): żądane od telefonu, gdy się nie otwierają.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Parowanie (Neonize): wybór, ile historii pobrać.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Starsze wiadomości (Neonize): Home prosi, dopóki jest coś więcej.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Kanały: zaproszenia do obserwowania lub administrowania w czacie.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Redukcja szumów: własne okno, procesor, składniki, neuronowa lub zwykła.</td></tr>
+<tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: natywny whisper.cpp na Windows ARM64, z CUDA 13.</td></tr>
 </table>
 
   </section>
