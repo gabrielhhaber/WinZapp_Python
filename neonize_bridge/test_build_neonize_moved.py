@@ -169,7 +169,7 @@ def test_amending_a_patch_this_workspace_exported_exports(synced):
     assert not bn.patches_moved("neonize")
 
 
-def test_export_and_prepare_record_what_they_left(synced, monkeypatch):
+def test_export_records_what_it_left(synced, monkeypatch):
     write, exported = synced
     write("0001-lock.patch", b"old")
     exported["0001-lock.patch"] = b"mine"
@@ -180,3 +180,30 @@ def test_export_and_prepare_record_what_they_left(synced, monkeypatch):
     assert write_after == bn._patch_hashes("neonize")
     exported["0001-lock.patch"] = b"mine again"
     assert not bn.patches_moved("neonize")
+
+
+def test_prepare_records_the_patches_it_applied(synced, monkeypatch):
+    """Without the note a fresh workspace falls back to commit times, which
+    miss a teammate's patch merged before the prepare."""
+    import subprocess
+    write, _exported = synced
+    write("0001-lock.patch", b"one")
+    write("0002-calls.patch", b"two")
+    monkeypatch.setattr(bn, "git", lambda *args, **kwargs: "")
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0, "", ""))
+    bn.apply_patches(bn.tree_path("neonize"), "neonize")
+    assert bn._synced("neonize") == bn._patch_hashes("neonize")
+
+
+def test_a_prepare_that_stops_half_way_leaves_no_note(synced, monkeypatch):
+    import subprocess
+    write, _exported = synced
+    write("0001-lock.patch", b"one")
+    bn.record_synced("neonize")              # the note of an earlier prepare
+    monkeypatch.setattr(bn, "git", lambda *args, **kwargs: "")
+    monkeypatch.setattr(subprocess, "run",
+                        lambda *args, **kwargs: subprocess.CompletedProcess(args, 1, "", "conflict"))
+    with pytest.raises(SystemExit):
+        bn.apply_patches(bn.tree_path("neonize"), "neonize")
+    assert bn._synced("neonize") is None
