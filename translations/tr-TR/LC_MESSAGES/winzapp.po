@@ -18159,6 +18159,22 @@ msgstr ""
 "Liste kutusu (tam mesajlar, ekran okuyu&cu konum veya öğe sayısı duyurmaz)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_message_list_open_position_label"
+msgid "Automatically focused position &in the messages list"
+msgstr "Mesa&j listesinde otomatik odaklanan konum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused"
+msgid "Continue where you left off (last focused message)"
+msgstr "Kaldığınız yerden devam edin (son odaklanılan mesaj)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_unread_or_last"
+msgid "Unread separator or last message"
+msgstr "Okunmamış ayırıcısı veya son mesaj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_button"
 msgid "&Messages"
@@ -18191,6 +18207,18 @@ msgstr "Page Up ve Page Down ile ileri/geri atlanacak mesaj sayısı:"
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "Ek ekle&rken yazılan mesajı açıklama olarak koru"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_bookmarks_after_use"
+msgid "Remo&ve permanent bookmarks automatically after the first use"
+msgstr "Kal&ıcı yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_temp_bookmarks_after_use"
+msgid "Remove temporar&y bookmarks automatically after the first use"
+msgstr "Ge&çici yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

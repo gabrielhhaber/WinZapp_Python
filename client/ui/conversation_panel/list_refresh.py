@@ -1311,7 +1311,15 @@ class ListRefreshMixin:
                 return
 
             # Make the unread separator visible, or select and focus the last (newest) message by default
-            if not scrolled:
+            # "Continue where you left off" (reading_position.py): the message
+            # the user was on when they left, when this rebuild is the one
+            # opening the conversation and that message is still here.
+            _resume = -1 if scrolled else self._take_reading_resume_row()
+            if _resume >= 0:
+                self.messages_list.EnsureVisible(_resume)
+                self.messages_list.Focus(_resume)
+                self.messages_list.Select(_resume)
+            elif not scrolled:
                 if self._unread_sep_idx >= 0:
                     last = message_row_count(self) - 1
                     target_visible = min(self._unread_sep_idx + 3, last)

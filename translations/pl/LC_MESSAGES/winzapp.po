@@ -18548,6 +18548,23 @@ msgstr ""
 "liczby elementów)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_message_list_open_position_label"
+msgid "Automatically focused position &in the messages list"
+msgstr "Auto&matycznie ustawiana pozycja na liście wiadomości"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused"
+msgid "Continue where you left off (last focused message)"
+msgstr ""
+"Kontynuuj od miejsca, w którym przerwano (ostatnia wiadomość z fokusem)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_unread_or_last"
+msgid "Unread separator or last message"
+msgstr "Separator nieprzeczytanych lub ostatnia wiadomość"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_button"
 msgid "&Messages"
@@ -18582,6 +18599,18 @@ msgstr ""
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "Zac&howaj wpisaną wiadomość jako podpis przy załączaniu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_bookmarks_after_use"
+msgid "Remo&ve permanent bookmarks automatically after the first use"
+msgstr "Automat&ycznie usuwaj stałe zakładki po pierwszym użyciu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_temp_bookmarks_after_use"
+msgid "Remove temporar&y bookmarks automatically after the first use"
+msgstr "Automatycznie usuwaj tymczasowe zak&ładki po pierwszym użyciu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

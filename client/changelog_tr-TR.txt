@@ -4,6 +4,10 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Ayarlar > Kullanıcı Arayüzü > Sohbetler: yeni "Mesaj listesinde otomatik odaklanan konum" seçeneği. "Kaldığınız yerden devam edin (son odaklanılan mesaj)" seçildiğinde, bir sohbete döndüğünüzde (bir sohbetten diğerine geçerken de) mesaj listesi, yeni okunmamış mesaj gelmiş olsun ya da olmasın, çıktığınızda bulunduğunuz mesajda olur. Okunmamış ayırıcısı ve mesaj olmayan diğer satırlar konum sayılmaz. Varsayılan yine "Okunmamış ayırıcısı veya son mesaj" seçeneğidir. Seçenek yalnızca listedeki mesajı belirler: odağın listeye mi yoksa mesaj alanına mı gideceğine hâlâ mevcut seçenek karar verir.
+
+- Yer işaretleri: Ayarlar > Kullanıcı Arayüzü > Sohbetler altında iki yeni onay kutusu, "Kalıcı yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır" ve "Geçici yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır". İşaretliyken bir yer işaretine gitmek (kalıcılar için Ctrl+0-9, geçiciler için Alt+Shift+0-9) onu hemen kaldırır; böylece aynı tuş bir dahaki sefere, Ctrl+Shift+rakam ile kaldırmaya gerek kalmadan yeni bir yer işareti oluşturur.
+
 - Sesler: Ayarlar, Sesler bölümündeki iki yeni seçenek, WinZapp ön plandayken yeni bir mesajın hangi sesi çalacağını seçmenizi sağlar; biri açık sohbet, diğeri diğer sohbetler içindir. Her biri eskisi gibi ön plana özel sesi koruyabilir veya arka plandaki mesajlar için seçtiğiniz bildirim sesini kullanabilir.
 
 - WhatsApp bağlantıları: WinZapp artık sohbet bağlantılarını açıyor. Bir wa.me veya api.whatsapp.com bağlantısı (örneğin bir havayolu şirketinden, bir mağazadan ya da bir web sitesinden), rehberinizde olmasa bile o numarayla sohbeti açar, bağlantıdaki mesajı mesaj alanına yazar ve odağı orada bırakır; mesajı gözden geçirip gönderebilirsiniz. Yalnızca numara içeren bağlantılar da çalışır. Yüklü sürüm artık ilk açılışında WhatsApp bağlantıları için kendini kaydeder, bu yüzden WinZapp Windows'un Varsayılan uygulamalar bölümünde görünür; taşınabilir sürümde seçenek Ayarlar, Genel bölümünde kalır.

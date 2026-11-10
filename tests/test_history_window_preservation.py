@@ -51,6 +51,7 @@ import pytest
 
 from core.utils import expanded_min_visible, history_window, paginated_window
 from ui.conversations import ConversationsPanel
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 JID = "1234567890@s.whatsapp.net"
 OTHER_JID = "1098765432@s.whatsapp.net"
@@ -140,7 +141,7 @@ class _FakeMainWindow:
         return bool(left_forms and right_forms and (left_forms & right_forms))
 
 
-class _Stub:
+class _Stub(ReadingPositionMixin):
     """Minimal stand-in for ConversationsPanel for the history-load paths."""
 
     def __init__(self, conversation=None, main_window=None, sorted_messages=None,

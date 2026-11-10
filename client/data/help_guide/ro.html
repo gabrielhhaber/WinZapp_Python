@@ -378,7 +378,7 @@
 </ul>
 
 <h3>Deschiderea unei conversații</h3>
-<p>Enter deschide conversația selectată. Focalizarea merge unde ai stabilit în Setări &gt; Interfață &gt; Conversații (câmpul de mesaj sau marcajul de necitite / ultimul mesaj). Esc sau Ctrl+W închide conversația.</p>
+<p>Enter deschide conversația selectată. Focalizarea merge unde ai stabilit în Setări &gt; Interfață &gt; Conversații (câmpul de mesaj sau marcajul de necitite / ultimul mesaj). Esc sau Ctrl+W închide conversația. Mesajul pe care rămâne lista depinde de "Poziția focalizată automat în lista de mesaje", pe aceeași pagină: "Separatorul de necitite sau ultimul mesaj" sau "Continuă de unde ai rămas (ultimul mesaj focalizat)", care revine la mesajul pe care erai când ai ieșit din conversație, chiar și la trecerea de la o conversație la alta și chiar dacă au sosit mesaje noi necitite (separatorul de necitite nu contează ca poziție).</p>
 
 <h3>Meniul contextual al conversației</h3>
 <p>Deschide-l cu tasta Aplicații sau cu Shift+F10. Elementele variază în funcție de conversație:</p>
@@ -511,7 +511,7 @@
 </ul>
 
 <h3>Marcaje</h3>
-<p>Marcajele sunt poziții pe care le creezi pe mesaje pentru a reveni la ele mai târziu. Cu mesajul având focalizarea, Ctrl+0 până la Ctrl+9 creează un marcaj (sau, dacă acel număr există deja, merge la el); Ctrl+Shift+0 până la 9 îl elimină. Alt+Shift+0 până la 9 creează marcaje temporare, șterse când părăsești conversația; Ctrl+Alt+Shift+0 până la 9 elimină cele temporare.</p>
+<p>Marcajele sunt poziții pe care le creezi pe mesaje pentru a reveni la ele mai târziu. Cu mesajul având focalizarea, Ctrl+0 până la Ctrl+9 creează un marcaj (sau, dacă acel număr există deja, merge la el); Ctrl+Shift+0 până la 9 îl elimină. Alt+Shift+0 până la 9 creează marcaje temporare, șterse când părăsești conversația; Ctrl+Alt+Shift+0 până la 9 elimină cele temporare. În Setări &gt; Interfață &gt; Conversații, "Elimină automat marcajele permanente după prima utilizare" și "Elimină automat marcajele temporare după prima utilizare" fac ca mutarea la un marcaj să-l elimine imediat, iar aceeași tastă creează un marcaj nou data următoare.</p>
 <h3>Chaturi rapide</h3>
 <p>Cu un chat focalizat în listă sau deschis, apasă Ctrl+Alt+Shift+F1 până la F10 pentru a-l atribui unei poziții rapide. Ctrl+Shift+aceeași tastă funcțională deschide chatul de oriunde din fereastra principală. F1 până la F9 corespund pozițiilor 1 până la 9; F10 corespunde poziției 0. Atribuirile sunt separate pentru fiecare cont și se păstrează după repornire. Poți schimba scurtăturile în Setări, Interfață utilizator, Scurtături de la tastatură, sau poți atribui un chat din meniul contextual. Chaturile protejate nu pot fi atribuite.</p>
 
@@ -877,7 +877,7 @@
   <tr><td class="field-name">Interfață</td><td>Fiecare buton deschide fereastra unui subiect: Mesaje, Reacții, Conversații, Confirmări și Comenzi rapide.</td></tr>
   <tr><td class="field-name">Interfață &gt; Mesaje</td><td>Câte mesaje să se afișeze la deschiderea unei conversații; câte să se sară cu Page Up/Down; tipul listei de mesaje (clasică, cu limită de 512 caractere, sau listă cu casetă, cu mesaje complete); afișarea celui care scrie ca ultim rând; "Cum să se facă referire la mine?"; ascunderea expeditorului la mesajele tale; ascunderea numerelor expeditorilor fără nume; păstrarea mesajului tastat ca legendă; "ieri" în loc de dată; previzualizări de linkuri; "Redirecționat" înaintea expeditorului; starea inițială a opțiunii "Șterge și conținutul media din telefon"; videoclipuri și stări într-un player separat; tipurile de media afișate implicit.</td></tr>
   <tr><td class="field-name">Interfață &gt; Reacții</td><td>Reacțiile rapide fixe și alegerea emoji-ului pentru fiecare poziție.</td></tr>
-  <tr><td class="field-name">Interfață &gt; Conversații</td><td>Unde să fie focalizarea la deschiderea unei conversații; starea livrării în lista de conversații; păstrarea conversațiilor fixate într-o ordine fixă; înlocuirea comenzilor rapide cu acțiuni în masă; comportamentul tastelor Space și Esc cu o selecție; păstrarea căutării de conversații la deschidere; poziția anunțului "Selectat"; afișarea canalelor în lista de conversații (dezactivat implicit); "Numărul de mesaje noi în lista de conversații", înainte sau după numele conversației.</td></tr>
+  <tr><td class="field-name">Interfață &gt; Conversații</td><td>Unde să fie focalizarea la deschiderea unei conversații; starea livrării în lista de conversații; păstrarea conversațiilor fixate într-o ordine fixă; înlocuirea comenzilor rapide cu acțiuni în masă; comportamentul tastelor Space și Esc cu o selecție; păstrarea căutării de conversații la deschidere; poziția anunțului "Selectat"; afișarea canalelor în lista de conversații (dezactivat implicit); "Numărul de mesaje noi în lista de conversații", înainte sau după numele conversației; "Poziția focalizată automat în lista de mesaje" (separatorul de necitite sau continuarea de unde ai rămas); "Elimină automat marcajele permanente după prima utilizare" și "Elimină automat marcajele temporare după prima utilizare".</td></tr>
   <tr><td class="field-name">Interfață &gt; Conversații &gt; Conversații blocate</td><td>PIN-ul seifului, blocarea după inactivitate și codul secret (butonul apare când seiful este disponibil).</td></tr>
   <tr><td class="field-name">Interfață &gt; Confirmări</td><td>Întrebările de confirmare (marchează tot ca citit, golire, ștergere, F5, Shift+F5, înregistrarea audio a calculatorului) și variantele lor "Nu mai afișați".</td></tr>
   <tr><td class="field-name">Interfață &gt; Comenzi rapide</td><td>Listează toate comenzile rapide ale programului, inclusiv cea globală. Selectează una, alege "Modifică" și tastează noua combinație; sau dezactiveaz-o, restabilește valoarea implicită ori restabilește-le pe toate. Conflictele sunt semnalate înainte de aplicare, iar modificările au efect doar cu Aplicare sau OK.</td></tr>
@@ -1430,6 +1430,7 @@
 <tr><td class="field-name">Încă nepublicat</td><td>Gestionarea conturilor: casetă pentru conectarea tuturor conturilor la pornirea WinZapp.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Linkuri WhatsApp: linkurile de conversație (wa.me, api.whatsapp.com) deschid conversația cu textul pregătit, iar versiunea instalată apare în Aplicații implicite.</td></tr>
 <tr><td class="field-name">Încă nepublicat</td><td>Sunete: alegerea sunetului mesajelor cu WinZapp în prim-plan, pentru conversația deschisă și pentru celelalte conversații.</td></tr>
+<tr><td class="field-name">Nelansat încă</td><td>Conversații: opțiune pentru ca lista de mesaje să continue de unde ai rămas; marcaje eliminate automat după prima utilizare.</td></tr>
 </table>
 
   </section>

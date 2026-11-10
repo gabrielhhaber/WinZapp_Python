@@ -4,6 +4,10 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Ustawienia > Interfejs użytkownika > Czaty: nowa opcja "Automatycznie ustawiana pozycja na liście wiadomości". Z wyborem "Kontynuuj od miejsca, w którym przerwano (ostatnia wiadomość z fokusem)" po powrocie do czatu (także przy przechodzeniu z jednego czatu do innego) lista wiadomości ustawia się na wiadomości, na której byłeś przy wyjściu, niezależnie od tego, czy przyszły nowe nieprzeczytane wiadomości. Separator nieprzeczytanych i inne wiersze, które nie są wiadomościami, nie liczą się jako pozycja. Domyślnie nadal jest "Separator nieprzeczytanych lub ostatnia wiadomość". Opcja wybiera tylko wiadomość na liście: to, czy fokus trafia na listę, czy do pola wiadomości, nadal określa istniejąca opcja.
+
+- Zakładki: dwa nowe pola wyboru w Ustawienia > Interfejs użytkownika > Czaty, "Automatycznie usuwaj stałe zakładki po pierwszym użyciu" i "Automatycznie usuwaj tymczasowe zakładki po pierwszym użyciu". Gdy są zaznaczone, przejście do zakładki (Ctrl+0–9 dla stałych, Alt+Shift+0–9 dla tymczasowych) od razu ją usuwa, więc ten sam klawisz następnym razem ustawia nową zakładkę, bez usuwania jej skrótem Ctrl+Shift+cyfra.
+
 - Dźwięki: dwie nowe opcje w Ustawienia > Dźwięki zdarzeń pozwalają wybrać dźwięk nowej wiadomości przy aktywnym oknie WinZappa, osobno dla otwartego czatu i pozostałych czatów. Możesz pozostawić dotychczasowy osobny dźwięk wiadomości albo wybrać ten sam dźwięk, który jest używany w powiadomieniach w tle.
 
 - Linki WhatsApp: WinZapp obsługuje teraz linki otwierające czat z podanym numerem, także niezapisanym w kontaktach. Na stronie wa.me lub api.whatsapp.com użyj przycisku otwierającego czat w aplikacji. Jeśli link zawiera tekst wiadomości, WinZapp wstawi go do pola wiadomości i pozostawi tam fokus, aby można było sprawdzić tekst i go wysłać. Działają też linki zawierające tylko numer. Wersja instalowana rejestruje obsługę linków WhatsApp przy pierwszym uruchomieniu i pojawia się w aplikacjach domyślnych systemu Windows. W wersji przenośnej odpowiednią opcję można włączyć w Ustawienia > Ogólne.

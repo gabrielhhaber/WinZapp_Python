@@ -12,6 +12,7 @@ import wx
 
 from ui.conversations import ConversationsPanel
 from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 JID = "5511999999999@s.whatsapp.net"
 
@@ -61,7 +62,7 @@ class _Layout:
         pass
 
 
-class _Stub(PinnedMessagesMixin):
+class _Stub(PinnedMessagesMixin, ReadingPositionMixin):
     def _start_contact_presence(self):
         pass  # Presence timers are tested separately without a native window.
     _load_pinned_messages = lambda self, **kwargs: None

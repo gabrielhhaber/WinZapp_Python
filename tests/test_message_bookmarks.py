@@ -83,6 +83,7 @@ class _FakeMainWindow:
     def __init__(self, chats=None):
         self.i18n = _FakeI18n()
         self.outputs = []
+        self.settings = {}
         self.chats = chats or {}
 
     def output(self, text, interrupt=False):
@@ -108,6 +109,7 @@ class _Stub:
     _select_bookmarked_message = ConversationsPanel._select_bookmarked_message
     _on_bookmark_set_or_jump = ConversationsPanel._on_bookmark_set_or_jump
     _on_bookmark_remove = ConversationsPanel._on_bookmark_remove
+    _drop_bookmark_after_use = ConversationsPanel._drop_bookmark_after_use
 
     def __init__(self, sorted_messages, focused_item=-1, conversation_jid=CONV_A,
                  chats=None, chats_list=None, list_has_focus=False):
@@ -444,3 +446,87 @@ class TestBookmarksAreIndependentPerDigit:
             panel._on_bookmark_set_or_jump(digit)
 
         assert panel._msg_bookmarks == {d: (CONV_A, str(d)) for d in range(10)}
+
+
+class TestRemoveAfterFirstUse:
+    """Settings > Messages, "Remover marcadores permanentes automaticamente
+    após o primeiro uso": the jump that uses a bookmark removes it, so the same
+    Ctrl+<digit> sets a new one next time instead of jumping to the old one."""
+
+    def _on(self, panel):
+        panel.main_window.settings = {"user_interface": {"remove_bookmarks_after_use": True}}
+
+    def test_off_by_default_the_bookmark_stays(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0)
+        panel._on_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+        panel._on_bookmark_set_or_jump(1)
+
+        assert panel._msg_bookmarks == {1: (CONV_A, "A")}
+
+    def test_the_jump_still_happens_and_removes_it(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0)
+        self._on(panel)
+        panel._on_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+        panel.main_window.outputs.clear()
+
+        panel._on_bookmark_set_or_jump(1)
+
+        assert panel.messages_list.focused_calls[-1] == 0
+        assert panel.main_window.outputs == ["Movido para a posição 1 da lista (marcador 1)"]
+        assert 1 not in panel._msg_bookmarks
+
+    def test_the_same_key_then_sets_a_new_bookmark_where_the_user_is(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0)
+        self._on(panel)
+        panel._on_bookmark_set_or_jump(1)
+        panel.messages_list._focused_item = 1
+        panel._on_bookmark_set_or_jump(1)   # jump to A, bookmark gone
+        panel.messages_list._focused_item = 1
+
+        panel._on_bookmark_set_or_jump(1)
+
+        assert panel._msg_bookmarks == {1: (CONV_A, "B")}
+
+    def test_already_on_it_counts_as_the_use(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=0, list_has_focus=True)
+        self._on(panel)
+        panel._msg_bookmarks[2] = (CONV_A, "A")
+
+        panel._on_bookmark_set_or_jump(2)
+
+        assert 2 not in panel._msg_bookmarks
+
+    def test_a_jump_into_another_conversation_removes_it_too(self):
+        chat_b = _chat(CONV_B, "Bob")
+        panel = _Stub([_msg("X")], focused_item=0, conversation_jid=CONV_A,
+                      chats_list=[_chat(CONV_A, "Alice"), chat_b])
+        self._on(panel)
+        panel.main_window.chats = {CONV_B: chat_b}
+        panel._msg_bookmarks[3] = (CONV_B, "X")
+
+        panel._on_bookmark_set_or_jump(3)
+
+        assert panel.navigate_calls == [CONV_B]
+        assert 3 not in panel._msg_bookmarks
+
+    def test_the_temporary_setting_does_not_touch_permanent_bookmarks(self):
+        panel = _Stub([_msg("A"), _msg("B")], focused_item=1)
+        panel.main_window.settings = {"user_interface": {"remove_temp_bookmarks_after_use": True}}
+        panel._msg_bookmarks[4] = (CONV_A, "A")
+
+        panel._on_bookmark_set_or_jump(4)
+
+        assert panel._msg_bookmarks == {4: (CONV_A, "A")}
+
+    def test_a_bookmark_set_again_meanwhile_is_kept(self):
+        # The jump into another conversation lands through wx.CallAfter: if the
+        # digit was given a new bookmark by then, that one is not the one used.
+        panel = _Stub([_msg("A")], focused_item=0)
+        self._on(panel)
+        panel._msg_bookmarks[5] = (CONV_A, "NEW")
+
+        panel._drop_bookmark_after_use(5, (CONV_A, "OLD"), temporary=False)
+
+        assert panel._msg_bookmarks == {5: (CONV_A, "NEW")}

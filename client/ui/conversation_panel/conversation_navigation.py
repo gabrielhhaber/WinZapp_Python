@@ -204,6 +204,9 @@ class ConversationNavigationMixin:
         configured_limit = int(self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
         unread_count = int(conversation.get("unreadCount") or 0)
         limit = db_fetch_limit(configured_limit, unread_count)
+        # Far enough back to still hold the message "continue where you left
+        # off" returns to (reading_position.py).
+        limit = self._reading_resume_fetch_limit(limit, unread_count)
         db_msgs = self.main_window.db.get_messages(_conv_jid, limit=limit)
         db_msgs.reverse()
         # The stored copy can be a moment behind a transcription just
@@ -239,7 +242,8 @@ class ConversationNavigationMixin:
         """Apply "focus_on_open" to a conversation that is already on screen:
         the message field, or the messages list on the unread separator when
         there is one and on the last message otherwise — the row a fresh open
-        would have selected."""
+        would have selected. With "continue where you left off"
+        (reading_position.py), the message row the list is already on."""
         if self._open_focus_target() == "message_field":
             self.message_field.SetFocus()
             return
@@ -251,6 +255,10 @@ class ConversationNavigationMixin:
             if getattr(self, "_sep_anchors_read_position", False):
                 sep = -1
             target = sep if 0 <= sep < count else count - 1
+            # "Continue where you left off": the row the user is already on.
+            resume = self._reading_resume_row_for_open_conversation()
+            if 0 <= resume < count:
+                target = resume
             self.messages_list.Focus(target)
             self.messages_list.Select(target)
             self.messages_list.EnsureVisible(target)
@@ -288,6 +296,11 @@ class ConversationNavigationMixin:
                 conversation.get("remoteJid") or "")
         except Exception:
             logging.exception("[conversations] could not record the open (non-fatal)")
+        # Before anything below resets the list: the row the conversation
+        # being left was on (reading_position.py), and the one this opening
+        # returns to.
+        self._remember_reading_position()
+        self._arm_reading_resume(conversation.get("remoteJid") or "")
         self._stop_typing_for_current_conversation()
         # The field's text stays with the conversation it was typed in
         # (message_drafts.py): kept now, before the mentions and the
@@ -427,7 +440,10 @@ class ConversationNavigationMixin:
                 daemon=True,
             ).start()
         self._clear_chat_search_on_open()
-        self.populate_messages()
+        try:
+            self.populate_messages()
+        finally:
+            self._disarm_reading_resume()
         self._sync_pending_document_gauge()
         self._backfill_reactions_for_open_conversation()
 
@@ -586,6 +602,7 @@ class ConversationNavigationMixin:
             self._hide_mention_suggestions()
             self.message_field.SetFocus()
             return False, ""
+        self._remember_reading_position()
         self._stop_contact_presence()
         self._stop_group_call_watch()
         # Before the composer is reset below (message_drafts.py).

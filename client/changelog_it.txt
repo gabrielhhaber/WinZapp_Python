@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Impostazioni > Interfaccia utente > Chat: nuova opzione "Posizione evidenziata automaticamente nell'elenco dei messaggi". Con "Continua da dove eri rimasto (ultimo messaggio evidenziato)", tornando a una chat (anche passando da una chat all'altra) l'elenco dei messaggi resta sul messaggio in cui eri quando sei uscito, che siano arrivati o no nuovi messaggi non letti. Il separatore dei non letti e le altre righe che non sono messaggi non contano come posizione. L'impostazione predefinita resta "Separatore dei non letti o ultimo messaggio". L'opzione sceglie solo il messaggio dell'elenco: se lo stato attivo va all'elenco o al campo del messaggio lo decide ancora l'opzione già esistente.
+
+- Segnalibri: due nuove caselle in Impostazioni > Interfaccia utente > Chat, "Rimuovi automaticamente i segnalibri permanenti dopo il primo utilizzo" e "Rimuovi automaticamente i preferiti temporanei dopo il primo utilizzo". Se attive, andare a un segnalibro (Ctrl+0-9 per quelli permanenti, Alt+Shift+0-9 per quelli temporanei) lo rimuove subito, così lo stesso tasto la volta successiva crea un nuovo segnalibro, senza doverlo rimuovere con Ctrl+Shift+numero.
+
 - Suoni: due nuove opzioni in Impostazioni, Suoni permettono di scegliere il suono di un nuovo messaggio mentre WinZapp è in primo piano, una per la chat aperta e una per le altre chat. Ciascuna può mantenere il suono dedicato in primo piano, come prima, oppure usare lo stesso suono di notifica scelto per i messaggi in background.
 
 - Link di WhatsApp: WinZapp ora apre i link delle chat. Un link wa.me o api.whatsapp.com (per esempio di una compagnia aerea, di un negozio o di un sito) apre la chat con quel numero, anche se non è nei tuoi contatti, inserisce il messaggio del link nel campo del messaggio e lascia lì il focus, pronto per essere rivisto e inviato. Funzionano anche i link con il solo numero. La versione installata ora si registra per i link di WhatsApp al primo avvio, quindi WinZapp compare in App predefinite di Windows; nella versione portatile l'opzione resta in Impostazioni, Generale.
