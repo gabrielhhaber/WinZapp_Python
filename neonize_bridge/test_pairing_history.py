@@ -10,7 +10,7 @@ def test_any_number_of_days_up_to_twenty_years_is_taken():
     for days in ph.CHOICES + (1, 7, 548, ph.MAX_DAYS):
         assert ph.chosen(days) == days
         assert ph.chosen(str(days)) == days
-    for bad in (-1, ph.MAX_DAYS + 1, "x", None, True, [], 999999):
+    for bad in (-1, ph.MAX_DAYS + 1, "x", None, True, [], 999999, 0.5, "2.5"):
         assert ph.chosen(bad) is None
 
 

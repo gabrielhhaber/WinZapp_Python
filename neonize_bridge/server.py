@@ -2334,6 +2334,8 @@ def create_app(folder, fixed=""):
         if w is not None and channel_updates.kept_in_store(chat):
             s.db.message(chat, w, msgmap.media_record_of(resp.Message))
             s.db.on_arrival(chat, w["t"], True)
+        # a channel post: known at once, with its server id, for an edit
+        channel_updates.remember_sent(s, chat, w, getattr(resp, "ServerID", 0))
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"
         chat_w = msgmap.jid_wpp(chat)
         # WPPConnect says "sent" (ack 1) right after the send; the app only

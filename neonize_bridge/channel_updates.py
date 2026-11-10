@@ -129,6 +129,25 @@ def _store(s):
     return getattr(s, "db", None)
 
 
+def remember_sent(s, channel, w, server_id) -> bool:
+    """A post this account just sent, with the server id the send answered
+    (SendResponse.ServerID, set for channels): remembered and cached at once,
+    so it can be edited before the channel is read again. Without it an edit
+    right after posting was refused as not stored."""
+    try:
+        server_id = int(server_id or 0)
+    except (TypeError, ValueError):
+        return False
+    if not is_channel(channel) or w is None or server_id <= 0:
+        return False
+    w = dict(w, serverId=server_id)
+    server_ids_of(s).remember([(w, server_id)])
+    store = _store(s)
+    if store is not None:
+        store.channel_posts_save(channel, [(w, server_id, None)])
+    return True
+
+
 def details_of(s, message_id):
     """What an edit is judged by (ServerIds.details), from this session's
     reads or, after a restart, from the cache."""

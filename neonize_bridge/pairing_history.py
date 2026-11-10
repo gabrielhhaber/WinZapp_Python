@@ -34,7 +34,7 @@ FILE = "pairing_history.json"
 
 def chosen(value):
     """`value` as days to ask for (0, or 1 to MAX_DAYS), or None."""
-    if isinstance(value, bool):
+    if isinstance(value, bool) or (isinstance(value, float) and not value.is_integer()):
         return None
     try:
         days = int(value)

@@ -247,3 +247,23 @@ def test_the_caption_of_a_cached_media_update_is_edited(cached):
     assert cu.edit(cached, CHANNEL, "PHOTO", "depois") is True
     assert cached.client.edited == ("PHOTO", "depois", "/v/t62/x")
     assert cached.db.channel_post("PHOTO")[1]["caption"] == "depois"
+
+
+def test_a_post_just_sent_is_known_with_its_server_id(tmp_path):
+    """Editing a post right after sending it was refused as not stored: the
+    bridge only learnt its server id by reading the channel again."""
+    from types import SimpleNamespace
+    from store import Store
+    import channel_updates as cu
+    db = Store(str(tmp_path / "bridge.db"))
+    try:
+        s = SimpleNamespace(db=db)
+        w = {"id": {"id": "3EB0X"}, "type": "chat", "t": 100, "fromMe": True, "body": "oi"}
+        assert cu.remember_sent(s, "1@newsletter", w, 105) is True
+        assert cu.details_of(s, "3EB0X")["server_id"] == 105
+        # after a restart, from the cache
+        assert cu.details_of(SimpleNamespace(db=db), "3EB0X")["server_id"] == 105
+        assert cu.remember_sent(s, "5511@s.whatsapp.net", w, 105) is False
+        assert cu.remember_sent(s, "1@newsletter", w, 0) is False
+    finally:
+        db.close()
