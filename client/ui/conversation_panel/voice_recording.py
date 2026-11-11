@@ -11,6 +11,7 @@ import sound_lib.stream as sl_stream
 import tempfile
 import threading
 import time
+from core.pending_timestamp import pending_send_timestamp
 import uuid
 import wave
 import wx
@@ -758,7 +759,8 @@ class VoiceRecordingMixin:
                        if as_audio_file or stereo_out else {}),
                 }
             },
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, quoted_msg),
             "pushName":         "",
         }
         if quoted_msg:

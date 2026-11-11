@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Respostas e envios novos não aparecem mais acima da mensagem original quando o relógio do computador está atrasado em relação ao WhatsApp. O horário provisório da mensagem enviada nunca fica anterior ao da última mensagem já exibida nem ao da mensagem respondida.
+
 - Neonize: o histórico que o celular envia durante várias horas não é mais dado como completo por uma pausa de 45 segundos entre blocos. Enquanto o progresso informado estiver abaixo de 100%, o WinZapp espera até 10 minutos de silêncio, para não tratar conversas como finais cedo demais.
 
 - Mídia que não baixa: a mensagem de erro não cita mais o WPPConnect, que não existe no motor Neonize. Ela agora fala em link expirado ou conexão com o WhatsApp indisponível.

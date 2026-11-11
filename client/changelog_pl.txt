@@ -558,6 +558,8 @@ NOWOŚCI
 
 POPRAWKI
 
+- Nowe odpowiedzi i wysłane wiadomości nie pojawiają się już nad wiadomością oryginalną, gdy zegar komputera spóźnia się względem zegara WhatsApp. Tymczasowy czas wysłanej wiadomości nigdy nie jest wcześniejszy niż czas ostatniej wyświetlonej wiadomości ani wiadomości, na którą odpowiadasz.
+
 - Naprawiono błąd „chat not found” podczas wysyłania wiadomości lub załączników do istniejącego czatu, który WhatsApp już załadował.
 
 - Otrzymanie pliku nie powoduje już pobierania go do powiadomienia o wiadomości z powodu nieużywanego ustawienia webhooka. Aktualizacje postępu wysyłania i pobierania zachowują tylko najnowszą oczekującą wartość, zapobiegając gromadzeniu aktualizacji ekranu podczas szybkich transferów.

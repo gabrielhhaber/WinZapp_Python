@@ -21,6 +21,7 @@ from core.utils import (
     normalize_line_separators,
 )
 from core.message_queue import PendingMessage
+from core.pending_timestamp import pending_send_timestamp
 from core.message_resend import RESEND_PATH_KEY
 from core.coalesced_callback import CoalescedCallback
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
@@ -146,7 +147,8 @@ class AttachmentsMixin:
                     "vcard": "",
                 }
             },
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, self._quoted_message),
             "pushName": "",
         }
         if self._quoted_message:
@@ -446,7 +448,8 @@ class AttachmentsMixin:
             "key": {"id": local_id, "fromMe": True, "remoteJid": remote_jid},
             "messageType": vtype,
             "message": {vtype: _body},
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, self._quoted_message),
             "pushName": "",
             # What Try sending again sends, should this fail or go unconfirmed
             # (core/message_resend.py).
