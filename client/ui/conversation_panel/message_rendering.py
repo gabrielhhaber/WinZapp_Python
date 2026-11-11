@@ -141,6 +141,9 @@ class MessageRenderingMixin:
         msg_type = msg.get("messageType", "conversation")
         msg_obj  = msg.get("message") or {}
         i18n     = self.main_window.i18n
+        from core.business_message_content import TYPES, business_message_text
+        if msg_type in TYPES:
+            return business_message_text(msg, i18n)
 
         # A reaction to one of our statuses is a row of its own (see
         # _is_displayable_message): there is no message here for it to
@@ -295,38 +298,6 @@ class MessageRenderingMixin:
             # Its sound track transcribed into the line, as for a voice message.
             return _with_inline_text(self.main_window, msg, line, i18n)
 
-        # ── Interactive buttons ───────────────────────────────────────────────
-        if msg_type == "buttonsMessage":
-            btns_msg = msg_obj.get("buttonsMessage") or {}
-            # contentText = message body; text = header when headerType=TEXT
-            content  = (btns_msg.get("contentText") or btns_msg.get("text") or "").strip()
-            buttons  = btns_msg.get("buttons") or []
-            labels   = [
-                (b.get("buttonText") or {}).get("displayText", "")
-                for b in buttons
-                if isinstance(b, dict)
-            ]
-            opts = ", ".join(l for l in labels if l)
-            if opts:
-                return f"{content} {i18n.t('options')}: {opts}"
-            return content
-
-        # ── List message ─────────────────────────────────────────────────────
-        if msg_type == "listMessage":
-            list_msg = msg_obj.get("listMessage") or {}
-            # title = header; description = body
-            title    = (list_msg.get("title") or list_msg.get("description") or "").strip()
-            sections = list_msg.get("sections") or []
-            all_opts = [
-                row.get("title", "")
-                for sec in sections if isinstance(sec, dict)
-                for row in (sec.get("rows") or []) if isinstance(row, dict)
-            ]
-            opts = ", ".join(o for o in all_opts if o)
-            if opts:
-                return f"{title} {i18n.t('options')}: {opts}"
-            return title
-
         # ── Contact ──────────────────────────────────────────────────────────
         if msg_type == "contactMessage":
             return i18n.t("contact_message").format(name=self._contact_display_name(msg))
@@ -351,11 +322,6 @@ class MessageRenderingMixin:
         if msg_type in ("locationMessage", "liveLocationMessage"):
             return i18n.t("notif_location")
 
-        # ── Template ─────────────────────────────────────────────────────────
-        if msg_type == "templateMessage":
-            template = msg_obj.get("templateMessage") or {}
-            return template.get("hydratedContentText") or i18n.t("notif_template")
-
         # ── Revoked / Protocol Message ───────────────────────────────────────
         if msg_type == "protocolMessage":
             protocol = msg_obj.get("protocolMessage") or {}
@@ -376,10 +342,6 @@ class MessageRenderingMixin:
             reply = (lst.get("singleSelectReply") or {}).get("selectedRowId", "")
             return title or reply or i18n.t("list_reply")
 
-        if msg_type == "interactiveMessage":
-            inter = msg_obj.get("interactiveMessage") or {}
-            body = (inter.get("body") or {}).get("text", "")
-            return body or i18n.t("interactive_message")
 
         # ── Group participant/settings notifications (join, leave, …) ──────────
         if msg_type == "groupNotification":
@@ -1023,7 +985,7 @@ class MessageRenderingMixin:
             "extendedTextMessage", "audioMessage", "imageMessage",
             "videoMessage", "documentMessage", "stickerMessage",
             "locationMessage", "contactMessage", "buttonsMessage",
-            "listMessage",
+            "listMessage", "templateMessage", "interactiveMessage",
         ):
             sub = msg_obj.get(sub_key)
             if isinstance(sub, dict):
