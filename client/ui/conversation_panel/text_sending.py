@@ -12,6 +12,7 @@ import time
 import uuid
 import wx
 from core.message_queue import PendingMessage
+from core.pending_timestamp import pending_send_timestamp
 from core.reply_failure import clear_reply_draft, is_missing_quote_failure
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from app_paths import data_path
@@ -303,7 +304,8 @@ class TextSendingMixin:
             },
             "messageType":      _msg_type,
             "message":          _msg_body,
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, self._quoted_message),
             "pushName":         "",
         }
         if self._quoted_message:

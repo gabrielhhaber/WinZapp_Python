@@ -14,6 +14,7 @@ import time
 import uuid
 import wave
 import wx
+from core.pending_timestamp import pending_send_timestamp
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from main_window.typing_feedback import stop_typing_for_capture
 from core.message_queue import PendingMessage
@@ -758,7 +759,8 @@ class VoiceRecordingMixin:
                        if as_audio_file or stereo_out else {}),
                 }
             },
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, quoted_msg),
             "pushName":         "",
         }
         if quoted_msg:

@@ -6,6 +6,8 @@ NOWOŚCI
 
 - Neonize: multimedia, których link wygasł, są teraz ponownie żądane od telefonu. Gdy pobieranie nie powiedzie się z powodu wygasłego linku, WinZapp prosi telefon o ponowne przesłanie pliku i pobiera go nowym linkiem; jeśli telefon nie ma już pliku, multimedia pozostają oznaczone jako wygasłe.
 
+- Nowe odpowiedzi i wysłane wiadomości nie pojawiają się już nad wiadomością oryginalną, gdy zegar komputera spóźnia się względem zegara WhatsApp. Tymczasowy czas wysłanej wiadomości nigdy nie jest wcześniejszy niż czas ostatniej wyświetlonej wiadomości ani wiadomości, na którą odpowiadasz.
+
 - Neonize: historia, którą telefon wysyła przez kilka godzin, nie jest już uznawana za kompletną po 45-sekundowej przerwie między blokami. Dopóki zgłaszany postęp jest poniżej 100%, WinZapp czeka do 10 minut ciszy, aby nie traktować czatów jako ostatecznych zbyt wcześnie.
 
 - Pliki multimedialne, które się nie pobierają: komunikat o błędzie nie wspomina już o WPPConnect, którego nie ma w silniku Neonize. Teraz mówi o wygasłym linku lub niedostępnym połączeniu z WhatsApp.
