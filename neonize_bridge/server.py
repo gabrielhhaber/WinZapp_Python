@@ -811,8 +811,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     return
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):
                     # deleted for everyone by whoever sent it: the original becomes deleted too
-                    self.db.change_message(w["protocolMessageKey"]["id"], type="revoked", body="")
-                self.db.message(chat, w, msgmap.media_record_of(e.Message))
+                    if not self.db.revocation(chat, w):
+                        return      # unknown original and chat: not a conversation (#762)
+                else:
+                    self.db.message(chat, w, msgmap.media_record_of(e.Message))
                 self.db.on_arrival(chat, w["t"], w["fromMe"])
                 try:
                     chat_archive.on_arrival(self, chat, w)

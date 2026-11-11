@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Neonize: powiadomienie o usunięciu wiadomości, gdy WinZapp nie ma ani tej wiadomości, ani rozmowy, nie tworzy już "Grupy bez nazwy" na liście rozmów. Usunięte wiadomości w istniejących rozmowach pozostają bez zmian.
+
 - Neonize: stare multimedia, które telefon przesyła ponownie po prośbie o ponowne wysłanie, są teraz naprawdę pobierane. Wcześniej ponownie przesłany plik był odrzucany, bo nie zgadzał się z weryfikacją oryginału, i multimedia nadal się nie otwierały.
 
 - Aktualizacja przy zamykaniu: nowa opcja w Ustawieniach > Ogólne pobiera aktualizacje automatycznie, bez pytania, i instaluje je po zakończeniu pracy z WinZapp. Zamknięcie okna do zasobnika nie jest zakończeniem pracy, a WinZapp nie uruchamia się ponownie po instalacji: pozostaje zamknięty i używa nowej wersji przy następnym uruchomieniu.
