@@ -410,6 +410,8 @@ NOUTĂȚI
 
 - Neonize: statusurile „Adaugă-l pe al tău”, cu întrebare și cu autocolant animat nu mai apar ca „Mesaj incompatibil”; jurnalul bridge-ului notează acum tipul mesajelor fără corespondent.
 
+- Scriere: indicatorul de scriere nu mai reapare la câteva secunde după ce persoana și-a trimis mesajul (problema #743).
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
