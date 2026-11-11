@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Pliki multimedialne, które się nie pobierają: komunikat o błędzie nie wspomina już o WPPConnect, którego nie ma w silniku Neonize. Teraz mówi o wygasłym linku lub niedostępnym połączeniu z WhatsApp.
+
 - WPPConnect Server 2.10.79 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności związane z bezpieczeństwem i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
 
 - Wzmianki: w wiadomości grupowej z @wszyscy klawisz Tab nie przechodzi już przez osobny link dla każdego uczestnika zaraz po otwarciu czatu. Wcześniej działo się tak, dopóki uczestnicy grupy się nie wczytali, a wiadomość nie straciła fokusu.

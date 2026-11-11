@@ -8250,11 +8250,11 @@ msgstr "{count} ملف/ملفات وسائط"
 #: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
-"This media file could not be downloaded. The link may have expired or "
-"WPPConnect is unavailable."
+"This media file could not be downloaded. The link may have expired or the "
+"WhatsApp connection may be unavailable."
 msgstr ""
-"لم يمكن تنزيل ملف الوسائط هذا. قد يكون الرابط قد expired أو WPPConnect غير "
-"متاح."
+"لم يمكن تنزيل ملف الوسائط هذا. قد يكون الرابط قد انتهت صلاحيته أو أن الاتصال"
+" بـ WhatsApp غير متاح."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Media that fails to download: the error message no longer mentions WPPConnect, which does not exist on the Neonize engine. It now says the link may have expired or the WhatsApp connection may be unavailable.
+
 - WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
 
 - Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.

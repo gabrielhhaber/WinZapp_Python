@@ -8417,11 +8417,11 @@ msgstr "{count} plik(ów) multimedialnych"
 #: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
-"This media file could not be downloaded. The link may have expired or "
-"WPPConnect is unavailable."
+"This media file could not be downloaded. The link may have expired or the "
+"WhatsApp connection may be unavailable."
 msgstr ""
 "Nie udało się pobrać tego pliku multimedialnego. Link mógł wygasnąć lub "
-"WPPConnect jest niedostępny."
+"połączenie z WhatsApp może być niedostępne."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
