@@ -1628,7 +1628,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnEx
             # would open a second prompt, and a Yes a second download.
             forced, self._force = self._force, False
             if forced:
-                wx.CallAfter(self._say_background_update_running)
+                wx.CallAfter(self._say_staged_or_background_update)
             self._schedule_retry()
             return
         include_alpha = self._alpha_enabled()
@@ -1963,6 +1963,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnEx
             self._release_prompt()
             if result == wx.ID_CANCEL:
                 self._schedule_retry()
+            self._continue_exit_without_install()
             return
         i18n = self._mw.i18n
         try:
@@ -1978,6 +1979,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnEx
             discard_package(extracted_dir)
             self._release_prompt()
             self._schedule_retry()
+            self._continue_exit_without_install()
             return
         wx.CallAfter(self._do_install, *args, relaunch_app=getattr(self, "_relaunch_app", True))
 

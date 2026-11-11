@@ -77,8 +77,23 @@ class UpdateOnExitMixin:
         wx.CallAfter(mw.output, mw.i18n.t("update_on_exit_ready").format(version=new_version),
                      False)
 
-    def has_staged_update(self) -> bool:
-        return bool(getattr(self, "_staged_update", None))
+    def _say_staged_or_background_update(self) -> None:
+        """A check the user asked for while an update is held or downloading."""
+        mw = self._mw
+        if getattr(self, "_staged_update", None):
+            mw.output(mw.i18n.t("update_on_exit_ready").format(
+                version=self._background_update_version()), interrupt=True)
+            return
+        self._say_background_update_running()
+
+    def _continue_exit_without_install(self) -> None:
+        """The install an Exit started ended without launching (cancelled, or
+        failed and not retried): the user still asked to exit, so quit as a
+        normal Exit would, instead of leaving a window nobody expects."""
+        callback = getattr(self, "_exit_fallback", None)
+        self._exit_fallback = None
+        if callback is not None:
+            wx.CallAfter(callback)
 
     def install_staged_on_exit(self) -> bool:
         """Main thread, from the Exit command. True when the install took over
@@ -90,11 +105,22 @@ class UpdateOnExitMixin:
         args, extract_dir = staged
         self._staged_update = None
         self._background_version = ""
+        if not update_on_exit_enabled(getattr(self._mw, "settings", None)):
+            # Turned off after the download: no silent install.
+            logging.info("Auto-updater: update on exit was turned off; discarding the package.")
+            discard_package(extract_dir)
+            self._release_prompt()
+            return False
         if not extract_dir or not os.path.isdir(extract_dir):
             logging.warning("Auto-updater: the staged update is gone; quitting normally.")
             discard_package(extract_dir)
             self._release_prompt()
             return False
         logging.info("Auto-updater: installing %s on exit.", args[0])
+        # A normal Exit (staged is empty now) when the install does not launch.
+        self._exit_fallback = self._mw.quit_all_accounts
         self._do_install(*args, extracted_dir=extract_dir, relaunch_app=False)
         return True
+
+    # A failed download is only logged: this mode is silent by design, and the
+    # periodic check tries again.

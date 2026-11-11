@@ -62,9 +62,16 @@ class TestNoRelaunch:
 
 class _Checker:
     install_staged_on_exit = UpdateOnExitMixin.install_staged_on_exit
-    has_staged_update = UpdateOnExitMixin.has_staged_update
+    _continue_exit_without_install = UpdateOnExitMixin._continue_exit_without_install
+    _say_staged_or_background_update = UpdateOnExitMixin._say_staged_or_background_update
 
-    def __init__(self, staged=None):
+    def __init__(self, staged=None, enabled=True):
+        self._mw = types.SimpleNamespace(
+            settings={"general": {"update_on_exit": enabled}},
+            quit_all_accounts=lambda: None,
+            output=lambda *a, **k: self.spoken.append(a),
+            i18n=types.SimpleNamespace(t=lambda key: key + " {version}"))
+        self.spoken = []
         self._staged_update = staged
         self._background_version = "9.9"
         self._install_pending = False
@@ -90,7 +97,7 @@ class TestInstallOnExit:
         assert checker.install_staged_on_exit() is True
         assert checker.installs == [(args, {"extracted_dir": str(tmp_path),
                                             "relaunch_app": False})]
-        assert checker.has_staged_update() is False
+        assert checker._staged_update is None
         assert checker._background_version == ""
         # A second Exit does not install the same package twice.
         assert checker.install_staged_on_exit() is False
@@ -106,3 +113,50 @@ class TestInstallOnExit:
         checker._install_pending = True
         assert checker.install_staged_on_exit() is False
         assert checker.installs == []
+
+    def test_turning_the_option_off_discards_the_package(self, tmp_path):
+        checker = _Checker((("9.9", "", "", "", False), str(tmp_path)), enabled=False)
+        assert checker.install_staged_on_exit() is False
+        assert checker.installs == []
+        assert checker.released == 1
+
+    def test_an_install_that_does_not_launch_continues_the_exit(self, tmp_path, monkeypatch):
+        calls = []
+        monkeypatch.setattr(update_on_exit.wx, "CallAfter", lambda fn, *a: calls.append(fn),
+                            raising=False)
+        checker = _Checker((("9.9", "", "", "", False), str(tmp_path)))
+        checker.install_staged_on_exit()
+        checker._continue_exit_without_install()
+        assert calls == [checker._mw.quit_all_accounts]
+        # Only once: a later cancelled install does not quit again.
+        checker._continue_exit_without_install()
+        assert len(calls) == 1
+
+    def test_a_forced_check_with_a_staged_update_says_it_waits_for_exit(self, tmp_path):
+        checker = _Checker((("9.9", "", "", "", False), str(tmp_path)))
+        checker._background_version = "9.9"
+        checker._background_update_version = lambda: "9.9"
+        checker._say_background_update_running = lambda: checker.spoken.append("running")
+        checker._say_staged_or_background_update()
+        assert checker.spoken[-1][0].startswith("update_on_exit_ready")
+        checker._staged_update = None
+        checker._say_staged_or_background_update()
+        assert checker.spoken[-1] == "running"
+
+
+def test_the_installer_script_never_starts_the_app_when_installing_on_exit():
+    import updater
+    from core.update_install_guard import guard_paths
+    kwargs = dict(extra_pids=[222], relaunch_handoff="handoff",
+                  install_guard=guard_paths("root", "a" * 32),
+                  result_path="result.marker", run_id="b" * 32)
+    script = updater._build_installer_script(
+        "stage", "install", EXE, "log", "failed.marker", 111, 6300,
+        relaunch_app=False, **kwargs)
+    assert 'start ""' not in script
+    assert "not relaunching WinZapp" in script
+    # A normal update still hands the relaunch to the waiter.
+    normal = updater._build_installer_script(
+        "stage", "install", EXE, "log", "failed.marker", 111, 6300, **kwargs)
+    assert "relaunch left to the waiter" in normal
+
