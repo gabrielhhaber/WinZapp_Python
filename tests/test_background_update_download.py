@@ -19,6 +19,7 @@ import pytest
 import wx
 
 import update_background
+from update_on_exit import UpdateOnExitMixin
 import updater
 from core.update_handoff import InstallHandoff
 from app_settings import _DEFAULTS, _GENERAL_GLOBAL
@@ -121,7 +122,7 @@ class _MainWindow:
         self.exits += 1
 
 
-class _Checker(BackgroundDownloadMixin):
+class _Checker(BackgroundDownloadMixin, UpdateOnExitMixin):
     _do_install = UpdateChecker._do_install
     _check_once = UpdateChecker._check_once
 
