@@ -123,13 +123,11 @@ YENİLİKLER
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.
 
 - Sesli mesajlar: kayıt bit hızı yeniden 64 kbps oldu; bir dakikadan uzun kayıtlar da hızlı gönderilir (256 kbps'ye geçiş gönderimi yavaşlatmıştı). Ayarlar > Ses bölümüne 32 ile 256 kbps arasında seçim yapılan "Sesli mesaj bit hızı (kbps)" eklendi.
-
 - Sesli mesajlar: stereo (AAC) kayıtlar artık varsayılan olarak 128 kbps ile gönderiliyor, çünkü 64 kbps sesi kötü yapıyordu; mono kayıtlar 64 kbps olarak kalıyor. Ayarlar > Ses bölümüne "Stereo sesli mesaj bit hızı (kbps)" eklendi. Hâlâ eski varsayılan 64 kbps üzerinde olanlar stereo için 128 kbps'ye geçer; seçtiğiniz başka bir hız korunur.
 
 - Ayarlar > Kullanıcı Arayüzü > Sohbetler: ekran okuyucunun yeni mesaj sayısını sohbet adından sonra değil önce söylemesi için yeni "Sohbet listesindeki yeni mesaj sayısı" seçeneği. Sohbet listesi, arşivlenmiş ve kilitli sohbetler için geçerlidir. (Michal Suchý'nin önerisi)
 
 - Yeni Kanallar penceresi (Alt+9, gezinti listesinde de var): takip ettiğiniz kanalları gösterir ya da WhatsApp kanal dizininde arama yapar (metin yazılmazsa önerilen kanallar görünür). Seçilen kanalı açıp güncellemelerini okuyabilir, takip edebilir ya da takibi bırakabilir, bildirimlerini sessize alabilir ya da açabilir, bağlantısını kopyalayabilir ve kendi kanallarınızda düzenleyebilir ya da silebilirsiniz. Bir kanalı bağlantısından takip edebilir ve kanal oluşturabilirsiniz. Kanalları sohbet listesinde göstermek ayrı bir ayar olarak kalır. WPPConnect ve Neonize ile çalışır.
-
 - WhatsApp Web'deki gibi kanallar: "Kanal bul" bölümünde Kategori (işletme, eğlence, yaşam tarzı, haberler, kuruluşlar, kişiler, spor) ve Görünüm (önerilenler, gündemdekiler, popüler, yeni) dizini daraltır. Yönettiğiniz kanallarda mesaj alanı metin güncellemeleri, fotoğraf, video ve anket paylaşmak için açılır, kendi güncellemeleriniz WhatsApp'ın izin verdiği süre içinde mesaj menüsünden (Alt+E) düzenlenebilir, bir güncelleme mesaj menüsünden (Ctrl+Shift+P) sabitlenebilir veya sabitlemesi kaldırılabilir ve sabitlenenler "Sabitlenen mesajlar" içinde görünür; "Yöneticiler ve takipçiler..." düğmesi kanalın kaç yöneticisi olduğunu söyler ve kanal sahibi için bir kişiyi yönetici olmaya davet eder veya daveti iptal eder. WPPConnect ve Neonize ile çalışır. Bu pencere sahibi, yöneticileri, bekleyen davetleri ve takipçileri listeler: sahip bir takipçiyi yönetici yapabilir, bir daveti iptal edebilir, bir yöneticiyi kaldırabilir veya bir yöneticiyi sahip yapabilir; bir yönetici de yöneticilikten ayrılabilir.
 
 - Aramalar: artık aramanın katılımcı listesindeki "Katılımcı ekle" düğmesiyle devam eden aramaya kişi ekleyebilirsiniz. Grup aramasında grubun henüz aramada olmayan üyeleri, özel aramada ise kişileriniz görünür ve arama, WhatsApp'ta olduğu gibi birkaç kişilik bir aramaya dönüşür. Daha önce aranıp henüz katılmamış kişi yeniden aranır. WPPConnect ve Neonize ile çalışır.
@@ -189,7 +187,6 @@ YENİLİKLER
 - Gruplar: WinZapp artık sizi bağlantılı kimliğinizle (@lid) listeleyen gruplarda tanıyor; böylece yöneticiler Üye ekle seçeneğini devre dışı görmüyor.
 
 - Neonize aramaları: yaptığınız ve kimsenin açmadığı bir arama, WhatsApp diğer telefonu çaldırmayı bıraktıktan sonra dakikalarca arama penceresinde çalmaya devam etmek yerine, artık bir dakika sonra "cevapsız" sonucuyla kendiliğinden sona eriyor.
-
 - Mac: WinZapp artık macOS mikrofon iznini beklerken veya izin reddedildiğinde bunu söylüyor; kayıt düğmesi hiçbir şey yapmıyormuş gibi görünmüyor.
 
 - Sesli mesajlar: artık tek bir kayıt düğmesi var. WinZapp, giriş aygıtı iki kanal sunduğunda stereo, diğer durumlarda mono kaydeder; bu nedenle ikinci düğme, Ctrl+Shift+G ve stereo seçeneği kaldırıldı. Stereo kayıt artık iPhone'da çalan gerçek bir sesli mesajdır ve kalite 256 kbps'ye yükseldi. Eklenen stereo Opus dosyası artık iPhone'da da çalması için dönüştürülüyor.
@@ -231,7 +228,6 @@ YENİLİKLER
 - Grup sohbetlerinde kullanılabilir bir arama varken "Devam eden sesli aramaya katıl" veya "Devam eden görüntülü aramaya katıl (kamera kapalı)" düğmesi arama başlatma düğmelerinin yerini alır. Aramalar, grup dışındaki çok kişili aramalar dahil devam eden aramaları Tümü ve Devam eden filtrelerinde gösterir. Görüntülü aramaya katılırken kamera kapalı başlar.
 
 - Art arda gelen çok sayıda kişi durumu güncellemesi (yazıyor, çevrimiçi) artık WinZapp'i saniyelerce dondurmuyor ve çok sohbetli hesaplarda bilgisayarın tamamını yavaşlatmıyor.
-
 - Kişi durumu: yeni kişi adları öğrenilirken arayüz artık veritabanı kaydını beklemiyor. Bekleyen ad güncellemeleri son tam kopyada birleştiriliyor; kapanış ve yerel veri temizleme sırasında kayıt sırası korunuyor.
 
 - Kişi durumu: çok sayıda çevrimiçi veya yazıyor güncellemesi geldiğinde arayüzde yinelenen işler azaltıldı. Değişmeyen pencere başlığı ve arşivli sohbet etiketi yeniden yazılmıyor; yazıyor bildirimlerinin zamanlaması korunuyor.

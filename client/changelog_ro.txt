@@ -123,13 +123,11 @@ NOUTĂȚI
 - Neonize: primul mesaj către un număr de telefon nou scris într-o conversație nouă (Ctrl+N) nu se mai termină ca „neconfirmat” când WhatsApp are numărul înregistrat în cealaltă formă (cu sau fără a 9-a cifră a mobilelor braziliene): acum este trimis la adresa pe care o cunoaște WhatsApp. În plus, un număr scris într-o conversație nouă deschide acum chatul cu adresa pe care o cunoaște WhatsApp, fără a lăsa o conversație duplicată.
 
 - Mesaje vocale: rata de biți a înregistrărilor a revenit la 64 kbps, care se trimit rapid chiar și după un minut (trecerea la 256 kbps încetinise trimiterea). Setări > Audio are acum "Rata de biți a mesajelor vocale (kbps)", cu valori între 32 și 256 kbps.
-
 - Mesaje vocale: înregistrările stereo (AAC) se trimit acum implicit la 128 kbps, deoarece 64 kbps le făcea să sune slab; înregistrările mono rămân la 64 kbps. Setări > Audio primește „Rata de biți a mesajelor vocale stereo (kbps)”. Cine era încă pe vechea valoare implicită de 64 kbps trece la 128 kbps pentru stereo; orice altă rată aleasă este păstrată.
 
 - Setări > Interfață utilizator > Conversații: opțiune nouă "Numărul de mesaje noi în lista de conversații", pentru ca cititorul de ecran să spună numărul de mesaje noi înainte de numele conversației, nu după. Se aplică listei de conversații, celor arhivate și celor blocate. (sugestia lui Michal Suchý)
 
 - Fereastră nouă Canale (Alt+9, și în lista de navigare): arată canalele pe care le urmăriți sau caută în directorul de canale WhatsApp (fără text, apar canalele recomandate). Pentru canalul ales îl puteți deschide și citi actualizările, îl puteți urmări sau nu mai urmări, îi puteți dezactiva sau activa notificările, îi puteți copia linkul și, la canalele dvs., îl puteți edita sau șterge. Puteți urmări un canal din linkul lui și puteți crea un canal. Afișarea canalelor în lista de conversații rămâne o opțiune separată. Funcționează cu WPPConnect și cu Neonize.
-
 - Canale, ca în WhatsApp Web: în "Găsiți canale", Categorie (afaceri, divertisment, stil de viață, știri, organizații, persoane, sport) și Listă (recomandate, în tendințe, populare, noi) restrâng directorul. În canalele pe care le administrați, câmpul de mesaj se deschide pentru a publica actualizări text, fotografii, videoclipuri și sondaje, pe cele proprii le puteți edita din meniul mesajului (Alt+E) în intervalul permis de WhatsApp, o actualizare poate fi fixată sau anulată fixarea din meniul mesajului (Ctrl+Shift+P), iar cele fixate apar în "Mesaje fixate"; butonul "Administratori și urmăritori..." spune câți administratori are canalul și, pentru proprietar, invită un contact să fie administrator sau anulează invitația. Funcționează cu WPPConnect și cu Neonize. Fereastra arată proprietarul, administratorii, invitațiile în așteptare și urmăritorii: proprietarul poate face administrator un urmăritor, poate anula o invitație, poate elimina un administrator sau poate face proprietar un administrator, iar un administrator poate renunța la rol.
 
 - Apeluri: acum puteți adăuga persoane la apelul în curs, cu butonul "Adăugați participanți" din lista de participanți a apelului. Într-un apel de grup apar membrii grupului care nu sunt încă în apel; într-un apel privat, contactele dvs., iar apelul devine un apel cu mai multe persoane, ca în WhatsApp. Cine a fost deja apelat și nu a intrat este apelat din nou. Funcționează cu WPPConnect și cu Neonize.
@@ -189,7 +187,6 @@ NOUTĂȚI
 - Grupuri: WinZapp te recunoaște acum în grupurile care te listează prin identificatorul asociat (@lid), așa că un administrator nu mai găsește dezactivată opțiunea de adăugare a unui membru.
 
 - Apeluri Neonize: un apel pe care îl faci și la care nu răspunde nimeni se încheie acum singur după un minut, cu rezultatul „fără răspuns”, în loc să sune minute în șir în fereastra de apel după ce WhatsApp a încetat să sune celălalt telefon.
-
 - Mac: WinZapp spune acum când macOS așteaptă permisiunea pentru microfon sau când a fost refuzată, în loc să pară că butonul de înregistrare nu face nimic.
 
 - Mesaje vocale: acum există un singur buton de înregistrare. WinZapp înregistrează în stereo când dispozitivul de intrare oferă două canale și în mono în celelalte cazuri, așa că al doilea buton, Ctrl+Shift+G și opțiunea stereo au dispărut. O înregistrare stereo este acum un mesaj vocal adevărat, care se aude pe iPhone, iar calitatea a crescut la 256 kbps. Un fișier Opus stereo atașat este acum convertit, ca să se audă și pe iPhone.
@@ -231,7 +228,6 @@ NOUTĂȚI
 - În chaturile de grup, când există un apel disponibil, butoanele de inițiere sunt înlocuite de "Alăturați-vă apelului vocal în desfășurare" sau "Alăturați-vă apelului video în desfășurare (camera oprită)". Apeluri afișează apelurile în desfășurare în Toate și În desfășurare, inclusiv între mai multe persoane în afara grupurilor. La alăturarea la un apel video, camera pornește oprită.
 
 - Multe actualizări de prezență ale contactelor la rând (scrie, online) nu mai blochează WinZapp câteva secunde și nu mai încetinesc întregul calculator pe conturile cu multe conversații.
-
 - Prezența contactelor: la memorarea unor nume noi, interfața nu mai așteaptă scrierea în baza de date. Actualizările în așteptare păstrează cea mai recentă copie completă și respectă ordinea la închidere și la ștergerea datelor locale.
 
 - Prezența contactelor: s-a redus munca repetată a interfeței la primirea multor actualizări de conectare sau tastare. Titlul ferestrei și eticheta conversațiilor arhivate nu mai sunt rescrise dacă nu se schimbă, fără a întârzia anunțurile de tastare.
