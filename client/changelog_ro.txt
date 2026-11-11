@@ -414,6 +414,8 @@ NOUTĂȚI
 
 - Scriere: indicatorul de scriere nu mai reapare la câteva secunde după ce persoana și-a trimis mesajul (problema #743).
 
+- Fereastra de noutăți: tasta Esc o închide acum, atât din Ajutor > Ce este nou, cât și din Ajutor > "Noutăți de la ultima vizualizare". Înainte, Esc nu făcea nimic și trebuia să ajungi la butonul de închidere.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

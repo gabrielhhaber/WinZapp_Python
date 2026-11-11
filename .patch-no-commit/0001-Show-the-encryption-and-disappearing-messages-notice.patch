@@ -1,0 +1,720 @@
+From 397f3f3e7a806c4e4c2996e5410f99c0a94f7f2f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 15 Oct 2026 10:31:52 +0000
+Subject: [PATCH 1/2] Show the encryption and disappearing-messages notices of
+ a new personal chat
+
+WhatsApp Web draws "Messages and calls are end-to-end encrypted..." and
+the disappearing-messages notice itself; neither arrives as text from
+WPPConnect (the encryption event is a bodyless e2e_notification, which
+WinZapp keeps out of the conversation on purpose). So the sentences are
+WinZapp's own, in two places and client-only:
+
+- Chat info of a personal chat: the full encryption sentence.
+- An empty or new personal conversation: the existing "no messages"
+  row is extended with the short encryption notice and, only when the
+  chat has a disappearing-messages timer running, its duration.
+
+The row is the existing empty_placeholder: one row, text only, so no
+index shifts and nothing in pagination, the unread separator or the
+tail-append logic changes. A leading row in a conversation that has
+history was deliberately not added for that reason.
+
+The encryption notice depends only on the JID being a person's (phone or
+@lid), never on an event that may or may not have arrived; groups,
+broadcast lists and channels get no claim (channels are not E2E).
+An off or unknown timer says nothing instead of "off".
+---
+ client/core/chat_notices.py                   |  51 +++++++++
+ client/core/chat_settings.py                  |  33 +++---
+ .../conversation_panel/message_rendering.py   |  12 +-
+ client/ui/dialogs/conversation_data_dialog.py |   2 +
+ tests/test_chat_notices.py                    | 103 ++++++++++++++++++
+ tests/test_chat_settings_in_info.py           |   7 ++
+ tests/test_empty_conversation_notices.py      |  64 +++++++++++
+ translations/en-US/LC_MESSAGES/winzapp.po     |  22 +++-
+ translations/es-ES/LC_MESSAGES/winzapp.po     |  20 +++-
+ translations/pl/LC_MESSAGES/winzapp.po        |  17 ++-
+ translations/pt-BR/LC_MESSAGES/winzapp.po     |  20 +++-
+ translations/pt-PT/LC_MESSAGES/winzapp.po     |  20 +++-
+ translations/ro/LC_MESSAGES/winzapp.po        |  20 +++-
+ translations/tr-TR/LC_MESSAGES/winzapp.po     |  20 +++-
+ translations/winzapp.pot                      |  20 +++-
+ 15 files changed, 408 insertions(+), 23 deletions(-)
+ create mode 100644 client/core/chat_notices.py
+ create mode 100644 tests/test_chat_notices.py
+ create mode 100644 tests/test_empty_conversation_notices.py
+
+diff --git a/client/core/chat_notices.py b/client/core/chat_notices.py
+new file mode 100644
+index 0000000..20bccfb
+--- /dev/null
++++ b/client/core/chat_notices.py
+@@ -0,0 +1,51 @@
++"""Notices WhatsApp shows at the top of a one-to-one chat, made locally.
++
++WhatsApp Web draws "Messages and calls are end-to-end encrypted..." and the
++disappearing-messages notice itself; neither arrives as text from WPPConnect
++(the encryption event is a bodyless ``e2e_notification``, which WinZapp keeps
++out of the conversation on purpose). So the sentences are WinZapp's own, built
++from facts the client can state:
++
++* every one-to-one chat is end-to-end encrypted, so the encryption notice
++  depends only on the JID being a person's, never on an event that may or may
++  not have arrived;
++* the timer is the chat's ``ephemeralDuration``, as in core/chat_settings.py.
++
++Groups, broadcast lists and channels get no encryption claim here: channels
++are not end-to-end encrypted, and groups and lists have their own notices.
++"""
++
++from core.chat_settings import disappearing_duration, disappearing_value, owner_call
++
++_ONE_TO_ONE_SUFFIXES = ("@c.us", "@s.whatsapp.net", "@lid")
++
++
++def is_one_to_one(jid) -> bool:
++    """True for a person's JID (phone or @lid), false for everything else."""
++    return isinstance(jid, str) and jid.endswith(_ONE_TO_ONE_SUFFIXES)
++
++
++def encryption_lines(jid, i18n) -> list:
++    """The full encryption sentence for the info dialog, or [] when the chat
++    is not one-to-one."""
++    if not is_one_to_one(jid):
++        return []
++    return [f"{i18n.t('chat_encryption_label')}: {i18n.t('chat_encryption_notice')}"]
++
++
++def conversation_start_text(owner, jid, i18n, empty_text) -> str:
++    """The text of the row an empty conversation shows.
++
++    *empty_text* is the existing "no messages" sentence. For a one-to-one chat
++    the short encryption notice follows it and, only when the chat has a
++    disappearing-messages timer running, so does the timer. An off or unknown
++    timer adds nothing: a missing value is never reported as "off".
++    """
++    if not is_one_to_one(jid):
++        return empty_text
++    parts = [empty_text, i18n.t("chat_encryption_notice_short")]
++    seconds = disappearing_duration(owner_call(owner, "get_chat", jid))
++    if seconds:  # None (unknown) and 0 (off) both say nothing here
++        label = i18n.t("chat_disappearing_label")
++        parts.append(f"{label}: {disappearing_value(seconds, i18n)}.")
++    return " ".join(parts)
+diff --git a/client/core/chat_settings.py b/client/core/chat_settings.py
+index 1ef6630..0d90d61 100644
+--- a/client/core/chat_settings.py
++++ b/client/core/chat_settings.py
+@@ -62,7 +62,22 @@ def disappearing_duration(chat):
+     return int(value)
+ 
+ 
+-def _owner_call(owner, name, *args):
++def disappearing_value(seconds, i18n) -> str:
++    """The words for a timer: "Off", one of WhatsApp's three durations, or a
++    plain "On" for any other positive value (never an invented duration)."""
++    if seconds == 0:
++        return i18n.t("chat_disappearing_off")
++    if seconds == _DAY:
++        return i18n.t("chat_disappearing_24h")
++    if seconds == _WEEK:
++        return i18n.t("chat_disappearing_7d")
++    if seconds == _QUARTER:
++        return i18n.t("chat_disappearing_90d")
++    return i18n.t("chat_disappearing_on")
++
++
++def owner_call(owner, name, *args):
++    """Call ``owner.name(*args)`` if the owner has it, else None."""
+     method = getattr(owner, name, None)
+     return method(*args) if callable(method) else None
+ 
+@@ -78,7 +93,7 @@ def chat_settings_lines(owner, jid, i18n, fmt_ts, now=None) -> list:
+ 
+     muted_chats = getattr(owner, "_muted_chats", None)
+     if isinstance(muted_chats, dict):
+-        jids = _owner_call(owner, "_mute_state_jids", jid) or {jid}
++        jids = owner_call(owner, "_mute_state_jids", jid) or {jid}
+         state, expiry = mute_state(muted_chats, jids, now)
+         label = i18n.t("chat_notifications_label")
+         if state == "forever":
+@@ -94,19 +109,9 @@ def chat_settings_lines(owner, jid, i18n, fmt_ts, now=None) -> list:
+         else:
+             lines.append(f"{label}: {i18n.t('chat_notifications_not_muted')}")
+ 
+-    seconds = disappearing_duration(_owner_call(owner, "get_chat", jid))
++    seconds = disappearing_duration(owner_call(owner, "get_chat", jid))
+     if seconds is not None:
+         label = i18n.t("chat_disappearing_label")
+-        if seconds == 0:
+-            value = i18n.t("chat_disappearing_off")
+-        elif seconds == _DAY:
+-            value = i18n.t("chat_disappearing_24h")
+-        elif seconds == _WEEK:
+-            value = i18n.t("chat_disappearing_7d")
+-        elif seconds == _QUARTER:
+-            value = i18n.t("chat_disappearing_90d")
+-        else:
+-            value = i18n.t("chat_disappearing_on")
+-        lines.append(f"{label}: {value}")
++        lines.append(f"{label}: {disappearing_value(seconds, i18n)}")
+ 
+     return lines
+diff --git a/client/ui/conversation_panel/message_rendering.py b/client/ui/conversation_panel/message_rendering.py
+index e199e6c..4b10479 100644
+--- a/client/ui/conversation_panel/message_rendering.py
++++ b/client/ui/conversation_panel/message_rendering.py
+@@ -7,6 +7,7 @@ ConversationsPanel.__init__/init_UI is available here.
+ 
+ import logging
+ import threading
++from core.chat_notices import conversation_start_text
+ from core.community_comments import comment_count
+ from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
+ from core.polls import POLL_MESSAGE_TYPES, poll_content, poll_row_text
+@@ -1187,7 +1188,16 @@ class MessageRenderingMixin:
+         Only link detection passes it — see _message_own_links().
+         """
+         if isinstance(msg, dict) and msg.get("_type") == "empty_placeholder":
+-            return self.main_window.i18n.t("no_messages_in_conversation")
++            # A new or empty one-to-one chat also gets the notices WhatsApp
++            # shows at the top of one (encryption and, if running, the
++            # disappearing-messages timer). One row, text only: it adds no row
++            # to the list and so shifts no index.
++            return conversation_start_text(
++                self.main_window,
++                (getattr(self, "conversation", None) or {}).get("remoteJid", ""),
++                self.main_window.i18n,
++                self.main_window.i18n.t("no_messages_in_conversation"),
++            )
+         # Unread separator sentinel
+         if self._is_separator(msg):
+             line = self._render_separator(msg.get("count", 1))
+diff --git a/client/ui/dialogs/conversation_data_dialog.py b/client/ui/dialogs/conversation_data_dialog.py
+index 77aa38b..4394a2b 100644
+--- a/client/ui/dialogs/conversation_data_dialog.py
++++ b/client/ui/dialogs/conversation_data_dialog.py
+@@ -24,6 +24,7 @@ from datetime import datetime
+ import wx
+ import wx.adv
+ from core import phone_contacts
++from core.chat_notices import encryption_lines
+ from core.chat_settings import chat_settings_lines
+ from core.contact_identity import contact_identity_lines
+ from core.group_operations import group_permissions
+@@ -828,6 +829,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
+         # Mute and disappearing messages, from what the client already holds
+         # (its mute map and the chat-list snapshot); no line when it has none.
+         lines.extend(chat_settings_lines(self._mw, self._jid, i18n, _fmt_ts))
++        lines.extend(encryption_lines(self._jid, i18n))
+ 
+         self._info_ctrl.SetValue("\n".join(lines))
+         self._info_ctrl.SetFocus()
+diff --git a/tests/test_chat_notices.py b/tests/test_chat_notices.py
+new file mode 100644
+index 0000000..c2dfe00
+--- /dev/null
++++ b/tests/test_chat_notices.py
+@@ -0,0 +1,103 @@
++"""Encryption and disappearing-messages notices for one-to-one chats
++(core/chat_notices.py). Plain data in, text out: no wx, no network."""
++
++import pytest
++
++from core.chat_notices import conversation_start_text, encryption_lines, is_one_to_one
++
++PN = "5511999990000@s.whatsapp.net"
++CUS = "5511999990000@c.us"
++LID = "99887766554433@lid"
++GROUP = "120363000000000001@g.us"
++EMPTY = "No messages available in this chat."
++
++
++class _I18n:
++    TEXT = {
++        "chat_encryption_label": "Encryption",
++        "chat_encryption_notice": "Messages and calls are end-to-end encrypted. "
++        "Only people in this chat can read, listen to or share them.",
++        "chat_encryption_notice_short": "Messages and calls are end-to-end encrypted.",
++        "chat_disappearing_label": "Disappearing messages",
++        "chat_disappearing_off": "Off",
++        "chat_disappearing_on": "On",
++        "chat_disappearing_24h": "24 hours",
++        "chat_disappearing_7d": "7 days",
++        "chat_disappearing_90d": "90 days",
++    }
++
++    def t(self, key):
++        return self.TEXT[key]
++
++
++class _Owner:
++    def __init__(self, chat=None):
++        if chat is not None:
++            self.get_chat = lambda jid: chat
++
++
++class TestWhoGetsAnEncryptionClaim:
++    @pytest.mark.parametrize("jid", [PN, CUS, LID])
++    def test_a_persons_jid(self, jid):
++        assert is_one_to_one(jid)
++
++    @pytest.mark.parametrize(
++        "jid",
++        [GROUP, "status@broadcast", "123@broadcast", "120363@newsletter", "", None, 5],
++    )
++    def test_groups_lists_channels_and_junk_get_none(self, jid):
++        assert not is_one_to_one(jid)
++
++
++class TestTheInfoDialogLine:
++    def test_a_personal_chat_gets_the_full_sentence(self):
++        lines = encryption_lines(PN, _I18n())
++        assert lines == [
++            "Encryption: Messages and calls are end-to-end encrypted. "
++            "Only people in this chat can read, listen to or share them."
++        ]
++
++    @pytest.mark.parametrize("jid", [GROUP, "120363@newsletter", "", None])
++    def test_other_chats_get_no_claim(self, jid):
++        assert encryption_lines(jid, _I18n()) == []
++
++
++class TestTheEmptyConversationRow:
++    def _text(self, owner, jid=PN):
++        return conversation_start_text(owner, jid, _I18n(), EMPTY)
++
++    def test_the_encryption_notice_follows_the_empty_text(self):
++        assert self._text(_Owner()) == (
++            f"{EMPTY} Messages and calls are end-to-end encrypted."
++        )
++
++    @pytest.mark.parametrize(
++        "seconds,words",
++        [(86400, "24 hours"), (604800, "7 days"), (7776000, "90 days"), (1234, "On")],
++    )
++    def test_a_running_timer_is_added(self, seconds, words):
++        owner = _Owner({"ephemeralDuration": seconds})
++        assert self._text(owner) == (
++            f"{EMPTY} Messages and calls are end-to-end encrypted. "
++            f"Disappearing messages: {words}."
++        )
++
++    @pytest.mark.parametrize(
++        "chat",
++        [{"ephemeralDuration": 0}, {"remoteJid": PN}, {"ephemeralDuration": "x"}, {}],
++    )
++    def test_an_off_or_unknown_timer_adds_nothing(self, chat):
++        owner = _Owner(chat)
++        assert self._text(owner) == (
++            f"{EMPTY} Messages and calls are end-to-end encrypted."
++        )
++
++    @pytest.mark.parametrize("jid", [GROUP, "120363@newsletter", "", None])
++    def test_any_other_chat_keeps_the_original_text(self, jid):
++        owner = _Owner({"ephemeralDuration": 86400})
++        assert conversation_start_text(owner, jid, _I18n(), EMPTY) == EMPTY
++
++    def test_an_owner_without_get_chat_is_fine(self):
++        assert self._text(object()) == (
++            f"{EMPTY} Messages and calls are end-to-end encrypted."
++        )
+diff --git a/tests/test_chat_settings_in_info.py b/tests/test_chat_settings_in_info.py
+index 3476388..b62826d 100644
+--- a/tests/test_chat_settings_in_info.py
++++ b/tests/test_chat_settings_in_info.py
+@@ -24,6 +24,8 @@ class _Labels:
+         "chat_disappearing_7d": "7 days",
+         "chat_disappearing_90d": "90 days",
+         "datetime_fmt": "%d/%m/%Y %H:%M",
++        "chat_encryption_label": "Encryption",
++        "chat_encryption_notice": "Messages and calls are end-to-end encrypted.",
+     }
+ 
+     def __init__(self, base):
+@@ -68,3 +70,8 @@ def test_not_muted_and_timer_off():
+ def test_without_the_data_the_dialog_claims_nothing():
+     lines = _info_lines(Owner())
+     assert not any(line.startswith(("Notifications", "Disappearing")) for line in lines)
++
++
++def test_a_personal_chat_states_that_it_is_end_to_end_encrypted():
++    lines = _info_lines(Owner())
++    assert "Encryption: Messages and calls are end-to-end encrypted." in lines
+diff --git a/tests/test_empty_conversation_notices.py b/tests/test_empty_conversation_notices.py
+new file mode 100644
+index 0000000..f085ad6
+--- /dev/null
++++ b/tests/test_empty_conversation_notices.py
+@@ -0,0 +1,64 @@
++"""The empty-conversation row carries WhatsApp's top-of-chat notices.
++
++Runs the real ConversationsPanel._render_message_line on a plain stand-in (the
++placeholder branch only reads main_window and conversation), so no wx.App. The
++sentences themselves are pinned in test_chat_notices.py; this pins the wiring
++and that a group or a missing conversation keeps the original text.
++"""
++from types import SimpleNamespace
++
++from ui.conversations import ConversationsPanel
++
++PN = "5511999990000@s.whatsapp.net"
++GROUP = "120363000000000001@g.us"
++PLACEHOLDER = {"_type": "empty_placeholder"}
++
++
++class _I18n:
++    TEXT = {
++        "no_messages_in_conversation": "No messages available in this chat.",
++        "chat_encryption_notice_short": "Messages and calls are end-to-end encrypted.",
++        "chat_disappearing_label": "Disappearing messages",
++        "chat_disappearing_7d": "7 days",
++    }
++
++    def t(self, key):
++        return self.TEXT[key]
++
++
++def _render(jid, chat=None, with_conversation=True):
++    main_window = SimpleNamespace(i18n=_I18n())
++    if chat is not None:
++        main_window.get_chat = lambda j: chat
++    panel = SimpleNamespace(main_window=main_window)
++    if with_conversation:
++        panel.conversation = {"remoteJid": jid}
++    return ConversationsPanel._render_message_line(panel, PLACEHOLDER)
++
++
++def test_a_new_personal_chat_gets_the_encryption_notice():
++    assert _render(PN) == (
++        "No messages available in this chat. "
++        "Messages and calls are end-to-end encrypted."
++    )
++
++
++def test_a_running_timer_is_added_after_it():
++    text = _render(PN, chat={"ephemeralDuration": 604800})
++    assert text == (
++        "No messages available in this chat. "
++        "Messages and calls are end-to-end encrypted. "
++        "Disappearing messages: 7 days."
++    )
++
++
++def test_a_group_keeps_the_original_text():
++    assert _render(GROUP, chat={"ephemeralDuration": 604800}) == (
++        "No messages available in this chat."
++    )
++
++
++def test_a_panel_without_a_conversation_keeps_the_original_text():
++    assert _render(PN, with_conversation=False) == (
++        "No messages available in this chat."
++    )
+diff --git a/translations/en-US/LC_MESSAGES/winzapp.po b/translations/en-US/LC_MESSAGES/winzapp.po
+index c3de081..8a970b0 100644
+--- a/translations/en-US/LC_MESSAGES/winzapp.po
++++ b/translations/en-US/LC_MESSAGES/winzapp.po
+@@ -2421,7 +2421,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 days"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Disappearing messages"
+@@ -2436,6 +2437,25 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "On"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Encryption"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "Messages and calls are end-to-end encrypted."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/es-ES/LC_MESSAGES/winzapp.po b/translations/es-ES/LC_MESSAGES/winzapp.po
+index a907d12..c835767 100644
+--- a/translations/es-ES/LC_MESSAGES/winzapp.po
++++ b/translations/es-ES/LC_MESSAGES/winzapp.po
+@@ -2448,7 +2448,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 días"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Mensajes temporales"
+@@ -2463,6 +2464,23 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "Activados"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Cifrado"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr "Los mensajes y las llamadas están cifrados de extremo a extremo. Solo las personas de esta conversación pueden leerlos, escucharlos o compartirlos."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "Los mensajes y las llamadas están cifrados de extremo a extremo."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/pl/LC_MESSAGES/winzapp.po b/translations/pl/LC_MESSAGES/winzapp.po
+index 8857dee..62412b4 100644
+--- a/translations/pl/LC_MESSAGES/winzapp.po
++++ b/translations/pl/LC_MESSAGES/winzapp.po
+@@ -2466,7 +2466,7 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 dni"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Znikające wiadomości"
+@@ -2481,6 +2481,21 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "Włączone"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Szyfrowanie"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid "Messages and calls are end-to-end encrypted. Only people in this chat can read, listen to or share them."
++msgstr "Wiadomości i połączenia są szyfrowane end-to-end. Tylko osoby w tym czacie mogą je czytać, słuchać lub udostępniać."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "Wiadomości i połączenia są szyfrowane end-to-end."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/pt-BR/LC_MESSAGES/winzapp.po b/translations/pt-BR/LC_MESSAGES/winzapp.po
+index 7509395..c31e86e 100644
+--- a/translations/pt-BR/LC_MESSAGES/winzapp.po
++++ b/translations/pt-BR/LC_MESSAGES/winzapp.po
+@@ -2444,7 +2444,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 dias"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Mensagens temporárias"
+@@ -2459,6 +2460,23 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "Ativadas"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Criptografia"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr "As mensagens e ligações são protegidas com a criptografia de ponta a ponta. Somente as pessoas nesta conversa podem ler, ouvir ou compartilhar."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "As mensagens e ligações são protegidas com a criptografia de ponta a ponta."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/pt-PT/LC_MESSAGES/winzapp.po b/translations/pt-PT/LC_MESSAGES/winzapp.po
+index 2735ebf..2d1c73f 100644
+--- a/translations/pt-PT/LC_MESSAGES/winzapp.po
++++ b/translations/pt-PT/LC_MESSAGES/winzapp.po
+@@ -2459,7 +2459,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 dias"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Mensagens temporárias"
+@@ -2474,6 +2475,23 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "Ativadas"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Encriptação"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr "As mensagens e as chamadas são protegidas com encriptação de ponta a ponta. Só as pessoas nesta conversa as podem ler, ouvir ou partilhar."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "As mensagens e as chamadas são protegidas com encriptação de ponta a ponta."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/ro/LC_MESSAGES/winzapp.po b/translations/ro/LC_MESSAGES/winzapp.po
+index 6920c73..72493d5 100644
+--- a/translations/ro/LC_MESSAGES/winzapp.po
++++ b/translations/ro/LC_MESSAGES/winzapp.po
+@@ -2439,7 +2439,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 de zile"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Mesaje care dispar"
+@@ -2454,6 +2455,23 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "Activate"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Criptare"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr "Mesajele și apelurile sunt criptate end-to-end. Doar persoanele din această conversație le pot citi, asculta sau distribui."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "Mesajele și apelurile sunt criptate end-to-end."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/tr-TR/LC_MESSAGES/winzapp.po b/translations/tr-TR/LC_MESSAGES/winzapp.po
+index 12ac512..eeba26e 100644
+--- a/translations/tr-TR/LC_MESSAGES/winzapp.po
++++ b/translations/tr-TR/LC_MESSAGES/winzapp.po
+@@ -2428,7 +2428,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr "90 gün"
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr "Kaybolan mesajlar"
+@@ -2443,6 +2444,23 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr "Açık"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr "Şifreleme"
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr "Mesajlar ve aramalar uçtan uca şifrelidir. Yalnızca bu sohbetteki kişiler bunları okuyabilir, dinleyebilir veya paylaşabilir."
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr "Mesajlar ve aramalar uçtan uca şifrelidir."
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+diff --git a/translations/winzapp.pot b/translations/winzapp.pot
+index 6a786e4..9ac1914 100644
+--- a/translations/winzapp.pot
++++ b/translations/winzapp.pot
+@@ -2240,7 +2240,8 @@ msgctxt "chat_disappearing_90d"
+ msgid "90 days"
+ msgstr ""
+ 
+-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_settings.py
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++#: client/core/chat_settings.py
+ msgctxt "chat_disappearing_label"
+ msgid "Disappearing messages"
+ msgstr ""
+@@ -2255,6 +2256,23 @@ msgctxt "chat_disappearing_on"
+ msgid "On"
+ msgstr ""
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_label"
++msgid "Encryption"
++msgstr ""
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice"
++msgid ""
++"Messages and calls are end-to-end encrypted. Only people in this chat can "
++"read, listen to or share them."
++msgstr ""
++
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/chat_notices.py
++msgctxt "chat_encryption_notice_short"
++msgid "Messages and calls are end-to-end encrypted."
++msgstr ""
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_list.py
+ msgctxt "chat_is_empty"
+-- 
+2.43.0
+

@@ -414,6 +414,8 @@ WHAT'S NEW
 
 - Digitazione: l'indicatore "sta scrivendo" non riappare più alcuni secondi dopo che la persona ha inviato il messaggio (problema #743).
 
+- Finestra delle novità: il tasto Esc ora la chiude, sia da Guida > Novità sia da Guida > "Cosa c'è di nuovo dall'ultima volta che hai controllato". Prima Esc non faceva nulla e bisognava raggiungere il pulsante di chiusura.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

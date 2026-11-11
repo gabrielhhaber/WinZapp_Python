@@ -1042,10 +1042,21 @@ class WhatsNewDialog(wx.Dialog):
             title=title or i18n.t("whats_new_title"),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
+        # The only button is wx.ID_CLOSE and wx.Dialog's own Esc handling
+        # looks for a wx.ID_CANCEL one, so without these Esc did nothing —
+        # least of all from the read-only text, where the focus starts.
+        self.SetEscapeId(wx.ID_CLOSE)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
         self._build(parent, changelog, i18n)
         self.SetMinSize((400, 300))
         self.SetSize((520, 400))
         self.Centre()
+
+    def _on_char_hook(self, event):
+        if event.GetKeyCode() == wx.WXK_ESCAPE:
+            self.EndModal(wx.ID_CLOSE)
+        else:
+            event.Skip()
 
     def _build(self, parent, changelog, i18n):
         sizer = wx.BoxSizer(wx.VERTICAL)

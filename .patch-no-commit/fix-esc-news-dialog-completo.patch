@@ -1,0 +1,355 @@
+diff --git a/client/changelog_ar.txt b/client/changelog_ar.txt
+index a8a72a1..b24e08c 100644
+--- a/client/changelog_ar.txt
++++ b/client/changelog_ar.txt
+@@ -416,6 +416,8 @@ V3.0.0.0
+ 
+ - الكتابة: لم يعد مؤشر "يكتب" يظهر من جديد بعد ثوانٍ من إرسال الشخص لرسالته (المشكلة #743).
+ 
++- نافذة الجديد: مفتاح Esc يغلقها الآن، سواء من مساعدة > ما الجديد أو من مساعدة > "ما الجديد منذ آخر نظرة". كان Esc سابقًا لا يفعل شيئًا، وكان لا بد من الانتقال إلى زر الإغلاق.
++
+ V2.1.0.0
+ 
+ This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
+diff --git a/client/changelog_en-US.txt b/client/changelog_en-US.txt
+index cf41b3e..13e2b54 100644
+--- a/client/changelog_en-US.txt
++++ b/client/changelog_en-US.txt
+@@ -414,6 +414,8 @@ WHAT'S NEW
+ 
+ - Typing: the typing indicator no longer reappears a few seconds after the person sent their message (issue #743).
+ 
++- What's New window: the Esc key now closes it, both from Help > What's New and from Help > "What's New Since You Last Looked". Before, Esc did nothing and you had to go to the close button.
++
+ V2.1.0.0
+ 
+ This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
+diff --git a/client/changelog_es-ES.txt b/client/changelog_es-ES.txt
+index 8df9d8e..d702f24 100644
+--- a/client/changelog_es-ES.txt
++++ b/client/changelog_es-ES.txt
+@@ -414,6 +414,8 @@ NOVEDADES
+ 
+ - Escritura: el aviso de "escribiendo" ya no reaparece unos segundos después de que la persona envíe su mensaje (problema #743).
+ 
++- Ventana de novedades: la tecla Esc ahora la cierra, tanto en Ayuda > Novedades como en Ayuda > "Novedades desde la última vez que miraste". Antes Esc no hacía nada y había que ir hasta el botón de cerrar.
++
+ V2.1.0.0
+ 
+ Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.
+diff --git a/client/changelog_it.txt b/client/changelog_it.txt
+index d0553bd..2af742f 100644
+--- a/client/changelog_it.txt
++++ b/client/changelog_it.txt
+@@ -414,6 +414,8 @@ WHAT'S NEW
+ 
+ - Digitazione: l'indicatore "sta scrivendo" non riappare più alcuni secondi dopo che la persona ha inviato il messaggio (problema #743).
+ 
++- Finestra delle novità: il tasto Esc ora la chiude, sia da Guida > Novità sia da Guida > "Cosa c'è di nuovo dall'ultima volta che hai controllato". Prima Esc non faceva nulla e bisognava raggiungere il pulsante di chiusura.
++
+ V2.1.0.0
+ 
+ This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
+diff --git a/client/changelog_pl.txt b/client/changelog_pl.txt
+index 8c303d4..0ff3d27 100644
+--- a/client/changelog_pl.txt
++++ b/client/changelog_pl.txt
+@@ -414,6 +414,8 @@ NOWOŚCI
+ 
+ - Pisanie: wskaźnik pisania nie pojawia się już ponownie kilka sekund po wysłaniu wiadomości przez rozmówcę (problem #743).
+ 
++- Okno nowości: klawisz Esc zamyka je teraz zarówno z Pomoc > „Co nowego?”, jak i z Pomoc > „Co nowego od ostatniego przeglądu”. Wcześniej Esc nic nie robił i trzeba było przejść do przycisku zamykania.
++
+ V2.1.0.0
+ 
+ W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
+diff --git a/client/changelog_pt-BR.txt b/client/changelog_pt-BR.txt
+index 497047b..503de1a 100644
+--- a/client/changelog_pt-BR.txt
++++ b/client/changelog_pt-BR.txt
+@@ -414,6 +414,8 @@ NOVIDADES
+ 
+ - Digitação: o aviso "digitando" não reaparece mais alguns segundos depois de a pessoa enviar a mensagem (problema #743).
+ 
++- Janela de novidades: a tecla Esc agora a fecha, tanto em Ajuda > Novidades quanto em Ajuda > "Novidades desde a última vez que você viu". Antes o Esc não fazia nada e era preciso ir até o botão de fechar.
++
+ V2.1.0.0
+ 
+ Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.
+diff --git a/client/changelog_pt-PT.txt b/client/changelog_pt-PT.txt
+index eab3f63..b3d8a41 100644
+--- a/client/changelog_pt-PT.txt
++++ b/client/changelog_pt-PT.txt
+@@ -414,6 +414,8 @@ NOVIDADES
+ 
+ - Escrita: o aviso "a escrever" já não reaparece alguns segundos depois de a pessoa enviar a mensagem (problema #743).
+ 
++- Janela de novidades: a tecla Esc passa a fechá-la, tanto em Ajuda > Novidades como em Ajuda > "Novidades desde a última vez que viu". Antes o Esc não fazia nada e era preciso ir até ao botão de fechar.
++
+ V2.1.0.0
+ 
+ Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.
+diff --git a/client/changelog_ro.txt b/client/changelog_ro.txt
+index 5c772cb..5c47e0a 100644
+--- a/client/changelog_ro.txt
++++ b/client/changelog_ro.txt
+@@ -414,6 +414,8 @@ NOUTĂȚI
+ 
+ - Scriere: indicatorul de scriere nu mai reapare la câteva secunde după ce persoana și-a trimis mesajul (problema #743).
+ 
++- Fereastra de noutăți: tasta Esc o închide acum, atât din Ajutor > Ce este nou, cât și din Ajutor > "Noutăți de la ultima vizualizare". Înainte, Esc nu făcea nimic și trebuia să ajungi la butonul de închidere.
++
+ V2.1.0.0
+ 
+ Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
+diff --git a/client/changelog_tr-TR.txt b/client/changelog_tr-TR.txt
+index b0cbe48..8918147 100644
+--- a/client/changelog_tr-TR.txt
++++ b/client/changelog_tr-TR.txt
+@@ -414,6 +414,8 @@ YENİLİKLER
+ 
+ - Yazma: karşı taraf mesajını gönderdikten birkaç saniye sonra "yazıyor" göstergesi artık yeniden görünmüyor (sorun #743).
+ 
++- Yenilikler penceresi: Esc tuşu artık hem Yardım > Yenilikler hem de Yardım > "Son baktığınızdan beri yenilikler" ile açılan pencereyi kapatıyor. Önceden Esc hiçbir şey yapmıyordu ve kapat düğmesine gitmek gerekiyordu.
++
+ V2.1.0.0
+ 
+ Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisayarınızda yazıya dökülmesini ve sesli mesajların, görsellerin, videoların, çıkartmaların ve PDF'lerin çevrimiçi yapay zekâ ile yazıya dökülmesini ve betimlenmesini getiriyor.
+diff --git a/client/data/help_guide/ar.html b/client/data/help_guide/ar.html
+index 4c1350e..dc16186 100644
+--- a/client/data/help_guide/ar.html
++++ b/client/data/help_guide/ar.html
+@@ -1477,6 +1477,7 @@
+ <tr><td class="field-name">لم يصدر بعد</td><td>التفريغ المحلي: whisper.cpp أصلي على Windows ARM64 مع CUDA 13.</td></tr>
+ <tr><td class="field-name">لم يصدر بعد</td><td>الإشارات: لم تعد @الكل تسرد كل مشارك عند فتح المجموعة.</td></tr>
+ <tr><td class="field-name">لم يصدر بعد</td><td>الدردشات: خيار لمتابعة قائمة الرسائل من حيث توقفت؛ وإزالة العلامات تلقائيًا بعد أول استخدام.</td></tr>
++<tr><td class="field-name">لم يصدر بعد</td><td>نافذة الجديد: Esc يغلقها.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/en-US.html b/client/data/help_guide/en-US.html
+index 413cc30..d61e13b 100644
+--- a/client/data/help_guide/en-US.html
++++ b/client/data/help_guide/en-US.html
+@@ -1486,6 +1486,7 @@
+ <tr><td class="field-name">Not yet released</td><td>Local transcription: native whisper.cpp on Windows ARM64, with CUDA 13.</td></tr>
+ <tr><td class="field-name">Not yet released</td><td>Mentions: @all no longer lists every member when a group opens.</td></tr>
+ <tr><td class="field-name">Not yet released</td><td>Chats: option for the messages list to continue where you left off; bookmarks removed automatically after the first use.</td></tr>
++<tr><td class="field-name">Not yet released</td><td>What's New window: Esc closes it.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/es-ES.html b/client/data/help_guide/es-ES.html
+index bef73f9..a2cf5a2 100644
+--- a/client/data/help_guide/es-ES.html
++++ b/client/data/help_guide/es-ES.html
+@@ -1486,6 +1486,7 @@
+ <tr><td class="field-name">Aún no publicado</td><td>Transcripción local: whisper.cpp nativo en Windows ARM64, con CUDA 13.</td></tr>
+ <tr><td class="field-name">Aún no publicado</td><td>Menciones: @todos ya no enumera a cada participante al abrir el grupo.</td></tr>
+ <tr><td class="field-name">Aún no publicado</td><td>Chats: opción para que la lista de mensajes continúe donde lo dejaste; marcadores quitados automáticamente tras el primer uso.</td></tr>
++<tr><td class="field-name">Aún no publicado</td><td>Ventana de novedades: Esc la cierra.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/it.html b/client/data/help_guide/it.html
+index 12645dc..94c38a6 100644
+--- a/client/data/help_guide/it.html
++++ b/client/data/help_guide/it.html
+@@ -1485,6 +1485,7 @@
+ <tr><td class="field-name">Non ancora rilasciato</td><td>Local transcription: native whisper.cpp on Windows ARM64, with CUDA 13.</td></tr>
+ <tr><td class="field-name">Non ancora rilasciato</td><td>Mentions: @all no longer lists every member when a group opens.</td></tr>
+ <tr><td class="field-name">Non ancora rilasciato</td><td>Chat: opzione perché l'elenco dei messaggi continui da dove eri rimasto; segnalibri rimossi automaticamente dopo il primo utilizzo.</td></tr>
++<tr><td class="field-name">Non ancora rilasciato</td><td>Finestra delle novità: Esc la chiude.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/pl.html b/client/data/help_guide/pl.html
+index 108afbf..11846c3 100644
+--- a/client/data/help_guide/pl.html
++++ b/client/data/help_guide/pl.html
+@@ -1487,6 +1487,7 @@
+ <tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: natywny whisper.cpp na Windows ARM64, z CUDA 13.</td></tr>
+ <tr><td class="field-name">Jeszcze niewydane</td><td>Wzmianki: @wszyscy nie wymienia już każdego uczestnika po otwarciu grupy.</td></tr>
+ <tr><td class="field-name">Jeszcze niewydane</td><td>Czaty: opcja, dzięki której lista wiadomości kontynuuje od miejsca, w którym przerwano; zakładki usuwane automatycznie po pierwszym użyciu.</td></tr>
++<tr><td class="field-name">Jeszcze niewydane</td><td>Okno nowości: Esc je zamyka.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/pt-BR.html b/client/data/help_guide/pt-BR.html
+index f22a3f0..a76362a 100644
+--- a/client/data/help_guide/pt-BR.html
++++ b/client/data/help_guide/pt-BR.html
+@@ -1486,6 +1486,7 @@
+ <tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: whisper.cpp nativo no Windows ARM64, com CUDA 13.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Menções: @todos não lista mais cada participante ao abrir o grupo.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde você parou; marcadores removidos automaticamente após o primeiro uso.</td></tr>
++<tr><td class="field-name">Ainda não lançado</td><td>Janela de novidades: o Esc fecha.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/pt-PT.html b/client/data/help_guide/pt-PT.html
+index 3cbc37e..d966861 100644
+--- a/client/data/help_guide/pt-PT.html
++++ b/client/data/help_guide/pt-PT.html
+@@ -1486,6 +1486,7 @@
+ <tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: whisper.cpp nativo no Windows ARM64, com CUDA 13.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Menções: @todos já não lista cada participante ao abrir o grupo.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde parou; marcadores removidos automaticamente após a primeira utilização.</td></tr>
++<tr><td class="field-name">Ainda não lançado</td><td>Janela de novidades: o Esc fecha-a.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/ro.html b/client/data/help_guide/ro.html
+index 5a9ccbe..c951139 100644
+--- a/client/data/help_guide/ro.html
++++ b/client/data/help_guide/ro.html
+@@ -1486,6 +1486,7 @@
+ <tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: whisper.cpp nativ pe Windows ARM64, cu CUDA 13.</td></tr>
+ <tr><td class="field-name">Încă nepublicat</td><td>Mențiuni: @toți nu mai enumeră fiecare participant la deschiderea grupului.</td></tr>
+ <tr><td class="field-name">Nelansat încă</td><td>Conversații: opțiune pentru ca lista de mesaje să continue de unde ai rămas; marcaje eliminate automat după prima utilizare.</td></tr>
++<tr><td class="field-name">Nelansat încă</td><td>Fereastra de noutăți: Esc o închide.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/data/help_guide/tr-TR.html b/client/data/help_guide/tr-TR.html
+index 9d7d43b..b914947 100644
+--- a/client/data/help_guide/tr-TR.html
++++ b/client/data/help_guide/tr-TR.html
+@@ -1486,6 +1486,7 @@
+ <tr><td class="field-name">Henüz yayımlanmadı</td><td>Yerel yazıya dökme: Windows ARM64'te yerel whisper.cpp, CUDA 13 ile.</td></tr>
+ <tr><td class="field-name">Henüz yayımlanmadı</td><td>Bahsetmeler: @tümü grup açılınca artık her katılımcıyı listelemiyor.</td></tr>
+ <tr><td class="field-name">Henüz yayımlanmadı</td><td>Sohbetler: mesaj listesinin kaldığınız yerden devam etmesi için seçenek; ilk kullanımdan sonra otomatik olarak kaldırılan yer imleri.</td></tr>
++<tr><td class="field-name">Henüz yayımlanmadı</td><td>Yenilikler penceresi: Esc kapatır.</td></tr>
+ </table>
+ 
+   </section>
+diff --git a/client/updater.py b/client/updater.py
+index b2b4248..f5b78bb 100644
+--- a/client/updater.py
++++ b/client/updater.py
+@@ -1042,11 +1042,22 @@ class WhatsNewDialog(wx.Dialog):
+             title=title or i18n.t("whats_new_title"),
+             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
+         )
++        # The only button is wx.ID_CLOSE and wx.Dialog's own Esc handling
++        # looks for a wx.ID_CANCEL one, so without these Esc did nothing —
++        # least of all from the read-only text, where the focus starts.
++        self.SetEscapeId(wx.ID_CLOSE)
++        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
+         self._build(parent, changelog, i18n)
+         self.SetMinSize((400, 300))
+         self.SetSize((520, 400))
+         self.Centre()
+ 
++    def _on_char_hook(self, event):
++        if event.GetKeyCode() == wx.WXK_ESCAPE:
++            self.EndModal(wx.ID_CLOSE)
++        else:
++            event.Skip()
++
+     def _build(self, parent, changelog, i18n):
+         sizer = wx.BoxSizer(wx.VERTICAL)
+ 
+diff --git a/docs/user-guide/cobertura.json b/docs/user-guide/cobertura.json
+index ecbee81..ca68b2d 100644
+--- a/docs/user-guide/cobertura.json
++++ b/docs/user-guide/cobertura.json
+@@ -210,6 +210,7 @@
+     "021fdca9a7fe": "Status: localização, enquete, lista de contatos e outros tipos de status de cont",
+     "704cbaba1247": "Chamadas: o botão \"Participantes da ligação\" da janela da chamada agora tem o at",
+     "aeea4d08ab76": "Neonize: status \"Adicione o seu\", de pergunta e de figurinha animada deixam de a",
+-    "3e4b8b37fbb5": "Digitação: o aviso \"digitando\" não reaparece mais alguns segundos depois de a pe"
++    "3e4b8b37fbb5": "Digitação: o aviso \"digitando\" não reaparece mais alguns segundos depois de a pe",
++    "520714aee515": "Janela de novidades: a tecla Esc agora a fecha, tanto em Ajuda > Novidades quant"
+   }
+ }
+diff --git a/docs/user-guide/secoes/ar/99-registro.html b/docs/user-guide/secoes/ar/99-registro.html
+index 9a0afab..416e1ca 100644
+--- a/docs/user-guide/secoes/ar/99-registro.html
++++ b/docs/user-guide/secoes/ar/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">لم يصدر بعد</td><td>التفريغ المحلي: whisper.cpp أصلي على Windows ARM64 مع CUDA 13.</td></tr>
+ <tr><td class="field-name">لم يصدر بعد</td><td>الإشارات: لم تعد @الكل تسرد كل مشارك عند فتح المجموعة.</td></tr>
+ <tr><td class="field-name">لم يصدر بعد</td><td>الدردشات: خيار لمتابعة قائمة الرسائل من حيث توقفت؛ وإزالة العلامات تلقائيًا بعد أول استخدام.</td></tr>
++<tr><td class="field-name">لم يصدر بعد</td><td>نافذة الجديد: Esc يغلقها.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/en-US/99-registro.html b/docs/user-guide/secoes/en-US/99-registro.html
+index 9ad7d83..19eede5 100644
+--- a/docs/user-guide/secoes/en-US/99-registro.html
++++ b/docs/user-guide/secoes/en-US/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Not yet released</td><td>Local transcription: native whisper.cpp on Windows ARM64, with CUDA 13.</td></tr>
+ <tr><td class="field-name">Not yet released</td><td>Mentions: @all no longer lists every member when a group opens.</td></tr>
+ <tr><td class="field-name">Not yet released</td><td>Chats: option for the messages list to continue where you left off; bookmarks removed automatically after the first use.</td></tr>
++<tr><td class="field-name">Not yet released</td><td>What's New window: Esc closes it.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/es-ES/99-registro.html b/docs/user-guide/secoes/es-ES/99-registro.html
+index 2b12abf..8e1844b 100644
+--- a/docs/user-guide/secoes/es-ES/99-registro.html
++++ b/docs/user-guide/secoes/es-ES/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Aún no publicado</td><td>Transcripción local: whisper.cpp nativo en Windows ARM64, con CUDA 13.</td></tr>
+ <tr><td class="field-name">Aún no publicado</td><td>Menciones: @todos ya no enumera a cada participante al abrir el grupo.</td></tr>
+ <tr><td class="field-name">Aún no publicado</td><td>Chats: opción para que la lista de mensajes continúe donde lo dejaste; marcadores quitados automáticamente tras el primer uso.</td></tr>
++<tr><td class="field-name">Aún no publicado</td><td>Ventana de novedades: Esc la cierra.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/it/99-registro.html b/docs/user-guide/secoes/it/99-registro.html
+index c654d0d..f4867d8 100644
+--- a/docs/user-guide/secoes/it/99-registro.html
++++ b/docs/user-guide/secoes/it/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Non ancora rilasciato</td><td>Local transcription: native whisper.cpp on Windows ARM64, with CUDA 13.</td></tr>
+ <tr><td class="field-name">Non ancora rilasciato</td><td>Mentions: @all no longer lists every member when a group opens.</td></tr>
+ <tr><td class="field-name">Non ancora rilasciato</td><td>Chat: opzione perché l'elenco dei messaggi continui da dove eri rimasto; segnalibri rimossi automaticamente dopo il primo utilizzo.</td></tr>
++<tr><td class="field-name">Non ancora rilasciato</td><td>Finestra delle novità: Esc la chiude.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/pl/99-registro.html b/docs/user-guide/secoes/pl/99-registro.html
+index fdef7e0..d3f8d0a 100644
+--- a/docs/user-guide/secoes/pl/99-registro.html
++++ b/docs/user-guide/secoes/pl/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Jeszcze niewydane</td><td>Lokalna transkrypcja: natywny whisper.cpp na Windows ARM64, z CUDA 13.</td></tr>
+ <tr><td class="field-name">Jeszcze niewydane</td><td>Wzmianki: @wszyscy nie wymienia już każdego uczestnika po otwarciu grupy.</td></tr>
+ <tr><td class="field-name">Jeszcze niewydane</td><td>Czaty: opcja, dzięki której lista wiadomości kontynuuje od miejsca, w którym przerwano; zakładki usuwane automatycznie po pierwszym użyciu.</td></tr>
++<tr><td class="field-name">Jeszcze niewydane</td><td>Okno nowości: Esc je zamyka.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/pt-BR/99-registro.html b/docs/user-guide/secoes/pt-BR/99-registro.html
+index 7c4a47b..0bb1bc0 100644
+--- a/docs/user-guide/secoes/pt-BR/99-registro.html
++++ b/docs/user-guide/secoes/pt-BR/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: whisper.cpp nativo no Windows ARM64, com CUDA 13.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Menções: @todos não lista mais cada participante ao abrir o grupo.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde você parou; marcadores removidos automaticamente após o primeiro uso.</td></tr>
++<tr><td class="field-name">Ainda não lançado</td><td>Janela de novidades: o Esc fecha.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/pt-PT/99-registro.html b/docs/user-guide/secoes/pt-PT/99-registro.html
+index 6e3936d..f1ff872 100644
+--- a/docs/user-guide/secoes/pt-PT/99-registro.html
++++ b/docs/user-guide/secoes/pt-PT/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Ainda não lançado</td><td>Transcrição local: whisper.cpp nativo no Windows ARM64, com CUDA 13.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Menções: @todos já não lista cada participante ao abrir o grupo.</td></tr>
+ <tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde parou; marcadores removidos automaticamente após a primeira utilização.</td></tr>
++<tr><td class="field-name">Ainda não lançado</td><td>Janela de novidades: o Esc fecha-a.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/ro/99-registro.html b/docs/user-guide/secoes/ro/99-registro.html
+index fa3ddcb..22d379c 100644
+--- a/docs/user-guide/secoes/ro/99-registro.html
++++ b/docs/user-guide/secoes/ro/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Încă nepublicat</td><td>Transcriere locală: whisper.cpp nativ pe Windows ARM64, cu CUDA 13.</td></tr>
+ <tr><td class="field-name">Încă nepublicat</td><td>Mențiuni: @toți nu mai enumeră fiecare participant la deschiderea grupului.</td></tr>
+ <tr><td class="field-name">Nelansat încă</td><td>Conversații: opțiune pentru ca lista de mesaje să continue de unde ai rămas; marcaje eliminate automat după prima utilizare.</td></tr>
++<tr><td class="field-name">Nelansat încă</td><td>Fereastra de noutăți: Esc o închide.</td></tr>
+ </table>
+diff --git a/docs/user-guide/secoes/tr-TR/99-registro.html b/docs/user-guide/secoes/tr-TR/99-registro.html
+index ec82167..65db940 100644
+--- a/docs/user-guide/secoes/tr-TR/99-registro.html
++++ b/docs/user-guide/secoes/tr-TR/99-registro.html
+@@ -81,4 +81,5 @@
+ <tr><td class="field-name">Henüz yayımlanmadı</td><td>Yerel yazıya dökme: Windows ARM64'te yerel whisper.cpp, CUDA 13 ile.</td></tr>
+ <tr><td class="field-name">Henüz yayımlanmadı</td><td>Bahsetmeler: @tümü grup açılınca artık her katılımcıyı listelemiyor.</td></tr>
+ <tr><td class="field-name">Henüz yayımlanmadı</td><td>Sohbetler: mesaj listesinin kaldığınız yerden devam etmesi için seçenek; ilk kullanımdan sonra otomatik olarak kaldırılan yer imleri.</td></tr>
++<tr><td class="field-name">Henüz yayımlanmadı</td><td>Yenilikler penceresi: Esc kapatır.</td></tr>
+ </table>

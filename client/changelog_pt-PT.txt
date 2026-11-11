@@ -414,6 +414,8 @@ NOVIDADES
 
 - Escrita: o aviso "a escrever" já não reaparece alguns segundos depois de a pessoa enviar a mensagem (problema #743).
 
+- Janela de novidades: a tecla Esc passa a fechá-la, tanto em Ajuda > Novidades como em Ajuda > "Novidades desde a última vez que viu". Antes o Esc não fazia nada e era preciso ir até ao botão de fechar.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.

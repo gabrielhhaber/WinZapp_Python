@@ -1,0 +1,517 @@
+From 944465beab65f08bb981a9769d26a30e481eaf33 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 9 Oct 2026 11:47:32 +0000
+Subject: [PATCH] Show profile name, verified name and business flag in chat
+ info
+
+The /contact/ reply already carries the name a contact chose for
+themselves (pushname), a business's verified name and whether the
+account is a business. The personal chat-info dialog now lists them,
+skipping a name that only repeats the one already shown.
+
+Client-only: nothing in WPPConnect or client/api_patches changes.
+The logic lives in core/contact_identity.py with its own tests; the
+three new strings are in every locale catalog.
+---
+ client/core/contact_identity.py               | 56 ++++++++++++++
+ client/ui/dialogs/conversation_data_dialog.py |  5 ++
+ tests/test_contact_identity.py                | 73 +++++++++++++++++++
+ translations/en-US/LC_MESSAGES/winzapp.po     | 15 ++++
+ translations/es-ES/LC_MESSAGES/winzapp.po     | 15 ++++
+ translations/pl/LC_MESSAGES/winzapp.po        | 15 ++++
+ translations/pt-BR/LC_MESSAGES/winzapp.po     | 15 ++++
+ translations/pt-PT/LC_MESSAGES/winzapp.po     | 15 ++++
+ translations/ro/LC_MESSAGES/winzapp.po        | 15 ++++
+ translations/tr-TR/LC_MESSAGES/winzapp.po     | 15 ++++
+ translations/winzapp.pot                      | 15 ++++
+ 11 files changed, 254 insertions(+)
+ create mode 100644 client/core/contact_identity.py
+ create mode 100644 tests/test_contact_identity.py
+
+diff --git a/client/core/contact_identity.py b/client/core/contact_identity.py
+new file mode 100644
+index 0000000..9933d41
+--- /dev/null
++++ b/client/core/contact_identity.py
+@@ -0,0 +1,56 @@
++"""Identity lines for the chat-info dialog, read from the ``/contact/`` reply.
++
++WPPConnect serialises the WhatsApp contact model into that reply, so a few
++fields the dialog never showed are already there: the name the person chose
++for themselves (``pushname``), the name WhatsApp verified for a business
++(``verifiedName``) and whether the account is a business (``isBusiness``).
++Nothing here asks the server for anything new; every field is optional and a
++missing or oddly typed one simply produces no line.
++"""
++
++
++def _clean_text(value) -> str:
++    """A displayable string, or "" for anything that is not real text."""
++    if not isinstance(value, str):
++        return ""
++    return value.strip()
++
++
++def _same_name(a: str, b: str) -> bool:
++    return a.casefold() == b.casefold()
++
++
++def contact_identity_lines(cdata, shown_name, i18n) -> list:
++    """Extra "label: value" lines for a personal chat, in reading order.
++
++    *cdata* is the ``response`` object of ``/contact/<jid>`` (anything else
++    yields no lines). *shown_name* is the name the dialog already displays, so
++    a profile name or verified name that merely repeats it is not read out a
++    second time. *i18n* is the window's translator; it is passed whole, not just its
++    ``t`` method, because the tooling that keeps the catalogs in step only
++    recognises calls made on an object named i18n.
++    """
++    if not isinstance(cdata, dict):
++        return []
++    shown = _clean_text(shown_name)
++    lines = []
++    seen = [shown] if shown else []
++
++    def unseen(text: str) -> bool:
++        return bool(text) and not any(_same_name(text, other) for other in seen)
++
++    profile_name = _clean_text(cdata.get("pushname"))
++    if unseen(profile_name):
++        lines.append(f"{i18n.t('contact_profile_name_label')}: {profile_name}")
++        seen.append(profile_name)
++
++    verified_name = _clean_text(cdata.get("verifiedName"))
++    if unseen(verified_name):
++        lines.append(f"{i18n.t('contact_verified_name_label')}: {verified_name}")
++        seen.append(verified_name)
++
++    # Strictly True: a string such as "false" must not read as a business.
++    if cdata.get("isBusiness") is True:
++        lines.append(i18n.t("contact_business_account"))
++
++    return lines
+diff --git a/client/ui/dialogs/conversation_data_dialog.py b/client/ui/dialogs/conversation_data_dialog.py
+index b130e19..d92b6f7 100644
+--- a/client/ui/dialogs/conversation_data_dialog.py
++++ b/client/ui/dialogs/conversation_data_dialog.py
+@@ -24,6 +24,7 @@ from datetime import datetime
+ import wx
+ import wx.adv
+ from core import phone_contacts
++from core.contact_identity import contact_identity_lines
+ from ui.accessible import AccessibleSaveAs
+ from core.utils import (
+     format_number, GROUP_MEDIA_TYPES, GROUP_MEDIA_FILTERS,
+@@ -761,6 +762,10 @@ class ConversationDataDialog(wx.Dialog):
+         if phone:
+             lines.append(f"{i18n.t('phone_label')}: {phone}")
+ 
++        # Fields the /contact/ reply already carries: the name the person chose
++        # for themselves, a business's verified name, and the account type.
++        lines.extend(contact_identity_lines(cdata, name, i18n))
++
+         # About/bio text comes from the dedicated profile-status endpoint
+         # (exposed as "aboutText"). Never use the top-level "status", which is
+         # the API result word ("success").
+diff --git a/tests/test_contact_identity.py b/tests/test_contact_identity.py
+new file mode 100644
+index 0000000..8c8cd3f
+--- /dev/null
++++ b/tests/test_contact_identity.py
+@@ -0,0 +1,73 @@
++"""Identity lines of the chat-info dialog (core/contact_identity.py).
++
++Plain functions over a dict and an injected translator: no network, no wx.
++"""
++
++import pytest
++
++from core.contact_identity import contact_identity_lines
++
++LABELS = {
++    "contact_profile_name_label": "Profile name",
++    "contact_verified_name_label": "Verified name",
++    "contact_business_account": "Business account",
++}
++
++
++class _I18n:
++    @staticmethod
++    def t(key):
++        return LABELS[key]
++
++
++_t = _I18n()
++
++
++def test_a_personal_contact_with_a_profile_name_gets_one_line():
++    lines = contact_identity_lines({"pushname": "Ana"}, "Ana Silva", _t)
++    assert lines == ["Profile name: Ana"]
++
++
++def test_a_profile_name_that_repeats_the_shown_name_is_not_read_twice():
++    assert contact_identity_lines({"pushname": "ana silva"}, "Ana Silva", _t) == []
++
++
++def test_a_business_gets_verified_name_then_account_type():
++    cdata = {"pushname": "Loja", "verifiedName": "Loja Oficial Ltda", "isBusiness": True}
++    lines = contact_identity_lines(cdata, "Atendimento", _t)
++    assert lines == [
++        "Profile name: Loja",
++        "Verified name: Loja Oficial Ltda",
++        "Business account",
++    ]
++
++
++def test_a_verified_name_equal_to_the_profile_name_is_listed_once():
++    cdata = {"pushname": "Loja X", "verifiedName": "Loja X"}
++    assert contact_identity_lines(cdata, "", _t) == ["Profile name: Loja X"]
++
++
++def test_a_business_flag_must_be_a_real_true():
++    for not_true in ("false", "true", 1, None, 0, False):
++        assert contact_identity_lines({"isBusiness": not_true}, "X", _t) == []
++
++
++@pytest.mark.parametrize("cdata", [None, [], "x", 5, {}, {"pushname": None}])
++def test_missing_or_malformed_replies_produce_no_lines(cdata):
++    assert contact_identity_lines(cdata, "X", _t) == []
++
++
++@pytest.mark.parametrize("value", [None, 5, True, [], {}, "", "   "])
++def test_non_text_or_blank_names_are_ignored(value):
++    cdata = {"pushname": value, "verifiedName": value}
++    assert contact_identity_lines(cdata, "X", _t) == []
++
++
++def test_surrounding_whitespace_is_trimmed():
++    assert contact_identity_lines({"pushname": "  Ana  "}, "Maria", _t) == [
++        "Profile name: Ana"
++    ]
++
++
++def test_a_missing_shown_name_still_lists_the_profile_name():
++    assert contact_identity_lines({"pushname": "Ana"}, None, _t) == ["Profile name: Ana"]
+diff --git a/translations/en-US/LC_MESSAGES/winzapp.po b/translations/en-US/LC_MESSAGES/winzapp.po
+index 954b45d..efe4fb8 100644
+--- a/translations/en-US/LC_MESSAGES/winzapp.po
++++ b/translations/en-US/LC_MESSAGES/winzapp.po
+@@ -2713,6 +2713,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "WebSocket Address (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "Business account"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2767,6 +2772,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "This contact has more than one number. Choose one:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Profile name"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2777,6 +2787,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "&Surname"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Verified name"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+diff --git a/translations/es-ES/LC_MESSAGES/winzapp.po b/translations/es-ES/LC_MESSAGES/winzapp.po
+index a265462..1bfe708 100644
+--- a/translations/es-ES/LC_MESSAGES/winzapp.po
++++ b/translations/es-ES/LC_MESSAGES/winzapp.po
+@@ -2744,6 +2744,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "Dirección del WebSocket (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "Cuenta de empresa"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2798,6 +2803,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "Este contacto tiene más de un número. Elige uno:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Nombre de perfil"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2808,6 +2818,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "A&pellido"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Nombre verificado"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+diff --git a/translations/pl/LC_MESSAGES/winzapp.po b/translations/pl/LC_MESSAGES/winzapp.po
+index 3646372..fa91aa8 100644
+--- a/translations/pl/LC_MESSAGES/winzapp.po
++++ b/translations/pl/LC_MESSAGES/winzapp.po
+@@ -2305,6 +2305,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "Adres WebSocket (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "Konto firmowe"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+ msgid "Copy phone number"
+@@ -2351,6 +2356,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "Ten kontakt ma więcej niż jeden numer. Wybierz jeden:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Nazwa profilu"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2361,6 +2371,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "&Nazwisko"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Zweryfikowana nazwa"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+ msgid "View name and number"
+diff --git a/translations/pt-BR/LC_MESSAGES/winzapp.po b/translations/pt-BR/LC_MESSAGES/winzapp.po
+index 31e6181..0418e37 100644
+--- a/translations/pt-BR/LC_MESSAGES/winzapp.po
++++ b/translations/pt-BR/LC_MESSAGES/winzapp.po
+@@ -2741,6 +2741,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "Endereço do WebSocket (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "Conta comercial"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2795,6 +2800,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "Este contato tem mais de um número. Escolha um:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Nome do perfil"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2805,6 +2815,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "&Sobrenome"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Nome verificado"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+diff --git a/translations/pt-PT/LC_MESSAGES/winzapp.po b/translations/pt-PT/LC_MESSAGES/winzapp.po
+index e9a53e7..3db718d 100644
+--- a/translations/pt-PT/LC_MESSAGES/winzapp.po
++++ b/translations/pt-PT/LC_MESSAGES/winzapp.po
+@@ -2759,6 +2759,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "Endereço do WebSocket (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "Conta comercial"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2813,6 +2818,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "Este contacto tem mais do que um número. Escolha um:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Nome do perfil"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2823,6 +2833,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "&Apelido"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Nome verificado"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+diff --git a/translations/ro/LC_MESSAGES/winzapp.po b/translations/ro/LC_MESSAGES/winzapp.po
+index 5cf7104..fcc847c 100644
+--- a/translations/ro/LC_MESSAGES/winzapp.po
++++ b/translations/ro/LC_MESSAGES/winzapp.po
+@@ -2736,6 +2736,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "Adresa WebSocket (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "Cont business"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2790,6 +2795,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "Acest contact are mai multe numere. Alegeți unul:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Nume de profil"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2800,6 +2810,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "&Nume de familie"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Nume verificat"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+diff --git a/translations/tr-TR/LC_MESSAGES/winzapp.po b/translations/tr-TR/LC_MESSAGES/winzapp.po
+index 7109cb0..45f46f4 100644
+--- a/translations/tr-TR/LC_MESSAGES/winzapp.po
++++ b/translations/tr-TR/LC_MESSAGES/winzapp.po
+@@ -2726,6 +2726,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr "WebSocket Adresi (WS/WSS):"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr "İşletme hesabı"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2780,6 +2785,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr "Bu kişinin birden fazla numarası var. Birini seçin:"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr "Profil adı"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2790,6 +2800,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr "&Soyad"
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr "Doğrulanmış ad"
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+diff --git a/translations/winzapp.pot b/translations/winzapp.pot
+index 3b70d00..e25be0e 100644
+--- a/translations/winzapp.pot
++++ b/translations/winzapp.pot
+@@ -2531,6 +2531,11 @@ msgctxt "connection_ws_server_label"
+ msgid "WebSocket Address (WS/WSS):"
+ msgstr ""
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_business_account"
++msgid "Business account"
++msgstr ""
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_copy_number"
+@@ -2585,6 +2590,11 @@ msgctxt "contact_pick_number"
+ msgid "This contact has more than one number. Choose one:"
+ msgstr ""
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_profile_name_label"
++msgid "Profile name"
++msgstr ""
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
+ msgctxt "contact_retrieval_failed"
+ msgid "Failed to retrieve the contact list."
+@@ -2595,6 +2605,11 @@ msgctxt "contact_surname"
+ msgid "&Surname"
+ msgstr ""
+ 
++#: translations/en-US/LC_MESSAGES/winzapp.po client/core/contact_identity.py
++msgctxt "contact_verified_name_label"
++msgid "Verified name"
++msgstr ""
++
+ #: translations/en-US/LC_MESSAGES/winzapp.po
+ #: client/ui/conversation_panel/message_menu.py
+ msgctxt "contact_view_details"
+-- 
+2.43.0
+

@@ -1,0 +1,110 @@
+From 2899f5d7f7748a9dee04223a82b545a6dbdea7ea Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 14 Oct 2026 11:11:35 +0000
+Subject: [PATCH 2/2] Changelog: mute state and disappearing messages in the
+ personal chat info
+
+---
+ client/changelog_en-US.txt | 2 ++
+ client/changelog_es-ES.txt | 2 ++
+ client/changelog_pl.txt    | 2 ++
+ client/changelog_pt-BR.txt | 2 ++
+ client/changelog_pt-PT.txt | 2 ++
+ client/changelog_ro.txt    | 2 ++
+ client/changelog_tr-TR.txt | 2 ++
+ 7 files changed, 14 insertions(+)
+
+diff --git a/client/changelog_en-US.txt b/client/changelog_en-US.txt
+index e007282..0de829d 100644
+--- a/client/changelog_en-US.txt
++++ b/client/changelog_en-US.txt
+@@ -86,6 +86,8 @@ WHAT'S NEW
+ 
+ - New File > WhatsApp settings window, with a Privacy tab for the privacy of your WhatsApp account, applied directly on WhatsApp: last seen, who can see when you're online, About, profile photo, read receipts, who can add you to groups and who can see your status (my contacts, my contacts except... or only share with...). The people for the status are picked from your synchronised contacts in a list you can search, ticking each one with Space. The window loads the current values from WhatsApp, sends only what you changed and then reads it back, saying which settings WhatsApp did not confirm.
+ 
++- The info of a personal chat now shows whether its notifications are muted (and until when) and, when WhatsApp reports it, the disappearing messages timer.
++
+ FIXES
+ 
+ - Updates: "Check for updates" in the Help menu now tells you when WinZapp could not reach the update server, instead of saying nothing.
+diff --git a/client/changelog_es-ES.txt b/client/changelog_es-ES.txt
+index 68174bb..4ea1678 100644
+--- a/client/changelog_es-ES.txt
++++ b/client/changelog_es-ES.txt
+@@ -86,6 +86,8 @@ NOVEDADES
+ 
+ - Nueva ventana Archivo > Configuración de WhatsApp, con la pestaña Privacidad para la privacidad de tu cuenta de WhatsApp, aplicada directamente en WhatsApp: última vez, quién puede ver cuándo estás en línea, info, foto de perfil, confirmaciones de lectura, quién puede añadirte a grupos y quién puede ver tu estado (mis contactos, mis contactos excepto... o compartir solo con...). Las personas del estado se eligen entre tus contactos sincronizados, en una lista con búsqueda en la que cada una se marca con Espacio. La ventana carga los valores actuales de WhatsApp, envía solo lo que cambiaste y después lo comprueba, indicando qué ajustes no confirmó WhatsApp.
+ 
++- La información del chat personal muestra si sus notificaciones están silenciadas (y hasta cuándo) y, cuando WhatsApp lo indica, el tiempo de los mensajes temporales.
++
+ CORRECCIONES
+ 
+ - Actualizaciones: "Comprobar actualizaciones", en el menú Ayuda, ahora avisa cuando WinZapp no puede conectar con el servidor de actualizaciones, en lugar de no decir nada.
+diff --git a/client/changelog_pl.txt b/client/changelog_pl.txt
+index 5ab1c70..12f3082 100644
+--- a/client/changelog_pl.txt
++++ b/client/changelog_pl.txt
+@@ -86,6 +86,8 @@ NOWOŚCI
+ 
+ - Nowe okno Plik > Ustawienia WhatsApp z kartą Prywatność, w której ustawiasz prywatność swojego konta WhatsApp bezpośrednio w WhatsApp: ostatnio widziano, kto widzi, że jesteś online, informacje, zdjęcie profilowe, potwierdzenia odczytu, kto może dodawać Cię do grup oraz kto widzi Twój status (moje kontakty, moje kontakty oprócz... lub udostępniaj tylko...). Osoby dla statusu wybierasz spośród zsynchronizowanych kontaktów na liście z wyszukiwaniem, zaznaczając każdą Spacją. Okno wczytuje bieżące wartości z WhatsApp, wysyła tylko to, co zmieniono, a potem sprawdza wynik i informuje, których ustawień WhatsApp nie potwierdził.
+ 
++- Informacje o czacie prywatnym pokazują, czy jego powiadomienia są wyciszone (i do kiedy) oraz, gdy WhatsApp to podaje, czas znikających wiadomości.
++
+ POPRAWKI
+ 
+ - Aktualizacje: „Sprawdź aktualizacje” w menu Pomoc informuje teraz, gdy WinZapp nie może połączyć się z serwerem aktualizacji, zamiast nic nie mówić.
+diff --git a/client/changelog_pt-BR.txt b/client/changelog_pt-BR.txt
+index 2f819b9..c5924bf 100644
+--- a/client/changelog_pt-BR.txt
++++ b/client/changelog_pt-BR.txt
+@@ -86,6 +86,8 @@ NOVIDADES
+ 
+ - Nova janela Arquivo > Configurações do WhatsApp, com a aba Privacidade para a privacidade da sua conta do WhatsApp, aplicada direto no WhatsApp: visto por último, quem pode ver quando você está online, recado, foto do perfil, confirmação de leitura, quem pode adicionar você a grupos e quem pode ver o seu status (meus contatos, meus contatos exceto... ou compartilhar somente com...). As pessoas do status são escolhidas entre os seus contatos sincronizados, numa lista com pesquisa em que cada uma é marcada com Espaço. A janela carrega os valores atuais do WhatsApp, envia só o que você mudou e depois confere, dizendo quais configurações o WhatsApp não confirmou.
+ 
++- As informações do chat pessoal mostram se as notificações dele estão silenciadas (e até quando) e, quando o WhatsApp informa, o tempo das mensagens temporárias.
++
+ CORREÇÕES
+ 
+ - Atualizações: "Verificar atualizações", no menu Ajuda, agora avisa quando o WinZapp não consegue acessar o servidor de atualizações, em vez de não dizer nada.
+diff --git a/client/changelog_pt-PT.txt b/client/changelog_pt-PT.txt
+index 2f823ad..60d0093 100644
+--- a/client/changelog_pt-PT.txt
++++ b/client/changelog_pt-PT.txt
+@@ -86,6 +86,8 @@ NOVIDADES
+ 
+ - Nova janela Ficheiro > Definições do WhatsApp, com o separador Privacidade para a privacidade da sua conta do WhatsApp, aplicada diretamente no WhatsApp: visto pela última vez, quem pode ver quando está online, recado, foto de perfil, confirmação de leitura, quem o pode adicionar a grupos e quem pode ver o seu estado (os meus contactos, os meus contactos exceto... ou partilhar apenas com...). As pessoas do estado são escolhidas entre os seus contactos sincronizados, numa lista com pesquisa em que cada uma é marcada com Espaço. A janela carrega os valores atuais do WhatsApp, envia apenas o que alterou e depois confirma, indicando quais as definições que o WhatsApp não confirmou.
+ 
++- As informações da conversa pessoal mostram se as notificações estão silenciadas (e até quando) e, quando o WhatsApp o indica, o tempo das mensagens temporárias.
++
+ CORREÇÕES
+ 
+ - Atualizações: "Verificar atualizações", no menu Ajuda, passa a avisar quando o WinZapp não consegue aceder ao servidor de atualizações, em vez de não dizer nada.
+diff --git a/client/changelog_ro.txt b/client/changelog_ro.txt
+index 357661a..fb6c7a0 100644
+--- a/client/changelog_ro.txt
++++ b/client/changelog_ro.txt
+@@ -86,6 +86,8 @@ NOUTĂȚI
+ 
+ - Fereastră nouă Fișier > Setări WhatsApp, cu fila Confidențialitate pentru confidențialitatea contului dvs. WhatsApp, aplicată direct în WhatsApp: văzut ultima dată, cine poate vedea când sunteți online, despre, fotografia de profil, confirmările de citire, cine vă poate adăuga în grupuri și cine vă poate vedea starea (contactele mele, contactele mele cu excepția... sau partajați doar cu...). Persoanele pentru stare se aleg dintre contactele sincronizate, într-o listă cu căutare în care fiecare se bifează cu Spațiu. Fereastra încarcă valorile actuale din WhatsApp, trimite doar ce ați modificat și apoi verifică, spunând ce setări nu a confirmat WhatsApp.
+ 
++- Informațiile despre conversația personală arată acum dacă notificările sunt dezactivate (și până când) și, când WhatsApp le transmite, durata mesajelor care dispar.
++
+ CORECTĂRI
+ 
+ - Actualizări: „Verificați actualizările” din meniul Ajutor vă anunță acum când WinZapp nu poate contacta serverul de actualizări, în loc să nu spună nimic.
+diff --git a/client/changelog_tr-TR.txt b/client/changelog_tr-TR.txt
+index cb5afc3..c815cb1 100644
+--- a/client/changelog_tr-TR.txt
++++ b/client/changelog_tr-TR.txt
+@@ -86,6 +86,8 @@ YENİLİKLER
+ 
+ - Yeni Dosya > WhatsApp ayarları penceresi: Gizlilik sekmesinde WhatsApp hesabınızın gizliliği doğrudan WhatsApp'ta ayarlanır: son görülme, çevrimiçi olduğunuzu kimlerin görebileceği, hakkımda, profil fotoğrafı, okundu bilgisi, sizi gruplara kimlerin ekleyebileceği ve durumunuzu kimlerin görebileceği (kişilerim, kişilerim şunlar hariç... veya yalnızca şunlarla paylaş...). Durum için kişiler, eşitlenmiş kişileriniz arasından aranabilir bir listede Boşluk ile işaretlenerek seçilir. Pencere geçerli değerleri WhatsApp'tan yükler, yalnızca değiştirdiklerinizi gönderir, ardından kontrol eder ve WhatsApp'ın onaylamadığı ayarları bildirir.
+ 
++- Kişisel sohbet bilgileri artık bildirimlerin sessize alınıp alınmadığını (ve ne zamana kadar) ve WhatsApp bildirdiğinde kaybolan mesajların süresini gösteriyor.
++
+ DÜZELTMELER
+ 
+ - Güncellemeler: Yardım menüsündeki "Güncellemeleri denetle", WinZapp güncelleme sunucusuna ulaşamadığında artık sessiz kalmak yerine bunu bildirir.
+-- 
+2.43.0
+
