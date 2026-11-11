@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: media whose link expired is now requested again from the phone. When a download fails because the link expired, WinZapp asks the phone to upload the media again and downloads it from the new link; if the phone no longer has the file, the media stays marked as expired.
+
 - New replies and sent messages no longer appear above the original message when the computer's clock is behind WhatsApp's. The provisional time of a sent message is never earlier than the last message already shown or the message being replied to.
 
 - Neonize: history that the phone sends over several hours is no longer declared complete by a 45-second pause between blocks. While the reported progress is below 100%, WinZapp waits up to 10 minutes of silence, so chats are not treated as final too early.
