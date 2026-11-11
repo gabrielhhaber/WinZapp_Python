@@ -2320,9 +2320,7 @@ def create_app(folder, fixed=""):
                 s.client, message, body, s.emit, s.name)
         except Exception as error:
             log.exception("download")
-            text = str(error).lower()
-            # media that left WhatsApp's server: the app treats 410 as "expired"
-            status = 410 if ("404" in text or "410" in text or "not found" in text) else 500
+            status = transfers.status_for_download_error(error)
             return web.json_response({"status": "error", "message": str(error)}, status=status)
         if "octet-stream" in req.headers.get("Accept", ""):
             return web.Response(body=data, content_type="application/octet-stream")

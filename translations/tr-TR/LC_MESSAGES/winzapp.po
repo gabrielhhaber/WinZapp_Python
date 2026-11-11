@@ -2393,6 +2393,25 @@ msgid "Reply sent."
 msgstr "Yanıt gönderildi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/business_message_content.py
+msgctxt "business_parts_unavailable"
+msgid ""
+"Some parts or actions of this business message are not supported here. Open "
+"it in WhatsApp on your phone."
+msgstr ""
+"Bu işletme mesajının bazı bölümleri veya işlemleri burada desteklenmiyor. "
+"Telefonundaki WhatsApp’tan aç."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/business_message_content.py
+msgctxt "business_template_unavailable"
+msgid ""
+"This business message is not available here. Open it in WhatsApp on your "
+"phone."
+msgstr ""
+"Bu işletme mesajı burada görüntülenemiyor. Telefonundaki WhatsApp’tan aç."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "button_no"
 msgid "&No"
 msgstr "&Hayır"
@@ -7804,8 +7823,6 @@ msgstr ""
 "görünüyor. Lütfen tekrar eşlemeyi deneyin."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_message"
 msgid "interactive message"
 msgstr "etkileşimli mesaj"
@@ -9603,7 +9620,7 @@ msgctxt "notif_audio"
 msgid "Audio"
 msgstr "Ses"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notif_button"
 msgid "🔘 Button"
 msgstr "Düğme"
@@ -9645,7 +9662,7 @@ msgctxt "notif_in_group_group_first"
 msgid "{group}, {participant}"
 msgstr "{group}, {participant}"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notif_list"
 msgid "📋 List"
 msgstr "Liste"
@@ -9730,8 +9747,6 @@ msgid "⚙️ System message"
 msgstr "Sistem mesajı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "notif_template"
 msgid "📝 Template"
 msgstr "Şablon"
@@ -9860,7 +9875,7 @@ msgid "Play or open the video"
 msgstr "Videoyu oynat veya aç"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
+#: client/core/business_message_content.py
 msgctxt "options"
 msgid "options"
 msgstr "seçenekler"

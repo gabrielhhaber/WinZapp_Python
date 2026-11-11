@@ -5,8 +5,11 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 YENİLİKLER
 
 - İndirilemeyen medya: hata mesajı artık Neonize motorunda bulunmayan WPPConnect'ten söz etmiyor. Bunun yerine bağlantının süresinin dolmuş olabileceğini veya WhatsApp bağlantısının kullanılamıyor olabileceğini söylüyor.
+- İşletme şablonları: mevcut metin ve desteklenen düğmeler korunur, düğme sıraları değişmez; eksik içerik ve desteklenmeyen işlemler açıklanır. Boş eski kayıtlar yeniden oluşturulamaz.
 
 - WPPConnect Server 2.10.79 artık yeni bir WinZapp sürümünü beklemeden güncelleme olarak sunuluyor. Yalnızca güvenlik bağımlılıklarını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
+
+- Neonize: "Tüm geçmiş" ile eşleştirdikten sonra eski sohbet geçmişi artık gerçekten içe aktarılıyor. Önceden hiç açmadığınız yüzlerce eski ve boş sohbet içe aktarmayı tıkıyor, indirilmiş mesajların çoğu görünmüyordu. Bağlantısı süresi dolmuş eski medya dosyaları artık hata verip birkaç kez yeniden denenmek yerine süresi dolmuş olarak tanınıyor.
 
 - Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
 

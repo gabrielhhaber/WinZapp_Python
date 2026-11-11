@@ -2434,6 +2434,26 @@ msgid "Reply sent."
 msgstr "Risposta inviata."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/business_message_content.py
+msgctxt "business_parts_unavailable"
+msgid ""
+"Some parts or actions of this business message are not supported here. Open "
+"it in WhatsApp on your phone."
+msgstr ""
+"Alcune parti o azioni di questo messaggio aziendale non sono supportate qui."
+" Aprilo in WhatsApp sul telefono."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/business_message_content.py
+msgctxt "business_template_unavailable"
+msgid ""
+"This business message is not available here. Open it in WhatsApp on your "
+"phone."
+msgstr ""
+"Questo messaggio aziendale non è disponibile qui. Aprilo in WhatsApp sul "
+"telefono."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "button_no"
 msgid "&No"
 msgstr "&No"
@@ -7889,8 +7909,6 @@ msgstr ""
 "sembra essere disconnesso. Prova ad eseguire nuovamente l'associazione."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_message"
 msgid "interactive message"
 msgstr "messaggio interattivo"
@@ -9729,7 +9747,7 @@ msgctxt "notif_audio"
 msgid "Audio"
 msgstr "Audio"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notif_button"
 msgid "🔘 Button"
 msgstr "🔘 Pulsante"
@@ -9771,7 +9789,7 @@ msgctxt "notif_in_group_group_first"
 msgid "{group}, {participant}"
 msgstr "{group}, {participant}"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notif_list"
 msgid "📋 List"
 msgstr "📋 Elenco"
@@ -9856,8 +9874,6 @@ msgid "⚙️ System message"
 msgstr "⚙️ Messaggio di sistema"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "notif_template"
 msgid "📝 Template"
 msgstr "📝 Modello"
@@ -9989,7 +10005,7 @@ msgid "Play or open the video"
 msgstr "Riproduci o apri video"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
+#: client/core/business_message_content.py
 msgctxt "options"
 msgid "options"
 msgstr "opzioni"

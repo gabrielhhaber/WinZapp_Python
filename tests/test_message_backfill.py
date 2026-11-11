@@ -549,3 +549,22 @@ class TestBackfillPacing:
         s = _Stub(page_size=200, chunks_pending=True)
         s._note_backfill_state("a@lid", _chat(records=_records(15), t=1), api_ok=False)
         assert s._chats_awaiting_messages == set()
+
+
+class TestChatsBlockingBackgroundWork:
+    """Issue #747: unopened empty chats must not starve deep history."""
+
+    def test_unopened_chat_already_tried_does_not_block(self):
+        out = MainWindow._chats_blocking_background_work(
+            ["a", "b"], {"a", "b"}, lambda j: False)
+        assert out == []
+
+    def test_untried_chat_still_blocks(self):
+        out = MainWindow._chats_blocking_background_work(
+            ["a", "b"], {"a"}, lambda j: False)
+        assert out == ["b"]
+
+    def test_opened_chat_still_blocks(self):
+        out = MainWindow._chats_blocking_background_work(
+            ["a"], {"a"}, lambda j: True)
+        assert out == ["a"]

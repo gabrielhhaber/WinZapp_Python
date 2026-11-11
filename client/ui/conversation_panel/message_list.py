@@ -101,6 +101,7 @@ class MessageListMixin:
         if getattr(self, "_suppress_selection_side_effects", False):
             return
         index = event.GetIndex()
+        self._business_context = None
         self._hide_all_media_controls()   # also clears links panel
         if index < 0 or index >= len(self._sorted_messages):
             return
@@ -158,19 +159,6 @@ class MessageListMixin:
                     self._action_download_btn.Show()
             self.conversation_panel.Layout()
 
-        elif msg_type == "buttonsMessage":
-            buttons = (msg_obj.get("buttonsMessage") or {}).get("buttons", [])
-            remote_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
-            self._show_reply_buttons(buttons, remote_jid)
-
-        elif msg_type == "listMessage":
-            sections = (msg_obj.get("listMessage") or {}).get("sections", [])
-            rows: list = []
-            for sec in sections:
-                rows.extend(sec.get("rows", []) if isinstance(sec, dict) else [])
-            remote_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
-            self._show_list_rows(rows, remote_jid)
-
         elif msg_type == "contactMessage":
             contact = msg_obj.get("contactMessage") or {}
             vcard = contact.get("vcard", "")
@@ -186,7 +174,8 @@ class MessageListMixin:
                 self._action_open_btn.Show()
                 self.conversation_panel.Layout()
 
-        if msg.get("businessButtons"):
+        from core.business_message_content import message_business_buttons
+        if message_business_buttons(msg):
             self._show_business_buttons(msg)
 
         self._update_ai_describe_button(msg)
@@ -1050,67 +1039,9 @@ class MessageListMixin:
         except Exception:
             pass
 
-    def _show_reply_buttons(self, buttons: list, remote_jid: str):
-        """Render interactive message buttons (buttonsMessage) in the container."""
-        self._buttons_container.DestroyChildren()
-        sizer = wx.WrapSizer(wx.HORIZONTAL)
-        for btn_data in buttons:
-            if not isinstance(btn_data, dict):
-                continue
-            label = (btn_data.get("buttonText") or {}).get("displayText", "").strip()
-            if not label:
-                continue
-            btn = wx.Button(self._buttons_container, label=label)
-            btn.Bind(
-                wx.EVT_BUTTON,
-                lambda e, d=btn_data, jid=remote_jid: self._on_reply_button(d, jid),
-            )
-            sizer.Add(btn, 0, wx.ALL, 4)
-        self._buttons_container.SetSizer(sizer, True)
-        self._buttons_container.Layout()
-        self._buttons_container.Show()
-        self.conversation_panel.Layout()
 
-    def _show_list_rows(self, rows: list, remote_jid: str):
-        """Render list-message rows as reply buttons."""
-        self._buttons_container.DestroyChildren()
-        sizer = wx.WrapSizer(wx.HORIZONTAL)
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            label = row.get("title", "").strip()
-            if not label:
-                continue
-            btn = wx.Button(self._buttons_container, label=label)
-            btn.Bind(
-                wx.EVT_BUTTON,
-                lambda e, r=row, jid=remote_jid: self._on_list_row_selected(r, jid),
-            )
-            sizer.Add(btn, 0, wx.ALL, 4)
-        self._buttons_container.SetSizer(sizer, True)
-        self._buttons_container.Layout()
-        self._buttons_container.Show()
-        self.conversation_panel.Layout()
 
-    def _on_reply_button(self, btn_data: dict, remote_jid: str):
-        label = (btn_data.get("buttonText") or {}).get("displayText", "").strip()
-        if not label or not remote_jid:
-            return
-        threading.Thread(
-            target=self.main_window.send_text_message,
-            args=(remote_jid, label),
-            daemon=True,
-        ).start()
 
-    def _on_list_row_selected(self, row: dict, remote_jid: str):
-        label = row.get("title", "").strip()
-        if not label or not remote_jid:
-            return
-        threading.Thread(
-            target=self.main_window.send_text_message,
-            args=(remote_jid, label),
-            daemon=True,
-        ).start()
 
     # ── Alt+2: jump to last message ────────────────────────────────────────
 
