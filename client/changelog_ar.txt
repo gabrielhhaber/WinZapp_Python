@@ -416,6 +416,8 @@ V3.0.0.0
 
 - الكتابة: لم يعد مؤشر "يكتب" يظهر من جديد بعد ثوانٍ من إرسال الشخص لرسالته (المشكلة #743).
 
+- نافذة الجديد: مفتاح Esc يغلقها الآن، سواء من مساعدة > ما الجديد أو من مساعدة > "ما الجديد منذ آخر نظرة". كان Esc سابقًا لا يفعل شيئًا، وكان لا بد من الانتقال إلى زر الإغلاق.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
