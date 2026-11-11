@@ -1,0 +1,198 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 11 Nov 2026 03:41:52 +0000
+Subject: [PATCH] Hear connected group devices whose join update was never seen
+
+A rejoining account gets the roster without PIDs (the PID only travels in
+the update where a device joins), so every remote device was skipped and
+the call stayed silent. Register such a device without a PID, unless one of
+that person's devices has one.
+---
+ group_media_receive.go      | 51 ++++++++++++++++++++++++++++---------
+ group_media_receive_test.go | 51 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+), 12 deletions(-)
+
+diff --git a/group_media_receive.go b/group_media_receive.go
+index 59d567d..f70888c 100644
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -69,6 +69,7 @@ type participantReceiverMetadata struct {
+ 	userJID   types.JID
+ 	deviceJID types.JID
+ 	pid       uint32
++	hasPID    bool
+ }
+ 
+ type preparedGroupRawEpoch struct {
+@@ -290,6 +291,7 @@ func (r *participantReceiveRegistry) prepareGroupUpdateLocked(
+ 		if participant.State != "connected" {
+ 			continue
+ 		}
++		userHasPID := r.participantHasPIDLocked(participant)
+ 		for _, device := range participant.Devices {
+ 			// Source of truth: https://github.com/purpshell/meowcaller/blob/e34f414e423e6e45863d19dcfdd7e658f5f1314a/datasheets/group-media-receive.md#L24-L42
+ 			participantID := rtp.FormatE2ESrtpParticipantID(device.JID.String())
+@@ -298,13 +300,19 @@ func (r *participantReceiveRegistry) prepareGroupUpdateLocked(
+ 			}
+ 			// The server sends the PID only in the update where a device joins;
+ 			// later full rosters list the same connected device without it. Keep
+-			// the PID learned earlier instead of dropping the receiver.
++			// the PID learned earlier. A device whose join update this account
++			// never saw (it was already in the call when we joined or came back)
++			// has no PID to keep: its audio is still told apart by the SSRC and
++			// key derived from its device id, so register it without a PID
++			// instead of leaving it deaf. Only when none of that person's
++			// devices has a PID: otherwise the one with a PID is the device in
++			// the call and the others are just listed.
+ 			if !device.HasPID {
+-				known, ok := r.knownPIDLocked(participantID)
+-				if !ok {
++				if known, ok := r.knownPIDLocked(participantID); ok {
++					device.PID, device.HasPID = known, true
++				} else if userHasPID {
+ 					continue
+ 				}
+-				device.PID, device.HasPID = known, true
+ 			}
+ 			hasConnectedRemotePID = true
+ 			if _, exists := prepared.byDeviceID[participantID]; exists {
+@@ -314,16 +322,18 @@ func (r *participantReceiveRegistry) prepareGroupUpdateLocked(
+ 			receiver := r.byDeviceID[participantID]
+ 			if receiver == nil {
+ 				var err error
+-				receiver, err = r.newReceiver(participant.JID, device.JID, device.PID, true)
++				receiver, err = r.newReceiver(participant.JID, device.JID, device.PID, device.HasPID)
+ 				if err != nil {
+ 					prepared.clear(true)
+ 					return nil, err
+ 				}
+ 				prepared.newReceivers = append(prepared.newReceivers, receiver)
+ 			}
+-			if _, exists := prepared.byPID[device.PID]; exists {
+-				prepared.clear(true)
+-				return nil, fmt.Errorf("meowcaller: duplicate group participant PID %d", device.PID)
++			if device.HasPID {
++				if _, exists := prepared.byPID[device.PID]; exists {
++					prepared.clear(true)
++					return nil, fmt.Errorf("meowcaller: duplicate group participant PID %d", device.PID)
++				}
+ 			}
+ 			if _, exists := prepared.bySSRC[receiver.ssrc]; exists {
+ 				prepared.clear(true)
+@@ -345,13 +355,15 @@ func (r *participantReceiveRegistry) prepareGroupUpdateLocked(
+ 				prepared.bySRTCPSSRC[streamSSRC] = receiver
+ 			}
+ 			prepared.byDeviceID[participantID] = receiver
+-			prepared.byPID[device.PID] = receiver
++			if device.HasPID {
++				prepared.byPID[device.PID] = receiver
++			}
+ 			prepared.bySSRC[receiver.ssrc] = receiver
+ 			prepared.byVideoSSRC[receiver.videoSSRC] = receiver
+ 			prepared.byAppDataSSRC[receiver.appDataSSRC] = receiver
+ 			prepared.metadata = append(prepared.metadata, participantReceiverMetadata{
+ 				receiver: receiver, userJID: participant.JID,
+-				deviceJID: device.JID, pid: device.PID,
++				deviceJID: device.JID, pid: device.PID, hasPID: device.HasPID,
+ 			})
+ 		}
+ 	}
+@@ -423,6 +435,20 @@ func (r *participantReceiveRegistry) prepareGroupUpdateLocked(
+ 	return prepared, nil
+ }
+ 
++// participantHasPIDLocked says whether one of a connected person's devices
++// has a PID, in this roster or from an earlier one. r.mu must be held.
++func (r *participantReceiveRegistry) participantHasPIDLocked(participant groupCallParticipant) bool {
++	for _, device := range participant.Devices {
++		if device.HasPID {
++			return true
++		}
++		if _, ok := r.knownPIDLocked(rtp.FormatE2ESrtpParticipantID(device.JID.String())); ok {
++			return true
++		}
++	}
++	return false
++}
++
+ // knownPIDLocked returns the PID a still-registered device was given by an
+ // earlier group update. r.mu must be held.
+ func (r *participantReceiveRegistry) knownPIDLocked(participantID string) (uint32, bool) {
+@@ -447,7 +473,7 @@ func (r *participantReceiveRegistry) commitGroupUpdateLocked(prepared *preparedP
+ 		next.receiver.userJID = next.userJID
+ 		next.receiver.deviceJID = next.deviceJID
+ 		next.receiver.pid = next.pid
+-		next.receiver.hasPID = true
++		next.receiver.hasPID = next.hasPID
+ 		next.receiver.mu.Unlock()
+ 	}
+ 	r.byDeviceID = prepared.byDeviceID
+@@ -477,7 +503,8 @@ func (r *participantReceiveRegistry) commitGroupUpdateLocked(prepared *preparedP
+ 	r.log.Info().
+ 		Str("call_id", r.callID).
+ 		Uint32("transaction_id", prepared.transactionID).
+-		Int("remote_participants", len(prepared.byPID)).
++		Int("remote_participants", len(prepared.byDeviceID)).
++		Int("with_pid", len(prepared.byPID)).
+ 		Msg("applied group media receive roster")
+ }
+ 
+diff --git a/group_media_receive_test.go b/group_media_receive_test.go
+index d811948..81688cc 100644
+--- a/group_media_receive_test.go
++++ b/group_media_receive_test.go
+@@ -1471,3 +1471,54 @@ func TestParticipantReceiveRegistryKeepsPIDWhenLaterRosterOmitsIt(t *testing.T)
+ 		t.Fatal("a device that left kept its receiver")
+ 	}
+ }
++
++func TestParticipantReceiveRegistryHearsConnectedDevicesWhoseJoinWasNeverSeen(t *testing.T) {
++	// Rejoining a call that is going on: the roster we get lists every
++	// connected device without a PID, because the update that carried each
++	// PID went out before we came back. Their audio must still be decoded.
++	callKey := iota32()
++	self := mediaTestJID("111111111111111", 14)
++	creator := mediaTestJID("222222222222222", 0)
++	first := mediaTestJID("333333333333333", 43)
++	second := mediaTestJID("444444444444444", 63)
++	registry, err := newParticipantReceiveRegistry("CID", callKey, self.String(), creator.String(), func() participantAudioDecoder {
++		return &recordingParticipantDecoder{}
++	})
++	if err != nil {
++		t.Fatalf("new registry: %v", err)
++	}
++	update := groupCallUpdate{
++		CallID:        "CID",
++		TransactionID: 20,
++		Participants: []groupCallParticipant{
++			{JID: self.ToNonAD(), State: "connected", Devices: []groupCallDevice{{JID: self}}},
++			{JID: first.ToNonAD(), State: "connected", Devices: []groupCallDevice{{JID: first}}},
++			{JID: second.ToNonAD(), State: "connected", Devices: []groupCallDevice{{JID: second}}},
++		},
++	}
++	if err = registry.ApplyGroupUpdate(update); err != nil {
++		t.Fatalf("apply roster without PIDs: %v", err)
++	}
++	for _, device := range []types.JID{first, second} {
++		packet, _ := protectParticipantAudio(t, callKey, self, device, []byte{0x62})
++		audio, ok := registry.DecodeAudio(packet)
++		if !ok {
++			t.Fatalf("audio from %s without a known PID was dropped", device)
++		}
++		if audio.HasPID {
++			t.Fatalf("device %s reported a PID it never had", device)
++		}
++	}
++	// The PID that arrives later is learned and attached.
++	update.TransactionID = 21
++	update.Participants[1].Devices[0].PID, update.Participants[1].Devices[0].HasPID = 7, true
++	if err = registry.ApplyGroupUpdate(update); err != nil {
++		t.Fatalf("apply roster with the first PID: %v", err)
++	}
++	if registry.byPID[7] == nil || registry.byPID[7].deviceJID != first {
++		t.Fatalf("the late PID did not reach its device: %v", registry.byPID)
++	}
++	if len(registry.byDeviceID) != 2 {
++		t.Fatalf("active devices = %v, want both remotes", registry.ActiveParticipantIDs())
++	}
++}
