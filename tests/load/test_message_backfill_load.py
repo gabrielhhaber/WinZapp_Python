@@ -129,6 +129,7 @@ class _SweepLoadStub:
     _local_record_count = MainWindow._local_record_count
     _initial_backfill_delay = MainWindow._initial_backfill_delay
     _background_backfill_work_allowed = staticmethod(MainWindow._background_backfill_work_allowed)
+    _chats_blocking_background_work = staticmethod(MainWindow._chats_blocking_background_work)
     _backfill_short_queue_delays = MainWindow._backfill_short_queue_delays
     _keep_backfill_pending = MainWindow._keep_backfill_pending
     history_page_target = MainWindow.history_page_target
