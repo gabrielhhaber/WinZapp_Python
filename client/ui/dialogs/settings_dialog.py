@@ -587,6 +587,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         gen_sizer.Add(self._background_updates_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # Off by default: updates download on their own and install when the
+        # user exits WinZapp, with no relaunch (update_on_exit.py).
+        self._update_on_exit_check = wx.CheckBox(
+            self._general_page, label=i18n.t("update_on_exit_label")
+        )
+        gen_sizer.Add(self._update_on_exit_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._hotkey_label = wx.StaticText(self._general_page, label=i18n.t("global_hotkey_label"))
         gen_sizer.Add(
             self._hotkey_label,
@@ -2089,6 +2096,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "updates_enabled": self._updates_check.GetValue(),
                 "alpha_updates_enabled": self._alpha_updates_check.GetValue(),
                 "background_update_downloads": self._background_updates_check.GetValue(),
+                "update_on_exit": self._update_on_exit_check.GetValue(),
                 "switch_behavior": (
                     "keep_open" if self._switch_behavior_keep_open_rb.GetValue() else "single"
                 ),
@@ -2169,6 +2177,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "background_update_downloads", False
             )
             self._background_updates_check.SetValue(background_updates)
+            self._update_on_exit_check.SetValue(
+                install_wide.get("general", {}).get("update_on_exit", False))
 
         if wanted(unit, "advanced"):
             # Settings > Advanced (advanced_tab.py): off, the approved releases only.
@@ -2253,6 +2263,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             background_updates = self._background_updates_check.GetValue()
             if self._global_control_changed("background_update_downloads", background_updates):
                 choices["background_update_downloads"] = background_updates
+            update_on_exit = self._update_on_exit_check.GetValue()
+            if self._global_control_changed("update_on_exit", update_on_exit):
+                choices["update_on_exit"] = update_on_exit
 
         if ready(self, "advanced"):
             wpp_all_updates = self._wpp_all_updates_check.GetValue()
@@ -4835,6 +4848,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._updates_check.SetLabel(i18n.t("updates_label"))
             self._alpha_updates_check.SetLabel(i18n.t("alpha_updates_label"))
             self._background_updates_check.SetLabel(i18n.t("background_updates_label"))
+            self._update_on_exit_check.SetLabel(i18n.t("update_on_exit_label"))
             self._alpha_updates_check.SetToolTip(i18n.t("alpha_updates_tooltip"))
             self._language_label.SetLabel(i18n.t("language_label"))
             self._switch_behavior_box.SetLabel(i18n.t("acc_switch_behavior_label"))

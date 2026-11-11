@@ -19,6 +19,7 @@
         "updates_enabled": true,
         "alpha_updates_enabled": false,
         "background_update_downloads": false,
+        "update_on_exit": false,
         "wpp_all_updates": false,
         "noise_reduction_enabled": false,
         "noise_reduction_neural": true,

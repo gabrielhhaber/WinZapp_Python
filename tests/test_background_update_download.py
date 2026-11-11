@@ -19,6 +19,7 @@ import pytest
 import wx
 
 import update_background
+from update_on_exit import UpdateOnExitMixin
 import updater
 from core.update_handoff import InstallHandoff
 from app_settings import _DEFAULTS, _GENERAL_GLOBAL
@@ -121,7 +122,7 @@ class _MainWindow:
         self.exits += 1
 
 
-class _Checker(BackgroundDownloadMixin):
+class _Checker(BackgroundDownloadMixin, UpdateOnExitMixin):
     _do_install = UpdateChecker._do_install
     _check_once = UpdateChecker._check_once
 
@@ -426,7 +427,7 @@ class TestTheDialogSkipsWhatIsAlreadyDone:
                             lambda extract_dir, *a, **kw: launched.append(extract_dir) or True)
         monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: fn(*a))
         dialog = types.SimpleNamespace(
-            _extracted_dir="X:/pkg", _cancelled=False, _install_ok=False, _error_msg="",
+            _extracted_dir="X:/pkg", _relaunch_app=True, _cancelled=False, _install_ok=False, _error_msg="",
             _handoff=InstallHandoff(), _request_install_handoff=lambda: True,
             _gauge=types.SimpleNamespace(SetValue=lambda value: None),
             _status_label=types.SimpleNamespace(SetLabel=lambda text: None),

@@ -19608,6 +19608,36 @@ msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "Nicio actualizare"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "update_on_exit_label"
+msgid ""
+"Download updates automatically and install them when I e&xit WinZapp, "
+"without asking (closing the window to the tray does not count, and WinZapp "
+"does not open again afterwards)"
+msgstr ""
+"Descarcă actualizările auto&mat și instalează-le când închid WinZapp, "
+"fără să întrebe (închiderea ferestrei în bara de sistem nu contează, "
+"iar WinZapp nu se mai deschide după aceea)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
+#, python-brace-format
+msgctxt "update_on_exit_ready"
+msgid ""
+"WinZapp update {version} has been downloaded. It will be installed when you "
+"exit WinZapp."
+msgstr ""
+"Actualizarea WinZapp {version} a fost descărcată. Va fi instalată când"
+" ieșiți din WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
+msgctxt "update_on_exit_started"
+msgid ""
+"Downloading the WinZapp update. It will be installed when you exit WinZapp."
+msgstr ""
+"Se descarcă actualizarea WinZapp. Va fi instalată când ieșiți din "
+"WinZapp."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"
 msgid ""

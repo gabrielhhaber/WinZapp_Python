@@ -91,13 +91,18 @@ def relaunch_environment(environment) -> dict:
 
 
 def relaunch_lines(exe_path: str, log_path: str, handoff_path: str = "",
-                   indent: str = "", waiter_required: bool = False) -> str:
+                   indent: str = "", waiter_required: bool = False,
+                   relaunch: bool = True) -> str:
     """The installer script's relaunch of WinZapp.
 
     Without *handoff_path* (the non-elevated install) it is the original
     single line. With it, the script leaves the relaunch to the waiter when
     the marker exists, relaunches by itself otherwise, and then tells the
     waiter it is done."""
+    if not relaunch:
+        # Installed on exit (update_on_exit.py): the user quit, so the app
+        # stays closed and the new version runs the next time they open it.
+        return f'{indent}>> "{log_path}" echo installed on exit - not relaunching WinZapp\n'
     start = f'if exist "{exe_path}" start "" /normal "{exe_path}"\n'
     if not handoff_path:
         return indent + start
@@ -116,7 +121,7 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
                                  handoff_path: str,
                                  passes: int = WAITER_PASSES, parent_pid: int = 0,
                                  completion_path: str = "", installer_image: str = "cmd.exe",
-                                 recovery_path: str = "") -> str:
+                                 recovery_path: str = "", relaunch: bool = True) -> str:
     """The waiter's batch text. Pure — every path is already console-safe."""
     done_path = handoff_path + ".done"
     abort_path = handoff_path + ".abort"
@@ -126,7 +131,7 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
         from core.update_recovery import build_guarded_waiter
         return build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
                                      passes, parent_pid, completion_path, installer_image,
-                                     recovery_path)
+                                     recovery_path, relaunch=relaunch)
     # Also fail closed if the abort marker could not be written. A PID reused
     # by an unrelated process may suppress a relaunch, never create a duplicate.
     parent_check = (
@@ -162,9 +167,10 @@ def build_relaunch_waiter_script(installer_pid: int, exe_path: str, log_path: st
         +
         ":RELAUNCH\n"
         f'if exist "{abort_path}" goto ABORT\n'
-        + parent_check +
-        f'>> "{log_path}" echo installer finished - relaunching WinZapp without administrator rights\n'
-        f'if exist "{exe_path}" start "" /normal "{exe_path}"\n'
+        + parent_check
+        + (f'>> "{log_path}" echo installer finished - relaunching WinZapp without administrator rights\n'
+           f'if exist "{exe_path}" start "" /normal "{exe_path}"\n' if relaunch else
+           f'>> "{log_path}" echo installer finished - installed on exit, not relaunching\n') +
         f'del "{handoff_path}" >NUL 2>&1\n'
         f'del "{done_path}" >NUL 2>&1\n'
         'del "%~f0"\n'
@@ -183,7 +189,7 @@ def start_relaunch_waiter(bat_path: str, installer_pid, exe_path: str, log_path:
                           handoff_path: str, write_script, popen=None,
                           appear_timeout: float = 10.0, parent_pid: int = 0,
                           completion_path: str = "", installer_image: str = "cmd.exe",
-                          recovery_path: str = "") -> bool:
+                          recovery_path: str = "", relaunch: bool = True) -> bool:
     """Start the non-elevated waiter and wait for it to take the relaunch
     over (its marker). Returns True when it did. Every other outcome leaves
     no marker and no waiter. The legacy script can use its direct fallback;
@@ -197,7 +203,8 @@ def start_relaunch_waiter(bat_path: str, installer_pid, exe_path: str, log_path:
     waiter_path = bat_path[:-len(".bat")] + "_relaunch.bat"
     script = build_relaunch_waiter_script(installer_pid, exe_path, log_path, handoff_path,
                                           parent_pid=parent_pid, completion_path=completion_path,
-                                          installer_image=installer_image, recovery_path=recovery_path)
+                                          installer_image=installer_image, recovery_path=recovery_path,
+                                          relaunch=relaunch)
     if not write_script(waiter_path, script):
         return False
     popen = popen or subprocess.Popen

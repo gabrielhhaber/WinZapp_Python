@@ -887,6 +887,12 @@ class WindowChromeMixin:
         always entered on the wx main thread. The window is hidden first so
         quitting still looks instant.
         """
+        # An update downloaded for "install when I exit" goes in now, and the
+        # app is not started again (update_on_exit.py).
+        checker = getattr(self, "_update_checker", None)
+        if checker is not None and checker.install_staged_on_exit():
+            return
+
         gd = getattr(self, "global_dir", None)
         acc_id = getattr(self, "account_id", None)
         if not (gd and acc_id):

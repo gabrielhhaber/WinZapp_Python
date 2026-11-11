@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Çıkışta güncelle: Ayarlar > Genel bölümündeki yeni bir seçenek güncellemeleri sormadan otomatik indirir ve WinZapp'tan çıktığınızda yükler. Pencereyi tepsiye kapatmak çıkış sayılmaz ve WinZapp kurulumdan sonra yeniden açılmaz: kapalı kalır ve yeni sürümü bir sonraki açışınızda kullanır.
+
 - Neonize: eski sohbet geçmişi artık arka plan eşzamanlaması sırasında gerçekten içe aktarılıyor; önceki düzeltme her taramanın sonunda yine geçersiz kalıyordu. Telefona sorulduktan sonra bile kurtarılamayan eski medya dosyaları artık tekrarlanan bir bağlantı hatası yerine süresi dolmuş olarak görünüyor.
 
 - Neonize: bağlantısının süresi dolmuş medya artık telefondan yeniden isteniyor. Bağlantı süresi dolduğu için indirme başarısız olduğunda WinZapp telefondan medyayı yeniden yüklemesini ister ve yeni bağlantıdan indirir; telefonda dosya artık yoksa medya süresi dolmuş olarak işaretli kalır.
