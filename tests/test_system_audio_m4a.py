@@ -292,8 +292,9 @@ class TestMixedComposer(unittest.TestCase):
         )
         from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
+        from core.pending_timestamp import pending_send_timestamp
         namespace = dict(logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
-                         wave=wave, threading=self.threads, wx=fake_wx,
+                         pending_send_timestamp=pending_send_timestamp, wave=wave, threading=self.threads, wx=fake_wx,
                          recording_output_channels=recording_output_channels,
                          prepare_voice_pcm=prepare_voice_pcm,
                          encode_as_stereo=encode_as_stereo, bitrate_arg=bitrate_arg,
