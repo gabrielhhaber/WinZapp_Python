@@ -426,7 +426,7 @@ class TestTheDialogSkipsWhatIsAlreadyDone:
                             lambda extract_dir, *a, **kw: launched.append(extract_dir) or True)
         monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: fn(*a))
         dialog = types.SimpleNamespace(
-            _extracted_dir="X:/pkg", _cancelled=False, _install_ok=False, _error_msg="",
+            _extracted_dir="X:/pkg", _relaunch_app=True, _cancelled=False, _install_ok=False, _error_msg="",
             _handoff=InstallHandoff(), _request_install_handoff=lambda: True,
             _gauge=types.SimpleNamespace(SetValue=lambda value: None),
             _status_label=types.SimpleNamespace(SetLabel=lambda text: None),

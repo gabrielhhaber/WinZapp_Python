@@ -15,7 +15,7 @@ def worker(monkeypatch):
     pending, launched, released, discarded, ended = [], [], [], [], []
     token = {"owner_pid": 42, "owner_create_time": 1.0, "owner_token": "attempt"}
     d = types.SimpleNamespace(
-        _handoff=InstallHandoff(), _extracted_dir="synthetic-package",
+        _handoff=InstallHandoff(), _extracted_dir="synthetic-package", _relaunch_app=True,
         _install_ok=False, _error_msg="", _zip_url="https://example.invalid/z.zip",
         _sha256sums_url="", _signature_url="", _new_version="9.9.9", _is_alpha=False,
         _main_window=types.SimpleNamespace(i18n=types.SimpleNamespace(t=lambda k: k)),
