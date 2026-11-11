@@ -27,6 +27,8 @@ def test_notice_marks_the_stored_original(tmp_path):
     db.chat("123@g.us")
     db.message("123@g.us", _msg("X1"))
     assert db.revocation("123@g.us", _notice()) is True
+    original = [m for m in db._conn.execute("SELECT data FROM msgs WHERE id='X1'")]
+    assert '"revoked"' in original[0]["data"]
 
 
 def test_orphan_notice_in_known_chat_is_kept(tmp_path):
