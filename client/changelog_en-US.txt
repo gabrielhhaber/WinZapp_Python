@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
+
 - Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.
 
 - Local transcription: switching accounts while voice notes are transcribed no longer fills the computer's memory. One model is loaded at a time: a second transcription, of the same account or another, waits for the first and says it is waiting, and an account's idle model is released when another one needs the card.
