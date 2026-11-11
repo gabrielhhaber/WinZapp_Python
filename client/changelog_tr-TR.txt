@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect Server 2.10.79 artık yeni bir WinZapp sürümünü beklemeden güncelleme olarak sunuluyor. Yalnızca güvenlik bağımlılıklarını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
+
 - Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
 
 - Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler ve beklediğini söyler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.

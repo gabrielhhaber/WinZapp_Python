@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- O WPPConnect Server 2.10.79 agora é oferecido como atualização sem esperar por uma nova versão do WinZapp. Ele só atualiza dependências de segurança e não afeta as alterações que o WinZapp faz no servidor.
+
 - Menções: numa mensagem de grupo com @todos, o Tab não passa mais por um link para cada participante logo depois de abrir a conversa. Antes isso acontecia até os participantes do grupo terminarem de carregar e a mensagem perder o foco.
 
 - Transcrição local: alternar de conta enquanto áudios são transcritos não enche mais a memória do computador. Só um modelo fica carregado por vez: uma segunda transcrição, da mesma conta ou de outra, espera a primeira e avisa que está aguardando, e o modelo parado de uma conta é liberado quando outra precisa.
