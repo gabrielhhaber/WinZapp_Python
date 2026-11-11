@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- File multimediali che non si scaricano: il messaggio di errore non cita più WPPConnect, che non esiste nel motore Neonize. Ora parla di link scaduto o connessione a WhatsApp non disponibile.
+
 - Modelli aziendali: conserva il testo disponibile e i pulsanti supportati, mantiene le loro posizioni e spiega contenuti mancanti o azioni non supportate. I vecchi record vuoti non possono essere ricostruiti.
 
 - WPPConnect Server 2.10.79 viene ora offerto come aggiornamento senza dover attendere una nuova versione di WinZapp. Aggiorna solo dipendenze di sicurezza e non influisce sulle modifiche che WinZapp apporta al server.

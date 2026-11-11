@@ -7917,8 +7917,8 @@ msgstr ""
 #: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
-"This media file could not be downloaded. The link may have expired or "
-"WPPConnect is unavailable."
+"This media file could not be downloaded. The link may have expired or the "
+"WhatsApp connection may be unavailable."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

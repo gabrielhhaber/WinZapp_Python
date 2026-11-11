@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Fișiere media care nu se descarcă: mesajul de eroare nu mai menționează WPPConnect, care nu există în motorul Neonize. Acum vorbește despre un link expirat sau o conexiune la WhatsApp indisponibilă.
+
 - Șabloane comerciale: păstrează textul disponibil și butoanele acceptate, poziția acestora și explică lipsa conținutului sau acțiunile neacceptate. Înregistrările vechi goale nu pot fi reconstruite.
 
 - WPPConnect Server 2.10.79 este acum oferit ca actualizare fără a aștepta o nouă versiune WinZapp. Actualizează doar dependențe de securitate și nu afectează modificările pe care WinZapp le face serverului.
