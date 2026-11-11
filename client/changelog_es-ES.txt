@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Neonize: el historial antiguo de los chats ahora se importa de verdad durante la sincronización en segundo plano; la corrección anterior aún se anulaba al final de cada barrido. Los archivos multimedia antiguos que no se pueden recuperar, ni siquiera tras pedirlo al teléfono, ahora aparecen como caducados en lugar de un error de conexión repetido.
+
 - Neonize: el archivo multimedia cuyo enlace caducó ahora se vuelve a pedir al teléfono. Cuando la descarga falla por enlace caducado, WinZapp pide al teléfono que suba el archivo otra vez y lo descarga con el enlace nuevo; si el teléfono ya no lo tiene, el archivo sigue marcado como caducado.
 
 - Las respuestas y los envíos nuevos ya no aparecen encima del mensaje original cuando el reloj del ordenador va retrasado respecto al de WhatsApp. La hora provisional del mensaje enviado nunca es anterior a la del último mensaje ya mostrado ni a la del mensaje respondido.

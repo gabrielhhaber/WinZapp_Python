@@ -374,3 +374,17 @@ def test_a_timer_reaches_an_audio_sent_with_progress(tmp_path):
                        Message(audioMessage=AudioMessage(seconds=3)))
     sent = c.sent[0][1]
     assert sent.audioMessage.contextInfo.expiration == 86400
+
+
+@pytest.mark.parametrize("text", [
+    "download failed with status code 403",
+    "failed to download media from last host: hash of media ciphertext doesn't match",
+    "invalid media hmac",
+    "no url present",
+])
+def test_media_that_cannot_come_back_is_answered_410(text):
+    assert t.status_for_download_error(RuntimeError(text)) == 410
+
+
+def test_a_real_fault_stays_500():
+    assert t.status_for_download_error(RuntimeError("connection reset by peer")) == 500

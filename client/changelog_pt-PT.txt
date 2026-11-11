@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Neonize: o histórico antigo das conversas passa a ser mesmo importado durante a sincronização em segundo plano; a correção anterior ainda era anulada no fim de cada varrimento. Os ficheiros multimédia antigos que já não se conseguem recuperar, mesmo depois de pedir ao telemóvel, passam a aparecer como expirados em vez de um erro de ligação repetido.
+
 - Neonize: um ficheiro multimédia cuja ligação expirou passa a ser pedido de novo ao telemóvel. Quando a transferência falha por ligação expirada, o WinZapp pede ao telemóvel que envie o ficheiro outra vez e transfere-o pela nova ligação; se o telemóvel já não o tem, fica marcado como expirado.
 
 - As respostas e os envios novos já não aparecem acima da mensagem original quando o relógio do computador está atrasado em relação ao WhatsApp. A hora provisória da mensagem enviada nunca fica anterior à da última mensagem já apresentada nem à da mensagem respondida.
