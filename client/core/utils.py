@@ -276,7 +276,7 @@ _FORWARDABLE_SUB_KEYS = (
     "extendedTextMessage", "audioMessage", "imageMessage",
     "videoMessage", "documentMessage", "stickerMessage",
     "locationMessage", "contactMessage", "buttonsMessage",
-    "listMessage",
+    "listMessage", "templateMessage", "interactiveMessage",
 )
 
 

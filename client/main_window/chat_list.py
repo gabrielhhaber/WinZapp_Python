@@ -1124,6 +1124,7 @@ class ChatListMixin:
             return ""
 
         from_me  = last.get("key", {}).get("fromMe", False)
+        from core.business_message_content import TYPES, business_message_text
         msg_type = last.get("messageType", "conversation")
         msg_obj  = last.get("message") or {}
 
@@ -1145,6 +1146,8 @@ class ChatListMixin:
         elif (commerce_text := commerce_message_label(last, i18n)) is not None:
             # Same sentence the conversation row reads (core/commerce.py).
             content = commerce_text
+        elif msg_type in TYPES:
+            content = business_message_text(last, i18n)
         elif msg_type == "conversation":
             content = msg_obj.get("conversation") or ""
             if looks_like_binary_blob(content):
@@ -1269,18 +1272,6 @@ class ChatListMixin:
             poll = msg_obj.get("pollCreationMessage") or msg_obj.get("pollCreationMessageV2") or msg_obj.get("pollCreationMessageV3") or {}
             name = poll.get("name") or ""
             content = i18n.t("notif_poll").format(name=name) if name else i18n.t("notif_poll_no_name")
-        elif msg_type == "buttonsMessage":
-            buttons = msg_obj.get("buttonsMessage") or {}
-            content = (buttons.get("contentText") or buttons.get("text") or "").strip() or i18n.t("notif_button")
-        elif msg_type == "listMessage":
-            listing = msg_obj.get("listMessage") or {}
-            content = (listing.get("title") or listing.get("description") or "").strip() or i18n.t("notif_list")
-        elif msg_type == "templateMessage":
-            template = msg_obj.get("templateMessage") or {}
-            content = (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
-        elif msg_type == "interactiveMessage":
-            interactive = msg_obj.get("interactiveMessage") or {}
-            content = ((interactive.get("body") or {}).get("text") or "").strip() or i18n.t("interactive_message")
         elif msg_type == "buttonsResponseMessage":
             response = msg_obj.get("buttonsResponseMessage") or {}
             content = (response.get("selectedDisplayText") or "").strip() or i18n.t("interactive_reply")

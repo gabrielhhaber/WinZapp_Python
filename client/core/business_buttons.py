@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from core.api_client import api_post
 
@@ -49,21 +49,40 @@ def _text(value):
     return value.strip() if isinstance(value, str) else ""
 
 
+def safe_business_url(value):
+    """Only explicit web links; never a shell, file or arbitrary app URI."""
+    if not isinstance(value, str) or len(value) > 8192 or any(ord(c) <= 32 for c in value):
+        return False
+    try:
+        parsed = urlsplit(value)
+        return (parsed.scheme.lower() in ("http", "https") and bool(parsed.hostname)
+                and parsed.username is None and "\\" not in value)
+    except ValueError:
+        return False
+
+
 def _button(kind, source, index, label, value="", *, full_label=False):
     label = _text(label)
     if not label:
         return None
-    return {"kind": kind, "source": source, "index": index,
+    result = {"kind": kind, "source": source, "index": index,
             "label": label if full_label else label[:LABEL_LIMIT], "value": _text(value)}
+    if not full_label and len(label) > LABEL_LIMIT:
+        result["fullLabel"] = label
+    return result
 
 
 def _dicts(value):
     return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
 
 
+def _slots(value):
+    return [_dict if isinstance(_dict, dict) else {} for _dict in value[:MAX_BUTTONS]] if isinstance(value, list) else []
+
+
 def _dynamic(wpp_msg):
     found = []
-    for index, raw in enumerate(_dicts(wpp_msg.get("dynamicReplyButtons"))):
+    for index, raw in enumerate(_slots(wpp_msg.get("dynamicReplyButtons"))):
         text = raw.get("buttonText")
         button = _button(REPLY, "dynamic", index, text.get("displayText") if isinstance(text, dict) else "",
                          raw.get("buttonId") if isinstance(raw.get("buttonId"), str) else "")
@@ -75,7 +94,9 @@ def _dynamic(wpp_msg):
 def _native(wpp_msg):
     payload = wpp_msg.get("interactivePayload")
     found = []
-    for index, raw in enumerate(_dicts(payload.get("buttons") if isinstance(payload, dict) else None)):
+    for index, raw in enumerate(_slots(payload.get("buttons") if isinstance(payload, dict) else None)):
+        if not isinstance(raw.get("buttonParamsJson"), str) or len(raw["buttonParamsJson"]) > 65536:
+            continue
         try:
             params = json.loads(raw.get("buttonParamsJson"))
         except (TypeError, ValueError):
@@ -93,7 +114,7 @@ def _native(wpp_msg):
             button = _button(REPLY, "native", index, label, params.get("id"), full_label=is_card)
         elif name == "cta_url":
             url = _text(params.get("url"))
-            button = _button(URL, "native", index, label, url) if url.lower().startswith(("http://", "https://")) else None
+            button = _button(URL, "native", index, label, url) if safe_business_url(url) else None
         elif name == "cta_copy":
             button = _button(COPY, "native", index, label, params.get("copy_code"))
         elif name == "cta_call":
@@ -109,9 +130,14 @@ def _list(wpp_msg):
     listing = wpp_msg.get("list")
     found, index = [], 0
     for section in _dicts(listing.get("sections") if isinstance(listing, dict) else None):
-        for row in _dicts(section.get("rows")):
+        for row in _slots(section.get("rows")):
+            if index >= MAX_BUTTONS:
+                return found
+            label = "\n".join(_text(value) for value in (section.get("title"), row.get("title"), row.get("description")) if _text(value))
             button = _button(REPLY, "list", index, row.get("title"),
-                             row.get("rowId") if isinstance(row.get("rowId"), str) else "")
+                             row.get("rowId") if isinstance(row.get("rowId"), str) else "") if _text(row.get("title")) else None
+            if button and label != _text(row.get("title")):
+                button["fullLabel"] = label
             if button and button["value"]:
                 found.append(button)
             index += 1
@@ -120,19 +146,19 @@ def _list(wpp_msg):
 
 def _template(wpp_msg):
     found = []
-    for index, raw in enumerate(_dicts(wpp_msg.get("hydratedButtons"))):
+    for index, raw in enumerate(_slots(wpp_msg.get("hydratedButtons"))):
         quick, link, call = raw.get("quickReplyButton"), raw.get("urlButton"), raw.get("callButton")
         if isinstance(quick, dict):
             button = _button(REPLY, "template", index, quick.get("displayText"), quick.get("id"))
         elif isinstance(link, dict):
             url = _text(link.get("url"))
             button = _button(URL, "template", index, link.get("displayText"), url) \
-                if url.lower().startswith(("http://", "https://")) else None
+                if safe_business_url(url) else None
         elif isinstance(call, dict):
             button = _button(CALL, "template", index, call.get("displayText"), call.get("phoneNumber"))
         else:
             button = None
-        if button:
+        if button and button["value"]:
             found.append(button)
     return found
 
@@ -154,7 +180,7 @@ def business_button_label(msg, button):
     restart does not re-normalize that local message. Recover the complete
     card from the interactive message body, which still contains all cards.
     """
-    label = button.get("label") or ""
+    label = button.get("fullLabel") or button.get("label") or ""
     if (msg.get("messageType") != "interactiveMessage"
             or button.get("kind") != REPLY or button.get("source") != "native"):
         return label
@@ -162,15 +188,20 @@ def business_button_label(msg, button):
     if not old:
         return label
     preview = old.group(2)
-    interactive = (msg.get("message") or {}).get("interactiveMessage") or {}
-    body = (interactive.get("body") or {}).get("text") or ""
+    message = msg.get("message")
+    interactive = message.get("interactiveMessage") if isinstance(message, dict) else None
+    body_node = interactive.get("body") if isinstance(interactive, dict) else None
+    body = body_node.get("text") if isinstance(body_node, dict) else ""
     if not isinstance(body, str) or not isinstance(msg.get("businessButtons"), list):
         return preview
     locations = []
     cursor = 0
     previous_number, previous_start = "", -1
     for action in msg["businessButtons"]:
-        match = _OLD_CARD_LABEL.fullmatch(action.get("label") or "")
+        if not isinstance(action, dict):
+            continue
+        cached_label = action.get("label")
+        match = _OLD_CARD_LABEL.fullmatch(cached_label) if isinstance(cached_label, str) else None
         if not match:
             continue
         number, candidate = match.group(1), match.group(2)
@@ -184,7 +215,7 @@ def business_button_label(msg, button):
         locations.append((action, start))
         previous_number, previous_start = number, start
     for action, start in locations:
-        if action is button:
+        if action is button or (action.get("source"), action.get("index")) == (button.get("source"), button.get("index")):
             end = next((pos for _, pos in locations if pos > start), len(body))
             return body[start:end].strip() or preview
     return preview
@@ -195,7 +226,9 @@ def reply_to_button(connection, message_id, button):
     one that was sent."""
     if not isinstance(message_id, str) or not _MESSAGE.fullmatch(message_id):
         raise ButtonReplyError("invalid_request")
-    if not isinstance(button, dict) or button.get("kind") != REPLY or button.get("source") not in SOURCES:
+    if (not isinstance(button, dict) or button.get("kind") != REPLY or button.get("source") not in SOURCES
+            or isinstance(button.get("index"), bool) or not isinstance(button.get("index"), int)
+            or not 0 <= button["index"] < MAX_BUTTONS):
         raise ButtonReplyError("invalid_request")
     server, port, token = connection
     url = f"{server}:{port}/api/{token}/reply-button/{quote(message_id, safe='')}"

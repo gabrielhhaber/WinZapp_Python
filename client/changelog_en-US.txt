@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Business templates: preserve available text and supported buttons, keep button positions, and explain missing content or unsupported actions. Empty old records cannot be reconstructed.
+
 - WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
 
 - Neonize: after pairing with "All the history", old chat history is now really imported. Before, hundreds of old, empty chats you never opened stalled the import, and most of the messages already downloaded never showed up. Old media whose link has expired is now recognised as expired instead of failing with an error and being retried several times.

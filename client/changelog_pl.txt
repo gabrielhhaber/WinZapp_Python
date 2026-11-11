@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Szablony firmowe: zachowanie dostępnej treści i obsługiwanych przycisków, ich pozycji oraz wyjaśnienie brakującej treści i nieobsługiwanych działań. Starych pustych wpisów nie można odtworzyć.
+
 - WPPConnect Server 2.10.79 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności związane z bezpieczeństwem i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
 
 - Neonize: po sparowaniu z opcją „Cała historia” stara historia czatów jest teraz naprawdę importowana. Wcześniej setki starych, pustych czatów, których nigdy nie otworzyłeś, blokowały import, a większość pobranych już wiadomości się nie pojawiała. Stare pliki multimedialne z wygasłym linkiem są teraz rozpoznawane jako wygasłe, zamiast kończyć się błędem i być ponawiane kilka razy.

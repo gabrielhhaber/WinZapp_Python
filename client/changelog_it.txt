@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Modelli aziendali: conserva il testo disponibile e i pulsanti supportati, mantiene le loro posizioni e spiega contenuti mancanti o azioni non supportate. I vecchi record vuoti non possono essere ricostruiti.
+
 - WPPConnect Server 2.10.79 viene ora offerto come aggiornamento senza dover attendere una nuova versione di WinZapp. Aggiorna solo dipendenze di sicurezza e non influisce sulle modifiche che WinZapp apporta al server.
 
 - Neonize: dopo l'abbinamento con "Tutta la cronologia", la cronologia vecchia delle chat viene ora davvero importata. Prima, centinaia di chat vecchie e vuote mai aperte bloccavano l'importazione e la maggior parte dei messaggi già scaricati non compariva. I file multimediali vecchi con il link scaduto vengono ora riconosciuti come scaduti, invece di fallire con un errore e riprovare più volte.

@@ -25,6 +25,7 @@ The carousel reply format has unit tests but awaits confirmation on a real accou
 import json
 
 import commerce_messages
+from template_messages import template_fields
 
 SOURCES = ("dynamic", "native", "template", "list")
 
@@ -54,6 +55,7 @@ def _dynamic(body):
 
 def _list(body):
     return {"title": body.title, "description": body.description,
+            "footerText": getattr(body, "footerText", ""),
             "buttonText": body.buttonText,
             "sections": [{"title": sec.title, "rows": [
                 {"rowId": row.rowID, "title": row.title, "description": row.description}
@@ -78,6 +80,49 @@ def _template(body):
     return out
 
 
+def _interactive_header(header):
+    parts = [header.title, getattr(header, "subtitle", "")]
+    incomplete = bool(getattr(header, "hasMediaAttachment", False))
+    for field in ("documentMessage", "imageMessage", "videoMessage", "locationMessage"):
+        if _has(header, field):
+            media = getattr(header, field)
+            parts.append(getattr(media, "caption", "") or getattr(media, "fileName", "")
+                         or getattr(media, "name", ""))
+            incomplete = True
+    return "\n".join(part for part in parts if part), incomplete
+
+
+def _interactive_fields(i):
+    header_text, incomplete = _interactive_header(i.header)
+    parts = [header_text, i.body.text, i.footer.text]
+    card_buttons = []
+    for card_index, card in enumerate(i.carouselMessage.cards):
+        card_header, card_incomplete = _interactive_header(card.header)
+        incomplete = incomplete or card_incomplete
+        card_parts = (card_header, card.body.text, card.footer.text)
+        parts.extend(card_parts)
+        card_buttons.extend(
+            {"name": b.name, "buttonParamsJson": b.buttonParamsJSON,
+             "cardIndex": card_index,
+             "cardTitle": card.header.title or card.body.text,
+             "cardText": "\n".join(part for part in card_parts if part)}
+            for b in card.nativeFlowMessage.buttons)
+    fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
+    if incomplete:
+        fields["businessTemplateIncomplete"] = True
+    if _has(i, "nativeFlowMessage"):
+        buttons = i.nativeFlowMessage.buttons
+        fields["interactivePayload"] = {"buttons": [
+            {"name": b.name, "buttonParamsJson": b.buttonParamsJSON}
+            for b in buttons]}
+        flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
+        if flow:        # the client tells the order notice from the rest by this
+            fields["nativeFlowName"] = flow
+    if card_buttons:
+        fields.setdefault("interactivePayload", {"buttons": []})["buttons"].extend(card_buttons)
+    return fields
+
+
 def button_fields(message) -> dict:
     """Button fields of the whatsmeow message (already unwrapped); empty if it
     has no buttons."""
@@ -88,37 +133,11 @@ def button_fields(message) -> dict:
     if _has(message, "listMessage"):
         return {"type": "list", "body": message.listMessage.description,
                 "list": _list(message.listMessage)}
-    if _has(message, "templateMessage"):
-        t = message.templateMessage
-        template = t.hydratedTemplate if _has(t, "hydratedTemplate") else \
-            t.hydratedFourRowTemplate
-        return {"type": "template", "body": template.hydratedContentText,
-                "hydratedButtons": _template(template)}
+    template = template_fields(message, _template, _interactive_fields)
+    if template is not None:
+        return template
     if _has(message, "interactiveMessage"):
-        i = message.interactiveMessage
-        parts = [i.header.title, i.body.text, i.footer.text]
-        card_buttons = []
-        for card_index, card in enumerate(i.carouselMessage.cards):
-            card_parts = (card.header.title, card.body.text, card.footer.text)
-            parts.extend(card_parts)
-            card_buttons.extend(
-                {"name": b.name, "buttonParamsJson": b.buttonParamsJSON,
-                 "cardIndex": card_index,
-                 "cardTitle": card.header.title or card.body.text,
-                 "cardText": "\n".join(part for part in card_parts if part)}
-                for b in card.nativeFlowMessage.buttons)
-        fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
-        if _has(i, "nativeFlowMessage"):
-            buttons = i.nativeFlowMessage.buttons
-            fields["interactivePayload"] = {"buttons": [
-                {"name": b.name, "buttonParamsJson": b.buttonParamsJSON}
-                for b in buttons]}
-            flow = commerce_messages.native_flow(buttons[0].name) if buttons else ""
-            if flow:        # the client tells the order notice from the rest by this
-                fields["nativeFlowName"] = flow
-        if card_buttons:
-            fields.setdefault("interactivePayload", {"buttons": []})["buttons"].extend(card_buttons)
-        return fields
+        return _interactive_fields(message.interactiveMessage)
     if _has(message, "buttonsResponseMessage"):
         b = message.buttonsResponseMessage
         return {"type": "buttons_response", "body": b.selectedDisplayText,

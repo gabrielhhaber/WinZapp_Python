@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Modelos comerciais: preserva o texto disponível e os botões compatíveis, mantém a posição dos botões e explica conteúdo ausente ou ações incompatíveis. Registros antigos vazios não podem ser reconstruídos.
+
 - O WPPConnect Server 2.10.79 agora é oferecido como atualização sem esperar por uma nova versão do WinZapp. Ele só atualiza dependências de segurança e não afeta as alterações que o WinZapp faz no servidor.
 
 - Neonize: depois de parear com "Todo o histórico", o histórico antigo das conversas agora é importado de verdade. Antes, centenas de conversas antigas e vazias que você nunca abriu travavam essa importação, e a maior parte das mensagens já baixadas não aparecia. Mídias antigas cujo link expirou agora são reconhecidas como expiradas, em vez de falhar com erro e tentar de novo várias vezes.
