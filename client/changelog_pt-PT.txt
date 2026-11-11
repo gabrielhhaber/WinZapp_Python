@@ -6,6 +6,8 @@ NOVIDADES
 
 - O WPPConnect Server 2.10.79 é agora oferecido como atualização sem esperar por uma nova versão do WinZapp. Só atualiza dependências de segurança e não afeta as alterações que o WinZapp faz no servidor.
 
+- Neonize: depois de emparelhar com "Todo o histórico", o histórico antigo das conversas passa a ser mesmo importado. Antes, centenas de conversas antigas e vazias que nunca abriu bloqueavam essa importação, e a maioria das mensagens já transferidas não aparecia. Os ficheiros multimédia antigos cuja ligação expirou passam a ser reconhecidos como expirados, em vez de falharem com erro e serem tentados várias vezes.
+
 - Menções: numa mensagem de grupo com @todos, o Tab já não passa por uma ligação para cada participante logo depois de abrir a conversa. Antes isso acontecia até os participantes do grupo terminarem de carregar e a mensagem perder o foco.
 
 - Transcrição local: mudar de conta enquanto áudios são transcritos já não enche a memória do computador. Só um modelo fica carregado de cada vez: uma segunda transcrição, da mesma conta ou de outra, espera pela primeira e avisa que está a aguardar, e o modelo parado de uma conta é libertado quando outra precisa.

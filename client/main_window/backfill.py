@@ -88,6 +88,20 @@ class BackfillMixin:
         return not short_chats_pending and not continuing_short_sweep
 
     @staticmethod
+    def _chats_blocking_background_work(pending, attempted, user_has_opened):
+        """The pending chats that still hold names and deep history back.
+
+        A chat the user never opened, whose local fetch already ran in this
+        sweep, has nothing more to give until someone opens it: the phone is
+        deliberately left alone for it (see `_backfill_empty_chats`). Counting
+        it as "short" kept the queue non-empty forever on an account with
+        hundreds of old empty chats, so deep history never ran and most of
+        what the bridge had already downloaded stayed out of messages.db.
+        """
+        return [jid for jid in pending
+                if jid not in attempted or user_has_opened(jid)]
+
+    @staticmethod
     def _phone_request_gap_elapsed(last_at, now_monotonic, min_gap) -> bool:
         """Whether enough time has passed since the last phone-history request.
 
@@ -886,8 +900,10 @@ class BackfillMixin:
                     canonical for jid in attempted
                     if (canonical := self._canonical_backfill_jid(jid)) in pending_set
                 }
+                blocking = self._chats_blocking_background_work(
+                    pending, attempted, self._user_has_opened)
                 continuing_short_sweep = bool(
-                    attempted and any(jid not in attempted for jid in pending))
+                    attempted and any(jid not in attempted for jid in blocking))
                 names_pending = self._pending_name_resolution()
                 # Chats that already hold a full page but whose older history
                 # has never been walked. Without this the loop declared itself
@@ -915,7 +931,7 @@ class BackfillMixin:
                 # sweep. Repeating them between every fast queue chunk would
                 # merely move the old 30-second bottleneck to another endpoint.
                 background_work_allowed = self._background_backfill_work_allowed(
-                    bool(pending), continuing_short_sweep)
+                    bool(blocking), continuing_short_sweep)
                 named = self._backfill_names() if background_work_allowed else 0
                 if named:
                     wx.CallAfter(self._schedule_set_chats)

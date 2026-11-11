@@ -6,6 +6,8 @@ NOWOŚCI
 
 - WPPConnect Server 2.10.79 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności związane z bezpieczeństwem i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
 
+- Neonize: po sparowaniu z opcją „Cała historia” stara historia czatów jest teraz naprawdę importowana. Wcześniej setki starych, pustych czatów, których nigdy nie otworzyłeś, blokowały import, a większość pobranych już wiadomości się nie pojawiała. Stare pliki multimedialne z wygasłym linkiem są teraz rozpoznawane jako wygasłe, zamiast kończyć się błędem i być ponawiane kilka razy.
+
 - Wzmianki: w wiadomości grupowej z @wszyscy klawisz Tab nie przechodzi już przez osobny link dla każdego uczestnika zaraz po otwarciu czatu. Wcześniej działo się tak, dopóki uczestnicy grupy się nie wczytali, a wiadomość nie straciła fokusu.
 
 - Lokalna transkrypcja: przełączanie kont podczas transkrypcji wiadomości głosowych nie zapełnia już pamięci komputera. Naraz ładowany jest jeden model: druga transkrypcja, tego samego lub innego konta, czeka na pierwszą i informuje o tym, a nieużywany model jednego konta jest zwalniany, gdy potrzebuje go inne.
