@@ -6,6 +6,8 @@ YENİLİKLER
 
 - Çıkışta güncelle: Ayarlar > Genel bölümündeki yeni bir seçenek güncellemeleri sormadan otomatik indirir ve WinZapp'tan çıktığınızda yükler. Pencereyi tepsiye kapatmak çıkış sayılmaz ve WinZapp kurulumdan sonra yeniden açılmaz: kapalı kalır ve yeni sürümü bir sonraki açışınızda kullanır.
 
+- Neonize: eski sohbet geçmişi artık arka plan eşzamanlaması sırasında gerçekten içe aktarılıyor; önceki düzeltme her taramanın sonunda yine geçersiz kalıyordu. Telefona sorulduktan sonra bile kurtarılamayan eski medya dosyaları artık tekrarlanan bir bağlantı hatası yerine süresi dolmuş olarak görünüyor.
+
 - Neonize: bağlantısının süresi dolmuş medya artık telefondan yeniden isteniyor. Bağlantı süresi dolduğu için indirme başarısız olduğunda WinZapp telefondan medyayı yeniden yüklemesini ister ve yeni bağlantıdan indirir; telefonda dosya artık yoksa medya süresi dolmuş olarak işaretli kalır.
 
 - Bilgisayarın saati WhatsApp'ın saatinden geride olduğunda yeni yanıtlar ve gönderilen mesajlar artık özgün mesajın üstünde görünmüyor. Gönderilen mesajın geçici saati, görüntülenen son mesajdan ve yanıtlanan mesajdan hiçbir zaman önce olmaz.
