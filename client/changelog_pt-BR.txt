@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- O WPPConnect Server 2.10.79 agora é oferecido como atualização sem esperar por uma nova versão do WinZapp. Ele só atualiza dependências de segurança e não afeta as alterações que o WinZapp faz no servidor.
+
 - Menções: numa mensagem de grupo com @todos, o Tab não passa mais por um link para cada participante logo depois de abrir a conversa. Antes isso acontecia até os participantes do grupo terminarem de carregar e a mensagem perder o foco.
 
 - Transcrição local: alternar de conta enquanto áudios são transcritos não enche mais a memória do computador. Só um modelo fica carregado por vez: uma segunda transcrição, da mesma conta ou de outra, espera a primeira e avisa que está aguardando, e o modelo parado de uma conta é liberado quando outra precisa.
@@ -109,6 +111,8 @@ NOVIDADES
 - Chamadas do Neonize: as chamadas que você faz, e as que você atende e desliga, agora aparecem no histórico da conversa e na seção Chamadas. Antes elas não eram registradas (problema #689).
 
 - Chamadas do Neonize: o registro agora conta, a cada 5 segundos, os pacotes de cada tipo que o relay entrega (sem nomes), para descobrir por que o áudio de quem liga some em algumas chamadas recebidas (problema #689). Nenhuma mudança de comportamento.
+
+- Chamadas em grupo do Neonize: depois de desligar uma chamada em grupo e voltar para ela pelo painel de ligações (ou entrar numa que já está em andamento), você deixava de ouvir todo mundo. O WinZapp ignorava quem já estava na chamada antes de você voltar; agora ele ouve essas pessoas de novo. O registro de chamadas também conta as mensagens repetidas por chamada, para que as linhas de diagnóstico não sumam de uma chamada depois de algumas chamadas (problema #689).
 
 - Neonize: a primeira mensagem para um número de telefone novo digitado numa nova conversa (Ctrl+N) não termina mais como "envio não confirmado" quando o WhatsApp tem o número registrado na outra forma (com ou sem o nono dígito dos celulares brasileiros): agora ela é enviada ao endereço que o WhatsApp conhece. Além disso, um número digitado numa nova conversa agora abre o chat com o endereço que o WhatsApp conhece, sem deixar uma conversa duplicada.
 
@@ -407,6 +411,8 @@ NOVIDADES
 - Chamadas: o botão "Participantes da ligação" da janela da chamada agora tem o atalho Ctrl+Shift+P (o Ctrl+P continua sendo a promoção para vídeo). O leitor de tela anuncia essa tecla de atalho no botão, e o atalho aparece na lista de atalhos da janela da chamada.
 
 - Neonize: status "Adicione o seu", de pergunta e de figurinha animada deixam de aparecer como "Mensagem incompatível"; o registro do bridge agora anota o tipo das mensagens sem mapeamento.
+
+- Digitação: o aviso "digitando" não reaparece mais alguns segundos depois de a pessoa enviar a mensagem (problema #743).
 
 V2.1.0.0
 

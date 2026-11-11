@@ -156,6 +156,17 @@ What the patches carry today:
   the window and in total, zeros included. The receive summary prints only when
   a packet arrives, so a relay gone quiet logged nothing. Added for issue #689:
   a call from an Android caller received 3 RTP packets, then none for 38 s.
+- **meowcaller 0014**: a device in a connected group participant's roster
+  entry with no PID and none learned earlier is registered without one, unless
+  another device of the same person has a PID (that one is the device in the
+  call). The PID only travels in the update where a device joins; the roster
+  an account gets when it rejoins a call going on has none, so every remote
+  device was skipped and the call was digital silence (issue #689, Gustavo's
+  rejoin). Audio is told apart by the SSRC and keys derived from the device id,
+  not by the PID.
+- **neonize 0022**: the "chamadas: meowcaller" log writer counted repeated
+  messages (first 8, then every 200) for the whole process; it now counts per
+  `call_id`, so a later call keeps its roster, key epoch and summary lines.
 
 ## Toolchain (once)
 

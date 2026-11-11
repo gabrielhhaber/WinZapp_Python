@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect Server 2.10.79 viene ora offerto come aggiornamento senza dover attendere una nuova versione di WinZapp. Aggiorna solo dipendenze di sicurezza e non influisce sulle modifiche che WinZapp apporta al server.
+
 - Menzioni: in un messaggio di gruppo con @tutti, Tab non passa più per un link per ogni membro subito dopo l'apertura della chat. Prima succedeva finché i membri del gruppo non finivano di caricarsi e il messaggio perdeva il focus.
 
 - Trascrizione locale: cambiare account mentre si trascrivono i messaggi vocali non riempie più la memoria del computer. Si carica un solo modello alla volta: una seconda trascrizione, dello stesso account o di un altro, aspetta la prima e avvisa che è in attesa, e il modello inattivo di un account viene liberato quando un altro ne ha bisogno.
@@ -109,6 +111,8 @@ WHAT'S NEW
 - Chiamate Neonize: le chiamate che effettui, e quelle a cui rispondi e che chiudi tu, ora compaiono nella cronologia della conversazione e nella sezione Chiamate. Prima non venivano registrate (problema #689).
 
 - Chiamate Neonize: il registro ora conta, ogni 5 secondi, i pacchetti di ogni tipo consegnati dal relay (senza nomi), per capire perché in alcune chiamate ricevute l'audio di chi chiama si interrompe (problema #689). Nessun cambiamento di comportamento.
+
+- Chiamate di gruppo (Neonize): se riattacchi una chiamata di gruppo e rientri dal pannello delle chiamate (o ti unisci a una già in corso), non senti più nessuno. WinZapp ignorava chi era già nella chiamata prima del tuo ritorno; ora li sente di nuovo. Il registro delle chiamate conta inoltre i messaggi ripetuti per chiamata, così le righe di diagnosi non spariscono da una chiamata dopo alcune chiamate (problema #689).
 
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
 
@@ -407,6 +411,8 @@ WHAT'S NEW
 - Chiamate: il pulsante "Partecipanti alla chiamata" della finestra della chiamata ora ha la scorciatoia Ctrl+Shift+P (Ctrl+P resta il passaggio al video). Il lettore di schermo annuncia questo tasto di scelta rapida sul pulsante, e la scorciatoia compare nell'elenco delle scorciatoie della finestra della chiamata.
 
 - Neonize: gli stati "Aggiungi il tuo", di domanda e di sticker animato non compaiono più come "Messaggio incompatibile"; il log del bridge ora annota il tipo dei messaggi senza corrispondenza.
+
+- Digitazione: l'indicatore "sta scrivendo" non riappare più alcuni secondi dopo che la persona ha inviato il messaggio (problema #743).
 
 V2.1.0.0
 

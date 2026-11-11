@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect Server 2.10.79 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności związane z bezpieczeństwem i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
+
 - Wzmianki: w wiadomości grupowej z @wszyscy klawisz Tab nie przechodzi już przez osobny link dla każdego uczestnika zaraz po otwarciu czatu. Wcześniej działo się tak, dopóki uczestnicy grupy się nie wczytali, a wiadomość nie straciła fokusu.
 
 - Lokalna transkrypcja: przełączanie kont podczas transkrypcji wiadomości głosowych nie zapełnia już pamięci komputera. Naraz ładowany jest jeden model: druga transkrypcja, tego samego lub innego konta, czeka na pierwszą i informuje o tym, a nieużywany model jednego konta jest zwalniany, gdy potrzebuje go inne.
@@ -109,6 +111,8 @@ NOWOŚCI
 - Rozmowy przez Neonize: rozmowy, które wykonujesz oraz te, które odbierasz i kończysz sam, pojawiają się teraz w historii czatu i w sekcji Połączenia. Wcześniej nie były zapisywane (problem #689).
 
 - Rozmowy przez Neonize: dziennik liczy teraz co 5 sekund pakiety każdego rodzaju dostarczane przez przekaźnik (bez nazw), aby ustalić, dlaczego w niektórych odebranych rozmowach dźwięk dzwoniącego się urywa (problem #689). Bez zmian w działaniu.
+
+- Rozmowy grupowe przez Neonize: po rozłączeniu się z rozmowy grupowej i powrocie do niej z panelu rozmów (albo dołączeniu do trwającej) nie słychać już nikogo. WinZapp pomijał osoby, które były w rozmowie, zanim wróciłeś; teraz znów je słychać. Dziennik rozmów liczy też powtarzające się komunikaty osobno dla każdej rozmowy, więc wiersze diagnostyczne nie znikają z rozmowy po kilku rozmowach (problem #689).
 
 - Neonize: pierwsza wiadomość do nowego numeru telefonu wpisanego w nowym czacie (Ctrl+N) nie kończy się już jako „niepotwierdzona”, gdy WhatsApp ma ten numer zarejestrowany w innej postaci (z dziewiątą cyfrą lub bez niej w brazylijskich numerach komórkowych): jest teraz wysyłana na adres, który zna WhatsApp. Numer wpisany w nowym czacie otwiera teraz czat pod adresem, który zna WhatsApp, więc nie zostaje drugi czat z tym samym kontaktem.
 
@@ -407,6 +411,8 @@ NOWOŚCI
 - Połączenia: przycisk „Uczestnicy połączenia” w oknie połączenia ma teraz skrót Ctrl+Shift+P (Ctrl+P nadal przełącza na wideo). Czytnik ekranu zapowiada ten skrót na przycisku, a skrót jest na liście skrótów okna połączenia.
 
 - Neonize: statusy „Dodaj swój”, z pytaniem i z animowaną naklejką nie pokazują się już jako „Niezgodna wiadomość”; dziennik mostu zapisuje teraz typ wiadomości bez odpowiednika.
+
+- Pisanie: wskaźnik pisania nie pojawia się już ponownie kilka sekund po wysłaniu wiadomości przez rozmówcę (problem #743).
 
 V2.1.0.0
 

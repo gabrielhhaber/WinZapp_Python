@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- WPPConnect Server 2.10.79 este acum oferit ca actualizare fără a aștepta o nouă versiune WinZapp. Actualizează doar dependențe de securitate și nu afectează modificările pe care WinZapp le face serverului.
+
 - Mențiuni: într-un mesaj de grup cu @toți, Tab nu mai trece printr-un link pentru fiecare participant imediat după deschiderea conversației. Înainte se întâmpla până când participanții grupului terminau de încărcat și mesajul pierdea focusul.
 
 - Transcriere locală: schimbarea contului în timp ce se transcriu mesaje vocale nu mai umple memoria computerului. Se încarcă un singur model odată: o a doua transcriere, a aceluiași cont sau a altuia, o așteaptă pe prima și anunță că așteaptă, iar modelul inactiv al unui cont este eliberat când altul are nevoie.
@@ -109,6 +111,8 @@ NOUTĂȚI
 - Apeluri prin Neonize: apelurile pe care le faci, și cele pe care le preiei și le închizi tu, apar acum în istoricul conversației și în secțiunea Apeluri. Înainte nu erau înregistrate (problema #689).
 
 - Apeluri prin Neonize: jurnalul numără acum, la fiecare 5 secunde, pachetele de fiecare tip livrate de releu (fără nume), pentru a afla de ce sunetul apelantului dispare în unele apeluri primite (problema #689). Nicio schimbare de comportament.
+
+- Apeluri de grup prin Neonize: după ce închizi un apel de grup și revii în el din panoul de apeluri (sau intri într-unul deja în desfășurare), nu mai auzeai pe nimeni. WinZapp ignora persoanele care erau deja în apel înainte să revii; acum le aude din nou. Jurnalul apelurilor numără acum mesajele repetate separat pentru fiecare apel, ca rândurile de diagnostic să nu dispară dintr-un apel după câteva apeluri (problema #689).
 
 - Neonize: primul mesaj către un număr de telefon nou scris într-o conversație nouă (Ctrl+N) nu se mai termină ca „neconfirmat” când WhatsApp are numărul înregistrat în cealaltă formă (cu sau fără a 9-a cifră a mobilelor braziliene): acum este trimis la adresa pe care o cunoaște WhatsApp. În plus, un număr scris într-o conversație nouă deschide acum chatul cu adresa pe care o cunoaște WhatsApp, fără a lăsa o conversație duplicată.
 
@@ -407,6 +411,8 @@ NOUTĂȚI
 - Apeluri: butonul „Participanții la apel” din fereastra apelului are acum scurtătura Ctrl+Shift+P (Ctrl+P rămâne trecerea la video). Cititorul de ecran anunță această tastă de scurtătură pe buton, iar scurtătura apare în lista de scurtături a ferestrei apelului.
 
 - Neonize: statusurile „Adaugă-l pe al tău”, cu întrebare și cu autocolant animat nu mai apar ca „Mesaj incompatibil”; jurnalul bridge-ului notează acum tipul mesajelor fără corespondent.
+
+- Scriere: indicatorul de scriere nu mai reapare la câteva secunde după ce persoana și-a trimis mesajul (problema #743).
 
 V2.1.0.0
 

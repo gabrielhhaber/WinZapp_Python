@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "28f86a12cd75": "O WPPConnect Server 2.10.79 agora é oferecido como atualização sem esperar por u",
     "c1ae13244186": "Menções: numa mensagem de grupo com @todos, o Tab não passa mais por um link par",
     "b92aa4298a8c": "Transcrição local: alternar de conta enquanto áudios são transcritos não enche m",
     "596ecd2d5554": "Limpar conversa (Neonize): limpar uma conversa no WinZapp agora limpa também no ",
@@ -57,6 +58,7 @@
     "945e71783177": "Chamadas em grupo do Neonize: um aparelho conectado à chamada agora mantém o ide",
     "f01d4e5048a3": "Chamadas do Neonize: as chamadas que você faz, e as que você atende e desliga, a",
     "ef28f7601080": "Chamadas do Neonize: o registro agora conta, a cada 5 segundos, os pacotes de ca",
+    "52d24850741d": "Chamadas em grupo do Neonize: depois de desligar uma chamada em grupo e voltar p",
     "cbb8db690a38": "Neonize: a primeira mensagem para um número de telefone novo digitado numa nova ",
     "23f98047e3c4": "Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápid",
     "fba3903f0939": "Mensagens de voz: as gravações em estéreo (AAC) agora saem por padrão a 128 kbps",
@@ -207,6 +209,7 @@
     "bd4f75618c7e": "Neonize: ao citar uma mensagem de voz, a duração dela (por exemplo 0:15) agora a",
     "021fdca9a7fe": "Status: localização, enquete, lista de contatos e outros tipos de status de cont",
     "704cbaba1247": "Chamadas: o botão \"Participantes da ligação\" da janela da chamada agora tem o at",
-    "aeea4d08ab76": "Neonize: status \"Adicione o seu\", de pergunta e de figurinha animada deixam de a"
+    "aeea4d08ab76": "Neonize: status \"Adicione o seu\", de pergunta e de figurinha animada deixam de a",
+    "3e4b8b37fbb5": "Digitação: o aviso \"digitando\" não reaparece mais alguns segundos depois de a pe"
   }
 }

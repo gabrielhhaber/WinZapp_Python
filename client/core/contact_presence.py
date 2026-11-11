@@ -139,6 +139,21 @@ def merge(owner, jid, data, *, now=None, chat=None):
     return entry
 
 
+def without_activity(snapshot):
+    """A polled snapshot never starts or renews typing/recording.
+
+    Only a live chatstate event may; the model WPP is read from keeps
+    "composing" after the person sent their message. Such a snapshot also says
+    nothing reliable about being online (composing with a hidden online flag
+    must not become "offline"), so isOnline is left unknown; last seen and
+    denial are kept.
+    """
+    if not isinstance(snapshot, dict) or snapshot.get("lastKnownPresence") not in ACTIVITY:
+        return snapshot
+    kept = {k: v for k, v in snapshot.items() if k != "isOnline"}
+    return {**kept, "lastKnownPresence": ""}
+
+
 def response_snapshot(payload):
     """Parse the current API snapshot and older scalar last-seen responses.
 

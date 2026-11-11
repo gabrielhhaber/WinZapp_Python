@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect Server 2.10.79 artık yeni bir WinZapp sürümünü beklemeden güncelleme olarak sunuluyor. Yalnızca güvenlik bağımlılıklarını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
+
 - Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
 
 - Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler ve beklediğini söyler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.
@@ -109,6 +111,8 @@ YENİLİKLER
 - Neonize aramaları: yaptığınız aramalar ile yanıtlayıp kendinizin kapattığı aramalar artık konuşma geçmişinde ve Aramalar bölümünde görünüyor. Daha önce hiç kaydedilmiyorlardı (sorun #689).
 
 - Neonize aramaları: günlük artık her 5 saniyede röleden gelen paketleri türlerine göre sayıyor (isim yok); bazı gelen aramalarda arayanın sesinin neden kesildiğini anlamak için (sorun #689). Davranış değişmedi.
+
+- Neonize grup aramaları: bir grup aramasını kapatıp arama panelinden tekrar girdiğinizde (ya da süren bir aramaya katıldığınızda) artık kimseyi duymama sorunu giderildi. WinZapp, siz dönmeden önce aramada olan kişileri yok sayıyordu; şimdi onları yeniden duyuyor. Arama günlüğü ayrıca tekrarlanan mesajları arama başına sayıyor; böylece birkaç aramadan sonra tanı satırları bir aramadan kaybolmuyor (sorun #689).
 
 - Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.
 
@@ -407,6 +411,8 @@ YENİLİKLER
 - Aramalar: arama penceresindeki "Arama katılımcıları" düğmesi artık Ctrl+Shift+P kısayoluna sahip (Ctrl+P görüntülüye geçiş olarak kalır). Ekran okuyucu bu kısayol tuşunu düğmede duyurur ve kısayol arama penceresi kısayolları listesinde yer alır.
 
 - Neonize: "Seninkini ekle", soru ve hareketli çıkartma durumları artık "Uyumsuz mesaj" olarak görünmüyor; köprü günlüğü artık eşleşmesi olmayan mesajların türünü kaydediyor.
+
+- Yazma: karşı taraf mesajını gönderdikten birkaç saniye sonra "yazıyor" göstergesi artık yeniden görünmüyor (sorun #743).
 
 V2.1.0.0
 
