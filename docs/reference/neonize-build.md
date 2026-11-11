@@ -175,6 +175,12 @@ What the patches carry today:
   fails with an expired link the bridge (`media_retry.py`, called by
   `get-media-by-message`) asks the phone to upload the file again, waits for
   the answer and downloads from the new direct path; "not found" answers 410.
+- **neonize 0024**: `DownloadRetriedMedia` (`goneonize/mediaretry_download.go`,
+  Python `download_retried_media`). The retry notification brings only the new
+  direct path, and the phone's new upload can encrypt to other bytes, so
+  whatsmeow's check of the old `fileEncSHA256` refused all 7 hosts (issue #756).
+  The ciphertext is authenticated by the media key's HMAC and the plaintext by
+  `fileSHA256` (`mediaretry_decrypt.go`, tested alone with `go test`).
 
 ## Toolchain (once)
 

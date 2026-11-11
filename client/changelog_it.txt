@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: old media that the phone re-uploads after the request to send it again is now actually downloaded. Before, the re-uploaded file was refused because it did not match the check of the original file and the media still would not open.
+
 - Update on exit: a new option in Settings > General downloads updates automatically, without asking, and installs them when you exit WinZapp. Closing the window to the tray does not count as exiting, and WinZapp does not open again after the installation: it stays closed and uses the new version the next time you open it.
 
 - Neonize: la cronologia vecchia delle chat viene ora davvero importata durante la sincronizzazione in background; la correzione precedente veniva ancora annullata alla fine di ogni scansione. I file multimediali vecchi che non si riescono a recuperare, nemmeno dopo averli chiesti al telefono, ora risultano scaduti invece di un errore di connessione ripetuto.

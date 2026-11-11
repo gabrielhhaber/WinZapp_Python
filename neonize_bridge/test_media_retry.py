@@ -206,3 +206,65 @@ def test_register_events_hands_the_phone_answer_to_the_waiting_download():
     slot = s.media_retries.expect("M1")
     handlers[nev.MediaRetryEv](None, Event("M1"))
     assert slot["event"].is_set()
+
+
+# ---- the download after the retry: authenticated by HMAC, not the old hash (#756)
+
+def keyed_image():
+    return Message(imageMessage=ImageMessage(
+        mediaKey=KEY, directPath="/old", URL="https://old", fileLength=10,
+        fileEncSHA256=b"e" * 32, fileSHA256=b"f" * 32))
+
+
+class RetriedClient(RetryClient):
+    """A build with `download_retried_media`; writes the plaintext to `dest`."""
+
+    def __init__(self, answers, answer, plain=b"voice"):
+        super().__init__(answers, {"result": "SUCCESS", "direct_path": "/new"})
+        self.answer, self.plain, self.requests = answer, plain, []
+
+    def download_retried_media(self, request):
+        self.requests.append(request)
+        if not self.answer.get("error"):
+            with open(request["dest"], "wb") as f:
+                f.write(self.plain)
+        return self.answer
+
+
+def retried_session(answer):
+    answers = media_retry.Answers()
+    client = RetriedClient(answers, answer)
+    return N(client=client, media_retries=answers), client
+
+
+def test_retried_request_carries_the_keys_and_the_kind_of_the_media():
+    request = media_retry.retried_request(keyed_image(), "/new", "C:/tmp/x")
+    assert request["direct_path"] == "/new" and request["kind"] == "image"
+    assert base64.b64decode(request["media_key"]) == KEY
+    assert base64.b64decode(request["enc_sha256"]) == b"e" * 32
+    assert base64.b64decode(request["file_sha256"]) == b"f" * 32
+    assert request["dest"] == "C:/tmp/x"
+
+
+def test_kind_of_names_each_media_message():
+    assert media_retry.kind_of(keyed_image()) == "image"
+    assert media_retry.kind_of(Message(conversation="hi")) is None
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import AudioMessage
+    assert media_retry.kind_of(Message(audioMessage=AudioMessage(mediaKey=KEY))) == "audio"
+
+
+def test_after_the_retry_a_build_with_the_call_downloads_through_it_not_through_the_old_hash():
+    s, client = retried_session({"ok": True})
+    download = downloads([RuntimeError("403 forbidden")])
+    assert run(s, keyed_image(), download) == b"voice"
+    assert download.seen == ["/old"]                 # the old path was tried once, no second go
+    assert client.requests[0]["direct_path"] == "/new"
+
+
+def test_a_file_the_key_does_not_authenticate_is_reported_with_its_own_text():
+    import transfers
+    s, _ = retried_session({"error": "invalid media hmac"})
+    with pytest.raises(RuntimeError) as raised:
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    assert "invalid media hmac" in str(raised.value)
+    assert transfers.status_for_download_error(raised.value) == 410
