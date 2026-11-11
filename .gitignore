@@ -247,3 +247,6 @@ shutdown_audit.log
 
 # Neonize DLL workspace and build output (neonize_bridge/build_neonize.py)
 neonize_bridge/neonize_build/
+
+.patch-no-commit/
+

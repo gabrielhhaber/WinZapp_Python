@@ -416,6 +416,8 @@ NOWOŚCI
 
 - Pisanie: wskaźnik pisania nie pojawia się już ponownie kilka sekund po wysłaniu wiadomości przez rozmówcę (problem #743).
 
+- Okno nowości: klawisz Esc zamyka je teraz zarówno z Pomoc > „Co nowego?”, jak i z Pomoc > „Co nowego od ostatniego przeglądu”. Wcześniej Esc nic nie robił i trzeba było przejść do przycisku zamykania.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
