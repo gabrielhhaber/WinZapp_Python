@@ -8,6 +8,8 @@ YENİLİKLER
 
 - WPPConnect Server 2.10.79 artık yeni bir WinZapp sürümünü beklemeden güncelleme olarak sunuluyor. Yalnızca güvenlik bağımlılıklarını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
 
+- Neonize: "Tüm geçmiş" ile eşleştirdikten sonra eski sohbet geçmişi artık gerçekten içe aktarılıyor. Önceden hiç açmadığınız yüzlerce eski ve boş sohbet içe aktarmayı tıkıyor, indirilmiş mesajların çoğu görünmüyordu. Bağlantısı süresi dolmuş eski medya dosyaları artık hata verip birkaç kez yeniden denenmek yerine süresi dolmuş olarak tanınıyor.
+
 - Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
 
 - Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler ve beklediğini söyler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.

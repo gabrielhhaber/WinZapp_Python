@@ -355,7 +355,7 @@ def _loop(deep_pending, pending=(), names=()):
                  "_voice_call_in_progress"):
         setattr(stub, name, types.MethodType(inspect.getattr_static(MainWindow, name), stub))
     for name in ("_initial_backfill_delay", "_background_backfill_work_allowed",
-                 "_backfill_short_queue_delays"):
+                 "_chats_blocking_background_work", "_backfill_short_queue_delays"):
         setattr(stub, name, getattr(MainWindow, name))
     for const in ("_BACKFILL_BUDGET", "_BACKFILL_LANDING_BUDGET",
                   "_BACKFILL_FIRST_DELAY", "_BACKFILL_CHUNK_DELAY",

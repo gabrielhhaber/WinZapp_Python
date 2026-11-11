@@ -138,6 +138,7 @@ class TestTheBackfillHonoursIt:
         stub.refresh_history_still_landing = lambda **k: False
         stub._start_deferred_media_sync = lambda: None
         stub._background_backfill_work_allowed = lambda *a: False
+        stub._chats_blocking_background_work = MainWindow._chats_blocking_background_work
         stub._resolve_backfill_target = lambda jid: (jid, {"remoteJid": jid})
         stub._local_record_count = lambda jid: 1
         stub.history_page_target = lambda: 200

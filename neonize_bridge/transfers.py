@@ -204,3 +204,15 @@ async def download_with_progress_async(client, message, body, emit_event, sessio
     except asyncio.CancelledError:
         _cancel(client, key)
         raise
+
+
+def status_for_download_error(error) -> int:
+    """HTTP status the bridge answers a failed media download with.
+
+    410 for media that is gone from WhatsApp's server (404/410) or whose CDN
+    link expired (403 / forbidden), which the client treats as "expired" and
+    remembers instead of retrying. Anything else is a real fault: 500.
+    """
+    text = str(error).lower()
+    gone = ("404", "410", "403", "not found", "forbidden")
+    return 410 if any(mark in text for mark in gone) else 500
