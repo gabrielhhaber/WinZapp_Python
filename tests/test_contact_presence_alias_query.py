@@ -237,3 +237,15 @@ def test_queued_alias_result_cannot_cross_visit_epoch_shutdown_or_identity(sched
     # Switching contacts immediately queues that contact's own fresh request.
     assert len(workers) == (1 if change == "switch" else 0)
     assert owner._contact_presence_inflight is (change == "switch")
+
+
+@pytest.mark.parametrize("state", ["composing", "recording"])
+def test_polled_snapshot_never_starts_or_renews_activity(state):
+    """Issue #743: WPP keeps a stale "composing" after the message was sent."""
+    payload = ready(isOnline=True, state=state, lastSeen=None)
+    snapshot = read_snapshot((PN,), lambda target, timeout: response(payload), lambda: 100)
+    assert snapshot["lastKnownPresence"] == ""
+    assert snapshot["isOnline"] is True
+    owner = Owner()
+    entry = merge(owner, PN, snapshot, now=100)
+    assert entry["lastKnownPresence"] == "available"

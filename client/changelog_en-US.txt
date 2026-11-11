@@ -410,6 +410,8 @@ WHAT'S NEW
 
 - Neonize: "Add yours", question and animated sticker statuses no longer show as "Incompatible message"; the bridge log now records the type of messages it has no mapping for.
 
+- Typing: the typing indicator no longer reappears a few seconds after the person sent their message (issue #743).
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
