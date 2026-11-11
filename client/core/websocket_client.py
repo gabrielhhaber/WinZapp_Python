@@ -2811,6 +2811,8 @@ class WebSocketClient:
         # symptom to be diagnosed three layers away. Observation only: the
         # payload is returned untouched and nothing below changes behaviour.
         observe_payload([wpp_msg], "get-messages", where="wpp message")
+        from core.business_message_content import prepare_business_message
+        wpp_msg = prepare_business_message(wpp_msg)
         msg_id = wpp_msg.get("id")
         if isinstance(msg_id, dict):
             msg_id = msg_id.get("_serialized", "")
@@ -3113,7 +3115,8 @@ class WebSocketClient:
                 message_content = {ORDER_UPDATE_MESSAGE_TYPE: order_update}
                 msg_type = "order_update"
             else:
-                message_content = {"interactiveMessage": {"body": {"text": conversation}}}
+                message_content = {"interactiveMessage": {"body": {"text": conversation},
+                    "interactivePayload": wpp_msg.get("interactivePayload") or {}}}
         elif msg_type == "buttons_response":
             message_content = {"buttonsResponseMessage": {
                 "selectedDisplayText": conversation,
@@ -3287,6 +3290,10 @@ class WebSocketClient:
             normalized["_edited"] = True
         normalized.update(remote_star_state(wpp_msg))
         buttons = business_buttons(wpp_msg)
+        if wpp_msg.get("businessTemplateIncomplete") is True:
+            normalized["businessTemplateIncomplete"] = True
+        if wpp_msg.get("businessHeaderKind"):
+            normalized["businessHeaderKind"] = wpp_msg["businessHeaderKind"]
         if buttons:
             normalized["businessButtons"] = buttons
         replies = comment_count(wpp_msg.get("replyCount"))
@@ -3488,7 +3495,8 @@ class WebSocketClient:
                 # Put under specific sub-keys (e.g. imageMessage, videoMessage) if they exist
                 for sub_key in (
                     "extendedTextMessage", "imageMessage", "videoMessage", "audioMessage",
-                    "documentMessage", "stickerMessage", "locationMessage", "contactMessage"
+                    "documentMessage", "stickerMessage", "locationMessage", "contactMessage",
+                    "templateMessage", "interactiveMessage", "buttonsMessage", "listMessage"
                 ):
                     if sub_key in normalized["message"] and isinstance(normalized["message"][sub_key], dict):
                         normalized["message"][sub_key]["contextInfo"] = context_info

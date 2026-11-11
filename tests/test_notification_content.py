@@ -40,6 +40,7 @@ class _FakeI18n:
         "notif_poll": "[poll:{name}]",
         "notif_poll_no_name": "[poll-no-name]",
         "notif_template": "[template]",
+        "business_template_unavailable": "[business content unavailable]",
         "interactive_message": "[interactive]",
         "interactive_reply": "[interactive-reply]",
         "list_reply": "[list-reply]",
@@ -101,7 +102,7 @@ class TestFormatNotificationBodyCoversRealContentTypes:
 
     def test_buttons_message_with_no_text_falls_back(self):
         msg = _msg("buttonsMessage", {"buttonsMessage": {}})
-        assert format_notification_body(msg, None, _FakeI18n()) == "[interactive]"
+        assert format_notification_body(msg, None, _FakeI18n()) == "[business content unavailable]"
 
     def test_list_message_shows_its_title(self):
         msg = _msg("listMessage", {"listMessage": {"title": "Cardápio"}})
@@ -109,7 +110,7 @@ class TestFormatNotificationBodyCoversRealContentTypes:
 
     def test_template_message(self):
         msg = _msg("templateMessage")
-        assert format_notification_body(msg, None, _FakeI18n()) == "[template]"
+        assert format_notification_body(msg, None, _FakeI18n()) == "[business content unavailable]"
 
     def test_template_message_with_content(self):
         msg = _msg("templateMessage", {"templateMessage": {"hydratedContentText": "Your ticket"}})
