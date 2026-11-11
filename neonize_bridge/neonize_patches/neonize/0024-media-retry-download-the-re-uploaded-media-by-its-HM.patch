@@ -21,7 +21,7 @@ the media key's HMAC and the plaintext by fileSHA256 (issue #756).
 
 diff --git a/goneonize/mediaretry_decrypt.go b/goneonize/mediaretry_decrypt.go
 new file mode 100644
-index 0000000..35b3e4c
+index 0000000..3a76289
 --- /dev/null
 +++ b/goneonize/mediaretry_decrypt.go
 @@ -0,0 +1,47 @@
@@ -58,7 +58,7 @@ index 0000000..35b3e4c
 +	h := hmac.New(sha256.New, macKey)
 +	h.Write(iv)
 +	h.Write(ciphertext)
-+	if !bytes.Equal(h.Sum(nil)[:macLength], mac) {
++	if !hmac.Equal(h.Sum(nil)[:macLength], mac) {
 +		return nil, errRetriedHMAC
 +	}
 +	plain, err := cbcutil.Decrypt(cipherKey, iv, ciphertext)

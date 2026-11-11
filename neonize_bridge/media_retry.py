@@ -21,6 +21,8 @@ JID, a name or a key.
 import asyncio
 import base64
 import logging
+import os
+import tempfile
 import threading
 
 import msgmap
@@ -107,6 +109,8 @@ def has_retry(client) -> bool:
         callable(getattr(client, "decrypt_media_retry", None))
 
 
+#: how long the build may take to fetch the re-uploaded file
+RETRIED_TIMEOUT_MS = 120000
 #: the message field of each kind `download_retried_media` knows
 KINDS = {"imageMessage": "image", "videoMessage": "video", "ptvMessage": "video",
          "audioMessage": "audio", "documentMessage": "document",
@@ -137,15 +141,13 @@ def retried_request(message, direct_path: str, dest: str) -> dict:
     return {
         "direct_path": direct_path, "media_key": b64(media.mediaKey),
         "enc_sha256": b64(media.fileEncSHA256), "file_sha256": b64(media.fileSHA256),
-        "kind": kind_of(message), "dest": dest, "timeout_ms": 120000,
+        "kind": kind_of(message), "dest": dest, "timeout_ms": RETRIED_TIMEOUT_MS,
     }
 
 
 def fetch_retried(client, message, direct_path: str) -> bytes:
     """Downloads the re-uploaded media through the build's own call (blocking).
     The error text is kept: 'invalid media hmac' and the like answer 410."""
-    import os
-    import tempfile
     descriptor, dest = tempfile.mkstemp(prefix="winzapp-retry-")
     os.close(descriptor)
     try:
