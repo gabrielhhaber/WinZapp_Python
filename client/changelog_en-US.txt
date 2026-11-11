@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Business templates: preserve available text and supported buttons, keep button positions, and explain missing content or unsupported actions. Empty old records cannot be reconstructed.
+
 - WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
 
 - Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.

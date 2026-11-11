@@ -293,6 +293,10 @@ def _content(inner, field, chat_w, out) -> bool:
         out.update(rich_response_fields(inner.richResponseMessage))
     elif field in ("reactionMessage", "pollUpdateMessage", "keepInChatMessage", ""):
         return False
+    elif field in ("buttonsMessage", "listMessage", "templateMessage", "highlyStructuredMessage",
+                   "interactiveMessage", "buttonsResponseMessage", "listResponseMessage",
+                   "templateButtonReplyMessage", "interactiveResponseMessage"):
+        out.update(buttons.button_fields(inner))
     else:
         out["type"] = "unknown"
         # the proto field name carries no personal data; it is what a report of
@@ -343,7 +347,8 @@ def rich_response_fields(rich) -> dict:
 # content fields that carry contextInfo (reply, mention, forwarded)
 CONTEXT = ("extendedTextMessage", "imageMessage", "videoMessage", "ptvMessage",
            "audioMessage", "documentMessage", "stickerMessage", "locationMessage",
-           "liveLocationMessage", "contactMessage", "contactsArrayMessage")
+           "liveLocationMessage", "contactMessage", "contactsArrayMessage",
+           "templateMessage", "interactiveMessage", "buttonsMessage", "listMessage")
 
 # what the client reads of a quote: the rest (keys, thumbnail...) would only bloat
 # what it stores (core/utils.py _slim_quoted_message)

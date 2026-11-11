@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Șabloane comerciale: păstrează textul disponibil și butoanele acceptate, poziția acestora și explică lipsa conținutului sau acțiunile neacceptate. Înregistrările vechi goale nu pot fi reconstruite.
+
 - WPPConnect Server 2.10.79 este acum oferit ca actualizare fără a aștepta o nouă versiune WinZapp. Actualizează doar dependențe de securitate și nu afectează modificările pe care WinZapp le face serverului.
 
 - Mențiuni: într-un mesaj de grup cu @toți, Tab nu mai trece printr-un link pentru fiecare participant imediat după deschiderea conversației. Înainte se întâmpla până când participanții grupului terminau de încărcat și mesajul pierdea focusul.

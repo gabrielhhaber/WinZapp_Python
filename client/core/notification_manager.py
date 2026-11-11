@@ -169,6 +169,9 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     msg_type = msg.get("messageType", "conversation")
     msg_obj  = msg.get("message") or {}
     sep      = i18n.t("decimal_separator")
+    from core.business_message_content import TYPES, business_message_text
+    if msg_type in TYPES:
+        return business_message_text(msg, i18n)
 
     if not isinstance(msg_obj, dict):
         return i18n.t("notif_unsupported")
@@ -336,22 +339,9 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
         return i18n.t("notif_poll").format(name=name) if name else i18n.t("notif_poll_no_name")
 
     # ── Buttons / list (message with selectable options) ────────────────────────
-    if msg_type == "buttonsMessage":
-        btns_msg = msg_obj.get("buttonsMessage") or {}
-        return (btns_msg.get("contentText") or btns_msg.get("text") or "").strip() or i18n.t("interactive_message")
 
-    if msg_type == "listMessage":
-        list_msg = msg_obj.get("listMessage") or {}
-        return (list_msg.get("title") or list_msg.get("description") or "").strip() or i18n.t("interactive_message")
 
-    if msg_type == "templateMessage":
-        template = msg_obj.get("templateMessage") or {}
-        return (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
 
-    if msg_type == "interactiveMessage":
-        inter = msg_obj.get("interactiveMessage") or {}
-        body = (inter.get("body") or {}).get("text", "")
-        return body or i18n.t("interactive_message")
 
     if msg_type == "buttonsResponseMessage":
         btn = msg_obj.get("buttonsResponseMessage") or {}
