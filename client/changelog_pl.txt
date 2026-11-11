@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Nowe odpowiedzi i wysłane wiadomości nie pojawiają się już nad wiadomością oryginalną, gdy zegar komputera spóźnia się względem zegara WhatsApp. Tymczasowy czas wysłanej wiadomości nigdy nie jest wcześniejszy niż czas ostatniej wyświetlonej wiadomości ani wiadomości, na którą odpowiadasz.
+
 - Neonize: historia, którą telefon wysyła przez kilka godzin, nie jest już uznawana za kompletną po 45-sekundowej przerwie między blokami. Dopóki zgłaszany postęp jest poniżej 100%, WinZapp czeka do 10 minut ciszy, aby nie traktować czatów jako ostatecznych zbyt wcześnie.
 
 - Pliki multimedialne, które się nie pobierają: komunikat o błędzie nie wspomina już o WPPConnect, którego nie ma w silniku Neonize. Teraz mówi o wygasłym linku lub niedostępnym połączeniu z WhatsApp.
@@ -557,8 +559,6 @@ NOWOŚCI
 - W Ustawienia > Interfejs użytkownika nowa opcja „Automatycznie odtwarzaj wiadomości głosowe po kolei”, domyślnie zaznaczona, określa, czy następna wiadomość głosowa zaczyna się sama po zakończeniu poprzedniej. Odznacz ją, aby po zakończeniu wiadomości następna nie była odtwarzana automatycznie. Opcja „Automatycznie przenoś fokus na następne audio podczas odtwarzania audio po kolei” nadal decyduje tylko o tym, czy fokus klawiatury podąża za dźwiękiem.
 
 POPRAWKI
-
-- Nowe odpowiedzi i wysłane wiadomości nie pojawiają się już nad wiadomością oryginalną, gdy zegar komputera spóźnia się względem zegara WhatsApp. Tymczasowy czas wysłanej wiadomości nigdy nie jest wcześniejszy niż czas ostatniej wyświetlonej wiadomości ani wiadomości, na którą odpowiadasz.
 
 - Naprawiono błąd „chat not found” podczas wysyłania wiadomości lub załączników do istniejącego czatu, który WhatsApp już załadował.
 
