@@ -2360,7 +2360,7 @@ msgid ""
 "it in WhatsApp on your phone."
 msgstr ""
 "بعض أجزاء رسالة النشاط التجاري هذه أو إجراءاتها غير مدعومة هنا. افتحها في "
-"WhatsApp على هاتفك."
+"واتساب على هاتفك."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/business_message_content.py
@@ -2368,7 +2368,7 @@ msgctxt "business_template_unavailable"
 msgid ""
 "This business message is not available here. Open it in WhatsApp on your "
 "phone."
-msgstr "رسالة النشاط التجاري هذه غير متاحة هنا. افتحها في WhatsApp على هاتفك."
+msgstr "رسالة النشاط التجاري هذه غير متاحة هنا. افتحها في واتساب على هاتفك."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "button_no"

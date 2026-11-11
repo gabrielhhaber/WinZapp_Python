@@ -96,12 +96,25 @@ def message_business_buttons(msg):
     if not isinstance(msg, dict):
         return []
     stored = msg.get("businessButtons")
+    payload = _action_payload(msg)
+    derived = business_buttons(payload)
     if not isinstance(stored, list) or not stored:
-        return business_buttons(_action_payload(msg))
-    found = []
+        return derived
+    content = _dict(_dict(msg.get("message")).get(msg.get("messageType")))
+    node = _variant(content)
+    retained = set()
+    for source, keys in (("template", ("hydratedButtons",)), ("dynamic", ("buttons",)),
+                         ("native", ("interactivePayload", "nativeFlowMessage")), ("list", ("sections",))):
+        if any(key in node for key in keys):
+            retained.add(source)
+    # A cached index may have been produced by the old filtering parser.
+    # Retained original slots are authoritative; never send its stale index.
+    found = list(derived)
     for value in stored[:MAX_BUTTONS]:
         action = _dict(value)
         kind, source, index = action.get("kind"), action.get("source"), action.get("index")
+        if source in retained:
+            continue
         if (kind not in ("reply", "url", "copy", "call")
                 or source not in ("dynamic", "native", "template", "list")
                 or isinstance(index, bool) or not isinstance(index, int) or not 0 <= index < MAX_BUTTONS
@@ -117,7 +130,8 @@ def message_business_buttons(msg):
         if not isinstance(clean.get("fullLabel"), str):
             clean.pop("fullLabel", None)
         found.append(clean)
-    return found
+    return sorted(found, key=lambda action: (("dynamic", "native", "template", "list").index(action["source"]),
+                                             action["index"]))[:MAX_BUTTONS]
 
 
 def business_message_text(msg, i18n):

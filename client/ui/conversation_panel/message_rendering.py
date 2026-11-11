@@ -985,7 +985,7 @@ class MessageRenderingMixin:
             "extendedTextMessage", "audioMessage", "imageMessage",
             "videoMessage", "documentMessage", "stickerMessage",
             "locationMessage", "contactMessage", "buttonsMessage",
-            "listMessage",
+            "listMessage", "templateMessage", "interactiveMessage",
         ):
             sub = msg_obj.get(sub_key)
             if isinstance(sub, dict):

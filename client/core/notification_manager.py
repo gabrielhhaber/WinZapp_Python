@@ -338,11 +338,7 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
         name = (poll.get("name") or "").strip()
         return i18n.t("notif_poll").format(name=name) if name else i18n.t("notif_poll_no_name")
 
-    # ── Buttons / list (message with selectable options) ────────────────────────
-
-
-
-
+    # ── Replies to business messages ──────────────────────────────────────────
     if msg_type == "buttonsResponseMessage":
         btn = msg_obj.get("buttonsResponseMessage") or {}
         return btn.get("selectedDisplayText") or i18n.t("interactive_reply")

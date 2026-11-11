@@ -80,11 +80,26 @@ def _template(body):
     return out
 
 
+def _interactive_header(header):
+    parts = [header.title, getattr(header, "subtitle", "")]
+    incomplete = bool(getattr(header, "hasMediaAttachment", False))
+    for field in ("documentMessage", "imageMessage", "videoMessage", "locationMessage"):
+        if _has(header, field):
+            media = getattr(header, field)
+            parts.append(getattr(media, "caption", "") or getattr(media, "fileName", "")
+                         or getattr(media, "name", ""))
+            incomplete = True
+    return "\n".join(part for part in parts if part), incomplete
+
+
 def _interactive_fields(i):
-    parts = [i.header.title, i.body.text, i.footer.text]
+    header_text, incomplete = _interactive_header(i.header)
+    parts = [header_text, i.body.text, i.footer.text]
     card_buttons = []
     for card_index, card in enumerate(i.carouselMessage.cards):
-        card_parts = (card.header.title, card.body.text, card.footer.text)
+        card_header, card_incomplete = _interactive_header(card.header)
+        incomplete = incomplete or card_incomplete
+        card_parts = (card_header, card.body.text, card.footer.text)
         parts.extend(card_parts)
         card_buttons.extend(
             {"name": b.name, "buttonParamsJson": b.buttonParamsJSON,
@@ -93,8 +108,7 @@ def _interactive_fields(i):
              "cardText": "\n".join(part for part in card_parts if part)}
             for b in card.nativeFlowMessage.buttons)
     fields = {"type": "interactive", "body": "\n".join(p for p in parts if p)}
-    if getattr(i.header, "hasMediaAttachment", False) or any(
-            _has(i.header, field) for field in ("documentMessage", "imageMessage", "videoMessage", "locationMessage")):
+    if incomplete:
         fields["businessTemplateIncomplete"] = True
     if _has(i, "nativeFlowMessage"):
         buttons = i.nativeFlowMessage.buttons

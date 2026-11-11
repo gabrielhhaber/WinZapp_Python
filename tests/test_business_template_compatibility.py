@@ -222,6 +222,47 @@ class TemplateCompatibility(unittest.TestCase):
                    dict(kind="reply", source="template", index=33, label="bad", value="R")]
         self.assertEqual(message_business_buttons(canonical({}, businessButtons=invalid)), [])
 
+    def test_retained_slots_override_stale_cached_reply_indices(self):
+        original = [None, {"quickReplyButton": {"displayText": "A", "id": "A"}},
+                    {"quickReplyButton": {"displayText": "B", "id": "B"}}]
+        cached = [dict(kind="reply", source="template", index=0, label="A", value="A"),
+                  dict(kind="reply", source="template", index=1, label="B", value="B")]
+        msg = canonical({"hydratedContentText": "Choose", "hydratedButtons": original}, businessButtons=cached)
+        before = copy.deepcopy(msg)
+        selected = message_business_buttons(msg)
+        self.assertEqual([(b["label"], b["index"]) for b in selected], [("A", 1), ("B", 2)])
+        self.assertEqual(bridge.reply_plan({"hydratedButtons": original}, "template", selected[1]["index"])["id"], "B")
+        self.assertEqual(msg, before)
+
+    def test_malformed_cached_sibling_cannot_break_readable_card(self):
+        msg = canonical({"body": {"text": "Card body"}}, "interactiveMessage", businessButtons=[
+            {"label": 5}, {"kind": "reply", "source": "native", "index": 0,
+                           "label": "1. Card body: Select", "value": "ID"}])
+        action = message_business_buttons(msg)[0]
+        self.assertEqual(actions.business_button_label(msg, action), "Card body")
+        expected = business_message_text(msg, I18n())
+        render = method("client/ui/conversation_panel/message_rendering.py", "_get_message_content")
+        notify = method("client/core/notification_manager.py", "format_notification_body")
+        owner = types.SimpleNamespace(main_window=types.SimpleNamespace(i18n=I18n()))
+        self.assertIn("Card body", expected)
+        self.assertEqual(render(owner, msg), expected)
+        self.assertEqual(notify(msg, owner.main_window, I18n()), expected)
+        for invalid in (5, [], {"interactiveMessage": 5}, {"interactiveMessage": {"body": 5}}):
+            broken = {**msg, "message": invalid}
+            self.assertIsInstance(actions.business_button_label(broken, action), str)
+
+    def test_carousel_card_media_keeps_text_and_reports_limit(self):
+        card = interactive("Card body", [Proto(name="quick_reply", buttonParamsJSON='{"display_text":"Select","id":"CARD"}')])
+        card.header = Proto(title="Card title", hasMediaAttachment=True, imageMessage=Proto(caption="Image caption"))
+        parent = interactive("Menu")
+        parent.carouselMessage.cards = [card]
+        raw = bridge.button_fields(Proto(interactiveMessage=parent))
+        self.assertTrue(raw["businessTemplateIncomplete"])
+        self.assertIn("Image caption", raw["body"])
+        msg = normalized(raw)
+        self.assertIn("unsupported", business_message_text(msg, I18n()))
+        self.assertIn("Card body", message_business_buttons(msg)[0]["label"])
+
     def test_history_direction_and_identity_flags_survive(self):
         msg = normalized(dict(body="History", isMdHistoryMsg=True, participant="10000000001@lid", fromMe=True))
         self.assertTrue(msg["isMdHistoryMsg"])
@@ -272,6 +313,23 @@ class TemplateCompatibility(unittest.TestCase):
         self.assertEqual(context["stanzaId"], "SYNTHETICQUOTE")
         self.assertEqual(context["participant"], "10000000001@lid")
         self.assertTrue(context["isForwarded"])
+        get_context = method("client/ui/conversation_panel/message_rendering.py", "_get_context_info")
+        utils = ast.parse((ROOT / "client/core/utils.py").read_text(encoding="utf-8"))
+        keys = next(n.value for n in utils.body if isinstance(n, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == "_FORWARDABLE_SUB_KEYS" for target in n.targets))
+        forwarded = method("client/core/utils.py", "is_message_forwarded", {"_FORWARDABLE_SUB_KEYS": ast.literal_eval(keys)})
+        for kind in ("templateMessage", "interactiveMessage"):
+            sample = canonical({"contextInfo": context}, kind)
+            self.assertEqual(get_context(object(), sample)["stanzaId"], "SYNTHETICQUOTE")
+            self.assertTrue(forwarded(sample))
+            navigate = method("client/ui/conversation_panel/message_accels.py", "_on_accel_goto_quoted")
+            visits = []
+            owner = types.SimpleNamespace(messages_list=types.SimpleNamespace(GetFirstSelected=lambda: 0),
+                _sorted_messages=[sample], _is_separator=lambda msg: False,
+                _get_context_info=lambda msg: get_context(object(), msg),
+                _on_menu_goto_quoted=lambda msg, ctx: visits.append((msg, ctx["stanzaId"])))
+            navigate(owner, None)
+            self.assertEqual(visits, [(sample, "SYNTHETICQUOTE")])
 
     def test_malformed_cached_long_label_does_not_crash(self):
         msg = canonical({}, businessButtons=[dict(kind="url", source="template", index=0,

@@ -188,8 +188,10 @@ def business_button_label(msg, button):
     if not old:
         return label
     preview = old.group(2)
-    interactive = (msg.get("message") or {}).get("interactiveMessage") or {}
-    body = (interactive.get("body") or {}).get("text") or ""
+    message = msg.get("message")
+    interactive = message.get("interactiveMessage") if isinstance(message, dict) else None
+    body_node = interactive.get("body") if isinstance(interactive, dict) else None
+    body = body_node.get("text") if isinstance(body_node, dict) else ""
     if not isinstance(body, str) or not isinstance(msg.get("businessButtons"), list):
         return preview
     locations = []
@@ -198,7 +200,8 @@ def business_button_label(msg, button):
     for action in msg["businessButtons"]:
         if not isinstance(action, dict):
             continue
-        match = _OLD_CARD_LABEL.fullmatch(action.get("label") or "")
+        cached_label = action.get("label")
+        match = _OLD_CARD_LABEL.fullmatch(cached_label) if isinstance(cached_label, str) else None
         if not match:
             continue
         number, candidate = match.group(1), match.group(2)
