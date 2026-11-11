@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Neonize: stare multimedia, które telefon przesyła ponownie po prośbie o ponowne wysłanie, są teraz naprawdę pobierane. Wcześniej ponownie przesłany plik był odrzucany, bo nie zgadzał się z weryfikacją oryginału, i multimedia nadal się nie otwierały.
+
 - Aktualizacja przy zamykaniu: nowa opcja w Ustawieniach > Ogólne pobiera aktualizacje automatycznie, bez pytania, i instaluje je po zakończeniu pracy z WinZapp. Zamknięcie okna do zasobnika nie jest zakończeniem pracy, a WinZapp nie uruchamia się ponownie po instalacji: pozostaje zamknięty i używa nowej wersji przy następnym uruchomieniu.
 
 - Neonize: stara historia czatów jest teraz naprawdę importowana podczas synchronizacji w tle; poprzednia poprawka była nadal unieważniana na końcu każdego przebiegu. Stare pliki multimedialne, których nie da się odzyskać nawet po zapytaniu telefonu, są teraz pokazywane jako wygasłe zamiast powtarzanego błędu połączenia.

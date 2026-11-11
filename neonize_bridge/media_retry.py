@@ -107,6 +107,60 @@ def has_retry(client) -> bool:
         callable(getattr(client, "decrypt_media_retry", None))
 
 
+#: the message field of each kind `download_retried_media` knows
+KINDS = {"imageMessage": "image", "videoMessage": "video", "ptvMessage": "video",
+         "audioMessage": "audio", "documentMessage": "document",
+         "stickerMessage": "sticker"}
+
+
+def has_retried_download(client) -> bool:
+    return callable(getattr(client, "download_retried_media", None))
+
+
+def kind_of(message):
+    """('image' | 'video' | ...) of the message's media, or None."""
+    for name, kind in KINDS.items():
+        try:
+            if message.HasField(name) and getattr(message, name).mediaKey:
+                return kind
+        except ValueError:
+            continue
+    return None
+
+
+def retried_request(message, direct_path: str, dest: str) -> dict:
+    """The body of `download_retried_media`: the phone's new upload may encrypt
+    to other bytes, so the build authenticates it by the media key's HMAC and
+    the plaintext hash instead of the message's old `fileEncSHA256`."""
+    media = media_of(message)
+    b64 = lambda raw: base64.b64encode(bytes(raw)).decode()
+    return {
+        "direct_path": direct_path, "media_key": b64(media.mediaKey),
+        "enc_sha256": b64(media.fileEncSHA256), "file_sha256": b64(media.fileSHA256),
+        "kind": kind_of(message), "dest": dest, "timeout_ms": 120000,
+    }
+
+
+def fetch_retried(client, message, direct_path: str) -> bytes:
+    """Downloads the re-uploaded media through the build's own call (blocking).
+    The error text is kept: 'invalid media hmac' and the like answer 410."""
+    import os
+    import tempfile
+    descriptor, dest = tempfile.mkstemp(prefix="winzapp-retry-")
+    os.close(descriptor)
+    try:
+        answer = client.download_retried_media(retried_request(message, direct_path, dest))
+        if answer.get("error"):
+            raise RuntimeError(answer["error"])
+        with open(dest, "rb") as f:
+            return f.read()
+    finally:
+        try:
+            os.unlink(dest)
+        except OSError:
+            pass
+
+
 class Answers:
     """The phone's answers by message id: `expect` before asking, `deliver` from
     neonize's thread (`MediaRetryEv`), read on a worker thread."""
@@ -181,6 +235,9 @@ async def download_async(s, message, msgid, download):
         except Exception as retry_error:
             log.info("media retry gave up: %s", retry_error)
             raise error
+        if has_retried_download(s.client):
+            return await loop.run_in_executor(
+                None, fetch_retried, s.client, message, path)
         return await download(with_new_path(message, path))
 
 

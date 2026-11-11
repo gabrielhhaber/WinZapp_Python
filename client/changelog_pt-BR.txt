@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Neonize: a mídia antiga que o celular reenvia depois do pedido de novo envio agora é baixada de verdade. Antes, o arquivo reenviado era recusado por não bater com a verificação do arquivo original e a mídia continuava sem abrir.
+
 - Atualizar ao sair: nova opção em Configurações > Geral que baixa as atualizações automaticamente, sem perguntar, e as instala quando você sai do WinZapp. Fechar a janela para a bandeja não conta como sair, e o WinZapp não abre de novo depois da instalação: ele fica fechado e usa a versão nova na próxima vez que você abri-lo.
 
 - Neonize: o histórico antigo das conversas agora é importado de fato durante a sincronização em segundo plano; a correção anterior ainda era anulada ao fim de cada varredura. Mídia antiga que não dá mais para recuperar, mesmo depois de pedir ao celular, agora aparece como expirada em vez de um erro de conexão repetido.

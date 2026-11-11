@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: fișierul media vechi pe care telefonul îl încarcă din nou după cererea de retrimitere este acum descărcat cu adevărat. Înainte, fișierul retrimis era refuzat pentru că nu se potrivea cu verificarea originalului și fișierul tot nu se deschidea.
+
 - Actualizare la ieșire: o opțiune nouă în Setări > General descarcă actualizările automat, fără întrebări, și le instalează când ieșiți din WinZapp. Închiderea ferestrei în bara de sistem nu contează ca ieșire, iar WinZapp nu se mai deschide după instalare: rămâne închis și folosește versiunea nouă data viitoare când îl deschideți.
 
 - Neonize: istoricul vechi al conversațiilor este acum importat cu adevărat în timpul sincronizării în fundal; corecția anterioară era încă anulată la sfârșitul fiecărei parcurgeri. Fișierele media vechi care nu mai pot fi recuperate, chiar și după ce sunt cerute telefonului, apar acum ca expirate, în loc de o eroare de conexiune repetată.
