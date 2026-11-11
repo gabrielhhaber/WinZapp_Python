@@ -5,6 +5,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 NOWOŚCI
 
 - Pliki multimedialne, które się nie pobierają: komunikat o błędzie nie wspomina już o WPPConnect, którego nie ma w silniku Neonize. Teraz mówi o wygasłym linku lub niedostępnym połączeniu z WhatsApp.
+
 - Szablony firmowe: zachowanie dostępnej treści i obsługiwanych przycisków, ich pozycji oraz wyjaśnienie brakującej treści i nieobsługiwanych działań. Starych pustych wpisów nie można odtworzyć.
 
 - WPPConnect Server 2.10.79 jest teraz oferowany jako aktualizacja bez czekania na nową wersję WinZapp. Aktualizuje tylko zależności związane z bezpieczeństwem i nie wpływa na zmiany, które WinZapp wprowadza w serwerze.
@@ -122,11 +123,13 @@ NOWOŚCI
 - Neonize: pierwsza wiadomość do nowego numeru telefonu wpisanego w nowym czacie (Ctrl+N) nie kończy się już jako „niepotwierdzona”, gdy WhatsApp ma ten numer zarejestrowany w innej postaci (z dziewiątą cyfrą lub bez niej w brazylijskich numerach komórkowych): jest teraz wysyłana na adres, który zna WhatsApp. Numer wpisany w nowym czacie otwiera teraz czat pod adresem, który zna WhatsApp, więc nie zostaje drugi czat z tym samym kontaktem.
 
 - Wiadomości głosowe: przepływność nagrań wróciła do 64 kb/s, dzięki czemu wysyłanie jest szybkie nawet przy nagraniach dłuższych niż minuta (zmiana na 256 kb/s spowolniła wysyłanie). W Ustawienia > Dźwięk pojawiła się opcja „Przepływność wiadomości głosowych (kb/s)” do wyboru od 32 do 256 kb/s.
+
 - Wiadomości głosowe: nagrania stereo (AAC) są teraz domyślnie wysyłane z przepływnością 128 kb/s, ponieważ 64 kb/s pogarszało jakość dźwięku; nagrania mono pozostają przy 64 kb/s. W Ustawieniach > Dźwięk pojawia się „Przepływność stereofonicznych wiadomości głosowych (kb/s)”. Kto miał jeszcze dawną wartość domyślną 64 kb/s, przechodzi na 128 kb/s dla stereo; każda inna wybrana przepływność zostaje zachowana.
 
 - Ustawienia > Interfejs > Czaty: nowa opcja "Liczba nowych wiadomości na liście czatów", dzięki której czytnik ekranu podaje liczbę nowych wiadomości przed nazwą czatu zamiast po niej. Dotyczy listy czatów, czatów zarchiwizowanych i zabezpieczonych. (sugestia Michala Suchego)
 
 - Nowe okno Kanały (Alt+9, także na liście nawigacji): pokazuje obserwowane kanały albo przeszukuje katalog kanałów WhatsAppa (bez tekstu widać polecane kanały). Wybrany kanał można otworzyć i czytać jego aktualizacje, obserwować go lub przestać obserwować, wyciszyć lub włączyć jego powiadomienia, skopiować link, a w swoich kanałach edytować go lub usunąć. Można też obserwować kanał z linku i utworzyć kanał. Pokazywanie kanałów na liście czatów pozostaje osobnym ustawieniem. Działa z WPPConnect i z Neonize.
+
 - Kanały jak w WhatsApp Web: w "Znajdź kanały" Kategoria (biznes, rozrywka, styl życia, wiadomości, organizacje, ludzie, sport) i Lista (polecane, na czasie, popularne, nowe) zawężają katalog. W kanałach, którymi administrujesz, pole wiadomości pozwala publikować aktualizacje tekstowe, zdjęcia, filmy i ankiety, własne można edytować z menu wiadomości (Alt+E) w czasie, na który pozwala WhatsApp, aktualizację można przypiąć lub odpiąć z menu wiadomości (Ctrl+Shift+P), a przypięte pojawiają się w "Przypięte wiadomości"; przycisk "Administratorzy i obserwujący..." podaje liczbę administratorów kanału, a właścicielowi pozwala zaprosić kontakt do roli administratora lub anulować zaproszenie. Działa z WPPConnect i z Neonize. To okno pokazuje właściciela, administratorów, oczekujące zaproszenia i obserwujących: właściciel może zaprosić obserwującego do roli administratora kanału, odwołać zaproszenie, odwołać administratora z jego roli lub przenieść prawa własności kanału na administratora, a administrator może zrezygnować ze swojej roli.
 
 - Połączenia: do trwającego połączenia można teraz dodawać osoby przyciskiem "Dodaj uczestników" na liście uczestników połączenia. W połączeniu grupowym widać członków grupy, których jeszcze w nim nie ma; w połączeniu indywidualnym — Twoje kontakty, a po dodaniu kolejnych osób połączenie staje się wieloosobowe, jak w WhatsAppie. Ponowne wybranie osoby, która była już zaproszona, ale jeszcze nie dołączyła, ponawia wywołanie połączenia. Działa z WPPConnect i z Neonize.
@@ -186,6 +189,7 @@ NOWOŚCI
 - Grupy: WinZapp rozpoznaje Cię teraz w grupach, które podają Cię przez powiązany identyfikator (@lid), więc administrator nie widzi już wyszarzonej opcji dodawania członka.
 
 - Połączenia Neonize: połączenie, które wykonujesz, a nikt nie odbiera, kończy się teraz samo po minucie z wynikiem „nieodebrane”, zamiast dzwonić w oknie połączenia przez kilka minut po tym, jak WhatsApp przestał dzwonić na drugim telefonie.
+
 - Mac: WinZapp informuje teraz, gdy macOS czeka na zgodę na mikrofon lub gdy jej odmówiono, zamiast sprawiać wrażenie, że przycisk nagrywania nie działa.
 
 - Wiadomości głosowe: jest teraz jeden przycisk nagrywania. WinZapp nagrywa w stereo, gdy urządzenie wejściowe oferuje dwa kanały, a w pozostałych przypadkach w mono, więc drugi przycisk, Ctrl+Shift+G i opcja stereo zniknęły. Nagranie stereo jest teraz prawdziwą wiadomością głosową, która odtwarza się na iPhonie, a przepływność nagrań zwiększono do 256 kb/s. Załączony plik Opus stereo jest teraz konwertowany, aby odtwarzał się także na iPhonie.
@@ -227,6 +231,7 @@ NOWOŚCI
 - W czatach grupowych, gdy połączenie jest dostępne, przyciski rozpoczynania połączeń zastępuje przycisk „Dołącz do trwającego połączenia głosowego” lub „Dołącz do trwającego połączenia wideo (kamera wyłączona)”. Sekcja Połączenia pokazuje trwające połączenia w filtrach Wszystkie i Trwające, także między wieloma osobami poza grupami. Dołączenie do połączenia wideo rozpoczyna się z wyłączoną kamerą.
 
 - Wiele kolejnych aktualizacji obecności kontaktów (pisanie, online) nie zawiesza już WinZapp na kilka sekund ani nie spowalnia całego komputera na kontach z wieloma czatami.
+
 - Nazwy kontaktów są zapisywane w tle, bez blokowania interfejsu. Oczekujące zapisy uwzględniają najnowszy kompletny zestaw nazw, z zachowaniem właściwej kolejności także podczas zamykania programu i czyszczenia danych lokalnych.
 
 - Obecność kontaktów: ograniczono zbędne operacje interfejsu przy częstych aktualizacjach informacji o dostępności i pisaniu. Tytuł okna i etykieta zarchiwizowanych czatów nie są ponownie ustawiane, jeśli ich treść się nie zmieniła, a komunikaty o pisaniu nie są przez to opóźniane.

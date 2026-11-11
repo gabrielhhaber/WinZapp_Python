@@ -5,6 +5,7 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 NOVIDADES
 
 - Multimédia que não descarrega: a mensagem de erro já não menciona o WPPConnect, que não existe no motor Neonize. Passa a falar de ligação expirada ou ligação ao WhatsApp indisponível.
+
 - Modelos de empresa: preserva o texto disponível e os botões suportados, mantém a posição dos botões e explica conteúdo em falta ou ações não suportadas. Registos antigos vazios não podem ser reconstruídos.
 
 - O WPPConnect Server 2.10.79 é agora oferecido como atualização sem esperar por uma nova versão do WinZapp. Só atualiza dependências de segurança e não afeta as alterações que o WinZapp faz no servidor.
@@ -122,11 +123,13 @@ NOVIDADES
 - Neonize: a primeira mensagem para um número de telefone novo escrito numa nova conversa (Ctrl+N) já não termina como "envio não confirmado" quando o WhatsApp tem o número registado na outra forma (com ou sem o nono dígito dos telemóveis brasileiros): agora é enviada para o endereço que o WhatsApp conhece. Além disso, um número escrito numa nova conversa abre agora o chat com o endereço que o WhatsApp conhece, sem deixar uma conversa duplicada.
 
 - Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia depressa mesmo com mais de um minuto (a mudança para 256 kbps tinha tornado o envio lento). Definições > Áudio ganhou "Taxa de bits das mensagens de voz (kbps)", para escolher de 32 a 256 kbps.
+
 - Mensagens de voz: as gravações em estéreo (AAC) passam a sair por predefinição a 128 kbps, porque 64 kbps deixava o áudio com má qualidade; as gravações em mono continuam a 64 kbps. Definições > Áudio ganha "Taxa de bits das mensagens de voz em estéreo (kbps)". Quem ainda estava na predefinição antiga de 64 kbps passa a 128 kbps no estéreo; qualquer outra taxa que tenha escolhido é mantida.
 
 - Definições > Interface do utilizador > Conversas: nova opção "Número de mensagens novas na lista de conversas", para o leitor de ecrã dizer o número de mensagens novas antes do nome da conversa em vez de depois. Aplica-se à lista de conversas, às arquivadas e às trancadas. (sugestão de Michal Suchý)
 
 - Nova janela de Canais (Alt+9, também na lista de navegação): mostra os canais que segue ou procura no diretório de canais do WhatsApp (sem texto, aparecem os recomendados). Para o canal escolhido é possível abrir e ler as atualizações, seguir ou deixar de seguir, silenciar ou ativar as notificações, copiar a ligação e, nos seus canais, editar ou eliminar. Também é possível seguir um canal a partir da ligação e criar um canal. Mostrar os canais na lista de conversas continua a ser uma opção à parte. Funciona com a WPPConnect e com o Neonize.
+
 - Canais, como no WhatsApp Web: em "Encontrar canais", Categoria (negócios, entretenimento, estilo de vida, notícias, organizações, pessoas, desporto) e Lista (recomendados, tendências, populares, novos) filtram o diretório. Nos canais que administra, o campo de mensagem fica disponível para publicar atualizações de texto, fotografias, vídeos e sondagens, as suas podem ser editadas pelo menu da mensagem (Alt+E) dentro do prazo do WhatsApp, uma atualização pode ser afixada ou desafixada pelo menu da mensagem (Ctrl+Shift+P) e as afixadas aparecem em "Mensagens afixadas"; o botão "Administradores e seguidores..." mostra quantos administradores o canal tem e, para o dono, convida um contacto para ser administrador ou cancela o convite. Funciona com a WPPConnect e com o Neonize. Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de o ser.
 
 - Chamadas: já é possível adicionar pessoas à chamada em curso, com o botão "Adicionar participantes" na lista de participantes da chamada. Numa chamada de grupo aparecem os membros do grupo que ainda não estão nela; numa chamada privada, os seus contactos, e a chamada passa a ter várias pessoas, como no WhatsApp. Quem já foi chamado e ainda não entrou é chamado outra vez. Funciona com a WPPConnect e com o Neonize.
@@ -186,6 +189,7 @@ NOVIDADES
 - Grupos: o WinZapp passa a reconhecê-lo em grupos que o listam pelo identificador associado (@lid), pelo que um administrador já não encontra "Adicionar participante" desativado.
 
 - Chamadas pelo Neonize: uma chamada que faz e ninguém atende passa a terminar sozinha ao fim de um minuto, com o resultado "não atendida", em vez de ficar a tocar na janela de chamada durante minutos depois de o WhatsApp deixar de tocar no outro telemóvel.
+
 - Mac: o WinZapp passa a avisar quando o macOS está à espera da permissão do microfone ou quando foi negada, em vez de parecer que o botão de gravar não faz nada.
 
 - Mensagens de voz: agora há um só botão de gravar. O WinZapp grava em estéreo quando o dispositivo de entrada oferece dois canais e em mono nos outros casos, pelo que o segundo botão, o Ctrl+Shift+G e a opção de estéreo saíram. A gravação em estéreo passa a ser uma mensagem de voz a sério, que toca no iPhone, e a qualidade subiu para 256 kbps. Um ficheiro Opus estéreo anexado passa a ser convertido para tocar também no iPhone.
@@ -227,6 +231,7 @@ NOVIDADES
 - Nas conversas de grupo, enquanto existe uma chamada disponível, os botões de iniciar chamada dão lugar a "Entrar na chamada de voz em curso" ou "Entrar na chamada de vídeo em curso (câmara desligada)". Chamadas mostra as chamadas em curso em Todas e Em curso, incluindo chamadas entre várias pessoas fora dos grupos. Ao entrar numa chamada de vídeo, a câmara começa desligada.
 
 - Muitas atualizações de presença de contactos seguidas (a escrever, online) já não congelam o WinZapp durante segundos nem deixam o computador lento em contas com muitas conversas.
+
 - Presença dos contactos: ao aprender novos nomes, a interface deixa de esperar pela gravação na base de dados. As atualizações pendentes mantêm a cópia completa mais recente, respeitando a ordem ao fechar ou limpar os dados locais.
 
 - Presença dos contactos: menos trabalho repetido na interface quando chegam muitas atualizações de online ou a escrever. O título da janela e o texto das conversas arquivadas não são reescritos quando permanecem iguais, sem atrasar os anúncios de escrita.

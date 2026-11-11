@@ -5,6 +5,7 @@ This release brings communities and a reorganized settings window, on top of eve
 WHAT'S NEW
 
 - File multimediali che non si scaricano: il messaggio di errore non cita più WPPConnect, che non esiste nel motore Neonize. Ora parla di link scaduto o connessione a WhatsApp non disponibile.
+
 - Modelli aziendali: conserva il testo disponibile e i pulsanti supportati, mantiene le loro posizioni e spiega contenuti mancanti o azioni non supportate. I vecchi record vuoti non possono essere ricostruiti.
 
 - WPPConnect Server 2.10.79 viene ora offerto come aggiornamento senza dover attendere una nuova versione di WinZapp. Aggiorna solo dipendenze di sicurezza e non influisce sulle modifiche che WinZapp apporta al server.
@@ -122,11 +123,13 @@ WHAT'S NEW
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
 
 - Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
+
 - Voice messages: recordings in stereo (AAC) now go out at 128 kbps by default, because 64 kbps made them sound poor; mono recordings stay at 64 kbps. Settings > Audio gains "Stereo voice message bitrate (kbps)". Installs still on the old 64 kbps default move to 128 kbps for stereo; any other rate you had chosen is kept.
 
 - Settings > User Interface > Chats: new option "Number of new messages in the chat list", so the screen reader says the number of new messages before the chat name instead of after it. It applies to the chat list, the archived chats and the locked chats. (suggested by Michal Suchý)
 
 - New Channels window (Alt+9, also in the navigation list): it shows the channels you follow or searches WhatsApp's channel directory (with no text, the recommended channels). For the chosen channel you can open it and read its updates, follow or unfollow it, mute or unmute its notifications, copy its link and, for your own channels, edit or delete it. You can also follow a channel from its link and create a channel. Showing channels in the conversation list is still a separate setting. Works with WPPConnect and Neonize.
+
 - Canali, come su WhatsApp Web: in «Trova canali», Categoria (aziende, intrattenimento, stile di vita, notizie, organizzazioni, persone, sport) e Visualizza (consigliati, di tendenza, popolari, nuovi) restringono la directory. Nei canali che amministri, il campo del messaggio si apre per pubblicare aggiornamenti di testo, foto, video e sondaggi, i tuoi si possono modificare dal menu del messaggio (Alt+E) entro il tempo di modifica di WhatsApp, un aggiornamento si può fissare o sbloccare dal menu del messaggio (Ctrl+Shift+P) e quelli fissati compaiono in «Messaggi fissati»; il pulsante «Amministratori e follower...» dice quanti amministratori ha il canale e, per il proprietario, invita un contatto a diventare amministratore o annulla l'invito. Funziona con WPPConnect e Neonize. Quella finestra elenca il proprietario, gli amministratori, gli inviti in attesa e i follower: il proprietario può rendere amministratore un follower, annullare un invito, rimuovere un amministratore o rendere proprietario un amministratore, e un amministratore può smettere di esserlo.
 
 - Calls: you can now add people to the call in progress, with the "Add participants" button in the call's participant list. A group call offers the group's members who are not in it yet; a private call offers your contacts, and the call then has several people, as on WhatsApp. Someone already called who has not joined is rung again. Works with WPPConnect and Neonize.
@@ -186,6 +189,7 @@ WHAT'S NEW
 - Groups: WinZapp now recognizes you in groups that list you by your linked ID (@lid), so an admin no longer finds Add Member dimmed.
 
 - Neonize calls: a call you place that nobody answers now ends by itself after a minute, with the "not answered" outcome, instead of ringing in the call window for minutes after WhatsApp stopped ringing the other phone.
+
 - Mac: WinZapp now says when macOS is waiting for microphone permission or when it was denied, instead of the record button seeming to do nothing.
 
 - Voice messages: there is now a single record button. WinZapp records in stereo when the input device offers two channels and in mono otherwise, so the second record button, Ctrl+Shift+G and the stereo option are gone. A stereo recording is now a real voice message that plays on iPhone, and quality is up to 256 kbps. An attached stereo Opus file is now converted so it plays on iPhone too.
@@ -227,6 +231,7 @@ WHAT'S NEW
 - While a call is available, group chats show "Join ongoing voice call" or "Join ongoing video call (camera off)" instead of the start-call buttons. Calls lists ongoing calls in All and Ongoing, including multiparty calls outside group chats. Video joins start with the camera off.
 
 - Many contact presence updates in a row (typing, online) no longer freeze WinZapp for seconds or slow the whole computer down on accounts with many chats.
+
 - Contact presence: learning new contact names no longer waits for a database write in the interface. Pending name updates keep the latest full snapshot, with ordered handling during shutdown and local data clearing.
 
 - Contact presence: reduced repeated interface work when many online or typing updates arrive. Unchanged window titles and archived-chat labels are no longer rewritten, while typing announcements keep their existing timing.
