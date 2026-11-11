@@ -196,4 +196,3 @@ index d811948..81688cc 100644
 +		t.Fatalf("active devices = %v, want both remotes", registry.ActiveParticipantIDs())
 +	}
 +}
-

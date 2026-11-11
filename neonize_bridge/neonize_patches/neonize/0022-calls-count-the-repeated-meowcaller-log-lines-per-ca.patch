@@ -74,4 +74,3 @@ index 0000000..a76a37d
 +		t.Fatal("linha que nao e JSON deve ser a propria chave")
 +	}
 +}
-
