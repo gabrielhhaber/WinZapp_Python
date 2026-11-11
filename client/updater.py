@@ -1963,7 +1963,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnEx
             self._release_prompt()
             if result == wx.ID_CANCEL:
                 self._schedule_retry()
-            self._continue_exit_without_install()
+            UpdateOnExitMixin._continue_exit_without_install(self)
             return
         i18n = self._mw.i18n
         try:
@@ -1979,7 +1979,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnEx
             discard_package(extracted_dir)
             self._release_prompt()
             self._schedule_retry()
-            self._continue_exit_without_install()
+            UpdateOnExitMixin._continue_exit_without_install(self)
             return
         wx.CallAfter(self._do_install, *args, relaunch_app=getattr(self, "_relaunch_app", True))
 
