@@ -13,6 +13,7 @@ import wx
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 
 from core.message_queue import PendingMessage
+from core.pending_timestamp import pending_send_timestamp
 from core.polls import POLL_MESSAGE_TYPES, apply_vote_result, poll_content
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 
@@ -49,7 +50,8 @@ class PollMessagesMixin:
                     "selectableOptionsCount": selectable,
                 }
             },
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages),
             "pushName": "",
         }
         self._clear_empty_placeholder()

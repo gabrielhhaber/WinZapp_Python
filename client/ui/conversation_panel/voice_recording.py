@@ -11,10 +11,10 @@ import sound_lib.stream as sl_stream
 import tempfile
 import threading
 import time
-from core.pending_timestamp import pending_send_timestamp
 import uuid
 import wave
 import wx
+from core.pending_timestamp import pending_send_timestamp
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from main_window.typing_feedback import stop_typing_for_capture
 from core.message_queue import PendingMessage
