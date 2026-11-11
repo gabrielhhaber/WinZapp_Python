@@ -432,6 +432,8 @@ WHAT'S NEW
 
 - What's New window: the Esc key now closes it, both from Help > What's New and from Help > "What's New Since You Last Looked". Before, Esc did nothing and you had to go to the close button.
 
+- Updating with several accounts open: WinZapp now waits for the other accounts to finish closing before it installs the update. Before, the install could fail with a warning that other accounts were open, and only went ahead after you answered Yes to try again.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

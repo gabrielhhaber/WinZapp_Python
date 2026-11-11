@@ -171,7 +171,32 @@ def _safe_extract_zip(zf: zipfile.ZipFile, dest_dir: str) -> None:
     zf.extractall(dest_dir)
 
 
+def _wait_for_peers_to_exit(update_coord, global_dir, claim, cancelled):
+    """Retry a claim refused only because another account is still alive.
+
+    Bounded by _PEER_EXIT_GRACE_SECONDS and abandoned once *cancelled* is set;
+    any other refusal reason, or a peer that really never exits (hung), is
+    returned unchanged so the user gets the same error as before.
+    """
+    if getattr(claim, "reason", "") != "other_accounts":
+        return claim
+    deadline = time.monotonic() + _PEER_EXIT_GRACE_SECONDS
+    logging.info("Auto-updater: another account is still exiting; waiting up to %.0fs "
+                 "before claiming the install slot", _PEER_EXIT_GRACE_SECONDS)
+    while claim.reason == "other_accounts" and time.monotonic() < deadline and not cancelled.is_set():
+        time.sleep(_PEER_EXIT_POLL_SECONDS)
+        claim = update_coord.try_begin_update(global_dir, explain=True)
+    if claim.reason == "other_accounts":
+        logging.warning("Auto-updater: another account was still running after the grace period")
+    return claim
+
+
 # ── Version helpers ───────────────────────────────────────────────────────────
+
+# After every other account has confirmed it released its session, its process
+# still needs a moment to die; the install slot is claimed only once it has.
+_PEER_EXIT_GRACE_SECONDS = 20.0
+_PEER_EXIT_POLL_SECONDS = 0.25
 
 _PRE_ORDER = {"dev": 0, "alpha": 1, "beta": 2, "": 3}
 
@@ -1309,6 +1334,12 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
         try:
             import update_coord
             claim = update_coord.try_begin_update(coord[0], explain=True)
+            # A peer that confirmed RELEASED (ipc.request_quit) is still a live
+            # process for a moment: _ipc_quit sleeps 0.3 s, then terminates, and
+            # its runtime lease only stops counting once the process is gone.
+            # Refusing here made the update fail with "another account is
+            # open" and succeed only when the user answered Yes to retry.
+            claim = _wait_for_peers_to_exit(update_coord, coord[0], claim, self._handoff.cancelled)
             i18n = self._main_window.i18n
             if claim.reason == "other_accounts":
                 self._claim_error = i18n.t("update_other_accounts_running")

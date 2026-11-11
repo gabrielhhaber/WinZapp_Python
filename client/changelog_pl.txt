@@ -432,6 +432,8 @@ NOWOŚCI
 
 - Okno nowości: klawisz Esc zamyka je teraz zarówno z Pomoc > „Co nowego?”, jak i z Pomoc > „Co nowego od ostatniego przeglądu”. Wcześniej Esc nic nie robił i trzeba było przejść do przycisku zamykania.
 
+- Aktualizacja przy kilku otwartych kontach: WinZapp czeka teraz, aż pozostałe konta skończą się zamykać, zanim zainstaluje aktualizację. Wcześniej instalacja mogła się nie udać z ostrzeżeniem, że inne konta są otwarte, i szła dalej dopiero po odpowiedzi Tak, aby spróbować ponownie.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
