@@ -113,12 +113,12 @@ def message_business_buttons(msg):
     for value in stored[:MAX_BUTTONS]:
         action = _dict(value)
         kind, source, index = action.get("kind"), action.get("source"), action.get("index")
-        if source in retained:
-            continue
         if (kind not in ("reply", "url", "copy", "call")
                 or source not in ("dynamic", "native", "template", "list")
                 or isinstance(index, bool) or not isinstance(index, int) or not 0 <= index < MAX_BUTTONS
                 or not _text(action.get("label"))):
+            continue
+        if source in retained:
             continue
         if kind == "url" and not safe_business_url(action.get("value")):
             continue

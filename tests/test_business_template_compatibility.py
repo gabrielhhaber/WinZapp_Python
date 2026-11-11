@@ -234,6 +234,14 @@ class TemplateCompatibility(unittest.TestCase):
         self.assertEqual(bridge.reply_plan({"hydratedButtons": original}, "template", selected[1]["index"])["id"], "B")
         self.assertEqual(msg, before)
 
+    def test_unhashable_cached_source_cannot_hide_readable_body(self):
+        for source in ([], {}):
+            with self.subTest(source=source):
+                msg = canonical({"hydratedContentText": "Readable body"}, businessButtons=[
+                    dict(kind="reply", source=source, index=0, label="Bad", value="ID")])
+                self.assertEqual(message_business_buttons(msg), [])
+                self.assertIn("Readable body", business_message_text(msg, I18n()))
+
     def test_malformed_cached_sibling_cannot_break_readable_card(self):
         msg = canonical({"body": {"text": "Card body"}}, "interactiveMessage", businessButtons=[
             {"label": 5}, {"kind": "reply", "source": "native", "index": 0,
