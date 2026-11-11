@@ -1081,6 +1081,7 @@ DEFAULT_SETTINGS = {
         # interrupted to install them. Off: the long-standing behaviour, so no
         # migration.
         "background_update_downloads": False,
+        "update_on_exit": False,
         # Offer every WPPConnect Server release, not only the approved ones
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,

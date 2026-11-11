@@ -46,6 +46,10 @@ _DEFAULTS: dict[str, Any] = {
     # and only interrupt the app to install (update_background.py). Global for
     # the same reason as the two above: the install and its api/ are shared.
     "background_update_downloads": False,
+    # Download updates with no question and install them when the user exits
+    # WinZapp, without starting it again (update_on_exit.py). Global like the
+    # options above.
+    "update_on_exit": False,
     # Offer every upstream WPPConnect Server release, not only the approved
     # ones (core/wpp_upstream.py). Global because api/ is shared.
     "wpp_all_updates": False,
@@ -110,7 +114,7 @@ _DEFAULTS: dict[str, Any] = {
 
 # Which legacy general.* keys are global (the rest stay per-account).
 _GENERAL_GLOBAL = ("language", "updates_enabled", "alpha_updates_enabled",
-                   "background_update_downloads", "wpp_all_updates",
+                   "background_update_downloads", "update_on_exit", "wpp_all_updates",
                    "show_tray_icon", "autostart",
                    "first_run", "hotkey_first_run_asked", "api_type_first_run_asked",
                    "neonize_offer_asked",

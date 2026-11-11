@@ -19369,6 +19369,34 @@ msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "Güncelleme yok"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "update_on_exit_label"
+msgid ""
+"Download updates automatically and install them when I e&xit WinZapp, "
+"without asking (closing the window to the tray does not count, and WinZapp "
+"does not open again afterwards)"
+msgstr ""
+"Güncellemeleri otomatik indir ve WinZapp'tan çıktığımda &sormadan yükle"
+" (pencereyi tepsiye kapatmak sayılmaz ve WinZapp sonrasında yeniden "
+"açılmaz)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
+#, python-brace-format
+msgctxt "update_on_exit_ready"
+msgid ""
+"WinZapp update {version} has been downloaded. It will be installed when you "
+"exit WinZapp."
+msgstr ""
+"WinZapp {version} güncellemesi indirildi. WinZapp'tan çıktığınızda "
+"yüklenecek."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
+msgctxt "update_on_exit_started"
+msgid ""
+"Downloading the WinZapp update. It will be installed when you exit WinZapp."
+msgstr "WinZapp güncellemesi indiriliyor. WinZapp'tan çıktığınızda yüklenecek."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"
 msgid ""

@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Actualizar al salir: nueva opción en Configuración > General que descarga las actualizaciones automáticamente, sin preguntar, y las instala cuando sales de WinZapp. Cerrar la ventana a la bandeja no cuenta como salir, y WinZapp no se vuelve a abrir tras la instalación: queda cerrado y usa la versión nueva la próxima vez que lo abras.
+
 - Neonize: el archivo multimedia cuyo enlace caducó ahora se vuelve a pedir al teléfono. Cuando la descarga falla por enlace caducado, WinZapp pide al teléfono que suba el archivo otra vez y lo descarga con el enlace nuevo; si el teléfono ya no lo tiene, el archivo sigue marcado como caducado.
 
 - Las respuestas y los envíos nuevos ya no aparecen encima del mensaje original cuando el reloj del ordenador va retrasado respecto al de WhatsApp. La hora provisional del mensaje enviado nunca es anterior a la del último mensaje ya mostrado ni a la del mensaje respondido.

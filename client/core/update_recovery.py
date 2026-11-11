@@ -46,7 +46,7 @@ def _dispatch(path, relaunch="RELAUNCH"):
 
 def build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
                          passes, parent_pid, completion_path, installer_image,
-                         recovery_path):
+                         recovery_path, relaunch=True):
     """Generate text only. Neither the installer nor a viewer runs here."""
     abort_path, done_path = handoff_path + ".abort", handoff_path + ".done"
     checks = f'if exist "{abort_path}" goto ABORT\n'
@@ -85,8 +85,9 @@ def build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
         + ":RELAUNCH\n" + checks
         + _dispatch(completion_path, "RELAUNCH_CONFIRMED")
         + ":RELAUNCH_CONFIRMED\n"
-        + f'>> "{log_path}" echo installer finished - relaunching WinZapp\n'
-        + f'if exist "{exe_path}" start "" /normal "{exe_path}"\n'
+        + (f'>> "{log_path}" echo installer finished - relaunching WinZapp\n'
+           f'if exist "{exe_path}" start "" /normal "{exe_path}"\n' if relaunch else
+           f'>> "{log_path}" echo installer finished - installed on exit, not relaunching\n')
         + cleanup + 'del "%~f0"\ngoto :EOF\n:RECOVERY\n' + checks
         + f'>> "{log_path}" echo installation may be incomplete - not relaunching WinZapp; repair required\n'
         + note + cleanup + 'del "%~f0"\ngoto :EOF\n:ABORT\n'
