@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "712811802739": "Neonize: mídia cujo link expirou agora é pedida de novo ao celular. Quando o dow",
     "b34169fb8e8f": "Neonize: o histórico que o celular envia durante várias horas não é mais dado co",
     "114d18bf81df": "Mídia que não baixa: a mensagem de erro não cita mais o WPPConnect, que não exis",
     "ce1ae3c21fde": "Modelos comerciais: preserva o texto disponível e os botões compatíveis, mantém ",

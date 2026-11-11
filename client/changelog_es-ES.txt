@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Neonize: el archivo multimedia cuyo enlace caducó ahora se vuelve a pedir al teléfono. Cuando la descarga falla por enlace caducado, WinZapp pide al teléfono que suba el archivo otra vez y lo descarga con el enlace nuevo; si el teléfono ya no lo tiene, el archivo sigue marcado como caducado.
+
 - Neonize: el historial que el teléfono envía durante varias horas ya no se da por completo por una pausa de 45 segundos entre bloques. Mientras el progreso informado sea inferior al 100 %, WinZapp espera hasta 10 minutos de silencio, para no tratar los chats como finales demasiado pronto.
 
 - Multimedia que no se descarga: el mensaje de error ya no menciona WPPConnect, que no existe en el motor Neonize. Ahora habla de enlace caducado o conexión con WhatsApp no disponible.

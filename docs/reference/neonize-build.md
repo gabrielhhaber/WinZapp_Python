@@ -167,6 +167,14 @@ What the patches carry today:
 - **neonize 0022**: the "chamadas: meowcaller" log writer counted repeated
   messages (first 8, then every 200) for the whole process; it now counts per
   `call_id`, so a later call keeps its roster, key epoch and summary lines.
+- **neonize 0023**: media retry. `SendMediaRetry` / `DecryptMediaRetry`
+  (`goneonize/mediaretry.go`, JSON in and out like `rawiq.go`; Python
+  `send_media_retry` / `decrypt_media_retry`) wrap whatsmeow's
+  `SendMediaRetryReceipt` and `DecryptMediaRetryNotification`, and the phone's
+  answer is `events.MediaRetry` as event 59 (`MediaRetryEv`). When a download
+  fails with an expired link the bridge (`media_retry.py`, called by
+  `get-media-by-message`) asks the phone to upload the file again, waits for
+  the answer and downloads from the new direct path; "not found" answers 410.
 
 ## Toolchain (once)
 

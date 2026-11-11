@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: fișierul media al cărui link a expirat este acum cerut din nou de la telefon. Când descărcarea eșuează din cauza linkului expirat, WinZapp cere telefonului să încarce din nou fișierul și îl descarcă prin noul link; dacă telefonul nu-l mai are, fișierul rămâne marcat ca expirat.
+
 - Neonize: istoricul pe care telefonul îl trimite de-a lungul mai multor ore nu mai este considerat complet după o pauză de 45 de secunde între blocuri. Cât timp progresul raportat este sub 100%, WinZapp așteaptă până la 10 minute de liniște, ca să nu trateze conversațiile drept finale prea devreme.
 
 - Fișiere media care nu se descarcă: mesajul de eroare nu mai menționează WPPConnect, care nu există în motorul Neonize. Acum vorbește despre un link expirat sau o conexiune la WhatsApp indisponibilă.

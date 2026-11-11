@@ -37,6 +37,7 @@ import loop_watch
 import ongoing_calls
 import group_events
 import contact_events
+import media_retry
 import app_state_mirror
 import app_state_recovery
 import labels
@@ -734,6 +735,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         presence.register_events(cli, self)
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
+        media_retry.register_events(cli, self)
         channel_events.register_events(cli, self)
         app_state_mirror.register_events(cli, self)
         pairing_repair.WATCH.add(self, generation, phone_number)
@@ -2316,8 +2318,12 @@ def create_app(folder, fixed=""):
         except Exception:
             body = None            # the body is optional: it only carries the progressId
         try:
-            data = await transfers.download_with_progress_async(
-                s.client, message, body, s.emit, s.name)
+            async def download(message):
+                return await transfers.download_with_progress_async(
+                    s.client, message, body, s.emit, s.name)
+            # an expired link: the phone is asked to upload the media again
+            data = await media_retry.download_async(
+                s, message, req.match_info["msgid"], download)
         except Exception as error:
             log.exception("download")
             status = transfers.status_for_download_error(error)
