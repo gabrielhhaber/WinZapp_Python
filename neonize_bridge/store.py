@@ -219,6 +219,21 @@ class Store:
                     (r["archived"], r["pinned"], r["muted"], destination))
                 self._conn.commit()
 
+    def has_chat(self, jid):
+        with self._lock:
+            return self._conn.execute(
+                "SELECT 1 FROM chats WHERE jid=?", (jid,)).fetchone() is not None
+
+    def revocation(self, chat, wpp):
+        """A 'delete for everyone' notice: the original becomes deleted. Returns
+        False, storing nothing, when neither the original nor the chat is known,
+        so a stray notice never makes up a conversation (issue #762)."""
+        found = self.change_message(wpp["protocolMessageKey"]["id"], type="revoked", body="")
+        if not found and not self.has_chat(chat):
+            return False
+        self.message(chat, wpp)
+        return True
+
     def on_arrival(self, jid, ts, from_me):
         """New message: raises the chat's date and counts an unread."""
         if _is_channel(jid):

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Neonize: o aviso de que uma mensagem foi apagada, quando o WinZapp não tem a mensagem nem a conversa, não cria mais um "Grupo sem nome" na lista de conversas. As mensagens apagadas nas suas conversas existentes continuam iguais.
+
 - Neonize: a mídia antiga que o celular reenvia depois do pedido de novo envio agora é baixada de verdade. Antes, o arquivo reenviado era recusado por não bater com a verificação do arquivo original e a mídia continuava sem abrir.
 
 - Atualizar ao sair: nova opção em Configurações > Geral que baixa as atualizações automaticamente, sem perguntar, e as instala quando você sai do WinZapp. Fechar a janela para a bandeja não conta como sair, e o WinZapp não abre de novo depois da instalação: ele fica fechado e usa a versão nova na próxima vez que você abri-lo.
