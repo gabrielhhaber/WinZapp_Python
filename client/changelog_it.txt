@@ -112,6 +112,8 @@ WHAT'S NEW
 
 - Chiamate Neonize: il registro ora conta, ogni 5 secondi, i pacchetti di ogni tipo consegnati dal relay (senza nomi), per capire perché in alcune chiamate ricevute l'audio di chi chiama si interrompe (problema #689). Nessun cambiamento di comportamento.
 
+- Chiamate di gruppo (Neonize): se riattacchi una chiamata di gruppo e rientri dal pannello delle chiamate (o ti unisci a una già in corso), non senti più nessuno. WinZapp ignorava chi era già nella chiamata prima del tuo ritorno; ora li sente di nuovo. Il registro delle chiamate conta inoltre i messaggi ripetuti per chiamata, così le righe di diagnosi non spariscono da una chiamata dopo alcune chiamate (problema #689).
+
 - Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
 
 - Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.

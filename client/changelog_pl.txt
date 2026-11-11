@@ -112,6 +112,8 @@ NOWOŚCI
 
 - Rozmowy przez Neonize: dziennik liczy teraz co 5 sekund pakiety każdego rodzaju dostarczane przez przekaźnik (bez nazw), aby ustalić, dlaczego w niektórych odebranych rozmowach dźwięk dzwoniącego się urywa (problem #689). Bez zmian w działaniu.
 
+- Rozmowy grupowe przez Neonize: po rozłączeniu się z rozmowy grupowej i powrocie do niej z panelu rozmów (albo dołączeniu do trwającej) nie słychać już nikogo. WinZapp pomijał osoby, które były w rozmowie, zanim wróciłeś; teraz znów je słychać. Dziennik rozmów liczy też powtarzające się komunikaty osobno dla każdej rozmowy, więc wiersze diagnostyczne nie znikają z rozmowy po kilku rozmowach (problem #689).
+
 - Neonize: pierwsza wiadomość do nowego numeru telefonu wpisanego w nowym czacie (Ctrl+N) nie kończy się już jako „niepotwierdzona”, gdy WhatsApp ma ten numer zarejestrowany w innej postaci (z dziewiątą cyfrą lub bez niej w brazylijskich numerach komórkowych): jest teraz wysyłana na adres, który zna WhatsApp. Numer wpisany w nowym czacie otwiera teraz czat pod adresem, który zna WhatsApp, więc nie zostaje drugi czat z tym samym kontaktem.
 
 - Wiadomości głosowe: przepływność nagrań wróciła do 64 kb/s, dzięki czemu wysyłanie jest szybkie nawet przy nagraniach dłuższych niż minuta (zmiana na 256 kb/s spowolniła wysyłanie). W Ustawienia > Dźwięk pojawiła się opcja „Przepływność wiadomości głosowych (kb/s)” do wyboru od 32 do 256 kb/s.

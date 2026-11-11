@@ -112,6 +112,8 @@ NOVEDADES
 
 - Llamadas de Neonize: el registro ahora cuenta, cada 5 segundos, los paquetes de cada tipo que entrega el relay (sin nombres), para saber por qué el audio de quien llama se corta en algunas llamadas recibidas (problema #689). Sin cambios de comportamiento.
 
+- Llamadas en grupo (Neonize): si cuelgas una llamada en grupo y vuelves a entrar desde el panel de llamadas (o te unes a una que ya está en curso), ya no dejas de oír a todos. WinZapp ignoraba a quien ya estaba en la llamada antes de que volvieras; ahora vuelve a oírlos. El registro de llamadas también cuenta los mensajes repetidos por llamada, para que las líneas de diagnóstico no desaparezcan de una llamada tras unas cuantas llamadas (problema #689).
+
 - Neonize: el primer mensaje a un número de teléfono nuevo escrito en una conversación nueva (Ctrl+N) ya no termina como «no confirmado» cuando WhatsApp tiene el número registrado en su otra forma (con o sin el 9.º dígito de los móviles brasileños): ahora se envía a la dirección que WhatsApp conoce. Además, un número escrito en una conversación nueva abre ahora el chat con la dirección que WhatsApp conoce, así no queda una conversación duplicada.
 
 - Mensajes de voz: la tasa de bits de las grabaciones vuelve a 64 kbps, que se envía rápido incluso pasado un minuto (el cambio a 256 kbps había vuelto lento el envío). Configuración > Audio incorpora "Tasa de bits de los mensajes de voz (kbps)", para elegir de 32 a 256 kbps.
