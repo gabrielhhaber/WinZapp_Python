@@ -432,6 +432,8 @@ NOUTĂȚI
 
 - Fereastra de noutăți: tasta Esc o închide acum, atât din Ajutor > Ce este nou, cât și din Ajutor > "Noutăți de la ultima vizualizare". Înainte, Esc nu făcea nimic și trebuia să ajungi la butonul de închidere.
 
+- Actualizare cu mai multe conturi deschise: WinZapp așteaptă acum ca celelalte conturi să termine de închis înainte de a instala actualizarea. Înainte, instalarea putea eșua cu avertismentul că alte conturi sunt deschise și continua abia după ce răspundeai Da pentru a încerca din nou.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

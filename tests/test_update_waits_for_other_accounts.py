@@ -15,6 +15,7 @@ tests do.
 """
 
 import os
+import time
 import types
 import zipfile
 
@@ -178,9 +179,73 @@ class TestClaimInstallSlot:
         # The real lease_alive() sees pid 999999 as dead, so pin liveness.
         monkeypatch.setattr(update_coord, "try_begin_update",
                             functools.partial(update_coord.try_begin_update, is_alive=alive))
+        # A peer that never exits: the grace period is spent, then the same refusal.
+        monkeypatch.setattr(updater, "_PEER_EXIT_GRACE_SECONDS", 0.05)
+        monkeypatch.setattr(updater, "_PEER_EXIT_POLL_SECONDS", 0.01)
         stub = _stub(_mw(gd, "me"))
         assert stub._claim_install_slot() is None
         assert stub._claim_error == "update_other_accounts_running"
+
+    def test_a_peer_that_is_still_exiting_is_waited_for_instead_of_refused(self, monkeypatch, tmp_path):
+        """Reported 2026-11-11: with two accounts open the update failed with
+        \"another account is running\" and only worked after answering Yes to
+        retry. The peer had confirmed RELEASED but its process was still alive
+        for a moment, and the claim ran at once."""
+        import functools
+        import update_coord
+
+        gd = str(tmp_path)
+        always = lambda pid, ct: True
+        update_coord.try_create_runtime_lease(gd, pid=os.getpid(), create_time=0.0, is_alive=always)
+        update_coord.try_create_runtime_lease(gd, pid=999_999, create_time=1.0, is_alive=always)
+        polls = {"n": 0}
+
+        def peer_alive(pid, ct):
+            if pid == 999_999:
+                polls["n"] += 1
+                return polls["n"] <= 3  # dies on the fourth look
+            return True
+
+        monkeypatch.setattr(update_coord, "try_begin_update",
+                            functools.partial(update_coord.try_begin_update, is_alive=peer_alive))
+        monkeypatch.setattr(updater, "_PEER_EXIT_POLL_SECONDS", 0.01)
+        stub = _stub(_mw(gd, "me"))
+        token = stub._claim_install_slot()
+        assert token and token.get("owner_token")
+        assert polls["n"] >= 4, "it must have polled until the peer was gone"
+        stub._end_install_slot(token)
+
+    def test_cancelling_stops_the_wait_for_a_peer(self, monkeypatch, tmp_path):
+        import functools
+        import update_coord
+
+        gd = str(tmp_path)
+        alive = lambda pid, ct: True
+        update_coord.try_create_runtime_lease(gd, pid=os.getpid(), create_time=0.0, is_alive=alive)
+        update_coord.try_create_runtime_lease(gd, pid=999_999, create_time=1.0, is_alive=alive)
+        monkeypatch.setattr(update_coord, "try_begin_update",
+                            functools.partial(update_coord.try_begin_update, is_alive=alive))
+        monkeypatch.setattr(updater, "_PEER_EXIT_GRACE_SECONDS", 60.0)
+        monkeypatch.setattr(updater, "_PEER_EXIT_POLL_SECONDS", 0.01)
+        stub = _stub(_mw(gd, "me"))
+        stub._handoff.cancelled.set()
+        started = time.monotonic()
+        assert stub._claim_install_slot() is None
+        assert time.monotonic() - started < 5, "a cancelled update must not sit out the grace period"
+
+    def test_other_refusals_are_not_waited_out(self, monkeypatch, tmp_path):
+        import update_coord
+
+        stub = _stub(_mw(str(tmp_path), "me"))
+        token = stub._claim_install_slot()
+        monkeypatch.setattr(updater, "_PEER_EXIT_GRACE_SECONDS", 60.0)
+        started = time.monotonic()
+        try:
+            assert stub._claim_install_slot() is None
+            assert stub._claim_error == "update_install_in_progress"
+        finally:
+            stub._end_install_slot(token)
+        assert time.monotonic() - started < 5
 
     def test_own_lease_alone_does_not_block_and_the_slot_is_released(self, tmp_path):
         import update_coord
