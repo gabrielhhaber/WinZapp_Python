@@ -4,7 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
-- WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
+- WPPConnect Server 2.10.79 viene ora offerto come aggiornamento senza dover attendere una nuova versione di WinZapp. Aggiorna solo dipendenze di sicurezza e non influisce sulle modifiche che WinZapp apporta al server.
 
 - Menzioni: in un messaggio di gruppo con @tutti, Tab non passa più per un link per ogni membro subito dopo l'apertura della chat. Prima succedeva finché i membri del gruppo non finivano di caricarsi e il messaggio perdeva il focus.
 
