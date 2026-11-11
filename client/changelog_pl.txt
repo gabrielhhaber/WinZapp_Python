@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Neonize: historia, którą telefon wysyła przez kilka godzin, nie jest już uznawana za kompletną po 45-sekundowej przerwie między blokami. Dopóki zgłaszany postęp jest poniżej 100%, WinZapp czeka do 10 minut ciszy, aby nie traktować czatów jako ostatecznych zbyt wcześnie.
+
 - Pliki multimedialne, które się nie pobierają: komunikat o błędzie nie wspomina już o WPPConnect, którego nie ma w silniku Neonize. Teraz mówi o wygasłym linku lub niedostępnym połączeniu z WhatsApp.
 
 - Szablony firmowe: zachowanie dostępnej treści i obsługiwanych przycisków, ich pozycji oraz wyjaśnienie brakującej treści i nieobsługiwanych działań. Starych pustych wpisów nie można odtworzyć.

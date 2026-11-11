@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Neonize: o histórico que o telemóvel envia ao longo de várias horas já não é dado como completo por uma pausa de 45 segundos entre blocos. Enquanto o progresso indicado estiver abaixo de 100%, o WinZapp espera até 10 minutos de silêncio, para não tratar conversas como finais cedo demais.
+
 - Multimédia que não descarrega: a mensagem de erro já não menciona o WPPConnect, que não existe no motor Neonize. Passa a falar de ligação expirada ou ligação ao WhatsApp indisponível.
 
 - Modelos de empresa: preserva o texto disponível e os botões suportados, mantém a posição dos botões e explica conteúdo em falta ou ações não suportadas. Registos antigos vazios não podem ser reconstruídos.

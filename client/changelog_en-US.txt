@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: history that the phone sends over several hours is no longer declared complete by a 45-second pause between blocks. While the reported progress is below 100%, WinZapp waits up to 10 minutes of silence, so chats are not treated as final too early.
+
 - Media that fails to download: the error message no longer mentions WPPConnect, which does not exist on the Neonize engine. It now says the link may have expired or the WhatsApp connection may be unavailable.
 
 - Business templates: preserve available text and supported buttons, keep button positions, and explain missing content or unsupported actions. Empty old records cannot be reconstructed.

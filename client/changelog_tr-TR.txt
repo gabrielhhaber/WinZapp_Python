@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize: telefonun saatlerce gönderdiği geçmiş artık bloklar arasındaki 45 saniyelik bir duraklamayla tamamlanmış sayılmıyor. Bildirilen ilerleme %100'ün altındayken WinZapp 10 dakikaya kadar sessizlik bekliyor; böylece sohbetler çok erken kesin sayılmıyor.
+
 - İndirilemeyen medya: hata mesajı artık Neonize motorunda bulunmayan WPPConnect'ten söz etmiyor. Bunun yerine bağlantının süresinin dolmuş olabileceğini veya WhatsApp bağlantısının kullanılamıyor olabileceğini söylüyor.
 
 - İşletme şablonları: mevcut metin ve desteklenen düğmeler korunur, düğme sıraları değişmez; eksik içerik ve desteklenmeyen işlemler açıklanır. Boş eski kayıtlar yeniden oluşturulamaz.
