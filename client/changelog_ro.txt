@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: istoricul pe care telefonul îl trimite de-a lungul mai multor ore nu mai este considerat complet după o pauză de 45 de secunde între blocuri. Cât timp progresul raportat este sub 100%, WinZapp așteaptă până la 10 minute de liniște, ca să nu trateze conversațiile drept finale prea devreme.
+
 - WPPConnect Server 2.10.79 este acum oferit ca actualizare fără a aștepta o nouă versiune WinZapp. Actualizează doar dependențe de securitate și nu afectează modificările pe care WinZapp le face serverului.
 
 - Mențiuni: într-un mesaj de grup cu @toți, Tab nu mai trece printr-un link pentru fiecare participant imediat după deschiderea conversației. Înainte se întâmpla până când participanții grupului terminau de încărcat și mesajul pierdea focusul.

@@ -23,11 +23,20 @@ def test_block_in_flight_is_never_complete_and_counts_as_unprocessed():
                      "recentCompleted": False}
 
 
-def test_progress_below_100_waits_for_the_silence():
+def test_progress_below_100_survives_the_short_silence():
     p = hp.Progress(now=0)
     p.started(5)
     p.finished(6, percent=40)
     assert p.complete(7, stored_chats=10) is False
+    assert p.complete(6 + hp.SILENCE, stored_chats=10) is False
+    assert p.complete(6 + hp.PARTIAL_SILENCE - 1, stored_chats=10) is False
+    assert p.complete(6 + hp.PARTIAL_SILENCE, stored_chats=10) is True
+
+
+def test_blocks_without_a_percent_keep_the_short_silence():
+    p = hp.Progress(now=0)
+    p.started(5)
+    p.finished(6)
     assert p.complete(6 + hp.SILENCE - 1, stored_chats=10) is False
     assert p.complete(6 + hp.SILENCE, stored_chats=10) is True
 

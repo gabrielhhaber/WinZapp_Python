@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: history that the phone sends over several hours is no longer declared complete by a 45-second pause between blocks. While the reported progress is below 100%, WinZapp waits up to 10 minutes of silence, so chats are not treated as final too early.
+
 - WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
 
 - Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.
