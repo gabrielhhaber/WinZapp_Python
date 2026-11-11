@@ -239,13 +239,14 @@ def test_queued_alias_result_cannot_cross_visit_epoch_shutdown_or_identity(sched
     assert owner._contact_presence_inflight is (change == "switch")
 
 
+@pytest.mark.parametrize("online", [True, False])
 @pytest.mark.parametrize("state", ["composing", "recording"])
-def test_polled_snapshot_never_starts_or_renews_activity(state):
+def test_polled_snapshot_never_starts_or_renews_activity(state, online):
     """Issue #743: WPP keeps a stale "composing" after the message was sent."""
-    payload = ready(isOnline=True, state=state, lastSeen=None)
+    payload = ready(isOnline=online, state=state, lastSeen=None)
     snapshot = read_snapshot((PN,), lambda target, timeout: response(payload), lambda: 100)
     assert snapshot["lastKnownPresence"] == ""
-    assert snapshot["isOnline"] is True
-    owner = Owner()
-    entry = merge(owner, PN, snapshot, now=100)
-    assert entry["lastKnownPresence"] == "available"
+    assert "isOnline" not in snapshot  # never invents offline (hidden online + typing)
+    entry = merge(Owner(), PN, snapshot, now=100)
+    assert entry["lastKnownPresence"] != state
+    assert entry["isOnline"] is None
