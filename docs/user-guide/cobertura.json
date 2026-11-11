@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "7b71c9cfefe1": "Neonize: o histórico antigo das conversas agora é importado de fato durante a si",
     "712811802739": "Neonize: mídia cujo link expirou agora é pedida de novo ao celular. Quando o dow",
     "86546986427a": "Respostas e envios novos não aparecem mais acima da mensagem original quando o r",
     "b34169fb8e8f": "Neonize: o histórico que o celular envia durante várias horas não é mais dado co",

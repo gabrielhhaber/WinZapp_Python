@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: old chat history is now really imported during the background sync; the previous fix was still undone at the end of each sweep. Old media that cannot be recovered even after asking the phone now shows as expired instead of a repeated connection error.
+
 - Neonize: media whose link expired is now requested again from the phone. When a download fails because the link expired, WinZapp asks the phone to upload the media again and downloads it from the new link; if the phone no longer has the file, the media stays marked as expired.
 
 - New replies and sent messages no longer appear above the original message when the computer's clock is behind WhatsApp's. The provisional time of a sent message is never earlier than the last message already shown or the message being replied to.

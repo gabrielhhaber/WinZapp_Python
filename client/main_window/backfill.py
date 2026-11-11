@@ -832,6 +832,10 @@ class BackfillMixin:
         attempt = 0
         attempted: set[str] = set()
         sweep_made_progress = False
+        # A finished sweep keeps `attempted` until the next pass has judged
+        # whether background work may run: clearing it at the sweep's end made
+        # every unopened chat look untried again (issue #756).
+        sweep_done = False
         try:
             while time.monotonic() < deadline:
                 # Sleep in slices so a shutdown or a newer sync is noticed
@@ -875,12 +879,12 @@ class BackfillMixin:
                 # several chunks quickly and do not need to hammer this status
                 # endpoint between each one.
                 landing_now = getattr(self, "_history_still_landing", False)
-                if not attempted:
+                if not attempted or sweep_done:
                     landing_now = self.refresh_history_still_landing(
                         context=f"backfill pass {attempt}")
                 if not landing_now:
                     self._start_deferred_media_sync()
-                if not attempted and landing_now:
+                if (not attempted or sweep_done) and landing_now:
                     # Two things can stall the queue, and both are silent: a
                     # chunk the processing loop will never accept parked at the
                     # head of it, and a loop that simply stopped scheduling
@@ -976,6 +980,7 @@ class BackfillMixin:
                     # No chat is short of a page; names and/or deep history
                     # were this round's work.
                     attempted.clear()
+                    sweep_done = False
                     if named or deep_stored:
                         retry_delay = self._BACKFILL_FIRST_DELAY
                     else:
@@ -983,6 +988,11 @@ class BackfillMixin:
                     delay = retry_delay
                     continue
 
+                if sweep_done:
+                    # The gate above has seen the finished sweep; the next one
+                    # starts from nothing attempted.
+                    attempted.clear()
+                    sweep_done = False
                 before = len(pending)
                 # Sweep by remembering what has been tried, not by advancing an
                 # index: `pending` shrinks as chats recover, so index arithmetic
@@ -1192,7 +1202,7 @@ class BackfillMixin:
                 delay, retry_delay = BackfillMixin._backfill_short_queue_delays(
                     retry_delay, finishes_sweep, sweep_made_progress)
                 if finishes_sweep:
-                    attempted.clear()
+                    sweep_done = True
                     sweep_made_progress = False
             still = len(self._collapse_and_list_backfill_pending())
             unnamed = len(self._pending_name_resolution())

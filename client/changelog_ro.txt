@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: istoricul vechi al conversațiilor este acum importat cu adevărat în timpul sincronizării în fundal; corecția anterioară era încă anulată la sfârșitul fiecărei parcurgeri. Fișierele media vechi care nu mai pot fi recuperate, chiar și după ce sunt cerute telefonului, apar acum ca expirate, în loc de o eroare de conexiune repetată.
+
 - Neonize: fișierul media al cărui link a expirat este acum cerut din nou de la telefon. Când descărcarea eșuează din cauza linkului expirat, WinZapp cere telefonului să încarce din nou fișierul și îl descarcă prin noul link; dacă telefonul nu-l mai are, fișierul rămâne marcat ca expirat.
 
 - Răspunsurile și mesajele trimise nu mai apar deasupra mesajului original când ceasul computerului este în urma celui WhatsApp. Ora provizorie a mesajului trimis nu este niciodată anterioară ultimului mesaj afișat sau mesajului la care se răspunde.

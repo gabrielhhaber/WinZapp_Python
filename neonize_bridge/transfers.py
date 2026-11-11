@@ -211,8 +211,12 @@ def status_for_download_error(error) -> int:
 
     410 for media that is gone from WhatsApp's server (404/410) or whose CDN
     link expired (403 / forbidden), which the client treats as "expired" and
-    remembers instead of retrying. Anything else is a real fault: 500.
+    remembers instead of retrying. So does media that is still on the CDN but
+    cannot be authenticated or located any more (after a phone re-upload the
+    ciphertext hash or MAC no longer matches, or the message carries no URL;
+    issue #756): retrying cannot fix it. Anything else is a real fault: 500.
     """
     text = str(error).lower()
-    gone = ("404", "410", "403", "not found", "forbidden")
+    gone = ("404", "410", "403", "not found", "forbidden",
+            "ciphertext doesn't match", "invalid media hmac", "no url present")
     return 410 if any(mark in text for mark in gone) else 500
