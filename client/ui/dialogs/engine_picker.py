@@ -27,7 +27,8 @@ def relabel(label, choice, hint, i18n):
     selected = choice.GetSelection()
     label.SetLabel(i18n.t("connection_engine_label"))
     choice.SetItems(labels(i18n))
-    choice.SetSelection(selected if selected != wx.NOT_FOUND else 0)
+    choice.SetSelection(selected if selected != wx.NOT_FOUND
+                        else engines.index_of(engines.WPPCONNECT))
     hint.SetLabel(i18n.t("connection_engine_hint"))
 
 
