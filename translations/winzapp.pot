@@ -5202,7 +5202,7 @@ msgctxt "communities_row_admin"
 msgid "{name}, you are an admin"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_title"
 msgid "Communities"
 msgstr ""
@@ -18029,6 +18029,13 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ui_message_list_open_position_last_focused"
 msgid "Continue where you left off (last focused message)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused_or_unread"
+msgid ""
+"Where you left off in the middle of the conversation; if you had reached the"
+" last message, the unread separator"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
