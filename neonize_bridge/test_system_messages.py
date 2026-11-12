@@ -96,8 +96,37 @@ def test_joining_by_link_has_no_author_and_lid_becomes_a_number():
 
     e = group(Sender=jid("99", "lid"), Join=[jid("99", "lid")], JoinReason="invite")
     (w,) = sm.group_notices(e, with_pair, NOW)
-    assert w["subtype"] == "add" and w["recipients"] == ["5511@c.us"]
+    # WhatsApp Web's own subtype for a join by link: the client says "joined
+    # using the invite link", as it does on WPPConnect
+    assert w["subtype"] == "invite" and w["recipients"] == ["5511@c.us"]
     assert "author" not in w
+
+
+def test_joining_for_another_reason_stays_a_join_without_author():
+    e = group(Sender=jid("99"), Join=[jid("99")], JoinReason="linked_group_join")
+    (w,) = sm.group_notices(e, person, NOW)
+    assert w["subtype"] == "add" and "author" not in w
+    (added,) = notices(Join=[jid("2")])
+    assert added["subtype"] == "add" and added["author"] == "1@c.us"
+
+
+def _joined(reason="invite", version="v1"):
+    return N(Reason=reason, Type="", GroupInfo=N(JID=jid("120", "g.us"),
+                                                ParticipantVersionID=version))
+
+
+def test_the_account_joining_by_link_gets_its_own_notice():
+    w = sm.own_join_notice(_joined(), "9@c.us", NOW)
+    assert (w["type"], w["subtype"], w["recipients"]) == ("gp2", "invite", ["9@c.us"])
+    assert w["id"]["remote"] == "120@g.us" and w["t"] == NOW and "author" not in w
+    # the same join delivered twice is one notice; a later join is another
+    assert sm.own_join_notice(_joined(), "9@c.us", NOW + 30)["id"]["id"] == w["id"]["id"]
+    assert sm.own_join_notice(_joined(version="v2"), "9@c.us", NOW)["id"]["id"] != w["id"]["id"]
+
+
+def test_creating_or_being_added_is_not_a_join_by_link():
+    assert sm.own_join_notice(_joined(reason=""), "9@c.us", NOW) is None
+    assert sm.own_join_notice(_joined(), "", NOW) is None
 
 
 def test_several_changes_of_the_same_event_have_different_ids_and_repeating_gives_the_same():
