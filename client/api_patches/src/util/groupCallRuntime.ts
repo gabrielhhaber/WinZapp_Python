@@ -95,7 +95,7 @@ export function installGroupCallRuntimeInPage(): void {
       const current = activeId === callId && [6, 9, 11, 'ACTIVE', 'REJOINING', 'CONNECTED_LONELY'].includes(state);
       const record = calls.getByCallId(callId);
       const result = new Map();
-      const add = (wid: any): void => {
+      const add = (wid: any, state = 'connected'): void => {
         let normalized = wid;
         try { normalized = module('WAWebLidMigrationUtils')?.toPn?.(wid) || wid; } catch (_) { /* Keep the LID. */ }
         const jid = serialized(normalized).replace(/@c\.us$/, '@s.whatsapp.net');
@@ -106,18 +106,32 @@ export function installGroupCallRuntimeInPage(): void {
         const contact = contacts?.get?.(wid) || contacts?.get?.(normalized);
         const name = [contact?.name, contact?.pushname, contact?.pushName].find(
           value => typeof value === 'string' && value.trim() && !/^\d+@/.test(value)) || '';
-        result.set(isSelf ? 'self' : jid, { jid, name, isSelf });
+        const key = isSelf ? 'self' : jid;
+        // a connected reading of someone wins over an older state of theirs
+        if (result.get(key)?.state === 'connected' && state !== 'connected') return;
+        result.set(key, { jid, name, isSelf, state });
       };
       if (record?.callCreator) {
-        // The same filter as WhatsApp's Calls-tab participant face pile.
-        // Invited, ringing and departed people must never appear as connected.
-        const connected = module('WAWebVoipWaCallEnums')?.CallParticipantState?.Connected;
+        // Everyone the call record lists, with their state, as the phone lists
+        // a group call (WAWebVoipWaCallEnums.CallParticipantState, read over CDP
+        // on 2026-11-12: Connected 1, Incoming 2, Receipt 3, Rejected 4,
+        // Terminated 5 = left, TimedOut 6, CancelOffer 10, Invited 11). Invited,
+        // ringing and departed people are never reported as connected.
+        const states = module('WAWebVoipWaCallEnums')?.CallParticipantState;
         const participants = module('WAWebMsgGetters')?.getCallParticipants?.(record) ?? record.callParticipants;
-        if (connected == null || !Array.isArray(participants) || participants.length > 1024) {
+        if (states?.Connected == null || !Array.isArray(participants) || participants.length > 1024) {
           throw new Error('Connected participants are unavailable');
         }
+        const stateOf = new Map([
+          [states.Connected, 'connected'],
+          [states.Incoming, 'ringing'], [states.Receipt, 'ringing'], [states.Invited, 'ringing'],
+          [states.Rejected, 'declined'],
+          [states.Terminated, 'left'],
+          [states.TimedOut, 'missed'], [states.CancelOffer, 'missed'],
+        ]);
         for (const person of participants) {
-          if (person?.outcome === connected) add(person.participant);
+          const state = stateOf.get(person?.outcome);
+          if (state) add(person.participant, state);
         }
       } else if (current && active?.isGroup === false && [6, 9, 'ACTIVE', 'REJOINING'].includes(state)) {
         add(active.peerJid);

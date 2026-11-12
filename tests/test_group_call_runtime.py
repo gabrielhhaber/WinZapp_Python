@@ -31,7 +31,7 @@ const modules = {
     id._serialized === person ? personChat : pnChat } },
   WAWebMsgGetters: { getIsGroupCall: call => call.isGroupCall === true,
     getCallParticipants: call => call.callParticipants },
-  WAWebVoipWaCallEnums: { CallParticipantState: { Connected: 71 } },
+  WAWebVoipWaCallEnums: { CallParticipantState: { Connected: 71, Terminated: 72 } },
   WAWebUserPrefsMeUser: { isMeAccount: wid => wid?._serialized === '555000099@lid',
     getMeLidUserOrThrow: () => ({ _serialized: '555000099@lid' }) },
   WAWebContactCollection: { ContactCollection: { get: wid => ({ name: wid?._serialized === person ? 'Synthetic Person' : '' }) } },
@@ -144,13 +144,17 @@ function fresh() {
     { participant: personChat.id, outcome: 71 },
     { participant: pnChat.id, outcome: 20 },
     { participant: { _serialized: '555000003@lid' }, outcome: 'Connected' },
+    { participant: { _serialized: '555000009@lid' }, outcome: 72 },
   ];
   let roster = await api.participants('call-1');
   assert.equal(roster.available, true);
-  assert.deepEqual(roster.participants, [{ jid: person, name: 'Synthetic Person', isSelf: false }]);
+  // everyone the record lists, with their state: who left stays, as on the phone
+  assert.deepEqual(roster.participants, [
+    { jid: person, name: 'Synthetic Person', isSelf: false, state: 'connected' },
+    { jid: '555000009@lid', name: '', isSelf: false, state: 'left' }]);
   active = { id: 'call-1', getState: () => 6, isGroup: true };
   roster = await api.participants('call-1');
-  assert.equal(roster.participants.length, 2, 'the connected local user is included once');
+  assert.equal(roster.participants.length, 3, 'the connected local user is included once');
   record = null;
   await assert.rejects(api.participants('call-1'), /unavailable/, 'never substitute group membership for a roster');
   active = { id: 'individual', peerJid: personChat.id, isGroup: false, getState: () => 6 };

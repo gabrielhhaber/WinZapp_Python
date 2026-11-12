@@ -13,7 +13,7 @@ import wx
 
 from core.call_invites import (candidates, one_per_person, parse_results, room_left,
                                 saved_contact_jids, summary)
-from core.call_participants import parse_participants
+from core.call_participants import CONNECTED, parse_participants
 from ui.dialogs.call_invite_marks import CallInviteMarksMixin
 
 
@@ -74,8 +74,10 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
                 members = saved_contact_jids(dict(getattr(mw, "contacts", None) or {}))
             response = mw._raise_for_call_response(mw._post_call_control(
                 "participants", {"callId": self._call_id}, timeout=20), "participants")
-            present = parse_participants(response.json(), self._call_id) or []
-            connected = len(present)
+            listed = parse_participants(response.json(), self._call_id) or []
+            connected = sum(1 for p in listed if p["state"] == CONNECTED)
+            # someone who left, declined or missed it may be added again
+            present = [p for p in listed if p["state"] in (CONNECTED, "ringing")]
             members = one_per_person(members, dict(getattr(mw, "_lid_to_phone", None) or {}))
             rows = candidates(
                 members, [p["jid"] for p in present if not p["isSelf"]], mw._is_self_jid,

@@ -2628,6 +2628,12 @@ msgid "Voice call"
 msgstr "Sesli arama"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_declined_row"
+msgid "{name}, declined"
+msgstr "{name}, reddetti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_participants.py
 #, python-brace-format
 msgctxt "call_participant_joined"
@@ -2640,6 +2646,24 @@ msgstr "{name} aramaya katıldı"
 msgctxt "call_participant_left"
 msgid "{name} left the call"
 msgstr "{name} aramadan ayrıldı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_left_row"
+msgid "{name}, left the call"
+msgstr "{name}, aramadan ayrıldı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_missed_row"
+msgid "{name}, did not answer"
+msgstr "{name}, yanıtlamadı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_ringing_row"
+msgid "{name}, ringing"
+msgstr "{name}, çalıyor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -2659,6 +2683,13 @@ msgstr "Arama katılımcıları"
 msgctxt "call_participants_count"
 msgid "Connected participants: {count}"
 msgstr "Bağlı katılımcılar: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+#, python-brace-format
+msgctxt "call_participants_count_with_left"
+msgid "Connected participants: {count}. Not connected: {left}"
+msgstr "Bağlı katılımcılar: {count}. Bağlı olmayanlar: {left}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py

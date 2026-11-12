@@ -5,7 +5,8 @@ import threading
 import wx
 
 from core.call_log import list_update_plan
-from core.call_participants import parse_participants, participant_rows
+from core.call_participants import connected_only, parse_participants, participant_rows
+from core.call_roster import left_of, note_seen, user_of
 from ui.shortcut_bindings import make_shortcut_table
 
 
@@ -57,8 +58,17 @@ class ParticipantListMixin:
         self._announce_pending = False
         if not self._allowed():
             data, failed = None, True
+        left = []
+        if data is not None and not failed:
+            # who was here and left stays listed, as the phone lists them
+            seen = self._mw.__dict__.setdefault("_call_seen", {})
+            mine = {user_of(j) for j in (getattr(self._mw, "my_jid", ""),
+                                         getattr(self._mw, "my_lid", ""))} - {""}
+            note_seen(seen, self._call_id,
+                      [(p["jid"], p["name"]) for p in data if not p["isSelf"]], mine)
+            left = left_of(seen, self._call_id, [p["jid"] for p in connected_only(data)])
         rows = [] if data is None or failed else participant_rows(data, self._mw.i18n,
-            lambda jid, hint: self._mw.chat_display_name({"remoteJid": jid, "name": hint}))
+            lambda jid, hint: self._mw.chat_display_name({"remoteJid": jid, "name": hint}), left)
         self._apply_participant_rows(rows)
         i18n = self._mw.i18n
         if failed:
@@ -67,6 +77,10 @@ class ParticipantListMixin:
             status = i18n.t("call_participants_ended")
         elif not rows:
             status = i18n.t("call_participants_empty")
+        elif len(rows) > len(connected_only(data)):
+            connected = len(connected_only(data))
+            status = i18n.t("call_participants_count_with_left").format(
+                count=connected, left=len(rows) - connected)
         else:
             status = i18n.t("call_participants_count").format(count=len(rows))
         if self._status.GetLabel() != status:

@@ -2585,6 +2585,12 @@ msgid "Voice call"
 msgstr "مكالمة صوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_declined_row"
+msgid "{name}, declined"
+msgstr "{name}، رفض"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_participants.py
 #, python-brace-format
 msgctxt "call_participant_joined"
@@ -2597,6 +2603,24 @@ msgstr "انضم {name} إلى المكالمة"
 msgctxt "call_participant_left"
 msgid "{name} left the call"
 msgstr "غادر {name} المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_left_row"
+msgid "{name}, left the call"
+msgstr "{name}، غادر المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_missed_row"
+msgid "{name}, did not answer"
+msgstr "{name}، لم يرد"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_ringing_row"
+msgid "{name}, ringing"
+msgstr "{name}، يرن"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -2616,6 +2640,13 @@ msgstr "مشاركو المكالمة"
 msgctxt "call_participants_count"
 msgid "Connected participants: {count}"
 msgstr "المشاركون المتصلون: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+#, python-brace-format
+msgctxt "call_participants_count_with_left"
+msgid "Connected participants: {count}. Not connected: {left}"
+msgstr "المشاركون المتصلون: {count}. غير المتصلين: {left}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py

@@ -79,3 +79,12 @@ def test_the_socket_hands_a_roster_to_the_window(monkeypatch):
     client.on_call_participants({"session": "me", "callId": "G1", "connected": "1@lid"})
     client.on_call_participants({"session": "other", "callId": "G1", "connected": []})
     assert got == [("G1", ["1@lid"])]
+
+
+def test_who_was_seen_and_is_gone_stays_listed():
+    from core.call_roster import left_of, note_seen
+    seen = {}
+    note_seen(seen, "C1", [("1@lid", "Ana"), ("2@lid", ""), ("9@lid", "eu")], mine={"9"})
+    note_seen(seen, "C1", [("2@lid", "Bia")])
+    assert left_of(seen, "C1", ["1:4@lid"]) == [("2@lid", "Bia")]
+    assert left_of(seen, "OTHER", []) == []

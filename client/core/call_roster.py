@@ -34,3 +34,26 @@ def remember(rosters, call_id, connected, mine=frozenset()):
     while len(rosters) > KEPT:
         rosters.pop(next(iter(rosters)))
     return changes
+
+
+def note_seen(seen_by_call, call_id, people, mine=frozenset()):
+    """Remember everyone *people* ([(jid, name)]) shows connected to *call_id*,
+    so that someone who leaves stays listed as gone, as the phone lists
+    them. The account itself is never kept; only the last KEPT calls are."""
+    seen = seen_by_call.pop(call_id, None) or {}
+    for jid, name in people or ():
+        if jid and user_of(jid) not in mine:
+            if name or jid not in seen:
+                seen[jid] = name or seen.get(jid, "")
+    seen_by_call[call_id] = seen
+    while len(seen_by_call) > KEPT:
+        seen_by_call.pop(next(iter(seen_by_call)))
+
+
+def left_of(seen_by_call, call_id, connected):
+    """[(jid, name)] of who was seen in *call_id* and is no longer connected,
+    in the order they were first seen. Compared by user, so the same person
+    reported once by number and once by LID is not "gone"."""
+    now = {user_of(jid) for jid in connected or ()}
+    return [(jid, name) for jid, name in (seen_by_call.get(call_id) or {}).items()
+            if user_of(jid) not in now]

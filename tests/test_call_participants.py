@@ -260,3 +260,43 @@ def test_a_locked_chats_participants_are_refused_out_loud_without_a_dialog(monke
         output=lambda text, interrupt=False: spoken.append((text, interrupt)))
     CallParticipantsMixin.show_call_participants(stub, "C1", PERSON["jid"])
     assert spoken == [("call_participants_ended", True)]
+
+
+# ---------------------------------------------- everyone, not only the connected
+class _Words:
+    def t(self, key):
+        return {"call_participants_you": "Você", "unknown_contact": "Desconhecido",
+                "call_participant_left_row": "{name}, saiu da chamada",
+                "call_participant_ringing_row": "{name}, chamando",
+                "call_participant_declined_row": "{name}, recusou",
+                "call_participant_missed_row": "{name}, não atendeu"}.get(key, key)
+
+
+def _roster(*people):
+    return {"response": {"id": "C1", "available": True, "participants": list(people)}}
+
+
+def test_states_are_read_and_an_old_server_means_connected():
+    from core.call_participants import parse_participants
+    rows = parse_participants(_roster(
+        {"jid": "1@lid", "name": "Ana", "isSelf": False},
+        {"jid": "2@lid", "name": "Bia", "isSelf": False, "state": "left"}), "C1")
+    assert [r["state"] for r in rows] == ["connected", "left"]
+    import pytest
+    with pytest.raises(ValueError):
+        parse_participants(_roster({"jid": "3@lid", "name": "", "isSelf": False, "state": "dancing"}), "C1")
+
+
+def test_the_list_is_ordered_like_the_phones_and_marks_each_state():
+    from core.call_participants import parse_participants, participant_rows
+    data = parse_participants(_roster(
+        {"jid": "2@lid", "name": "Bia", "isSelf": False, "state": "left"},
+        {"jid": "3@lid", "name": "Caio", "isSelf": False, "state": "ringing"},
+        {"jid": "1@lid", "name": "Ana", "isSelf": False},
+        {"jid": "9@lid", "name": "", "isSelf": True}), "C1")
+    rows = participant_rows(data, _Words(), lambda jid, hint: hint,
+                            left=[("2@s.whatsapp.net", "Bia"), ("5@lid", "Duda")])
+    assert [text for _key, text in rows] == [
+        "Ana", "Você", "Caio, chamando", "Bia, saiu da chamada", "Duda, saiu da chamada"]
+    # Bia, reported left by the server, is not listed twice from what this device saw
+    assert len({key for key, _ in rows}) == 5

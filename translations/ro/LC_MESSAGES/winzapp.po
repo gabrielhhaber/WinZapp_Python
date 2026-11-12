@@ -2640,6 +2640,12 @@ msgid "Voice call"
 msgstr "Apel vocal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_declined_row"
+msgid "{name}, declined"
+msgstr "{name}, a refuzat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_participants.py
 #, python-brace-format
 msgctxt "call_participant_joined"
@@ -2652,6 +2658,24 @@ msgstr "{name} a intrat în apel"
 msgctxt "call_participant_left"
 msgid "{name} left the call"
 msgstr "{name} a ieșit din apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_left_row"
+msgid "{name}, left the call"
+msgstr "{name}, a ieșit din apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_missed_row"
+msgid "{name}, did not answer"
+msgstr "{name}, nu a răspuns"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_ringing_row"
+msgid "{name}, ringing"
+msgstr "{name}, sună"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -2671,6 +2695,13 @@ msgstr "Participanții la apel"
 msgctxt "call_participants_count"
 msgid "Connected participants: {count}"
 msgstr "Participanți conectați: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+#, python-brace-format
+msgctxt "call_participants_count_with_left"
+msgid "Connected participants: {count}. Not connected: {left}"
+msgstr "Participanți conectați: {count}. Neconectați: {left}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py

@@ -1,7 +1,7 @@
 """Explicit participant views for the active call and the Calls tab."""
 from core.call_matching import is_placeholder_call_id
 from core.call_participants import active_participants_available
-from core.call_roster import remember, user_of
+from core.call_roster import note_seen, remember, user_of
 
 
 class CallParticipantsMixin:
@@ -40,6 +40,9 @@ class CallParticipantsMixin:
         rosters = self.__dict__.setdefault("_call_rosters", {})
         mine = {user_of(j) for j in (getattr(self, "my_jid", ""), getattr(self, "my_lid", ""))} - {""}
         joined, left = remember(rosters, call_id, connected, mine)
+        # everyone ever connected, for the "left" rows of the participants list
+        note_seen(self.__dict__.setdefault("_call_seen", {}), call_id,
+                  [(jid, "") for jid in connected], mine)
         active = getattr(self, "_active_voice_call", None) or {}
         here = (active.get("call_id") == call_id and active_participants_available(
             active, getattr(self, "_voice_call_last_announced_state", "")))
