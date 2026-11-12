@@ -29,8 +29,9 @@ import msgmap
 
 log = logging.getLogger("bridge")
 
-#: how long to wait for the phone's answer
-TIMEOUT = 25.0
+#: how long to wait for the phone's answer: a busy phone took longer than 25 s
+#: and answered in 3 s minutes later (issue #766)
+TIMEOUT = 60.0
 #: the answers of a link that expired (the others are real faults)
 EXPIRED_MARKS = ("404", "410", "403", "not found", "forbidden")
 MEDIA_FIELDS = ("imageMessage", "videoMessage", "audioMessage", "documentMessage",
@@ -132,6 +133,22 @@ def kind_of(message):
     return None
 
 
+def mms_type_of(message):
+    """WhatsApp Web's mms-type for the media (WAWebMmsMediaTypes): a voice
+    note is "ptt", not "audio"; a GIF "gif"; a video note "ptv"."""
+    kind = kind_of(message)
+    try:
+        if kind == "audio" and message.audioMessage.PTT:
+            return "ptt"
+        if message.HasField("ptvMessage"):
+            return "ptv"
+        if kind == "video" and message.videoMessage.gifPlayback:
+            return "gif"
+    except (AttributeError, ValueError):
+        pass
+    return kind
+
+
 def retried_request(message, direct_path: str, dest: str) -> dict:
     """The body of `download_retried_media`: the phone's new upload may encrypt
     to other bytes, so the build authenticates it by the media key's HMAC and
@@ -141,8 +158,24 @@ def retried_request(message, direct_path: str, dest: str) -> dict:
     return {
         "direct_path": direct_path, "media_key": b64(media.mediaKey),
         "enc_sha256": b64(media.fileEncSHA256), "file_sha256": b64(media.fileSHA256),
-        "kind": kind_of(message), "dest": dest, "timeout_ms": RETRIED_TIMEOUT_MS,
+        "kind": kind_of(message), "mms_type": mms_type_of(message),
+        "file_length": int(getattr(media, "fileLength", 0) or 0),
+        "dest": dest, "timeout_ms": RETRIED_TIMEOUT_MS,
     }
+
+
+def describe_tries(tried) -> str:
+    """One log line of what each host served (no key, no path, no JID)."""
+    parts = []
+    for t in tried or ():
+        if "size" in t:
+            parts.append("%s/%s size=%s expected=%s old_hash=%s text=%s head=%s (%s)" % (
+                t.get("host"), t.get("mms_type"), t.get("size"), t.get("file_length"),
+                t.get("old_enc_sha256"), t.get("looks_like_text"), t.get("head"),
+                t.get("error")))
+        else:
+            parts.append("%s/%s %s" % (t.get("host"), t.get("mms_type"), t.get("error")))
+    return "; ".join(parts) or "nothing tried"
 
 
 def fetch_retried(client, message, direct_path: str) -> bytes:
@@ -151,9 +184,17 @@ def fetch_retried(client, message, direct_path: str) -> bytes:
     descriptor, dest = tempfile.mkstemp(prefix="winzapp-retry-")
     os.close(descriptor)
     try:
-        answer = client.download_retried_media(retried_request(message, direct_path, dest))
+        request = retried_request(message, direct_path, dest)
+        answer = client.download_retried_media(request)
         if answer.get("error"):
+            log.info("media retry download failed: kind=%s mms=%s expected=%s; %s",
+                     request["kind"], request["mms_type"], request["file_length"],
+                     describe_tries(answer.get("tried")))
             raise RuntimeError(answer["error"])
+        log.info("media retry download: %s bytes from %s as %s (key info %s)%s",
+                 answer.get("size"), answer.get("host"), answer.get("mms_type"),
+                 answer.get("app_info"),
+                 "; before: " + describe_tries(answer["tried"]) if answer.get("tried") else "")
         with open(dest, "rb") as f:
             return f.read()
     finally:
@@ -207,6 +248,9 @@ def ask_phone(client, answers, parsed, media, timeout=TIMEOUT):
     if opened.get("error"):
         raise RuntimeError("media retry answer could not be opened")
     result = opened.get("result")
+    log.info("media retry answer: result=%s new_path=%s message_secret=%s same_id=%s",
+             result, bool(opened.get("direct_path")), opened.get("has_message_secret"),
+             opened.get("stanza_matches"))
     if result == "NOT_FOUND":
         raise MediaGone("404 not found: the phone no longer has this media")
     if result != "SUCCESS" or not opened.get("direct_path"):

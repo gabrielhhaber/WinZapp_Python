@@ -268,3 +268,36 @@ def test_a_file_the_key_does_not_authenticate_is_reported_with_its_own_text():
         run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
     assert "invalid media hmac" in str(raised.value)
     assert transfers.status_for_download_error(raised.value) == 410
+
+
+# ---- issue #766: WhatsApp Web's mms-type, and what each host served
+
+def test_the_mms_type_is_whatsapp_webs_own():
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import AudioMessage, VideoMessage
+    voice = Message(audioMessage=AudioMessage(mediaKey=KEY, PTT=True))
+    song = Message(audioMessage=AudioMessage(mediaKey=KEY))
+    gif = Message(videoMessage=VideoMessage(mediaKey=KEY, gifPlayback=True))
+    note = Message(ptvMessage=VideoMessage(mediaKey=KEY))
+    assert [media_retry.mms_type_of(m) for m in (voice, song, gif, note, keyed_image())] == [
+        "ptt", "audio", "gif", "ptv", "image"]
+    request = media_retry.retried_request(voice, "/new", "x")
+    assert (request["kind"], request["mms_type"]) == ("audio", "ptt")
+    assert media_retry.retried_request(keyed_image(), "/new", "x")["file_length"] == 10
+
+
+def test_what_each_host_served_is_logged_without_keys(caplog):
+    tried = [{"host": "mmg.whatsapp.net", "mms_type": "ptt", "error": "invalid media hmac",
+              "size": 12, "file_length": 4096, "old_enc_sha256": False,
+              "looks_like_text": False, "head": "00ff"},
+             {"host": "media-x.cdn", "mms_type": "audio", "error": "download failed with 403"}]
+    s, _ = retried_session({"error": "invalid media hmac", "tried": tried})
+    import logging
+    with caplog.at_level(logging.INFO, logger="bridge"), pytest.raises(RuntimeError):
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    text = caplog.text
+    assert "size=12 expected=4096 old_hash=False" in text and "media-x.cdn/audio" in text
+    assert base64.b64encode(KEY).decode() not in text
+
+
+def test_a_busy_phone_gets_a_minute():
+    assert media_retry.TIMEOUT >= 60
