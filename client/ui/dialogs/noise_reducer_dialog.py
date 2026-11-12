@@ -5,7 +5,8 @@ next to the processor the model runs on: the processor, CUDA 12 or CUDA 13 on
 Windows (core/cuda_components), Core ML on macOS. The components a CUDA
 choice still needs are listed and downloaded here, only those that are
 missing: CUDA 12 uses the cuBLAS the local transcription already downloads.
-A new processor applies from the next start (core/cuda_components/runtime.py).
+A new processor applies at once when it can, else from the next start
+(core/cuda_components/runtime.py: apply_now, needs_restart).
 """
 
 import sys
@@ -77,7 +78,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         missing = self._missing()
         self._components_field.SetValue(ctext.components_text(
             self.main_window.i18n, self.device, missing,
-            store.bytes_to_download(missing), runtime.active()))
+            store.bytes_to_download(missing), runtime.active(),
+            restart_needed=runtime.needs_restart(self.device)))
         self._components_btn.Enable(bool(missing))
         try:
             removable = store.removable(self.device)
@@ -217,10 +219,19 @@ class NoiseReducerButtonMixin:
         except Exception:
             installed = False
         check = getattr(self, "_noise_reduction_check", None)
-        shown = neural_box_shown(check is not None and check.GetValue(), installed)
+        reduction_on = check is not None and check.GetValue()
+        shown = neural_box_shown(reduction_on, installed)
+        changed = False
         box = self._noise_reducer_neural_check
         if box.IsShown() != shown:
             box.Show(shown)
+            changed = True
+        # the reducer's own window only means something with the reducer on
+        button = self._noise_reducer_btn
+        if button.IsShown() != bool(reduction_on):
+            button.Show(bool(reduction_on))
+            changed = True
+        if changed:
             self._noise_reducer_page.Layout()
 
     def _load_noise_reducer_options(self):
@@ -249,4 +260,10 @@ class NoiseReducerButtonMixin:
         general = self.main_window.settings.setdefault("general", {})
         general["noise_reduction_neural"] = self._noise_reducer_neural_check.GetValue()
         if self._noise_reducer_device is not None:
+            changed = general.get("noise_reduction_device") != self._noise_reducer_device
             general["noise_reduction_device"] = self._noise_reducer_device
+            # applied at once when it can be (core/cuda_components/runtime.py);
+            # a GPU build after onnxruntime was loaded still needs a restart
+            if changed and not runtime.apply_now(self.main_window.settings):
+                self.main_window.output(
+                    self.main_window.i18n.t("noise_reducer_device_next_start"), interrupt=False)

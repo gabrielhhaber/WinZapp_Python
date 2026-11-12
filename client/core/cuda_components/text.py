@@ -26,9 +26,11 @@ def title_of(i18n, component_id) -> str:
     return COMPONENTS[component_id].title
 
 
-def components_text(i18n, device, missing_ids, download_bytes, current_device) -> str:
+def components_text(i18n, device, missing_ids, download_bytes, current_device,
+                    restart_needed=None) -> str:
     """The components field: what `device` still needs, or that it needs
-    nothing; and that a change applies from the next start."""
+    nothing; and, when *restart_needed* says so (runtime.needs_restart), that
+    the change applies from the next start. Without it, any change does."""
     if device in (DEVICE_CPU, DEVICE_COREML):
         lines = [i18n.t("noise_reducer_components_none_needed")]
     elif not missing_ids:
@@ -37,6 +39,6 @@ def components_text(i18n, device, missing_ids, download_bytes, current_device) -
         lines = [i18n.t("noise_reducer_components_missing").format(
             count=len(missing_ids), size=size_text(i18n, download_bytes)),
             ", ".join(title_of(i18n, cid) for cid in missing_ids) + "."]
-    if device != current_device:
+    if (device != current_device) if restart_needed is None else restart_needed:
         lines.append(i18n.t("noise_reducer_device_next_start"))
     return " ".join(lines)

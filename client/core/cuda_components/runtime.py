@@ -26,6 +26,9 @@ from core.cuda_components.model import (
 )
 
 _active = None
+#: The device the user chose last, when it differs from the build in place
+#: and could still be honoured without a restart (apply_now()).
+_chosen = None
 
 
 class _OnnxRuntimeFinder(importlib.abc.MetaPathFinder):
@@ -102,10 +105,45 @@ def active() -> str:
     return _active or DEVICE_CPU
 
 
+def needs_restart(device, loaded=None) -> bool:
+    """Whether choosing *device* now would only apply from the next start:
+    a GPU build other than the one in place, once onnxruntime is loaded."""
+    if device in (DEVICE_CPU, DEVICE_COREML) or device == active():
+        return False
+    return ("onnxruntime" in sys.modules) if loaded is None else bool(loaded)
+
+
+def apply_now(settings) -> bool:
+    """Settings > Audio's noise reducer was saved: honour its device in this
+    process when that is possible, and say whether it is (False: only from
+    the next start). The processor is always possible: the GPU build runs on
+    it too, so only the provider changes. A GPU build is possible while
+    nothing has imported onnxruntime yet (no recording this session). The
+    loaded model is dropped either way: it holds the old provider."""
+    global _chosen
+    device = device_of(settings)
+    try:
+        from core.neural_noise_reduction import forget_denoiser
+        forget_denoiser()
+    except Exception:
+        pass
+    if device == active():
+        _chosen = None
+        return True
+    if device in (DEVICE_CPU, DEVICE_COREML):
+        _chosen = device
+        return True
+    if "onnxruntime" not in sys.modules:
+        _chosen = None
+        return activate(settings) == device
+    return False
+
+
 def providers(available) -> list:
     """The execution providers for the noise model, best first, among
     `available` (onnxruntime.get_available_providers())."""
+    device = _chosen if _chosen in (DEVICE_CPU, DEVICE_COREML) else active()
     wanted = {"cuda12": "CUDAExecutionProvider", "cuda13": "CUDAExecutionProvider",
-              DEVICE_COREML: "CoreMLExecutionProvider"}.get(active())
+              DEVICE_COREML: "CoreMLExecutionProvider"}.get(device)
     chosen = [wanted] if wanted and wanted in available else []
     return chosen + ["CPUExecutionProvider"]
