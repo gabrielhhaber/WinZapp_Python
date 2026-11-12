@@ -22,7 +22,7 @@ import wx
 
 from app_paths import resource_path
 from core import api_staging
-from core.dialog_foreground import message_box
+import pending_install
 from update_background import may_interrupt_now
 from ui.dialogs.error_details import show_error_details
 
@@ -150,11 +150,24 @@ class WppBackgroundUpdateMixin:
             wx.CallLater(self._WPP_READY_RETRY_MS, self._install_staged_wpp_when_ready,
                          target_tag, staged, on_finished)
             return
-        text = self.i18n.t("wpp_update_background_ready_msg").format(
+        text = self.i18n.t("wpp_update_background_ready_question").format(
             version=target_tag.lstrip("vV"))
-        message_box(self, text, self.i18n.t("api_update_dialog_title"),
-                    wx.OK | wx.ICON_INFORMATION,
-                    announce=lambda: self.output(text, interrupt=True))
+        self._wpp_staging = None
+        if not pending_install.ask_install_now(self, text,
+                                               self.i18n.t("api_update_dialog_title")):
+            # Later: the built server stays next to the running one until the
+            # user installs it from the Help menu (pending_install.py).
+            self._pending_wpp_install = (target_tag, staged, on_finished)
+            # Still "an update in progress": no second build may start over
+            # the one waiting (it would sweep its folder away).
+            self._wpp_staging = {"tag": target_tag, "dialog": None}
+            pending_install.said_later(self)
+            return
+        self._install_staged_wpp_now(target_tag, staged, on_finished)
+
+    def _install_staged_wpp_now(self, target_tag: str, staged: str, on_finished) -> None:
+        """wx thread: stop the server, swap the built one in and restart."""
+        self._pending_wpp_install = None
         self._wpp_staging = None
         started = self._update_wpp_server(target_tag, on_finished=on_finished,
                                           staged_dir=staged)

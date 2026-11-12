@@ -44,7 +44,7 @@ class _Window(WppBackgroundUpdateMixin):
         self.background_mode = self._window_hidden = False
         self._shutting_down = False
         self.i18n = types.SimpleNamespace(
-            t=lambda key: key + " {version}" if key == "wpp_update_background_ready_msg" else key)
+            t=lambda key: key + " {version}" if key == "wpp_update_background_ready_question" else key)
         self.error_sound = types.SimpleNamespace(play=lambda: self.events.append("error sound"))
         self.spoken, self.events = [], []
         self.wpp_process = object()
@@ -125,12 +125,17 @@ def env(monkeypatch, tmp_path):
     for module in (updates, wpp_background_update):
         monkeypatch.setattr(module, "threading", types.SimpleNamespace(Thread=_Thread))
         monkeypatch.setattr(module.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
-        monkeypatch.setattr(module, "message_box", _box)
+        if hasattr(module, "message_box"):
+            monkeypatch.setattr(module, "message_box", _box)
         def _error(window, i18n, text, title, details="", announce=None):
             state.errors.append(details)
             return _box(window, text, title, wx.OK, announce)
         monkeypatch.setattr(module, "show_error_details", _error)
         monkeypatch.setattr(module, "resource_path", lambda *parts: os.path.join(state.api, *parts[1:]))
+    # the ready notice is now a question (pending_install.py); these tests
+    # cover "Install now", tests/test_pending_install.py covers "later"
+    monkeypatch.setattr(wpp_background_update.pending_install, "ask_install_now",
+                        lambda window, text, title: _box(window, text, title, 0) == wx.OK)
     monkeypatch.setattr(wpp_background_update.wx, "CallLater",
                         lambda ms, fn, *a: state.later.append((fn, a)))
     monkeypatch.setattr(updates, "bring_to_front_if_hidden", lambda *a, **k: None)
@@ -300,7 +305,7 @@ class TestOnlyThenItInstalls:
         env.builds[0].on_done(True, "", False)
         env.run_threads()
 
-        assert env.boxes == ["wpp_update_background_ready_msg 2.9.0"]
+        assert env.boxes == ["wpp_update_background_ready_question 2.9.0"]
         assert window.events[:3] == ["notice", "stop", "start"]
         assert env.swaps == [(env.api, env.api + "_staging")]
         assert finished == [True]

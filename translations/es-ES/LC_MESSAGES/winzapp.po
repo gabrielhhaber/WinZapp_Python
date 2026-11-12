@@ -8700,6 +8700,12 @@ msgstr "&Importar configuración..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_install_pending_update"
+msgid "&Install downloaded update"
+msgstr "&Instalar actualización descargada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_mark_all_read"
 msgid "Mark all chats as read"
 msgstr "Marcar todos los chats como leídos"
@@ -19508,13 +19514,13 @@ msgstr "Actualización de WinZapp disponible"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
-msgctxt "update_background_ready_msg"
+msgctxt "update_background_ready_question"
 msgid ""
-"WinZapp update {version} has been downloaded. WinZapp will close now to "
-"install it and open again right after."
+"WinZapp update {version} has been downloaded. To install it, WinZapp closes "
+"and opens again right after. Install it now?"
 msgstr ""
-"Se ha descargado la actualización {version} de WinZapp. WinZapp se cerrará "
-"ahora para instalarla y volverá a abrirse a continuación."
+"Se ha descargado la actualización {version} de WinZapp. Para instalarla, "
+"WinZapp se cierra y se vuelve a abrir enseguida. ¿Instalar ahora?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
@@ -19608,6 +19614,34 @@ msgid ""
 msgstr ""
 "Ya hay una actualización en proceso de instalación. Espere a que termine "
 "antes de intentarlo de nuevo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_later"
+msgid "Install later"
+msgstr "Instalar más tarde"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "update_install_later_said"
+msgid ""
+"The update stays ready. Install it whenever you want from {menu} > {option}."
+msgstr ""
+"La actualización queda lista. Instálala cuando quieras desde {menu} > "
+"{option}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/pending_install.py
+msgctxt "update_install_not_now"
+msgid ""
+"The update cannot be installed right now: finish the call or the recording, "
+"or wait for the update in progress, and try again."
+msgstr ""
+"No se puede instalar la actualización ahora: termina la llamada o la "
+"grabación, o espera a la actualización en curso, e inténtalo de nuevo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_now"
+msgid "Install now"
+msgstr "Instalar ahora"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_installing"
@@ -20717,13 +20751,14 @@ msgstr "Actualización de WPPConnect disponible"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format
-msgctxt "wpp_update_background_ready_msg"
+msgctxt "wpp_update_background_ready_question"
 msgid ""
-"WPPConnect update {version} has been downloaded. WinZapp will go offline for"
-" a moment to install it and restart WPPConnect."
+"WPPConnect update {version} has been downloaded. To install it, WinZapp goes"
+" offline for a moment while WPPConnect restarts. Install it now?"
 msgstr ""
-"Se ha descargado la actualización {version} de WPPConnect. WinZapp quedará "
-"sin conexión unos instantes para instalarla y reiniciar WPPConnect."
+"Se ha descargado la actualización {version} de WPPConnect. Para instalarla, "
+"WinZapp se queda sin conexión unos instantes mientras WPPConnect se "
+"reinicia. ¿Instalar ahora?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/updates.py
 msgctxt "wpp_update_background_running"
@@ -20850,6 +20885,24 @@ msgstr "&Sí"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ayer a las {time}"
+
+#, python-brace-format
+#~ msgctxt "update_background_ready_msg"
+#~ msgid ""
+#~ "WinZapp update {version} has been downloaded. WinZapp will close now to "
+#~ "install it and open again right after."
+#~ msgstr ""
+#~ "Se ha descargado la actualización {version} de WinZapp. WinZapp se cerrará "
+#~ "ahora para instalarla y volverá a abrirse a continuación."
+
+#, python-brace-format
+#~ msgctxt "wpp_update_background_ready_msg"
+#~ msgid ""
+#~ "WPPConnect update {version} has been downloaded. WinZapp will go offline for"
+#~ " a moment to install it and restart WPPConnect."
+#~ msgstr ""
+#~ "Se ha descargado la actualización {version} de WPPConnect. WinZapp quedará "
+#~ "sin conexión unos instantes para instalarla y reiniciar WPPConnect."
 
 #~ msgctxt "noise_reducer_components_background"
 #~ msgid "The download goes on in the background. WinZapp says when it is over."

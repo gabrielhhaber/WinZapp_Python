@@ -8604,6 +8604,12 @@ msgstr "&Import settings..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_install_pending_update"
+msgid "&Install downloaded update"
+msgstr "&Install downloaded update"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_mark_all_read"
 msgid "Mark all chats as read"
 msgstr "Mark all chats as read"
@@ -19268,13 +19274,13 @@ msgstr "WinZapp update available"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
-msgctxt "update_background_ready_msg"
+msgctxt "update_background_ready_question"
 msgid ""
-"WinZapp update {version} has been downloaded. WinZapp will close now to "
-"install it and open again right after."
+"WinZapp update {version} has been downloaded. To install it, WinZapp closes "
+"and opens again right after. Install it now?"
 msgstr ""
-"WinZapp update {version} has been downloaded. WinZapp will close now to "
-"install it and open again right after."
+"WinZapp update {version} has been downloaded. To install it, WinZapp closes "
+"and opens again right after. Install it now?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
@@ -19367,6 +19373,33 @@ msgid ""
 msgstr ""
 "An update installation is already in progress. Wait for it to finish before "
 "trying again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_later"
+msgid "Install later"
+msgstr "Install later"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "update_install_later_said"
+msgid ""
+"The update stays ready. Install it whenever you want from {menu} > {option}."
+msgstr ""
+"The update stays ready. Install it whenever you want from {menu} > {option}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/pending_install.py
+msgctxt "update_install_not_now"
+msgid ""
+"The update cannot be installed right now: finish the call or the recording, "
+"or wait for the update in progress, and try again."
+msgstr ""
+"The update cannot be installed right now: finish the call or the recording, "
+"or wait for the update in progress, and try again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_now"
+msgid "Install now"
+msgstr "Install now"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_installing"
@@ -20454,13 +20487,13 @@ msgstr "WPPConnect update available"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format
-msgctxt "wpp_update_background_ready_msg"
+msgctxt "wpp_update_background_ready_question"
 msgid ""
-"WPPConnect update {version} has been downloaded. WinZapp will go offline for"
-" a moment to install it and restart WPPConnect."
+"WPPConnect update {version} has been downloaded. To install it, WinZapp goes"
+" offline for a moment while WPPConnect restarts. Install it now?"
 msgstr ""
-"WPPConnect update {version} has been downloaded. WinZapp will go offline for"
-" a moment to install it and restart WPPConnect."
+"WPPConnect update {version} has been downloaded. To install it, WinZapp goes"
+" offline for a moment while WPPConnect restarts. Install it now?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/updates.py
 msgctxt "wpp_update_background_running"

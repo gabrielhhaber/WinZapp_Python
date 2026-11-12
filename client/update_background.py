@@ -24,6 +24,7 @@ import threading
 
 import wx
 
+import pending_install
 from core.dialog_foreground import message_box
 from update_package import discard_package, download_update_package
 
@@ -163,14 +164,33 @@ class BackgroundDownloadMixin:
             wx.CallLater(self._READY_RETRY_MS, self._install_downloaded_update,
                          args, extract_dir)
             return
-        text = mw.i18n.t("update_background_ready_msg").format(version=args[0])
-        message_box(
-            mw, text, mw.i18n.t("update_progress_title"), wx.OK | wx.ICON_INFORMATION,
-            announce=lambda: mw.output(text, interrupt=True),
-        )
+        text = mw.i18n.t("update_background_ready_question").format(version=args[0])
+        if not pending_install.ask_install_now(mw, text, mw.i18n.t("update_progress_title")):
+            # Later: the package stays extracted, and so does the version that
+            # keeps a second download from starting (pending_install.py).
+            self._pending_install = (args, extract_dir)
+            pending_install.said_later(mw)
+            return
+        self._install_extracted(args, extract_dir)
+
+    def _install_extracted(self, args, extract_dir: str):
+        """Main thread: the install phase of a package already downloaded."""
+        self._pending_install = None
         try:
             self._do_install(*args, extracted_dir=extract_dir)
         finally:
             # Still here: the install did not take the app down (cancelled,
             # failed, or a dev run). _do_install() already released the prompt.
             self._background_version = ""
+
+    def install_pending_update(self) -> bool:
+        """Help > "Install downloaded update": the package the user left for
+        later. False when there is none."""
+        pending = getattr(self, "_pending_install", None)
+        if not pending:
+            return False
+        args, extract_dir = pending
+        if getattr(self._mw, "_shutting_down", False):
+            return False
+        self._install_extracted(args, extract_dir)
+        return True
