@@ -24,6 +24,7 @@ from core.utils import auto_download_enabled
 from core.page_heap import collect_after_batch
 from core.sync_progress import ProgressThrottle
 from core.media_on_disk import already_stored
+from core import short_chat_rest
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
@@ -898,7 +899,15 @@ class BackfillMixin:
                 # Read the pending set *after* the queue check: a chat can join
                 # it as history lands, and the sync that added it may have
                 # finished while this pass was sleeping.
-                pending = self._collapse_and_list_backfill_pending()
+                all_pending = self._collapse_and_list_backfill_pending()
+                # Short chats that keep coming back empty rest between turns,
+                # so they stop holding deep history back (core/short_chat_rest.py).
+                rest = getattr(self, "_short_chat_rest", None)
+                if rest is None:
+                    rest = self._short_chat_rest = {}
+                pending = short_chat_rest.due_chats(
+                    all_pending, rest, time.monotonic(),
+                    opened=self._user_has_opened, landing=landing_now)
                 pending_set = set(pending)
                 attempted = {
                     canonical for jid in attempted
@@ -914,7 +923,7 @@ class BackfillMixin:
                 # finished the moment every chat had 200 messages, which for a
                 # 20,000-message conversation is 1% of it.
                 deep_pending = self._chats_needing_deep_history()
-                if not pending and not names_pending and not deep_pending:
+                if not all_pending and not names_pending and not deep_pending:
                     if getattr(self, "_history_still_landing", False):
                         # Nothing to re-query yet, but history is still arriving
                         # — keep the loop alive to notice when it does.
@@ -977,8 +986,8 @@ class BackfillMixin:
                                        max(deadline, time.monotonic() + self._BACKFILL_BUDGET))
 
                 if not pending:
-                    # No chat is short of a page; names and/or deep history
-                    # were this round's work.
+                    # No chat is short of a page, or every short one is
+                    # resting; names and/or deep history were this round's work.
                     attempted.clear()
                     sweep_done = False
                     if named or deep_stored:
@@ -1045,9 +1054,10 @@ class BackfillMixin:
                 # the budget expires with pending chats still queued and
                 # nothing says so.
                 logging.info(
-                    "[backfill-queue] pass=%d short=%d deep=%d unnamed=%d "
+                    "[backfill-queue] pass=%d short=%d resting=%d deep=%d unnamed=%d "
                     "elapsed=%.0fs of %ds budget",
-                    attempt, before, len(deep_pending), len(names_pending),
+                    attempt, before, len(all_pending) - before, len(deep_pending),
+                    len(names_pending),
                     time.monotonic() - (deadline - self._BACKFILL_BUDGET),
                     self._BACKFILL_BUDGET,
                 )
@@ -1175,8 +1185,12 @@ class BackfillMixin:
                         self._retire_chat_without_older_history(jid)
 
                 completed = self._completed_backfill_targets(window)
-                grew = sum(1 for j, was in counts_before.items()
-                           if self._local_record_count(j) > was)
+                grew = 0
+                for j, was in counts_before.items():
+                    brought = self._local_record_count(j) > was
+                    grew += brought
+                    short_chat_rest.note_fetch(rest, j, brought, time.monotonic(),
+                                               opened=self._user_has_opened)
                 logging.info(
                     "[backfill] Pass %d: %d chat(s) gained messages (%d of them older "
                     "history), %d no longer pending (of %d).",
