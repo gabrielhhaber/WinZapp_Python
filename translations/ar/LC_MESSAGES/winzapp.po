@@ -7988,6 +7988,23 @@ msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr "الدردشات المقفلة alt+7"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+"مساحة القرص منخفضة: {free} غيغابايت فقط متاحة. أُغلق واتساب بأمان حتى لا "
+"تضيع هذه الجلسة، وWinZapp غير متصل الآن. حرّر مساحة حتى يتوفر {needed} "
+"غيغابايت على الأقل وسيتصل من جديد تلقائيًا."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr "توجد مساحة فارغة على القرص من جديد. جارٍ الاتصال بواتساب."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
 msgid ""
@@ -19133,8 +19150,7 @@ msgid ""
 "does not open again afterwards)"
 msgstr ""
 "تنزيل الت&حديثات تلقائيًا وتثبيتها عند إنهاء WinZapp، بدون سؤال (إغلاق "
-"النافذة إلى منطقة الإشعارات لا يُحتسب، ولا يفتح WinZapp مرة أخرى بعد "
-"ذلك)"
+"النافذة إلى منطقة الإشعارات لا يُحتسب، ولا يفتح WinZapp مرة أخرى بعد ذلك)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format

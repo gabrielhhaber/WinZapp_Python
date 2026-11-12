@@ -7667,6 +7667,20 @@ msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
 msgid ""

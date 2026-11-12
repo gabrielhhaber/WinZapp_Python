@@ -44,6 +44,7 @@ def connection_context_is_current(window, context):
     if any(getattr(window, name, False) for name in (
         "_user_offline",
         "_pairing_in_progress", "_profile_restore_in_flight", "_qr_flood_halted",
+        "_low_disk_halted",
     )):
         return False
     pairing_active = getattr(window, "_is_pairing_dialog_active", None)

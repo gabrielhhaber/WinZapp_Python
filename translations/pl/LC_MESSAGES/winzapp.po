@@ -8147,6 +8147,23 @@ msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr "Zabezpieczone czaty alt+7"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+"Mało miejsca na dysku: tylko {free} GB wolnego. WhatsApp został bezpiecznie "
+"zamknięty, aby nie utracić tej sesji, a WinZapp jest offline. Zwolnij "
+"miejsce do co najmniej {needed} GB, a połączy się ponownie samodzielnie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr "Na dysku znów jest wolne miejsce. Łączenie z WhatsAppem."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
 msgid ""
@@ -19767,9 +19784,9 @@ msgid ""
 "without asking (closing the window to the tray does not count, and WinZapp "
 "does not open again afterwards)"
 msgstr ""
-"Pobieraj aktualizacje auto&matycznie i instaluj je po zakończeniu pracy"
-" z WinZapp, bez pytania (zamknięcie okna do zasobnika nie liczy się, a"
-" WinZapp nie uruchamia się potem ponownie)"
+"Pobieraj aktualizacje auto&matycznie i instaluj je po zakończeniu pracy z "
+"WinZapp, bez pytania (zamknięcie okna do zasobnika nie liczy się, a WinZapp "
+"nie uruchamia się potem ponownie)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
@@ -19778,16 +19795,16 @@ msgid ""
 "WinZapp update {version} has been downloaded. It will be installed when you "
 "exit WinZapp."
 msgstr ""
-"Aktualizacja WinZapp {version} została pobrana. Zostanie zainstalowana"
-" po zakończeniu pracy z WinZapp."
+"Aktualizacja WinZapp {version} została pobrana. Zostanie zainstalowana po "
+"zakończeniu pracy z WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 msgctxt "update_on_exit_started"
 msgid ""
 "Downloading the WinZapp update. It will be installed when you exit WinZapp."
 msgstr ""
-"Pobieranie aktualizacji WinZapp. Zostanie zainstalowana po zakończeniu"
-" pracy z WinZapp."
+"Pobieranie aktualizacji WinZapp. Zostanie zainstalowana po zakończeniu pracy"
+" z WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"

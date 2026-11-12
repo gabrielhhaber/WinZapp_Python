@@ -8171,6 +8171,23 @@ msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr "Chat bloccate alt+7"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+"Spazio su disco insufficiente: solo {free} GB liberi. WhatsApp è stato "
+"chiuso in sicurezza per non perdere questa sessione e WinZapp è offline. "
+"Libera spazio fino ad avere almeno {needed} GB e si riconnetterà da solo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr "C'è di nuovo spazio libero su disco. Connessione a WhatsApp in corso."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
 msgid ""
@@ -19759,8 +19776,8 @@ msgid ""
 "does not open again afterwards)"
 msgstr ""
 "Scarica gli aggiornamenti auto&maticamente e installali quando esco da "
-"WinZapp, senza chiedere (chiudere la finestra nell'area di notifica "
-"non conta e WinZapp non si riapre dopo)"
+"WinZapp, senza chiedere (chiudere la finestra nell'area di notifica non "
+"conta e WinZapp non si riapre dopo)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
@@ -19769,16 +19786,16 @@ msgid ""
 "WinZapp update {version} has been downloaded. It will be installed when you "
 "exit WinZapp."
 msgstr ""
-"L'aggiornamento {version} di WinZapp è stato scaricato. Verrà "
-"installato quando uscirai da WinZapp."
+"L'aggiornamento {version} di WinZapp è stato scaricato. Verrà installato "
+"quando uscirai da WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 msgctxt "update_on_exit_started"
 msgid ""
 "Downloading the WinZapp update. It will be installed when you exit WinZapp."
 msgstr ""
-"Download dell'aggiornamento di WinZapp. Verrà installato quando "
-"uscirai da WinZapp."
+"Download dell'aggiornamento di WinZapp. Verrà installato quando uscirai da "
+"WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"

@@ -8131,6 +8131,23 @@ msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr "Conversas trancadas alt+7"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+"Pouco espaço em disco: só {free} GB livres. O WhatsApp foi fechado com "
+"segurança para não perder esta sessão, e o WinZapp está offline. Libere "
+"espaço até ter pelo menos {needed} GB e ele se conecta de novo sozinho."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr "Há espaço livre em disco de novo. Conectando ao WhatsApp."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
 msgid ""
@@ -19585,16 +19602,16 @@ msgid ""
 "WinZapp update {version} has been downloaded. It will be installed when you "
 "exit WinZapp."
 msgstr ""
-"A atualização {version} do WinZapp foi baixada. Ela será instalada "
-"quando você sair do WinZapp."
+"A atualização {version} do WinZapp foi baixada. Ela será instalada quando "
+"você sair do WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 msgctxt "update_on_exit_started"
 msgid ""
 "Downloading the WinZapp update. It will be installed when you exit WinZapp."
 msgstr ""
-"Baixando a atualização do WinZapp. Ela será instalada quando você sair"
-" do WinZapp."
+"Baixando a atualização do WinZapp. Ela será instalada quando você sair do "
+"WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"

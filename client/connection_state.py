@@ -332,12 +332,16 @@ AUTO_START_BLOCKED_QR_FLOOD = (
 )
 AUTO_START_BLOCKED_RECOVERY_RESTART = "recovery restart sequence in progress owns it"
 AUTO_START_BLOCKED_SELF_INFLICTED = "our own close-session teardown is in flight"
+AUTO_START_BLOCKED_LOW_DISK = (
+    "session closed for low disk space; waiting for free space (core/profile_disk_guard.py)"
+)
 
 
 def auto_start_block_reason(*, pairing_dialog_active: bool,
                             qr_flood_halted: bool,
                             recovery_restart_active: bool,
-                            self_inflicted_teardown: bool) -> str | None:
+                            self_inflicted_teardown: bool,
+                            low_disk_halted: bool = False) -> str | None:
     """Return the reason /start-session must be skipped for a CLOSED status, or
     None when starting a fresh session is the right answer.
 
@@ -362,6 +366,11 @@ def auto_start_block_reason(*, pairing_dialog_active: bool,
       (shutdown, WPPConnect update, session restart): starting here would revive
       the browser moments before taskkill force-kills it.
 
+    * low_disk_halted — core/profile_disk_guard.py closed the session because
+      the profile's disk is nearly full; starting it would let WhatsApp Web's
+      writes fail and the profile come back logged out. Released once there is
+      room again.
+
     Order matters only for which reason gets logged — any one of them blocks.
     """
     if pairing_dialog_active:
@@ -372,6 +381,8 @@ def auto_start_block_reason(*, pairing_dialog_active: bool,
         return AUTO_START_BLOCKED_RECOVERY_RESTART
     if self_inflicted_teardown:
         return AUTO_START_BLOCKED_SELF_INFLICTED
+    if low_disk_halted:
+        return AUTO_START_BLOCKED_LOW_DISK
     return None
 
 
