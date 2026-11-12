@@ -694,7 +694,7 @@ class ConversationNavigationMixin:
         if not closed:
             return  # _close_conversation_core() only handled the mention popup
         mw = self.main_window
-        # A channel opened from the Channels window goes back to it, when the
+        # A channel opened from the Channels panel goes back to it, when the
         # user closed it: a resync or an archive used to pop the window up.
         from ui.dialogs.channels import channel_closed, forget_channel_return
         if not from_user:

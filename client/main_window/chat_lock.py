@@ -8,6 +8,7 @@ available here.
 import logging
 import wx
 from core.conversation_view import LOCKED, MAIN
+from main_window.content_panels import hide_side_panels
 from main_window.storage_privacy import invalidate as invalidate_storage_visibility
 from ui.chat_lock import (
     ChatLockChangePinDialog,
@@ -599,10 +600,7 @@ class ChatLockMixin:
             self.archived_conversations_panel.Hide()
         if hasattr(self, "locked_conversations_panel"):
             self.locked_conversations_panel.Hide()
-        if hasattr(self, "status_panel"):
-            self.status_panel.Hide()
-        if hasattr(self, "calls_panel"):
-            self.calls_panel.Hide()
+        hide_side_panels(self)
         self.conversations_panel.conversations_label.Hide()
         self.conversations_panel.conversations_list.Hide()
         self.conversations_panel.Show()

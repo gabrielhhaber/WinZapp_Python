@@ -2494,9 +2494,11 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] call-participants failed")
 
     def _channels_changed_on_ui(self, channel_id=""):
-        dialog = getattr(self.main_window, "_channels_dialog", None)
-        if dialog is not None:
-            dialog.on_channels_changed()
+        # the Channels panel reads its list again when shown; while it is on
+        # screen, at once (ui/dialogs/channels.py)
+        panel = getattr(self.main_window, "channels_panel", None)
+        if panel is not None and panel.IsShown():
+            panel.on_channels_changed()
         people = getattr(self.main_window, "_channel_people_dialog", None)
         if people is not None:
             people.on_channels_changed(channel_id)

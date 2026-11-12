@@ -1465,6 +1465,13 @@ class MainWindow(
         self.status_panel.Hide()
         self.calls_panel = CallsPanel(self, self.content_panel)
         self.calls_panel.Hide()
+        # Communities (Alt+8) and Channels (Alt+9): panels like Calls
+        from ui.dialogs.communities import CommunitiesPanel
+        from ui.dialogs.channels import ChannelsPanel
+        self.communities_panel = CommunitiesPanel(self, self.content_panel)
+        self.communities_panel.Hide()
+        self.channels_panel = ChannelsPanel(self, self.content_panel)
+        self.channels_panel.Hide()
 
         # Content panel: all panels fill it; only one is shown at a time
         content_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1475,6 +1482,8 @@ class MainWindow(
         content_sizer.Add(self.locked_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.status_panel, 1, wx.EXPAND)
         content_sizer.Add(self.calls_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.communities_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.channels_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
         # Main panel: nav sidebar on left, content on right

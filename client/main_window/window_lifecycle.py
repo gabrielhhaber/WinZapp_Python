@@ -454,6 +454,12 @@ class WindowLifecycleMixin:
             if calls_lst is not None and calls_lst.IsShownOnScreen():
                 calls_lst.SetFocus()
                 return
+            for name in ("communities_panel", "channels_panel"):
+                side = getattr(self, name, None)
+                side_lst = getattr(side, "_list", None) if side else None
+                if side_lst is not None and side_lst.IsShownOnScreen():
+                    side_lst.SetFocus()
+                    return
             # Last resort, and only when none of the lists above is on screen:
             # an ARCHIVED conversation open. ArchivedConversationsPanel shows
             # conversations_panel but hides its conversations_list, and hides

@@ -30,16 +30,16 @@ def test_the_scan_sees_the_windows_it_has_to(screens):
     """A parser change that silently found nothing would pass the check below
     for every locale. These screens are known to carry several labels."""
     found = {(where.split("::", 1)[1], screen) for where, screen, _slots in screens}
-    for expected in [("CallParticipantsDialog", "panel"), ("ChannelsDialog", "self"),
+    for expected in [("CallParticipantsDialog", "panel"), ("ChannelsPanel", "self"),
                      ("ChannelAdminsDialog", "self"),
                      ("WindowChromeMixin._build_menubar", "menu:help_menu"),
                      ("WindowChromeMixin._build_menubar", "menu:menubar"),
                      ("StatusPanel.init_UI", "self._post_panel")]:
         assert expected in found, expected
     channels = next(slots for where, screen, slots in screens
-                    if where.endswith("::ChannelsDialog") and screen == "self")
+                    if where.endswith("::ChannelsPanel") and screen == "self")
     keys = {k for slot in channels for k in slot}
-    # the buttons the dialog's own helper creates from a bare key
+    # the buttons the panel's own helper creates from a bare key
     assert {"channels_open", "channels_create", "channels_mine", "channels_category"} <= keys
 
 

@@ -43,6 +43,7 @@ from core.locale_format import (
     preview_time_text,
 )
 from main_window.message_rules import is_countable_message
+from main_window.content_panels import hide_side_panels
 
 
 def _start_debounce_timer(delay_ms, callback, on_failure=None):
@@ -141,10 +142,7 @@ class ChatListMixin:
                 # needs to because it only runs while Status is already
                 # hidden, but we can be called from there directly.
                 self.archived_conversations_panel.Hide()
-                if hasattr(self, "status_panel"):
-                    self.status_panel.Hide()
-                if hasattr(self, "calls_panel"):
-                    self.calls_panel.Hide()
+                hide_side_panels(self)
                 self.conversations_panel.conversations_label.Hide()
                 self.conversations_panel.conversations_list.Hide()
                 self.conversations_panel.Show()
@@ -158,10 +156,7 @@ class ChatListMixin:
             self.archived_conversations_panel.Hide()
         if hasattr(self, "locked_conversations_panel"):
             self.locked_conversations_panel.Hide()
-        if hasattr(self, "status_panel"):
-            self.status_panel.Hide()
-        if hasattr(self, "calls_panel"):
-            self.calls_panel.Hide()
+        hide_side_panels(self)
         self.conversations_panel.conversations_label.Show()
         self.conversations_panel.conversations_list.Show()
         self.conversations_panel.Show()
