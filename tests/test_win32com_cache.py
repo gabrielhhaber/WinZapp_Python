@@ -3,7 +3,7 @@
 import os
 from types import ModuleType
 
-from tests.win32com_cache import isolate_gen_py, worker_gen_path
+from tests.win32com_cache import isolate_comtypes_gen, isolate_gen_py, worker_gen_path
 
 
 def _win32com():
@@ -33,3 +33,15 @@ def test_too_late_once_the_cache_was_read(tmp_path):
     modules["win32com.client.gencache"] = ModuleType("win32com.client.gencache")
     assert isolate_gen_py("gw0", base=str(tmp_path), modules=modules) is None
     assert modules["win32com"].__gen_path__ == "shared"
+
+
+def test_comtypes_generates_into_the_workers_own_package(tmp_path):
+    comtypes = ModuleType("comtypes")
+    modules = {"comtypes": comtypes}
+    path = isolate_comtypes_gen("gw2", base=str(tmp_path), modules=modules)
+    assert path == worker_gen_path("gw2", base=str(tmp_path))
+    assert os.path.isfile(os.path.join(path, "__init__.py"))
+    assert modules["comtypes.gen"].__path__ == [path] and comtypes.gen is modules["comtypes.gen"]
+    assert isolate_comtypes_gen("", base=str(tmp_path), modules={"comtypes": comtypes}) is None
+    late = {"comtypes": ModuleType("comtypes"), "comtypes.client": ModuleType("comtypes.client")}
+    assert isolate_comtypes_gen("gw2", base=str(tmp_path), modules=late) is None
