@@ -1895,6 +1895,10 @@ def setup_logging():
         for h in root.handlers[:]:
             root.removeHandler(h)
         root.addHandler(handler)
+        # A native crash reaches no Python handler: its stacks go to fatal.log
+        # (core/abrupt_exit.py), which the log export carries.
+        from core.abrupt_exit import enable_fatal_log
+        enable_fatal_log(log_path("fatal.log"))
         # Set logging level to INFO to expose auto-updater, settings validation,
         # and startup logs. Noisy dependencies are silenced at ERROR level below.
         root.setLevel(logging.INFO)
