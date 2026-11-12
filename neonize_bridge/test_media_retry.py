@@ -135,13 +135,15 @@ def test_a_phone_without_the_media_raises_a_404_so_the_route_answers_410():
     assert transfers.status_for_download_error(raised.value) == 410
 
 
-def test_a_phone_that_does_not_answer_keeps_the_original_error(monkeypatch):
+def test_a_phone_that_does_not_answer_is_said_and_not_taken_for_expired(monkeypatch):
     monkeypatch.setattr(media_retry, "TIMEOUT", 0.05)
-    s, _ = session_with({"result": "SUCCESS", "direct_path": "/new"}, event=None)
+    s, client = session_with({"result": "SUCCESS", "direct_path": "/new"})
+    client.event = None                      # the phone never answers
     original = RuntimeError("410 gone")
-    with pytest.raises(RuntimeError) as raised:
+    with pytest.raises(media_retry.PhoneDidNotAnswer) as raised:
         run(s, image(), downloads([original]))
-    assert raised.value is original
+    assert raised.value.__context__ is original
+    assert media_retry.failure_code(raised.value) == "media_retry_no_answer"
 
 
 def test_a_failed_retry_keeps_the_original_error():
@@ -268,6 +270,7 @@ def test_a_file_the_key_does_not_authenticate_is_reported_with_its_own_text():
         run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
     assert "invalid media hmac" in str(raised.value)
     assert transfers.status_for_download_error(raised.value) == 410
+    assert media_retry.failure_code(raised.value) == "media_retry_unreadable"
 
 
 # ---- issue #766: WhatsApp Web's mms-type, and what each host served
@@ -299,5 +302,10 @@ def test_what_each_host_served_is_logged_without_keys(caplog):
     assert base64.b64encode(KEY).decode() not in text
 
 
-def test_a_busy_phone_gets_a_minute():
-    assert media_retry.TIMEOUT >= 60
+def test_a_busy_phone_gets_longer_but_the_client_does_not_give_up_first():
+    assert 25 < media_retry.TIMEOUT <= 45          # the client reads for 60 s
+
+
+def test_only_the_retrys_own_failures_have_a_code():
+    assert media_retry.failure_code(media_retry.MediaGone("404")) == "media_gone_from_phone"
+    assert media_retry.failure_code(RuntimeError("403 forbidden")) == ""

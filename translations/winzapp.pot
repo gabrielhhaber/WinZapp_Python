@@ -8239,12 +8239,15 @@ msgid "{count} media file(s)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/audio_playback.py
-#: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
 "This media file could not be downloaded. The link may have expired or the "
 "WhatsApp connection may be unavailable."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_gone_from_phone"
+msgid "This file is no longer on WhatsApp's servers or on your phone."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -8254,6 +8257,20 @@ msgctxt "media_download_offline"
 msgid ""
 "Media files can't be downloaded while WhatsApp is disconnected or "
 "connecting. Wait for the connection to come back and try again."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_phone_no_answer"
+msgid ""
+"Your phone did not answer the request to send this file again. It may be "
+"busy: try again in a moment."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_retried_unreadable"
+msgid ""
+"Your phone sent this file again, but it could not be opened. If it keeps "
+"happening, send WinZapp's logs to the developers."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py

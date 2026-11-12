@@ -30,8 +30,10 @@ import msgmap
 log = logging.getLogger("bridge")
 
 #: how long to wait for the phone's answer: a busy phone took longer than 25 s
-#: and answered in 3 s minutes later (issue #766)
-TIMEOUT = 60.0
+#: and answered in 3 s minutes later (issue #766). Below the client's 60 s
+#: read timeout (main_window/media.py), with room for the download after it:
+#: a client that gave up would ask again and wake the phone a second time.
+TIMEOUT = 40.0
 #: the answers of a link that expired (the others are real faults)
 EXPIRED_MARKS = ("404", "410", "403", "not found", "forbidden")
 MEDIA_FIELDS = ("imageMessage", "videoMessage", "audioMessage", "documentMessage",
@@ -40,6 +42,30 @@ MEDIA_FIELDS = ("imageMessage", "videoMessage", "audioMessage", "documentMessage
 
 class MediaGone(Exception):
     """The phone no longer has the media; the text makes the route answer 410."""
+
+    code = "media_gone_from_phone"
+
+
+class PhoneDidNotAnswer(RuntimeError):
+    """The phone did not answer the media retry in time: worth another try
+    later, so the route answers 504, never 410 (the client would remember
+    the media as expired)."""
+
+    code = "media_retry_no_answer"
+
+
+class RetriedUnreadable(RuntimeError):
+    """The phone sent the media again but what was served cannot be opened
+    with the message's key; the text keeps the cause, so the route answers
+    410 as before."""
+
+    code = "media_retry_unreadable"
+
+
+def failure_code(error) -> str:
+    """The code the client words its message by, or "" for any other fault."""
+    return getattr(error, "code", "") if isinstance(
+        error, (MediaGone, PhoneDidNotAnswer, RetriedUnreadable)) else ""
 
 
 def is_expired_error(error) -> bool:
@@ -190,7 +216,7 @@ def fetch_retried(client, message, direct_path: str) -> bytes:
             log.info("media retry download failed: kind=%s mms=%s expected=%s; %s",
                      request["kind"], request["mms_type"], request["file_length"],
                      describe_tries(answer.get("tried")))
-            raise RuntimeError(answer["error"])
+            raise RetriedUnreadable(answer["error"])
         log.info("media retry download: %s bytes from %s as %s (key info %s)%s",
                  answer.get("size"), answer.get("host"), answer.get("mms_type"),
                  answer.get("app_info"),
@@ -241,7 +267,7 @@ def ask_phone(client, answers, parsed, media, timeout=TIMEOUT):
         if sent.get("error"):
             raise RuntimeError("media retry not sent")
         if not slot["event"].wait(timeout):
-            raise RuntimeError("the phone did not answer the media retry")
+            raise PhoneDidNotAnswer("the phone did not answer the media retry")
         opened = client.decrypt_media_retry(decrypt_request(slot["answer"], media_key))
     finally:
         answers.forget(parsed[2])
@@ -277,6 +303,9 @@ async def download_async(s, message, msgid, download):
             path = await loop.run_in_executor(
                 None, ask_phone, s.client, answers, parsed, media)
         except MediaGone:
+            raise
+        except PhoneDidNotAnswer as retry_error:
+            log.info("media retry gave up: %s", retry_error)
             raise
         except Exception as retry_error:
             log.info("media retry gave up: %s", retry_error)

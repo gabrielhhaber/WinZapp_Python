@@ -2335,7 +2335,11 @@ def create_app(folder, fixed=""):
         except Exception as error:
             log.exception("download")
             status = transfers.status_for_download_error(error)
-            return web.json_response({"status": "error", "message": str(error)}, status=status)
+            code = media_retry.failure_code(error)
+            if isinstance(error, media_retry.PhoneDidNotAnswer):
+                status = 504           # try again later; not an expired media
+            return web.json_response({"status": "error", "message": str(error), "code": code},
+                                     status=status)
         if "octet-stream" in req.headers.get("Accept", ""):
             return web.Response(body=data, content_type="application/octet-stream")
         import base64 as b64

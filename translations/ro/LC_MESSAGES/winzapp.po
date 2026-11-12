@@ -8753,8 +8753,6 @@ msgid "{count} media file(s)"
 msgstr "{count} fișiere media"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/audio_playback.py
-#: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
 "This media file could not be downloaded. The link may have expired or the "
@@ -8762,6 +8760,11 @@ msgid ""
 msgstr ""
 "Acest fișier media nu a putut fi descărcat. Este posibil ca linkul să fi "
 "expirat sau conexiunea la WhatsApp să nu fie disponibilă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_gone_from_phone"
+msgid "This file is no longer on WhatsApp's servers or on your phone."
+msgstr "Acest fișier nu mai este nici pe serverele WhatsApp, nici pe telefon."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
@@ -8773,6 +8776,24 @@ msgid ""
 msgstr ""
 "Fișierele media nu pot fi descărcate în timp ce WhatsApp este deconectat sau"
 " se conectează. Așteptați ca conexiunea să revină și încercați din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_phone_no_answer"
+msgid ""
+"Your phone did not answer the request to send this file again. It may be "
+"busy: try again in a moment."
+msgstr ""
+"Telefonul nu a răspuns la cererea de a trimite din nou acest fișier. Poate "
+"fi ocupat: încercați din nou peste puțin timp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_retried_unreadable"
+msgid ""
+"Your phone sent this file again, but it could not be opened. If it keeps "
+"happening, send WinZapp's logs to the developers."
+msgstr ""
+"Telefonul a trimis din nou acest fișier, dar nu a putut fi deschis. Dacă se "
+"repetă, trimiteți jurnalele WinZapp dezvoltatorilor."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 #, python-brace-format
