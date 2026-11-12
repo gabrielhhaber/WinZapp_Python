@@ -191,7 +191,7 @@ function ensureLinuxCallAudio(
 
 function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 11) return true;
+  if (win.__winzappCallMediaBridge?.version === 12) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
@@ -219,7 +219,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const MIC_WORKLET_WATCHDOG_MS = 1500;
 
   const state: any = {
-    version: 11,
+    version: 12,
     enabled: false,
     context: null,
     micDestination: null,
@@ -1863,32 +1863,47 @@ registerProcessor('winzapp-call-mic', WinzappCallMicProcessor);
   // audio element's play() is refused. Measured 2026-11-12 on a real account
   // (impl=3, media element output off): nothing above saw a remote track,
   // WinZapp played silence for the whole call and nobody heard anybody. So a
-  // worklet of a page context reaching a destination is also connected to a
-  // MediaStreamDestination of that context, and its stream is tapped like
-  // any other remote stream. Our own nodes live in state.context and never
-  // connect a worklet to a destination; they are left alone.
+  // worklet of a page context reaching a destination is tapped through a
+  // MediaStreamDestination of that context, like any other remote stream.
+  //
+  // And it never reaches the speakers itself: WhatsApp Web points that
+  // context at the default output with setSinkId, so the call played twice,
+  // once straight from Chrome and once, later, from WinZapp -- heard as an
+  // echo on the other person's voice (same call, same day). The worklet is
+  // connected to a muted gain on the destination instead (the graph keeps
+  // running, WhatsApp keeps the connection it asked for) and to the tap.
+  // Our own nodes live in state.context and never connect a worklet to a
+  // destination; they are left alone.
   const directPlaybackTaps = new WeakMap<any, any>();
-  const tapDirectPlayback = (node: any, target: any, nativeConnect: any) => {
+  const routeDirectPlayback = (node: any, target: any, nativeConnect: any): boolean => {
     const Worklet = win.AudioWorkletNode;
     const Destination = win.AudioDestinationNode;
-    if (!Worklet || !Destination || !(node instanceof Worklet) || !(target instanceof Destination)) return;
-    if (node.context === state.context || directPlaybackTaps.has(node)) return;
-    const destination = node.context.createMediaStreamDestination();
-    nativeConnect.call(node, destination);
-    directPlaybackTaps.set(node, destination);
-    report('remote-direct', `rate=${node.context.sampleRate}`);
-    attachRemoteStream(destination.stream);
+    if (!Worklet || !Destination || !(node instanceof Worklet) || !(target instanceof Destination)) return false;
+    if (node.context === state.context) return false;
+    let route = directPlaybackTaps.get(node);
+    if (!route) {
+      const muted = node.context.createGain();
+      muted.gain.value = 0;
+      nativeConnect.call(muted, target);
+      route = { muted, tap: node.context.createMediaStreamDestination() };
+      directPlaybackTaps.set(node, route);
+      report('remote-direct', `rate=${node.context.sampleRate}`);
+      attachRemoteStream(route.tap.stream);
+    }
+    // again after a device switch: WhatsApp disconnects and reconnects it
+    nativeConnect.call(node, route.muted);
+    nativeConnect.call(node, route.tap);
+    return true;
   };
   try {
     const nodeProto = (win.AudioNode || {}).prototype as any;
     if (nodeProto && !nodeProto.__winzappDirectPlaybackWrapped) {
       const nativeConnect = nodeProto.connect;
       nodeProto.connect = function (this: any, target: any, ...rest: any[]) {
-        const result = nativeConnect.call(this, target, ...rest);
         try {
-          tapDirectPlayback(this, target, nativeConnect);
+          if (routeDirectPlayback(this, target, nativeConnect)) return target;
         } catch (_) { /* never break WhatsApp's own graph */ }
-        return result;
+        return nativeConnect.call(this, target, ...rest);
       };
       nodeProto.__winzappDirectPlaybackWrapped = true;
     }
