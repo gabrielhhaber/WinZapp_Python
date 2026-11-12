@@ -792,6 +792,7 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
 msgctxt "ai_error_busy"
 msgid ""
 "An operation is already running. Wait or cancel it before starting another."
@@ -8351,6 +8352,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
+#: client/ui/conversation_panel/translation_actions.py
 msgctxt "msg_copied"
 msgid "Message copied."
 msgstr ""
@@ -17285,6 +17287,165 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_whisper_cpp_verify_btn"
 msgid "Verif&y"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_api_url"
+msgid "Custom API address (&U)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_age"
+msgid "Maximum message age (&E)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_all_confirm"
+msgid ""
+"New text messages in all eligible conversations across all current and "
+"future WinZapp accounts will be sent to {provider} for translation. Enable "
+"automatic translation for all accounts?"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_confirm"
+msgid ""
+"New text messages received in this chat will be sent to {provider} for "
+"translation. Enable automatic translation?"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_limit"
+msgid "Daily automatic translation limit, 0 for unlimited (&D)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_off"
+msgid "Disable automatic translation for this chat"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_on"
+msgid "Enable automatic translation for this chat"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_scope"
+msgid "Conversations for automatic translation (&C)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_automatic"
+msgid "Automatic translation (&A)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display"
+msgid "Translation display (&V)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display_append"
+msgid "Show the translation after the original"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display_replace"
+msgid "Replace the message text in the list"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display_separate"
+msgid "Show the translation in a separate text field"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_get_models"
+msgid "Get models (&G)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_key"
+msgid "API key, blank to use the saved key (&K)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_language"
+msgid "Target language (&L)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "translation_message"
+msgid "Translate message"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_model"
+msgid "Model (&M)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_not_configured"
+msgid ""
+"Set the translation provider, model and target language in AI settings."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_provider"
+msgid "Provider (&P)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+#, python-brace-format
+msgctxt "translation_result"
+msgid "Translation: {text}"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_same_language"
+msgid ""
+"The provider returned the same text. It may already be in the target "
+"language."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+#, python-brace-format
+msgctxt "translation_sending"
+msgid "Translating with {provider}…"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/translation_settings.py
+msgctxt "translation_settings"
+msgid "Message translation (&Z)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_status"
+msgid "Status and test result (&S)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_test"
+msgid "Test translation (&T)"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_test_required"
+msgid "Use Test translation to verify this model before saving."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_waiting"
+msgid "Translating…"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

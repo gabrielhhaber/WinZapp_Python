@@ -16,6 +16,7 @@ import wx
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.message_resend import resend_request
+from core.message_translation import message_text
 from core.reply_failure import is_missing_quote_failure
 from ui.conversation_panel.media_paths import (
     _SAVEABLE_MESSAGE_TYPES,
@@ -412,6 +413,14 @@ class MessageMenuMixin:
         # Offered only while the feature is on and a provider with a key takes
         # this kind of media. Ctrl+Shift+I is the accelerator of the same action;
         # it sits with the media actions, right after Save as.
+        if message_text(msg):
+            translation_item = menu.Append(
+                wx.ID_ANY, f"{i18n.t('translation_message')}\tShift+Enter")
+            self.Bind(wx.EVT_MENU, lambda event: self._on_translate_message(msg), translation_item)
+            refresh_popup_shortcuts(self, "message_list", menu)
+        chat = self.conversation or {}
+        if chat.get("remoteJid"):
+            self._append_translation_chat_item(menu, chat["remoteJid"])
         ai_label = self._ai_menu_label(msg, i18n)
         if ai_label:
             if not media_actions_added:

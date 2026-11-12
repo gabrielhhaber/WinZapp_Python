@@ -35,6 +35,7 @@ _DEFAULTS: dict[str, Any] = {
     "language": "",
     # Only preferences and consent; credentials have a separate encrypted store.
     "ai_media": {},
+    "message_translation": {},
     "updates_enabled": True,
     # Opt-in to the alpha channel (one build per commit landed on main, see
     # .github/workflows/alpha-release.yml). Global rather than per-account for
@@ -195,6 +196,13 @@ class AppSettings:
         if key not in _DEFAULTS:
             raise KeyError(f"{key!r} is not a global setting")
         return self._read(strict=True).get(key, _default(key))
+
+    def get_snapshot(self, key: str) -> Any:
+        """Read a setting without waiting on another process's writer."""
+        if key not in _DEFAULTS:
+            raise KeyError(f"{key!r} is not a global setting")
+        with app_settings_lock(self.global_dir, timeout=0):
+            return self._read_unlocked().get(key, _default(key))
 
     def set(self, key: str, value: Any) -> None:
         if key not in _DEFAULTS:

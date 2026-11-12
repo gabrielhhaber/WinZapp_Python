@@ -22,7 +22,11 @@ from wx.lib.scrolledpanel import ScrolledPanel
 
 from app_paths import global_dir
 from app_settings import AppSettings
-from core.ai_credentials import CredentialStore, CredentialError
+from core.ai_credentials import (
+    CredentialStore, CredentialError, TranslationCredentialStore, store_for_translation,
+)
+from core.message_translation import credential_id, preferences as translation_preferences
+from core.message_translation import settings_from as settings_from_translation
 from core import conversation_auto_ai
 from core.ai_media import auto as ai_auto
 from core.transcription import auto_queue
@@ -345,6 +349,7 @@ class AISettingsPage(ScrolledPanel):
         self._drafts = {}      # provider -> key typed in its window, applied with the dialog
         self._deleted = set()  # providers whose saved key is to be removed
         self._reset = False
+        self._translation = None
         self._saved = self.store.saved()
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.enabled = self._check("ai_accessibility_enabled_label", config["enabled"])
@@ -386,7 +391,8 @@ class AISettingsPage(ScrolledPanel):
         self.notice = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(-1, 155))
         self.sizer.Add(self.notice, 0, wx.EXPAND | wx.ALL, 8)
         self._button("ai_technical_info", self._technical_info)
-        self._button("ai_reset_keys", self._reset_keys)
+        self.translation_button = self._button("translation_settings", self._configure_translation)
+        self.reset_keys_button = self._button("ai_reset_keys", self._reset_keys)
         self._label("ai_status_label")
         self.status = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(-1, 65))
         self.sizer.Add(self.status, 0, wx.EXPAND | wx.ALL, 8)
@@ -394,8 +400,8 @@ class AISettingsPage(ScrolledPanel):
         self.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._destroyed)
         self.refresh_labels()
-        # With the AI features off the other options mean nothing: only the
-        # box that turns them on is left.
+        # Translation has its own preferences and works independently of
+        # transcription and description.
         self.enabled.Bind(wx.EVT_CHECKBOX, self._on_enabled_toggle)
         self._show_options(self.enabled.GetValue())
 
@@ -405,7 +411,7 @@ class AISettingsPage(ScrolledPanel):
 
     def _show_options(self, shown):
         for child in self.GetChildren():
-            if child is not self.enabled:
+            if child not in (self.enabled, self.translation_button, self.reset_keys_button):
                 child.Show(shown)
         # The automatic options' window too: the settings search reads its
         # controls (add_subpage), and must not offer them with AI turned off.
@@ -552,6 +558,26 @@ class AISettingsPage(ScrolledPanel):
         self._refresh_list(index)
         self._on_change()
 
+    def _configure_translation(self, event):
+        from ui.dialogs.translation_settings import TranslationSettingsDialog
+
+        dialog = TranslationSettingsDialog(
+            self.GetTopLevelParent(), self.main_window.i18n,
+            self._translation or translation_preferences(self.app),
+            lambda provider: key_for_dialog(
+                store_for_translation(self.store, provider), provider,
+                self._drafts, self._deleted, self._reset))
+        try:
+            if dialog.ShowModal() == wx.ID_OK:
+                self._translation, key = dialog.result
+                if key:
+                    provider = credential_id(self._translation)
+                    self._drafts[provider] = key
+                    self._deleted.discard(provider)
+                self._on_change()
+        finally:
+            dialog.Destroy()
+
     def _reset_keys(self, event):
         if wx.MessageBox(self._t("ai_reset_confirm"), self._t("ai_reset_keys"),
                          wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING, self) != wx.YES:
@@ -638,8 +664,16 @@ class AISettingsPage(ScrolledPanel):
         try:
             changes = {provider: None for provider in self._deleted}
             changes.update(self._drafts)
-            if changes or self._reset:
-                self.store.apply(changes, reset=self._reset)
+            shared = {provider: key for provider, key in changes.items() if provider in PROVIDERS}
+            extra = {provider: key for provider, key in changes.items() if provider not in PROVIDERS}
+            if shared or self._reset:
+                self.store.apply(shared, reset=self._reset)
+            if extra or self._reset:
+                translation_store = TranslationCredentialStore(self.store.directory)
+                if extra:
+                    translation_store.apply(extra, reset=self._reset)
+                elif translation_store.data_path.exists() or translation_store.key_path.exists():
+                    translation_store.reset()
             # Re-entering a key removes it from _deleted, but must not undo
             # the consent revocation requested by an install-wide reset.
             removed = set(PROVIDERS) if self._reset else set(self._deleted)
@@ -672,6 +706,25 @@ class AISettingsPage(ScrolledPanel):
                     if isinstance(consented, list) else []
                 return value
             self.app.update("ai_media", merge)
+            if self._translation is not None or self._reset:
+                def merge_translation(old):
+                    updated = dict(old) if isinstance(old, dict) else {}
+                    if self._translation is not None:
+                        updated.update(self._translation.saved())
+                    if self._reset:
+                        updated.update(automatic=False, all_accounts_confirmed=False)
+                    return updated
+
+                saved_translation = self.app.update("message_translation", merge_translation)
+                translation = settings_from_translation(saved_translation)
+                panel = getattr(self.main_window, "conversations_panel", None)
+                update_view = getattr(panel, "_set_translation_view", None)
+                if callable(update_view):
+                    update_view(translation)
+                    wx.CallAfter(panel._rerender_messages_list_rows)
+                focused = getattr(panel, "_translate_focused_recent", None)
+                if translation.automatic and callable(focused):
+                    wx.CallAfter(focused)
             self.main_window.settings[conversation_auto_ai.SCOPE_SETTING] = (
                 conversation_auto_ai.SCOPE_SELECTED if self.auto_scope.GetSelection() == 1
                 else conversation_auto_ai.SCOPE_ALL)
@@ -687,6 +740,7 @@ class AISettingsPage(ScrolledPanel):
         self._drafts.clear()
         self._deleted.clear()
         self._reset = False
+        self._translation = None
         self._saved = self.store.saved()
         self.status.ChangeValue("")
         self._refresh_list(self.providers.GetSelection())

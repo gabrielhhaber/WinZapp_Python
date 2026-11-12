@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Traduza mensagens de texto na lista com o atalho configurável Shift+Enter. Escolha o provedor, o idioma de destino e onde mostrar a tradução. A tradução automática é opcional e tem limites por conversa, idade e dia.
+
 - Motor de conexão: o Neonize agora é o primeiro da lista e a opção já selecionada quando o WinZapp pergunta o motor na primeira abertura; ele continua marcado como experimental, mas é o mais recomendado para uso geral. A WPPConnect passa a ser a segunda opção, com o aviso "legada" depois do nome, na primeira abertura, na janela de pareamento e em Configurações > Conexão. Quem já usa a WPPConnect continua nela até trocar.
 
 - Neonize: o aviso de que uma mensagem foi apagada, quando o WinZapp não tem a mensagem nem a conversa, não cria mais um "Grupo sem nome" na lista de conversas. As mensagens apagadas nas suas conversas existentes continuam iguais.

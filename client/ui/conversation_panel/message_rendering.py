@@ -9,6 +9,7 @@ import logging
 import threading
 from core.chat_notices import conversation_start_text, empty_conversation_key
 from core.community_comments import comment_count
+from core.message_translation import translated_body
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.polls import POLL_MESSAGE_TYPES, poll_content, poll_row_text
 from core import channel_invites
@@ -1201,6 +1202,9 @@ class MessageRenderingMixin:
         ts       = self._extract_timestamp(msg)
         time_str = self._format_date(ts) if ts else ""
         body     = (self._get_message_content(msg) or "")
+        if include_quoted_preview:
+            body = translated_body(body, getattr(self, "_translation_results", {}), msg,
+                                   self.main_window.i18n.t, getattr(self, "_translation_display", None))
         sender   = message_sender_label(
             self._sender_label(msg), msg, self.main_window, self.main_window.i18n
         )

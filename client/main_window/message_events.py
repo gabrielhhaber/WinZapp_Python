@@ -1203,6 +1203,11 @@ class MessageEventsMixin:
         if not is_countable_message(msg):
             return
 
+        panel = getattr(self, "conversations_panel", None)
+        maybe_translate = getattr(panel, "_maybe_auto_translate", None)
+        if callable(maybe_translate) and msg.get("messageType") in ("conversation", "extendedTextMessage"):
+            wx.CallAfter(maybe_translate, remote_jid, msg)
+
         # Guard: do not play sound or show notification for messages older than 60 seconds
         ts = msg.get("messageTimestamp")
         if ts:

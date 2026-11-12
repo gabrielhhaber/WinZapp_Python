@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Translate text messages from the message list with a configurable Shift+Enter shortcut. Choose a provider, a target language and where the translation appears. Automatic translation is optional and has conversation, age and daily limits.
+
 - Connection engine: Neonize is now first in the list and the option already selected when WinZapp asks for the engine on the first launch; it is still marked as experimental, but it is the one recommended for general use. WPPConnect becomes the second option, marked "legacy" after its name, on the first launch, in the pairing window and in Settings > Connection. Anyone already using WPPConnect stays on it until they switch.
 
 - Neonize: a notice that a message was deleted, for a message or chat WinZapp does not have, no longer creates an "Unnamed group" in the chat list. Deleted messages in your existing chats are unchanged.

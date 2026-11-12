@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Tłumacz wiadomości tekstowe z listy konfigurowalnym skrótem Shift+Enter. Wybierz dostawcę, język docelowy i sposób wyświetlania. Tłumaczenie automatyczne jest opcjonalne i ma ustawienia zakresu czatów, wieku wiadomości i limitu dziennego.
+
 - Silnik połączenia: Neonize jest teraz pierwszy na liście i jest opcją zaznaczoną od razu, gdy WinZapp pyta o silnik przy pierwszym uruchomieniu; nadal jest oznaczony jako eksperymentalny, ale to on jest zalecany do ogólnego użytku. WPPConnect staje się drugą opcją, z dopiskiem "starszy" po nazwie, przy pierwszym uruchomieniu, w oknie parowania i w Ustawienia > Połączenie. Kto już korzysta z WPPConnect, pozostaje przy nim, dopóki sam go nie zmieni.
 
 - Neonize: powiadomienie o usunięciu wiadomości, gdy WinZapp nie ma ani tej wiadomości, ani rozmowy, nie tworzy już "Grupy bez nazwy" na liście rozmów. Usunięte wiadomości w istniejących rozmowach pozostają bez zmian.

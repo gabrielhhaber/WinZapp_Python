@@ -564,6 +564,7 @@ class CompatListBoxMessagesCtrl(wx.ListBox):
         super().__init__(parent, style=wx.LB_SINGLE)
         self._activated_handler = None
         self._key_down_handler = None
+        self._shortcut_handler = None
         # wx.ListBox has no built-in "activate" notification for Enter (only
         # EVT_LISTBOX_DCLICK, which is mouse-double-click only). A plain
         # EVT_KEY_DOWN binding is not reliable for Enter specifically:
@@ -578,10 +579,17 @@ class CompatListBoxMessagesCtrl(wx.ListBox):
     def set_key_down_handler(self, handler):
         self._key_down_handler = handler
 
+    def set_shortcut_handler(self, handler):
+        self._shortcut_handler = handler
+
     def _on_char_hook(self, event):
         if self.HasFocus():
+            shortcut = getattr(self, "_shortcut_handler", None)
+            if shortcut is not None and shortcut(event):
+                return
             if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
-                    and event.ControlDown()
+                    and (event.ControlDown() or getattr(event, "ShiftDown", lambda: False)()
+                         or getattr(event, "AltDown", lambda: False)())
                     and self._key_down_handler is not None):
                 # Modified Enter belongs to the panel's shortcut handler.
                 # Sending it through the plain activation path made

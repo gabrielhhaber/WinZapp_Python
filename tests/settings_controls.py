@@ -40,7 +40,7 @@ DIALOGS = CLIENT / "ui" / "dialogs"
 #: The settings dialog and the windows it opens.
 FILES = (
     "settings_dialog.py", "settings_pages.py", "shortcuts_tab.py", "shortcut_capture.py",
-    "ai_settings_page.py", "status_audience_dialog.py", "common_groups_tab.py",
+    "ai_settings_page.py", "translation_settings.py", "status_audience_dialog.py", "common_groups_tab.py",
     "whatsapp_privacy_panel.py", "whatsapp_profile_panel.py",
     "transcription_background.py", "transcription_cache.py", "transcription_external.py",
     "transcription_model_marks.py", "transcription_options.py", "transcription_precision.py",
@@ -60,7 +60,7 @@ CAPTIONED = {"TextCtrl", "Choice", "ComboBox", "SpinCtrl", "SpinCtrlDouble", "Li
 CONTROLS = CAPTIONED | {"Button", "CheckBox", "RadioButton", "ToggleButton", "RadioBox",
                         "StaticText", "StaticBox", "BitmapButton", "Gauge", "HyperlinkCtrl"}
 #: Helpers that make one labelled control from a literal key (ai_settings_page.py).
-HELPERS = {"_caption", "_text", "_choice", "_button", "_label", "_check"}
+HELPERS = {"_caption", "_text", "_choice", "_button", "_label", "_check", "_field"}
 SETTINGS = "SettingsDialog"
 DIALOG_CONTROLS = f"window {SETTINGS}"
 #: Shown with every page but set up through SettingsPages.set_search_texts().
