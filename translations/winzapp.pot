@@ -1704,6 +1704,12 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/attachments.py
+msgctxt "attachment_event"
+msgid "Event"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/attachments.py
 msgctxt "attachment_photos_videos"
 msgid "Photos and videos"
 msgstr ""
@@ -5746,13 +5752,14 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "date_fmt"
 msgid "%m/%d/%Y"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/main_window/whats_new_since.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -6303,6 +6310,274 @@ msgstr ""
 #: client/ui/dialogs/error_details.py
 msgctxt "error_details_label"
 msgid "Error details"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_label"
+msgid "Call t&ype:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_none"
+msgid "No call"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_video"
+msgid "Video call"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_voice"
+msgid "Voice call"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/event_messages.py
+msgctxt "event_cancel_confirm"
+msgid "Cancel this event for everyone in the chat? This cannot be undone."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_cancel_failed"
+msgid "The event could not be canceled."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled"
+msgid "Canceled"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled_done"
+msgid "Event canceled."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create"
+msgid "C&reate"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create_failed"
+msgid "The event could not be created."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_created"
+msgid "Event created."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_date_invalid"
+msgid "Type the dates like {date} and the times like {time}."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_description_label"
+msgid "&Description:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_details_label"
+msgid "&Details:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_failed"
+msgid "The event could not be changed."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_title"
+msgid "Edit event"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edited"
+msgid "Event changed."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_before_start"
+msgid "The end comes before the start."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_date_label"
+msgid "&End date (optional):"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_time_label"
+msgid "End t&ime (optional):"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_extra_guests_label"
+msgid "Allow extra &guests"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_going"
+msgid "Going ({count})"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_maybe"
+msgid "Maybe ({count})"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_not_going"
+msgid "Not going ({count})"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/ui/conversation_panel/event_messages.py
+#: client/ui/dialogs/event_dialog.py
+msgctxt "event_label"
+msgid "Event"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_link_label"
+msgid "Call link: {link}"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_location"
+msgid "Place: {location}"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_location_label"
+msgid "&Place (optional):"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_cancel"
+msgid "Cancel e&vent"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_edit"
+msgid "&Edit event"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_going"
+msgid "You are going"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_maybe"
+msgid "You may go"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_not_going"
+msgid "You are not going"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_label"
+msgid "&Name:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_required"
+msgid "Type the event's name."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_new_title"
+msgid "New event"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_passed"
+msgid "Already happened"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_failed"
+msgid "The answer could not be sent."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_going"
+msgid "&Going"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_maybe"
+msgid "&Maybe"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_not_going"
+msgid "&Not going"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_sent"
+msgid "Answer sent."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_responses_summary"
+msgid "{going} going, {maybe} maybe, {not_going} not going"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_responses_unknown"
+msgid "The answers could not be read yet."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_save"
+msgid "Sa&ve"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_date_label"
+msgid "&Start date:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_required"
+msgid "Type when the event starts."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_time_label"
+msgid "Start &time:"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#, python-brace-format
+msgctxt "event_time_range"
+msgid "{start} until {end}"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_unnamed"
+msgid "untitled"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_with_guests"
+msgid "{name} (+{count})"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -9124,6 +9399,13 @@ msgstr ""
 #: client/ui/conversation_panel/message_rendering.py
 msgctxt "notif_deleted"
 msgid "This message was deleted"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#, python-brace-format
+msgctxt "notif_event"
+msgid "Event: {name}"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -14907,10 +15189,11 @@ msgctxt "terms_title"
 msgid "WinZapp | Important notice"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/formatting.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/ui/conversation_panel/formatting.py
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "time_fmt"
 msgid "%I:%M %p"
 msgstr ""

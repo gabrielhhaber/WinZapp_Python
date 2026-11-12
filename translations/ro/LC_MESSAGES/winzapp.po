@@ -1868,6 +1868,12 @@ msgstr "Document"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/attachments.py
+msgctxt "attachment_event"
+msgid "Event"
+msgstr "Eveniment"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/attachments.py
 msgctxt "attachment_photos_videos"
 msgid "Photos and videos"
 msgstr "Fotografii și videoclipuri"
@@ -6096,13 +6102,14 @@ msgstr "A apărut o eroare la salvarea fișierului de mesaje:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "date_fmt"
 msgid "%m/%d/%Y"
 msgstr "%d.%m.%Y"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/main_window/whats_new_since.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -6684,6 +6691,276 @@ msgstr "Detalii despre eroare:"
 msgctxt "error_details_label"
 msgid "Error details"
 msgstr "Detaliile erorii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_label"
+msgid "Call t&ype:"
+msgstr "Tip &apel:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_none"
+msgid "No call"
+msgstr "Fără apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_video"
+msgid "Video call"
+msgstr "Apel video"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_voice"
+msgid "Voice call"
+msgstr "Apel vocal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/event_messages.py
+msgctxt "event_cancel_confirm"
+msgid "Cancel this event for everyone in the chat? This cannot be undone."
+msgstr ""
+"Anulați acest eveniment pentru toți din conversație? Acțiunea nu poate fi "
+"anulată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_cancel_failed"
+msgid "The event could not be canceled."
+msgstr "Evenimentul nu a putut fi anulat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled"
+msgid "Canceled"
+msgstr "Anulat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled_done"
+msgid "Event canceled."
+msgstr "Eveniment anulat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create"
+msgid "C&reate"
+msgstr "&Creează"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create_failed"
+msgid "The event could not be created."
+msgstr "Evenimentul nu a putut fi creat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_created"
+msgid "Event created."
+msgstr "Eveniment creat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_date_invalid"
+msgid "Type the dates like {date} and the times like {time}."
+msgstr "Introduceți datele ca {date} și orele ca {time}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_description_label"
+msgid "&Description:"
+msgstr "&Descriere:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_details_label"
+msgid "&Details:"
+msgstr "&Detalii:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_failed"
+msgid "The event could not be changed."
+msgstr "Evenimentul nu a putut fi modificat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_title"
+msgid "Edit event"
+msgstr "Editează evenimentul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edited"
+msgid "Event changed."
+msgstr "Eveniment modificat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_before_start"
+msgid "The end comes before the start."
+msgstr "Sfârșitul este înaintea începutului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_date_label"
+msgid "&End date (optional):"
+msgstr "Data de &sfârșit (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_time_label"
+msgid "End t&ime (optional):"
+msgstr "O&ra de sfârșit (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_extra_guests_label"
+msgid "Allow extra &guests"
+msgstr "Permite invitați su&plimentari"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_going"
+msgid "Going ({count})"
+msgstr "Participă ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_maybe"
+msgid "Maybe ({count})"
+msgstr "Poate ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_not_going"
+msgid "Not going ({count})"
+msgstr "Nu participă ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/ui/conversation_panel/event_messages.py
+#: client/ui/dialogs/event_dialog.py
+msgctxt "event_label"
+msgid "Event"
+msgstr "Eveniment"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_link_label"
+msgid "Call link: {link}"
+msgstr "Link apel: {link}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_location"
+msgid "Place: {location}"
+msgstr "Locație: {location}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_location_label"
+msgid "&Place (optional):"
+msgstr "&Locație (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_cancel"
+msgid "Cancel e&vent"
+msgstr "&Anulează evenimentul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_edit"
+msgid "&Edit event"
+msgstr "&Editează evenimentul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_going"
+msgid "You are going"
+msgstr "Participați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_maybe"
+msgid "You may go"
+msgstr "Poate participați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_not_going"
+msgid "You are not going"
+msgstr "Nu participați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_label"
+msgid "&Name:"
+msgstr "&Nume:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_required"
+msgid "Type the event's name."
+msgstr "Introduceți numele evenimentului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_new_title"
+msgid "New event"
+msgstr "Eveniment nou"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_passed"
+msgid "Already happened"
+msgstr "A avut deja loc"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_failed"
+msgid "The answer could not be sent."
+msgstr "Răspunsul nu a putut fi trimis."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_going"
+msgid "&Going"
+msgstr "&Particip"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_maybe"
+msgid "&Maybe"
+msgstr "Po&ate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_not_going"
+msgid "&Not going"
+msgstr "&Nu particip"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_sent"
+msgid "Answer sent."
+msgstr "Răspuns trimis."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_responses_summary"
+msgid "{going} going, {maybe} maybe, {not_going} not going"
+msgstr "{going} participă, {maybe} poate, {not_going} nu participă"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_responses_unknown"
+msgid "The answers could not be read yet."
+msgstr "Răspunsurile nu au putut fi citite încă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_save"
+msgid "Sa&ve"
+msgstr "Sal&vează"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_date_label"
+msgid "&Start date:"
+msgstr "Data de &început:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_required"
+msgid "Type when the event starts."
+msgstr "Introduceți când începe evenimentul."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_time_label"
+msgid "Start &time:"
+msgstr "&Ora de început:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#, python-brace-format
+msgctxt "event_time_range"
+msgid "{start} until {end}"
+msgstr "{start} până la {end}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_unnamed"
+msgid "untitled"
+msgstr "fără nume"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_with_guests"
+msgid "{name} (+{count})"
+msgstr "{name} (+{count})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -9736,6 +10013,13 @@ msgstr "Contact"
 msgctxt "notif_deleted"
 msgid "This message was deleted"
 msgstr "Acest mesaj a fost șters"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#, python-brace-format
+msgctxt "notif_event"
+msgid "Event: {name}"
+msgstr "Eveniment: {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -15937,10 +16221,11 @@ msgctxt "terms_title"
 msgid "WinZapp | Important notice"
 msgstr "WinZapp | Notă importantă"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/formatting.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/ui/conversation_panel/formatting.py
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "time_fmt"
 msgid "%I:%M %p"
 msgstr "%H:%M"

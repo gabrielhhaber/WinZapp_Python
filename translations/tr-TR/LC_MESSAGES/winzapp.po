@@ -1862,6 +1862,12 @@ msgstr "Belge"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/attachments.py
+msgctxt "attachment_event"
+msgid "Event"
+msgstr "Etkinlik"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/attachments.py
 msgctxt "attachment_photos_videos"
 msgid "Photos and videos"
 msgstr "Fotoğraflar ve videolar"
@@ -6069,13 +6075,14 @@ msgstr "Mesaj dosyası kaydedilirken bir hata oluştu:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "date_fmt"
 msgid "%m/%d/%Y"
 msgstr "%d.%m.%Y"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/main_window/whats_new_since.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -6655,6 +6662,275 @@ msgstr "Hata ayrıntıları:"
 msgctxt "error_details_label"
 msgid "Error details"
 msgstr "Hata ayrıntıları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_label"
+msgid "Call t&ype:"
+msgstr "Ara&ma türü:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_none"
+msgid "No call"
+msgstr "Arama yok"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_video"
+msgid "Video call"
+msgstr "Görüntülü arama"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_voice"
+msgid "Voice call"
+msgstr "Sesli arama"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/event_messages.py
+msgctxt "event_cancel_confirm"
+msgid "Cancel this event for everyone in the chat? This cannot be undone."
+msgstr ""
+"Bu etkinlik sohbetteki herkes için iptal edilsin mi? Bu işlem geri alınamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_cancel_failed"
+msgid "The event could not be canceled."
+msgstr "Etkinlik iptal edilemedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled"
+msgid "Canceled"
+msgstr "İptal edildi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled_done"
+msgid "Event canceled."
+msgstr "Etkinlik iptal edildi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create"
+msgid "C&reate"
+msgstr "&Oluştur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create_failed"
+msgid "The event could not be created."
+msgstr "Etkinlik oluşturulamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_created"
+msgid "Event created."
+msgstr "Etkinlik oluşturuldu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_date_invalid"
+msgid "Type the dates like {date} and the times like {time}."
+msgstr "Tarihleri {date}, saatleri {time} biçiminde yazın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_description_label"
+msgid "&Description:"
+msgstr "Açı&klama:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_details_label"
+msgid "&Details:"
+msgstr "&Ayrıntılar:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_failed"
+msgid "The event could not be changed."
+msgstr "Etkinlik değiştirilemedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_title"
+msgid "Edit event"
+msgstr "Etkinliği düzenle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edited"
+msgid "Event changed."
+msgstr "Etkinlik değiştirildi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_before_start"
+msgid "The end comes before the start."
+msgstr "Bitiş, başlangıçtan önce."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_date_label"
+msgid "&End date (optional):"
+msgstr "Bi&tiş tarihi (isteğe bağlı):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_time_label"
+msgid "End t&ime (optional):"
+msgstr "Bitiş saat&i (isteğe bağlı):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_extra_guests_label"
+msgid "Allow extra &guests"
+msgstr "Ek misa&firlere izin ver"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_going"
+msgid "Going ({count})"
+msgstr "Katılanlar ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_maybe"
+msgid "Maybe ({count})"
+msgstr "Belki ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_not_going"
+msgid "Not going ({count})"
+msgstr "Katılmayanlar ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/ui/conversation_panel/event_messages.py
+#: client/ui/dialogs/event_dialog.py
+msgctxt "event_label"
+msgid "Event"
+msgstr "Etkinlik"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_link_label"
+msgid "Call link: {link}"
+msgstr "Arama bağlantısı: {link}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_location"
+msgid "Place: {location}"
+msgstr "Konum: {location}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_location_label"
+msgid "&Place (optional):"
+msgstr "Ko&num (isteğe bağlı):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_cancel"
+msgid "Cancel e&vent"
+msgstr "Etkinliği i&ptal et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_edit"
+msgid "&Edit event"
+msgstr "&Etkinliği düzenle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_going"
+msgid "You are going"
+msgstr "Katılıyorsunuz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_maybe"
+msgid "You may go"
+msgstr "Belki katılacaksınız"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_not_going"
+msgid "You are not going"
+msgstr "Katılmıyorsunuz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_label"
+msgid "&Name:"
+msgstr "&Ad:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_required"
+msgid "Type the event's name."
+msgstr "Etkinliğin adını yazın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_new_title"
+msgid "New event"
+msgstr "Yeni etkinlik"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_passed"
+msgid "Already happened"
+msgstr "Gerçekleşti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_failed"
+msgid "The answer could not be sent."
+msgstr "Yanıt gönderilemedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_going"
+msgid "&Going"
+msgstr "&Gidiyorum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_maybe"
+msgid "&Maybe"
+msgstr "&Belki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_not_going"
+msgid "&Not going"
+msgstr "Gi&tmiyorum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_sent"
+msgid "Answer sent."
+msgstr "Yanıt gönderildi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_responses_summary"
+msgid "{going} going, {maybe} maybe, {not_going} not going"
+msgstr "{going} katılıyor, {maybe} belki, {not_going} katılmıyor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_responses_unknown"
+msgid "The answers could not be read yet."
+msgstr "Yanıtlar henüz okunamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_save"
+msgid "Sa&ve"
+msgstr "Kay&det"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_date_label"
+msgid "&Start date:"
+msgstr "&Başlangıç tarihi:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_required"
+msgid "Type when the event starts."
+msgstr "Etkinliğin ne zaman başladığını yazın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_time_label"
+msgid "Start &time:"
+msgstr "Başlangıç &saati:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#, python-brace-format
+msgctxt "event_time_range"
+msgid "{start} until {end}"
+msgstr "{start} - {end}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_unnamed"
+msgid "untitled"
+msgstr "adsız"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_with_guests"
+msgid "{name} (+{count})"
+msgstr "{name} (+{count})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -8624,7 +8900,7 @@ msgstr "Ayarları &içe aktar..."
 #: client/main_window/window_chrome.py
 msgctxt "menu_install_pending_update"
 msgid "&Install downloaded update"
-msgstr "İndirilen güncellemeyi &yükle"
+msgstr "İndirilen güncellemeyi yük&le"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -9658,6 +9934,13 @@ msgstr "Kişi"
 msgctxt "notif_deleted"
 msgid "This message was deleted"
 msgstr "Bu mesaj silindi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#, python-brace-format
+msgctxt "notif_event"
+msgid "Event: {name}"
+msgstr "Etkinlik: {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -15777,10 +16060,11 @@ msgctxt "terms_title"
 msgid "WinZapp | Important notice"
 msgstr "WinZapp | Önemli bildirim"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/formatting.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/ui/conversation_panel/formatting.py
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "time_fmt"
 msgid "%I:%M %p"
 msgstr "%H:%M"

@@ -172,6 +172,7 @@ from ui.conversation_panel.reactions import ReactionsMixin
 from ui.conversation_panel.attachments import AttachmentsMixin
 from ui.conversation_panel.poll_inline import PollInlineMixin
 from ui.conversation_panel.poll_messages import PollMessagesMixin
+from ui.conversation_panel.event_messages import EventMessagesMixin
 from ui.conversation_panel.contact_messages import ContactMessagesMixin
 from ui.conversation_panel.bulk_messages import BulkMessagesMixin
 from ui.conversation_panel.bulk_transcription import BulkTranscriptionMixin
@@ -225,6 +226,7 @@ class ConversationsPanel(
     ReactionsMixin,
     AttachmentsMixin,
     PollMessagesMixin,
+    EventMessagesMixin,
     PollInlineMixin,
     ContactMessagesMixin,
     BulkMessagesMixin,

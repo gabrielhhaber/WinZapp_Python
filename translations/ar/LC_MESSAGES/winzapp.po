@@ -1834,6 +1834,12 @@ msgstr "مستند"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/attachments.py
+msgctxt "attachment_event"
+msgid "Event"
+msgstr "حدث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/attachments.py
 msgctxt "attachment_photos_videos"
 msgid "Photos and videos"
 msgstr "صور ومقاطع فيديو"
@@ -5993,13 +5999,14 @@ msgstr "حدث خطأ أثناء حفظ ملف الرسالة:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "date_fmt"
 msgid "%m/%d/%Y"
 msgstr "%m/%d/%Y"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/main_window/whats_new_since.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -6575,6 +6582,274 @@ msgstr "تفاصيل الخطأ:"
 msgctxt "error_details_label"
 msgid "Error details"
 msgstr "تفاصيل الخطأ"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_label"
+msgid "Call t&ype:"
+msgstr "نوع الم&كالمة:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_none"
+msgid "No call"
+msgstr "بلا مكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_video"
+msgid "Video call"
+msgstr "مكالمة فيديو"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_voice"
+msgid "Voice call"
+msgstr "مكالمة صوتية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/event_messages.py
+msgctxt "event_cancel_confirm"
+msgid "Cancel this event for everyone in the chat? This cannot be undone."
+msgstr "إلغاء هذا الحدث لكل من في الدردشة؟ لا يمكن التراجع عن ذلك."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_cancel_failed"
+msgid "The event could not be canceled."
+msgstr "تعذّر إلغاء الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled"
+msgid "Canceled"
+msgstr "مُلغى"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled_done"
+msgid "Event canceled."
+msgstr "تم إلغاء الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create"
+msgid "C&reate"
+msgstr "&إنشاء"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create_failed"
+msgid "The event could not be created."
+msgstr "تعذّر إنشاء الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_created"
+msgid "Event created."
+msgstr "تم إنشاء الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_date_invalid"
+msgid "Type the dates like {date} and the times like {time}."
+msgstr "اكتب التواريخ مثل {date} والأوقات مثل {time}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_description_label"
+msgid "&Description:"
+msgstr "ال&وصف:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_details_label"
+msgid "&Details:"
+msgstr "ال&تفاصيل:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_failed"
+msgid "The event could not be changed."
+msgstr "تعذّر تعديل الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_title"
+msgid "Edit event"
+msgstr "تعديل الحدث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edited"
+msgid "Event changed."
+msgstr "تم تعديل الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_before_start"
+msgid "The end comes before the start."
+msgstr "الانتهاء قبل البدء."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_date_label"
+msgid "&End date (optional):"
+msgstr "تاريخ الا&نتهاء (اختياري):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_time_label"
+msgid "End t&ime (optional):"
+msgstr "وقت الانت&هاء (اختياري):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_extra_guests_label"
+msgid "Allow extra &guests"
+msgstr "السماح بمرافق&ين"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_going"
+msgid "Going ({count})"
+msgstr "سيحضرون ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_maybe"
+msgid "Maybe ({count})"
+msgstr "ربما ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_not_going"
+msgid "Not going ({count})"
+msgstr "لن يحضروا ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/ui/conversation_panel/event_messages.py
+#: client/ui/dialogs/event_dialog.py
+msgctxt "event_label"
+msgid "Event"
+msgstr "حدث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_link_label"
+msgid "Call link: {link}"
+msgstr "رابط المكالمة: {link}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_location"
+msgid "Place: {location}"
+msgstr "المكان: {location}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_location_label"
+msgid "&Place (optional):"
+msgstr "ال&مكان (اختياري):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_cancel"
+msgid "Cancel e&vent"
+msgstr "إلغاء الحد&ث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_edit"
+msgid "&Edit event"
+msgstr "تعديل ال&حدث"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_going"
+msgid "You are going"
+msgstr "أنت ستحضر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_maybe"
+msgid "You may go"
+msgstr "ربما تحضر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_not_going"
+msgid "You are not going"
+msgstr "لن تحضر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_label"
+msgid "&Name:"
+msgstr "ال&اسم:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_required"
+msgid "Type the event's name."
+msgstr "اكتب اسم الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_new_title"
+msgid "New event"
+msgstr "حدث جديد"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_passed"
+msgid "Already happened"
+msgstr "انتهى"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_failed"
+msgid "The answer could not be sent."
+msgstr "تعذّر إرسال الرد."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_going"
+msgid "&Going"
+msgstr "&سأحضر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_maybe"
+msgid "&Maybe"
+msgstr "&ربما"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_not_going"
+msgid "&Not going"
+msgstr "&لن أحضر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_sent"
+msgid "Answer sent."
+msgstr "تم إرسال الرد."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_responses_summary"
+msgid "{going} going, {maybe} maybe, {not_going} not going"
+msgstr "{going} سيحضرون، {maybe} ربما، {not_going} لن يحضروا"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_responses_unknown"
+msgid "The answers could not be read yet."
+msgstr "تعذّرت قراءة الردود حتى الآن."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_save"
+msgid "Sa&ve"
+msgstr "&حفظ"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_date_label"
+msgid "&Start date:"
+msgstr "تاريخ ال&بدء:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_required"
+msgid "Type when the event starts."
+msgstr "اكتب موعد بدء الحدث."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_time_label"
+msgid "Start &time:"
+msgstr "و&قت البدء:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#, python-brace-format
+msgctxt "event_time_range"
+msgid "{start} until {end}"
+msgstr "{start} حتى {end}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_unnamed"
+msgid "untitled"
+msgstr "بلا اسم"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_with_guests"
+msgid "{name} (+{count})"
+msgstr "{name} (+{count})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -9551,6 +9826,13 @@ msgstr "جهة اتصال"
 msgctxt "notif_deleted"
 msgid "This message was deleted"
 msgstr "تم حذف هذه الرسالة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#, python-brace-format
+msgctxt "notif_event"
+msgid "Event: {name}"
+msgstr "حدث: {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -15616,10 +15898,11 @@ msgctxt "terms_title"
 msgid "WinZapp | Important notice"
 msgstr "WinZapp | إشعار مهم"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/formatting.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/ui/conversation_panel/formatting.py
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "time_fmt"
 msgid "%I:%M %p"
 msgstr "%I:%M %p"

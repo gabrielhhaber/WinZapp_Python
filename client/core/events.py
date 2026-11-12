@@ -171,6 +171,8 @@ def event_text(event, i18n, now) -> str:
 
 RESPONSE_KEYS = {GOING: "event_response_going", MAYBE: "event_response_maybe",
                  NOT_GOING: "event_response_not_going"}
+RESPONSE_GROUP_KEYS = {GOING: "event_group_going", MAYBE: "event_group_maybe",
+                       NOT_GOING: "event_group_not_going"}
 RESPONSE_MINE_KEYS = {GOING: "event_mine_going", MAYBE: "event_mine_maybe",
                       NOT_GOING: "event_mine_not_going"}
 
@@ -200,6 +202,43 @@ def apply_edit(event, fresh) -> bool:
             event[field] = fresh[field]
             changed = True
     return changed
+
+
+def parse_moment(date_text, time_text, date_fmt, time_fmt):
+    """Seconds since the epoch of a local date and time typed in the app's
+    formats (i18n "date_fmt", "time_fmt"), or None when either does not read.
+    An empty time is midnight only when *time_text* is None (no field)."""
+    date_text, time_text = str(date_text or "").strip(), str(time_text or "").strip()
+    if not date_text:
+        return None
+    try:
+        day = datetime.datetime.strptime(date_text, date_fmt)
+        hour = datetime.datetime.strptime(time_text, time_fmt) if time_text else None
+    except ValueError:
+        return None
+    if hour is None:
+        return None
+    moment = day.replace(hour=hour.hour, minute=hour.minute, second=0, microsecond=0)
+    try:
+        return int(moment.timestamp())
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def format_moment(seconds, date_fmt, time_fmt):
+    """(date text, time text) of *seconds* in the app's formats; ("", "") for 0."""
+    if not seconds:
+        return "", ""
+    try:
+        moment = datetime.datetime.fromtimestamp(seconds)
+    except (ValueError, OSError, OverflowError):
+        return "", ""
+    return moment.strftime(date_fmt), moment.strftime(time_fmt)
+
+
+def default_start(now) -> int:
+    """The start a new event is offered with: the next full hour."""
+    return (int(now) // 3600 + 1) * 3600
 
 
 def validate(name, start, end, now) -> str:

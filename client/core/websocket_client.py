@@ -377,6 +377,7 @@ class WebSocketClient:
         self.sio.on("announcement-replies", self.on_announcement_replies)
         self.sio.on("channels-changed", self.on_channels_changed)
         self.sio.on("chat-cleared", self.on_chat_cleared)
+        self.sio.on("event-changed", self.on_event_changed)
         self.sio.on("call-participants", self.on_call_participants)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
@@ -2449,6 +2450,22 @@ class WebSocketClient:
             wx.CallAfter(self._channels_changed_on_ui, str(data["id"]))
         except Exception:
             logging.exception("[WebSocketClient] channels-changed failed")
+
+    def on_event_changed(self, data):
+        """An answer to a WhatsApp event arrived, or the event was edited or
+        canceled (eventsWatchBridge.ts; neonize_bridge/events.py)."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            message_id, kind = data.get("id"), data.get("kind")
+            if (not isinstance(message_id, str) or not message_id or len(message_id) > 64
+                    or kind not in ("responses", "edited")):
+                return
+            panel = getattr(self.main_window, "conversations_panel", None)
+            if panel is not None:
+                wx.CallAfter(panel.on_event_changed, message_id, kind)
+        except Exception:
+            logging.exception("[WebSocketClient] event-changed failed")
 
     def on_chat_cleared(self, data):
         """A chat was cleared on another device (core/remote_chat_clear.py)."""

@@ -41,6 +41,7 @@ Where to look (and where new code goes):
     reactions                sending/applying/backfilling reactions
     attachments              attaching files and contacts
     poll_messages            attaching a poll and opening a received one
+    event_messages           WhatsApp events: creating, opening, answering
     poll_inline              options list that follows a focused single-answer poll
     contact_messages         contact (vCard) and location messages
     media_files              opening/saving/downloading media, transfer progress
