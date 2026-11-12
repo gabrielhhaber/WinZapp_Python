@@ -4,6 +4,12 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- WPPConnect: când spațiul pe disc scade (sub 4 GB liberi), WinZapp închide WhatsApp în siguranță înainte să piardă sesiunea, trece offline și spune de ce. Când există cel puțin 5 GB liberi, se reconectează singur. Înainte, cu aproximativ 3 GB liberi, sesiunea putea reveni deconectată ca și cum ar fi fost ștearsă.
+
+- Transcriere automată: un mesaj vocal primit cât computerul era în repaus nu mai rămâne netranscris când sosește împreună cu altele la revenire.
+
+- Neonize: cine intră într-un grup prin linkul de invitație apare ca "s-a alăturat folosind linkul de invitare al grupului", ca în WhatsApp Web, iar intrarea dvs. într-un grup prin link lasă și ea această notificare în conversație.
+
 - Golirea unei conversații pe telefon golește acum aceeași conversație în WinZapp, cu ambele motoare de conectare. Mesajele marcate cu stea rămân dacă telefonul le-a păstrat, iar un mesaj sosit după golire nu este șters.
 
 - Canale: un canal deschis din fereastra Canale, de exemplu din listele În tendințe sau Recomandate, își încarcă imediat actualizările, în loc să afișeze "Încă nu există actualizări în acest canal." până la următoarea sincronizare. Se citesc și detaliile unui canal pe care nu îl urmăriți.

@@ -4,6 +4,12 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect: when disk space runs low (less than 4 GB free), WinZapp closes WhatsApp safely before it loses the session, goes offline and says why. Once at least 5 GB are free it connects again by itself. Before, with about 3 GB free, the session could come back logged out as if it had been wiped.
+
+- Automatic transcription: a voice message received while the computer was asleep is no longer left untranscribed when it arrives together with others on waking.
+
+- Neonize: someone joining a group by its invite link shows as "joined using the group's invite link", as on WhatsApp Web, and joining a group by link yourself also leaves that notice in the chat.
+
 - Clearing a chat on the phone now clears the same chat in WinZapp, on both connection engines. Starred messages stay when the phone kept them, and a message that arrived after the clear is not removed.
 
 - Channels: a channel opened from the Channels window, for example from the Trending or Recommended lists, loads its updates right away instead of showing "No updates in this channel yet." until the next sync. The details of a channel you do not follow are read too.

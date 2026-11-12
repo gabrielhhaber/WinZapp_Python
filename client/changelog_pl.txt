@@ -4,6 +4,12 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
+
+- Automatyczna transkrypcja: wiadomość głosowa odebrana podczas uśpienia komputera nie zostaje już bez transkrypcji, gdy przychodzi razem z innymi po wybudzeniu.
+
+- Neonize: osoba, która dołącza do grupy przez link z zaproszeniem, jest pokazywana jako "Dołączenie przez link zaproszenia", jak w WhatsApp Web, a gdy sam dołączysz do grupy przez link, to powiadomienie także pojawia się w czacie.
+
 - Wyczyszczenie czatu w telefonie czyści teraz ten sam czat w WinZapp, w obu silnikach połączenia. Wiadomości oznaczone gwiazdką zostają, jeśli telefon je zachował, a wiadomość, która przyszła po wyczyszczeniu, nie jest usuwana.
 
 - Kanały: kanał otwarty z okna Kanały, na przykład z listy Na czasie lub Polecane, od razu wczytuje aktualizacje, zamiast pokazywać "Na tym kanale nie ma jeszcze aktualizacji." aż do następnej synchronizacji. Odczytywane są też informacje o kanale, którego nie obserwujesz.

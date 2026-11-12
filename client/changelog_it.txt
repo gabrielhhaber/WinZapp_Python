@@ -4,6 +4,12 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect: quando lo spazio su disco scarseggia (meno di 4 GB liberi), WinZapp chiude WhatsApp in sicurezza prima che perda la sessione, va offline e dice perché. Quando ci sono almeno 5 GB liberi si riconnette da solo. Prima, con circa 3 GB liberi, la sessione poteva tornare disconnessa come se fosse stata cancellata.
+
+- Trascrizione automatica: un messaggio vocale ricevuto mentre il computer era in sospensione non resta più senza trascrizione quando arriva insieme ad altri al risveglio.
+
+- Neonize: chi entra in un gruppo con il link d'invito compare come "si sono uniti utilizzando il link di invito del gruppo", come su WhatsApp Web, e anche entrare tu in un gruppo con un link lascia questo avviso nella chat.
+
 - Svuotare una chat sul telefono ora svuota la stessa chat in WinZapp, con entrambi i motori di connessione. I messaggi importanti restano se il telefono li ha tenuti, e un messaggio arrivato dopo lo svuotamento non viene eliminato.
 
 - Canali: un canale aperto dalla finestra Canali, per esempio dagli elenchi Di tendenza o Consigliati, carica subito i suoi aggiornamenti invece di mostrare "Ancora nessun aggiornamento in questo canale." fino alla sincronizzazione successiva. Vengono letti anche i dettagli di un canale che non segui.

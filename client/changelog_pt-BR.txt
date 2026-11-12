@@ -4,6 +4,12 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- WPPConnect: com pouco espaço em disco (menos de 4 GB livres), o WinZapp fecha o WhatsApp com segurança antes que ele perca a sessão, fica offline e diz o motivo. Quando houver pelo menos 5 GB livres, ele se conecta de novo sozinho. Antes, com cerca de 3 GB livres, a sessão podia voltar desconectada como se tivesse sido apagada.
+
+- Transcrição automática: um áudio recebido enquanto o computador estava suspenso não fica mais sem transcrição quando chega junto com outros na volta.
+
+- Neonize: quem entra num grupo pelo link de convite aparece como "entrou usando link de convite do grupo", como no WhatsApp Web, e entrar você mesmo num grupo por link também deixa esse aviso na conversa.
+
 - Limpar uma conversa no celular agora limpa a mesma conversa no WinZapp, nos dois motores de conexão. As mensagens favoritas continuam quando o celular as manteve, e uma mensagem que chegou depois da limpeza não é apagada.
 
 - Canais: um canal aberto pela janela Canais, por exemplo pelas listas Em alta ou Recomendados, carrega as atualizações na hora, em vez de mostrar "Nenhuma atualização neste canal ainda." até a próxima sincronização. Os detalhes de um canal que você não segue também passam a ser lidos.
