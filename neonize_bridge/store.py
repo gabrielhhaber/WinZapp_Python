@@ -804,14 +804,19 @@ class Store:
         return items[0] if items else None
 
     # ------------------------------------------- clear / delete chat
-    def clear_chat(self, jid, keep_starred=True):
+    def clear_chat(self, jid, keep_starred=True, until=0):
         """Deletes the chat's stored messages (only the unstarred ones, if
-        `keep_starred`) and zeroes the unread counter. Returns how many messages
-        went away."""
+        `keep_starred`; only those up to `until` seconds, when given: a clear
+        from another device covers the messages it had) and zeroes the unread
+        counter. Returns how many messages went away."""
         with self._lock:
             filter_ = " AND COALESCE(json_extract(data,'$.star'),0)=0" if keep_starred else ""
+            params = (jid,)
+            if until:
+                filter_ += " AND ts<=?"
+                params = (jid, int(until))
             deleted = self._conn.execute(
-                "DELETE FROM msgs WHERE chat=?" + filter_, (jid,)).rowcount
+                "DELETE FROM msgs WHERE chat=?" + filter_, params).rowcount
             self._conn.execute(
                 "DELETE FROM pinned WHERE chat=? AND msg NOT IN (SELECT id FROM msgs WHERE chat=?)",
                 (jid, jid))

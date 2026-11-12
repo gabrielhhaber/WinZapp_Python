@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 import socketio
+from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
 from core.community_comments import comment_count, parse_reply_count_event, parse_reply_preview_event
@@ -374,6 +375,7 @@ class WebSocketClient:
         self.sio.on("groups.update", self.on_groups_update)
         self.sio.on("announcement-replies", self.on_announcement_replies)
         self.sio.on("channels-changed", self.on_channels_changed)
+        self.sio.on("chat-cleared", self.on_chat_cleared)
         self.sio.on("call-participants", self.on_call_participants)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
@@ -2446,6 +2448,18 @@ class WebSocketClient:
             wx.CallAfter(self._channels_changed_on_ui, str(data["id"]))
         except Exception:
             logging.exception("[WebSocketClient] channels-changed failed")
+
+    def on_chat_cleared(self, data):
+        """A chat was cleared on another device (core/remote_chat_clear.py)."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            parsed = chat_cleared_payload(data)
+            if parsed is None:
+                return
+            wx.CallAfter(apply_remote_clear, self.main_window, *parsed)
+        except Exception:
+            logging.exception("[WebSocketClient] chat-cleared failed")
 
     def on_call_participants(self, data):
         """Who is connected to a group call changed (callParticipantsBridge.ts;
