@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Motor de conectare: Neonize este acum primul din listă și opțiunea deja selectată când WinZapp întreabă ce motor să folosească la prima pornire; rămâne marcat ca experimental, dar este cel recomandat pentru uz general. WPPConnect devine a doua opțiune, cu mențiunea "vechi" după nume, la prima pornire, în fereastra de asociere și în Setări > Conexiune. Cine folosește deja WPPConnect rămâne pe el până îl schimbă.
+
 - Neonize: notificarea că un mesaj a fost șters, când WinZapp nu are nici mesajul, nici conversația, nu mai creează un "Grup fără nume" în lista de conversații. Mesajele șterse din conversațiile existente rămân neschimbate.
 
 - Neonize: fișierul media vechi pe care telefonul îl încarcă din nou după cererea de retrimitere este acum descărcat cu adevărat. Înainte, fișierul retrimis era refuzat pentru că nu se potrivea cu verificarea originalului și fișierul tot nu se deschidea.

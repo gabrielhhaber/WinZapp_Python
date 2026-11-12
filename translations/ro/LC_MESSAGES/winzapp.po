@@ -5703,8 +5703,8 @@ msgstr "Neonize (conexiune directă, experimental)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (default, uses the Windows browser)"
-msgstr "WPPConnect (implicit, folosește browserul Windows)"
+msgid "WPPConnect (legacy, uses the Windows browser)"
+msgstr "WPPConnect (vechi, folosește browserul Windows)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -19616,9 +19616,9 @@ msgid ""
 "without asking (closing the window to the tray does not count, and WinZapp "
 "does not open again afterwards)"
 msgstr ""
-"Descarcă actualizările auto&mat și instalează-le când închid WinZapp, "
-"fără să întrebe (închiderea ferestrei în bara de sistem nu contează, "
-"iar WinZapp nu se mai deschide după aceea)"
+"Descarcă actualizările auto&mat și instalează-le când închid WinZapp, fără "
+"să întrebe (închiderea ferestrei în bara de sistem nu contează, iar WinZapp "
+"nu se mai deschide după aceea)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
@@ -19627,16 +19627,15 @@ msgid ""
 "WinZapp update {version} has been downloaded. It will be installed when you "
 "exit WinZapp."
 msgstr ""
-"Actualizarea WinZapp {version} a fost descărcată. Va fi instalată când"
-" ieșiți din WinZapp."
+"Actualizarea WinZapp {version} a fost descărcată. Va fi instalată când "
+"ieșiți din WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 msgctxt "update_on_exit_started"
 msgid ""
 "Downloading the WinZapp update. It will be installed when you exit WinZapp."
 msgstr ""
-"Se descarcă actualizarea WinZapp. Va fi instalată când ieșiți din "
-"WinZapp."
+"Se descarcă actualizarea WinZapp. Va fi instalată când ieșiți din WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"

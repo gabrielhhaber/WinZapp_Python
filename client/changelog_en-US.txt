@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Connection engine: Neonize is now first in the list and the option already selected when WinZapp asks for the engine on the first launch; it is still marked as experimental, but it is the one recommended for general use. WPPConnect becomes the second option, marked "legacy" after its name, on the first launch, in the pairing window and in Settings > Connection. Anyone already using WPPConnect stays on it until they switch.
+
 - Neonize: a notice that a message was deleted, for a message or chat WinZapp does not have, no longer creates an "Unnamed group" in the chat list. Deleted messages in your existing chats are unchanged.
 
 - Neonize: old media that the phone re-uploads after the request to send it again is now actually downloaded. Before, the re-uploaded file was refused because it did not match the check of the original file and the media still would not open.

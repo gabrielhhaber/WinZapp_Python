@@ -5678,8 +5678,8 @@ msgstr "Neonize (doğrudan bağlantı, deneysel)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (default, uses the Windows browser)"
-msgstr "WPPConnect (varsayılan, Windows tarayıcısını kullanır)"
+msgid "WPPConnect (legacy, uses the Windows browser)"
+msgstr "WPPConnect (eski, Windows tarayıcısını kullanır)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -19377,9 +19377,8 @@ msgid ""
 "without asking (closing the window to the tray does not count, and WinZapp "
 "does not open again afterwards)"
 msgstr ""
-"Güncellemeleri otomatik indir ve WinZapp'tan çıktığımda &sormadan yükle"
-" (pencereyi tepsiye kapatmak sayılmaz ve WinZapp sonrasında yeniden "
-"açılmaz)"
+"Güncellemeleri otomatik indir ve WinZapp'tan çıktığımda &sormadan yükle "
+"(pencereyi tepsiye kapatmak sayılmaz ve WinZapp sonrasında yeniden açılmaz)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
@@ -19395,7 +19394,8 @@ msgstr ""
 msgctxt "update_on_exit_started"
 msgid ""
 "Downloading the WinZapp update. It will be installed when you exit WinZapp."
-msgstr "WinZapp güncellemesi indiriliyor. WinZapp'tan çıktığınızda yüklenecek."
+msgstr ""
+"WinZapp güncellemesi indiriliyor. WinZapp'tan çıktığınızda yüklenecek."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"
