@@ -27,7 +27,7 @@ from main_window.message_rules import (
     media_fetch_timeout,
 )
 from main_window.runtime_setup import _looks_like_json_response
-from core.api_client import api_post
+from core.api_client import api_post, redact_api_url
 from app_paths import data_path
 from ui.conversations import probe_media_duration
 from core.transcription import stored as stored_transcription
@@ -657,7 +657,7 @@ class MediaMixin:
         media_type = body_data.get("type", "")
         logging.info(
             "[get_base64_from_media] Requesting media for msg_id=%s, url=%s, has_mediaKey=%s, has_clientUrl=%s, type=%s",
-            msg_id, url, has_media_key, has_client_url, media_type
+            msg_id, redact_api_url(url), has_media_key, has_client_url, media_type
         )
 
         max_attempts = 3
