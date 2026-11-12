@@ -9959,13 +9959,6 @@ msgid "&Processor the noise reducer runs on:"
 msgstr "&Processador em que o redutor de ruído roda:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/cuda_components/text.py
-msgctxt "noise_reducer_device_next_start"
-msgid "A new processor applies from the next time WinZapp starts."
-msgstr ""
-"A troca de processador vale a partir da próxima vez que o WinZapp abrir."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_model_remove"
 msgid "Remove &the neural model"
@@ -9988,6 +9981,25 @@ msgid "The neural model was removed."
 msgstr "O modelo neural foi removido."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_ready"
+msgid "The noise reducer is ready on the graphics card."
+msgstr "O redutor de ruído está pronto na placa de vídeo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restart_failed"
+msgid ""
+"The noise reducer could not use the graphics card; voice messages will be "
+"cleaned on the computer's processor."
+msgstr ""
+"O redutor de ruído não conseguiu usar a placa de vídeo; as mensagens de voz "
+"serão tratadas no processador do computador."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restarting"
+msgid "Restarting the noise reducer to use the graphics card."
+msgstr "Reiniciando o redutor de ruído para usar a placa de vídeo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/cuda_components/text.py
 msgctxt "noise_reducer_shared_cublas"
 msgid "cuBLAS 12 (the local transcription's own)"
@@ -10008,6 +10020,13 @@ msgid ""
 msgstr ""
 "Usar o redutor de ru&ído neural (mais preciso; desmarque para o comum, mais "
 "rápido)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_waiting_restart"
+msgid ""
+"Waiting for the noise reducer to restart before cleaning the voice message."
+msgstr ""
+"Aguardando o redutor de ruído reiniciar para tratar a mensagem de voz."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/voice_recording.py
@@ -21149,6 +21168,11 @@ msgstr "&Sim"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ontem às {time}"
+
+#~ msgctxt "noise_reducer_device_next_start"
+#~ msgid "A new processor applies from the next time WinZapp starts."
+#~ msgstr ""
+#~ "A troca de processador vale a partir da próxima vez que o WinZapp abrir."
 
 #, python-brace-format
 #~ msgctxt "update_background_ready_msg"

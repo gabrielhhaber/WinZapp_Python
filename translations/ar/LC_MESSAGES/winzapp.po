@@ -9776,12 +9776,6 @@ msgid "&Processor the noise reducer runs on:"
 msgstr "ال&معالج الذي يعمل عليه مخفض الضوضاء:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/cuda_components/text.py
-msgctxt "noise_reducer_device_next_start"
-msgid "A new processor applies from the next time WinZapp starts."
-msgstr "يسري تغيير المعالج من المرة القادمة التي يُفتح فيها WinZapp."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_model_remove"
 msgid "Remove &the neural model"
@@ -9803,6 +9797,25 @@ msgid "The neural model was removed."
 msgstr "أُزيل النموذج العصبي."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_ready"
+msgid "The noise reducer is ready on the graphics card."
+msgstr "مخفض الضوضاء جاهز على بطاقة الرسومات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restart_failed"
+msgid ""
+"The noise reducer could not use the graphics card; voice messages will be "
+"cleaned on the computer's processor."
+msgstr ""
+"تعذّر على مخفض الضوضاء استخدام بطاقة الرسومات؛ ستُعالَج الرسائل الصوتية على "
+"معالج الحاسوب."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restarting"
+msgid "Restarting the noise reducer to use the graphics card."
+msgstr "جارٍ إعادة تشغيل مخفض الضوضاء لاستخدام بطاقة الرسومات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/cuda_components/text.py
 msgctxt "noise_reducer_shared_cublas"
 msgid "cuBLAS 12 (the local transcription's own)"
@@ -9822,6 +9835,12 @@ msgid ""
 "faster)"
 msgstr ""
 "استخدام مخفض الضوضاء العصبي (&أدق؛ ألغِ التحديد لاستخدام العادي الأسرع)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_waiting_restart"
+msgid ""
+"Waiting for the noise reducer to restart before cleaning the voice message."
+msgstr "في انتظار إعادة تشغيل مخفض الضوضاء لمعالجة الرسالة الصوتية."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/voice_recording.py
@@ -20658,6 +20677,10 @@ msgstr "&نعم"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "أمس في {time}"
+
+#~ msgctxt "noise_reducer_device_next_start"
+#~ msgid "A new processor applies from the next time WinZapp starts."
+#~ msgstr "يسري تغيير المعالج من المرة القادمة التي يُفتح فيها WinZapp."
 
 #, python-brace-format
 #~ msgctxt "update_background_ready_msg"

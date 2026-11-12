@@ -23,6 +23,13 @@ if sys.platform == 'win32':
         # Fallback: add to PATH environment variable
         os.environ['PATH'] = _lib_path + os.pathsep + os.environ.get('PATH', '')
 
+# The noise reducer's own process (core/cuda_components/noise_worker.py) is
+# this program started with its flag: handed over before anything else is
+# imported, so the GPU build of onnxruntime it puts in place comes first.
+if len(sys.argv) > 1 and sys.argv[1] == "--noise-reducer-worker":
+    from core.cuda_components.noise_worker import main as _noise_worker_main
+    sys.exit(_noise_worker_main())
+
 import shutil
 import socket as _socket
 
@@ -527,10 +534,11 @@ class MainWindow(
             "MainWindow: CUDA transcription libraries registered=%s",
             cuda_runtime.register_installed_runtime(),
         )
-        # The noise reducer's ONNX Runtime build, before anything imports it
-        # (core/cuda_components/runtime.py).
-        from core.cuda_components import runtime as noise_runtime
-        noise_runtime.activate(self.settings)
+        # The noise reducer's device; a graphics card build runs in a process
+        # of its own, started when a recording needs it
+        # (core/cuda_components/noise_worker_host.py).
+        from core.cuda_components import noise_worker_host
+        noise_worker_host.configure_for_window(self)
         # Decrypted audio a run killed mid-way left in %TEMP% (privacy).
         temp_sweep.sweep_stale_temporaries()
         # What past updates left in %TEMP% (a full copy of every release

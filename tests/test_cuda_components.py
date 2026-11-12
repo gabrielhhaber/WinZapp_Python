@@ -178,21 +178,19 @@ def test_the_finder_takes_onnxruntime_from_the_gpu_folder(tmp_path, monkeypatch)
         sys.modules.pop(name, None)
 
 
-def test_the_components_field_says_what_is_missing_and_when_it_applies():
+def test_the_components_field_says_what_is_missing():
     from core.cuda_components import text as ctext
     i18n = types.SimpleNamespace(t=lambda key: {
         "decimal_separator": ",",
         "noise_reducer_components_none_needed": "Nothing to download.",
         "noise_reducer_components_ready": "All installed.",
         "noise_reducer_components_missing": "{count} missing ({size}):",
-        "noise_reducer_device_next_start": "Applies next start.",
         "noise_reducer_shared_cublas": "cuBLAS 12 (shared)"}[key])
-    assert ctext.components_text(i18n, "cpu", [], 0, "cpu") == "Nothing to download."
-    assert ctext.components_text(i18n, "cuda12", [], 0, "cuda12") == "All installed."
+    assert ctext.components_text(i18n, "cpu", [], 0) == "Nothing to download."
+    assert ctext.components_text(i18n, "cuda12", [], 0) == "All installed."
     text = ctext.components_text(i18n, "cuda12", ["cudart_cu12", model.SHARED_CUBLAS_CU12],
-                                 2 * 1024 ** 3, "cpu")
-    assert text.startswith("2 missing (2,0 GB): CUDA Runtime 12, cuBLAS 12 (shared).")
-    assert text.endswith("Applies next start.")
+                                 2 * 1024 ** 3)
+    assert text == "2 missing (2,0 GB): CUDA Runtime 12, cuBLAS 12 (shared)."
 
 
 def test_only_this_processors_own_components_may_be_removed(tmp_path, monkeypatch):
@@ -334,7 +332,7 @@ def test_activate_with_a_component_missing_uses_the_processor(activation, monkey
     assert activation == [] and os.environ["PATH"] == "ORIGINAL"
 
 
-def test_activate_after_onnxruntime_was_imported_waits_for_the_next_start(
+def test_activate_after_onnxruntime_was_imported_keeps_the_processor(
         activation, monkeypatch):
     monkeypatch.setitem(sys.modules, "onnxruntime", types.ModuleType("onnxruntime"))
     assert runtime.activate(_cuda_settings()) == "cpu"

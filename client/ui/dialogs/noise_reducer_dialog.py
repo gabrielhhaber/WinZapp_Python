@@ -5,8 +5,8 @@ next to the processor the model runs on: the processor, CUDA 12 or CUDA 13 on
 Windows (core/cuda_components), Core ML on macOS. The components a CUDA
 choice still needs are listed and downloaded here, only those that are
 missing: CUDA 12 uses the cuBLAS the local transcription already downloads.
-A new processor applies at once when it can, else from the next start
-(core/cuda_components/runtime.py: apply_now, needs_restart).
+A new processor applies at once: a graphics card build runs in a process of
+its own, which restarts (core/cuda_components/noise_worker_host.py).
 """
 
 import sys
@@ -17,7 +17,6 @@ from core.cuda_components import store
 from core.cuda_components import text as ctext
 from core.cuda_components.job import ComponentsInstallJob
 from core.cuda_components.model import device_of, offered_devices
-from core.cuda_components import runtime
 from ui.dialogs.noise_model_section import NoiseModelSectionMixin
 from ui.dialogs.transcription_progress import TranscriptionProgressDialog
 
@@ -78,8 +77,7 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         missing = self._missing()
         self._components_field.SetValue(ctext.components_text(
             self.main_window.i18n, self.device, missing,
-            store.bytes_to_download(missing), runtime.active(),
-            restart_needed=runtime.needs_restart(self.device)))
+            store.bytes_to_download(missing)))
         self._components_btn.Enable(bool(missing))
         try:
             removable = store.removable(self.device)
@@ -134,7 +132,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
 
     def _on_remove_components(self, _event):
         """Remove this processor's components (never the transcription's
-        cuBLAS); a build in use stays until WinZapp restarts. Never while a
+        cuBLAS); the noise reducer's process ends first, so none is in use
+        (only another program could still hold one). Never while a
         download runs (it would wait on the wx thread for the whole download,
         then delete what it just installed)."""
         i18n = self.main_window.i18n
@@ -147,6 +146,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
                          i18n.t("noise_reducer_title"), wx.YES_NO | wx.ICON_QUESTION,
                          self) != wx.YES:
             return
+        from core.cuda_components import noise_worker_host
+        noise_worker_host.host.stop()
         try:
             left = store.remove(ids)
         except store.ComponentError:
@@ -262,8 +263,12 @@ class NoiseReducerButtonMixin:
         if self._noise_reducer_device is not None:
             changed = general.get("noise_reduction_device") != self._noise_reducer_device
             general["noise_reduction_device"] = self._noise_reducer_device
-            # applied at once when it can be (core/cuda_components/runtime.py);
-            # a GPU build after onnxruntime was loaded still needs a restart
-            if changed and not runtime.apply_now(self.main_window.settings):
-                self.main_window.output(
-                    self.main_window.i18n.t("noise_reducer_device_next_start"), interrupt=False)
+            # applied at once: a graphics card build's process restarts, said
+            # aloud (core/cuda_components/noise_worker_host.py); started now
+            # only when a recording would use it (the box is shown with the
+            # reducer on and its model there)
+            if changed:
+                from core.cuda_components import noise_worker_host
+                box = self._noise_reducer_neural_check
+                noise_worker_host.host.apply(self._noise_reducer_device,
+                                             start=box.IsShown() and box.GetValue())
