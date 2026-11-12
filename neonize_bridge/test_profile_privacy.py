@@ -140,3 +140,59 @@ def test_without_a_connection_the_privacy_routes_say_privacy_unavailable():
     read, body, invalid, invalid_body = asyncio.run(scenario())
     assert read == 503 and body["code"] == "privacy_unavailable"
     assert invalid == 400 and invalid_body["code"] == "invalid_privacy_setting"
+
+
+def test_setting_applied_compares_what_whatsapp_reports():
+    settings = N(LastSeen=3, ReadReceipts=7)
+    assert profile_privacy.setting_applied(settings, "lastSeen", "contacts")
+    assert profile_privacy.setting_applied(settings, "readReceipts", "none")
+    assert not profile_privacy.setting_applied(settings, "lastSeen", "none")
+    assert not profile_privacy.setting_applied(None, "lastSeen", "contacts")
+
+
+def _privacy_set_with(set_error, settings_after):
+    """POST /privacy/set lastSeen=contacts against a connected fake client whose
+    set raises *set_error* (None: succeeds) and whose read answers *settings_after*."""
+    import asyncio
+    from aiohttp import web
+    from aiohttp.test_utils import TestClient, TestServer
+
+    def set_privacy_setting(name, value):
+        if set_error:
+            raise set_error
+    client = N(set_privacy_setting=set_privacy_setting,
+               get_privacy_settings=lambda: settings_after)
+    session = N(client=client, status="CONNECTED", me="")
+    app = web.Application()
+    profile_privacy.register_routes(app.router, session=lambda req: session,
+                                    ok=lambda **kw: web.json_response(kw),
+                                    jid_from_text=lambda t: t, jid_text=lambda j: str(j))
+
+    async def scenario():
+        async with TestClient(TestServer(app)) as c:
+            answer = await c.post("/api/tok/privacy/set",
+                                  json={"setting": "lastSeen", "value": "contacts"})
+            return answer.status, await answer.json()
+    return asyncio.run(scenario())
+
+
+class SetPrivacySettingError(Exception):
+    pass
+
+
+def test_a_change_that_raised_but_is_applied_is_a_success():
+    # neonize before patch 0025 raised on every change WhatsApp applied (report
+    # of 2026-11-06: "Visto por último: privacy_setting_failed", yet the phone
+    # showed the new value).
+    status, body = _privacy_set_with(SetPrivacySettingError("x"), N(LastSeen=3))
+    assert status == 200 and body["status"] == "success"
+
+
+def test_a_change_that_raised_and_is_not_applied_still_fails():
+    status, body = _privacy_set_with(SetPrivacySettingError("x"), N(LastSeen=2))
+    assert status == 502 and body["code"] == "privacy_setting_failed"
+    assert body["kind"] == "SetPrivacySettingError"
+
+
+def test_a_change_that_did_not_raise_is_a_success():
+    assert _privacy_set_with(None, None)[0] == 200
