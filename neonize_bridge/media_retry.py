@@ -311,8 +311,18 @@ async def download_async(s, message, msgid, download):
             log.info("media retry gave up: %s", retry_error)
             raise error
         if has_retried_download(s.client):
-            return await loop.run_in_executor(
-                None, fetch_retried, s.client, message, path)
+            try:
+                return await loop.run_in_executor(
+                    None, fetch_retried, s.client, message, path)
+            except RetriedUnreadable:
+                # WhatsApp Web asks once more when the re-upload does not match
+                # (WAWebMediaMmsV4Download, isFinalRmrRetry): the phone may
+                # have served a copy it was still writing. Then it gives up.
+                log.info("media retry: the re-upload could not be opened; asking once more")
+                path = await loop.run_in_executor(
+                    None, ask_phone, s.client, answers, parsed, media)
+                return await loop.run_in_executor(
+                    None, fetch_retried, s.client, message, path)
         return await download(with_new_path(message, path))
 
 

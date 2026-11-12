@@ -227,10 +227,11 @@ class RetriedClient(RetryClient):
 
     def download_retried_media(self, request):
         self.requests.append(request)
-        if not self.answer.get("error"):
+        answer = self.answer.pop(0) if isinstance(self.answer, list) else self.answer
+        if not answer.get("error"):
             with open(request["dest"], "wb") as f:
                 f.write(self.plain)
-        return self.answer
+        return answer
 
 
 def retried_session(answer):
@@ -309,3 +310,16 @@ def test_a_busy_phone_gets_longer_but_the_client_does_not_give_up_first():
 def test_only_the_retrys_own_failures_have_a_code():
     assert media_retry.failure_code(media_retry.MediaGone("404")) == "media_gone_from_phone"
     assert media_retry.failure_code(RuntimeError("403 forbidden")) == ""
+
+
+def test_an_unreadable_re_upload_is_asked_for_once_more_like_whatsapp_web():
+    s, client = retried_session([{"error": "invalid media hmac"}, {"ok": True}])
+    assert run(s, keyed_image(), downloads([RuntimeError("403 forbidden")])) == b"voice"
+    assert len(client.sent) == 2 and len(client.requests) == 2
+
+
+def test_a_second_unreadable_re_upload_gives_up():
+    s, client = retried_session({"error": "invalid media hmac"})
+    with pytest.raises(media_retry.RetriedUnreadable):
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    assert len(client.sent) == 2 and len(client.requests) == 2
