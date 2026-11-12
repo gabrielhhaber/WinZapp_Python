@@ -7,11 +7,13 @@ ConversationsPanel.__init__/init_UI is available here.
 
 import logging
 import threading
+import time
 from core.chat_notices import conversation_start_text, empty_conversation_key
 from core.community_comments import comment_count
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.polls import POLL_MESSAGE_TYPES, poll_content, poll_row_text
 from core import channel_invites
+from core import events
 from core.call_log import (
     CALL_LOG_MESSAGE_TYPE,
     LEGACY_CALL_LOG_TYPE,
@@ -166,6 +168,10 @@ class MessageRenderingMixin:
         # replaces this record when it arrives (MainWindow._fill_stored_placeholder).
         if msg_type == "ciphertext":
             return i18n.t("message_awaiting_decryption")
+
+        # ── WhatsApp event (core/events.py) ──────────────────────────────────
+        if msg_type == events.EVENT_MESSAGE_TYPE:
+            return events.event_text(events.event_content(msg_obj), i18n, time.time())
 
         # ── Call ─────────────────────────────────────────────────────────────
         if is_call_log(msg):
@@ -516,6 +522,7 @@ class MessageRenderingMixin:
             "locationMessage",
             "liveLocationMessage",
             "pollCreationMessage",
+            "eventMessage",
             "pollCreationMessageV2",
             "pollCreationMessageV3",
             "pollUpdateMessage",

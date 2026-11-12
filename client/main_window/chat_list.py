@@ -899,6 +899,7 @@ class ChatListMixin:
         "audioMessage", "documentMessage", "stickerMessage", "contactMessage",
         "locationMessage", "liveLocationMessage",
         "pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3",
+        "eventMessage",
         "pollUpdateMessage",
         "buttonsMessage", "listMessage", "templateMessage", "interactiveMessage",
         "buttonsResponseMessage", "listResponseMessage", "protocolMessage",
@@ -1268,6 +1269,9 @@ class ChatListMixin:
             content = i18n.t("contacts_count").format(count=len(contacts))
         elif msg_type in ("locationMessage", "liveLocationMessage"):
             content = i18n.t("notif_location")
+        elif msg_type == "eventMessage":
+            name = ((msg_obj.get("eventMessage") or {}).get("name") or "").strip()
+            content = i18n.t("notif_event").format(name=name) if name else i18n.t("event_label")
         elif msg_type in ("pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3", "pollUpdateMessage"):
             poll = msg_obj.get("pollCreationMessage") or msg_obj.get("pollCreationMessageV2") or msg_obj.get("pollCreationMessageV3") or {}
             name = poll.get("name") or ""
