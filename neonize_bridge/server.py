@@ -63,6 +63,7 @@ import channel_media
 import channel_updates
 import cleanup
 import msgmap
+import unread_rule
 import pairing
 import commerce_routes
 import profile_privacy
@@ -821,7 +822,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     if w.get("type") == "event_creation":
                         events.remember(self, chat, e.Info.ID, bool(o.IsFromMe), o,
                                         e.Message, jid_text)
-                self.db.on_arrival(chat, w["t"], w["fromMe"])
+                # a deletion raises the date but is never unread (unread_rule.py)
+                self.db.on_arrival(chat, w["t"], not unread_rule.counted(w))
                 try:
                     chat_archive.on_arrival(self, chat, w)
                 except Exception:
