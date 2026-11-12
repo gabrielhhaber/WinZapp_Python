@@ -30,6 +30,8 @@ from core.incremental_sync import (
 )
 from core.api_client import api_post, sync_throttled
 from core.page_heap import collect_after_batch
+from core.disconnect_skips import (retry_skipped_while_disconnected,
+                                   take_skipped_while_disconnected)
 from core.sync_progress import ProgressThrottle
 from core.resume_message_sync import promote_resume_rechecks
 from ui.dialogs.checkbox_confirm import confirm_with_checkbox
@@ -1737,6 +1739,8 @@ class SyncMixin:
 
         _sync_phase1_started = time.time()
         message_failures = set()
+        # Only this round's skips count (core/disconnect_skips.py).
+        take_skipped_while_disconnected(self)
         # expected_run_id makes the phase itself stop, not just this method
         # after it: phase 1 is where a round spends its minutes, and every
         # chat it finishes lands in self.chats. See sync_remote_chats() for
@@ -1759,6 +1763,12 @@ class SyncMixin:
                                        expected_run_id=my_run_id,
                                        progress=round_progress) or set()
             )
+        if message_failures:
+            # Chats reached while the session flapped were never asked: ask
+            # them once more now, not in a second round minutes later.
+            message_failures = retry_skipped_while_disconnected(
+                self, full_targets, incremental_targets, message_failures,
+                my_run_id, lambda: _current_run_id() == my_run_id)
         message_sync_ok = not message_failures
         logging.info(
             "[start_sync] message phase finished in %.1fs (%d full, %d incremental, "
