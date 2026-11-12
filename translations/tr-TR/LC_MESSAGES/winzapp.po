@@ -6674,6 +6674,14 @@ msgid "No call"
 msgstr "Arama yok"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_unsupported"
+msgid ""
+"This connection engine cannot create events with a call yet. Choose no call."
+msgstr ""
+"Bu bağlantı motoru henüz aramalı etkinlik oluşturamıyor. Arama yok "
+"seçeneğini seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_call_video"
 msgid "Video call"
 msgstr "Görüntülü arama"

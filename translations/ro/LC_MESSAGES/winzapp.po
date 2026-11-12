@@ -6703,6 +6703,14 @@ msgid "No call"
 msgstr "Fără apel"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_unsupported"
+msgid ""
+"This connection engine cannot create events with a call yet. Choose no call."
+msgstr ""
+"Acest motor de conectare nu creează încă evenimente cu apel. Alegeți fără "
+"apel."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_call_video"
 msgid "Video call"
 msgstr "Apel video"

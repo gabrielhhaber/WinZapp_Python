@@ -117,16 +117,20 @@ class EventMessagesMixin:
         connection = connection_identity(mw)
 
         def run():
+            reason = ""
             try:
                 work(connection)
                 ok = True
             except Exception as exc:
                 logging.warning("[events] %s failed: %s", done_key, exc)
-                ok = False
-            wx.CallAfter(finished, ok)
+                ok, reason = False, str(exc)
+            wx.CallAfter(finished, ok, reason)
 
-        def finished(ok):
-            mw.output(mw.i18n.t(done_key if ok else failed_key), interrupt=True)
+        def finished(ok, reason=""):
+            # the Neonize engine cannot make a call link (neonize_bridge/events.py)
+            key = done_key if ok else (
+                "event_call_unsupported" if reason == "event_call_unsupported" else failed_key)
+            mw.output(mw.i18n.t(key), interrupt=True)
             if ok and refresh:
                 self.refresh_event_responses(force=True)
 

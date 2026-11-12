@@ -306,7 +306,10 @@ def respond(connection, message_id, response) -> None:
 
 def create(connection, chat_jid, fields) -> str:
     body = _post(connection, "send-event", {"phone": chat_jid, **fields}, 45)
-    return str((body.get("response") or {}).get("id") or "")
+    answer = body.get("response")
+    if isinstance(answer, list):          # the Neonize bridge answers like a sent message
+        answer = answer[0] if answer and isinstance(answer[0], dict) else {}
+    return str((answer or {}).get("id") or "")
 
 
 def edit(connection, message_id, fields) -> None:

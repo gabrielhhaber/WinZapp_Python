@@ -6723,6 +6723,14 @@ msgid "No call"
 msgstr "Bez połączenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_unsupported"
+msgid ""
+"This connection engine cannot create events with a call yet. Choose no call."
+msgstr ""
+"Ten silnik połączenia nie tworzy jeszcze wydarzeń z połączeniem. Wybierz bez"
+" połączenia."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_call_video"
 msgid "Video call"
 msgstr "Połączenie wideo"

@@ -6732,6 +6732,14 @@ msgid "No call"
 msgstr "Nessuna chiamata"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_unsupported"
+msgid ""
+"This connection engine cannot create events with a call yet. Choose no call."
+msgstr ""
+"Questo motore di connessione non crea ancora eventi con chiamata. Scegli "
+"nessuna chiamata."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_call_video"
 msgid "Video call"
 msgstr "Videochiamata"

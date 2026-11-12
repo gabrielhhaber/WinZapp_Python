@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS pinned(
 CREATE TABLE IF NOT EXISTS votes(
     msg TEXT NOT NULL, who TEXT NOT NULL, ids TEXT NOT NULL, ts INTEGER DEFAULT 0,
     PRIMARY KEY(msg, who));
+CREATE TABLE IF NOT EXISTS event_secrets(
+    msg TEXT PRIMARY KEY, chat TEXT NOT NULL, senders TEXT NOT NULL, secret BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS event_responses(
+    msg TEXT NOT NULL, who TEXT NOT NULL, response INTEGER NOT NULL,
+    guests INTEGER DEFAULT 0, ts INTEGER DEFAULT 0, PRIMARY KEY(msg, who));
 CREATE TABLE IF NOT EXISTS reactions(
     msg TEXT NOT NULL, who TEXT NOT NULL, emoji TEXT NOT NULL, ts INTEGER DEFAULT 0,
     PRIMARY KEY(msg, who));
@@ -460,6 +465,37 @@ class Store:
         with self._lock:
             self._conn.execute("DELETE FROM msgs WHERE id=?", (msg_id,))
             self._conn.commit()
+
+    # ------------------------------------------------------------ events
+    def event_secret(self, msg_id, chat=None, senders=None, secret=None):
+        """Keeps (with *secret*) or reads the message secret of an event and
+        the addresses its creator may be known by (events.py). Reading
+        answers (chat, [senders], secret) or None."""
+        with self._lock:
+            if secret is not None:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO event_secrets(msg, chat, senders, secret) VALUES (?,?,?,?)",
+                    (msg_id, chat or "", json.dumps(list(senders or ())), bytes(secret)))
+                self._conn.commit()
+                return None
+            r = self._conn.execute("SELECT chat, senders, secret FROM event_secrets WHERE msg=?",
+                                   (msg_id,)).fetchone()
+        return (r["chat"], json.loads(r["senders"]), bytes(r["secret"])) if r else None
+
+    def event_response(self, msg_id, who, response, guests=0, ts=0):
+        """One person's answer to an event (the last one counts)."""
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO event_responses(msg, who, response, guests, ts) "
+                "VALUES (?,?,?,?,?)", (msg_id, who, int(response), int(guests or 0), int(ts or 0)))
+            self._conn.commit()
+
+    def event_responses_of(self, msg_id):
+        """[(who, response, guests)] of an event's answers."""
+        with self._lock:
+            return [(r["who"], r["response"], r["guests"]) for r in self._conn.execute(
+                "SELECT who, response, guests FROM event_responses WHERE msg=? ORDER BY ts, rowid",
+                (msg_id,))]
 
     def wpp_message(self, msg_id):
         """The message (WhatsApp Web format) of an id, in any chat, or None."""

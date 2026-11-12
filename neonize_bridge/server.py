@@ -36,6 +36,7 @@ import legacy_layout
 import loop_watch
 import ongoing_calls
 import group_events
+import events
 import contact_events
 import media_retry
 import app_state_mirror
@@ -797,6 +798,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     return
                 if self._vote_received(o, e):
                     return
+                if events.received(self, chat, o, e, jid_text):   # answer or edit of an event
+                    return
                 if comments.receive(self, chat, o, e):    # announcement comment
                     return
                 if self._edit_received(chat, o, e):
@@ -815,6 +818,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                         return      # unknown original and chat: not a conversation (#762)
                 else:
                     self.db.message(chat, w, msgmap.media_record_of(e.Message))
+                    if w.get("type") == "event_creation":
+                        events.remember(self, chat, e.Info.ID, bool(o.IsFromMe), o,
+                                        e.Message, jid_text)
                 self.db.on_arrival(chat, w["t"], w["fromMe"])
                 try:
                     chat_archive.on_arrival(self, chat, w)
@@ -3107,6 +3113,8 @@ def create_app(folder, fixed=""):
     r.add_post("/api/{tok}/forward-messages", forward_messages)
     older_history.register_routes(r, session=session, ok=ok, in_thread=in_thread)
     r.add_post("/api/{tok}/send-poll-message", send_poll_message)
+    events.register_routes(r, session=session, ok=ok, destination_of=destination_of,
+                           store_sent=store_sent, in_thread=in_thread)
     r.add_post("/api/{tok}/poll-votes", poll_votes)
     r.add_post("/api/{tok}/poll-voters", poll_voters)
     r.add_post("/api/{tok}/vote-poll", vote_poll)
