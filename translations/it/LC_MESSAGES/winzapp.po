@@ -5730,8 +5730,8 @@ msgstr "Neonize (connessione diretta, sperimentale)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (default, uses the Windows browser)"
-msgstr "WPPConnect (default, usa il browser di Windows )"
+msgid "WPPConnect (legacy, uses the Windows browser)"
+msgstr "WPPConnect (legacy, usa il browser di Windows)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -19759,8 +19759,8 @@ msgid ""
 "does not open again afterwards)"
 msgstr ""
 "Scarica gli aggiornamenti auto&maticamente e installali quando esco da "
-"WinZapp, senza chiedere (chiudere la finestra nell'area di notifica "
-"non conta e WinZapp non si riapre dopo)"
+"WinZapp, senza chiedere (chiudere la finestra nell'area di notifica non "
+"conta e WinZapp non si riapre dopo)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
@@ -19769,16 +19769,16 @@ msgid ""
 "WinZapp update {version} has been downloaded. It will be installed when you "
 "exit WinZapp."
 msgstr ""
-"L'aggiornamento {version} di WinZapp è stato scaricato. Verrà "
-"installato quando uscirai da WinZapp."
+"L'aggiornamento {version} di WinZapp è stato scaricato. Verrà installato "
+"quando uscirai da WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 msgctxt "update_on_exit_started"
 msgid ""
 "Downloading the WinZapp update. It will be installed when you exit WinZapp."
 msgstr ""
-"Download dell'aggiornamento di WinZapp. Verrà installato quando "
-"uscirai da WinZapp."
+"Download dell'aggiornamento di WinZapp. Verrà installato quando uscirai da "
+"WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"

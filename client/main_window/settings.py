@@ -86,8 +86,8 @@ class SettingsMixin:
 
     def _check_api_type_first_run(self):
         """
-        On the first launch, ask which connection engine to use (WPPConnect,
-        Neonize or a custom server). Changeable later in Settings > Connection.
+        On the first launch, ask which connection engine to use (Neonize,
+        WPPConnect or a custom server). Changeable later in Settings > Connection.
         """
         if self.background_mode:
             return

@@ -34,7 +34,15 @@ def test_index_and_engine_are_inverse_and_safe_out_of_range():
         assert engines.engine_at(engines.index_of(engine)) == engine
     assert engines.engine_at(-1) == engines.WPPCONNECT
     assert engines.engine_at(99) == engines.WPPCONNECT
-    assert engines.index_of("nope") == 0
+    assert engines.index_of("nope") == engines.index_of(engines.WPPCONNECT)
+
+
+def test_neonize_is_listed_first_and_wppconnect_second():
+    # The first engine a picker lists is the one it preselects: a new install
+    # pairs with Neonize unless the user picks another one.
+    assert engines.ENGINES == (engines.NEONIZE, engines.WPPCONNECT, engines.CUSTOM)
+    assert engines.index_of(engines.NEONIZE) == 0
+    assert engines.first_run_engines(True)[0] == engines.NEONIZE
 
 
 def test_only_a_different_engine_asks_for_a_restart():
@@ -46,6 +54,8 @@ def test_only_a_different_engine_asks_for_a_restart():
 def test_the_first_run_question_hides_neonize_without_a_bridge():
     assert engines.first_run_engines(False) == (engines.WPPCONNECT, engines.CUSTOM)
     assert engines.first_run_engines(True) == engines.ENGINES
+    # without a bridge the preselected engine is WPPConnect again
+    assert engines.first_run_engines(False)[0] == engines.WPPCONNECT
 
 
 def test_the_profile_backup_is_only_for_engines_with_a_browser_profile():

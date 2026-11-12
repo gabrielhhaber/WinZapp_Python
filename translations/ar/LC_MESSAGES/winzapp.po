@@ -5602,8 +5602,8 @@ msgstr "Neonize (اتصال مباشر، تجريبي)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (default, uses the Windows browser)"
-msgstr "WPPConnect (الافتراضي، يستخدم متصفح ويندوز)"
+msgid "WPPConnect (legacy, uses the Windows browser)"
+msgstr "WPPConnect (قديم، يستخدم متصفح ويندوز)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -19133,8 +19133,7 @@ msgid ""
 "does not open again afterwards)"
 msgstr ""
 "تنزيل الت&حديثات تلقائيًا وتثبيتها عند إنهاء WinZapp، بدون سؤال (إغلاق "
-"النافذة إلى منطقة الإشعارات لا يُحتسب، ولا يفتح WinZapp مرة أخرى بعد "
-"ذلك)"
+"النافذة إلى منطقة الإشعارات لا يُحتسب، ولا يفتح WinZapp مرة أخرى بعد ذلك)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
