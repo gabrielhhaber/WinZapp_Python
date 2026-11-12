@@ -8887,6 +8887,12 @@ msgstr "تعيين جميع الدردشات كمقروءة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_reconnect_now"
+msgid "Reco&nnect now"
+msgstr "إعادة الاتصال ال&آن"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_resync_all"
 msgid "&Resync all chats"
 msgstr "إعادة مزامنة جميع الد&ردشات"
@@ -11223,6 +11229,37 @@ msgstr "&اقرأ المزيد"
 msgctxt "recent_reactions"
 msgid "Recent reactions:"
 msgstr "ردود الفعل الحديثة:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_done"
+msgid "Connected to WhatsApp."
+msgstr "تم الاتصال بـ WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_failed"
+msgid "Could not reconnect now. Try again in a few moments."
+msgstr "تعذّرت إعادة الاتصال الآن. حاول مرة أخرى بعد قليل."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_no_internet"
+msgid ""
+"No internet: this computer cannot reach WhatsApp. Check the network and try "
+"again."
+msgstr ""
+"لا يوجد إنترنت: لا يستطيع هذا الحاسوب الوصول إلى WhatsApp. تحقق من الشبكة "
+"وحاول مرة أخرى."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_restarting"
+msgid ""
+"The connection to WhatsApp is being restarted; this can take a few moments."
+msgstr "تتم إعادة تشغيل الاتصال بـ WhatsApp؛ قد يستغرق ذلك بضع لحظات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/manual_reconnect.py
+msgctxt "reconnect_started"
+msgid "Reconnecting to WhatsApp…"
+msgstr "جارٍ إعادة الاتصال بـ WhatsApp…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_composer.py client/ui/conversations.py

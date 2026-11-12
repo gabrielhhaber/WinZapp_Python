@@ -15,6 +15,7 @@ Where to look (and where new code goes):
     shortcuts           accelerator table, Alt+N navigation, output() speech funnel
     settings            first run, settings load/save/migrate/export, sounds
     connection          connection state, suspend/resume, WebSocket, reachability
+    manual_reconnect    Sync > Reconnect now (#765): channel, check, session restart
     account_link        periodic health check, "another number linked" wipe
     session_tokens      WA_token vault, session store, abandoned sessions
     session_lifecycle   Windows end-session teardown, profile recovery/snapshots

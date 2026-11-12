@@ -291,6 +291,7 @@ from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
 from main_window.wpp_server import WppServerMixin
 from main_window.neonize_bridge import NeonizeBridgeMixin
+from main_window.manual_reconnect import ManualReconnectMixin
 from main_window.api_start_behind_window import ApiStartBehindWindowMixin, wait_for_api_start
 from main_window.sending import SendingMixin
 from main_window.poll_sending import PollSendingMixin
@@ -358,6 +359,7 @@ class MainWindow(
     MessageEventsMixin,
     WppServerMixin,
     NeonizeBridgeMixin,
+    ManualReconnectMixin,
     ApiStartBehindWindowMixin,
     SendingMixin,
     PollSendingMixin,

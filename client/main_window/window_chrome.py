@@ -83,6 +83,7 @@ class WindowChromeMixin:
         self._ID_RESYNC_ALL    = wx.NewIdRef()
         self._ID_RESYNC_CONVERSATION = wx.NewIdRef()
         self._ID_SYNC_MEDIA    = wx.NewIdRef()
+        self._ID_RECONNECT_NOW = wx.NewIdRef()
         self._ID_OFFLINE_MENU  = wx.NewIdRef()
         self._ID_HELP_GUIDE    = wx.NewIdRef()
         self._ID_SHORTCUTS     = wx.NewIdRef()
@@ -144,6 +145,9 @@ class WindowChromeMixin:
             self._ID_SYNC_MEDIA,
             f"{self.i18n.t('menu_sync_media')}\tCtrl+Shift+Alt+B",
         )
+        # Issue #765: the connection back by hand, without restarting
+        # (main_window/manual_reconnect.py)
+        sync_menu.Append(self._ID_RECONNECT_NOW, self.i18n.t("menu_reconnect_now"))
         self._sync_offline_menu_item = sync_menu.AppendCheckItem(
             self._ID_OFFLINE_MENU,
             f"{self.i18n.t('tray_offline_mode')}\tCtrl+Alt+Shift+O",
@@ -270,6 +274,7 @@ class WindowChromeMixin:
         self.Bind(wx.EVT_MENU, self._on_menu_resync_conversation,
                   id=self._ID_RESYNC_CONVERSATION)
         self.Bind(wx.EVT_MENU, self._on_menu_sync_media, id=self._ID_SYNC_MEDIA)
+        self.Bind(wx.EVT_MENU, self.reconnect_now, id=self._ID_RECONNECT_NOW)
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_offline, id=self._ID_OFFLINE_MENU)
         self.Bind(wx.EVT_MENU, self.on_f1,             id=self._ID_SHORTCUTS)
         self.Bind(wx.EVT_MENU, self._on_force_update,  id=self._ID_FORCE_UPDATE)
@@ -975,6 +980,8 @@ class WindowChromeMixin:
         mb.GetMenu(1).FindItemById(self._ID_SYNC_MEDIA).SetItemLabel(
             f"{self.i18n.t('menu_sync_media')}\tCtrl+Shift+Alt+B"
         )
+        mb.GetMenu(1).FindItemById(self._ID_RECONNECT_NOW).SetItemLabel(
+            self.i18n.t("menu_reconnect_now"))
         mb.GetMenu(1).FindItemById(self._ID_OFFLINE_MENU).SetItemLabel(
             f"{self.i18n.t('tray_offline_mode')}\tCtrl+Alt+Shift+O"
         )
