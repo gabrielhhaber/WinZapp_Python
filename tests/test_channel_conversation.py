@@ -7,6 +7,7 @@ from core import channels as ch
 from core.websocket_client import WebSocketClient
 from ui.conversation_panel.channel_conversation import (
     ChannelConversationMixin,
+    fetch_channel_updates,
     remember_channel_roles,
 )
 from ui.conversation_panel.message_actions import MessageActionsMixin
@@ -180,3 +181,31 @@ def test_opening_a_channel_reads_the_channel_itself_for_its_role_and_pins(monkey
     (read,) = panel.submitted
     read()
     assert asked == [CHANNEL]
+
+
+# ---------------------------------------- a channel opened reads its updates
+def test_an_opened_channel_reads_its_updates_at_once():
+    # report of 2026-11-11: a recommended channel opened on "no updates in
+    # this channel yet"; the sync round read its 101 updates 47 s later
+    chat = {"remoteJid": CHANNEL}
+    asked = []
+    mw = SimpleNamespace(chats={CHANNEL: chat},
+                         sync_chat_messages=lambda c, sync_mode: asked.append((c, sync_mode)))
+    fetch_channel_updates(mw, CHANNEL).join(5)
+    assert asked == [(chat, "full")]
+
+
+def test_only_a_known_channel_is_read():
+    def never(*a, **k):
+        raise AssertionError("asked")
+    group = "1203630000@g.us"
+    mw = SimpleNamespace(chats={group: {"remoteJid": group}}, sync_chat_messages=never)
+    assert fetch_channel_updates(mw, group) is None
+    assert fetch_channel_updates(mw, CHANNEL) is None
+
+
+def test_a_failed_read_is_only_logged():
+    def fails(chat, sync_mode):
+        raise OSError("down")
+    mw = SimpleNamespace(chats={CHANNEL: {"remoteJid": CHANNEL}}, sync_chat_messages=fails)
+    fetch_channel_updates(mw, CHANNEL).join(5)

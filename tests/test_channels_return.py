@@ -98,9 +98,13 @@ def test_the_state_is_kept_when_a_channel_opens(monkeypatch):
     monkeypatch.setattr(dialogs, "ChannelsDialog", Dialog)
     monkeypatch.setattr(dialogs, "snapshot", lambda dialog: kept)
     monkeypatch.setattr(dialogs, "open_group_chat", lambda mw, jid, name: None)
+    fetched = []
+    monkeypatch.setattr(dialogs, "fetch_channel_updates", lambda mw, jid: fetched.append(jid))
     mw = types.SimpleNamespace(i18n=types.SimpleNamespace(t=lambda key: key))
     assert dialogs.show_channels(mw, None) is True
     assert mw._channels_return_state is kept and mw._channel_opened_from_window == "2@newsletter"
+    # its updates are read at once, not by the next sync round
+    assert fetched == ["2@newsletter"]
 
 
 # ------------------------------------- only the user's close goes back

@@ -13,7 +13,8 @@ import logging
 import wx
 
 from core import channels as ch
-from ui.conversation_panel.channel_conversation import remember_channel_roles
+from ui.conversation_panel.channel_conversation import (fetch_channel_updates,
+                                                        remember_channel_roles)
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.channels_return import restore, snapshot
 from ui.shortcut_bindings import make_shortcut_table
@@ -85,6 +86,7 @@ def show_channels(mw, parent, keep="", state=None):
     # chat list: it was opened from this window, not from the list.
     mw._channel_opened_from_window = channel.jid
     open_group_chat(mw, channel.jid, channel.name or mw.i18n.t("channels_unnamed"))
+    fetch_channel_updates(mw, channel.jid)
     return True
 
 
