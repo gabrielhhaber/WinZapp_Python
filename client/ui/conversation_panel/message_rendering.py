@@ -405,6 +405,16 @@ class MessageRenderingMixin:
                 return i18n.t("group_notif_promoted").format(author=author_name, names=names)
             if subtype in ("demote", "demotion"):
                 return i18n.t("group_notif_demoted").format(author=author_name, names=names)
+            if subtype == "modify":
+                # A participant changed their phone number (WhatsApp Web's
+                # GROUP_PARTICIPANT_CHANGE_NUMBER, WAWebFormatGroupNotification):
+                # the author is the old number, the recipient the new one. As
+                # there, the new number is said only for someone known by their
+                # number anyway. It read "Fulano: modify" (reported 2026-11-12).
+                if recipient_jids and is_phone_like(author_name):
+                    return i18n.t("group_notif_number_changed_to").format(
+                        author=author_name, number=_name(recipient_jids[0]))
+                return i18n.t("group_notif_number_changed").format(author=author_name or names)
             # WhatsApp sends the new group name / description text in the body
             # of the notification; showing it turns a vague "X alterou o nome do
             # grupo" into something that actually says what changed.
