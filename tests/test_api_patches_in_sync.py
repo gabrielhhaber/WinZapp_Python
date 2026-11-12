@@ -71,6 +71,8 @@ MIRRORED_FILES = [
     "src/util/announcementReplyBridge.ts",
     "src/util/channelsWatchBridge.ts",
     "src/tests/util/channelsWatchBridge.test.ts",
+    "src/util/chatClearedBridge.ts",
+    "src/tests/util/chatClearedBridge.test.ts",
     "src/util/callParticipantsBridge.ts",
     "src/tests/util/callParticipantsBridge.test.ts",
     "src/controller/communityCommentsController.ts",
