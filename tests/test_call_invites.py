@@ -88,3 +88,20 @@ def test_a_contact_kept_under_both_addresses_is_offered_once():
     from core.call_invites import one_per_person
     jids = ["55@s.whatsapp.net", "1@lid", "77@s.whatsapp.net", "55@c.us"]
     assert one_per_person(jids, {"1@lid": "55@s.whatsapp.net"}) == ["1@lid", "77@s.whatsapp.net"]
+
+
+def test_the_account_is_never_offered_even_when_the_session_does_not_know_its_lid():
+    """Reported 2026-11-12: the account's own LID, unknown to the session, was
+    offered as someone to add; inviting it rang the user's own phone, and
+    declining there dropped the call. The call itself marks this device's
+    address (isSelf)."""
+    from types import SimpleNamespace
+    from ui.dialogs.call_invite import self_test
+    mw = SimpleNamespace(_is_self_jid=lambda jid: jid == "5511999990000@s.whatsapp.net",
+                         _chat_jids_equivalent=lambda a, b: a == b)
+    is_self = self_test(mw, ["777000@lid"])
+    assert is_self("777000@lid") and is_self("5511999990000@s.whatsapp.net")
+    assert not is_self("888000@lid")
+    rows = candidates(["777000@lid", "888000@lid"], [], is_self, mw._chat_jids_equivalent,
+                      lambda jid: "Name")
+    assert [jid for jid, _name in rows] == ["888000@lid"]

@@ -170,6 +170,11 @@ function fresh() {
   assert.deepEqual(invited, ['555000004@c.us', '555000005@lid']);
   assert.deepEqual(added.results.map(r => r.status), ['invited', 'invited', 'failed', 'failed']);
   assert.equal(added.results[2].error, 'refused', 'a fixed word, never WhatsApp\'s text');
+  // never this account itself: its own phone would ring (reported 2026-11-12)
+  api = fresh(); active = { id: 'call-1', getState: () => 6, isGroup: true };
+  const self = await api.invite({ callId: 'call-1', participants: ['555000099@lid', '555000004@lid'] });
+  assert.deepEqual(invited, ['555000004@lid']);
+  assert.deepEqual(self.results.map(r => [r.status, r.error]), [['failed', 'self'], ['invited', undefined]]);
   // a hangup halfway through the list sends nobody else anywhere
   api = fresh(); active = { id: 'call-1', getState: () => 6, isGroup: true };
   hangUpAfterFirstInvite = true;

@@ -184,8 +184,18 @@ export function installGroupCallRuntimeInPage(): void {
           results.push({ jid, status: 'failed', error: 'invalid address' });
           continue;
         }
+        const target = createWid(address);
+        // Never this account itself: its own phone rang and, declined there,
+        // dropped this device from the call (reported 2026-11-12). WhatsApp's
+        // own picker never offers you; isMeAccount knows the number and LID.
+        let mine = false;
+        try { mine = module('WAWebUserPrefsMeUser')?.isMeAccount?.(target) === true; } catch (_) { /* unknown: go on */ }
+        if (mine) {
+          results.push({ jid, status: 'failed', error: 'self' });
+          continue;
+        }
         try {
-          await invite(createWid(address));
+          await invite(target);
           results.push({ jid, status: 'invited' });
         } catch (_) {
           // A fixed word, as the Neonize bridge answers: WhatsApp's own text

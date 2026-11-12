@@ -17,6 +17,18 @@ from core.call_participants import CONNECTED, parse_participants
 from ui.dialogs.call_invite_marks import CallInviteMarksMixin
 
 
+def self_test(mw, own_in_call):
+    """Whether a JID is this account: what the session knows, and the
+    addresses the call itself marks as this device's (isSelf). The session
+    may not know its own LID yet; the account was then offered as someone to
+    add, and inviting it rang its own phone (reported 2026-11-12)."""
+    own = [jid for jid in own_in_call if jid]
+
+    def is_self(jid):
+        return mw._is_self_jid(jid) or any(mw._chat_jids_equivalent(jid, o) for o in own)
+    return is_self
+
+
 def failure_line(i18n, reason) -> str:
     """The line spoken when the request itself failed: what went wrong."""
     return i18n.t("call_invite_failed_reason").format(reason=reason)
@@ -80,7 +92,8 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
             present = [p for p in listed if p["state"] in (CONNECTED, "ringing")]
             members = one_per_person(members, dict(getattr(mw, "_lid_to_phone", None) or {}))
             rows = candidates(
-                members, [p["jid"] for p in present if not p["isSelf"]], mw._is_self_jid,
+                members, [p["jid"] for p in present if not p["isSelf"]],
+                self_test(mw, [p["jid"] for p in listed if p["isSelf"]]),
                 mw._chat_jids_equivalent,
                 lambda jid: mw.chat_display_name({"remoteJid": jid}))
         except Exception:
