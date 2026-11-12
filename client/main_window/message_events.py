@@ -1039,6 +1039,16 @@ class MessageEventsMixin:
                     # rather than being compared as an edit (core/quote_recovery.py).
                     if not awaits_real_copy(existing):
                         self._apply_possible_edit(existing, msg, remote_jid)
+                        # A sync running beside the live events (waking from
+                        # sleep) can store the message a moment before its
+                        # event is handled here; the automatic transcription
+                        # and descriptions are still owed to it (report of
+                        # 2026-11-11: one of two voice notes of the same burst
+                        # was never transcribed). The queues run a message
+                        # once and skip one that already has a text.
+                        hand_over = getattr(self, "_auto_process_caught_up", None)
+                        if callable(hand_over) and not from_me:
+                            hand_over(remote_jid, [existing])
                         return  # already stored (edited in place if content changed)
                     # A sync stored WhatsApp Web's placeholder for this id and
                     # this is its decrypted copy (see _resolved_placeholder_is_fresh).
