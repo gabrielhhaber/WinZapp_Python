@@ -4,6 +4,18 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Limpar uma conversa no telemóvel limpa agora a mesma conversa no WinZapp, nos dois motores de ligação. As mensagens com estrela mantêm-se quando o telemóvel as manteve, e uma mensagem que chegou depois da limpeza não é apagada.
+
+- Canais: um canal aberto pela janela Canais, por exemplo pelas listas Tendências ou Recomendados, carrega as atualizações de imediato, em vez de mostrar "Ainda não há atualizações neste canal." até à sincronização seguinte. Os detalhes de um canal que não segue também passam a ser lidos.
+
+- Grupos: o botão "Detalhes do grupo" acompanha o número de participantes. Num grupo em que acabou de entrar e cuja lista de participantes demora a chegar, o número aparece assim que a lista chega, e muda quando alguém entra ou sai com a conversa aberta.
+
+- Depois de o computador sair da suspensão, o WinZapp já não mostra "A atualizar conversas" outra vez alguns minutos depois. As conversas que não puderam ser lidas enquanto a ligação voltava são lidas na mesma sincronização.
+
+- Neonize: mudar uma opção de privacidade do WhatsApp, como "Visto pela última vez" ou "Confirmação de leitura", já não mostra "Algumas definições não puderam ser aplicadas." quando o WhatsApp aplicou a alteração.
+
+- O registo da conta já não grava o código de acesso da sessão do WPPConnect quando é transferido um ficheiro multimédia.
+
 - Neonize: o aviso de que uma mensagem foi apagada, quando o WinZapp não tem a mensagem nem a conversa, já não cria um "Grupo sem nome" na lista de conversas. As mensagens apagadas nas suas conversas existentes mantêm-se iguais.
 
 - Neonize: o ficheiro multimédia antigo que o telemóvel reenvia depois do pedido de novo envio passa a ser mesmo transferido. Antes, o ficheiro reenviado era recusado por não coincidir com a verificação do original e o ficheiro continuava sem abrir.

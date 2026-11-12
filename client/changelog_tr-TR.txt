@@ -4,6 +4,18 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Telefonda bir sohbeti temizlemek artık WinZapp'teki aynı sohbeti de temizliyor; iki bağlantı motorunda da. Telefon yıldızlı mesajları koruduysa onlar kalır ve temizlemeden sonra gelen bir mesaj silinmez.
+
+- Kanallar: Kanallar penceresinden, örneğin Gündemdekiler veya Önerilenler listelerinden açılan bir kanal, bir sonraki eşitlemeye kadar "Bu kanalda henüz güncelleme yok." göstermek yerine güncellemelerini hemen yükler. Takip etmediğiniz bir kanalın ayrıntıları da okunur.
+
+- Gruplar: "Grup bilgisi" düğmesi katılımcı sayısını güncel tutar. Yeni katıldığınız ve katılımcı listesi geç gelen bir grupta sayı liste gelir gelmez görünür; sohbet açıkken biri katılınca veya ayrılınca da değişir.
+
+- Bilgisayar uykudan uyandıktan sonra WinZapp birkaç dakika sonra yeniden "Sohbetler güncelleniyor" göstermiyor. Bağlantı geri gelirken okunamayan sohbetler aynı eşitlemede okunur.
+
+- Neonize: "Son görülme" veya "Okundu bilgisi" gibi bir WhatsApp gizlilik seçeneğini değiştirmek, WhatsApp değişikliği uyguladığında artık "Bazı ayarlar uygulanamadı." göstermiyor.
+
+- Hesap günlüğü, bir medya indirilirken WPPConnect oturumunun erişim kodunu artık kaydetmiyor.
+
 - Neonize: WinZapp'in ne mesajı ne de sohbeti bulunduğu bir mesajın silindiği bildirimi artık sohbet listesinde "Adsız grup" oluşturmuyor. Mevcut sohbetlerinizdeki silinmiş mesajlar değişmez.
 
 - Neonize: telefonun yeniden gönderme isteğinden sonra tekrar yüklediği eski medya artık gerçekten indiriliyor. Daha önce yeniden yüklenen dosya, orijinal dosyanın doğrulamasıyla eşleşmediği için reddediliyor ve medya yine açılmıyordu.

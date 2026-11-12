@@ -4,6 +4,18 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Limpar uma conversa no celular agora limpa a mesma conversa no WinZapp, nos dois motores de conexão. As mensagens favoritas continuam quando o celular as manteve, e uma mensagem que chegou depois da limpeza não é apagada.
+
+- Canais: um canal aberto pela janela Canais, por exemplo pelas listas Em alta ou Recomendados, carrega as atualizações na hora, em vez de mostrar "Nenhuma atualização neste canal ainda." até a próxima sincronização. Os detalhes de um canal que você não segue também passam a ser lidos.
+
+- Grupos: o botão "Dados do grupo" acompanha o número de participantes. Num grupo em que você acabou de entrar e cuja lista de participantes demora a chegar, o número aparece assim que a lista chega, e muda quando alguém entra ou sai com a conversa aberta.
+
+- Depois de o computador voltar da suspensão, o WinZapp não mostra mais "Atualizando conversas" de novo alguns minutos depois. As conversas que não puderam ser lidas enquanto a conexão voltava são lidas na mesma sincronização.
+
+- Neonize: mudar uma opção de privacidade do WhatsApp, como "Visto por último" ou "Confirmação de leitura", não mostra mais "Algumas configurações não puderam ser aplicadas." quando o WhatsApp aplicou a mudança.
+
+- O log da conta não grava mais o código de acesso da sessão do WPPConnect quando uma mídia é baixada.
+
 - Neonize: o aviso de que uma mensagem foi apagada, quando o WinZapp não tem a mensagem nem a conversa, não cria mais um "Grupo sem nome" na lista de conversas. As mensagens apagadas nas suas conversas existentes continuam iguais.
 
 - Neonize: a mídia antiga que o celular reenvia depois do pedido de novo envio agora é baixada de verdade. Antes, o arquivo reenviado era recusado por não bater com a verificação do arquivo original e a mídia continuava sem abrir.

@@ -4,6 +4,18 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wyczyszczenie czatu w telefonie czyści teraz ten sam czat w WinZapp, w obu silnikach połączenia. Wiadomości oznaczone gwiazdką zostają, jeśli telefon je zachował, a wiadomość, która przyszła po wyczyszczeniu, nie jest usuwana.
+
+- Kanały: kanał otwarty z okna Kanały, na przykład z listy Na czasie lub Polecane, od razu wczytuje aktualizacje, zamiast pokazywać "Na tym kanale nie ma jeszcze aktualizacji." aż do następnej synchronizacji. Odczytywane są też informacje o kanale, którego nie obserwujesz.
+
+- Grupy: przycisk "Informacje o grupie" pokazuje aktualną liczbę uczestników. W grupie, do której właśnie dołączono i której lista uczestników przychodzi z opóźnieniem, liczba pojawia się, gdy tylko lista dotrze, i zmienia się, gdy ktoś dołączy lub wyjdzie przy otwartym czacie.
+
+- Po wybudzeniu komputera z uśpienia WinZapp nie pokazuje już ponownie "Aktualizowanie czatów" kilka minut później. Czaty, których nie udało się odczytać podczas przywracania połączenia, są odczytywane w tej samej synchronizacji.
+
+- Neonize: zmiana opcji prywatności WhatsAppa, na przykład "Widziano" lub "Potwierdzenia odczytu", nie pokazuje już komunikatu "Niektórych ustawień nie udało się zastosować.", gdy WhatsApp zastosował zmianę.
+
+- Dziennik konta nie zapisuje już kodu dostępu sesji WPPConnect podczas pobierania multimediów.
+
 - Neonize: powiadomienie o usunięciu wiadomości, gdy WinZapp nie ma ani tej wiadomości, ani rozmowy, nie tworzy już "Grupy bez nazwy" na liście rozmów. Usunięte wiadomości w istniejących rozmowach pozostają bez zmian.
 
 - Neonize: stare multimedia, które telefon przesyła ponownie po prośbie o ponowne wysłanie, są teraz naprawdę pobierane. Wcześniej ponownie przesłany plik był odrzucany, bo nie zgadzał się z weryfikacją oryginału, i multimedia nadal się nie otwierały.

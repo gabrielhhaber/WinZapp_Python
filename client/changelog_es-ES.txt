@@ -4,6 +4,18 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Vaciar un chat en el móvil ahora vacía el mismo chat en WinZapp, con los dos motores de conexión. Los mensajes destacados se conservan cuando el móvil los conservó, y un mensaje que llegó después de vaciarlo no se borra.
+
+- Canales: un canal abierto desde la ventana Canales, por ejemplo desde las listas Tendencias o Recomendados, carga sus actualizaciones al momento, en lugar de mostrar "Aún no hay actualizaciones en este canal." hasta la siguiente sincronización. También se leen los detalles de un canal que no sigues.
+
+- Grupos: el botón "Datos del grupo" sigue el número de participantes. En un grupo al que acabas de unirte y cuya lista de participantes tarda en llegar, el número aparece en cuanto llega la lista, y cambia cuando alguien entra o sale con el chat abierto.
+
+- Cuando el ordenador vuelve de la suspensión, WinZapp ya no muestra "Actualizando chats" otra vez unos minutos después. Los chats que no se pudieron leer mientras volvía la conexión se leen en la misma sincronización.
+
+- Neonize: cambiar una opción de privacidad de WhatsApp, como "Última vez" o "Confirmaciones de lectura", ya no muestra "Algunos ajustes no se pudieron aplicar." cuando WhatsApp aplicó el cambio.
+
+- El registro de la cuenta ya no guarda el código de acceso de la sesión de WPPConnect al descargar un archivo multimedia.
+
 - Neonize: el aviso de que se borró un mensaje, cuando WinZapp no tiene ni el mensaje ni el chat, ya no crea un "Grupo sin nombre" en la lista de chats. Los mensajes borrados en tus chats existentes no cambian.
 
 - Neonize: el archivo multimedia antiguo que el teléfono vuelve a subir tras la petición de reenvío ahora se descarga de verdad. Antes, el archivo reenviado se rechazaba por no coincidir con la verificación del original y el archivo seguía sin abrirse.

@@ -4,6 +4,18 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Clearing a chat on the phone now clears the same chat in WinZapp, on both connection engines. Starred messages stay when the phone kept them, and a message that arrived after the clear is not removed.
+
+- Channels: a channel opened from the Channels window, for example from the Trending or Recommended lists, loads its updates right away instead of showing "No updates in this channel yet." until the next sync. The details of a channel you do not follow are read too.
+
+- Groups: the "Group info" button keeps up with the number of participants. In a group you just joined whose participant list takes a while to arrive, the number appears as soon as the list arrives, and it changes when someone joins or leaves while the chat is open.
+
+- After the computer resumes from sleep, WinZapp no longer shows "Updating chats" again a few minutes later. Chats that could not be read while the connection was coming back are read in the same sync.
+
+- Neonize: changing a WhatsApp privacy option, such as "Last seen" or "Read receipts", no longer shows "Some settings could not be applied." when WhatsApp applied the change.
+
+- The account log no longer records the WPPConnect session's access code when media is downloaded.
+
 - Neonize: a notice that a message was deleted, for a message or chat WinZapp does not have, no longer creates an "Unnamed group" in the chat list. Deleted messages in your existing chats are unchanged.
 
 - Neonize: old media that the phone re-uploads after the request to send it again is now actually downloaded. Before, the re-uploaded file was refused because it did not match the check of the original file and the media still would not open.
