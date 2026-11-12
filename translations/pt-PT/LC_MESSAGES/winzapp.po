@@ -5764,8 +5764,8 @@ msgstr "Neonize (ligação direta, experimental)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (default, uses the Windows browser)"
-msgstr "WPPConnect (predefinido, usa o navegador do Windows)"
+msgid "WPPConnect (legacy, uses the Windows browser)"
+msgstr "WPPConnect (legado, usa o navegador do Windows)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py

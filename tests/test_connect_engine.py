@@ -5,9 +5,11 @@ from ui.dialogs import connect_engine
 
 
 def test_the_dialog_offers_neonize_only_with_a_bridge():
-    assert connect_engine.offered_engines(True, engines.WPPCONNECT) == [engines.WPPCONNECT, engines.NEONIZE]
+    # Neonize comes first, WPPConnect second
+    assert connect_engine.offered_engines(True, engines.WPPCONNECT) == [engines.NEONIZE, engines.WPPCONNECT]
+    assert connect_engine.offered_engines(True, engines.NEONIZE) == [engines.NEONIZE, engines.WPPCONNECT]
     assert connect_engine.offered_engines(False, engines.WPPCONNECT) == [engines.WPPCONNECT]
-    assert connect_engine.offered_engines(False, engines.NEONIZE) == [engines.WPPCONNECT, engines.NEONIZE]
+    assert connect_engine.offered_engines(False, engines.NEONIZE) == [engines.NEONIZE, engines.WPPCONNECT]
 
 
 def test_no_engine_list_while_another_account_runs():
