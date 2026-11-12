@@ -191,7 +191,7 @@ function ensureLinuxCallAudio(
 
 function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const win = window as any;
-  if (win.__winzappCallMediaBridge?.version === 10) return true;
+  if (win.__winzappCallMediaBridge?.version === 11) return true;
   if (!navigator.mediaDevices?.getUserMedia || !win.RTCPeerConnection) return false;
 
   const AudioContextCtor = win.AudioContext || win.webkitAudioContext;
@@ -219,7 +219,7 @@ function installCallMediaBridgeInPage(linuxAudio = false): boolean {
   const MIC_WORKLET_WATCHDOG_MS = 1500;
 
   const state: any = {
-    version: 10,
+    version: 11,
     enabled: false,
     context: null,
     micDestination: null,
@@ -1854,6 +1854,46 @@ registerProcessor('winzapp-call-mic', WinzappCallMicProcessor);
       contextProto.__winzappCallMediaSourceWrapped = true;
     }
   } catch (_) {}
+
+  // ── Direct AudioContext playback ───────────────────────────────────────
+  // WhatsApp Web's shared-buffer playback (web_voip_audio_playback_impl=3)
+  // may play the call straight into its own AudioContext:
+  // `worklet.connect(context.destination)` with no MediaStream in between,
+  // when web_voip_audio_playback_use_media_element_output is off or the
+  // audio element's play() is refused. Measured 2026-11-12 on a real account
+  // (impl=3, media element output off): nothing above saw a remote track,
+  // WinZapp played silence for the whole call and nobody heard anybody. So a
+  // worklet of a page context reaching a destination is also connected to a
+  // MediaStreamDestination of that context, and its stream is tapped like
+  // any other remote stream. Our own nodes live in state.context and never
+  // connect a worklet to a destination; they are left alone.
+  const directPlaybackTaps = new WeakMap<any, any>();
+  const tapDirectPlayback = (node: any, target: any, nativeConnect: any) => {
+    const Worklet = win.AudioWorkletNode;
+    const Destination = win.AudioDestinationNode;
+    if (!Worklet || !Destination || !(node instanceof Worklet) || !(target instanceof Destination)) return;
+    if (node.context === state.context || directPlaybackTaps.has(node)) return;
+    const destination = node.context.createMediaStreamDestination();
+    nativeConnect.call(node, destination);
+    directPlaybackTaps.set(node, destination);
+    report('remote-direct', `rate=${node.context.sampleRate}`);
+    attachRemoteStream(destination.stream);
+  };
+  try {
+    const nodeProto = (win.AudioNode || {}).prototype as any;
+    if (nodeProto && !nodeProto.__winzappDirectPlaybackWrapped) {
+      const nativeConnect = nodeProto.connect;
+      nodeProto.connect = function (this: any, target: any, ...rest: any[]) {
+        const result = nativeConnect.call(this, target, ...rest);
+        try {
+          tapDirectPlayback(this, target, nativeConnect);
+        } catch (_) { /* never break WhatsApp's own graph */ }
+        return result;
+      };
+      nodeProto.__winzappDirectPlaybackWrapped = true;
+    }
+  } catch (_) {}
+  // ── end of direct AudioContext playback ────────────────────────────────
 
   // ── Silence WhatsApp Web notification audio, preserving call-end ────────
   // Reported live: the incoming-call ringtone played audibly through THIS
