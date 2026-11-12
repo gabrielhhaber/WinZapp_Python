@@ -22,7 +22,7 @@ YENİLİKLER
 
 - Hesap günlüğü, bir medya indirilirken WPPConnect oturumunun erişim kodunu artık kaydetmiyor.
 
-- Bağlantı motoru: Neonize artık listede ilk sırada ve WinZapp ilk açılışta motoru sorduğunda zaten seçili olan seçenek; hâlâ deneysel olarak işaretli, ancak genel kullanım için önerilen motor odur. WPPConnect, adından sonra "eski" uyarısıyla ikinci seçenek olur: ilk açılışta, eşleştirme penceresinde ve Ayarlar > Bağlantı bölümünde. WPPConnect'i zaten kullananlar, değiştirene kadar onda kalır.
+- Bağlantı motoru: Neonize artık listede ilk sırada ve WinZapp ilk açılışta motoru sorduğunda zaten seçili olan seçenek; hâlâ deneysel olarak işaretli, ancak genel kullanım için önerilen motor odur. WPPConnect, adından sonra "alternatif" uyarısıyla ikinci seçenek olur: ilk açılışta, eşleştirme penceresinde ve Ayarlar > Bağlantı bölümünde. WPPConnect'i zaten kullananlar, değiştirene kadar onda kalır.
 
 - Neonize: WinZapp'in ne mesajı ne de sohbeti bulunduğu bir mesajın silindiği bildirimi artık sohbet listesinde "Adsız grup" oluşturmuyor. Mevcut sohbetlerinizdeki silinmiş mesajlar değişmez.
 

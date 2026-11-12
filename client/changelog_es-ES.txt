@@ -22,7 +22,7 @@ NOVEDADES
 
 - El registro de la cuenta ya no guarda el código de acceso de la sesión de WPPConnect al descargar un archivo multimedia.
 
-- Motor de conexión: Neonize es ahora el primero de la lista y la opción ya seleccionada cuando WinZapp pregunta por el motor en el primer inicio; sigue marcado como experimental, pero es el más recomendado para el uso general. WPPConnect pasa a ser la segunda opción, con el aviso "heredado" después del nombre, en el primer inicio, en la ventana de vinculación y en Configuración > Conexión. Quien ya usa WPPConnect sigue con él hasta que lo cambie.
+- Motor de conexión: Neonize es ahora el primero de la lista y la opción ya seleccionada cuando WinZapp pregunta por el motor en el primer inicio; sigue marcado como experimental, pero es el más recomendado para el uso general. WPPConnect pasa a ser la segunda opción, con el aviso "alternativa" después del nombre, en el primer inicio, en la ventana de vinculación y en Configuración > Conexión. Quien ya usa WPPConnect sigue con él hasta que lo cambie.
 
 - Neonize: el aviso de que se borró un mensaje, cuando WinZapp no tiene ni el mensaje ni el chat, ya no crea un "Grupo sin nombre" en la lista de chats. Los mensajes borrados en tus chats existentes no cambian.
 
