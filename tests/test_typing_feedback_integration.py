@@ -213,3 +213,39 @@ def test_older_presence_does_not_restart_sound_after_message(rig):
     rig.presence("composing", eventTimestamp=10)
     assert rig.played == [0]
     assert rig.window._typing_sound_cadence.timer is None
+
+
+def test_reopening_the_chat_with_someone_still_typing_plays_again(rig):
+    """Report of 2026-11-12: leaving a group stopped the sound, but coming
+    back with the person still typing stayed silent (Alt+T said typing):
+    nothing new arrives for a state that did not change."""
+    rig.presence("composing")
+    w = rig.window
+    panel = w.conversations_panel
+    panel._contact_presence_visit = 1          # left the chat
+    feedback.stop_typing_sound(w)
+    assert w._typing_sound_cadence.timer is None
+    rig.now = 4
+    panel._contact_presence_visit = 2          # opened it again
+    feedback.resume_typing_sound(w)
+    assert rig.played == [0, 4] and w._typing_sound_cadence.timer is not None
+
+
+def test_the_window_back_in_front_plays_again(rig):
+    rig.presence("composing")
+    w = rig.window
+    deactivate = SimpleNamespace(GetActive=lambda: False, Skip=lambda: None)
+    rig.bindings[wx.EVT_ACTIVATE](deactivate)
+    assert w._typing_sound_cadence.timer is None
+    rig.now = 5
+    rig.bindings[wx.EVT_ACTIVATE](SimpleNamespace(GetActive=lambda: True, Skip=lambda: None))
+    assert rig.played == [0, 5]
+
+
+def test_nothing_resumes_for_someone_who_stopped_or_in_another_chat(rig):
+    rig.presence("composing")
+    rig.presence("paused")
+    rig.presence("composing", chat="other@g.us")
+    rig.window.conversations_panel._contact_presence_visit = 3
+    feedback.resume_typing_sound(rig.window)
+    assert rig.played == [0]

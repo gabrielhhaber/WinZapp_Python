@@ -94,11 +94,15 @@ def _make_controller(window):
     def on_activate(event):
         if not event.GetActive():
             stop_typing_sound(window)
+        else:
+            wx.CallAfter(resume_typing_sound, window)
         event.Skip()
 
     def on_hide(event):
         if not event.IsShown():
             stop_typing_sound(window)
+        else:
+            wx.CallAfter(resume_typing_sound, window)
         event.Skip()
 
     def on_destroy(event):
@@ -141,6 +145,22 @@ def observe_typing_batch(window, chat, changes):
         controller = _make_controller(window)
     controller.observe_many(current, {canonical(window, person): state == "composing"
                                       for person, state in changes.items()})
+
+
+def resume_typing_sound(window):
+    """Start the sound again for whoever is still typing in the open chat
+    (the presence cache Alt+T reads): a state that did not change brings no
+    new presence event, so a chat reopened, or a window back in front, with
+    someone still typing would otherwise stay silent."""
+    current = context(window)
+    if current is None:
+        return
+    for chat, people in list((getattr(window, "_composing_chats", None) or {}).items()):
+        if canonical(window, chat) != current[1]:
+            continue
+        typing = {person: state for person, state in dict(people).items() if state == "composing"}
+        if typing:
+            observe_typing_batch(window, chat, typing)
 
 
 def dismiss_typing_message(window, chat, msg):

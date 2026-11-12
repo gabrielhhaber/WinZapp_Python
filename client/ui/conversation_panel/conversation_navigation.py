@@ -11,6 +11,7 @@ import threading
 import wx
 from core.conversation_view import ARCHIVED, LOCKED
 from ui.conversation_panel.typing_row import message_row_count
+from main_window.typing_feedback import resume_typing_sound
 from core.utils import (
     db_fetch_limit,
     effective_unread_count,
@@ -286,6 +287,8 @@ class ConversationNavigationMixin:
             self._begin_pinned_messages_visit(reset_history=False)
             wx.CallAfter(self._load_pinned_messages, announce=take_focus)
             self._start_contact_presence()
+            # someone still typing there starts the sound again
+            wx.CallAfter(resume_typing_sound, self.main_window)
             return
         # Record that the user actually looked at this conversation. It is the
         # gate on asking the *phone* for its older history: every such request
@@ -420,6 +423,9 @@ class ConversationNavigationMixin:
         # guarantees FIFO order instead of leaving it to thread-timing luck.
         # Background: fetch profile/last-seen and update button note
         self._start_contact_presence()
+        # someone still typing there (the chat left and opened again) starts
+        # the sound again: no new presence comes for an unchanged state
+        wx.CallAfter(resume_typing_sound, self.main_window)
         if is_group:
             threading.Thread(
                 target=self._fetch_and_update_profile,
