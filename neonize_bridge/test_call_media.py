@@ -703,3 +703,36 @@ def test_who_a_one_to_one_call_placed_here_called_is_remembered_for_its_end():
     assert m.placed_peer("OUT1") == "5511999990000@c.us"
     assert m.placed_group("OUT1") is None
     assert m.placed_peer("OTHER") == ""
+
+
+def test_a_call_another_device_of_this_account_holds_never_rings_nor_is_refused_here():
+    # reported 2026-11-13: her phone added someone to its call, the invite
+    # rang here and the unanswered ring was refused, dropping her phone
+    fake = OngoingCalls()
+    m, sent = media(fake)
+    m.handle({"ev": "incoming", "call": "OWN", "peer": "21@lid"})     # meowcaller's own event
+    m.elsewhere("OWN")
+    m.handle({"ev": "incoming", "call": "OWN", "peer": "21@lid"})     # or one after it
+    assert not m.knows("OWN") and m._ringing() == ""
+    assert m.hangup() is False and fake.hung == []
+    assert states(sent) == []
+
+
+def test_joining_a_call_this_account_holds_elsewhere_answers_the_invite_held_here():
+    fake = OngoingCalls(remote=[None])
+    m, sent = media(fake)
+    m.elsewhere("OWN")
+    assert m.join_ongoing("OWN", "21@lid", "5511@c.us") == "OWN"
+    assert fake.answered == ["OWN"] and fake.joined == []    # no "already in this call"
+    assert states(sent)[-1] == "ACTIVE" and m.in_call("OWN")
+    m.handle({"ev": "end", "call": "OWN", "reason": "hangup"})
+    assert m.join_ongoing("OTHER", "2@lid", "1203@g.us") == "OTHER" and fake.joined
+
+
+def test_an_invite_no_longer_held_falls_back_to_a_fresh_join():
+    fake = OngoingCalls(remote=[None])
+    fake.answer = lambda call_id: False
+    m, _sent = media(fake)
+    m.elsewhere("OWN")
+    assert m.join_ongoing("OWN", "21@lid", "1203@g.us") == "OWN"
+    assert fake.joined == [("OWN", "21@lid", False)] and m.in_call("OWN")

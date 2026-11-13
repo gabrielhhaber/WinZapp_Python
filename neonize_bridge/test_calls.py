@@ -572,3 +572,33 @@ def test_the_end_of_a_call_placed_here_is_ours_and_names_who_was_called():
     assert calls.with_own_call(other, mine, "x@c.us") is other
     group = {**data, "isGroup": True}
     assert calls.with_own_call(group, mine, "x@c.us") is group
+
+
+def test_an_offer_created_by_this_account_is_from_another_of_its_devices():
+    own = meta(creator=jid("21", "lid"), alternative=jid("5511888"))
+    assert calls.from_this_account(own, "5511888@s.whatsapp.net", "21@lid")
+    assert calls.from_this_account(meta(creator=jid("21", "lid")), "", "21:3@lid")
+    assert calls.from_this_account(meta(creator=jid("5", "lid"), alternative=jid("5511888")),
+                                   "5511888@s.whatsapp.net", "")
+    assert not calls.from_this_account(meta(), "5511888@s.whatsapp.net", "21@lid")
+    assert not calls.from_this_account(meta(creator=jid("")), "", "")      # not known yet
+
+
+def test_the_offer_of_another_device_only_becomes_a_call_to_join():
+    import ongoing_calls
+
+    class Media:
+        def __init__(self):
+            self.away = []
+
+        def elsewhere(self, call_id):
+            self.away.append(call_id)
+
+    media = Media()
+    s = N(call_media=media)
+    data = {"id": "OWN", "peerJid": "5511888@c.us", "groupJid": "", "isGroup": False,
+            "isMultiparty": True, "isVideo": False}
+    calls.own_device_offer(s, data, jid("21", "lid"))
+    assert media.away == ["OWN"]
+    assert ongoing_calls.known(media).get("OWN")["chat"] == "5511888@c.us"
+    calls.own_device_offer(N(call_media=None), data, jid("21", "lid"))     # no call layer

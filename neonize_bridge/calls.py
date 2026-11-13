@@ -92,6 +92,26 @@ def caller(meta) -> str:
     return creator or alternative
 
 
+def from_this_account(meta, me, lid) -> bool:
+    """True when the call's creator is this account itself: its phone (or
+    another linked device) started the call, and adding someone to it sends
+    this device the group invite too. It is never a call to ring here, nor one
+    to refuse: a refusal from here carries this account as the creator and
+    takes the phone out of its own call (reported 2026-11-13: the call rang
+    here "as if she were calling herself", and 2.5 min later the unanswered
+    ring was refused and she dropped while the others stayed). `me`/`lid`:
+    the session's own JIDs."""
+    mine = {_user(me), _user(lid)} - {""}
+    return bool(mine) and any(
+        _user(getattr(j, "User", "") or "") in mine
+        for j in (getattr(meta, "callCreator", None), getattr(meta, "callCreatorAlt", None))
+        if j is not None)
+
+
+def _user(text) -> str:
+    return str(text or "").split("@")[0].split(":")[0]
+
+
 def offer_event(e, now) -> dict:
     """neonize CallOffer -> the `data` of `incomingcall` (and of `callstate`)."""
     meta = e.basicCallMeta
@@ -138,6 +158,19 @@ def resolve_multiparty_group(s, media, data, creator):
         data["id"], ongoing_calls.device_jid(creator), group, data.get("isVideo"))
     log.info("multiparty call: the lobby named its group")
     return group
+
+
+def own_device_offer(s, data, creator):
+    """The invite to a call this account started on another device
+    (`from_this_account`): nothing rings, no timer refuses it, and the call
+    stays one the user can join from here (Calls tab)."""
+    log.info("call from another device of this account: not ringing here (multiparty=%s)",
+             data["isMultiparty"])
+    media = getattr(s, "call_media", None)
+    if media is None:
+        return
+    media.elsewhere(data["id"])
+    ongoing_calls.remember_offer(media, data["id"], creator, data)
 
 
 def ring_left(offer_ts, now, limit=RING_LIMIT) -> float:
@@ -448,6 +481,9 @@ def register_events(cli, s):
         try:
             data = offer_event(e, time.time())
             if not data["id"]:
+                return
+            if from_this_account(e.basicCallMeta, getattr(s, "me", ""), getattr(s, "lid", "")):
+                own_device_offer(s, data, e.basicCallMeta.callCreator)
                 return
             s.ringing_calls.remember(data["id"], e.basicCallMeta.callCreator, time.time(), data)
             media = getattr(s, "call_media", None)

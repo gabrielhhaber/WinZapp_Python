@@ -236,8 +236,22 @@ class CallMedia(CallIngressMixin):
         # id -> {"groupJid", "isVideo", "at"} of the group calls placed here,
         # for the end event the native layer sends without the group
         self._placed_groups = {}
+        # ids of calls another device of this account holds (calls.own_device_offer):
+        # never a ring here, so never what a hangup without an id refuses
+        self._elsewhere = set()
 
     # ---------------------------------------------------------------- state
+    def elsewhere(self, call_id):
+        """`call_id` belongs to another device of this account: forget its ring
+        (meowcaller's offer event may already have recorded one) and ignore
+        the ones that come later."""
+        with self._lock:
+            self._elsewhere.add(call_id)
+            call = self._calls.get(call_id)
+            if call is not None and call["state"] == "INCOMING_RING":
+                self._calls.pop(call_id, None)
+                self._publish_ingress_owner_locked()
+
     def _known(self, call_id):
         with self._lock:
             return dict(self._calls[call_id]) if call_id in self._calls else None
@@ -306,6 +320,8 @@ class CallMedia(CallIngressMixin):
                     return
         if kind == "incoming":
             with self._lock:
+                if call_id in self._elsewhere:
+                    return
                 previous = self._calls.get(call_id)
                 if generation is not None and previous is not None and previous.get("native_generation") not in (None, generation):
                     self._calls.pop(call_id, None)
@@ -352,6 +368,7 @@ class CallMedia(CallIngressMixin):
             event, state = end_state(ev.get("reason"))
             self._stop_ring_timer(call_id)
             with self._lock:
+                self._elsewhere.discard(call_id)
                 call = self._calls.pop(call_id, None)
                 if call and call.get("unanswered"):
                     event, state = "timeout", "NOT_ANSWERED"
@@ -944,8 +961,12 @@ class CallMedia(CallIngressMixin):
         at once, flowing when the relay's media arrives."""
         if self.in_call(call_id):
             return call_id
+        if self._answer_held_invite(call_id, chat, video):
+            return call_id
         joined = str(self.calls.join_ongoing(call_id, creator, video=video)["call"])
         with self._lock:
+            self._elsewhere.discard(call_id)
+            self._elsewhere.discard(joined)
             self._calls[joined] = {"id": joined, "peer": chat, "outgoing": False, "state": "",
                                    "video": bool(video), "connected": True,
                                    "group": chat if chat.endswith("@g.us") else ""}
@@ -953,6 +974,26 @@ class CallMedia(CallIngressMixin):
         self._set_state(joined, "ACTIVE")
         self._ensure_audio(joined)
         return joined
+
+    def _answer_held_invite(self, call_id, chat, video):
+        """A call another device of this account started is still held by
+        meowcaller as the invite it received (calls.own_device_offer): a fresh
+        join is refused there ("already in this call"), so joining it answers
+        that invite. False when there is none (the join goes on as usual)."""
+        with self._lock:
+            if call_id not in self._elsewhere:
+                return False
+            self._elsewhere.discard(call_id)
+            self._calls[call_id] = {"id": call_id, "peer": chat, "outgoing": False,
+                                    "state": "INCOMING_RING", "video": bool(video),
+                                    "group": chat if chat.endswith("@g.us") else ""}
+        if self.answer(call_id):
+            return True
+        with self._lock:
+            call = self._calls.get(call_id)
+            if call is not None and call["state"] == "INCOMING_RING":
+                self._calls.pop(call_id, None)
+        return False
 
     def answered_here(self, call_id):
         """{"at", "video"} of a call this client answered, or None."""
