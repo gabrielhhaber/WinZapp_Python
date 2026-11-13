@@ -100,6 +100,12 @@ class RequestToken:
 def request_answer(provider, model, key, media, history, question, instructions, profile,
                    token, session_factory=tls_trust.create_session):
     request = build_request(provider, model, key, media, history, question, instructions, profile)
+    return post_answer(request, lambda body: parse_answer(provider, body, media.kind),
+                       token, session_factory)
+
+
+def post_answer(request, parse, token, session_factory=tls_trust.create_session):
+    """Send one request using the shared AI deadline and response limits."""
     token.check()
     record("request_started")
     deadline_timer = threading.Timer(max(0, token.deadline - token.clock()), token.expire)
@@ -128,7 +134,7 @@ def request_answer(provider, model, key, media, history, question, instructions,
                 data = read_bounded(response, MAX_RESPONSE_BYTES, token.check)
                 record("response_read")
                 token.check()
-                answer = parse_answer(provider, json.loads(data), media.kind)
+                answer = parse(json.loads(data))
                 record("response_parsed")
                 return answer
     except DescriptionError:

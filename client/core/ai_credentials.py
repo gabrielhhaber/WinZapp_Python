@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import uuid
 
@@ -22,10 +23,12 @@ class CredentialError(RuntimeError):
 
 
 class CredentialStore:
+    basename = "ai_credentials"
+
     def __init__(self, directory):
         self.directory = Path(directory)
-        self.key_path = self.directory / "ai_credentials.key"
-        self.data_path = self.directory / "ai_credentials.enc"
+        self.key_path = self.directory / (self.basename + ".key")
+        self.data_path = self.directory / (self.basename + ".enc")
 
     def _cipher(self, create=False):
         if not self.key_path.exists():
@@ -39,15 +42,18 @@ class CredentialStore:
             return {}
         value = json.loads(self._cipher().decrypt(self.data_path.read_bytes()))
         if not isinstance(value, dict) or any(
-            k not in PROVIDERS or not isinstance(v, str)
+            not self._accepts(k) or not isinstance(v, str)
             for k, v in value.items()
         ):
             raise CredentialError()
         return value
 
     @staticmethod
-    def _provider(provider):
-        if provider not in PROVIDERS:
+    def _accepts(provider):
+        return isinstance(provider, str) and provider in PROVIDERS
+
+    def _provider(self, provider):
+        if not self._accepts(provider):
             raise CredentialError()
 
     def get(self, provider):
@@ -129,3 +135,37 @@ class CredentialStore:
             os.replace(tmp, path)
         finally:
             tmp.unlink(missing_ok=True)
+
+
+class TranslationCredentialStore(CredentialStore):
+    """Translation-only keys stay out of the vault older builds read."""
+    basename = "translation_credentials"
+
+    @staticmethod
+    def _accepts(provider):
+        return isinstance(provider, str) and (
+            provider == "grok" or re.fullmatch(r"translation_[0-9a-f]{64}", provider) is not None
+        )
+
+
+def store_for_translation(shared_store, provider):
+    if CredentialStore._accepts(provider):
+        return shared_store
+    return TranslationCredentialStore(shared_store.directory)
+
+
+def apply_with_translation(shared_store, changes, *, reset=False):
+    """Write staged keys, each to its vault: the AI providers' keys to the
+    store older builds read, Grok's and custom endpoints' keys to the
+    translation store (an older build would read them as a damaged store).
+    A reset empties both."""
+    shared = {provider: key for provider, key in changes.items() if CredentialStore._accepts(provider)}
+    extra = {provider: key for provider, key in changes.items() if provider not in shared}
+    if shared or reset:
+        shared_store.apply(shared, reset=reset)
+    if extra or reset:
+        translation = TranslationCredentialStore(shared_store.directory)
+        if extra:
+            translation.apply(extra, reset=reset)
+        elif translation.data_path.exists() or translation.key_path.exists():
+            translation.reset()

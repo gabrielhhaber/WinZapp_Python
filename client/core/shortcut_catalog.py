@@ -245,6 +245,7 @@ SHORTCUTS = (
     Shortcut('main.sync_media', 'main', 'sync_media', 'menu_sync_media', 7, 66, 0),
     Shortcut('main.offline', 'main', 'offline', 'tray_offline_mode', 7, 79, 0),
     Shortcut('main.lock_vault', 'main', 'lock_vault', 'shortcut_ctrl_shift_k_vault_label', 6, 75, 0),
+    Shortcut('message_list.translate', 'message_list', 'translate', 'translation_message', 4, 13, 0),
     Shortcut('message_list.show_folder', 'message_list', 'show_folder', 'show_in_folder', 2, 13, 0),
     Shortcut('message_list.paste', 'message_list', 'paste', 'shortcut_paste', 2, 86, 0),
     Shortcut('message_list.seek_back', 'message_list', 'seek_back', 'shortcut_shift_left_label', 4, 314, 0),

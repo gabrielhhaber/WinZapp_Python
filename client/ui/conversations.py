@@ -141,7 +141,7 @@ from ui.conversation_panel.system_audio_recording import SystemAudioRecordingMix
 from ui.conversation_panel.text_sending import TextSendingMixin
 from ui.conversation_panel.list_refresh import ListRefreshMixin
 from ui.conversation_panel.chat_menu import ChatMenuMixin
-from ui.conversation_panel.message_list import MessageListMixin
+from ui.conversation_panel.message_list import MessageListMixin, handle_translation_shortcut
 from ui.conversation_panel.message_menu import MessageMenuMixin
 from ui.conversation_panel.media_files import MediaFilesMixin
 from ui.conversation_panel.links import LinksMixin
@@ -179,6 +179,7 @@ from ui.conversation_panel.transcription_delete import TranscriptionDeleteMixin
 from ui.conversation_panel.message_data import MessageDataMixin
 from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMixin
 from ui.conversation_panel.ai_actions import AIActionsMixin
+from ui.conversation_panel.translation_actions import TranslationActionsMixin
 
 
 class ConversationsPanel(
@@ -231,6 +232,7 @@ class ConversationsPanel(
     BulkTranscriptionMixin,
     TranscriptionDeleteMixin,
     AIActionsMixin,
+    TranslationActionsMixin,
     MessageDataMixin,
     wx.Panel,
 ):
@@ -1161,6 +1163,9 @@ class ConversationsPanel(
         control.Bind(wx.EVT_KEY_DOWN, self._on_messages_list_key_down)
         if isinstance(control, CompatListBoxMessagesCtrl):
             control.set_key_down_handler(self._on_messages_list_key_down)
+            control.set_shortcut_handler(lambda event: handle_translation_shortcut(self, event))
+        else:
+            control.Bind(wx.EVT_CHAR_HOOK, self._on_messages_list_char_hook)
         return control
 
     def _rerender_messages_list_rows(self):
