@@ -1,0 +1,246 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 01:07:22 -0300
+Subject: [PATCH] Decode PT 121 (mlow-red) audio by its SplitRed main frame
+
+Seen live: a member left a group call and joined it again; the others then
+sent it PT 121 (MLow with SplitRed redundancy) instead of PT 120. The packets
+authenticated (2 failures in 875) and produced frames, but every frame was
+silent: the receiver accepted PT 121 yet decoded the RED payload as a bare
+MLow frame, reading the redundancy header as the frame's TOC. The member
+heard nobody while everyone heard it.
+
+The RTP payload type now travels with each authenticated audio packet to
+the decoder; PT 121 is unpacked with DepackSplitRed and its main frame
+decoded, an unpackable one concealed. PT 120 is unchanged.
+
+Tested: a PT 121 stream decodes sample for sample like the same frames sent
+bare, and is not silent; a broken RED payload is concealed for a full frame;
+full suite passes.
+---
+ audio_codec.go           | 15 ++++++++++
+ audio_receive_order.go   |  9 +++---
+ audio_receive_runtime.go |  4 +--
+ audio_red_test.go        | 62 ++++++++++++++++++++++++++++++++++++++++
+ group_media_receive.go   | 14 ++++++++-
+ mlow/decoder.go          | 15 ++++++++++
+ rtp/rtp.go               |  4 ++-
+ 7 files changed, 115 insertions(+), 8 deletions(-)
+ create mode 100644 audio_red_test.go
+
+diff --git a/audio_codec.go b/audio_codec.go
+index b9a0771..48c709e 100644
+--- a/audio_codec.go
++++ b/audio_codec.go
+@@ -117,6 +117,21 @@ func (d *callAudioDecoder) Decode(payload []byte) []float32 {
+ 	return output
+ }
+ 
++// DecodeRed decodes a PT 121 payload (MLow with SplitRed redundancy). Opus
++// never travels as PT 121, so an Opus call decodes it as a plain packet.
++func (d *callAudioDecoder) DecodeRed(payload []byte) []float32 {
++	if d.codec == AudioCodecOpus {
++		return d.Decode(payload)
++	}
++	d.decodedOpus = false
++	output := d.mlow.DecodeRed(payload)
++	if d.PCMRate() == FullbandSampleRate {
++		output = d.up.convert(output, true)
++	}
++	d.last = append(d.last[:0], output...)
++	return output
++}
++
+ func (d *callAudioDecoder) Conceal(samples int) []float32 {
+ 	rate := d.PCMRate()
+ 	unit := rate / 50
+diff --git a/audio_receive_order.go b/audio_receive_order.go
+index c682a99..9e2a280 100644
+--- a/audio_receive_order.go
++++ b/audio_receive_order.go
+@@ -6,10 +6,11 @@ import "time"
+ // sequence order, allowing one packet interval for a reordered predecessor.
+ // There is no extra timer/goroutine, and at most three payloads are retained.
+ type orderedAudioPacket struct {
+-	sequence  uint16
+-	timestamp uint32
+-	payload   []byte
+-	arrived   time.Time
++	sequence    uint16
++	timestamp   uint32
++	payloadType uint8
++	payload     []byte
++	arrived     time.Time
+ }
+ 
+ type audioReceiveOrder struct {
+diff --git a/audio_receive_runtime.go b/audio_receive_runtime.go
+index 211f84d..ec5d5cf 100644
+--- a/audio_receive_runtime.go
++++ b/audio_receive_runtime.go
+@@ -38,7 +38,7 @@ func (r *participantReceiveRegistry) ReceiveAudio(packet []byte, clock uint32, n
+ 		return nil, false
+ 	}
+ 	packets := receiver.order.Push(orderedAudioPacket{sequence: header.SequenceNumber,
+-		timestamp: header.Timestamp, payload: payload}, now)
++		timestamp: header.Timestamp, payloadType: header.PayloadType, payload: payload}, now)
+ 	var output []decodedParticipantAudio
+ 	for _, packet := range packets {
+ 		previous := receiver.order.pcmTimestamp
+@@ -59,7 +59,7 @@ func (r *participantReceiveRegistry) ReceiveAudio(packet []byte, clock uint32, n
+ 				Timestamp: previous + uint32(receiver.order.previousSamples), PCM: concealer.Conceal(gap), Concealed: true,
+ 			})
+ 		}
+-		pcm := receiver.decoder.Decode(packet.payload)
++		pcm := decodeAudioPayload(receiver.decoder, packet.payloadType, packet.payload)
+ 		receiver.order.previousSamples = len(pcm)
+ 		if len(pcm) == 0 {
+ 			continue
+diff --git a/audio_red_test.go b/audio_red_test.go
+new file mode 100644
+index 0000000..2d7e6af
+--- /dev/null
++++ b/audio_red_test.go
+@@ -0,0 +1,62 @@
++package meowcaller
++
++import (
++	"math"
++	"testing"
++
++	"github.com/purpshell/meowcaller/rtp"
++)
++
++func splitRed(previous, current []byte) []byte {
++	out := []byte{0x80 | 1, byte(len(previous)), 2}
++	out = append(out, previous...)
++	return append(out, current...)
++}
++
++// PT 121 (mlow-red) carries the main frame after SplitRed blocks; decoded as
++// a bare frame it gave silence (seen live after a member rejoined a group
++// call). Decoding the RED payloads must give exactly what the bare frames give.
++func TestMlowRedPayloadDecodesLikeItsMainFrame(t *testing.T) {
++	encoder, err := newCallAudioEncoder(AudioCodecMlow)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var frames [][]byte
++	for n := 0; n < 8; n++ {
++		pcm := make([]float32, FrameSamples)
++		for i := range pcm {
++			pcm[i] = float32(.3 * math.Sin(2*math.Pi*220*float64(i+n*FrameSamples)/SampleRate))
++		}
++		frame, err := encoder.Encode(pcm)
++		if err != nil {
++			t.Fatal(err)
++		}
++		frames = append(frames, frame)
++	}
++	bare, red := newCallAudioDecoder(AudioCodecMlow), newCallAudioDecoder(AudioCodecMlow)
++	var energy float64
++	for n, frame := range frames {
++		previous := frames[max(0, n-1)]
++		want := decodeAudioPayload(bare, rtp.RtpPayloadTypeOpus, frame)
++		got := decodeAudioPayload(red, rtp.RtpPayloadTypeMlowRed, splitRed(previous, frame))
++		if len(got) != len(want) {
++			t.Fatalf("frame %d: %d samples, want %d", n, len(got), len(want))
++		}
++		for i := range got {
++			if got[i] != want[i] {
++				t.Fatalf("frame %d sample %d: %v, want %v", n, i, got[i], want[i])
++			}
++			energy += float64(got[i]) * float64(got[i])
++		}
++	}
++	if energy < 1 {
++		t.Fatalf("the RED stream decoded to silence: energy %g", energy)
++	}
++}
++
++func TestBrokenMlowRedPayloadIsConcealedNotDropped(t *testing.T) {
++	decoder := newCallAudioDecoder(AudioCodecMlow)
++	if got := decodeAudioPayload(decoder, rtp.RtpPayloadTypeMlowRed, []byte{0x81, 200}); len(got) != FrameSamples {
++		t.Fatalf("broken RED payload gave %d samples, want %d", len(got), FrameSamples)
++	}
++}
+diff --git a/group_media_receive.go b/group_media_receive.go
+index f70888c..0c09378 100644
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -17,6 +17,18 @@ type participantAudioDecoder interface {
+ 	Decode([]byte) []float32
+ }
+ 
++// decodeAudioPayload decodes one authenticated audio payload by its RTP
++// payload type: PT 121 (mlow-red) carries SplitRed blocks around the main
++// frame, and decoding it as a bare frame gave silence (seen live: after a
++// member joined a group call again, the others sent PT 121 to it and it heard
++// nobody).
++func decodeAudioPayload(decoder participantAudioDecoder, payloadType uint8, payload []byte) []float32 {
++	if red, ok := decoder.(interface{ DecodeRed([]byte) []float32 }); ok && payloadType == rtp.RtpPayloadTypeMlowRed {
++		return red.DecodeRed(payload)
++	}
++	return decoder.Decode(payload)
++}
++
+ type decodedParticipantAudio struct {
+ 	ParticipantID string
+ 	UserJID       types.JID
+@@ -923,7 +935,7 @@ func (r *participantReceiveRegistry) DecodeAudio(packet []byte) (decodedParticip
+ 			Msg("participant audio failed authentication")
+ 		return decodedParticipantAudio{}, false
+ 	}
+-	pcm := receiver.decoder.Decode(payload)
++	pcm := decodeAudioPayload(receiver.decoder, authenticatedHeader.PayloadType, payload)
+ 	return decodedParticipantAudio{
+ 		ParticipantID: receiver.participantID,
+ 		UserJID:       receiver.userJID, DeviceJID: receiver.deviceJID,
+diff --git a/mlow/decoder.go b/mlow/decoder.go
+index cdac3c2..2896836 100644
+--- a/mlow/decoder.go
++++ b/mlow/decoder.go
+@@ -103,6 +103,21 @@ func (d *MlowDecoder) Decode(payload []byte) []float32 {
+ 	return d.decodeFrame(payload)
+ }
+ 
++// DecodeRed decodes one PT 121 (mlow-red) payload: SplitRed blocks with the
++// main frame last, whatever redundancy level was negotiated. A payload that
++// cannot be unpacked is concealed.
++func (d *MlowDecoder) DecodeRed(payload []byte) []float32 {
++	if len(payload) == 0 {
++		return d.plc.decoded(make([]float32, opusFrameSamps))
++	}
++	frames, err := DepackSplitRed(payload, d.log)
++	if err != nil || len(frames) == 0 {
++		d.log.Debug().Err(err).Int("payload_bytes", len(payload)).Msg("decode red: depack failed, concealing")
++		return d.plc.conceal(opusFrameSamps)
++	}
++	return d.decodeFrame(frames[len(frames)-1].Data)
++}
++
+ // splitContainer parses a 0x92 multi-frame SplitRed container into its sequential
+ // sub-frames: 0x92 <count> [ <len> <frame> ]*(count-1) <last frame = rest>. It returns
+ // ok=false for anything that is not a well-formed container, so the caller decodes the
+diff --git a/rtp/rtp.go b/rtp/rtp.go
+index 32637d6..14d9132 100644
+--- a/rtp/rtp.go
++++ b/rtp/rtp.go
+@@ -13,6 +13,8 @@ import (
+ 
+ const (
+ 	RtpPayloadTypeOpus uint8 = 120
++	// RtpPayloadTypeMlowRed carries MLow frames with SplitRed redundancy (mlow-red-1).
++	RtpPayloadTypeMlowRed uint8 = 121
+ 	// RtpPayloadTypeAppData carries protobuf call reactions and other RTC app data.
+ 	RtpPayloadTypeAppData uint8 = 119
+ 	// RtpPayloadTypeH264 is the WhatsApp video (H.264) RTP payload type, used to demux
+@@ -49,7 +51,7 @@ var OpusPrimingFrame2 = [5]byte{0x90, 0xb8, 0x14, 0x14, 0xc4}
+ // IsWhatsappOpusRtpPayload reports whether the payload type is WhatsApp Opus.
+ func IsWhatsappOpusRtpPayload(payloadType uint8) bool {
+ 	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/41095d4e6ba4610e054e9ede3af1d5e88a83faee/wacore/src/voip/rtp.rs#L28-L30
+-	return payloadType == RtpPayloadTypeOpus || payloadType == 121
++	return payloadType == RtpPayloadTypeOpus || payloadType == RtpPayloadTypeMlowRed
+ }
+ 
+ // IsOpusDtxPayload reports DTX / comfort-noise frames (RFC 0x10, mlow 0x90, warmup).
