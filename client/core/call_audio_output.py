@@ -11,7 +11,10 @@ def render_output(outdata, buffer, owner, rate, tap, echo_enabled):
     try:
         view = outdata[:, 0] if getattr(outdata, "ndim", 1) > 1 else outdata
         if not buffer.fill(view, owner=owner):
+            outdata[:] = 0
             return
+        if getattr(outdata, "ndim", 1) > 1:
+            outdata[:, 1:] = view[:, None]
     except Exception:
         try:
             outdata[:] = 0

@@ -4,6 +4,10 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.
+
+- Tłumaczenie wiadomości: naciśnij Shift+Enter na wiadomości tekstowej na liście wiadomości (skrót można zmienić) albo użyj jej menu kontekstowego. Konfiguracja jest w Ustawienia > AI online: transkrypcje i opisy > Tłumaczenie wiadomości: dostawca (Twoi dostawcy AI, Grok albo własny adres zgodny z OpenAI lub Anthropic), model, język docelowy oraz to, czy tłumaczenie zastępuje tekst, pojawia się po nim, czy otwiera się w osobnym oknie. Opcjonalne automatyczne tłumaczenie odebranych wiadomości we wszystkich czatach lub tylko w tych, w których je włączysz, z maksymalnym wiekiem wiadomości i dziennym limitem; wstrzymuje się na godzinę, jeśli dostawca odrzuci żądania z powodu klucza, limitu lub braku środków. Zabezpieczone czaty nigdy nie są tłumaczone automatycznie, a przetłumaczenie wiadomości z takiego czatu za każdym razem wymaga potwierdzenia. Rodzaje plików obsługiwanych przez AI online są teraz w oknie „Rodzaje plików do przetwarzania...” na tej samej stronie.
+
 - Silnik połączenia: Neonize jest teraz pierwszy na liście i jest opcją zaznaczoną od razu, gdy WinZapp pyta o silnik przy pierwszym uruchomieniu; nadal jest oznaczony jako eksperymentalny, ale to on jest zalecany do ogólnego użytku. WPPConnect staje się drugą opcją, z dopiskiem "starszy" po nazwie, przy pierwszym uruchomieniu, w oknie parowania i w Ustawienia > Połączenie. Kto już korzysta z WPPConnect, pozostaje przy nim, dopóki sam go nie zmieni.
 
 - Neonize: powiadomienie o usunięciu wiadomości, gdy WinZapp nie ma ani tej wiadomości, ani rozmowy, nie tworzy już "Grupy bez nazwy" na liście rozmów. Usunięte wiadomości w istniejących rozmowach pozostają bez zmian.

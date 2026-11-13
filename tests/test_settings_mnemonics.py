@@ -86,3 +86,18 @@ def test_a_mnemonic_never_lands_inside_a_placeholder(strings):
         for key in keys:
             for placeholder in re.findall(r"\{[^}]*\}", strings[key]):
                 assert "&" not in placeholder, key
+
+
+def test_the_online_ai_windows_and_their_buttons_are_checked():
+    """The kinds of media (ai_kinds_options.py) and the automatic options
+    (ai_auto_options.py) live in windows of their own; a label the collector
+    cannot read (a bare ``t(key)`` alias did that) leaves its letter unchecked."""
+    automatic = {key for key, _ctor, _where in WINDOWS["window AISettingsPage:self.auto_dialog"]}
+    assert {"ai_auto_transcribe", "ai_auto_describe", "ai_auto_scope", "ai_auto_max_age",
+            "ai_auto_daily_limit", "ok"} <= automatic
+    kinds = {key for key, _ctor, _where in WINDOWS["window AISettingsPage:self.kinds_dialog"]}
+    assert {"ai_describe_images_label", "ai_describe_stickers_label", "ai_describe_videos_label",
+            "ai_transcribe_audio_label", "ai_pdf_accessible_label", "ok"} <= kinds
+    page = {key for key, _ctor, _where in WINDOWS["page self._ai_holder"]}
+    assert {"ai_kinds_button", "ai_auto_button", "translation_settings"} <= page
+    assert not {"ai_describe_images_label", "ai_pdf_accessible_label"} & page
