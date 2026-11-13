@@ -58,10 +58,10 @@ TERMS_STAGE = "5"
 # Each tos query waits at most this long for WhatsApp (the raw IQ default is 30 s,
 # longer than the client waits for the accept: 20 s). Three stanzas and a read
 # must fit in that.
-TERMS_TIMEOUT_MS = 4000
+TERMS_TIMEOUT_MS = 3000
 # No new stanza is started after this long, and a stanza WhatsApp took is read
 # again after this delay when the first read still says not accepted.
-TERMS_ACCEPT_BUDGET_SECONDS = 12.0
+TERMS_ACCEPT_BUDGET_SECONDS = 9.0
 TERMS_REREAD_DELAY_SECONDS = 1.5
 
 
@@ -74,30 +74,23 @@ def terms_query(notice=META_AI_NOTICE) -> dict:
 def terms_accept_queries(notice=META_AI_NOTICE) -> list:
     """The stanzas that can record the acceptance, in the order they are tried.
 
-    Measured 2026-11-13 on a real account: the `session_update` stanza alone
-    (the last one here) was refused by WhatsApp with 400, so the accept never
-    went through. The first is the one whatsmeow's own `AcceptTOSNotice` sends
-    (a `notice` with `id` and `stage` straight under the iq, no `request`
-    wrapper); the second is the same notice inside the `request` WhatsApp Web
-    wraps its queries in. Which of them WhatsApp takes for this notice is
-    confirmed only by reading the state again after each, never assumed."""
+    Measured on a real account on 2026-11-13, for this notice (whose read answers
+    `<notice id state="false"/>`, nothing else): the `session_update` request got
+    400 bad-request; the `notice` with `id` and `stage="5"` that whatsmeow's
+    AcceptTOSNotice sends was answered without error but left the state at
+    "false", even read again 1.5 s later; the same `notice` inside a `request`
+    was not answered at all. None of the three is tried again. What is left to
+    try mirrors what the read gives back, `state`; none of them has been
+    confirmed, so each is judged only by reading the state again."""
     return [
         {"namespace": "tos", "type": "set", "timeout_ms": TERMS_TIMEOUT_MS, "content": [
-            rq.node("notice", {"id": notice, "stage": TERMS_STAGE})]},
+            rq.node("notice", {"id": notice, "state": "true"})]},
         {"namespace": "tos", "type": "set", "timeout_ms": TERMS_TIMEOUT_MS, "content": [
             rq.node("request", None, [
-                rq.node("notice", {"id": notice, "stage": TERMS_STAGE})])]},
-        terms_accept_query(notice),
+                rq.node("notice", {"id": notice, "state": "true"})])]},
+        {"namespace": "tos", "type": "set", "timeout_ms": TERMS_TIMEOUT_MS, "content": [
+            rq.node("notice", {"id": notice, "state": "true", "stage": TERMS_STAGE})]},
     ]
-
-
-def terms_accept_query(notice=META_AI_NOTICE) -> dict:
-    """What WhatsApp Web sends once its accept button has set the notice
-    (TosManager.maybeUpdateServer -> WAWebTosJob.updateTosState), as the first
-    version of this bridge wrote it. WhatsApp answered it with 400 on
-    2026-11-13, so it is now only the last stanza tried."""
-    return {"namespace": "tos", "type": "set", "timeout_ms": TERMS_TIMEOUT_MS, "content": [
-        rq.node("request", {"type": "session_update"}, [rq.node("notice", {"id": notice})])]}
 
 
 def terms_state(response, notice=META_AI_NOTICE) -> str:

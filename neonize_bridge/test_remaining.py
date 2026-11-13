@@ -137,20 +137,22 @@ def test_the_terms_are_read_with_whatsapp_webs_query():
     assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
 
 
-def test_the_terms_are_accepted_first_with_the_notice_whatsmeow_sends():
-    """2026-11-13: the session_update alone got a 400 from WhatsApp on a real account."""
+def test_the_terms_are_accepted_first_with_the_state_the_read_gives_back():
     first = remaining.terms_accept_queries()[0]
     assert (first["namespace"], first["type"]) == ("tos", "set")
     assert first["content"] == [
-        {"tag": "notice", "attrs": {"id": "20250502", "stage": "5"}}]
+        {"tag": "notice", "attrs": {"id": "20250502", "state": "true"}}]
 
 
-def test_the_old_session_update_is_still_the_last_stanza_tried():
-    last = remaining.terms_accept_queries()[-1]
-    request, = last["content"]
-    assert request["attrs"] == {"type": "session_update"}
-    assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
-    assert remaining.terms_accept_query() == last
+def test_the_stanzas_whatsapp_refused_or_ignored_are_not_tried_again():
+    """2026-11-13: session_update got 400; the stage-5 notice (bare or in a request)
+    changed nothing or got no answer."""
+    for query in remaining.terms_accept_queries():
+        notice = query["content"][0]
+        if notice["tag"] == "request":
+            notice = notice["content"][0]
+        assert notice["attrs"].get("state") == "true"
+        assert (query["content"][0].get("attrs") or {}).get("type") != "session_update"
 
 
 @pytest.mark.parametrize("answer,expected", [
@@ -249,7 +251,7 @@ def test_every_tos_query_has_a_short_timeout():
     """The client waits 20 s for the accept: three stanzas and a read must fit."""
     queries = remaining.terms_accept_queries() + [remaining.terms_query()]
     assert all(q["timeout_ms"] == remaining.TERMS_TIMEOUT_MS for q in queries)
-    assert 4 * remaining.TERMS_TIMEOUT_MS < 20000
+    assert 5 * remaining.TERMS_TIMEOUT_MS < 20000
 
 
 def test_another_refusal_than_400_stops_at_the_first_stanza(server):
