@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Apeluri: compatibilitate îmbunătățită cu microfoanele și căștile stereo în modul partajat, cu revenire la mono dacă este necesar. Vocea este trimisă în continuare mono.
+
 - Traducerea mesajelor: apasă Shift+Enter pe un mesaj text din lista de mesaje (scurtătura se poate schimba) sau folosește meniul lui contextual. Se configurează în Setări > AI online: transcrieri și descrieri > Traducerea mesajelor: furnizorul (furnizorii tăi AI, Grok sau o adresă proprie compatibilă cu OpenAI ori Anthropic), modelul, limba țintă și dacă traducerea înlocuiește textul, apare după el sau se deschide într-o fereastră separată. Traducere automată opțională a mesajelor primite, în toate conversațiile sau doar în cele pe care le activezi, cu vârstă maximă a mesajului și limită zilnică; se întrerupe pentru o oră dacă furnizorul refuză cheia, cota sau creditul. Conversațiile blocate nu sunt niciodată traduse automat, iar traducerea unui mesaj dintr-o astfel de conversație cere confirmare de fiecare dată. Tipurile de conținut ale AI online sunt acum în fereastra "Tipuri de conținut procesate...", pe aceeași pagină.
 
 - Motor de conectare: Neonize este acum primul din listă și opțiunea deja selectată când WinZapp întreabă ce motor să folosească la prima pornire; rămâne marcat ca experimental, dar este cel recomandat pentru uz general. WPPConnect devine a doua opțiune, cu mențiunea "vechi" după nume, la prima pornire, în fereastra de asociere și în Setări > Conexiune. Cine folosește deja WPPConnect rămâne pe el până îl schimbă.

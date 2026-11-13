@@ -776,6 +776,7 @@
 <p>In Settings &gt; Calls, "Call audio settings" chooses microphone and speaker, and "Call video settings" chooses the camera. There you also find echo cancellation (reduces the return of your own sound when you use a speaker), microphone noise reduction and exclusive mode for microphone and speaker.</p>
 <p>Echo cancellation comes turned on. It uses the same echo canceller as Google Meet and WhatsApp (WebRTC's), so you can talk through a laptop speaker or with a mixer's loopback turned on without the other person hearing their own voice. With headphones it does no harm; uncheck it only if you prefer.</p>
 <p>WinZapp automatically converts call audio when the selected microphone or speaker uses a different sample rate from the call. Timing stays continuous between audio packets; no additional option needs to be enabled.</p>
+<p>In shared mode (used when exclusive mode is unchecked or the device refuses it), calls can use supported stereo microphones and headphones, falling back to mono if needed. Microphone input is mixed to mono; when stereo output is open, received voice is played in both channels.</p>
 <div class="callout tip">
   <div class="callout-title">💡 If the call does not start</div>
   When the WhatsApp Web version in use does not support calls, WinZapp says so and what to try: restart WinZapp or choose Help &gt; Force reinstall WPPConnect.
@@ -1420,6 +1421,7 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Message translation (Shift+Enter or the message's context menu), with automatic translation, the locked-chat rules and the one-hour pause; the kinds of media of online AI are in "Types of media handled...".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Connection engine: Neonize comes first in the list and is already selected on the first launch; WPPConnect is the second option, marked as legacy.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize: old media re-uploaded by the phone after the request to send it again is downloaded, without depending on the check of the original file.</td></tr>
