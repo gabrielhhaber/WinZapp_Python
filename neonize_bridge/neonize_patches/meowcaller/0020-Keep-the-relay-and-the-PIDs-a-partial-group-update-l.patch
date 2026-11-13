@@ -1,0 +1,184 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 08:14:21 -0300
+Subject: [PATCH] Keep the relay and the PIDs a partial group update leaves out
+
+The server sends a group call's relay allocation and a device's PID only when
+they change. A later update without them replaced the whole snapshot, so a
+person who accepted a group invite while such an update arrived started the
+media with no relay ("group media started without an authoritative relay
+snapshot"), the media ended at once and they had to leave and join again
+(seen live 2026-11-13: transaction 16 had the relay and every PID, 18 had
+neither). What an update leaves out is now taken from the snapshot it
+replaces; what it sends still wins.
+---
+ engine_group_control.go    |  9 ++++
+ group_update_carry.go      | 39 +++++++++++++++++
+ group_update_carry_test.go | 90 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 138 insertions(+)
+ create mode 100644 group_update_carry.go
+ create mode 100644 group_update_carry_test.go
+
+diff --git a/engine_group_control.go b/engine_group_control.go
+index 2531980..c6ad390 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -178,8 +178,17 @@ func (e *engine) applyGroupUpdate(update groupCallUpdate) bool {
+ 		return false
+ 	}
+ 	stored := cloneGroupCallUpdate(update)
++	relayCarried, pidsCarried := carryGroupSnapshot(m.groupUpdate, &stored)
+ 	receivers := m.groupReceivers
+ 	e.mu.Unlock()
++	if relayCarried || pidsCarried > 0 {
++		e.c.log.Info().
++			Str("call_id", update.CallID).
++			Uint32("transaction_id", update.TransactionID).
++			Bool("relay_carried", relayCarried).
++			Int("pids_carried", pidsCarried).
++			Msg("group update kept what it left out from the previous one")
++	}
+ 
+ 	if receivers != nil {
+ 		if err := receivers.ApplyGroupUpdate(stored); err != nil {
+diff --git a/group_update_carry.go b/group_update_carry.go
+new file mode 100644
+index 0000000..cd55fed
+--- /dev/null
++++ b/group_update_carry.go
+@@ -0,0 +1,39 @@
++package meowcaller
++
++// carryGroupSnapshot fills in next what a partial group update leaves out of
++// the snapshot it replaces: the relay allocation, and the PID of a device that
++// is listed again without one. The server sends both only when they change, so
++// an update without them means "unchanged", never "gone"; taking it literally
++// left a call without its relay (media could not start: "group media started
++// without an authoritative relay snapshot") and without the PIDs its relay
++// subscriptions and receivers are built from. It reports what it carried.
++func carryGroupSnapshot(previous, next *groupCallUpdate) (relayCarried bool, pidsCarried int) {
++	if previous == nil || next == nil || previous.CallID != next.CallID {
++		return false, 0
++	}
++	if next.Relay == nil && previous.Relay != nil {
++		next.Relay = cloneGroupCallUpdate(groupCallUpdate{Relay: previous.Relay}).Relay
++		relayCarried = true
++	}
++	known := make(map[string]uint32)
++	for _, participant := range previous.Participants {
++		for _, device := range participant.Devices {
++			if device.HasPID && !device.JID.IsEmpty() {
++				known[device.JID.String()] = device.PID
++			}
++		}
++	}
++	for i := range next.Participants {
++		for j := range next.Participants[i].Devices {
++			device := &next.Participants[i].Devices[j]
++			if device.HasPID || device.JID.IsEmpty() {
++				continue
++			}
++			if pid, ok := known[device.JID.String()]; ok {
++				device.PID, device.HasPID = pid, true
++				pidsCarried++
++			}
++		}
++	}
++	return relayCarried, pidsCarried
++}
+diff --git a/group_update_carry_test.go b/group_update_carry_test.go
+new file mode 100644
+index 0000000..4ca1443
+--- /dev/null
++++ b/group_update_carry_test.go
+@@ -0,0 +1,90 @@
++package meowcaller
++
++import (
++	"testing"
++
++	"go.mau.fi/whatsmeow/types"
++)
++
++func carryTestUpdate(tx uint32, withRelay, withPIDs bool) groupCallUpdate {
++	device := func(user string, pid uint32) groupCallDevice {
++		return groupCallDevice{JID: types.NewADJID(user, 0, 1).ToNonAD(), PID: pid, HasPID: withPIDs}
++	}
++	update := groupCallUpdate{
++		CallID:        "GROUP",
++		TransactionID: tx,
++		Participants: []groupCallParticipant{
++			{JID: types.NewJID("200", types.HiddenUserServer), State: "connected",
++				Devices: []groupCallDevice{device("200", 3)}},
++			{JID: types.NewJID("300", types.HiddenUserServer), State: "connected",
++				Devices: []groupCallDevice{device("300", 4)}},
++		},
++	}
++	if withRelay {
++		update.Relay = &groupCallRelay{TransactionID: 1, Key: []byte("key"), Tokens: [][]byte{[]byte("t0")},
++			Endpoints: []groupCallRelayEndpoint{{RelayName: "gru2c01"}}}
++	}
++	return update
++}
++
++// Seen live 2026-11-13: transaction 16 carried the relay and every PID, 18
++// (no relay, no PID) replaced it before the media started, and the media
++// ended at once without a relay; the person had to leave and join again.
++func TestAPartialGroupUpdateKeepsTheRelayAndThePIDs(t *testing.T) {
++	previous := carryTestUpdate(16, true, true)
++	next := carryTestUpdate(18, false, false)
++	relay, pids := carryGroupSnapshot(&previous, &next)
++	if !relay || pids != 2 {
++		t.Fatalf("carried relay=%v pids=%d, want true 2", relay, pids)
++	}
++	if next.Relay == nil || next.Relay.Endpoints[0].RelayName != "gru2c01" {
++		t.Fatalf("relay = %#v", next.Relay)
++	}
++	if next.Relay == previous.Relay || &next.Relay.Tokens[0][0] == &previous.Relay.Tokens[0][0] {
++		t.Fatal("the carried relay shares memory with the previous snapshot")
++	}
++	got := connectedRemoteParticipantPIDs(next, "")
++	if len(got) != 2 {
++		t.Fatalf("connected PIDs = %v, want both", got)
++	}
++}
++
++func TestWhatAnUpdateSendsWinsOverTheCarriedSnapshot(t *testing.T) {
++	previous := carryTestUpdate(16, true, true)
++	next := carryTestUpdate(20, true, true)
++	next.Relay.Endpoints[0].RelayName = "gru2c02"
++	next.Participants[0].Devices[0].PID = 9
++	relay, pids := carryGroupSnapshot(&previous, &next)
++	if relay || pids != 0 || next.Relay.Endpoints[0].RelayName != "gru2c02" ||
++		next.Participants[0].Devices[0].PID != 9 {
++		t.Fatalf("an update's own relay or PID was overwritten: relay=%v pids=%d", relay, pids)
++	}
++	// someone who joins in this update has no earlier PID to take
++	next = carryTestUpdate(21, false, false)
++	next.Participants = append(next.Participants, groupCallParticipant{
++		JID: types.NewJID("400", types.HiddenUserServer), State: "connected",
++		Devices: []groupCallDevice{{JID: types.NewJID("400", types.HiddenUserServer)}}})
++	if _, pids = carryGroupSnapshot(&previous, &next); pids != 2 || next.Participants[2].Devices[0].HasPID {
++		t.Fatalf("pids=%d, newcomer has PID %v", pids, next.Participants[2].Devices[0].HasPID)
++	}
++	if relay, pids = carryGroupSnapshot(nil, &next); relay || pids != 0 {
++		t.Fatal("nothing to carry from no snapshot")
++	}
++}
++
++func TestTheEngineStoresThePartialUpdateWithTheCarriedSnapshot(t *testing.T) {
++	eng, _, _ := testGroupEngine("GROUP")
++	if !eng.applyGroupUpdate(carryTestUpdate(16, true, true)) {
++		t.Fatal("first update not applied")
++	}
++	if !eng.applyGroupUpdate(carryTestUpdate(18, false, false)) {
++		t.Fatal("partial update not applied")
++	}
++	eng.mu.Lock()
++	stored := eng.calls["GROUP"].groupUpdate
++	eng.mu.Unlock()
++	if stored.TransactionID != 18 || stored.Relay == nil ||
++		len(connectedRemoteParticipantPIDs(*stored, "")) != 2 {
++		t.Fatalf("stored = tx %d relay %v", stored.TransactionID, stored.Relay != nil)
++	}
++}

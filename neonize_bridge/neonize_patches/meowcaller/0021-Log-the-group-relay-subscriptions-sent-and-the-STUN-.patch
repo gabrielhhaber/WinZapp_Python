@@ -1,0 +1,217 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 08:14:22 -0300
+Subject: [PATCH] Log the group relay subscriptions sent and the STUN types the
+ relay answers
+
+A joiner whose relay answered every allocate yet forwarded no media either
+way left no trace of what it asked for: the PIDs it subscribed to, its own
+PID and the token are now logged when a group allocate is sent, and the
+relay traffic summary names the STUN message types that came back, so an
+allocate error is told apart from allocate-success and pong.
+---
+ engine_media.go      | 22 +++++++++++++++++++---
+ relay_diag.go        | 28 ++++++++++++++++++++++++++++
+ relay_switch_test.go | 26 ++++++++++++++++++++++++++
+ relay_traffic.go     | 35 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 108 insertions(+), 3 deletions(-)
+
+diff --git a/engine_media.go b/engine_media.go
+index 2c1ce88..4512895 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -585,18 +585,24 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 					var relayTx [12]byte
+ 					if _, err := rand.Read(relayTx[:]); err == nil {
+ 						endpoint := getMediaRelayEndpoint(activeRelay.Load(), inbound)
++						refreshPIDs := connectedRemoteParticipantPIDs(*update, audioReceivers.selfID)
+ 						allocateSent, err = allocateState.ApplyWithSubscriptions(
+ 							endpoint,
+ 							update.Relay,
+ 							streamSsrcs,
+ 							appDataSelfSsrc,
+-							connectedRemoteParticipantPIDs(*update, audioReceivers.selfID),
++							refreshPIDs,
+ 							relayTx,
+ 							func(packet []byte) error {
+ 								_, sendErr := ch.Send(packet)
+ 								return sendErr
+ 							},
+ 						)
++						if allocateSent && endpoint != nil {
++							log.Info().Str("call_id", callID).
++								Str("subscription", describeGroupSubscription(endpoint.relayName, update.Relay, refreshPIDs)).
++								Msg("sent group relay subscriptions")
++						}
+ 						if errors.Is(err, errActiveRelayMissing) {
+ 							// The new allocation no longer lists the relay in use:
+ 							// move to one it lists, as WhatsApp does, without
+@@ -793,12 +799,14 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		if _, err := rand.Read(relayTx[:]); err != nil {
+ 			return fmt.Errorf("generate group relay transaction ID: %w", err)
+ 		}
++		initialEndpoint := getMediaRelayEndpoint(rd, inbound)
++		initialPIDs := connectedRemoteParticipantPIDs(*update, audioReceivers.selfID)
+ 		_, err = allocateState.ApplyWithSubscriptions(
+-			getMediaRelayEndpoint(rd, inbound),
++			initialEndpoint,
+ 			update.Relay,
+ 			streamSsrcs,
+ 			appDataSelfSsrc,
+-			connectedRemoteParticipantPIDs(*update, audioReceivers.selfID),
++			initialPIDs,
+ 			relayTx,
+ 			func(packet []byte) error {
+ 				_, sendErr := ch.Send(packet)
+@@ -808,6 +816,11 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		if err != nil {
+ 			return fmt.Errorf("send initial group relay allocation: %w", err)
+ 		}
++		if initialEndpoint != nil {
++			log.Info().Str("call_id", callID).
++				Str("subscription", describeGroupSubscription(initialEndpoint.relayName, update.Relay, initialPIDs)).
++				Msg("sent group relay subscriptions")
++		}
+ 		audioReception.Retain(audioReceivers.ActiveAudioSSRCs())
+ 		videoReception.Retain(audioReceivers.ActiveVideoSSRCs())
+ 		activeParticipantIDs := audioReceivers.ActiveParticipantIDs()
+@@ -968,6 +981,9 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			continue
+ 		case relay.RelayPacketStun:
+ 			mt, isStun := stun.StunMessageType(pkt)
++			if isStun {
++				traffic.noteStunType(mt)
++			}
+ 			if stunIn++; stunIn <= 3 {
+ 				// Whether the relay ever answers the allocate: no STUN at all
+ 				// means the relay does not know this allocation.
+diff --git a/relay_diag.go b/relay_diag.go
+index 6a868cd..dbf987e 100644
+--- a/relay_diag.go
++++ b/relay_diag.go
+@@ -44,3 +44,31 @@ func relayChoiceChanged(old, updated *relayData, inbound bool) bool {
+ 	}
+ 	return a.relayName != b.relayName || a.isFNA != b.isFNA
+ }
++
++// describeGroupSubscription is what a group allocate told the relay, for the
++// log: the relay and token it went to, this device's PID in the allocation and
++// the PIDs it subscribed to (small numbers, never a token or a key). It exists
++// because a joiner whose relay answered every allocate yet forwarded nothing,
++// either way, left no trace of what it had asked for.
++func describeGroupSubscription(relayName string, relay *groupCallRelay, pids []uint32) string {
++	if relay == nil {
++		return "none"
++	}
++	token := "?"
++	for _, endpoint := range relay.Endpoints {
++		if endpoint.RelayName == relayName {
++			token = fmt.Sprint(endpoint.TokenID)
++			break
++		}
++	}
++	self := "?"
++	if relay.HasSelfPID {
++		self = fmt.Sprint(relay.SelfPID)
++	}
++	subscribed := make([]string, len(pids))
++	for i, pid := range pids {
++		subscribed[i] = fmt.Sprint(pid)
++	}
++	return fmt.Sprintf("relay=%s tx=%d token=%s self_pid=%s subscribed=[%s]",
++		relayName, relay.TransactionID, token, self, strings.Join(subscribed, ","))
++}
+diff --git a/relay_switch_test.go b/relay_switch_test.go
+index e4c9aa5..542ba11 100644
+--- a/relay_switch_test.go
++++ b/relay_switch_test.go
+@@ -147,3 +147,29 @@ func TestSwitchableRelayCloseClosesEveryRelay(t *testing.T) {
+ 		t.Fatal("Recv after Close returned a packet")
+ 	}
+ }
++
++func TestTheGroupSubscriptionIsDescribedWithoutSecrets(t *testing.T) {
++	relay := &groupCallRelay{TransactionID: 6, SelfPID: 2, HasSelfPID: true, Key: []byte("secret"),
++		Tokens:    [][]byte{[]byte("token0"), []byte("token1")},
++		Endpoints: []groupCallRelayEndpoint{{RelayName: "gig4c01", TokenID: 0}, {RelayName: "gru2c02", TokenID: 1}}}
++	got := describeGroupSubscription("gru2c02", relay, []uint32{3, 4})
++	if got != "relay=gru2c02 tx=6 token=1 self_pid=2 subscribed=[3,4]" {
++		t.Fatalf("got %q", got)
++	}
++	if describeGroupSubscription("x", nil, nil) != "none" {
++		t.Fatal("no relay is none")
++	}
++}
++
++func TestTheRelayTrafficNamesTheSTUNTypesItGot(t *testing.T) {
++	var traffic relayTraffic
++	if traffic.stunTypeTotals() != "" {
++		t.Fatal("no STUN yet")
++	}
++	for _, messageType := range []uint16{0x0802, 0x0103, 0x0802, 0x0113} {
++		traffic.noteStunType(messageType)
++	}
++	if got := traffic.stunTypeTotals(); got != "0x0103=1 0x0113=1 0x0802=2" {
++		t.Fatalf("got %q", got)
++	}
++}
+diff --git a/relay_traffic.go b/relay_traffic.go
+index 1011bed..4aa4de7 100644
+--- a/relay_traffic.go
++++ b/relay_traffic.go
+@@ -3,6 +3,9 @@ package meowcaller
+ import (
+ 	"context"
+ 	"fmt"
++	"sort"
++	"strings"
++	"sync"
+ 	"sync/atomic"
+ 	"time"
+ 
+@@ -18,6 +21,37 @@ const relayTrafficInterval = 5 * time.Second
+ // seconds" and whether SRTCP or STUN kept coming. It only counts.
+ type relayTraffic struct {
+ 	rtp, rtcp, stun, other atomic.Uint64
++
++	// The STUN message types the relay answered with, so "stun=10" says
++	// whether that was allocate-success and pong, or an allocate error.
++	stunMu    sync.Mutex
++	stunTypes map[uint16]uint64
++}
++
++// noteStunType counts one STUN message type the relay sent.
++func (t *relayTraffic) noteStunType(messageType uint16) {
++	t.stunMu.Lock()
++	defer t.stunMu.Unlock()
++	if t.stunTypes == nil {
++		t.stunTypes = make(map[uint16]uint64)
++	}
++	t.stunTypes[messageType]++
++}
++
++// stunTypeTotals is "0x0103=5 0x0802=5", sorted by type; "" when none came.
++func (t *relayTraffic) stunTypeTotals() string {
++	t.stunMu.Lock()
++	defer t.stunMu.Unlock()
++	types := make([]int, 0, len(t.stunTypes))
++	for messageType := range t.stunTypes {
++		types = append(types, int(messageType))
++	}
++	sort.Ints(types)
++	parts := make([]string, 0, len(types))
++	for _, messageType := range types {
++		parts = append(parts, fmt.Sprintf("0x%04x=%d", messageType, t.stunTypes[uint16(messageType)]))
++	}
++	return strings.Join(parts, " ")
+ }
+ 
+ type relayTrafficCounts struct{ rtp, rtcp, stun, other uint64 }
+@@ -63,6 +97,7 @@ func (t *relayTraffic) watch(ctx context.Context, log zerolog.Logger, interval t
+ 		log.Info().
+ 			Str("last_window", now.since(previous).String()).
+ 			Str("totals", now.String()).
++			Str("stun_types", t.stunTypeTotals()).
+ 			Msg("relay traffic by kind")
+ 		previous = now
+ 	}
