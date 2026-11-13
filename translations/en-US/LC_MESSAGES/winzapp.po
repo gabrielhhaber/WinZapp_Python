@@ -2424,6 +2424,66 @@ msgid "Global hotkey to answer an incoming call from any window"
 msgstr "Global hotkey to answer an incoming call from any window"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_failed"
+msgid ""
+"Desktop audio sharing is unavailable or stopped because a source could not "
+"be captured."
+msgstr ""
+"Desktop audio sharing is unavailable or stopped because a source could not "
+"be captured."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_no_app"
+msgid "No application audio"
+msgstr "No application audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_nvda"
+msgid "Include &NVDA audio"
+msgstr "Include &NVDA audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_share"
+msgid "Share &desktop audio…"
+msgstr "Share &desktop audio…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_source"
+msgid "Audio &source"
+msgstr "Audio &source"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_started"
+msgid "Desktop audio sharing started."
+msgstr "Desktop audio sharing started."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_stop"
+msgid "Stop sharing &desktop audio"
+msgstr "Stop sharing &desktop audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_stopped"
+msgid "Desktop audio sharing stopped."
+msgstr "Desktop audio sharing stopped."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_system"
+msgid "Share &system audio"
+msgstr "Share &system audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_title"
+msgid "Share desktop audio"
+msgstr "Share desktop audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_desktop_volume"
+msgid "Sharing &volume (%)"
+msgstr "Sharing &volume (%)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_end_hotkey_label"
 msgid "Global hotkey to reject an incoming call or end the call in progress"
 msgstr "Global hotkey to reject an incoming call or end the call in progress"
@@ -19812,6 +19872,16 @@ msgstr "unknown error"
 msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr "Voice calling is not available in this chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted"
+msgid "Microphone muted."
+msgstr "Microphone muted."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_unmuted"
+msgid "Microphone unmuted."
+msgstr "Microphone unmuted."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 msgctxt "voice_call_mute_button"

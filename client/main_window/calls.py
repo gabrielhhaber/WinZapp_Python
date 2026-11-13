@@ -367,6 +367,7 @@ class CallsMixin:
                 exclusive_output=exclusive_output,
                 echo_cancellation=echo_cancellation,
                 noise_suppression=noise_suppression,
+                neonize_audio=bool(getattr(self, "_uses_neonize", lambda: False)()),
             ),
         )
         return audio, session_name
@@ -514,6 +515,9 @@ class CallsMixin:
             retire_media_epoch(self, (getattr(self, '_active_voice_call', None) or {}).get('media_epoch'))
             stop_call_tone(self)
         session = getattr(self, "_call_audio_session", None)
+        stop_share = getattr(session, "stop_desktop_audio", None)
+        if stop_share is not None:
+            stop_share()
         if session is None:
             self._stop_incoming_call_audio_monitor()
         if session is not None and grace_seconds > 0:
@@ -1066,6 +1070,9 @@ class CallsMixin:
         threading.Thread(target=_worker, daemon=True).start()
 
     def end_active_call(self, _event=None):
+        stop_share = getattr(getattr(self, "_call_audio_session", None), "stop_desktop_audio", None)
+        if stop_share is not None:
+            stop_share()
         # Marked here, on the UI thread, before the worker even starts: an
         # outgoing offer no longer holds _call_action_lock while it blocks
         # (#275), so hanging up can reach WhatsApp before the offer does and
@@ -1177,6 +1184,9 @@ class CallsMixin:
         leaves this side's camera off until the user turns it on. An upgrade
         the user asked for (promote_call_to_video) starts its own camera.
         """
+        stop_share = getattr(getattr(self, "_call_audio_session", None), "stop_desktop_audio", None)
+        if stop_share is not None:
+            stop_share()
         self.output(self.i18n.t("voice_call_upgraded_to_video"), interrupt=True)
         # Hides the promote button, moving focus off it first if it had it.
         self._sync_voice_call_bar()
@@ -1737,18 +1747,14 @@ class CallsMixin:
             # so the main window's deactivation is not coming to do it.
             self._retry_pending_language_switch()
             return
-        muted = bool(
-            getattr(getattr(self, "_call_audio_session", None), "microphone_muted", False)
-        )
-        mute_label = self.i18n.t(
-            "voice_call_unmute_button" if muted else "voice_call_mute_button"
-        )
+        CallsMixin._refresh_call_mute_button(self)
         button = getattr(self, "voice_call_window_mute_button", None)
-        if button is not None:
-            button.SetLabel(mute_label)
         name = active.get("name") or active.get("peer_jid") or self.i18n.t("unknown_contact")
         active_text = self.i18n.t(active_call_label_key(active)).format(name=name)
         is_video = bool(active.get("is_video"))
+        sync_share = getattr(self, "_sync_call_desktop_audio_button", None)
+        if sync_share is not None:
+            sync_share(active)
         self.call_video_image.Show(is_video)
         promote_button = getattr(self, "voice_call_window_promote_button", None)
         if promote_button is not None:
@@ -1805,12 +1811,23 @@ class CallsMixin:
             if button is not None:
                 button.SetFocus()
 
+    def _refresh_call_mute_button(self):
+        button = getattr(self, "voice_call_window_mute_button", None)
+        if button is not None:
+            session = getattr(self, "_call_audio_session", None)
+            muted = getattr(session, "microphone_muted", False)
+            button.SetLabel(self.i18n.t(
+                "voice_call_unmute_button" if muted else "voice_call_mute_button"))
+
     def toggle_call_microphone(self, _event=None):
         session = getattr(self, "_call_audio_session", None)
         if session is None:
             return
         session.set_microphone_muted(not session.microphone_muted)
-        self._sync_voice_call_bar()
+        CallsMixin._refresh_call_mute_button(self)
+        t = self.i18n.t
+        self.output(t("voice_call_microphone_muted") if session.microphone_muted
+                    else t("voice_call_microphone_unmuted"), interrupt=True)
 
     def on_voice_call_state_event(self, event: dict):
         """Apply the complete call lifecycle emitted by the page CallStore."""

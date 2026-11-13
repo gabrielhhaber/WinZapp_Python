@@ -88,6 +88,30 @@ def _inline_call_after(monkeypatch):
     monkeypatch.setattr(calls_module.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
 
 
+def test_mute_shortcut_announces_both_states_without_resyncing_the_call_window():
+    audio = SimpleNamespace(microphone_muted=False)
+    audio.set_microphone_muted = lambda muted: setattr(audio, "microphone_muted", muted)
+    labels = []
+    spoken = []
+    window = SimpleNamespace(
+        _call_audio_session=audio,
+        voice_call_window_mute_button=SimpleNamespace(SetLabel=labels.append),
+        i18n=SimpleNamespace(t=lambda key: key),
+        output=lambda text, *, interrupt: spoken.append((text, interrupt)),
+    )
+
+    CallsMixin.toggle_call_microphone(window, object())
+    assert audio.microphone_muted is True
+    CallsMixin.toggle_call_microphone(window, object())
+    assert audio.microphone_muted is False
+
+    assert labels == ["voice_call_unmute_button", "voice_call_mute_button"]
+    assert spoken == [
+        ("voice_call_microphone_muted", True),
+        ("voice_call_microphone_unmuted", True),
+    ]
+
+
 def test_a_connected_call_offers_participants():
     window = _CallWindow()
     window._sync_voice_call_bar()

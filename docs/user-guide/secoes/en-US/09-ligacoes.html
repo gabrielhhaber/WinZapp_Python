@@ -55,3 +55,8 @@
 <h3>Call audio continuity</h3>
 <p>Neonize keeps delayed audio, camera work and device changes with the call and stream that started them. Pending data from an ended or replaced stream is discarded, and media backlog is limited. A temporary failure to forward a frame to the client does not permanently stop audio reading. Reopening the output prevents a retired stream from consuming the new stream's audio; an echo-reference failure does not silence audio already prepared for playback. An ambiguous partial WASAPI device-name match keeps the original API instead of choosing an arbitrary match.</p>
 <p>For troubleshooting, Neonize call logs include numerical signal summaries without recording audio content. They distinguish missing samples, digital silence and signal levels; they do not prove that speech was understood or heard by the other person.</p>
+
+<h3>Share desktop audio</h3>
+<p>During a voice call, use Share desktop audio to send system sound, NVDA audio, or both. Both options start off. Use Stop sharing desktop audio to end sharing independently of the microphone.</p>
+<p>Choose system audio or an application with an audio session. Include NVDA separately and adjust the sharing volume as needed.</p>
+<p>In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state.</p>

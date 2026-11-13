@@ -1136,6 +1136,17 @@ def test_jitter_buffer_deepens_when_underruns_keep_recurring():
     assert buffer.buffered_samples <= buffer._max_samples
 
 
+def test_neonize_buffer_preserves_four_sixty_ms_packets_in_one_burst():
+    rate = CALL_SAMPLE_RATE
+    packet = np.full(rate * 60 // 1000, 0.5, dtype=np.float32)
+    buffer = _OutputJitterBuffer(rate, neonize=True)
+    for _ in range(4):
+        buffer.push(packet)
+    for _ in range(4):
+        assert _fill(buffer, frames=len(packet))[-1] == 0.5
+    assert buffer.dropped_samples == buffer.underruns == 0
+
+
 def test_jitter_buffer_gives_the_latency_back_while_playback_stays_clean():
     """The deeper target is borrowed, not kept: a line that recovers must not
     pay a permanently higher one-way latency for the rest of the call."""
