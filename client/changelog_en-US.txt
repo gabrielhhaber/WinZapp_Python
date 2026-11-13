@@ -10,7 +10,9 @@ WHAT'S NEW
 
 - In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.
 
-- During a voice call, use Share desktop audio to send system sound, NVDA audio, or both. Both options start off. Use Stop sharing desktop audio to end sharing independently of the microphone.
+- During a voice call on Windows 11, use Share desktop audio to send the system sound or the sound of a single application, with or without NVDA audio, at the volume you choose. Nothing is selected at first. Muting the microphone does not stop the share, and changing the call's audio devices keeps it going. Use Stop sharing desktop audio to end sharing independently of the microphone.
+
+- Neonize: in calls, the other person's voice is buffered a little longer (about 60 ms) to reduce breakups when audio arrives in bursts.
 
 - Message translation: press Shift+Enter on a text message in the message list (the shortcut can be changed), or use its context menu. Set it up in Settings > Online AI: Transcriptions and Descriptions > Message translation: the provider (your AI providers, Grok, or your own OpenAI- or Anthropic-compatible address), the model, the target language, and whether the translation replaces the text, follows it or opens in a separate window. Optional automatic translation of received messages, in all chats or only the ones you turn on, with a maximum message age and a daily limit; it pauses for an hour if the provider refuses the key, quota or credit. Locked chats are never translated automatically, and translating a message from one asks for confirmation every time. The kinds of media that online AI handles are now in the "Types of media handled..." window, on the same page.
 

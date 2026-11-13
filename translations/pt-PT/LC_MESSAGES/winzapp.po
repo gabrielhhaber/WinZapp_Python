@@ -2469,6 +2469,7 @@ msgstr ""
 "Tecla de atalho global para atender uma chamada recebida em qualquer janela"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_failed"
 msgid ""
 "Desktop audio sharing is unavailable or stopped because a source could not "
@@ -2478,11 +2479,13 @@ msgstr ""
 "porque não foi possível captar uma fonte."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_no_app"
 msgid "No application audio"
 msgstr "Sem áudio de aplicações"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_nvda"
 msgid "Include &NVDA audio"
 msgstr "Incluir áudio do &NVDA"
@@ -2494,36 +2497,43 @@ msgid "Share &desktop audio…"
 msgstr "Partilhar áudio do &ambiente de trabalho…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_source"
 msgid "Audio &source"
 msgstr "&Fonte de áudio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_started"
 msgid "Desktop audio sharing started."
 msgstr "A partilha de áudio do ambiente de trabalho começou."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_stop"
 msgid "Stop sharing &desktop audio"
 msgstr "Parar de partilhar áudio do &ambiente de trabalho"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py client/main_window/calls.py
 msgctxt "call_desktop_stopped"
 msgid "Desktop audio sharing stopped."
 msgstr "A partilha de áudio do ambiente de trabalho terminou."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_system"
-msgid "Share &system audio"
-msgstr "Partilhar áudio do &sistema"
+msgid "Share system audio"
+msgstr "Partilhar áudio do sistema"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_title"
 msgid "Share desktop audio"
 msgstr "Partilhar áudio do ambiente de trabalho"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_volume"
 msgid "Sharing &volume (%)"
 msgstr "&Volume da partilha (%)"
@@ -20141,6 +20151,12 @@ msgstr "A chamada de voz não está disponível nesta conversa."
 msgctxt "voice_call_microphone_muted"
 msgid "Microphone muted."
 msgstr "Microfone silenciado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted_sharing"
+msgid "Microphone muted. Desktop audio is still being shared."
+msgstr ""
+"Microfone silenciado. A partilha de áudio do ambiente de trabalho continua."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_unmuted"

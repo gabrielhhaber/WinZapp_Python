@@ -17,10 +17,23 @@ FRAME_TICKS = 200_000
 CAPTURE_DELAY = 600_000
 MAX_SOURCES = 16
 PROCESS_ACCESS_DENIED = 0x80070005
+# TimelineMixer halves every source to leave headroom for summing them, so the
+# picker's 200% default plays the shared audio at its original level.
+DEFAULT_VOLUME = 200
 
 
 def desktop_audio_supported():
     return sys.platform == "win32" and sys.getwindowsversion().build >= 20348
+
+
+def share_button_visible(supported, active, running, sharing, announced_state):
+    """Whether the call window offers Share/Stop sharing desktop audio.
+
+    Only a running voice call qualifies, and a new share only once the call is
+    connected; an existing share keeps its Stop button while it lasts.
+    """
+    return bool(supported and active and not active.get("is_video") and running
+                and (sharing or announced_state == "ACTIVE"))
 
 
 def mix_desktop_pcm(microphone, desktop, volume=100):
@@ -43,7 +56,7 @@ def mix_desktop_pcm(microphone, desktop, volume=100):
 
 class CallDesktopAudio:
     """A bounded, disposable worker. The call sender remains the only emitter."""
-    def __init__(self, system, nvda, on_state, *, app=None, volume=200):
+    def __init__(self, system, nvda, on_state, *, app=None, volume=DEFAULT_VOLUME):
         if not (system or nvda or app) or (system and app):
             raise ValueError("Select at least one desktop audio source")
         self.system, self.nvda, self.on_state = system, nvda, on_state
@@ -51,6 +64,11 @@ class CallDesktopAudio:
         self._stop = threading.Event()
         self._frames = queue.Queue(maxsize=4)
         self._remainder = b""
+
+    @property
+    def settings(self):
+        """(system, nvda, app, volume): what a replacement session shares again."""
+        return self.system, self.nvda, self.app, self.volume
 
     def start(self):
         threading.Thread(target=self._run, name="call-desktop-audio", daemon=True).start()
@@ -94,7 +112,8 @@ class CallDesktopAudio:
         streams = {}
         failed = False
         try:
-            backend, api = WasapiBackend(), _ProcessAPI()
+            backend = WasapiBackend()
+            api = _ProcessAPI()
             if self.nvda:
                 target = discover_nvda(api=api)
                 if target is None:
@@ -163,10 +182,12 @@ class CallDesktopAudio:
         if len(pids) > MAX_SOURCES:
             raise WasapiError("Too many active desktop audio sources")
         for pid in (streams.keys() - {None}) - pids:
-            slot, stream = streams[pid]
-            stream.close()
-            del streams[pid]
+            slot, stream = streams.pop(pid)
             mixer.reset_source(slot)
+            try:
+                stream.close()
+            except (OSError, RuntimeError):
+                logging.exception("[call_audio] desktop source cleanup failed")
         free_slots = sorted(set(range(1, MAX_SOURCES + 1)) - {slot for slot, _ in streams.values()})
         for pid, slot in zip(sorted(pids - streams.keys()), free_slots):
             if self._stop.is_set():

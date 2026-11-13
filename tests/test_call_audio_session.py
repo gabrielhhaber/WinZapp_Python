@@ -1147,6 +1147,19 @@ def test_neonize_buffer_preserves_four_sixty_ms_packets_in_one_burst():
     assert buffer.dropped_samples == buffer.underruns == 0
 
 
+def test_only_the_neonize_engine_pays_the_deeper_output_buffer():
+    from core.call_audio import (CALL_OUTPUT_MAX_BUFFER_MS, CALL_OUTPUT_PREBUFFER_MS,
+                                 CALL_OUTPUT_TARGET_MAX_MS, output_buffer_profile)
+
+    assert output_buffer_profile(False) == (
+        CALL_OUTPUT_PREBUFFER_MS, CALL_OUTPUT_TARGET_MAX_MS, CALL_OUTPUT_MAX_BUFFER_MS)
+    prebuffer, target_max, cap = output_buffer_profile(True)
+    assert prebuffer == 2 * 60 and prebuffer <= target_max < cap
+    rate = CALL_SAMPLE_RATE
+    assert _OutputJitterBuffer(rate)._prebuffer_samples == rate * CALL_OUTPUT_PREBUFFER_MS // 1000
+    assert _OutputJitterBuffer(rate, neonize=True)._prebuffer_samples == rate * prebuffer // 1000
+
+
 def test_jitter_buffer_gives_the_latency_back_while_playback_stays_clean():
     """The deeper target is borrowed, not kept: a line that recovers must not
     pay a permanently higher one-way latency for the rest of the call."""

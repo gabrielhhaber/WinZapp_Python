@@ -11,6 +11,7 @@ import threading
 import time
 import wx
 from main_window.typing_feedback import stop_typing_for_capture
+from main_window.call_desktop_audio import call_desktop_share_settings, stop_call_desktop_audio
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
     active_call_label_key,
@@ -514,10 +515,8 @@ class CallsMixin:
         if not keep_call:
             retire_media_epoch(self, (getattr(self, '_active_voice_call', None) or {}).get('media_epoch'))
             stop_call_tone(self)
+        stop_call_desktop_audio(self)
         session = getattr(self, "_call_audio_session", None)
-        stop_share = getattr(session, "stop_desktop_audio", None)
-        if stop_share is not None:
-            stop_share()
         if session is None:
             self._stop_incoming_call_audio_monitor()
         if session is not None and grace_seconds > 0:
@@ -580,6 +579,9 @@ class CallsMixin:
                     # switch was asked for: a mute toggled in between belongs
                     # to the session being replaced and must carry over too.
                     muted = bool(getattr(self._call_audio_session, "microphone_muted", False))
+                    # A desktop share belongs to the session too; the new
+                    # session shares the same sources again (UI thread).
+                    share = call_desktop_share_settings(self)
                     self._stop_voice_call_audio(keep_call=True)
                     last_error = None
                     for attempt in range(3):
@@ -598,6 +600,8 @@ class CallsMixin:
                                 expected_call=active,
                             ):
                                 logging.info("[call_audio] active call devices switched")
+                                if share is not None:
+                                    wx.CallAfter(self._resume_call_desktop_audio, active, share)
                             last_error = None
                             break
                         except Exception as exc:
@@ -1070,9 +1074,7 @@ class CallsMixin:
         threading.Thread(target=_worker, daemon=True).start()
 
     def end_active_call(self, _event=None):
-        stop_share = getattr(getattr(self, "_call_audio_session", None), "stop_desktop_audio", None)
-        if stop_share is not None:
-            stop_share()
+        stop_call_desktop_audio(self)
         # Marked here, on the UI thread, before the worker even starts: an
         # outgoing offer no longer holds _call_action_lock while it blocks
         # (#275), so hanging up can reach WhatsApp before the offer does and
@@ -1184,10 +1186,12 @@ class CallsMixin:
         leaves this side's camera off until the user turns it on. An upgrade
         the user asked for (promote_call_to_video) starts its own camera.
         """
-        stop_share = getattr(getattr(self, "_call_audio_session", None), "stop_desktop_audio", None)
-        if stop_share is not None:
-            stop_share()
+        # Desktop audio is a voice-call feature: the share ends here, and is
+        # said after the upgrade so that announcement is not cut off.
+        share_stopped = stop_call_desktop_audio(self)
         self.output(self.i18n.t("voice_call_upgraded_to_video"), interrupt=True)
+        if share_stopped:
+            self.output(self.i18n.t("call_desktop_stopped"), interrupt=False)
         # Hides the promote button, moving focus off it first if it had it.
         self._sync_voice_call_bar()
         if getattr(self, "_call_camera_capture", None) is not None:
@@ -1827,8 +1831,14 @@ class CallsMixin:
         session.set_microphone_muted(not session.microphone_muted)
         CallsMixin._refresh_call_mute_button(self)
         t = self.i18n.t
-        self.output(t("voice_call_microphone_muted") if session.microphone_muted
-                    else t("voice_call_microphone_unmuted"), interrupt=True)
+        if not session.microphone_muted:
+            text = t("voice_call_microphone_unmuted")
+        elif getattr(session, "desktop_audio", None) is not None:
+            # Mute silences only the microphone; the shared audio goes on.
+            text = t("voice_call_microphone_muted_sharing")
+        else:
+            text = t("voice_call_microphone_muted")
+        self.output(text, interrupt=True)
 
     def on_voice_call_state_event(self, event: dict):
         """Apply the complete call lifecycle emitted by the page CallStore."""

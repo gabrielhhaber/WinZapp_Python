@@ -77,6 +77,17 @@ CALL_OUTPUT_TARGET_DECAY_MS = 30_000
 # starvation and resumption are ramped rather than cut.
 CALL_OUTPUT_FADE_MS = 5
 CALL_OUTPUT_UNDERRUN_LOG_EVERY = 50
+# The Neonize engine (neonize_bridge/call_media.py) decodes the peer's Opus in
+# native 60 ms blocks and hands them over Socket.IO, sometimes several at once.
+# The 60 ms prebuffer above is a single such block, so one late block already
+# starves the device; these values leave room for two blocks of prebuffer and
+# a target that can grow to four. The cost is ~60 ms more one-way latency on
+# every Neonize call (none on WPPConnect, whose page tap delivers ~21 ms
+# batches). Logged once per session ("output profile") so a report shows which
+# profile played.
+CALL_OUTPUT_NEONIZE_PREBUFFER_MS = 120
+CALL_OUTPUT_NEONIZE_TARGET_MAX_MS = 240
+CALL_OUTPUT_NEONIZE_MAX_BUFFER_MS = 360
 
 
 @dataclass(frozen=True)
@@ -155,6 +166,14 @@ def _pcm16_float32(pcm: bytes) -> np.ndarray:
     return np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
 
 
+def output_buffer_profile(neonize: bool) -> tuple[int, int, int]:
+    """Prebuffer, adaptive-target ceiling and hard cap of the playback reservoir, in ms."""
+    if neonize:
+        return (CALL_OUTPUT_NEONIZE_PREBUFFER_MS, CALL_OUTPUT_NEONIZE_TARGET_MAX_MS,
+                CALL_OUTPUT_NEONIZE_MAX_BUFFER_MS)
+    return CALL_OUTPUT_PREBUFFER_MS, CALL_OUTPUT_TARGET_MAX_MS, CALL_OUTPUT_MAX_BUFFER_MS
+
+
 class _OutputJitterBuffer:
     """Bounded reservoir of float32 mono samples between network and device.
 
@@ -204,10 +223,7 @@ class _OutputJitterBuffer:
         with self._lock:
             rate_changed = rate != self._rate
             self._rate = rate
-            # Neonize delivers native 60 ms blocks, sometimes in bursts. Leave
-            # room for four blocks arriving before the next device callback.
-            prebuffer, target_max, capacity = (120, 240, 360) if self._neonize else (
-                CALL_OUTPUT_PREBUFFER_MS, CALL_OUTPUT_TARGET_MAX_MS, CALL_OUTPUT_MAX_BUFFER_MS)
+            prebuffer, target_max, capacity = output_buffer_profile(self._neonize)
             self._prebuffer_samples = max(1, rate * prebuffer // 1000)
             self._target_step_samples = max(1, rate * CALL_OUTPUT_TARGET_STEP_MS // 1000)
             self._max_target_samples = max(
@@ -404,6 +420,9 @@ class CallAudioSession:
         )
         # The reservoir the output callback drains; the player thread fills it.
         self._output_buffer = _OutputJitterBuffer(self._output_rate, neonize=config.neonize_audio)
+        logging.info("[call_audio] output profile=%s prebuffer/target/cap=%s ms",
+                     "neonize" if config.neonize_audio else "default",
+                     "/".join(map(str, output_buffer_profile(config.neonize_audio))))
         self._output_resampler = StreamingMonoResampler()
         self._output_underruns_logged = 0
         self._stop_event = threading.Event()

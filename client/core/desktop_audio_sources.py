@@ -2,9 +2,10 @@
 from contextlib import ExitStack
 import ctypes as C
 from dataclasses import dataclass
+import logging
 import os
 
-from .wasapi_capture import GUID, I32, P, U32, WasapiError
+from .wasapi_capture import GUID, I32, P, U32, WasapiBackend, WasapiError
 from .wasapi_process_capture import _PinnedProcess, _ProcessAPI
 
 SESSION_MANAGER = GUID.parse("77aa99a0-1bd6-484f-8bc7-2c654c9a9b6f")
@@ -71,6 +72,25 @@ def list_audio_apps(backend):
         finally:
             target.release()
     return sorted(choices, key=lambda app: (app.name.casefold(), app.pid))
+
+
+def load_audio_apps(backend_factory=WasapiBackend):
+    """list_audio_apps() with its own WASAPI backend, never raising.
+
+    Call it from a worker thread: WasapiBackend asks COM for the
+    multithreaded apartment, and wx's UI thread is already single-threaded
+    (OleInitialize), so building it there fails with RPC_E_CHANGED_MODE and
+    the picker would never list an application.
+    """
+    try:
+        backend = backend_factory()
+        try:
+            return list_audio_apps(backend)
+        finally:
+            backend.close()
+    except (OSError, RuntimeError):
+        logging.exception("[call] desktop audio app list unavailable")
+        return []
 
 
 def app_render_roots(rows, pids, current_pid):

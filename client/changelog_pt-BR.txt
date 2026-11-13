@@ -10,7 +10,9 @@ NOVIDADES
 
 - Na janela da chamada, pressione Ctrl+M em qualquer controle para silenciar ou reativar o microfone e ouvir seu estado. A janela da ligação feita mostra o estado e anuncia quando o telefone toca ou a ligação está sendo conectada.
 
-- Durante uma chamada de voz, use Compartilhar áudio da área de trabalho para enviar o áudio do sistema, do NVDA ou ambos. As duas opções começam desmarcadas. Use Parar de compartilhar áudio da área de trabalho para encerrar o compartilhamento independentemente do microfone.
+- Durante uma chamada de voz no Windows 11, use Compartilhar áudio da área de trabalho para enviar o áudio do sistema ou o de um único aplicativo, com ou sem o áudio do NVDA, no volume que você escolher. Nada vem selecionado. Silenciar o microfone não interrompe o compartilhamento, e trocar os dispositivos de áudio da chamada o mantém. Use Parar de compartilhar áudio da área de trabalho para encerrar o compartilhamento independentemente do microfone.
+
+- Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais no buffer (cerca de 60 ms), para reduzir os cortes quando o áudio chega em rajadas.
 
 - Tradução de mensagens: pressione Shift+Enter em uma mensagem de texto da lista de mensagens (o atalho pode ser trocado) ou use o menu de contexto dela. Configure em Configurações > IA online: Transcrições e Descrições > Tradução de mensagens: o provedor (os seus provedores de IA, Grok ou um endereço próprio compatível com OpenAI ou Anthropic), o modelo, o idioma de destino e se a tradução substitui o texto, aparece depois dele ou abre em uma janela separada. Tradução automática opcional das mensagens recebidas, em todas as conversas ou só nas que você ativar, com idade máxima da mensagem e limite diário; ela pausa por uma hora se o provedor recusar a chave, a cota ou o crédito. Conversas trancadas nunca são traduzidas automaticamente, e traduzir uma mensagem delas pede confirmação toda vez. Os tipos de mídia da IA online ficam agora na janela "Tipos de mídia processados...", na mesma página.
 

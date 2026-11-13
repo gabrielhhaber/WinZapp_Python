@@ -10,7 +10,9 @@ YENİLİKLER
 
 - Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.
 
-- Sesli aramada sistem sesini, NVDA sesini veya ikisini birden göndermek için Masaüstü sesini paylaş düğmesini kullanın. İki seçenek de başlangıçta kapalıdır. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.
+- Windows 11'de sesli aramada sistem sesini veya tek bir uygulamanın sesini, NVDA sesiyle ya da onsuz, seçtiğiniz ses düzeyinde göndermek için Masaüstü sesini paylaş düğmesini kullanın. Başlangıçta hiçbir şey seçili değildir. Mikrofonu kapatmak paylaşımı durdurmaz ve aramanın ses aygıtlarını değiştirmek paylaşımı sürdürür. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.
+
+- Neonize: aramalarda karşı tarafın sesi biraz daha uzun süre arabellekte tutuluyor (yaklaşık 60 ms); böylece ses toplu halde geldiğinde kesintiler azalıyor.
 
 - Mesaj çevirisi: mesaj listesindeki bir metin mesajında Shift+Enter tuşlarına basın (kısayol değiştirilebilir) veya mesajın bağlam menüsünü kullanın. Ayarlar > Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme > Mesaj çevirisi bölümünden sağlayıcıyı (yapay zekâ sağlayıcılarınız, Grok veya OpenAI ya da Anthropic uyumlu kendi adresiniz), modeli, hedef dili ve çevirinin metnin yerine mi geçeceğini, ondan sonra mı geleceğini yoksa ayrı bir pencerede mi açılacağını seçin. Alınan mesajlar için isteğe bağlı otomatik çeviri: tüm sohbetlerde ya da yalnızca açtıklarınızda, en fazla mesaj yaşı ve günlük sınırla; sağlayıcı anahtarı, kotayı veya krediyi reddederse bir saat duraklar. Kilitli sohbetler hiçbir zaman otomatik çevrilmez ve bunlardaki bir mesajı çevirmek her seferinde onay ister. Çevrim içi yapay zekânın içerik türleri artık aynı sayfadaki "İşlenecek içerik türleri..." penceresindedir.
 
