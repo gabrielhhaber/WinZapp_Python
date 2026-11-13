@@ -222,6 +222,27 @@ def test_a_400_moves_on_to_the_next_stanza(server, monkeypatch):
     assert [q["type"] for q in server.sent] == ["set", "set", "get"]
 
 
+def test_a_stanza_with_no_answer_in_time_moves_on_too(server, monkeypatch):
+    def send_iq(client, query):
+        server.sent.append(query)
+        if query["type"] == "set" and query["content"][0]["tag"] == "notice":
+            raise remaining.rq.QueryError("timeout", 0)
+        if query["type"] == "set":
+            server.state = "true"
+            return {"tag": "iq"}
+        return _tos_answer(server.state)
+    monkeypatch.setattr(remaining.rq, "send_iq", send_iq)
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 200 and body["response"]["state"] == "ACCEPTED"
+
+
+def test_every_tos_query_has_a_short_timeout():
+    """The client waits 20 s for the accept: three stanzas and a read must fit."""
+    queries = remaining.terms_accept_queries() + [remaining.terms_query()]
+    assert all(q["timeout_ms"] == remaining.TERMS_TIMEOUT_MS for q in queries)
+    assert 4 * remaining.TERMS_TIMEOUT_MS < 20000
+
+
 def test_another_refusal_than_400_stops_at_the_first_stanza(server):
     server.refuse = 500
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
