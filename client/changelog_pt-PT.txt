@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Neonize: aceitar os termos da Meta AI já não falha com erro do WhatsApp. O WinZapp envia agora o aceite no mesmo formato que o WhatsApp Web usa para este aviso e só confirma depois de ler de novo que o aviso consta como aceite.
+
 - Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.
 
 - Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.

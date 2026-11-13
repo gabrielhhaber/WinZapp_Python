@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize: Meta AI şartlarını kabul etmek artık bir WhatsApp hatasıyla başarısız olmuyor. WinZapp kabulü artık WhatsApp Web'in bu bildirim için kullandığı biçimde gönderiyor ve yalnızca bildirimin kabul edilmiş olarak kayıtlı olduğunu yeniden okuduktan sonra onaylıyor.
+
 - Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.
 
 - Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.

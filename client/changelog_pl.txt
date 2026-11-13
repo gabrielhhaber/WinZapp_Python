@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Neonize: akceptowanie warunków Meta AI nie kończy się już błędem WhatsApp. WinZapp wysyła teraz akceptację w tym samym formacie, którego WhatsApp Web używa dla tego powiadomienia, i potwierdza ją dopiero po ponownym odczytaniu, że powiadomienie jest zapisane jako zaakceptowane.
+
 - Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.
 
 - W oknie połączenia naciśnij Ctrl+M na dowolnym elemencie, aby wyciszyć lub włączyć mikrofon i usłyszeć jego stan. Okno połączenia wychodzącego pokazuje stan i odczytuje informację o dzwonieniu lub nawiązywaniu połączenia.
