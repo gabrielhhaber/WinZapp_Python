@@ -137,22 +137,27 @@ def test_the_terms_are_read_with_whatsapp_webs_query():
     assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
 
 
-def test_the_terms_are_accepted_first_with_the_state_the_read_gives_back():
-    first = remaining.terms_accept_queries()[0]
-    assert (first["namespace"], first["type"]) == ("tos", "set")
-    assert first["content"] == [
-        {"tag": "notice", "attrs": {"id": "20250502", "state": "true"}}]
+def test_the_terms_are_accepted_with_whatsapp_webs_disclosure_stanza():
+    """What WhatsApp Web builds (WASmaxUserNoticeSetResultRPC), read over CDP:
+    <iq to="s.whatsapp.net" xmlns="tos" type="set"><trackable id="20250502" result="5"/></iq>"""
+    query = remaining.terms_stage_query(remaining.TERMS_STAGE_ACCEPTED)
+    assert (query["namespace"], query["type"]) == ("tos", "set")
+    assert query["content"] == [
+        {"tag": "trackable", "attrs": {"id": "20250502", "result": "5"}}]
 
 
-def test_the_stanzas_whatsapp_refused_or_ignored_are_not_tried_again():
-    """2026-11-13: session_update got 400; the stage-5 notice (bare or in a request)
-    changed nothing or got no answer."""
-    for query in remaining.terms_accept_queries():
-        notice = query["content"][0]
-        if notice["tag"] == "request":
-            notice = notice["content"][0]
-        assert notice["attrs"].get("state") == "true"
-        assert (query["content"][0].get("attrs") or {}).get("type") != "session_update"
+def test_the_shown_stage_is_whatsapp_webs_shown_0():
+    query = remaining.terms_stage_query(remaining.TERMS_STAGE_SHOWN)
+    assert query["content"] == [
+        {"tag": "trackable", "attrs": {"id": "20250502", "result": "105"}}]
+
+
+def test_the_legacy_tos_formats_are_not_sent_any_more():
+    """2026-11-13: session_update got 400; a notice with stage or state changed
+    nothing or got no answer. The Meta AI notice is a disclosure: trackable only."""
+    for stage in (remaining.TERMS_STAGE_SHOWN, remaining.TERMS_STAGE_ACCEPTED):
+        (node,) = remaining.terms_stage_query(stage)["content"]
+        assert node["tag"] == "trackable"
 
 
 @pytest.mark.parametrize("answer,expected", [
@@ -194,11 +199,23 @@ def test_a_refused_read_says_unknown_and_does_not_block_the_send(server):
     assert (status, body["response"]["state"]) == (200, "UNKNOWN")
 
 
-def test_accepting_sends_the_update_and_confirms_with_a_new_read(server):
+def _stages(sent):
+    return [q["content"][0]["attrs"]["result"] for q in sent if q["type"] == "set"]
+
+
+def test_accepting_sends_shown_then_accepted_and_confirms_with_a_new_read(server):
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 200
     assert body["response"] == {"noticeId": "20250502", "state": "ACCEPTED"}
-    assert [q["type"] for q in server.sent] == ["get", "set", "get"]
+    assert [q["type"] for q in server.sent] == ["get", "set", "set", "get"]
+    assert _stages(server.sent) == ["105", "5"]
+
+
+def test_an_accept_already_recorded_sends_nothing(server):
+    server.state = "true"
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 200 and body["response"]["state"] == "ACCEPTED"
+    assert [q["type"] for q in server.sent] == ["get"]
 
 
 def test_an_accept_whatsapp_did_not_record_is_not_a_success(server, monkeypatch):
@@ -207,66 +224,58 @@ def test_an_accept_whatsapp_did_not_record_is_not_a_success(server, monkeypatch)
     monkeypatch.setattr(remaining.rq, "send_iq", server.send_iq)
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 409 and body["response"]["state"] == "NOT_ACCEPTED"
+    # read again after the delay before giving up
+    assert [q["type"] for q in server.sent] == ["get", "set", "set", "get", "get"]
 
 
-def test_a_400_moves_on_to_the_next_stanza(server, monkeypatch):
+def test_a_refused_shown_does_not_stop_the_accept(server, monkeypatch):
     def send_iq(client, query):
-        server.sent.append(query)
-        content = query["content"][0]
-        if query["type"] == "set" and content["tag"] == "notice":
+        if query["type"] == "set" and query["content"][0]["attrs"]["result"] == "105":
+            server.sent.append(query)
             raise remaining.rq.QueryError("bad-request", 400)
-        if query["type"] == "set":
-            server.state = "true"
-            return {"tag": "iq"}
-        return _tos_answer(server.state)
+        return _Server.send_iq(server, client, query)
     monkeypatch.setattr(remaining.rq, "send_iq", send_iq)
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 200 and body["response"]["state"] == "ACCEPTED"
-    assert [q["type"] for q in server.sent] == ["get", "set", "set", "get"]
+    assert _stages(server.sent) == ["105", "5"]
 
 
-def test_a_stanza_with_no_answer_in_time_moves_on_too(server, monkeypatch):
+def test_a_refused_read_before_still_accepts(server, monkeypatch):
+    reads = []
+
     def send_iq(client, query):
-        server.sent.append(query)
-        if query["type"] == "set" and query["content"][0]["tag"] == "notice":
+        if query["type"] == "get" and not reads:
+            reads.append(query)
             raise remaining.rq.QueryError("timeout", 0)
-        if query["type"] == "set":
-            server.state = "true"
-            return {"tag": "iq"}
-        return _tos_answer(server.state)
+        return _Server.send_iq(server, client, query)
     monkeypatch.setattr(remaining.rq, "send_iq", send_iq)
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 200 and body["response"]["state"] == "ACCEPTED"
+    assert _stages(server.sent) == ["105", "5"]
 
 
 def test_the_notice_attributes_are_logged_for_the_read():
     answer = _tos_answer("false")
-    assert remaining.terms_notices(answer) == [{"id": "20250502", "state": "false"}] or \
-        remaining.terms_notices(answer)[0]["state"] == "false"
+    assert remaining.terms_notices(answer) == [{"id": "20250502", "state": "false"}]
     assert remaining.terms_notices({"tag": "iq", "content": [{"tag": "x"}]}) == [
         "no tos node; holds x"]
 
 
-def test_every_tos_query_has_a_short_timeout():
-    """The client waits 20 s for the accept: three stanzas and a read must fit."""
-    queries = remaining.terms_accept_queries() + [remaining.terms_query()]
+def test_every_tos_query_fits_in_the_time_the_client_waits():
+    """The client waits 20 s for the accept: three reads, two stages and the
+    re-read delay must fit."""
+    queries = [remaining.terms_query()] + [
+        remaining.terms_stage_query(stage)
+        for stage in (remaining.TERMS_STAGE_SHOWN, remaining.TERMS_STAGE_ACCEPTED)]
     assert all(q["timeout_ms"] == remaining.TERMS_TIMEOUT_MS for q in queries)
-    assert 5 * remaining.TERMS_TIMEOUT_MS < 20000
-
-
-def test_another_refusal_than_400_stops_at_the_first_stanza(server):
-    server.refuse = 500
-    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
-    assert status == 502 and body["code"] == "meta_ai_terms_refused"
-    assert [q["type"] for q in server.sent].count("set") == 1
+    assert 5 * remaining.TERMS_TIMEOUT_MS + remaining.TERMS_REREAD_DELAY_SECONDS * 1000 < 20000
 
 
 def test_a_refused_accept_answers_502(server):
     server.refuse = 400
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 502 and body["code"] == "meta_ai_terms_refused"
-    assert [q["type"] for q in server.sent].count("set") == len(
-        remaining.terms_accept_queries())
+    assert _stages(server.sent) == ["105", "5"]
 
 
 def test_accepting_needs_a_connection(server):
