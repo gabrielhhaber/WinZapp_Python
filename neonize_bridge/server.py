@@ -179,6 +179,22 @@ def jid_text(jid) -> str:
     return f"{jid.User}@{jid.Server}"
 
 
+
+def connect_until_stopped(cli):
+    """Runs the client's event loop until stop(). When the loop fails instead,
+    the Go client may still hold the WhatsApp socket: it is disconnected, or
+    the session started again after this would open a second connection and
+    WhatsApp would replace the stream (seen live 2026-11-12: a group call
+    dropped that way)."""
+    try:
+        cli.connect()
+    except Exception:
+        log.exception("connect")
+        try:
+            cli.disconnect()
+        except Exception:
+            log.info("disconnect after the failed event loop failed", exc_info=True)
+
 class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.ReadReceipts,
               group_receipts.GroupReceipts):
     """One account: the neonize client, the state in WPPConnect's vocabulary and
@@ -1114,9 +1130,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             threading.Thread(target=_phone_code, daemon=True).start()
 
         try:
-            cli.connect()      # blocks until stop()
-        except Exception:
-            log.exception("connect")
+            connect_until_stopped(cli)      # blocks until stop()
         finally:
             pairing_repair.WATCH.remove(self, generation)
             self._apply(generation, session_lifecycle.THREAD_ENDED)
