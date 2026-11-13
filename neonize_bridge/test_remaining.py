@@ -136,12 +136,20 @@ def test_the_terms_are_read_with_whatsapp_webs_query():
     assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
 
 
-def test_the_terms_are_accepted_with_the_session_update_whatsapp_web_sends():
-    query = remaining.terms_accept_query()
-    assert (query["namespace"], query["type"]) == ("tos", "set")
-    request, = query["content"]
+def test_the_terms_are_accepted_first_with_the_notice_whatsmeow_sends():
+    """2026-11-13: the session_update alone got a 400 from WhatsApp on a real account."""
+    first = remaining.terms_accept_queries()[0]
+    assert (first["namespace"], first["type"]) == ("tos", "set")
+    assert first["content"] == [
+        {"tag": "notice", "attrs": {"id": "20250502", "stage": "5"}}]
+
+
+def test_the_old_session_update_is_still_the_last_stanza_tried():
+    last = remaining.terms_accept_queries()[-1]
+    request, = last["content"]
     assert request["attrs"] == {"type": "session_update"}
     assert request["content"] == [{"tag": "notice", "attrs": {"id": "20250502"}}]
+    assert remaining.terms_accept_query() == last
 
 
 @pytest.mark.parametrize("answer,expected", [
@@ -198,10 +206,34 @@ def test_an_accept_whatsapp_did_not_record_is_not_a_success(server, monkeypatch)
     assert status == 409 and body["response"]["state"] == "NOT_ACCEPTED"
 
 
+def test_a_400_moves_on_to_the_next_stanza(server, monkeypatch):
+    def send_iq(client, query):
+        server.sent.append(query)
+        content = query["content"][0]
+        if query["type"] == "set" and content["tag"] == "notice":
+            raise remaining.rq.QueryError("bad-request", 400)
+        if query["type"] == "set":
+            server.state = "true"
+            return {"tag": "iq"}
+        return _tos_answer(server.state)
+    monkeypatch.setattr(remaining.rq, "send_iq", send_iq)
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 200 and body["response"]["state"] == "ACCEPTED"
+    assert [q["type"] for q in server.sent] == ["set", "set", "get"]
+
+
+def test_another_refusal_than_400_stops_at_the_first_stanza(server):
+    server.refuse = 500
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 502 and body["code"] == "meta_ai_terms_refused"
+    assert len(server.sent) == 1
+
+
 def test_a_refused_accept_answers_502(server):
     server.refuse = 400
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 502 and body["code"] == "meta_ai_terms_refused"
+    assert len(server.sent) == len(remaining.terms_accept_queries())
 
 
 def test_accepting_needs_a_connection(server):

@@ -52,6 +52,8 @@ IMPOSSIBLE = (
 # META_AI_NOTICE_ID_FALLBACK). Until it is accepted, WhatsApp refuses every
 # message to Meta AI (core/meta_ai.py in the client).
 META_AI_NOTICE = "20250502"
+# The `stage` whatsmeow sends when it accepts a ToS notice (AcceptTOSNotice).
+TERMS_STAGE = "5"
 
 
 def terms_query(notice=META_AI_NOTICE) -> dict:
@@ -60,12 +62,31 @@ def terms_query(notice=META_AI_NOTICE) -> dict:
         rq.node("request", None, [rq.node("notice", {"id": notice})])]}
 
 
+def terms_accept_queries(notice=META_AI_NOTICE) -> list:
+    """The stanzas that can record the acceptance, in the order they are tried.
+
+    Measured 2026-11-13 on a real account: the `session_update` stanza alone
+    (the last one here) was refused by WhatsApp with 400, so the accept never
+    went through. The first is the one whatsmeow's own `AcceptTOSNotice` sends
+    (a `notice` with `id` and `stage` straight under the iq, no `request`
+    wrapper); the second is the same notice inside the `request` WhatsApp Web
+    wraps its queries in. Which of them WhatsApp takes for this notice is
+    confirmed only by reading the state again after each, never assumed."""
+    return [
+        {"namespace": "tos", "type": "set", "content": [
+            rq.node("notice", {"id": notice, "stage": TERMS_STAGE})]},
+        {"namespace": "tos", "type": "set", "content": [
+            rq.node("request", None, [
+                rq.node("notice", {"id": notice, "stage": TERMS_STAGE})])]},
+        terms_accept_query(notice),
+    ]
+
+
 def terms_accept_query(notice=META_AI_NOTICE) -> dict:
     """What WhatsApp Web sends once its accept button has set the notice
-    (TosManager.maybeUpdateServer -> WAWebTosJob.updateTosState): the stanza the
-    WPPConnect route has used since 2026-09-25, when a send refused with 488
-    went through after it. AcceptTOSNotice is a different query, with a `stage`
-    nothing here confirms for this notice, and is not used."""
+    (TosManager.maybeUpdateServer -> WAWebTosJob.updateTosState), as the first
+    version of this bridge wrote it. WhatsApp answered it with 400 on
+    2026-11-13, so it is now only the last stanza tried."""
     return {"namespace": "tos", "type": "set", "content": [
         rq.node("request", {"type": "session_update"}, [rq.node("notice", {"id": notice})])]}
 
@@ -154,8 +175,26 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
                          "this neonize build sends no raw queries")
 
         def accept():
-            rq.send_iq(s.client, terms_accept_query())
-            return _ask_state(s)
+            """Try each stanza until WhatsApp, read again, says accepted. A 400 moves on to
+            the next stanza; any other refusal stops, and the last 400 is raised if none worked."""
+            state, refusal = "UNKNOWN", None
+            for index, query in enumerate(terms_accept_queries()):
+                try:
+                    rq.send_iq(s.client, query)
+                except rq.QueryError as error:
+                    log.info("meta-ai-terms accept stanza %d refused (%s): %s",
+                             index, error.code, error)
+                    if error.code != 400:
+                        raise
+                    refusal = error
+                    continue
+                state = _ask_state(s)
+                log.info("meta-ai-terms accept stanza %d sent -> %s", index, state)
+                if state == "ACCEPTED":
+                    return state
+            if refusal is not None and state != "NOT_ACCEPTED":
+                raise refusal
+            return state
 
         try:
             state = await asyncio.get_running_loop().run_in_executor(None, accept)
