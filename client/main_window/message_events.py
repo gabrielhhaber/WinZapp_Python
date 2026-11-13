@@ -681,6 +681,10 @@ class MessageEventsMixin:
         if not remote_jid:
             return
 
+        # A message sent long ago: many of them in a row are a backlog still
+        # arriving, which holds the chat list still (main_window/backlog_flood.py).
+        late = note_incoming_message(self, msg)
+
         # ── Guard against self-chat multi-device-sync artifacts ─────────────
         # See _redirect_self_chat_artifact()'s own docstring for the two
         # shapes this catches — shared with on_historical_message() so both
@@ -827,7 +831,8 @@ class MessageEventsMixin:
             # list's last-message preview never picked up
             # chat["_last_reaction"] until some unrelated event happened to
             # trigger a refresh.
-            self._schedule_set_chats()
+            if not (late and defer_list_update(self)):
+                self._schedule_set_chats()
             if not reaction_targets_status(msg):
                 return
 
@@ -1179,10 +1184,8 @@ class MessageEventsMixin:
         # display name and rebuilds the row text of EVERY chat, which on an
         # account with several hundred of them is what made a new message take
         # seconds to show up in the list.
-        # A message sent long ago: many of them in a row are a backlog still
-        # arriving (main_window/backlog_flood.py). During such a flood a late
-        # message leaves the list alone; it is rebuilt once when the flood ends.
-        late = note_incoming_message(self, msg)
+        # A late message during a backlog flood leaves the list alone; it is
+        # rebuilt once when the flood ends.
         if not (late and defer_list_update(self)):
             if not self.move_chat_row_to_top(remote_jid):
                 self._schedule_set_chats()
@@ -1725,6 +1728,9 @@ class MessageEventsMixin:
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
+        # History handed over as events is backlog too: it feeds the flood
+        # detector, and a flood holds the list (main_window/backlog_flood.py).
+        note_incoming_message(self, msg)
         if not defer_list_update(self):
             self._schedule_set_chats()
 

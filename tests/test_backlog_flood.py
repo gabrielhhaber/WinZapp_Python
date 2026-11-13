@@ -15,9 +15,13 @@ from main_window.backlog_flood import (
     BacklogFlood, defer_list_update, held_status, is_late_message,
     note_incoming_message,
 )
-from main_window.chat_events import ChatEventsMixin
-from tests.god_modules import main_window_method_source
 from tests.test_archived_chat_sound_tts import _StubMainWindow
+from tests.test_historical_self_chat_guard import (
+    MY_PHONE, _HistoricalStub, _historical_msg,
+)
+from tests.test_unread_reread_race import JID as UNREAD_JID
+from tests.test_unread_reread_race import _Stub as _UnreadStub
+from tests.test_unread_reread_race import _chat as _unread_chat
 
 JID = "5511911112222@s.whatsapp.net"
 NOW = 1_800_000_000
@@ -59,8 +63,8 @@ def test_a_flood_ends_only_after_the_quiet_period():
 
 
 @pytest.mark.parametrize("ts,late", [
-    (NOW - 61, True),
-    (NOW - 59, False),
+    (NOW - backlog_flood.LATE_SECONDS - 1, True),
+    (NOW - backlog_flood.LATE_SECONDS + 1, False),
     (NOW + 30, False),
     ((NOW - 3600) * 1000, True),            # milliseconds
     (NOW * 1000, False),
@@ -207,11 +211,84 @@ def test_on_new_message_stops_moving_rows_during_a_flood(polls):
     assert len(window.moved) == backlog_flood.START_COUNT
 
 
-def test_unread_update_defers_the_list_during_a_flood():
-    source = main_window_method_source("on_chat_unread_update")
-    assert source.count("self._schedule_set_chats()") == 2
-    assert source.count("if not defer_list_update(self):") == 2
-    assert ChatEventsMixin.on_chat_unread_update is not None
+def test_a_late_reaction_does_not_rebuild_the_list_during_a_flood(polls):
+    window = _CountingWindow(open_jid="", window_active=True)
+    old = int(time.time()) - 7 * 86400
+    for i in range(10):
+        window.on_new_message(_message(i, old + i))
+    assert window.rebuilds == 0
+    window.on_new_message({
+        "key": {"remoteJid": JID, "id": "R1", "fromMe": False},
+        "messageType": "reactionMessage",
+        "message": {"reactionMessage": {
+            "text": "👍", "key": {"id": "MSG_1", "fromMe": False, "remoteJid": JID}}},
+        "messageTimestamp": old + 20,
+    })
+    assert window.rebuilds == 0
+    assert window._backlog_flood.list_dirty
+
+
+def _start_flood(window):
+    for _ in range(backlog_flood.START_COUNT):
+        note_incoming_message(window, _old())
+    assert backlog_flood.backlog_flood_active(window)
+
+
+def test_unread_update_defers_the_list_during_a_flood(polls):
+    stub = _UnreadStub(_unread_chat(t=2000))
+    stub.on_chat_unread_update(UNREAD_JID, 4)
+    assert stub.set_chats_calls == 1
+
+    stub._set_status = lambda status: None
+    _start_flood(stub)
+    stub.on_chat_unread_update(UNREAD_JID, 6)
+    assert stub.chats[UNREAD_JID]["unreadCount"] == 6      # data still updated
+    assert stub.set_chats_calls == 1
+    assert stub._backlog_flood.list_dirty
+
+
+def test_history_events_feed_the_detector_and_hold_the_list(polls):
+    rebuilds = []
+    stub = _HistoricalStub(my_jid=MY_PHONE)
+    stub._schedule_set_chats = lambda: rebuilds.append(1)
+    stub._set_status = lambda status: None
+    stub.i18n = SimpleNamespace(t=lambda key: f"[{key}]")
+    group = "120363409931936700@g.us"
+    for i in range(12):
+        stub.on_historical_message(_historical_msg(
+            group, participant="5521888888888@s.whatsapp.net", msg_id=f"H{i}"))
+    # Rebuilt for the messages before the flood was recognised, never after.
+    assert len(rebuilds) == backlog_flood.START_COUNT - 1
+    assert len(stub.chats[group]["messages"]["messages"]["records"]) == 12
+
+
+def test_a_long_flood_applies_the_held_list_once_a_minute():
+    flood = BacklogFlood(start_count=2, start_window=3.0, quiet_seconds=5.0)
+    flood.note(0)
+    flood.note(1)
+    assert not flood.flush_due(100, max_hold=60)        # nothing held
+    flood.list_dirty = True
+    assert not flood.flush_due(30, max_hold=60)
+    assert flood.flush_due(61, max_hold=60)
+    assert not flood.list_dirty
+    flood.list_dirty = True
+    assert not flood.flush_due(100, max_hold=60)
+    assert flood.flush_due(121, max_hold=60)
+
+
+def test_poll_applies_the_held_list_during_a_long_flood(polls, monkeypatch):
+    window = _Window()
+    _start_flood(window)
+    defer_list_update(window)
+    now = time.monotonic()
+    flood = window._backlog_flood
+    monkeypatch.setattr(backlog_flood.time, "monotonic",
+                        lambda: now + backlog_flood.MAX_HOLD_SECONDS + 1)
+    flood.note(now + backlog_flood.MAX_HOLD_SECONDS)    # still arriving
+    backlog_flood._poll(window)
+    assert window.rebuilds == 1
+    assert backlog_flood.backlog_flood_active(window)
+    assert defer_list_update(window)
 
 
 # ── notification burst ──────────────────────────────────────────────────────

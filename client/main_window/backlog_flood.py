@@ -23,6 +23,16 @@ A "late" message is one that arrives more than `LATE_SECONDS` after it was
 sent. One of those is ordinary (the sender's phone was offline); a flood is
 `START_COUNT` of them within `START_WINDOW` seconds, and it ends after
 `QUIET_SECONDS` without any.
+
+"Late" is read off the local clock, so a PC whose clock runs fast by more
+than `LATE_SECONDS` sees every message as late and a busy group as a flood.
+Two bounds keep that harmless: the threshold is minutes, not seconds (a
+backlog is hours old), and a flood that goes on applies the held list every
+`MAX_HOLD_SECONDS`, so the list is never older than that.
+
+The hold covers the handlers that fire per backlog event: `on_new_message()`,
+`on_historical_message()` and `on_chat_unread_update()`. Anything the user
+does (archive, pin, a filter) still rebuilds the list at once.
 """
 
 import logging
@@ -30,13 +40,15 @@ import time
 from collections import deque
 
 #: A message this much older than "now" did not arrive live.
-LATE_SECONDS = 60
+LATE_SECONDS = 300
 #: This many late messages…
 START_COUNT = 5
 #: …within this many seconds start a flood.
 START_WINDOW = 3.0
 #: A flood ends after this long without a late message.
 QUIET_SECONDS = 5.0
+#: A flood that goes on applies the held chat list this often.
+MAX_HOLD_SECONDS = 60.0
 _POLL_MS = 1000
 
 _ATTR = "_backlog_flood"
@@ -55,6 +67,8 @@ class BacklogFlood:
         self.count = 0
         #: Something asked for a chat-list rebuild while the flood held it.
         self.list_dirty = False
+        #: When the list was last left up to date (flood start or a flush).
+        self.flushed_at = 0.0
 
     def note(self, now: float) -> bool:
         """Record one late message; True when this one starts a flood."""
@@ -66,13 +80,24 @@ class BacklogFlood:
         if len(recent) == recent.maxlen and now - recent[0] <= self.start_window:
             self.active = True
             self.count = len(recent)
+            self.flushed_at = now
             return True
         return False
 
     def cancel(self) -> None:
         self.active = False
         self.list_dirty = False
+        self.count = 0
         self._recent.clear()
+
+    def flush_due(self, now: float, max_hold: float = MAX_HOLD_SECONDS) -> bool:
+        """True when a held list update has waited `max_hold`; the caller
+        rebuilds the list now and the hold goes on."""
+        if not (self.active and self.list_dirty) or now - self.flushed_at < max_hold:
+            return False
+        self.list_dirty = False
+        self.flushed_at = now
+        return True
 
     def settle(self, now: float) -> bool:
         """True when an active flood has gone quiet; it is then over."""
@@ -177,7 +202,10 @@ def _poll(window) -> None:
     flood = getattr(window, _ATTR, None)
     if not isinstance(flood, BacklogFlood) or not flood.active:
         return
-    if not flood.settle(time.monotonic()):
+    now = time.monotonic()
+    if not flood.settle(now):
+        if flood.flush_due(now):
+            window._schedule_set_chats()
         try:
             _start_poll(window)
         except Exception:
