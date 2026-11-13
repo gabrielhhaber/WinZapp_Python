@@ -218,6 +218,45 @@ def test_hiss_during_silence_is_not_chosen_over_a_gated_microphone():
     assert mixer.selected_side == 0
 
 
+def _sides_per_block(mixer, data, block=960):
+    sides = []
+    for i in range(0, len(data), block):
+        mixer.process(data[i:i + block], 48000)
+        sides.append(mixer.selected_side)
+    return sides
+
+
+def test_mains_hum_on_the_loose_side_does_not_take_over_a_gated_microphone_in_pauses():
+    # Gated microphone on the left (digital zero between words) and 50 Hz
+    # hum at about -50 dBFS on the right: each pause used to exclude the
+    # microphone and send the hum, muting the start of the next word.
+    rate, frames = 48000, 48000 * 4
+    t = np.arange(frames) / rate
+    gate = (t % 1.0) < 0.4
+    left = np.where(gate, 0.4 * np.sin(2 * np.pi * 400 * t), 0).astype(np.float32)
+    hum = (3e-3 * np.sin(2 * np.pi * 50 * t)).astype(np.float32)
+    mixer = MicrophoneDownmix()
+    sides = _sides_per_block(mixer, np.column_stack((left, hum)))
+    first = sides.index(0)
+    assert all(side == 0 for side in sides[first:])
+    output = mixer.process(np.column_stack((left[:9600], hum[:9600])), rate)
+    np.testing.assert_allclose(output, left[:9600], atol=1e-7)
+
+
+@pytest.mark.parametrize("crosstalk_db", [-30, -31, -34])
+def test_crosstalk_near_the_exclusion_limit_does_not_flap(crosstalk_db):
+    frames = 48000 * 4
+    rng = np.random.default_rng(5)
+    speech = _tone(frames) * (0.5 + 0.5 * np.abs(rng.standard_normal(frames // 960)).repeat(960)).astype(np.float32)
+    # The leak's level wanders a little around the nominal crosstalk, so the
+    # 200 ms windows land on both sides of the 30 dB exclusion limit.
+    wander = (1 + 0.15 * rng.standard_normal(frames // 960)).repeat(960)
+    leak = (speech * 10 ** (crosstalk_db / 20) * wander).astype(np.float32)
+    sides = _sides_per_block(MicrophoneDownmix(), np.column_stack((speech, leak)))
+    changes = sum(1 for a, b in zip(sides, sides[1:]) if a != b)
+    assert changes <= 1
+
+
 def test_downmix_side_changes_are_logged_once_each(caplog):
     mixer = MicrophoneDownmix()
     signal = _tone(19200)

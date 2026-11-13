@@ -18,6 +18,9 @@ _DECISION_POWER = 1e-6
 _ACTIVITY_FLOOR = 1e-10
 _ACTIVITY_NOISE_MARGIN = 10.0
 _CROSSTALK_RATIO = 1000.0
+# Hysteresis: a side excluded at 30 dB below the other comes back only once it
+# is within 20 dB, so crosstalk sitting right at the limit does not flap.
+_RESTORE_RATIO = 100.0
 
 
 def shared_channel_counts(info, *, input_device):
@@ -150,7 +153,7 @@ class MicrophoneDownmix:
             return
         side = int(excluded[0])
         threshold = max(_ACTIVITY_FLOOR, self._excluded_noise * _ACTIVITY_NOISE_MARGIN)
-        if power[side] > threshold and power[side] * _CROSSTALK_RATIO > power[1 - side]:
+        if power[side] > threshold and power[side] * _RESTORE_RATIO > power[1 - side]:
             self._set_target(np.array([0.5, 0.5]), rate)
 
     def _classify_window(self, rate):
@@ -160,9 +163,16 @@ class MicrophoneDownmix:
         self._squares[:] = 0
         if max(power) <= _DECISION_POWER:
             return
-        if min(power) * _CROSSTALK_RATIO <= max(power):
-            live = 0 if power[0] > power[1] else 1
-            self._excluded_noise = float(power[1 - live])
-            self._set_target(np.array([1.0, 0.0]) if live == 0 else np.array([0.0, 1.0]), rate)
-        else:
+        live = 0 if power[0] > power[1] else 1
+        ratio = _RESTORE_RATIO if self.selected_side == live else _CROSSTALK_RATIO
+        if power[1 - live] * ratio > power[live]:
             self._set_target(np.array([0.5, 0.5]), rate)
+            return
+        if (self._target[live] == 0
+                and power[live] <= self._excluded_noise * _ACTIVITY_NOISE_MARGIN):
+            # The excluded side carries only the noise it was excluded with
+            # (mains hum, say) while a gated microphone pauses: that pause is
+            # not a reason to hand the call to the noise.
+            return
+        self._excluded_noise = float(power[1 - live])
+        self._set_target(np.array([1.0, 0.0]) if live == 0 else np.array([0.0, 1.0]), rate)
