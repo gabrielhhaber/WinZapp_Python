@@ -13,20 +13,31 @@ window on the option (SettingsPages.add_subpage).
 
 import wx
 
-#: The button on the page that opens the window, and the window's title.
-BUTTON_KEY = "ai_kinds_button"
+from core.ai_media.config import KINDS
+
+#: The per-kind switches: (kind, i18n key of its label). Stated here, in the
+#: window that shows them, so the mnemonic tests read their letters
+#: (tests/settings_controls.py follows a loop over a table of this file).
+KIND_TOGGLES = (
+    ("image", "ai_describe_images_label"),
+    ("sticker", "ai_describe_stickers_label"),
+    ("video", "ai_describe_videos_label"),
+    ("audio", "ai_transcribe_audio_label"),
+    ("pdf", "ai_pdf_accessible_label"),
+)
+assert [kind for kind, _key in KIND_TOGGLES] == list(KINDS)
 
 
 class AIKindsPanel(wx.Panel):
-    """One check box per kind of media; *toggles* is ((kind, i18n key), ...)."""
+    """One check box per kind of media; *kinds* is {kind: on}."""
 
-    def __init__(self, parent, page, toggles, kinds):
+    def __init__(self, parent, page, kinds):
         super().__init__(parent)
         self._page = page
-        self._keys = dict(toggles)
+        self._keys = dict(KIND_TOGGLES)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.toggles = {}
-        for kind, key in toggles:
+        for kind, key in KIND_TOGGLES:
             control = wx.CheckBox(self, label=page._t(key))
             control.SetValue(kinds[kind])
             sizer.Add(control, 0, wx.ALL, 8)

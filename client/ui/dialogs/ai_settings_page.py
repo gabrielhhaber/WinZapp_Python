@@ -36,18 +36,9 @@ from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, probe_connection, submit
 from .ai_provider_models import ModelSelectionMixin
 from .ai_auto_options import AIAutoOptionsPanel, window_title
-from .ai_kinds_options import BUTTON_KEY as KINDS_BUTTON_KEY, AIKindsPanel
+from .ai_kinds_options import AIKindsPanel
 from .settings_pages import SubPageDialog
 
-#: The per-kind switches: (kind, i18n key of its label).
-KIND_TOGGLES = (
-    ("image", "ai_describe_images_label"),
-    ("sticker", "ai_describe_stickers_label"),
-    ("video", "ai_describe_videos_label"),
-    ("audio", "ai_transcribe_audio_label"),
-    ("pdf", "ai_pdf_accessible_label"),
-)
-assert [kind for kind, _key in KIND_TOGGLES] == list(KINDS)
 #: i18n key naming each kind, for the "handles" line of the provider window.
 KIND_NAMES = (("image", "ai_kind_image"), ("sticker", "ai_kind_sticker"), ("video", "ai_kind_video"),
               ("audio", "ai_kind_audio"), ("pdf", "ai_kind_pdf"))
@@ -363,11 +354,11 @@ class AISettingsPage(ScrolledPanel):
         self.down_button = self._button("ai_provider_move_down_button", lambda e: self._move(1))
         # The kinds of media, in a window of their own (ai_kinds_options.py):
         # on the page they left no letter for the translation button.
-        self.kinds_button = self._button(KINDS_BUTTON_KEY, lambda event: self.open_kinds())
+        self.kinds_button = self._button("ai_kinds_button", lambda event: self.open_kinds())
         self.kinds_dialog = SubPageDialog(
-            self.GetTopLevelParent(), window_title(self._t(KINDS_BUTTON_KEY)), self._t("ok"),
+            self.GetTopLevelParent(), window_title(self._t("ai_kinds_button")), self._t("ok"),
             on_change=lambda event: self._on_change())
-        self.kinds_panel = AIKindsPanel(self.kinds_dialog, self, KIND_TOGGLES, config["kinds"])
+        self.kinds_panel = AIKindsPanel(self.kinds_dialog, self, config["kinds"])
         self.kinds_dialog.set_body(self.kinds_panel)
         self.toggles = self.kinds_panel.toggles
         self.profile = self._choice("ai_profile", self._profile_labels())
@@ -489,7 +480,7 @@ class AISettingsPage(ScrolledPanel):
         self.profile.SetSelection(selection)
         self.auto_panel.refresh_labels()
         self.kinds_panel.refresh_labels()
-        self.kinds_dialog.SetTitle(window_title(self._t(KINDS_BUTTON_KEY)))
+        self.kinds_dialog.SetTitle(window_title(self._t("ai_kinds_button")))
         self.auto_dialog.SetTitle(window_title(self._t("ai_auto_button")))
         self.notice.SetName(self._plain("ai_settings_help"))
         self.notice.ChangeValue(self._t("ai_settings_notice"))

@@ -179,7 +179,7 @@ class _Source:
             """("keys", [...]) for a loop over a table this file states, or
             ("param", "scope:param", element index) for one over an argument.
             A comprehension counts as a loop ({kind: self._check(label) for
-            kind, label in KIND_TOGGLES}, ai_settings_page.py)."""
+            kind, label in TABLE})."""
             for node in ast.walk(func):
                 if not isinstance(node, (ast.For, ast.comprehension)):
                     continue

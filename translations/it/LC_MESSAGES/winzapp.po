@@ -1110,7 +1110,7 @@ msgstr "video"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ai_kinds_button"
 msgid "Types of me&dia handled..."
-msgstr "Tipi di &contenuto elaborati..."
+msgstr "Tipi di contenuto elabo&rati..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
