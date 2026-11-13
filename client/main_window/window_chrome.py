@@ -21,6 +21,7 @@ from core.utils import (
     search_normalization_mode,
 )
 from window_title import format_window_title
+from main_window.backlog_flood import held_status
 from core.profile_recovery import profile_is_local
 
 
@@ -1238,6 +1239,9 @@ class WindowChromeMixin:
 
     def _set_status(self, status: str):
         """Update window title and tray tooltip to reflect current status."""
+        # Idle is shown as "updating conversations" while a backlog of old
+        # messages is still arriving (main_window/backlog_flood.py).
+        status = held_status(self, status)
         previous = getattr(self, "_tray_status", "")
         self._tray_status = status
         self._tray_status_key = next(

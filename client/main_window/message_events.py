@@ -34,6 +34,8 @@ from core.message_edit import (
     is_edit_event,
 )
 from core.reply_failure import clear_reply_draft
+from core.notification_burst import notification_allowed
+from main_window.backlog_flood import defer_list_update, note_incoming_message
 from core.call_log import (
     call_log_supersedes,
     is_call_log,
@@ -665,6 +667,9 @@ class MessageEventsMixin:
         # arriving this early is ever actually lost.
         if not self._live_events_ready():
             return
+        # A message sent long ago: many of them in a row are a backlog still
+        # arriving, which holds the chat list still (main_window/backlog_flood.py).
+        late = note_incoming_message(self, msg)
         key        = msg.get("key", {})
         retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         from_me    = key.get("fromMe", False)
@@ -1177,8 +1182,11 @@ class MessageEventsMixin:
         # display name and rebuilds the row text of EVERY chat, which on an
         # account with several hundred of them is what made a new message take
         # seconds to show up in the list.
-        if not self.move_chat_row_to_top(remote_jid):
-            self._schedule_set_chats()
+        # A late message during a backlog flood leaves the list alone; it is
+        # rebuilt once when the flood ends.
+        if not (late and defer_list_update(self)):
+            if not self.move_chat_row_to_top(remote_jid):
+                self._schedule_set_chats()
 
         # ── Add message to the open conversation panel (if visible) ──────────
         if hasattr(self, "conversations_panel"):
@@ -1287,6 +1295,13 @@ class MessageEventsMixin:
                     is_current_conv, archived_panel_is_shown(self)):
                 return
 
+            # A burst of messages arriving at once sounds and speaks for its
+            # first few only (core/notification_burst.py). The open
+            # conversation is still marked as read below.
+            quiet = not notification_allowed(self)
+            if quiet and not is_current_conv:
+                return
+
             if locked and not is_current_conv:
                 self.message_foreground_sound.play()
                 if speech.get("speak_other_conv_messages", True):
@@ -1302,9 +1317,10 @@ class MessageEventsMixin:
                 # via AO2 only when speak_active_conv_messages is on. Neither of
                 # these is the background toast this function's general.
                 # notifications_enabled setting is meant to gate — see below.
-                play_foreground_message_sound(self, SCOPE_ACTIVE, remote_jid)
-                if speech.get("speak_active_conv_messages", True):
-                    self.output(format_foreground_message(msg, self, self.i18n, body))
+                if not quiet:
+                    play_foreground_message_sound(self, SCOPE_ACTIVE, remote_jid)
+                    if speech.get("speak_active_conv_messages", True):
+                        self.output(format_foreground_message(msg, self, self.i18n, body))
                 # Mark the active conversation as read immediately, but only if the
                 # window has been focused for at least 5 seconds (to prevent marking
                 # startup/offline messages as read automatically).
@@ -1344,6 +1360,9 @@ class MessageEventsMixin:
         # a muted/archived chat before this point, nothing else) whenever the
         # user turned it off.
         if not self.settings.get("general", {}).get("notifications_enabled", True):
+            return
+        # Same burst limit as the foreground: sound, speech and toast alike.
+        if not notification_allowed(self):
             return
         from core.notification_manager import (
             background_notification_content, notification_content_level,
@@ -1707,7 +1726,8 @@ class MessageEventsMixin:
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
-        self._schedule_set_chats()
+        if not defer_list_update(self):
+            self._schedule_set_chats()
 
         # Add message to the open conversation panel if it's currently selected
         cp = getattr(self, "conversations_panel", None)
