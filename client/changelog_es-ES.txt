@@ -10,7 +10,6 @@ NOVEDADES
 
 - Neonize: aceptar los términos de Meta AI ya no falla con un error de WhatsApp. WinZapp ahora envía la aceptación en el mismo formato que usa WhatsApp Web para este aviso y solo la confirma después de leer de nuevo que el aviso figura como aceptado.
 
-
 - Llamadas: mejor compatibilidad con micrófonos y auriculares estéreo en modo compartido, con alternativa mono si es necesario. La voz se sigue enviando en mono.
 
 - Traducción de mensajes: pulsa Shift+Enter en un mensaje de texto de la lista de mensajes (el atajo se puede cambiar) o usa su menú contextual. Se configura en Configuración > IA en línea: Transcripciones y Descripciones > Traducción de mensajes: el proveedor (tus proveedores de IA, Grok o una dirección propia compatible con OpenAI o Anthropic), el modelo, el idioma de destino y si la traducción sustituye el texto, va después de él o se abre en una ventana aparte. Traducción automática opcional de los mensajes recibidos, en todos los chats o solo en los que actives, con antigüedad máxima del mensaje y límite diario; se pausa durante una hora si el proveedor rechaza la clave, la cuota o el crédito. Los chats bloqueados nunca se traducen automáticamente, y traducir un mensaje de uno de ellos pide confirmación cada vez. Los tipos de contenido de la IA en línea están ahora en la ventana "Tipos de contenido procesados...", en la misma página.
