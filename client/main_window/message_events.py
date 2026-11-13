@@ -667,9 +667,6 @@ class MessageEventsMixin:
         # arriving this early is ever actually lost.
         if not self._live_events_ready():
             return
-        # A message sent long ago: many of them in a row are a backlog still
-        # arriving, which holds the chat list still (main_window/backlog_flood.py).
-        late = note_incoming_message(self, msg)
         key        = msg.get("key", {})
         retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         from_me    = key.get("fromMe", False)
@@ -1182,8 +1179,10 @@ class MessageEventsMixin:
         # display name and rebuilds the row text of EVERY chat, which on an
         # account with several hundred of them is what made a new message take
         # seconds to show up in the list.
-        # A late message during a backlog flood leaves the list alone; it is
-        # rebuilt once when the flood ends.
+        # A message sent long ago: many of them in a row are a backlog still
+        # arriving (main_window/backlog_flood.py). During such a flood a late
+        # message leaves the list alone; it is rebuilt once when the flood ends.
+        late = note_incoming_message(self, msg)
         if not (late and defer_list_update(self)):
             if not self.move_chat_row_to_top(remote_jid):
                 self._schedule_set_chats()
