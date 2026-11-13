@@ -340,4 +340,3 @@ def test_manual_translation_without_settings_says_what_is_missing(wx, submitted)
     panel._on_translate_message(message(1))
     assert submitted == [] and panel.spoken == ["translation_not_configured"]
     assert TranslationSettings().provider == ""
-
