@@ -1,0 +1,303 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 23:45:19 -0300
+Subject: [PATCH] Send the group key epoch past a device it cannot be encrypted
+ for, and log the fan-out
+
+Seen live: after a 1:1 call became a group call, one member's device never
+received the new group key, so nobody could decrypt anybody and the call
+timed out. The fan-out aborted as a whole when one recipient's key could not
+be encrypted, before sending to anyone; now each recipient is encrypted and
+sent independently and the failures are reported together.
+
+The key exchange was only logged at debug level, which the integrator drops,
+so a report could not tell who was nominated or who was sent the key. These
+now log at info: a group invite and a group update with their transaction,
+rekey nomination and roster counts; a group rekey received (from whom) and
+installed; and every distribution with its recipients, how many were sent
+and failed, and the connected devices skipped for having no PID.
+
+Tested: the fan-out goes on past a device that cannot be encrypted and
+addresses each node to its own recipient; connected devices without a PID are
+named; full suite passes.
+---
+ engine.go                  |   6 +++
+ engine_group_control.go    | 105 +++++++++++++++++++++++++++++--------
+ group_epoch_fanout_test.go |  59 +++++++++++++++++++++
+ roster_diag_test.go        |  17 +++++-
+ 4 files changed, 163 insertions(+), 24 deletions(-)
+ create mode 100644 group_epoch_fanout_test.go
+
+diff --git a/engine.go b/engine.go
+index c1d922e..316ee9e 100644
+--- a/engine.go
++++ b/engine.go
+@@ -625,6 +625,12 @@ func (e *engine) onGroupOffer(ev *events.CallOffer, update groupCallUpdate) {
+ 	m.remoteVideo = isVideo
+ 	creator := m.creator
+ 	e.mu.Unlock()
++	e.c.log.Info().
++		Str("call_id", ev.CallID).
++		Uint32("transaction_id", update.TransactionID).
++		Bool("rekey_requested", update.RekeyRequested).
++		Str("roster", describeGroupRoster(update)).
++		Msg("group invite received")
+ 	e.applyGroupUpdate(update)
+ 
+ 	preaccept, err := signaling.BuildActiveGroupPreaccept(
+diff --git a/engine_group_control.go b/engine_group_control.go
+index 8d0a2a2..866d612 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -6,6 +6,7 @@ import (
+ 	"crypto/rand"
+ 	"errors"
+ 	"fmt"
++	"strings"
+ 
+ 	"github.com/purpshell/meowcaller/signaling"
+ 	waBinary "go.mau.fi/whatsmeow/binary"
+@@ -28,6 +29,12 @@ func (e *engine) onUnknownCallEvent(node *waBinary.Node) {
+ 			return
+ 		}
+ 		update := groupCallUpdateFromSignaling(*parsed)
++		e.c.log.Info().
++			Str("call_id", update.CallID).
++			Uint32("transaction_id", update.TransactionID).
++			Bool("rekey_requested", update.RekeyRequested).
++			Str("roster", describeGroupRoster(update)).
++			Msg("group update received")
+ 		if e.applyGroupUpdate(update) && update.RekeyRequested {
+ 			if fanoutErr := e.distributeRequestedGroupEpoch(context.Background(), update); fanoutErr != nil {
+ 				e.c.log.Warn().Err(fanoutErr).Str("call_id", update.CallID).Msg("group rekey fanout failed")
+@@ -55,14 +62,15 @@ func (e *engine) onUnknownCallEvent(node *waBinary.Node) {
+ 		}
+ 		e.dispatchRemoteScreenShare(envelope, *screenShare)
+ 	case "enc_rekey":
+-		e.c.log.Debug().
++		e.c.log.Info().
+ 			Str("call_id", envelope.CallID).
++			Str("from", envelope.From.String()).
+ 			Msg("group rekey received")
+ 		if err = e.ingestGroupEpoch(context.Background(), envelope); err != nil {
+ 			e.c.log.Warn().Err(err).Str("call_id", envelope.CallID).Msg("group rekey ingest failed")
+ 			return
+ 		}
+-		e.c.log.Debug().
++		e.c.log.Info().
+ 			Str("call_id", envelope.CallID).
+ 			Msg("group rekey installed")
+ 	}
+@@ -333,40 +341,83 @@ func (e *engine) distributeRequestedGroupEpoch(ctx context.Context, update group
+ 	if _, err := rand.Read(rawKey); err != nil {
+ 		return err
+ 	}
+-	nodes := make([]waBinary.Node, len(recipients))
+-	for i, recipient := range recipients {
+-		ciphertext, encType, _, err := encryptCallKeyForDevice(ctx, e.c.wa, recipient, rawKey)
++	defer clear(rawKey)
++	nodes, sendTo, fanoutErrors := buildGroupEpochNodes(update, recipients, e.nextCallNodeID,
++		func(recipient types.JID) ([]byte, string, error) {
++			ciphertext, encType, _, err := encryptCallKeyForDevice(ctx, e.c.wa, recipient, rawKey)
++			return ciphertext, encType, err
++		})
++	sent := 0
++	for i, node := range nodes {
++		if err := e.transmitCallNode(ctx, node); err != nil {
++			fanoutErrors = append(fanoutErrors,
++				fmt.Errorf("meowcaller: send group epoch to %s: %w", sendTo[i], err))
++			continue
++		}
++		sent++
++	}
++	e.c.log.Info().
++		Str("call_id", update.CallID).
++		Uint32("transaction_id", update.TransactionID).
++		Int("recipients", len(recipients)).
++		Int("sent", sent).
++		Int("failed", len(fanoutErrors)).
++		Str("to", joinJIDs(recipients)).
++		Str("skipped_without_pid", joinJIDs(connectedDevicesWithoutPID(update, self))).
++		Msg("distributed group key epoch")
++	if err := e.installGroupEpoch(update.CallID, update.TransactionID, rawKey); err != nil {
++		fanoutErrors = append(fanoutErrors, fmt.Errorf("meowcaller: install local group epoch: %w", err))
++	}
++	return errors.Join(fanoutErrors...)
++}
++
++// buildGroupEpochNodes encrypts the epoch for every recipient independently:
++// one device whose key cannot be encrypted (no Signal session, say) no longer
++// keeps the epoch from every other device. It returns the nodes to send, the
++// recipient of each, and what failed.
++func buildGroupEpochNodes(update groupCallUpdate, recipients []types.JID, nextID func() string,
++	encrypt func(types.JID) ([]byte, string, error)) ([]waBinary.Node, []types.JID, []error) {
++	var nodes []waBinary.Node
++	var sendTo []types.JID
++	var failures []error
++	for _, recipient := range recipients {
++		ciphertext, encType, err := encrypt(recipient)
+ 		if err != nil {
+-			clear(rawKey)
+-			return fmt.Errorf("meowcaller: encrypt group epoch for %s: %w", recipient, err)
++			failures = append(failures, fmt.Errorf("meowcaller: encrypt group epoch for %s: %w", recipient, err))
++			continue
+ 		}
+ 		node, err := signaling.BuildGroupEncRekey(signaling.GroupEncRekeyParams{
+ 			CallID: update.CallID, To: recipient, CallCreator: update.CallCreator,
+-			TransactionID: update.TransactionID, RequestID: e.nextCallNodeID(),
++			TransactionID: update.TransactionID, RequestID: nextID(),
+ 			DeviceKey: signaling.OfferDeviceKey{
+ 				DeviceJid: recipient, Ciphertext: ciphertext, EncType: encType,
+ 			},
+ 		})
+ 		if err != nil {
+-			clear(rawKey)
+-			return err
++			failures = append(failures, fmt.Errorf("meowcaller: build group epoch for %s: %w", recipient, err))
++			continue
+ 		}
+-		nodes[i] = node
++		nodes = append(nodes, node)
++		sendTo = append(sendTo, recipient)
+ 	}
+-	var fanoutErrors []error
+-	for i, node := range nodes {
+-		if err := e.transmitCallNode(ctx, node); err != nil {
+-			fanoutErrors = append(
+-				fanoutErrors,
+-				fmt.Errorf("meowcaller: send group epoch to %s: %w", recipients[i], err),
+-			)
++	return nodes, sendTo, failures
++}
++
++// connectedDevicesWithoutPID lists the connected remote devices the fan-out
++// skips because the roster gave them no PID: they never receive the epoch.
++func connectedDevicesWithoutPID(update groupCallUpdate, self types.JID) []types.JID {
++	var skipped []types.JID
++	for _, participant := range update.Participants {
++		if participant.State != "connected" {
++			continue
++		}
++		for _, device := range participant.Devices {
++			if !device.HasPID && !device.JID.IsEmpty() && device.JID != self {
++				skipped = append(skipped, device.JID)
++			}
+ 		}
+ 	}
+-	if err := e.installGroupEpoch(update.CallID, update.TransactionID, rawKey); err != nil {
+-		fanoutErrors = append(fanoutErrors, fmt.Errorf("meowcaller: install local group epoch: %w", err))
+-	}
+-	clear(rawKey)
+-	return errors.Join(fanoutErrors...)
++	return skipped
+ }
+ 
+ func groupRekeyRecipients(update groupCallUpdate, self types.JID) []types.JID {
+@@ -414,3 +465,11 @@ func cloneGroupCallUpdate(update groupCallUpdate) groupCallUpdate {
+ 	}
+ 	return out
+ }
++
++func joinJIDs(jids []types.JID) string {
++	parts := make([]string, len(jids))
++	for i, jid := range jids {
++		parts[i] = jid.String()
++	}
++	return strings.Join(parts, ",")
++}
+diff --git a/group_epoch_fanout_test.go b/group_epoch_fanout_test.go
+new file mode 100644
+index 0000000..e59ab8c
+--- /dev/null
++++ b/group_epoch_fanout_test.go
+@@ -0,0 +1,59 @@
++package meowcaller
++
++import (
++	"errors"
++	"strconv"
++	"testing"
++
++	"go.mau.fi/whatsmeow/types"
++)
++
++func fanoutJID(t *testing.T, s string) types.JID {
++	t.Helper()
++	jid, err := types.ParseJID(s)
++	if err != nil {
++		t.Fatal(err)
++	}
++	return jid
++}
++
++// One device whose key cannot be encrypted no longer keeps the epoch from the
++// others (seen live: a group call where one member never got the key and
++// nobody could hear anybody).
++func TestGroupEpochFanoutGoesOnPastADeviceThatCannotBeEncrypted(t *testing.T) {
++	broken, julia, web := fanoutJID(t, "111:3@lid"), fanoutJID(t, "222:0@lid"), fanoutJID(t, "333:27@lid")
++	update := groupCallUpdate{CallID: "CALL", CallCreator: julia, TransactionID: 30}
++	n := 0
++	nextID := func() string { n++; return strconv.Itoa(n) }
++	nodes, sendTo, failures := buildGroupEpochNodes(update, []types.JID{broken, julia, web}, nextID,
++		func(recipient types.JID) ([]byte, string, error) {
++			if recipient == broken {
++				return nil, "", errors.New("no signal session")
++			}
++			return []byte{1, 2, 3}, "msg", nil
++		})
++	if len(nodes) != 2 || len(sendTo) != 2 || sendTo[0] != julia || sendTo[1] != web {
++		t.Fatalf("sent to %v, want the two devices that could be encrypted", sendTo)
++	}
++	if len(failures) != 1 {
++		t.Fatalf("failures = %v", failures)
++	}
++	for i, node := range nodes {
++		if node.Attrs["to"] != sendTo[i] {
++			t.Fatalf("node %d addressed to %v, want %v", i, node.Attrs["to"], sendTo[i])
++		}
++	}
++}
++
++func TestConnectedDevicesWithoutPIDAreNamed(t *testing.T) {
++	self, web, phone := fanoutJID(t, "999:52@lid"), fanoutJID(t, "333:27@lid"), fanoutJID(t, "222:0@lid")
++	update := groupCallUpdate{Participants: []groupCallParticipant{
++		{State: "connected", Devices: []groupCallDevice{{JID: web}, {JID: phone, HasPID: true}}},
++		{State: "connected", Devices: []groupCallDevice{{JID: self}}},
++		{State: "invited", Devices: []groupCallDevice{{JID: fanoutJID(t, "444:0@lid")}}},
++	}}
++	got := connectedDevicesWithoutPID(update, self)
++	if len(got) != 1 || got[0] != web {
++		t.Fatalf("skipped = %v, want only the connected remote device without a PID", got)
++	}
++}
+diff --git a/roster_diag_test.go b/roster_diag_test.go
+index 52bf1de..239f551 100644
+--- a/roster_diag_test.go
++++ b/roster_diag_test.go
+@@ -1,6 +1,10 @@
+ package meowcaller
+ 
+-import "testing"
++import (
++	"testing"
++
++	"go.mau.fi/whatsmeow/types"
++)
+ 
+ func TestDescribeGroupRosterCountsStatesAndPIDsWithoutNamingAnyone(t *testing.T) {
+ 	update := groupCallUpdate{Participants: []groupCallParticipant{
+@@ -17,3 +21,14 @@ func TestDescribeGroupRosterCountsStatesAndPIDsWithoutNamingAnyone(t *testing.T)
+ 		t.Fatalf("empty roster = %q", got)
+ 	}
+ }
++
++func TestJoinJIDsListsEveryRecipient(t *testing.T) {
++	a, _ := types.ParseJID("111:27@lid")
++	b, _ := types.ParseJID("222:52@lid")
++	if got := joinJIDs([]types.JID{a, b}); got != "111:27@lid,222:52@lid" {
++		t.Fatalf("joinJIDs = %q", got)
++	}
++	if joinJIDs(nil) != "" {
++		t.Fatal("no recipients should read as empty")
++	}
++}
