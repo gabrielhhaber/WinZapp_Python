@@ -20114,6 +20114,15 @@ msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "Sem atualizações"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_installed"
+msgid ""
+"WinZapp update {version} has been installed. You can open WinZapp again."
+msgstr ""
+"A atualização {version} do WinZapp foi instalada. Já pode abrir o WinZapp "
+"novamente."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "update_on_exit_label"
@@ -20125,6 +20134,21 @@ msgstr ""
 "De&scarregar atualizações automaticamente e instalá-las quando eu sair do "
 "WinZapp, sem perguntar (fechar a janela para a bandeja não conta, e o "
 "WinZapp não volta a abrir depois)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_not_installed"
+msgid ""
+"WinZapp update {version} could not be installed. You can open WinZapp again;"
+" it will tell you what happened."
+msgstr ""
+"Não foi possível instalar a atualização {version} do WinZapp. Já pode abrir "
+"o WinZapp novamente; ele vai indicar o que aconteceu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+msgctxt "update_on_exit_notice_title"
+msgid "WinZapp update"
+msgstr "Atualização do WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format

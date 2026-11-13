@@ -20092,6 +20092,15 @@ msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "Nicio actualizare"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_installed"
+msgid ""
+"WinZapp update {version} has been installed. You can open WinZapp again."
+msgstr ""
+"Actualizarea WinZapp {version} a fost instalată. Puteți deschide din nou "
+"WinZapp."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "update_on_exit_label"
@@ -20103,6 +20112,21 @@ msgstr ""
 "Descarcă actualizările auto&mat și instalează-le când închid WinZapp, fără "
 "să întrebe (închiderea ferestrei în bara de sistem nu contează, iar WinZapp "
 "nu se mai deschide după aceea)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_not_installed"
+msgid ""
+"WinZapp update {version} could not be installed. You can open WinZapp again;"
+" it will tell you what happened."
+msgstr ""
+"Actualizarea WinZapp {version} nu a putut fi instalată. Puteți deschide din "
+"nou WinZapp; vă va spune ce s-a întâmplat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+msgctxt "update_on_exit_notice_title"
+msgid "WinZapp update"
+msgstr "Actualizarea WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format

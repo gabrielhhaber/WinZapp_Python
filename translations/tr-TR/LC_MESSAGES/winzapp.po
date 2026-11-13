@@ -19848,6 +19848,14 @@ msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "Güncelleme yok"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_installed"
+msgid ""
+"WinZapp update {version} has been installed. You can open WinZapp again."
+msgstr ""
+"WinZapp {version} güncellemesi yüklendi. WinZapp'ı yeniden açabilirsiniz."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "update_on_exit_label"
@@ -19858,6 +19866,21 @@ msgid ""
 msgstr ""
 "Güncellemeleri otomatik indir ve WinZapp'tan çıktığımda &sormadan yükle "
 "(pencereyi tepsiye kapatmak sayılmaz ve WinZapp sonrasında yeniden açılmaz)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_not_installed"
+msgid ""
+"WinZapp update {version} could not be installed. You can open WinZapp again;"
+" it will tell you what happened."
+msgstr ""
+"WinZapp {version} güncellemesi yüklenemedi. WinZapp'ı yeniden açabilirsiniz;"
+" ne olduğunu size söyleyecek."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+msgctxt "update_on_exit_notice_title"
+msgid "WinZapp update"
+msgstr "WinZapp güncellemesi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
