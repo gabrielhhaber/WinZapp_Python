@@ -1,0 +1,148 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 21:08:30 -0300
+Subject: [PATCH] events: an event that cannot be encoded no longer ends the
+ client's event loop
+
+Seen live in a group call: a server-error receipt reached EncodeReceipts,
+which had no case for it, left the required Type unset, and proto.Marshal
+failed in CallbackFunction, which returned the error and ended the event
+loop. Python then saw the session closed, started it again over the live
+connection, WhatsApp replaced the stream and the call dropped.
+
+EncodeReceipts now maps server-error, maps played-self to PLAYED_SELF (it
+was sent as SERVER_ERROR) and reports any other type as not encodable, so
+it is skipped. CallbackFunction drops an event it cannot marshal, with a
+line on stderr, and goes on.
+---
+ goneonize/main.go                       | 18 +++++++----
+ goneonize/utils/encoder.go              | 12 ++++++--
+ goneonize/utils/encoder_receipt_test.go | 40 +++++++++++++++++++++++++
+ 3 files changed, 62 insertions(+), 8 deletions(-)
+ create mode 100644 goneonize/utils/encoder_receipt_test.go
+
+diff --git a/goneonize/main.go b/goneonize/main.go
+index e92a8c4..8e2f2af 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -877,12 +877,13 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 			}
+ 		case *events.Receipt:
+ 			if _, ok := subscribers[18]; ok {
+-				receipt := utils.EncodeReceipts(v)
+-				messageEvent := MessageEvent{
+-					eventType: 18,
+-					message:   &receipt,
++				if receipt, known := utils.EncodeReceipts(v); known {
++					messageEvent := MessageEvent{
++						eventType: 18,
++						message:   &receipt,
++					}
++					eventChan <- &messageEvent
+ 				}
+-				eventChan <- &messageEvent
+ 			}
+ 		case *events.ChatPresence:
+ 			if _, ok := subscribers[19]; ok {
+@@ -3002,7 +3003,12 @@ func CallbackFunction(ctx context.Context, callback C.ptr_to_python_function_byt
+ 		case message := <-channel:
+ 			buff, err := proto.Marshal(message.message)
+ 			if err != nil {
+-				return err
++				// One event that cannot be encoded is dropped, never the
++				// client: returning here ended the event loop, Python saw the
++				// session closed and connected again over the live one, and
++				// WhatsApp replaced the stream in the middle of a call.
++				fmt.Fprintf(os.Stderr, "neonize: dropped event %d that could not be encoded: %v\n", message.eventType, err)
++				continue
+ 			}
+ 			uchars, size := getBytesAndSize(buff)
+ 			C.call_c_func_callback_bytes(callback, uuid, uchars, size, C.int(message.eventType))
+diff --git a/goneonize/utils/encoder.go b/goneonize/utils/encoder.go
+index 84dc721..90bc11a 100644
+--- a/goneonize/utils/encoder.go
++++ b/goneonize/utils/encoder.go
+@@ -725,7 +725,10 @@ func EncodeConnectFailure(connect *events.ConnectFailure) *defproto.ConnectFailu
+ 	}
+ }
+ 
+-func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
++// EncodeReceipts converts a receipt; ok is false for a receipt type the proto
++// has no value for. Its Type is a required field, so such a receipt cannot be
++// marshalled, and it used to end the client's whole event loop.
++func EncodeReceipts(receipt *events.Receipt) (encoded defproto.Receipt, ok bool) {
+ 	var Type *defproto.Receipt_ReceiptType
+ 	switch receipt.Type {
+ 	case types.ReceiptTypeDelivered:
+@@ -741,6 +744,8 @@ func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
+ 	case types.ReceiptTypePlayed:
+ 		Type = defproto.Receipt_PLAYED.Enum()
+ 	case types.ReceiptTypePlayedSelf:
++		Type = defproto.Receipt_PLAYED_SELF.Enum()
++	case types.ReceiptTypeServerError:
+ 		Type = defproto.Receipt_SERVER_ERROR.Enum()
+ 	case types.ReceiptTypeInactive:
+ 		Type = defproto.Receipt_INACTIVE.Enum()
+@@ -749,12 +754,15 @@ func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
+ 	case types.ReceiptTypeHistorySync:
+ 		Type = defproto.Receipt_HISTORY_SYNC.Enum()
+ 	}
++	if Type == nil {
++		return defproto.Receipt{}, false
++	}
+ 	return defproto.Receipt{
+ 		MessageSource: EncodeMessageSource(receipt.MessageSource),
+ 		MessageIDs:    receipt.MessageIDs,
+ 		Timestamp:     proto.Int64(receipt.Timestamp.Unix()),
+ 		Type:          Type,
+-	}
++	}, true
+ }
+ 
+ func EncodeChatPresence(presence *events.ChatPresence) defproto.ChatPresence {
+diff --git a/goneonize/utils/encoder_receipt_test.go b/goneonize/utils/encoder_receipt_test.go
+new file mode 100644
+index 0000000..cc63e16
+--- /dev/null
++++ b/goneonize/utils/encoder_receipt_test.go
+@@ -0,0 +1,40 @@
++package utils
++
++import (
++	"testing"
++
++	defproto "github.com/krypton-byte/neonize/defproto"
++	"go.mau.fi/whatsmeow/types"
++	"go.mau.fi/whatsmeow/types/events"
++	"google.golang.org/protobuf/proto"
++)
++
++func TestEveryReceiptTypeIsEncodedOrSkipped(t *testing.T) {
++	want := map[types.ReceiptType]defproto.Receipt_ReceiptType{
++		types.ReceiptTypeDelivered:   defproto.Receipt_DELIVERED,
++		types.ReceiptTypeSender:      defproto.Receipt_SENDER,
++		types.ReceiptTypeRetry:       defproto.Receipt_RETRY,
++		types.ReceiptTypeRead:        defproto.Receipt_READ,
++		types.ReceiptTypeReadSelf:    defproto.Receipt_READ_SELF,
++		types.ReceiptTypePlayed:      defproto.Receipt_PLAYED,
++		types.ReceiptTypePlayedSelf:  defproto.Receipt_PLAYED_SELF,
++		types.ReceiptTypeServerError: defproto.Receipt_SERVER_ERROR,
++		types.ReceiptTypeInactive:    defproto.Receipt_INACTIVE,
++		types.ReceiptTypePeerMsg:     defproto.Receipt_PEER_MSG,
++		types.ReceiptTypeHistorySync: defproto.Receipt_HISTORY_SYNC,
++	}
++	for kind, expected := range want {
++		encoded, ok := EncodeReceipts(&events.Receipt{Type: kind})
++		if !ok || encoded.GetType() != expected {
++			t.Fatalf("%q encoded as %v (ok=%v), want %v", kind, encoded.GetType(), ok, expected)
++		}
++		if _, err := proto.Marshal(&encoded); err != nil {
++			t.Fatalf("%q cannot be marshalled: %v", kind, err)
++		}
++	}
++	// a type this proto has no value for (seen live: one ended the event loop
++	// in the middle of a group call) is skipped, not sent half-built
++	if _, ok := EncodeReceipts(&events.Receipt{Type: types.ReceiptType("enc_rekey_retry")}); ok {
++		t.Fatal("an unknown receipt type was encoded")
++	}
++}
