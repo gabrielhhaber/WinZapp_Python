@@ -98,7 +98,8 @@ def test_automatic_translation_is_scoped_to_chat_and_provider():
     jid, alias = "123@s.whatsapp.net", "55@lid"
     mw = SimpleNamespace(is_chat_locked=lambda value: False, _phone_to_lid={jid: alias})
     panel = SimpleNamespace(main_window=mw, _translation_chat_key=lambda value: jid,
-                            _translation_chats=lambda: {alias: credential_id(config)})
+                            _translation_chats=lambda: {alias: {"provider": credential_id(config),
+                                                                 "enabled": True}})
     enabled = TranslationActionsMixin._automatic_translation_enabled
     assert enabled(panel, jid, config)
     assert not enabled(panel, jid, replace(config, base_url="https://other.test/v1"))
@@ -116,21 +117,33 @@ def test_manual_only_translation_does_not_load_automatic_chat_metadata():
     may_be_enabled = TranslationActionsMixin._automatic_translation_may_be_enabled
     assert not may_be_enabled(panel, "123@s.whatsapp.net", config)
 
-def test_listbox_sends_shift_enter_to_the_command_handler_before_native_activation():
+
+@pytest.mark.parametrize(("handled", "expected"), [
+    (True, ["translate"]),
+    # A row without text: Shift+Enter keeps opening it, as before translation.
+    (False, ["translate", "open"]),
+])
+def test_listbox_offers_shift_enter_to_translation_before_native_activation(handled, expected):
     from types import SimpleNamespace
     import wx
     from ui.accessible import CompatListBoxMessagesCtrl
 
     calls = []
+
+    def translate(event):
+        calls.append("translate")
+        return handled
+
     event = SimpleNamespace(GetKeyCode=lambda: wx.WXK_RETURN,
                             ControlDown=lambda: False, ShiftDown=lambda: True,
                             AltDown=lambda: False, GetSkipped=lambda: False,
                             Skip=lambda: calls.append("skipped"))
     box = SimpleNamespace(HasFocus=lambda: True, GetSelection=lambda: 0,
-                          _key_down_handler=lambda _: calls.append("translate"),
-                          _activated_handler=lambda _: calls.append("open original"))
+                          _shortcut_handler=translate,
+                          _key_down_handler=lambda _: calls.append("key down"),
+                          _activated_handler=lambda _: calls.append("open"))
     CompatListBoxMessagesCtrl._on_char_hook(box, event)
-    assert calls == ["translate"]
+    assert calls == expected
 
 
 def test_gemini_defaults_to_flash_lite_alias_and_keeps_an_explicit_model():
@@ -225,3 +238,135 @@ def test_translation_reuses_existing_keys_and_keeps_custom_keys_out_of_shared_st
     assert shared.get("gemini") == "fake-gemini-key"
     assert shared.saved() == {"gemini"}
     assert store_for_translation(shared, custom).get(custom) == "fake-custom-key"
+
+
+def test_every_engine_but_grok_and_custom_endpoints_has_a_ready_default_model():
+    from core.ai_media.config import PROVIDERS
+    from core.message_translation import default_model, settings_from
+
+    for provider in PROVIDERS:
+        config = settings_from({"provider": provider, "language": "Arabic"})
+        assert config.model == default_model(provider) != ""
+        assert translation_model_ready(config), provider
+    for provider in ("grok", "custom_openai", "custom_anthropic"):
+        assert default_model(provider) == ""
+
+
+@pytest.mark.parametrize("model", [
+    "mistral-embed", "codestral-embed", "mistral-moderation-latest", "gpt-4o-mini-transcribe",
+    "playai-tts", "distil-whisper-large-v3-en", "gpt-realtime", "veo-3",
+])
+def test_translation_catalog_skips_embedding_speech_and_moderation_models(model):
+    assert not [row.id for row in _model_options("mistral", {"data": [{"id": model}]})]
+    assert [row.id for row in _model_options("mistral", {"data": [{"id": "mistral-small-latest"}]})]
+
+
+@pytest.mark.parametrize(("error", "pauses"), [
+    ("ai_error_authentication", True), ("ai_error_quota", True), ("ai_error_credits", True),
+    ("ai_error_credentials", True), ("ai_error_network", False), ("ai_error_limit", False),
+    ("ai_error_cancelled", False), (None, False),
+])
+def test_only_refusals_that_repeat_pause_automatic_translation(error, pauses):
+    from core.message_translation import pauses_automatic
+
+    assert pauses_automatic(error) is pauses
+
+
+@pytest.mark.parametrize(("length", "fits"), [(32000, True), (32001, False)])
+def test_a_chat_completions_translation_is_parsed_and_never_cut(length, fits):
+    from core.ai_media.providers import parse_answer
+
+    body = {"choices": [{"message": {"content": "x" * length}, "finish_reason": "stop"}]}
+    if fits:
+        assert parse_answer("chat_completions", body, "text") == "x" * length
+    else:
+        with pytest.raises(DescriptionError, match="output_limit"):
+            parse_answer("chat_completions", body, "text")
+
+
+def test_anthropic_model_pages_follow_last_id_until_has_more_ends():
+    import json
+    from core.ai_media.model_catalog import fetch_catalog
+    from core.ai_media.service import RequestToken
+    from tests.test_ai_media_core import FakeHTTP, FakeResponse
+
+    bodies = [{"data": [{"id": "first"}], "has_more": True, "last_id": "first"},
+              {"data": [{"id": "second"}], "has_more": False, "last_id": "second"}]
+
+    class Pages(FakeHTTP):
+        def get(self, url, **kwargs):
+            self.calls.append((url, kwargs))
+            return FakeResponse(data=json.dumps(bodies[len(self.calls) - 1]).encode())
+
+    http = Pages()
+    request = ("https://example.test/v1/models", {"x-api-key": "k"}, {})
+    found = fetch_catalog(request, lambda body: _model_options("claude", body),
+                          RequestToken(seconds=20), lambda: http, pagination="anthropic")
+    assert sorted(found) == ["first", "second"]
+    assert "after_id" not in http.calls[0][1]["params"]
+    assert http.calls[1][1]["params"]["after_id"] == "first"
+
+
+def test_anthropic_has_more_without_last_id_is_an_error_not_a_partial_list():
+    import json
+    from core.ai_media.model_catalog import fetch_catalog
+    from core.ai_media.service import RequestToken
+    from tests.test_ai_media_core import FakeHTTP, FakeResponse
+
+    http = FakeHTTP(FakeResponse(data=json.dumps({"data": [{"id": "a"}], "has_more": True}).encode()))
+    with pytest.raises(DescriptionError, match="response"):
+        fetch_catalog(("https://example.test/v1/models", {}, {}),
+                      lambda body: _model_options("claude", body), RequestToken(seconds=20),
+                      lambda: http, pagination="anthropic")
+
+
+def test_snapshot_read_never_waits_on_a_held_settings_lock(tmp_path):
+    import threading
+    from app_settings import AppSettings
+    from coord_locks import LockTimeout, app_settings_lock
+
+    app = AppSettings(str(tmp_path))
+    app.set("message_translation", {"provider": "gemini"})
+    assert app.get_snapshot("message_translation") == {"provider": "gemini"}
+    held, release = threading.Event(), threading.Event()
+
+    def hold():
+        with app_settings_lock(str(tmp_path)):
+            held.set()
+            release.wait(10)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    try:
+        assert held.wait(10)
+        with pytest.raises(LockTimeout):
+            app.get_snapshot("message_translation")
+    finally:
+        release.set()
+        holder.join(10)
+
+
+def test_grok_and_custom_keys_never_reach_the_shared_vault_and_a_reset_wipes_both(tmp_path):
+    from core.ai_credentials import (
+        CredentialStore, TranslationCredentialStore, apply_with_translation,
+    )
+
+    shared = CredentialStore(tmp_path)
+    custom = credential_id(TranslationSettings("custom_openai", "m", "Arabic", "https://example.test/v1"))
+    apply_with_translation(shared, {"openai": "fake-openai", "grok": "fake-grok", custom: "fake-custom"})
+    translation = TranslationCredentialStore(tmp_path)
+    assert shared.saved() == {"openai"}
+    assert translation.saved() == {"grok", custom}
+    apply_with_translation(shared, {}, reset=True)
+    assert shared.saved() == frozenset() and translation.saved() == frozenset()
+    assert not translation.data_path.exists() and not translation.key_path.exists()
+
+
+def test_a_custom_endpoint_key_cannot_be_written_to_the_shared_vault(tmp_path):
+    from core.ai_credentials import CredentialError, CredentialStore
+
+    custom = credential_id(TranslationSettings("custom_openai", "m", "Arabic", "https://example.test/v1"))
+    with pytest.raises(CredentialError):
+        CredentialStore(tmp_path).apply({custom: "fake"})
+    with pytest.raises(CredentialError):
+        CredentialStore(tmp_path).apply({"grok": "fake"})

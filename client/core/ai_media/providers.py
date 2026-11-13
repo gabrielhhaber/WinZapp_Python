@@ -123,7 +123,7 @@ def _transcription(provider, key, media, model):
 
 
 def parse_answer(provider, body, kind):
-    limit = 32000 if kind == "text" else MAX_OUTPUT_CHARS[kind]
+    limit = MAX_OUTPUT_CHARS[kind]
     try:
         if provider == "mistral" and kind == "audio":
             if body.get("finish_reason") not in (None, "stop"):

@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from core.message_translation import message_text
 from ui.shortcut_bindings import command_key_event, matches
 import base64 as _b64
 import logging
@@ -73,13 +74,15 @@ def activate_audio_message(panel, msg: dict) -> None:
 
 
 def handle_translation_shortcut(self, event):
+    """The translation chord on a text row; any other row keeps what the
+    chord did before (Shift+Enter opens it like Enter)."""
     if not matches(self, event, "message_list.translate"):
         return False
     row = self.messages_list.GetFocusedItem()
-    if 0 <= row < len(self._sorted_messages):
-        self._on_translate_message(self._sorted_messages[row])
+    if not 0 <= row < len(self._sorted_messages) or not message_text(self._sorted_messages[row]):
+        return False
+    self._on_translate_message(self._sorted_messages[row])
     return True
-
 
 
 class MessageListMixin:

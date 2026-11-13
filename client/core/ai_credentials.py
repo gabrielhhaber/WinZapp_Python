@@ -7,8 +7,8 @@ Corrupt/missing keys fail closed; we never replace a key covering existing data.
 from __future__ import annotations
 
 import json
-import re
 import os
+import re
 from pathlib import Path
 import uuid
 
@@ -152,3 +152,20 @@ def store_for_translation(shared_store, provider):
     if CredentialStore._accepts(provider):
         return shared_store
     return TranslationCredentialStore(shared_store.directory)
+
+
+def apply_with_translation(shared_store, changes, *, reset=False):
+    """Write staged keys, each to its vault: the AI providers' keys to the
+    store older builds read, Grok's and custom endpoints' keys to the
+    translation store (an older build would read them as a damaged store).
+    A reset empties both."""
+    shared = {provider: key for provider, key in changes.items() if CredentialStore._accepts(provider)}
+    extra = {provider: key for provider, key in changes.items() if provider not in shared}
+    if shared or reset:
+        shared_store.apply(shared, reset=reset)
+    if extra or reset:
+        translation = TranslationCredentialStore(shared_store.directory)
+        if extra:
+            translation.apply(extra, reset=reset)
+        elif translation.data_path.exists() or translation.key_path.exists():
+            translation.reset()

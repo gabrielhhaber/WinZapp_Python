@@ -23,7 +23,7 @@ from wx.lib.scrolledpanel import ScrolledPanel
 from app_paths import global_dir
 from app_settings import AppSettings
 from core.ai_credentials import (
-    CredentialStore, CredentialError, TranslationCredentialStore, store_for_translation,
+    CredentialStore, CredentialError, apply_with_translation, store_for_translation,
 )
 from core.message_translation import credential_id, preferences as translation_preferences
 from core.message_translation import settings_from as settings_from_translation
@@ -664,16 +664,7 @@ class AISettingsPage(ScrolledPanel):
         try:
             changes = {provider: None for provider in self._deleted}
             changes.update(self._drafts)
-            shared = {provider: key for provider, key in changes.items() if provider in PROVIDERS}
-            extra = {provider: key for provider, key in changes.items() if provider not in PROVIDERS}
-            if shared or self._reset:
-                self.store.apply(shared, reset=self._reset)
-            if extra or self._reset:
-                translation_store = TranslationCredentialStore(self.store.directory)
-                if extra:
-                    translation_store.apply(extra, reset=self._reset)
-                elif translation_store.data_path.exists() or translation_store.key_path.exists():
-                    translation_store.reset()
+            apply_with_translation(self.store, changes, reset=self._reset)
             # Re-entering a key removes it from _deleted, but must not undo
             # the consent revocation requested by an install-wide reset.
             removed = set(PROVIDERS) if self._reset else set(self._deleted)
@@ -722,6 +713,9 @@ class AISettingsPage(ScrolledPanel):
                 if callable(update_view):
                     update_view(translation)
                     wx.CallAfter(panel._rerender_messages_list_rows)
+                resume = getattr(panel, "resume_automatic_translation", None)
+                if callable(resume):
+                    resume()
                 focused = getattr(panel, "_translate_focused_recent", None)
                 if translation.automatic and callable(focused):
                     wx.CallAfter(focused)

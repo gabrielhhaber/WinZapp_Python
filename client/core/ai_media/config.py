@@ -108,7 +108,9 @@ MAX_SOURCE_BYTES = {"image": 20 * 1024 * 1024, "sticker": 20 * 1024 * 1024,
 #: Longest answer kept; a converted PDF or a long voice message is far longer
 #: than a description, and cutting it silently would drop content.
 MAX_OUTPUT_CHARS = {"image": 12_000, "sticker": 12_000, "video": 12_000,
-                    "audio": 50_000, "pdf": 100_000}
+                    "audio": 50_000, "pdf": 100_000,
+                    # A translated text message (core/message_translation.py).
+                    "text": 32_000}
 #: Token budget asked of the provider, by kind.
 MAX_OUTPUT_TOKENS = {"image": 1800, "sticker": 1200, "video": 2200,
                      "audio": 8000, "pdf": 16000}

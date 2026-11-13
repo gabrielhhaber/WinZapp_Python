@@ -588,8 +588,7 @@ class CompatListBoxMessagesCtrl(wx.ListBox):
             if shortcut is not None and shortcut(event):
                 return
             if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
-                    and (event.ControlDown() or getattr(event, "ShiftDown", lambda: False)()
-                         or getattr(event, "AltDown", lambda: False)())
+                    and event.ControlDown()
                     and self._key_down_handler is not None):
                 # Modified Enter belongs to the panel's shortcut handler.
                 # Sending it through the plain activation path made

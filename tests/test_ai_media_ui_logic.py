@@ -793,8 +793,8 @@ def test_escape_releases_private_state_and_stops_timer(dialog):
 
 
 class PageStub:
-    _translation = None
     """AISettingsPage's state-handling methods over plain controls."""
+    _translation = None
     apply = AISettingsPage.apply
     _has_key = AISettingsPage._has_key
     _row = AISettingsPage._row

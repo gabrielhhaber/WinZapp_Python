@@ -291,6 +291,20 @@ def popup_label_chord(label):
     return entry.GetFlags(), normalize_key(entry.GetKeyCode())
 
 
+def popup_item_label(owner, label, shortcut_id):
+    """*label* with the chord *shortcut_id* is bound to now, for one popup
+    item; nothing after the tab when the command has no binding."""
+    from ui.shortcut_names import shortcut_name
+    window = main_window_for(owner)
+    shortcut = next(s for s in SHORTCUTS if s.id == shortcut_id)
+    if window is None:
+        binding = default_binding(shortcut, lambda key: key)
+    else:
+        binding = binding_for(shortcut, window.settings.get(SECTION, {}), window.i18n.t)
+    name = shortcut_name(binding, None)
+    return label + ('	' + name if name else '')
+
+
 def refresh_popup_shortcuts(owner, scope, menu):
     window = main_window_for(owner)
     if window is None:

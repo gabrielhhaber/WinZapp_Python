@@ -864,7 +864,6 @@ msgstr ""
 "uprawnienia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
 msgctxt "ai_error_busy"
 msgid ""
 "An operation is already running. Wait or cancel it before starting another."
@@ -18825,6 +18824,16 @@ msgid "Daily automatic translation limit, 0 for unlimited (&D)"
 msgstr "Dzienny limit tłumaczeń automatycznych, 0 oznacza brak limitu (&D)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_limit_reached"
+msgid ""
+"Automatic translation stopped for today: the limit of {limit} requests was "
+"reached."
+msgstr ""
+"Automatyczne tłumaczenie wstrzymano do końca dnia. Osiągnięto limit żądań: "
+"{limit}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_off"
 msgid "Disable automatic translation for this chat"
 msgstr "Wyłącz automatyczne tłumaczenie w tym czacie"
@@ -18833,6 +18842,15 @@ msgstr "Wyłącz automatyczne tłumaczenie w tym czacie"
 msgctxt "translation_auto_on"
 msgid "Enable automatic translation for this chat"
 msgstr "Włącz automatyczne tłumaczenie w tym czacie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused"
+msgid ""
+"Automatic translation paused for one hour: the provider refused the requests"
+" (quota, credit or key)."
+msgstr ""
+"Automatyczne tłumaczenie wstrzymano na godzinę: dostawca odrzucił żądania z "
+"powodu limitu, braku środków lub problemu z kluczem API."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
@@ -18881,7 +18899,17 @@ msgid "Target language (&L)"
 msgstr "Język docelowy (&L)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_menu.py
+#, python-brace-format
+msgctxt "translation_locked_confirm"
+msgid ""
+"This message is from a locked chat. Send its text to {provider} for "
+"translation?"
+msgstr ""
+"Ta wiadomość pochodzi z zabezpieczonego czatu. Wysłać jej tekst do "
+"{provider} w celu tłumaczenia?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
 msgctxt "translation_message"
 msgid "Translate message"
 msgstr "Przetłumacz wiadomość"
@@ -18892,7 +18920,11 @@ msgid "Model (&M)"
 msgstr "Model (&M)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_model_required"
+msgid "Enter a model, or use Get models to choose one."
+msgstr "Wpisz model albo użyj przycisku Pobierz modele, aby go wybrać."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_not_configured"
 msgid ""
 "Set the translation provider, model and target language in AI settings."
@@ -18919,7 +18951,6 @@ msgid ""
 msgstr "Dostawca zwrócił ten sam tekst. Może on być już w języku docelowym."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
 #, python-brace-format
 msgctxt "translation_sending"
 msgid "Translating with {provider}…"
@@ -18942,7 +18973,6 @@ msgid "Test translation (&T)"
 msgstr "Sprawdź tłumaczenie (&T)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
 msgctxt "translation_test_required"
 msgid "Use Test translation to verify this model before saving."
 msgstr ""

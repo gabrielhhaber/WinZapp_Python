@@ -120,17 +120,25 @@ class TranslationSettingsDialog(wx.Dialog):
             raise CredentialError()
         return config, draft
 
+    def _refuse(self, key):
+        """Why OK did nothing, where focus lands: a silent OK left the user
+        in a dialog that seemed not to answer."""
+        self.status.ChangeValue(self._t(key))
+        self.status.SetFocus()
+
     def _accept(self, event):
         try:
             config, draft = self._values()
+            if not config.model:
+                self._refuse("translation_model_required")
+                return
             translation_request(config, draft or self._get_key(credential_id(config)), SAMPLE)
         except (DescriptionError, CredentialError) as error:
-            self.status.ChangeValue(self._t(str(error)))
+            self._refuse(str(error))
             return
         config = replace(config, model_tested=self._tested_model == model_test_identity(config))
         if not translation_model_ready(config):
-            self.status.ChangeValue(self._t("translation_test_required"))
-            self.status.SetFocus()
+            self._refuse("translation_test_required")
             return
         if config.automatic and config.scope == SCOPE_ALL and (
                 not self._initial.automatic or not self._initial.all_accounts_confirmed

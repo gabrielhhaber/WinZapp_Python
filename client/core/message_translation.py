@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from hashlib import sha256
 from urllib.parse import urlsplit
 
-from core.ai_media.auto import charged, limit_reached
+from core.ai_media.auto import PAUSING_CATEGORIES, charged, limit_reached
 from core.ai_media.config import PROVIDERS, _view_once, valid_model
 from core.transcription.auto_queue import AGE_CHOICES_MINUTES, too_old
 from core.quote_recovery import RECOVERED_FROM_QUOTE
@@ -16,17 +16,41 @@ CUSTOM = ("custom_openai", "custom_anthropic")
 PROVIDER_NAMES = {key: spec.name for key, spec in PROVIDERS.items()} | {"grok": "Grok (xAI)"}
 MAX_TEXT_CHARS = 12000
 GEMINI_DEFAULT_MODEL = "gemini-flash-lite-latest"
+#: A light text model per engine with a reviewed model list, so choosing the
+#: engine is enough; each one is in COMPATIBLE_MODELS (or is Gemini's alias),
+#: so it needs no sample test. Grok and custom endpoints have no reviewed
+#: list: their model comes from "Get models" and the sample test.
+DEFAULT_MODELS = {
+    "gemini": GEMINI_DEFAULT_MODEL,
+    "openai": "gpt-4.1-mini",
+    "claude": "claude-haiku-4-5-20251001",
+    "groq": "qwen/qwen3.8-27b",
+    "openrouter": "google/gemini-3.5-flash-lite",
+    "mistral": "mistral-small-latest",
+}
 SCOPE_SELECTED, SCOPE_ALL = "selected", "all"
 DISPLAY_REPLACE, DISPLAY_APPEND, DISPLAY_SEPARATE = "replace", "append", "separate"
 DISPLAY_MODES = (DISPLAY_REPLACE, DISPLAY_APPEND, DISPLAY_SEPARATE)
+#: Fragments of model ids that never answer a chat request with text
+#: (speech, embeddings, images, video, moderation). Anything else unfamiliar
+#: still has to pass the sample test before it is saved.
 NON_TEXT_MODELS = (
-    "whisper", "voxtral", "text-embedding", "tts-", "mistral-ocr", "grok-imagine",
-    "imagen", "veo", "dall-e", "gpt-image", "omni-moderation", "text-moderation",
+    "whisper", "voxtral", "embed", "tts", "transcribe", "playai", "ocr", "imagine",
+    "imagen", "veo-", "dall-e", "gpt-image", "moderation", "realtime",
 )
+#: How long automatic translation stops after the provider refused for a
+#: reason that repeats (key, quota, credit): the AI media rule.
+PAUSE_SECONDS = 3600.0
 
 
 def default_model(provider):
-    return GEMINI_DEFAULT_MODEL if provider == "gemini" else ""
+    return DEFAULT_MODELS.get(provider, "")
+
+
+def pauses_automatic(error_key):
+    """Whether a failed automatic request means "stop for a while": the next
+    message would fail for the same reason (key, quota, credit)."""
+    return str(error_key or "").removeprefix("ai_error_") in PAUSING_CATEGORIES
 
 
 @dataclass(frozen=True)
@@ -86,8 +110,8 @@ def chat_allows_automatic(config, entries, addresses):
     matches = [entries.get(address) for address in filter(None, addresses)]
     if any(isinstance(entry, dict) and entry.get("enabled") is False for entry in matches):
         return False
-    if any(entry == identity or (isinstance(entry, dict) and entry.get("provider") == identity
-                                  and entry.get("enabled") is True) for entry in matches):
+    if any(isinstance(entry, dict) and entry.get("provider") == identity
+           and entry.get("enabled") is True for entry in matches):
         return True
     return config.scope == SCOPE_ALL
 
@@ -148,7 +172,10 @@ def translation_model_ready(config):
 
 
 def _text_model_id(model):
-    return valid_model(model) and not model.lower().rsplit("/", 1)[-1].startswith(NON_TEXT_MODELS)
+    if not valid_model(model):
+        return False
+    name = model.lower().rsplit("/", 1)[-1]
+    return not any(fragment in name for fragment in NON_TEXT_MODELS)
 
 
 def message_text(message):
@@ -184,14 +211,19 @@ def cached_translation(results, message):
     return result[2] if result and result[1] == message_text(message) and result[2] != result[1] else ""
 
 
-def translated_body(original, results, message, t, display=None):
+def translated_body(original, results, message, t, display=None, *, shown=None, framed=None):
+    """The row text with the cached translation. ``shown`` turns the answer
+    into what the row reads (mentions as names); ``framed`` wraps it the way
+    the original body is wrapped (the link preview) when it replaces it."""
     translated = cached_translation(results, message)
     if not translated:
         return original
+    if shown is not None:
+        translated = shown(translated)
     if display is None:
         display = results[message_identity(message)][0].display
     if display == DISPLAY_REPLACE:
-        return translated
+        return framed(translated) if framed is not None else translated
     if display == DISPLAY_APPEND:
         return f'{original} | {t("translation_result").format(text=translated)}'
     return original

@@ -792,7 +792,6 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
 msgctxt "ai_error_busy"
 msgid ""
 "An operation is already running. Wait or cancel it before starting another."
@@ -17322,6 +17321,14 @@ msgid "Daily automatic translation limit, 0 for unlimited (&D)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_limit_reached"
+msgid ""
+"Automatic translation stopped for today: the limit of {limit} requests was "
+"reached."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_off"
 msgid "Disable automatic translation for this chat"
 msgstr ""
@@ -17329,6 +17336,13 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_on"
 msgid "Enable automatic translation for this chat"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused"
+msgid ""
+"Automatic translation paused for one hour: the provider refused the requests"
+" (quota, credit or key)."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -17377,7 +17391,15 @@ msgid "Target language (&L)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_menu.py
+#, python-brace-format
+msgctxt "translation_locked_confirm"
+msgid ""
+"This message is from a locked chat. Send its text to {provider} for "
+"translation?"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
 msgctxt "translation_message"
 msgid "Translate message"
 msgstr ""
@@ -17388,7 +17410,11 @@ msgid "Model (&M)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_model_required"
+msgid "Enter a model, or use Get models to choose one."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_not_configured"
 msgid ""
 "Set the translation provider, model and target language in AI settings."
@@ -17415,7 +17441,6 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
 #, python-brace-format
 msgctxt "translation_sending"
 msgid "Translating with {provider}…"
@@ -17438,7 +17463,6 @@ msgid "Test translation (&T)"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/translation_actions.py
 msgctxt "translation_test_required"
 msgid "Use Test translation to verify this model before saving."
 msgstr ""
