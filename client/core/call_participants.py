@@ -5,11 +5,13 @@ from core.call_matching import is_placeholder_call_id
 _PERSON = re.compile(r"\d+@(?:lid|s\.whatsapp\.net|c\.us)")
 
 #: A participant's state in call/participants, as the phone lists a group
-#: call: connected, then ringing (called, not answered yet), then those who
-#: left, declined or did not answer. A response without states (an older
-#: server) lists only connected people.
+#: call: connected, then ringing (being called right now), then invited (on
+#: the call's list but out of it: never joined, or left; WhatsApp offers to
+#: ring them, nobody is ringing them), then those who left, declined or did
+#: not answer. A response without states (an older server) lists only
+#: connected people.
 CONNECTED = "connected"
-STATES = (CONNECTED, "ringing", "left", "declined", "missed")
+STATES = (CONNECTED, "ringing", "invited", "left", "declined", "missed")
 
 
 def active_participants_available(active, state):

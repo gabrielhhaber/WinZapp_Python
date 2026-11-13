@@ -77,11 +77,14 @@ def connected_rows(participants, mine, name_of) -> list:
 
 #: meowcaller's roster states -> call/participants states (client/core/
 #: call_participants.py STATES). Seen on a real lobby: connected, outgoing
-#: (ringing), receipt (the ring reached the phone), invited; the others are
-#: whatsmeow's own call outcome words. An unknown state is left out.
+#: (ringing), receipt (the ring reached the phone), invited (on the call's
+#: list but out of it: a member who left shows so, and nobody rings them);
+#: the others are whatsmeow's own call outcome words. An unknown state is
+#: left out.
 ROSTER_STATES = {
     CONNECTED: "connected",
-    "outgoing": "ringing", "receipt": "ringing", "invited": "ringing", "incoming": "ringing",
+    "outgoing": "ringing", "receipt": "ringing", "incoming": "ringing",
+    "invited": "invited",
     "rejected": "declined", "declined": "declined",
     "terminated": "left", "left": "left",
     "timeout": "missed", "timed_out": "missed", "missed": "missed",

@@ -175,8 +175,10 @@ def test_the_participant_list_keeps_who_is_not_connected():
               {"jid": "2@lid", "state": "outgoing"},
               {"jid": "3@lid", "state": "terminated"},
               {"jid": "4@lid", "state": "something new"},
+              {"jid": "5@lid", "state": "invited"},
               {"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "receipt"},
               {"jid": "9@lid", "state": "connected"}]
     rows = oc.all_rows(roster, {"9"}, lambda jid, lid: "")
     assert [(r["isSelf"], r["state"]) for r in rows] == [
-        (False, "connected"), (False, "ringing"), (False, "left"), (True, "connected")]
+        (False, "connected"), (False, "ringing"), (False, "left"), (False, "invited"),
+        (True, "connected")]

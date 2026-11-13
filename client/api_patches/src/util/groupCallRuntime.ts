@@ -117,6 +117,10 @@ export function installGroupCallRuntimeInPage(): void {
         // on 2026-11-12: Connected 1, Incoming 2, Receipt 3, Rejected 4,
         // Terminated 5 = left, TimedOut 6, CancelOffer 10, Invited 11). Invited,
         // ringing and departed people are never reported as connected.
+        // Invited is not ringing: it is everyone on the call's list who is not
+        // in it (WAWebVoipActionWriteCallLogEventUpdateJoinable marks every
+        // non-connected user Invited, and WAWebVoipUiParticipantPanel offers
+        // to ring them); a member who left shows so (seen live 2026-11-13).
         const states = module('WAWebVoipWaCallEnums')?.CallParticipantState;
         const participants = module('WAWebMsgGetters')?.getCallParticipants?.(record) ?? record.callParticipants;
         if (states?.Connected == null || !Array.isArray(participants) || participants.length > 1024) {
@@ -124,7 +128,7 @@ export function installGroupCallRuntimeInPage(): void {
         }
         const stateOf = new Map([
           [states.Connected, 'connected'],
-          [states.Incoming, 'ringing'], [states.Receipt, 'ringing'], [states.Invited, 'ringing'],
+          [states.Incoming, 'ringing'], [states.Receipt, 'ringing'], [states.Invited, 'invited'],
           [states.Rejected, 'declined'],
           [states.Terminated, 'left'],
           [states.TimedOut, 'missed'], [states.CancelOffer, 'missed'],

@@ -31,7 +31,7 @@ const modules = {
     id._serialized === person ? personChat : pnChat } },
   WAWebMsgGetters: { getIsGroupCall: call => call.isGroupCall === true,
     getCallParticipants: call => call.callParticipants },
-  WAWebVoipWaCallEnums: { CallParticipantState: { Connected: 71, Terminated: 72 } },
+  WAWebVoipWaCallEnums: { CallParticipantState: { Connected: 71, Terminated: 72, Invited: 73, Incoming: 74 } },
   WAWebUserPrefsMeUser: { isMeAccount: wid => wid?._serialized === '555000099@lid',
     getMeLidUserOrThrow: () => ({ _serialized: '555000099@lid' }) },
   WAWebContactCollection: { ContactCollection: { get: wid => ({ name: wid?._serialized === person ? 'Synthetic Person' : '' }) } },
@@ -145,16 +145,22 @@ function fresh() {
     { participant: pnChat.id, outcome: 20 },
     { participant: { _serialized: '555000003@lid' }, outcome: 'Connected' },
     { participant: { _serialized: '555000009@lid' }, outcome: 72 },
+    // Invited is on the list but out of the call (a member who left shows
+    // so, seen live 2026-11-13): never "ringing"; Incoming is being rung
+    { participant: { _serialized: '555000010@lid' }, outcome: 73 },
+    { participant: { _serialized: '555000011@lid' }, outcome: 74 },
   ];
   let roster = await api.participants('call-1');
   assert.equal(roster.available, true);
   // everyone the record lists, with their state: who left stays, as on the phone
   assert.deepEqual(roster.participants, [
     { jid: person, name: 'Synthetic Person', isSelf: false, state: 'connected' },
-    { jid: '555000009@lid', name: '', isSelf: false, state: 'left' }]);
+    { jid: '555000009@lid', name: '', isSelf: false, state: 'left' },
+    { jid: '555000010@lid', name: '', isSelf: false, state: 'invited' },
+    { jid: '555000011@lid', name: '', isSelf: false, state: 'ringing' }]);
   active = { id: 'call-1', getState: () => 6, isGroup: true };
   roster = await api.participants('call-1');
-  assert.equal(roster.participants.length, 3, 'the connected local user is included once');
+  assert.equal(roster.participants.length, 5, 'the connected local user is included once');
   record = null;
   await assert.rejects(api.participants('call-1'), /unavailable/, 'never substitute group membership for a roster');
   active = { id: 'individual', peerJid: personChat.id, isGroup: false, getState: () => 6 };

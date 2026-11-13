@@ -268,6 +268,7 @@ class _Words:
         return {"call_participants_you": "Você", "unknown_contact": "Desconhecido",
                 "call_participant_left_row": "{name}, saiu da chamada",
                 "call_participant_ringing_row": "{name}, chamando",
+                "call_participant_invited_row": "{name}, fora da chamada",
                 "call_participant_declined_row": "{name}, recusou",
                 "call_participant_missed_row": "{name}, não atendeu"}.get(key, key)
 
@@ -300,3 +301,16 @@ def test_the_list_is_ordered_like_the_phones_and_marks_each_state():
         "Ana", "Você", "Caio, chamando", "Bia, saiu da chamada", "Duda, saiu da chamada"]
     # Bia, reported left by the server, is not listed twice from what this device saw
     assert len({key for key, _ in rows}) == 5
+
+
+def test_someone_out_of_the_call_is_not_shown_as_ringing():
+    """A member who left a group call stays on its list as invited (WhatsApp
+    offers to ring them; nobody is ringing them): seen live listed as
+    "ringing". Out of the call, after who is being called."""
+    from core.call_participants import parse_participants, participant_rows
+    data = parse_participants(_roster(
+        {"jid": "4@lid", "name": "Dom", "isSelf": False, "state": "invited"},
+        {"jid": "3@lid", "name": "Caio", "isSelf": False, "state": "ringing"},
+        {"jid": "1@lid", "name": "Ana", "isSelf": False}), "C1")
+    rows = participant_rows(data, _Words(), lambda jid, hint: hint)
+    assert [text for _key, text in rows] == ["Ana", "Caio, chamando", "Dom, fora da chamada"]

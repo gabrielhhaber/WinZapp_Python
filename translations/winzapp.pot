@@ -2422,6 +2422,12 @@ msgid "{name}, declined"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_invited_row"
+msgid "{name}, not in the call"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_participants.py
 #, python-brace-format
 msgctxt "call_participant_joined"
