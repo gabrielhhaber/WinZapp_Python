@@ -179,6 +179,7 @@ class ChatMenuMixin:
             close_item = menu.Append(wx.ID_ANY, f"{i18n.t('close_conversation')}\tCtrl+W")
             self.Bind(wx.EVT_MENU, self.on_context_menu_close, close_item)
 
+        self._append_translation_chat_item(menu, jid)
         refresh_popup_shortcuts(self, 'chats', menu)
         self.PopupMenu(menu)
         menu.Destroy()

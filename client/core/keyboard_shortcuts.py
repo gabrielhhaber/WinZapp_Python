@@ -41,7 +41,7 @@ def mnemonic_keycode(letter):
     return None if result == -1 or (result >> 8) & 0xff else result & 0xff
 
 
-def default_binding(shortcut, translate):
+def default_binding(shortcut, translate, *, resolve_mnemonic=mnemonic_keycode):
     key = shortcut.key
     if key == 0:
         return None
@@ -58,7 +58,7 @@ def default_binding(shortcut, translate):
             pos += 1
         if not letter or len(letter) != 1:
             return None
-        key = mnemonic_keycode(letter)
+        key = resolve_mnemonic(letter)
         if key is None:
             return None
     return shortcut.mod, normalize_key(key)

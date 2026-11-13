@@ -573,6 +573,8 @@ class ChatLockMixin:
         panel = getattr(self, "locked_conversations_panel", None)
         if cp is not None and hasattr(cp, "close_ai_media"):
             cp.close_ai_media(locked_only=True)
+        if cp is not None and hasattr(cp, "drop_locked_translations"):
+            cp.drop_locked_translations()
         # Only a vault that closes under the user's eyes (the locked list on
         # screen, or a locked chat open in view) sends them to the main list;
         # a timeout firing in Status, Calls or the main list changes nothing.

@@ -743,6 +743,8 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                            profile=NamedControl(selection=2), providers=NamedControl(selection=-1),
                            notice=NamedControl(), status=NamedControl(),
                            auto_dialog=SimpleNamespace(SetTitle=lambda title: setattr(page, "title", title)),
+                           kinds_dialog=SimpleNamespace(
+                               SetTitle=lambda title: setattr(page, "kinds_title", title)),
                            _refresh_list=lambda selection: None)
     # The automatic options live in their own window (ai_auto_options.py).
     panel = SimpleNamespace(_page=page, transcribe=NamedControl(), describe=NamedControl(),
@@ -752,7 +754,15 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                             used_label=NamedControl(), used=NamedControl())
     panel.refresh_labels = lambda: AIAutoOptionsPanel.refresh_labels(panel)
     page.auto_panel = panel
+    # So do the kinds of media (ai_kinds_options.py).
+    from ui.dialogs.ai_kinds_options import AIKindsPanel
+    kinds = SimpleNamespace(_page=page, _keys={"image": "ai_describe_images_label"},
+                            toggles={"image": NamedControl()})
+    kinds.refresh_labels = lambda: AIKindsPanel.refresh_labels(kinds)
+    page.kinds_panel = kinds
     AISettingsPage.refresh_labels(page)
+    assert kinds.toggles["image"].value == "ai_describe_images_label"
+    assert page.kinds_title == "ai_kinds_button"
     assert page.notice.name == "ai_settings_help" and page.notice.value == "ai_settings_notice"
     assert page.status.name == "ai_status_label" and page.profile.selection == 2
     assert page.profile.items == ["quick", "balanced", "detailed"]
@@ -794,6 +804,7 @@ def test_escape_releases_private_state_and_stops_timer(dialog):
 
 class PageStub:
     """AISettingsPage's state-handling methods over plain controls."""
+    _translation = None
     apply = AISettingsPage.apply
     _has_key = AISettingsPage._has_key
     _row = AISettingsPage._row
@@ -860,6 +871,18 @@ def test_apply_saves_order_switches_models_and_kinds_but_never_a_key_in_the_sett
     assert saved["profile"] == "detailed" and saved["enabled"] is True and saved["read_answers"] is False
     assert "secret" not in str(saved) and page.store.get("gemini") == "gemini-secret"
     assert page._drafts == {} and "gemini" in page._saved
+
+
+def test_every_apply_resumes_a_paused_automatic_translation(tmp_path):
+    """A key re-entered in a provider's window, without opening the
+    translation dialog, is the usual fix for what paused it."""
+    page = PageStub(tmp_path)
+    resumed = []
+    page.main_window.conversations_panel = SimpleNamespace(
+        resume_automatic_translation=lambda: resumed.append(True))
+    page._drafts = {"gemini": "new-key"}
+    assert page.apply()
+    assert resumed == [True] and page._translation is None
 
 
 def test_blank_draft_on_apply_preserves_saved_key_and_consent(tmp_path):

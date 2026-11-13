@@ -88,7 +88,8 @@ def main():
     por_escopo = collections.defaultdict(list)
     sem_tecla = []
     for s in SHORTCUTS:
-        b = default_binding(s, tr)
+        # O guia distribuído não depende do layout ativo no computador que o gera.
+        b = default_binding(s, tr, resolve_mnemonic=lambda letter: ord(letter) if letter.isascii() else None)
         acao = (tr(CORRECOES[s.id]).replace('&', '') if s.id in CORRECOES
                 else action_text(s, tr)).rstrip(' :')
         if b is None:

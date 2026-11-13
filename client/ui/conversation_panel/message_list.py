@@ -5,7 +5,8 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
-from ui.shortcut_bindings import command_key_event
+from core.message_translation import message_text
+from ui.shortcut_bindings import command_key_event, matches
 import base64 as _b64
 import logging
 import os
@@ -70,6 +71,18 @@ def activate_audio_message(panel, msg: dict) -> None:
         panel._on_menu_transcribe_inline(msg)
         return
     panel._toggle_audio_message_playback(msg)
+
+
+def handle_translation_shortcut(self, event):
+    """The translation chord on a text row; any other row keeps what the
+    chord did before (Shift+Enter opens it like Enter)."""
+    if not matches(self, event, "message_list.translate"):
+        return False
+    row = self.messages_list.GetFocusedItem()
+    if not 0 <= row < len(self._sorted_messages) or not message_text(self._sorted_messages[row]):
+        return False
+    self._on_translate_message(self._sorted_messages[row])
+    return True
 
 
 class MessageListMixin:
@@ -804,6 +817,11 @@ class MessageListMixin:
                 found.add(mid)
         return found
 
+    def _on_messages_list_char_hook(self, event):
+        # Windows can consume Enter before it reaches EVT_KEY_DOWN.
+        if not handle_translation_shortcut(self, event):
+            event.Skip()
+
     def _on_messages_list_key_down(self, event):
         """Ctrl+Space toggles the focused row's membership in
         self.selected_messages (the mass actions act on that set). Plain Space
@@ -820,6 +838,8 @@ class MessageListMixin:
         Activation stayed on Enter / double-click — see _do_activate_message.
         Page Up / Page Down jump by a configurable number of messages (page_up_down_step setting).
         Trigger loading older messages on Arrow Up / Page Up when at the top (index 0)."""
+        if handle_translation_shortcut(self, event):
+            return
         event = command_key_event(self, 'message_list', event)
         key = event.GetKeyCode()
         ctrl = event.ControlDown()

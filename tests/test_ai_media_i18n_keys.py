@@ -122,10 +122,14 @@ def test_no_two_keys_say_the_same_thing():
 CONSENT_WINDOW = ("ai_remember_consent", "ai_send_media")
 SETTINGS_PAGE = (
     "ai_accessibility_enabled_label", "ai_provider_list_label", "ai_provider_configure_button",
-    "ai_provider_move_up_button", "ai_provider_move_down_button", "ai_describe_images_label",
-    "ai_describe_stickers_label", "ai_describe_videos_label", "ai_transcribe_audio_label",
-    "ai_pdf_accessible_label", "ai_profile", "ai_read_answers", "ai_hide_action_button", "ai_auto_button", "ai_settings_help",
-    "ai_technical_info", "ai_reset_keys", "ai_status_label",
+    "ai_provider_move_up_button", "ai_provider_move_down_button", "ai_kinds_button",
+    "ai_profile", "ai_read_answers", "ai_hide_action_button", "ai_auto_button", "ai_settings_help",
+    "ai_technical_info", "translation_settings", "ai_reset_keys", "ai_status_label",
+)
+#: The window of the kinds of media, opened from the page (ai_kinds_options.py).
+KINDS_WINDOW = (
+    "ai_describe_images_label", "ai_describe_stickers_label", "ai_describe_videos_label",
+    "ai_transcribe_audio_label", "ai_pdf_accessible_label",
 )
 #: The window of the automatic options, opened from the page (ai_auto_options.py).
 AUTO_WINDOW = (
@@ -148,10 +152,10 @@ def mnemonic(text):
 @pytest.mark.parametrize("name", LOCALES)
 def test_only_the_keyboard_reachable_windows_carry_mnemonics_and_never_a_shortcut(name):
     """Shortcuts are announced by ui/accessible.py objects. Mnemonics belong to
-    the consent window, the settings page, its automatic options window and
-    the provider window only; the
+    the consent window, the settings page, its automatic options and kinds of
+    media windows and the provider window only; the
     result window and the menus stay free of them."""
-    allowed = {*CONSENT_WINDOW, *SETTINGS_PAGE, *PROVIDER_WINDOW, *AUTO_WINDOW}
+    allowed = {*CONSENT_WINDOW, *SETTINGS_PAGE, *PROVIDER_WINDOW, *AUTO_WINDOW, *KINDS_WINDOW}
     for key, value in locale(name).items():
         if OWNED.match(key) and key != "ai_demo_notice":
             if key not in allowed:
@@ -164,6 +168,7 @@ def test_only_the_keyboard_reachable_windows_carry_mnemonics_and_never_a_shortcu
     (CONSENT_WINDOW, ("cancel",)),
     (SETTINGS_PAGE, ("ok", "apply", "cancel", "settings_search_label")),
     (AUTO_WINDOW, ("ok",)),
+    (KINDS_WINDOW, ("ok",)),
     (PROVIDER_WINDOW, ("ok", "cancel")),
 ])
 def test_every_control_of_a_window_has_its_own_mnemonic_letter(name, keys, fixed):
