@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: accepting the Meta AI terms no longer fails with a WhatsApp error. WinZapp now sends the acceptance in the same format WhatsApp Web uses for this notice and only confirms it after reading again that the notice is recorded as accepted.
+
 - Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.
 
 - In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.
