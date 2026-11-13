@@ -1083,6 +1083,12 @@ msgid "videos"
 msgstr "videos"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_kinds_button"
+msgid "Types of me&dia handled..."
+msgstr "Types of me&dia handled..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_locked_consent"
 msgid ""
@@ -18418,13 +18424,13 @@ msgstr "Verif&y"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"
-msgid "Custom API address (&U)"
-msgstr "Custom API address (&U)"
+msgid "Custom API &address"
+msgstr "Custom API &address"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_age"
-msgid "Maximum message age (&E)"
-msgstr "Maximum message age (&E)"
+msgid "Translate automatically the messages &received up to:"
+msgstr "Translate automatically the messages &received up to:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -18439,6 +18445,16 @@ msgstr ""
 "automatic translation for all accounts?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_chat_disabled"
+msgid "Automatic translation turned off for this chat."
+msgstr "Automatic translation turned off for this chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_chat_enabled"
+msgid "Automatic translation turned on for this chat."
+msgstr "Automatic translation turned on for this chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "translation_auto_confirm"
 msgid ""
@@ -18450,8 +18466,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_limit"
-msgid "Daily automatic translation limit, 0 for unlimited (&D)"
-msgstr "Daily automatic translation limit, 0 for unlimited (&D)"
+msgid "Daily automatic translation l&imit, 0 for unlimited"
+msgstr "Daily automatic translation l&imit, 0 for unlimited"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -18484,18 +18500,18 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
-msgid "Conversations for automatic translation (&C)"
-msgstr "Conversations for automatic translation (&C)"
+msgid "&Conversations for automatic translation"
+msgstr "&Conversations for automatic translation"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_automatic"
-msgid "Automatic translation (&A)"
-msgstr "Automatic translation (&A)"
+msgid "A&utomatic translation"
+msgstr "A&utomatic translation"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"
-msgid "Translation display (&V)"
-msgstr "Translation display (&V)"
+msgid "Translation &display"
+msgstr "Translation &display"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display_append"
@@ -18509,23 +18525,23 @@ msgstr "Replace the message text in the list"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display_separate"
-msgid "Show the translation in a separate text field"
-msgstr "Show the translation in a separate text field"
+msgid "Show the translation in a separate window"
+msgstr "Show the translation in a separate window"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_get_models"
-msgid "Get models (&G)"
-msgstr "Get models (&G)"
+msgid "&Get models"
+msgstr "&Get models"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_key"
-msgid "API key, blank to use the saved key (&K)"
-msgstr "API key, blank to use the saved key (&K)"
+msgid "API &key, blank to use the saved key"
+msgstr "API &key, blank to use the saved key"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_language"
-msgid "Target language (&L)"
-msgstr "Target language (&L)"
+msgid "Target &language"
+msgstr "Target &language"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -18545,8 +18561,8 @@ msgstr "Translate message"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_model"
-msgid "Model (&M)"
-msgstr "Model (&M)"
+msgid "&Model"
+msgstr "&Model"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_model_required"
@@ -18556,14 +18572,16 @@ msgstr "Enter a model, or use Get models to choose one."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_not_configured"
 msgid ""
-"Set the translation provider, model and target language in AI settings."
+"Set up translation in Settings > \"Online AI: Transcriptions and "
+"Descriptions\" > \"Message translation\"."
 msgstr ""
-"Set the translation provider, model and target language in AI settings."
+"Set up translation in Settings > \"Online AI: Transcriptions and "
+"Descriptions\" > \"Message translation\"."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_provider"
-msgid "Provider (&P)"
-msgstr "Provider (&P)"
+msgid "&Provider"
+msgstr "&Provider"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_actions.py
@@ -18589,25 +18607,28 @@ msgid "Translating with {provider}…"
 msgstr "Translating with {provider}…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/translation_settings.py
 msgctxt "translation_settings"
-msgid "Message translation (&Z)"
-msgstr "Message translation (&Z)"
+msgid "Message t&ranslation"
+msgstr "Message t&ranslation"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_status"
-msgid "Status and test result (&S)"
-msgstr "Status and test result (&S)"
+msgid "&Status and test result"
+msgstr "&Status and test result"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_test"
-msgid "Test translation (&T)"
-msgstr "Test translation (&T)"
+msgid "&Test translation"
+msgstr "&Test translation"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_test_required"
-msgid "Use Test translation to verify this model before saving."
-msgstr "Use Test translation to verify this model before saving."
+msgid ""
+"Verify this model with \"Test translation\" in the \"Message translation\" "
+"settings before saving."
+msgstr ""
+"Verify this model with \"Test translation\" in the \"Message translation\" "
+"settings before saving."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_waiting"

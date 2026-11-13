@@ -14,13 +14,13 @@ from core.message_translation import (
     normalized_base, translate, translation_model_ready, translation_request,
 )
 
+
 LABELS = PROVIDER_NAMES | dict(zip(CUSTOM, ("OpenAI Compatible", "Anthropic Compatible")))
 SAMPLE = "Hello! See you tomorrow."
 
 
 class TranslationSettingsDialog(wx.Dialog):
-    def __init__(self, parent, i18n, config, get_key):
-        title = i18n.t("translation_settings").rsplit(" (&", 1)[0].replace("&", "")
+    def __init__(self, parent, i18n, config, get_key, title):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self._body = ScrolledPanel(self)
         self._t, self._get_key = i18n.t, get_key

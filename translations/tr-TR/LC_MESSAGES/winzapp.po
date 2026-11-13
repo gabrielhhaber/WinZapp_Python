@@ -1085,6 +1085,12 @@ msgid "videos"
 msgstr "videolar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_kinds_button"
+msgid "Types of me&dia handled..."
+msgstr "İşlenecek &içerik türleri..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_locked_consent"
 msgid ""
@@ -18410,13 +18416,13 @@ msgstr "&Doğrula"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"
-msgid "Custom API address (&U)"
-msgstr "Özel API adresi (&U)"
+msgid "Custom API &address"
+msgstr "Özel API &adresi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_age"
-msgid "Maximum message age (&E)"
-msgstr "En eski mesaj yaşı (&E)"
+msgid "Translate automatically the messages &received up to:"
+msgstr "Şu süreye kadar alınan mesajları otomatik çe&vir:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -18431,6 +18437,16 @@ msgstr ""
 "hesaplar için otomatik çeviri etkinleştirilsin mi?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_chat_disabled"
+msgid "Automatic translation turned off for this chat."
+msgstr "Bu sohbet için otomatik çeviri kapatıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_chat_enabled"
+msgid "Automatic translation turned on for this chat."
+msgstr "Bu sohbet için otomatik çeviri açıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "translation_auto_confirm"
 msgid ""
@@ -18442,8 +18458,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_limit"
-msgid "Daily automatic translation limit, 0 for unlimited (&D)"
-msgstr "Günlük otomatik çeviri sınırı, sınırsız için 0 (&D)"
+msgid "Daily automatic translation l&imit, 0 for unlimited"
+msgstr "Gü&nlük otomatik çeviri sınırı, sınırsız için 0"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -18475,19 +18491,18 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
-msgid "Conversations for automatic translation (&C)"
-msgstr "Otomatik çevrilecek sohbetler (&C)"
+msgid "&Conversations for automatic translation"
+msgstr "Otomatik çevrilecek sohbet&ler"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#| msgid "Allow automatic translation in selected chats (&A)"
 msgctxt "translation_automatic"
-msgid "Automatic translation (&A)"
-msgstr "Otomatik çeviri (&A)"
+msgid "A&utomatic translation"
+msgstr "&Otomatik çeviri"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"
-msgid "Translation display (&V)"
-msgstr "Çeviri görünümü (&V)"
+msgid "Translation &display"
+msgstr "Çeviri &görünümü"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display_append"
@@ -18501,23 +18516,23 @@ msgstr "Listedeki mesaj metnini değiştir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display_separate"
-msgid "Show the translation in a separate text field"
-msgstr "Çeviriyi ayrı bir metin alanında göster"
+msgid "Show the translation in a separate window"
+msgstr "Çeviriyi ayrı bir pencerede göster"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_get_models"
-msgid "Get models (&G)"
-msgstr "Modelleri getir (&G)"
+msgid "&Get models"
+msgstr "Modelleri g&etir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_key"
-msgid "API key, blank to use the saved key (&K)"
-msgstr "API anahtarı, kayıtlı anahtar için boş bırakın (&K)"
+msgid "API &key, blank to use the saved key"
+msgstr "API anahtarı, &kayıtlı anahtar için boş bırakın"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_language"
-msgid "Target language (&L)"
-msgstr "Hedef dil (&L)"
+msgid "Target &language"
+msgstr "&Hedef dil"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -18537,8 +18552,8 @@ msgstr "Mesajı çevir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_model"
-msgid "Model (&M)"
-msgstr "Model (&M)"
+msgid "&Model"
+msgstr "&Model"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_model_required"
@@ -18549,15 +18564,16 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_not_configured"
 msgid ""
-"Set the translation provider, model and target language in AI settings."
+"Set up translation in Settings > \"Online AI: Transcriptions and "
+"Descriptions\" > \"Message translation\"."
 msgstr ""
-"Yapay zekâ ayarlarından çeviri sağlayıcısını, modeli ve hedef dili "
-"ayarlayın."
+"Çeviriyi Ayarlar > \"Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme\" > "
+"\"Mesaj çevirisi\" bölümünden ayarlayın."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_provider"
-msgid "Provider (&P)"
-msgstr "Sağlayıcı (&P)"
+msgid "&Provider"
+msgstr "&Sağlayıcı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_actions.py
@@ -18581,27 +18597,28 @@ msgid "Translating with {provider}…"
 msgstr "{provider} ile çevriliyor…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/translation_settings.py
 msgctxt "translation_settings"
-msgid "Message translation (&Z)"
-msgstr "Mesaj çevirisi (&X)"
+msgid "Message t&ranslation"
+msgstr "&Mesaj çevirisi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_status"
-msgid "Status and test result (&S)"
-msgstr "Durum ve test sonucu (&S)"
+msgid "&Status and test result"
+msgstr "Durum ve tes&t sonucu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_test"
-msgid "Test translation (&T)"
-msgstr "Çeviriyi dene (&T)"
+msgid "&Test translation"
+msgstr "Çeviriyi &dene"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_test_required"
-msgid "Use Test translation to verify this model before saving."
+msgid ""
+"Verify this model with \"Test translation\" in the \"Message translation\" "
+"settings before saving."
 msgstr ""
-"Kaydetmeden önce bu modeli doğrulamak için Çeviriyi test et düğmesini "
-"kullanın."
+"Kaydetmeden önce bu modeli \"Mesaj çevirisi\" ayarlarındaki \"Çeviriyi "
+"dene\" düğmesiyle doğrulayın."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_waiting"

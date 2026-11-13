@@ -36,6 +36,7 @@ from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, probe_connection, submit
 from .ai_provider_models import ModelSelectionMixin
 from .ai_auto_options import AIAutoOptionsPanel, window_title
+from .ai_kinds_options import BUTTON_KEY as KINDS_BUTTON_KEY, AIKindsPanel
 from .settings_pages import SubPageDialog
 
 #: The per-kind switches: (kind, i18n key of its label).
@@ -360,7 +361,15 @@ class AISettingsPage(ScrolledPanel):
         self.configure_button = self._button("ai_provider_configure_button", self._configure)
         self.up_button = self._button("ai_provider_move_up_button", lambda e: self._move(-1))
         self.down_button = self._button("ai_provider_move_down_button", lambda e: self._move(1))
-        self.toggles = {kind: self._check(label, config["kinds"][kind]) for kind, label in KIND_TOGGLES}
+        # The kinds of media, in a window of their own (ai_kinds_options.py):
+        # on the page they left no letter for the translation button.
+        self.kinds_button = self._button(KINDS_BUTTON_KEY, lambda event: self.open_kinds())
+        self.kinds_dialog = SubPageDialog(
+            self.GetTopLevelParent(), window_title(self._t(KINDS_BUTTON_KEY)), self._t("ok"),
+            on_change=lambda event: self._on_change())
+        self.kinds_panel = AIKindsPanel(self.kinds_dialog, self, KIND_TOGGLES, config["kinds"])
+        self.kinds_dialog.set_body(self.kinds_panel)
+        self.toggles = self.kinds_panel.toggles
         self.profile = self._choice("ai_profile", self._profile_labels())
         self.profile.SetSelection(PROFILES.index(config["profile"]))
         self.read_answers = self._check("ai_read_answers", config["read_answers"])
@@ -405,6 +414,10 @@ class AISettingsPage(ScrolledPanel):
         self.enabled.Bind(wx.EVT_CHECKBOX, self._on_enabled_toggle)
         self._show_options(self.enabled.GetValue())
 
+    def open_kinds(self, control=None):
+        """The window of the kinds of media, on *control* when given."""
+        self.kinds_dialog.open(control)
+
     def open_auto(self, control=None):
         """The window of the automatic options, on *control* when given."""
         self.auto_dialog.open(control)
@@ -415,9 +428,10 @@ class AISettingsPage(ScrolledPanel):
                 child.Show(shown)
         # The automatic options' window too: the settings search reads its
         # controls (add_subpage), and must not offer them with AI turned off.
-        for child in self.auto_panel.GetChildren():
-            child.Show(shown)
-        self.auto_panel.Layout()
+        for panel in (self.auto_panel, self.kinds_panel):
+            for child in panel.GetChildren():
+                child.Show(shown)
+            panel.Layout()
         self.Layout()
         self.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
 
@@ -474,6 +488,8 @@ class AISettingsPage(ScrolledPanel):
         self.profile.SetItems(self._profile_labels())
         self.profile.SetSelection(selection)
         self.auto_panel.refresh_labels()
+        self.kinds_panel.refresh_labels()
+        self.kinds_dialog.SetTitle(window_title(self._t(KINDS_BUTTON_KEY)))
         self.auto_dialog.SetTitle(window_title(self._t("ai_auto_button")))
         self.notice.SetName(self._plain("ai_settings_help"))
         self.notice.ChangeValue(self._t("ai_settings_notice"))
@@ -566,7 +582,8 @@ class AISettingsPage(ScrolledPanel):
             self._translation or translation_preferences(self.app),
             lambda provider: key_for_dialog(
                 store_for_translation(self.store, provider), provider,
-                self._drafts, self._deleted, self._reset))
+                self._drafts, self._deleted, self._reset),
+            window_title(self._t("translation_settings")))
         try:
             if dialog.ShowModal() == wx.ID_OK:
                 self._translation, key = dialog.result

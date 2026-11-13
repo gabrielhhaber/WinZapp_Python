@@ -305,7 +305,7 @@ def test_turning_a_chat_on_saves_it_under_the_phone_address(wx):
     config = panel._translation_settings()
     panel._toggle_translation_chat(LID, config)
     assert saved == {JID: {"provider": credential_id(config), "enabled": True}}
-    assert panel.spoken == ["translation_auto_on"]
+    assert panel.spoken == ["translation_auto_chat_enabled"]
 
 
 def test_the_shortcut_leaves_rows_without_text_to_their_old_action(monkeypatch):
@@ -340,3 +340,4 @@ def test_manual_translation_without_settings_says_what_is_missing(wx, submitted)
     panel._on_translate_message(message(1))
     assert submitted == [] and panel.spoken == ["translation_not_configured"]
     assert TranslationSettings().provider == ""
+

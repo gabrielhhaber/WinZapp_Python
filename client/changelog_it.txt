@@ -4,7 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
-- Traduci i messaggi di testo dall’elenco con la scorciatoia configurabile Shift+Enter. Scegli il fornitore, la lingua di destinazione e la visualizzazione. La traduzione automatica è facoltativa e prevede limiti per conversazione, età e giorno.
+- Traduzione dei messaggi: premi Shift+Enter su un messaggio di testo nell'elenco (la scorciatoia si può cambiare) oppure usa il suo menu contestuale. Si configura in Impostazioni > IA online: trascrizioni e descrizioni > Traduzione dei messaggi: il fornitore (i tuoi fornitori di IA, Grok o un tuo indirizzo compatibile con OpenAI o Anthropic), il modello, la lingua di destinazione e se la traduzione sostituisce il testo, lo segue o si apre in una finestra separata. Traduzione automatica facoltativa dei messaggi ricevuti, in tutte le chat o solo in quelle che attivi, con età massima del messaggio e limite giornaliero; si sospende per un'ora se il fornitore rifiuta la chiave, la quota o il credito. Le chat bloccate non vengono mai tradotte automaticamente, e tradurre un messaggio di una di esse chiede conferma ogni volta. I tipi di contenuto dell'IA online sono ora nella finestra "Tipi di contenuto elaborati...", nella stessa pagina.
 
 - Motore di connessione: Neonize è ora il primo dell'elenco e l'opzione già selezionata quando WinZapp chiede il motore al primo avvio; resta contrassegnato come sperimentale, ma è quello consigliato per l'uso generale. WPPConnect diventa la seconda opzione, con l'indicazione "legacy" dopo il nome, al primo avvio, nella finestra di associazione e in Impostazioni > Connessione. Chi usa già WPPConnect continua a usarlo finché non cambia.
 

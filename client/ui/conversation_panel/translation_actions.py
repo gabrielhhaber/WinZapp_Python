@@ -118,7 +118,7 @@ class TranslationActionsMixin:
         saved[key] = {"provider": credential_id(config), "enabled": not enabled}
         mw.db.set_metadata_json(_OPT_IN, saved)
         self._translation_opt_in = saved
-        mw.output(t("translation_auto_on" if not enabled else "translation_auto_off"))
+        mw.output(t("translation_auto_chat_enabled" if not enabled else "translation_auto_chat_disabled"))
         if not enabled:
             self._translate_focused_recent(jid)
 

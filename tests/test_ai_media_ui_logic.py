@@ -743,6 +743,8 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                            profile=NamedControl(selection=2), providers=NamedControl(selection=-1),
                            notice=NamedControl(), status=NamedControl(),
                            auto_dialog=SimpleNamespace(SetTitle=lambda title: setattr(page, "title", title)),
+                           kinds_dialog=SimpleNamespace(
+                               SetTitle=lambda title: setattr(page, "kinds_title", title)),
                            _refresh_list=lambda selection: None)
     # The automatic options live in their own window (ai_auto_options.py).
     panel = SimpleNamespace(_page=page, transcribe=NamedControl(), describe=NamedControl(),
@@ -752,7 +754,15 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                             used_label=NamedControl(), used=NamedControl())
     panel.refresh_labels = lambda: AIAutoOptionsPanel.refresh_labels(panel)
     page.auto_panel = panel
+    # So do the kinds of media (ai_kinds_options.py).
+    from ui.dialogs.ai_kinds_options import AIKindsPanel
+    kinds = SimpleNamespace(_page=page, _keys={"image": "ai_describe_images_label"},
+                            toggles={"image": NamedControl()})
+    kinds.refresh_labels = lambda: AIKindsPanel.refresh_labels(kinds)
+    page.kinds_panel = kinds
     AISettingsPage.refresh_labels(page)
+    assert kinds.toggles["image"].value == "ai_describe_images_label"
+    assert page.kinds_title == "ai_kinds_button"
     assert page.notice.name == "ai_settings_help" and page.notice.value == "ai_settings_notice"
     assert page.status.name == "ai_status_label" and page.profile.selection == 2
     assert page.profile.items == ["quick", "balanced", "detailed"]
