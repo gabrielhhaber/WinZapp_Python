@@ -1,0 +1,191 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 00:18:28 -0300
+Subject: [PATCH] Send the group relay allocation again when the participants
+ change on the same relay
+
+The allocation carries this device's sender subscriptions: the PIDs the SFU
+forwards its media to. It was only sent again when the relay transaction
+grew. Seen live: a member left a group call and joined again with a new PID
+on the same relay; WhatsApp Web subscribed this device and it heard them,
+but this device never subscribed the new PID, so the SFU never forwarded
+its audio and the rejoined member heard everyone but it.
+
+The allocation is now sent again when the connected remote PIDs change,
+whatever their order, and never for an older relay transaction. A group
+update without <relay> keeps the known relay, since none means it did not
+change; dropping it stopped every later refresh. A refresh logs at info.
+
+Tested: same members do not resend, a new PID on the same relay does, an
+older relay transaction does not; a relay-less update keeps an unaliased
+copy of the relay; full suite passes.
+---
+ engine_group_control.go      |  6 ++++++
+ engine_group_control_test.go | 23 ++++++++++++++++++++++
+ engine_group_relay.go        | 18 ++++++++++++++++-
+ engine_group_relay_test.go   | 38 ++++++++++++++++++++++++++++++++++++
+ engine_media.go              |  4 ++++
+ 5 files changed, 88 insertions(+), 1 deletion(-)
+
+diff --git a/engine_group_control.go b/engine_group_control.go
+index 866d612..e082975 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -177,6 +177,12 @@ func (e *engine) applyGroupUpdate(update groupCallUpdate) bool {
+ 		return false
+ 	}
+ 	stored := cloneGroupCallUpdate(update)
++	if stored.Relay == nil && m.groupUpdate != nil && m.groupUpdate.Relay != nil {
++		// No <relay> means the relay did not change: kept, so a roster change
++		// on the same relay can still refresh the subscriptions.
++		relay := cloneGroupCallUpdate(*m.groupUpdate).Relay
++		stored.Relay = relay
++	}
+ 	receivers := m.groupReceivers
+ 	e.mu.Unlock()
+ 
+diff --git a/engine_group_control_test.go b/engine_group_control_test.go
+index 6e95880..fd5dd9f 100644
+--- a/engine_group_control_test.go
++++ b/engine_group_control_test.go
+@@ -288,3 +288,26 @@ func TestInviteDeviceCapabilityCopiesNegotiatedValue(t *testing.T) {
+ 		t.Fatal("negotiated capability aliases stanza bytes")
+ 	}
+ }
++
++// A group update without <relay> keeps the relay: the relay did not change,
++// and dropping it stopped the subscription refresh a rejoined member needs.
++func TestGroupUpdateWithoutRelayKeepsTheKnownRelay(t *testing.T) {
++	eng, _, creator := testGroupEngine("KEEP")
++	relay := &groupCallRelay{TransactionID: 5, Key: []byte{1, 2, 3}}
++	if !eng.applyGroupUpdate(groupCallUpdate{CallID: "KEEP", CallCreator: creator, TransactionID: 10, Relay: relay}) {
++		t.Fatal("first update not applied")
++	}
++	if !eng.applyGroupUpdate(groupCallUpdate{CallID: "KEEP", CallCreator: creator, TransactionID: 11}) {
++		t.Fatal("second update not applied")
++	}
++	eng.mu.Lock()
++	stored := eng.calls["KEEP"].groupUpdate
++	eng.mu.Unlock()
++	if stored.TransactionID != 11 || stored.Relay == nil || stored.Relay.TransactionID != 5 {
++		t.Fatalf("stored update = tx %d relay %+v, want tx 11 with relay 5", stored.TransactionID, stored.Relay)
++	}
++	stored.Relay.Key[0] = 9
++	if relay.Key[0] != 1 {
++		t.Fatal("the kept relay aliases the earlier update")
++	}
++}
+diff --git a/engine_group_relay.go b/engine_group_relay.go
+index 047ba15..91fd954 100644
+--- a/engine_group_relay.go
++++ b/engine_group_relay.go
+@@ -3,6 +3,7 @@ package meowcaller
+ import (
+ 	"bytes"
+ 	"fmt"
++	"slices"
+ 	"sync"
+ 
+ 	"github.com/purpshell/meowcaller/rtp"
+@@ -16,6 +17,8 @@ type groupRelayAllocateState struct {
+ 	transactionID uint32
+ 	hasGroup      bool
+ 	hbhFECSSRCs   [2]uint32
++	// pids are the participants the last allocation subscribed, sorted
++	pids []uint32
+ }
+ 
+ func newGroupRelayAllocateStateWithHBHFEC(
+@@ -62,7 +65,13 @@ func (s *groupRelayAllocateState) ApplyWithSubscriptions(
+ 	}
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+-	if s.hasGroup && relayUpdate.TransactionID <= s.transactionID {
++	// The subscriptions name the participants this device's media goes to,
++	// so a member who left and joined again (a new PID, the same relay)
++	// needs a new allocation too: gated on the relay alone, the SFU never
++	// forwarded this device's audio to the rejoined member (seen live).
++	pids := sortedPIDs(participantPIDs)
++	if s.hasGroup && (relayUpdate.TransactionID < s.transactionID ||
++		relayUpdate.TransactionID == s.transactionID && slices.Equal(pids, s.pids)) {
+ 		return false, nil
+ 	}
+ 	if endpoint == nil || endpoint.relayName == "" || len(endpoint.addresses) == 0 ||
+@@ -111,9 +120,16 @@ func (s *groupRelayAllocateState) ApplyWithSubscriptions(
+ 	s.key = append(s.key[:0], relayUpdate.Key...)
+ 	s.transactionID = relayUpdate.TransactionID
+ 	s.hasGroup = true
++	s.pids = pids
+ 	return true, nil
+ }
+ 
++func sortedPIDs(pids []uint32) []uint32 {
++	out := slices.Clone(pids)
++	slices.Sort(out)
++	return out
++}
++
+ func buildRelayBindingSuccess(request, integrityKey []byte) ([]byte, bool) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/a9e4195fb846a730f30ce98c26a7d1c03993fdb2/datasheets/group-media-relay-refresh.md#L72-L92
+ 	messageType, ok := stun.StunMessageType(request)
+diff --git a/engine_group_relay_test.go b/engine_group_relay_test.go
+index a890e9d..56f8d8b 100644
+--- a/engine_group_relay_test.go
++++ b/engine_group_relay_test.go
+@@ -123,3 +123,41 @@ func TestConnectedRemoteParticipantPIDsExcludesSelfAndInactive(t *testing.T) {
+ 		t.Fatalf("connected remote PIDs = %v, want [22]", got)
+ 	}
+ }
++
++// A member who left and joined again gets a new PID while the relay stays the
++// same; the allocation must be sent again with the new subscriptions, or the
++// SFU never forwards this device's audio to that member (seen live).
++func TestGroupRelayAllocateIsResentWhenTheParticipantsChangeOnTheSameRelay(t *testing.T) {
++	key := bytes.Repeat([]byte{0x24}, 16)
++	state := newGroupRelayAllocateStateWithHBHFEC([]byte{0}, key, [2]uint32{})
++	endpoint := &relayEndpoint{relayName: "gru1c01",
++		addresses: []relayAddress{{ipv4: "57.144.67.57", port: 3478}}}
++	relay := &groupCallRelay{TransactionID: 5, Key: key, Tokens: [][]byte{bytes.Repeat([]byte{0x42}, 174)},
++		Endpoints: []groupCallRelayEndpoint{{RelayName: "gru1c01", TokenID: 0}}}
++	sends := 0
++	apply := func(r *groupCallRelay, pids []uint32) bool {
++		changed, err := state.ApplyWithSubscriptions(endpoint, r, [9]uint32{}, 0, pids, [12]byte{},
++			func([]byte) error { sends++; return nil })
++		if err != nil {
++			t.Fatal(err)
++		}
++		return changed
++	}
++	if !apply(relay, []uint32{1, 0}) {
++		t.Fatal("first allocation not sent")
++	}
++	if apply(relay, []uint32{0, 1}) {
++		t.Fatal("the same members in another order sent a new allocation")
++	}
++	if !apply(relay, []uint32{1, 3}) {
++		t.Fatal("a rejoined member (new PID, same relay) got no new allocation")
++	}
++	older := *relay
++	older.TransactionID = 4
++	if apply(&older, []uint32{7}) {
++		t.Fatal("an older relay transaction was applied")
++	}
++	if sends != 2 {
++		t.Fatalf("sends = %d, want 2", sends)
++	}
++}
+diff --git a/engine_media.go b/engine_media.go
+index c3bf72a..17280db 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -554,6 +554,10 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 						)
+ 						if err != nil {
+ 							log.Warn().Err(err).Str("call_id", callID).Msg("failed to refresh group relay allocation")
++						} else if allocateSent {
++							log.Info().Str("call_id", callID).Uint32("relay_transaction_id", update.Relay.TransactionID).
++								Int("subscribed_participants", len(connectedRemoteParticipantPIDs(*update, audioReceivers.selfID))).
++								Msg("refreshed group relay allocation")
+ 						}
+ 					}
+ 				}
