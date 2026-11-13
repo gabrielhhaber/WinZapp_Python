@@ -10,7 +10,7 @@ NOVIDADES
 
 - Durante uma chamada de voz no Windows 11, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema ou o de uma única aplicação, com ou sem o áudio do NVDA, no volume que escolher. De início nada vem selecionado. Silenciar o microfone não interrompe a partilha, e mudar os dispositivos de áudio da chamada mantém-na. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.
 
-- Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais de tempo no buffer (cerca de 60 ms), pelo que o áudio que chega em rajadas já não fica entrecortado.
+- Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais de tempo no buffer (cerca de 60 ms), para reduzir os cortes quando o áudio chega em rajadas.
 
 - Tradução de mensagens: prima Shift+Enter numa mensagem de texto da lista de mensagens (o atalho pode ser alterado) ou use o menu de contexto dela. Configure em Definições > IA online: Transcrições e Descrições > Tradução de mensagens: o fornecedor (os seus fornecedores de IA, Grok ou um endereço próprio compatível com OpenAI ou Anthropic), o modelo, o idioma de destino e se a tradução substitui o texto, aparece depois dele ou abre numa janela separada. Tradução automática opcional das mensagens recebidas, em todas as conversas ou apenas nas que ativar, com idade máxima da mensagem e limite diário; fica em pausa durante uma hora se o fornecedor recusar a chave, a quota ou o crédito. As conversas trancadas nunca são traduzidas automaticamente, e traduzir uma mensagem de uma delas pede confirmação de cada vez. Os tipos de conteúdo da IA online ficam agora na janela "Tipos de conteúdo processados...", na mesma página.
 

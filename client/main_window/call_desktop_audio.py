@@ -142,10 +142,15 @@ class DesktopCallAudioMixin:
     def _resume_call_desktop_audio(self, call, settings):
         """Share again on the session a device switch opened for the same call.
 
-        Quiet when it works: the user changed a device, not the share.
+        Quiet when it works: the user changed a device, not the share. When the
+        same call cannot share right now (reconnecting), the share that the
+        switch stopped is said to be over instead of vanishing silently.
         """
         audio = getattr(self, "_call_audio_session", None)
         if not self._call_desktop_audio_allowed(call, audio):
+            if getattr(self, "_active_voice_call", None) is call and not getattr(self, "_shutting_down", False):
+                self._sync_voice_call_bar()
+                self.output(self.i18n.t("call_desktop_stopped"), interrupt=False)
             return
         self._start_call_desktop_audio(audio, settings, announce=False)
 

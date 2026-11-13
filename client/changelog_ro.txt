@@ -10,7 +10,7 @@ NOUTĂȚI
 
 - În timpul unui apel vocal în Windows 11, folosește Partajați sunetul desktopului pentru a trimite sunetul sistemului sau al unei singure aplicații, cu sau fără sunetul NVDA, la volumul ales. Inițial nu este selectat nimic. Dezactivarea microfonului nu oprește partajarea, iar schimbarea dispozitivelor audio ale apelului o păstrează. Folosește Opriți partajarea sunetului desktopului pentru a opri trimiterea independent de microfon.
 
-- Neonize: în apeluri, vocea celeilalte persoane este păstrată puțin mai mult în buffer (aproximativ 60 ms), astfel încât sunetul care sosește în rafale nu mai este întrerupt.
+- Neonize: în apeluri, vocea celeilalte persoane este păstrată puțin mai mult în buffer (aproximativ 60 ms), pentru a reduce întreruperile când sunetul sosește în rafale.
 
 - Traducerea mesajelor: apasă Shift+Enter pe un mesaj text din lista de mesaje (scurtătura se poate schimba) sau folosește meniul lui contextual. Se configurează în Setări > AI online: transcrieri și descrieri > Traducerea mesajelor: furnizorul (furnizorii tăi AI, Grok sau o adresă proprie compatibilă cu OpenAI ori Anthropic), modelul, limba țintă și dacă traducerea înlocuiește textul, apare după el sau se deschide într-o fereastră separată. Traducere automată opțională a mesajelor primite, în toate conversațiile sau doar în cele pe care le activezi, cu vârstă maximă a mesajului și limită zilnică; se întrerupe pentru o oră dacă furnizorul refuză cheia, cota sau creditul. Conversațiile blocate nu sunt niciodată traduse automat, iar traducerea unui mesaj dintr-o astfel de conversație cere confirmare de fiecare dată. Tipurile de conținut ale AI online sunt acum în fereastra "Tipuri de conținut procesate...", pe aceeași pagină.
 

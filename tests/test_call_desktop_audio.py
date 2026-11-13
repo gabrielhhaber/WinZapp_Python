@@ -197,8 +197,10 @@ class _HeldThread:
 def share_ui(monkeypatch):
     _HeldThread.made = []
     monkeypatch.setattr(ui, "desktop_audio_supported", lambda: True)
-    monkeypatch.setattr(ui.threading, "Thread", _HeldThread)
-    monkeypatch.setattr(ui.wx, "CallAfter", lambda fn, *a, **k: fn(*a, **k))
+    # Module-local stand-ins: the real threading.Thread and wx.CallAfter of
+    # the rest of the process stay untouched.
+    monkeypatch.setattr(ui, "threading", SimpleNamespace(Thread=_HeldThread))
+    monkeypatch.setattr(ui, "wx", SimpleNamespace(CallAfter=lambda fn, *a, **k: fn(*a, **k)))
     return _Window()
 
 
@@ -348,12 +350,19 @@ def test_device_switch_shares_again_quietly_on_the_new_session(share_ui):
     assert window.spoken == ["call_desktop_failed"]
 
 
-def test_device_switch_does_not_share_into_another_call_or_a_video_call(share_ui):
+def test_device_switch_does_not_share_into_another_call(share_ui):
     window = share_ui
     window._resume_call_desktop_audio({"is_video": False}, (True, False, None, 200))
-    window._active_voice_call["is_video"] = True
+    assert window._call_audio_session.started == []
+    assert window.spoken == []
+
+
+def test_device_switch_while_reconnecting_says_the_share_stopped(share_ui):
+    window = share_ui
+    window._voice_call_last_announced_state = "REJOINING"
     window._resume_call_desktop_audio(window._active_voice_call, (True, False, None, 200))
     assert window._call_audio_session.started == []
+    assert window.spoken == ["call_desktop_stopped"]
 
 
 def test_share_settings_and_stop_helpers_tolerate_no_session():
@@ -381,7 +390,7 @@ def test_upgrade_to_video_stops_the_share_and_says_so_after_the_upgrade():
 def test_hanging_up_stops_the_share_before_the_end_request(monkeypatch):
     from main_window import calls as calls_module
 
-    monkeypatch.setattr(calls_module.threading, "Thread", _HeldThread)
+    monkeypatch.setattr(calls_module, "threading", SimpleNamespace(Thread=_HeldThread))
     audio = _Audio()
     audio.desktop_audio = object()
     window = SimpleNamespace(_call_audio_session=audio, _active_voice_call={"call_id": "C1"})
