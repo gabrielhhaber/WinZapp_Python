@@ -30,12 +30,18 @@ function withPage(run: (page: any) => void, activeCall: any = null) {
 }
 
 const wid = (id: string) => ({ _serialized: id });
+
+// Puppeteer sends the function's source to the page: nothing of this module
+// exists there. Run it the same way, so a module constant read inside fails
+// here as it failed in the page.
+const installInPage = (): boolean =>
+  new Function(`return (${installCallParticipantsInPage.toString()})();`)();
 const last = (sent: string[]) => JSON.parse(sent[sent.length - 1]);
 
 // WAWebVoipBridgeCallStateHandlers assigns the list and raises
 // change:groupCallParticipantStates on the call itself, never on the collection.
 test('a change of who is connected on the held call sends the whole list, phone form first', () => withPage(({ sent, calls }) => {
-  expect(installCallParticipantsInPage()).toBe(true);
+  expect(installInPage()).toBe(true);
   const call = emitter({ id: 'CALL1', isGroup: true, groupCallParticipantsConnected: [wid('7@lid')] });
   calls.fire('change:activeCall', call);
   expect(last(sent)).toEqual({ callId: 'CALL1', connected: ['7@lid'] });
@@ -49,7 +55,7 @@ test('a change of who is connected on the held call sends the whole list, phone 
 test('a call already held when the page is reached is followed too', () => {
   const call = emitter({ id: 'CALL4', isGroup: true, groupCallParticipantsConnected: [] });
   withPage(({ sent }) => {
-    expect(installCallParticipantsInPage()).toBe(true);
+    expect(installInPage()).toBe(true);
     expect(last(sent)).toEqual({ callId: 'CALL4', connected: [] });
     call.groupCallParticipantsConnected = [wid('7@lid')];
     call.fire('change:groupCallParticipantStates');
@@ -58,8 +64,8 @@ test('a call already held when the page is reached is followed too', () => {
 });
 
 test('a call is listened to once, however often it becomes the held call', () => withPage(({ calls }) => {
-  expect(installCallParticipantsInPage()).toBe(true);
-  expect(installCallParticipantsInPage()).toBe(true);
+  expect(installInPage()).toBe(true);
+  expect(installInPage()).toBe(true);
   expect(calls.handlers['change:activeCall'].length).toBe(1);
   const call = emitter({ id: 'CALL5', isGroup: true, groupCallParticipantsConnected: [] });
   calls.fire('change:activeCall', call);
@@ -69,7 +75,7 @@ test('a call is listened to once, however often it becomes the held call', () =>
 }));
 
 test('a one-to-one call, a model without the list or no call says nothing', () => withPage(({ sent, calls }) => {
-  expect(installCallParticipantsInPage()).toBe(true);
+  expect(installInPage()).toBe(true);
   calls.fire('add', emitter({ id: 'CALL2', isGroup: false, groupCallParticipantsConnected: [wid('7@lid')] }));
   calls.fire('add', emitter({ id: 'CALL3', isGroup: true }));
   calls.fire('change:activeCall', null);

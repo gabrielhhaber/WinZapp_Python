@@ -23,9 +23,13 @@
 const BINDING = '__winzappOnCallParticipants';
 const MAX_PEOPLE = 1024;
 
-/** Runs inside the page; serialized by Puppeteer, so self-contained. */
+/** Runs inside the page; serialized by Puppeteer, so self-contained: a
+ * module constant read in here is undefined in the page, and the
+ * ReferenceError it threw inside `send` was swallowed, so nothing was ever
+ * sent (MAX_PEOPLE, until 2026-11-13). */
 export function installCallParticipantsInPage(): boolean {
   const win = window as any;
+  const MAX_IN_PAGE = 1024;
   const notify = win.__winzappOnCallParticipants;
   const load = (name: string): any => {
     try { return typeof win.require === 'function' ? win.require(name) : null; } catch (_) { return null; }
@@ -39,7 +43,7 @@ export function installCallParticipantsInPage(): boolean {
       if (!call || call.isGroup === false) return;
       const id = text(call.id);
       const people = call.groupCallParticipantsConnected;
-      if (!id || !Array.isArray(people) || people.length > MAX_PEOPLE) return;
+      if (!id || !Array.isArray(people) || people.length > MAX_IN_PAGE) return;
       const migration = load('WAWebLidMigrationUtils');
       const connected: string[] = [];
       for (const wid of people) {
