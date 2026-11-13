@@ -8,7 +8,9 @@ WHAT'S NEW
 
 - Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato. La finestra della chiamata in uscita mostra lo stato e annuncia quando il telefono squilla o la chiamata si sta connettendo.
 
-- Durante una chiamata vocale, usa Condividi audio del desktop per inviare l’audio di sistema, di NVDA o entrambi. Le opzioni sono inizialmente disattivate. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.
+- Durante una chiamata vocale su Windows 11, usa Condividi audio del desktop per inviare l’audio di sistema o quello di una sola applicazione, con o senza l’audio di NVDA, al volume che scegli. All’inizio non è selezionato nulla. Disattivare il microfono non interrompe la condivisione, e cambiare i dispositivi audio della chiamata la mantiene. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.
+
+- Neonize: nelle chiamate, la voce dell’altra persona resta un po’ più a lungo nel buffer (circa 60 ms), così l’audio che arriva a raffiche non si interrompe più.
 
 - Traduzione dei messaggi: premi Shift+Enter su un messaggio di testo nell'elenco (la scorciatoia si può cambiare) oppure usa il suo menu contestuale. Si configura in Impostazioni > IA online: trascrizioni e descrizioni > Traduzione dei messaggi: il fornitore (i tuoi fornitori di IA, Grok o un tuo indirizzo compatibile con OpenAI o Anthropic), il modello, la lingua di destinazione e se la traduzione sostituisce il testo, lo segue o si apre in una finestra separata. Traduzione automatica facoltativa dei messaggi ricevuti, in tutte le chat o solo in quelle che attivi, con età massima del messaggio e limite giornaliero; si sospende per un'ora se il fornitore rifiuta la chiave, la quota o il credito. Le chat bloccate non vengono mai tradotte automaticamente, e tradurre un messaggio di una di esse chiede conferma ogni volta. I tipi di contenuto dell'IA online sono ora nella finestra "Tipi di contenuto elaborati...", nella stessa pagina.
 

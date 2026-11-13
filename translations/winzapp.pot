@@ -2224,6 +2224,7 @@ msgid "Global hotkey to answer an incoming call from any window"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_failed"
 msgid ""
 "Desktop audio sharing is unavailable or stopped because a source could not "
@@ -2231,11 +2232,13 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_no_app"
 msgid "No application audio"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_nvda"
 msgid "Include &NVDA audio"
 msgstr ""
@@ -2247,36 +2250,43 @@ msgid "Share &desktop audio…"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_source"
 msgid "Audio &source"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_started"
 msgid "Desktop audio sharing started."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_stop"
 msgid "Stop sharing &desktop audio"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py client/main_window/calls.py
 msgctxt "call_desktop_stopped"
 msgid "Desktop audio sharing stopped."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_system"
-msgid "Share &system audio"
+msgid "Share system audio"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_title"
 msgid "Share desktop audio"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_volume"
 msgid "Sharing &volume (%)"
 msgstr ""
@@ -18651,6 +18661,11 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"
 msgid "Microphone muted."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted_sharing"
+msgid "Microphone muted. Desktop audio is still being shared."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

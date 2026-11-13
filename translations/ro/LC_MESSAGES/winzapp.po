@@ -2446,6 +2446,7 @@ msgstr ""
 "primit"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_failed"
 msgid ""
 "Desktop audio sharing is unavailable or stopped because a source could not "
@@ -2455,52 +2456,61 @@ msgstr ""
 " sursă nu a putut fi capturată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_no_app"
 msgid "No application audio"
 msgstr "Fără sunetul aplicațiilor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_nvda"
 msgid "Include &NVDA audio"
-msgstr "Include sunetul &NVDA"
+msgstr "Includeți sunetul &NVDA"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_share"
 msgid "Share &desktop audio…"
-msgstr "Partajează sunetul &desktopului…"
+msgstr "Partajați sunetul &desktopului…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_source"
 msgid "Audio &source"
 msgstr "&Sursă audio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_started"
 msgid "Desktop audio sharing started."
 msgstr "Partajarea sunetului desktopului a început."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_stop"
 msgid "Stop sharing &desktop audio"
-msgstr "Oprește partajarea sunetului &desktopului"
+msgstr "Opriți partajarea sunetului &desktopului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py client/main_window/calls.py
 msgctxt "call_desktop_stopped"
 msgid "Desktop audio sharing stopped."
 msgstr "Partajarea sunetului desktopului s-a oprit."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_system"
-msgid "Share &system audio"
-msgstr "Partajează sunetul &sistemului"
+msgid "Share system audio"
+msgstr "Partajați sunetul sistemului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_title"
 msgid "Share desktop audio"
-msgstr "Partajează sunetul desktopului"
+msgstr "Partajați sunetul desktopului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_volume"
 msgid "Sharing &volume (%)"
 msgstr "&Volumul partajării (%)"
@@ -20116,6 +20126,11 @@ msgstr "Apelurile vocale nu sunt disponibile în această conversație."
 msgctxt "voice_call_microphone_muted"
 msgid "Microphone muted."
 msgstr "Microfon dezactivat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted_sharing"
+msgid "Microphone muted. Desktop audio is still being shared."
+msgstr "Microfon dezactivat. Partajarea sunetului desktopului continuă."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_unmuted"
