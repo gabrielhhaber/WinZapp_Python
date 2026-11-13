@@ -1,9 +1,13 @@
 """Mono/stereo call contracts using only synthetic PCM and injected devices."""
+import base64
+import logging
 from collections import deque
 
 import numpy as np
+import pytest
 
-from core.call_audio import CallAudioConfig, CallAudioSession
+from core.call_audio import CALL_MIC_QUEUE_LIMIT, CallAudioConfig, CallAudioSession
+from core.call_audio_channels import MicrophoneDownmix, log_downmix_side, shared_channel_counts
 from core.call_audio_output import render_output
 
 
@@ -47,10 +51,6 @@ def test_stereo_output_writes_both_columns_but_drains_and_taps_only_once():
     assert len(tap) == 1
     np.testing.assert_array_equal(tap[0][0], out[:, 0])
     assert tap[0][0].ndim == 1
-
-import base64
-import pytest
-from core.call_audio_channels import MicrophoneDownmix, shared_channel_counts
 
 
 @pytest.mark.parametrize("channels", [1, 2])
@@ -165,10 +165,10 @@ def test_short_speech_on_previously_empty_side_is_not_muted(silent_gap, blocksiz
         mixer.process(incoming[i:i+blocksize], 48000)
         for i in range(0, len(short), blocksize)
     ])
-    # New-side PCM is nonzero during the 20 ms ramp, then at normal
-    # mixed level, without waiting for a 200 ms classification.
-    assert np.dot(output[:960], output[:960]) > 0
-    np.testing.assert_allclose(output[961:], short[961:] * 0.5, atol=1e-7)
+    # New-side PCM is noticed within one 5 ms block, ramps for 20 ms, then
+    # is at normal mixed level, without waiting for a 200 ms classification.
+    assert np.dot(output[:1200], output[:1200]) > 0
+    np.testing.assert_allclose(output[1201:], short[1201:] * 0.5, atol=1e-7)
 
 
 @pytest.mark.parametrize("shape", [(31,), (31, 1)])
@@ -177,10 +177,62 @@ def test_mono_capture_values_are_unchanged(shape):
     np.testing.assert_array_equal(MicrophoneDownmix().process(data, 48000), data.reshape(-1))
 
 
-@pytest.mark.parametrize("data", [np.zeros((8, 8)), np.zeros((3, 0)), np.array([np.nan]), np.array([[0, np.inf]])])
-def test_unsupported_or_nonfinite_capture_is_rejected(data):
+@pytest.mark.parametrize("data", [np.zeros((8, 8)), np.zeros((3, 0))])
+def test_unsupported_capture_shape_is_rejected(data):
     with pytest.raises(ValueError):
         MicrophoneDownmix().process(data, 48000)
+
+
+@pytest.mark.parametrize("data,expected", [
+    (np.array([np.nan, 0.25]), [0, 0.25]),
+    (np.array([[np.inf, 0.5], [0.5, 0.5]]), [0.25, 0.5]),
+])
+def test_nonfinite_samples_are_silenced_instead_of_dropping_the_block(data, expected):
+    np.testing.assert_array_equal(MicrophoneDownmix().process(data, 48000), np.float32(expected))
+
+
+def _noise(frames, level, seed):
+    return (level * np.random.default_rng(seed).standard_normal(frames)).astype(np.float32)
+
+
+def test_hiss_on_a_disconnected_side_does_not_pull_a_noisy_live_side_back_to_half():
+    # Speech with -60 dBFS noise on the live side; ~1 LSB of hiss on the
+    # unplugged side. Per-sample checks fell back to the average 29 times
+    # in 3 s here; block energy against the side's own noise never does.
+    frames = 144000
+    live = _tone(frames) + _noise(frames, 1e-3, 1)
+    data = np.column_stack((live, _noise(frames, 3e-5, 2)))
+    mixer = MicrophoneDownmix()
+    result = mixer.process(data, 48000)
+    assert mixer.selected_side == 0
+    np.testing.assert_allclose(result[19200:], data[19200:, 0], atol=1e-6)
+
+
+def test_hiss_during_silence_is_not_chosen_over_a_gated_microphone():
+    mixer = MicrophoneDownmix()
+    silence = np.column_stack((np.zeros(48000, dtype=np.float32), _noise(48000, 1e-4, 3)))
+    mixer.process(silence, 48000)
+    assert mixer.selected_side is None
+    speech = _tone(19200)
+    mixer.process(np.column_stack((speech, _noise(19200, 1e-4, 4))), 48000)
+    assert mixer.selected_side == 0
+
+
+def test_downmix_side_changes_are_logged_once_each(caplog):
+    mixer = MicrophoneDownmix()
+    signal = _tone(19200)
+    with caplog.at_level(logging.INFO):
+        side = log_downmix_side(mixer, None)
+        mixer.process(np.column_stack((np.zeros_like(signal), signal)), 48000)
+        side = log_downmix_side(mixer, side)
+        side = log_downmix_side(mixer, side)
+        mixer.reset()
+        side = log_downmix_side(mixer, side)
+    messages = [r.getMessage() for r in caplog.records]
+    assert messages == [
+        "[call_audio] microphone downmix: using only the right channel",
+        "[call_audio] microphone downmix: mixing both channels",
+    ]
 
 
 @pytest.mark.parametrize("count,expected", [(1, (1,)), (2, (2, 1)), (8, (2, 1)), (None, (1,)), ("bad", (1,))])
@@ -261,3 +313,33 @@ def test_stereo_sender_emits_one_mono_transport_frame_at_the_right_rate(rate, fr
     assert socket.payload["sampleRate"] == 48000
     assert len(pcm) == 960
     assert np.all(np.abs(pcm[-480:] - 8191) <= 1)
+
+
+def test_skipped_microphone_backlog_keeps_the_stereo_channel_decision():
+    # Left-only microphone: after the downmix settles on the left side, a
+    # deliberately discarded backlog must not drop the voice to half level
+    # for another 200 ms observation window.
+    tone = _tone(48000 * 2)
+    frames = [np.column_stack((tone[i:i + 960], np.zeros(960, dtype=np.float32)))
+              for i in range(0, len(tone), 960)]
+    payloads = []
+
+    class Socket:
+        def emit(self, name, payload):
+            payloads.append(np.frombuffer(base64.b64decode(payload["pcm"]), dtype="<i2"))
+            if len(payloads) == 15:
+                for _ in range(CALL_MIC_QUEUE_LIMIT):
+                    callback(frames.pop(0), 960, None, None)
+            elif len(payloads) >= 30 or not frames:
+                session._stop_event.set()
+            else:
+                callback(frames.pop(0), 960, None, None)
+
+    session = CallAudioSession(Socket(), CallAudioConfig(session="synthetic"), sounddevice_module=object())
+    session._input_rate = 48000
+    callback = session._on_microphone_frame(48000)
+    callback(frames.pop(0), 960, None, None)
+    session._send_microphone_loop()
+    assert session._mic_frames_dropped_for_latency > 0
+    peak = int(0.4 * 32767)
+    assert all(np.max(np.abs(pcm)) >= peak - 200 for pcm in payloads[15:])

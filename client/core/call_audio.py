@@ -25,7 +25,7 @@ from core.audio_devices import repair_device_name
 from core.call_audio_processing import CallAudioProcessor
 from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
 from core.call_audio_output import render_output
-from core.call_audio_channels import MicrophoneDownmix, shared_channel_counts
+from core.call_audio_channels import MicrophoneDownmix, log_downmix_side, shared_channel_counts
 
 try:
     import sounddevice as sd
@@ -957,10 +957,11 @@ class CallAudioSession:
                         # is precisely what hid the fact that the whole
                         # exclusive path was unreachable on a default install.
                         logging.info(
-                            "[call_audio] input opened device=%r hostapi=%s rate=%s latency=%r exclusive=%s",
+                            "[call_audio] input opened device=%r hostapi=%s rate=%s channels=%s latency=%r exclusive=%s",
                             device,
                             self._hostapi_name(device) if device is not None else "default",
                             rate,
+                            channels,
                             getattr(stream, "latency", "low"),
                             bool(exclusive and extra_settings is not None),
                         )
@@ -1024,10 +1025,11 @@ class CallAudioSession:
                         # Actually applied, not merely requested — see the
                         # matching note in _open_input_stream().
                         logging.info(
-                            "[call_audio] output opened device=%r hostapi=%s rate=%s latency=%r exclusive=%s",
+                            "[call_audio] output opened device=%r hostapi=%s rate=%s channels=%s latency=%r exclusive=%s",
                             device,
                             self._hostapi_name(device) if device is not None else "default",
                             rate,
+                            channels,
                             getattr(stream, "latency", "low"),
                             bool(exclusive and extra_settings is not None),
                         )
@@ -1103,6 +1105,7 @@ class CallAudioSession:
     def _send_microphone_loop(self) -> None:
         encoder = MicrophonePCMEncoder(CALL_SAMPLE_RATE, CALL_FRAME_SAMPLES)
         downmix = MicrophoneDownmix()
+        selected_side = None
         encoder_epoch = self._media_epoch
         while not self._stop_event.is_set():
             try:
@@ -1126,7 +1129,8 @@ class CallAudioSession:
                 # jump in the microphone stream is just a delay change it
                 # re-estimates.
                 encoder.skip(dropped_source_samples, self._input_rate)
-                downmix.reset()
+                # The downmix keeps its channel decision across the gap: a
+                # skipped backlog is a jump in time, not a new device.
                 previous_dropped = self._mic_frames_dropped_for_latency
                 self._mic_frames_dropped_for_latency += dropped
                 if previous_dropped == 0 or (
@@ -1142,6 +1146,7 @@ class CallAudioSession:
 
             try:
                 mono = downmix.process(samples, self._input_rate)
+                selected_side = log_downmix_side(downmix, selected_side)
                 frames = encoder.process(mono, self._input_rate)
             except Exception:
                 logging.exception("[call_audio] failed to convert microphone audio")
