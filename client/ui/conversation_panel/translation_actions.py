@@ -159,10 +159,15 @@ class TranslationActionsMixin:
         provider = LABELS.get(config.provider, config.provider)
         # A locked chat's text leaves WhatsApp only with fresh consent, asked
         # each time like the AI media window does (ai_locked_consent).
-        if mw.is_chat_locked(jid) and wx.MessageBox(
+        if mw.is_chat_locked(jid):
+            answer = wx.MessageBox(
                 t("translation_locked_confirm").format(provider=provider), t("translation_message"),
-                wx.YES_NO | wx.NO_DEFAULT, self) != wx.YES:
-            return
+                wx.YES_NO | wx.NO_DEFAULT, self)
+            # The vault's timer fires inside the box's modal loop too: a Yes
+            # given to a chat that closed meanwhile sends nothing.
+            if (answer != wx.YES or self._translation_chat_hidden(jid)
+                    or (self.conversation or {}).get("remoteJid") != jid):
+                return
         token = self._manual_translation = RequestToken()
 
         def complete(answer, error):

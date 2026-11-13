@@ -863,6 +863,18 @@ def test_apply_saves_order_switches_models_and_kinds_but_never_a_key_in_the_sett
     assert page._drafts == {} and "gemini" in page._saved
 
 
+def test_every_apply_resumes_a_paused_automatic_translation(tmp_path):
+    """A key re-entered in a provider's window, without opening the
+    translation dialog, is the usual fix for what paused it."""
+    page = PageStub(tmp_path)
+    resumed = []
+    page.main_window.conversations_panel = SimpleNamespace(
+        resume_automatic_translation=lambda: resumed.append(True))
+    page._drafts = {"gemini": "new-key"}
+    assert page.apply()
+    assert resumed == [True] and page._translation is None
+
+
 def test_blank_draft_on_apply_preserves_saved_key_and_consent(tmp_path):
     page = PageStub(tmp_path)
     page.store.set("openai", "saved-key")

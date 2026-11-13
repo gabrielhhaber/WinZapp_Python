@@ -302,7 +302,7 @@ def popup_item_label(owner, label, shortcut_id):
     else:
         binding = binding_for(shortcut, window.settings.get(SECTION, {}), window.i18n.t)
     name = shortcut_name(binding, None)
-    return label + ('	' + name if name else '')
+    return label + ('\t' + name if name else '')
 
 
 def refresh_popup_shortcuts(owner, scope, menu):

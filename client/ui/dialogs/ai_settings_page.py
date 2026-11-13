@@ -713,12 +713,15 @@ class AISettingsPage(ScrolledPanel):
                 if callable(update_view):
                     update_view(translation)
                     wx.CallAfter(panel._rerender_messages_list_rows)
-                resume = getattr(panel, "resume_automatic_translation", None)
-                if callable(resume):
-                    resume()
                 focused = getattr(panel, "_translate_focused_recent", None)
                 if translation.automatic and callable(focused):
                     wx.CallAfter(focused)
+            # Any apply may have fixed what paused automatic translation: a
+            # key re-entered in a provider's window is the usual one.
+            resume = getattr(getattr(self.main_window, "conversations_panel", None),
+                             "resume_automatic_translation", None)
+            if callable(resume):
+                resume()
             self.main_window.settings[conversation_auto_ai.SCOPE_SETTING] = (
                 conversation_auto_ai.SCOPE_SELECTED if self.auto_scope.GetSelection() == 1
                 else conversation_auto_ai.SCOPE_ALL)

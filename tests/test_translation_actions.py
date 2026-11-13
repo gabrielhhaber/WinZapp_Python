@@ -251,6 +251,28 @@ def test_a_locked_chat_needs_the_open_vault_and_fresh_consent_each_time(wx, subm
     assert panel.refreshed == [{"id1"}]
 
 
+@pytest.mark.parametrize("meanwhile", ["vault closed", "chat closed"])
+def test_a_yes_given_after_the_locked_chat_closed_sends_nothing(wx, submitted, meanwhile):
+    panel = Panel(dict(AUTOMATIC, automatic=False))
+    row = message(1)
+    panel._sorted_messages = [row]
+    panel.locked.add(JID)
+    panel.main_window._chat_lock_unlocked = True
+
+    def answer(prompt, *args):
+        # The vault's timer fires inside the box's own modal loop.
+        if meanwhile == "vault closed":
+            panel.main_window._chat_lock_unlocked = False
+        else:
+            panel.conversation = None
+        return wx.YES
+
+    wx.MessageBox = answer
+    panel._on_translate_message(row)
+    assert submitted == [] and panel.spoken == []
+    assert getattr(panel, "_manual_translation", None) is None
+
+
 def test_a_manual_answer_for_a_chat_left_meanwhile_is_dropped(wx, submitted):
     panel = Panel(dict(AUTOMATIC, automatic=False))
     row = message(1)
