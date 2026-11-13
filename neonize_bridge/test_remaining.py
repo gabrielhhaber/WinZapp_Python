@@ -125,6 +125,7 @@ def server(monkeypatch):
     fake = _Server()
     monkeypatch.setattr(remaining.rq, "available", lambda client: True)
     monkeypatch.setattr(remaining.rq, "send_iq", fake.send_iq)
+    monkeypatch.setattr(remaining, "TERMS_REREAD_DELAY_SECONDS", 0)
     return fake
 
 
@@ -195,7 +196,7 @@ def test_accepting_sends_the_update_and_confirms_with_a_new_read(server):
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 200
     assert body["response"] == {"noticeId": "20250502", "state": "ACCEPTED"}
-    assert [q["type"] for q in server.sent] == ["set", "get"]
+    assert [q["type"] for q in server.sent] == ["get", "set", "get"]
 
 
 def test_an_accept_whatsapp_did_not_record_is_not_a_success(server, monkeypatch):
@@ -219,7 +220,7 @@ def test_a_400_moves_on_to_the_next_stanza(server, monkeypatch):
     monkeypatch.setattr(remaining.rq, "send_iq", send_iq)
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 200 and body["response"]["state"] == "ACCEPTED"
-    assert [q["type"] for q in server.sent] == ["set", "set", "get"]
+    assert [q["type"] for q in server.sent] == ["get", "set", "set", "get"]
 
 
 def test_a_stanza_with_no_answer_in_time_moves_on_too(server, monkeypatch):
@@ -236,6 +237,14 @@ def test_a_stanza_with_no_answer_in_time_moves_on_too(server, monkeypatch):
     assert status == 200 and body["response"]["state"] == "ACCEPTED"
 
 
+def test_the_notice_attributes_are_logged_for_the_read():
+    answer = _tos_answer("false")
+    assert remaining.terms_notices(answer) == [{"id": "20250502", "state": "false"}] or \
+        remaining.terms_notices(answer)[0]["state"] == "false"
+    assert remaining.terms_notices({"tag": "iq", "content": [{"tag": "x"}]}) == [
+        "no tos node; holds x"]
+
+
 def test_every_tos_query_has_a_short_timeout():
     """The client waits 20 s for the accept: three stanzas and a read must fit."""
     queries = remaining.terms_accept_queries() + [remaining.terms_query()]
@@ -247,14 +256,15 @@ def test_another_refusal_than_400_stops_at_the_first_stanza(server):
     server.refuse = 500
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 502 and body["code"] == "meta_ai_terms_refused"
-    assert len(server.sent) == 1
+    assert [q["type"] for q in server.sent].count("set") == 1
 
 
 def test_a_refused_accept_answers_502(server):
     server.refuse = 400
     (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
     assert status == 502 and body["code"] == "meta_ai_terms_refused"
-    assert len(server.sent) == len(remaining.terms_accept_queries())
+    assert [q["type"] for q in server.sent].count("set") == len(
+        remaining.terms_accept_queries())
 
 
 def test_accepting_needs_a_connection(server):

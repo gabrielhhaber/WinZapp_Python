@@ -24,6 +24,7 @@ the routes.
 """
 import asyncio
 import logging
+import time
 
 from aiohttp import web
 
@@ -58,6 +59,10 @@ TERMS_STAGE = "5"
 # longer than the client waits for the accept: 20 s). Three stanzas and a read
 # must fit in that.
 TERMS_TIMEOUT_MS = 4000
+# No new stanza is started after this long, and a stanza WhatsApp took is read
+# again after this delay when the first read still says not accepted.
+TERMS_ACCEPT_BUDGET_SECONDS = 12.0
+TERMS_REREAD_DELAY_SECONDS = 1.5
 
 
 def terms_query(notice=META_AI_NOTICE) -> dict:
@@ -107,6 +112,18 @@ def terms_state(response, notice=META_AI_NOTICE) -> str:
     return "UNKNOWN"
 
 
+def terms_notices(response) -> list:
+    """What the answer to terms_query() names, for the log: the attributes of every
+    notice (ids, state, stage - no personal data), or the tags it holds instead."""
+    tos = rq.child(response, "tos") if isinstance(response, dict) else None
+    if tos is None:
+        content = response.get("content") if isinstance(response, dict) else None
+        return ["no tos node; holds " + ",".join(
+            str(c.get("tag")) for c in content if isinstance(c, dict))
+            if isinstance(content, list) else "no tos node"]
+    return [dict(item.get("attrs") or {}) for item in rq.children(tos, "notice")]
+
+
 def message_platform(serial) -> str:
     """'android', 'iphone', 'web' or 'unknown' from the message id, by the same
     rules as wa-js (chat/functions/getPlatformFromMessage.ts, based on
@@ -154,8 +171,11 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
     def _can_ask(s):
         return s.client is not None and s.status == "CONNECTED" and rq.available(s.client)
 
-    def _ask_state(s):
-        return terms_state(rq.send_iq(s.client, terms_query()))
+    def _ask_state(s, when=""):
+        answer = rq.send_iq(s.client, terms_query())
+        state = terms_state(answer)
+        log.info("meta-ai-terms read%s: %s -> %s", when, terms_notices(answer), state)
+        return state
 
     async def meta_ai_terms(req):
         # "UNKNOWN" when it cannot be read: the client sends anyway, as before.
@@ -183,7 +203,14 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
             in time (code 0) moves on to the next stanza; any other refusal stops, and the
             last refusal is raised if none worked."""
             state, refusal = "UNKNOWN", None
+            deadline = time.monotonic() + TERMS_ACCEPT_BUDGET_SECONDS
+            try:
+                _ask_state(s, " before")
+            except rq.QueryError as error:
+                log.info("meta-ai-terms read before refused (%s): %s", error.code, error)
             for index, query in enumerate(terms_accept_queries()):
+                if time.monotonic() > deadline:
+                    break
                 try:
                     rq.send_iq(s.client, query)
                 except rq.QueryError as error:
@@ -193,7 +220,11 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
                         raise
                     refusal = error
                     continue
-                state = _ask_state(s)
+                state = _ask_state(s, " after stanza %d" % index)
+                if state != "ACCEPTED":
+                    # The server may take a moment to show what it has just taken.
+                    time.sleep(TERMS_REREAD_DELAY_SECONDS)
+                    state = _ask_state(s, " again after stanza %d" % index)
                 log.info("meta-ai-terms accept stanza %d sent -> %s", index, state)
                 if state == "ACCEPTED":
                     return state
