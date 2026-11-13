@@ -8,6 +8,9 @@ from aiohttp.test_utils import TestClient, TestServer
 
 import remaining
 
+# The real delay, before the `server` fixture sets it to 0 for speed.
+REREAD_DELAY_SECONDS = remaining.TERMS_REREAD_DELAY_SECONDS
+
 
 @pytest.mark.parametrize("serial,expected", [
     ("false_5511999@c.us_3EB0ABCDEF0123456789", "web"),
@@ -115,7 +118,9 @@ class _Server:
         if self.refuse:
             raise remaining.rq.QueryError("refused", self.refuse)
         if query["type"] == "set":
-            self.state = "true"
+            # Only the ACCEPTED stage records the acceptance, as on WhatsApp.
+            if query["content"][0]["attrs"].get("result") == remaining.TERMS_STAGE_ACCEPTED:
+                self.state = "true"
             return {"tag": "iq"}
         return _tos_answer(self.state)
 
@@ -150,14 +155,6 @@ def test_the_shown_stage_is_whatsapp_webs_shown_0():
     query = remaining.terms_stage_query(remaining.TERMS_STAGE_SHOWN)
     assert query["content"] == [
         {"tag": "trackable", "attrs": {"id": "20250502", "result": "105"}}]
-
-
-def test_the_legacy_tos_formats_are_not_sent_any_more():
-    """2026-11-13: session_update got 400; a notice with stage or state changed
-    nothing or got no answer. The Meta AI notice is a disclosure: trackable only."""
-    for stage in (remaining.TERMS_STAGE_SHOWN, remaining.TERMS_STAGE_ACCEPTED):
-        (node,) = remaining.terms_stage_query(stage)["content"]
-        assert node["tag"] == "trackable"
 
 
 @pytest.mark.parametrize("answer,expected", [
@@ -261,14 +258,30 @@ def test_the_notice_attributes_are_logged_for_the_read():
         "no tos node; holds x"]
 
 
-def test_every_tos_query_fits_in_the_time_the_client_waits():
-    """The client waits 20 s for the accept: three reads, two stages and the
-    re-read delay must fit."""
-    queries = [remaining.terms_query()] + [
-        remaining.terms_stage_query(stage)
-        for stage in (remaining.TERMS_STAGE_SHOWN, remaining.TERMS_STAGE_ACCEPTED)]
-    assert all(q["timeout_ms"] == remaining.TERMS_TIMEOUT_MS for q in queries)
-    assert 5 * remaining.TERMS_TIMEOUT_MS + remaining.TERMS_REREAD_DELAY_SECONDS * 1000 < 20000
+def test_every_tos_query_fits_in_the_time_the_client_waits(server, monkeypatch):
+    """The client waits 20 s for the accept: the longest path (never accepted, so
+    read again after the delay), every query using its whole timeout, must fit."""
+    monkeypatch.setattr(remaining.rq, "send_iq", lambda client, query: (
+        server.sent.append(query) or _tos_answer("false")))
+    (status, _), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 409
+    assert all(q["timeout_ms"] == remaining.TERMS_TIMEOUT_MS for q in server.sent)
+    worst = len(server.sent) * remaining.TERMS_TIMEOUT_MS + REREAD_DELAY_SECONDS * 1000
+    assert worst < 20000
+
+
+def test_a_read_failing_after_the_accept_is_not_a_refused_accept(server, monkeypatch):
+    """WhatsApp took the accept but the read after it timed out: 409 UNKNOWN, not
+    502 'refused', and the second read is still tried."""
+    def send_iq(client, query):
+        if query["type"] == "get" and any(q["type"] == "set" for q in server.sent):
+            server.sent.append(query)
+            raise remaining.rq.QueryError("timeout", 0)
+        return _Server.send_iq(server, client, query)
+    monkeypatch.setattr(remaining.rq, "send_iq", send_iq)
+    (status, body), = run(session(), [("POST", "/meta-ai-terms/accept")])
+    assert status == 409 and body["response"]["state"] == "UNKNOWN"
+    assert [q["type"] for q in server.sent] == ["get", "set", "set", "get", "get"]
 
 
 def test_a_refused_accept_answers_502(server):

@@ -192,22 +192,31 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
         def accept():
             """WhatsApp Web's sequence: the dialog was shown (SHOWN_0, as its
             dialog sends when it appears; a refusal only logged), then accepted,
-            then read again. A refusal of the accept is raised."""
+            then read again. A refusal of the accept is raised; a read that fails
+            after it gives UNKNOWN (not a success, but not a refused accept)."""
+            def read_after(when):
+                try:
+                    return _ask_state(s, when)
+                except rq.QueryError as refusal:
+                    log.info("meta-ai-terms read%s failed (%s): %s", when, refusal.code, refusal)
+                    return "UNKNOWN"
+
             try:
                 if _ask_state(s, " before") == "ACCEPTED":
                     return "ACCEPTED"
-            except rq.QueryError as error:
-                log.info("meta-ai-terms read before refused (%s): %s", error.code, error)
+            except rq.QueryError as refusal:
+                log.info("meta-ai-terms read before refused (%s): %s", refusal.code, refusal)
             try:
                 rq.send_iq(s.client, terms_stage_query(TERMS_STAGE_SHOWN))
-            except rq.QueryError as error:
-                log.info("meta-ai-terms shown refused (%s): %s", error.code, error)
+            except rq.QueryError as refusal:
+                log.info("meta-ai-terms shown refused (%s): %s", refusal.code, refusal)
             rq.send_iq(s.client, terms_stage_query(TERMS_STAGE_ACCEPTED))
-            state = _ask_state(s, " after accept")
+            log.info("meta-ai-terms accept sent")
+            state = read_after(" after accept")
             if state != "ACCEPTED":
                 # The server may take a moment to show what it has just taken.
                 time.sleep(TERMS_REREAD_DELAY_SECONDS)
-                state = _ask_state(s, " again after accept")
+                state = read_after(" again after accept")
             return state
 
         try:
