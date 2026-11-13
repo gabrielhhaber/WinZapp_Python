@@ -157,6 +157,14 @@ def roster_connected(participants, mine) -> tuple:
     return tuple(sorted(row["jid"] for row in rows if not row["isSelf"]))
 
 
+def roster_states(participants) -> tuple:
+    """Everyone on a group call's roster with their state, sorted: what has to
+    change for the participants window to be refreshed (someone who declines
+    or stops ringing changes no connected list, yet changes the window)."""
+    return tuple(sorted((str(p.get("jid") or ""), str(p.get("state") or ""))
+                        for p in participants or () if isinstance(p, dict)))
+
+
 def remote_members_connected(participants, mine) -> int:
     """How many people other than this account are connected to a group call,
     from the roster's participants ([{jid, pn, state}]). `mine` are the
@@ -393,11 +401,13 @@ class CallMedia(CallIngressMixin):
     ROSTER_EVERY = 2.0
 
     def report_rosters(self):
-        """`call-participants` for each live group call whose connected
-        people changed since the last report: the whole list, as WPPConnect's
-        callParticipantsBridge.ts sends it, and the client says who joined or
-        left. The call layer has no roster event, so the roster it keeps is
-        compared here, from the event pump."""
+        """`call-participants` for each live group call whose roster changed
+        since the last report (who is in it, or anyone's state): the whole
+        connected list, as WPPConnect's callParticipantsBridge.ts sends it on
+        every change of the participants' states. The client says who joined
+        or left and refreshes an open participants window from it. The call
+        layer has no roster event, so the roster it keeps is compared here,
+        from the event pump."""
         with self._lock:
             live = [(call_id, call) for call_id, call in self._calls.items()
                     if call.get("group") and call.get("state") == "ACTIVE"]
@@ -418,10 +428,11 @@ class CallMedia(CallIngressMixin):
                 continue
             participants = roster.get("participants")
             connected = roster_connected(participants, mine)
+            seen = (connected, roster_states(participants))
             with self._lock:
-                if reported.get(call_id) == connected:
+                if reported.get(call_id) == seen:
                     continue
-                reported[call_id] = connected
+                reported[call_id] = seen
             self.emit("call-participants", {"session": self.name, "callId": call_id,
                                             "connected": list(connected)})
 

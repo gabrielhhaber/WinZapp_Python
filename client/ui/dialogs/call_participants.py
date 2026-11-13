@@ -87,7 +87,13 @@ class ParticipantListMixin:
             self._status.SetLabel(status)
         if announce == "all" or (announce and (failed or not rows)):
             self._mw.output(status)
-        if data is not None or failed:
+        # The call this device is in refreshes on its participant events
+        # (MainWindow.on_call_participants), at once; its end is followed by
+        # MainWindow._participants_dialog_follow_call. Any other call (the
+        # Calls tab lists ongoing calls this device is not in) sends none,
+        # so it is asked again every 10 s.
+        self._follows_events = data is not None and not failed and self._mw._call_held_here(self._call_id)
+        if (data is not None or failed) and not self._follows_events:
             self._timer = wx.CallLater(10_000, self._refresh_participants)
 
     def _apply_participant_rows(self, rows):
@@ -125,6 +131,7 @@ class CallParticipantsDialog(ParticipantListMixin, wx.Dialog):
         self._mw, self._call_id, self._allowed = main_window, call_id, allowed
         self._invite_chat = invite_chat
         self._alive, self._inflight, self._timer, self._shown = True, None, None, []
+        self._follows_events = False
         i18n = main_window.i18n
         super().__init__(parent, title=i18n.t("call_participants_title").format(name=name),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)

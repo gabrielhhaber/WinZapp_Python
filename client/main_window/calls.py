@@ -1717,6 +1717,9 @@ class CallsMixin:
         sync_hotkeys = getattr(self, "_request_call_hotkey_sync", None)
         if sync_hotkeys is not None:
             sync_hotkeys()
+        follow = getattr(self, "_participants_dialog_follow_call", None)
+        if follow is not None:
+            follow()
         window = getattr(self, "voice_call_window", None)
         if window is None:
             return

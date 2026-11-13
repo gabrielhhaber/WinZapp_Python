@@ -3,7 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.call_participants import parse_participants, participant_rows, active_participants_available
+from core.call_participants import (active_participants_available, held_here, parse_participants,
+                                    participant_rows)
 from ui.dialogs.call_participants import ParticipantListMixin
 from main_window.call_participants import CallParticipantsMixin
 from tests.test_calls_tab import _CountingList
@@ -38,6 +39,7 @@ class View(ParticipantListMixin):
         self._alive, self._inflight, self._timer, self._shown = True, None, None, []
         self._call_id = "C1"
         self.allowed = True
+        self.held = False           # the call this device is in, live
         self._allowed = lambda: self.allowed
         self._list = _CountingList()
         self._status, self._refresh_btn = Control(), Control()
@@ -49,6 +51,7 @@ class View(ParticipantListMixin):
             _raise_for_call_response=lambda response, action: response,
             _post_call_control=self.post,
             output=lambda text: self.spoken.append(text),
+            _call_held_here=lambda call_id: self.held and call_id == self._call_id,
         )
 
     def post(self, endpoint, payload, **kwargs):
@@ -230,6 +233,52 @@ def test_ending_or_locking_the_call_clears_the_dialog(polling):
     view._refresh_participants(announce=True)
     assert not queued and len(view.requests) == before
     assert view.spoken == ["call_participants_failed"]
+
+
+def test_the_call_held_here_is_refreshed_by_its_events_not_every_10_s(polling):
+    """The participant events refresh the window at once (on_call_participants);
+    a timed request on top of them only made the list late."""
+    queued, timers = polling
+    view = View()
+    view.held = True
+    view._refresh_participants()
+    queued.pop()()
+    assert view._follows_events and not timers and view._timer is None
+
+
+def test_a_call_this_device_is_not_in_is_still_asked_every_10_s(polling):
+    queued, timers = polling
+    view = View()                                   # the Calls tab's ongoing call
+    view._refresh_participants()
+    queued.pop()()
+    assert not view._follows_events and len(timers) == 1
+
+
+def test_the_end_of_the_held_call_is_shown_although_no_event_comes(polling):
+    queued, timers = polling
+    view = View()
+    view.held = True
+    view._refresh_participants()
+    queued.pop()()
+    mw = SimpleNamespace(_call_participants_dialog=view, _call_held_here=lambda call_id: view.held)
+    follow = lambda: CallParticipantsMixin._participants_dialog_follow_call(mw)
+    follow()                                        # still held: nothing asked
+    assert not queued
+    view.held = False
+    view.reply = body([], available=False)
+    follow()
+    follow()                                        # asked once, not on every call change
+    assert len(queued) == 1
+    queued.pop()()
+    assert view._status.label == "call_participants_ended" and view._timer is None
+
+
+def test_held_here_is_the_live_call_with_that_id():
+    active = {"call_id": "C1"}
+    assert held_here(active, "ACTIVE", "C1") and held_here(active, "REJOINING", "C1")
+    assert not held_here(active, "RINGING", "C1")
+    assert not held_here(active, "ACTIVE", "C2")
+    assert not held_here(None, "ACTIVE", "C1")
 
 
 def test_active_call_button_dispatches_the_current_id_without_a_window():

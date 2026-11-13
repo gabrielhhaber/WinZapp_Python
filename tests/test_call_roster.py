@@ -39,6 +39,7 @@ def _window(state="ACTIVE", settings=None):
         _call_participants_dialog=types.SimpleNamespace(
             _call_id="G1", _refresh_participants=lambda: refreshed.append(True)))
     win.on_call_participants = types.MethodType(MainWindow.on_call_participants, win)
+    win._call_held_here = types.MethodType(MainWindow._call_held_here, win)
     return win, said, refreshed
 
 

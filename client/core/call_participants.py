@@ -20,6 +20,13 @@ def active_participants_available(active, state):
             and state in ("ACTIVE", "REJOINING"))
 
 
+def held_here(active, state, call_id):
+    """True when *call_id* is the call this device is in now, live: the call
+    the participant events (`call-participants`) are sent for."""
+    return (isinstance(active, dict) and active.get("call_id") == call_id
+            and active_participants_available(active, state))
+
+
 def parse_participants(body, call_id):
     data = body.get("response") if isinstance(body, dict) else None
     if (not isinstance(data, dict) or data.get("id") != call_id
