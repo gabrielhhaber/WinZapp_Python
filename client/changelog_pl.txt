@@ -8,6 +8,9 @@ NOWOŚCI
 
 - Powiadomienia: gdy wiele nowych wiadomości przychodzi naraz (na przykład po powrocie niestabilnego połączenia), WinZapp odtwarza i odczytuje tylko trzy pierwsze i milczy do końca serii, zamiast powtarzać dźwięk dziesiątki razy. Wiadomości nadal są na liście i liczą się jako nieprzeczytane.
 
+- Neonize: akceptowanie warunków Meta AI nie kończy się już błędem WhatsApp. WinZapp wysyła teraz akceptację w tym samym formacie, którego WhatsApp Web używa dla tego powiadomienia, i potwierdza ją dopiero po ponownym odczytaniu, że powiadomienie jest zapisane jako zaakceptowane.
+
+
 - Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.
 
 - Tłumaczenie wiadomości: naciśnij Shift+Enter na wiadomości tekstowej na liście wiadomości (skrót można zmienić) albo użyj jej menu kontekstowego. Konfiguracja jest w Ustawienia > AI online: transkrypcje i opisy > Tłumaczenie wiadomości: dostawca (Twoi dostawcy AI, Grok albo własny adres zgodny z OpenAI lub Anthropic), model, język docelowy oraz to, czy tłumaczenie zastępuje tekst, pojawia się po nim, czy otwiera się w osobnym oknie. Opcjonalne automatyczne tłumaczenie odebranych wiadomości we wszystkich czatach lub tylko w tych, w których je włączysz, z maksymalnym wiekiem wiadomości i dziennym limitem; wstrzymuje się na godzinę, jeśli dostawca odrzuci żądania z powodu klucza, limitu lub braku środków. Zabezpieczone czaty nigdy nie są tłumaczone automatycznie, a przetłumaczenie wiadomości z takiego czatu za każdym razem wymaga potwierdzenia. Rodzaje plików obsługiwanych przez AI online są teraz w oknie „Rodzaje plików do przetwarzania...” na tej samej stronie.
