@@ -31,7 +31,7 @@ from core import conversation_auto_ai
 from core.ai_media import auto as ai_auto
 from core.transcription import auto_queue
 from core.ai_media import config as ai_config
-from core.ai_media.config import KINDS, PROFILES, PROVIDERS, preferences, supports, valid_model
+from core.ai_media.config import PROFILES, PROVIDERS, preferences, supports, valid_model
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, probe_connection, submit
 from .ai_provider_models import ModelSelectionMixin
