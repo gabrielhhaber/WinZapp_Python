@@ -1201,8 +1201,11 @@ class MessageRenderingMixin:
         ts       = self._extract_timestamp(msg)
         time_str = self._format_date(ts) if ts else ""
         body     = (self._get_message_content(msg) or "")
-        if include_quoted_preview:
-            body = self._translated_row_body(msg, body)
+        # The cached translation (translation_actions.py); a panel without
+        # that mixin renders the original.
+        translated_row = getattr(self, "_translated_row_body", None)
+        if include_quoted_preview and translated_row is not None:
+            body = translated_row(msg, body)
         sender   = message_sender_label(
             self._sender_label(msg), msg, self.main_window, self.main_window.i18n
         )
