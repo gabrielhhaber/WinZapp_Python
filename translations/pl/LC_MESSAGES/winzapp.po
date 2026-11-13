@@ -20227,6 +20227,12 @@ msgctxt "voice_call_connected"
 msgid "Call connected."
 msgstr "Połączenie nawiązane."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_connecting"
+msgid "Connecting to {name}."
+msgstr "Trwa nawiązywanie połączenia z {name}."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_device_switch_failed"
 msgid "Could not open the new call audio device."
@@ -20300,6 +20306,12 @@ msgstr "Połączenie jest ponownie nawiązywane."
 msgctxt "voice_call_recording_devices"
 msgid "Recording devices"
 msgstr "Urządzenia nagrywania"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_ringing"
+msgid "Ringing {name}."
+msgstr "Telefon użytkownika {name} dzwoni."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py

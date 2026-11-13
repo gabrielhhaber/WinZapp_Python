@@ -50,8 +50,17 @@ def engine_refuses_call(uses_neonize: bool, bridge_has_calls: bool, *,
 
 
 def active_call_label_key(active: dict | None) -> str:
-    """Return the label for an active call, group calls included."""
-    return "video_call_active_label" if (active or {}).get("is_video") else "voice_call_active_label"
+    """Return the call-window label for the current phase."""
+    active = active or {}
+    if active.get("outgoing"):
+        phase = active.get("phase")
+        if phase == "CALLING":
+            return "voice_call_starting"
+        if phase == "RINGING":
+            return "voice_call_ringing"
+        if phase == "CONNECTING":
+            return "voice_call_connecting"
+    return "video_call_active_label" if active.get("is_video") else "voice_call_active_label"
 
 
 # Windows RegisterHotKey modifier bits and virtual-key codes.

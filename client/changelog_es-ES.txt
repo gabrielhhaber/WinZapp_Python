@@ -6,7 +6,7 @@ NOVEDADES
 
 - Llamadas: mejor compatibilidad con micrófonos y auriculares estéreo en modo compartido, con alternativa mono si es necesario. La voz se sigue enviando en mono.
 
-- En la ventana de llamada, pulsa Ctrl+M desde cualquier control para silenciar o activar el micrófono y escuchar su estado.
+- En la ventana de llamada, pulsa Ctrl+M desde cualquier control para silenciar o activar el micrófono y escuchar su estado. La ventana de llamada saliente muestra el estado y anuncia cuándo suena o se conecta.
 
 - En una llamada de voz, usa Compartir audio del escritorio para enviar el audio del sistema, de NVDA o ambos. Ambas opciones están desactivadas al principio. Usa Dejar de compartir audio del escritorio para detener el envío de forma independiente del micrófono.
 

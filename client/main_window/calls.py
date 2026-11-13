@@ -1526,6 +1526,7 @@ class CallsMixin:
             ),
             "outgoing": not bool(join_call_id),
             "is_video": is_video,
+            "phase": "" if join_call_id else "CALLING",
         }
         self.output(
             (self.i18n.t("group_call_joining") if join_call_id
@@ -1917,7 +1918,18 @@ class CallsMixin:
                 self._group_display_name(group_jid) if is_group_event
                 else self._preview_sender_from_jid(call_peer_jid) or call_peer_jid
             )
+        phase_changed = False
+        if state == "ACTIVE":
+            active.pop("phase", None)
+        elif (active.get("outgoing") and state in ("CALLING", "RINGING", "CONNECTING")
+              and self._voice_call_last_announced_state not in ("ACTIVE", "REJOINING")
+              and state != active.get("phase")):
+            active["phase"] = state
+            phase_changed = state != "CALLING"  # placing the call already spoke this
         self._sync_voice_call_bar()
+        if phase_changed:
+            name = active.get("name") or self.i18n.t("unknown_contact")
+            self.output(self.i18n.t(active_call_label_key(active)).format(name=name), interrupt=True)
         # The Neonize engine has no WhatsApp Web page to play the ringback and the
         # connecting beeps; a call that is over silences them.
         terminal_states = {

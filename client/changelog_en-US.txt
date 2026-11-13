@@ -6,7 +6,7 @@ WHAT'S NEW
 
 - Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.
 
-- In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state.
+- In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.
 
 - During a voice call, use Share desktop audio to send system sound, NVDA audio, or both. Both options start off. Use Stop sharing desktop audio to end sharing independently of the microphone.
 

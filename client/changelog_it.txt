@@ -6,7 +6,7 @@ WHAT'S NEW
 
 - Chiamate: migliore supporto per microfoni e cuffie stereo in modalità condivisa, con ripiego su mono quando necessario. La voce continua a essere inviata in mono.
 
-- Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato.
+- Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato. La finestra della chiamata in uscita mostra lo stato e annuncia quando il telefono squilla o la chiamata si sta connettendo.
 
 - Durante una chiamata vocale, usa Condividi audio del desktop per inviare l’audio di sistema, di NVDA o entrambi. Le opzioni sono inizialmente disattivate. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.
 

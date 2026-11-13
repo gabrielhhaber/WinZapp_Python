@@ -6,7 +6,7 @@ NOVIDADES
 
 - Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.
 
-- Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado.
+- Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.
 
 - Durante uma chamada de voz, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema, do NVDA ou ambos. As duas opções começam desativadas. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.
 

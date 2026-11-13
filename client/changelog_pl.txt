@@ -6,7 +6,7 @@ NOWOŚCI
 
 - Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.
 
-- W oknie połączenia naciśnij Ctrl+M na dowolnym elemencie, aby wyciszyć lub włączyć mikrofon i usłyszeć jego stan.
+- W oknie połączenia naciśnij Ctrl+M na dowolnym elemencie, aby wyciszyć lub włączyć mikrofon i usłyszeć jego stan. Okno połączenia wychodzącego pokazuje stan i odczytuje informację o dzwonieniu lub nawiązywaniu połączenia.
 
 - Podczas połączenia głosowego wybierz Udostępnij dźwięk pulpitu, aby przesłać dźwięk systemu, dźwięk NVDA albo oba. Obie opcje są domyślnie wyłączone. Użyj przycisku Zakończ udostępnianie dźwięku pulpitu, aby zatrzymać udostępnianie niezależnie od mikrofonu.
 

@@ -20075,6 +20075,12 @@ msgctxt "voice_call_connected"
 msgid "Call connected."
 msgstr "Apel conectat."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_connecting"
+msgid "Connecting to {name}."
+msgstr "Se conectează apelul cu {name}."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_device_switch_failed"
 msgid "Could not open the new call audio device."
@@ -20148,6 +20154,12 @@ msgstr "Se reconectează apelul."
 msgctxt "voice_call_recording_devices"
 msgid "Recording devices"
 msgstr "Dispozitive de înregistrare"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_ringing"
+msgid "Ringing {name}."
+msgstr "Telefonul lui {name} sună."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py

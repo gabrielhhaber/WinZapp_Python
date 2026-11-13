@@ -20100,6 +20100,12 @@ msgctxt "voice_call_connected"
 msgid "Call connected."
 msgstr "Chamada ligada."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_connecting"
+msgid "Connecting to {name}."
+msgstr "A estabelecer a ligação com {name}."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_device_switch_failed"
 msgid "Could not open the new call audio device."
@@ -20173,6 +20179,12 @@ msgstr "A chamada está a reconectar."
 msgctxt "voice_call_recording_devices"
 msgid "Recording devices"
 msgstr "Dispositivos de gravação"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_ringing"
+msgid "Ringing {name}."
+msgstr "O telefone de {name} está a tocar."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py

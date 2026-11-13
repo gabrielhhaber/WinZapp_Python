@@ -6,7 +6,7 @@ YENİLİKLER
 
 - Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.
 
-- Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın.
+- Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.
 
 - Sesli aramada sistem sesini, NVDA sesini veya ikisini birden göndermek için Masaüstü sesini paylaş düğmesini kullanın. İki seçenek de başlangıçta kapalıdır. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.
 

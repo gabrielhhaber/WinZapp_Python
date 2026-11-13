@@ -112,6 +112,40 @@ def test_mute_shortcut_announces_both_states_without_resyncing_the_call_window()
     ]
 
 
+def test_outgoing_call_window_shows_and_announces_neonize_progress():
+    window = _CallWindow()
+    window._active_voice_call.update(outgoing=True, name="Peer", phase="CALLING")
+    window._voice_call_last_announced_state = ""
+    window._call_audio_session = _Audio()
+    window._normalize_jid = lambda jid: jid
+    window._chat_jids_equivalent = lambda left, right: left == right
+    shown = []
+    spoken = []
+    window.i18n.t = {
+        "voice_call_starting": "Calling {name}…",
+        "voice_call_ringing": "Ringing {name}…",
+        "voice_call_connecting": "Connecting to {name}…",
+        "voice_call_active_label": "Voice call with {name}",
+    }.get
+    get_text = window.i18n.t
+    window.i18n.t = lambda key: get_text(key) or key
+    window.voice_call_window_label = SimpleNamespace(SetLabel=shown.append)
+    window.output = lambda text, *, interrupt: spoken.append(text)
+
+    window._sync_voice_call_bar()
+    assert shown[-1] == "Calling Peer…"
+    for phase, text in (
+        ("RINGING", "Ringing Peer…"),
+        ("CONNECTING", "Connecting to Peer…"),
+        ("ACTIVE", "Voice call with Peer"),
+    ):
+        event = {"id": "C1", "peerJid": PERSON, "state": phase, "outgoing": True}
+        CallsMixin.on_voice_call_state_event(window, event)
+        CallsMixin.on_voice_call_state_event(window, event)
+        assert shown[-1] == text
+    assert spoken == ["Ringing Peer…", "Connecting to Peer…", "voice_call_connected"]
+
+
 def test_a_connected_call_offers_participants():
     window = _CallWindow()
     window._sync_voice_call_bar()

@@ -19580,6 +19580,12 @@ msgctxt "voice_call_connected"
 msgid "Call connected."
 msgstr "تم الاتصال بالمكالمة."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_connecting"
+msgid "Connecting to {name}."
+msgstr "جارٍ توصيل المكالمة مع {name}."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_device_switch_failed"
 msgid "Could not open the new call audio device."
@@ -19651,6 +19657,12 @@ msgstr "المكالمة تُعيد الاتصال."
 msgctxt "voice_call_recording_devices"
 msgid "Recording devices"
 msgstr "أجهزة التسجيل"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_ringing"
+msgid "Ringing {name}."
+msgstr "يرن هاتف {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py

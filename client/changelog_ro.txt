@@ -6,7 +6,7 @@ NOUTĂȚI
 
 - Apeluri: compatibilitate îmbunătățită cu microfoanele și căștile stereo în modul partajat, cu revenire la mono dacă este necesar. Vocea este trimisă în continuare mono.
 
-- În fereastra apelului, apasă Ctrl+M din orice control pentru a dezactiva sau reactiva microfonul și a-i auzi starea.
+- În fereastra apelului, apasă Ctrl+M din orice control pentru a dezactiva sau reactiva microfonul și a-i auzi starea. Fereastra apelului efectuat afișează starea și anunță când sună telefonul sau când se conectează apelul.
 
 - În timpul unui apel vocal, folosește Partajează sunetul desktopului pentru a trimite sunetul sistemului, al NVDA sau ambele. Ambele opțiuni sunt inițial dezactivate. Folosește Oprește partajarea sunetului desktopului pentru a opri trimiterea independent de microfon.
 
