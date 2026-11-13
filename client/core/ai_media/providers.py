@@ -159,7 +159,7 @@ def parse_answer(provider, body, kind):
             if body.get("stop_reason") == "max_tokens":
                 raise DescriptionError("response")
             text = "\n".join(b["text"] for b in body.get("content", []) if b.get("type") == "text")
-        elif provider in _CHAT_BASE:
+        elif provider in _CHAT_BASE or provider == "chat_completions":
             if "text" in body and "choices" not in body:
                 text = body["text"]  # audio transcription
             else:
@@ -177,7 +177,7 @@ def parse_answer(provider, body, kind):
         if not isinstance(text, str) or not text.strip():
             raise DescriptionError("response")
         text = text.strip()
-        if kind in ("audio", "pdf") and len(text) > limit:
+        if kind in ("audio", "pdf", "text") and len(text) > limit:
             # A transcript or converted PDF must not lose its ending while
             # being presented as complete. This local limit ends the action.
             raise DescriptionError("output_limit")

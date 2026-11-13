@@ -24,6 +24,10 @@ WHAT'S NEW
 
 - Connection engine: Neonize is now first in the list and the option already selected when WinZapp asks for the engine on the first launch; it is still marked as experimental, but it is the one recommended for general use. WPPConnect becomes the second option, marked "alternative" after its name, on the first launch, in the pairing window and in Settings > Connection. Anyone already using WPPConnect stays on it until they switch.
 
+- Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.
+
+- Message translation: press Shift+Enter on a text message in the message list (the shortcut can be changed), or use its context menu. Set it up in Settings > Online AI: Transcriptions and Descriptions > Message translation: the provider (your AI providers, Grok, or your own OpenAI- or Anthropic-compatible address), the model, the target language, and whether the translation replaces the text, follows it or opens in a separate window. Optional automatic translation of received messages, in all chats or only the ones you turn on, with a maximum message age and a daily limit; it pauses for an hour if the provider refuses the key, quota or credit. Locked chats are never translated automatically, and translating a message from one asks for confirmation every time. The kinds of media that online AI handles are now in the "Types of media handled..." window, on the same page.
+
 - Neonize: a notice that a message was deleted, for a message or chat WinZapp does not have, no longer creates an "Unnamed group" in the chat list. Deleted messages in your existing chats are unchanged.
 
 - Neonize: old media that the phone re-uploads after the request to send it again is now actually downloaded. Before, the re-uploaded file was refused because it did not match the check of the original file and the media still would not open.

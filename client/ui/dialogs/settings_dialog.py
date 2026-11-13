@@ -421,6 +421,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 lambda control=None: self._backup_dialog.open(control))
         add(index_of(self._ai_holder), i18n.t("ai_auto_button").replace("&", "").rstrip(".… "),
             "_ai_page.auto_panel", lambda control=None: self._ai_page.open_auto(control))
+        add(index_of(self._ai_holder), i18n.t("ai_kinds_button").replace("&", "").rstrip(".… "),
+            "_ai_page.kinds_panel", lambda control=None: self._ai_page.open_kinds(control))
         add(index_of(self._whatsapp_page),
             i18n.t("wa_settings_tab_privacy").replace("&", ""), "_whatsapp_privacy_panel",
             lambda control=None: self._whatsapp_privacy_dialog.open(control))
