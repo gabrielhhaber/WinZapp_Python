@@ -25,6 +25,7 @@ from core.audio_devices import repair_device_name
 from core.call_audio_processing import CallAudioProcessor
 from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
 from core.call_audio_output import render_output
+from core.call_audio_channels import MicrophoneDownmix, shared_channel_counts
 
 try:
     import sounddevice as sd
@@ -888,6 +889,22 @@ class CallAudioSession:
             )
             return None
 
+    def _candidate_formats(self, device, *, input_device, exclusive):
+        channels = (1,)
+        if not exclusive and self._stream_extra_settings(
+            device, input_device=input_device, exclusive=False
+        ) is not None:
+            actual = device if device is not None else self._default_device_index(
+                input_device=input_device
+            )
+            try:
+                channels = shared_channel_counts(
+                    self._sd.query_devices(actual), input_device=input_device
+                )
+            except Exception:
+                pass
+        return [(rate, count) for rate in self._candidate_rates(device) for count in channels]
+
     def _open_input_stream(self):
         last_error = None
         # Exclusive mode is attempted first (unless the user opted out), across
@@ -901,7 +918,9 @@ class CallAudioSession:
                 self._config.input_device_name, input_device=True,
                 include_fallbacks=not exclusive,
             ):
-                for rate in self._candidate_rates(device):
+                for rate, channels in self._candidate_formats(
+                    device, input_device=True, exclusive=exclusive
+                ):
                     try:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=True, exclusive=exclusive
@@ -921,7 +940,7 @@ class CallAudioSession:
                             samplerate=rate,
                             blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),
                             device=device,
-                            channels=1,
+                            channels=channels,
                             dtype="float32",
                             latency="low",
                             extra_settings=extra_settings,
@@ -949,7 +968,7 @@ class CallAudioSession:
                     except Exception as exc:
                         last_error = exc
                         self._log_candidate_failure(
-                            "input", device, rate, exclusive, exc
+                            "input", device, rate, exclusive, exc, channels=channels
                         )
         raise CallAudioUnavailable(f"No microphone could be opened for the call: {last_error}")
 
@@ -963,7 +982,9 @@ class CallAudioSession:
                 self._config.output_device_name, input_device=False,
                 include_fallbacks=not exclusive,
             ):
-                for rate in self._candidate_rates(device):
+                for rate, channels in self._candidate_formats(
+                    device, input_device=False, exclusive=exclusive
+                ):
                     try:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=False, exclusive=exclusive
@@ -990,7 +1011,7 @@ class CallAudioSession:
                             # block size.
                             blocksize=0,
                             device=device,
-                            channels=1,
+                            channels=channels,
                             dtype="float32",
                             latency="low",
                             extra_settings=extra_settings,
@@ -1015,11 +1036,11 @@ class CallAudioSession:
                         self._output_buffer.set_owner(None)
                         last_error = exc
                         self._log_candidate_failure(
-                            "output", device, rate, exclusive, exc
+                            "output", device, rate, exclusive, exc, channels=channels
                         )
         raise CallAudioUnavailable(f"No speaker could be opened for the call: {last_error}")
 
-    def _log_candidate_failure(self, direction, device, rate, exclusive, exc) -> None:
+    def _log_candidate_failure(self, direction, device, rate, exclusive, exc, *, channels=1) -> None:
         """Say WHY a candidate lost, instead of swallowing it into last_error.
 
         Measured 2026-09-22: on one machine the same headset opened on WASAPI
@@ -1032,12 +1053,13 @@ class CallAudioSession:
         a device name can carry the owner's own name).
         """
         logging.info(
-            "[call_audio] %s candidate failed device=%r hostapi=%s rate=%s exclusive=%s error=%s",
+            "[call_audio] %s candidate failed device=%r hostapi=%s rate=%s exclusive=%s channels=%s error=%s",
             direction,
             device,
             self._hostapi_name(device) if device is not None else "default",
             rate,
             exclusive,
+            channels,
             exc,
         )
 
@@ -1050,7 +1072,9 @@ class CallAudioSession:
                 return
             # Copy PortAudio's borrowed buffer only. Rate conversion and
             # PCM16 encoding run on the sender, not its realtime callback.
-            samples = np.array(indata, dtype=np.float32, copy=True).reshape(-1)
+            samples = np.array(indata, dtype=np.float32, copy=True)
+            if samples.ndim == 2 and samples.shape[1] == 1:
+                samples = samples[:, 0]
             if samples.size:
                 self._put_drop_oldest(self._mic_queue, CapturedPCM(samples, epoch))
 
@@ -1068,7 +1092,7 @@ class CallAudioSession:
                 item = self._mic_queue.get_nowait()
                 next_samples = item.samples if isinstance(item, CapturedPCM) else item
                 epoch = item.epoch if isinstance(item, CapturedPCM) else self._media_epoch
-                dropped_samples += samples.size
+                dropped_samples += len(samples)
                 samples = next_samples
                 dropped += 1
             except queue.Empty:
@@ -1078,6 +1102,7 @@ class CallAudioSession:
 
     def _send_microphone_loop(self) -> None:
         encoder = MicrophonePCMEncoder(CALL_SAMPLE_RATE, CALL_FRAME_SAMPLES)
+        downmix = MicrophoneDownmix()
         encoder_epoch = self._media_epoch
         while not self._stop_event.is_set():
             try:
@@ -1087,9 +1112,11 @@ class CallAudioSession:
             epoch = self._dequeued_media_epoch
             if epoch != self._media_epoch:
                 encoder.reset()
+                downmix.reset()
                 continue
             if epoch != encoder_epoch:
                 encoder.reset()
+                downmix.reset()
                 encoder_epoch = epoch
 
             if dropped:
@@ -1099,6 +1126,7 @@ class CallAudioSession:
                 # jump in the microphone stream is just a delay change it
                 # re-estimates.
                 encoder.skip(dropped_source_samples, self._input_rate)
+                downmix.reset()
                 previous_dropped = self._mic_frames_dropped_for_latency
                 self._mic_frames_dropped_for_latency += dropped
                 if previous_dropped == 0 or (
@@ -1113,10 +1141,12 @@ class CallAudioSession:
                     )
 
             try:
-                frames = encoder.process(samples, self._input_rate)
+                mono = downmix.process(samples, self._input_rate)
+                frames = encoder.process(mono, self._input_rate)
             except Exception:
                 logging.exception("[call_audio] failed to convert microphone audio")
                 encoder.reset()
+                downmix.reset()
                 continue
             for frame in frames:
                 if self._stop_event.is_set():

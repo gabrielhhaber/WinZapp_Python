@@ -769,6 +769,7 @@
 <p>W Ustawienia &gt; Połączenia "Ustawienia dźwięku połączenia" wybiera mikrofon i głośnik, a "Ustawienia wideo połączenia" wybiera kamerę. Tam znajdziesz też usuwanie echa (zmniejsza powrót własnego dźwięku, gdy używasz głośnika), redukcję szumów mikrofonu i tryb wyłączny dla mikrofonu i głośnika.</p>
 <p>Usuwanie echa jest domyślnie włączone i korzysta z mechanizmu WebRTC. Ogranicza powrót głosu rozmówcy do jego urządzenia, gdy dźwięk z głośników lub odsłuchu miksera trafia z powrotem do połączenia. Funkcję możesz pozostawić włączoną także przy słuchawkach albo wyłączyć w ustawieniach.</p>
 <p>WinZapp automatycznie konwertuje dźwięk połączenia, gdy wybrany mikrofon lub głośnik używa innej częstotliwości próbkowania niż połączenie. Ciągłość czasowa między pakietami audio jest zachowana; nie trzeba włączać dodatkowej opcji.</p>
+<p>W trybie współdzielonym połączenia mogą korzystać z obsługiwanych mikrofonów i słuchawek stereo, z przejściem na mono w razie potrzeby. Sygnał z mikrofonu jest miksowany do mono; gdy wyjście stereo jest otwarte, odbierany głos jest odtwarzany w obu kanałach.</p>
 <div class="callout tip">
   <div class="callout-title">💡 Jeśli połączenie się nie zaczyna</div>
   Gdy używana wersja WhatsApp Web nie obsługuje połączeń, WinZapp mówi o tym i co spróbować: uruchomić WinZapp ponownie albo wybrać Pomoc &gt; Wymuś ponowną instalację WPPConnect.
@@ -1412,6 +1413,7 @@
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Silnik połączenia: Neonize jest pierwszy na liście i zaznaczony od razu przy pierwszym uruchomieniu; WPPConnect jest drugą opcją, oznaczoną jako starszy.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: stare multimedia przesłane ponownie przez telefon po prośbie o ponowne wysłanie są pobierane bez zależności od weryfikacji oryginalnego pliku.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Ustawienia > Ogólne: nowa opcja pobiera aktualizacje automatycznie i instaluje je po zakończeniu pracy z WinZapp, bez ponownego uruchamiania.</td></tr>
