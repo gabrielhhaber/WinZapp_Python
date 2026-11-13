@@ -1228,21 +1228,23 @@ class CallAudioSession:
                     time.sleep(0.05)
 
     def _emit_microphone_frame(self, pcm, epoch):
-        # Stop and send share a gate so no already-queued desktop frame can
-        # cross into a subsequent call or survive Stop sharing.
+        # The lock covers only the mix: Stop sharing and hang-up take it from
+        # the UI thread, so it must never be held across network I/O.
         with self._desktop_audio_lock:
             if self._stop_event.is_set() or epoch != self._media_epoch:
                 return
             worker = self._desktop_audio
             if worker is not None:
                 pcm = mix_desktop_pcm(pcm, worker.take(len(pcm)), worker.volume)
-            self._sio.emit("call:audio:mic", {
-                "session": self._config.session,
-                **media_fields(epoch, self._stream_epoch),
-                "sampleRate": CALL_SAMPLE_RATE,
-                "encoding": "base64",
-                "pcm": base64.b64encode(pcm).decode("ascii"),
-            })
+        if self._stop_event.is_set() or epoch != self._media_epoch:
+            return
+        self._sio.emit("call:audio:mic", {
+            "session": self._config.session,
+            **media_fields(epoch, self._stream_epoch),
+            "sampleRate": CALL_SAMPLE_RATE,
+            "encoding": "base64",
+            "pcm": base64.b64encode(pcm).decode("ascii"),
+        })
 
     def _process_microphone(self, processor: CallAudioProcessor, pcm: bytes) -> bytes:
         """Run one microphone chunk through the processor.
