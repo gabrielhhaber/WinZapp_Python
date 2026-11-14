@@ -48,7 +48,10 @@ def prepare_media(kind, data, mime="", profile="balanced"):
     if not data or len(data) > MAX_SOURCE_BYTES[kind]:
         raise DescriptionError("media_size")
     if capability(kind) == "text":
-        filename = "draft.txt"
+        # The transcript of messages to summarize, or the draft of the writing
+        # help: it travels inline in the prompt, so it only needs the size
+        # check above.
+        filename = "messages.txt" if kind == "text" else "draft.txt"
         return Media(kind, data, "text/plain; charset=utf-8", filename)
     if kind in ("image", "sticker"):
         image = prepare_image(data, profile, first_frame=kind == "sticker")

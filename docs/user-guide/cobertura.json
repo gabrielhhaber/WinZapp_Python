@@ -6,6 +6,7 @@
   "itens": {
     "666f65cc139b": "Ajuda para escrever: chega ao WinZapp uma função semelhante à ajuda para escreve",
     "bb84824f1cf4": "O WPPConnect Server foi atualizado para a 2.10.81, com o WPPConnect 2.4.0 e o WA",
+    "3029b47134cf": "Resumo de mensagens com IA, como no WhatsApp: a conversa aberta ganha o botão \"R",
     "6bf1a2b21013": "WPPConnect: com pouco espaço em disco (menos de 4 GB livres), o WinZapp fecha o ",
     "e75bfbd92e81": "Transcrição automática: um áudio recebido enquanto o computador estava suspenso ",
     "0547aca508b8": "Neonize: quem entra num grupo pelo link de convite aparece como \"entrou usando l",
@@ -242,6 +243,7 @@
     "aeea4d08ab76": "Neonize: status \"Adicione o seu\", de pergunta e de figurinha animada deixam de a",
     "3e4b8b37fbb5": "Digitação: o aviso \"digitando\" não reaparece mais alguns segundos depois de a pe",
     "520714aee515": "Janela de novidades: a tecla Esc agora a fecha, tanto em Ajuda > Novidades quant",
-    "cc7cba19292a": "Atualização com várias contas abertas: o WinZapp agora espera as outras contas t"
+    "cc7cba19292a": "Atualização com várias contas abertas: o WinZapp agora espera as outras contas t",
+    "38c9ba5f097c": "O modelo padrão do Google Gemini na IA on-line passou a ser o Gemini 3.5 Flash-L"
   }
 }

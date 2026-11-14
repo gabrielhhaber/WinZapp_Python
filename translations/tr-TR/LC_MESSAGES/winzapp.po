@@ -1299,7 +1299,6 @@ msgid "Run again (new request)"
 msgstr "Yeniden çalıştır (yeni istek)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_remember_consent"
 msgid "Remember this consent &for media outside locked chats"
 msgstr "Kilitli sohbet dışındaki dosyalar için bu onayı &hatırla"
@@ -1337,12 +1336,17 @@ msgid "Accessible PDF text"
 msgstr "PDF'nin erişilebilir metni"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_result_summary_title"
+msgid "Message summary"
+msgstr "Mesaj özeti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Sesli mesajın yazıya dökümü (çevrimiçi yapay zekâ)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "&Dosyayı gönder"
@@ -1380,6 +1384,164 @@ msgstr "Anahtarı göster &veya gizle"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "&Durum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Okunmayanları özetle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_cancel_confirm"
+msgid ""
+"Voice messages are being transcribed for a summary (message {index} of "
+"{total}). Cancel the summary?"
+msgstr ""
+"Bir özet için sesli mesajlar yazıya dökülüyor (mesaj {index} / {total}). "
+"Özet iptal edilsin mi?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_cancel_menu"
+msgid "Cancel the AI summary"
+msgstr "Yapay zekâ özetini iptal et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_cancelled"
+msgid "Summary cancelled."
+msgstr "Özet iptal edildi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+#, python-brace-format
+msgctxt "ai_summary_consent"
+msgid ""
+"The text of the chosen messages, with the names of the people who wrote them"
+" and, for voice messages, the text transcribed on this computer, and your "
+"questions and the previous answers in this window may be sent to "
+"{providers}, in that order, if the earlier ones fail. This may incur API "
+"charges. Provider data policies apply; the summary can be wrong. Do you want"
+" to continue?"
+msgstr ""
+"Seçilen mesajların metni, yazanların adları ve sesli mesajlarda bu "
+"bilgisayarda yazıya dökülen metinle birlikte; ayrıca sorularınız ve bu "
+"penceredeki önceki yanıtlar, öncekiler başarısız olursa şu sırayla "
+"gönderilebilir: {providers}. API ücreti doğabilir. Sağlayıcının veri "
+"koşulları geçerlidir; özet yanlış olabilir. Devam etmek istiyor musunuz?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_disclaimer"
+msgid "Summary made by AI; it may contain errors."
+msgstr "Özet yapay zekâ tarafından hazırlandı; hatalar içerebilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_from_here_menu"
+msgid "Summarize with AI from here to the end"
+msgstr "Buradan sona kadar yapay zekâ ile özetle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_left_out"
+msgid ""
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
+msgstr ""
+"Bu özetteki mesajlar: {count}, en yeniler. Dışarıda kalan eski mesajlar: "
+"{left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_locked_consent"
+msgid ""
+"These messages are from a locked chat. Sending them outside WhatsApp needs "
+"fresh consent every time, and it is never remembered. Locking the vault "
+"closes this window and discards the summary."
+msgstr ""
+"Bu mesajlar kilitli bir sohbete ait. WhatsApp dışına göndermek için her "
+"seferinde yeniden onay gerekir ve bu onay asla hatırlanmaz. Kasa "
+"kilitlenince pencere kapanır ve özet silinir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary available here: there are no messages to summarize, or Online AI "
+"is not on with the key of a provider that takes text."
+msgstr ""
+"Burada sunulacak özet yok: özetlenecek mesaj yok ya da çevrimiçi yapay zekâ,"
+" metin kabul eden bir sağlayıcının anahtarıyla açık değil."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_nothing"
+msgid "There are no text messages to summarize here."
+msgstr "Burada özetlenecek metin mesajı yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_remember_consent"
+msgid "Remember this consent &for summaries outside locked chats"
+msgstr "Kilitli sohbet dışındaki özetler için bu onayı &hatırla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_selected_menu"
+msgid "Summarize selected messages with AI"
+msgstr "Seçili mesajları yapay zekâ ile özetle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_send"
+msgid "Send te&xt"
+msgstr "&Metni gönder"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_unread_menu"
+msgid "Summarize unread messages with AI"
+msgstr "Okunmamış mesajları yapay zekâ ile özetle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"Başka bir yazıya döküm sürüyor. Bitmesini bekleyin ve özeti yeniden isteyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_hint"
+msgid ""
+"To cancel, use the summary item in the context menu, or the summary shortcut"
+" in an open chat."
+msgstr ""
+"İptal etmek için bağlam menüsündeki özet öğesini ya da açık bir sohbette "
+"özet kısayolunu kullanın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_missing"
+msgid "Voice messages shown only as a marker, without their words: {count}."
+msgstr ""
+"Sözleri olmadan yalnızca işaret olarak gösterilen sesli mesajlar: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_progress"
+msgid "Transcribing voice message {index} of {total} for the summary."
+msgstr "Özet için sesli mesaj {index} / {total} yazıya dökülüyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr ""
+"Bir özet sesli mesajları yazıya döküyor. Bitmesini bekleyin ya da önce iptal"
+" edin."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -13500,6 +13662,11 @@ msgid ""
 msgstr ""
 "Alt+Shift+T: sesli ya da videolu durumu Whisper ile yerel olarak yazıya dök "
 "ya da kaydedilmiş dökümü aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Ctrl+Shift+U: summarize unread messages"
+msgstr "Ctrl+Shift+U: okunmamış mesajları özetle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"

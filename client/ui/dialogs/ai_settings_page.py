@@ -700,10 +700,7 @@ class AISettingsPage(ScrolledPanel):
                     value["consented"] = sorted(
                         (set(consented) if isinstance(consented, list) else set())
                         | self._auto_consent)
-                    consented = value["consented"]
-                value["consented"] = [p for p in consented if p not in removed] \
-                    if isinstance(consented, list) else []
-                return value
+                return ai_config.drop_consents(value, removed)
             self.app.update("ai_media", merge)
             if self._translation is not None or self._reset:
                 def merge_translation(old):

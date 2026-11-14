@@ -1325,7 +1325,6 @@ msgid "Run again (new request)"
 msgstr "Esegui di nuovo (nuova richiesta)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_remember_consent"
 msgid "Remember this consent &for media outside locked chats"
 msgstr ""
@@ -1365,12 +1364,17 @@ msgid "Accessible PDF text"
 msgstr "Testo PDF accessibile"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_result_summary_title"
+msgid "Message summary"
+msgstr "Riepilogo dei messaggi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Trascrizione dei messaggi vocali (IA online)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "Invia &contenuti multimediali"
@@ -1408,6 +1412,170 @@ msgstr "Mostra o &nascondi chiave"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "S&tato"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Riassumi non letti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_cancel_confirm"
+msgid ""
+"Voice messages are being transcribed for a summary (message {index} of "
+"{total}). Cancel the summary?"
+msgstr ""
+"Sono in corso le trascrizioni dei messaggi vocali per un riepilogo "
+"(messaggio {index} di {total}). Vuoi annullare il riepilogo?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_cancel_menu"
+msgid "Cancel the AI summary"
+msgstr "Annulla il riepilogo con l'IA"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_cancelled"
+msgid "Summary cancelled."
+msgstr "Riepilogo annullato."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+#, python-brace-format
+msgctxt "ai_summary_consent"
+msgid ""
+"The text of the chosen messages, with the names of the people who wrote them"
+" and, for voice messages, the text transcribed on this computer, and your "
+"questions and the previous answers in this window may be sent to "
+"{providers}, in that order, if the earlier ones fail. This may incur API "
+"charges. Provider data policies apply; the summary can be wrong. Do you want"
+" to continue?"
+msgstr ""
+"Il testo dei messaggi scelti, con i nomi di chi li ha scritti e, per i "
+"messaggi vocali, il testo trascritto su questo computer, insieme alle tue "
+"domande e alle risposte precedenti in questa finestra, può essere inviato a "
+"{providers}, in quest'ordine, se quelli precedenti non funzionano. Ciò "
+"potrebbe comportare costi per l'API. Si applicano le informative sui dati "
+"del provider; il riepilogo potrebbe essere errato. Vuoi continuare?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_disclaimer"
+msgid "Summary made by AI; it may contain errors."
+msgstr "Riepilogo creato dall'IA; potrebbe contenere errori."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_from_here_menu"
+msgid "Summarize with AI from here to the end"
+msgstr "Riassumi con l'IA da qui alla fine"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_left_out"
+msgid ""
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
+msgstr ""
+"Messaggi in questo riepilogo: {count}, i più recenti. Messaggi più vecchi "
+"rimasti fuori: {left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_locked_consent"
+msgid ""
+"These messages are from a locked chat. Sending them outside WhatsApp needs "
+"fresh consent every time, and it is never remembered. Locking the vault "
+"closes this window and discards the summary."
+msgstr ""
+"Questi messaggi provengono da una chat bloccata. Per inviarli al di fuori di"
+" WhatsApp è necessario un nuovo consenso ogni volta, e non viene mai "
+"ricordato. Il blocco del vault chiude questa finestra ed elimina il "
+"riepilogo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary available here: there are no messages to summarize, or Online AI "
+"is not on with the key of a provider that takes text."
+msgstr ""
+"Nessun riepilogo disponibile qui: non ci sono messaggi da riassumere oppure "
+"l'IA online non è attiva con la chiave di un provider che accetti testo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_nothing"
+msgid "There are no text messages to summarize here."
+msgstr "Non ci sono messaggi di testo da riassumere qui."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_remember_consent"
+msgid "Remember this consent &for summaries outside locked chats"
+msgstr ""
+"Ricorda questo consenso &per i riepiloghi al di fuori delle chat bloccate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_selected_menu"
+msgid "Summarize selected messages with AI"
+msgstr "Riassumi con l'IA i messaggi selezionati"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_send"
+msgid "Send te&xt"
+msgstr "Invia &testo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_unread_menu"
+msgid "Summarize unread messages with AI"
+msgstr "Riassumi con l'IA i messaggi non letti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"È in corso un'altra trascrizione. Attendi che finisca e chiedi di nuovo il "
+"riepilogo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_hint"
+msgid ""
+"To cancel, use the summary item in the context menu, or the summary shortcut"
+" in an open chat."
+msgstr ""
+"Per annullare, usa la voce di riepilogo del menu contestuale oppure la "
+"scorciatoia di riepilogo in una chat aperta."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_missing"
+msgid "Voice messages shown only as a marker, without their words: {count}."
+msgstr ""
+"Messaggi vocali mostrati solo come segnaposto, senza le loro parole: "
+"{count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_progress"
+msgid "Transcribing voice message {index} of {total} for the summary."
+msgstr ""
+"Trascrizione del messaggio vocale {index} di {total} per il riepilogo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr ""
+"Un riepilogo sta trascrivendo messaggi vocali. Attendi che finisca o "
+"annullalo prima."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -13695,6 +13863,11 @@ msgid ""
 msgstr ""
 "Alt+Shift+T: trascrivi lo stato audio o video localmente con Whisper oppure "
 "apri la trascrizione già salvata"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Ctrl+Shift+U: summarize unread messages"
+msgstr "Ctrl+Shift+U: riassumi i messaggi non letti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"

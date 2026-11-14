@@ -54,7 +54,7 @@ class TranscribeModel:
 
 PROVIDERS = {
     "gemini": Provider(
-        "Google Gemini", "gemini-3.8-flash", "https://aistudio.google.com/api-keys",
+        "Google Gemini", "gemini-3.5-flash-lite", "https://aistudio.google.com/api-keys",
         "https://ai.google.dev/gemini-api/docs/billing", "https://ai.google.dev/gemini-api/terms",
         frozenset({"image", "audio", "pdf", "text"})),
     "openai": Provider(
@@ -131,9 +131,9 @@ def supports(provider, kind):
 
 
 def asks_questions(kind):
-    """Only pictures and videos get follow-up questions; audio and PDF are
-    converted to text in one go."""
-    return kind in ("image", "sticker", "video")
+    """Pictures, videos and chat summaries get follow-up questions; audio and
+    PDF are converted to text in one go."""
+    return kind in ("image", "sticker", "video", "text")
 
 
 def _count(value, default, ceiling):
@@ -182,6 +182,9 @@ def preferences(app_settings):
     kinds = kinds if isinstance(kinds, dict) else {}
     consented = raw.get("consented")
     consented = [p for p in consented if p in PROVIDERS] if isinstance(consented, list) else []
+    consented_text = raw.get("consented_text")
+    consented_text = [p for p in consented_text if p in PROVIDERS] \
+        if isinstance(consented_text, list) else []
     consented_writing = raw.get("consented_writing")
     consented_writing = [p for p in consented_writing if p in PROVIDERS] \
         if isinstance(consented_writing, list) else []
@@ -212,12 +215,47 @@ def preferences(app_settings):
         "auto_daily_limit": _count(raw.get("auto_daily_limit"), 50, 10000),
         "auto_usage": _usage(raw.get("auto_usage")),
         "consented": sorted(set(consented)),
+        # Chat summaries send the TEXT of unread messages to a provider — a
+        # bigger ask than one photo, so they carry their own consent list.
+        "consented_text": sorted(set(consented_text)),
         # Writing help sends the person's own draft to a provider; translation
         # sends message text to Google's web endpoint. Each carries its own
         # consent, separate from the media one.
         "consented_writing": sorted(set(consented_writing)),
         "consented_translate": raw.get("consented_translate") is True,
     }
+
+
+def consent_key(kind):
+    """The stored list a kind's remembered consent lives in. Chat summaries send
+    the text of the messages themselves, so theirs is kept apart from media's."""
+    return "consented_text" if kind == "text" else "consented"
+
+
+def remember_consent(old, kind, providers, locked=False):
+    """The stored "ai_media" dict after the person agreed for ``providers``.
+
+    A new dict (``old`` may be damaged or missing): the providers are added to
+    the kind's own list and the other lists stay as they are. Never for a locked
+    chat: its consent is asked every time, so ``old`` comes back unchanged."""
+    value = dict(old) if isinstance(old, dict) else {}
+    if locked:
+        return value
+    key = consent_key(kind)
+    current = value.get(key, [])
+    consented = set(current if isinstance(current, list) else [])
+    value[key] = sorted(consented | set(providers))
+    return value
+
+
+def drop_consents(value, removed):
+    """``value`` (the stored "ai_media" dict) without the remembered consent of
+    the ``removed`` providers, in both lists: a provider whose key is removed
+    must ask again, for media and for chat text, if it is ever set up again."""
+    for key in ("consented", "consented_text", "consented_writing"):
+        kept = value.get(key, [])
+        value[key] = [p for p in kept if p not in removed] if isinstance(kept, list) else []
+    return value
 
 
 def valid_model(model):
@@ -298,7 +336,7 @@ MENU_KEY = {"image": "ai_describe_image_menu", "sticker": "ai_describe_sticker_m
 #: i18n key of the window title per kind.
 TITLE_KEY = {"image": "ai_result_description_title", "sticker": "ai_result_description_title",
              "video": "ai_result_description_title", "audio": "ai_result_transcription_title",
-             "pdf": "ai_result_pdf_title"}
+             "pdf": "ai_result_pdf_title", "text": "ai_result_summary_title"}
 
 #: i18n key of what a provider may do with what it receives, said in every
 #: consent before media can reach it (its unpaid terms may train on it).

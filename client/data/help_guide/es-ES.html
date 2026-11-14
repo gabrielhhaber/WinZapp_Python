@@ -572,6 +572,11 @@
   Los chats bloqueados nunca se traducen automáticamente. Traducir un mensaje de uno de ellos requiere la caja fuerte abierta y pide confirmación cada vez. Activar la traducción automática en todos los chats también pide confirmación antes.
 </div>
 
+<h3>Resumen de mensajes con IA</h3>
+<p>El botón "Resumir no leídos" y el atajo Ctrl+Shift+U (que se puede cambiar en la pestaña Atajos de Configuración) aparecen en el chat abierto mientras tenga mensajes sin leer; el botón solo aparece con 10 o más mensajes sin leer, y el atajo funciona con cualquier cantidad. En la lista de chats, elige "Resumir con IA los mensajes no leídos" en el menú contextual de un chat: no se abre ni se marca como leído. El menú contextual de un mensaje tiene "Resumir con IA los mensajes no leídos" (los que están debajo de la línea de no leídos), "Resumir con IA desde aquí hasta el final" y, con mensajes seleccionados, "Resumir con IA los mensajes seleccionados".</p>
+<p>El resumen se abre en la ventana de resultado de la IA en línea, con preguntas de seguimiento y el botón de copiar, y justo encima el aviso de que lo ha hecho una IA y puede contener errores. Usa los proveedores de Configuración &gt; IA en línea (solo aparece cuando están configurados), no Meta AI ni el proveedor de la traducción. El primer uso pide un consentimiento propio, porque el texto de los mensajes y los nombres de quienes los escribieron van al proveedor; en los chats normales se recuerda por proveedor. Un chat bloqueado se puede resumir con la caja fuerte abierta, pero el consentimiento se pide siempre, nunca se recuerda, y la ventana se cierra al bloquear la caja fuerte.</p>
+<p>Los mensajes de voz entran con su texto: se usa la transcripción ya guardada; los demás, hasta los 20 más recientes, se transcriben en el momento con la transcripción local, con el avance hablado (para cancelar, usa el elemento de resumen del menú contextual o el atajo de resumen). Sin la transcripción configurada, o si alguno falla, quedan como "[Voice message]" y la ventana dice cuántos. Entran como máximo 200 mensajes y 15.000 caracteres; la ventana dice cuántos mensajes más antiguos han quedado fuera.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -690,8 +695,10 @@
   <tr><td>Foto o vídeo: "Describir"</td><td>Describe la imagen. Un vídeo se describe a partir de una sola imagen tomada de él; el sonido nunca se envía.</td></tr>
   <tr><td>Sticker: "Describir sticker"</td><td>Describe el sticker.</td></tr>
   <tr><td>PDF: "Convertir en texto accesible"</td><td>Lo convierte en texto simple y legible.</td></tr>
+<tr><td>Chat con no leídos: "Resumir no leídos"</td><td>Resume los mensajes no leídos del chat abierto.</td></tr>
 </table>
 <p><kbd>Ctrl+Shift+I</kbd> hace todo esto en el mensaje con el foco. El resultado se abre en una ventana con el texto; en fotos y vídeos puedes hacer preguntas de seguimiento (Ctrl+Intro pregunta). En la pestaña Estado (Alt+5), el botón "Describir" describe los estados de foto y de vídeo.</p>
+<p>El botón "Resumir no leídos" aparece dentro del chat abierto cuando tiene 10 o más mensajes sin leer, y Ctrl+Shift+U hace la misma petición (el atajo se puede cambiar en la pestaña Atajos de Configuración). Usa los proveedores de esta pestaña y pide un consentimiento propio, separado del de las fotos y los audios; los detalles están en "Resumen de mensajes con IA", en la sección sobre estar dentro de un chat.</p>
 <p>En el resultado de una transcripción o descripción, "Poner la transcripción en la línea del mensaje" y "Poner la descripción en la línea del mensaje" guardan el texto con el mensaje, que pasa a mostrarlo en su propia línea de la lista. En Ajustes &gt; Transcripciones y Descripciones, "Transcribir automáticamente los mensajes de voz recibidos" y "Describir automáticamente las imágenes, stickers y vídeos recibidos" (desactivadas por defecto) lo hacen con los proveedores en línea, sin ventana, sonido ni voz por mensaje; solo se usan los proveedores ya autorizados, y activar una desactiva la transcripción automática local. La ventana de datos de cada chat tiene las casillas "transcribir" y "describir", y puedes elegir entre todos los chats salvo los desactivados, o solo los activados. Para ahorrar cuota, eliges hasta qué antigüedad se procesa un mensaje recibido (5 minutos, 15, 30 o 1 hora) y un límite diario de solicitudes automáticas (50 por defecto, 0 para ninguno); si todos los proveedores rechazan por cuota o clave, la cola se pausa una hora y lo avisa una vez.</p>
 <div class="callout warn">
   <div class="callout-title">🔒 Privacidad</div>
@@ -1174,6 +1181,7 @@
 <tr><td class="field-name">Ctrl+Shift+I</td><td>Transcribir, describir o convertir el contenido del mensaje enfocado con IA en línea</td></tr>
 <tr><td class="field-name">Alt+P</td><td>Escribe un mensaje para</td></tr>
 <tr><td class="field-name">Alt+M</td><td>Mensajes</td></tr>
+<tr><td class="field-name">Ctrl+Shift+U</td><td>Resumir mensajes no leídos</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Grabar mensaje de voz</td></tr>
 <tr><td class="field-name">Alt+2</td><td>Ir al último mensaje</td></tr>
 <tr><td class="field-name">Esc</td><td>Cerrar chat. Con mensajes marcados, el primer Esc solo los desmarca todos y únicamente el segundo cierra el chat, si la opción está activada en Configuración, Interfaz de usuario</td></tr>
@@ -1429,6 +1437,8 @@
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>El modelo predeterminado de Google Gemini en la IA en línea es Gemini 3.5 Flash-Lite; un modelo fijo ya elegido no se ve afectado.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Resumen de mensajes con IA: botón y Ctrl+Shift+U en el chat abierto, menú de la lista de chats y menú del mensaje (no leídos, desde aquí hasta el final, seleccionados), mensajes de voz con su texto, consentimiento propio (los chats bloqueados lo piden siempre), con los proveedores de IA en línea.</td></tr>
   <tr><td class="field-name">Prototipo</td><td>Ayuda para escribir: el nuevo botón después de Emoji y el menú contextual del campo abren la misma ventana. Permite corregir, reformular, usar un tono profesional o alentador con los proveedores de IA configurados, o traducir con Google. Pide permiso antes de enviar el borrador y muestra el resultado antes de reemplazarlo; nunca envía el mensaje automáticamente. Elige una acción y después pulsa &quot;Ejecutar acción elegida&quot;. Abrir o cerrar esta ventana no envía el borrador.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>WPPConnect: con el disco casi lleno se cierra WhatsApp de forma segura y queda sin conexión hasta que haya espacio; transcripción automática de mensajes de voz recibidos durante la suspensión; Neonize: unirse por enlace de invitación como en WhatsApp Web.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Vaciar un chat en el móvil lo vacía en WinZapp; los canales abiertos desde la ventana Canales cargan sus actualizaciones al momento; "Datos del grupo" sigue el número de participantes; sin "Actualizando chats" repetido tras la suspensión; Neonize: un cambio de privacidad aplicado ya no se indica como fallo.</td></tr>

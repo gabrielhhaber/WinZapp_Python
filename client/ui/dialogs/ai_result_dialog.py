@@ -52,6 +52,16 @@ def failure_text(i18n, error):
 
 def consent_text(i18n, providers, kind, locked):
     """What the person is told before media leaves the machine."""
+    if kind == "text":
+        # A summary sends the readable text of the messages themselves, with
+        # the senders' names: the media consent's "names are not sent" would
+        # be false here, so it has its own wording (and its own locked one).
+        message = i18n.t("ai_summary_consent").format(providers=provider_names(providers))
+        for key in ai_config.notice_keys(providers):
+            message += "\n\n" + i18n.t(key)
+        if locked:
+            message += "\n\n" + i18n.t("ai_summary_locked_consent")
+        return message
     message = i18n.t("ai_consent").format(providers=provider_names(providers))
     if kind in ("audio", "pdf"):
         # Pictures are re-encoded (metadata removed); these go out untouched.
@@ -79,11 +89,14 @@ class AIConsentDialog(wx.Dialog):
         text = wx.TextCtrl(self, value=text if text is not None else consent_text(i18n, providers, kind, locked), style=wx.TE_MULTILINE | wx.TE_READONLY,
                            size=(520, 220), name=plain(i18n, "ai_consent_title"))
         layout.Add(text, 1, wx.EXPAND | wx.ALL, 10)
-        self.remember = wx.CheckBox(self, label=i18n.t("ai_remember_consent"))
+        text_kind = kind == "text"
+        self.remember = wx.CheckBox(self, label=i18n.t(
+            "ai_summary_remember_consent" if text_kind else "ai_remember_consent"))
         self.remember.Enable(not locked)
         layout.Add(self.remember, 0, wx.ALL, 10)
         buttons = wx.WrapSizer(wx.HORIZONTAL)
-        buttons.Add(wx.Button(self, wx.ID_OK, label=i18n.t("ai_send_media")), 0, wx.ALL, 8)
+        buttons.Add(wx.Button(self, wx.ID_OK, label=i18n.t(
+            "ai_summary_send" if text_kind else "ai_send_media")), 0, wx.ALL, 8)
         cancel = wx.Button(self, wx.ID_CANCEL, label=i18n.t("cancel"))
         buttons.Add(cancel, 0, wx.ALL, 8)
         layout.Add(buttons)
@@ -93,8 +106,12 @@ class AIConsentDialog(wx.Dialog):
 
 
 class AIResultDialog(wx.Dialog):
-    def __init__(self, panel, identity, kind, locked, config, app_settings, loader, mime):
+    def __init__(self, panel, identity, kind, locked, config, app_settings, loader, mime,
+                 notice=""):
         self.panel = panel
+        #: What the caller says about the summary's input (messages left out,
+        #: voice messages without words); shown above a summary and spoken with it.
+        self.notice = notice
         self.main_window = panel.main_window
         self.i18n = self.main_window.i18n
         self.session = MediaSession(*identity, kind, locked=locked)
@@ -180,10 +197,15 @@ class AIResultDialog(wx.Dialog):
         saved = store.saved()
         return ai_config.chain(self.config, self.kind, lambda p: p in saved, prefer=self._provider)
 
+    def _consent_key(self):
+        """Chat summaries (kind "text") send the text of the messages
+        themselves: their remembered consent is kept apart from media's."""
+        return ai_config.consent_key(self.kind)
+
     def _consent(self, providers):
         """Consent covers every provider the media may reach. Remembered per
         provider, never for a locked chat."""
-        needed = [p for p in providers if p not in self.config["consented"]]
+        needed = [p for p in providers if p not in self.config[self._consent_key()]]
         if self._consented or (not needed and not self.session.locked):
             self._consented = True
             return True
@@ -192,15 +214,12 @@ class AIResultDialog(wx.Dialog):
         try:
             accepted = dialog.ShowModal() == wx.ID_OK and self._valid()
             if accepted and dialog.remember.GetValue() and not self.session.locked:
+                key = self._consent_key()
                 def merge(old):
-                    value = dict(old) if isinstance(old, dict) else {}
-                    current = value.get("consented", [])
-                    consented = set(current if isinstance(current, list) else [])
-                    value["consented"] = sorted(consented | set(providers))
-                    return value
+                    return ai_config.remember_consent(old, self.kind, providers, self.session.locked)
                 try:
                     self.app.update("ai_media", merge)
-                    self.config["consented"] = sorted(set(self.config["consented"]) | set(providers))
+                    self.config[key] = sorted(set(self.config[key]) | set(providers))
                 except (OSError, RuntimeError):
                     # Consent is valid for this session even if remembering failed.
                     pass
@@ -351,13 +370,24 @@ class AIResultDialog(wx.Dialog):
             text = render_history(self.session.history, description_first=self._description_first,
                                   question_label=self.i18n.t("ai_history_question"),
                                   answer_label=self.i18n.t("ai_history_answer"))
-            self.result.ChangeValue(text)
+            heading = self._summary_heading()
+            self.result.ChangeValue(f"{heading}\n\n{text}" if heading else text)
             if self.question is not None and not regenerate and self.question.GetValue().strip() == question:
                 self.question.ChangeValue("")
             ready = self.i18n.t("ai_ready") + " " + self.i18n.t("ai_answered_by").format(
                 provider=PROVIDERS[provider].name)
             self.status.ChangeValue(ready)
-            self._speak(spoken_answer(answer) if self.config["read_answers"] else ready)
+            spoken = spoken_answer(answer) if self.config["read_answers"] else ready
+            if regenerate and heading:
+                spoken = f"{spoken} {heading}"
+            self._speak(spoken)
+
+    def _summary_heading(self):
+        """For a summary: what the caller said about its input, then the
+        warning that an AI wrote it. Not part of the answer: Copy leaves it out."""
+        if self.kind != "text":
+            return ""
+        return "\n".join(part for part in (self.notice, self.i18n.t("ai_summary_disclaimer")) if part)
 
     def _timeout(self, generation):
         record("ui_watchdog", generation=generation)

@@ -177,6 +177,7 @@ class AIActionsMixin:
         deleting its message."""
         if not locked_only and message_ids is None:
             close_open_dialog()  # one under the Status tab or its media viewer
+            self.cancel_summary_voice()  # a summary's voice step of this chat
         dialog = getattr(self, "_ai_dialog", None)
         if dialog is None:
             return

@@ -572,6 +572,11 @@
   Conversas trancadas nunca são traduzidas automaticamente. Traduzir uma mensagem delas exige o cofre aberto e pede confirmação toda vez. Ativar a tradução automática em todas as conversas também pede confirmação antes.
 </div>
 
+<h3>Resumo de mensagens com IA</h3>
+<p>O botão "Resumir não lidas" e o atalho Ctrl+Shift+U (que pode ser trocado na aba Atalhos das Configurações) aparecem na conversa aberta enquanto ela tiver mensagens não lidas; o botão só aparece com 10 ou mais mensagens não lidas, e o atalho funciona com qualquer quantidade. Na lista de conversas, escolha "Resumir com IA as mensagens não lidas" no menu de contexto de uma conversa: ela não é aberta nem marcada como lida. No menu de contexto de uma mensagem há "Resumir com IA as mensagens não lidas" (as que estão abaixo da linha de não lidas), "Resumir com IA daqui até o fim" e, com mensagens selecionadas, "Resumir com IA as mensagens selecionadas".</p>
+<p>O resumo abre na janela de resultado da IA on-line, com perguntas de acompanhamento e o botão de copiar, e logo acima dele o aviso de que foi feito por IA e pode conter erros. Ele usa os provedores de Configurações &gt; IA on-line (só aparece depois de configurá-los), não a Meta AI nem o provedor da tradução. O primeiro uso pede um consentimento próprio, porque o texto das mensagens e os nomes de quem as escreveu vão ao provedor; em conversas comuns ele fica lembrado por provedor. Uma conversa trancada pode ser resumida com o cofre aberto, mas o consentimento é pedido toda vez, nunca é lembrado, e a janela fecha quando o cofre é bloqueado.</p>
+<p>As mensagens de voz entram com o texto: a transcrição já salva é usada; as outras, até as 20 mais recentes, são transcritas na hora com a transcrição local, com o andamento falado (para cancelar, use o item de resumo do menu de contexto ou o atalho de resumo). Sem a transcrição configurada, ou se uma falhar, ficam como "[Voice message]" e a janela diz quantas. Vão no máximo 200 mensagens e 15.000 caracteres; a janela diz quantas mensagens mais antigas ficaram de fora.</p>
+
   </section>
 
   <section id="anexos-midia" class="wiki-section" aria-labelledby="h-anexos-midia">
@@ -690,8 +695,10 @@
   <tr><td>Foto ou vídeo: "Descrever"</td><td>Descreve a imagem. Um vídeo é descrito a partir de uma única imagem tirada dele; o som nunca é enviado.</td></tr>
   <tr><td>Figurinha: "Descrever figurinha"</td><td>Descreve a figurinha.</td></tr>
   <tr><td>PDF: "Converter em texto acessível"</td><td>Transforma em texto simples e legível.</td></tr>
+<tr><td>Conversa com não lidas: "Resumir não lidas"</td><td>Resume as mensagens não lidas da conversa aberta.</td></tr>
 </table>
 <p><kbd>Ctrl+Shift+I</kbd> faz tudo isso na mensagem em foco. O resultado abre numa janela com o texto; para fotos e vídeos, dá para fazer perguntas de acompanhamento (Ctrl+Enter pergunta). Na aba Status (Alt+5), o botão "Descrever" descreve status de foto e de vídeo.</p>
+<p>O botão "Resumir não lidas" aparece dentro da conversa aberta quando há 10 ou mais mensagens não lidas, e Ctrl+Shift+U faz o mesmo pedido (o atalho pode ser trocado na aba Atalhos das Configurações). Ele usa os provedores desta aba e pede um consentimento próprio, separado do das fotos e dos áudios; os detalhes estão em "Resumo de mensagens com IA", na seção sobre estar dentro de uma conversa.</p>
 <p>No resultado de uma transcrição ou descrição, "Colocar a transcrição na linha da mensagem" e "Colocar a descrição na linha da mensagem" guardam o texto junto com a mensagem, que passa a mostrá-lo na própria linha da lista. Em Configurações &gt; Transcrições e Descrições, "Transcrever automaticamente as mensagens de voz recebidas" e "Descrever automaticamente as imagens, figurinhas e vídeos recebidos" (desligadas por padrão) fazem isso com os provedores online, sem janela, som ou fala a cada mensagem; só os provedores já autorizados são usados, e ligar uma delas desliga a transcrição automática local. A janela de dados de cada conversa tem as caixas "transcrever" e "descrever", e dá para escolher entre todas as conversas, menos as desligadas, ou só as ligadas. Para poupar a cota, você escolhe até que idade uma mensagem recebida é processada (5 minutos, 15, 30 ou 1 hora) e um limite diário de pedidos automáticos (50 por padrão, 0 para nenhum); se todos os provedores recusarem por cota ou chave, a fila pausa por uma hora e avisa uma vez.</p>
 <div class="callout warn">
   <div class="callout-title">🔒 Privacidade</div>
@@ -1174,6 +1181,7 @@
 <tr><td class="field-name">Ctrl+Shift+I</td><td>Transcrever, descrever ou converter a mídia da mensagem em foco com IA online</td></tr>
 <tr><td class="field-name">Alt+D</td><td>Digite uma mensagem para</td></tr>
 <tr><td class="field-name">Alt+M</td><td>Mensagens</td></tr>
+<tr><td class="field-name">Ctrl+Shift+U</td><td>Resumir mensagens não lidas</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Gravar mensagem de voz</td></tr>
 <tr><td class="field-name">Alt+2</td><td>Ir para a última mensagem</td></tr>
 <tr><td class="field-name">Esc</td><td>Fechar conversa. Com mensagens marcadas, o primeiro Esc apenas desmarca todas e só o segundo fecha a conversa, se a opção estiver ativada em Configurações, Interface do usuário</td></tr>
@@ -1429,6 +1437,8 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>O modelo padrão do Google Gemini na IA on-line é o Gemini 3.5 Flash-Lite; um modelo fixo já escolhido não muda.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Resumo de mensagens com IA: botão e Ctrl+Shift+U na conversa aberta, menu da lista de conversas e menu da mensagem (não lidas, daqui até o fim, selecionadas), mensagens de voz com o texto, consentimento próprio (conversas trancadas pedem toda vez), com os provedores da IA on-line.</td></tr>
   <tr><td class="field-name">Protótipo</td><td>Ajuda para escrever: o novo botão após Emoji e o menu de contexto do campo abrem a mesma janela. Corrija, reformule, use um tom profissional ou encorajador com os provedores de IA configurados, ou traduza com o Google. Há consentimento antes de enviar o rascunho e uma prévia antes de substituí-lo; a mensagem nunca é enviada automaticamente. Escolha uma ação e depois pressione &quot;Executar ação escolhida&quot;. Abrir ou fechar esta janela não envia o rascunho.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>WPPConnect: disco quase cheio fecha o WhatsApp com segurança e fica offline até haver espaço; transcrição automática de áudios recebidos durante a suspensão; Neonize: entrada por link de convite como no WhatsApp Web.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Limpar uma conversa no celular limpa a conversa no WinZapp; canais abertos pela janela Canais carregam as atualizações na hora; "Dados do grupo" acompanha o número de participantes; sem "Atualizando conversas" repetido depois da suspensão; Neonize: privacidade aplicada não é mais relatada como falha.</td></tr>
