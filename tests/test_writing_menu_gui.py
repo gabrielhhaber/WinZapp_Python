@@ -77,7 +77,7 @@ def test_context_menu_choice_opens_real_modal_once(wx_app, tmp_path, monkeypatch
 
     def select_writing(menu, *args):
         item = next(item for item in menu.GetMenuItems()
-                    if item.GetItemLabel() == frame.i18n.t('writing_menu'))
+                    if item.GetItemLabel().split('\t')[0] == frame.i18n.t('writing_menu'))
         command = wx.CommandEvent(wx.EVT_MENU.typeId, item.GetId())
         command.SetEventObject(menu)
         assert menu.ProcessEvent(command)

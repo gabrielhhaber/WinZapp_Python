@@ -7,6 +7,8 @@ TranslationActionsMixin rather than adding another menu entry.
 from app_paths import global_dir
 from app_settings import AppSettings
 from core.ai_media.config import MAX_SOURCE_BYTES, preferences
+from ui.accessible import AccessibleWritingHelp
+from ui.shortcut_bindings import popup_item_label
 
 
 class AIWritingMixin:
@@ -17,6 +19,7 @@ class AIWritingMixin:
         import wx
         label = self.main_window.i18n.t("writing_menu")
         button = wx.Button(parent, label=label, name=label)
+        button.SetAccessible(AccessibleWritingHelp())
         button.Bind(wx.EVT_BUTTON, self._on_writing_help)
         button.Enable(self._writing_help_offered())
         return button
@@ -47,6 +50,17 @@ class AIWritingMixin:
                 return False
         text = text.strip()
         return bool(text) and len(text.encode("utf-8")) <= MAX_SOURCE_BYTES["writing"]
+
+    def _writing_menu_label(self):
+        """The menu item's text with the chord the person has set for it."""
+        return popup_item_label(self, self.main_window.i18n.t("writing_menu"),
+                                "messages.ID_WRITING_HELP")
+
+    def _on_writing_help_shortcut(self, event=None):
+        """The shortcut: the same as the button, which is disabled (and so is
+        this) while the draft cannot be helped."""
+        if self._writing_help_offered():
+            self._on_writing_help()
 
     def _on_writing_help(self, event=None):
         """The composer menu item: open the writing-help window on the draft."""
