@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect Server updated to 2.10.81, with WPPConnect 2.4.0 and WA-JS 4.8.0. Reading message history no longer piles up copies in memory, the browser WinZapp drives is closed automatically only when WinZapp itself opened it, and waiting for WhatsApp Web to load now also works while the page is hidden.
+
 - WPPConnect: when disk space runs low (less than 4 GB free), WinZapp closes WhatsApp safely before it loses the session, goes offline and says why. Once at least 5 GB are free it connects again by itself. Before, with about 3 GB free, the session could come back logged out as if it had been wiped.
 
 - Automatic transcription: a voice message received while the computer was asleep is no longer left untranscribed when it arrives together with others on waking.
