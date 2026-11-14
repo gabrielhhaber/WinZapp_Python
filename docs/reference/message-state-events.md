@@ -66,6 +66,32 @@ remained unchanged and the temporary observer was removed. Source/Node/Python
 tests pass; a real change by a group administrator remains necessary to confirm
 live receipt. Neonize was not started.
 
+## Message pin notices
+
+`message-pin-changed`: `{session, chatId, messageId, pinned, timestamp, duration}`.
+The target is the raw ID of the pinned message; the separate pin-notification
+MsgKey is never used as that target. `timestamp` is sender time in milliseconds;
+duration is seconds. Unknown pin types are ignored, never treated as unpin.
+
+The current Meta runtime does not hydrate PinInChatStore. The WPP observer wraps
+`WAWebDBCRUDOperationsPinInChat.createOrUpdatePinInChat` and emits only the rows
+the native function reports committed; rejected and stale writes emit nothing.
+Its returned rows also include forced unpins when the maximum is exceeded.
+Native return values, errors and property descriptors are preserved.
+Neonize emits after its existing received-pin handler updates storage.
+The client updates matching resident flags and the open overview, and atomically
+changes only the existing disk row's pin metadata. Older observations cannot
+overwrite newer ones. Unknown targets refresh the open pin overview from local
+linked-device storage, without requesting phone history. Locked views stay hidden.
+
+CDP on 2026-11-14 pinned a new marked message in the development group for one
+day and then unpinned it. The public WA-JS wrapper is incompatible with the
+current native object's argument shape, so the test used the inspected native
+`WAWebSendPinMessageAction.sendPinInChatMsg({msg, pinType, pinExpiryDurationOption})`.
+The exact observer captured unpin, pin (86400 seconds), unpin, each with the
+correct target. Storage confirmed unpinned afterward; the temporary wrapper and
+bindings were removed. Neonize live receipt remains untested.
+
 ## Favorites
 
 `message-star-changed`: `{session, chatId, messageId, starred}`. `chatId` is

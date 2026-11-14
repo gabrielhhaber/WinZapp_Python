@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Fixarea sau desprinderea unui mesaj pe alt dispozitiv actualizează marcajul și lista mesajelor fixate din conversația deschisă la primirea notificării.
+
 - Modificările duratei mesajelor temporare primite de pe alt dispozitiv actualizează detaliile conversației fără a aștepta o sincronizare completă.
 
 - Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; conversația deschisă este închisă când este blocată.

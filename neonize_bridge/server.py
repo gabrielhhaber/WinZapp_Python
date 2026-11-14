@@ -326,6 +326,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             return False
         target, pin, duration = data
         self.db.pin_message(target, chat, pin, msgmap.seconds(e.Info.Timestamp), duration)
+        stamp = msgmap.unwrap(e.Message).pinInChatMessage.senderTimestampMS
+        stamp = int(stamp) if stamp else int(msgmap.seconds(e.Info.Timestamp) * 1000)
+        self.emit("message-pin-changed", {"session": self.name, "chatId": msgmap.jid_wpp(chat),
+            "messageId": target, "pinned": pin, "timestamp": stamp, "duration": duration})
         return True
 
     def pin_message(self, serial, pin, duration=7 * 86400):

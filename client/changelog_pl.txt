@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartej rozmowie po otrzymaniu powiadomienia.
+
 - Zmiany czasu znikających wiadomości otrzymane z innego urządzenia aktualizują dane rozmowy bez czekania na pełną synchronizację.
 
 - Zablokowanie lub odblokowanie rozmowy w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; otwarta rozmowa zostaje zamknięta po zablokowaniu.

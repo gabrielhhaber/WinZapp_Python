@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Fixar ou desafixar uma mensagem em outro dispositivo atualiza sua marca e o resumo de mensagens fixadas da conversa aberta ao chegar o aviso.
+
 - Alterações no prazo das mensagens temporárias recebidas de outro dispositivo atualizam os dados da conversa sem esperar uma sincronização completa.
 
 - Trancar ou destrancar uma conversa no celular atualiza o WinZapp ao chegar o aviso; uma conversa aberta que foi trancada é fechada.

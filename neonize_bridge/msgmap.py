@@ -179,7 +179,7 @@ def pin(message):
     if _field(inner) != "pinInChatMessage":
         return None
     p = inner.pinInChatMessage
-    if not p.key.ID:
+    if not p.key.ID or p.type not in (PinInChatMessage.PIN_FOR_ALL, PinInChatMessage.UNPIN_FOR_ALL):
         return None
     duration = int(inner.messageContextInfo.messageAddOnDurationInSecs or 0)
     return p.key.ID, p.type == PinInChatMessage.PIN_FOR_ALL, duration

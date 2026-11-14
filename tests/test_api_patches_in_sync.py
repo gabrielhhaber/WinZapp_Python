@@ -77,6 +77,7 @@ MIRRORED_FILES = [
     "src/util/messageDeleteBridge.ts",
     "src/util/chatSettingsBridge.ts",
     "src/util/chatTimerBridge.ts",
+    "src/util/messagePinBridge.ts",
     "src/tests/util/chatClearedBridge.test.ts",
     "src/util/eventsRuntime.ts",
     "src/util/eventsWatchBridge.ts",
