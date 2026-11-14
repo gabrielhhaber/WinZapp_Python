@@ -195,6 +195,14 @@ class AccessibleDescribeButton(wx.Accessible):
         return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+Shift+I", ('messages.ID_AI_ACTION', 'status.ID_CTRL_SHIFT_I', 'media.ID_CTRL_SHIFT_I')))
 
 
+class AccessibleSummarizeUnread(wx.Accessible):
+    """Reports the shortcut of the summarize-unread button (Ctrl+Shift+U by
+    default, whatever the person set under Shortcuts)."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+Shift+U", ('messages.ID_SUMMARIZE_UNREAD',)))
+
+
 class AccessibleShowInFolder(wx.Accessible):
     """Reports Ctrl+Enter as the shortcut for the Show-in-folder button."""
 

@@ -370,3 +370,20 @@ class TestSummaryHeading:
 
     def test_a_description_has_no_heading(self):
         assert self._heading("image", "left out 3") == ""
+
+
+class TestButtonThreshold:
+    def test_the_button_needs_ten_unread_messages(self):
+        from core.ai_media.summary import button_offered
+        assert [button_offered(n) for n in (0, 1, 9, 10, 11, 200)] == [
+            False, False, False, True, True, True]
+
+
+def test_the_summary_button_announces_the_configured_shortcut():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "client" / "ui"
+    accessible = (root / "accessible.py").read_text(encoding="utf-8")
+    assert "class AccessibleSummarizeUnread" in accessible
+    assert "'messages.ID_SUMMARIZE_UNREAD'" in accessible and '"Ctrl+Shift+U"' in accessible
+    assert "self._summary_btn.SetAccessible(AccessibleSummarizeUnread())" in (
+        root / "conversations.py").read_text(encoding="utf-8")

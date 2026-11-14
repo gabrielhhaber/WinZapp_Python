@@ -49,6 +49,7 @@ from ui.accessible import (
     AccessibleSaveAs,
     AccessibleShowInFolder,
     AccessibleDescribeButton,
+    AccessibleSummarizeUnread,
     AccessibleConversationDataButton,
     AccessibleVoiceCallButton,
     AccessibleVideoCallButton,
@@ -859,6 +860,7 @@ class ConversationsPanel(
         self._summary_btn = wx.Button(
             self._media_action_slot, label=i18n.t("ai_summary_button")
         )
+        self._summary_btn.SetAccessible(AccessibleSummarizeUnread())
         self._summary_btn.Bind(wx.EVT_BUTTON, self._on_summary_action)
         self._media_action_sizer.Add(self._summary_btn, 0, wx.TOP, 2)
         self._summary_btn.Hide()

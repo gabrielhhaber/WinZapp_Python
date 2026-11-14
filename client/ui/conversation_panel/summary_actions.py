@@ -7,14 +7,15 @@ follow-up questions, Copy, consent of its own).
 
 Where it is offered, all ending in ``_on_summarize_messages``:
 
-* the button and Ctrl+Shift+U of the open chat: its unread messages;
+* Ctrl+Shift+U of the open chat, and a button beside it once there are
+  ``BUTTON_MIN_UNREAD`` or more: its unread messages;
 * the conversations list's context menu: a chat's unread messages, read from
   the database — the chat is neither opened nor marked as read;
 * the message context menu of the open chat: unread, from this message to the
   newest, and the selected ones.
 
-There is no threshold: it is offered whenever there is something to summarize
-and Online AI can take text. A locked chat can be summarized too, with a
+Only the button has a threshold; everything else is offered whenever there is
+something to summarize and Online AI can take text. A locked chat can be summarized too, with a
 consent asked every time and never remembered (AIResultDialog). Voice messages
 carry their transcription (summary_voice.py). Nothing here logs the messages.
 
@@ -25,7 +26,7 @@ import wx
 from app_paths import active_account_id, global_dir
 from core.ai_credentials import CredentialStore
 from core.ai_media import config as ai_config
-from core.ai_media.summary import (build_unread_transcript, is_voice_message, message_text,
+from core.ai_media.summary import (build_unread_transcript, button_offered, is_voice_message, message_text,
                                    unread_fetch_limit, unread_messages, voice_text)
 from core.message_copy_format import format_copied_message
 from core.utils import format_number, is_phone_like
@@ -93,7 +94,8 @@ class SummaryActionsMixin:
         if button is None:
             return
         try:
-            offered = self._summary_offered()
+            offered = (self._summary_offered()
+                       and button_offered(len(self._summary_unread_messages())))
         except Exception:
             offered = False
         if offered:

@@ -26,6 +26,10 @@ MAX_VOICE_TRANSCRIPTIONS = 20
 UNREAD_FETCH_BUFFER = 50
 UNREAD_FETCH_CAP = 2000
 
+#: The "Summarize unread" button is only worth a Tab stop once a backlog is
+#: long; below this the shortcut and the menus still work.
+BUTTON_MIN_UNREAD = 10
+
 VOICE_MARKER = "[Voice message]"
 
 #: One placeholder per message type without wire text. Captions travel with
@@ -162,3 +166,8 @@ def voice_to_transcribe(messages, has_text, limit=MAX_VOICE_TRANSCRIPTIONS) -> l
     them (``SummaryTranscript.voice_markers``)."""
     pending = [msg for msg in messages if is_voice_message(msg) and not has_text(msg)]
     return pending[max(len(pending) - limit, 0):] if limit > 0 else []
+
+
+def button_offered(unread_count) -> bool:
+    """Whether the summary button is shown for this many unread messages."""
+    return unread_count >= BUTTON_MIN_UNREAD

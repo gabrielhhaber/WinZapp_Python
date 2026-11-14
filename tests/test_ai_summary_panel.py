@@ -289,11 +289,23 @@ class TestOffered:
         panel._summary_btn = NS(SetLabel=lambda label: None, Show=lambda: shown.append(True),
                                 Hide=lambda: shown.append(False))
         panel._sync_media_action_slot_visibility = lambda: shown.append("sync")
-        with_unread(panel)
+        with_unread(panel, [text(n) for n in range(3, 13)])
         panel._update_summary_button()
         panel._sorted_messages = []
         panel._update_summary_button()
         assert shown == [True, "sync", False, "sync"]
+
+    def test_below_ten_unread_there_is_no_button_but_the_shortcut_works(self, panel):
+        shown = []
+        panel._summary_btn = NS(SetLabel=lambda label: None, Show=lambda: shown.append(True),
+                                Hide=lambda: shown.append(False))
+        panel._sync_media_action_slot_visibility = lambda: None
+        with_unread(panel, [text(n) for n in range(3, 12)])
+        panel._update_summary_button()
+        assert shown == [False]
+        assert panel._summary_offered() is True
+        panel._on_summary_action()
+        assert Dialog.made
 
 
 class TestMenus:
