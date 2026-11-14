@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Zablokowanie lub odblokowanie rozmowy w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; otwarta rozmowa zostaje zamknięta po zablokowaniu.
+
 - Zmiany wyciszenia, archiwizacji i przypięcia na innym urządzeniu aktualizują listę rozmów po otrzymaniu powiadomienia w WPPConnect i Neonize.
 
 - Wiadomości usunięte u Ciebie na innym urządzeniu znikają z rozmowy po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.

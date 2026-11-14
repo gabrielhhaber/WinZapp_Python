@@ -36,6 +36,19 @@ Node-to-client integration were not started; remote-device receipt remains a
 later live validation. Node and Python tests cover payload rejection, listener
 ownership, client dispatch and bridge storage-before-notification behavior.
 
+## Phone chat lock
+
+`chat-settings-changed` also accepts `setting: lock` with a strict boolean.
+WPPConnect observes only `ChatStore.change:isLocked`; Neonize updates storage
+before notification and suppresses historical full-sync replay. The client uses
+the existing keyed-fingerprint index for both phone/LID identities, closes an
+affected open view and invalidates sensitive media/translation work. Unlocking
+on the phone does not unlock WinZapp's own vault.
+
+CDP validation on 2026-11-14 used `WAWebChatLockAction` to lock/unlock only the
+authorized development group. Both notices matched and the original lock,
+archive and pin states were restored. No native UI or Neonize session was opened.
+
 ## Favorites
 
 `message-star-changed`: `{session, chatId, messageId, starred}`. `chatId` is

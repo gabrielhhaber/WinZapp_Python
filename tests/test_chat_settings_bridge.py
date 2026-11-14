@@ -20,6 +20,13 @@ const install=vm.runInContext('('+context.installChatSettingsInPage.toString()+'
 assert.equal(install(),true);install();
 assert.equal(chats.listenerCount('change:archive'),1);assert.equal(chats.listenerCount('change:pin'),1);
 assert.equal(mutes.listenerCount('change:expiration'),1);
+const locks=[];
+context.window.__winzappOnChatSettingsChanged=raw=>locks.push(JSON.parse(raw));install();
+chats.emit('change:isLocked',{id:'7@g.us',isLocked:true});
+chats.emit('change:isLocked',{id:'7@g.us',isLocked:false});
+assert.deepEqual(locks.map(v=>[v.setting,v.value]),[['lock',true],['lock',false]]);
+assert.equal(context.chatSettingsPayload(JSON.stringify(locks[0]),'s').value,true);
+context.window.__winzappOnChatSettingsChanged=raw=>sent.push(JSON.parse(raw));install();
 const model={id:{_serialized:'7@g.us'},archive:true,pin:2000000000};
 chats.emit('add',model);chats.emit('remove',model);assert.equal(sent.length,0);
 chats.emit('change:archive',model);model.archive=false;chats.emit('change:archive',model);

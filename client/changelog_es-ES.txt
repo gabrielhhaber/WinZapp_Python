@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Bloquear o desbloquear un chat en el teléfono actualiza WinZapp al llegar el aviso; si el chat bloqueado está abierto, se cierra.
+
 - Los cambios de silencio, archivo y fijación realizados en otro dispositivo actualizan la lista de chats al llegar el aviso, con WPPConnect y Neonize.
 
 - Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.

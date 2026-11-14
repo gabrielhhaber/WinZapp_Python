@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Il blocco o lo sblocco di una chat sul telefono aggiorna WinZapp all’arrivo della notifica; una chat aperta viene chiusa quando è bloccata.
+
 - Le modifiche a silenziamento, archiviazione e fissaggio effettuate su un altro dispositivo aggiornano l’elenco delle chat all’arrivo della notifica, con WPPConnect e Neonize.
 
 - I messaggi eliminati per te su un altro dispositivo vengono rimossi dalla conversazione quando arriva l’avviso di eliminazione, con WPPConnect e Neonize.

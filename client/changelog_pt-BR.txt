@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Trancar ou destrancar uma conversa no celular atualiza o WinZapp ao chegar o aviso; uma conversa aberta que foi trancada é fechada.
+
 - Mudanças de silenciamento, arquivo e fixação feitas em outro dispositivo atualizam a lista de conversas assim que o aviso chega, com WPPConnect e Neonize.
 
 - Mensagens apagadas para você em outro dispositivo são removidas da conversa quando chega o aviso de exclusão, com WPPConnect e Neonize.

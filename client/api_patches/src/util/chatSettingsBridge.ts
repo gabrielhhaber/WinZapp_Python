@@ -9,12 +9,12 @@ export function installChatSettingsInPage() {
   if (![chats, mutes].every(store => typeof store?.on === 'function'
       && typeof store?.off === 'function') || typeof notify !== 'function') return false;
   const previous = win['__winzappChatSettingsObserver'];
-  if (previous?.chats === chats && previous?.mutes === mutes) {
+  if (previous?.revision === 2 && previous?.chats === chats && previous?.mutes === mutes) {
     previous.notify = notify;
     return true;
   }
   previous?.dispose();
-  const state = {chats, mutes, notify, listeners: [], dispose: null};
+  const state = {chats, mutes, notify, revision: 2, listeners: [], dispose: null};
   const observe = (store, event, setting, valueOf) => {
     const handler = model => {
       try {
@@ -30,6 +30,7 @@ export function installChatSettingsInPage() {
     state.listeners.push([store, event, handler]);
   };
   observe(chats, 'change:archive', 'archive', m => typeof m.archive === 'boolean' ? m.archive : undefined);
+  observe(chats, 'change:isLocked', 'lock', m => typeof m.isLocked === 'boolean' ? m.isLocked : undefined);
   observe(chats, 'change:pin', 'pin', m => {
     if (m.pin == null || m.pin === false || m.pin === 0) return false;
     if (m.pin === true || (Number.isSafeInteger(m.pin) && m.pin > 0)) return true;
@@ -54,7 +55,7 @@ export function chatSettingsPayload(raw, session) {
         || !/^[\w.:-]+@(c\.us|s\.whatsapp\.net|lid|g\.us)$/.test(v.chatId)) return null;
     if (v.setting === 'mute') {
       if (!Number.isSafeInteger(v.value) || v.value < -1) return null;
-    } else if (v.setting === 'archive' || v.setting === 'pin') {
+    } else if (v.setting === 'archive' || v.setting === 'pin' || v.setting === 'lock') {
       if (typeof v.value !== 'boolean') return null;
     } else return null;
     return {session, chatId: v.chatId, setting: v.setting, value: v.value};

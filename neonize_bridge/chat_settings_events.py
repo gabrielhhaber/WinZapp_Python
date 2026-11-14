@@ -2,6 +2,17 @@
 import msgmap
 
 
+def lock_changed(s, e, jid):
+    if not e.Action.HasField("locked"):
+        return
+    locked = bool(e.Action.locked)
+    s.db.chat(jid, locked=int(locked))
+    chat = msgmap.jid_wpp(jid)
+    if not e.FromFullSync and chat.endswith(("@c.us", "@lid", "@g.us")):
+        s.emit("chat-settings-changed", {"session": s.name, "chatId": chat,
+                                      "setting": "lock", "value": locked})
+
+
 def mute_changed(s, e, jid):
     if not e.Action.HasField("muted"):
         return

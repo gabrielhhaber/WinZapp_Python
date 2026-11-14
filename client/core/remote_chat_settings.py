@@ -4,6 +4,7 @@ import time
 import wx
 
 from core.remote_message_state import chat_target
+from core.remote_chat_lock import apply_phone_lock
 
 
 def settings_target(data):
@@ -16,7 +17,7 @@ def settings_target(data):
     if setting == "mute":
         if type(value) is not int or not -1 <= value <= 2**53 - 1:
             return None
-    elif setting in ("archive", "pin"):
+    elif setting in ("archive", "pin", "lock"):
         if type(value) is not bool:
             return None
     else:
@@ -34,6 +35,8 @@ def apply_chat_setting(mw, jid, setting, value):
         mw.on_chat_archive_update(jid, value)
     elif setting == "pin":
         mw.on_chat_pin_update(jid, value)
+    elif setting == "lock":
+        apply_phone_lock(mw, jid, value)
 
 
 def on_chat_settings(client, data):

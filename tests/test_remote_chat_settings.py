@@ -8,7 +8,7 @@ from main_window.chat_actions import ChatActionsMixin
 
 
 @pytest.mark.parametrize("setting,value", [("mute", -1), ("mute", 0), ("mute", 2000000000),
-                                          ("archive", True), ("pin", False)])
+                                          ("archive", True), ("pin", False), ("lock", True)])
 def test_valid_targets_normalize_chat_identity(setting, value):
     assert settings.settings_target({"chatId": "1:2@c.us", "setting": setting, "value": value}) == (
         "1@s.whatsapp.net", setting, value)

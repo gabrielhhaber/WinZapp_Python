@@ -1055,7 +1055,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _locked_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                self.db.chat(jid, locked=int(bool(e.Action.locked)))
+                chat_settings_events.lock_changed(self, e, jid)
                 log.info("chat %s on the phone", "locked" if e.Action.locked else "unlocked")
             except Exception:
                 log.exception("lock on the phone")

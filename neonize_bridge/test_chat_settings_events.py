@@ -34,3 +34,15 @@ def test_absent_mute_field_is_unknown_not_unmute(session):
     import neonize.events as nev
     session.handlers[nev.ChatMuteEv](session.client, N(JID=jid_n(GROUP), FromFullSync=False, Action=MuteAction()))
     assert session.emitted == []
+
+
+@pytest.mark.parametrize("locked,full", [(True, False), (False, False), (True, True)])
+def test_lock_notice_updates_storage_before_notifying_and_suppresses_history(session, locked, full):
+    import neonize.events as nev
+    from neonize.proto.waSyncAction.WAWebProtobufSyncAction_pb2 import LockChatAction
+    seen = []
+    session.emit = lambda name, payload: seen.append((payload, next(c for c in session.db.chats() if c["jid"] == GROUP)["locked"]))
+    session.handlers[nev.ChatLockEv](session.client, N(JID=jid_n(GROUP), FromFullSync=full,
+        Action=LockChatAction(locked=locked)))
+    assert seen == ([] if full else [({"session": "account1", "chatId": GROUP,
+                                     "setting": "lock", "value": locked}, int(locked))])
