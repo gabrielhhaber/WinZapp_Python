@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Descrizioni, impostazioni e partecipanti dei gruppi seguono gli avvisi in tempo reale, comprese promozione e revoca degli amministratori, aggiornando i permessi di invio nella chat aperta.
+
 - Corretto l’aggiornamento in tempo reale del timer dei messaggi effimeri quando WhatsApp modifica solo i metadati del gruppo.
 
 - L’eliminazione di una chat su un altro dispositivo rimuove la copia di WinZapp all’arrivo della notifica; le chat con messaggi più recenti vengono conservate.

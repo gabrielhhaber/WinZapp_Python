@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Group descriptions, settings and participants now follow live notices, including admin promotion and demotion, and refresh sending permissions in the open chat.
+
 - Fixed live disappearing-message timer updates when WhatsApp changes only the group metadata.
 
 - Deleting a chat on another device removes its WinZapp copy when the deletion notice arrives; a chat with newer messages is preserved.

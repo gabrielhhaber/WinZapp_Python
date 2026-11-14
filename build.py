@@ -375,6 +375,7 @@ API_CUSTOM_SRC_FILES = [
     "src/util/chatTimerBridge.ts",
     "src/util/messagePinBridge.ts",
     "src/util/chatDeletedBridge.ts",
+    "src/util/groupMetadataBridge.ts",
     "src/util/onlinePresenceDiagnostics.ts",
     "src/util/listChatsDiag.ts",
     "src/util/createSessionUtil.ts",

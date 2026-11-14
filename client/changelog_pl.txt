@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Opisy, ustawienia i uczestnicy grup są aktualizowani na bieżąco, w tym nadawanie i odbieranie uprawnień administratora oraz uprawnienia do wysyłania w otwartej rozmowie.
+
 - Naprawiono aktualizację czasu znikających wiadomości na bieżąco, gdy WhatsApp zmienia tylko metadane grupy.
 
 - Usunięcie rozmowy na innym urządzeniu usuwa jej kopię w WinZapp po otrzymaniu powiadomienia; rozmowa z nowszymi wiadomościami zostaje zachowana.

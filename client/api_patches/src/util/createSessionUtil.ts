@@ -38,6 +38,7 @@ import { installChatSettingsBridge } from './chatSettingsBridge';
 import { installChatTimerBridge } from './chatTimerBridge';
 import { installMessagePinBridge } from './messagePinBridge';
 import { installChatDeletedBridge } from './chatDeletedBridge';
+import { installGroupMetadataBridge } from './groupMetadataBridge';
 import { installEventsWatchBridge } from './eventsWatchBridge';
 import { installCallParticipantsBridge } from './callParticipantsBridge';
 import {
@@ -1663,6 +1664,7 @@ export default class CreateSessionUtil {
     await installChatTimerBridge(client, req.io, req.logger);
     await installMessagePinBridge(client, req.io, req.logger);
     await installChatDeletedBridge(client, req.io, req.logger);
+    await installGroupMetadataBridge(client, req.io, req.logger);
     await installEventsWatchBridge(client, req.io, req.logger);
     await installCallParticipantsBridge(client, req.io, req.logger);
   }

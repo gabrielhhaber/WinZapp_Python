@@ -1633,31 +1633,8 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] on_messages_upsert error")
 
     def on_groups_update(self, info):
-        """
-        Handle group metadata updates from WPPConnect.
-        """
-        try:
-            if not isinstance(info, dict) or not self._belongs_to_this_session(info):
-                return
-            updates = info.get("data", [])
-            if not isinstance(updates, list):
-                updates = [updates]
-
-            for update in updates:
-                if not isinstance(update, dict):
-                    continue
-                jid = self._clean_jid(update.get("id") or update.get("remoteJid") or "")
-                subject = update.get("subject") or update.get("name") or ""
-
-                if jid.endswith("@g.us") and isinstance(subject, str) and subject.strip():
-                    remote_jid = self.main_window._normalize_jid(jid)
-                    wx.CallAfter(
-                        self.main_window.on_group_subject_updated,
-                        remote_jid,
-                        subject.strip(),
-                    )
-        except Exception:
-            logging.exception("[WebSocketClient] on_groups_update error")
+        from core.remote_group_events import on_groups_event
+        on_groups_event(self, info)
 
     def on_messages_update(self, info):
         """

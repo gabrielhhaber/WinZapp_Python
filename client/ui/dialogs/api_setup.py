@@ -200,6 +200,7 @@ _CUSTOM_SRC_FILES = [
     "src/util/chatTimerBridge.ts",
     "src/util/messagePinBridge.ts",
     "src/util/chatDeletedBridge.ts",
+    "src/util/groupMetadataBridge.ts",
     "src/tests/util/chatClearedBridge.test.ts",
     "src/util/eventsRuntime.ts",
     "src/util/eventsWatchBridge.ts",
