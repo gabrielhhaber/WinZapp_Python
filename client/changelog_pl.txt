@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wiadomości usunięte u Ciebie na innym urządzeniu znikają z rozmowy po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.
+
 - Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartej rozmowie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.
 
 - Neonize: edycje zachowują identyfikator oryginalnej wiadomości i zapisują pełny klucz powiadomienia o edycji, w tym autora w grupach.

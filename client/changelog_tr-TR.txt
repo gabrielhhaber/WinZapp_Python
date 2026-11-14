@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Başka bir cihazda kendiniz için sildiğiniz mesajlar, silme bildirimi geldiğinde WPPConnect ve Neonize ile sohbetten kaldırılır.
+
 - Telefonda veya başka bir cihazda bir mesaja yıldız eklemek ya da kaldırmak, bildirim geldiğinde açık sohbetteki işareti WPPConnect ve Neonize ile günceller.
 
 - Neonize: düzenlemeler asıl mesajın kimliğini korur ve gruplardaki yazar dahil düzenleme bildiriminin tam anahtarını kaydeder.

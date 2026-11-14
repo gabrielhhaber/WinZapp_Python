@@ -40,3 +40,22 @@ def test_unloaded_message_is_still_announced_with_its_chat_identity(session):
     star(session, chat="901@lid")
     assert session.emitted[-1][1]["chatId"] == "901@lid"
     assert session.db.wpp_message("M") is None
+
+
+def test_delete_is_announced_after_the_bridge_row_is_removed(session):
+    import neonize.events as nev
+    session.db.message(GROUP, {"id": {"id": "M"}, "t": 1, "body": "keep"})
+    seen = []
+    session.emit = lambda name, payload: seen.append((name, payload, session.db.wpp_message("M")))
+    session.handlers[nev.MessageDeleteForMeEv](session.client,
+        N(ChatJID=jid_n(GROUP), MessageID="M", FromFullSync=False))
+    assert seen == [("message-deleted-for-me", {"session": "account1", "chatId": GROUP,
+                                              "messageId": "M"}, None)]
+
+
+def test_full_sync_delete_does_not_remove_history_or_emit_a_notice(session):
+    import neonize.events as nev
+    session.db.message(GROUP, {"id": {"id": "M"}, "t": 1, "body": "keep"})
+    session.handlers[nev.MessageDeleteForMeEv](session.client,
+        N(ChatJID=jid_n(GROUP), MessageID="M", FromFullSync=True))
+    assert session.db.wpp_message("M") is not None and session.emitted == []

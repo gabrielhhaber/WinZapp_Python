@@ -1029,9 +1029,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageDeleteForMeEv)
         def _deleted_on_phone(c, e):
             try:
-                if e.FromFullSync:
-                    return
-                self.db.delete_message(e.MessageID)
+                message_state_events.deleted_for_me(self, e, jid_text)
                 log.info("message deleted on the phone")
             except Exception:
                 log.exception("delete on the phone")

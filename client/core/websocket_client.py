@@ -6,6 +6,7 @@ import time
 import socketio
 from core.poll_events import on_poll_response
 from core.remote_message_star import on_star_changed
+from core.remote_message_delete import on_message_deleted
 from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
@@ -362,6 +363,7 @@ class WebSocketClient:
         self.sio.on("onreactionmessage", self.on_wpp_reaction)
         self.sio.on("onpollresponse", lambda data: on_poll_response(self, data))
         self.sio.on("message-star-changed", lambda data: on_star_changed(self, data))
+        self.sio.on("message-deleted-for-me", lambda data: on_message_deleted(self, data))
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)

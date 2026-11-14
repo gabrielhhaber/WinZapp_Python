@@ -1,6 +1,5 @@
 // Star observations only: no writes and no message bodies leave the page.
-const BINDING = '__winzappOnMessageStarChanged';
-const owners = new WeakMap();
+import { installMessageStatePageBridge } from './messageStatePageBridge';
 
 /** Self-contained: Puppeteer serializes only this function into the page. */
 export function installMessageStarInPage() {
@@ -51,37 +50,7 @@ export function messageStarPayload(raw, session) {
 
 /** One owner per page, including reloads and a replacement server client. */
 export async function installMessageStarBridge(client, io, logger) {
-  const page = client?.page;
-  if (!page) return;
-  let owner = owners.get(page);
-  if (owner) {
-    Object.assign(owner, { client, io, logger });
-    if (typeof owner.install === 'function') owner.install();
-    return;
-  }
-  owner = { client, io, logger, closed: false, generation: 0, timer: null, install: null };
-  owners.set(page, owner);
-  try {
-    await page.exposeFunction(BINDING, (raw) => {
-      if (owner.closed) return;
-      const payload = messageStarPayload(raw, owner.client.session);
-      if (payload) owner.io.to(`session:${owner.client.session}`).emit('message-star-changed', payload);
-    });
-  } catch (_) { /* a Puppeteer binding can survive reinstallation */ }
-  const install = (attempt = 0, generation = owner.generation) => {
-    if (owner.closed || generation !== owner.generation) return;
-    clearTimeout(owner.timer);
-    page.evaluate(installMessageStarInPage).then((installed) => {
-      if (owner.closed || generation !== owner.generation) return;
-      if (!installed && attempt < 120) owner.timer = setTimeout(() => install(attempt + 1, generation), 500);
-      else if (!installed) owner.logger?.warn?.('[messageStarBridge] unavailable this session');
-    }).catch(() => {
-      if (!owner.closed && generation === owner.generation)
-        owner.logger?.warn?.('[messageStarBridge] page observation failed');
-    });
-  };
-  owner.install = install;
-  page.on('load', () => { owner.generation += 1; install(); });
-  page.on('close', () => { owner.closed = true; clearTimeout(owner.timer); });
-  install();
+  return installMessageStatePageBridge(client, io, logger,
+    '__winzappOnMessageStarChanged', 'message-star-changed',
+    installMessageStarInPage, messageStarPayload);
 }

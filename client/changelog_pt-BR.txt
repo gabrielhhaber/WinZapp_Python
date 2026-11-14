@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens apagadas para você em outro dispositivo são removidas da conversa quando chega o aviso de exclusão, com WPPConnect e Neonize.
+
 - Favoritar ou desfavoritar uma mensagem no celular ou em outro dispositivo atualiza a marca na conversa aberta assim que o aviso chega, com WPPConnect e Neonize.
 
 - Neonize: as edições preservam o ID da mensagem original e registram a chave completa do aviso de edição, incluindo o autor em grupos.

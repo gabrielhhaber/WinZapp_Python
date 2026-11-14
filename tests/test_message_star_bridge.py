@@ -16,7 +16,9 @@ const store=new EventEmitter(),sent=[],timers=[];
 const context=vm.createContext({window:{WPP:{whatsapp:{MsgStore:store}},
   __winzappOnMessageStarChanged:raw=>sent.push(JSON.parse(raw))},
   setTimeout:fn=>(timers.push(fn),timers.length),clearTimeout:()=>{}});
-vm.runInContext(fs.readFileSync(process.argv[1],'utf8').replaceAll('export ',''),context);
+const load=path=>fs.readFileSync(path,'utf8').replaceAll('export ','').replace(/^import .*$/mg,'');
+vm.runInContext(load(process.argv[2]),context);
+vm.runInContext(load(process.argv[1]),context);
 const install=vm.runInContext('('+context.installMessageStarInPage.toString()+')',context);
 const model={id:{id:'M',remote:{_serialized:'7@g.us'}},star:true};
 (async()=>{
@@ -52,5 +54,6 @@ assert.equal(evaluations,count);bindings.__winzappOnMessageStarChanged(JSON.stri
 assert.equal(emitted.length,1);
 })().catch(e=>{console.error(e);process.exitCode=1});
 """
-    result = subprocess.run(["node", "-e", script, str(SOURCE)], capture_output=True, text=True, timeout=20)
+    result = subprocess.run(["node", "-e", script, str(SOURCE),
+        str(SOURCE.with_name("messageStatePageBridge.ts"))], capture_output=True, text=True, timeout=20)
     assert result.returncode == 0, result.stderr

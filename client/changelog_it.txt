@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- I messaggi eliminati per te su un altro dispositivo vengono rimossi dalla conversazione quando arriva l’avviso di eliminazione, con WPPConnect e Neonize.
+
 - Aggiungere o rimuovere la stella da un messaggio sul telefono o su un altro dispositivo aggiorna il contrassegno nella conversazione aperta quando arriva la notifica, con WPPConnect e Neonize.
 
 - Neonize: le modifiche conservano l’identificativo del messaggio originale e registrano la chiave completa dell’avviso di modifica, incluso l’autore nei gruppi.

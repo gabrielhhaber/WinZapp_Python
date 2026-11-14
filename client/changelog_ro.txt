@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesajele șterse doar pentru tine pe alt dispozitiv sunt eliminate din conversație când sosește notificarea de ștergere, cu WPPConnect și Neonize.
+
 - Marcarea sau demarcarea cu stea a unui mesaj pe telefon ori alt dispozitiv actualizează marcajul în conversația deschisă la primirea notificării, cu WPPConnect și Neonize.
 
 - Neonize: editările păstrează identificatorul mesajului original și înregistrează cheia completă a notificării de editare, inclusiv autorul în grupuri.

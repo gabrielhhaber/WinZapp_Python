@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.
+
 - Marcar o desmarcar un mensaje como favorito en el móvil u otro dispositivo actualiza la marca en la conversación abierta al recibir el aviso, con WPPConnect y Neonize.
 
 - Neonize: las ediciones conservan el identificador del mensaje original y registran la clave completa del aviso de edición, incluido el autor en los grupos.

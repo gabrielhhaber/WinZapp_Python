@@ -369,6 +369,8 @@ API_CUSTOM_SRC_FILES = [
     "src/util/contactPresenceBridge.ts",
     "src/util/groupPresenceBridge.ts",
     "src/util/messageStarBridge.ts",
+    "src/util/messageStatePageBridge.ts",
+    "src/util/messageDeleteBridge.ts",
     "src/util/onlinePresenceDiagnostics.ts",
     "src/util/listChatsDiag.ts",
     "src/util/createSessionUtil.ts",
