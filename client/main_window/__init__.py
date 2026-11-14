@@ -10,11 +10,13 @@ every attribute ``__init__`` sets is available in every mixin.
 Where to look (and where new code goes):
 
   Mixins (methods of MainWindow)
+    call_desktop_audio  desktop audio sharing during voice calls
     window_chrome       menu bar, title, accounts menu, IPC, bookmark/global hotkeys
     window_lifecycle    activation, tray, close/hide/restore, focus, shutdown
     shortcuts           accelerator table, Alt+N navigation, output() speech funnel
     settings            first run, settings load/save/migrate/export, sounds
     connection          connection state, suspend/resume, WebSocket, reachability
+    manual_reconnect    Sync > Reconnect now (#765): channel, check, session restart
     account_link        periodic health check, "another number linked" wipe
     session_tokens      WA_token vault, session store, abandoned sessions
     session_lifecycle   Windows end-session teardown, profile recovery/snapshots
@@ -66,6 +68,7 @@ Where to look (and where new code goes):
 
   Plain functions (import and test them directly — no wx, no stub)
     message_rules       unread/history-gap/countable-message rules
+    backlog_flood       old messages still arriving after the sync: status, chat list held still
     history_boundary    older history that is only on the phone (API verdict, probe)
     identity_rules      linked phone number, group participant identity
     runtime_setup       legacy API state, npm health marker, restore choice

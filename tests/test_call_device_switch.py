@@ -275,3 +275,35 @@ def test_a_mute_toggled_while_the_switch_waits_is_carried_over(monkeypatch):
     pending[0]._target(*pending[0]._args)
 
     assert window._call_audio_session.muted_when_started is True
+
+
+def test_a_switch_shares_the_same_desktop_audio_again():
+    """The old session's share stopped with it and the user heard nothing;
+    the replacement session must share the same sources again."""
+    from types import SimpleNamespace
+
+    window = _CallWindow()
+    call = window._active_voice_call
+    old_audio = window._call_audio_session
+    settings = (True, False, None, 150)
+    old_audio.desktop_audio = SimpleNamespace(settings=settings)
+    stops = []
+    old_audio.stop_desktop_audio = lambda: stops.append(True) or True
+    resumed = []
+    window._resume_call_desktop_audio = lambda active, share: resumed.append((active, share))
+
+    window._restart_active_voice_call_audio()
+
+    assert stops
+    assert resumed == [(call, settings)]
+    assert window.spoken == []
+
+
+def test_a_switch_without_a_share_resumes_nothing():
+    window = _CallWindow()
+    resumed = []
+    window._resume_call_desktop_audio = lambda *args: resumed.append(args)
+
+    window._restart_active_voice_call_audio()
+
+    assert resumed == []

@@ -5,10 +5,13 @@ next to the processor the model runs on: the processor, CUDA 12 or CUDA 13 on
 Windows (core/cuda_components), Core ML on macOS. The components a CUDA
 choice still needs are listed and downloaded here, only those that are
 missing: CUDA 12 uses the cuBLAS the local transcription already downloads.
-A new processor applies from the next start (core/cuda_components/runtime.py).
+A new processor applies at once: a graphics card build runs in a process of
+its own, which restarts (core/cuda_components/noise_worker_host.py).
 """
 
+import logging
 import sys
+import threading
 
 import wx
 
@@ -16,7 +19,6 @@ from core.cuda_components import store
 from core.cuda_components import text as ctext
 from core.cuda_components.job import ComponentsInstallJob
 from core.cuda_components.model import device_of, offered_devices
-from core.cuda_components import runtime
 from ui.dialogs.noise_model_section import NoiseModelSectionMixin
 from ui.dialogs.transcription_progress import TranscriptionProgressDialog
 
@@ -77,7 +79,7 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         missing = self._missing()
         self._components_field.SetValue(ctext.components_text(
             self.main_window.i18n, self.device, missing,
-            store.bytes_to_download(missing), runtime.active()))
+            store.bytes_to_download(missing)))
         self._components_btn.Enable(bool(missing))
         try:
             removable = store.removable(self.device)
@@ -132,7 +134,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
 
     def _on_remove_components(self, _event):
         """Remove this processor's components (never the transcription's
-        cuBLAS); a build in use stays until WinZapp restarts. Never while a
+        cuBLAS); the noise reducer's process ends first, so none is in use
+        (only another program could still hold one). Never while a
         download runs (it would wait on the wx thread for the whole download,
         then delete what it just installed)."""
         i18n = self.main_window.i18n
@@ -145,11 +148,31 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
                          i18n.t("noise_reducer_title"), wx.YES_NO | wx.ICON_QUESTION,
                          self) != wx.YES:
             return
-        try:
-            left = store.remove(ids)
-        except store.ComponentError:
-            # another window's download holds the folder
+        from core.cuda_components import noise_worker_host
+        # host.stop() waits for the process (and for a restart holding its
+        # lock): never on the wx thread, a screen reader would hear nothing
+        self._remove_components_btn.Disable()
+
+        def work():
+            left = None
+            try:
+                left = remove_components(ids, noise_worker_host.host.stop, store.remove)
+            except Exception:
+                logging.exception("[noise_reducer] removing the components failed")
+            finally:
+                wx.CallAfter(self._components_removed, left)
+
+        threading.Thread(target=work, name="noise-components-remove", daemon=True).start()
+
+    def _components_removed(self, left):
+        """On the wx thread: what remove_components() found."""
+        if not self:
+            return
+        i18n = self.main_window.i18n
+        if left is None:
             self.main_window.speak_output.output(i18n.t("transcription_error_cuda_runtime_busy"))
+            self._refresh_components()
+            self._focus_after_removal(self._remove_components_btn)
             return
         key = "noise_reducer_components_removed_restart" if left else "noise_reducer_components_removed"
         self.main_window.speak_output.output(i18n.t(key))
@@ -178,6 +201,17 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         else:
             self._components_field.SetFocus()
 
+
+
+def remove_components(ids, stop, remove):
+    """End the noise reducer's process, then delete *ids*: what *remove*
+    could not delete (it returns it), or None when another window's download
+    holds the folder. Blocks, so it runs on a worker thread."""
+    stop()
+    try:
+        return remove(ids)
+    except store.ComponentError:
+        return None
 
 
 def neural_box_shown(reduction_on, model_installed) -> bool:
@@ -217,10 +251,19 @@ class NoiseReducerButtonMixin:
         except Exception:
             installed = False
         check = getattr(self, "_noise_reduction_check", None)
-        shown = neural_box_shown(check is not None and check.GetValue(), installed)
+        reduction_on = check is not None and check.GetValue()
+        shown = neural_box_shown(reduction_on, installed)
+        changed = False
         box = self._noise_reducer_neural_check
         if box.IsShown() != shown:
             box.Show(shown)
+            changed = True
+        # the reducer's own window only means something with the reducer on
+        button = self._noise_reducer_btn
+        if button.IsShown() != bool(reduction_on):
+            button.Show(bool(reduction_on))
+            changed = True
+        if changed:
             self._noise_reducer_page.Layout()
 
     def _load_noise_reducer_options(self):
@@ -249,4 +292,14 @@ class NoiseReducerButtonMixin:
         general = self.main_window.settings.setdefault("general", {})
         general["noise_reduction_neural"] = self._noise_reducer_neural_check.GetValue()
         if self._noise_reducer_device is not None:
+            changed = general.get("noise_reduction_device") != self._noise_reducer_device
             general["noise_reduction_device"] = self._noise_reducer_device
+            # applied at once: a graphics card build's process restarts, said
+            # aloud (core/cuda_components/noise_worker_host.py); started now
+            # only when a recording would use it (the box is shown with the
+            # reducer on and its model there)
+            if changed:
+                from core.cuda_components import noise_worker_host
+                box = self._noise_reducer_neural_check
+                noise_worker_host.host.apply(self._noise_reducer_device,
+                                             start=box.IsShown() and box.GetValue())

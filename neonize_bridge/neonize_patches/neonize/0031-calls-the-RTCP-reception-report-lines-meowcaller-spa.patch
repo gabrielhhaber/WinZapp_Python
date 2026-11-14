@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 22:48:51 -0300
+Subject: [PATCH] calls: the RTCP reception report lines meowcaller spaces out
+ always pass
+
+---
+ goneonize/calls.go          | 10 ++++++++++
+ goneonize/calls_log_test.go |  8 ++++++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index a2d4fab..80f13c8 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -127,12 +127,22 @@ func (w *logChamadas) Write(p []byte) (int, error) {
+ // minutos depois nao mostrava de quem o audio chegava.
+ var resumosPeriodicos = []string{"|relay traffic by kind|", "|audio receive summary"}
+ 
++// linhasJaEspacadas sao as que o proprio meowcaller ja espaca (os relatorios
++// RTCP: os primeiros depois que a midia vira de grupo, depois a cada 30 s);
++// passam sempre.
++var linhasJaEspacadas = []string{"|sent RTCP reception reports|"}
++
+ // mostrarLinhaChamadas: as 8 primeiras vezes de uma mensagem e depois a cada
+ // 200; um resumo periodico, depois das 8 primeiras, a cada 6 (30 s).
+ func mostrarLinhaChamadas(chave string, n int) bool {
+ 	if n <= 8 {
+ 		return true
+ 	}
++	for _, espacada := range linhasJaEspacadas {
++		if strings.Contains(chave, espacada) {
++			return true
++		}
++	}
+ 	for _, resumo := range resumosPeriodicos {
+ 		if strings.Contains(chave, resumo) {
+ 			return n%6 == 0
+diff --git a/goneonize/calls_log_test.go b/goneonize/calls_log_test.go
+index ff647f6..5c8a75c 100644
+--- a/goneonize/calls_log_test.go
++++ b/goneonize/calls_log_test.go
+@@ -84,3 +84,11 @@ func TestTagsDaStanzaDizemOQueVeioDentro(t *testing.T) {
+ 		t.Fatal("sem stanza")
+ 	}
+ }
++
++func TestRelatoriosRTCPJaEspacadosPassamSempre(t *testing.T) {
++	for _, n := range []int{1, 9, 57, 201} {
++		if !mostrarLinhaChamadas(`info|sent RTCP reception reports|AAA`, n) {
++			t.Fatalf("relatorio RTCP %d cortado", n)
++		}
++	}
++}

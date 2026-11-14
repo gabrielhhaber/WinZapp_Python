@@ -14,6 +14,7 @@ import tempfile
 import threading
 import time
 import wx
+from core import media_failure
 from core.utils import (
     MEASURED_SECONDS_KEY,
     decrypt_bytes,
@@ -286,7 +287,7 @@ class MediaFilesMixin:
 
         wx.CallAfter(
             wx.MessageBox,
-            i18n.t("media_download_failed"),
+            i18n.t(media_failure.failure_key(msg)),
             i18n.t("error").format(app_name=self.main_window.app_name),
             wx.OK | wx.ICON_ERROR,
         )
@@ -886,7 +887,7 @@ class MediaFilesMixin:
             # Download silently failed — nothing to save.
             wx.CallAfter(
                 wx.MessageBox,
-                self.main_window.i18n.t("media_download_failed"),
+                self.main_window.i18n.t(media_failure.failure_key(msg)),
                 self.main_window.i18n.t("error").format(
                     app_name=self.main_window.app_name
                 ),

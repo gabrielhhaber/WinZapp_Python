@@ -20,7 +20,7 @@ from core import communities as api
 from core.communities import Admin, Community, Subgroup
 from tests.locales import registered_locale_codes
 from tests.mnemonics import load_strings, mnemonic
-from ui.dialogs.communities import CommunitiesDialog, community_label, subgroup_label
+from ui.dialogs.communities import CommunitiesPanel, community_label, subgroup_label
 from core.participant_names import person_name
 from ui.dialogs.community_admin import CommunityAdminActions
 
@@ -237,7 +237,18 @@ def test_groups_offered_for_linking_are_named_groups_in_no_community():
     assert api.linkable_groups(chats, [SCHOOL, CLUB]) == [("555-0@g.us", "Alpha"), ("444-0@g.us", "zebra")]
 
 
-# ── the dialog, on a stub ──────────────────────────────────────────────────
+# ── the panel, on a stub ───────────────────────────────────────────────────
+
+#: the groups the panel opened (open_group_chat), as (jid, name)
+OPENED = []
+
+
+@pytest.fixture(autouse=True)
+def _opened_groups(monkeypatch):
+    OPENED.clear()
+    monkeypatch.setattr("ui.dialogs.communities.open_group_chat",
+                        lambda mw, jid, name: OPENED.append((jid, name)))
+
 
 class ListBox:
     def __init__(self):
@@ -262,11 +273,11 @@ STRINGS = load_strings("en-US")
 
 class Dialog:
     for _name in ("_selected", "_selected_group", "_set_busy", "_update_buttons", "_announce",
-                  "_reload", "_finish_reload", "_show", "_show_selected", "_on_select", "_describe",
+                  "_announce_if_shown", "_reload", "_finish_reload", "_show", "_show_selected", "_on_select", "_describe",
                   "_on_open", "_on_open_recent", "_open_group", "_recent_group", "_on_enter",
                   "_deliver", "_shown_groups", "_on_filter", "_finish_other_groups",
                   "_on_join", "_finish_join", "_replace_group"):
-        locals()[_name] = getattr(CommunitiesDialog, _name)
+        locals()[_name] = getattr(CommunitiesPanel, _name)
     for _name in ("_admin_community", "_name_of", "_perform", "_finish_action", "_on_add_groups",
                   "_on_remove_group", "_on_demote", "_on_promote", "_promotion_candidates",
                   "_pick_promotion", "_on_deactivate", "_on_new"):
@@ -282,7 +293,7 @@ class Dialog:
         self._connection = CONNECTION
         self._filter, self._refreshed = "all", set()
         self._filter_radio = SimpleNamespace(GetSelection=lambda: 0)
-        self._busy, self._loaded, self._communities, self.result = False, False, [], None
+        self._busy, self._loaded, self._communities = False, False, []
         self._closed = SimpleNamespace(is_set=lambda: False, set=Mock())
         self._i18n = SimpleNamespace(t=lambda key: STRINGS[key].replace("&", ""))
         names = {"5511900000001@s.whatsapp.net": "Creator", "222@lid": "Bea", "333@lid": "Caio",
@@ -304,7 +315,6 @@ class Dialog:
                      "_new", "_refresh"):
             setattr(self, name, SimpleNamespace(Enable=Mock()))
         self.work = []
-        self.EndModal = Mock()
         self._choose_many = Mock(return_value=[])
         self._choose_one = Mock(return_value=None)
         self._confirm = Mock(return_value=False)
@@ -312,6 +322,11 @@ class Dialog:
         if communities is not None:
             self._loaded = True
             self._show(list(communities))
+
+    shown = True
+
+    def IsShownOnScreen(self):
+        return self.shown
 
     def _current(self):
         return True
@@ -412,13 +427,23 @@ def test_reading_announces_the_count_or_the_failure(monkeypatch):
     assert dialog.said() == "You are not in any community." and dialog._communities == []
 
 
-def test_opening_a_group_closes_the_dialog_with_it():
+def test_a_read_that_returns_while_the_panel_is_hidden_is_not_spoken():
+    """The user opened a chat meanwhile: "Communities: 1" over it."""
+    dialog = Dialog(communities=None)
+    dialog.shown = False
+    dialog._finish_reload([SCHOOL])
+    dialog._finish_reload(None)
+    dialog._mw.speak_output.output.assert_not_called()
+    dialog._status.SetLabel.assert_called_with(dialog._i18n.t("communities_unavailable"))
+
+
+def test_opening_a_group_opens_its_conversation():
     dialog = Dialog()
     dialog._on_open(None)
-    dialog.EndModal.assert_not_called()  # Club has no group to open
+    assert OPENED == []  # Club has no group to open
     dialog.select(SCHOOL, PLAIN)
     dialog._on_open(None)
-    assert dialog.result == PLAIN and dialog.EndModal.called
+    assert OPENED == [(PLAIN.jid, PLAIN.name)]
 
 
 def test_most_recent_group_is_the_one_with_the_newest_activity():
@@ -457,7 +482,7 @@ def test_the_recent_group_button_names_and_opens_the_newest_group():
     assert dialog.enabled("_open_recent") is True
     assert dialog._open_recent.SetLabel.call_args.args[0] == "Open the most recent group: Study"
     dialog._on_open_recent(None)
-    assert dialog.result == PLAIN and dialog.EndModal.called
+    assert OPENED == [(PLAIN.jid, PLAIN.name)]
 
 
 def test_the_recent_group_button_never_offers_a_locked_or_unknown_group():
@@ -468,7 +493,7 @@ def test_the_recent_group_button_never_offers_a_locked_or_unknown_group():
     assert dialog.enabled("_open_recent") is False
     assert dialog._open_recent.SetLabel.call_args.args[0] == "Open the most recent group"
     dialog._on_open_recent(None)
-    dialog.EndModal.assert_not_called()
+    assert OPENED == []
 
 
 def test_enter_on_a_community_shows_its_groups_and_on_a_group_opens_it():
@@ -480,9 +505,9 @@ def test_enter_on_a_community_shows_its_groups_and_on_a_group_opens_it():
     dialog.select(SCHOOL, PLAIN)
     assert dialog._on_enter(dialog._list) is True
     dialog._groups.SetFocus.assert_called_once()
-    dialog.EndModal.assert_not_called()
+    assert OPENED == []
     assert dialog._on_enter(dialog._groups) is True
-    assert dialog.result == PLAIN and dialog.EndModal.called
+    assert OPENED == [(PLAIN.jid, PLAIN.name)]
     assert dialog._on_enter(object()) is False  # a button handles its own Enter
 
 
@@ -668,7 +693,7 @@ def test_creating_is_done_when_a_community_that_was_not_there_carries_the_name(m
 
 # ── every locale ───────────────────────────────────────────────────────────
 
-#: CommunitiesDialog, CommunityCreateDialog and the New chat dialog's buttons.
+#: CommunitiesPanel, CommunityCreateDialog and the New chat dialog's buttons.
 WINDOWS = [
     ("communities_list", "communities_groups_list", "communities_details", "communities_open_group",
      "communities_add_groups", "communities_remove_group", "communities_promote",
@@ -745,12 +770,12 @@ class TestOtherGroups:
         dialog.select(SCHOOL_ALL, SPORTS)
         assert dialog.enabled("_open") is False
         dialog._on_open(None)
-        dialog.EndModal.assert_not_called()
+        assert OPENED == []
         assert "not in this group" in dialog._announce.call_args.args[0]
 
     def test_a_community_is_asked_about_once_and_the_answer_shown(self, monkeypatch):
         dialog = Dialog()
-        dialog._ask_for_other_groups = CommunitiesDialog._ask_for_other_groups.__get__(dialog)
+        dialog._ask_for_other_groups = CommunitiesPanel._ask_for_other_groups.__get__(dialog)
         refresh = Mock(return_value=SCHOOL_ALL)
         monkeypatch.setattr("ui.dialogs.communities.refresh_community", refresh)
         dialog.select(SCHOOL)
@@ -846,7 +871,7 @@ class TestJoining:
         assert dialog._join.SetLabel.call_args.args[0] == "Join group"
         self._press(dialog)
         assert calls == [(SCHOOL.jid, SPORTS.jid)]
-        assert dialog.result.jid == SPORTS.jid and dialog.result.joined and dialog.EndModal.called
+        assert OPENED == [(SPORTS.jid, SPORTS.name)]
         assert dialog._announce.call_args_list[0].args[0] == "You joined the group."
 
     def test_a_request_is_sent_and_the_button_becomes_cancel(self, monkeypatch):
@@ -854,7 +879,7 @@ class TestJoining:
         dialog.select(SCHOOL_ALL, BOARD)
         assert dialog._join.SetLabel.call_args.args[0] == "Request to join"
         self._press(dialog)
-        dialog.EndModal.assert_not_called()
+        assert OPENED == []
         assert dialog._selected_group().requested is True
         assert dialog._join.SetLabel.call_args.args[0] == "Cancel join request"
         assert dialog._announce.call_args.args[0].startswith("Request sent.")
@@ -880,7 +905,7 @@ class TestJoining:
         self._press(dialog)
         assert said in dialog._announce.call_args.args[0]
         assert dialog._selected_group() == SPORTS and not dialog._busy
-        dialog.EndModal.assert_not_called()
+        assert OPENED == []
         assert caplog.messages == [f"[communities] join_failed action=join code={code}"]
 
     def test_nothing_is_sent_for_a_group_the_account_is_in(self, monkeypatch):

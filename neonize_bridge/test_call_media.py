@@ -658,6 +658,21 @@ def test_a_group_call_reports_who_is_connected_when_it_changes():
                         "connected": ["3@lid", "5511@s.whatsapp.net"]}]
 
 
+def test_a_state_change_alone_is_reported_for_the_participants_window():
+    """Someone stops ringing and declines: nobody joined or left, yet an open
+    participants window has to show it, and it refreshes on this event."""
+    fake = RosterCalls()
+    m, sent = media(fake)
+    _live_group(m)
+    fake.people = [{"jid": "1@lid", "state": "connected"}, {"jid": "2@lid", "state": "ringing"}]
+    m.report_rosters()
+    fake.people = [{"jid": "1@lid", "state": "connected"}, {"jid": "2@lid", "state": "declined"}]
+    m.report_rosters()
+    m.report_rosters()                              # unchanged: nothing more
+    reports = [d["connected"] for e, d in sent if e == "call-participants"]
+    assert reports == [["1@lid"], ["1@lid"]]
+
+
 def test_a_roster_gone_with_the_call_is_not_an_empty_one():
     """The call ended natively before its end event was handled: roster()
     answers None, and nobody is said to have left."""
@@ -674,12 +689,28 @@ def test_a_roster_gone_with_the_call_is_not_an_empty_one():
 
 def test_a_call_that_is_not_a_live_group_call_reports_nothing():
     fake = RosterCalls()
+    fake.roster = lambda call_id: {"group": call_id != "P1",
+                                   "participants": [{"jid": "1@lid", "state": "connected"}]}
     m, sent = media(fake)
-    m._calls["P1"] = {"id": "P1", "group": False, "state": "ACTIVE"}
+    m._calls["P1"] = {"id": "P1", "group": "", "state": "ACTIVE"}       # a private call
     m._calls["G2"] = {"id": "G2", "group": True, "state": "RINGING"}
-    fake.people = [{"jid": "1@lid", "state": "connected"}]
     m.report_rosters()
     assert [e for e, _d in sent if e == "call-participants"] == []
+
+
+def test_a_private_call_someone_was_added_to_reports_its_roster():
+    """No group of its own (the lobby names none), yet a group call: its open
+    participants window follows these events, so "calling" turns into
+    "connected" when the person answers (reported 2026-11-13)."""
+    fake = RosterCalls()
+    m, sent = media(fake)
+    m._calls["P1"] = {"id": "P1", "group": "", "state": "ACTIVE"}
+    fake.people = [{"jid": "1@lid", "state": "connected"}, {"jid": "2@lid", "state": "ringing"}]
+    m.report_rosters()
+    fake.people = [{"jid": "1@lid", "state": "connected"}, {"jid": "2@lid", "state": "connected"}]
+    m.report_rosters()
+    reports = [d["connected"] for e, d in sent if e == "call-participants"]
+    assert reports == [["1@lid"], ["1@lid", "2@lid"]]
 
 
 def test_who_a_one_to_one_call_placed_here_called_is_remembered_for_its_end():
@@ -688,3 +719,36 @@ def test_who_a_one_to_one_call_placed_here_called_is_remembered_for_its_end():
     assert m.placed_peer("OUT1") == "5511999990000@c.us"
     assert m.placed_group("OUT1") is None
     assert m.placed_peer("OTHER") == ""
+
+
+def test_a_call_another_device_of_this_account_holds_never_rings_nor_is_refused_here():
+    # reported 2026-11-13: her phone added someone to its call, the invite
+    # rang here and the unanswered ring was refused, dropping her phone
+    fake = OngoingCalls()
+    m, sent = media(fake)
+    m.handle({"ev": "incoming", "call": "OWN", "peer": "21@lid"})     # meowcaller's own event
+    m.elsewhere("OWN")
+    m.handle({"ev": "incoming", "call": "OWN", "peer": "21@lid"})     # or one after it
+    assert not m.knows("OWN") and m._ringing() == ""
+    assert m.hangup() is False and fake.hung == []
+    assert states(sent) == []
+
+
+def test_joining_a_call_this_account_holds_elsewhere_answers_the_invite_held_here():
+    fake = OngoingCalls(remote=[None])
+    m, sent = media(fake)
+    m.elsewhere("OWN")
+    assert m.join_ongoing("OWN", "21@lid", "5511@c.us") == "OWN"
+    assert fake.answered == ["OWN"] and fake.joined == []    # no "already in this call"
+    assert states(sent)[-1] == "ACTIVE" and m.in_call("OWN")
+    m.handle({"ev": "end", "call": "OWN", "reason": "hangup"})
+    assert m.join_ongoing("OTHER", "2@lid", "1203@g.us") == "OTHER" and fake.joined
+
+
+def test_an_invite_no_longer_held_falls_back_to_a_fresh_join():
+    fake = OngoingCalls(remote=[None])
+    fake.answer = lambda call_id: False
+    m, _sent = media(fake)
+    m.elsewhere("OWN")
+    assert m.join_ongoing("OWN", "21@lid", "1203@g.us") == "OWN"
+    assert fake.joined == [("OWN", "21@lid", False)] and m.in_call("OWN")

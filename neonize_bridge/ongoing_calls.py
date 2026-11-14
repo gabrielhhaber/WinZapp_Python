@@ -75,6 +75,47 @@ def connected_rows(participants, mine, name_of) -> list:
     return rows
 
 
+#: meowcaller's roster states -> call/participants states (client/core/
+#: call_participants.py STATES). Seen on a real lobby: connected, outgoing
+#: (ringing), receipt (the ring reached the phone), invited (on the call's
+#: list but out of it: a member who left shows so, and nobody rings them);
+#: the others are whatsmeow's own call outcome words. An unknown state is
+#: left out.
+ROSTER_STATES = {
+    CONNECTED: "connected",
+    "outgoing": "ringing", "receipt": "ringing", "incoming": "ringing",
+    "invited": "invited",
+    "rejected": "declined", "declined": "declined",
+    "terminated": "left", "left": "left",
+    "timeout": "missed", "timed_out": "missed", "missed": "missed",
+}
+
+
+def all_rows(participants, mine, name_of) -> list:
+    """[{jid, name, isSelf, state}] of everyone the roster lists, connected
+    or not, as the phone lists a group call; connected readings win."""
+    rows, index = [], {}
+    for p in participants or ():
+        if not isinstance(p, dict):
+            continue
+        state = ROSTER_STATES.get(str(p.get("state") or "").lower())
+        jid = person_jid(p)
+        if not state or not jid:
+            continue
+        is_self = bool({user_of(jid), user_of(p.get("jid") or "")} & mine)
+        if is_self and state != "connected":
+            continue
+        key = "self" if is_self else jid
+        if key in index:
+            if state == "connected":
+                rows[index[key]]["state"] = "connected"
+            continue
+        index[key] = len(rows)
+        rows.append({"jid": jid, "name": "" if is_self else (name_of(jid, p.get("jid") or "") or ""),
+                     "isSelf": is_self, "state": state})
+    return rows
+
+
 def is_going_on(lobby) -> bool:
     return bool(lobby) and any(isinstance(p, dict) and p.get("state") == CONNECTED
                                for p in lobby.get("participants") or ())
@@ -251,7 +292,7 @@ def register_routes(r, *, session, ok):
         if people is None:
             return ok(status="success", response={"id": call_id, "available": False,
                                                   "participants": []})
-        rows = await in_thread(connected_rows, people, mine, name_of)
+        rows = await in_thread(all_rows, people, mine, name_of)
         return ok(status="success", response={"id": call_id, "available": True,
                                               "participants": rows})
 

@@ -1,106 +1,72 @@
-"""The Channels window comes back as it was left to open a channel."""
+"""The Channels panel comes back as it was left to open a channel.
+
+Esc in a channel opened from the Channels panel shows the panel again
+(channels.channel_closed). It was a modal window until 2026-11-12, destroyed
+when the channel opened, so what the person had (the mode, the search, the
+category and list, the selection) had to be saved and put back. The panel
+is the same one when it comes back: nothing is put back, and its list of
+followed channels is only read again, quietly.
+"""
 import types
 
 import ui.dialogs.channels as dialogs
-from ui.dialogs import channels_return
-from ui.dialogs.channels_return import WindowState, restore, snapshot
-
-
-class _Text:
-    def __init__(self, value=""):
-        self.value, self.events = value, 0
-
-    def GetValue(self):
-        return self.value
-
-    def ChangeValue(self, value):       # no event, unlike SetValue
-        self.value = value
-
-
-class _Choice:
-    def __init__(self, count, selection=0):
-        self.count, self.selection = count, selection
-
-    def GetSelection(self):
-        return self.selection
-
-    def SetSelection(self, index):
-        self.selection = index
-
-    def GetCount(self):
-        return self.count
+from main_window import content_panels
 
 
 def _channel(jid):
     return types.SimpleNamespace(jid=jid, name=jid)
 
 
-def _window(mode=dialogs.MINE, selected=None):
-    shown = []
-    window = types.SimpleNamespace(
-        _mode=mode, _search=_Text(), _category=_Choice(8), _view=_Choice(4),
-        _mine=[], _found=[], _loaded=False, _searched=False, shown=shown, synced=[])
-    window._selected = lambda: selected
-    window._sync_mode = lambda: window.synced.append(window._mode)
-    window._show = lambda channels, keep="": shown.append(([c.jid for c in channels], keep))
-    return window
-
-
-def test_the_directory_comes_back_with_its_search_filters_and_selection():
-    left = _window(dialogs.FIND, selected=_channel("2@newsletter"))
-    left._search.value, left._category.selection, left._view.selection = "news", 4, 2
-    left._mine = [_channel("1@newsletter")]
-    left._found = [_channel("2@newsletter"), _channel("3@newsletter")]
-    left._loaded = left._searched = True
-    state = snapshot(left)
-
-    back = _window()
-    restore(back, state)
-    assert back._mode == dialogs.FIND and back.synced == [dialogs.FIND]
-    assert (back._search.value, back._category.selection, back._view.selection) == ("news", 4, 2)
-    assert back._loaded and back._searched
-    # the directory read before, at once, on the channel that was opened
-    assert back.shown == [(["2@newsletter", "3@newsletter"], "2@newsletter")]
-    assert back._keep_first == "2@newsletter" and back._restored is True
-
-
-def test_my_channels_come_back_on_the_selected_one():
-    left = _window(selected=_channel("1@newsletter"))
-    left._mine = [_channel("0@newsletter"), _channel("1@newsletter")]
-    back = _window()
-    restore(back, snapshot(left))
-    assert back._mode == dialogs.MINE
-    assert back.shown == [(["0@newsletter", "1@newsletter"], "1@newsletter")]
-
-
-def test_a_choice_out_of_range_is_left_as_it_is():
-    back = _window()
-    restore(back, WindowState(mode=dialogs.FIND, category=99, view=-1))
-    assert (back._category.selection, back._view.selection) == (0, 0)
-
-
-def test_the_module_agrees_with_the_window_on_the_directory_mode():
-    assert channels_return.FIND == dialogs.FIND
-
-
-def test_the_state_is_kept_when_a_channel_opens(monkeypatch):
-    kept = WindowState(mode=dialogs.FIND, selected="2@newsletter")
-
-    class Dialog:
-        def __init__(self, parent, mw):
-            self.result = _channel("2@newsletter")
-
-        def ShowModal(self):
-            return dialogs.wx.ID_OK
-
-        def Destroy(self):
-            pass
-    monkeypatch.setattr(dialogs, "ChannelsDialog", Dialog)
-    monkeypatch.setattr(dialogs, "snapshot", lambda dialog: kept)
-    monkeypatch.setattr(dialogs, "open_group_chat", lambda mw, jid, name: None)
+def test_opening_a_channel_marks_it_and_reads_its_updates(monkeypatch):
+    opened, fetched = [], []
+    monkeypatch.setattr(dialogs, "open_group_chat", lambda mw, jid, name: opened.append(jid))
+    monkeypatch.setattr(dialogs, "fetch_channel_updates", lambda mw, jid: fetched.append(jid))
     mw = types.SimpleNamespace(i18n=types.SimpleNamespace(t=lambda key: key))
-    assert dialogs.show_channels(mw, None) is True
-    assert mw._channels_return_state is kept and mw._channel_opened_from_window == "2@newsletter"
+    dialogs.open_channel(mw, _channel("2@newsletter"))
+    assert opened == ["2@newsletter"] and mw._channel_opened_from_window == "2@newsletter"
+    # its updates are read at once, not by the next sync round
+    assert fetched == ["2@newsletter"]
+
+
+class _Panel:
+    """ChannelsPanel.on_show on a stub: what it shows and reads."""
+    on_show = dialogs.ChannelsPanel.on_show
+
+    def __init__(self, renewed=False):
+        self._mode, self._loaded, self._searched = dialogs.FIND, True, True
+        self._mine, self._found = [_channel("1@newsletter")], [_channel("2@newsletter")]
+        self._search_again = self._reload_again = False
+        self.renewed, self.shown, self.reloads, self.synced = renewed, [], [], 0
+        self._list = types.SimpleNamespace(SetFocus=lambda: None)
+
+    def _renew_connection(self):
+        return self.renewed
+
+    def _sync_mode(self):
+        self.synced += 1
+
+    def _show(self, channels, keep=""):
+        self.shown.append(([c.jid for c in channels], keep))
+
+    def _reload(self, keep="", quiet=False):
+        self.reloads.append((keep, quiet))
+
+
+def test_coming_back_keeps_the_directory_and_selects_the_channel():
+    panel = _Panel()
+    panel.on_show(keep="2@newsletter")
+    assert panel._mode == dialogs.FIND and panel._found[0].jid == "2@newsletter"
+    assert panel.shown == [(["2@newsletter"], "2@newsletter")]
+    # read again without saying the count: it was said when first shown
+    assert panel.reloads == [("2@newsletter", True)]
+
+
+def test_another_connection_starts_the_panel_over():
+    """A new pairing or engine: the old lists are another account's view."""
+    panel = _Panel(renewed=True)
+    panel.on_show()
+    assert panel._mode == dialogs.MINE and panel._mine == [] and panel._found == []
+    assert panel.synced == 1 and panel.reloads == [("", False)]
 
 
 # ------------------------------------- only the user's close goes back
@@ -109,9 +75,8 @@ def _closing_panel(monkeypatch, shown):
     from ui.conversations import ConversationsPanel
     # one wx module for both: what was scheduled tells them apart
     monkeypatch.setattr(nav.wx, "CallAfter", lambda fn, *a: shown.append(
-        ("channels" if fn is dialogs.show_channels else "list", a)))
-    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter",
-                               _channels_return_state=object())
+        ("channels" if fn is content_panels.show_channels else "list", a)))
+    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter")
     panel = types.SimpleNamespace(main_window=mw, _conversation_origin=None,
                                   _close_conversation_core=lambda: (True, "1@newsletter"),
                                   _restore_conversation_selection=lambda: None)
@@ -119,14 +84,14 @@ def _closing_panel(monkeypatch, shown):
     return panel, mw
 
 
-def test_esc_or_ctrl_w_on_the_channel_goes_back_to_the_channels_window(monkeypatch):
+def test_esc_or_ctrl_w_on_the_channel_goes_back_to_the_channels_panel(monkeypatch):
     shown = []
     panel, _mw = _closing_panel(monkeypatch, shown)
     panel.close_conversation(None, from_user=True)
     assert [kind for kind, _a in shown] == ["channels"]
 
 
-def test_winzapp_closing_the_channel_never_brings_the_window_back(monkeypatch):
+def test_winzapp_closing_the_channel_never_brings_the_panel_back(monkeypatch):
     """A full resync (F5), an account switch, or the channel archived or
     deleted close the conversation too: the Channels window popped up,
     modal, while the database was being wiped."""
@@ -134,7 +99,7 @@ def test_winzapp_closing_the_channel_never_brings_the_window_back(monkeypatch):
     panel, mw = _closing_panel(monkeypatch, shown)
     panel.close_conversation()
     assert [kind for kind, _a in shown] == ["list"]
-    assert mw._channel_opened_from_window == "" and mw._channels_return_state is None
+    assert mw._channel_opened_from_window == ""
 
 
 def test_ctrl_w_in_the_conversation_is_the_users_close(monkeypatch):

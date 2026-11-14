@@ -239,6 +239,9 @@ class GroupsMixin:
             return
         if self._normalize_jid(cp.conversation.get("remoteJid", "")) != self._normalize_jid(remote_jid):
             return
+        # the list changed: a read of the last seconds is not it any more
+        with _GROUP_INFO_GUARD:
+            self.__dict__.get("_group_info_recent", {}).pop(remote_jid, None)
         threading.Thread(
             target=cp._fetch_group_participants,
             args=(remote_jid,),

@@ -68,12 +68,14 @@ class TestTheBadgeIsRediscountedOnceMessagesArrive:
         assert apply_history_sync_unread_correction("5511@s.whatsapp.net", chat)
         assert chat["unreadCount"] == 0
 
-    def test_a_system_event_stops_counting_as_unread(self):
+    def test_a_system_event_does_not_lower_the_count(self):
+        """WhatsApp never counts a join (core/unread_types.py): the unread
+        message is an older one, not loaded yet."""
         chat = self._chat(
             [_message("joined", 101, message_type="groupNotification")], 1)
 
-        assert apply_history_sync_unread_correction("120@g.us", chat)
-        assert chat["unreadCount"] == 0
+        assert not apply_history_sync_unread_correction("120@g.us", chat)
+        assert chat["unreadCount"] == 1
 
     def test_a_genuine_unread_keeps_its_badge(self):
         chat = self._chat([_message("old", 100), _message("theirs", 101)], 1)
@@ -81,11 +83,17 @@ class TestTheBadgeIsRediscountedOnceMessagesArrive:
         assert not apply_history_sync_unread_correction("5511@s.whatsapp.net", chat)
         assert chat["unreadCount"] == 1
 
-    def test_only_the_tail_our_own_send_covers_is_discounted(self):
-        """Two unread, the newer of which is ours: one real unread remains."""
+    def test_only_what_arrived_after_our_reply_can_be_unread(self):
+        """WhatsApp never counts our own message, and sending one marks the
+        chat as read: a count of 2 under our reply is one it had not lowered
+        yet. What came after the reply is what stays unread."""
         chat = self._chat([_message("theirs", 100),
                            _message("mine", 101, from_me=True)], 2)
+        apply_history_sync_unread_correction("5511@s.whatsapp.net", chat)
+        assert chat["unreadCount"] == 0
 
+        chat = self._chat([_message("theirs", 100), _message("mine", 101, from_me=True),
+                           _message("after", 102)], 2)
         apply_history_sync_unread_correction("5511@s.whatsapp.net", chat)
         assert chat["unreadCount"] == 1
 

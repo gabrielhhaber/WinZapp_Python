@@ -222,7 +222,7 @@ def _delivery_status(msg: dict) -> int:
 # keys _message_type() produces and WPPConnect's own `type` spellings.
 _TYPES_WITHOUT_LOCAL_FIELDS = (
     "conversation", "extendedTextMessage", "imageMessage", "stickerMessage",
-    "contactMessage", "pollCreationMessage", "buttonsMessage", "listMessage",
+    "contactMessage", "pollCreationMessage", "eventMessage", "buttonsMessage", "listMessage",
     "templateMessage", "protocolMessage", "chat", "image", "sticker",
     "orderMessage", "orderUpdateMessage", "productMessage",
 )
@@ -245,6 +245,7 @@ def _message_type(msg: dict) -> str:
             "stickerMessage",
             "contactMessage",
             "pollCreationMessage",
+            "eventMessage",
             "buttonsMessage",
             "listMessage",
             "templateMessage",

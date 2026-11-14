@@ -23,8 +23,10 @@ def add_labelled(parent, sizer, label, make, proportion=0):
     control. `make` is a callable (a lambda), never a control."""
     if isinstance(make, wx.Window):
         raise TypeError("pass a function that creates the control, so the label comes first")
-    sizer.Add(wx.StaticText(parent, label=label), 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+    text = wx.StaticText(parent, label=label)
+    sizer.Add(text, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
     control = make()
     control.SetName(split_mnemonic(label)[0])
+    control._label_control = text       # a panel relabels both on a language change
     sizer.Add(control, proportion, wx.EXPAND | wx.ALL, 8)
     return control

@@ -133,7 +133,7 @@ def test_participants_from_the_lobby_and_from_the_call_this_client_is_in():
     (_, out), (_, unknown) = post(session(media), ("call/participants", {"callId": "G1"}),
                                   ("call/participants", {"callId": "NOPE"}))
     assert out["response"] == {"id": "G1", "available": True, "participants": [
-        {"jid": "5511@s.whatsapp.net", "name": "Ana", "isSelf": False}]}
+        {"jid": "5511@s.whatsapp.net", "name": "Ana", "isSelf": False, "state": "connected"}]}
     assert unknown["response"] == {"id": "NOPE", "available": False, "participants": []}
     media.live = "G1"
     (_, live), = post(session(media), ("call/participants", {"callId": "G1"}))
@@ -167,3 +167,18 @@ def test_without_the_build_the_routes_say_501():
     assert status == 501
     (status, _), = post(session(None), ("call/ongoing", {}))
     assert status == 501
+
+
+def test_the_participant_list_keeps_who_is_not_connected():
+    # the phone lists a group call's ringing and departed people too
+    roster = [{"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+              {"jid": "2@lid", "state": "outgoing"},
+              {"jid": "3@lid", "state": "terminated"},
+              {"jid": "4@lid", "state": "something new"},
+              {"jid": "5@lid", "state": "invited"},
+              {"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "receipt"},
+              {"jid": "9@lid", "state": "connected"}]
+    rows = oc.all_rows(roster, {"9"}, lambda jid, lid: "")
+    assert [(r["isSelf"], r["state"]) for r in rows] == [
+        (False, "connected"), (False, "ringing"), (False, "left"), (False, "invited"),
+        (True, "connected")]

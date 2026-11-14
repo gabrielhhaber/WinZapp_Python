@@ -7,6 +7,7 @@ client to leave stops it.
 
 import atexit
 import logging
+import os
 import threading
 import time
 
@@ -110,6 +111,14 @@ class NeonizeBridgeMixin:
         if not self._uses_neonize():
             return
         from core.neonize_bridge_process import NeonizeBridge, port_open
+        try:
+            # a previous run that never closed explains a port still taken
+            from app_paths import log_path
+            from core.abrupt_exit import note_abrupt_previous_run
+            note_abrupt_previous_run(log_path("shutdown_audit.log"), os.getpid(),
+                                     self._shutdown_audit)
+        except Exception:
+            logging.debug("abrupt-exit check failed", exc_info=True)
 
         # The lease is how the other accounts, "Quit all accounts" and the
         # updater know this account's process is running; only the Node path

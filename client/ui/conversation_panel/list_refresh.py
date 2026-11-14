@@ -1142,6 +1142,7 @@ class ListRefreshMixin:
         # nested/synchronous focus event this call produces, and only turns
         # off once control actually returns to the event loop.
         self.refresh_poll_votes()  # throttled; repaints its rows when votes change
+        self.refresh_event_responses()  # the same for the answers to events
         self._apply_pinned_message_flags()
         self._populating_messages = True
         wx.CallAfter(self._clear_populating_messages_flag)

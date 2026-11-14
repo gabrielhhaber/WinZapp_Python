@@ -101,6 +101,29 @@ test('each read uses WhatsApp Web\'s own job and returns its nodes', () => withP
   ]);
 }));
 
+test('a channel not followed is read again without the viewer\'s metadata', () => withPage(async () => {
+  // measured 2026-11-11: a recommended channel answered "Not Allowed" with
+  // fetchViewerMetadata and its node without it
+  const job = modules.WAWebMexFetchNewsletterJob;
+  const original = job.mexGetNewsletter;
+  job.mexGetNewsletter = async (key: string, role: string, o: any) => {
+    calls.push(['info', key, role, o.fetchViewerMetadata]);
+    if (o.fetchViewerMetadata) throw new Error('WAWebMexFetchNewsletterJobQuery: Not Allowed');
+    return { xwa2_newsletter: node };
+  };
+  try {
+    expect(await readChannels({ kind: 'info', key: '120363159356548761@newsletter' })).toEqual(node);
+    expect(calls).toEqual([
+      ['info', '120363159356548761@newsletter', 'GUEST', true],
+      ['info', '120363159356548761@newsletter', 'GUEST', false],
+    ]);
+    job.mexGetNewsletter = async () => { throw new Error('Bad Request'); };
+    await expect(readChannels({ kind: 'info', key: '120363159356548761@newsletter' })).rejects.toThrow('Bad Request');
+  } finally {
+    job.mexGetNewsletter = original;
+  }
+}));
+
 test('a category and a view use the directory list, with the page\'s own enums', () => withPage(async () => {
   expect(await readChannels({ kind: 'directory', query: 'gol', category: 'sports' })).toEqual([node]);
   expect(await readChannels({ kind: 'directory', category: 'NEWS', view: 'trending' })).toEqual([node]);

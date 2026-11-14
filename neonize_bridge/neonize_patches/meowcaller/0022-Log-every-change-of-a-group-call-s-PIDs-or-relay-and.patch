@@ -1,0 +1,180 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 20:15:17 -0300
+Subject: [PATCH] Log every change of a group call's PIDs or relay and the
+ group updates that come in a call ack
+
+---
+ engine.go                   | 10 ++++++-
+ engine_group_control.go     |  9 ++++++
+ group_snapshot_diag.go      | 50 +++++++++++++++++++++++++++++++++
+ group_snapshot_diag_test.go | 55 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 123 insertions(+), 1 deletion(-)
+ create mode 100644 group_snapshot_diag.go
+ create mode 100644 group_snapshot_diag_test.go
+
+diff --git a/engine.go b/engine.go
+index 45d9da5..a684888 100644
+--- a/engine.go
++++ b/engine.go
+@@ -1079,7 +1079,15 @@ func (e *engine) onCallAck(ack *waBinary.Node) {
+ 	}
+ 	if isGroup {
+ 		// Source of truth: https://github.com/purpshell/meowcaller/blob/7cb6045001dafd2514f53e85cd8c3e419c13adbe/datasheets/voip-initial-group-call.md#L27-L33
+-		e.applyGroupUpdate(groupCallUpdateFromSignaling(*groupUpdate))
++		fromAck := groupCallUpdateFromSignaling(*groupUpdate)
++		e.c.log.Info().
++			Str("call_id", fromAck.CallID).
++			Uint32("transaction_id", fromAck.TransactionID).
++			Str("ack_type", ack.AttrGetter().OptionalString("type")).
++			Str("roster", describeGroupRoster(fromAck)).
++			Str("relay", describeGroupRelay(fromAck)).
++			Msg("group update from a call ack")
++		e.applyGroupUpdate(fromAck)
+ 		return
+ 	}
+ 	r := findRelay(ack)
+diff --git a/engine_group_control.go b/engine_group_control.go
+index c6ad390..234c0a7 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -210,6 +210,7 @@ func (e *engine) applyGroupUpdate(update groupCallUpdate) bool {
+ 		e.mu.Unlock()
+ 		return false
+ 	}
++	previousSnapshot := m.groupUpdate
+ 	m.group = true
+ 	m.groupUpdate = &stored
+ 	if !update.CallCreator.IsEmpty() {
+@@ -226,6 +227,14 @@ func (e *engine) applyGroupUpdate(update groupCallUpdate) bool {
+ 		Bool("has_relay", stored.Relay != nil).
+ 		Bool("rekey_requested", update.RekeyRequested).
+ 		Msg("group update installed")
++	if groupPIDsChanged(previousSnapshot, &stored) {
++		e.c.log.Info().
++			Str("call_id", update.CallID).
++			Uint32("transaction_id", update.TransactionID).
++			Str("before", describeGroupPIDs(previousSnapshot)).
++			Str("after", describeGroupPIDs(&stored)).
++			Msg("group snapshot PIDs or relay changed")
++	}
+ 
+ 	if waitingRoomCancel != nil {
+ 		waitingRoomCancel()
+diff --git a/group_snapshot_diag.go b/group_snapshot_diag.go
+new file mode 100644
+index 0000000..d9b82e0
+--- /dev/null
++++ b/group_snapshot_diag.go
+@@ -0,0 +1,50 @@
++package meowcaller
++
++import (
++	"fmt"
++	"strings"
++)
++
++// describeGroupPIDs names the relay transaction and every device's PID of a
++// group snapshot, each device by the last two digits of its user (no JID is
++// logged whole): "relay_tx=12 pids=[..14:0=0 ..21:0=3 ..01:0=2(receipt)]".
++// A device without a PID shows "-"; a participant that is not connected
++// shows its state. It lets a log say which device a relay subscription
++// stopped following when the snapshot changes.
++func describeGroupPIDs(update *groupCallUpdate) string {
++	if update == nil {
++		return "none"
++	}
++	relay := "none"
++	if update.Relay != nil {
++		relay = fmt.Sprint(update.Relay.TransactionID)
++	}
++	var devices []string
++	for _, participant := range update.Participants {
++		for _, device := range participant.Devices {
++			user := device.JID.User
++			if len(user) > 2 {
++				user = user[len(user)-2:]
++			}
++			pid := "-"
++			if device.HasPID {
++				pid = fmt.Sprint(device.PID)
++			}
++			entry := fmt.Sprintf("..%s:%d=%s", user, device.JID.Device, pid)
++			if participant.State != "connected" {
++				entry += "(" + participant.State + ")"
++			}
++			devices = append(devices, entry)
++		}
++	}
++	return fmt.Sprintf("relay_tx=%s pids=[%s]", relay, strings.Join(devices, " "))
++}
++
++// groupPIDsChanged reports whether next follows other PIDs or another relay
++// allocation than previous (the transaction alone is not a change).
++func groupPIDsChanged(previous, next *groupCallUpdate) bool {
++	if previous == nil || next == nil {
++		return previous != next
++	}
++	return describeGroupPIDs(previous) != describeGroupPIDs(next)
++}
+diff --git a/group_snapshot_diag_test.go b/group_snapshot_diag_test.go
+new file mode 100644
+index 0000000..8e6f5eb
+--- /dev/null
++++ b/group_snapshot_diag_test.go
+@@ -0,0 +1,55 @@
++package meowcaller
++
++import (
++	"strings"
++	"testing"
++
++	"go.mau.fi/whatsmeow/types"
++)
++
++func snapshotWith(relayTx uint32, pids map[string]uint32) *groupCallUpdate {
++	update := &groupCallUpdate{CallID: "C", Relay: &groupCallRelay{TransactionID: relayTx}}
++	for _, user := range []string{"5511914", "5511921", "5511901"} {
++		device := groupCallDevice{JID: types.JID{User: user, Server: types.HiddenUserServer}}
++		if pid, ok := pids[user]; ok {
++			device.PID, device.HasPID = pid, true
++		}
++		update.Participants = append(update.Participants,
++			groupCallParticipant{State: "connected", Devices: []groupCallDevice{device}})
++	}
++	return update
++}
++
++func TestDescribeGroupPIDsNamesEachDeviceByItsLastDigitsOnly(t *testing.T) {
++	update := snapshotWith(12, map[string]uint32{"5511914": 0, "5511921": 3})
++	update.Participants[2].State = "receipt"
++	got := describeGroupPIDs(update)
++	want := "relay_tx=12 pids=[..14:0=0 ..21:0=3 ..01:0=-(receipt)]"
++	if got != want {
++		t.Fatalf("describeGroupPIDs = %q, want %q", got, want)
++	}
++	if strings.Contains(got, "5511") {
++		t.Fatalf("a whole JID was logged: %q", got)
++	}
++	if describeGroupPIDs(nil) != "none" {
++		t.Fatal("a missing snapshot is none")
++	}
++}
++
++func TestGroupPIDsChangedOnlyWhenAPIDOrTheRelayDoes(t *testing.T) {
++	before := snapshotWith(12, map[string]uint32{"5511914": 0, "5511921": 3, "5511901": 2})
++	same := snapshotWith(12, map[string]uint32{"5511914": 0, "5511921": 3, "5511901": 2})
++	same.TransactionID = 99
++	if groupPIDsChanged(before, same) {
++		t.Fatal("a new transaction with the same PIDs and relay is no change")
++	}
++	if !groupPIDsChanged(before, snapshotWith(12, map[string]uint32{"5511914": 0, "5511921": 3, "5511901": 1})) {
++		t.Fatal("a device's new PID is a change")
++	}
++	if !groupPIDsChanged(before, snapshotWith(13, map[string]uint32{"5511914": 0, "5511921": 3, "5511901": 2})) {
++		t.Fatal("another relay allocation is a change")
++	}
++	if !groupPIDsChanged(nil, before) || groupPIDsChanged(nil, nil) {
++		t.Fatal("the first snapshot is a change; none to none is not")
++	}
++}

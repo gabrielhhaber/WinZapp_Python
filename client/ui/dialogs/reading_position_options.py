@@ -7,7 +7,8 @@ import wx
 from core import reading_position
 
 _POSITION_KEYS = ("ui_message_list_open_position_unread_or_last",
-                  "ui_message_list_open_position_last_focused")
+                  "ui_message_list_open_position_last_focused",
+                  "ui_message_list_open_position_last_focused_or_unread")
 
 
 class ReadingPositionOptionsMixin:

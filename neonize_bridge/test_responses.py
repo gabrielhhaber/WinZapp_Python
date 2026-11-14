@@ -59,3 +59,29 @@ def test_edit_refused_carries_the_text_the_client_looks_for():
     response = responses.edit_refused("outside_window")
     assert "Cannot edit this message" in response.text      # message_actions.py
     assert 400 <= response.status < 500
+
+
+def test_the_clients_description_of_a_quote_keeps_only_what_a_quote_needs():
+    import quote_fallback
+    described = quote_fallback.described({
+        "type": "chat", "body": "x" * 5000, "fromMe": False, "author": "153@lid",
+        "raw": "ignored", "duration": True})
+    assert described == {"type": "chat", "body": "x" * quote_fallback.MAX_TEXT,
+                         "fromMe": False, "author": "153@lid"}
+    assert quote_fallback.described({"type": "ptt", "duration": 9, "fromMe": True}) == {
+        "type": "ptt", "duration": 9, "fromMe": True}
+    for unusable in (None, "chat", {"type": "reaction", "author": "1@lid"},
+                     {"type": "chat", "body": "who wrote it?"},
+                     {"type": "chat", "author": "no-server"}):
+        assert quote_fallback.described(unusable) is None
+
+
+def test_a_described_quote_becomes_the_same_bubble_a_stored_one_does():
+    import msgmap
+    import quote_fallback
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
+    described = quote_fallback.described({"type": "chat", "body": "oi", "author": "153@lid"})
+    stored = {"type": "chat", "body": "oi", "author": "153@lid", "fromMe": False,
+              "id": {"id": "3EB0AAA"}, "t": 1}
+    assert msgmap.quoted(described) == msgmap.quoted(stored) == Message(conversation="oi")
+    assert msgmap.quoted_participant(described, "me") == msgmap.quoted_participant(stored, "me")
