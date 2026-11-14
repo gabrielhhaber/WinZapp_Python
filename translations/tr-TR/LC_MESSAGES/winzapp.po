@@ -13674,6 +13674,12 @@ msgid "Not assigned"
 msgstr "Atanmamış"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_writing_help_label"
+msgid "Alt+Shift+H: writing help on the draft message"
+msgstr "Alt+Shift+H: mesaj taslağında yazma yardımı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_bulk_section"
 msgid "Bulk selection (chats and messages)"
 msgstr "Toplu seçim (sohbetler ve mesajlar)"
