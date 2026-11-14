@@ -35,6 +35,7 @@ import inputs
 import legacy_layout
 import loop_watch
 import ongoing_calls
+import quote_fallback
 import group_events
 import events
 import contact_events
@@ -2390,15 +2391,19 @@ def create_app(folder, fixed=""):
                                       "_serialized": serial}}, room=s.name)))
         return ok(status="success", response=[{"id": serial, "ack": 1}])
 
-    def quoted_context(s, quoted, ctx=None):
+    def quoted_context(s, quoted, ctx=None, fallback=None):
         """ContextInfo that quotes the message `quoted` (serialized id), or None if
-        it is not stored."""
+        it is neither stored nor described by the client (`fallback`, see
+        quote_fallback.py)."""
         from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ContextInfo
         parts = quoted.split("_")
         quoted_id = parts[2] if len(parts) > 2 else parts[-1]
         original = s.db.wpp_message(quoted_id)
         if original is None:
-            return None
+            original = quote_fallback.described(fallback)
+            if original is None:
+                return None
+            log.info("reply: quote built from the client's description (not stored here)")
         ctx = ctx if ctx is not None else ContextInfo()
         ctx.stanzaID = quoted_id
         ctx.participant = msgmap.quoted_participant(original, s.me)
@@ -2753,7 +2758,7 @@ def create_app(folder, fixed=""):
         destination = destination_of(body["phone"])
         ctx = ContextInfo()
         quoted = body.get("messageId")
-        if quoted and quoted_context(s, quoted, ctx) is None:
+        if quoted and quoted_context(s, quoted, ctx, body.get("quotedMessage")) is None:
             return responses.missing_quote()
         if with_mentions:
             ctx.mentionedJID.extend(msgmap.jid_whatsmeow(j) for j in body.get("mentioned", []))
