@@ -58,6 +58,10 @@ def consent_text(i18n, providers, kind, locked):
         message += "\n\n" + i18n.t("ai_metadata_notice")
     if kind == "video":
         message += "\n\n" + i18n.t("ai_video_frame_notice")
+    if kind == "text":
+        # A summary sends the readable text of the unread messages themselves,
+        # not one file: said explicitly, every time the consent is not remembered.
+        message += "\n\n" + i18n.t("ai_summary_consent_notice")
     for key in ai_config.notice_keys(providers):
         message += "\n\n" + i18n.t(key)
     if locked:
@@ -178,10 +182,15 @@ class AIResultDialog(wx.Dialog):
         saved = store.saved()
         return ai_config.chain(self.config, self.kind, lambda p: p in saved, prefer=self._provider)
 
+    def _consent_key(self):
+        """Chat summaries (kind "text") send the text of the messages
+        themselves: their remembered consent is kept apart from media's."""
+        return "consented_text" if self.kind == "text" else "consented"
+
     def _consent(self, providers):
         """Consent covers every provider the media may reach. Remembered per
         provider, never for a locked chat."""
-        needed = [p for p in providers if p not in self.config["consented"]]
+        needed = [p for p in providers if p not in self.config[self._consent_key()]]
         if self._consented or (not needed and not self.session.locked):
             self._consented = True
             return True
@@ -190,15 +199,16 @@ class AIResultDialog(wx.Dialog):
         try:
             accepted = dialog.ShowModal() == wx.ID_OK and self._valid()
             if accepted and dialog.remember.GetValue() and not self.session.locked:
+                key = self._consent_key()
                 def merge(old):
                     value = dict(old) if isinstance(old, dict) else {}
-                    current = value.get("consented", [])
+                    current = value.get(key, [])
                     consented = set(current if isinstance(current, list) else [])
-                    value["consented"] = sorted(consented | set(providers))
+                    value[key] = sorted(consented | set(providers))
                     return value
                 try:
                     self.app.update("ai_media", merge)
-                    self.config["consented"] = sorted(set(self.config["consented"]) | set(providers))
+                    self.config[key] = sorted(set(self.config[key]) | set(providers))
                 except (OSError, RuntimeError):
                     # Consent is valid for this session even if remembering failed.
                     pass

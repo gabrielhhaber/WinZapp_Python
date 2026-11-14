@@ -690,8 +690,10 @@
   <tr><td>Foto ou vídeo: "Descrever"</td><td>Descreve a imagem. Um vídeo é descrito a partir de uma única imagem tirada dele; o som nunca é enviado.</td></tr>
   <tr><td>Figurinha: "Descrever figurinha"</td><td>Descreve a figurinha.</td></tr>
   <tr><td>PDF: "Converter em texto acessível"</td><td>Transforma em texto simples e legível.</td></tr>
+<tr><td>Conversa com não lidas: "Resumir não lidas"</td><td>Resume as mensagens não lidas da conversa aberta.</td></tr>
 </table>
 <p><kbd>Ctrl+Shift+I</kbd> faz tudo isso na mensagem em foco. O resultado abre numa janela com o texto; para fotos e vídeos, dá para fazer perguntas de acompanhamento (Ctrl+Enter pergunta). No separador Estados (Alt+5), o botão "Descrever" descreve estados de foto e de vídeo.</p>
+<p>O botão "Resumir não lidas" aparece dentro da conversa aberta quando há não lidas suficientes, e Alt+Shift+U faz o mesmo pedido (o atalho pode ser trocado no separador Atalhos das Definições). O mínimo é configurável no próprio separador da IA online (10 por predefinição; 0 desativa a funcionalidade). Como o texto dessas mensagens sai do computador, a primeira vez pede um consentimento próprio, separado do de fotos e áudios; conversas trancadas nunca oferecem resumo. São enviadas no máximo 200 mensagens, as mais recentes.</p>
 <p>No resultado de uma transcrição ou descrição, "Colocar a transcrição na linha da mensagem" e "Colocar a descrição na linha da mensagem" guardam o texto junto com a mensagem, que passa a mostrá-lo na própria linha da lista. Em Definições &gt; Transcrições e Descrições, "Transcrever automaticamente as mensagens de voz recebidas" e "Descrever automaticamente as imagens, autocolantes e vídeos recebidos" (desligadas por predefinição) fazem-no com os fornecedores online, sem janela, som ou fala a cada mensagem; só são usados os fornecedores já autorizados, e ligar uma delas desliga a transcrição automática local. A janela de dados de cada conversa tem as caixas "transcrever" e "descrever", e pode escolher entre todas as conversas, exceto as desligadas, ou apenas as ligadas. Para poupar a quota, escolhe até que idade uma mensagem recebida é processada (5 minutos, 15, 30 ou 1 hora) e um limite diário de pedidos automáticos (50 por predefinição, 0 para nenhum); se todos os fornecedores recusarem por quota ou chave, a fila faz uma pausa de uma hora e avisa uma vez.</p>
 <div class="callout warn">
   <div class="callout-title">🔒 Privacidade</div>
@@ -1166,6 +1168,7 @@
 <tr><td class="field-name">Ctrl+Shift+I</td><td>Transcrever, descrever ou converter o conteúdo da mensagem em foco com IA online</td></tr>
 <tr><td class="field-name">Alt+P</td><td>Escreva uma mensagem para</td></tr>
 <tr><td class="field-name">Alt+M</td><td>Mensagens</td></tr>
+<tr><td class="field-name">Alt+Shift+U</td><td>Resumir mensagens não lidas</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Gravar uma mensagem de voz</td></tr>
 <tr><td class="field-name">Alt+2</td><td>Ir para a última mensagem</td></tr>
 <tr><td class="field-name">Esc</td><td>Fechar conversa. Com mensagens marcadas, o primeiro Esc apenas desmarca todas e só o segundo fecha a conversa, se a opção estiver ativada em Definições, Interface do utilizador</td></tr>
@@ -1421,6 +1424,7 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
+  <tr><td class="field-name">Protótipo</td><td>Resumos de conversas não lidas com consentimento separado.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Tradução de mensagens (Shift+Enter ou menu de contexto da mensagem), com tradução automática, regras das conversas trancadas e pausa de uma hora; os tipos de conteúdo da IA online ficam em "Tipos de conteúdo processados...".</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Motor de ligação: o Neonize vem primeiro na lista e já selecionado na primeira abertura; o WPPConnect é a segunda opção, marcado como legado.</td></tr>

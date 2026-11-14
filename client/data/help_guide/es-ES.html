@@ -690,8 +690,10 @@
   <tr><td>Foto o vídeo: "Describir"</td><td>Describe la imagen. Un vídeo se describe a partir de una sola imagen tomada de él; el sonido nunca se envía.</td></tr>
   <tr><td>Sticker: "Describir sticker"</td><td>Describe el sticker.</td></tr>
   <tr><td>PDF: "Convertir en texto accesible"</td><td>Lo convierte en texto simple y legible.</td></tr>
+<tr><td>Chat con no leídos: "Resumir no leídos"</td><td>Resume los mensajes no leídos del chat abierto.</td></tr>
 </table>
 <p><kbd>Ctrl+Shift+I</kbd> hace todo esto en el mensaje con el foco. El resultado se abre en una ventana con el texto; en fotos y vídeos puedes hacer preguntas de seguimiento (Ctrl+Intro pregunta). En la pestaña Estado (Alt+5), el botón "Describir" describe los estados de foto y de vídeo.</p>
+<p>El botón "Resumir no leídos" aparece dentro del chat abierto cuando hay suficientes mensajes sin leer, y Alt+Shift+U pide lo mismo (el atajo se puede cambiar en la pestaña Atajos de Configuración). El mínimo se configura en la propia pestaña de IA en línea (10 por defecto; 0 desactiva la función). Como el texto de esos mensajes sale de la máquina, la primera vez pide un consentimiento propio, separado del de fotos y audios; los chats bloqueados nunca ofrecen resumen. Se envían como mucho 200 mensajes, los más recientes.</p>
 <p>En el resultado de una transcripción o descripción, "Poner la transcripción en la línea del mensaje" y "Poner la descripción en la línea del mensaje" guardan el texto con el mensaje, que pasa a mostrarlo en su propia línea de la lista. En Ajustes &gt; Transcripciones y Descripciones, "Transcribir automáticamente los mensajes de voz recibidos" y "Describir automáticamente las imágenes, stickers y vídeos recibidos" (desactivadas por defecto) lo hacen con los proveedores en línea, sin ventana, sonido ni voz por mensaje; solo se usan los proveedores ya autorizados, y activar una desactiva la transcripción automática local. La ventana de datos de cada chat tiene las casillas "transcribir" y "describir", y puedes elegir entre todos los chats salvo los desactivados, o solo los activados. Para ahorrar cuota, eliges hasta qué antigüedad se procesa un mensaje recibido (5 minutos, 15, 30 o 1 hora) y un límite diario de solicitudes automáticas (50 por defecto, 0 para ninguno); si todos los proveedores rechazan por cuota o clave, la cola se pausa una hora y lo avisa una vez.</p>
 <div class="callout warn">
   <div class="callout-title">🔒 Privacidad</div>
@@ -1166,6 +1168,7 @@
 <tr><td class="field-name">Ctrl+Shift+I</td><td>Transcribir, describir o convertir el contenido del mensaje enfocado con IA en línea</td></tr>
 <tr><td class="field-name">Alt+P</td><td>Escribe un mensaje para</td></tr>
 <tr><td class="field-name">Alt+M</td><td>Mensajes</td></tr>
+<tr><td class="field-name">Alt+Shift+U</td><td>Resumir mensajes no leídos</td></tr>
 <tr><td class="field-name">Ctrl+R</td><td>Grabar mensaje de voz</td></tr>
 <tr><td class="field-name">Alt+2</td><td>Ir al último mensaje</td></tr>
 <tr><td class="field-name">Esc</td><td>Cerrar chat. Con mensajes marcados, el primer Esc solo los desmarca todos y únicamente el segundo cierra el chat, si la opción está activada en Configuración, Interfaz de usuario</td></tr>
@@ -1421,6 +1424,7 @@
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
+  <tr><td class="field-name">Prototipo</td><td>Resúmenes de chats no leídos con consentimiento separado.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Llamadas: mejor compatibilidad con micrófonos y auriculares estéreo en modo compartido, con alternativa mono si es necesario. La voz se sigue enviando en mono.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Traducción de mensajes (Shift+Enter o menú contextual del mensaje), con traducción automática, reglas de los chats bloqueados y pausa de una hora; los tipos de contenido de la IA en línea están en "Tipos de contenido procesados...".</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Motor de conexión: Neonize aparece primero en la lista y ya seleccionado en el primer inicio; WPPConnect es la segunda opción, marcada como heredada.</td></tr>

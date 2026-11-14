@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Resumos de conversas: chega ao WinZapp uma função semelhante aos resumos de mensagens não lidas do WhatsApp para telemóveis. Com mensagens não lidas suficientes (10 por predefinição, ajustável em Definições > IA online), a conversa ganha o botão "Resumir não lidas" e o atalho Alt+Shift+U: os fornecedores de IA já configurados para as descrições no WinZapp, não a Meta AI, resumem o que perdeu, com perguntas de seguimento na mesma janela. A primeira utilização pede consentimento à parte, porque o texto das próprias mensagens não lidas é enviado ao fornecedor; conversas bloqueadas nunca o oferecem. A função não transcreve áudios, pelo que o seu conteúdo não é incluído no resumo.
+
 - Neonize: aceitar os termos da Meta AI já não falha com erro do WhatsApp. O WinZapp envia agora o aceite no mesmo formato que o WhatsApp Web usa para este aviso e só confirma depois de ler de novo que o aviso consta como aceite.
 
 - Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.

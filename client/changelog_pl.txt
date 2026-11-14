@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Podsumowania czatów: WinZapp zyskuje funkcję podobną do podsumowań nieprzeczytanych wiadomości w mobilnym WhatsAppie. Gdy nieprzeczytanych wiadomości jest wystarczająco dużo (domyślnie 10, do zmiany w Ustawienia > SI online), rozmowa zyskuje przycisk „Podsumuj nieprzeczytane" i skrót Alt+Shift+U: dostawcy SI skonfigurowani już do opisów w WinZapp, a nie Meta AI, podsumowują, co Cię ominęło, z pytaniami uzupełniającymi w tym samym oknie. Przy pierwszym użyciu prosi o osobną zgodę, bo do dostawcy wysyłany jest sam tekst nieprzeczytanych wiadomości; zablokowane czaty nigdy tego nie proponują. Funkcja nie transkrybuje wiadomości głosowych, więc ich treść nie jest uwzględniana w podsumowaniu.
+
 - Neonize: akceptowanie warunków Meta AI nie kończy się już błędem WhatsApp. WinZapp wysyła teraz akceptację w tym samym formacie, którego WhatsApp Web używa dla tego powiadomienia, i potwierdza ją dopiero po ponownym odczytaniu, że powiadomienie jest zapisane jako zaakceptowane.
 
 - Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Riassunti delle chat: WinZapp introduce una funzione simile ai riassunti dei messaggi non letti di WhatsApp per cellulari. Con abbastanza messaggi non letti (10 per impostazione predefinita, modificabile in Impostazioni > IA online), la conversazione guadagna il pulsante "Riassumi non letti" e la scorciatoia Alt+Shift+U: i provider IA già configurati per le descrizioni in WinZapp, non Meta AI, riassumono ciò che hai perso, con domande di approfondimento nella stessa finestra. Il primo utilizzo chiede un consenso a parte, perché il testo stesso dei messaggi non letti viene inviato al provider; le chat bloccate non lo offrono mai. La funzione non trascrive i messaggi vocali, quindi il loro contenuto non è incluso nel riassunto.
+
 - Neonize: accettare i termini di Meta AI non fallisce più con un errore di WhatsApp. WinZapp ora invia l'accettazione nello stesso formato che WhatsApp Web usa per questo avviso e la conferma solo dopo aver letto di nuovo che l'avviso risulta accettato.
 
 - Chiamate: migliore supporto per microfoni e cuffie stereo in modalità condivisa, con ripiego su mono quando necessario. La voce continua a essere inviata in mono.

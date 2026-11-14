@@ -48,12 +48,25 @@ def is_transcription(provider, media):
     return media.kind == "audio" and bool(PROVIDERS[provider].transcribe_model)
 
 
+def _text_parts(provider, media, question):
+    """The chat transcript and the request as plain-text parts, per provider's
+    message shape. kind "text" (an unread-messages summary) carries no media:
+    the transcript itself is the payload."""
+    transcript = media.data.decode("utf-8", "replace")
+    if provider == "openai":
+        return [{"type": "input_text", "text": transcript},
+                {"type": "input_text", "text": question}]
+    return [{"type": "text", "text": transcript}, {"type": "text", "text": question}]
+
+
 def build_request(provider, model, key, media, history, question, instructions, profile):
     # A video never leaves as a video: prepare_media sends one frame as an image.
     if provider not in PROVIDERS or media.kind == "video" or not supports(provider, media.kind):
         raise DescriptionError("request")
     if not valid_model(model):
         raise DescriptionError("request")
+    if media.kind == "text":
+        return _text_request(provider, model, key, media, history, question, instructions)
     if is_transcription(provider, media):
         return _transcription(provider, key, media, model)
     if provider == "mistral" and media.kind == "pdf":
@@ -101,6 +114,39 @@ def build_request(provider, model, key, media, history, question, instructions, 
         part = {"type": "image_url", "image_url": (
             _data_url(media) if provider == "mistral" else {"url": _data_url(media)})}
     messages.append({"role": "user", "content": [{"type": "text", "text": question}, part]})
+    return Request(f"{_CHAT_BASE[provider]}/chat/completions", {"Authorization": f"Bearer {key}"},
+                   {"model": model, "messages": messages, "max_tokens": tokens})
+
+
+def _text_request(provider, model, key, media, history, question, instructions):
+    """Text-only request for an unread-messages summary: the transcript plus
+    the question, no inline media, same stateless shape as the other kinds."""
+    tokens = MAX_OUTPUT_TOKENS["text"]
+    parts = _text_parts(provider, media, question)
+    if provider == "openai":
+        messages = [{"role": role, "content": text} for role, text in history]
+        messages.append({"role": "user", "content": parts})
+        return Request(f"{_OPENAI}/responses", {"Authorization": f"Bearer {key}"},
+                       {"model": model, "store": False, "instructions": instructions,
+                        "input": messages, "max_output_tokens": tokens})
+    if provider == "gemini":
+        transcript = media.data.decode("utf-8", "replace")
+        contents = [{"role": "model" if role == "assistant" else "user", "parts": [{"text": text}]}
+                    for role, text in history]
+        contents.append({"role": "user", "parts": [{"text": transcript}, {"text": question}]})
+        return Request(f"{_GEMINI}/models/{model}:generateContent", {"x-goog-api-key": key},
+                       {"systemInstruction": {"parts": [{"text": instructions}]},
+                        "contents": contents, "generationConfig": {"maxOutputTokens": tokens}})
+    if provider == "claude":
+        messages = [{"role": role, "content": text} for role, text in history]
+        messages.append({"role": "user", "content": parts})
+        return Request(_CLAUDE, {"x-api-key": key, "anthropic-version": "2023-06-01"},
+                       {"model": model, "max_tokens": tokens, "system": instructions,
+                        "messages": messages})
+    # Groq, OpenRouter and Mistral: OpenAI-compatible chat completions.
+    messages = [{"role": "system", "content": instructions}]
+    messages += [{"role": role, "content": text} for role, text in history]
+    messages.append({"role": "user", "content": parts})
     return Request(f"{_CHAT_BASE[provider]}/chat/completions", {"Authorization": f"Bearer {key}"},
                    {"model": model, "messages": messages, "max_tokens": tokens})
 
