@@ -689,12 +689,28 @@ def test_a_roster_gone_with_the_call_is_not_an_empty_one():
 
 def test_a_call_that_is_not_a_live_group_call_reports_nothing():
     fake = RosterCalls()
+    fake.roster = lambda call_id: {"group": call_id != "P1",
+                                   "participants": [{"jid": "1@lid", "state": "connected"}]}
     m, sent = media(fake)
-    m._calls["P1"] = {"id": "P1", "group": False, "state": "ACTIVE"}
+    m._calls["P1"] = {"id": "P1", "group": "", "state": "ACTIVE"}       # a private call
     m._calls["G2"] = {"id": "G2", "group": True, "state": "RINGING"}
-    fake.people = [{"jid": "1@lid", "state": "connected"}]
     m.report_rosters()
     assert [e for e, _d in sent if e == "call-participants"] == []
+
+
+def test_a_private_call_someone_was_added_to_reports_its_roster():
+    """No group of its own (the lobby names none), yet a group call: its open
+    participants window follows these events, so "calling" turns into
+    "connected" when the person answers (reported 2026-11-13)."""
+    fake = RosterCalls()
+    m, sent = media(fake)
+    m._calls["P1"] = {"id": "P1", "group": "", "state": "ACTIVE"}
+    fake.people = [{"jid": "1@lid", "state": "connected"}, {"jid": "2@lid", "state": "ringing"}]
+    m.report_rosters()
+    fake.people = [{"jid": "1@lid", "state": "connected"}, {"jid": "2@lid", "state": "connected"}]
+    m.report_rosters()
+    reports = [d["connected"] for e, d in sent if e == "call-participants"]
+    assert reports == [["1@lid"], ["1@lid", "2@lid"]]
 
 
 def test_who_a_one_to_one_call_placed_here_called_is_remembered_for_its_end():

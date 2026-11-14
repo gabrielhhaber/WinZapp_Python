@@ -424,10 +424,16 @@ class CallMedia(CallIngressMixin):
         every change of the participants' states. The client says who joined
         or left and refreshes an open participants window from it. The call
         layer has no roster event, so the roster it keeps is compared here,
-        from the event pump."""
+        from the event pump.
+
+        Every live call is asked, not only a group's: a private call becomes a
+        group call when someone is added to it, and it has no group of its own
+        (the lobby names none). Its roster says so ("group"), and its open
+        participants window, which follows these events, was never refreshed
+        (reported 2026-11-13: someone ringing stayed "calling" after answering)."""
         with self._lock:
             live = [(call_id, call) for call_id, call in self._calls.items()
-                    if call.get("group") and call.get("state") == "ACTIVE"]
+                    if call.get("state") == "ACTIVE"]
             reported = self._reported_rosters
             for gone in set(reported) - {call_id for call_id, _call in live}:
                 reported.pop(gone, None)
@@ -443,6 +449,8 @@ class CallMedia(CallIngressMixin):
                 # no roster is not an empty one, or the client would say
                 # that everyone left just as the call ends
                 continue
+            if not roster.get("group"):
+                continue                    # a private call: no roster to follow
             participants = roster.get("participants")
             connected = roster_connected(participants, mine)
             seen = (connected, roster_states(participants))
