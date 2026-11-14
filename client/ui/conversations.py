@@ -183,6 +183,7 @@ from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
+from ui.conversation_panel.ai_writing import AIWritingMixin
 
 
 class ConversationsPanel(
@@ -239,6 +240,7 @@ class ConversationsPanel(
     TranslationActionsMixin,
     SummaryActionsMixin,
     SummaryVoiceMixin,
+    AIWritingMixin,
     MessageDataMixin,
     wx.Panel,
 ):
@@ -1005,6 +1007,9 @@ class ConversationsPanel(
         self._emoji_btn.Bind(wx.EVT_BUTTON, self._on_open_emoji_picker)
         conv_sizer.Add(self._emoji_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
+        self._writing_help_btn = self._create_writing_help_button(self.conversation_panel)
+        conv_sizer.Add(self._writing_help_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+
         self._cancel_edit_btn = wx.Button(
             self.conversation_panel, label=i18n.t("cancel_edit")
         )
@@ -1313,6 +1318,9 @@ class ConversationsPanel(
 
         self.send_message_btn.SetLabel(i18n.t("send_message"))
         self._emoji_btn.SetLabel(i18n.t("emoji_button"))
+        self._writing_help_btn.SetLabel(i18n.t("writing_menu"))
+        self._writing_help_btn.SetName(i18n.t("writing_menu"))
+        self._sync_writing_help_button()
         self._cancel_edit_btn.SetLabel(i18n.t("cancel_edit"))
         if hasattr(self, "_remove_quote_btn"):
             self._remove_quote_btn.SetLabel(i18n.t("remove_quote"))
@@ -1347,5 +1355,4 @@ class ConversationsPanel(
 
 
 # ── Archived Conversations Panel ─────────────────────────────────────────────
-
 

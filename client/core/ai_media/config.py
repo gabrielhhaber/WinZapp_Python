@@ -20,7 +20,7 @@ KIND_BY_MESSAGE_TYPE = {
 #: The inline payload each kind needs from a provider ("sticker" and "video"
 #: ride on "image": a video is described from one still frame of it).
 _CAPABILITY = {"image": "image", "sticker": "image", "video": "image",
-               "audio": "audio", "pdf": "pdf", "text": "text"}
+               "audio": "audio", "pdf": "pdf", "text": "text", "writing": "text"}
 
 
 @dataclass(frozen=True)
@@ -105,16 +105,16 @@ _INLINE_MAX = 14 * 1024 * 1024
 #: larger than what fits inline.
 MAX_SOURCE_BYTES = {"image": 20 * 1024 * 1024, "sticker": 20 * 1024 * 1024,
                     "audio": _INLINE_MAX, "pdf": _INLINE_MAX, "video": 64 * 1024 * 1024,
-                    "text": 200_000}
+                    "text": 200_000, "writing": 20_000}
 #: Longest answer kept; a converted PDF or a long voice message is far longer
 #: than a description, and cutting it silently would drop content.
 MAX_OUTPUT_CHARS = {"image": 12_000, "sticker": 12_000, "video": 12_000,
                     "audio": 50_000, "pdf": 100_000,
                     # A translated text message (core/message_translation.py).
-                    "text": 32_000}
+                    "text": 32_000, "writing": 8_000}
 #: Token budget asked of the provider, by kind.
 MAX_OUTPUT_TOKENS = {"image": 1800, "sticker": 1200, "video": 2200,
-                     "audio": 8000, "pdf": 16000, "text": 3000}
+                     "audio": 8000, "pdf": 16000, "text": 3000, "writing": 2000}
 #: Largest response body read.
 MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_QUESTION_CHARS = 2000
@@ -185,6 +185,9 @@ def preferences(app_settings):
     consented_text = raw.get("consented_text")
     consented_text = [p for p in consented_text if p in PROVIDERS] \
         if isinstance(consented_text, list) else []
+    consented_writing = raw.get("consented_writing")
+    consented_writing = [p for p in consented_writing if p in PROVIDERS] \
+        if isinstance(consented_writing, list) else []
     profile = raw.get("profile")
     return {
         "enabled": raw.get("enabled") is True,
@@ -215,6 +218,11 @@ def preferences(app_settings):
         # Chat summaries send the TEXT of unread messages to a provider — a
         # bigger ask than one photo, so they carry their own consent list.
         "consented_text": sorted(set(consented_text)),
+        # Writing help sends the person's own draft to a provider; translation
+        # sends message text to Google's web endpoint. Each carries its own
+        # consent, separate from the media one.
+        "consented_writing": sorted(set(consented_writing)),
+        "consented_translate": raw.get("consented_translate") is True,
     }
 
 
@@ -222,7 +230,7 @@ def drop_consents(value, removed):
     """``value`` (the stored "ai_media" dict) without the remembered consent of
     the ``removed`` providers, in both lists: a provider whose key is removed
     must ask again, for media and for chat text, if it is ever set up again."""
-    for key in ("consented", "consented_text"):
+    for key in ("consented", "consented_text", "consented_writing"):
         kept = value.get(key, [])
         value[key] = [p for p in kept if p not in removed] if isinstance(kept, list) else []
     return value

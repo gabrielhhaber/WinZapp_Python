@@ -139,29 +139,35 @@ class ComposerMixin:
         return field.GetInsertionPoint()
 
     def _on_message_field_context_menu(self, event):
-        """Offer Windows spelling suggestions from Applications/right-click."""
+        """Offer Windows spelling suggestions from Applications/right-click,
+        and writing help on a non-empty draft."""
         checker = getattr(self, "_spell_checker", None)
-        if checker is None or not self._spell_check_enabled():
-            event.Skip()
-            return
         field = self.message_field
         text = field.GetValue()
         position = self._spelling_menu_position(event)
-        result = checker.suggestions_at(text, _value_index(text, position))
-        if result is None:
+        result = None
+        if checker is not None and self._spell_check_enabled():
+            result = checker.suggestions_at(text, _value_index(text, position))
+        writing_offered = self._writing_help_offered(text)
+        if result is None and not writing_offered:
             event.Skip()
             return
-        start, end, suggestions = result
         t = self.main_window.i18n.t
         menu = wx.Menu()
         suggestion_ids = {}
-        suggestions_menu = wx.Menu()
-        for suggestion in suggestions:
-            item_id = wx.NewIdRef()
-            suggestions_menu.Append(item_id, suggestion.replace("&", "&&"))
-            suggestion_ids[int(item_id)] = suggestion
-        menu.AppendSubMenu(suggestions_menu, t("spell_orthography"))
-        menu.AppendSeparator()
+        if result is not None:
+            start, end, suggestions = result
+            suggestions_menu = wx.Menu()
+            for suggestion in suggestions:
+                item_id = wx.NewIdRef()
+                suggestions_menu.Append(item_id, suggestion.replace("&", "&&"))
+                suggestion_ids[int(item_id)] = suggestion
+            menu.AppendSubMenu(suggestions_menu, t("spell_orthography"))
+            menu.AppendSeparator()
+        if writing_offered:
+            writing_item = menu.Append(wx.ID_ANY, t("writing_menu"))
+            menu.Bind(wx.EVT_MENU, lambda e: self._on_writing_help(), writing_item)
+            menu.AppendSeparator()
         # Keep the standard edit commands next to the suggestions. The labels
         # come from the locale files: wx stock labels would be English, as the
         # client never creates a wx.Locale.
@@ -187,8 +193,10 @@ class ComposerMixin:
                 self._replace_spelling_word(start, end, replacement)
             elif command_id in edit_actions:
                 edit_actions[command_id]()
+            else:
+                # Item-specific handlers must receive commands unknown here.
+                command_event.Skip()
 
-        suggestions_menu.Bind(wx.EVT_MENU, on_menu)
         menu.Bind(wx.EVT_MENU, on_menu)
         screen = event.GetPosition()
         if screen != wx.DefaultPosition:
@@ -204,6 +212,8 @@ class ComposerMixin:
             menu.Destroy()
 
     def on_change_message_field(self, event):
+        if hasattr(self, "_sync_writing_help_button"):
+            self._sync_writing_help_button()
         # Don't touch button visibility while recording or staging attachments.
         if self._is_recording or self._attachment_panel.IsShown():
             return
