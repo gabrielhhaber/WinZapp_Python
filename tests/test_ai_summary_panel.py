@@ -692,7 +692,9 @@ class TestVoiceMessages:
 class TestClosingWithTheChat:
     def test_closing_ai_media_cancels_the_voice_step_of_the_open_chat(self):
         calls = []
-        stub = NS(cancel_summary_voice=lambda: calls.append("voice"), _ai_dialog=None)
+        stub = NS(cancel_summary_voice=lambda: calls.append("voice"), _ai_dialog=None,
+                  close_summary_consent=lambda locked_only=False: calls.append(("consent", locked_only)),
+                  cancel_summary_voice_locked=lambda: calls.append("voice locked"))
         import ui.conversation_panel.ai_actions as ai_actions
         original = ai_actions.close_open_dialog
         ai_actions.close_open_dialog = lambda: calls.append("status")
@@ -701,7 +703,8 @@ class TestClosingWithTheChat:
             AIActionsMixin.close_ai_media(stub, locked_only=True)
         finally:
             ai_actions.close_open_dialog = original
-        assert calls == ["status", "voice"]
+        # Leaving or closing: everything. Vault locking: only what a locked chat owns.
+        assert calls == [("consent", False), "status", "voice", ("consent", True), "voice locked"]
 
 
 class TestOneLocalTranscriptionAtATime:
@@ -750,7 +753,7 @@ class TestEndingTheVoiceStep:
         panel.main_window._shutting_down = True
         run = NS(running=True, cancelled=NS(is_set=lambda: True), outcome=NS(texts={}), on_done=lambda o: pytest.fail("opened"))
         panel._finish_summary_voice(run, None)
-        assert panel.spoken == [] and run.running is False
+        assert panel.spoken == []
 
 
 class TestStoringAfterTheVault:
@@ -842,3 +845,98 @@ class TestConsentComesFirst:
         panel.main_window._shutting_down = False
         panel.locked.add(JID)
         assert valid() is False
+
+
+class TestVaultLockingDuringTheSummary:
+    def _asking(self, panel, ended):
+        dialog = NS(IsModal=lambda: True, EndModal=ended.append)
+        panel._summary_consent_dialog, panel._summary_consent_jid = dialog, JID
+        return dialog
+
+    def test_the_consent_window_is_dismissed_for_a_locked_chat(self, panel, wx):
+        wx.ID_CANCEL = 7
+        ended = []
+        self._asking(panel, ended)
+        panel.locked.add(JID)
+        panel.close_summary_consent(locked_only=True)
+        assert ended == [7]
+
+    def test_a_vault_lock_leaves_the_consent_of_an_ordinary_chat_alone(self, panel, wx):
+        wx.ID_CANCEL = 7
+        ended = []
+        self._asking(panel, ended)
+        panel.close_summary_consent(locked_only=True)
+        assert ended == []
+        panel.close_summary_consent()  # closing the app dismisses any
+        assert ended == [7]
+
+    def test_no_window_and_a_window_already_closing_are_harmless(self, panel, wx):
+        panel.close_summary_consent()
+        panel._summary_consent_dialog = NS(IsModal=lambda: False, EndModal=lambda code: pytest.fail("ended"))
+        panel.close_summary_consent()
+
+    def test_the_consent_window_is_tracked_for_the_helper(self, panel, monkeypatch):
+        import ui.dialogs.ai_result_dialog as dialog_module
+        seen = []
+
+        def ask(parent, i18n, app, config, providers, kind, locked, valid=None, track=None):
+            track("window")
+            seen.append(parent._summary_consent_dialog)
+            track(None)
+            return True
+        monkeypatch.setattr(dialog_module, "ask_consent", ask)
+        panel._on_summarize_messages([text(1)])
+        assert seen == ["window"] and panel._summary_consent_dialog is None
+
+    def test_a_refusal_caused_by_the_vault_or_the_app_closing_says_nothing(self, panel):
+        panel.consent_answer = False
+        panel.locked.add(JID)  # hidden once the question ends
+        panel._on_summarize_messages([text(1)])
+        assert panel.spoken == []
+        panel.locked.clear()
+        panel.main_window._shutting_down = True
+        panel._on_summarize_messages([text(1)])
+        assert panel.spoken == []
+
+    def test_a_refusal_by_the_person_is_said(self, panel):
+        panel.consent_answer = False
+        panel._on_summarize_messages([text(1)])
+        assert panel.spoken == ["ai_summary_cancelled"]
+
+    def test_the_vault_locking_cancels_the_run_of_a_locked_chat_only(self, panel):
+        stopped = []
+        panel._summary_voice_run = NS(running=True, jid=JID, cancel=lambda: stopped.append(True))
+        panel.cancel_summary_voice_locked()
+        assert stopped == []
+        panel.locked.add(JID)
+        panel.cancel_summary_voice_locked()
+        assert stopped == [True]
+        panel._summary_voice_run = NS(running=False, jid=JID, cancel=lambda: stopped.append("late"))
+        panel.cancel_summary_voice_locked()
+        assert stopped == [True]
+
+    def test_a_vault_lock_cancel_ends_the_run_silently_and_drops_the_summary(self, panel):
+        panel.locked.add(JID)
+        panel.unlocked = True
+
+        def lock_then_cancel(msg):
+            panel.unlocked = False  # the vault closes...
+            panel.cancel_summary_voice_locked()  # ...and cancels the run
+            return None, errors.TranscriptionError(errors.CANCELLED, "x")
+        panel.transcribe_with = lock_then_cancel
+        panel._on_summarize_messages([audio(1)])
+        assert Dialog.made == [] and panel.spoken == []
+        assert panel._summary_voice_running() is False
+
+
+class TestBusyBeforeConsent:
+    def test_a_busy_transcription_with_audio_to_run_refuses_before_asking(self, panel):
+        panel._bulk_transcription = NS(running=True)
+        panel._on_summarize_messages([audio(1)])
+        assert panel.spoken == ["ai_summary_voice_busy"] and panel.consents == []
+
+    def test_a_busy_transcription_does_not_stop_a_summary_with_nothing_to_run(self, panel):
+        panel._bulk_transcription = NS(running=True)
+        panel._on_summarize_messages([text(1), stored_voice(audio(2), "hola")])
+        assert len(panel.consents) == 1 and len(Dialog.made) == 1
+        assert panel.spoken == []

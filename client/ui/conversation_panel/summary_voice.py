@@ -120,12 +120,9 @@ class SummaryVoiceMixin:
         saved = stored_transcription.saved_transcription(msg, selection)
         return (saved or {}).get("text") or None
 
-    def _summary_voice_step(self, messages, jid, on_done, follows_open_chat=False):
-        """Collect the words of ``messages``' voice messages, then call
-        ``on_done(VoiceOutcome)`` on the wx thread (at once when no run is
-        needed; never when the person cancels). The voice messages that stay
-        markers (over the limit, failed, not set up) are counted later, from
-        the transcript itself."""
+    def _summary_voice_plan(self, messages):
+        """(VoiceOutcome with the stored transcriptions, the voice messages
+        that still need a run)."""
         outcome = VoiceOutcome()
         for msg in messages:
             text = self._summary_stored_voice_text(msg) if msg.get("messageType") == "audioMessage" else None
@@ -134,13 +131,28 @@ class SummaryVoiceMixin:
         to_run = voice_to_transcribe(
             messages, lambda msg: bool(outcome.texts.get((msg.get("key") or {}).get("id", ""))),
             MAX_VOICE_TRANSCRIPTIONS)
+        return outcome, to_run
+
+    def _summary_voice_blocked(self, to_run) -> bool:
+        """One local transcription at a time: when a run is needed and another
+        is using it, say why and refuse, rather than fight it for the model or
+        silently skip the words."""
+        if to_run and self._transcription_in_progress():
+            self.main_window.output(self.main_window.i18n.t("ai_summary_voice_busy"))
+            return True
+        return False
+
+    def _summary_voice_step(self, messages, jid, on_done, follows_open_chat=False):
+        """Collect the words of ``messages``' voice messages, then call
+        ``on_done(VoiceOutcome)`` on the wx thread (at once when no run is
+        needed; never when the person cancels). The voice messages that stay
+        markers (over the limit, failed, not set up) are counted later, from
+        the transcript itself."""
+        outcome, to_run = self._summary_voice_plan(messages)
         if not to_run:
             on_done(outcome)
             return
-        if self._transcription_in_progress():
-            # One local transcription at a time: refuse, and say why, rather
-            # than fight another run for the model or silently skip the words.
-            self.main_window.output(self.main_window.i18n.t("ai_summary_voice_busy"))
+        if self._summary_voice_blocked(to_run):
             return
         run = _VoiceRun(jid, to_run, outcome, on_done, follows_open_chat)
         self._summary_voice_run = run
@@ -182,6 +194,13 @@ class SummaryVoiceMixin:
         """Leaving the chat the run was started from: stop it, no question."""
         run = getattr(self, "_summary_voice_run", None)
         if run is not None and run.running and run.follows_open_chat:
+            run.cancel()
+
+    def cancel_summary_voice_locked(self):
+        """The vault locked: a run for a locked chat stops, so its progress
+        window closes at once. Nothing is said about the messages."""
+        run = getattr(self, "_summary_voice_run", None)
+        if run is not None and run.running and self.main_window.is_chat_locked(run.jid):
             run.cancel()
 
     def _cancel_summary_voice_now(self):
@@ -235,10 +254,11 @@ class SummaryVoiceMixin:
         return stop_sentence
 
     def _finish_summary_voice(self, run, stop_sentence):
-        run.running = False
         mw = self.main_window
         if getattr(mw, "_shutting_down", False):
             return
+        if mw.is_chat_hidden_by_vault(run.jid):
+            return  # The vault locked meanwhile: nothing said about its messages.
         if run.cancelled.is_set():
             mw.output(mw.i18n.t("ai_summary_cancelled"), interrupt=True)
             return

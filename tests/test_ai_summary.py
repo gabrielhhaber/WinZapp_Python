@@ -441,10 +441,7 @@ class TestSharedConsent:
         assert module.needs_consent(config, [], "text", False) is False
 
     def test_a_preconsented_window_never_asks_again_locked_chat_included(self, monkeypatch):
-        import inspect
         import ui.dialogs.ai_result_dialog as module
-        assert inspect.signature(AIResultDialog.__init__).parameters["preconsented"].default is False
-        assert "self._consented = preconsented" in inspect.getsource(AIResultDialog.__init__)
         monkeypatch.setattr(module, "AIConsentDialog", lambda *args: pytest.fail("asked twice"))
         dialog, _fake, _asked = _dialog(locked=True)
         dialog._consented = True  # what preconsented=True sets

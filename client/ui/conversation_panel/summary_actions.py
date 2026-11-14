@@ -253,10 +253,16 @@ class SummaryActionsMixin:
         if not messages:
             mw.output(t("ai_summary_nothing"))
             return
+        # Another local transcription running refuses before any question:
+        # asking consent for a summary that cannot start would be noise.
+        _outcome, to_run = self._summary_voice_plan(messages)
+        if self._summary_voice_blocked(to_run):
+            return
         # Consent first, before any voice message is transcribed: declining
         # leaves nothing transcribed and nothing sent.
         if not self._summary_consent(app, config, jid):
-            mw.output(t("ai_summary_cancelled"), interrupt=True)
+            if not (getattr(mw, "_shutting_down", False) or mw.is_chat_hidden_by_vault(jid)):
+                mw.output(t("ai_summary_cancelled"), interrupt=True)  # the person said no
             return
         self._summary_voice_step(
             messages, jid,
@@ -271,9 +277,26 @@ class SummaryActionsMixin:
         saved = CredentialStore(global_dir()).saved()
         providers = ai_config.chain(config, "text", lambda p: p in saved)
         from ui.dialogs.ai_result_dialog import ask_consent
+        def track(dialog):
+            self._summary_consent_dialog = dialog
+            self._summary_consent_jid = jid
         return ask_consent(
             self, mw.i18n, app, config, providers, "text", mw.is_chat_locked(jid),
-            valid=lambda: not getattr(mw, "_shutting_down", False) and not mw.is_chat_hidden_by_vault(jid))
+            valid=lambda: not getattr(mw, "_shutting_down", False) and not mw.is_chat_hidden_by_vault(jid),
+            track=track)
+
+    def close_summary_consent(self, *, locked_only=False):
+        """The vault locked or the app is closing: dismiss the consent window
+        of a summary still waiting for its answer. ``locked_only`` closes it
+        only for a locked chat. The answer, if one was already queued, is
+        dropped by the ``valid`` check above."""
+        dialog = getattr(self, "_summary_consent_dialog", None)
+        if not dialog:
+            return
+        if locked_only and not self.main_window.is_chat_locked(getattr(self, "_summary_consent_jid", "")):
+            return
+        if dialog.IsModal():
+            dialog.EndModal(wx.ID_CANCEL)
 
     def _open_summary(self, messages, jid, chat, voice, follows_open_chat):
         """The transcript is built and the result window opens, once the voice
