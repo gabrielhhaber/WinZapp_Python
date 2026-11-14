@@ -22,6 +22,7 @@ from core.ai_credentials import CredentialStore
 from core.ai_media import config as ai_config
 from core.ai_media.config import MAX_SOURCE_BYTES, MENU_KEY, preferences
 from core.ai_media.errors import DescriptionError
+from core.ai_media.summary import build_unread_transcript
 from core.utils import decrypt_bytes
 from ui.ai_media_launch import close_open_dialog
 from ui.conversation_panel.media_paths import cached_media_path
@@ -185,3 +186,121 @@ class AIActionsMixin:
         if message_ids is not None and dialog.session.identity[2] not in message_ids:
             return
         dialog._close()
+
+    # ── Unread-messages summary (kind "text") ────────────────────────────────
+    def _unread_slice(self) -> list:
+        """The unread tail of the open conversation, oldest first.
+
+        Not the conversation dict's unreadCount: mark_conversation_as_read()
+        zeroes it as soon as the chat opens, so by the time anyone could ask
+        for a summary the count was always 0 (reported live: a group with 93
+        unread heard "not enough unread messages"). The panel's unread
+        separator keeps the real answer: it is placed from the count
+        snapshotted at open, summed and moved as messages arrive live, and
+        dismissed only once focus passes it — when the user actually reached
+        what sits below. The summary covers exactly the messages that
+        separator announces.
+        """
+        if not self.conversation:
+            return []
+        messages = getattr(self, "_sorted_messages", None) or []
+        sep_idx = getattr(self, "_unread_sep_idx", -1)
+        if 0 <= sep_idx < len(messages) and self._is_separator(messages[sep_idx]):
+            start = sep_idx + 1
+        else:
+            # No separator row at the recorded index (mid-rebuild, or the
+            # anchor pair is all that survived): fall back to the anchor id.
+            # The anchor may be the first loaded row; do not confuse its
+            # valid start index 0 with a missing separator index -1.
+            start = None
+            anchor = getattr(self, "_first_unread_msg_id", None)
+            if anchor:
+                for idx, msg in enumerate(messages):
+                    if not isinstance(msg, dict) or self._is_separator(msg):
+                        continue
+                    if (msg.get("key") or {}).get("id") == anchor:
+                        start = idx
+                        break
+            if start is None:
+                return []
+        return [m for m in messages[start:]
+                if isinstance(m, dict) and not self._is_separator(m)]
+
+    def _summary_offered(self, config=None) -> bool:
+        """The button and Alt+Shift+U share this rule: feature on, at least one
+        provider with a key that takes text, a conversation open and unlocked,
+        and unread messages at or over the configured minimum (0 = never)."""
+        if config is None:
+            _app, config = self._ai_settings()
+        if not config.get("enabled"):
+            return False
+        minimum = config.get("summary_min_unread", 10)
+        if minimum <= 0 or not self.conversation:
+            return False
+        mw = self.main_window
+        chat = self.conversation.get("remoteJid", "")
+        if mw.is_chat_locked(chat):
+            # Summary consent and documentation promise no summaries for
+            # locked chats, even while their contents are temporarily unlocked.
+            return False
+        saved = CredentialStore(global_dir()).saved()
+        if not ai_config.chain(config, "text", lambda p: p in saved):
+            return False
+        return len(self._unread_slice()) >= minimum
+
+    def _update_summary_button(self):
+        button = getattr(self, "_summary_btn", None)
+        if button is None:
+            return
+        try:
+            offered = self._summary_offered()
+        except Exception:
+            offered = False
+        if offered:
+            # Kept in sync here (not only at construction) so a language
+            # change with a chat open renames the button too.
+            button.SetLabel(self.main_window.i18n.t("ai_summary_button"))
+            button.Show()
+        else:
+            button.Hide()
+        # The slot's visibility is decided by _sync_media_action_slot_visibility()
+        # (the summary button is one of its controls); a bare Layout() here
+        # left the slot hidden when the summary was the only action offered.
+        sync = getattr(self, "_sync_media_action_slot_visibility", None)
+        if sync is not None:
+            sync()
+
+    def _on_summary_action(self, event=None):
+        """Button and Alt+Shift+U: summarize the unread tail of this chat with
+        the configured AI providers, in the same accessible result window a
+        description uses (kind "text")."""
+        mw = self.main_window
+        app, config = self._ai_settings()
+        if not self._summary_offered(config):
+            mw.output(mw.i18n.t("ai_summary_not_available"), interrupt=True)
+            return
+        transcript, included = build_unread_transcript(
+            self._unread_slice(), self._sender_label)
+        if not transcript:
+            mw.output(mw.i18n.t("ai_summary_not_available"), interrupt=True)
+            return
+        chat = self.conversation.get("remoteJid", "")
+        locked = mw.is_chat_locked(chat)
+        existing = getattr(self, "_ai_dialog", None)
+        if existing is not None:
+            existing.Raise()
+            return  # No second window or duplicate billed request.
+        data = transcript.encode("utf-8")
+        loader = lambda operation: data
+        identity = (active_account_id(), chat, "unread-summary")
+        from ui.dialogs.ai_result_dialog import AIResultDialog
+        dialog = AIResultDialog(self, identity, "text", locked, config, app,
+                                loader, "text/plain")
+        self._ai_dialog = dialog
+        try:
+            dialog.ShowModal()
+        finally:
+            dialog._dispose()
+            self._ai_dialog = None
+            dialog.Destroy()
+            self._restore_focus_after_ai(identity, locked)

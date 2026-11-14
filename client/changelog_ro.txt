@@ -6,6 +6,7 @@ NOUTĂȚI
 
 - WPPConnect Server a fost actualizat la 2.10.81, cu WPPConnect 2.4.0 și WA-JS 4.8.0. Citirea istoricului de mesaje nu mai acumulează copii în memorie, browserul controlat de WinZapp este închis automat doar când l-a deschis chiar WinZapp, iar așteptarea încărcării WhatsApp Web funcționează acum și cu pagina ascunsă.
 
+- Rezumate de conversații: WinZapp primește o funcție similară rezumatelor mesajelor necitite din WhatsApp pentru telefoane. Cu suficiente mesaje necitite (10 implicit, reglabil din Setări > IA online), conversația primește butonul „Rezumă mesajele necitite" și comanda rapidă Alt+Shift+U: furnizorii IA deja configurați pentru descrieri în WinZapp, nu Meta AI, rezumă ce ai ratat, cu întrebări suplimentare în aceeași fereastră. Prima utilizare cere consimțământ separat, pentru că textul propriu-zis al mesajelor necitite este trimis furnizorului; conversațiile blocate nu oferă niciodată acest lucru. Funcția nu transcrie mesajele audio, astfel că nu include conținutul lor în rezumat.
 - WPPConnect: când spațiul pe disc scade (sub 4 GB liberi), WinZapp închide WhatsApp în siguranță înainte să piardă sesiunea, trece offline și spune de ce. Când există cel puțin 5 GB liberi, se reconectează singur. Înainte, cu aproximativ 3 GB liberi, sesiunea putea reveni deconectată ca și cum ar fi fost ștearsă.
 
 - Transcriere automată: un mesaj vocal primit cât computerul era în repaus nu mai rămâne netranscris când sosește împreună cu altele la revenire.
