@@ -23,10 +23,19 @@ NOWOŚCI
 - Dziennik konta nie zapisuje już kodu dostępu sesji WPPConnect podczas pobierania multimediów.
 
 - Silnik połączenia: Neonize jest teraz pierwszy na liście i jest opcją zaznaczoną od razu, gdy WinZapp pyta o silnik przy pierwszym uruchomieniu; nadal jest oznaczony jako eksperymentalny, ale to on jest zalecany do ogólnego użytku. WPPConnect staje się drugą opcją, z dopiskiem "alternatywny" po nazwie, przy pierwszym uruchomieniu, w oknie parowania i w Ustawienia > Połączenie. Kto już korzysta z WPPConnect, pozostaje przy nim, dopóki sam go nie zmieni.
+- Po długiej przerwie w korzystaniu z WinZapp: dopóki WhatsApp nadal dostarcza stare wiadomości po zakończeniu synchronizacji, tytuł okna wciąż pokazuje "Aktualizowanie czatów", zamiast informować, że wszystko jest zsynchronizowane, a lista czatów pozostaje nieruchoma, aby można było ją przeglądać bez zmieniania się kolejności czatów. Lista jest aktualizowana jednorazowo, gdy wiadomości przestają napływać. Dotyczy silników Neonize i WPPConnect.
+
+- Powiadomienia: gdy wiele nowych wiadomości przychodzi naraz (na przykład po powrocie niestabilnego połączenia), WinZapp odtwarza i odczytuje tylko trzy pierwsze i milczy do końca serii, zamiast powtarzać dźwięk dziesiątki razy. Wiadomości nadal są na liście i liczą się jako nieprzeczytane.
 
 - Neonize: akceptowanie warunków Meta AI nie kończy się już błędem WhatsApp. WinZapp wysyła teraz akceptację w tym samym formacie, którego WhatsApp Web używa dla tego powiadomienia, i potwierdza ją dopiero po ponownym odczytaniu, że powiadomienie jest zapisane jako zaakceptowane.
 
 - Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.
+
+- W oknie połączenia naciśnij Ctrl+M na dowolnym elemencie, aby wyciszyć lub włączyć mikrofon i usłyszeć jego stan. Okno połączenia wychodzącego pokazuje stan i odczytuje informację o dzwonieniu lub nawiązywaniu połączenia.
+
+- Podczas połączenia głosowego w systemie Windows 11 wybierz Udostępnij dźwięk pulpitu, aby przesłać dźwięk systemu albo jednej aplikacji, z dźwiękiem NVDA lub bez niego, z wybraną głośnością. Na początku nic nie jest zaznaczone. Wyciszenie mikrofonu nie zatrzymuje udostępniania, a zmiana urządzeń audio połączenia go nie przerywa. Użyj przycisku Zakończ udostępnianie dźwięku pulpitu, aby zatrzymać udostępnianie niezależnie od mikrofonu.
+
+- Neonize: w połączeniach głos drugiej osoby jest buforowany nieco dłużej (około 60 ms), aby ograniczyć przerwy, gdy dźwięk dociera seriami.
 
 - Tłumaczenie wiadomości: naciśnij Shift+Enter na wiadomości tekstowej na liście wiadomości (skrót można zmienić) albo użyj jej menu kontekstowego. Konfiguracja jest w Ustawienia > AI online: transkrypcje i opisy > Tłumaczenie wiadomości: dostawca (Twoi dostawcy AI, Grok albo własny adres zgodny z OpenAI lub Anthropic), model, język docelowy oraz to, czy tłumaczenie zastępuje tekst, pojawia się po nim, czy otwiera się w osobnym oknie. Opcjonalne automatyczne tłumaczenie odebranych wiadomości we wszystkich czatach lub tylko w tych, w których je włączysz, z maksymalnym wiekiem wiadomości i dziennym limitem; wstrzymuje się na godzinę, jeśli dostawca odrzuci żądania z powodu klucza, limitu lub braku środków. Zabezpieczone czaty nigdy nie są tłumaczone automatycznie, a przetłumaczenie wiadomości z takiego czatu za każdym razem wymaga potwierdzenia. Rodzaje plików obsługiwanych przez AI online są teraz w oknie „Rodzaje plików do przetwarzania...” na tej samej stronie.
 

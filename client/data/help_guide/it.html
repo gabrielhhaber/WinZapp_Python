@@ -789,6 +789,11 @@
 <p>Neonize associa l'audio in ritardo, le operazioni della videocamera e i cambi di dispositivo alla chiamata e al flusso che li hanno avviati. I dati in attesa di un flusso terminato o sostituito vengono scartati e l'accumulo di dati multimediali è limitato. Un errore temporaneo nell'invio di un fotogramma al client non interrompe definitivamente la lettura dell'audio. Quando si riapre l'uscita, il vecchio flusso non può consumare l'audio del nuovo; un errore nel riferimento dell'eco non silenzia l'audio pronto per la riproduzione. Una corrispondenza parziale ambigua del nome di un dispositivo WASAPI mantiene l'API originale senza scegliere una corrispondenza arbitraria.</p>
 <p>Per indagare sui problemi, i registri delle chiamate Neonize includono riepiloghi numerici del segnale senza registrare il contenuto audio. Distinguono tra campioni mancanti, silenzio digitale e livelli del segnale; non dimostrano che l'altra persona abbia capito o sentito la voce.</p>
 
+<h3>Condividi audio del desktop</h3>
+<p>Durante una chiamata vocale su Windows 11, usa Condividi audio del desktop per inviare l’audio di sistema o quello di una sola applicazione, con o senza l’audio di NVDA, al volume che scegli. All’inizio non è selezionato nulla. Disattivare il microfono non interrompe la condivisione, e cambiare i dispositivi audio della chiamata la mantiene. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.</p>
+<p>Scegli l’audio di sistema o un’applicazione con una sessione audio. Puoi includere NVDA separatamente e regolare il volume.</p>
+<p>Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato. La finestra della chiamata in uscita mostra lo stato e annuncia quando il telefono squilla o la chiamata si sta connettendo.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -886,6 +891,7 @@
 <p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Settings &gt; Storage &gt; Profile backup) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
 <p>If WhatsApp disconnects the session, WinZapp tells you right away and opens pairing. In Settings &gt; Connection you can use a custom API (remote server); in that case, the browser profile and the backups are left to the server.</p>
 <p>When you open WinZapp after a long time without using WPPConnect, WhatsApp Web can take a few minutes to catch up. Meanwhile the window title says "syncing with WhatsApp...": the account has not dropped and there is nothing to do.</p>
+<p>Dopo molto tempo senza aprire WinZapp, WhatsApp può continuare a consegnare messaggi vecchi dopo la fine della sincronizzazione. Mentre arrivano, il titolo della finestra indica "Aggiornamento delle chat" e l'elenco delle chat resta fermo, così puoi scorrerlo senza che le chat cambino posto; viene aggiornato in una sola volta quando i messaggi smettono di arrivare. Quando arrivano molti messaggi nuovi contemporaneamente, WinZapp riproduce e legge al massimo tre notifiche al secondo e resta in silenzio fino alla fine della raffica; tutti i messaggi restano nell'elenco e contano come non letti.</p>
 
   </section>
 
@@ -1424,6 +1430,9 @@
   <tr><td class="field-name">Not yet released</td><td>Svuotare una chat sul telefono la svuota anche in WinZapp; i canali aperti dalla finestra Canali caricano subito gli aggiornamenti; "Info sul gruppo" segue il numero di partecipanti; niente "Aggiornamento delle chat" ripetuto dopo la sospensione; Neonize: una modifica della privacy applicata non viene più segnalata come errore.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Connection engine: Neonize comes first in the list and is already selected on the first launch; WPPConnect is the second option, marked as an alternative.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Chiamate: migliore supporto per microfoni e cuffie stereo in modalità condivisa, con ripiego su mono quando necessario. La voce continua a essere inviata in mono.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato. La finestra della chiamata in uscita mostra lo stato e annuncia quando il telefono squilla o la chiamata si sta connettendo.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Durante una chiamata vocale su Windows 11, usa Condividi audio del desktop per inviare l’audio di sistema o quello di una sola applicazione, con o senza l’audio di NVDA, al volume che scegli. All’inizio non è selezionato nulla. Disattivare il microfono non interrompe la condivisione, e cambiare i dispositivi audio della chiamata la mantiene. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize: nelle chiamate, la voce dell’altra persona resta un po’ più a lungo nel buffer (circa 60 ms) per ridurre le interruzioni quando l’audio arriva a raffiche.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Traduzione dei messaggi (Shift+Enter o menu contestuale del messaggio), con traduzione automatica, regole delle chat bloccate e pausa di un'ora; i tipi di contenuto dell'IA online sono in "Tipi di contenuto elaborati...".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize: i media vecchi che il telefono ricarica dopo la richiesta di nuovo invio vengono scaricati, senza dipendere dalla verifica del file originale.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Settings > General: a new option downloads updates automatically and installs them when you exit WinZapp, without opening it again.</td></tr>
@@ -1514,6 +1523,7 @@
 <tr><td class="field-name">Non ancora rilasciato</td><td>Chat: opzione perché l'elenco dei messaggi continui da dove eri rimasto; segnalibri rimossi automaticamente dopo il primo utilizzo.</td></tr>
 <tr><td class="field-name">Non ancora rilasciato</td><td>Finestra delle novità: Esc la chiude.</td></tr>
   <tr><td class="field-name">Non ancora rilasciato</td><td>Aggiornamento con più account aperti: WinZapp aspetta che gli altri account si chiudano prima di installare.</td></tr>
+  <tr><td class="field-name">Non ancora rilasciato</td><td>Messaggi vecchi dopo la sincronizzazione: il titolo indica "Aggiornamento delle chat" e l'elenco resta fermo; le raffiche di messaggi nuovi riproducono al massimo tre notifiche al secondo.</td></tr>
 </table>
 
   </section>

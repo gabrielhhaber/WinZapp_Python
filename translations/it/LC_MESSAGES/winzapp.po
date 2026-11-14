@@ -2482,6 +2482,76 @@ msgstr ""
 "Scorciatoia globale per rispondere ad una chiamata in qualsiasi finestra"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_failed"
+msgid ""
+"Desktop audio sharing is unavailable or stopped because a source could not "
+"be captured."
+msgstr ""
+"La condivisione dell’audio del desktop non è disponibile o si è interrotta "
+"perché non è stato possibile acquisire una sorgente."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_no_app"
+msgid "No application audio"
+msgstr "Nessun audio delle applicazioni"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_nvda"
+msgid "Include &NVDA audio"
+msgstr "Includi audio di &NVDA"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_share"
+msgid "Share &desktop audio…"
+msgstr "Condividi audio del &desktop…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_source"
+msgid "Audio &source"
+msgstr "&Sorgente audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_started"
+msgid "Desktop audio sharing started."
+msgstr "Condivisione dell’audio del desktop avviata."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_stop"
+msgid "Stop sharing &desktop audio"
+msgstr "Interrompi condivisione audio del &desktop"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py client/main_window/calls.py
+msgctxt "call_desktop_stopped"
+msgid "Desktop audio sharing stopped."
+msgstr "Condivisione dell’audio del desktop interrotta."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_system"
+msgid "Share system audio"
+msgstr "Condividi audio di sistema"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_title"
+msgid "Share desktop audio"
+msgstr "Condividi audio del desktop"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_volume"
+msgid "Sharing &volume (%)"
+msgstr "&Volume di condivisione (%)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_end_hotkey_label"
 msgid "Global hotkey to reject an incoming call or end the call in progress"
 msgstr "Scorciatoia globale per rifiutare o terminare una chiamata"
@@ -20591,7 +20661,8 @@ msgctxt "updates_label"
 msgid "Automatically check &for updates"
 msgstr "&Verifica aggiornamenti automaticamente"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/backlog_flood.py client/main_window/sync.py
 msgctxt "updating_conversations"
 msgid "Updating chats"
 msgstr "Aggiornamento delle chat"
@@ -20665,6 +20736,12 @@ msgctxt "voice_call_connected"
 msgid "Call connected."
 msgstr "Chiamata connessa."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_connecting"
+msgid "Connecting to {name}."
+msgstr "Connessione con {name} in corso."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_device_switch_failed"
 msgid "Could not open the new call audio device."
@@ -20695,6 +20772,22 @@ msgstr "errore sconosciuto"
 msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr "Le chiamate vocali non sono disponibili in questa chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted"
+msgid "Microphone muted."
+msgstr "Microfono disattivato."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted_sharing"
+msgid "Microphone muted. Desktop audio is still being shared."
+msgstr ""
+"Microfono disattivato. La condivisione dell’audio del desktop continua."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_unmuted"
+msgid "Microphone unmuted."
+msgstr "Microfono riattivato."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 msgctxt "voice_call_mute_button"
@@ -20728,6 +20821,12 @@ msgstr "La chiamata si sta riconnettendo."
 msgctxt "voice_call_recording_devices"
 msgid "Recording devices"
 msgstr "Dispositivi di registrazione"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_ringing"
+msgid "Ringing {name}."
+msgstr "Il telefono di {name} sta squillando."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py

@@ -11,6 +11,7 @@ import threading
 import time
 import wx
 from main_window.typing_feedback import stop_typing_for_capture
+from main_window.call_desktop_audio import call_desktop_share_settings, stop_call_desktop_audio
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
     active_call_label_key,
@@ -367,6 +368,7 @@ class CallsMixin:
                 exclusive_output=exclusive_output,
                 echo_cancellation=echo_cancellation,
                 noise_suppression=noise_suppression,
+                neonize_audio=bool(getattr(self, "_uses_neonize", lambda: False)()),
             ),
         )
         return audio, session_name
@@ -513,6 +515,7 @@ class CallsMixin:
         if not keep_call:
             retire_media_epoch(self, (getattr(self, '_active_voice_call', None) or {}).get('media_epoch'))
             stop_call_tone(self)
+        stop_call_desktop_audio(self)
         session = getattr(self, "_call_audio_session", None)
         if session is None:
             self._stop_incoming_call_audio_monitor()
@@ -576,6 +579,9 @@ class CallsMixin:
                     # switch was asked for: a mute toggled in between belongs
                     # to the session being replaced and must carry over too.
                     muted = bool(getattr(self._call_audio_session, "microphone_muted", False))
+                    # A desktop share belongs to the session too; the new
+                    # session shares the same sources again (UI thread).
+                    share = call_desktop_share_settings(self)
                     self._stop_voice_call_audio(keep_call=True)
                     last_error = None
                     for attempt in range(3):
@@ -594,6 +600,8 @@ class CallsMixin:
                                 expected_call=active,
                             ):
                                 logging.info("[call_audio] active call devices switched")
+                                if share is not None:
+                                    wx.CallAfter(self._resume_call_desktop_audio, active, share)
                             last_error = None
                             break
                         except Exception as exc:
@@ -1066,6 +1074,7 @@ class CallsMixin:
         threading.Thread(target=_worker, daemon=True).start()
 
     def end_active_call(self, _event=None):
+        stop_call_desktop_audio(self)
         # Marked here, on the UI thread, before the worker even starts: an
         # outgoing offer no longer holds _call_action_lock while it blocks
         # (#275), so hanging up can reach WhatsApp before the offer does and
@@ -1177,7 +1186,12 @@ class CallsMixin:
         leaves this side's camera off until the user turns it on. An upgrade
         the user asked for (promote_call_to_video) starts its own camera.
         """
+        # Desktop audio is a voice-call feature: the share ends here, and is
+        # said after the upgrade so that announcement is not cut off.
+        share_stopped = stop_call_desktop_audio(self)
         self.output(self.i18n.t("voice_call_upgraded_to_video"), interrupt=True)
+        if share_stopped:
+            self.output(self.i18n.t("call_desktop_stopped"), interrupt=False)
         # Hides the promote button, moving focus off it first if it had it.
         self._sync_voice_call_bar()
         if getattr(self, "_call_camera_capture", None) is not None:
@@ -1516,6 +1530,7 @@ class CallsMixin:
             ),
             "outgoing": not bool(join_call_id),
             "is_video": is_video,
+            "phase": "" if join_call_id else "CALLING",
         }
         self.output(
             (self.i18n.t("group_call_joining") if join_call_id
@@ -1740,18 +1755,14 @@ class CallsMixin:
             # so the main window's deactivation is not coming to do it.
             self._retry_pending_language_switch()
             return
-        muted = bool(
-            getattr(getattr(self, "_call_audio_session", None), "microphone_muted", False)
-        )
-        mute_label = self.i18n.t(
-            "voice_call_unmute_button" if muted else "voice_call_mute_button"
-        )
+        CallsMixin._refresh_call_mute_button(self)
         button = getattr(self, "voice_call_window_mute_button", None)
-        if button is not None:
-            button.SetLabel(mute_label)
         name = active.get("name") or active.get("peer_jid") or self.i18n.t("unknown_contact")
         active_text = self.i18n.t(active_call_label_key(active)).format(name=name)
         is_video = bool(active.get("is_video"))
+        sync_share = getattr(self, "_sync_call_desktop_audio_button", None)
+        if sync_share is not None:
+            sync_share(active)
         self.call_video_image.Show(is_video)
         promote_button = getattr(self, "voice_call_window_promote_button", None)
         if promote_button is not None:
@@ -1808,12 +1819,29 @@ class CallsMixin:
             if button is not None:
                 button.SetFocus()
 
+    def _refresh_call_mute_button(self):
+        button = getattr(self, "voice_call_window_mute_button", None)
+        if button is not None:
+            session = getattr(self, "_call_audio_session", None)
+            muted = getattr(session, "microphone_muted", False)
+            button.SetLabel(self.i18n.t(
+                "voice_call_unmute_button" if muted else "voice_call_mute_button"))
+
     def toggle_call_microphone(self, _event=None):
         session = getattr(self, "_call_audio_session", None)
         if session is None:
             return
         session.set_microphone_muted(not session.microphone_muted)
-        self._sync_voice_call_bar()
+        CallsMixin._refresh_call_mute_button(self)
+        t = self.i18n.t
+        if not session.microphone_muted:
+            text = t("voice_call_microphone_unmuted")
+        elif getattr(session, "desktop_audio", None) is not None:
+            # Mute silences only the microphone; the shared audio goes on.
+            text = t("voice_call_microphone_muted_sharing")
+        else:
+            text = t("voice_call_microphone_muted")
+        self.output(text, interrupt=True)
 
     def on_voice_call_state_event(self, event: dict):
         """Apply the complete call lifecycle emitted by the page CallStore."""
@@ -1903,7 +1931,18 @@ class CallsMixin:
                 self._group_display_name(group_jid) if is_group_event
                 else self._preview_sender_from_jid(call_peer_jid) or call_peer_jid
             )
+        phase_changed = False
+        if state == "ACTIVE":
+            active.pop("phase", None)
+        elif (active.get("outgoing") and state in ("CALLING", "RINGING", "CONNECTING")
+              and self._voice_call_last_announced_state not in ("ACTIVE", "REJOINING")
+              and state != active.get("phase")):
+            active["phase"] = state
+            phase_changed = state != "CALLING"  # placing the call already spoke this
         self._sync_voice_call_bar()
+        if phase_changed:
+            name = active.get("name") or self.i18n.t("unknown_contact")
+            self.output(self.i18n.t(active_call_label_key(active)).format(name=name), interrupt=True)
         # The Neonize engine has no WhatsApp Web page to play the ringback and the
         # connecting beeps; a call that is over silences them.
         terminal_states = {

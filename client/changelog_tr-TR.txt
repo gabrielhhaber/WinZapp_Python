@@ -23,10 +23,19 @@ YENİLİKLER
 - Hesap günlüğü, bir medya indirilirken WPPConnect oturumunun erişim kodunu artık kaydetmiyor.
 
 - Bağlantı motoru: Neonize artık listede ilk sırada ve WinZapp ilk açılışta motoru sorduğunda zaten seçili olan seçenek; hâlâ deneysel olarak işaretli, ancak genel kullanım için önerilen motor odur. WPPConnect, adından sonra "alternatif" uyarısıyla ikinci seçenek olur: ilk açılışta, eşleştirme penceresinde ve Ayarlar > Bağlantı bölümünde. WPPConnect'i zaten kullananlar, değiştirene kadar onda kalır.
+- WinZapp uzun süre açılmadığında: eşitleme bittikten sonra WhatsApp eski mesajları göndermeyi sürdürürken pencere başlığı her şeyi eşitlenmiş göstermek yerine "Sohbetler güncelleniyor" demeye devam eder ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Hem Neonize hem WPPConnect için geçerlidir.
+
+- Bildirimler: çok sayıda yeni mesaj aynı anda geldiğinde (örneğin kararsız bir bağlantı geri geldiğinde) WinZapp sesi onlarca kez yinelemek yerine yalnızca ilk üç bildirimi çalar ve okur, ardından mesaj yağmuru bitene kadar sessiz kalır. Mesajlar yine listede yer alır ve okunmamış sayılır.
 
 - Neonize: Meta AI şartlarını kabul etmek artık bir WhatsApp hatasıyla başarısız olmuyor. WinZapp kabulü artık WhatsApp Web'in bu bildirim için kullandığı biçimde gönderiyor ve yalnızca bildirimin kabul edilmiş olarak kayıtlı olduğunu yeniden okuduktan sonra onaylıyor.
 
 - Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.
+
+- Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.
+
+- Windows 11'de sesli aramada sistem sesini veya tek bir uygulamanın sesini, NVDA sesiyle ya da onsuz, seçtiğiniz ses düzeyinde göndermek için Masaüstü sesini paylaş düğmesini kullanın. Başlangıçta hiçbir şey seçili değildir. Mikrofonu kapatmak paylaşımı durdurmaz ve aramanın ses aygıtlarını değiştirmek paylaşımı sürdürür. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.
+
+- Neonize: aramalarda karşı tarafın sesi biraz daha uzun süre arabellekte tutuluyor (yaklaşık 60 ms); böylece ses toplu halde geldiğinde kesintiler azalıyor.
 
 - Mesaj çevirisi: mesaj listesindeki bir metin mesajında Shift+Enter tuşlarına basın (kısayol değiştirilebilir) veya mesajın bağlam menüsünü kullanın. Ayarlar > Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme > Mesaj çevirisi bölümünden sağlayıcıyı (yapay zekâ sağlayıcılarınız, Grok veya OpenAI ya da Anthropic uyumlu kendi adresiniz), modeli, hedef dili ve çevirinin metnin yerine mi geçeceğini, ondan sonra mı geleceğini yoksa ayrı bir pencerede mi açılacağını seçin. Alınan mesajlar için isteğe bağlı otomatik çeviri: tüm sohbetlerde ya da yalnızca açtıklarınızda, en fazla mesaj yaşı ve günlük sınırla; sağlayıcı anahtarı, kotayı veya krediyi reddederse bir saat duraklar. Kilitli sohbetler hiçbir zaman otomatik çevrilmez ve bunlardaki bir mesajı çevirmek her seferinde onay ister. Çevrim içi yapay zekânın içerik türleri artık aynı sayfadaki "İşlenecek içerik türleri..." penceresindedir.
 

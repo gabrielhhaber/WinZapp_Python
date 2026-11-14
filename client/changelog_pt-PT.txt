@@ -23,10 +23,19 @@ NOVIDADES
 - O registo da conta já não grava o código de acesso da sessão do WPPConnect quando é transferido um ficheiro multimédia.
 
 - Motor de ligação: o Neonize é agora o primeiro da lista e a opção já selecionada quando o WinZapp pergunta o motor na primeira abertura; continua marcado como experimental, mas é o mais recomendado para uso geral. O WPPConnect passa a ser a segunda opção, com o aviso "alternativa" depois do nome, na primeira abertura, na janela de emparelhamento e em Definições > Ligação. Quem já usa o WPPConnect continua nele até trocar.
+- Depois de muito tempo sem abrir o WinZapp: enquanto o WhatsApp ainda entrega mensagens antigas depois da sincronização, o título da janela continua a indicar "A atualizar conversas" em vez de dar tudo como sincronizado, e a lista de conversas fica parada, para poder navegar sem as conversas mudarem de lugar. É atualizada de uma só vez quando as mensagens deixam de chegar. Aplica-se ao Neonize e ao WPPConnect.
+
+- Notificações: quando muitas mensagens novas chegam de uma só vez (por exemplo, ao regressar de uma ligação instável), o WinZapp toca e fala apenas as três primeiras e fica em silêncio até a rajada terminar, em vez de repetir o som dezenas de vezes. As mensagens continuam na lista e contam como não lidas.
 
 - Neonize: aceitar os termos da Meta AI já não falha com erro do WhatsApp. O WinZapp envia agora o aceite no mesmo formato que o WhatsApp Web usa para este aviso e só confirma depois de ler de novo que o aviso consta como aceite.
 
 - Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.
+
+- Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.
+
+- Durante uma chamada de voz no Windows 11, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema ou o de uma única aplicação, com ou sem o áudio do NVDA, no volume que escolher. De início nada vem selecionado. Silenciar o microfone não interrompe a partilha, e mudar os dispositivos de áudio da chamada mantém-na. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.
+
+- Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais de tempo no buffer (cerca de 60 ms), para reduzir os cortes quando o áudio chega em rajadas.
 
 - Tradução de mensagens: prima Shift+Enter numa mensagem de texto da lista de mensagens (o atalho pode ser alterado) ou use o menu de contexto dela. Configure em Definições > IA online: Transcrições e Descrições > Tradução de mensagens: o fornecedor (os seus fornecedores de IA, Grok ou um endereço próprio compatível com OpenAI ou Anthropic), o modelo, o idioma de destino e se a tradução substitui o texto, aparece depois dele ou abre numa janela separada. Tradução automática opcional das mensagens recebidas, em todas as conversas ou apenas nas que ativar, com idade máxima da mensagem e limite diário; fica em pausa durante uma hora se o fornecedor recusar a chave, a quota ou o crédito. As conversas trancadas nunca são traduzidas automaticamente, e traduzir uma mensagem de uma delas pede confirmação de cada vez. Os tipos de conteúdo da IA online ficam agora na janela "Tipos de conteúdo processados...", na mesma página.
 

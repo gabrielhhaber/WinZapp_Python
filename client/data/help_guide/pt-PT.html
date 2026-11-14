@@ -789,6 +789,11 @@
 <p>O Neonize mantém áudio atrasado, tarefas de câmara e mudanças de dispositivo associados à chamada e ao fluxo que os iniciaram. Os dados pendentes de um fluxo terminado ou substituído são descartados, e a acumulação de dados é limitada. Uma falha temporária ao encaminhar um quadro para o cliente não interrompe permanentemente a leitura de áudio. Ao reabrir a saída, o fluxo antigo não pode consumir o áudio do novo fluxo; uma falha na referência de eco não silencia o áudio já preparado para reprodução. Uma correspondência parcial ambígua do nome de um dispositivo WASAPI mantém a API original, sem escolher uma correspondência arbitrária.</p>
 <p>Para investigar problemas, os registos de chamadas do Neonize incluem resumos numéricos do sinal sem gravar o conteúdo do áudio. Distinguem a ausência de amostras, silêncio digital e níveis do sinal; não comprovam que a fala foi compreendida ou ouvida pela outra pessoa.</p>
 
+<h3>Partilhar áudio do ambiente de trabalho</h3>
+<p>Durante uma chamada de voz no Windows 11, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema ou o de uma única aplicação, com ou sem o áudio do NVDA, no volume que escolher. De início nada vem selecionado. Silenciar o microfone não interrompe a partilha, e mudar os dispositivos de áudio da chamada mantém-na. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.</p>
+<p>Escolha o áudio do sistema ou de uma aplicação com sessão de áudio. Inclua o NVDA separadamente e ajuste o volume da partilha.</p>
+<p>Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -886,6 +891,7 @@
 <p>A ligação com o WhatsApp fica guardada no perfil do navegador interno. O WinZapp guarda cópias de segurança dele (Definições &gt; Armazenamento &gt; Cópia de segurança) e as restaura sozinho quando a ligação é recusada, avisando em voz alta que restaurou e está a religar; só pede para emparelhar de novo quando não há cópia aproveitável. Se o navegador interno estiver incompleto (em geral, um antivírus removeu parte dele), o WinZapp diz isso e explica o que fazer.</p>
 <p>Se o WhatsApp desconectar a sessão, o WinZapp avisa na hora e abre o emparelhamento. Em Definições &gt; Ligação o utilizador pode usar uma API personalizada (servidor remoto); nesse caso, o perfil do navegador e as cópias ficam por conta do servidor.</p>
 <p>Ao abrir o WinZapp depois de muito tempo sem usar o WPPConnect, o WhatsApp Web pode demorar alguns minutos a atualizar-se. Entretanto, o título da janela indica "a sincronizar com o WhatsApp...": a conta não caiu e não é preciso fazer nada.</p>
+<p>Depois de muito tempo sem abrir o WinZapp, o WhatsApp pode continuar a entregar mensagens antigas depois de a sincronização terminar. Enquanto chegam, o título da janela indica "A atualizar conversas" e a lista de conversas fica parada, para poder navegar sem as conversas mudarem de lugar; é atualizada de uma só vez quando as mensagens deixam de chegar. Quando muitas mensagens novas chegam ao mesmo tempo, o WinZapp toca e fala no máximo três notificações por segundo e fica em silêncio até a rajada terminar; todas as mensagens ficam na lista e contam como não lidas.</p>
 
   </section>
 
@@ -1425,6 +1431,9 @@
   <tr><td class="field-name">Ainda não lançado</td><td>Limpar uma conversa no telemóvel limpa a conversa no WinZapp; canais abertos pela janela Canais carregam as atualizações de imediato; "Detalhes do grupo" acompanha o número de participantes; sem "A atualizar conversas" repetido depois da suspensão; Neonize: privacidade aplicada já não é indicada como falha.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Motor de ligação: o Neonize vem primeiro na lista e já selecionado na primeira abertura; o WPPConnect é a segunda opção, marcado como alternativa.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Durante uma chamada de voz no Windows 11, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema ou o de uma única aplicação, com ou sem o áudio do NVDA, no volume que escolher. De início nada vem selecionado. Silenciar o microfone não interrompe a partilha, e mudar os dispositivos de áudio da chamada mantém-na. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais de tempo no buffer (cerca de 60 ms), para reduzir os cortes quando o áudio chega em rajadas.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Tradução de mensagens (Shift+Enter ou menu de contexto da mensagem), com tradução automática, regras das conversas trancadas e pausa de uma hora; os tipos de conteúdo da IA online ficam em "Tipos de conteúdo processados...".</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Neonize: o ficheiro multimédia antigo reenviado pelo telemóvel após o pedido de novo envio é transferido, sem depender da verificação do ficheiro original.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Definições > Geral: nova opção para descarregar atualizações automaticamente e instalá-las quando sai do WinZapp, sem o voltar a abrir.</td></tr>
@@ -1515,6 +1524,7 @@
 <tr><td class="field-name">Ainda não lançado</td><td>Conversas: opção para a lista de mensagens continuar de onde parou; marcadores removidos automaticamente após a primeira utilização.</td></tr>
 <tr><td class="field-name">Ainda não lançado</td><td>Janela de novidades: o Esc fecha-a.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Atualização com várias contas abertas: o WinZapp espera que as outras contas fechem antes de instalar.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Mensagens antigas depois da sincronização: o título indica "A atualizar conversas" e a lista fica parada; rajadas de mensagens novas tocam no máximo três notificações por segundo.</td></tr>
 </table>
 
   </section>

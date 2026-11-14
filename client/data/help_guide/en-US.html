@@ -789,6 +789,11 @@
 <p>Neonize keeps delayed audio, camera work and device changes with the call and stream that started them. Pending data from an ended or replaced stream is discarded, and media backlog is limited. A temporary failure to forward a frame to the client does not permanently stop audio reading. Reopening the output prevents a retired stream from consuming the new stream's audio; an echo-reference failure does not silence audio already prepared for playback. An ambiguous partial WASAPI device-name match keeps the original API instead of choosing an arbitrary match.</p>
 <p>For troubleshooting, Neonize call logs include numerical signal summaries without recording audio content. They distinguish missing samples, digital silence and signal levels; they do not prove that speech was understood or heard by the other person.</p>
 
+<h3>Share desktop audio</h3>
+<p>During a voice call on Windows 11, use Share desktop audio to send the system sound or the sound of a single application, with or without NVDA audio, at the volume you choose. Nothing is selected at first. Muting the microphone does not stop the share, and changing the call's audio devices keeps it going. Use Stop sharing desktop audio to end sharing independently of the microphone.</p>
+<p>Choose system audio or an application with an audio session. Include NVDA separately and adjust the sharing volume as needed.</p>
+<p>In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -886,6 +891,7 @@
 <p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Settings &gt; Storage &gt; Profile backup) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
 <p>If WhatsApp disconnects the session, WinZapp tells you right away and opens pairing. In Settings &gt; Connection you can use a custom API (remote server); in that case, the browser profile and the backups are left to the server.</p>
 <p>When you open WinZapp after a long time without using WPPConnect, WhatsApp Web can take a few minutes to catch up. Meanwhile the window title says "syncing with WhatsApp...": the account has not dropped and there is nothing to do.</p>
+<p>After a long time without opening WinZapp, WhatsApp can keep delivering old messages after the sync ends. While they arrive, the window title says "Updating chats" and the chat list stays still, so you can move through it without chats changing place; it is updated once when the messages stop arriving. When many new messages arrive at the same time, WinZapp plays and speaks at most three notifications per second and stays quiet until the burst ends; every message is still in the list and counts as unread.</p>
 
   </section>
 
@@ -1425,6 +1431,9 @@
   <tr><td class="field-name">Not yet released</td><td>Clearing a chat on the phone clears it in WinZapp; channels opened from the Channels window load their updates right away; "Group info" keeps up with the number of participants; no repeated "Updating chats" after sleep; Neonize: an applied privacy change is no longer reported as a failure.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Connection engine: Neonize comes first in the list and is already selected on the first launch; WPPConnect is the second option, marked as an alternative.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>During a voice call on Windows 11, use Share desktop audio to send the system sound or the sound of a single application, with or without NVDA audio, at the volume you choose. Nothing is selected at first. Muting the microphone does not stop the share, and changing the call's audio devices keeps it going. Use Stop sharing desktop audio to end sharing independently of the microphone.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize: in calls, the other person's voice is buffered a little longer (about 60 ms) to reduce breakups when audio arrives in bursts.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Message translation (Shift+Enter or the message's context menu), with automatic translation, the locked-chat rules and the one-hour pause; the kinds of media of online AI are in "Types of media handled...".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize: old media re-uploaded by the phone after the request to send it again is downloaded, without depending on the check of the original file.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Settings > General: a new option downloads updates automatically and installs them when you exit WinZapp, without opening it again.</td></tr>
@@ -1515,6 +1524,7 @@
 <tr><td class="field-name">Not yet released</td><td>Chats: option for the messages list to continue where you left off; bookmarks removed automatically after the first use.</td></tr>
 <tr><td class="field-name">Not yet released</td><td>What's New window: Esc closes it.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Updating with several accounts open: WinZapp waits for the other accounts to close before it installs.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Old messages after the sync: the title says "Updating chats" and the list stays still; bursts of new messages play at most three notifications per second.</td></tr>
 </table>
 
   </section>

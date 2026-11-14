@@ -789,6 +789,11 @@
 <p>Neonize asociază sunetul întârziat, operațiile camerei și schimbările de dispozitive cu apelul și fluxul care le-au pornit. Datele în așteptare ale unui flux încheiat sau înlocuit sunt eliminate, iar acumularea datelor media este limitată. O eroare temporară la trimiterea unui cadru către client nu oprește definitiv citirea sunetului. La redeschiderea ieșirii, fluxul vechi nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu reduce la tăcere sunetul pregătit pentru redare. O potrivire parțială ambiguă a numelui unui dispozitiv WASAPI păstrează API-ul inițial, fără a alege o potrivire arbitrară.</p>
 <p>Pentru investigarea problemelor, jurnalele apelurilor Neonize includ rezumate numerice ale semnalului fără a înregistra conținutul audio. Ele disting lipsa eșantioanelor, tăcerea digitală și nivelurile semnalului; nu dovedesc că cealaltă persoană a înțeles sau a auzit vorbirea.</p>
 
+<h3>Partajați sunetul desktopului</h3>
+<p>În timpul unui apel vocal în Windows 11, folosește Partajați sunetul desktopului pentru a trimite sunetul sistemului sau al unei singure aplicații, cu sau fără sunetul NVDA, la volumul ales. Inițial nu este selectat nimic. Dezactivarea microfonului nu oprește partajarea, iar schimbarea dispozitivelor audio ale apelului o păstrează. Folosește Opriți partajarea sunetului desktopului pentru a opri trimiterea independent de microfon.</p>
+<p>Alege sunetul sistemului sau o aplicație cu o sesiune audio. Poți include separat NVDA și regla volumul partajării.</p>
+<p>În fereastra apelului, apasă Ctrl+M din orice control pentru a dezactiva sau reactiva microfonul și a-i auzi starea. Fereastra apelului efectuat afișează starea și anunță când sună telefonul sau când se conectează apelul.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -886,6 +891,7 @@
 <p>Conexiunea la WhatsApp este stocată în profilul browserului intern. WinZapp păstrează copii de siguranță ale acestuia (Setări &gt; Stocare &gt; Copie de siguranță a profilului) și le restaurează singur când conexiunea este refuzată, spunând cu voce tare că a restaurat și se reconectează; îți cere să asociezi din nou doar când nu există nicio copie utilizabilă. Dacă browserul intern este incomplet (de obicei un antivirus a eliminat o parte din el), WinZapp spune asta și explică ce să faci.</p>
 <p>Dacă WhatsApp deconectează sesiunea, WinZapp te anunță imediat și deschide asocierea. În Setări &gt; Conexiune poți folosi un API personalizat (server la distanță); în acest caz, profilul browserului și copiile de siguranță rămân în grija serverului.</p>
 <p>Când deschideți WinZapp după mult timp fără să fi folosit WPPConnect, WhatsApp Web poate avea nevoie de câteva minute pentru a se actualiza. Între timp, titlul ferestrei afișează "se sincronizează cu WhatsApp...": contul nu s-a deconectat și nu trebuie să faceți nimic.</p>
+<p>După mult timp fără a deschide WinZapp, WhatsApp poate continua să livreze mesaje vechi după încheierea sincronizării. Cât timp acestea sosesc, titlul ferestrei afișează "Se actualizează conversațiile", iar lista de conversații rămâne nemișcată, ca să o puteți parcurge fără ca conversațiile să își schimbe locul; este actualizată o singură dată, când mesajele nu mai sosesc. Când sosesc multe mesaje noi în același timp, WinZapp redă și citește cel mult trei notificări pe secundă și rămâne în tăcere până la sfârșitul rafalei; toate mesajele rămân în listă și sunt numărate ca necitite.</p>
 
   </section>
 
@@ -1425,6 +1431,9 @@
   <tr><td class="field-name">Nelansat încă</td><td>Golirea unei conversații pe telefon o golește și în WinZapp; canalele deschise din fereastra Canale își încarcă imediat actualizările; "Informații despre grup" ține pasul cu numărul de participanți; fără "Se actualizează conversațiile" repetat după repaus; Neonize: o schimbare de confidențialitate aplicată nu mai e raportată ca eroare.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Motor de conectare: Neonize apare primul în listă și este deja selectat la prima pornire; WPPConnect este a doua opțiune, marcată ca alternativă.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Apeluri: compatibilitate îmbunătățită cu microfoanele și căștile stereo în modul partajat, cu revenire la mono dacă este necesar. Vocea este trimisă în continuare mono.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>În fereastra apelului, apasă Ctrl+M din orice control pentru a dezactiva sau reactiva microfonul și a-i auzi starea. Fereastra apelului efectuat afișează starea și anunță când sună telefonul sau când se conectează apelul.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>În timpul unui apel vocal în Windows 11, folosește Partajați sunetul desktopului pentru a trimite sunetul sistemului sau al unei singure aplicații, cu sau fără sunetul NVDA, la volumul ales. Inițial nu este selectat nimic. Dezactivarea microfonului nu oprește partajarea, iar schimbarea dispozitivelor audio ale apelului o păstrează. Folosește Opriți partajarea sunetului desktopului pentru a opri trimiterea independent de microfon.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Neonize: în apeluri, vocea celeilalte persoane este păstrată puțin mai mult în buffer (aproximativ 60 ms), pentru a reduce întreruperile când sunetul sosește în rafale.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Traducerea mesajelor (Shift+Enter sau meniul contextual al mesajului), cu traducere automată, regulile conversațiilor blocate și pauza de o oră; tipurile de conținut ale AI online sunt în "Tipuri de conținut procesate...".</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Neonize: fișierul media vechi încărcat din nou de telefon după cererea de retrimitere este descărcat, fără să depindă de verificarea originalului.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Setări > General: o opțiune nouă descarcă actualizările automat și le instalează când ieșiți din WinZapp, fără a-l deschide din nou.</td></tr>
@@ -1515,6 +1524,7 @@
 <tr><td class="field-name">Nelansat încă</td><td>Conversații: opțiune pentru ca lista de mesaje să continue de unde ai rămas; marcaje eliminate automat după prima utilizare.</td></tr>
 <tr><td class="field-name">Nelansat încă</td><td>Fereastra de noutăți: Esc o închide.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Actualizare cu mai multe conturi deschise: WinZapp așteaptă închiderea celorlalte conturi înainte de a instala.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Mesaje vechi după sincronizare: titlul afișează "Se actualizează conversațiile", iar lista rămâne nemișcată; rafalele de mesaje noi redau cel mult trei notificări pe secundă.</td></tr>
 </table>
 
   </section>

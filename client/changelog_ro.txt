@@ -23,10 +23,19 @@ NOUTĂȚI
 - Jurnalul contului nu mai înregistrează codul de acces al sesiunii WPPConnect când se descarcă un fișier media.
 
 - Motor de conectare: Neonize este acum primul din listă și opțiunea deja selectată când WinZapp întreabă ce motor să folosească la prima pornire; rămâne marcat ca experimental, dar este cel recomandat pentru uz general. WPPConnect devine a doua opțiune, cu mențiunea "alternativ" după nume, la prima pornire, în fereastra de asociere și în Setări > Conexiune. Cine folosește deja WPPConnect rămâne pe el până îl schimbă.
+- După mult timp fără a deschide WinZapp: cât timp WhatsApp încă livrează mesaje vechi după sincronizare, titlul ferestrei continuă să afișeze "Se actualizează conversațiile" în loc să prezinte totul ca sincronizat, iar lista de conversații rămâne nemișcată, ca să o puteți parcurge fără ca conversațiile să își schimbe locul. Este actualizată o singură dată, când mesajele nu mai sosesc. Se aplică atât pentru Neonize, cât și pentru WPPConnect.
+
+- Notificări: când sosesc multe mesaje noi deodată (de exemplu, la revenirea unei conexiuni instabile), WinZapp redă și citește doar primele trei și rămâne în tăcere până la sfârșitul rafalei, în loc să repete sunetul de zeci de ori. Mesajele rămân în listă și sunt numărate ca necitite.
 
 - Neonize: acceptarea termenilor Meta AI nu mai eșuează cu o eroare WhatsApp. WinZapp trimite acum acceptarea în același format pe care WhatsApp Web îl folosește pentru această notificare și o confirmă abia după ce citește din nou că notificarea figurează ca acceptată.
 
 - Apeluri: compatibilitate îmbunătățită cu microfoanele și căștile stereo în modul partajat, cu revenire la mono dacă este necesar. Vocea este trimisă în continuare mono.
+
+- În fereastra apelului, apasă Ctrl+M din orice control pentru a dezactiva sau reactiva microfonul și a-i auzi starea. Fereastra apelului efectuat afișează starea și anunță când sună telefonul sau când se conectează apelul.
+
+- În timpul unui apel vocal în Windows 11, folosește Partajați sunetul desktopului pentru a trimite sunetul sistemului sau al unei singure aplicații, cu sau fără sunetul NVDA, la volumul ales. Inițial nu este selectat nimic. Dezactivarea microfonului nu oprește partajarea, iar schimbarea dispozitivelor audio ale apelului o păstrează. Folosește Opriți partajarea sunetului desktopului pentru a opri trimiterea independent de microfon.
+
+- Neonize: în apeluri, vocea celeilalte persoane este păstrată puțin mai mult în buffer (aproximativ 60 ms), pentru a reduce întreruperile când sunetul sosește în rafale.
 
 - Traducerea mesajelor: apasă Shift+Enter pe un mesaj text din lista de mesaje (scurtătura se poate schimba) sau folosește meniul lui contextual. Se configurează în Setări > AI online: transcrieri și descrieri > Traducerea mesajelor: furnizorul (furnizorii tăi AI, Grok sau o adresă proprie compatibilă cu OpenAI ori Anthropic), modelul, limba țintă și dacă traducerea înlocuiește textul, apare după el sau se deschide într-o fereastră separată. Traducere automată opțională a mesajelor primite, în toate conversațiile sau doar în cele pe care le activezi, cu vârstă maximă a mesajului și limită zilnică; se întrerupe pentru o oră dacă furnizorul refuză cheia, cota sau creditul. Conversațiile blocate nu sunt niciodată traduse automat, iar traducerea unui mesaj dintr-o astfel de conversație cere confirmare de fiecare dată. Tipurile de conținut ale AI online sunt acum în fereastra "Tipuri de conținut procesate...", pe aceeași pagină.
 

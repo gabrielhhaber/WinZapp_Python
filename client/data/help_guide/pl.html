@@ -790,6 +790,11 @@
 <p>Neonize przypisuje opóźniony dźwięk, operacje kamery i zmiany urządzeń do połączenia i strumienia, które je rozpoczęły. Oczekujące dane zakończonego lub zastąpionego strumienia są odrzucane, a zaległe dane multimedialne mają ograniczony rozmiar. Przejściowy błąd przekazania ramki do klienta nie zatrzymuje na stałe odczytu dźwięku. Po ponownym otwarciu wyjścia stary strumień nie może pobierać dźwięku nowego; błąd sygnału odniesienia dla usuwania echa nie wycisza dźwięku przygotowanego do odtwarzania. Jeśli częściowa nazwa urządzenia WASAPI pasuje do kilku urządzeń, WinZapp zachowuje dotychczasowe API dźwięku zamiast wybierać przypadkowe urządzenie.</p>
 <p>Dzienniki połączeń Neonize zawierają liczbowe podsumowania sygnału do badania problemów, bez zapisywania treści dźwięku. Rozróżniają brak próbek, cyfrową ciszę i poziomy sygnału; nie potwierdzają, że druga osoba zrozumiała lub usłyszała mowę.</p>
 
+<h3>Udostępnij dźwięk pulpitu</h3>
+<p>Podczas połączenia głosowego w systemie Windows 11 wybierz Udostępnij dźwięk pulpitu, aby przesłać dźwięk systemu albo jednej aplikacji, z dźwiękiem NVDA lub bez niego, z wybraną głośnością. Na początku nic nie jest zaznaczone. Wyciszenie mikrofonu nie zatrzymuje udostępniania, a zmiana urządzeń audio połączenia go nie przerywa. Użyj przycisku Zakończ udostępnianie dźwięku pulpitu, aby zatrzymać udostępnianie niezależnie od mikrofonu.</p>
+<p>Wybierz dźwięk systemu lub aplikacji z sesją audio. Dźwięk NVDA możesz dołączyć osobno i dostosować głośność udostępniania.</p>
+<p>W oknie połączenia naciśnij Ctrl+M na dowolnym elemencie, aby wyciszyć lub włączyć mikrofon i usłyszeć jego stan. Okno połączenia wychodzącego pokazuje stan i odczytuje informację o dzwonieniu lub nawiązywaniu połączenia.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -887,6 +892,7 @@
 <p>Przy korzystaniu z silnika WPPConnect dane sesji WhatsApp są przechowywane w profilu wewnętrznej przeglądarki. WinZapp trzyma jego kopie zapasowe (Ustawienia &gt; Pamięć &gt; Kopia zapasowa) i przywraca je sam, gdy połączenie zostanie odrzucone, mówiąc na głos, że przywrócił i łączy się ponownie; prosi o ponowne połączenie z kontem WhatsApp tylko wtedy, gdy nie ma użytecznej kopii. Jeśli wewnętrzna przeglądarka jest niekompletna (zwykle antywirus usunął jej część), WinZapp o tym mówi i wyjaśnia, co zrobić.</p>
 <p>Jeśli WhatsApp rozłączy sesję, WinZapp od razu ci o tym mówi i otwiera okno łączenia z kontem. W Ustawienia &gt; Połączenie możesz użyć własnego API (serwer zdalny); wtedy profil przeglądarki i kopie zapasowe pozostają po stronie serwera.</p>
 <p>Po otwarciu WinZapp po długiej przerwie w korzystaniu z WPPConnect WhatsApp Web może potrzebować kilku minut na nadrobienie zaległości. W tym czasie tytuł okna pokazuje "synchronizowanie z WhatsAppem...": konto nie zostało rozłączone i nie trzeba nic robić.</p>
+<p>Po długiej przerwie w korzystaniu z WinZapp WhatsApp może nadal dostarczać stare wiadomości po zakończeniu synchronizacji. Dopóki napływają, tytuł okna pokazuje "Aktualizowanie czatów", a lista czatów pozostaje nieruchoma, aby można było ją przeglądać bez zmieniania się kolejności czatów; jest aktualizowana jednorazowo, gdy wiadomości przestają napływać. Gdy wiele nowych wiadomości przychodzi w tym samym czasie, WinZapp odtwarza i odczytuje najwyżej trzy powiadomienia na sekundę i milczy do końca serii; wszystkie wiadomości są na liście i liczą się jako nieprzeczytane.</p>
 
   </section>
 
@@ -1426,6 +1432,9 @@
   <tr><td class="field-name">Jeszcze niewydane</td><td>Wyczyszczenie czatu w telefonie czyści go w WinZapp; kanały otwarte z okna Kanały od razu wczytują aktualizacje; "Informacje o grupie" pokazuje aktualną liczbę uczestników; bez powtórnego "Aktualizowanie czatów" po uśpieniu; Neonize: zastosowana zmiana prywatności nie jest już zgłaszana jako błąd.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Silnik połączenia: Neonize jest pierwszy na liście i zaznaczony od razu przy pierwszym uruchomieniu; WPPConnect jest drugą opcją, oznaczoną jako alternatywna.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia: lepsza obsługa mikrofonów i słuchawek stereo w trybie współdzielonym, z przejściem na mono w razie potrzeby. Głos nadal jest wysyłany w mono.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>W oknie połączenia naciśnij Ctrl+M na dowolnym elemencie, aby wyciszyć lub włączyć mikrofon i usłyszeć jego stan. Okno połączenia wychodzącego pokazuje stan i odczytuje informację o dzwonieniu lub nawiązywaniu połączenia.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Podczas połączenia głosowego w systemie Windows 11 wybierz Udostępnij dźwięk pulpitu, aby przesłać dźwięk systemu albo jednej aplikacji, z dźwiękiem NVDA lub bez niego, z wybraną głośnością. Na początku nic nie jest zaznaczone. Wyciszenie mikrofonu nie zatrzymuje udostępniania, a zmiana urządzeń audio połączenia go nie przerywa. Użyj przycisku Zakończ udostępnianie dźwięku pulpitu, aby zatrzymać udostępnianie niezależnie od mikrofonu.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: w połączeniach głos drugiej osoby jest buforowany nieco dłużej (około 60 ms), aby ograniczyć przerwy, gdy dźwięk dociera seriami.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Tłumaczenie wiadomości (Shift+Enter lub menu kontekstowe wiadomości), z tłumaczeniem automatycznym, zasadami zabezpieczonych czatów i godzinną przerwą; rodzaje plików AI online są w „Rodzaje plików do przetwarzania...”.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: stare multimedia przesłane ponownie przez telefon po prośbie o ponowne wysłanie są pobierane bez zależności od weryfikacji oryginalnego pliku.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Ustawienia > Ogólne: nowa opcja pobiera aktualizacje automatycznie i instaluje je po zakończeniu pracy z WinZapp, bez ponownego uruchamiania.</td></tr>
@@ -1516,6 +1525,7 @@
 <tr><td class="field-name">Jeszcze niewydane</td><td>Czaty: opcja, dzięki której lista wiadomości kontynuuje od miejsca, w którym przerwano; zakładki usuwane automatycznie po pierwszym użyciu.</td></tr>
 <tr><td class="field-name">Jeszcze niewydane</td><td>Okno nowości: Esc je zamyka.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Aktualizacja przy kilku otwartych kontach: WinZapp czeka, aż pozostałe konta się zamkną, zanim zainstaluje.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Stare wiadomości po synchronizacji: tytuł pokazuje "Aktualizowanie czatów", a lista pozostaje nieruchoma; serie nowych wiadomości odtwarzają najwyżej trzy powiadomienia na sekundę.</td></tr>
 </table>
 
   </section>

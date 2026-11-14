@@ -789,6 +789,11 @@
 <p>Neonize, geciken sesi, kamera işlerini ve aygıt değişikliklerini başlatıldıkları arama ve akışla sınırlı tutar. Bitmiş veya değiştirilmiş akışın bekleyen verisi atılır ve medya birikimi sınırlandırılır. Bir kareyi istemciye iletirken oluşan geçici hata ses okumayı kalıcı olarak durdurmaz. Ses çıkışı yeniden açıldığında eski akış yeni akışın sesini tüketemez; yankı referansındaki hata çalınmaya hazırlanan sesi susturmaz. WASAPI aygıt adının kısmi eşleşmesi belirsizse rastgele bir eşleşme seçilmeden özgün API korunur.</p>
 <p>Sorun incelemesi için Neonize arama günlüklerinde ses içeriğini kaydetmeyen sayısal sinyal özetleri bulunur. Bu özetler örnek gelmemesi, dijital sessizlik ve sinyal düzeylerini ayırır; karşı tarafın konuşmayı anladığını veya duyduğunu kanıtlamaz.</p>
 
+<h3>Masaüstü sesini paylaş</h3>
+<p>Windows 11'de sesli aramada sistem sesini veya tek bir uygulamanın sesini, NVDA sesiyle ya da onsuz, seçtiğiniz ses düzeyinde göndermek için Masaüstü sesini paylaş düğmesini kullanın. Başlangıçta hiçbir şey seçili değildir. Mikrofonu kapatmak paylaşımı durdurmaz ve aramanın ses aygıtlarını değiştirmek paylaşımı sürdürür. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.</p>
+<p>Sistem sesini veya ses oturumu olan bir uygulamayı seçin. NVDA sesini ayrı olarak dahil edebilir ve paylaşım ses düzeyini ayarlayabilirsiniz.</p>
+<p>Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -886,6 +891,7 @@
 <p>WhatsApp bağlantısı dahili tarayıcının profilinde saklanır. WinZapp bunun yedeklerini tutar (Ayarlar &gt; Depolama &gt; Profil yedekleme) ve bağlantı reddedildiğinde onları kendiliğinden geri yükler, geri yüklediğini ve yeniden bağlandığını yüksek sesle söyler; yalnızca kullanılabilir bir yedek olmadığında yeniden eşleştirmenizi ister. Dahili tarayıcı eksikse (genellikle bir antivirüs bir kısmını kaldırmıştır), WinZapp bunu söyler ve ne yapmanız gerektiğini açıklar.</p>
 <p>WhatsApp oturumu keserse WinZapp size hemen söyler ve eşleştirmeyi açar. Ayarlar &gt; Bağlantı içinde özel bir API (uzak sunucu) kullanabilirsiniz; bu durumda tarayıcı profili ve yedekler sunucuya bırakılır.</p>
 <p>WPPConnect'i uzun süre kullanmadıktan sonra WinZapp'ı açtığınızda WhatsApp Web'in güncellenmesi birkaç dakika sürebilir. Bu sırada pencere başlığında "WhatsApp ile eşitleniyor..." yazar: hesabınızın bağlantısı kopmamıştır ve bir şey yapmanız gerekmez.</p>
+<p>WinZapp uzun süre açılmadığında WhatsApp, eşitleme bittikten sonra da eski mesajları göndermeyi sürdürebilir. Bu mesajlar gelirken pencere başlığında "Sohbetler güncelleniyor" yazar ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Çok sayıda yeni mesaj aynı anda geldiğinde WinZapp saniyede en fazla üç bildirimi çalar ve okur, ardından mesaj yağmuru bitene kadar sessiz kalır; bütün mesajlar listede yer alır ve okunmamış sayılır.</p>
 
   </section>
 
@@ -1425,6 +1431,9 @@
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Telefonda temizlenen sohbet WinZapp'te de temizlenir; Kanallar penceresinden açılan kanallar güncellemelerini hemen yükler; "Grup bilgisi" katılımcı sayısını güncel tutar; uykudan sonra tekrarlanan "Sohbetler güncelleniyor" yok; Neonize: uygulanan gizlilik değişikliği artık hata olarak bildirilmiyor.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Bağlantı motoru: Neonize listede ilk sırada gelir ve ilk açılışta zaten seçilidir; WPPConnect, alternatif olarak işaretlenmiş ikinci seçenektir.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Windows 11'de sesli aramada sistem sesini veya tek bir uygulamanın sesini, NVDA sesiyle ya da onsuz, seçtiğiniz ses düzeyinde göndermek için Masaüstü sesini paylaş düğmesini kullanın. Başlangıçta hiçbir şey seçili değildir. Mikrofonu kapatmak paylaşımı durdurmaz ve aramanın ses aygıtlarını değiştirmek paylaşımı sürdürür. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Neonize: aramalarda karşı tarafın sesi biraz daha uzun süre arabellekte tutuluyor (yaklaşık 60 ms); böylece ses toplu halde geldiğinde kesintiler azalıyor.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Mesaj çevirisi (Shift+Enter veya mesajın bağlam menüsü), otomatik çeviri, kilitli sohbet kuralları ve bir saatlik duraklama ile; çevrim içi yapay zekânın içerik türleri "İşlenecek içerik türleri..." içindedir.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Neonize: telefonun yeniden gönderme isteğinden sonra tekrar yüklediği eski medya, orijinal dosyanın doğrulamasına bağlı kalmadan indiriliyor.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Ayarlar > Genel: yeni bir seçenek güncellemeleri otomatik indirir ve WinZapp'tan çıktığınızda, yeniden açmadan yükler.</td></tr>
@@ -1515,6 +1524,7 @@
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Sohbetler: mesaj listesinin kaldığınız yerden devam etmesi için seçenek; ilk kullanımdan sonra otomatik olarak kaldırılan yer imleri.</td></tr>
 <tr><td class="field-name">Henüz yayımlanmadı</td><td>Yenilikler penceresi: Esc kapatır.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Birden fazla hesap açıkken güncelleme: WinZapp yüklemeden önce diğer hesapların kapanmasını bekler.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Eşitlemeden sonra gelen eski mesajlar: başlıkta "Sohbetler güncelleniyor" yazar ve liste sabit kalır; yeni mesaj yağmurunda saniyede en fazla üç bildirim çalınır.</td></tr>
 </table>
 
   </section>

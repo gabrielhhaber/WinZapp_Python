@@ -16,6 +16,7 @@ from main_window.typing_feedback import observe_typing_batch
 from core.conversation_view import conversation_in_view
 from core.unsaved_contact_marker import marked_chat_name
 from core.pinned_chat_order import sync_pinned_order
+from main_window.backlog_flood import defer_list_update
 from main_window.message_rules import (
     _discount_non_countable_unread,
     note_unread_discount_state,
@@ -903,7 +904,8 @@ class ChatEventsMixin:
             chat["unreadCount"] = unread_count
             note_unread_discount_state(chat, discounted)
             self._schedule_save(dirty_jid=normalized)
-            self._schedule_set_chats()
+            if not defer_list_update(self):
+                self._schedule_set_chats()
             return
         elif read_at_t is not None:
             incoming_t = int(chat.get("t", 0) or 0)
@@ -969,7 +971,9 @@ class ChatEventsMixin:
         chat["unreadCount"] = unread_count
         note_unread_discount_state(chat, discounted)
         self._schedule_save(dirty_jid=normalized)
-        self._schedule_set_chats()
+        # A backlog flood holds the list; it is rebuilt once when it ends.
+        if not defer_list_update(self):
+            self._schedule_set_chats()
 
     def on_chat_archive_update(self, jid: str, archived: bool):
         """Handle archive/unarchive status change from chats.update."""
