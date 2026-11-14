@@ -71,10 +71,12 @@ class AIConsentDialog(wx.Dialog):
     carries mnemonics: its few controls are all reachable from the keyboard by
     letter."""
 
-    def __init__(self, parent, i18n, providers, kind, locked):
+    def __init__(self, parent, i18n, providers, kind, locked, text=None):
+        """``text`` replaces the computed message (the text-only windows name
+        their own destination); the kind notices stay the media windows'."""
         super().__init__(parent, title=i18n.t("ai_consent_title"))
         layout = wx.BoxSizer(wx.VERTICAL)
-        text = wx.TextCtrl(self, value=consent_text(i18n, providers, kind, locked), style=wx.TE_MULTILINE | wx.TE_READONLY,
+        text = wx.TextCtrl(self, value=text if text is not None else consent_text(i18n, providers, kind, locked), style=wx.TE_MULTILINE | wx.TE_READONLY,
                            size=(520, 220), name=plain(i18n, "ai_consent_title"))
         layout.Add(text, 1, wx.EXPAND | wx.ALL, 10)
         self.remember = wx.CheckBox(self, label=i18n.t("ai_remember_consent"))

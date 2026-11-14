@@ -13,6 +13,14 @@ _SUBJECT = {"image": "a photo", "sticker": "a sticker", "video": "a single frame
 
 def instructions(language, profile, kind="image"):
     """System prompt for ``kind``; ``profile`` only shapes descriptions."""
+    if kind == "writing":
+        return (
+            "You help a blind person polish a message they are about to send in a "
+            "chat app. Answer in language " + language + ". "
+            "The draft may be in any language: keep the draft's own language unless "
+            "the request says otherwise. Return only the resulting message text: no "
+            "explanations, no quotes, no alternatives, no Markdown. Keep links, "
+            "@mentions and emojis exactly as they are. " + _UNTRUSTED)
     if kind == "audio":
         return (
             "You transcribe a voice message for a deaf or hard-of-hearing reader. "

@@ -20,7 +20,7 @@ KIND_BY_MESSAGE_TYPE = {
 #: The inline payload each kind needs from a provider ("sticker" and "video"
 #: ride on "image": a video is described from one still frame of it).
 _CAPABILITY = {"image": "image", "sticker": "image", "video": "image",
-               "audio": "audio", "pdf": "pdf"}
+               "audio": "audio", "pdf": "pdf", "text": "text", "writing": "text"}
 
 
 @dataclass(frozen=True)
@@ -56,29 +56,29 @@ PROVIDERS = {
     "gemini": Provider(
         "Google Gemini", "gemini-3.8-flash", "https://aistudio.google.com/api-keys",
         "https://ai.google.dev/gemini-api/docs/billing", "https://ai.google.dev/gemini-api/terms",
-        frozenset({"image", "audio", "pdf"})),
+        frozenset({"image", "audio", "pdf", "text"})),
     "openai": Provider(
         "OpenAI", "gpt-4.1-mini", "https://platform.openai.com/api-keys",
         "https://platform.openai.com/settings/organization/billing/overview",
         "https://developers.openai.com/api/docs/guides/your-data",
-        frozenset({"image", "audio", "pdf"}), transcribe_model="gpt-4o-mini-transcribe"),
+        frozenset({"image", "audio", "pdf", "text"}), transcribe_model="gpt-4o-mini-transcribe"),
     "claude": Provider(
         "Claude", "claude-sonnet-5", "https://console.anthropic.com/settings/keys",
         "https://console.anthropic.com/settings/billing",
         "https://www.anthropic.com/legal/privacy",
-        frozenset({"image", "pdf"})),
+        frozenset({"image", "pdf", "text"})),
     "groq": Provider(
         "Groq", "qwen/qwen3.8-27b", "https://console.groq.com/keys",
         "https://console.groq.com/settings/billing", "https://groq.com/privacy-policy",
-        frozenset({"image", "audio"}), transcribe_model="whisper-large-v3-turbo"),
+        frozenset({"image", "audio", "text"}), transcribe_model="whisper-large-v3-turbo"),
     "openrouter": Provider(
         "OpenRouter", "google/gemini-3.5-flash-lite", "https://openrouter.ai/settings/keys",
         "https://openrouter.ai/settings/credits", "https://openrouter.ai/privacy",
-        frozenset({"image", "pdf"})),
+        frozenset({"image", "pdf", "text"})),
     "mistral": Provider(
         "Mistral", "ministral-3b-latest", "https://console.mistral.ai/api-keys",
         "https://mistral.ai/pricing/api/", "https://legal.mistral.ai/terms/privacy-policy/",
-        frozenset({"image", "audio", "pdf"}), transcribe_model="voxtral-mini-transcribe-3",
+        frozenset({"image", "audio", "pdf", "text"}), transcribe_model="voxtral-mini-transcribe-3",
         # The two models Mistral's file-transcription guide accepts (checked on
         # docs.mistral.ai 2026-10-28), both Public Preview since 2026-10-20.
         # Mini is the default: the one tested live. Transcribe 2 is left out:
@@ -104,16 +104,17 @@ _INLINE_MAX = 14 * 1024 * 1024
 #: A video never travels: only one frame of it does, so its original may be
 #: larger than what fits inline.
 MAX_SOURCE_BYTES = {"image": 20 * 1024 * 1024, "sticker": 20 * 1024 * 1024,
-                    "audio": _INLINE_MAX, "pdf": _INLINE_MAX, "video": 64 * 1024 * 1024}
+                    "audio": _INLINE_MAX, "pdf": _INLINE_MAX, "video": 64 * 1024 * 1024,
+                    "text": 200_000, "writing": 20_000}
 #: Longest answer kept; a converted PDF or a long voice message is far longer
 #: than a description, and cutting it silently would drop content.
 MAX_OUTPUT_CHARS = {"image": 12_000, "sticker": 12_000, "video": 12_000,
                     "audio": 50_000, "pdf": 100_000,
                     # A translated text message (core/message_translation.py).
-                    "text": 32_000}
+                    "text": 32_000, "writing": 8_000}
 #: Token budget asked of the provider, by kind.
 MAX_OUTPUT_TOKENS = {"image": 1800, "sticker": 1200, "video": 2200,
-                     "audio": 8000, "pdf": 16000}
+                     "audio": 8000, "pdf": 16000, "text": 3000, "writing": 2000}
 #: Largest response body read.
 MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_QUESTION_CHARS = 2000
@@ -181,6 +182,9 @@ def preferences(app_settings):
     kinds = kinds if isinstance(kinds, dict) else {}
     consented = raw.get("consented")
     consented = [p for p in consented if p in PROVIDERS] if isinstance(consented, list) else []
+    consented_writing = raw.get("consented_writing")
+    consented_writing = [p for p in consented_writing if p in PROVIDERS] \
+        if isinstance(consented_writing, list) else []
     profile = raw.get("profile")
     return {
         "enabled": raw.get("enabled") is True,
@@ -208,6 +212,11 @@ def preferences(app_settings):
         "auto_daily_limit": _count(raw.get("auto_daily_limit"), 50, 10000),
         "auto_usage": _usage(raw.get("auto_usage")),
         "consented": sorted(set(consented)),
+        # Writing help sends the person's own draft to a provider; translation
+        # sends message text to Google's web endpoint. Each carries its own
+        # consent, separate from the media one.
+        "consented_writing": sorted(set(consented_writing)),
+        "consented_translate": raw.get("consented_translate") is True,
     }
 
 

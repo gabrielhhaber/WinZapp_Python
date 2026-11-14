@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Yazma yardımı: WinZapp'a, cep telefonları için WhatsApp'taki yazma yardımına benzer bir özellik ve ek olarak taslağı çevirme seçeneği eklenir. Emoji sonrasındaki yeni düğme ve yazı alanının bağlam menüsü aynı pencereyi açar. Meta AI yerine WinZapp'ta yapılandırılmış yapay zeka sağlayıcılarıyla düzeltme, yeniden yazma, profesyonel veya teşvik edici ton sunar; çeviri Google ile yapılır. Taslak gönderilmeden önce onay istenir ve değiştirmeden önce sonuç gösterilir; mesaj hiçbir zaman otomatik gönderilmez. Bir işlem seçin, ardından "Seçilen işlemi çalıştır" düğmesine basın. Bu pencereyi açmak veya kapatmak taslağı göndermez.
+
 - WPPConnect Server 2.10.81 sürümüne, WPPConnect 2.4.0 ve WA-JS 4.8.0 ile birlikte güncellendi. Mesaj geçmişini okumak artık bellekte kopya biriktirmiyor, WinZapp'ın kullandığı tarayıcı yalnızca WinZapp'ın kendisi açtıysa otomatik olarak kapatılıyor ve WhatsApp Web'in yüklenmesini bekleme artık sayfa gizliyken de çalışıyor.
 
 - WPPConnect: disk alanı azaldığında (4 GB'tan az boş), WinZapp oturumu kaybetmeden önce WhatsApp'ı güvenli şekilde kapatır, çevrimdışı olur ve nedenini söyler. En az 5 GB boş alan olduğunda kendiliğinden yeniden bağlanır. Önceden yaklaşık 3 GB boş alanla oturum silinmiş gibi çıkış yapmış olarak geri gelebiliyordu.
