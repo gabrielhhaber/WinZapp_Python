@@ -1073,6 +1073,9 @@ DEFAULT_SETTINGS = {
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": True,
+        # Message notifications let through per second when many arrive at
+        # once (core.notification_burst).
+        "notification_burst_limit": 3,
         "updates_enabled": True,
         # Alpha channel (one build per commit on main) - opt-in, see
         # client/updater.py's select_release().

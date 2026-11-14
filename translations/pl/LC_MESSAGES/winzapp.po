@@ -9933,6 +9933,14 @@ msgid "Voice message"
 msgstr "Wiadomość głosowa"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notification_burst_limit_label"
+msgid "Ma&ximum notifications per second when many messages arrive at once:"
+msgstr ""
+"&Maksymalna liczba powiadomień na sekundę, gdy wiele wiadomości przychodzi "
+"naraz:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notification_content_full"
 msgid "Sound, chat or group name, and message text"
 msgstr "Dźwięk, nazwa czatu lub grupy i treść wiadomości"

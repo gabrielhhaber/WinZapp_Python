@@ -6,7 +6,7 @@ NOWOŚCI
 
 - Po długiej przerwie w korzystaniu z WinZapp: dopóki WhatsApp nadal dostarcza stare wiadomości po zakończeniu synchronizacji, tytuł okna wciąż pokazuje "Aktualizowanie czatów", zamiast informować, że wszystko jest zsynchronizowane, a lista czatów pozostaje nieruchoma, aby można było ją przeglądać bez zmieniania się kolejności czatów. Lista jest aktualizowana jednorazowo, gdy wiadomości przestają napływać. Dotyczy silników Neonize i WPPConnect.
 
-- Powiadomienia: gdy wiele nowych wiadomości przychodzi naraz (na przykład po powrocie niestabilnego połączenia), WinZapp odtwarza i odczytuje tylko trzy pierwsze i milczy do końca serii, zamiast powtarzać dźwięk dziesiątki razy. Wiadomości nadal są na liście i liczą się jako nieprzeczytane.
+- Powiadomienia: gdy wiele nowych wiadomości przychodzi naraz (na przykład po powrocie niestabilnego połączenia), WinZapp odtwarza i odczytuje tylko trzy pierwsze i milczy do końca serii, zamiast powtarzać dźwięk dziesiątki razy. Wiadomości nadal są na liście i liczą się jako nieprzeczytane. Limit ustawia się w Ustawienia > Ogólne > Powiadomienia, w polu "Maksymalna liczba powiadomień na sekundę, gdy wiele wiadomości przychodzi naraz" (domyślnie: 3).
 
 - Neonize: akceptowanie warunków Meta AI nie kończy się już błędem WhatsApp. WinZapp wysyła teraz akceptację w tym samym formacie, którego WhatsApp Web używa dla tego powiadomienia, i potwierdza ją dopiero po ponownym odczytaniu, że powiadomienie jest zapisane jako zaakceptowane.
 

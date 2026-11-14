@@ -8,6 +8,10 @@ from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
 from core import connection_engine as engines
 from core.listed_chats import channels_listed
+from core.notification_burst import (
+    BURST_LIMIT, BURST_LIMIT_MAX, BURST_LIMIT_MIN, SETTINGS_KEY as BURST_SETTINGS_KEY,
+    burst_limit,
+)
 from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
 from ui.dialogs import engine_picker
 from core.i18n import LANGUAGE_NAMES
@@ -673,6 +677,19 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
         )
         notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
+
+        # How many message notifications a burst may play per second
+        # (core/notification_burst.py).
+        self._notification_burst_label = wx.StaticText(
+            self._notifications_page, label=i18n.t("notification_burst_limit_label")
+        )
+        notif_sizer.Add(self._notification_burst_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._notification_burst_spin = wx.SpinCtrl(
+            self._notifications_page, min=BURST_LIMIT_MIN, max=BURST_LIMIT_MAX,
+            initial=BURST_LIMIT,
+        )
+        notif_sizer.Add(self._notification_burst_spin, 0, wx.ALL, 8)
+        self._notification_burst_spin.Bind(wx.EVT_SPINCTRL, self._mark_dirty)
 
         self._tray_icon_check = wx.CheckBox(
             self._notifications_page, label=i18n.t("tray_show_icon")
@@ -2459,6 +2476,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
+            self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
 
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
         if wanted(unit, "speech"):
@@ -4384,6 +4402,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
+            self.main_window.settings["general"][BURST_SETTINGS_KEY] = (
+                self._notification_burst_spin.GetValue()
+            )
 
         # Incoming calls live in their own settings namespace so future call
         # options do not overload the unrelated General/notification settings.
@@ -4808,6 +4829,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
         if ready(self, "notifications"):
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
+            self._notification_burst_label.SetLabel(i18n.t("notification_burst_limit_label"))
         if ready(self, "speech"):
             self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
         if ready(self, "general"):

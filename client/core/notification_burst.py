@@ -16,8 +16,12 @@ import logging
 import time
 from collections import deque
 
-#: Notifications let through per window.
+#: Notifications let through per window, unless Settings > General >
+#: Notifications says otherwise (`general.notification_burst_limit`).
 BURST_LIMIT = 3
+BURST_LIMIT_MIN = 1
+BURST_LIMIT_MAX = 20
+SETTINGS_KEY = "notification_burst_limit"
 #: Length of the window, in seconds.
 BURST_WINDOW_SECONDS = 1.0
 
@@ -29,12 +33,17 @@ class NotificationBurstLimiter:
 
     def __init__(self, limit: int = BURST_LIMIT,
                  window: float = BURST_WINDOW_SECONDS, clock=time.monotonic):
-        self.limit = limit
         self.window = window
         self._clock = clock
-        # Only the newest `limit` attempts can decide the next answer.
-        self._attempts = deque(maxlen=limit)
+        self._attempts = deque()
         self._refusing = False
+        self.set_limit(limit)
+
+    def set_limit(self, limit: int) -> None:
+        """Change the limit, keeping the attempts already counted."""
+        self.limit = limit
+        # Only the newest `limit` attempts can decide the next answer.
+        self._attempts = deque(self._attempts, maxlen=limit)
 
     def allow(self) -> bool:
         """Record one attempt and say whether it may notify."""
@@ -52,13 +61,25 @@ class NotificationBurstLimiter:
         return allowed
 
 
+def burst_limit(settings) -> int:
+    """The saved limit, kept within its bounds; anything else is the default."""
+    general = settings.get("general") if isinstance(settings, dict) else None
+    value = general.get(SETTINGS_KEY) if isinstance(general, dict) else None
+    if isinstance(value, bool) or not isinstance(value, int):
+        return BURST_LIMIT
+    return max(BURST_LIMIT_MIN, min(BURST_LIMIT_MAX, value))
+
+
 def notification_allowed(window) -> bool:
     """Whether *window* (a MainWindow or a test stub) may notify right now."""
+    limit = burst_limit(getattr(window, "settings", None))
     limiter = getattr(window, _ATTR, None)
     if not isinstance(limiter, NotificationBurstLimiter):
-        limiter = NotificationBurstLimiter()
+        limiter = NotificationBurstLimiter(limit)
         try:
             setattr(window, _ATTR, limiter)
         except Exception:
             return True
+    elif limiter.limit != limit:
+        limiter.set_limit(limit)
     return limiter.allow()
