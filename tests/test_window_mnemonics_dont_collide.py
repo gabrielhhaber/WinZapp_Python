@@ -55,6 +55,29 @@ def test_an_alternative_label_of_one_control_is_not_a_collision():
     assert list(clash) == ["p"] and len(clash["p"]) == 2
 
 
+def test_the_event_dialog_labels_are_seen(screens):
+    """EventDialog builds its fields with a `_text(panel, sizer, t("key"))`
+    helper: the scan has to read the `t` alias for them to be checked."""
+    slots = next(slots for where, screen, slots in screens
+                 if where.endswith("::EventDialog") and screen == "panel")
+    keys = {k for slot in slots for k in slot}
+    assert {"event_name_label", "event_location_label", "event_call_label",
+            "event_extra_guests_label"} <= keys
+
+
+@pytest.mark.parametrize("code", LOCALES)
+def test_event_details_buttons_do_not_share_a_letter(code):
+    """The answer buttons are built in a loop over core.events.RESPONSE_KEYS,
+    so their keys are not literals the scan can read (Romanian "Po&ate" and
+    "&Anulează evenimentul" were both Alt+A)."""
+    from core import events as ev
+    strings = load_strings(code)
+    keys = [ev.RESPONSE_KEYS[r] for r in ev.RESPONSES] + ["event_menu_edit", "event_menu_cancel", "close"]
+    slots = [frozenset({k}) for k in keys]
+    found = wm.collisions(slots, strings, mnemonic)
+    assert not found, {letter: [sorted(s) for s in group] for letter, group in found.items()}
+
+
 @pytest.mark.parametrize("code", LOCALES)
 def test_no_screen_shares_a_letter(code, screens):
     strings = load_strings(code)

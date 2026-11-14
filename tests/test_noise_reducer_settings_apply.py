@@ -303,3 +303,56 @@ def test_a_recording_goes_to_the_card_and_falls_back_to_the_processor(monkeypatc
     monkeypatch.setattr(nnr, "_denoiser", SimpleNamespace(
         process=lambda pcm, rate: np.asarray(pcm, dtype=np.float32) * 0.5))
     assert nnr.reduce_voice_noise(b"\x00\x40", 48000, 1) == (b"\x00\x20", "neural")
+
+
+# ------------------------------------------------------------ closing WinZapp
+def test_closing_winzapp_ends_the_process_without_the_hosts_lock(monkeypatch):
+    """A long recording holds the lock for minutes; the forced exit skips
+    atexit and a frozen worker is WinZapp.exe itself, so the close ends it."""
+    got = []
+
+    class _Busy:
+        def stop(self, quit_seconds=None):
+            got.append(quit_seconds)
+    busy = NoiseWorkerHost(make_process=lambda d: _Busy(), model_path=lambda: "m.onnx")
+    busy.worker = _Busy()
+    busy._lock.acquire()                                      # a denoise is running
+    monkeypatch.setattr(noise_worker_host, "host", busy)
+    noise_worker_host.stop_for_exit()
+    assert got == [1]
+    monkeypatch.setattr(noise_worker_host, "host", NoiseWorkerHost())
+    noise_worker_host.stop_for_exit()                         # nothing running: nothing to do
+
+
+def test_the_shutdown_stops_the_noise_reducers_process():
+    from tests.god_modules import main_window_method_source
+    source = main_window_method_source("_perform_shutdown")
+    assert "noise_worker_host.stop_for_exit()" in source
+    assert source.index("stop_for_exit()") < source.index("self._stop_wpp_server()")
+
+# ------------------------------------------------- removing the components
+def test_removing_the_components_ends_the_process_first_and_returns_what_is_left():
+    from ui.dialogs.noise_reducer_dialog import remove_components
+    calls = []
+    left = remove_components(["a", "b"], lambda: calls.append("stop"),
+                             lambda ids: calls.append(("remove", ids)) or ["b"])
+    assert calls == ["stop", ("remove", ["a", "b"])] and left == ["b"]
+
+
+def test_removing_the_components_says_none_when_another_download_holds_the_folder():
+    from core.cuda_components import store
+    from ui.dialogs.noise_reducer_dialog import remove_components
+
+    def busy(ids):
+        raise store.ComponentError("busy")
+    assert remove_components(["a"], lambda: None, busy) is None
+
+
+def test_removing_the_components_never_waits_for_the_process_on_the_wx_thread():
+    """host.stop() takes the host's lock, which a restart holds through a GPU
+    process start and a model load: the dialog froze for a screen reader."""
+    import inspect
+    from ui.dialogs.noise_reducer_dialog import NoiseReducerDialog
+    source = inspect.getsource(NoiseReducerDialog._on_remove_components)
+    assert "threading.Thread(" in source
+    assert source.index("noise_worker_host.host.stop") > source.index("def work")

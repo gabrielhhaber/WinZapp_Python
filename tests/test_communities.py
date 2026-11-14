@@ -273,7 +273,7 @@ STRINGS = load_strings("en-US")
 
 class Dialog:
     for _name in ("_selected", "_selected_group", "_set_busy", "_update_buttons", "_announce",
-                  "_reload", "_finish_reload", "_show", "_show_selected", "_on_select", "_describe",
+                  "_announce_if_shown", "_reload", "_finish_reload", "_show", "_show_selected", "_on_select", "_describe",
                   "_on_open", "_on_open_recent", "_open_group", "_recent_group", "_on_enter",
                   "_deliver", "_shown_groups", "_on_filter", "_finish_other_groups",
                   "_on_join", "_finish_join", "_replace_group"):
@@ -322,6 +322,11 @@ class Dialog:
         if communities is not None:
             self._loaded = True
             self._show(list(communities))
+
+    shown = True
+
+    def IsShownOnScreen(self):
+        return self.shown
 
     def _current(self):
         return True
@@ -420,6 +425,16 @@ def test_reading_announces_the_count_or_the_failure(monkeypatch):
     assert dialog._communities == [SCHOOL]  # a refresh that failed keeps what was read before
     dialog._finish_reload([])
     assert dialog.said() == "You are not in any community." and dialog._communities == []
+
+
+def test_a_read_that_returns_while_the_panel_is_hidden_is_not_spoken():
+    """The user opened a chat meanwhile: "Communities: 1" over it."""
+    dialog = Dialog(communities=None)
+    dialog.shown = False
+    dialog._finish_reload([SCHOOL])
+    dialog._finish_reload(None)
+    dialog._mw.speak_output.output.assert_not_called()
+    dialog._status.SetLabel.assert_called_with(dialog._i18n.t("communities_unavailable"))
 
 
 def test_opening_a_group_opens_its_conversation():

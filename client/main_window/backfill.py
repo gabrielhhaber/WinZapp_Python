@@ -1022,13 +1022,14 @@ class BackfillMixin:
                 # gentler than sync_remote_chats(), because an unchunked pass
                 # fired 463 get-messages calls in ~6 s through the one Puppeteer
                 # page, on top of the media phase. None of this is urgent.
-                targets, missing = [], []
+                targets, target_jids, missing = [], [], []
                 for j in window:
                     _key, chat = self._resolve_backfill_target(j)
                     if chat is None:
                         missing.append(j)
                     else:
                         targets.append(chat.copy())
+                        target_jids.append(j)
                 if missing:
                     # The chat is gone for good (deleted, or merged away) —
                     # stop asking about it.
@@ -1081,14 +1082,20 @@ class BackfillMixin:
                     j: self._anchor_identity(self._oldest_stored_message(j))
                     for j, c in counts_before.items() if c < _target
                 }
+                # The chats whose fetch was answered, for the rest below: a fetch
+                # that timed out or met a dropped connection says nothing about
+                # the chat being empty.
+                fetched_ok = set()
                 if targets:
                     with ThreadPoolExecutor(max_workers=self._BACKFILL_WORKERS) as pool:
                         futs = [pool.submit(
                             sync_throttled(self.sync_chat_messages), c, my_run,
                             expected_context=context) for c in targets]
+                        which = dict(zip(map(id, futs), target_jids))
                         for fut in as_completed(futs):
                             try:
-                                fut.result()
+                                if fut.result():
+                                    fetched_ok.add(which[id(fut)])
                             except Exception as exc:
                                 logging.warning("[backfill] chat sync failed: %s", exc)
                     # The pass's batch is answered (core/page_heap.py).
@@ -1186,11 +1193,13 @@ class BackfillMixin:
 
                 completed = self._completed_backfill_targets(window)
                 grew = 0
+                brought_by = {}
                 for j, was in counts_before.items():
-                    brought = self._local_record_count(j) > was
-                    grew += brought
-                    short_chat_rest.note_fetch(rest, j, brought, time.monotonic(),
-                                               opened=self._user_has_opened)
+                    brought_by[j] = self._local_record_count(j) > was
+                    grew += brought_by[j]
+                short_chat_rest.note_pass(
+                    rest, brought_by, fetched_ok, getattr(self, "_wa_connected", False),
+                    time.monotonic(), opened=self._user_has_opened)
                 logging.info(
                     "[backfill] Pass %d: %d chat(s) gained messages (%d of them older "
                     "history), %d no longer pending (of %d).",

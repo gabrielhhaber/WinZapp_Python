@@ -8488,6 +8488,7 @@ msgid "Locked chats alt+7"
 msgstr "Zabezpieczone czaty alt+7"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#: client/main_window/manual_reconnect.py
 #, python-brace-format
 msgctxt "low_disk_session_closed"
 msgid ""
@@ -19859,7 +19860,7 @@ msgid ""
 "Where you left off in the middle of the conversation; if you had reached the"
 " last message, the unread separator"
 msgstr ""
-"Miejsce, w którym przerwano w środku rozmowy; jeśli dotarto do ostatniej "
+"Miejsce, w którym przerwano w środku czatu; jeśli dotarto do ostatniej "
 "wiadomości, separator nieprzeczytanych"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

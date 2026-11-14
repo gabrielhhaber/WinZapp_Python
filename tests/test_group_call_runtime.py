@@ -149,6 +149,8 @@ function fresh() {
     // so, seen live 2026-11-13): never "ringing"; Incoming is being rung
     { participant: { _serialized: '555000010@lid' }, outcome: 73 },
     { participant: { _serialized: '555000011@lid' }, outcome: 74 },
+    // this WhatsApp Web has no TimedOut/Rejected names: no outcome is not "missed"
+    { participant: { _serialized: '555000012@lid' }, outcome: undefined },
   ];
   let roster = await api.participants('call-1');
   assert.equal(roster.available, true);

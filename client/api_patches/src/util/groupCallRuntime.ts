@@ -126,13 +126,18 @@ export function installGroupCallRuntimeInPage(): void {
         if (states?.Connected == null || !Array.isArray(participants) || participants.length > 1024) {
           throw new Error('Connected participants are unavailable');
         }
-        const stateOf = new Map([
+        // A name this WhatsApp Web lacks is undefined: it must not become the
+        // key a participant with no outcome is read by.
+        const stateOf = new Map();
+        for (const [key, name] of [
           [states.Connected, 'connected'],
           [states.Incoming, 'ringing'], [states.Receipt, 'ringing'], [states.Invited, 'invited'],
           [states.Rejected, 'declined'],
           [states.Terminated, 'left'],
           [states.TimedOut, 'missed'], [states.CancelOffer, 'missed'],
-        ]);
+        ]) {
+          if (key != null) stateOf.set(key, name);
+        }
         for (const person of participants) {
           const state = stateOf.get(person?.outcome);
           if (state) add(person.participant, state);

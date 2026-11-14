@@ -30,12 +30,12 @@ full suite passes.
  engine.go               |   1 +
  engine_group_control.go |   1 +
  engine_group_relay.go   |   2 +-
- engine_media.go         |  62 +++++++++++++++--
- relay_switch.go         | 150 ++++++++++++++++++++++++++++++++++++++++
- relay_switch_test.go    | 149 +++++++++++++++++++++++++++++++++++++++
+ engine_media.go         |  62 ++++++++++++++-
+ relay_switch.go         | 163 +++++++++++++++++++++++++++++++++++++++
+ relay_switch_test.go    | 165 ++++++++++++++++++++++++++++++++++++++++
  roster_diag.go          |  13 ++++
- roster_diag_test.go     |  12 ++++
- 8 files changed, 385 insertions(+), 5 deletions(-)
+ roster_diag_test.go     |  12 +++
+ 8 files changed, 414 insertions(+), 5 deletions(-)
  create mode 100644 relay_switch.go
  create mode 100644 relay_switch_test.go
 
@@ -190,10 +190,10 @@ index c3bf72a..2c1ce88 100644
  	frame            uint64
 diff --git a/relay_switch.go b/relay_switch.go
 new file mode 100644
-index 0000000..c3f9785
+index 0000000..6c04b60
 --- /dev/null
 +++ b/relay_switch.go
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,163 @@
 +package meowcaller
 +
 +import (
@@ -249,8 +249,18 @@ index 0000000..c3f9785
 +	return s
 +}
 +
-+func (s *switchableRelay) start(c relayConn) {
++// start reads from c until it fails. A call that ended while a move to c was
++// under way (Close has run) has nobody left to close c, so start does: it
++// returns false for a relay it did not take.
++func (s *switchableRelay) start(c relayConn) bool {
 +	s.mu.Lock()
++	select {
++	case <-s.closed:
++		s.mu.Unlock()
++		_ = c.Close()
++		return false
++	default:
++	}
 +	s.open[c] = struct{}{}
 +	s.mu.Unlock()
 +	go func() {
@@ -268,6 +278,7 @@ index 0000000..c3f9785
 +			}
 +		}
 +	}()
++	return true
 +}
 +
 +func (s *switchableRelay) readerDone(c relayConn, err error) {
@@ -307,7 +318,9 @@ index 0000000..c3f9785
 +// Switch makes next the relay sends go to; the previous one keeps delivering
 +// for retire before it is closed.
 +func (s *switchableRelay) Switch(next relayConn, retire time.Duration) {
-+	s.start(next)
++	if !s.start(next) {
++		return
++	}
 +	s.mu.Lock()
 +	previous := s.current
 +	s.current = next
@@ -346,10 +359,10 @@ index 0000000..c3f9785
 +}
 diff --git a/relay_switch_test.go b/relay_switch_test.go
 new file mode 100644
-index 0000000..e4c9aa5
+index 0000000..311ca4f
 --- /dev/null
 +++ b/relay_switch_test.go
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,165 @@
 +package meowcaller
 +
 +import (
@@ -497,6 +510,22 @@ index 0000000..e4c9aa5
 +	}
 +	if _, err := recvWithin(t, s); err == nil {
 +		t.Fatal("Recv after Close returned a packet")
++	}
++}
++
++func TestSwitchableRelaySwitchAfterCloseClosesTheNewRelay(t *testing.T) {
++	first, next := newFakeRelay("first"), newFakeRelay("next")
++	s := newSwitchableRelay(first)
++	_ = s.Close()
++	s.Switch(next, time.Millisecond)
++	if !next.isClosed() {
++		t.Fatal("a relay opened after the call ended is closed, not leaked")
++	}
++	if s.current != first {
++		t.Fatal("the call's current relay does not move after Close")
++	}
++	if _, err := s.Recv(make([]byte, 8)); err == nil {
++		t.Fatal("Recv on a closed relay fails")
 +	}
 +}
 diff --git a/roster_diag.go b/roster_diag.go

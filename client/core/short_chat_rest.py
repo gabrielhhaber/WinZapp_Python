@@ -44,3 +44,16 @@ def note_fetch(rest: dict, jid: str, brought_something: bool, now: float, *, ope
         return
     streak = rest.get(jid, (0, 0.0))[0] + 1
     rest[jid] = (streak, now + min(FIRST_REST * 2 ** (streak - 1), MAX_REST))
+
+
+def note_pass(rest: dict, brought: dict, fetched_ok, connected: bool, now: float, *,
+              opened) -> None:
+    """Record a backfill pass: *brought* maps each chat of the pass to whether
+    its fetch brought messages. Only a fetch that was answered says anything
+    about the chat; one that timed out, was cut off, or ran while the session
+    was down is no evidence it is empty, so that chat does not rest."""
+    if not connected:
+        return
+    for jid, got in brought.items():
+        if jid in fetched_ok:
+            note_fetch(rest, jid, got, now, opened=opened)

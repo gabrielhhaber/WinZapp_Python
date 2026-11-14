@@ -74,6 +74,17 @@ test('a call is listened to once, however often it becomes the held call', () =>
   expect(call.handlers['change:groupCallParticipantStates'].length).toBe(1);
 }));
 
+test('the held call is found whether the event hands over it alone or after the collection', () => withPage(({ sent, calls }) => {
+  expect(installInPage()).toBe(true);
+  const call = emitter({ id: 'CALL6', isGroup: true, groupCallParticipantsConnected: [wid('7@lid')] });
+  calls.fire('change:activeCall', calls, call);
+  expect(last(sent)).toEqual({ callId: 'CALL6', connected: ['7@lid'] });
+  expect(call.handlers['change:groupCallParticipantStates'].length).toBe(1);
+  const other = emitter({ id: 'CALL7', isGroup: true, groupCallParticipantsConnected: [wid('9@lid')] });
+  calls.fire('add', other, calls, {});
+  expect(last(sent)).toEqual({ callId: 'CALL7', connected: ['5511@s.whatsapp.net'] });
+}));
+
 test('a one-to-one call, a model without the list or no call says nothing', () => withPage(({ sent, calls }) => {
   expect(installInPage()).toBe(true);
   calls.fire('add', emitter({ id: 'CALL2', isGroup: false, groupCallParticipantsConnected: [wid('7@lid')] }));

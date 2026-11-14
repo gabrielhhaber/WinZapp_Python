@@ -21,7 +21,6 @@ link with a server query neonize does not send); the route refuses it with
 
 Pure functions first (test_events.py).
 """
-import asyncio
 import logging
 import os
 import time
@@ -396,7 +395,3 @@ def register_routes(r, *, session, ok, destination_of, store_sent, in_thread):
     r.add_post("/api/{tok}/event-respond", event_respond)
     r.add_post("/api/{tok}/send-event", send_event)
     r.add_post("/api/{tok}/edit-event", edit_event)
-
-
-def run_in_thread(func):
-    return asyncio.get_running_loop().run_in_executor(None, func)

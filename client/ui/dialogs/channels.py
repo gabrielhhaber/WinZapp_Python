@@ -472,7 +472,7 @@ class ChannelsPanel(TranslatedLabels, BackgroundWork, wx.Panel):
         if channels is None:
             logging.warning("[channels] read_failed")
             self._show_failure(self._i18n.t("channels_unavailable"), MINE)
-            self._announce(self._i18n.t("channels_unavailable"))
+            self._announce_if_shown(self._i18n.t("channels_unavailable"))
             return
         self._loaded = True
         self._mine = ch.sorted_channels(channels)
@@ -480,8 +480,8 @@ class ChannelsPanel(TranslatedLabels, BackgroundWork, wx.Panel):
         if self._mode == MINE:
             self._show(self._mine, keep)
             if not quiet:       # after an action, its own result was just said
-                self._announce(self._i18n.t("channels_count").format(count=len(channels))
-                               if channels else self._i18n.t("channels_none"))
+                self._announce_if_shown(self._i18n.t("channels_count").format(count=len(channels))
+                                        if channels else self._i18n.t("channels_none"))
         else:
             self._show(self._found, keep)
 

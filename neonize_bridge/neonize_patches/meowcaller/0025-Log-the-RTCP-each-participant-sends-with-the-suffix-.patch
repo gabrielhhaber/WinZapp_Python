@@ -6,9 +6,9 @@ Subject: [PATCH] Log the RTCP each participant sends, with the suffix of its
 
 ---
  engine_media.go          |  5 ++++
- rtcp_report_diag.go      | 51 ++++++++++++++++++++++++++++++++++++++++
- rtcp_report_diag_test.go | 31 ++++++++++++++++++++++++
- 3 files changed, 87 insertions(+)
+ rtcp_report_diag.go      | 58 ++++++++++++++++++++++++++++++++++++++
+ rtcp_report_diag_test.go | 61 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 124 insertions(+)
 
 diff --git a/engine_media.go b/engine_media.go
 index dabef2d..dd28ff5 100644
@@ -34,7 +34,7 @@ index dabef2d..dd28ff5 100644
  			if keyframe {
  				vsender.requestKeyframe()
 diff --git a/rtcp_report_diag.go b/rtcp_report_diag.go
-index f180a15..50d9229 100644
+index f180a15..f9e5286 100644
 --- a/rtcp_report_diag.go
 +++ b/rtcp_report_diag.go
 @@ -1,6 +1,8 @@
@@ -46,7 +46,7 @@ index f180a15..50d9229 100644
  	"fmt"
  	"strings"
  
-@@ -43,3 +45,52 @@ func describeRTCPReports(reports []*rtp.RtcpReceptionReport) string {
+@@ -43,3 +45,59 @@ func describeRTCPReports(reports []*rtp.RtcpReceptionReport) string {
  	}
  	return strings.Join(parts, "; ")
  }
@@ -84,26 +84,42 @@ index f180a15..50d9229 100644
 +	if offset < length {
 +		parts = append(parts, "suffix="+hex.EncodeToString(plain[offset:length]))
 +	}
-+	if length < len(plain) {
++	if length+1 < len(plain) { // the next packet's header byte 1 must exist
 +		parts = append(parts, fmt.Sprintf("then pt=%d", plain[length+1]))
 +	}
 +	return strings.Join(parts, " ")
 +}
 +
++// incomingRTCPLogSenders bounds incomingRTCPLog: a participant may rotate its
++// SSRC, and the map lives as long as the call's media loop.
++const incomingRTCPLogSenders = 256
++
 +// incomingRTCPLog counts the RTCP of each sender: its first 4 and then one in
-+// 40 are logged.
++// 40 are logged. Past incomingRTCPLogSenders senders a new one is not logged.
 +type incomingRTCPLog map[uint32]int
 +
 +func (l incomingRTCPLog) due(ssrc uint32) bool {
++	if _, known := l[ssrc]; !known && len(l) >= incomingRTCPLogSenders {
++		return false
++	}
 +	l[ssrc]++
 +	n := l[ssrc]
 +	return n <= 4 || n%40 == 0
 +}
 diff --git a/rtcp_report_diag_test.go b/rtcp_report_diag_test.go
-index f720e18..dd8a03d 100644
+index f720e18..dbdadbc 100644
 --- a/rtcp_report_diag_test.go
 +++ b/rtcp_report_diag_test.go
-@@ -42,3 +42,34 @@ func TestRTCPReportsAreLoggedRightAfterGroupMediaThenEvery30s(t *testing.T) {
+@@ -1,6 +1,8 @@
+ package meowcaller
+ 
+ import (
++	"fmt"
++	"strings"
+ 	"testing"
+ 
+ 	"github.com/purpshell/meowcaller/rtp"
+@@ -42,3 +44,62 @@ func TestRTCPReportsAreLoggedRightAfterGroupMediaThenEvery30s(t *testing.T) {
  		}
  	}
  }
@@ -136,5 +152,33 @@ index f720e18..dd8a03d 100644
 +	}
 +	if len(logged) != 6 || logged[4] != 40 || logged[5] != 80 || !l.due(8) {
 +		t.Fatalf("logged %v", logged)
++	}
++}
++
++func TestAnIncomingReportWithTrailingBytesDoesNotReadPastThePacket(t *testing.T) {
++	plain := rtp.BuildGroupSenderReport(0xabcdef01, &rtp.RtcpSenderStats{}, 1000,
++		&rtp.RtcpReceptionReport{Ssrc: 0x9c9e8888}, rtp.RTCPGroupReportExtension{})
++	// one byte after the first packet: no second header to read, and no panic
++	if got := describeIncomingRTCP(append(append([]byte{}, plain...), 0x80)); strings.Contains(got, "then") {
++		t.Fatalf("one trailing byte = %q", got)
++	}
++	got := describeIncomingRTCP(append(append([]byte{}, plain...), 0x80, rtp.RtcpPtSdes))
++	if !strings.HasSuffix(got, fmt.Sprintf("then pt=%d", rtp.RtcpPtSdes)) {
++		t.Fatalf("a second packet's type is shown: %q", got)
++	}
++}
++
++func TestIncomingRTCPLogStopsAddingSendersPastItsBound(t *testing.T) {
++	l := incomingRTCPLog{}
++	for ssrc := uint32(0); ssrc < incomingRTCPLogSenders; ssrc++ {
++		if !l.due(ssrc) {
++			t.Fatalf("sender %d is logged", ssrc)
++		}
++	}
++	if l.due(incomingRTCPLogSenders) || len(l) != incomingRTCPLogSenders {
++		t.Fatalf("a sender past the bound is not added (%d kept)", len(l))
++	}
++	if !l.due(0) || l[0] != 2 {
++		t.Fatal("a sender already counted still is")
 +	}
 +}

@@ -60,6 +60,7 @@ def _run_loop(monkeypatch):
 
     def sync(chat, run, expected_context=None):
         synced.append(chat["remoteJid"])
+        return True                 # answered: only such a fetch lets a chat rest
 
     stub.sync_chat_messages = sync
 

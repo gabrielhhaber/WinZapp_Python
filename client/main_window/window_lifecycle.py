@@ -652,6 +652,12 @@ class WindowLifecycleMixin:
                 except Exception as exc:
                     logging.warning("[shutdown] stopping transcriptions failed: %s",
                                     type(exc).__name__)
+            # The noise reducer's own process: os._exit() below skips atexit.
+            try:
+                from core.cuda_components import noise_worker_host
+                noise_worker_host.stop_for_exit()
+            except Exception:
+                logging.warning("[shutdown] stopping the noise reducer failed", exc_info=True)
             self._stop_wpp_server()
             self._flush_pending_debounced_saves()
             if hasattr(self, "db") and self.db is not None:

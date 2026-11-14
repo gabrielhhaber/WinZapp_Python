@@ -29,7 +29,8 @@ class _Words:
 def test_the_notice_is_an_ascii_batch_line_that_does_not_wait():
     line = notice_line("Atualização", "Já pode abrir o WinZapp d'água")
     assert line.isascii() and line.endswith("\n") and line.count("\n") == 1
-    assert line.startswith('start "" /min powershell.exe ')       # the script goes on
+    assert line.startswith('start "" /min "%SystemRoot%\\System32\\WindowsPowerShell'
+                           '\\v1.0\\powershell.exe" ')             # the script goes on, system host
     script = _script_of(line)
     assert "'Já pode abrir o WinZapp d''água'" in script           # quoted, accents kept
     assert "'Atualização'" in script
@@ -42,6 +43,11 @@ def test_a_failure_warns_and_nothing_in_the_text_escapes_its_quotes():
     assert "'Warning'" in script
     assert "a'';Remove-Item x;''" in script and "\r" not in script and "\n" not in script
     assert "z" * 380 in script and "z" * 400 not in script        # cut to fit a batch line
+
+
+def test_typographic_single_quotes_cannot_close_the_string_either():
+    script = _script_of(notice_line("T", "it’s ‘a‚‛;Remove-Item x;"))
+    assert "'it’’s ‘‘a‚‚‛‛;Remove-Item x;'" in script
 
 
 def test_the_notices_are_in_the_users_language_with_the_version():

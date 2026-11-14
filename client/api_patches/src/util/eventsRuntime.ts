@@ -144,6 +144,7 @@ export async function editEvent(request: any) {
     return typeof value?.name === 'string' ? value.name : undefined;
   };
   const cancel = request?.isEventCanceled === true;
+  // a key present keeps its value even when null: endTime null clears the end
   const pick = (key: string, current: any) => (request && key in request ? request[key] : current);
   const name = String(pick('name', msg.eventName) || '').trim();
   const startTime = Number(pick('startTime', msg.eventStartTime)) || 0;

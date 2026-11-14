@@ -22,6 +22,17 @@ class ManualReconnectMixin:
         if getattr(self, "_manual_reconnect_running", False):
             self.output(i18n.t("reconnect_started"), interrupt=True)
             return
+        if getattr(self, "_low_disk_halted", False):
+            # The disk guard closed the session on purpose; starting it here
+            # would leave the latch set under a live session. The health loop
+            # resumes it on its own once the space is back.
+            from core import profile_disk_guard
+            free = profile_disk_guard.free_bytes_of(self)
+            self.output(i18n.t("low_disk_session_closed").format(
+                free=profile_disk_guard.gigabytes(free if free is not None else 0),
+                needed=profile_disk_guard.gigabytes(profile_disk_guard.RESUME_FREE_BYTES)),
+                interrupt=True)
+            return
         self._manual_reconnect_running = True
         self.output(i18n.t("reconnect_started"), interrupt=True)
         if getattr(self, "_user_offline", False):
@@ -59,6 +70,8 @@ class ManualReconnectMixin:
     def _manual_reconnect_restart(self) -> bool:
         """The session restarted in place; asked by the user, so the cooldown
         between automatic restarts does not apply."""
+        if getattr(self, "_low_disk_halted", False):
+            return False        # the disk guard halted it while this ran
         self._last_wpp_session_restart_ts = 0
         return bool(self._restart_wpp_session(reason="the user asked to reconnect"))
 

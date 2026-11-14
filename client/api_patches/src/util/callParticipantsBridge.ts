@@ -70,7 +70,13 @@ export function installCallParticipantsInPage(): boolean {
       // a call without events is still reported when it becomes active
     }
   };
-  const held = (call: any) => { watch(call); send(call); };
+  // A Backbone-style `change:x` hands over (model, value) and `add` (model,
+  // collection): the call is the argument that is a model of its own, not
+  // the collection it is raised on.
+  const held = (...args: any[]) => {
+    const call = args.find((a) => a && a !== calls && typeof a.on === 'function' && a.id != null);
+    if (call) { watch(call); send(call); }
+  };
   calls.on('change:activeCall', held);
   calls.on('add', held);
   if (calls.activeCall) held(calls.activeCall);

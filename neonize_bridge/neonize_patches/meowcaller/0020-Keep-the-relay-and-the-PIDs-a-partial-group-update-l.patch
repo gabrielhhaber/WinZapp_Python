@@ -12,10 +12,10 @@ snapshot"), the media ended at once and they had to leave and join again
 neither). What an update leaves out is now taken from the snapshot it
 replaces; what it sends still wins.
 ---
- engine_group_control.go    |  9 ++++
- group_update_carry.go      | 39 +++++++++++++++++
- group_update_carry_test.go | 90 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 138 insertions(+)
+ engine_group_control.go    |   9 ++++
+ group_update_carry.go      |  48 +++++++++++++++++
+ group_update_carry_test.go | 105 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 162 insertions(+)
  create mode 100644 group_update_carry.go
  create mode 100644 group_update_carry_test.go
 
@@ -43,10 +43,10 @@ index 2531980..c6ad390 100644
  		if err := receivers.ApplyGroupUpdate(stored); err != nil {
 diff --git a/group_update_carry.go b/group_update_carry.go
 new file mode 100644
-index 0000000..cd55fed
+index 0000000..b8afa33
 --- /dev/null
 +++ b/group_update_carry.go
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,48 @@
 +package meowcaller
 +
 +// carryGroupSnapshot fills in next what a partial group update leaves out of
@@ -56,6 +56,9 @@ index 0000000..cd55fed
 +// left a call without its relay (media could not start: "group media started
 +// without an authoritative relay snapshot") and without the PIDs its relay
 +// subscriptions and receivers are built from. It reports what it carried.
++// A PID is carried only between two snapshots that both list the person as
++// connected: after a leave the PID of the old join is stale, and a rejoin is
++// sent with its own.
 +func carryGroupSnapshot(previous, next *groupCallUpdate) (relayCarried bool, pidsCarried int) {
 +	if previous == nil || next == nil || previous.CallID != next.CallID {
 +		return false, 0
@@ -66,6 +69,9 @@ index 0000000..cd55fed
 +	}
 +	known := make(map[string]uint32)
 +	for _, participant := range previous.Participants {
++		if participant.State != "connected" {
++			continue
++		}
 +		for _, device := range participant.Devices {
 +			if device.HasPID && !device.JID.IsEmpty() {
 +				known[device.JID.String()] = device.PID
@@ -73,6 +79,9 @@ index 0000000..cd55fed
 +		}
 +	}
 +	for i := range next.Participants {
++		if next.Participants[i].State != "connected" {
++			continue
++		}
 +		for j := range next.Participants[i].Devices {
 +			device := &next.Participants[i].Devices[j]
 +			if device.HasPID || device.JID.IsEmpty() {
@@ -88,10 +97,10 @@ index 0000000..cd55fed
 +}
 diff --git a/group_update_carry_test.go b/group_update_carry_test.go
 new file mode 100644
-index 0000000..4ca1443
+index 0000000..b5bdaba
 --- /dev/null
 +++ b/group_update_carry_test.go
-@@ -0,0 +1,90 @@
+@@ -0,0 +1,105 @@
 +package meowcaller
 +
 +import (
@@ -163,6 +172,21 @@ index 0000000..4ca1443
 +	}
 +	if relay, pids = carryGroupSnapshot(nil, &next); relay || pids != 0 {
 +		t.Fatal("nothing to carry from no snapshot")
++	}
++}
++
++func TestAPIDIsNotCarriedAcrossALeave(t *testing.T) {
++	previous := carryTestUpdate(16, true, true)
++	previous.Participants[0].State = "left"
++	next := carryTestUpdate(18, true, false)
++	if _, pids := carryGroupSnapshot(&previous, &next); pids != 1 || next.Participants[0].Devices[0].HasPID {
++		t.Fatalf("pids=%d: the PID of a person who had left was carried to their rejoin", pids)
++	}
++	previous = carryTestUpdate(16, true, true)
++	next = carryTestUpdate(18, true, false)
++	next.Participants[1].State = "invited"
++	if _, pids := carryGroupSnapshot(&previous, &next); pids != 1 || next.Participants[1].Devices[0].HasPID {
++		t.Fatalf("pids=%d: a PID was carried to a person who is not connected", pids)
 +	}
 +}
 +

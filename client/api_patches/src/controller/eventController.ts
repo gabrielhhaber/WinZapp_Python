@@ -36,7 +36,10 @@ export function eventFields(body: any, needName = true) {
     }
   }
   for (const key of ['startTime', 'endTime']) {
-    if (key in body && body[key] !== null) {
+    if (key in body && body[key] === null) {
+      // a null end is the end date cleared in the edit window; a start is never cleared
+      if (key === 'endTime') out.endTime = null;
+    } else if (key in body) {
       if (!Number.isSafeInteger(body[key]) || body[key] <= 0) return null;
       out[key] = body[key];
     }

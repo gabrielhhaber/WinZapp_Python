@@ -15,6 +15,7 @@ import time
 import wx
 
 from core import events as ev
+from ui.accessible import split_mnemonic
 
 CALLS = (None, "voice", "video")
 
@@ -107,7 +108,6 @@ class EventDialog(wx.Dialog):
         if problem:
             example_date, example_time = ev.format_moment(time.time(), date_fmt, time_fmt)
             text = i18n.t(problem).format(date=example_date, time=example_time)
-            self._mw.output(text, interrupt=True)
             wx.MessageBox(text, i18n.t("event_label"), wx.OK | wx.ICON_WARNING, self)
             return
         call = CALLS[self._call.GetSelection()] if self._call.GetSelection() >= 0 else None
@@ -142,7 +142,7 @@ class EventDetailsDialog(wx.Dialog):
         sizer = wx.BoxSizer(wx.VERTICAL)
         details = wx.TextCtrl(panel, value=self._details_text(i18n, name_of),
                               style=wx.TE_MULTILINE | wx.TE_READONLY, size=(420, 260))
-        details.SetName(t("event_details_label"))
+        details.SetName(split_mnemonic(t("event_details_label"))[0])
         sizer.Add(wx.StaticText(panel, label=t("event_details_label")), 0, wx.LEFT | wx.TOP, 8)
         sizer.Add(details, 1, wx.EXPAND | wx.ALL, 8)
         row = wx.BoxSizer(wx.HORIZONTAL)

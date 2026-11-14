@@ -9,7 +9,9 @@ A new processor applies at once: a graphics card build runs in a process of
 its own, which restarts (core/cuda_components/noise_worker_host.py).
 """
 
+import logging
 import sys
+import threading
 
 import wx
 
@@ -147,12 +149,30 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
                          self) != wx.YES:
             return
         from core.cuda_components import noise_worker_host
-        noise_worker_host.host.stop()
-        try:
-            left = store.remove(ids)
-        except store.ComponentError:
-            # another window's download holds the folder
+        # host.stop() waits for the process (and for a restart holding its
+        # lock): never on the wx thread, a screen reader would hear nothing
+        self._remove_components_btn.Disable()
+
+        def work():
+            left = None
+            try:
+                left = remove_components(ids, noise_worker_host.host.stop, store.remove)
+            except Exception:
+                logging.exception("[noise_reducer] removing the components failed")
+            finally:
+                wx.CallAfter(self._components_removed, left)
+
+        threading.Thread(target=work, name="noise-components-remove", daemon=True).start()
+
+    def _components_removed(self, left):
+        """On the wx thread: what remove_components() found."""
+        if not self:
+            return
+        i18n = self.main_window.i18n
+        if left is None:
             self.main_window.speak_output.output(i18n.t("transcription_error_cuda_runtime_busy"))
+            self._refresh_components()
+            self._focus_after_removal(self._remove_components_btn)
             return
         key = "noise_reducer_components_removed_restart" if left else "noise_reducer_components_removed"
         self.main_window.speak_output.output(i18n.t(key))
@@ -181,6 +201,17 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         else:
             self._components_field.SetFocus()
 
+
+
+def remove_components(ids, stop, remove):
+    """End the noise reducer's process, then delete *ids*: what *remove*
+    could not delete (it returns it), or None when another window's download
+    holds the folder. Blocks, so it runs on a worker thread."""
+    stop()
+    try:
+        return remove(ids)
+    except store.ComponentError:
+        return None
 
 
 def neural_box_shown(reduction_on, model_installed) -> bool:

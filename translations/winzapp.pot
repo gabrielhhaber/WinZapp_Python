@@ -8006,6 +8006,7 @@ msgid "Locked chats alt+7"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#: client/main_window/manual_reconnect.py
 #, python-brace-format
 msgctxt "low_disk_session_closed"
 msgid ""

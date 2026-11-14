@@ -6953,7 +6953,7 @@ msgstr "&Particip"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_response_maybe"
 msgid "&Maybe"
-msgstr "Po&ate"
+msgstr "Poa&te"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_response_not_going"
@@ -8479,6 +8479,7 @@ msgid "Locked chats alt+7"
 msgstr "Conversații blocate alt+7"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#: client/main_window/manual_reconnect.py
 #, python-brace-format
 msgctxt "low_disk_session_closed"
 msgid ""

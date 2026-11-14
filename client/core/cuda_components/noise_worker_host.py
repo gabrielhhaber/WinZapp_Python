@@ -133,13 +133,13 @@ class WorkerProcess:
     def alive(self) -> bool:
         return self._conn is not None and (self._proc is None or self._proc.poll() is None)
 
-    def stop(self):
+    def stop(self, quit_seconds=QUIT_SECONDS):
         conn, proc = self._conn, self._proc
         self._conn = None
         if conn is not None:
             try:
                 conn.send(("quit",))
-                conn.poll(QUIT_SECONDS) and conn.recv()
+                conn.poll(quit_seconds) and conn.recv()
             except Exception:
                 pass
             try:
@@ -148,7 +148,7 @@ class WorkerProcess:
                 pass
         if proc is not None:
             try:
-                proc.wait(QUIT_SECONDS)
+                proc.wait(quit_seconds)
             except Exception:
                 try:
                     proc.kill()
@@ -297,6 +297,17 @@ def configure_for_window(main_window):
         import wx
         wx.CallAfter(lambda: main_window.output(main_window.i18n.t(key), interrupt=False))
     host.configure(device_of(main_window.settings), say=say)
+
+
+def stop_for_exit(quit_seconds=1):
+    """End the process as WinZapp closes. Not through the host's lock: a long
+    recording being cleaned holds it for minutes, and the exit must not wait.
+    The forced exit (os._exit) skips atexit, and in a frozen build the process
+    is WinZapp.exe itself, so left running it would keep the program and the
+    graphics libraries locked while the installer copies over them."""
+    worker = host.worker
+    if worker is not None:
+        worker.stop(quit_seconds)
 
 
 host = NoiseWorkerHost()

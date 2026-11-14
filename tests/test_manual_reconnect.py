@@ -84,6 +84,22 @@ def test_the_users_restart_skips_the_automatic_cooldown():
     assert w.restarts == [(0, "the user asked to reconnect")]
 
 
+def test_a_session_the_disk_guard_closed_is_not_restarted_by_hand(monkeypatch):
+    import main_window.manual_reconnect as module
+    from core import profile_disk_guard
+    started = []
+    monkeypatch.setattr(module.threading, "Thread",
+                        lambda target, daemon, name: SimpleNamespace(start=lambda: started.append(1)))
+    monkeypatch.setattr(profile_disk_guard, "free_bytes_of", lambda mw: 2 * profile_disk_guard.GIB)
+    w = _Window()
+    w.i18n = SimpleNamespace(t=lambda key: "{free}/{needed}" if key == "low_disk_session_closed" else key)
+    w._low_disk_halted = True
+    w.reconnect_now()
+    assert started == [] and w.said == ["2.0/5.0"]
+    assert w._user_offline is True and w.applied == 0
+    assert w._manual_reconnect_restart() is False and w.restarts == []
+
+
 def test_the_wait_ends_when_the_session_is_back():
     w = _Window()
     checks = iter([False, True])

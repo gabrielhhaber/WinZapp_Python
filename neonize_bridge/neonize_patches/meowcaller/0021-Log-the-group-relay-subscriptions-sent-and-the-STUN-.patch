@@ -122,11 +122,11 @@ index 6a868cd..dbf987e 100644
 +		relayName, relay.TransactionID, token, self, strings.Join(subscribed, ","))
 +}
 diff --git a/relay_switch_test.go b/relay_switch_test.go
-index e4c9aa5..542ba11 100644
+index 311ca4f..cc0eb71 100644
 --- a/relay_switch_test.go
 +++ b/relay_switch_test.go
-@@ -147,3 +147,29 @@ func TestSwitchableRelayCloseClosesEveryRelay(t *testing.T) {
- 		t.Fatal("Recv after Close returned a packet")
+@@ -163,3 +163,29 @@ func TestSwitchableRelaySwitchAfterCloseClosesTheNewRelay(t *testing.T) {
+ 		t.Fatal("Recv on a closed relay fails")
  	}
  }
 +

@@ -26,9 +26,19 @@ class ExitNotice(NamedTuple):
     not_installed: str
 
 
+#: PowerShell ends a single-quoted string at any of these, not only at U+0027
+_SINGLE_QUOTES = "'‘’‚‛"
+
+#: the system host, not whatever powershell.exe the user's PATH finds first
+POWERSHELL = r"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+
+
 def _quoted(text) -> str:
     clean = "".join(ch if ch >= " " else " " for ch in str(text or ""))[:MAX_TEXT]
-    return "'" + clean.replace("'", "''") + "'"
+    # Doubling a quote mark escapes it; a typographic one is common in prose
+    # ("it's") and would otherwise close the string and run the rest as code.
+    clean = "".join(ch * 2 if ch in _SINGLE_QUOTES else ch for ch in clean)
+    return "'" + clean + "'"
 
 
 def notice_line(title, text, *, failed=False, indent="") -> str:
@@ -38,7 +48,7 @@ def notice_line(title, text, *, failed=False, indent="") -> str:
               f"[void][System.Windows.Forms.MessageBox]::Show({_quoted(text)},{_quoted(title)},"
               f"'OK','{icon}','Button1','DefaultDesktopOnly')")
     encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
-    return (f'{indent}start "" /min powershell.exe -NoProfile -NonInteractive '
+    return (f'{indent}start "" /min "{POWERSHELL}" -NoProfile -NonInteractive '
             f"-ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand {encoded}\n")
 
 

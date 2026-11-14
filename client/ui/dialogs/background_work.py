@@ -74,3 +74,12 @@ class BackgroundWork:
     def _announce(self, text):
         self._status.SetLabel(text)
         self._mw.speak_output.output(text)
+
+    def _announce_if_shown(self, text):
+        """A read's result: always in the status line, spoken only while the
+        panel is on screen. A panel of the main window can be hidden when its
+        read returns (the user opened a chat meanwhile): "12 channels" must
+        not be read over that chat."""
+        self._status.SetLabel(text)
+        if self.IsShownOnScreen():
+            self._mw.speak_output.output(text)

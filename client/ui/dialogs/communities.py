@@ -227,7 +227,7 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
         self._set_busy(False)
         if communities is None or not self._current():
             logging.warning("[communities] read_failed")
-            self._announce(self._i18n.t("communities_unavailable"))
+            self._announce_if_shown(self._i18n.t("communities_unavailable"))
             return
         self._loaded = True
         self._show(communities)
@@ -236,7 +236,7 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
         if quiet:       # shown again: the list is what it was, said only on screen
             self._status.SetLabel(text)
         else:
-            self._announce(text)
+            self._announce_if_shown(text)
 
     def _show(self, communities):
         """Replace the list, keeping the selected community and group."""

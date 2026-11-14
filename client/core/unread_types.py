@@ -18,6 +18,12 @@ WinZapp mirrors both:
   (WAWebConversationMsgsUtils). The history notice is not in it.
   `counts_as_unread()`.
 
+`counted_on_arrival()` is WhatsApp's rule, used where WinZapp re-derives a
+count from stored records (`unread_after_own_send`). It is not what increments
+the count of a live message: that is `message_rules.is_countable_message()`,
+an allowlist of real content shared with the preview and sort code, so the
+two type sets differ on purpose and are not kept equal.
+
 WinZapp used to count every record for both, and to subtract from the count
 whatever it would not show as a message: in a busy group the deleted
 messages and notices among the unread ones took their places, and a group

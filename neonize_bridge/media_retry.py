@@ -24,6 +24,7 @@ import logging
 import os
 import tempfile
 import threading
+import time
 
 import msgmap
 
@@ -34,6 +35,12 @@ log = logging.getLogger("bridge")
 #: read timeout (main_window/media.py), with room for the download after it:
 #: a client that gave up would ask again and wake the phone a second time.
 TIMEOUT = 40.0
+#: the whole of a retry that asks twice (both asks and the first download) stays
+#: under the same 60 s: the second ask gets what is left of it, or is not made
+BUDGET = 55.0
+#: a second ask with less than this left could not be answered in time
+MIN_SECOND_ASK = 5.0
+_clock = time.monotonic
 #: the answers of a link that expired (the others are real faults)
 EXPIRED_MARKS = ("404", "410", "403", "not found", "forbidden")
 MEDIA_FIELDS = ("imageMessage", "videoMessage", "audioMessage", "documentMessage",
@@ -204,9 +211,19 @@ def describe_tries(tried) -> str:
     return "; ".join(parts) or "nothing tried"
 
 
+def served_unreadable(answer) -> bool:
+    """Did a host serve a body that could not be opened (the answer's `tried`
+    lists its size), as opposed to a download that failed on the way? Only the
+    first is a re-upload the phone may have still been writing; the HMAC mark
+    covers a build that does not list what it tried."""
+    return any("size" in t for t in answer.get("tried") or ()) or         "invalid media hmac" in str(answer.get("error")).lower()
+
+
 def fetch_retried(client, message, direct_path: str) -> bytes:
     """Downloads the re-uploaded media through the build's own call (blocking).
-    The error text is kept: 'invalid media hmac' and the like answer 410."""
+    The error text is kept: 'invalid media hmac' and the like answer 410. A body
+    that cannot be opened is `RetriedUnreadable`; any other failure (a network
+    fault) is a plain RuntimeError, which the route answers by its own text."""
     descriptor, dest = tempfile.mkstemp(prefix="winzapp-retry-")
     os.close(descriptor)
     try:
@@ -216,7 +233,9 @@ def fetch_retried(client, message, direct_path: str) -> bytes:
             log.info("media retry download failed: kind=%s mms=%s expected=%s; %s",
                      request["kind"], request["mms_type"], request["file_length"],
                      describe_tries(answer.get("tried")))
-            raise RetriedUnreadable(answer["error"])
+            if served_unreadable(answer):
+                raise RetriedUnreadable(answer["error"])
+            raise RuntimeError(answer["error"])
         log.info("media retry download: %s bytes from %s as %s (key info %s)%s",
                  answer.get("size"), answer.get("host"), answer.get("mms_type"),
                  answer.get("app_info"),
@@ -284,6 +303,22 @@ def ask_phone(client, answers, parsed, media, timeout=TIMEOUT):
     return opened["direct_path"]
 
 
+async def _ask(loop, s, answers, parsed, media, error, timeout):
+    """`ask_phone` on a worker thread. A failure that is not the phone's own
+    "gone" or "no answer" gives up with the download's original `error`."""
+    try:
+        return await loop.run_in_executor(
+            None, ask_phone, s.client, answers, parsed, media, timeout)
+    except MediaGone:
+        raise
+    except PhoneDidNotAnswer as retry_error:
+        log.info("media retry gave up: %s", retry_error)
+        raise
+    except Exception as retry_error:
+        log.info("media retry gave up: %s", retry_error)
+        raise error
+
+
 async def download_async(s, message, msgid, download):
     """`await download(message)`; when it fails with an expired link, asks the
     phone for the media again (session `s`) and downloads from the new path.
@@ -298,18 +333,9 @@ async def download_async(s, message, msgid, download):
                 or not is_expired_error(error) or not has_retry(s.client)):
             raise
         log.info("media retry: asking the phone")
+        started = _clock()
         loop = asyncio.get_running_loop()
-        try:
-            path = await loop.run_in_executor(
-                None, ask_phone, s.client, answers, parsed, media)
-        except MediaGone:
-            raise
-        except PhoneDidNotAnswer as retry_error:
-            log.info("media retry gave up: %s", retry_error)
-            raise
-        except Exception as retry_error:
-            log.info("media retry gave up: %s", retry_error)
-            raise error
+        path = await _ask(loop, s, answers, parsed, media, error, TIMEOUT)
         if has_retried_download(s.client):
             try:
                 return await loop.run_in_executor(
@@ -318,9 +344,13 @@ async def download_async(s, message, msgid, download):
                 # WhatsApp Web asks once more when the re-upload does not match
                 # (WAWebMediaMmsV4Download, isFinalRmrRetry): the phone may
                 # have served a copy it was still writing. Then it gives up.
+                left = BUDGET - (_clock() - started)
+                if left < MIN_SECOND_ASK:
+                    log.info("media retry: the re-upload could not be opened; "
+                             "no time left to ask once more")
+                    raise
                 log.info("media retry: the re-upload could not be opened; asking once more")
-                path = await loop.run_in_executor(
-                    None, ask_phone, s.client, answers, parsed, media)
+                path = await _ask(loop, s, answers, parsed, media, error, min(TIMEOUT, left))
                 return await loop.run_in_executor(
                     None, fetch_retried, s.client, message, path)
         return await download(with_new_path(message, path))

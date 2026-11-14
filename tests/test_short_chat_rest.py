@@ -41,6 +41,25 @@ def test_nothing_rests_while_history_lands_or_once_the_chat_is_opened():
     assert "a" not in rest
 
 
+def test_a_fetch_that_failed_does_not_rest_the_chat():
+    rest = {}
+    rest_mod.note_pass(rest, {"ok": False, "failed": False, "grew": True},
+                       {"ok", "grew"}, True, 0, opened=NEVER_OPENED)
+    assert rest == {"ok": (1, FIRST_REST)}
+
+
+def test_nothing_rests_when_the_session_was_down_during_the_pass():
+    rest = {}
+    rest_mod.note_pass(rest, {"a": False}, {"a"}, False, 0, opened=NEVER_OPENED)
+    assert rest == {}
+
+
+def test_the_backfill_rests_only_chats_whose_fetch_was_answered():
+    from tests.god_modules import main_window_source
+    source = main_window_source()
+    assert "short_chat_rest.note_pass(" in source and "if fut.result():" in source
+
+
 def test_resting_reads_the_clock():
     rest = {"a": (1, 50.0)}
     assert rest_mod.resting(rest, "a", 49)

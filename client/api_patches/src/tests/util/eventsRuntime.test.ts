@@ -84,6 +84,13 @@ test('an edit keeps what it does not change, and a cancel is an edit', () => wit
   expect(calls[3][1].isEventCanceled).toBe(true);
 }));
 
+test('an edit with the end cleared drops the end, one without it keeps it', () => withPage(eventMsg(), async () => {
+  expect(await editEvent({ messageId: ID, endTime: null })).toEqual({ ok: true });
+  expect(calls[1][1].endTime).toBeUndefined();
+  expect(await editEvent({ messageId: ID, endTime: 1800007200 })).toEqual({ ok: true });
+  expect(calls[3][1].endTime).toBe(1800007200);
+}));
+
 test('only the creator edits', () => withPage(eventMsg({ id: { _serialized: ID, fromMe: false } }), async () => {
   expect(await editEvent({ messageId: ID, name: 'X' })).toEqual({ ok: false, error: 'event_not_mine' });
 }));
@@ -95,5 +102,7 @@ test('the route validates the fields', () => {
   expect(eventFields({ name: ' ', startTime: 10 })).toBeNull();
   expect(eventFields({ name: 'A' })).toBeNull();
   expect(eventFields({ description: 'x' }, false)).toEqual({ description: 'x' });
+  expect(eventFields({ endTime: null }, false)).toEqual({ endTime: null });   // the end cleared
+  expect(eventFields({ startTime: null }, false)).toEqual({});                 // a start never is
   expect(eventFields({ callType: 'phone' }, false)).toBeNull();
 });
