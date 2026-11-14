@@ -479,6 +479,8 @@ WHAT'S NEW
 
 - Updating with several accounts open: WinZapp now waits for the other accounts to finish closing before it installs the update. Before, the install could fail with a warning that other accounts were open, and only went ahead after you answered Yes to try again.
 
+- Il modello predefinito di Google Gemini nell'IA online è ora Gemini 3.5 Flash-Lite, che di solito ha meno problemi di alta richiesta. Chi ha già scelto un altro modello fisso lo mantiene; chi usa il modello consigliato da WinZapp passa a quello nuovo.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

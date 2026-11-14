@@ -479,6 +479,8 @@ NOWOŚCI
 
 - Aktualizacja przy kilku otwartych kontach: WinZapp czeka teraz, aż pozostałe konta skończą się zamykać, zanim zainstaluje aktualizację. Wcześniej instalacja mogła się nie udać z ostrzeżeniem, że inne konta są otwarte, i szła dalej dopiero po odpowiedzi Tak, aby spróbować ponownie.
 
+- Domyślnym modelem Google Gemini w sztucznej inteligencji online jest teraz Gemini 3.5 Flash-Lite, który zwykle rzadziej zgłasza błędy dużego obciążenia. Kto wybrał już inny stały model, zachowuje go; kto używa modelu zalecanego przez WinZapp, przechodzi na nowy.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

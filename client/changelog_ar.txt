@@ -481,6 +481,8 @@ V3.0.0.0
 
 - التحديث مع فتح عدة حسابات: ينتظر WinZapp الآن حتى تنتهي الحسابات الأخرى من الإغلاق قبل تثبيت التحديث. كان التثبيت سابقًا قد يفشل مع تنبيه بأن حسابات أخرى مفتوحة، ولا يتابع إلا بعد أن تجيب بنعم لإعادة المحاولة.
 
+- أصبح النموذج الافتراضي لـ Google Gemini في الذكاء الاصطناعي عبر الإنترنت هو Gemini 3.5 Flash-Lite، وهو أقل عرضة عادةً لمشكلات الطلب المرتفع. من اختار نموذجًا ثابتًا آخر يحتفظ به، ومن يستخدم النموذج الذي يوصي به WinZapp ينتقل إلى النموذج الجديد.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

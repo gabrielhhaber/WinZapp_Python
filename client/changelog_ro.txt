@@ -479,6 +479,8 @@ NOUTĂȚI
 
 - Actualizare cu mai multe conturi deschise: WinZapp așteaptă acum ca celelalte conturi să termine de închis înainte de a instala actualizarea. Înainte, instalarea putea eșua cu avertismentul că alte conturi sunt deschise și continua abia după ce răspundeai Da pentru a încerca din nou.
 
+- Modelul implicit Google Gemini din IA online este acum Gemini 3.5 Flash-Lite, care de obicei are mai puține probleme de cerere ridicată. Cine a ales deja alt model fix îl păstrează; cine folosește modelul recomandat de WinZapp trece la cel nou.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
