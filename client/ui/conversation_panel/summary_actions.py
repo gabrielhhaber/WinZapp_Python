@@ -1,56 +1,169 @@
-"""AI summary of a conversation's text messages for ConversationsPanel.
+"""SummaryActionsMixin — part of ConversationsPanel (see ui/conversation_panel/__init__.py).
 
-Like WhatsApp's "Summarize unread messages": the conversations-list menu
-summarizes a chat's unread messages without opening it or marking it as read,
-and the message menu of an open chat offers its unread messages, the messages
-from the focused one to the newest, and the selected ones. The provider, model
-and key are the ones set up for message translation (core/message_summary.py).
+AI summary of chat messages, like WhatsApp's "Summarize unread messages", with
+the providers the person set up under Settings > Online AI (core/ai_media) and
+the accessible result window of a description (AIResultDialog, kind "text":
+follow-up questions, Copy, consent of its own).
+
+Where it is offered, all ending in ``_on_summarize_messages``:
+
+* the button and Ctrl+Shift+U of the open chat: its unread messages;
+* the conversations list's context menu: a chat's unread messages, read from
+  the database — the chat is neither opened nor marked as read;
+* the message context menu of the open chat: unread, from this message to the
+  newest, and the selected ones.
+
+There is no threshold: it is offered whenever there is something to summarize
+and Online AI can take text. A locked chat can be summarized too, with a
+consent asked every time and never remembered (AIResultDialog). Voice messages
+carry their transcription (summary_voice.py). Nothing here logs the messages.
+
+Methods run with ``self`` bound to the ConversationsPanel instance.
 """
 import wx
 
-from app_paths import global_dir
-from core.ai_credentials import CredentialError, CredentialStore, store_for_translation
-from core.ai_media.errors import DescriptionError
-from core.ai_media.service import RequestToken, submit
+from app_paths import active_account_id, global_dir
+from core.ai_credentials import CredentialStore
+from core.ai_media import config as ai_config
+from core.ai_media.summary import (build_unread_transcript, is_voice_message, message_text,
+                                   unread_fetch_limit, unread_messages, voice_text)
 from core.message_copy_format import format_copied_message
-from core.message_summary import (SUMMARY_SECONDS, fit_transcript, summarize, unread_fetch_limit,
-                                  unread_messages)
-from core.message_translation import credential_id, message_text, translation_model_ready
 from core.utils import format_number, is_phone_like
-from ui.dialogs.translation_settings import LABELS
 
 
 class SummaryActionsMixin:
+    # ── Is it offered ────────────────────────────────────────────────────
+
+    def _summary_ready(self, config) -> bool:
+        """Online AI is on and a provider with a saved key takes text."""
+        if not config.get("enabled"):
+            return False
+        saved = CredentialStore(global_dir()).saved()
+        return bool(ai_config.chain(config, "text", lambda p: p in saved))
+
+    def _summary_unread_messages(self) -> list:
+        """The still-unread messages of the open conversation, oldest first.
+
+        Not the conversation dict's unreadCount: mark_conversation_as_read()
+        zeroes it as soon as the chat opens. The panel's unread separator keeps
+        the real answer: it is placed from the count snapshotted at open and
+        moved as messages arrive. Once focus stepped past it
+        (``_sep_anchors_read_position``) those messages were read: nothing is
+        unread then, though the row stays as a marker.
+        """
+        if not self.conversation or getattr(self, "_sep_anchors_read_position", False):
+            return []
+        messages = getattr(self, "_sorted_messages", None) or []
+        index = getattr(self, "_unread_sep_idx", -1)
+        if 0 <= index < len(messages) and self._is_separator(messages[index]):
+            start = index + 1
+        else:
+            # No separator row at the recorded index (mid-rebuild): fall back
+            # to the anchor id. The anchor may be the first loaded row, whose
+            # valid start index 0 must not be taken for a missing separator.
+            start = None
+            anchor = getattr(self, "_first_unread_msg_id", None)
+            if anchor:
+                for idx, msg in enumerate(messages):
+                    if (isinstance(msg, dict) and not self._is_separator(msg)
+                            and (msg.get("key") or {}).get("id") == anchor):
+                        start = idx
+                        break
+            if start is None:
+                return []
+        return [row for row in messages[start:]
+                if isinstance(row, dict) and not self._is_separator(row) and message_text(row)]
+
+    def _summary_offered(self, config=None) -> bool:
+        """The button and Ctrl+Shift+U share this rule: a conversation open and
+        showing, unread messages to summarize, and Online AI able to take text.
+        Cheapest first, because every incoming message re-evaluates the
+        button: the unread count (memory), then the settings, and the
+        credential store last."""
+        if not self.conversation or not self._summary_unread_messages():
+            return False
+        if self.main_window.is_chat_hidden_by_vault(self.conversation.get("remoteJid", "")):
+            return False
+        if config is None:
+            _app, config = self._ai_settings()
+        return self._summary_ready(config)
+
+    def _update_summary_button(self):
+        button = getattr(self, "_summary_btn", None)
+        if button is None:
+            return
+        try:
+            offered = self._summary_offered()
+        except Exception:
+            offered = False
+        if offered:
+            # Kept in sync here (not only at construction) so a language
+            # change with a chat open renames the button too.
+            button.SetLabel(self.main_window.i18n.t("ai_summary_button"))
+            button.Show()
+        else:
+            button.Hide()
+        # The slot's visibility is decided by _sync_media_action_slot_visibility()
+        # (the summary button is one of its controls); a bare Layout() here
+        # left the slot hidden when the summary was the only action offered.
+        sync = getattr(self, "_sync_media_action_slot_visibility", None)
+        if sync is not None:
+            sync()
+
     # ── Menu items ───────────────────────────────────────────────────────
+
+    def _append_summary_cancel_item(self, menu) -> bool:
+        """While voice messages are being transcribed for a summary the menus
+        offer only its cancellation; whether it did."""
+        if not self._summary_voice_running():
+            return False
+        item = menu.Append(wx.ID_ANY, self.main_window.i18n.t("ai_summary_cancel_menu"))
+        self.Bind(wx.EVT_MENU, lambda event: self._ask_cancel_summary_voice(), item)
+        return True
 
     def _append_summary_items(self, menu, msg):
         """Message-menu items of the open chat: unread, from here to the end, selection."""
+        if self._append_summary_cancel_item(menu):
+            return
+        unread = self._summary_unread_messages()
+        from_here = self._summary_messages_from(msg)
+        selected = self._summary_selected_messages()
+        if not (unread or from_here or selected):
+            return
+        _app, config = self._ai_settings()
+        if not self._summary_ready(config):
+            return
         t = self.main_window.i18n.t
-        if self._summary_open_unread_messages():
-            item = menu.Append(wx.ID_ANY, t("summary_unread_menu"))
-            self.Bind(wx.EVT_MENU, lambda event: self._on_summarize_messages(
-                self._summary_open_unread_messages()), item)
-        if self._summary_messages_from(msg):
-            item = menu.Append(wx.ID_ANY, t("summary_from_here_menu"))
-            self.Bind(wx.EVT_MENU, lambda event: self._on_summarize_messages(
-                self._summary_messages_from(msg)), item)
-        if self.selected_messages:
-            item = menu.Append(wx.ID_ANY, t("summary_selected_menu"))
-            self.Bind(wx.EVT_MENU, lambda event: self._on_summarize_messages(
-                self._summary_selected_messages()), item)
+        for rows, key, again in (
+                (unread, "ai_summary_unread_menu", self._summary_unread_messages),
+                (from_here, "ai_summary_from_here_menu", lambda: self._summary_messages_from(msg)),
+                (selected, "ai_summary_selected_menu", self._summary_selected_messages)):
+            if rows:
+                item = menu.Append(wx.ID_ANY, t(key))
+                # Read again when chosen: the list moves while a menu is open.
+                self.Bind(wx.EVT_MENU, lambda event, again=again: self._on_summarize_messages(
+                    again(), follows_open_chat=True), item)
 
     def _append_unread_summary_item(self, menu, chat):
         """Conversations-list item for a chat with unread messages. It reads the
         stored messages only: the chat is neither opened nor marked as read."""
-        if int(chat.get("unreadCount") or 0) <= 0 or not chat.get("remoteJid"):
+        if self._append_summary_cancel_item(menu):
             return
-        item = menu.Append(wx.ID_ANY, self.main_window.i18n.t("summary_unread_menu"))
+        jid = chat.get("remoteJid")
+        if int(chat.get("unreadCount") or 0) <= 0 or not jid:
+            return
+        if self.main_window.is_chat_hidden_by_vault(jid):
+            return
+        _app, config = self._ai_settings()
+        if not self._summary_ready(config):
+            return
+        item = menu.Append(wx.ID_ANY, self.main_window.i18n.t("ai_summary_unread_menu"))
         self.Bind(wx.EVT_MENU, lambda event: self._on_summarize_unread_chat(chat), item)
 
     # ── Which messages ───────────────────────────────────────────────────
 
     def _summary_messages_from(self, msg):
-        """Text messages from ``msg`` to the newest one, in list order."""
+        """Usable messages from ``msg`` to the newest one, in list order."""
         key = (msg.get("key") or {}).get("id")
         rows = self._sorted_messages
         start = next((n for n, row in enumerate(rows)
@@ -60,25 +173,17 @@ class SummaryActionsMixin:
         return [row for row in rows[start:] if not self._is_separator(row) and message_text(row)]
 
     def _summary_selected_messages(self):
+        if not self.selected_messages:
+            return []
         return [row for row in self._sorted_messages
                 if not self._is_separator(row) and message_text(row)
                 and (row.get("key") or {}).get("id") in self.selected_messages]
-
-    def _summary_open_unread_messages(self):
-        """Text messages below the open chat's unread separator, while it still
-        marks unread ones (not once focus went past it: they were read)."""
-        index = getattr(self, "_unread_sep_idx", -1)
-        rows = self._sorted_messages
-        if (not 0 <= index < len(rows) or not self._is_separator(rows[index])
-                or getattr(self, "_sep_anchors_read_position", False)):
-            return []
-        return [row for row in rows[index + 1:] if not self._is_separator(row) and message_text(row)]
 
     def _on_summarize_unread_chat(self, chat):
         """Summarize a chat's unread messages from the database, without opening it."""
         mw = self.main_window
         jid = chat.get("remoteJid", "")
-        if not jid or self._translation_chat_hidden(jid):
+        if not jid or mw.is_chat_hidden_by_vault(jid):
             return
         unread = int(chat.get("unreadCount") or 0)
         try:
@@ -88,6 +193,8 @@ class SummaryActionsMixin:
         stored.reverse()  # newest-first from the database; oldest first here
         rows = [row for row in unread_messages(stored, unread) if message_text(row)]
         self._on_summarize_messages(rows, jid=jid, chat=chat)
+
+    # ── The lines ────────────────────────────────────────────────────────
 
     def _summary_sender(self, row, chat):
         """Who sent ``row``. For a private chat summarized from the list, never
@@ -110,104 +217,98 @@ class SummaryActionsMixin:
             jid = getattr(mw, "_lid_to_phone", {}).get(jid, "")
         return format_number(jid) if jid and not jid.endswith("@lid") else ""
 
-    def _summary_lines(self, messages, chat=None):
-        """One "<date> <time> - <sender>: <text>" line per message, as Copy selected writes them."""
-        fmt = self.main_window.i18n.t("datetime_fmt")
-        lines = []
-        for row in messages:
-            text = self._message_text_with_names(row) or message_text(row)
-            if text:
-                lines.append(format_copied_message(
-                    self._extract_timestamp(row), self._summary_sender(row, chat), text, fmt))
-        return lines
+    def _summary_text_of(self, row, voice_texts):
+        """What ``row`` says: a voice message's transcription (or its marker),
+        a text with @mentions as names, else the media placeholder/caption."""
+        if is_voice_message(row):
+            return voice_text(voice_texts.get((row.get("key") or {}).get("id", "")))
+        named = " ".join((self._message_text_with_names(row) or "").split())
+        return named or message_text(row)
 
     # ── Request and result ───────────────────────────────────────────────
 
-    def _on_summarize_messages(self, messages, *, jid=None, chat=None):
-        """Summarize ``messages`` of the chat ``jid`` (the open chat when None)."""
+    def _on_summary_action(self, event=None):
+        """Button and Ctrl+Shift+U: summarize the unread messages of this chat,
+        or offer to cancel the voice transcription under way."""
+        mw = self.main_window
+        if self._summary_voice_running():
+            self._ask_cancel_summary_voice()
+            return
+        if not self._summary_offered():
+            mw.output(mw.i18n.t("ai_summary_not_available"), interrupt=True)
+            return
+        self._on_summarize_messages(self._summary_unread_messages(), follows_open_chat=True)
+
+    def _on_summarize_messages(self, messages, *, jid=None, chat=None, follows_open_chat=None):
+        """Summarize ``messages`` of the chat ``jid`` (the open chat when None;
+        ``chat`` is its list entry when summarized from the conversations list)."""
         mw = self.main_window
         t = mw.i18n.t
-        config = self._translation_settings()
-        if not config.provider:
-            mw.output(t("summary_not_configured"))
+        if self._summary_voice_running():
+            self._ask_cancel_summary_voice()
             return
-        if not translation_model_ready(config):
-            mw.output(t("translation_test_required"))
+        if follows_open_chat is None:
+            follows_open_chat = jid is None
+        jid = (self.conversation or {}).get("remoteJid", "") if jid is None else jid
+        if not jid or mw.is_chat_hidden_by_vault(jid):
             return
-        follows_open_chat = jid is None
-        jid = (self.conversation or {}).get("remoteJid", "") if follows_open_chat else jid
-        if not jid or self._translation_chat_hidden(jid):
+        existing = getattr(self, "_ai_dialog", None)
+        if existing is not None:
+            existing.Raise()
+            return  # No second window or duplicate billed request.
+        _app, config = self._ai_settings()
+        if not self._summary_ready(config):
+            mw.output(t("ai_summary_not_available"))
             return
-        transcript, kept, left_out = fit_transcript(self._summary_lines(messages, chat))
-        if not kept:
-            mw.output(t("summary_nothing"))
+        messages = [row for row in messages if message_text(row)]
+        if not messages:
+            mw.output(t("ai_summary_nothing"))
             return
-        if getattr(self, "_summary_request", None) is not None:
-            mw.output(t("ai_error_busy"))
-            return
-        provider = LABELS.get(config.provider, config.provider)
-        # A locked chat's text leaves WhatsApp only with fresh consent, asked
-        # each time, as translation does (translation_locked_confirm).
-        if mw.is_chat_locked(jid):
-            answer = wx.MessageBox(
-                t("summary_locked_confirm").format(provider=provider), t("summary_title"),
-                wx.YES_NO | wx.NO_DEFAULT, self)
-            if answer != wx.YES or self._translation_chat_hidden(jid) or (
-                    follows_open_chat and (self.conversation or {}).get("remoteJid") != jid):
-                return
-        token = self._summary_request = RequestToken(SUMMARY_SECONDS)
-        language = mw.i18n.language
+        self._summary_voice_step(
+            messages, jid,
+            lambda voice: self._open_summary(messages, jid, chat, voice, follows_open_chat),
+            follows_open_chat)
 
-        def work():
-            try:
-                identity = credential_id(config)
-                key = store_for_translation(CredentialStore(global_dir()), identity).get(identity)
-            except CredentialError:
-                raise DescriptionError("credentials") from None
-            return summarize(config, key, transcript, language, token)
-
-        def complete(answer, error):
-            self._summary_request = None
-            if (getattr(mw, "_shutting_down", False) or self._translation_chat_hidden(jid)
-                    or (follows_open_chat and (self.conversation or {}).get("remoteJid") != jid)):
-                return
-            if error:
-                mw.output(t(error))
-                return
-            note = t("summary_left_out").format(count=kept, left_out=left_out) if left_out else ""
-            self._show_summary(answer, note=note, jid=jid)
-
-        try:
-            submit(work, lambda answer, error: wx.CallAfter(complete, answer, error))
-        except DescriptionError as error:
-            complete(None, error.key)
-        else:
-            mw.output(t("summary_sending").format(provider=provider, count=kept))
-
-    def _show_summary(self, answer, *, note, jid):
-        """Read-only window: the summary, a Copy button and OK."""
-        t = self.main_window.i18n.t
-        title = t("summary_title")
-        dialog = wx.Dialog(self, title=title, size=(560, 380))
-        text = wx.TextCtrl(dialog, value=f"{note}\n\n{answer}" if note else answer, name=title,
-                           style=wx.TE_MULTILINE | wx.TE_READONLY)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(text, 1, wx.EXPAND | wx.ALL, 8)
-        copy_button = wx.Button(dialog, label=t("transcription_result_copy"))
-        copy_button.Bind(wx.EVT_BUTTON, lambda event: self._copy_translation(answer))
-        sizer.Add(copy_button, 0, wx.ALL, 8)
-        sizer.Add(dialog.CreateSeparatedButtonSizer(wx.OK), 0, wx.EXPAND | wx.ALL, 8)
-        dialog.SetSizer(sizer)
-        text.SetFocus()
-        self._summary_dialog = (dialog, jid)
+    def _open_summary(self, messages, jid, chat, voice, follows_open_chat):
+        """The transcript is built and the result window opens, once the voice
+        messages have their words (or stay markers)."""
+        mw = self.main_window
+        t = mw.i18n.t
+        if (getattr(mw, "_shutting_down", False) or mw.is_chat_hidden_by_vault(jid)
+                or (follows_open_chat and (self.conversation or {}).get("remoteJid") != jid)):
+            return  # The vault closed or the chat changed while voice was transcribed.
+        if getattr(self, "_ai_dialog", None) is not None:
+            return
+        app, config = self._ai_settings()
+        if not self._summary_ready(config):
+            mw.output(t("ai_summary_not_available"))
+            return
+        fmt = t("datetime_fmt")
+        built = build_unread_transcript(
+            messages,
+            lambda row, text: format_copied_message(
+                self._extract_timestamp(row), self._summary_sender(row, chat), text, fmt),
+            lambda row: self._summary_text_of(row, voice.texts))
+        if not built.text:
+            mw.output(t("ai_summary_nothing"))
+            return
+        notices = []
+        if built.left_out:
+            notices.append(t("ai_summary_left_out").format(count=built.included, left_out=built.left_out))
+        if built.voice_markers:
+            notices.append(t("ai_summary_voice_missing").format(count=built.voice_markers))
+        data = built.text.encode("utf-8")
+        identity = (active_account_id(), jid, "summary")
+        locked = mw.is_chat_locked(jid)
+        from ui.dialogs.ai_result_dialog import AIResultDialog
+        dialog = AIResultDialog(self, identity, "text", locked, config, app,
+                                lambda operation: data, "text/plain", notice="\n".join(notices))
+        self._ai_dialog = dialog
         try:
             dialog.ShowModal()
         finally:
-            self._summary_dialog = None
+            dialog._dispose()
+            self._ai_dialog = None
             dialog.Destroy()
-
-    def close_locked_summary(self):
-        """The vault closed: a summary of a locked chat leaves the screen."""
-        dialog = getattr(self, "_summary_dialog", None)
-        if dialog is not None and self.main_window.is_chat_locked(dialog[1]):
-            dialog[0].EndModal(wx.ID_CANCEL)
+            if follows_open_chat:
+                self._restore_focus_after_ai(identity, locked)

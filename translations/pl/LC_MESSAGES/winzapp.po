@@ -1319,7 +1319,6 @@ msgid "Run again (new request)"
 msgstr "Wykonaj ponownie (nowe żądanie)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_remember_consent"
 msgid "Remember this consent &for media outside locked chats"
 msgstr "Zapamiętaj tę zgodę dla plików spoza zabezpieczonych &czatów"
@@ -1355,9 +1354,10 @@ msgid "Accessible PDF text"
 msgstr "Dostępny tekst z PDF"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_result_summary_title"
-msgid "Unread messages summary"
-msgstr "Podsumowanie nieprzeczytanych wiadomości"
+msgid "Message summary"
+msgstr "Podsumowanie wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #| msgctxt "ai_result_transcription_title"
@@ -1367,7 +1367,6 @@ msgid "Voice message transcription (online AI)"
 msgstr "Transkrypcja wiadomości głosowej (AI online)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "Wyślij &plik"
@@ -1407,41 +1406,148 @@ msgid "S&tatus"
 msgstr "S&tatus"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+#: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
 msgctxt "ai_summary_button"
 msgid "Summarize unread messages"
 msgstr "Podsumuj nieprzeczytane"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_cancel_confirm"
+msgid ""
+"Voice messages are being transcribed for a summary (message {index} of "
+"{total}). Cancel the summary?"
+msgstr ""
+"Trwa transkrypcja wiadomości głosowych na potrzeby podsumowania (wiadomość "
+"{index} z {total}). Anulować podsumowanie?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_cancel_menu"
+msgid "Cancel the AI summary"
+msgstr "Anuluj podsumowanie przez AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_cancelled"
+msgid "Summary cancelled."
+msgstr "Podsumowanie anulowane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
-msgctxt "ai_summary_consent_notice"
+#, python-brace-format
+msgctxt "ai_summary_consent"
 msgid ""
-"This summary sends the text of your unread messages in this chat — not a "
-"file: the names and words of the people in it go with it."
+"The text of the chosen messages, with the names of the people who wrote them"
+" and, for voice messages, the text transcribed on this computer, and your "
+"questions and the previous answers in this window may be sent to "
+"{providers}, in that order, if the earlier ones fail. This may incur API "
+"charges. Provider data policies apply; the summary can be wrong. Do you want"
+" to continue?"
 msgstr ""
-"To podsumowanie wysyła tekst Twoich nieprzeczytanych wiadomości z tego "
-"czatu, a nie plik: wraz z imionami i słowami uczestników."
+"Tekst wybranych wiadomości, wraz z imionami ich autorów oraz — w przypadku "
+"wiadomości głosowych — tekstem z transkrypcji wykonanej na tym komputerze, a"
+" także Twoje pytania i wcześniejsze odpowiedzi z tego okna mogą zostać "
+"wysłane do: {providers}. Jeśli dostawców jest kilku, WinZapp użyje ich w "
+"podanej kolejności, przechodząc do następnego po nieudanej próbie. Może to "
+"wiązać się z opłatami za korzystanie z API. Obowiązują zasady przetwarzania "
+"danych danego dostawcy, a podsumowanie może zawierać błędy. Czy chcesz "
+"kontynuować?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#| msgid ""
-#| "Offer to summarize when a chat has at least this many unread messages (0 = "
-#| "never):"
-msgctxt "ai_summary_min_unread_label"
-msgid ""
-"Offer to summari&ze when a chat has at least this many unread messages (0 = "
-"never):"
-msgstr ""
-"Proponuj podsumowanie, gdy czat ma co najmniej tyle nieprzeczytanyc&h "
-"wiadomości (0 = nigdy):"
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_disclaimer"
+msgid "Summary made by AI; it may contain errors."
+msgstr "Podsumowanie wykonane przez AI; może zawierać błędy."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_from_here_menu"
+msgid "Summarize with AI from here to the end"
+msgstr "Podsumuj przez AI od tego miejsca do końca"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_left_out"
+msgid ""
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
+msgstr ""
+"Wiadomości w tym podsumowaniu: {count}, najnowsze. Starsze wiadomości, które"
+" się nie zmieściły: {left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_locked_consent"
+msgid ""
+"These messages are from a locked chat. Sending them outside WhatsApp needs "
+"fresh consent every time, and it is never remembered. Locking the vault "
+"closes this window and discards the summary."
+msgstr ""
+"Te wiadomości pochodzą z zabezpieczonego czatu. Wysłanie ich poza WhatsApp "
+"wymaga ponownej zgody za każdym razem i nigdy nie jest ona zapamiętywana. "
+"Zamknięcie sejfu zamknie to okno i usunie podsumowanie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
 msgctxt "ai_summary_not_available"
 msgid ""
-"No summary to offer here: not enough unread messages or no provider set up."
+"No summary available here: there are no messages to summarize, or Online AI "
+"is not on with the key of a provider that takes text."
 msgstr ""
-"Brak podsumowania: za mało nieprzeczytanych wiadomości albo nie "
-"skonfigurowano dostawcy."
+"Brak podsumowania: nie ma wiadomości do podsumowania albo AI online nie jest"
+" włączone z kluczem dostawcy obsługującego tekst."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_nothing"
+msgid "There are no text messages to summarize here."
+msgstr "Brak wiadomości tekstowych do podsumowania."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_remember_consent"
+msgid "Remember this consent &for summaries outside locked chats"
+msgstr "Zapamiętaj tę zgodę dla podsumowań spoza zabezpieczonych &czatów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_selected_menu"
+msgid "Summarize selected messages with AI"
+msgstr "Podsumuj zaznaczone wiadomości przez AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_send"
+msgid "Send te&xt"
+msgstr "Wyślij &tekst"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_unread_menu"
+msgid "Summarize unread messages with AI"
+msgstr "Podsumuj nieprzeczytane wiadomości przez AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_hint"
+msgid ""
+"To cancel, use the summary item in the context menu, or the summary shortcut"
+" in an open chat."
+msgstr ""
+"Aby anulować, użyj pozycji podsumowania w menu kontekstowym albo skrótu "
+"podsumowania w otwartym czacie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_missing"
+msgid "Voice messages shown only as a marker, without their words: {count}."
+msgstr ""
+"Wiadomości głosowe pokazane tylko jako znacznik, bez ich słów: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_progress"
+msgid "Transcribing voice message {index} of {total} for the summary."
+msgstr ""
+"Transkrypcja wiadomości głosowej {index} z {total} na potrzeby podsumowania."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -6290,7 +6396,6 @@ msgstr "%d.%m.%Y"
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
-#: client/ui/conversation_panel/summary_actions.py
 #: client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/transcription_flow.py
@@ -13643,8 +13748,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_summarize_unread_label"
-msgid "Alt+Shift+U: summarize unread messages"
-msgstr "Alt+Shift+U: podsumuj nieprzeczytane wiadomości"
+msgid "Ctrl+Shift+U: summarize unread messages"
+msgstr "Ctrl+Shift+U: podsumuj nieprzeczytane wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -16220,68 +16325,6 @@ msgstr "Wiadomości przypięte."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Czaty przywrócone z archiwum."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_from_here_menu"
-msgid "Summarize with AI from here to the end"
-msgstr "Podsumuj przez AI od tego miejsca do końca"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "summary_left_out"
-msgid ""
-"Messages in this summary: {count}, the most recent ones. Older messages left"
-" out: {left_out}."
-msgstr ""
-"Wiadomości w tym podsumowaniu: {count}, najnowsze. Starsze wiadomości, które"
-" się nie zmieściły: {left_out}."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "summary_locked_confirm"
-msgid ""
-"These messages are from a locked chat. Send their text to {provider} to be "
-"summarized?"
-msgstr ""
-"Te wiadomości pochodzą z zabezpieczonego czatu. Wysłać ich tekst do "
-"{provider} w celu podsumowania?"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_not_configured"
-msgid ""
-"Summaries use the message translation provider. Set it up in Settings > "
-"\"Online AI: Transcriptions and Descriptions\" > \"Message translation\"."
-msgstr ""
-"Podsumowania korzystają z dostawcy tłumaczenia wiadomości. Skonfiguruj go w "
-"oknie Ustawienia > „AI online: transkrypcje i opisy” > „Tłumaczenie "
-"wiadomości”."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_nothing"
-msgid "There are no text messages to summarize here."
-msgstr "Brak wiadomości tekstowych do podsumowania."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_selected_menu"
-msgid "Summarize selected messages with AI"
-msgstr "Podsumuj zaznaczone wiadomości przez AI"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "summary_sending"
-msgid "Summarizing with {provider}… Messages: {count}"
-msgstr "Podsumowywanie przez {provider}… Liczba wiadomości: {count}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_title"
-msgid "Message summary"
-msgstr "Podsumowanie wiadomości"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "summary_unread_menu"
-msgid "Summarize unread messages with AI"
-msgstr "Podsumuj nieprzeczytane wiadomości przez AI"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format

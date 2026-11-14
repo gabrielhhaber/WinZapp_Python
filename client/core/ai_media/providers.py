@@ -50,7 +50,7 @@ def is_transcription(provider, media):
 
 def _text_parts(provider, media, question):
     """The chat transcript and the request as plain-text parts, per provider's
-    message shape. kind "text" (an unread-messages summary) carries no media:
+    message shape. kind "text" (a chat summary) carries no media:
     the transcript itself is the payload."""
     transcript = media.data.decode("utf-8", "replace")
     if provider == "openai":
@@ -119,7 +119,7 @@ def build_request(provider, model, key, media, history, question, instructions, 
 
 
 def _text_request(provider, model, key, media, history, question, instructions):
-    """Text-only request for an unread-messages summary: the transcript plus
+    """Text-only request for a chat summary: the transcript plus
     the question, no inline media, same stateless shape as the other kinds."""
     tokens = MAX_OUTPUT_TOKENS["text"]
     parts = _text_parts(provider, media, question)

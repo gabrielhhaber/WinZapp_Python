@@ -163,7 +163,7 @@ class AcceleratorsMixin:
         self.ID_CTRL_SHIFT_B    = wx.NewIdRef()  # block contact           (Ctrl+Shift+B)
         # ── Message-level ────────────────────────────────────────────────────
         self.ID_ALT_FOCUS_FIELD = wx.NewIdRef()  # focus message field     (Alt+<msg-label mnemonic>)
-        self.ID_SUMMARIZE_UNREAD = wx.NewIdRef()  # summarize unread       (Alt+Shift+U)
+        self.ID_SUMMARIZE_UNREAD = wx.NewIdRef()  # summarize unread       (Ctrl+Shift+U)
         self.ID_ALT_FOCUS_LIST  = wx.NewIdRef()  # focus messages list     (Alt+<list-label mnemonic>)
         self.ID_ALT_R           = wx.NewIdRef()  # reply                   (Alt+R)
         self.ID_ALT_SHIFT_D     = wx.NewIdRef()  # message data            (Alt+Shift+D)
@@ -282,7 +282,7 @@ class AcceleratorsMixin:
             (CS,               ord("I"),          self.ID_AI_ACTION),
             (wx.ACCEL_ALT,     ord(focus_field_letter), self.ID_ALT_FOCUS_FIELD),
             (wx.ACCEL_ALT,     ord(focus_list_letter),  self.ID_ALT_FOCUS_LIST),
-            (AS,               ord("U"),          self.ID_SUMMARIZE_UNREAD),
+            (CS,               ord("U"),          self.ID_SUMMARIZE_UNREAD),
             (wx.ACCEL_CTRL,    ord("R"),         self.ID_CTRL_R),
             (wx.ACCEL_ALT,     ord("2"),         self.ID_ALT_2),
             (wx.ACCEL_NORMAL,  wx.WXK_ESCAPE,    self.ID_ESC),

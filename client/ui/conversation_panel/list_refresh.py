@@ -390,7 +390,7 @@ class ListRefreshMixin:
         message to the list; otherwise does nothing (the unread badge in the
         conversations list is updated separately via set_chats).
         """
-        # A new unread message may cross the summary threshold either way.
+        # A new message may give the unread summary something to summarize.
         # Tests bind this method without a wx.App: only schedule then.
         if wx.GetApp() is not None:
             wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))

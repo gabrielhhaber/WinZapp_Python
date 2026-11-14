@@ -245,9 +245,6 @@ class TranslationActionsMixin:
         dialog = getattr(self, "_translation_dialog", None)
         if dialog is not None and mw.is_chat_locked(dialog[1]):
             dialog[0].EndModal(wx.ID_CANCEL)
-        close_summary = getattr(self, "close_locked_summary", None)  # summary_actions.py
-        if close_summary is not None:
-            close_summary()
 
     def _translation_for_reading(self, message, answer):
         """The answer as the row reads it: @mentions as names, never digits."""

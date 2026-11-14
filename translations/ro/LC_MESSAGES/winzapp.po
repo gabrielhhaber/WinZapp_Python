@@ -1296,7 +1296,6 @@ msgid "Run again (new request)"
 msgstr "Rulează din nou (cerere nouă)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_remember_consent"
 msgid "Remember this consent &for media outside locked chats"
 msgstr ""
@@ -1333,9 +1332,10 @@ msgid "Accessible PDF text"
 msgstr "Text accesibil din PDF"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_result_summary_title"
-msgid "Unread messages summary"
-msgstr "Rezumatul mesajelor necitite"
+msgid "Message summary"
+msgstr "Rezumatul mesajelor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
@@ -1343,7 +1343,6 @@ msgid "Voice message transcription (online AI)"
 msgstr "Transcrierea mesajului vocal (AI online)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "Trimite &conținutul"
@@ -1383,41 +1382,145 @@ msgid "S&tatus"
 msgstr "Star&e"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+#: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
 msgctxt "ai_summary_button"
 msgid "Summarize unread messages"
 msgstr "Rezumă mesajele necitite"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_cancel_confirm"
+msgid ""
+"Voice messages are being transcribed for a summary (message {index} of "
+"{total}). Cancel the summary?"
+msgstr ""
+"Mesajele vocale sunt transcrise pentru un rezumat (mesajul {index} din "
+"{total}). Anulezi rezumatul?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_cancel_menu"
+msgid "Cancel the AI summary"
+msgstr "Anulează rezumatul cu AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_cancelled"
+msgid "Summary cancelled."
+msgstr "Rezumat anulat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
-msgctxt "ai_summary_consent_notice"
+#, python-brace-format
+msgctxt "ai_summary_consent"
 msgid ""
-"This summary sends the text of your unread messages in this chat — not a "
-"file: the names and words of the people in it go with it."
+"The text of the chosen messages, with the names of the people who wrote them"
+" and, for voice messages, the text transcribed on this computer, and your "
+"questions and the previous answers in this window may be sent to "
+"{providers}, in that order, if the earlier ones fail. This may incur API "
+"charges. Provider data policies apply; the summary can be wrong. Do you want"
+" to continue?"
 msgstr ""
-"Acest rezumat trimite textul mesajelor tale necitite din această "
-"conversație, nu un fișier: numele și cuvintele participanților sunt incluse."
+"Textul mesajelor alese, cu numele celor care le-au scris și, pentru mesajele"
+" vocale, textul transcris pe acest computer, împreună cu întrebările tale și"
+" răspunsurile anterioare din această fereastră, pot fi trimise la "
+"{providers}, în această ordine, dacă cei dinainte eșuează. Pot exista "
+"costuri API. Se aplică politicile furnizorului; rezumatul poate fi greșit. "
+"Continui?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#| msgid ""
-#| "Offer to summarize when a chat has at least this many unread messages (0 = "
-#| "never):"
-msgctxt "ai_summary_min_unread_label"
-msgid ""
-"Offer to summari&ze when a chat has at least this many unread messages (0 = "
-"never):"
-msgstr ""
-"Oferă rezumat când o conversație are ce&l puțin atâtea mesaje necitite (0 = "
-"niciodată):"
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_disclaimer"
+msgid "Summary made by AI; it may contain errors."
+msgstr "Rezumat făcut de AI; poate conține greșeli."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_from_here_menu"
+msgid "Summarize with AI from here to the end"
+msgstr "Rezumă cu AI de aici până la sfârșit"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_left_out"
+msgid ""
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
+msgstr ""
+"Mesaje în acest rezumat: {count}, cele mai recente. Mesaje mai vechi rămase "
+"pe dinafară: {left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_locked_consent"
+msgid ""
+"These messages are from a locked chat. Sending them outside WhatsApp needs "
+"fresh consent every time, and it is never remembered. Locking the vault "
+"closes this window and discards the summary."
+msgstr ""
+"Aceste mesaje provin dintr-o conversație blocată. Trimiterea în afara "
+"WhatsApp necesită acord nou de fiecare dată, iar acesta nu este niciodată "
+"memorat. Blocarea seifului închide această fereastră și elimină rezumatul."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
 msgctxt "ai_summary_not_available"
 msgid ""
-"No summary to offer here: not enough unread messages or no provider set up."
+"No summary available here: there are no messages to summarize, or Online AI "
+"is not on with the key of a provider that takes text."
 msgstr ""
-"Niciun rezumat disponibil aici: nu sunt suficiente mesaje necitite sau "
-"niciun furnizor configurat."
+"Niciun rezumat disponibil aici: nu există mesaje de rezumat sau AI online nu"
+" este activat cu cheia unui furnizor care acceptă text."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_nothing"
+msgid "There are no text messages to summarize here."
+msgstr "Nu există mesaje text de rezumat aici."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_remember_consent"
+msgid "Remember this consent &for summaries outside locked chats"
+msgstr ""
+"Memorează acest acord pentru rezumate din afara conversațiilor &blocate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_selected_menu"
+msgid "Summarize selected messages with AI"
+msgstr "Rezumă cu AI mesajele selectate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_send"
+msgid "Send te&xt"
+msgstr "Trimite &textul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_unread_menu"
+msgid "Summarize unread messages with AI"
+msgstr "Rezumă cu AI mesajele necitite"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_hint"
+msgid ""
+"To cancel, use the summary item in the context menu, or the summary shortcut"
+" in an open chat."
+msgstr ""
+"Pentru a anula, folosește elementul de rezumat din meniul contextual sau "
+"comanda rapidă de rezumat într-o conversație deschisă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_missing"
+msgid "Voice messages shown only as a marker, without their words: {count}."
+msgstr "Mesaje vocale afișate doar ca marcaj, fără cuvintele lor: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_progress"
+msgid "Transcribing voice message {index} of {total} for the summary."
+msgstr "Se transcrie mesajul vocal {index} din {total} pentru rezumat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -6268,7 +6371,6 @@ msgstr "%d.%m.%Y"
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
-#: client/ui/conversation_panel/summary_actions.py
 #: client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/transcription_flow.py
@@ -13634,8 +13736,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_summarize_unread_label"
-msgid "Alt+Shift+U: summarize unread messages"
-msgstr "Alt+Shift+U: rezumă mesajele necitite"
+msgid "Ctrl+Shift+U: summarize unread messages"
+msgstr "Ctrl+Shift+U: rezumă mesajele necitite"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
@@ -16188,67 +16290,6 @@ msgstr "Mesaje fixate."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Conversații dezarhivate."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_from_here_menu"
-msgid "Summarize with AI from here to the end"
-msgstr "Rezumă cu AI de aici până la sfârșit"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "summary_left_out"
-msgid ""
-"Messages in this summary: {count}, the most recent ones. Older messages left"
-" out: {left_out}."
-msgstr ""
-"Mesaje în acest rezumat: {count}, cele mai recente. Mesaje mai vechi rămase "
-"pe dinafară: {left_out}."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "summary_locked_confirm"
-msgid ""
-"These messages are from a locked chat. Send their text to {provider} to be "
-"summarized?"
-msgstr ""
-"Aceste mesaje provin dintr-o conversație blocată. Trimiți textul lor la "
-"{provider} pentru rezumat?"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_not_configured"
-msgid ""
-"Summaries use the message translation provider. Set it up in Settings > "
-"\"Online AI: Transcriptions and Descriptions\" > \"Message translation\"."
-msgstr ""
-"Rezumatele folosesc furnizorul traducerii mesajelor. Configurează-l în "
-"Setări > \"AI online: transcrieri și descrieri\" > \"Traducerea mesajelor\"."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_nothing"
-msgid "There are no text messages to summarize here."
-msgstr "Nu există mesaje text de rezumat aici."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_selected_menu"
-msgid "Summarize selected messages with AI"
-msgstr "Rezumă cu AI mesajele selectate"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#, python-brace-format
-msgctxt "summary_sending"
-msgid "Summarizing with {provider}… Messages: {count}"
-msgstr "Se rezumă cu {provider}… Mesaje: {count}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "summary_title"
-msgid "Message summary"
-msgstr "Rezumatul mesajelor"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "summary_unread_menu"
-msgid "Summarize unread messages with AI"
-msgstr "Rezumă cu AI mesajele necitite"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format

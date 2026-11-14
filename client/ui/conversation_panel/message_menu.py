@@ -417,7 +417,7 @@ class MessageMenuMixin:
         chat = self.conversation or {}
         if chat.get("remoteJid"):
             self._append_translation_chat_item(menu, chat["remoteJid"])
-        # AI summary with the translation provider (ui/conversation_panel/summary_actions.py).
+        # AI summary: unread, from here, selected (ui/conversation_panel/summary_actions.py).
         self._append_summary_items(menu, msg)
         # AI transcription / description (ui/conversation_panel/ai_actions.py).
         # Offered only while the feature is on and a provider with a key takes

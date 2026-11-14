@@ -54,9 +54,9 @@ class UnreadSeparatorMixin:
         self._sep_anchors_read_position = False
         self._first_unread_msg_id = None
         self._first_unread_count = 0
-        # The unread-summary button and Alt+Shift+U gate on this separator: a
-        # dismissal (read past it, or an outgoing message) can drop the unread
-        # tail below the configured minimum, so the button re-evaluates.
+        # The unread-summary button and Ctrl+Shift+U gate on this separator: a
+        # dismissal (read past it, or an outgoing message) leaves nothing
+        # unread to summarize, so the button re-evaluates.
         # Tests bind this method without a wx.App: only schedule then.
         if wx.GetApp() is not None:
             wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))

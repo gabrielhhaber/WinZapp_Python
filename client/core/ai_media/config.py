@@ -215,10 +215,17 @@ def preferences(app_settings):
         # Chat summaries send the TEXT of unread messages to a provider — a
         # bigger ask than one photo, so they carry their own consent list.
         "consented_text": sorted(set(consented_text)),
-        # Offer "Summarize unread" from this many unread messages up
-        # (Settings > Online AI). 0 = never offer it.
-        "summary_min_unread": _count(raw.get("summary_min_unread"), 10, 10000),
     }
+
+
+def drop_consents(value, removed):
+    """``value`` (the stored "ai_media" dict) without the remembered consent of
+    the ``removed`` providers, in both lists: a provider whose key is removed
+    must ask again, for media and for chat text, if it is ever set up again."""
+    for key in ("consented", "consented_text"):
+        kept = value.get(key, [])
+        value[key] = [p for p in kept if p not in removed] if isinstance(kept, list) else []
+    return value
 
 
 def valid_model(model):

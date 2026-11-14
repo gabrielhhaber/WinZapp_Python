@@ -182,6 +182,7 @@ from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMi
 from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
+from ui.conversation_panel.summary_voice import SummaryVoiceMixin
 
 
 class ConversationsPanel(
@@ -237,6 +238,7 @@ class ConversationsPanel(
     AIActionsMixin,
     TranslationActionsMixin,
     SummaryActionsMixin,
+    SummaryVoiceMixin,
     MessageDataMixin,
     wx.Panel,
 ):
@@ -849,9 +851,9 @@ class ConversationsPanel(
         self._media_action_sizer.Add(self._action_describe_btn, 0, wx.TOP, 2)
         self._action_describe_btn.Hide()
 
-        # Summarize unread (Alt+Shift+U), right after Describe in the Tab
-        # order; ai_actions.py shows it only when the chat has enough unread
-        # and a text-capable provider holds a key.
+        # Summarize unread (Ctrl+Shift+U), right after Describe in the Tab
+        # order; summary_actions.py shows it only when the chat has unread
+        # messages and a text-capable provider holds a key.
         self._summary_btn = wx.Button(
             self._media_action_slot, label=i18n.t("ai_summary_button")
         )

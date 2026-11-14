@@ -48,7 +48,7 @@ def prepare_media(kind, data, mime="", profile="balanced"):
     if not data or len(data) > MAX_SOURCE_BYTES[kind]:
         raise DescriptionError("media_size")
     if kind == "text":
-        # The transcript of unread messages: it travels inline in the prompt,
+        # The transcript of the messages to summarize: it travels inline in the prompt,
         # so it only needs the size check above.
         return Media(kind, data, "text/plain; charset=utf-8", "unread-messages.txt")
     if kind in ("image", "sticker"):
