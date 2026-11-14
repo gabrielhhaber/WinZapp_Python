@@ -4,7 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
-- Po długiej przerwie w korzystaniu z WinZapp: dopóki WhatsApp nadal dostarcza stare wiadomości po zakończeniu synchronizacji, tytuł okna wciąż pokazuje "Aktualizowanie czatów", zamiast informować, że wszystko jest zsynchronizowane, a lista czatów pozostaje nieruchoma, aby można było ją przeglądać bez zmieniania się kolejności czatów. Lista jest aktualizowana jednorazowo, gdy wiadomości przestają napływać. Dotyczy silników Neonize i WPPConnect.
+- Po długiej przerwie w korzystaniu z WinZapp: dopóki WhatsApp nadal dostarcza stare wiadomości po zakończeniu synchronizacji, tytuł okna wciąż pokazuje "Aktualizowanie czatów", zamiast informować, że wszystko jest zsynchronizowane, a lista czatów pozostaje nieruchoma, aby można było ją przeglądać bez zmieniania się kolejności czatów. Lista jest aktualizowana jednorazowo, gdy wiadomości przestają napływać. Dotyczy silników Neonize i WPPConnect. W Neonize WinZapp korzysta też z informacji samego WhatsAppa o tym, że czekają stare wiadomości do dostarczenia, więc stan pojawia się od pierwszej wiadomości i znika dopiero po zakończeniu dostarczania.
 
 - Powiadomienia: gdy wiele nowych wiadomości przychodzi naraz (na przykład po powrocie niestabilnego połączenia), WinZapp odtwarza i odczytuje tylko trzy pierwsze i milczy do końca serii, zamiast powtarzać dźwięk dziesiątki razy. Wiadomości nadal są na liście i liczą się jako nieprzeczytane. Limit ustawia się w Ustawienia > Ogólne > Powiadomienia, w polu "Maksymalna liczba powiadomień na sekundę, gdy wiele wiadomości przychodzi naraz" (domyślnie: 3).
 

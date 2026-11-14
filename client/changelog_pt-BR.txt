@@ -4,7 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
-- Depois de muito tempo sem abrir o WinZapp: enquanto o WhatsApp ainda entrega mensagens antigas depois da sincronização, o título da janela continua dizendo "Atualizando conversas" em vez de dar tudo como sincronizado, e a lista de conversas fica parada, para você navegar sem as conversas mudarem de lugar. Ela é atualizada de uma vez quando as mensagens param de chegar. Vale para o Neonize e para a WPPConnect.
+- Depois de muito tempo sem abrir o WinZapp: enquanto o WhatsApp ainda entrega mensagens antigas depois da sincronização, o título da janela continua dizendo "Atualizando conversas" em vez de dar tudo como sincronizado, e a lista de conversas fica parada, para você navegar sem as conversas mudarem de lugar. Ela é atualizada de uma vez quando as mensagens param de chegar. Vale para o Neonize e para a WPPConnect. No Neonize, o WinZapp também usa o aviso do próprio WhatsApp de que há mensagens antigas a entregar, então o estado aparece desde a primeira mensagem e só some quando a entrega termina.
 
 - Notificações: quando muitas mensagens novas chegam de uma vez (por exemplo, ao voltar de uma conexão instável), o WinZapp toca e fala só as três primeiras e fica em silêncio até a rajada acabar, em vez de repetir o som dezenas de vezes. As mensagens continuam na lista e contam como não lidas. O limite é escolhido em Configurações > Geral > Notificações, em "Máximo de notificações por segundo quando muitas mensagens chegam de uma vez" (padrão: 3).
 

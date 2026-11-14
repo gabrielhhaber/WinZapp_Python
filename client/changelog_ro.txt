@@ -4,7 +4,7 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
-- După mult timp fără a deschide WinZapp: cât timp WhatsApp încă livrează mesaje vechi după sincronizare, titlul ferestrei continuă să afișeze "Se actualizează conversațiile" în loc să prezinte totul ca sincronizat, iar lista de conversații rămâne nemișcată, ca să o puteți parcurge fără ca conversațiile să își schimbe locul. Este actualizată o singură dată, când mesajele nu mai sosesc. Se aplică atât pentru Neonize, cât și pentru WPPConnect.
+- După mult timp fără a deschide WinZapp: cât timp WhatsApp încă livrează mesaje vechi după sincronizare, titlul ferestrei continuă să afișeze "Se actualizează conversațiile" în loc să prezinte totul ca sincronizat, iar lista de conversații rămâne nemișcată, ca să o puteți parcurge fără ca conversațiile să își schimbe locul. Este actualizată o singură dată, când mesajele nu mai sosesc. Se aplică atât pentru Neonize, cât și pentru WPPConnect. În Neonize, WinZapp folosește și anunțul propriu al WhatsApp că există mesaje vechi de livrat, așa că starea apare de la primul mesaj și dispare doar când livrarea se termină.
 
 - Notificări: când sosesc multe mesaje noi deodată (de exemplu, la revenirea unei conexiuni instabile), WinZapp redă și citește doar primele trei și rămâne în tăcere până la sfârșitul rafalei, în loc să repete sunetul de zeci de ori. Mesajele rămân în listă și sunt numărate ca necitite. Limita se alege în Setări > General > Notificări, la "Numărul maxim de notificări pe secundă când sosesc multe mesaje deodată" (implicit: 3).
 

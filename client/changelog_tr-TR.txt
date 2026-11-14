@@ -4,7 +4,7 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
-- WinZapp uzun süre açılmadığında: eşitleme bittikten sonra WhatsApp eski mesajları göndermeyi sürdürürken pencere başlığı her şeyi eşitlenmiş göstermek yerine "Sohbetler güncelleniyor" demeye devam eder ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Hem Neonize hem WPPConnect için geçerlidir.
+- WinZapp uzun süre açılmadığında: eşitleme bittikten sonra WhatsApp eski mesajları göndermeyi sürdürürken pencere başlığı her şeyi eşitlenmiş göstermek yerine "Sohbetler güncelleniyor" demeye devam eder ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Hem Neonize hem WPPConnect için geçerlidir. Neonize'da WinZapp, teslim edilmeyi bekleyen eski mesajlar olduğuna dair WhatsApp'ın kendi bildirimini de kullanır; böylece durum ilk mesajdan itibaren görünür ve ancak teslimat bitince kaybolur.
 
 - Bildirimler: çok sayıda yeni mesaj aynı anda geldiğinde (örneğin kararsız bir bağlantı geri geldiğinde) WinZapp sesi onlarca kez yinelemek yerine yalnızca ilk üç bildirimi çalar ve okur, ardından mesaj yağmuru bitene kadar sessiz kalır. Mesajlar yine listede yer alır ve okunmamış sayılır. Sınır, Ayarlar > Genel > Bildirimler bölümündeki "Çok sayıda mesaj aynı anda geldiğinde saniyedeki en fazla bildirim sayısı" alanından seçilir (varsayılan: 3).
 

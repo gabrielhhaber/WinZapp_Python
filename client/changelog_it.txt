@@ -4,7 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
-- Dopo molto tempo senza aprire WinZapp: finché WhatsApp continua a consegnare messaggi vecchi dopo la sincronizzazione, il titolo della finestra continua a indicare "Aggiornamento delle chat" invece di dare tutto per sincronizzato, e l'elenco delle chat resta fermo, così puoi scorrerlo senza che le chat cambino posto. Viene aggiornato in una sola volta quando i messaggi smettono di arrivare. Vale sia per Neonize sia per WPPConnect.
+- Dopo molto tempo senza aprire WinZapp: finché WhatsApp continua a consegnare messaggi vecchi dopo la sincronizzazione, il titolo della finestra continua a indicare "Aggiornamento delle chat" invece di dare tutto per sincronizzato, e l'elenco delle chat resta fermo, così puoi scorrerlo senza che le chat cambino posto. Viene aggiornato in una sola volta quando i messaggi smettono di arrivare. Vale sia per Neonize sia per WPPConnect. Con Neonize, WinZapp usa anche l'avviso di WhatsApp stesso che ci sono vecchi messaggi da consegnare, quindi lo stato compare dal primo messaggio e scompare solo quando la consegna termina.
 
 - Notifiche: quando arrivano molti messaggi nuovi tutti insieme (per esempio al ritorno di una connessione instabile), WinZapp riproduce e legge solo i primi tre e resta in silenzio fino alla fine della raffica, invece di ripetere il suono decine di volte. I messaggi restano nell'elenco e contano come non letti. Il limite si sceglie in Impostazioni > Generale > Notifiche, in "Numero massimo di notifiche al secondo quando arrivano molti messaggi insieme" (predefinito: 3).
 

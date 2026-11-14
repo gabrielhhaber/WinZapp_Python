@@ -355,3 +355,74 @@ def test_a_muted_chat_does_not_use_up_the_limit():
         window.on_new_message(_message(i, now, jid=muted))
     window.on_new_message(_message("x", now))
     assert window.message_foreground_sound.play_count == 1
+
+
+# ── WhatsApp's own announcement (Neonize: offline-sync) ─────────────────────
+
+def test_an_announced_delivery_starts_the_flood_before_any_message(polls):
+    window = _Window()
+    backlog_flood.note_offline_sync(window, "started", 1500)
+    assert polls == [window]
+    assert window.statuses == ["[updating_conversations]"]
+    assert defer_list_update(window)
+
+
+@pytest.mark.parametrize("state,messages", [
+    ("started", 0), ("started", backlog_flood.START_COUNT - 1),
+    ("completed", 0), ("other", 900),
+])
+def test_a_small_or_unknown_announcement_starts_nothing(polls, state, messages):
+    window = _Window()
+    backlog_flood.note_offline_sync(window, state, messages)
+    assert polls == [] and window.statuses == []
+    assert not defer_list_update(window)
+
+
+def test_an_announced_delivery_survives_pauses_until_whatsapp_says_done():
+    flood = BacklogFlood(quiet_seconds=5.0)
+    assert flood.announce(0)
+    assert not flood.announce(1)            # a second preview starts nothing new
+    assert not flood.settle(30)             # a slow link pausing for half a minute
+    flood.note(40)
+    assert not flood.settle(40 + backlog_flood.ANNOUNCED_QUIET_SECONDS - 1)
+    flood.note(90)
+    flood.delivered()
+    assert not flood.settle(94)             # the usual quiet period is back
+    assert flood.settle(95.5)
+    assert not flood.active and not flood.announced
+
+
+def test_an_announcement_never_followed_by_done_still_ends():
+    flood = BacklogFlood(quiet_seconds=5.0)
+    flood.announce(0)
+    assert not flood.settle(backlog_flood.ANNOUNCED_QUIET_SECONDS - 1)
+    assert flood.settle(backlog_flood.ANNOUNCED_QUIET_SECONDS + 1)
+    assert not flood.announced
+
+
+def test_done_without_an_announcement_changes_nothing(polls):
+    window = _Window()
+    _start_flood(window)
+    backlog_flood.note_offline_sync(window, "completed")
+    assert backlog_flood.backlog_flood_active(window)
+
+
+def test_the_socket_event_is_checked_before_it_reaches_the_window(monkeypatch):
+    from core.websocket_client import WebSocketClient
+    calls = []
+    monkeypatch.setattr("core.websocket_client.wx.CallAfter",
+                        lambda fn, *a: calls.append((fn.__name__, a[1:])))
+    client = SimpleNamespace(main_window=object(), instance_name="acc",
+                             _belongs_to_this_session=lambda d: d.get("session") == "acc")
+    handle = WebSocketClient.on_offline_sync
+    handle(client, {"session": "acc", "state": "started", "messages": 1500, "total": 1800})
+    handle(client, {"session": "acc", "state": "completed", "count": 1800})
+    handle(client, {"session": "other", "state": "started", "messages": 9})
+    handle(client, {"session": "acc", "state": "weird", "messages": 9})
+    handle(client, {"session": "acc", "state": "started", "messages": "many"})
+    handle(client, "junk")
+    assert calls == [
+        ("note_offline_sync", ("started", 1500)),
+        ("note_offline_sync", ("completed", 0)),
+        ("note_offline_sync", ("started", 0)),
+    ]
