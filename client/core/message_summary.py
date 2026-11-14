@@ -30,12 +30,19 @@ def unread_fetch_limit(unread_count):
 
 def unread_messages(messages, unread_count):
     """The unread part of ``messages`` (oldest first): from WhatsApp's unread
-    divider (core/unread_types.py) to the newest message. Empty when there is none."""
+    divider (core/unread_types.py) to the newest message. Empty when nothing is unread.
+
+    When ``messages`` holds fewer countable messages than ``unread_count`` the
+    divider lies above everything that was read: right after pairing WhatsApp
+    Web keeps about 15 messages per chat while the badge shows the server's
+    count, and the fetch stops at UNREAD_FETCH_CAP. Every message read is then
+    unread, so all of them are summarized (the window says how many it covers).
+    """
     from core.unread_types import first_unread_index
     if not messages or int(unread_count or 0) <= 0:
         return []
     start = first_unread_index(messages, int(unread_count))
-    return list(messages[start:]) if start >= 0 else []
+    return list(messages[max(start, 0):])
 
 
 def fit_transcript(lines, limit=MAX_TRANSCRIPT_CHARS):

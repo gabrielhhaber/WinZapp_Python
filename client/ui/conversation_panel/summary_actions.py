@@ -16,6 +16,7 @@ from core.message_copy_format import format_copied_message
 from core.message_summary import (SUMMARY_SECONDS, fit_transcript, summarize, unread_fetch_limit,
                                   unread_messages)
 from core.message_translation import credential_id, message_text, translation_model_ready
+from core.utils import format_number, is_phone_like
 from ui.dialogs.translation_settings import LABELS
 
 
@@ -64,10 +65,12 @@ class SummaryActionsMixin:
                 and (row.get("key") or {}).get("id") in self.selected_messages]
 
     def _summary_open_unread_messages(self):
-        """Text messages below the open chat's unread separator, while it is there."""
+        """Text messages below the open chat's unread separator, while it still
+        marks unread ones (not once focus went past it: they were read)."""
         index = getattr(self, "_unread_sep_idx", -1)
         rows = self._sorted_messages
-        if not 0 <= index < len(rows) or not self._is_separator(rows[index]):
+        if (not 0 <= index < len(rows) or not self._is_separator(rows[index])
+                or getattr(self, "_sep_anchors_read_position", False)):
             return []
         return [row for row in rows[index + 1:] if not self._is_separator(row) and message_text(row)]
 
@@ -87,16 +90,25 @@ class SummaryActionsMixin:
         self._on_summarize_messages(rows, jid=jid, chat=chat)
 
     def _summary_sender(self, row, chat):
-        """Who sent ``row``. For a private chat summarized from the list, the
-        chat's own name: _sender_label falls back to the OPEN chat's name."""
-        if (chat is not None and not row["key"].get("fromMe")
-                and not row["key"].get("participant")
-                and not chat.get("remoteJid", "").endswith("@g.us")):
-            mw = self.main_window
-            name = mw._resolve_contact_name(chat) or chat.get("name") or chat.get("pushName")
-            if name:
-                return name
-        return self._sender_label(row)
+        """Who sent ``row``. For a private chat summarized from the list, never
+        _sender_label: without a participant it falls back to the OPEN chat's
+        name, and the summary would put words in another person's mouth."""
+        key = row.get("key") or {}
+        if (chat is None or key.get("fromMe") or key.get("participant")
+                or chat.get("remoteJid", "").endswith("@g.us")):
+            return self._sender_label(row)
+        mw = self.main_window
+        name = (mw._resolve_contact_name(chat) or chat.get("name") or chat.get("pushName")
+                or mw.find_name_through_messages(chat))
+        if name:
+            return name
+        push = row.get("pushName") or ""
+        if push and not is_phone_like(push):
+            return push
+        jid = chat.get("remoteJid", "")
+        if jid.endswith("@lid"):
+            jid = getattr(mw, "_lid_to_phone", {}).get(jid, "")
+        return format_number(jid) if jid and not jid.endswith("@lid") else ""
 
     def _summary_lines(self, messages, chat=None):
         """One "<date> <time> - <sender>: <text>" line per message, as Copy selected writes them."""

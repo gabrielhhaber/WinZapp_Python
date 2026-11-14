@@ -15828,11 +15828,11 @@ msgstr "تلخيص بالذكاء الاصطناعي من هنا حتى النه
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
-"يشمل هذا الملخص أحدث الرسائل. عدد الرسائل المشمولة: {count}. عدد الرسائل "
-"الأقدم التي لم تتسع: {left_out}."
+"عدد الرسائل في هذا الملخص: {count}، وهي الأحدث. عدد الرسائل الأقدم التي لم "
+"تُشمل: {left_out}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -15865,7 +15865,7 @@ msgstr "تلخيص الرسائل المحددة بالذكاء الاصطناع
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
+msgid "Summarizing with {provider}… Messages: {count}"
 msgstr "جارٍ التلخيص عبر {provider}… عدد الرسائل: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

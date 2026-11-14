@@ -15120,8 +15120,8 @@ msgstr ""
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -15152,7 +15152,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
+msgid "Summarizing with {provider}… Messages: {count}"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

@@ -16155,11 +16155,11 @@ msgstr "Resumir con IA desde aquí hasta el final"
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
-"Este resumen abarca los {count} mensajes más recientes. {left_out} mensajes "
-"anteriores no cabían."
+"Mensajes en este resumen: {count}, los más recientes. Mensajes anteriores "
+"que quedaron fuera: {left_out}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -16194,8 +16194,8 @@ msgstr "Resumir con IA los mensajes seleccionados"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
-msgstr "Resumiendo {count} mensajes con {provider}…"
+msgid "Summarizing with {provider}… Messages: {count}"
+msgstr "Resumiendo con {provider}… Mensajes: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "summary_title"

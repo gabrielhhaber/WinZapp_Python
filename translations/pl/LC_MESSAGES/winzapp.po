@@ -16183,11 +16183,11 @@ msgstr "Podsumuj przez AI od tego miejsca do końca"
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
-"To podsumowanie obejmuje najnowsze wiadomości. Liczba wiadomości: {count}. "
-"Starsze wiadomości, które się nie zmieściły: {left_out}."
+"Wiadomości w tym podsumowaniu: {count}, najnowsze. Starsze wiadomości, które"
+" się nie zmieściły: {left_out}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -16222,7 +16222,7 @@ msgstr "Podsumuj zaznaczone wiadomości przez AI"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
+msgid "Summarizing with {provider}… Messages: {count}"
 msgstr "Podsumowywanie przez {provider}… Liczba wiadomości: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

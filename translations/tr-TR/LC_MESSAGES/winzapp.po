@@ -15986,10 +15986,11 @@ msgstr "Buradan sona kadar yapay zekâ ile özetle"
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
-"Bu özet en son {count} mesajı kapsıyor. Daha eski {left_out} mesaj sığmadı."
+"Bu özetteki mesajlar: {count}, en yeniler. Dışarıda kalan eski mesajlar: "
+"{left_out}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -16023,8 +16024,8 @@ msgstr "Seçili mesajları yapay zekâ ile özetle"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
-msgstr "{count} mesaj {provider} ile özetleniyor…"
+msgid "Summarizing with {provider}… Messages: {count}"
+msgstr "{provider} ile özetleniyor… Mesaj sayısı: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "summary_title"

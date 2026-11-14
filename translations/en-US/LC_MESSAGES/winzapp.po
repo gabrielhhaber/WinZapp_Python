@@ -15965,11 +15965,11 @@ msgstr "Summarize with AI from here to the end"
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -16003,8 +16003,8 @@ msgstr "Summarize selected messages with AI"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
-msgstr "Summarizing {count} messages with {provider}…"
+msgid "Summarizing with {provider}… Messages: {count}"
+msgstr "Summarizing with {provider}… Messages: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "summary_title"

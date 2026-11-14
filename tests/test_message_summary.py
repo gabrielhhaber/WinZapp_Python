@@ -63,6 +63,12 @@ class TestUnreadMessages:
         assert unread_messages([text(1)], 0) == []
         assert unread_messages([], 3) == []
 
+    def test_fewer_stored_than_unread_summarizes_everything_stored(self):
+        """Right after pairing WhatsApp Web keeps ~15 messages while the badge
+        says 40: the divider is above what was read, so all of it is unread."""
+        rows = [text(n) for n in range(15)]
+        assert len(unread_messages(rows, 40)) == 15
+
     def test_the_fetch_reaches_above_the_unread_ones_and_is_capped(self):
         assert unread_fetch_limit(10) == 60
         assert unread_fetch_limit(None) == 50
@@ -127,18 +133,38 @@ class TestSummaryRequest:
 
 
 class FakeWx:
-    YES, NO, YES_NO, NO_DEFAULT, ID_ANY, EVT_MENU = 1, 2, 4, 8, -1, "menu"
+    YES, NO, YES_NO, NO_DEFAULT, ID_ANY, EVT_MENU, ID_CANCEL = 1, 2, 4, 8, -1, "menu", 16
 
     def __init__(self):
         self.answer = self.YES
         self.asked = []
+        self.while_asking = None
 
     def CallAfter(self, function, *args):
         function(*args)
 
     def MessageBox(self, prompt, *args):
         self.asked.append(prompt)
+        if self.while_asking:
+            self.while_asking()
         return self.answer
+
+
+class Menu:
+    def __init__(self):
+        self.labels = []
+
+    def Append(self, item_id, label):
+        self.labels.append(label)
+        return object()
+
+
+class Dialog:
+    def __init__(self):
+        self.ended = []
+
+    def EndModal(self, code):
+        self.ended.append(code)
 
 
 class App:
@@ -166,9 +192,19 @@ class Panel(TranslationActionsMixin, actions.SummaryActionsMixin):
         self._sorted_messages = []
         self._unread_sep_idx = -1
         self.stored = {}
-        self.main_window.db = SimpleNamespace(
-            get_messages=lambda jid, limit: list(reversed(self.stored.get(jid, [])))[:limit])
+        self.read_from_db = []
+
+        def get_messages(jid, limit):
+            self.read_from_db.append(jid)
+            return list(reversed(self.stored.get(jid, [])))[:limit]
+
+        self.main_window.db = SimpleNamespace(get_messages=get_messages)
         self.main_window._resolve_contact_name = lambda chat: chat.get("name")
+        self.main_window.find_name_through_messages = lambda chat: None
+        self.main_window._lid_to_phone = {}
+
+    def Bind(self, *args):
+        pass
 
     @staticmethod
     def _is_separator(row):
@@ -247,6 +283,97 @@ class TestWhichMessages:
         chat = {"remoteJid": "5511888880000@s.whatsapp.net", "name": "Bia"}
         assert panel._summary_lines([text(1, "oi"), text(2, "e aí", from_me=True)], chat) == [
             "Bia: oi", "Me: e aí"]
+
+    def test_an_unnamed_chat_from_the_list_never_borrows_the_open_chat_name(self):
+        panel = Panel()
+        panel._sender_label = lambda row: "Open chat person"  # what the fallback would say
+        chat = {"remoteJid": "5511888880000@s.whatsapp.net"}
+        named = dict(text(1, "oi"), pushName="Carla")
+        assert panel._summary_lines([named], chat) == ["Carla: oi"]
+        phone_only = dict(text(2, "oi"), pushName="+55 11 88888-0000")
+        line = panel._summary_lines([phone_only], chat)[0]
+        assert "Open chat person" not in line and "88888" in line
+
+    def test_the_unread_item_goes_away_once_the_separator_was_read_past(self):
+        panel = Panel()
+        panel._sorted_messages = [text(1), {"separator": True}, text(2)]
+        panel._unread_sep_idx = 1
+        assert panel._summary_open_unread_messages()
+        panel._sep_anchors_read_position = True
+        assert panel._summary_open_unread_messages() == []
+
+
+class TestMessageMenuItems:
+    def test_unread_from_here_and_selection_appear_only_when_they_apply(self, wx):
+        panel = Panel()
+        panel._sorted_messages = [text(1), {"separator": True}, text(2), text(3)]
+        menu = Menu()
+        panel._append_summary_items(menu, text(2))
+        assert menu.labels == ["summary_from_here_menu"]
+        panel._unread_sep_idx = 1
+        panel.selected_messages = {"id3"}
+        menu = Menu()
+        panel._append_summary_items(menu, text(2))
+        assert menu.labels == ["summary_unread_menu", "summary_from_here_menu", "summary_selected_menu"]
+
+    def test_an_image_offers_no_from_here_without_text_after_it(self, wx):
+        panel = Panel()
+        panel._sorted_messages = [text(1), image(2)]
+        menu = Menu()
+        panel._append_summary_items(menu, image(2))
+        assert menu.labels == []
+
+
+class TestLockedChats:
+    def test_a_locked_summary_leaves_the_screen_when_the_vault_closes(self, wx, monkeypatch):
+        from ui.conversation_panel import translation_actions
+        monkeypatch.setattr(translation_actions, "wx", wx)
+        panel = Panel()
+        dialog = Dialog()
+        panel.locked.add(JID)
+        panel._summary_dialog = (dialog, JID)
+        panel.drop_locked_translations()
+        assert dialog.ended == [wx.ID_CANCEL]
+
+    def test_an_unlocked_summary_stays_when_the_vault_closes(self, wx, monkeypatch):
+        from ui.conversation_panel import translation_actions
+        monkeypatch.setattr(translation_actions, "wx", wx)
+        panel = Panel()
+        dialog = Dialog()
+        panel._summary_dialog = (dialog, JID)
+        panel.drop_locked_translations()
+        assert dialog.ended == []
+
+    def test_a_hidden_chat_from_the_list_reads_and_sends_nothing(self, wx, submitted):
+        panel = Panel()
+        panel.locked.add(JID)  # vault closed: _chat_lock_unlocked is False
+        panel._on_summarize_unread_chat({"remoteJid": JID, "unreadCount": 3})
+        assert panel.read_from_db == []
+        assert submitted == []
+
+    def test_yes_sends_once_the_person_agrees(self, wx, submitted):
+        panel = Panel()
+        panel.locked.add(JID)
+        panel.main_window._chat_lock_unlocked = True
+        panel._on_summarize_messages([text(1)])
+        assert wx.asked == ["locked Google Gemini"]
+        assert len(submitted) == 1
+
+    def test_a_vault_that_closes_during_the_question_sends_nothing(self, wx, submitted):
+        panel = Panel()
+        panel.locked.add(JID)
+        panel.main_window._chat_lock_unlocked = True
+        wx.while_asking = lambda: setattr(panel.main_window, "_chat_lock_unlocked", False)
+        panel._on_summarize_messages([text(1)])
+        assert submitted == []
+
+    def test_another_chat_opened_during_the_question_sends_nothing(self, wx, submitted):
+        panel = Panel()
+        panel.locked.add(JID)
+        panel.main_window._chat_lock_unlocked = True
+        wx.while_asking = lambda: setattr(panel, "conversation", {"remoteJid": "x@s.whatsapp.net"})
+        panel._on_summarize_messages([text(1)])
+        assert submitted == []
 
 
 class TestUnreadFromTheList:

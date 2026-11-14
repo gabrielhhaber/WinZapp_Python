@@ -16151,11 +16151,11 @@ msgstr "Rezumă cu AI de aici până la sfârșit"
 #, python-brace-format
 msgctxt "summary_left_out"
 msgid ""
-"This summary covers the latest {count} messages. {left_out} older messages "
-"did not fit."
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
 msgstr ""
-"Acest rezumat cuprinde cele mai recente {count} mesaje. {left_out} mesaje "
-"mai vechi nu au încăput."
+"Mesaje în acest rezumat: {count}, cele mai recente. Mesaje mai vechi rămase "
+"pe dinafară: {left_out}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -16189,8 +16189,8 @@ msgstr "Rezumă cu AI mesajele selectate"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "summary_sending"
-msgid "Summarizing {count} messages with {provider}…"
-msgstr "Se rezumă {count} mesaje cu {provider}…"
+msgid "Summarizing with {provider}… Messages: {count}"
+msgstr "Se rezumă cu {provider}… Mesaje: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "summary_title"
