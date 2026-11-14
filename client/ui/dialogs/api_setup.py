@@ -670,7 +670,7 @@ class ApiSetupDialog(wx.Dialog):
         Idempotent (each of the three patches is independently a no-op once
         applied) and best-effort.
         """
-        from core.wppconnect_status_layer_patch import ALL_PATCHES
+        from core.wppconnect_status_layer_patch import ALL_PATCHES, ALTERNATIVE_ORIGINALS
         status_layer_path = os.path.join(wppconnect_api_dir, "layers", "status.layer.js")
         if not os.path.isfile(status_layer_path):
             logging.warning("[api_setup] status.layer.js not found — skipping status-posting-result patch.")
@@ -682,14 +682,16 @@ class ApiSetupDialog(wx.Dialog):
         applied = 0
         already = 0
         missing = 0
-        for original, patched in ALL_PATCHES:
+        for (original, patched), alternatives in zip(ALL_PATCHES, ALTERNATIVE_ORIGINALS):
             if patched in content:
                 already += 1
-            elif original in content:
-                content = content.replace(original, patched, 1)
-                applied += 1
-            else:
+                continue
+            source = next((t for t in (original, *alternatives) if t in content), None)
+            if source is None:
                 missing += 1
+            else:
+                content = content.replace(source, patched, 1)
+                applied += 1
 
         if applied:
             with open(status_layer_path, "w", encoding="utf-8") as f:

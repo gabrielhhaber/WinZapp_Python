@@ -993,6 +993,41 @@ PATCHED_WAIT_FOR_QR_CODE_SCAN = (
 )
 
 
+# wppconnect 2.4.0's waitForQrCodeScan(). Same loop as 2.3.3's, now taking an
+# optional catchQR callback it stores before waiting (a caller can attach the
+# QR listener at the wait instead of at create()). The patch must keep that
+# parameter and its three lines: dropping them would silently break a caller
+# that passes the callback, so this runtime gets its own patched text rather
+# than PATCHED_WAIT_FOR_QR_CODE_SCAN above.
+V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN = (
+    "    async waitForQrCodeScan(catchQR) {\n"
+    "        if (catchQR) {\n"
+    "            this.catchQR = catchQR;\n"
+    "        }\n"
+    "        if (!this.isStarted) {\n"
+    "            throw new Error('waitForQrCodeScan error: Session not started');\n"
+    "        }\n"
+    "        while (!this.page.isClosed() && !this.isLogged) {\n"
+    "            await (0, sleep_1.sleep)(200);\n"
+    "            const needScan = await (0, auth_1.needsToScan)(this.page).catch(() => null);\n"
+    "            if (needScan === null)\n"
+    "                continue;\n"
+    "            this.isLogged = !needScan;\n"
+    "        }\n"
+    "    }\n"
+)
+PATCHED_V240_WAIT_FOR_QR_CODE_SCAN = (
+    PATCHED_WAIT_FOR_QR_CODE_SCAN.replace(
+        "    async waitForQrCodeScan() {\n",
+        "    async waitForQrCodeScan(catchQR) {\n"
+        "        if (catchQR) {\n"
+        "            this.catchQR = catchQR;\n"
+        "        }\n",
+        1,
+    )
+)
+
+
 # wppconnect 2.3.3's own waitForQrCodeScan(). Unlike checkQrCode() this one IS
 # still replaced, because upstream's guard is strictly weaker than v7's:
 # `continue` retries forever, logs nothing and never gives up, so a wedged
@@ -1893,7 +1928,20 @@ def _patch_legacy_link_flow(content: str, notes: list) -> str:
 def _patch_qr_reads(content: str, notes: list) -> str:
     """getQrCode() and waitForQrCodeScan(), which 2.3.2 left untouched — so
     the same text applies to both runtimes and neither branch above owns it."""
-    if PATCHED_WAIT_FOR_QR_CODE_SCAN in content:
+    if PATCHED_V240_WAIT_FOR_QR_CODE_SCAN in content:
+        notes.append("waitForQrCodeScan: already retries a failed auth probe.")
+    elif V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN in content:
+        content = content.replace(
+            V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+            PATCHED_V240_WAIT_FOR_QR_CODE_SCAN,
+            1,
+        )
+        notes.append(
+            "waitForQrCodeScan: patched — 2.4.0 retries a failed auth probe "
+            "forever and silently; this bounds the wait at 30s and logs why "
+            "pairing stalled, keeping its catchQR parameter."
+        )
+    elif PATCHED_WAIT_FOR_QR_CODE_SCAN in content:
         notes.append("waitForQrCodeScan: already retries a failed auth probe.")
     elif V1_WAIT_FOR_QR_CODE_SCAN in content:
         content = content.replace(

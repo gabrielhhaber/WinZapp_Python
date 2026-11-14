@@ -66,6 +66,7 @@ import re
 import pytest
 
 from core.wppconnect_host_layer_patch import (
+    patch_host_layer_source,
     ORIGINAL_CHECK_QR_CODE, V1_CHECK_QR_CODE, V2_CHECK_QR_CODE,
     V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, V5_CHECK_QR_CODE, V6_CHECK_QR_CODE,
     V7_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE,
@@ -81,6 +82,7 @@ from core.wppconnect_host_layer_patch import (
     MANAGED_V233_CHECK_QR_CODE, MANAGED_V235_CHECK_QR_CODE,
     MANAGED_V236_ORIGINAL_LINK_CODE_HOOKS, MANAGED_V236_PATCHED_LINK_CODE_HOOKS,
     V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+    V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_V240_WAIT_FOR_QR_CODE_SCAN,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1824,3 +1826,72 @@ class TestWppconnect236RoutesBindingsThroughExposePageFunction:
         assert ok is True
         assert again == patched
         assert any("link-code hooks: already" in note for note in notes)
+
+
+class TestV240KeepsTheCatchQrParameter:
+    """wppconnect 2.4.0's waitForQrCodeScan(catchQR) stores an optional QR
+    callback before it waits. It still retries a failed auth probe forever and
+    silently, so it is still patched, but the patched text must keep that
+    parameter: the 2.3.x text has none, and applying it would silently drop a
+    callback a caller passes at the wait."""
+
+    def test_the_patched_text_keeps_the_parameter_and_its_assignment(self):
+        assert "async waitForQrCodeScan(catchQR) {" in PATCHED_V240_WAIT_FOR_QR_CODE_SCAN
+        assert "this.catchQR = catchQR;" in PATCHED_V240_WAIT_FOR_QR_CODE_SCAN
+        # The callback is stored before the loop can run or the guard can throw.
+        assert (PATCHED_V240_WAIT_FOR_QR_CODE_SCAN.index("this.catchQR = catchQR;")
+                < PATCHED_V240_WAIT_FOR_QR_CODE_SCAN.index("Session not started"))
+
+    def test_it_bounds_the_wait_like_every_other_runtime(self):
+        body = PATCHED_V240_WAIT_FOR_QR_CODE_SCAN[
+            PATCHED_V240_WAIT_FOR_QR_CODE_SCAN.index("let probeFailures"):]
+        assert body == PATCHED_WAIT_FOR_QR_CODE_SCAN[
+            PATCHED_WAIT_FOR_QR_CODE_SCAN.index("let probeFailures"):]
+
+    def test_a_240_file_is_patched_and_idempotent(self, fake_wppconnect_dist):
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(
+            host_layer,
+            checkqrcode_text=MANAGED_V233_CHECK_QR_CODE,
+            waitforscan_text=V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+        )
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        first_pass = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_V240_WAIT_FOR_QR_CODE_SCAN in first_pass
+        assert V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN not in first_pass
+        # The 2.3.x text would have lost the parameter.
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN not in first_pass
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        assert host_layer.read_text(encoding="utf-8") == first_pass
+
+    def test_it_reports_patched_not_did_not_match(self):
+        content = _managed_source(
+            checkqrcode_text=MANAGED_V233_CHECK_QR_CODE,
+            waitforscan_text=V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+        )
+        _, notes, ok = patch_host_layer_source(content)
+
+        assert ok is True
+        assert not any("DID NOT MATCH" in note for note in notes)
+
+    def test_a_233_file_still_gets_the_text_without_the_parameter(self, fake_wppconnect_dist):
+        """A tree installed before 2.4.0 stays a 2.3.x tree until the user
+        reinstalls the API, so it must keep the text that matches its own
+        signature."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write_managed(
+            host_layer,
+            checkqrcode_text=MANAGED_V233_CHECK_QR_CODE,
+            waitforscan_text=V233_ORIGINAL_WAIT_FOR_QR_CODE_SCAN,
+        )
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_WAIT_FOR_QR_CODE_SCAN in content
+        assert "this.catchQR = catchQR;" not in content
+
