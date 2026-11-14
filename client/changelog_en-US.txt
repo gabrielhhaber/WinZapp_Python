@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Contacts saved, renamed or removed from the address book on another device, and public profile-name changes, update WinZapp when notified while preserving local names and history.
+
 - Group descriptions, settings and participants now follow live notices, including admin promotion and demotion, and refresh sending permissions in the open chat.
 
 - Fixed live disappearing-message timer updates when WhatsApp changes only the group metadata.

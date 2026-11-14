@@ -209,17 +209,21 @@ def _bind_winzapp_build(monkeypatch, tmp_path):
     return cli, s, events
 
 
+def _action(**fields):
+    return N(**fields, HasField=lambda name: name in fields)
+
+
 def test_a_contact_saved_renamed_and_removed_on_the_phone(monkeypatch, tmp_path):
     cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
     handle = cli.handlers[ev.ContactUpdateEv]
     s.db.contact("5511@s.whatsapp.net", pushname="ana")
-    handle(cli, N(JID=jid("5511"), Action=N(fullName="Ana Souza", firstName="Ana"), FromFullSync=False))
+    handle(cli, N(JID=jid("5511"), Action=_action(fullName="Ana Souza", firstName="Ana"), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"name": "Ana Souza", "pushname": "ana"}
-    handle(cli, N(JID=jid("5511"), Action=N(fullName="Ana S.", firstName=""), FromFullSync=False))
+    handle(cli, N(JID=jid("5511"), Action=_action(fullName="Ana S.", firstName=""), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net")["name"] == "Ana S."
-    handle(cli, N(JID=jid("5511"), Action=N(fullName="", firstName=""), FromFullSync=False))
+    handle(cli, N(JID=jid("5511"), Action=_action(fullName="", firstName=""), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"pushname": "ana"}    # removed
-    handle(cli, N(JID=jid("120", "g.us"), Action=N(fullName="Group", firstName=""), FromFullSync=False))
+    handle(cli, N(JID=jid("120", "g.us"), Action=_action(fullName="Group", firstName=""), FromFullSync=False))
     assert s.db.contact_of("120@g.us") == {}
 
 
@@ -248,7 +252,10 @@ def test_a_new_nickname_is_kept_under_the_other_form_of_the_jid(monkeypatch, tmp
     assert s.db.contact_of("5511@s.whatsapp.net") == {"pushname": "Ana"}
     handle(cli, N(JID=jid("77", "lid"), OldPushName="", NewPushName="Bob",
                   HasField=lambda field: False))
-    assert s.db.contacts() == [{"jid": "5511@s.whatsapp.net", "name": "", "pushname": "Ana"}]
+    assert {row["jid"]: (row["name"], row["pushname"]) for row in s.db.contacts()} == {
+        "5511@s.whatsapp.net": ("", "Ana"), "99@lid": ("", "Ana"), "77@lid": ("", "Bob")}
+    assert s.sent[-1] == ("contact-state-changed", {"session": "s1", "contactId": "77@lid",
+        "kind": "profile", "name": "Bob"})
 
 
 def test_winzapp_build_events_carry_the_fields_the_handlers_read():

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Os contactos guardados, renomeados ou removidos da agenda noutro dispositivo e as alterações do nome público atualizam o WinZapp quando chega o aviso, preservando os nomes locais e o histórico.
+
 - A descrição, as permissões e os participantes dos grupos acompanham agora os avisos em tempo real, incluindo promoção e despromoção de administradores, com atualização das permissões de envio na conversa aberta.
 
 - Corrigida a atualização em tempo real das mensagens temporárias em grupos quando o WhatsApp altera apenas os metadados do grupo.

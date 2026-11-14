@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Zapisanie, zmiana nazwy lub usunięcie kontaktu z książki adresowej na innym urządzeniu oraz zmiana publicznej nazwy aktualizują WinZapp po powiadomieniu, zachowując nazwy lokalne i historię.
+
 - Opisy, ustawienia i uczestnicy grup są aktualizowani na bieżąco, w tym nadawanie i odbieranie uprawnień administratora oraz uprawnienia do wysyłania w otwartej rozmowie.
 
 - Naprawiono aktualizację czasu znikających wiadomości na bieżąco, gdy WhatsApp zmienia tylko metadane grupy.

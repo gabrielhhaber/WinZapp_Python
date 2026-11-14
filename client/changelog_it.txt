@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- I contatti salvati, rinominati o rimossi dalla rubrica su un altro dispositivo e le modifiche al nome pubblico aggiornano WinZapp alla notifica, preservando nomi locali e cronologia.
+
 - Descrizioni, impostazioni e partecipanti dei gruppi seguono gli avvisi in tempo reale, comprese promozione e revoca degli amministratori, aggiornando i permessi di invio nella chat aperta.
 
 - Corretto l’aggiornamento in tempo reale del timer dei messaggi effimeri quando WhatsApp modifica solo i metadati del gruppo.
