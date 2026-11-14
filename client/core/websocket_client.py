@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 import socketio
+from core.poll_events import on_poll_response
 from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
@@ -358,6 +359,7 @@ class WebSocketClient:
         self.sio.on("chats-update", self.on_chats_update)
         self.sio.on("messages.update", self.on_messages_update)
         self.sio.on("onreactionmessage", self.on_wpp_reaction)
+        self.sio.on("onpollresponse", lambda data: on_poll_response(self, data))
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)

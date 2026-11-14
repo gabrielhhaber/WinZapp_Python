@@ -163,8 +163,12 @@ messages is stored as `Success` and changes nothing.
   only after the click. With WinZapp's build the first read of the lists
   downloads the `regular` collection once and can take longer than the
   client's 15 s budget: the next refresh answers.
-- Events the bridge never emits (announcement-replies, media-*-progress,
-  `call:*:remote`, messages.update, presence.update) are harmless.
+- `messages.update` and `presence.update` are alternative client input shapes;
+  Neonize uses `onack` and `onpresencechanged`. Poll votes now emit
+  `onpollresponse` and trigger a refresh for a poll in the open conversation.
+  Revoke and label-association event contracts are described in
+  `neonize_bridge/COVERAGE.md` (label events serve API consumers; WinZapp has
+  no Business-label interface).
 - `reconnect-socket-stream` answering 400 counts strikes towards
   `_restart_wpp_session` (`connection.py`); the bridge side is F1's.
 - `_start_wpp_update_checker` with no `client/api/` folder is now skipped for

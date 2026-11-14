@@ -203,6 +203,12 @@ def send(s, collection, mutations) -> None:
     mirror = mirror_of(s)
     for index, version, value, remove in mutations:
         mirror.apply(collection, list(index), version, remove, value.SerializeToString())
+        try:
+            import label_events
+            label_events.association(s, index, remove, False, value)
+        except Exception:
+            # The patch was accepted: an event failure must not invite a resend.
+            log.exception("label association notification")
 
 
 def register_events(cli, s):
@@ -222,6 +228,9 @@ def register_events(cli, s):
         try:
             value = e.Action.SerializeToString() if e.HasField("Action") else b""
             mirror.apply(e.Name, list(e.Index), e.Version, e.Remove, value, e.FromFullSync)
+            import label_events
+            label_events.association(s, e.Index, e.Remove, e.FromFullSync,
+                                     e.Action if e.HasField("Action") else None)
         except Exception:
             log.exception("app state mutation")
         # neonize keeps one handler per event: the mutations no other event

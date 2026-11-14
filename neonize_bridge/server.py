@@ -66,6 +66,7 @@ import channel_media
 import channel_updates
 import cleanup
 import msgmap
+import socket_events
 import unread_rule
 import pairing
 import commerce_routes
@@ -462,12 +463,20 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             fix_poll_vote_decryption(self.client)
             datum = self.client.decrypt_poll_vote(e)
         except Exception as error:
-            log.info("vote I could not decrypt (%s: %s)", type(error).__name__,
-                     str(error)[:100])
+            log.info("vote I could not decrypt (%s); no vote event emitted",
+                     type(error).__name__)
             return True
         who = "me" if o.IsFromMe else msgmap.jid_wpp(jid_text(o.Sender))
-        self.db.vote(target, who, msgmap.vote_indexes(names, datum.selectedOptions),
-                     msgmap.seconds(e.Info.Timestamp))
+        indexes = msgmap.vote_indexes(names, datum.selectedOptions)
+        if len(indexes) != len(datum.selectedOptions):
+            log.info("vote with unknown poll options ignored")
+            return True
+        self.db.vote(target, who, indexes, msgmap.seconds(e.Info.Timestamp))
+        if original.get("id"):
+            vote_timestamp = msgmap.unwrap(e.Message).pollUpdateMessage.senderTimestampMS
+            self.emit("onpollresponse", socket_events.poll_response(
+                self.name, original, indexes, jid_text(o.Sender),
+                vote_timestamp or e.Info.Timestamp))
         return True
 
     def poll_wpp(self, serial):
@@ -855,6 +864,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if w is None:
                     return
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    original = self.db.wpp_message(w["protocolMessageKey"]["id"])
+                    if original and original.get("id"):
+                        w["protocolMessageKey"] = dict(original["id"])
                     # deleted for everyone by whoever sent it: the original becomes deleted too
                     if not self.db.revocation(chat, w):
                         return      # unknown original and chat: not a conversation (#762)
@@ -873,6 +885,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
+                if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    self.emit("onrevokedmessage", socket_events.revoked_message(
+                        self.name, w, self.me))
             except Exception:
                 log.exception("received message")
 
