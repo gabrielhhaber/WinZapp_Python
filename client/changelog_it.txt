@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: le modifiche conservano l’identificativo del messaggio originale e registrano la chiave completa dell’avviso di modifica, incluso l’autore nei gruppi.
+
 - Neonize: gli eventi delle reazioni usano il formato WPPConnect, con le chiavi complete della reazione e del messaggio originale, il mittente e l’orario in secondi.
 
 - Nella conversazione aperta, i risultati dei sondaggi si aggiornano quando arriva un nuovo evento di voto, sia con Neonize sia con WPPConnect. Neonize: eventi compatibili con WPPConnect per voti, messaggi eliminati e associazioni delle etichette; gli identificativi degli stati ricevuti conservano l’autore.

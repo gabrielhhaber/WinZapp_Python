@@ -356,13 +356,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return True
 
     # -------------------------------------------------------------- edit
-    def mark_edited(self, target, chat_w, edit_id, from_me, **fields):
+    def mark_edited(self, target, chat_w, edit_id, from_me, *,
+                    edit_timestamp=None, edit_participant="", **fields):
         """Puts the new text in the stored message, with the edited mark
         (latestEditMsgKey, which the app reads), and returns the message."""
+        original = self.db.wpp_message(target) or {}
+        original_key = original.get("id") or {}
+        participant = ""
+        if chat_w.endswith("@g.us"):
+            participant = (edit_participant or original_key.get("participant")
+                           or original.get("author", ""))
+            if not participant:
+                parts = str(original_key.get("_serialized") or "").split("_", 3)
+                participant = parts[3] if len(parts) > 3 else ""
         self.db.change_message(
             target, **fields,
-            latestEditMsgKey={"id": edit_id, "remote": chat_w, "fromMe": bool(from_me)},
-            latestEditSenderTimestampMs=int(time.time() * 1000))
+            latestEditMsgKey=msgmap.message_key(chat_w, from_me, edit_id, participant),
+            latestEditSenderTimestampMs=msgmap.seconds(edit_timestamp or time.time()))
         return self.db.wpp_message(target)
 
     def _edit_received(self, chat, o, e):
@@ -382,8 +392,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             return True
         fields = {"body": w.get("body", "")} if w.get("type") == "chat" \
             else {"caption": w.get("caption", "")}
+        timestamp = msgmap.unwrap(e.Message).protocolMessage.timestampMS or e.Info.Timestamp
         edited = self.mark_edited(target, msgmap.jid_wpp(chat), e.Info.ID,
-                                  o.IsFromMe, **fields)
+                                  o.IsFromMe, edit_timestamp=timestamp,
+                                  edit_participant=jid_text(o.Sender), **fields)
         self.emit("received-message", {"session": self.name, "response": edited})
         return True
 
@@ -416,11 +428,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 new = Message(conversation=text)
             fields = {"body": text}
         try:
-            self.client.edit_message(build_jid(u, srv), mid, new)
+            response = self.client.edit_message(build_jid(u, srv), mid, new)
         except Exception:
             log.exception("edit message")
             return False
-        self.mark_edited(mid, msgmap.jid_wpp(conversation), mid, True, **fields)
+        self.mark_edited(mid, msgmap.jid_wpp(conversation),
+                         getattr(response, "ID", "") or mid, True,
+                         edit_timestamp=getattr(response, "Timestamp", None), **fields)
         return True
 
     def message_to_forward(self, serial, keep_voice=False, keep_preview=False):

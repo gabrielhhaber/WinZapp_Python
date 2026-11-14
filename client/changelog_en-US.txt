@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: edits preserve the original message ID and record the complete edit-notice key, including the author in groups.
+
 - Neonize: reaction events use the WPPConnect format, with complete keys for the reaction and original message, the sender and a timestamp in seconds.
 
 - In the open conversation, poll results refresh when a new vote event arrives, with both Neonize and WPPConnect. Neonize: WPPConnect-compatible events for votes, revoked messages and label associations; received status IDs preserve the author.

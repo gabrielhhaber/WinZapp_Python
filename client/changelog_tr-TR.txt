@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize: düzenlemeler asıl mesajın kimliğini korur ve gruplardaki yazar dahil düzenleme bildiriminin tam anahtarını kaydeder.
+
 - Neonize: tepki olayları, tepkinin ve asıl mesajın tam anahtarları, gönderen ve saniye cinsinden zaman ile WPPConnect biçimini kullanır.
 
 - Açık sohbette, hem Neonize hem de WPPConnect ile yeni bir oy olayı geldiğinde anket sonuçları yenilenir. Neonize: oylar, silinen mesajlar ve etiket ilişkilendirmeleri için WPPConnect uyumlu olaylar; alınan durumların kimlikleri yazarı korur.

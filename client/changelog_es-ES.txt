@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Neonize: las ediciones conservan el identificador del mensaje original y registran la clave completa del aviso de edición, incluido el autor en los grupos.
+
 - Neonize: los eventos de reacciones usan el formato de WPPConnect, con las claves completas de la reacción y del mensaje original, el autor y la hora en segundos.
 
 - En la conversación abierta, los resultados de las encuestas se actualizan al recibir un nuevo evento de voto, tanto con Neonize como con WPPConnect. Neonize: eventos compatibles con WPPConnect para votos, mensajes eliminados y asociación de etiquetas; los identificadores de estados recibidos conservan al autor.

@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Neonize: edycje zachowują identyfikator oryginalnej wiadomości i zapisują pełny klucz powiadomienia o edycji, w tym autora w grupach.
+
 - Neonize: zdarzenia reakcji używają formatu WPPConnect, z pełnymi kluczami reakcji i oryginalnej wiadomości, nadawcą oraz czasem w sekundach.
 
 - W otwartej rozmowie wyniki ankiet odświeżają się po odebraniu nowego zdarzenia głosu, zarówno w Neonize, jak i w WPPConnect. Neonize: zdarzenia głosów, usuniętych wiadomości i przypisania etykiet zgodne z WPPConnect; identyfikatory odebranych statusów zachowują autora.

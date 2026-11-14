@@ -85,6 +85,13 @@ Checked against the callbacks and models of a live wa-js 4.7.2 / WhatsApp Web
   support for the former `response` envelope/string keys is retained. `read`
   starts true for our own reaction, false for another sender; `orphan` describes
   whether the bridge holds the target, not a server verdict.
+- Message edits continue through `received-message` under the original key.
+  `latestEditMsgKey` now holds the complete, separate edit-notice key, including
+  the group author. Locally sent edits use the actual SendResponse ID when
+  available; incoming edits use the protocol notice ID. The original message
+  date, quote and key remain unchanged. The live WPP
+  `latestEditSenderTimestampMs` field held seconds despite its name, so the
+  bridge normalizes the protocol timestamp to seconds for that field too.
 
 Message keys preserve variable-length opaque IDs and explicit participants;
 received status keys now include the author's JID. Additional participants in
@@ -114,6 +121,11 @@ a reaction, and edited that test message. Both real `chat.new_reaction` JSON
 payloads matched the bridge's formatter field for field, including the full
 keys and second-resolution timestamps. ACK remained 1 in the inspected message;
 no delivery ACK event was captured, so no delivery semantics were inferred.
+The actual edit event also matched an isolated call to the bridge's storage
+update for the original key, full edit key, edit timestamp and original date.
+The marked test text was then revoked successfully, and both event listeners
+and the temporary ACK observer were removed. This tested WPP behavior and
+bridge formatter/storage functions, without starting a Neonize session.
 
 ## Through WinZapp's neonize build (raw queries and app state mutations)
 

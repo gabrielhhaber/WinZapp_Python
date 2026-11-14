@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Neonize: editările păstrează identificatorul mesajului original și înregistrează cheia completă a notificării de editare, inclusiv autorul în grupuri.
+
 - Neonize: evenimentele reacțiilor folosesc formatul WPPConnect, cu cheile complete ale reacției și mesajului original, expeditorul și timpul în secunde.
 
 - În conversația deschisă, rezultatele sondajelor se actualizează la primirea unui nou eveniment de vot, atât cu Neonize, cât și cu WPPConnect. Neonize: evenimente compatibile cu WPPConnect pentru voturi, mesaje șterse și asocieri de etichete; identificatorii stărilor primite păstrează autorul.
