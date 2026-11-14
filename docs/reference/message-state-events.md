@@ -4,6 +4,38 @@ These are WinZapp events, shared by its WPPConnect patch and Neonize bridge.
 They observe account state rather than introducing a second star/delete action.
 Both use the Socket.IO root namespace with account/session filtering.
 
+## Conversation settings
+
+`chat-settings-changed`: `{session, chatId, setting, value}` is a partial
+observation. `setting` is `mute`, `archive` or `pin`; a mute value is its Unix
+expiry in seconds (`0` = unmuted, `-1` = indefinite), while archive/pin values
+are strict booleans. No absent field is interpreted as a reset.
+
+- WPPConnect observes `MuteStore.change:expiration`, `ChatStore.change:archive`
+  and `ChatStore.change:pin`. The mute model's `id` and the chat model's `id`
+  are the conversation JID, never a message or participant key. The chat's
+  derived `muteExpiration` may lag behind MuteStore, so it is not observed.
+  An undefined pin on an explicit pin-change event is the native unpinned state.
+  Collection hydration, removal and initial installation emit no snapshots.
+  The common page owner handles replacement, reloads and close cancellation.
+- Neonize now emits mute changes after updating storage, excluding full-sync
+  replay and actions without an explicit `muted` field. Its established
+  `chats-update` archive/pin notifications remain compatible. For indefinite
+  mute the bridge keeps its existing positive storage sentinel, and emits `-1`.
+- The client validates account, conversation, setting and value before handing
+  off to the main thread. Mute uses the existing local alias-aware persistence
+  path; archive and pin use the existing chat-update paths. Expired mute values
+  clear the local mute. No server action, focus change or speech is introduced.
+
+On 2026-11-14 the exact source observer was installed temporarily over CDP.
+Mute/unmute, archive/unarchive and pin/unpin were performed on the authorized
+development group. All six expected notices arrived with matching conversation
+identity and state. The group's original settings were verified restored, then
+all temporary listeners and bindings were removed. Neonize and the rebuilt
+Node-to-client integration were not started; remote-device receipt remains a
+later live validation. Node and Python tests cover payload rejection, listener
+ownership, client dispatch and bridge storage-before-notification behavior.
+
 ## Favorites
 
 `message-star-changed`: `{session, chatId, messageId, starred}`. `chatId` is

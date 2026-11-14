@@ -77,6 +77,7 @@ import pairing_repair
 import group_receipts
 import message_rules
 import message_state_events
+import chat_settings_events
 import responses
 import remaining
 import redaction
@@ -1063,10 +1064,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _muted_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                end = 0
-                if e.Action.muted:
-                    end = msgmap.seconds(e.Action.muteEndTimestamp)                         if e.Action.muteEndTimestamp > 0 else 2**31 - 1
-                self.db.chat(jid, muted=int(end))
+                chat_settings_events.mute_changed(self, e, jid)
                 log.info("chat %s on the phone", "muted" if e.Action.muted else "with sound again")
             except Exception:
                 log.exception("mute on the phone")

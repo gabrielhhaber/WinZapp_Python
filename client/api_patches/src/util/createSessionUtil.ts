@@ -34,6 +34,7 @@ import { installChannelsWatchBridge } from './channelsWatchBridge';
 import { installChatClearedBridge } from './chatClearedBridge';
 import { installMessageStarBridge } from './messageStarBridge';
 import { installMessageDeleteBridge } from './messageDeleteBridge';
+import { installChatSettingsBridge } from './chatSettingsBridge';
 import { installEventsWatchBridge } from './eventsWatchBridge';
 import { installCallParticipantsBridge } from './callParticipantsBridge';
 import {
@@ -1655,6 +1656,7 @@ export default class CreateSessionUtil {
     await installChatClearedBridge(client, req.io, req.logger);
     await installMessageStarBridge(client, req.io, req.logger);
     await installMessageDeleteBridge(client, req.io, req.logger);
+    await installChatSettingsBridge(client, req.io, req.logger);
     await installEventsWatchBridge(client, req.io, req.logger);
     await installCallParticipantsBridge(client, req.io, req.logger);
   }

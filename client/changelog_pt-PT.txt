@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- As alterações de silenciamento, arquivo e fixação feitas noutro dispositivo atualizam a lista de conversas assim que chega o aviso, com WPPConnect e Neonize.
+
 - As mensagens apagadas para si noutro dispositivo são removidas da conversa quando chega o aviso de eliminação, com WPPConnect e Neonize.
 
 - Marcar ou desmarcar uma mensagem como favorita no telemóvel ou noutro dispositivo atualiza a marca na conversa aberta assim que chega o aviso, com WPPConnect e Neonize.

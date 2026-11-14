@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Los cambios de silencio, archivo y fijación realizados en otro dispositivo actualizan la lista de chats al llegar el aviso, con WPPConnect y Neonize.
+
 - Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.
 
 - Marcar o desmarcar un mensaje como favorito en el móvil u otro dispositivo actualiza la marca en la conversación abierta al recibir el aviso, con WPPConnect y Neonize.

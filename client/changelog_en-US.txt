@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Mute, archive and pin changes made on another device update the chat list when the notice arrives, with WPPConnect and Neonize.
+
 - Messages deleted for you on another device are removed from the conversation when the deletion notice arrives, with WPPConnect and Neonize.
 
 - Starring or unstarring a message on the phone or another device updates its mark in the open conversation when the notice arrives, with WPPConnect and Neonize.
