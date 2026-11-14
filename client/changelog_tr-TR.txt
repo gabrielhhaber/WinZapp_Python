@@ -4,6 +4,10 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WinZapp uzun süre açılmadığında: eşitleme bittikten sonra WhatsApp eski mesajları göndermeyi sürdürürken pencere başlığı her şeyi eşitlenmiş göstermek yerine "Sohbetler güncelleniyor" demeye devam eder ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Hem Neonize hem WPPConnect için geçerlidir.
+
+- Bildirimler: çok sayıda yeni mesaj aynı anda geldiğinde (örneğin kararsız bir bağlantı geri geldiğinde) WinZapp sesi onlarca kez yinelemek yerine yalnızca ilk üç bildirimi çalar ve okur, ardından mesaj yağmuru bitene kadar sessiz kalır. Mesajlar yine listede yer alır ve okunmamış sayılır.
+
 - Neonize: Meta AI şartlarını kabul etmek artık bir WhatsApp hatasıyla başarısız olmuyor. WinZapp kabulü artık WhatsApp Web'in bu bildirim için kullandığı biçimde gönderiyor ve yalnızca bildirimin kabul edilmiş olarak kayıtlı olduğunu yeniden okuduktan sonra onaylıyor.
 
 - Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.

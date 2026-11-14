@@ -4,6 +4,10 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Después de mucho tiempo sin abrir WinZapp: mientras WhatsApp sigue entregando mensajes antiguos después de la sincronización, el título de la ventana sigue indicando "Actualizando chats" en lugar de dar todo por sincronizado, y la lista de chats se queda quieta, para que puedas recorrerla sin que los chats cambien de lugar. Se actualiza de una vez cuando los mensajes dejan de llegar. Se aplica a Neonize y a WPPConnect.
+
+- Notificaciones: cuando llegan muchos mensajes nuevos a la vez (por ejemplo, al volver de una conexión inestable), WinZapp reproduce y lee solo los tres primeros y permanece en silencio hasta que termina la ráfaga, en lugar de repetir el sonido decenas de veces. Los mensajes siguen en la lista y cuentan como no leídos.
+
 - Neonize: aceptar los términos de Meta AI ya no falla con un error de WhatsApp. WinZapp ahora envía la aceptación en el mismo formato que usa WhatsApp Web para este aviso y solo la confirma después de leer de nuevo que el aviso figura como aceptado.
 
 - Llamadas: mejor compatibilidad con micrófonos y auriculares estéreo en modo compartido, con alternativa mono si es necesario. La voz se sigue enviando en mono.

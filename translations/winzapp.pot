@@ -18548,7 +18548,8 @@ msgctxt "updates_label"
 msgid "Automatically check &for updates"
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/backlog_flood.py client/main_window/sync.py
 msgctxt "updating_conversations"
 msgid "Updating chats"
 msgstr ""
