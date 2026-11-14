@@ -33,3 +33,4 @@ def test_the_test_sees_the_registrations_that_exist():
     assert "MessageEv" in found and "GroupInfoEv" in found
     assert "JoinedGroupEv" in found and "PictureEv" in found
     assert "BlocklistEv" in found
+    assert "PrivacySettingsEv" in found

@@ -14,6 +14,7 @@ from core.remote_chat_delete import on_chat_deleted
 from core.remote_contact_state import on_contact_state
 from core.remote_profile_picture import on_picture_changed
 from core.remote_block_state import on_block_state
+from core.remote_privacy_events import on_privacy_event
 from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
@@ -378,6 +379,7 @@ class WebSocketClient:
         self.sio.on("contact-state-changed", lambda data: on_contact_state(self, data))
         self.sio.on("profile-picture-changed", lambda data: on_picture_changed(self, data))
         self.sio.on("block-state-changed", lambda data: on_block_state(self, data))
+        self.sio.on("privacy-settings-changed", lambda data: on_privacy_event(self, data))
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)

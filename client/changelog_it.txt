@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Le modifiche alla privacy ricevute da un altro dispositivo aggiornano i campi non modificati nel pannello aperto, preservando le scelte in preparazione e scartando le risposte di un altro account.
+
 - Bloccare o sbloccare contatti su un altro dispositivo aggiorna WinZapp alla notifica. Gli avvisi senza dettagli aggiornano l’intero elenco e le vecchie risposte non annullano le modifiche più recenti.
 
 - Le modifiche o rimozioni delle foto di contatti e gruppi invalidano i vecchi indirizzi di WinZapp; l’assenza confermata di una foto non riutilizza l’immagine precedente.

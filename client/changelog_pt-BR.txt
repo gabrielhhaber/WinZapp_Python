@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mudanças de privacidade recebidas de outro dispositivo atualizam os campos ainda não editados no painel aberto, preservando escolhas em preparação e descartando respostas de outra conta.
+
 - Bloquear ou desbloquear contatos em outro dispositivo atualiza o WinZapp ao chegar o aviso. Avisos sem detalhes atualizam a lista completa, e respostas antigas não desfazem mudanças mais recentes.
 
 - Mudanças ou remoções de fotos de contatos e grupos invalidam os endereços antigos guardados no WinZapp; uma resposta confirmando ausência de foto não reutiliza a imagem antiga.

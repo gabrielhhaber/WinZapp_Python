@@ -42,6 +42,7 @@ import group_events
 import events
 import contact_events
 import block_events
+import privacy_events
 import media_retry
 import app_state_mirror
 import app_state_recovery
@@ -786,6 +787,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
         block_events.register_events(cli, self)
+        privacy_events.register_events(cli, self)
         media_retry.register_events(cli, self)
         channel_events.register_events(cli, self)
         app_state_mirror.register_events(cli, self)

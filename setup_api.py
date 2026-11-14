@@ -143,6 +143,7 @@ CUSTOM_SRC_FILES = [
     "src/util/contactStateBridge.ts",
     "src/util/profilePictureBridge.ts",
     "src/util/blockStateBridge.ts",
+    "src/util/privacyEventsBridge.ts",
     "src/tests/util/chatClearedBridge.test.ts",
     "src/util/eventsRuntime.ts",
     "src/util/eventsWatchBridge.ts",

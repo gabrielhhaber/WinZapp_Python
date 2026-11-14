@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Privacy changes received from another device update untouched fields in the open panel, preserving pending choices and rejecting responses from another account.
+
 - Blocking or unblocking contacts on another device updates WinZapp when notified. Notices without details refresh the full list, and old responses cannot undo newer changes.
 
 - Contact and group picture changes or removals invalidate old URLs stored by WinZapp; a confirmed absent picture no longer reuses the old image.

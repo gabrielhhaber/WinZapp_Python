@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Zmiany prywatności z innego urządzenia aktualizują nieedytowane pola w otwartym panelu, zachowując przygotowywane wybory i odrzucając odpowiedzi z innego konta.
+
 - Zablokowanie lub odblokowanie kontaktów na innym urządzeniu aktualizuje WinZapp po powiadomieniu. Powiadomienia bez szczegółów odświeżają całą listę, a stare odpowiedzi nie cofają nowszych zmian.
 
 - Zmiana lub usunięcie zdjęcia kontaktu albo grupy unieważnia stare adresy w WinZapp; potwierdzony brak zdjęcia nie powoduje użycia poprzedniego obrazu.
