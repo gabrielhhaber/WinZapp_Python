@@ -2,11 +2,18 @@
 // for saying who joined or left.
 //
 // WA-JS has no event for it. WhatsApp Web keeps the call being held in
-// WAWebCallCollection, and its model's `groupCallParticipantsConnected` is the
-// list of participants connected (the floating call window counts and walks
-// it: WAWebFloatingVoipRenderer.react); a change to it raises
-// `change:groupCallParticipantsConnected` on the collection. Read over CDP on
-// 2026-11-08 (2.3000.x).
+// WAWebCallCollection (`activeCall`), and its model's
+// `groupCallParticipantsConnected` is the list of participants connected (the
+// floating call window counts and walks it: WAWebFloatingVoipRenderer.react).
+// The call model is not a Backbone model: its events stay on the call and never
+// reach the collection. When the list changes,
+// WAWebVoipBridgeCallStateHandlers assigns it and raises
+// `change:groupCallParticipantStates` on the call itself; nothing raises
+// `change:groupCallParticipantsConnected` (read over CDP on 2026-11-13,
+// 2.3000.x), which is what the collection was listened on before, so nobody
+// joining or leaving was ever said. The collection raises `change:activeCall`
+// with the new call when one becomes the call held here; each such call gets
+// the listener.
 //
 // Each change sends the whole connected list of that call, phone form where
 // WhatsApp Web knows it; the client compares it with the last one (who
@@ -16,9 +23,13 @@
 const BINDING = '__winzappOnCallParticipants';
 const MAX_PEOPLE = 1024;
 
-/** Runs inside the page; serialized by Puppeteer, so self-contained. */
+/** Runs inside the page; serialized by Puppeteer, so self-contained: a
+ * module constant read in here is undefined in the page, and the
+ * ReferenceError it threw inside `send` was swallowed, so nothing was ever
+ * sent (MAX_PEOPLE, until 2026-11-13). */
 export function installCallParticipantsInPage(): boolean {
   const win = window as any;
+  const MAX_IN_PAGE = 1024;
   const notify = win.__winzappOnCallParticipants;
   const load = (name: string): any => {
     try { return typeof win.require === 'function' ? win.require(name) : null; } catch (_) { return null; }
@@ -32,7 +43,7 @@ export function installCallParticipantsInPage(): boolean {
       if (!call || call.isGroup === false) return;
       const id = text(call.id);
       const people = call.groupCallParticipantsConnected;
-      if (!id || !Array.isArray(people) || people.length > MAX_PEOPLE) return;
+      if (!id || !Array.isArray(people) || people.length > MAX_IN_PAGE) return;
       const migration = load('WAWebLidMigrationUtils');
       const connected: string[] = [];
       for (const wid of people) {
@@ -46,8 +57,29 @@ export function installCallParticipantsInPage(): boolean {
       // one lost update, never the listener
     }
   };
-  calls.on('change:groupCallParticipantsConnected', send);
-  calls.on('add', send);
+  // Both names: the one WhatsApp Web raises now, and the one its constants
+  // also declare, should a later version raise that instead.
+  const CHANGES = ['change:groupCallParticipantStates', 'change:groupCallParticipantsConnected'];
+  const watched = new WeakSet<any>();
+  const watch = (call: any) => {
+    try {
+      if (!call || typeof call !== 'object' || typeof call.on !== 'function' || watched.has(call)) return;
+      watched.add(call);
+      for (const event of CHANGES) call.on(event, () => send(call));
+    } catch (_) {
+      // a call without events is still reported when it becomes active
+    }
+  };
+  // A Backbone-style `change:x` hands over (model, value) and `add` (model,
+  // collection): the call is the argument that is a model of its own, not
+  // the collection it is raised on.
+  const held = (...args: any[]) => {
+    const call = args.find((a) => a && a !== calls && typeof a.on === 'function' && a.id != null);
+    if (call) { watch(call); send(call); }
+  };
+  calls.on('change:activeCall', held);
+  calls.on('add', held);
+  if (calls.activeCall) held(calls.activeCall);
   calls.__winzappCallParticipants = true;
   return true;
 }

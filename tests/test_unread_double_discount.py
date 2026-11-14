@@ -20,6 +20,12 @@ the same log), which also kept those chats "changed" in every periodic round.
 The correction exists for one case only: a count merged from list-chats while
 the chat had no records to discount it against. That case is now marked on
 the chat, and the correction runs only on the mark.
+
+Since 2026-11-12 the system events are not subtracted at all: WhatsApp never
+counts them (core/unread_types.py, read from WhatsApp Web's code), so that
+group's 72 was 72 real unread messages and every "discount" lost some. The
+only correction left, an own reply reading the chat, is idempotent; the mark
+stays so the merge and the history sync still agree on who corrects.
 """
 
 from main import (
@@ -53,6 +59,16 @@ def _group_tail():
             for i in range(100)]
 
 
+def _replied_tail():
+    """The same group with an own reply at record 30: 64 messages after it
+    (and five notices, never counted),
+    so a count of 72 is one WhatsApp had not lowered after the reply."""
+    tail = _group_tail()
+    tail[30] = {"key": {"id": "mine", "fromMe": True}, "messageType": "conversation",
+                "message": {"conversation": "eu"}, "timestamp": 1700000030}
+    return tail
+
+
 def _group_chat(unread, records=None, **extra):
     chat = {"remoteJid": GROUP, "t": 1700000100, "unreadCount": unread,
             "messages": {"messages": {"records": records if records is not None
@@ -61,14 +77,16 @@ def _group_chat(unread, records=None, **extra):
     return chat
 
 
-class TestTheDiscountIsNotIdempotent:
-    """Why the mark is needed at all: pins the arithmetic the bug came from."""
+class TestTheCorrection:
+    def test_system_events_among_the_unread_take_nothing(self):
+        """The reported group: its 72 were 72 real unread messages."""
+        assert _discount_non_countable_unread(_group_tail(), 72) == 72
 
-    def test_discounting_twice_loses_real_unread_messages(self):
-        records = _group_tail()
+    def test_correcting_twice_changes_nothing(self):
+        records = _replied_tail()
         once = _discount_non_countable_unread(records, 72)
-        assert once == 67
-        assert _discount_non_countable_unread(records, once) < once
+        assert once == 64
+        assert _discount_non_countable_unread(records, once) == once
 
 
 class TestTheHistorySyncCorrection:
@@ -78,14 +96,14 @@ class TestTheHistorySyncCorrection:
         assert not apply_history_sync_unread_correction(GROUP, chat)
         assert chat["unreadCount"] == 67
 
-    def test_a_raw_count_is_discounted_exactly_once(self):
-        chat = _group_chat(72, **{_UNREAD_UNDISCOUNTED: True})
+    def test_a_raw_count_is_corrected_exactly_once(self):
+        chat = _group_chat(72, records=_replied_tail(), **{_UNREAD_UNDISCOUNTED: True})
 
         assert apply_history_sync_unread_correction(GROUP, chat)
-        assert chat["unreadCount"] == 67
+        assert chat["unreadCount"] == 64
         assert _UNREAD_UNDISCOUNTED not in chat
         assert not apply_history_sync_unread_correction(GROUP, chat)
-        assert chat["unreadCount"] == 67
+        assert chat["unreadCount"] == 64
 
     def test_the_mark_survives_until_there_are_records_to_judge_by(self):
         chat = _group_chat(72, records=[], **{_UNREAD_UNDISCOUNTED: True})
@@ -127,10 +145,10 @@ class TestTheReportedSeeSaw:
         stub = _LiveStub(chat)
 
         stub.on_chat_unread_update(GROUP, 72, previous_unread=71)
-        assert chat["unreadCount"] == 67
+        assert chat["unreadCount"] == 72
 
         apply_history_sync_unread_correction(GROUP, chat)
-        assert chat["unreadCount"] == 67, (
+        assert chat["unreadCount"] == 72, (
             "the history sync discounted a count the live update had already "
             "discounted — the badge drops by the system events in the tail "
             "on every sync"
@@ -154,10 +172,10 @@ class TestTheChatListMerge:
 
         stub.get_remote_chats(existing, persist_full=False, notify_errors=False)
 
-        assert existing[GROUP]["unreadCount"] == 67
+        assert existing[GROUP]["unreadCount"] == 72
         assert _UNREAD_UNDISCOUNTED not in existing[GROUP]
         assert not apply_history_sync_unread_correction(GROUP, existing[GROUP])
-        assert existing[GROUP]["unreadCount"] == 67
+        assert existing[GROUP]["unreadCount"] == 72
 
     def test_a_count_merged_against_a_stale_tail_stays_raw(self, post):
         """Warm start: the records are what the database had at launch, and the
@@ -218,11 +236,11 @@ class TestRecordsCoverSnapshot:
 
 
 class TestTheLivePathHasNoMarker:
-    def test_a_live_promote_is_discounted(self):
-        """A read group (stored t 1000) is promoted (a notification at 2000,
-        which never moves the stored t) and chats-update says 1 unread: the
-        tail is the promote, so the badge stays 0. Passing the stored t cut
-        the promote out of the tail and left a phantom 1."""
+    def test_a_live_count_follows_whatsapp_whatever_the_tail(self):
+        """A read group gets a group notification and chats-update says 1
+        unread. WhatsApp never adds a promote to unreadCount
+        (eventTypeFromMsgType: IGNORE), so the 1 is something else WhatsApp
+        counted, and WhatsApp Web shows it too: the badge follows it."""
         records = [{"key": {"id": "m1", "fromMe": False}, "messageType": "conversation",
                     "message": {"conversation": "lida"}, "timestamp": 1000},
                    {"key": {"id": "p1", "fromMe": False}, "messageType": "groupNotification",
@@ -231,4 +249,4 @@ class TestTheLivePathHasNoMarker:
                 "messages": {"messages": {"records": records}}}
         stub = _LiveStub(chat)
         stub.on_chat_unread_update(GROUP, 1, previous_unread=0)
-        assert chat["unreadCount"] == 0
+        assert chat["unreadCount"] == 1

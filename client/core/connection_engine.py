@@ -7,7 +7,7 @@ API, so the rest of the client does not care which one is behind it:
   connection without a browser. It answers on a fixed local address. The
   engine the pickers list first and preselect (still labelled experimental).
 * ``wppconnect`` -- the bundled WPPConnect server (Node + a browser), labelled
-  legacy. Still what an install with no stored choice runs on, and the
+  alternative. Still what an install with no stored choice runs on, and the
   fallback wherever Neonize has no bridge installed.
 * ``custom``     -- any WPPConnect-compatible server the user types in.
 

@@ -139,14 +139,14 @@ class NavigationPanel(wx.Panel):
             return
 
         if key == "communities":
-            # A window of its own, like Settings: no panel is switched.
-            from ui.dialogs.communities import show_communities
-            show_communities(mw, mw)
+            # a panel, the same switch as Alt+8 (main_window/content_panels.py)
+            from main_window.content_panels import show_communities
+            show_communities(mw)
             return
 
         if key == "channels":
-            from ui.dialogs.channels import show_channels
-            show_channels(mw, mw)
+            from main_window.content_panels import show_channels
+            show_channels(mw)
             return
 
         if key == "starred":
@@ -164,14 +164,12 @@ class NavigationPanel(wx.Panel):
 
         # Hide all content panels, show the right one
         mw.conversations_panel.Hide()
-        if hasattr(mw, "status_panel"):
-            mw.status_panel.Hide()
         if hasattr(mw, "archived_conversations_panel"):
             mw.archived_conversations_panel.Hide()
         if hasattr(mw, "locked_conversations_panel"):
             mw.locked_conversations_panel.Hide()
-        if hasattr(mw, "calls_panel"):
-            mw.calls_panel.Hide()
+        from main_window.content_panels import hide_side_panels
+        hide_side_panels(mw)
 
         if key == "conversations":
             # Brings the chat list back (an archived chat's detail pane hid

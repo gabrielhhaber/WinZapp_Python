@@ -140,9 +140,9 @@ def test_an_admin_cannot_remove_another_admin():
 
 
 class BusyStub:
-    from ui.dialogs.channels import ChannelsDialog
-    _refused_while_busy = ChannelsDialog._refused_while_busy
-    _on_delete = ChannelsDialog._on_delete
+    from ui.dialogs.channels import ChannelsPanel
+    _refused_while_busy = ChannelsPanel._refused_while_busy
+    _on_delete = ChannelsPanel._on_delete
 
     def __init__(self):
         self._busy = True

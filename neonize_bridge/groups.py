@@ -141,6 +141,34 @@ def common_users(groups, searched) -> list:
     return matches
 
 
+def invite_info_query(code: str) -> dict:
+    """The invitation preview whatsmeow sends (GetGroupInfoFromLink), as a raw
+    query: its answer says whether joining needs an admin's approval, which
+    neonize's GroupInfo leaves out."""
+    import raw_queries as rq
+    return {"namespace": "w:g2", "type": "get", "to": "g.us",
+            "content": [rq.node("invite", {"code": code})]}
+
+
+def invite_approval(answer) -> "bool | None":
+    """From the invitation preview's answer: True when joining needs an
+    admin's approval, False when not, None when the answer says nothing.
+    `membership_approval_mode/group_join state="on"` on a group; absent, off
+    (whatsmeow reads it the same way). A community says it in its `parent`
+    node instead (WhatsApp Web's isParentGroupClosed)."""
+    import raw_queries as rq
+    group = rq.child(answer, "group")
+    if group is None:
+        return None
+    mode = rq.child(group, "membership_approval_mode")
+    if mode is not None:
+        return rq.attr(rq.child(mode, "group_join"), "state") == "on"
+    parent = rq.child(group, "parent")
+    if parent is not None:
+        return rq.attr(parent, "default_membership_approval_mode") == "request_required"
+    return False
+
+
 def register_routes(r, *, session, ok, jid_from_text, jid_text, qr_data_url):
     """Wire the group routes to the aiohttp router `r`."""
     from neonize.utils.enum import ParticipantChange
@@ -228,6 +256,21 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, qr_data_url):
                 "desc": info.GroupTopic.Topic}
         if info.Participants:
             data["size"] = len(info.Participants)
+        if info.GroupParent.IsParent:       # a community, as WhatsApp Web says it
+            data["isParentGroup"] = True
+            data["isParentGroupClosed"] = (
+                info.GroupParent.DefaultMembershipApprovalMode == "request_required")
+        # whether joining needs approval: neonize's GroupInfo leaves it out,
+        # so the same preview is read raw (the route used to say "unknown")
+        import raw_queries as rq
+        if rq.available(s.client):
+            try:
+                answer = await execute(rq.send_iq, s.client, invite_info_query(body["invitecode"]))
+                approval = invite_approval(answer)
+                if approval is not None:
+                    data["membershipApprovalMode"] = approval
+            except rq.QueryError as e:
+                log.info("invite approval: %s", type(e).__name__)
         return ok(status="success", response=data)
 
     async def join_code(req):

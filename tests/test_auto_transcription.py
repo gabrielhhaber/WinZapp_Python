@@ -642,3 +642,31 @@ class TestCaughtUpBySync:
 
     def test_a_failed_fetch_hands_over_nothing(self, monkeypatch):
         assert self._sync(monkeypatch, [150], status=500) == []
+
+
+class TestAStoredMessageStillReachesTheQueue:
+    """Report of 2026-11-11 (WPPConnect, waking from sleep): of two voice notes
+    of the same burst, the second was never transcribed. A sync running
+    beside the live events stored it a moment before its event was handled,
+    and on_new_message() returned at "already stored" before the automatic
+    hooks; caught_up_arrivals() did not hand it over either, because newer
+    messages of the burst were already cached. The live event now offers the
+    stored record to the hooks (each runs a message once)."""
+
+    def test_the_already_stored_branch_hands_the_record_over_before_returning(self):
+        import inspect
+        from main import MainWindow
+        source = inspect.getsource(MainWindow.on_new_message)
+        edit = source.index("self._apply_possible_edit(existing, msg, remote_jid)")
+        hand_over = source.index("hand_over(remote_jid, [existing])")
+        stored = source.index("return  # already stored")
+        assert edit < hand_over < stored
+
+    def test_a_stored_record_with_a_text_is_not_queued(self):
+        # the re-delivery of a message already transcribed costs nothing
+        window = _Window()
+        done = dict(_msg(), **{stored_transcription.TRANSCRIPTION_KEY: {"text": "x"}})
+        window._auto_process_caught_up(JID, [done])
+        assert window.queue.submitted == []
+        window._auto_process_caught_up(JID, [_msg()])
+        assert len(window.queue.submitted) == 1

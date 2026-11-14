@@ -47,11 +47,13 @@ class AttachmentsMixin:
         aud_item = menu.Append(wx.ID_ANY, i18n.t("attachment_audio_file"))
         con_item = menu.Append(wx.ID_ANY, i18n.t("attachment_contact"))
         poll_item = menu.Append(wx.ID_ANY, i18n.t("attachment_poll"))
+        event_item = menu.Append(wx.ID_ANY, i18n.t("attachment_event"))
         self.Bind(wx.EVT_MENU, self._on_attach_photo_video, pv_item)
         self.Bind(wx.EVT_MENU, self._on_attach_document,    doc_item)
         self.Bind(wx.EVT_MENU, self._on_attach_audio_file,  aud_item)
         self.Bind(wx.EVT_MENU, self._on_attach_contact,     con_item)
         self.Bind(wx.EVT_MENU, self._on_attach_poll,        poll_item)
+        self.Bind(wx.EVT_MENU, self._on_attach_event,       event_item)
         self.PopupMenu(menu)
         menu.Destroy()
 

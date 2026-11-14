@@ -55,6 +55,22 @@ def test_preview_is_read_only_and_uses_existing_lowercase_contract(monkeypatch):
         json={'invitecode':CODE}, headers={'Authorization':'Bearer synthetic-token'}, timeout=20)
 
 
+@pytest.mark.parametrize('closed,expected', [(False, False), (True, True), (None, None)])
+def test_a_community_link_says_its_approval_and_no_member_count(monkeypatch, closed, expected):
+    """Reported 2026-11-12 with a community's link ("Renova Games"): "approval
+    requirements unavailable". WhatsApp Web says it as isParentGroupClosed,
+    the group mode may be absent, and a community's size is 0."""
+    data = {'id':PREVIEW.jid,'subject':'Renova Games','size':0,'isParentGroup':True}
+    if closed is not None:
+        data['isParentGroupClosed'] = closed
+    transport(monkeypatch, data)
+    result = preview_group(CONNECTION, CODE)
+    assert result.approval is expected and result.size is None
+    # a group's own mode wins when WhatsApp gives it
+    transport(monkeypatch, dict(data, membershipApprovalMode=True))
+    assert preview_group(CONNECTION, CODE).approval is True
+
+
 @pytest.mark.parametrize('size,approval', [(True,1), ('7','false'), (-1,None), (None,None)])
 def test_unknown_preview_fields_are_not_invented(monkeypatch,size,approval):
     transport(monkeypatch, {'id':PREVIEW.jid,'subject':'Group','size':size,'membershipApprovalMode':approval})

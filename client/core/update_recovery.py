@@ -30,6 +30,17 @@ def write_recovery_note(path, template, install_dir, log_path):
             pass
 
 
+def _exit_notice(notice, completion_path):
+    """The waiter's notice of an install on exit: installed on "success",
+    not installed otherwise ("unchanged", a failure before the copy)."""
+    if not notice:
+        return ""
+    from core.update_exit_notice import indented
+    return (f'findstr /x /c:"success" "{completion_path}" >NUL 2>&1\n'
+            "if not errorlevel 1 (\n" + indented(notice.installed, "    ")
+            + ") else (\n" + indented(notice.not_installed, "    ") + ")\n")
+
+
 def _dispatch(path, relaunch="RELAUNCH"):
     labels = {"relaunch": relaunch, "abort": "ABORT", "recover": "RECOVERY"}
     return "".join(
@@ -46,8 +57,13 @@ def _dispatch(path, relaunch="RELAUNCH"):
 
 def build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
                          passes, parent_pid, completion_path, installer_image,
-                         recovery_path, relaunch=True):
-    """Generate text only. Neither the installer nor a viewer runs here."""
+                         recovery_path, relaunch=True, notice=None):
+    """Generate text only. Neither the installer nor a viewer runs here.
+
+    *notice* (core/update_exit_notice.ExitNotice) is for an install on exit,
+    which relaunches nothing: the user is told whether it was installed
+    ("success") or left WinZapp as it was ("unchanged"). A failure that may
+    have left a mixed installation already opens the recovery note."""
     abort_path, done_path = handoff_path + ".abort", handoff_path + ".done"
     checks = f'if exist "{abort_path}" goto ABORT\n'
     if parent_pid:
@@ -87,7 +103,8 @@ def build_guarded_waiter(installer_pid, exe_path, log_path, handoff_path,
         + ":RELAUNCH_CONFIRMED\n"
         + (f'>> "{log_path}" echo installer finished - relaunching WinZapp\n'
            f'if exist "{exe_path}" start "" /normal "{exe_path}"\n' if relaunch else
-           f'>> "{log_path}" echo installer finished - installed on exit, not relaunching\n')
+           f'>> "{log_path}" echo installer finished - installed on exit, not relaunching\n'
+           + _exit_notice(notice, completion_path))
         + cleanup + 'del "%~f0"\ngoto :EOF\n:RECOVERY\n' + checks
         + f'>> "{log_path}" echo installation may be incomplete - not relaunching WinZapp; repair required\n'
         + note + cleanup + 'del "%~f0"\ngoto :EOF\n:ABORT\n'

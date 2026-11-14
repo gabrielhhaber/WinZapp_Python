@@ -1,7 +1,11 @@
-"""The account's communities: their groups and admins, and the way into them.
+"""The Communities panel (Alt+8): the account's communities, their groups
+and admins, and the way into them.
 
-The admin actions live in community_admin.py; this module lists, describes
-and opens.
+A panel of the main window, like Status and Calls (it was a window of its
+own until 2026-11): shown by main_window/content_panels.py, read again each
+time it is shown, and opening a group leaves it for the conversation. The
+admin actions live in community_admin.py; this module lists, describes and
+opens.
 """
 
 import dataclasses
@@ -17,27 +21,15 @@ from ui.dialogs.labelled_control import add_labelled
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.community_admin import CommunityAdminActions
 from ui.dialogs.group_join_dialog import open_group_chat
-
-
-def show_communities(mw, parent):
-    """Show the dialog and open the group the user chose, if any. True when
-    one was opened."""
-    dialog = CommunitiesDialog(parent, mw)
-    try:
-        if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
-            return False
-        group = dialog.result
-    finally:
-        dialog.Destroy()
-    open_group_chat(mw, group.jid, group.name)
-    return True
+from ui.panel_labels import TranslatedLabels
 
 
 def open_communities(owner, event=None):
-    """New conversation's "Communities": that dialog closes once a group is
-    opened from here."""
-    if show_communities(owner._mw, owner):
-        owner.EndModal(wx.ID_OK)
+    """New conversation's "Communities": that dialog closes and the
+    Communities panel comes up."""
+    from main_window.content_panels import show_communities
+    owner.EndModal(wx.ID_CANCEL)
+    wx.CallAfter(show_communities, owner._mw)
 
 
 #: The join button's label for each join_action().
@@ -73,9 +65,10 @@ def subgroup_label(group, i18n):
     return i18n.t(key).format(label=label)
 
 
-class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
-    def __init__(self, parent, main_window):
+class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, wx.Panel):
+    def __init__(self, main_window, parent):
         self._init_background(main_window)
+        self._init_labels()
         i18n = self._i18n
         self._loaded = False
         self._communities = []
@@ -83,13 +76,11 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
         # and the communities whose other groups were already asked for.
         self._filter = SUBGROUP_FILTERS[0]
         self._refreshed = set()
-        self.result = None
-        super().__init__(parent, title=i18n.t("communities_title"), size=(620, 620),
-                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        super().__init__(parent)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         def labelled(key, make, proportion):
-            return add_labelled(self, sizer, i18n.t(key), make, proportion)
+            return self._keep_labelled(add_labelled(self, sizer, i18n.t(key), make, proportion), key)
 
         self._list = labelled("communities_list", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
         self._list.Bind(wx.EVT_LISTBOX, self._on_select)
@@ -106,6 +97,9 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
             choices=[i18n.t("communities_filter_all"), i18n.t("communities_filter_joined"),
                      i18n.t("communities_filter_not_joined")],
             majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self._keep_label(self._filter_radio, "communities_groups_filter")
+        self._keep_items(self._filter_radio, ("communities_filter_all", "communities_filter_joined",
+                                              "communities_filter_not_joined"))
         self._filter_radio.Bind(wx.EVT_RADIOBOX, self._on_filter)
         sizer.Add(self._filter_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
         self._groups = labelled("communities_groups_list", lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
@@ -118,11 +112,11 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
 
         buttons = wx.WrapSizer(wx.HORIZONTAL)
 
-        def button(key, handler, button_id=wx.ID_ANY):
-            control = wx.Button(self, button_id, label=i18n.t(key))
+        def button(key, handler):
+            control = wx.Button(self, label=i18n.t(key))
             control.Bind(wx.EVT_BUTTON, handler)
             buttons.Add(control, 0, wx.ALL, 4)
-            return control
+            return self._keep_label(control, key)
 
         self._open = button("communities_open_group", self._on_open)
         # Join, ask to join, or withdraw that request: whichever WhatsApp's
@@ -134,18 +128,31 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
         self._demote = button("communities_demote", self._on_demote)
         self._deactivate = button("communities_deactivate", self._on_deactivate)
         self._new = button("communities_new", self._on_new)
-        self._refresh = button("communities_refresh", self._reload)
-        button("close", self._on_close, wx.ID_CANCEL)
+        self._refresh = button("communities_refresh", lambda event: self._reload())
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
         # No default button: Enter means something different on each list.
         self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
-        self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._update_buttons()
+
+    # ── shown and translated ──────────────────────────────────────────────
+
+    def on_show(self):
+        """Alt+8 / the navigation list: the list gets the focus and the
+        communities are read again; their count is said the first time, or
+        after the account's connection changed (a new pairing)."""
+        if self._renew_connection():
+            self._loaded, self._refreshed = False, set()
         self._list.SetFocus()
-        self.CentreOnParent()
-        wx.CallAfter(self._reload)
+        self._reload(quiet=self._loaded)
+
+    def refresh_labels(self):
+        """MainWindow switched language: every label, and the rows."""
+        self._relabel()
+        if self._communities:
+            self._show(self._communities)
+        self._update_buttons()
 
     # ── state ─────────────────────────────────────────────────────────────
 
@@ -207,24 +214,29 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
 
     # ── reading ───────────────────────────────────────────────────────────
 
-    def _reload(self, event=None):
+    def _reload(self, event=None, quiet=False):
         if self._busy or not self._current():
             return
         self._set_busy(True)
         self._status.SetLabel(self._i18n.t("loading"))
         connection = self._connection
-        self._run_async(lambda: list_communities(connection), self._finish_reload)
+        self._run_async(lambda: list_communities(connection),
+                        lambda communities: self._finish_reload(communities, quiet))
 
-    def _finish_reload(self, communities):
+    def _finish_reload(self, communities, quiet=False):
         self._set_busy(False)
         if communities is None or not self._current():
             logging.warning("[communities] read_failed")
-            self._announce(self._i18n.t("communities_unavailable"))
+            self._announce_if_shown(self._i18n.t("communities_unavailable"))
             return
         self._loaded = True
         self._show(communities)
-        self._announce(self._i18n.t("communities_count").format(count=len(communities))
-                       if communities else self._i18n.t("communities_empty"))
+        text = (self._i18n.t("communities_count").format(count=len(communities))
+                if communities else self._i18n.t("communities_empty"))
+        if quiet:       # shown again: the list is what it was, said only on screen
+            self._status.SetLabel(text)
+        else:
+            self._announce_if_shown(text)
 
     def _show(self, communities):
         """Replace the list, keeping the selected community and group."""
@@ -271,7 +283,7 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
         self._show_selected(kept.jid if kept else "")
 
     def _ask_for_other_groups(self, community):
-        """Ask WhatsApp, once per community while the dialog is open, for the
+        """Ask WhatsApp, once per community while the panel lives, for the
         community's groups the account is not in: WhatsApp only knows them
         after being asked, as when a community is opened in WhatsApp Web.
         Quiet: the groups already listed stay usable meanwhile, and a failure
@@ -394,6 +406,6 @@ class CommunitiesDialog(CommunityAdminActions, BackgroundWork, wx.Dialog):
             # Not a conversation of this account: there is nothing to open.
             self._announce(self._i18n.t("communities_group_not_joined_open"))
             return
-        self.result = group
-        self._closed.set()
-        self.EndModal(wx.ID_OK)
+        # The conversation takes the screen: navigate_to_conversation_jid()
+        # hides this panel (main_window/content_panels.py).
+        open_group_chat(self._mw, group.jid, group.name)

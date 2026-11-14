@@ -156,7 +156,7 @@ def test_an_older_neonize_build_changes_nothing(tmp_path, monkeypatch):
 def test_the_bridge_calls_it_for_every_message_stored():
     import pathlib
     source = (pathlib.Path(__file__).parent / "server.py").read_text(encoding="utf-8")
-    at = source.index('self.db.on_arrival(chat, w["t"], w["fromMe"])')
+    at = source.index('self.db.on_arrival(chat, w["t"], not unread_rule.counted(w))')
     assert "chat_archive.on_arrival(self, chat, w)" in source[at:at + 200]
 
 

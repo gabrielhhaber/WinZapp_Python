@@ -1,0 +1,613 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 19:41:21 -0300
+Subject: [PATCH] Conceal lost MLow packets with the voice, not silence
+
+A lost or undecodable MLow packet used to fade the last sample to zero in
+5 ms and leave up to 60 ms of silence in the middle of a word. The decoder
+now conceals it the way G.711 Appendix I does: the last pitch period,
+found by normalised autocorrelation, is repeated (widened to two and then
+three periods so a longer loss does not buzz), held at full level for
+20 ms and faded to silence over the next 60 ms; the first frame decoded
+after the loss is cross-faded with the continued concealment.
+
+An active frame whose range decode fails no longer commits its predictor,
+CELP and postfilter state: the state is put back as it was before the
+frame and the frame is concealed instead of played. A RED container that
+cannot be unpacked is concealed too.
+
+Tested: pitch found on synthetic tones, concealment follows the waveform,
+fades to silence after 80 ms, keeps the duration asked at 16 and 48 kHz,
+joins the next frame without a click; the 373 captured frames decode with
+no frame taken for corrupt, and the reference correlation is unchanged.
+---
+ audio_codec.go          |  23 +++++-
+ audio_codec_plc_test.go |  52 ++++++++++++
+ mlow/decoder.go         |  62 ++++++++++++---
+ mlow/plc.go             | 161 +++++++++++++++++++++++++++++++++++++
+ mlow/plc_test.go        | 172 ++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 457 insertions(+), 13 deletions(-)
+ create mode 100644 audio_codec_plc_test.go
+ create mode 100644 mlow/plc.go
+ create mode 100644 mlow/plc_test.go
+
+diff --git a/audio_codec.go b/audio_codec.go
+index e944b09..b9a0771 100644
+--- a/audio_codec.go
++++ b/audio_codec.go
+@@ -134,9 +134,26 @@ func (d *callAudioDecoder) Conceal(samples int) []float32 {
+ 		}
+ 		return output
+ 	}
+-	// This MLow port exposes no PLC API. Bound the discontinuity with a
+-	// short decay, then silence; do not replay whole words or call it FEC.
+-	return d.fadeConceal(samples)
++	if d.codec == AudioCodecOpus || d.decodedOpus {
++		return d.fadeConceal(samples)
++	}
++	return d.concealMlow(samples)
++}
++
++// concealMlow runs the MLow decoder's own concealment at 16 kHz, through the
++// same up-sampler as decoded frames when the call plays at 48 kHz.
++func (d *callAudioDecoder) concealMlow(samples int) []float32 {
++	if samples == 0 {
++		return []float32{}
++	}
++	if d.PCMRate() != FullbandSampleRate {
++		output := d.mlow.Conceal(samples)
++		d.last = append(d.last[:0], output...)
++		return output
++	}
++	output := d.up.convert(d.mlow.Conceal((samples+2)/3), true)[:samples]
++	d.last = append(d.last[:0], output...)
++	return output
+ }
+ 
+ func (d *callAudioDecoder) fadeConceal(samples int) []float32 {
+diff --git a/audio_codec_plc_test.go b/audio_codec_plc_test.go
+new file mode 100644
+index 0000000..c7f5060
+--- /dev/null
++++ b/audio_codec_plc_test.go
+@@ -0,0 +1,52 @@
++package meowcaller
++
++import (
++	"math"
++	"testing"
++)
++
++// A lost MLow packet after speech is bridged with sound, at 16 and 48 kHz,
++// for exactly the duration asked.
++func TestMlowLossIsConcealedWithSpeechNotSilence(t *testing.T) {
++	for _, rate := range []int{SampleRate, FullbandSampleRate} {
++		encoder, err := newCallAudioEncoder(AudioCodecMlow, rate)
++		if err != nil {
++			t.Fatal(err)
++		}
++		decoder := newCallAudioDecoder(AudioCodecMlow, rate)
++		frameLen := rate * 60 / 1000
++		for n := 0; n < 10; n++ {
++			frame := make([]float32, frameLen)
++			for i := range frame {
++				frame[i] = float32(.3 * math.Sin(2*math.Pi*200*float64(i+n*frameLen)/float64(rate)))
++			}
++			packet, err := encoder.Encode(frame)
++			if err != nil {
++				t.Fatal(err)
++			}
++			decoder.Decode(packet)
++		}
++		for _, samples := range []int{frameLen, rate / 50, rate/50 + 1} {
++			concealed := decoder.Conceal(samples)
++			if len(concealed) != samples {
++				t.Fatalf("rate %d: concealed %d samples, asked %d", rate, len(concealed), samples)
++			}
++		}
++		decoder = newCallAudioDecoder(AudioCodecMlow, rate)
++		for n := 0; n < 10; n++ {
++			frame := make([]float32, frameLen)
++			for i := range frame {
++				frame[i] = float32(.3 * math.Sin(2*math.Pi*200*float64(i+n*frameLen)/float64(rate)))
++			}
++			packet, _ := encoder.Encode(frame)
++			decoder.Decode(packet)
++		}
++		var energy float64
++		for _, v := range decoder.Conceal(frameLen)[:rate/50] {
++			energy += float64(v) * float64(v)
++		}
++		if energy < 0.01*float64(rate/50) {
++			t.Fatalf("rate %d: the loss sounds as silence (energy %g)", rate, energy)
++		}
++	}
++}
+diff --git a/mlow/decoder.go b/mlow/decoder.go
+index 8c0385b..cdac3c2 100644
+--- a/mlow/decoder.go
++++ b/mlow/decoder.go
+@@ -30,6 +30,8 @@ type MlowDecoder struct {
+ 	state              *SmplDecoderState
+ 	redundancy         int32
+ 	droppedUnsupported uint32
++	failedFrames       uint32
++	plc                plcState
+ 	log                zerolog.Logger
+ }
+ 
+@@ -49,14 +51,24 @@ func (d *MlowDecoder) SetRedundancy(n int) {
+ func (d *MlowDecoder) Reset() {
+ 	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/ed12f359a086b28e807ba236f0977af1000859fe/wacore/src/voip/mlow/decoder.rs#L49-L51
+ 	d.state = newSmplDecoderState()
++	d.plc = plcState{}
+ }
+ 
++// Conceal returns samples (16 kHz) standing in for packets that never arrived.
++// Call it before decoding the packet that follows the gap.
++func (d *MlowDecoder) Conceal(samples int) []float32 {
++	return d.plc.conceal(samples)
++}
++
++// FailedFrames counts active frames whose range decode failed and were concealed.
++func (d *MlowDecoder) FailedFrames() uint32 { return d.failedFrames }
++
+ // Decode decodes one RTP MLow payload into a 60 ms (960-sample) PCM frame, float in [-1, 1].
+ func (d *MlowDecoder) Decode(payload []byte) []float32 {
+ 	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/ed12f359a086b28e807ba236f0977af1000859fe/wacore/src/voip/mlow/decoder.rs#L54-L72
+ 	if len(payload) == 0 {
+ 		d.log.Trace().Msg("decode: empty payload, emitting silence")
+-		return make([]float32, opusFrameSamps)
++		return d.plc.decoded(make([]float32, opusFrameSamps))
+ 	}
+ 	// SplitRed multi-frame container (0x92 <count>), seen in video calls with DTX on:
+ 	// WhatsApp packs several sequential 60 ms MLow frames into one RTP payload as
+@@ -78,8 +90,8 @@ func (d *MlowDecoder) Decode(payload []byte) []float32 {
+ 	if d.redundancy > 0 {
+ 		frames, err := DepackSplitRed(payload, d.log)
+ 		if err != nil {
+-			d.log.Debug().Err(err).Int("payload_bytes", len(payload)).Msg("decode: RED depack failed, emitting silence")
+-			return make([]float32, opusFrameSamps)
++			d.log.Debug().Err(err).Int("payload_bytes", len(payload)).Msg("decode: RED depack failed, concealing")
++			return d.plc.conceal(opusFrameSamps)
+ 		}
+ 		var main []byte
+ 		if len(frames) > 0 {
+@@ -127,10 +139,18 @@ func splitContainer(p []byte) ([][]byte, bool) {
+ }
+ 
+ func (d *MlowDecoder) decodeFrame(frame []byte) []float32 {
++	pcm, lost := d.decodeFrameState(frame)
++	if lost > 0 {
++		return d.plc.conceal(lost)
++	}
++	return d.plc.decoded(pcm)
++}
++
++func (d *MlowDecoder) decodeFrameState(frame []byte) ([]float32, int) {
+ 	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/ed12f359a086b28e807ba236f0977af1000859fe/wacore/src/voip/mlow/decoder.rs#L74-L99
+ 	if len(frame) == 0 {
+ 		d.log.Trace().Msg("decode frame: empty, emitting silence")
+-		return make([]float32, opusFrameSamps)
++		return make([]float32, opusFrameSamps), 0
+ 	}
+ 	toc := ParseSmplTOC(frame[0], d.log)
+ 	var outLen int
+@@ -145,11 +165,11 @@ func (d *MlowDecoder) decodeFrame(frame []byte) []float32 {
+ 		Int("out_len", outLen).Msg("decode frame")
+ 	if toc.StdOpus {
+ 		d.log.Debug().Msg("decode frame: standard-Opus packet, not handled, emitting silence")
+-		return make([]float32, outLen)
++		return make([]float32, outLen), 0
+ 	}
+ 	if toc.SID || !toc.Active {
+ 		d.log.Trace().Bool("sid", toc.SID).Bool("active", toc.Active).Msg("decode frame: inactive/SID, emitting silence")
+-		return make([]float32, outLen)
++		return make([]float32, outLen), 0
+ 	}
+ 	if toc.SampleRate != 16000 || toc.FrameMs != 60 {
+ 		d.droppedUnsupported++
+@@ -162,18 +182,21 @@ func (d *MlowDecoder) decodeFrame(frame []byte) []float32 {
+ 				Int("frame_ms", toc.FrameMs).
+ 				Msg("dropping unsupported active MLow frame")
+ 		}
+-		return make([]float32, opusFrameSamps)
++		return make([]float32, opusFrameSamps), 0
+ 	}
+ 	return d.decodeActiveFrame(frame, outLen)
+ }
+ 
+-func (d *MlowDecoder) decodeActiveFrame(frame []byte, outLen int) []float32 {
++// decodeActiveFrame returns the frame's PCM, or the samples to conceal when its
++// range decode failed: the state is then put back as it was before the frame.
++func (d *MlowDecoder) decodeActiveFrame(frame []byte, outLen int) ([]float32, int) {
+ 	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/ed12f359a086b28e807ba236f0977af1000859fe/wacore/src/voip/mlow/decoder.rs#L101-L217
+ 	config := int(frame[0]>>2) & 1
+ 	tbl := LoadSmplTables()
+ 	synthT := LoadSmplSynthTables()
+ 	mem := LoadSmplMem()
+ 	dec := NewRangeDecoder(frame[1:])
++	saved := d.state.clone()
+ 	lowRate := (frame[0]>>2)&1 != 0
+ 	numSubframes := int32(4)
+ 	if lowRate {
+@@ -228,7 +251,11 @@ func (d *MlowDecoder) decodeActiveFrame(frame []byte, outLen int) []float32 {
+ 		out = append(out, sig[:]...)
+ 	}
+ 	if dec.Err != 0 {
+-		d.log.Warn().Int32("range_error", dec.Err).Int("config", config).Msg("MLow active-frame range decode failed")
++		d.state = saved
++		d.failedFrames++
++		d.log.Warn().Int32("range_error", dec.Err).Int("config", config).Uint32("failed_frames", d.failedFrames).
++			Msg("MLow active-frame range decode failed, concealing")
++		return nil, outLen
+ 	}
+ 
+ 	// Per-packet harmonic postfilter (final pitch comb + 48-sample group delay) over the whole packet.
+@@ -255,5 +282,20 @@ func (d *MlowDecoder) decodeActiveFrame(frame []byte, outLen int) []float32 {
+ 			pcm = np
+ 		}
+ 	}
+-	return pcm
++	return pcm, 0
++}
++
++// clone is a deep copy, so a frame that fails to decode leaves no trace.
++func (s *SmplDecoderState) clone() *SmplDecoderState {
++	celp, harm := *s.Celp, *s.Harm
++	celp.acbState = append([]float32(nil), s.Celp.acbState...)
++	celp.hp.xOld = append([]float32(nil), s.Celp.hp.xOld...)
++	celp.ExcPre = append([]float32(nil), s.Celp.ExcPre...)
++	harm.stateComb = append([]float32(nil), s.Harm.stateComb...)
++	return &SmplDecoderState{
++		Lstate:   s.Lstate,
++		PrevNLSF: append([]float32(nil), s.PrevNLSF...),
++		Celp:     &celp,
++		Harm:     &harm,
++	}
+ }
+diff --git a/mlow/plc.go b/mlow/plc.go
+new file mode 100644
+index 0000000..2fc81e8
+--- /dev/null
++++ b/mlow/plc.go
+@@ -0,0 +1,161 @@
++package mlow
++
++import "math"
++
++// Packet-loss concealment at the decoder's 16 kHz output, after ITU-T G.711
++// Appendix I: the last pitch period repeated (widened to two, then three
++// periods), full level for 20 ms, faded to silence over the next 60 ms, and
++// cross-faded into the first frame decoded after the loss.
++
++const (
++	plcHistory  = 960 // 60 ms of decoded output kept as the source
++	plcMinLag   = 40  // 400 Hz
++	plcMaxLag   = 320 // 50 Hz, the decoder's own maximum pitch lag
++	plcCorrWin  = 320 // 20 ms compared when looking for the period
++	plcWidenAt  = 160 // every 10 ms of loss the repeated span widens by a period
++	plcMaxSpans = 3
++	plcFullGain = 320 // 20 ms at full level
++	plcFadeLen  = 960 // then to silence over 60 ms
++	plcMergeLen = 80  // 5 ms cross-fade into the next decoded frame
++)
++
++type plcState struct {
++	history []float32 // newest last, at most plcHistory samples
++	lost    int       // samples concealed since the last decoded frame
++	lag     int       // pitch period in samples; 0 when there is nothing to repeat
++	spans   int       // periods in the repeated span (1..plcMaxSpans)
++	pos     int       // read position inside the repeated span
++}
++
++// decoded records a frame that was really decoded and returns it, cross-faded
++// with the concealment when it ends a loss.
++func (p *plcState) decoded(pcm []float32) []float32 {
++	if p.lost > 0 && len(pcm) > 0 {
++		n := min(plcMergeLen, len(pcm))
++		tail := p.next(n)
++		merged := append([]float32(nil), pcm...)
++		for i := 0; i < n; i++ {
++			w := float32(n-i) / float32(n+1)
++			merged[i] = w*tail[i] + (1-w)*pcm[i]
++		}
++		pcm = merged
++	}
++	p.lost, p.lag, p.spans, p.pos = 0, 0, 0, 0
++	p.remember(pcm)
++	return pcm
++}
++
++// conceal returns samples standing in for audio that never arrived (or could
++// not be decoded).
++func (p *plcState) conceal(samples int) []float32 {
++	if samples <= 0 {
++		return nil
++	}
++	if p.lost == 0 {
++		p.start()
++	}
++	return p.next(samples)
++}
++
++func (p *plcState) start() {
++	p.spans, p.pos = 1, 0
++	p.lag = pitchLag(p.history)
++}
++
++// next continues the concealment for n samples, advancing the loss.
++func (p *plcState) next(n int) []float32 {
++	out := make([]float32, n)
++	for i := range out {
++		gain := plcGain(p.lost)
++		p.lost++
++		if p.lag == 0 || gain == 0 {
++			continue
++		}
++		if p.spans < plcMaxSpans && p.lost > p.spans*plcWidenAt {
++			p.widen()
++		}
++		out[i] = gain * p.sample(p.spans, p.pos)
++		p.pos++
++	}
++	return out
++}
++
++// widen repeats one more period from now on; a quarter period is cross-faded
++// from the old span into the new one, at the same phase of the period.
++func (p *plcState) widen() {
++	phase := p.pos % (p.spans * p.lag) % p.lag
++	q := p.lag / 4
++	if q > 0 {
++		old := make([]float32, q)
++		for i := range old {
++			old[i] = p.sample(p.spans, p.pos+i)
++		}
++		p.spans++
++		base := len(p.history) - p.spans*p.lag
++		for i := 0; i < q; i++ {
++			idx := base + (phase+i)%(p.spans*p.lag)
++			w := float32(i+1) / float32(q+1)
++			p.history[idx] = (1-w)*old[i] + w*p.history[idx]
++		}
++	} else {
++		p.spans++
++	}
++	p.pos = phase
++}
++
++func (p *plcState) sample(spans, pos int) float32 {
++	span := spans * p.lag
++	return p.history[len(p.history)-span+pos%span]
++}
++
++func (p *plcState) remember(pcm []float32) {
++	p.history = append(p.history, pcm...)
++	if extra := len(p.history) - plcHistory; extra > 0 {
++		p.history = append(p.history[:0], p.history[extra:]...)
++	}
++}
++
++func plcGain(lost int) float32 {
++	if lost < plcFullGain {
++		return 1
++	}
++	faded := lost - plcFullGain
++	if faded >= plcFadeLen {
++		return 0
++	}
++	return 1 - float32(faded)/float32(plcFadeLen)
++}
++
++// pitchLag finds the period of the end of history: the lag whose normalised
++// correlation with the last plcCorrWin samples is highest. 0 when history is
++// too short to repeat plcMaxSpans periods or holds no energy.
++func pitchLag(history []float32) int {
++	if len(history) < plcCorrWin+plcMaxLag || len(history) < plcMaxSpans*plcMaxLag {
++		return 0
++	}
++	end := len(history)
++	window := history[end-plcCorrWin:]
++	var energy float64
++	for _, v := range window {
++		energy += float64(v) * float64(v)
++	}
++	if energy < 1e-9 {
++		return 0
++	}
++	best, bestScore := plcMinLag, math.Inf(-1)
++	for lag := plcMinLag; lag <= plcMaxLag; lag++ {
++		past := history[end-plcCorrWin-lag : end-lag]
++		var cross, pastEnergy float64
++		for i, v := range window {
++			cross += float64(v) * float64(past[i])
++			pastEnergy += float64(past[i]) * float64(past[i])
++		}
++		if pastEnergy < 1e-12 {
++			continue
++		}
++		if score := cross / math.Sqrt(pastEnergy); score > bestScore {
++			best, bestScore = lag, score
++		}
++	}
++	return best
++}
+diff --git a/mlow/plc_test.go b/mlow/plc_test.go
+new file mode 100644
+index 0000000..9e9228a
+--- /dev/null
++++ b/mlow/plc_test.go
+@@ -0,0 +1,172 @@
++package mlow
++
++import (
++	"encoding/hex"
++	"math"
++	"testing"
++)
++
++func plcTone(start, n, period int) []float32 {
++	out := make([]float32, n)
++	for i := range out {
++		phase := 2 * math.Pi * float64(start+i) / float64(period)
++		out[i] = float32(0.5*math.Sin(phase) + 0.2*math.Sin(2*phase+0.3))
++	}
++	return out
++}
++
++func TestPLCFindsThePitchPeriod(t *testing.T) {
++	for _, period := range []int{48, 80, 145, 300} {
++		if got := pitchLag(plcTone(0, plcHistory, period)); got != period {
++			t.Fatalf("period %d: lag %d", period, got)
++		}
++	}
++	if got := pitchLag(make([]float32, plcHistory)); got != 0 {
++		t.Fatalf("silence gave lag %d", got)
++	}
++	if got := pitchLag(plcTone(0, 100, 80)); got != 0 {
++		t.Fatalf("short history gave lag %d", got)
++	}
++}
++
++func TestPLCContinuesVoicedSpeechInsteadOfSilence(t *testing.T) {
++	var p plcState
++	p.decoded(plcTone(0, opusFrameSamps, 80))
++	got := p.conceal(plcFullGain)
++	want := plcTone(opusFrameSamps, plcFullGain, 80)
++	var errEnergy, energy float64
++	for i := range got {
++		d := float64(got[i] - want[i])
++		errEnergy += d * d
++		energy += float64(want[i]) * float64(want[i])
++	}
++	if errEnergy > energy*1e-3 {
++		t.Fatalf("concealment strays from the waveform: err/energy=%g", errEnergy/energy)
++	}
++}
++
++func TestPLCFadesToSilenceAndKeepsDuration(t *testing.T) {
++	var p plcState
++	p.decoded(plcTone(0, opusFrameSamps, 120))
++	first := p.conceal(opusFrameSamps)
++	second := p.conceal(opusFrameSamps)
++	if len(first) != opusFrameSamps || len(second) != opusFrameSamps {
++		t.Fatal("concealment changed the duration")
++	}
++	peak := func(x []float32) (m float32) {
++		for _, v := range x {
++			m = max(m, float32(math.Abs(float64(v))))
++		}
++		return m
++	}
++	if peak(first[:plcFullGain]) < 0.5 {
++		t.Fatal("the first 20 ms are not at full level")
++	}
++	if peak(second[plcFullGain+plcFadeLen-opusFrameSamps:]) != 0 {
++		t.Fatal("still sounding after 80 ms of loss")
++	}
++	if peak(first[opusFrameSamps-100:]) >= peak(first[:plcFullGain]) {
++		t.Fatal("no fade during the loss")
++	}
++}
++
++func TestPLCWithNothingToRepeatIsSilent(t *testing.T) {
++	var p plcState
++	for _, v := range p.conceal(opusFrameSamps) {
++		if v != 0 {
++			t.Fatal("concealment invented sound")
++		}
++	}
++}
++
++func TestPLCCrossFadesIntoTheNextFrame(t *testing.T) {
++	var p plcState
++	p.decoded(plcTone(0, opusFrameSamps, 80))
++	concealed := p.conceal(opusFrameSamps)
++	next := make([]float32, opusFrameSamps) // the talker paused: a jump to zero
++	merged := p.decoded(next)
++	if d := math.Abs(float64(merged[0] - concealed[len(concealed)-1])); d > 0.1 {
++		t.Fatalf("click at the join: %g", d)
++	}
++	for _, v := range merged[plcMergeLen:] {
++		if v != 0 {
++			t.Fatal("the decoded frame was altered after the cross-fade")
++		}
++	}
++	if p.lost != 0 || len(p.history) != plcHistory {
++		t.Fatal("the loss did not end")
++	}
++	if got := p.decoded(next); &got[0] != &next[0] {
++		t.Fatal("a frame with no loss before it was copied")
++	}
++}
++
++func TestPLCWideningKeepsTheWaveformContinuous(t *testing.T) {
++	var p plcState
++	p.decoded(plcTone(0, opusFrameSamps, 100))
++	out := p.conceal(plcFullGain)
++	for i := 1; i < len(out); i++ {
++		if d := math.Abs(float64(out[i] - out[i-1])); d > 0.15 {
++			t.Fatalf("jump of %g at sample %d", d, i)
++		}
++	}
++}
++
++func TestDecoderConcealsBetweenRealFrames(t *testing.T) {
++	var frames []string
++	loadJSON(t, "inbound_capture_frames.json", &frames)
++	loud, loudest := 0, 0.0
++	probe := NewMlowDecoder()
++	for i, hf := range frames[:len(frames)-1] {
++		fb, _ := hex.DecodeString(hf)
++		var e float64
++		for _, v := range probe.Decode(fb) {
++			e += float64(v) * float64(v)
++		}
++		if e > loudest {
++			loud, loudest = i+1, e
++		}
++	}
++	dec := NewMlowDecoder()
++	var energy float64
++	for i, hf := range frames {
++		fb, err := hex.DecodeString(hf)
++		if err != nil {
++			t.Fatal(err)
++		}
++		if i == loud {
++			concealed := dec.Conceal(opusFrameSamps)
++			if len(concealed) != opusFrameSamps {
++				t.Fatal("concealment duration")
++			}
++			for _, v := range concealed {
++				energy += float64(v) * float64(v)
++			}
++			continue
++		}
++		for _, v := range dec.Decode(fb) {
++			if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
++				t.Fatal("nonfinite PCM")
++			}
++		}
++	}
++	if dec.FailedFrames() != 0 {
++		t.Fatalf("%d good frames taken for corrupt", dec.FailedFrames())
++	}
++	if energy < loudest*0.05 {
++		t.Fatalf("a loss after speech concealed with near silence: %g of %g", energy, loudest)
++	}
++}
++
++func TestDecoderStateCloneIsIndependent(t *testing.T) {
++	s := newSmplDecoderState()
++	s.PrevNLSF = []float32{1, 2}
++	c := s.clone()
++	c.PrevNLSF[0] = 9
++	c.Celp.acbState[0] = 9
++	c.Harm.stateComb[0] = 9
++	c.Lstate.PrevLag = 9
++	if s.PrevNLSF[0] != 1 || s.Celp.acbState[0] != 0 || s.Harm.stateComb[0] != 0 || s.Lstate.PrevLag != 0 {
++		t.Fatal("the saved state shares memory with the live one")
++	}
++}

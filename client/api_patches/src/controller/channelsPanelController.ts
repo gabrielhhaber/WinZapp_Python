@@ -442,8 +442,20 @@ export async function readChannels(request: any): Promise<unknown> {
     if (!/^(?:\d+@newsletter|[A-Za-z0-9_-]{10,64})$/.test(key)) return null;
     const job = load('WAWebMexFetchNewsletterJob');
     if (typeof job?.mexGetNewsletter !== 'function') return null;
-    const data = await job.mexGetNewsletter(key, 'GUEST', {
-      fetchViewerMetadata: true, fetchCreationTime: true, fetchWamoSub: false, fetchStatusMetadata: false });
+    // A channel this account does not follow refuses the viewer's metadata
+    // ("WAWebMexFetchNewsletterJobQuery: Not Allowed", measured 2026-11-11 on
+    // a recommended channel; the same query without it answered): read it
+    // again without, and the channel is the guest's view of it.
+    const read = (viewer: boolean) => job.mexGetNewsletter(key, 'GUEST', {
+      fetchViewerMetadata: viewer, fetchCreationTime: true, fetchWamoSub: false,
+      fetchStatusMetadata: false });
+    let data: any;
+    try {
+      data = await read(true);
+    } catch (e: any) {
+      if (!/not allowed/i.test(String(e?.message || e))) throw e;
+      data = await read(false);
+    }
     return data?.xwa2_newsletter ? withPageSettings(data.xwa2_newsletter) : null;
   }
   if (kind === 'follow' || kind === 'unfollow') {

@@ -146,12 +146,14 @@ def directory_request(body, country=""):
                         "fetch_status_metadata": False}, LIST_FIELD
 
 
-def channel_request(key):
+def channel_request(key, viewer=True):
     """Variables of the one-channel read, as WhatsApp Web's mexGetNewsletter
-    sends them for a JID or an invite code."""
+    sends them for a JID or an invite code. A channel this account does not
+    follow refuses the viewer's metadata ("Not Allowed", measured on
+    WhatsApp Web 2026-11-11), so the route reads it again with *viewer* off."""
     by_id = key.endswith("@" + SERVER)
     return {"input": {"key": key, "type": "JID" if by_id else "INVITE", "view_role": "GUEST"},
-            "fetch_viewer_metadata": True, "fetch_full_image": by_id, "fetch_creation_time": True,
+            "fetch_viewer_metadata": bool(viewer), "fetch_full_image": by_id, "fetch_creation_time": True,
             "fetch_wamo_sub": False, "fetch_status_metadata": False,
             "fetch_pinned_messages": True}       # as mexGetNewsletter always asks
 
@@ -313,8 +315,13 @@ def register_routes(r, *, session, ok, jid_from_text):
             return error("invalid_channel", 400)
         if not ready(s):
             return error("channels_unavailable")
-        answer = await mex(s, CHANNEL_QUERY, channel_request(key), CHANNEL_FIELD,
-                           "channel_not_found")
+        try:
+            answer = await execute(rq.send_mex, s.client, CHANNEL_QUERY,
+                                   channel_request(key), CHANNEL_FIELD)
+        except rq.QueryError:
+            # not followed: the guest's view, without the viewer's metadata
+            answer = await mex(s, CHANNEL_QUERY, channel_request(key, viewer=False),
+                               CHANNEL_FIELD, "channel_not_found")
         if isinstance(answer, web.Response):
             return answer
         if not isinstance(answer, dict) or not answer.get("id"):

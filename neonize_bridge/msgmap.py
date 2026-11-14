@@ -283,6 +283,9 @@ def _content(inner, field, chat_w, out) -> bool:
                    pollSelectableOptionsCount=int(poll.selectableOptionsCount or 0),
                    pollOptions=[{"name": o.optionName, "localId": i}
                                 for i, o in enumerate(poll.options)])
+    elif field == "eventMessage":
+        import events
+        out.update(events.event_fields(inner.eventMessage))
     elif field in CHANNEL_INVITES:
         out.update(channel_invite_fields(field, getattr(inner, field)))
     elif field == "orderMessage":
@@ -291,7 +294,8 @@ def _content(inner, field, chat_w, out) -> bool:
         out.update(commerce_messages.product_fields(inner.productMessage))
     elif field == "richResponseMessage":
         out.update(rich_response_fields(inner.richResponseMessage))
-    elif field in ("reactionMessage", "pollUpdateMessage", "keepInChatMessage", ""):
+    elif field in ("reactionMessage", "pollUpdateMessage", "keepInChatMessage", "",
+                   "encEventResponseMessage", "secretEncryptedMessage"):
         return False
     elif field in ("buttonsMessage", "listMessage", "templateMessage", "highlyStructuredMessage",
                    "interactiveMessage", "buttonsResponseMessage", "listResponseMessage",

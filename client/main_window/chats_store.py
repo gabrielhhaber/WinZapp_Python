@@ -1013,14 +1013,10 @@ class ChatsStoreMixin:
                             if k == "unreadCount":
                                 server_val = int(v or 0)
                                 local_val = int(chats[jid].get("unreadCount") or 0)
-                                # The server counts system events (promote/join/leave
-                                # group notifications, protocolMessage revokes) and
-                                # sometimes own (fromMe) sends toward unread. Discount
-                                # the same tail is_countable_message() excludes in
-                                # on_new_message(), so a snapshot that reports e.g.
-                                # "1 unread" for a chat whose only new record is a
-                                # group promote doesn't mint a phantom badge here
-                                # either. Same correction as on_chat_unread_update().
+                                # WhatsApp's count, corrected only by what the
+                                # records prove: an own reply read the chat
+                                # (core/unread_types.py). System events were never
+                                # in it. Same correction as on_chat_unread_update().
                                 _discount_records = (
                                     (chats[jid].get("messages") or {})
                                     .get("messages", {})

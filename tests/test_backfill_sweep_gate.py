@@ -60,6 +60,7 @@ def _run_loop(monkeypatch):
 
     def sync(chat, run, expected_context=None):
         synced.append(chat["remoteJid"])
+        return True                 # answered: only such a fetch lets a chat rest
 
     stub.sync_chat_messages = sync
 
@@ -91,3 +92,15 @@ def test_deep_history_and_names_run_after_a_sweep_of_unopened_chats(monkeypatch)
     assert set(UNOPENED) <= set(synced)       # every chat had its local fetch
     assert names_calls, "names never ran: unopened chats still block the sweep"
     assert "deep-chat" in deep_calls, "deep history never ran"
+
+
+def test_short_chats_that_stay_empty_rest_and_deep_history_runs_more_often(monkeypatch):
+    """Issue #766: 60 of 257 short chats came back empty at every pass, and
+    deep history only ran once each of those sweeps had finished."""
+    synced, names_calls, deep_calls = _run_loop(monkeypatch)
+    from collections import Counter
+    turns = Counter(synced)
+    # 60 s of budget at 1 s passes: without the rest every chat would take a
+    # turn every few passes; with it, a chat that stays empty waits 2 minutes
+    assert max(turns.values()) == 1, turns
+    assert len(deep_calls) > 5, deep_calls

@@ -1,0 +1,571 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 00:42:52 -0300
+Subject: [PATCH] Move a group call's media to a relay of the new allocation
+ without a gap
+
+Seen live: a 1:1 call became a group call on relay gru2c02; when a member
+left and joined again, the server sent a group allocation listing gru1c02,
+gig4c02 and poa1c01 only. The allocation refresh failed every second with
+"active relay missing from group allocation", this device stayed on a relay
+outside the group's set and the rejoined member never received its audio
+(WhatsApp Web logged no receive relay for it). WhatsApp moves: it binds the
+new relays while still on the old one and switches once the new one answers.
+
+The media loop now runs over a switchable relay channel: sends go to the
+current relay, receives come from every relay still open, and a replaced
+relay keeps delivering for five seconds before it is closed; an error ends
+the media only when it comes from the current relay. When an allocation no
+longer lists the relay in use, a background move opens a listed relay,
+sends the allocate, the consent ping and the group allocation with this
+device's subscriptions, and only then switches; a failed move is retried
+no sooner than ten seconds later. Each group invite and update now logs its
+relay block (transaction and relay names).
+
+Tested: the switch sends on the new relay at once, still plays packets from
+the old one, closes it only after the delay, ends the media only on the
+current relay's error, and Close closes every relay (race detector on);
+full suite passes.
+---
+ engine.go               |   1 +
+ engine_group_control.go |   1 +
+ engine_group_relay.go   |   2 +-
+ engine_media.go         |  62 ++++++++++++++-
+ relay_switch.go         | 163 +++++++++++++++++++++++++++++++++++++++
+ relay_switch_test.go    | 165 ++++++++++++++++++++++++++++++++++++++++
+ roster_diag.go          |  13 ++++
+ roster_diag_test.go     |  12 +++
+ 8 files changed, 414 insertions(+), 5 deletions(-)
+ create mode 100644 relay_switch.go
+ create mode 100644 relay_switch_test.go
+
+diff --git a/engine.go b/engine.go
+index 316ee9e..45d9da5 100644
+--- a/engine.go
++++ b/engine.go
+@@ -630,6 +630,7 @@ func (e *engine) onGroupOffer(ev *events.CallOffer, update groupCallUpdate) {
+ 		Uint32("transaction_id", update.TransactionID).
+ 		Bool("rekey_requested", update.RekeyRequested).
+ 		Str("roster", describeGroupRoster(update)).
++		Str("relay", describeGroupRelay(update)).
+ 		Msg("group invite received")
+ 	e.applyGroupUpdate(update)
+ 
+diff --git a/engine_group_control.go b/engine_group_control.go
+index 866d612..2531980 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -34,6 +34,7 @@ func (e *engine) onUnknownCallEvent(node *waBinary.Node) {
+ 			Uint32("transaction_id", update.TransactionID).
+ 			Bool("rekey_requested", update.RekeyRequested).
+ 			Str("roster", describeGroupRoster(update)).
++			Str("relay", describeGroupRelay(update)).
+ 			Msg("group update received")
+ 		if e.applyGroupUpdate(update) && update.RekeyRequested {
+ 			if fanoutErr := e.distributeRequestedGroupEpoch(context.Background(), update); fanoutErr != nil {
+diff --git a/engine_group_relay.go b/engine_group_relay.go
+index 047ba15..6c29441 100644
+--- a/engine_group_relay.go
++++ b/engine_group_relay.go
+@@ -85,7 +85,7 @@ func (s *groupRelayAllocateState) ApplyWithSubscriptions(
+ 		}
+ 	}
+ 	if matched == nil {
+-		return false, fmt.Errorf("meowcaller: active relay %s missing from group allocation", endpoint.relayName)
++		return false, fmt.Errorf("%w: %s", errActiveRelayMissing, endpoint.relayName)
+ 	}
+ 	if int(matched.TokenID) >= len(relayUpdate.Tokens) || len(relayUpdate.Tokens[matched.TokenID]) == 0 {
+ 		return false, fmt.Errorf("meowcaller: group relay token %d is missing", matched.TokenID)
+diff --git a/engine_media.go b/engine_media.go
+index c3bf72a..2c1ce88 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -5,6 +5,7 @@ import (
+ 	"crypto/rand"
+ 	"encoding/binary"
+ 	"encoding/hex"
++	"errors"
+ 	"fmt"
+ 	"io"
+ 	"math"
+@@ -220,11 +221,16 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	if err != nil {
+ 		return err
+ 	}
+-	ch, allocate, err := e.connectAndAllocate(ctx, rd, streamSsrcs, inbound)
++	firstRelay, allocate, err := e.connectAndAllocate(ctx, rd, streamSsrcs, inbound)
+ 	if err != nil {
+ 		return err
+ 	}
++	// A group call can move to another relay mid-call (moveGroupRelay below):
++	// sends go to the current relay, receives come from every relay still open.
++	ch := newSwitchableRelay(firstRelay)
+ 	defer ch.Close()
++	var activeRelay atomic.Pointer[relayData]
++	activeRelay.Store(rd)
+ 	allocateState := newGroupRelayAllocateStateWithHBHFEC(
+ 		allocate,
+ 		rd.relayKeyASCII,
+@@ -507,6 +513,45 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	// all; the relay answers allocate-success + pong and bridges the peer's media.
+ 	// Binding-requests instead flip the relay into ICE-consent mode and the bridge never
+ 	// forms.
++	var movingRelay atomic.Bool
++	var lastRelayMove time.Time
++	moveGroupRelay := func(update groupCallUpdate) {
++		defer movingRelay.Store(false)
++		nextRelay, moveErr := groupRelayData(update, inbound)
++		if moveErr != nil {
++			log.Warn().Err(moveErr).Str("call_id", callID).Msg("group allocation has no usable relay to move to")
++			return
++		}
++		next, _, moveErr := e.connectAndAllocate(ctx, nextRelay, streamSsrcs, inbound)
++		if moveErr != nil {
++			log.Warn().Err(moveErr).Str("call_id", callID).Msg("could not open the relay of the new group allocation")
++			return
++		}
++		var pingTx [12]byte
++		_, _ = rand.Read(pingTx[:])
++		consentPing := stun.BuildWhatsappPing(pingTx, log)
++		_, _ = next.Send(consentPing[:])
++		var relayTx [12]byte
++		_, _ = rand.Read(relayTx[:])
++		endpoint := getMediaRelayEndpoint(nextRelay, inbound)
++		if _, moveErr = allocateState.ApplyWithSubscriptions(
++			endpoint, update.Relay, streamSsrcs, appDataSelfSsrc,
++			connectedRemoteParticipantPIDs(update, audioReceivers.selfID), relayTx,
++			func(packet []byte) error {
++				_, sendErr := next.Send(packet)
++				return sendErr
++			},
++		); moveErr != nil {
++			_ = next.Close()
++			log.Warn().Err(moveErr).Str("call_id", callID).Msg("could not allocate on the relay of the new group allocation")
++			return
++		}
++		activeRelay.Store(nextRelay)
++		ch.Switch(next, relayRetireDelay)
++		log.Info().Str("call_id", callID).Str("relay_name", endpoint.relayName).
++			Uint32("relay_transaction_id", update.Relay.TransactionID).
++			Msg("moved group media to a relay of the new allocation")
++	}
+ 	go func() {
+ 		t := time.NewTicker(time.Second)
+ 		defer t.Stop()
+@@ -539,7 +584,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 				if update != nil && update.Relay != nil {
+ 					var relayTx [12]byte
+ 					if _, err := rand.Read(relayTx[:]); err == nil {
+-						endpoint := getMediaRelayEndpoint(rd, inbound)
++						endpoint := getMediaRelayEndpoint(activeRelay.Load(), inbound)
+ 						allocateSent, err = allocateState.ApplyWithSubscriptions(
+ 							endpoint,
+ 							update.Relay,
+@@ -552,7 +597,16 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 								return sendErr
+ 							},
+ 						)
+-						if err != nil {
++						if errors.Is(err, errActiveRelayMissing) {
++							// The new allocation no longer lists the relay in use:
++							// move to one it lists, as WhatsApp does, without
++							// leaving the current one until the new one is ready.
++							if !movingRelay.Load() && time.Since(lastRelayMove) >= relayMoveRetry {
++								movingRelay.Store(true)
++								lastRelayMove = time.Now()
++								go moveGroupRelay(*update)
++							}
++						} else if err != nil {
+ 							log.Warn().Err(err).Str("call_id", callID).Msg("failed to refresh group relay allocation")
+ 						}
+ 					}
+@@ -1323,7 +1377,7 @@ type videoSender struct {
+ 	mu               sync.Mutex
+ 	pipe             *MediaPipeline
+ 	stream           *rtp.VideoRtpStream
+-	ch               *relay.RelayMediaChannel
++	ch               relayConn
+ 	ssrc             uint32
+ 	callID           string
+ 	frame            uint64
+diff --git a/relay_switch.go b/relay_switch.go
+new file mode 100644
+index 0000000..6c04b60
+--- /dev/null
++++ b/relay_switch.go
+@@ -0,0 +1,163 @@
++package meowcaller
++
++import (
++	"errors"
++	"io"
++	"sync"
++	"time"
++)
++
++// relayConn is what the media loop needs of a relay channel.
++type relayConn interface {
++	Send([]byte) (int, error)
++	Recv([]byte) (int, error)
++	Close() error
++}
++
++// relayRetireDelay is how long a replaced relay keeps delivering after the
++// media moved to another one, so packets already in flight are still played.
++const relayRetireDelay = 5 * time.Second
++
++// relayMoveRetry spaces the attempts to move to a new allocation's relay when
++// one fails, so a relay that cannot be reached is not dialed every second.
++const relayMoveRetry = 10 * time.Second
++
++// errActiveRelayMissing marks a group allocation that no longer lists the
++// relay the media runs on: the media has to move to one it lists.
++var errActiveRelayMissing = errors.New("meowcaller: active relay missing from group allocation")
++
++// switchableRelay is the media loop's relay channel when a group call may move
++// to another relay mid-call, without a gap: it sends on the current relay and
++// receives from every relay still open, and a relay it switched away from is
++// closed only after relayRetireDelay. An error ends Recv only when it comes
++// from the current relay.
++type switchableRelay struct {
++	mu        sync.Mutex
++	current   relayConn
++	open      map[relayConn]struct{}
++	packets   chan []byte
++	errs      chan error
++	closed    chan struct{}
++	closeOnce sync.Once
++}
++
++func newSwitchableRelay(first relayConn) *switchableRelay {
++	s := &switchableRelay{
++		current: first,
++		open:    make(map[relayConn]struct{}),
++		packets: make(chan []byte, 256),
++		errs:    make(chan error, 1),
++		closed:  make(chan struct{}),
++	}
++	s.start(first)
++	return s
++}
++
++// start reads from c until it fails. A call that ended while a move to c was
++// under way (Close has run) has nobody left to close c, so start does: it
++// returns false for a relay it did not take.
++func (s *switchableRelay) start(c relayConn) bool {
++	s.mu.Lock()
++	select {
++	case <-s.closed:
++		s.mu.Unlock()
++		_ = c.Close()
++		return false
++	default:
++	}
++	s.open[c] = struct{}{}
++	s.mu.Unlock()
++	go func() {
++		for {
++			buf := make([]byte, 1500)
++			n, err := c.Recv(buf)
++			if err != nil {
++				s.readerDone(c, err)
++				return
++			}
++			select {
++			case s.packets <- buf[:n]:
++			case <-s.closed:
++				return
++			}
++		}
++	}()
++	return true
++}
++
++func (s *switchableRelay) readerDone(c relayConn, err error) {
++	s.mu.Lock()
++	delete(s.open, c)
++	isCurrent := c == s.current
++	s.mu.Unlock()
++	if !isCurrent {
++		return // a retired relay going away is expected
++	}
++	select {
++	case s.errs <- err:
++	default:
++	}
++}
++
++// Send writes to the current relay.
++func (s *switchableRelay) Send(data []byte) (int, error) {
++	s.mu.Lock()
++	c := s.current
++	s.mu.Unlock()
++	return c.Send(data)
++}
++
++// Recv returns the next packet from any open relay.
++func (s *switchableRelay) Recv(buf []byte) (int, error) {
++	select {
++	case p := <-s.packets:
++		return copy(buf, p), nil
++	case err := <-s.errs:
++		return 0, err
++	case <-s.closed:
++		return 0, io.EOF
++	}
++}
++
++// Switch makes next the relay sends go to; the previous one keeps delivering
++// for retire before it is closed.
++func (s *switchableRelay) Switch(next relayConn, retire time.Duration) {
++	if !s.start(next) {
++		return
++	}
++	s.mu.Lock()
++	previous := s.current
++	s.current = next
++	s.mu.Unlock()
++	if previous == nil || previous == next {
++		return
++	}
++	time.AfterFunc(retire, func() {
++		select {
++		case <-s.closed:
++			return // Close already closed it
++		default:
++		}
++		_ = previous.Close()
++	})
++}
++
++// Close closes every relay still open.
++func (s *switchableRelay) Close() error {
++	s.closeOnce.Do(func() {
++		close(s.closed)
++		s.mu.Lock()
++		conns := make([]relayConn, 0, len(s.open)+1)
++		for c := range s.open {
++			conns = append(conns, c)
++		}
++		if _, ok := s.open[s.current]; !ok && s.current != nil {
++			conns = append(conns, s.current)
++		}
++		s.mu.Unlock()
++		for _, c := range conns {
++			_ = c.Close()
++		}
++	})
++	return nil
++}
+diff --git a/relay_switch_test.go b/relay_switch_test.go
+new file mode 100644
+index 0000000..311ca4f
+--- /dev/null
++++ b/relay_switch_test.go
+@@ -0,0 +1,165 @@
++package meowcaller
++
++import (
++	"errors"
++	"sync"
++	"testing"
++	"time"
++)
++
++type fakeRelay struct {
++	name   string
++	in     chan []byte
++	fail   chan error
++	mu     sync.Mutex
++	sent   [][]byte
++	closed bool
++	done   chan struct{}
++}
++
++func newFakeRelay(name string) *fakeRelay {
++	return &fakeRelay{name: name, in: make(chan []byte, 8), fail: make(chan error, 1), done: make(chan struct{})}
++}
++
++func (f *fakeRelay) Send(p []byte) (int, error) {
++	f.mu.Lock()
++	defer f.mu.Unlock()
++	f.sent = append(f.sent, append([]byte(nil), p...))
++	return len(p), nil
++}
++
++func (f *fakeRelay) Recv(buf []byte) (int, error) {
++	select {
++	case p := <-f.in:
++		return copy(buf, p), nil
++	case err := <-f.fail:
++		return 0, err
++	case <-f.done:
++		return 0, errors.New(f.name + " closed")
++	}
++}
++
++func (f *fakeRelay) Close() error {
++	f.mu.Lock()
++	defer f.mu.Unlock()
++	if !f.closed {
++		f.closed = true
++		close(f.done)
++	}
++	return nil
++}
++
++func (f *fakeRelay) isClosed() bool {
++	f.mu.Lock()
++	defer f.mu.Unlock()
++	return f.closed
++}
++
++func (f *fakeRelay) sentCount() int {
++	f.mu.Lock()
++	defer f.mu.Unlock()
++	return len(f.sent)
++}
++
++func recvWithin(t *testing.T, s *switchableRelay) (string, error) {
++	t.Helper()
++	type out struct {
++		p   string
++		err error
++	}
++	got := make(chan out, 1)
++	go func() {
++		buf := make([]byte, 64)
++		n, err := s.Recv(buf)
++		got <- out{string(buf[:n]), err}
++	}()
++	select {
++	case o := <-got:
++		return o.p, o.err
++	case <-time.After(2 * time.Second):
++		t.Fatal("Recv blocked")
++		return "", nil
++	}
++}
++
++// Moving a group call to another relay leaves no gap: sends go to the new
++// relay at once, packets still arriving on the old one are played, and the old
++// one is closed only after the retire delay.
++func TestSwitchableRelayMovesWithoutAGap(t *testing.T) {
++	old, next := newFakeRelay("old"), newFakeRelay("new")
++	s := newSwitchableRelay(old)
++	defer s.Close()
++	_, _ = s.Send([]byte("a"))
++	s.Switch(next, 100*time.Millisecond)
++	_, _ = s.Send([]byte("b"))
++	if old.sentCount() != 1 || next.sentCount() != 1 {
++		t.Fatalf("sent old=%d new=%d, want 1 and 1", old.sentCount(), next.sentCount())
++	}
++	old.in <- []byte("late")
++	if p, err := recvWithin(t, s); err != nil || p != "late" {
++		t.Fatalf("packet from the old relay = %q, %v", p, err)
++	}
++	next.in <- []byte("fresh")
++	if p, err := recvWithin(t, s); err != nil || p != "fresh" {
++		t.Fatalf("packet from the new relay = %q, %v", p, err)
++	}
++	if old.isClosed() {
++		t.Fatal("the old relay closed before the retire delay")
++	}
++	deadline := time.Now().Add(2 * time.Second)
++	for !old.isClosed() && time.Now().Before(deadline) {
++		time.Sleep(10 * time.Millisecond)
++	}
++	if !old.isClosed() {
++		t.Fatal("the old relay was never closed")
++	}
++	next.in <- []byte("after")
++	if p, err := recvWithin(t, s); err != nil || p != "after" {
++		t.Fatalf("the retired relay closing ended the media: %q, %v", p, err)
++	}
++}
++
++func TestSwitchableRelayEndsOnlyWhenTheCurrentRelayFails(t *testing.T) {
++	old, next := newFakeRelay("old"), newFakeRelay("new")
++	s := newSwitchableRelay(old)
++	defer s.Close()
++	s.Switch(next, time.Hour)
++	old.fail <- errors.New("old gone")
++	next.in <- []byte("still")
++	if p, err := recvWithin(t, s); err != nil || p != "still" {
++		t.Fatalf("a retired relay failing ended the media: %q, %v", p, err)
++	}
++	next.fail <- errors.New("current gone")
++	if _, err := recvWithin(t, s); err == nil {
++		t.Fatal("the current relay failing did not end the media")
++	}
++}
++
++func TestSwitchableRelayCloseClosesEveryRelay(t *testing.T) {
++	old, next := newFakeRelay("old"), newFakeRelay("new")
++	s := newSwitchableRelay(old)
++	s.Switch(next, time.Hour)
++	_ = s.Close()
++	if !old.isClosed() || !next.isClosed() {
++		t.Fatalf("closed old=%v new=%v", old.isClosed(), next.isClosed())
++	}
++	if _, err := recvWithin(t, s); err == nil {
++		t.Fatal("Recv after Close returned a packet")
++	}
++}
++
++func TestSwitchableRelaySwitchAfterCloseClosesTheNewRelay(t *testing.T) {
++	first, next := newFakeRelay("first"), newFakeRelay("next")
++	s := newSwitchableRelay(first)
++	_ = s.Close()
++	s.Switch(next, time.Millisecond)
++	if !next.isClosed() {
++		t.Fatal("a relay opened after the call ended is closed, not leaked")
++	}
++	if s.current != first {
++		t.Fatal("the call's current relay does not move after Close")
++	}
++	if _, err := s.Recv(make([]byte, 8)); err == nil {
++		t.Fatal("Recv on a closed relay fails")
++	}
++}
+diff --git a/roster_diag.go b/roster_diag.go
+index d6aca3a..b010edb 100644
+--- a/roster_diag.go
++++ b/roster_diag.go
+@@ -37,3 +37,16 @@ func describeGroupRoster(update groupCallUpdate) string {
+ 	return fmt.Sprintf("participants=%d %s connected_devices=%d with_pid=%d",
+ 		len(update.Participants), strings.Join(parts, ","), devices, withPID)
+ }
++
++// describeGroupRelay summarizes a group update's relay block for the log:
++// whether there is one, its transaction and the relay names it lists.
++func describeGroupRelay(update groupCallUpdate) string {
++	if update.Relay == nil {
++		return "none"
++	}
++	names := make([]string, 0, len(update.Relay.Endpoints))
++	for _, endpoint := range update.Relay.Endpoints {
++		names = append(names, endpoint.RelayName)
++	}
++	return fmt.Sprintf("tx=%d relays=%s", update.Relay.TransactionID, strings.Join(names, ","))
++}
+diff --git a/roster_diag_test.go b/roster_diag_test.go
+index 239f551..a82f4cb 100644
+--- a/roster_diag_test.go
++++ b/roster_diag_test.go
+@@ -32,3 +32,15 @@ func TestJoinJIDsListsEveryRecipient(t *testing.T) {
+ 		t.Fatal("no recipients should read as empty")
+ 	}
+ }
++
++func TestDescribeGroupRelayNamesTheRelays(t *testing.T) {
++	if describeGroupRelay(groupCallUpdate{}) != "none" {
++		t.Fatal("an update without a relay block")
++	}
++	update := groupCallUpdate{Relay: &groupCallRelay{TransactionID: 5, Endpoints: []groupCallRelayEndpoint{
++		{RelayName: "gru1c02"}, {RelayName: "gig4c02"},
++	}}}
++	if got := describeGroupRelay(update); got != "tx=5 relays=gru1c02,gig4c02" {
++		t.Fatalf("describeGroupRelay = %q", got)
++	}
++}

@@ -289,7 +289,13 @@ removed: if choppiness returns, the next step is data (underrun counts, device
 period, reported latency), not another guess.
 
 Two consequences worth stating. The prebuffer is ~60 ms of one-way latency the
-listener pays on every call. And with the blocking write gone, `_output_queue`
+listener pays on every WPPConnect call. The Neonize engine uses its own profile
+(`output_buffer_profile`, `CALL_OUTPUT_NEONIZE_*`: 120 ms prebuffer, target up
+to 240 ms, cap 360 ms) because its bridge hands over the peer's audio in native
+60 ms Opus blocks, sometimes several at once, and a 60 ms prebuffer is a single
+such block — so every Neonize call pays ~120 ms. The session logs
+`output profile=` once; if Neonize underruns stay frequent with it, measure
+before deepening it further. And with the blocking write gone, `_output_queue`
 (40 packets, ~850 ms, drop-oldest) is effectively depth-1 — the player thread
 empties it into the reservoir as fast as it arrives — so the 200 ms cap is now
 the only bound in the path: a ~300 ms stall drops ~100 ms of speech where it

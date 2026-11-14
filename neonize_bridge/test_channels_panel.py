@@ -75,6 +75,8 @@ def test_the_country_comes_from_the_accounts_own_number(me, country):
 
 
 def test_one_channel_is_read_by_jid_or_by_invite():
+    assert cp.channel_request("1@newsletter")["fetch_viewer_metadata"] is True
+    assert cp.channel_request("1@newsletter", viewer=False)["fetch_viewer_metadata"] is False
     assert cp.channel_request("1@newsletter")["input"] == {
         "key": "1@newsletter", "type": "JID", "view_role": "GUEST"}
     assert cp.channel_request("0029VaAbCdEfGhIjKlMnOp")["input"]["type"] == "INVITE"
@@ -203,6 +205,28 @@ def test_reads_answer_whatsapps_own_nodes(session):
     assert (s2, found["response"]) == (200, [NODE])
     assert (s3, one["response"]) == (200, NODE)
     assert s4 == 503 and refused == {"status": "error", "code": "channels_unavailable"}
+
+
+def test_a_channel_not_followed_is_read_again_without_the_viewer(session):
+    # WhatsApp refuses the viewer's metadata of a channel this account does
+    # not follow ("Not Allowed", WhatsApp Web 2026-11-11)
+    asked = []
+
+    def send_mex(query_id, variables):
+        asked.append(variables["fetch_viewer_metadata"])
+        if variables["fetch_viewer_metadata"]:
+            return {"error": "Not Allowed"}
+        return {"data": {cp.CHANNEL_FIELD: NODE}}
+    session.client.send_mex = send_mex
+    (status, body), = post(session, ("info", {"id": "120363159356548761@newsletter"}))
+    assert (status, body["response"]) == (200, NODE)
+    assert asked == [True, False]
+
+
+def test_a_channel_refused_both_ways_is_not_found(session):
+    session.client.send_mex = lambda query_id, variables: {"error": "Bad Request"}
+    (status, body), = post(session, ("info", {"id": "120363159356548761@newsletter"}))
+    assert (status, body["code"]) == (503, "channel_not_found")
 
 
 def test_follow_takes_only_a_channel(session):

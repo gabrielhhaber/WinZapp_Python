@@ -42,6 +42,7 @@ from core.incremental_sync import (
 )
 from urllib.parse import quote as _url_quote
 from core.api_client import api_get
+from core.disconnect_skips import note_skipped_while_disconnected
 from core.message_edit import (
     carry_over_edited_marker,
     is_edit_event,
@@ -334,6 +335,8 @@ class ConversationSyncMixin:
                     return False
                 if not getattr(self, "_wa_connected", False):
                     logging.info(f"[sync_chat_messages] Connection lost during sync retry loop for {remote_jid}, aborting sync.")
+                    if attempt == 0:
+                        note_skipped_while_disconnected(self, remote_jid)
                     break
                 try:
                     logging.info(
@@ -571,6 +574,7 @@ class ConversationSyncMixin:
                     break
         else:
             logging.info(f"[sync_chat_messages] Session disconnected, using cached messages for {remote_jid}")
+            note_skipped_while_disconnected(self, remote_jid)
 
         # Re-checked once the fetch is back (issue #198). The checks above only
         # stop a task that has not fetched yet, and everything from here on

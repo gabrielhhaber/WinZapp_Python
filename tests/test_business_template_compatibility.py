@@ -19,7 +19,7 @@ def no_api(*args, **kwargs):
 
 
 def setUpModule():
-    global actions, business_message_text, message_business_buttons, prepare_business_message, bridge, isolation, paths
+    global actions, business_message_text, message_business_buttons, prepare_business_message, bridge, isolation, paths, core_events
     paths = list(sys.path)
     isolation = patch.dict(sys.modules)
     isolation.start()
@@ -31,6 +31,7 @@ def setUpModule():
     api.api_post = no_api
     sys.modules["core.api_client"] = api
     from core import business_buttons as actions
+    from core import events as core_events
     from core.business_message_content import (
         business_message_text, message_business_buttons, prepare_business_message)
     import buttons as bridge
@@ -87,7 +88,8 @@ def normalized(wpp):
                  ORDER_UPDATE_MESSAGE_TYPE="orderUpdateMessage", PRODUCT_MESSAGE_TYPE="productMessage",
                  order_update_payload=lambda m: None, business_buttons=actions.business_buttons,
                  server_marks_edited=lambda m: False, remote_star_state=lambda m: {},
-                 comment_count=lambda m: None, server_id_of=lambda m: None)
+                 comment_count=lambda m: None, server_id_of=lambda m: None,
+                 events=core_events)
     fn = method("client/core/websocket_client.py", "_normalize_wpp_message", scope)
     owner = types.SimpleNamespace(_clean_jid=lambda jid: jid.replace("@c.us", "@s.whatsapp.net"))
     payload = {"id": "false_10000000000@c.us_SYNTHETIC123", "type": "template",

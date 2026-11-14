@@ -14,6 +14,10 @@ import time
 import wx
 import wx.adv
 
+# Waits (seconds) between the reads of an open group's participants while the
+# answer has none yet: about a minute in all, for a group just joined.
+GROUP_PARTICIPANT_RETRY_DELAYS = (3, 5, 10, 15, 30)
+
 
 class MentionsMixin:
     """@mentions: extracting them, the mentions panel and the composer's mention
@@ -500,9 +504,14 @@ class MentionsMixin:
         self.message_field.SetFocus()
 
     def _fetch_group_participants(self, jid: str):
-        """Background: fetch participants for the group and populate the cache with retries if session is loading."""
-        max_retries = 3
-        delay = 3
+        """Background: fetch participants for the group and populate the cache with retries if session is loading.
+
+        A group just joined can take a while to bring its participants, so
+        the waits between tries grow to about a minute in all
+        (GROUP_PARTICIPANT_RETRY_DELAYS); each answer also refreshes the
+        participant count on the conversation-data button."""
+        delays = GROUP_PARTICIPANT_RETRY_DELAYS
+        max_retries = len(delays) + 1
         for attempt in range(max_retries):
             # Check if this chat is still the active conversation before retrying
             if not self.conversation or self.conversation.get("remoteJid") != jid:
@@ -514,6 +523,8 @@ class MentionsMixin:
                 logging.info(f"[mention] get_group_info({jid}) attempt {attempt+1}/{max_retries} → {len(participants)} participants")
                 if participants:
                     wx.CallAfter(self._set_group_call_limit, jid, len(participants))
+                    wx.CallAfter(self._show_group_size, jid,
+                                 data.get("size") or len(participants))
                     my_jid = getattr(self.main_window, "my_jid", "") or ""
                     # Build initial cache first so UI is populated instantly
                     cache = []
@@ -535,6 +546,7 @@ class MentionsMixin:
                 logging.error(f"[mention] _fetch_group_participants error on attempt {attempt+1}: {e}", exc_info=True)
             
             if attempt < max_retries - 1:
+                delay = delays[attempt]
                 logging.info(f"[mention] Empty participants response, retrying in {delay}s...")
                 time.sleep(delay)
 

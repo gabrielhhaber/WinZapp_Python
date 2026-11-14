@@ -16,6 +16,7 @@ from main_window.typing_feedback import observe_typing_batch
 from core.conversation_view import conversation_in_view
 from core.unsaved_contact_marker import marked_chat_name
 from core.pinned_chat_order import sync_pinned_order
+from main_window.backlog_flood import defer_list_update
 from main_window.message_rules import (
     _discount_non_countable_unread,
     note_unread_discount_state,
@@ -747,20 +748,16 @@ class ChatEventsMixin:
             .get("records", [])
         )
         if unread_count > 0 and records:
-            # No activity marker here (0): chats-update carries no `t`, and the
-            # stored one is never moved by a system event (on_new_message only
-            # raises it for a countable message), so every notification that
-            # arrived live was "newer than t" and left out of the tail. A group
-            # promote counted by the server then stayed as a phantom badge of 1.
-            # The marker is WhatsApp's own `t` in the list-chats merge.
+            # Only an own reply corrects WhatsApp's count (core/unread_types.py):
+            # a system event was never in it.
             unread_count = _discount_non_countable_unread(records, unread_count)
         # A zero has nothing to discount, so it counts as final either way.
         discounted = bool(records) or unread_count == 0
         old_count = int(chat.get("unreadCount") or 0)
         if old_count == unread_count:
             logging.info(
-                "[unread] %s: no change after discounting non-countable "
-                "messages (already %s, previous=%s).",
+                "[unread] %s: no change after the own-reply correction "
+                "(already %s, previous=%s).",
                 normalized, unread_count, previous_unread,
             )
             return
@@ -907,7 +904,8 @@ class ChatEventsMixin:
             chat["unreadCount"] = unread_count
             note_unread_discount_state(chat, discounted)
             self._schedule_save(dirty_jid=normalized)
-            self._schedule_set_chats()
+            if not defer_list_update(self):
+                self._schedule_set_chats()
             return
         elif read_at_t is not None:
             incoming_t = int(chat.get("t", 0) or 0)
@@ -973,7 +971,9 @@ class ChatEventsMixin:
         chat["unreadCount"] = unread_count
         note_unread_discount_state(chat, discounted)
         self._schedule_save(dirty_jid=normalized)
-        self._schedule_set_chats()
+        # A backlog flood holds the list; it is rebuilt once when it ends.
+        if not defer_list_update(self):
+            self._schedule_set_chats()
 
     def on_chat_archive_update(self, jid: str, archived: bool):
         """Handle archive/unarchive status change from chats.update."""

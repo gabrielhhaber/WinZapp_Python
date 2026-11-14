@@ -1,0 +1,132 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 22:27:31 -0300
+Subject: [PATCH] calls: periodic summaries every 30 s for the whole call;
+ unknown call stanzas say what they carry
+
+---
+ goneonize/calls.go          | 38 +++++++++++++++++++++++++++++++++++--
+ goneonize/calls_log_test.go | 34 +++++++++++++++++++++++++++++++++
+ 2 files changed, 70 insertions(+), 2 deletions(-)
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 20ad992..a2d4fab 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -32,6 +32,7 @@ import (
+ 
+ 	"github.com/purpshell/meowcaller"
+ 	"github.com/rs/zerolog"
++	waBinary "go.mau.fi/whatsmeow/binary"
+ 	"go.mau.fi/whatsmeow/types/events"
+ 	waLog "go.mau.fi/whatsmeow/util/log"
+ )
+@@ -114,12 +115,32 @@ func (w *logChamadas) Write(p []byte) (int, error) {
+ 	w.vistos[chave]++
+ 	n := w.vistos[chave]
+ 	w.mu.Unlock()
+-	if n <= 8 || n%200 == 0 {
++	if mostrarLinhaChamadas(chave, n) {
+ 		w.log.Warnf("chamadas: meowcaller %s", mascarar(linha))
+ 	}
+ 	return len(p), nil
+ }
+ 
++// resumosPeriodicos sao as linhas que o meowcaller repete a cada 5 s durante
++// a chamada inteira. Com a cota comum (8 primeiras, depois a cada 200) elas
++// sumiam do log depois de 40 s, e uma ligacao que virou chamada em grupo
++// minutos depois nao mostrava de quem o audio chegava.
++var resumosPeriodicos = []string{"|relay traffic by kind|", "|audio receive summary"}
++
++// mostrarLinhaChamadas: as 8 primeiras vezes de uma mensagem e depois a cada
++// 200; um resumo periodico, depois das 8 primeiras, a cada 6 (30 s).
++func mostrarLinhaChamadas(chave string, n int) bool {
++	if n <= 8 {
++		return true
++	}
++	for _, resumo := range resumosPeriodicos {
++		if strings.Contains(chave, resumo) {
++			return n%6 == 0
++		}
++	}
++	return n%200 == 0
++}
++
+ // registrar escreve uma linha de diagnostico das chamadas no log do cliente.
+ func registrar(cliente, formato string, args ...any) {
+ 	chamadasMu.Lock()
+@@ -297,7 +318,7 @@ func instalarChamadas(id string) {
+ 		case *events.CallTerminate:
+ 			registrar(id, "sinal: encerrada %s de %s (%s)", v.CallID, v.From, v.Reason)
+ 		case *events.UnknownCallEvent:
+-			registrar(id, "sinal: desconhecido %s", v.Node.Tag)
++			registrar(id, "sinal: desconhecido %s", tagsDaStanza(v.Node))
+ 		}
+ 	})
+ 	chamadasMu.Lock()
+@@ -536,3 +557,16 @@ func CallWriteAudio(id *C.char, call *C.char, buf *C.uchar, n C.int) C.int {
+ 	}
+ 	return 0
+ }
++
++// tagsDaStanza: "call/group_update" -- a tag de fora e a de cada filho. Com so
++// "call" nao dava para saber o que o outro aparelho tinha mandado.
++func tagsDaStanza(node *waBinary.Node) string {
++	if node == nil {
++		return "?"
++	}
++	tags := []string{node.Tag}
++	for _, filho := range node.GetChildren() {
++		tags = append(tags, filho.Tag)
++	}
++	return strings.Join(tags, "/")
++}
+diff --git a/goneonize/calls_log_test.go b/goneonize/calls_log_test.go
+index e250807..ff647f6 100644
+--- a/goneonize/calls_log_test.go
++++ b/goneonize/calls_log_test.go
+@@ -3,6 +3,7 @@ package main
+ import (
+ 	"testing"
+ 
++	waBinary "go.mau.fi/whatsmeow/binary"
+ 	waLog "go.mau.fi/whatsmeow/util/log"
+ )
+ 
+@@ -50,3 +51,36 @@ func TestCadaMidiaQueComecaTemASuaCota(t *testing.T) {
+ 		t.Fatalf("linhas depois da volta = %d, want 12", len(saida.linhas))
+ 	}
+ }
++
++func TestResumosPeriodicosAparecemACada30sAChamadaInteira(t *testing.T) {
++	resumo := `info|relay traffic by kind|`
++	comum := `info|group roster received|AAA`
++	var mostrados, comuns []int
++	for n := 1; n <= 30; n++ {
++		if mostrarLinhaChamadas(resumo, n) {
++			mostrados = append(mostrados, n)
++		}
++		if mostrarLinhaChamadas(comum, n) {
++			comuns = append(comuns, n)
++		}
++	}
++	if len(mostrados) != 12 || mostrados[8] != 12 || mostrados[11] != 30 {
++		t.Fatalf("resumo mostrado em %v", mostrados)
++	}
++	if len(comuns) != 8 {
++		t.Fatalf("linha comum mostrada em %v", comuns)
++	}
++	if !mostrarLinhaChamadas(comum, 200) || !mostrarLinhaChamadas(`info|audio receive summary (totals since the media started)|`, 30) {
++		t.Fatal("a cota antiga e os dois resumos continuam")
++	}
++}
++
++func TestTagsDaStanzaDizemOQueVeioDentro(t *testing.T) {
++	node := &waBinary.Node{Tag: "call", Content: []waBinary.Node{{Tag: "group_update"}, {Tag: "relaylatency"}}}
++	if got := tagsDaStanza(node); got != "call/group_update/relaylatency" {
++		t.Fatalf("tagsDaStanza = %q", got)
++	}
++	if tagsDaStanza(nil) != "?" {
++		t.Fatal("sem stanza")
++	}
++}

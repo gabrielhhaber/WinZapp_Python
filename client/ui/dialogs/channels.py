@@ -1,10 +1,17 @@
-"""The channels window (Alt+9): the channels the account follows, the channel
+"""The Channels panel (Alt+9): the channels the account follows, the channel
 directory, and every action WhatsApp Web's Channels tab offers on a channel.
+
+A panel of the main window, like Status and Calls (it was a window of its
+own until 2026-11): shown by main_window/content_panels.py. Opening a channel
+leaves it for the conversation, and Esc in that channel comes back to it as
+it was left (the mode, the search, the category and list, the selection):
+the panel is the same one, nothing has to be put back.
 
 The reading and the requests live in core/channels.py; this module lists,
 describes and acts. Every request runs off the wx thread (BackgroundWork) and
-a late answer never touches a closed window. Showing the channels in the
-conversation list (Settings) is unrelated and keeps working as it did.
+a late answer never touches a panel destroyed or moved to another connection.
+Showing the channels in the conversation list (Settings) is unrelated and
+keeps working as it did.
 """
 
 import datetime
@@ -13,12 +20,13 @@ import logging
 import wx
 
 from core import channels as ch
-from ui.conversation_panel.channel_conversation import remember_channel_roles
+from ui.conversation_panel.channel_conversation import (fetch_channel_updates,
+                                                        remember_channel_roles)
 from ui.dialogs.background_work import BackgroundWork
-from ui.dialogs.channels_return import restore, snapshot
 from ui.shortcut_bindings import make_shortcut_table
 from ui.dialogs.group_join_dialog import open_group_chat
 from ui.dialogs.labelled_control import add_labelled
+from ui.panel_labels import TranslatedLabels
 
 MINE, FIND = 0, 1
 
@@ -63,49 +71,33 @@ def edit_with_reactions(connection, channel, name, description, reactions, admin
         ch.set_channel_admin_profiles(connection, channel.jid, admin_profiles)
 
 
-def show_channels(mw, parent, keep="", state=None):
-    """Show the window and open the channel the user chose, if any. *keep* is
-    the channel selected once the list arrives (coming back from it); *state*,
-    the window as it was left to open it (channels_return.py)."""
-    dialog = ChannelsDialog(parent, mw)
-    dialog._keep_first = keep
-    if state is not None:
-        restore(dialog, state)
-    # where a channels-changed event finds it (WebSocketClient.on_channels_changed)
-    mw._channels_dialog = dialog
-    try:
-        if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
-            return False
-        channel = dialog.result
-        mw._channels_return_state = snapshot(dialog)
-    finally:
-        mw._channels_dialog = None
-        dialog.Destroy()
-    # Esc in that channel comes back here (channel_closed()), not to the
-    # chat list: it was opened from this window, not from the list.
+def open_channel(mw, channel):
+    """Leave the Channels panel for *channel*'s conversation. Esc in it comes
+    back to the panel (channel_closed()), not to the chat list: it was opened
+    from there, not from the list."""
     mw._channel_opened_from_window = channel.jid
     open_group_chat(mw, channel.jid, channel.name or mw.i18n.t("channels_unnamed"))
-    return True
+    fetch_channel_updates(mw, channel.jid)
 
 
 def channel_closed(mw, closed_jid) -> bool:
     """The open conversation *closed_jid* was just closed with Esc: when it is
-    the channel the Channels window opened, show the window again, on that
+    the channel the Channels panel opened, show the panel again, on that
     channel, and say so to the caller (True). The mark is used once."""
     opened = getattr(mw, "_channel_opened_from_window", "")
-    state = getattr(mw, "_channels_return_state", None)
-    mw._channel_opened_from_window, mw._channels_return_state = "", None
+    mw._channel_opened_from_window = ""
     if not opened or opened != closed_jid or getattr(mw, "_shutting_down", False):
         return False
-    wx.CallAfter(show_channels, mw, mw, opened, state)
+    from main_window.content_panels import show_channels
+    wx.CallAfter(show_channels, mw, opened)
     return True
 
 
 def forget_channel_return(mw):
     """A conversation was closed by WinZapp, not by the user (a full resync,
     an account switch, the channel archived or deleted): nothing goes back to
-    the Channels window, and the mark is dropped so no later close does."""
-    mw._channel_opened_from_window, mw._channels_return_state = "", None
+    the Channels panel, and the mark is dropped so no later close does."""
+    mw._channel_opened_from_window = ""
 
 
 def channel_label(channel, i18n, followed=()):
@@ -204,32 +196,37 @@ class ChannelEditDialog(wx.Dialog):
                 admin_profiles)
 
 
-class ChannelsDialog(BackgroundWork, wx.Dialog):
-    def __init__(self, parent, main_window):
+class ChannelsPanel(TranslatedLabels, BackgroundWork, wx.Panel):
+    def __init__(self, main_window, parent):
         self._init_background(main_window)
+        self._init_labels()
         i18n = self._i18n
         self._mode = MINE
         self._mine, self._found, self._shown = [], [], []
         self._loaded = self._searched = False
         self._filter_timer = None
         self._search_again = self._reload_again = False
-        self.result = None
-        super().__init__(parent, title=i18n.t("channels_title"), size=(620, 640),
-                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        super().__init__(parent)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._mode_radio = wx.RadioBox(
             self, label=i18n.t("channels_show"),
             choices=[i18n.t("channels_mine"), i18n.t("channels_find")],
             majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self._keep_label(self._mode_radio, "channels_show")
+        self._keep_items(self._mode_radio, ("channels_mine", "channels_find"))
         self._mode_radio.Bind(wx.EVT_RADIOBOX, self._on_mode)
         sizer.Add(self._mode_radio, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 8)
         row = wx.BoxSizer(wx.HORIZONTAL)
-        row.Add(wx.StaticText(self, label=i18n.t("channels_search")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        search_label = wx.StaticText(self, label=i18n.t("channels_search"))
+        self._keep_label(search_label, "channels_search")
+        row.Add(search_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self._search = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self._search.SetName(i18n.t("channels_search").replace("&", ""))
+        self._labels.append((self._search, "name", "channels_search"))
         self._search.Bind(wx.EVT_TEXT_ENTER, self._on_search)
         row.Add(self._search, 1, wx.EXPAND)
         self._search_btn = wx.Button(self, label=i18n.t("channels_search_button"))
+        self._keep_label(self._search_btn, "channels_search_button")
         self._search_btn.Bind(wx.EVT_BUTTON, self._on_search)
         row.Add(self._search_btn, 0, wx.LEFT, 8)
         sizer.Add(row, 0, wx.EXPAND | wx.ALL, 8)
@@ -243,26 +240,37 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
             i18n.t("channels_category_entertainment"), i18n.t("channels_category_lifestyle"),
             i18n.t("channels_category_news"), i18n.t("channels_category_organizations"),
             i18n.t("channels_category_people"), i18n.t("channels_category_sports")])
+        self._keep_items(self._category, (
+            "channels_category_all", "channels_category_business",
+            "channels_category_entertainment", "channels_category_lifestyle",
+            "channels_category_news", "channels_category_organizations",
+            "channels_category_people", "channels_category_sports"))
+        self._keep_choice_label(self._category, "channels_category")
         self._view = self._labelled_choice(row, i18n.t("channels_view"), [
             i18n.t("channels_view_recommended"), i18n.t("channels_view_trending"),
             i18n.t("channels_view_popular"), i18n.t("channels_view_new")])
+        self._keep_items(self._view, ("channels_view_recommended", "channels_view_trending",
+                                      "channels_view_popular", "channels_view_new"))
+        self._keep_choice_label(self._view, "channels_view")
         sizer.Add(row, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        self._list = add_labelled(self, sizer, i18n.t("channels_list"),
-                                  lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2)
+        self._list = self._keep_labelled(add_labelled(
+            self, sizer, i18n.t("channels_list"), lambda: wx.ListBox(self, style=wx.LB_SINGLE), 2),
+            "channels_list")
         self._list.Bind(wx.EVT_LISTBOX, lambda event: self._show_selected())
         self._list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_open)
-        self._details = add_labelled(self, sizer, i18n.t("channels_details"), lambda: wx.TextCtrl(
-            self, style=wx.TE_READONLY | wx.TE_MULTILINE), 1)
+        self._details = self._keep_labelled(add_labelled(
+            self, sizer, i18n.t("channels_details"), lambda: wx.TextCtrl(
+                self, style=wx.TE_READONLY | wx.TE_MULTILINE), 1), "channels_details")
         self._status = wx.StaticText(self, label="")
         sizer.Add(self._status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         buttons = wx.WrapSizer(wx.HORIZONTAL)
 
-        def button(key, handler, button_id=wx.ID_ANY):
-            control = wx.Button(self, button_id, label=i18n.t(key))
+        def button(key, handler):
+            control = wx.Button(self, label=i18n.t(key))
             control.Bind(wx.EVT_BUTTON, handler)
             buttons.Add(control, 0, wx.ALL, 4)
-            return control
+            return self._keep_label(control, key)
 
         self._open = button("channels_open", self._on_open)
         self._follow = button("channels_follow", self._on_follow)
@@ -274,7 +282,6 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._delete = button("channels_delete", self._on_delete)
         self._admins = button("channels_people", self._on_admins)
         self._insights = button("channels_insights", self._on_insights)
-        button("close", self._on_close, wx.ID_CANCEL)
         sizer.Add(buttons, 0, wx.EXPAND | wx.ALL, 4)
         self.SetSizer(sizer)
         self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
@@ -282,16 +289,38 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self.SetAcceleratorTable(make_shortcut_table(self, "channels", [
             (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5)]))
         self.Bind(wx.EVT_MENU, self._on_read_again, id=self.ID_F5)
-        self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_WINDOW_DESTROY, self._on_destroy)
         self._sync_mode()
         self._show(self._mine)          # "loading" until the first answer
+
+    # ── shown and translated ──────────────────────────────────────────────
+
+    def on_show(self, keep=""):
+        """Alt+9, the navigation list, or Esc in a channel opened from here
+        (*keep*: that channel, selected again). The panel is as it was left;
+        the followed channels are read again, their count said only the first
+        time or after the account's connection changed (a new pairing)."""
+        if self._renew_connection():
+            self._mode, self._mine, self._found = MINE, [], []
+            self._loaded = self._searched = False
+            self._search_again = self._reload_again = False
+            self._sync_mode()
+            self._show(self._mine)
+        if keep:
+            self._show(self._found if self._mode == FIND else self._mine, keep)
         self._list.SetFocus()
-        self.CentreOnParent()
-        # coming back from a channel (channels_return.restore): the list is
-        # already there, so it is read again without announcing its count
-        wx.CallAfter(lambda: self._reload(keep=getattr(self, "_keep_first", ""),
-                                          quiet=getattr(self, "_restored", False)))
+        self._reload(keep=keep, quiet=self._loaded)
+
+    def refresh_labels(self):
+        """MainWindow switched language: every label, and the rows."""
+        self._relabel()
+        self._show(self._shown)
+        self._update_buttons()
+
+    def _keep_choice_label(self, choice, key):
+        """The StaticText before a choice (_labelled_choice) and its name."""
+        self._keep_label(choice._label_control, key)
+        self._labels.append((choice, "name", key))
 
     #: how long after the last change of a category or list the directory is read
     FILTER_DELAY_MS = 700
@@ -315,8 +344,10 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         self._on_search()
 
     def _labelled_choice(self, row, label, items):
-        row.Add(wx.StaticText(self, label=label), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        text = wx.StaticText(self, label=label)
+        row.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         choice = wx.Choice(self, choices=items)
+        choice._label_control = text
         choice.SetName(label.replace("&", ""))
         choice.SetSelection(0)
         choice.Bind(wx.EVT_CHOICE, self._on_filter_changed)
@@ -441,7 +472,7 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         if channels is None:
             logging.warning("[channels] read_failed")
             self._show_failure(self._i18n.t("channels_unavailable"), MINE)
-            self._announce(self._i18n.t("channels_unavailable"))
+            self._announce_if_shown(self._i18n.t("channels_unavailable"))
             return
         self._loaded = True
         self._mine = ch.sorted_channels(channels)
@@ -449,8 +480,8 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         if self._mode == MINE:
             self._show(self._mine, keep)
             if not quiet:       # after an action, its own result was just said
-                self._announce(self._i18n.t("channels_count").format(count=len(channels))
-                               if channels else self._i18n.t("channels_none"))
+                self._announce_if_shown(self._i18n.t("channels_count").format(count=len(channels))
+                                        if channels else self._i18n.t("channels_none"))
         else:
             self._show(self._found, keep)
 
@@ -563,9 +594,9 @@ class ChannelsDialog(BackgroundWork, wx.Dialog):
         channel = self._selected()
         if self._busy or channel is None:
             return
-        self.result = self._mine_version(channel)
-        self._closed.set()
-        self.EndModal(wx.ID_OK)
+        # The conversation takes the screen: navigate_to_conversation_jid()
+        # hides this panel (main_window/content_panels.py).
+        open_channel(self._mw, self._mine_version(channel))
 
     def _act(self, work, done_key, failed_key, keep=""):
         """Run one action, then read the followed list again."""
