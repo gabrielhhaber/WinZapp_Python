@@ -35,6 +35,18 @@ flag, and the opaque refresh callback. It emitted false, true and refresh with
 the correct person identity. The real native blocked flag remained unchanged;
 no participant was blocked or unblocked. Temporary observers were removed.
 
+The user subsequently authorized a real named contact for toggling. Its phone
+and LID records were confirmed aliases before acting. Contrary to the expected
+initial state, both frontend and stored block state were unblocked; a successful
+native server refresh returned `match` and confirmed that state. The explicit
+live test therefore ran block, unblock, block via WPP.blocklist, using the LID
+identity required by the migrated native blocklist. Each accepted call changed
+the native model and produced exactly one matching contact notice: true, false,
+true. Storage confirmed the final blocked LID, and a final successful server
+refresh again returned `match`. Temporary bindings/listeners were restored.
+No contact identifier or name is included in this record. This validates real
+same-session actions and observer receipt, not a second device's delivery.
+
 Node tests cover explicit deltas, reset, payload rejection, disposal and no
 eviction-derived unblocks. Python tests cover aliases, Brazilian forms, unknown
 LIDs, account/shutdown/context ownership, refresh coalescing and stale polls.
