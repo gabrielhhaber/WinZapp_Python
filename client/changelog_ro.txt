@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Ajutor la scriere: WinZapp primește o funcție similară ajutorului la scriere din WhatsApp pentru telefoane, cu posibilitatea suplimentară de a traduce ciorna. Noul buton de după Emoji și meniul contextual al câmpului deschid aceeași fereastră. Corectează, reformulează, folosește un ton profesional sau încurajator cu furnizorii IA configurați în WinZapp, nu cu Meta AI; traducerea se face cu Google. Cere acordul înainte de a trimite ciorna și arată rezultatul înainte de înlocuire; mesajul nu este trimis niciodată automat. Alege o acțiune, apoi apasă "Execută acțiunea aleasă". Deschiderea sau închiderea acestei ferestre nu trimite ciorna.
+
 - Neonize: acceptarea termenilor Meta AI nu mai eșuează cu o eroare WhatsApp. WinZapp trimite acum acceptarea în același format pe care WhatsApp Web îl folosește pentru această notificare și o confirmă abia după ce citește din nou că notificarea figurează ca acceptată.
 
 - Apeluri: compatibilitate îmbunătățită cu microfoanele și căștile stereo în modul partajat, cu revenire la mono dacă este necesar. Vocea este trimisă în continuare mono.

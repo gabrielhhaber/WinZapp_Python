@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Writing help: WinZapp gains a feature similar to writing help in WhatsApp for mobile, with the added option of translating the draft. The new button after Emoji and the composer context menu open the same window. Correct, rephrase, use a professional or encouraging tone with the AI providers configured in WinZapp, not Meta AI; translation uses Google. Consent is requested before sending the draft and the result is previewed before replacement; the message is never sent automatically. Choose an action, then press "Run selected action". Opening or closing this window does not send the draft.
+
 - Neonize: accepting the Meta AI terms no longer fails with a WhatsApp error. WinZapp now sends the acceptance in the same format WhatsApp Web uses for this notice and only confirms it after reading again that the notice is recorded as accepted.
 
 - Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.

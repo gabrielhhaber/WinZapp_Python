@@ -151,6 +151,9 @@ class ConversationNavigationMixin:
                     self._record_voice_system_btn.Disable()
                 self._add_attachment_btn.Disable()
 
+        if hasattr(self, "_sync_writing_help_button"):
+            self._sync_writing_help_button()
+
     def refresh_composer_permissions(self, jid: str, transition: bool = True):
         if not self.conversation or self.conversation.get("remoteJid") != jid:
             return

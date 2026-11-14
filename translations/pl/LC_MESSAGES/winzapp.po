@@ -578,6 +578,7 @@ msgstr "Włącz &funkcje AI (transkrypcje i opisy)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 #, python-brace-format
 msgctxt "ai_answered_by"
 msgid "Answered by {provider}."
@@ -595,6 +596,7 @@ msgstr "Zapytaj"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 #, python-brace-format
 msgctxt "ai_attempt_line"
 msgid "{provider}: {reason}"
@@ -693,6 +695,7 @@ msgstr "Użycie i &rozliczenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_cancel_notice"
 msgid ""
 "Cancelled locally. A request already received by the provider may still be "
@@ -703,6 +706,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_chain_failed"
 msgid "None of the providers could process this media:"
 msgstr "Żaden z dostawców nie zdołał przetworzyć tego pliku:"
@@ -1120,6 +1124,8 @@ msgstr "Rodzaje &plików do przetwarzania..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
+#: client/ui/dialogs/ai_writing_dialog.py
 msgctxt "ai_locked_consent"
 msgid ""
 "This media is from a locked chat. Sending it outside WhatsApp needs fresh "
@@ -1225,6 +1231,7 @@ msgid "&Provider privacy policy"
 msgstr "Polityka prywatności &dostawcy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_processing_msg"
 msgid "Processing with AI, please wait..."
 msgstr "Przetwarzanie przez AI. Proszę czekać..."
@@ -1309,6 +1316,7 @@ msgstr "Odczytuj nowe odpowiedzi na głos zgodnie z ustawieniami &mowy WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_ready"
 msgid "The answer is ready."
 msgstr "Odpowiedź jest gotowa."
@@ -1340,6 +1348,7 @@ msgstr "Zresetuj wszystkie zapisane &klucze AI"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_result"
 msgid "Result and answers"
 msgstr "Wynik i odpowiedzi"
@@ -1433,6 +1442,20 @@ msgid "Transcribe with online AI"
 msgstr "Transkrybuj za pomocą AI online"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_text_result_dialog.py
+msgctxt "ai_translate_consent"
+msgid ""
+"The text will be sent to Google Translate through the same address its web "
+"page uses, without an account or API key. That address is not a published "
+"service and could stop working without notice. Google's terms apply; the "
+"translation can be wrong. Do you want to continue?"
+msgstr ""
+"Tekst zostanie wysłany do Google Translate przez ten sam adres, którego "
+"używa jego strona internetowa, bez konta i klucza API. Ten adres nie jest "
+"opublikowaną usługą i może przestać działać bez ostrzeżenia. Obowiązują "
+"warunki Google; tłumaczenie może być błędne. Czy chcesz kontynuować?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_video_frame_notice"
 msgid ""
@@ -1446,6 +1469,21 @@ msgstr ""
 msgctxt "ai_voice_model"
 msgid "&Voice message model"
 msgstr "Model dla wiadomości &głosowych"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+#, python-brace-format
+msgctxt "ai_writing_consent"
+msgid ""
+"The text you are writing may be sent to {providers}, in that order, if the "
+"earlier ones fail. This may incur API charges. Chat names are not sent. "
+"Provider data policies apply; the result can be wrong. Do you want to "
+"continue?"
+msgstr ""
+"Tekst, który piszesz, może zostać wysłany do {providers}, w tej kolejności, "
+"jeśli wcześniejsi zawiodą. Może to wiązać się z opłatami API. Nazwy czatów "
+"nie są wysyłane. Obowiązują zasady danych dostawcy; wynik może być błędny. "
+"Czy chcesz kontynuować?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -13835,6 +13873,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/ui/ai_media_demo.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "status"
 msgid "Status"
 msgstr "Status"
@@ -18793,6 +18832,56 @@ msgid "Verif&y"
 msgstr "Sp&rawdź"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_again"
+msgid "Translate again"
+msgstr "Przetłumacz ponownie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_de"
+msgid "German"
+msgstr "Niemiecki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_en"
+msgid "English"
+msgstr "Angielski"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_es"
+msgid "Spanish"
+msgstr "Hiszpański"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_fr"
+msgid "French"
+msgstr "Francuski"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_it"
+msgid "Italian"
+msgstr "Włoski"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_pt"
+msgid "Portuguese"
+msgstr "Portugalski"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_menu"
+msgid "Translate"
+msgstr "Przetłumacz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_original"
+msgid "Original text"
+msgstr "Tekst oryginalny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_title"
+msgid "Translate message"
+msgstr "Przetłumacz wiadomość"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"
 msgid "Custom API &address"
 msgstr "Niestandardowy &adres API"
@@ -21166,6 +21255,75 @@ msgstr ""
 "Ostrzeżenie: nie udało się przypiąć wersji WhatsApp Web. Wysyłanie do "
 "pojedynczych kontaktów może po cichu zawodzić; grupy nadal działają. "
 "Zaktualizuj WhatsApp Web w WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_check"
+msgid "Fix spelling and punctuation, keeping my words"
+msgstr "Popraw ortografię i interpunkcję, zachowując moje słowa"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_encouraging"
+msgid "Make it more encouraging"
+msgstr "Uczyń je bardziej zachęcającym"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_action_label"
+msgid "What to do with the draft"
+msgstr "Co zrobić ze szkicem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_professional"
+msgid "Make it more professional"
+msgstr "Uczyń je bardziej profesjonalnym"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_rephrase"
+msgid "Say it another way"
+msgstr "Powiedz to inaczej"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_action_translate"
+msgid "Translate"
+msgstr "Przetłumacz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_choose_before_run"
+msgid ""
+"Choose an action, then press \"Run selected action\". Opening or closing "
+"this window does not send the draft."
+msgstr ""
+"Wybierz czynność, a następnie naciśnij \"Wykonaj wybraną czynność\". "
+"Otwarcie lub zamknięcie tego okna nie wysyła szkicu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_writing.py client/ui/conversations.py
+msgctxt "writing_menu"
+msgid "Writing help"
+msgstr "Pomoc w pisaniu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_replace"
+msgid "Replace draft"
+msgstr "Zastąp szkic"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_run_selected"
+msgid "Run selected action"
+msgstr "Wykonaj wybraną czynność"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_target_label"
+msgid "Translate to"
+msgstr "Przetłumacz na"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_title"
+msgid "Writing help"
+msgstr "Pomoc w pisaniu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py
