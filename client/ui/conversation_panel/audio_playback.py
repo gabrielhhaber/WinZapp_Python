@@ -11,6 +11,7 @@ import sound_lib.stream as sl_stream
 import tempfile
 import threading
 import wx
+from core import media_failure
 from sound_lib.effects import Tempo
 from app_paths import data_path
 from core.utils import (
@@ -202,7 +203,7 @@ class AudioPlaybackMixin:
                         # instead of leaving that as the final word.
                         wx.CallAfter(
                             self.main_window.output,
-                            self.main_window.i18n.t("media_download_failed"),
+                            self.main_window.i18n.t(media_failure.failure_key(msg)),
                         )
                 finally:
                     self._downloading_audio_ids.discard(msg_id)

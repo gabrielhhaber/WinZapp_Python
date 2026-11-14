@@ -181,3 +181,11 @@ def register_events(cli, s):
             emit_items(s, items)
         except Exception:
             log.exception("group join")
+        try:
+            me = msgmap.jid_wpp(getattr(s, "me", "") or "")
+            notice = system_messages.own_join_notice(e, me, time.time())
+            if notice is not None:
+                chat = jid_text(getattr(getattr(e, "GroupInfo", None), "JID", None))
+                system_messages.store_and_emit(s, chat, notice, time.time())
+        except Exception:
+            log.exception("own join notice")

@@ -3,7 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from core.call_participants import parse_participants, participant_rows, active_participants_available
+from core.call_participants import (active_participants_available, held_here, parse_participants,
+                                    participant_rows)
 from ui.dialogs.call_participants import ParticipantListMixin
 from main_window.call_participants import CallParticipantsMixin
 from tests.test_calls_tab import _CountingList
@@ -38,6 +39,7 @@ class View(ParticipantListMixin):
         self._alive, self._inflight, self._timer, self._shown = True, None, None, []
         self._call_id = "C1"
         self.allowed = True
+        self.held = False           # the call this device is in, live
         self._allowed = lambda: self.allowed
         self._list = _CountingList()
         self._status, self._refresh_btn = Control(), Control()
@@ -49,6 +51,7 @@ class View(ParticipantListMixin):
             _raise_for_call_response=lambda response, action: response,
             _post_call_control=self.post,
             output=lambda text: self.spoken.append(text),
+            _call_held_here=lambda call_id: self.held and call_id == self._call_id,
         )
 
     def post(self, endpoint, payload, **kwargs):
@@ -232,6 +235,52 @@ def test_ending_or_locking_the_call_clears_the_dialog(polling):
     assert view.spoken == ["call_participants_failed"]
 
 
+def test_the_call_held_here_is_refreshed_by_its_events_not_every_10_s(polling):
+    """The participant events refresh the window at once (on_call_participants);
+    a timed request on top of them only made the list late."""
+    queued, timers = polling
+    view = View()
+    view.held = True
+    view._refresh_participants()
+    queued.pop()()
+    assert view._follows_events and not timers and view._timer is None
+
+
+def test_a_call_this_device_is_not_in_is_still_asked_every_10_s(polling):
+    queued, timers = polling
+    view = View()                                   # the Calls tab's ongoing call
+    view._refresh_participants()
+    queued.pop()()
+    assert not view._follows_events and len(timers) == 1
+
+
+def test_the_end_of_the_held_call_is_shown_although_no_event_comes(polling):
+    queued, timers = polling
+    view = View()
+    view.held = True
+    view._refresh_participants()
+    queued.pop()()
+    mw = SimpleNamespace(_call_participants_dialog=view, _call_held_here=lambda call_id: view.held)
+    follow = lambda: CallParticipantsMixin._participants_dialog_follow_call(mw)
+    follow()                                        # still held: nothing asked
+    assert not queued
+    view.held = False
+    view.reply = body([], available=False)
+    follow()
+    follow()                                        # asked once, not on every call change
+    assert len(queued) == 1
+    queued.pop()()
+    assert view._status.label == "call_participants_ended" and view._timer is None
+
+
+def test_held_here_is_the_live_call_with_that_id():
+    active = {"call_id": "C1"}
+    assert held_here(active, "ACTIVE", "C1") and held_here(active, "REJOINING", "C1")
+    assert not held_here(active, "RINGING", "C1")
+    assert not held_here(active, "ACTIVE", "C2")
+    assert not held_here(None, "ACTIVE", "C1")
+
+
 def test_active_call_button_dispatches_the_current_id_without_a_window():
     requests = []
     stub = SimpleNamespace(_active_voice_call={"call_id": "C1", "peer_jid": PERSON["jid"]},
@@ -260,3 +309,57 @@ def test_a_locked_chats_participants_are_refused_out_loud_without_a_dialog(monke
         output=lambda text, interrupt=False: spoken.append((text, interrupt)))
     CallParticipantsMixin.show_call_participants(stub, "C1", PERSON["jid"])
     assert spoken == [("call_participants_ended", True)]
+
+
+# ---------------------------------------------- everyone, not only the connected
+class _Words:
+    def t(self, key):
+        return {"call_participants_you": "Você", "unknown_contact": "Desconhecido",
+                "call_participant_left_row": "{name}, saiu da chamada",
+                "call_participant_ringing_row": "{name}, chamando",
+                "call_participant_invited_row": "{name}, fora da chamada",
+                "call_participant_declined_row": "{name}, recusou",
+                "call_participant_missed_row": "{name}, não atendeu"}.get(key, key)
+
+
+def _roster(*people):
+    return {"response": {"id": "C1", "available": True, "participants": list(people)}}
+
+
+def test_states_are_read_and_an_old_server_means_connected():
+    from core.call_participants import parse_participants
+    rows = parse_participants(_roster(
+        {"jid": "1@lid", "name": "Ana", "isSelf": False},
+        {"jid": "2@lid", "name": "Bia", "isSelf": False, "state": "left"}), "C1")
+    assert [r["state"] for r in rows] == ["connected", "left"]
+    import pytest
+    with pytest.raises(ValueError):
+        parse_participants(_roster({"jid": "3@lid", "name": "", "isSelf": False, "state": "dancing"}), "C1")
+
+
+def test_the_list_is_ordered_like_the_phones_and_marks_each_state():
+    from core.call_participants import parse_participants, participant_rows
+    data = parse_participants(_roster(
+        {"jid": "2@lid", "name": "Bia", "isSelf": False, "state": "left"},
+        {"jid": "3@lid", "name": "Caio", "isSelf": False, "state": "ringing"},
+        {"jid": "1@lid", "name": "Ana", "isSelf": False},
+        {"jid": "9@lid", "name": "", "isSelf": True}), "C1")
+    rows = participant_rows(data, _Words(), lambda jid, hint: hint,
+                            left=[("2@s.whatsapp.net", "Bia"), ("5@lid", "Duda")])
+    assert [text for _key, text in rows] == [
+        "Ana", "Você", "Caio, chamando", "Bia, saiu da chamada", "Duda, saiu da chamada"]
+    # Bia, reported left by the server, is not listed twice from what this device saw
+    assert len({key for key, _ in rows}) == 5
+
+
+def test_someone_out_of_the_call_is_not_shown_as_ringing():
+    """A member who left a group call stays on its list as invited (WhatsApp
+    offers to ring them; nobody is ringing them): seen live listed as
+    "ringing". Out of the call, after who is being called."""
+    from core.call_participants import parse_participants, participant_rows
+    data = parse_participants(_roster(
+        {"jid": "4@lid", "name": "Dom", "isSelf": False, "state": "invited"},
+        {"jid": "3@lid", "name": "Caio", "isSelf": False, "state": "ringing"},
+        {"jid": "1@lid", "name": "Ana", "isSelf": False}), "C1")
+    rows = participant_rows(data, _Words(), lambda jid, hint: hint)
+    assert [text for _key, text in rows] == ["Ana", "Caio, chamando", "Dom, fora da chamada"]

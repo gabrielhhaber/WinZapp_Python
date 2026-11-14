@@ -119,14 +119,17 @@ class TestTheCatalogRows:
             assert key in text
 
 
-def test_alt_8_opens_communities(monkeypatch):
+def test_alt_8_and_alt_9_show_the_communities_and_channels_panels(monkeypatch):
     from main_window.shortcuts import ShortcutsMixin
     shown = []
-    monkeypatch.setattr("ui.dialogs.communities.show_communities",
-                        lambda mw, parent: shown.append((mw, parent)))
+    monkeypatch.setattr("main_window.content_panels.show_communities",
+                        lambda mw: shown.append(("communities", mw)))
+    monkeypatch.setattr("main_window.content_panels.show_channels",
+                        lambda mw: shown.append(("channels", mw)))
     window = SimpleNamespace()
     ShortcutsMixin._on_global_communities(window)
-    assert shown == [(window, window)]
+    ShortcutsMixin._on_global_channels(window)
+    assert shown == [("communities", window), ("channels", window)]
 
 
 class _MessagePanel:

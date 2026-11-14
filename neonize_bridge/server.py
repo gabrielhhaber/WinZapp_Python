@@ -35,7 +35,11 @@ import inputs
 import legacy_layout
 import loop_watch
 import ongoing_calls
+import quote_fallback
+import receipt_ids
+import undecryptable
 import group_events
+import events
 import contact_events
 import media_retry
 import app_state_mirror
@@ -62,6 +66,7 @@ import channel_media
 import channel_updates
 import cleanup
 import msgmap
+import unread_rule
 import pairing
 import commerce_routes
 import profile_privacy
@@ -176,6 +181,22 @@ def jid_text(jid) -> str:
         return ""
     return f"{jid.User}@{jid.Server}"
 
+
+
+def connect_until_stopped(cli):
+    """Runs the client's event loop until stop(). When the loop fails instead,
+    the Go client may still hold the WhatsApp socket: it is disconnected, or
+    the session started again after this would open a second connection and
+    WhatsApp would replace the stream (seen live 2026-11-12: a group call
+    dropped that way)."""
+    try:
+        cli.connect()
+    except Exception:
+        log.exception("connect")
+        try:
+            cli.disconnect()
+        except Exception:
+            log.info("disconnect after the failed event loop failed", exc_info=True)
 
 class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.ReadReceipts,
               group_receipts.GroupReceipts):
@@ -782,8 +803,30 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _responded(c, e):
             self._on_drop(generation, session_lifecycle.RESTORED, "keep-alive restored")
 
+        undecryptable_tally = undecryptable.Tally()
+
+        def _report_undecryptable():
+            summary = undecryptable_tally.due()
+            if summary:
+                log.info(summary)
+
+        @cli.event(nev.UndecryptableMessageEv)
+        def _undecryptable(c, e):
+            try:
+                undecryptable_tally.failed(bool(e.Info.MessageSource.IsFromMe),
+                                           bool(e.IsUnavailable))
+                _report_undecryptable()
+            except Exception:
+                log.exception("undecryptable message")
+
         @cli.event(nev.MessageEv)
         def _message(c, e):
+            try:
+                if e.UnavailableRequestID:
+                    undecryptable_tally.recovered()
+                _report_undecryptable()
+            except Exception:
+                log.exception("undecryptable summary")
             try:
                 o = e.Info.MessageSource
                 chat = jid_text(o.Chat)
@@ -796,6 +839,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if self._reaction_received(chat, o, e):
                     return
                 if self._vote_received(o, e):
+                    return
+                if events.received(self, chat, o, e, jid_text):   # answer or edit of an event
                     return
                 if comments.receive(self, chat, o, e):    # announcement comment
                     return
@@ -815,7 +860,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                         return      # unknown original and chat: not a conversation (#762)
                 else:
                     self.db.message(chat, w, msgmap.media_record_of(e.Message))
-                self.db.on_arrival(chat, w["t"], w["fromMe"])
+                    if w.get("type") == "event_creation":
+                        events.remember(self, chat, e.Info.ID, bool(o.IsFromMe), o,
+                                        e.Message, jid_text)
+                # a deletion raises the date but is never unread (unread_rule.py)
+                self.db.on_arrival(chat, w["t"], not unread_rule.counted(w))
                 try:
                     chat_archive.on_arrival(self, chat, w)
                 except Exception:
@@ -995,6 +1044,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             except Exception:
                 log.exception("mute on the phone")
 
+        receipts_without_id = receipt_ids.Skipped()
+
         @cli.event(nev.ReceiptEv)
         def _receipt(c, e):
             try:
@@ -1002,11 +1053,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 kind = Receipt.DESCRIPTOR.fields_by_name["Type"].enum_type \
                     .values_by_number[e.Type].name
                 ack = {"DELIVERED": 2, "READ": 3, "PLAYED": 4}.get(kind)
+                ids = receipt_ids.message_ids(e.MessageIDs)
+                if not ids:
+                    if receipts_without_id.note():
+                        log.info("receipt %s without a message id dropped (%d so far)",
+                                 kind, receipts_without_id.count)
+                    return
                 chat = msgmap.jid_wpp(jid_text(e.MessageSource.Chat))
                 is_mine = bool(e.MessageSource.IsFromMe)
                 log.info("receipt %s%s (%d message(s)) in %s -> ack %s ids=%s", kind,
-                         " [mine]" if is_mine else "", len(e.MessageIDs), redact(chat), ack,
-                         ",".join(list(e.MessageIDs)[:5]))
+                         " [mine]" if is_mine else "", len(ids), redact(chat), ack,
+                         ",".join(ids[:5]))
                 # read receipt that comes from me: I read on the phone (or on another device)
                 if kind == "READ_SELF" or (kind == "READ" and is_mine):
                     read_on_another_device(c, e)
@@ -1023,14 +1080,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                         who = msgmap.jid_wpp(jid_text(e.MessageSource.Sender))
                         stage = {"DELIVERED": "delivered", "READ": "read",
                                  "PLAYED": "played"}[kind]
-                        self.db.receipts(list(e.MessageIDs), who, stage,
+                        self.db.receipts(ids, who, stage,
                                          msgmap.seconds(e.Timestamp))
                     except Exception:
                         log.exception("store receipt")
                 if chat.endswith("@g.us"):
                     # group: the ack only advances when ALL the members got there
                     # (group_receipts.py); a single receipt is not enough
-                    for mid in e.MessageIDs:
+                    for mid in ids:
                         in_group = self.group_ack_to_emit(chat, mid)
                         if in_group:
                             self.emit("onack", {
@@ -1038,7 +1095,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                                 "id": {"fromMe": True, "remote": chat, "id": mid,
                                        "_serialized": f"true_{chat}_{mid}"}})
                     return
-                for mid in e.MessageIDs:
+                for mid in ids:
                     self.emit("onack", {
                         "session": self.name, "ack": ack, "to": chat, "from": chat,
                         "id": {"fromMe": True, "remote": chat, "id": mid,
@@ -1106,9 +1163,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             threading.Thread(target=_phone_code, daemon=True).start()
 
         try:
-            cli.connect()      # blocks until stop()
-        except Exception:
-            log.exception("connect")
+            connect_until_stopped(cli)      # blocks until stop()
         finally:
             pairing_repair.WATCH.remove(self, generation)
             self._apply(generation, session_lifecycle.THREAD_ENDED)
@@ -2329,7 +2384,11 @@ def create_app(folder, fixed=""):
         except Exception as error:
             log.exception("download")
             status = transfers.status_for_download_error(error)
-            return web.json_response({"status": "error", "message": str(error)}, status=status)
+            code = media_retry.failure_code(error)
+            if isinstance(error, media_retry.PhoneDidNotAnswer):
+                status = 504           # try again later; not an expired media
+            return web.json_response({"status": "error", "message": str(error), "code": code},
+                                     status=status)
         if "octet-stream" in req.headers.get("Accept", ""):
             return web.Response(body=data, content_type="application/octet-stream")
         import base64 as b64
@@ -2364,15 +2423,19 @@ def create_app(folder, fixed=""):
                                       "_serialized": serial}}, room=s.name)))
         return ok(status="success", response=[{"id": serial, "ack": 1}])
 
-    def quoted_context(s, quoted, ctx=None):
+    def quoted_context(s, quoted, ctx=None, fallback=None):
         """ContextInfo that quotes the message `quoted` (serialized id), or None if
-        it is not stored."""
+        it is neither stored nor described by the client (`fallback`, see
+        quote_fallback.py)."""
         from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ContextInfo
         parts = quoted.split("_")
         quoted_id = parts[2] if len(parts) > 2 else parts[-1]
         original = s.db.wpp_message(quoted_id)
         if original is None:
-            return None
+            original = quote_fallback.described(fallback)
+            if original is None:
+                return None
+            log.info("reply: quote built from the client's description (not stored here)")
         ctx = ctx if ctx is not None else ContextInfo()
         ctx.stanzaID = quoted_id
         ctx.participant = msgmap.quoted_participant(original, s.me)
@@ -2727,7 +2790,7 @@ def create_app(folder, fixed=""):
         destination = destination_of(body["phone"])
         ctx = ContextInfo()
         quoted = body.get("messageId")
-        if quoted and quoted_context(s, quoted, ctx) is None:
+        if quoted and quoted_context(s, quoted, ctx, body.get("quotedMessage")) is None:
             return responses.missing_quote()
         if with_mentions:
             ctx.mentionedJID.extend(msgmap.jid_whatsmeow(j) for j in body.get("mentioned", []))
@@ -3107,6 +3170,8 @@ def create_app(folder, fixed=""):
     r.add_post("/api/{tok}/forward-messages", forward_messages)
     older_history.register_routes(r, session=session, ok=ok, in_thread=in_thread)
     r.add_post("/api/{tok}/send-poll-message", send_poll_message)
+    events.register_routes(r, session=session, ok=ok, destination_of=destination_of,
+                           store_sent=store_sent, in_thread=in_thread)
     r.add_post("/api/{tok}/poll-votes", poll_votes)
     r.add_post("/api/{tok}/poll-voters", poll_voters)
     r.add_post("/api/{tok}/vote-poll", vote_poll)

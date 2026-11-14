@@ -143,6 +143,17 @@ class HistoryMixin:
                 remote_jid, anchor, store_only=True, allow_phone_request=False,
                 expected_context=context)
             if not page:
+                if remote_jid not in getattr(self, "_exhausted_chats", set()):
+                    # Empty but still re-queryable (the background walk never
+                    # asks the phone): park this anchor like a page that did
+                    # not advance, so the chat waits behind the ones that can
+                    # still progress. Without it, the same first chats of the
+                    # list were walked on every pass and the rest never were
+                    # (issue #766: 8 of 152 chats, 24 visits each).
+                    stalled[remote_jid] = (
+                        anchor_identity,
+                        time.monotonic() + self._DEEP_STALL_RETRY_SECONDS,
+                    )
                 break
             next_anchor = self._oldest_stored_message(remote_jid)
             next_identity = self._anchor_identity(next_anchor)

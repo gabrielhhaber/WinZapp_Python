@@ -4,6 +4,25 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- WPPConnect: când spațiul pe disc scade (sub 4 GB liberi), WinZapp închide WhatsApp în siguranță înainte să piardă sesiunea, trece offline și spune de ce. Când există cel puțin 5 GB liberi, se reconectează singur. Înainte, cu aproximativ 3 GB liberi, sesiunea putea reveni deconectată ca și cum ar fi fost ștearsă.
+
+- Transcriere automată: un mesaj vocal primit cât computerul era în repaus nu mai rămâne netranscris când sosește împreună cu altele la revenire.
+
+- Neonize: cine intră într-un grup prin linkul de invitație apare ca "s-a alăturat folosind linkul de invitare al grupului", ca în WhatsApp Web, iar intrarea dvs. într-un grup prin link lasă și ea această notificare în conversație.
+
+- Golirea unei conversații pe telefon golește acum aceeași conversație în WinZapp, cu ambele motoare de conectare. Mesajele marcate cu stea rămân dacă telefonul le-a păstrat, iar un mesaj sosit după golire nu este șters.
+
+- Canale: un canal deschis din fereastra Canale, de exemplu din listele În tendințe sau Recomandate, își încarcă imediat actualizările, în loc să afișeze "Încă nu există actualizări în acest canal." până la următoarea sincronizare. Se citesc și detaliile unui canal pe care nu îl urmăriți.
+
+- Grupuri: butonul "Informații despre grup" ține pasul cu numărul de participanți. Într-un grup în care tocmai ați intrat și a cărui listă de participanți întârzie, numărul apare imediat ce sosește lista și se schimbă când cineva intră sau iese cu conversația deschisă.
+
+- După ce computerul revine din repaus, WinZapp nu mai afișează din nou "Se actualizează conversațiile" câteva minute mai târziu. Conversațiile care nu au putut fi citite cât timp revenea conexiunea sunt citite în aceeași sincronizare.
+
+- Neonize: schimbarea unei opțiuni de confidențialitate WhatsApp, cum ar fi "Văzut ultima dată" sau "Confirmări de citire", nu mai afișează "Unele setări nu au putut fi aplicate." când WhatsApp a aplicat schimbarea.
+
+- Jurnalul contului nu mai înregistrează codul de acces al sesiunii WPPConnect când se descarcă un fișier media.
+
+- Motor de conectare: Neonize este acum primul din listă și opțiunea deja selectată când WinZapp întreabă ce motor să folosească la prima pornire; rămâne marcat ca experimental, dar este cel recomandat pentru uz general. WPPConnect devine a doua opțiune, cu mențiunea "alternativ" după nume, la prima pornire, în fereastra de asociere și în Setări > Conexiune. Cine folosește deja WPPConnect rămâne pe el până îl schimbă.
 - După mult timp fără a deschide WinZapp: cât timp WhatsApp încă livrează mesaje vechi după sincronizare, titlul ferestrei continuă să afișeze "Se actualizează conversațiile" în loc să prezinte totul ca sincronizat, iar lista de conversații rămâne nemișcată, ca să o puteți parcurge fără ca conversațiile să își schimbe locul. Este actualizată o singură dată, când mesajele nu mai sosesc. Se aplică atât pentru Neonize, cât și pentru WPPConnect.
 
 - Notificări: când sosesc multe mesaje noi deodată (de exemplu, la revenirea unei conexiuni instabile), WinZapp redă și citește doar primele trei și rămâne în tăcere până la sfârșitul rafalei, în loc să repete sunetul de zeci de ori. Mesajele rămân în listă și sunt numărate ca necitite. Limita se alege în Setări > General > Notificări, la "Numărul maxim de notificări pe secundă când sosesc multe mesaje deodată" (implicit: 3).
@@ -19,8 +38,6 @@ NOUTĂȚI
 - Neonize: în apeluri, vocea celeilalte persoane este păstrată puțin mai mult în buffer (aproximativ 60 ms), pentru a reduce întreruperile când sunetul sosește în rafale.
 
 - Traducerea mesajelor: apasă Shift+Enter pe un mesaj text din lista de mesaje (scurtătura se poate schimba) sau folosește meniul lui contextual. Se configurează în Setări > AI online: transcrieri și descrieri > Traducerea mesajelor: furnizorul (furnizorii tăi AI, Grok sau o adresă proprie compatibilă cu OpenAI ori Anthropic), modelul, limba țintă și dacă traducerea înlocuiește textul, apare după el sau se deschide într-o fereastră separată. Traducere automată opțională a mesajelor primite, în toate conversațiile sau doar în cele pe care le activezi, cu vârstă maximă a mesajului și limită zilnică; se întrerupe pentru o oră dacă furnizorul refuză cheia, cota sau creditul. Conversațiile blocate nu sunt niciodată traduse automat, iar traducerea unui mesaj dintr-o astfel de conversație cere confirmare de fiecare dată. Tipurile de conținut ale AI online sunt acum în fereastra "Tipuri de conținut procesate...", pe aceeași pagină.
-
-- Motor de conectare: Neonize este acum primul din listă și opțiunea deja selectată când WinZapp întreabă ce motor să folosească la prima pornire; rămâne marcat ca experimental, dar este cel recomandat pentru uz general. WPPConnect devine a doua opțiune, cu mențiunea "vechi" după nume, la prima pornire, în fereastra de asociere și în Setări > Conexiune. Cine folosește deja WPPConnect rămâne pe el până îl schimbă.
 
 - Neonize: notificarea că un mesaj a fost șters, când WinZapp nu are nici mesajul, nici conversația, nu mai creează un "Grup fără nume" în lista de conversații. Mesajele șterse din conversațiile existente rămân neschimbate.
 

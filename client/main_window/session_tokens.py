@@ -449,6 +449,14 @@ class SessionTokensMixin:
         except Exception:
             login_store = "unknown"
         try:
+            # Before this run's own line: did the previous one ever close?
+            from app_paths import log_path
+            from core.abrupt_exit import note_abrupt_previous_run
+            note_abrupt_previous_run(log_path("shutdown_audit.log"), os.getpid(),
+                                     self._shutdown_audit)
+        except Exception:
+            pass
+        try:
             store = self._get_session_store()
             listing = []
             if store is not None:

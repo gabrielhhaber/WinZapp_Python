@@ -31,6 +31,7 @@ def _placeholder():
 
 
 ON = {"user_interface": {"message_list_open_position": "last_focused"}}
+MIDDLE = {"user_interface": {"message_list_open_position": "last_focused_or_unread"}}
 
 
 class TestMode:
@@ -48,7 +49,22 @@ class TestMode:
         assert rp.resumes_last_focused(ON)
 
     def test_options_are_in_the_settings_order(self):
-        assert rp.MODES == ("unread_or_last", "last_focused")
+        assert rp.MODES == ("unread_or_last", "last_focused", "last_focused_or_unread")
+
+    def test_where_the_list_lands_by_mode_and_where_it_was_left(self):
+        """The third mode (asked for 2026-11-12): back to the message only
+        when it was left in the middle; at the last message, the usual
+        landing, the unread separator when new messages arrived."""
+        assert rp.resume_on_open(ON, left_at_end=True) and rp.resume_on_open(ON, left_at_end=False)
+        assert rp.resume_on_open(MIDDLE, left_at_end=False)
+        assert not rp.resume_on_open(MIDDLE, left_at_end=True)
+        assert not rp.resume_on_open({}, left_at_end=False)
+        assert rp.resumes_last_focused(MIDDLE)
+
+    def test_the_last_message_is_the_newest_message_row(self):
+        rows = [_msg("A"), _msg("B"), _sep()]
+        assert rp.is_last_message(rows, "B") and not rp.is_last_message(rows, "A")
+        assert not rp.is_last_message([], "A")
 
 
 class TestResumeMessageId:
@@ -138,7 +154,27 @@ class TestRememberAndResume:
         panel._arm_reading_resume(JID_A)
 
         assert panel._take_reading_resume_row() == -1
-        assert panel._reading_positions()[JID_A] == ("A", 2)
+        assert panel._reading_positions()[JID_A] == ("A", 2, False)
+
+    def test_left_in_the_middle_comes_back_to_the_message(self):
+        panel = _Stub([_msg("A", 1), _msg("B", 2), _msg("C", 3)], focused=1, settings=MIDDLE)
+        panel._remember_reading_position()
+        panel._arm_reading_resume(JID_A)
+        panel._sorted_messages = [_msg("A", 1), _msg("B", 2), _msg("C", 3), _sep(), _msg("D", 4)]
+        assert panel._take_reading_resume_row() == 1
+
+    def test_left_at_the_last_message_lands_on_the_unread_separator(self):
+        """Nothing is armed: the rebuild's usual landing is the separator when
+        new messages arrived, the last message otherwise."""
+        panel = _Stub([_msg("A", 1), _msg("B", 2), _msg("C", 3)], focused=2, settings=MIDDLE)
+        panel._remember_reading_position()
+        assert panel._reading_positions()[JID_A] == ("C", 1, True)
+        panel._arm_reading_resume(JID_A)
+        assert panel._take_reading_resume_row() == -1
+        # past the end (the typing row): the newest message, at the end too
+        panel.messages_list.focused = 5
+        panel._remember_reading_position()
+        assert panel._reading_positions()[JID_A][2] is True
 
     def test_each_conversation_keeps_its_own(self):
         panel = _Stub([_msg("A", 1), _msg("B", 2)], focused=0, settings=ON)

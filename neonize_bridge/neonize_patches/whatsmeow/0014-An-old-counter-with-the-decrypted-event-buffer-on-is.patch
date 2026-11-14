@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 21:54:37 -0300
+Subject: [PATCH] An old counter with the decrypted event buffer on is a lost
+ message, retried with keys
+
+---
+ message.go          |  9 ++++++---
+ old_counter.go      | 24 ++++++++++++++++++++++++
+ old_counter_test.go | 22 ++++++++++++++++++++++
+ 3 files changed, 52 insertions(+), 3 deletions(-)
+ create mode 100644 old_counter.go
+ create mode 100644 old_counter_test.go
+
+diff --git a/message.go b/message.go
+index 98e97f6..190866b 100644
+--- a/message.go
++++ b/message.go
+@@ -408,7 +408,7 @@ func (cli *Client) decryptMessages(ctx context.Context, info *types.MessageInfo,
+ 		if errors.Is(err, ErrEventAlreadyProcessed) {
+ 			cli.Log.Debugf("Ignoring message %s from %s: %v", info.ID, info.SourceString(), err)
+ 			continue
+-		} else if errors.Is(err, signalerror.ErrOldCounter) {
++		} else if errors.Is(err, signalerror.ErrOldCounter) && !oldCounterIsLostMessage(err, cli.EnableDecryptedEventBuffer) {
+ 			cli.Log.Warnf("Ignoring message %s from %s: %v", info.ID, info.SourceString(), err)
+ 			continue
+ 		} else if err != nil {
+@@ -417,16 +417,19 @@ func (cli *Client) decryptMessages(ctx context.Context, info *types.MessageInfo,
+ 				return
+ 			}
+ 			isUnavailable := encType == "skmsg" && !containsDirectMsg && errors.Is(err, signalerror.ErrNoSenderKeyForUser)
++			// the retry carries this device's keys at once: the sender's session is
++			// the broken part (old_counter.go), so it has to start a new one
++			forceKeys := isUnavailable || oldCounterIsLostMessage(err, cli.EnableDecryptedEventBuffer)
+ 			if encType == "msmsg" {
+ 				cli.backgroundIfAsyncAck(func() {
+ 					cli.sendAck(ctx, node, NackMissingMessageSecret)
+ 				})
+ 			} else if cli.SynchronousAck {
+-				cli.sendRetryReceipt(ctx, node, info, isUnavailable)
++				cli.sendRetryReceipt(ctx, node, info, forceKeys)
+ 				// TODO this probably isn't supposed to ack
+ 				cli.sendAck(ctx, node, 0)
+ 			} else {
+-				go cli.sendRetryReceipt(context.WithoutCancel(ctx), node, info, isUnavailable)
++				go cli.sendRetryReceipt(context.WithoutCancel(ctx), node, info, forceKeys)
+ 				go cli.sendAck(ctx, node, 0)
+ 			}
+ 			cli.dispatchEvent(&events.UndecryptableMessage{
+diff --git a/old_counter.go b/old_counter.go
+new file mode 100644
+index 0000000..c979549
+--- /dev/null
++++ b/old_counter.go
+@@ -0,0 +1,24 @@
++package whatsmeow
++
++import (
++	"errors"
++
++	"go.mau.fi/libsignal/signalerror"
++)
++
++// oldCounterIsLostMessage reports whether a direct message refused with an
++// old counter is a message never seen here rather than a duplicate.
++//
++// With the decrypted event buffer on, a message already handled here comes
++// back as ErrEventAlreadyProcessed before libsignal is asked, so an old
++// counter can only mean the sender reused message keys: its session state
++// went back in time (a WhatsApp Web profile restored from a backup does it).
++// Ignoring it then drops every message that device sends here, and the
++// sender key it carries for groups with it, for as long as the sender keeps
++// that session. Treating it as a decryption failure sends a retry receipt
++// with this device's keys, which makes the sender start a new session, and
++// asks the phone for the message. Without the buffer an old counter may well
++// be a duplicate, and it is ignored as before.
++func oldCounterIsLostMessage(err error, eventBufferEnabled bool) bool {
++	return eventBufferEnabled && errors.Is(err, signalerror.ErrOldCounter)
++}
+diff --git a/old_counter_test.go b/old_counter_test.go
+new file mode 100644
+index 0000000..35930ee
+--- /dev/null
++++ b/old_counter_test.go
+@@ -0,0 +1,22 @@
++package whatsmeow
++
++import (
++	"errors"
++	"fmt"
++	"testing"
++
++	"go.mau.fi/libsignal/signalerror"
++)
++
++func TestOldCounterIsALostMessageOnlyWithTheEventBuffer(t *testing.T) {
++	oldCounter := fmt.Errorf("failed to decrypt normal message: %w", signalerror.ErrOldCounter)
++	if !oldCounterIsLostMessage(oldCounter, true) {
++		t.Fatal("with the buffer, an old counter is a message the sender's rolled-back session sent")
++	}
++	if oldCounterIsLostMessage(oldCounter, false) {
++		t.Fatal("without the buffer, an old counter may be a duplicate and stays ignored")
++	}
++	if oldCounterIsLostMessage(errors.New("other"), true) || oldCounterIsLostMessage(nil, true) {
++		t.Fatal("only an old counter is concerned")
++	}
++}

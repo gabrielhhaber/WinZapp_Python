@@ -14,6 +14,23 @@ from core.utils import (
 )
 
 
+def group_size_note(mw, conversation: dict, size) -> str:
+    """The group's name and how many are in it, or the name alone while the
+    participants are not known yet (a group just joined: "0 participants" was
+    a wrong number, not a missing one)."""
+    jid = conversation.get("remoteJid", "")
+    group_name = (
+        mw._resolve_contact_name(conversation)
+        or mw.find_name_through_messages(conversation)
+        or conversation.get("name", "")
+        or conversation.get("pushName", "")
+        or format_number(jid)
+    )
+    if not isinstance(size, int) or size <= 0:
+        return group_name
+    return f"{group_name}, {mw.i18n.t('group_size').format(count=size)}"
+
+
 class ConversationInfoMixin:
     """Conversation data dialog, profile fetch and the presence note.
     """
@@ -96,14 +113,7 @@ class ConversationInfoMixin:
                 # counting the participants list which is always present.
                 participants = data.get("participants", [])
                 size = data.get("size") or len(participants)
-                group_name = (
-                    mw._resolve_contact_name(conversation)
-                    or mw.find_name_through_messages(conversation)
-                    or conversation.get("name", "")
-                    or conversation.get("pushName", "")
-                    or format_number(jid)
-                )
-                note = f"{group_name}, {i18n.t('group_size').format(count=size)}"
+                note = group_size_note(mw, conversation, size)
         except Exception:
             pass
 
@@ -121,6 +131,23 @@ class ConversationInfoMixin:
                     pass
 
         wx.CallAfter(_update)
+
+    def _show_group_size(self, jid: str, size: int):
+        """Main thread: the open group's participant list arrived or changed
+        (_fetch_group_participants: on opening, its retries while a group
+        just joined is still loading, a member joining or leaving), so the
+        conversation-data button says the new count. The note was computed
+        once on opening and kept the count of that moment."""
+        conversation = self.conversation
+        if conversation is None or conversation.get("remoteJid") != jid:
+            return
+        note = group_size_note(self.main_window, conversation, size)
+        try:
+            if self._conv_data_btn.GetNote() != note:
+                self._conv_data_btn.SetNote(note)
+                self.conversation_panel.Layout()
+        except Exception:
+            pass
 
     def _refresh_presence_note(self, canonical_jid: str):
         """

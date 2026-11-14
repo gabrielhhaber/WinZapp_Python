@@ -4,6 +4,25 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect: when disk space runs low (less than 4 GB free), WinZapp closes WhatsApp safely before it loses the session, goes offline and says why. Once at least 5 GB are free it connects again by itself. Before, with about 3 GB free, the session could come back logged out as if it had been wiped.
+
+- Automatic transcription: a voice message received while the computer was asleep is no longer left untranscribed when it arrives together with others on waking.
+
+- Neonize: someone joining a group by its invite link shows as "joined using the group's invite link", as on WhatsApp Web, and joining a group by link yourself also leaves that notice in the chat.
+
+- Clearing a chat on the phone now clears the same chat in WinZapp, on both connection engines. Starred messages stay when the phone kept them, and a message that arrived after the clear is not removed.
+
+- Channels: a channel opened from the Channels window, for example from the Trending or Recommended lists, loads its updates right away instead of showing "No updates in this channel yet." until the next sync. The details of a channel you do not follow are read too.
+
+- Groups: the "Group info" button keeps up with the number of participants. In a group you just joined whose participant list takes a while to arrive, the number appears as soon as the list arrives, and it changes when someone joins or leaves while the chat is open.
+
+- After the computer resumes from sleep, WinZapp no longer shows "Updating chats" again a few minutes later. Chats that could not be read while the connection was coming back are read in the same sync.
+
+- Neonize: changing a WhatsApp privacy option, such as "Last seen" or "Read receipts", no longer shows "Some settings could not be applied." when WhatsApp applied the change.
+
+- The account log no longer records the WPPConnect session's access code when media is downloaded.
+
+- Connection engine: Neonize is now first in the list and the option already selected when WinZapp asks for the engine on the first launch; it is still marked as experimental, but it is the one recommended for general use. WPPConnect becomes the second option, marked "alternative" after its name, on the first launch, in the pairing window and in Settings > Connection. Anyone already using WPPConnect stays on it until they switch.
 - After a long time without opening WinZapp: while WhatsApp is still delivering old messages after the sync, the window title keeps saying "Updating chats" instead of presenting everything as synced, and the chat list stays still, so you can move through it without chats changing place. It is updated once when the messages stop arriving. This applies to both Neonize and WPPConnect.
 
 - Notifications: when many new messages arrive at once (for example, after an unstable connection comes back), WinZapp plays and speaks only the first three and stays quiet until the burst ends, instead of repeating the sound dozens of times. The messages are still in the list and count as unread. The limit is chosen in Settings > General > Notifications, under "Maximum notifications per second when many messages arrive at once" (default: 3).
@@ -19,8 +38,6 @@ WHAT'S NEW
 - Neonize: in calls, the other person's voice is buffered a little longer (about 60 ms) to reduce breakups when audio arrives in bursts.
 
 - Message translation: press Shift+Enter on a text message in the message list (the shortcut can be changed), or use its context menu. Set it up in Settings > Online AI: Transcriptions and Descriptions > Message translation: the provider (your AI providers, Grok, or your own OpenAI- or Anthropic-compatible address), the model, the target language, and whether the translation replaces the text, follows it or opens in a separate window. Optional automatic translation of received messages, in all chats or only the ones you turn on, with a maximum message age and a daily limit; it pauses for an hour if the provider refuses the key, quota or credit. Locked chats are never translated automatically, and translating a message from one asks for confirmation every time. The kinds of media that online AI handles are now in the "Types of media handled..." window, on the same page.
-
-- Connection engine: Neonize is now first in the list and the option already selected when WinZapp asks for the engine on the first launch; it is still marked as experimental, but it is the one recommended for general use. WPPConnect becomes the second option, marked "legacy" after its name, on the first launch, in the pairing window and in Settings > Connection. Anyone already using WPPConnect stays on it until they switch.
 
 - Neonize: a notice that a message was deleted, for a message or chat WinZapp does not have, no longer creates an "Unnamed group" in the chat list. Deleted messages in your existing chats are unchanged.
 

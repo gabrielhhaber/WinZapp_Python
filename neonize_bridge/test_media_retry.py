@@ -135,13 +135,15 @@ def test_a_phone_without_the_media_raises_a_404_so_the_route_answers_410():
     assert transfers.status_for_download_error(raised.value) == 410
 
 
-def test_a_phone_that_does_not_answer_keeps_the_original_error(monkeypatch):
+def test_a_phone_that_does_not_answer_is_said_and_not_taken_for_expired(monkeypatch):
     monkeypatch.setattr(media_retry, "TIMEOUT", 0.05)
-    s, _ = session_with({"result": "SUCCESS", "direct_path": "/new"}, event=None)
+    s, client = session_with({"result": "SUCCESS", "direct_path": "/new"})
+    client.event = None                      # the phone never answers
     original = RuntimeError("410 gone")
-    with pytest.raises(RuntimeError) as raised:
+    with pytest.raises(media_retry.PhoneDidNotAnswer) as raised:
         run(s, image(), downloads([original]))
-    assert raised.value is original
+    assert raised.value.__context__ is original
+    assert media_retry.failure_code(raised.value) == "media_retry_no_answer"
 
 
 def test_a_failed_retry_keeps_the_original_error():
@@ -225,10 +227,11 @@ class RetriedClient(RetryClient):
 
     def download_retried_media(self, request):
         self.requests.append(request)
-        if not self.answer.get("error"):
+        answer = self.answer.pop(0) if isinstance(self.answer, list) else self.answer
+        if not answer.get("error"):
             with open(request["dest"], "wb") as f:
                 f.write(self.plain)
-        return self.answer
+        return answer
 
 
 def retried_session(answer):
@@ -268,3 +271,143 @@ def test_a_file_the_key_does_not_authenticate_is_reported_with_its_own_text():
         run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
     assert "invalid media hmac" in str(raised.value)
     assert transfers.status_for_download_error(raised.value) == 410
+    assert media_retry.failure_code(raised.value) == "media_retry_unreadable"
+
+
+# ---- issue #766: WhatsApp Web's mms-type, and what each host served
+
+def test_the_mms_type_is_whatsapp_webs_own():
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import AudioMessage, VideoMessage
+    voice = Message(audioMessage=AudioMessage(mediaKey=KEY, PTT=True))
+    song = Message(audioMessage=AudioMessage(mediaKey=KEY))
+    gif = Message(videoMessage=VideoMessage(mediaKey=KEY, gifPlayback=True))
+    note = Message(ptvMessage=VideoMessage(mediaKey=KEY))
+    assert [media_retry.mms_type_of(m) for m in (voice, song, gif, note, keyed_image())] == [
+        "ptt", "audio", "gif", "ptv", "image"]
+    request = media_retry.retried_request(voice, "/new", "x")
+    assert (request["kind"], request["mms_type"]) == ("audio", "ptt")
+    assert media_retry.retried_request(keyed_image(), "/new", "x")["file_length"] == 10
+
+
+def test_what_each_host_served_is_logged_without_keys(caplog):
+    tried = [{"host": "mmg.whatsapp.net", "mms_type": "ptt", "error": "invalid media hmac",
+              "size": 12, "file_length": 4096, "old_enc_sha256": False,
+              "looks_like_text": False, "head": "00ff"},
+             {"host": "media-x.cdn", "mms_type": "audio", "error": "download failed with 403"}]
+    s, _ = retried_session({"error": "invalid media hmac", "tried": tried})
+    import logging
+    with caplog.at_level(logging.INFO, logger="bridge"), pytest.raises(RuntimeError):
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    text = caplog.text
+    assert "size=12 expected=4096 old_hash=False" in text and "media-x.cdn/audio" in text
+    assert base64.b64encode(KEY).decode() not in text
+
+
+def test_a_busy_phone_gets_longer_but_the_client_does_not_give_up_first():
+    assert 25 < media_retry.TIMEOUT <= 45          # the client reads for 60 s
+
+
+def test_only_the_retrys_own_failures_have_a_code():
+    assert media_retry.failure_code(media_retry.MediaGone("404")) == "media_gone_from_phone"
+    assert media_retry.failure_code(RuntimeError("403 forbidden")) == ""
+
+
+def test_an_unreadable_re_upload_is_asked_for_once_more_like_whatsapp_web():
+    s, client = retried_session([{"error": "invalid media hmac"}, {"ok": True}])
+    assert run(s, keyed_image(), downloads([RuntimeError("403 forbidden")])) == b"voice"
+    assert len(client.sent) == 2 and len(client.requests) == 2
+
+
+def test_a_second_unreadable_re_upload_gives_up():
+    s, client = retried_session({"error": "invalid media hmac"})
+    with pytest.raises(media_retry.RetriedUnreadable):
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    assert len(client.sent) == 2 and len(client.requests) == 2
+
+
+def served(error="failed to open"):
+    """What the build lists for a host that served a body: its size."""
+    return {"error": error, "tried": [{"host": "mmg.whatsapp.net", "mms_type": "ptt",
+                                       "size": 12, "file_length": 4096, "error": error}]}
+
+
+def test_only_a_served_body_that_cannot_be_opened_is_unreadable():
+    failed_on_the_way = {"error": "failed to download media from last host: timeout",
+                         "tried": [{"host": "mmg.whatsapp.net", "mms_type": "ptt",
+                                    "error": "timeout"}]}
+    assert not media_retry.served_unreadable(failed_on_the_way)
+    assert not media_retry.served_unreadable({"error": "failed to refresh media connections"})
+    assert media_retry.served_unreadable(served())
+    assert media_retry.served_unreadable({"error": "Invalid media HMAC"})
+
+
+def test_a_download_that_fails_on_the_way_is_not_taken_for_an_unreadable_file():
+    s, client = retried_session({"error": "failed to download media from last host: timeout",
+                                 "tried": [{"host": "h", "mms_type": "ptt", "error": "timeout"}]})
+    with pytest.raises(RuntimeError) as raised:
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    assert not isinstance(raised.value, media_retry.RetriedUnreadable)
+    assert media_retry.failure_code(raised.value) == ""
+    assert "timeout" in str(raised.value)
+    assert len(client.sent) == 1                    # no second ask for a network fault
+
+
+def test_a_served_body_without_an_hmac_text_is_asked_for_once_more():
+    s, client = retried_session([served(), {"ok": True}])
+    assert run(s, keyed_image(), downloads([RuntimeError("403 forbidden")])) == b"voice"
+    assert len(client.sent) == 2
+
+
+def test_a_failure_of_the_second_ask_is_the_original_download_error():
+    s, client = retried_session({"error": "invalid media hmac"})
+    original = RuntimeError("403 forbidden")
+    asked = []
+    real_send = client.send_media_retry
+
+    def send(request):
+        asked.append(request)
+        if len(asked) == 2:
+            raise RuntimeError("the build failed")
+        return real_send(request)
+    client.send_media_retry = send
+    with pytest.raises(RuntimeError) as raised:
+        run(s, keyed_image(), downloads([original]))
+    assert raised.value is original and len(asked) == 2
+
+
+def spied_asks(monkeypatch, advance_after_first):
+    """Records each ask's timeout; the clock moves on after the first ask."""
+    now = [100.0]
+    timeouts = []
+    real = media_retry.ask_phone
+
+    def ask(client, answers, parsed, media, timeout=media_retry.TIMEOUT):
+        timeouts.append(timeout)
+        result = real(client, answers, parsed, media, timeout)
+        now[0] += advance_after_first
+        return result
+    monkeypatch.setattr(media_retry, "ask_phone", ask)
+    monkeypatch.setattr(media_retry, "_clock", lambda: now[0])
+    return timeouts
+
+
+def test_the_second_ask_gets_only_what_is_left_of_the_budget(monkeypatch):
+    timeouts = spied_asks(monkeypatch, advance_after_first=30.0)
+    s, _ = retried_session([{"error": "invalid media hmac"}, {"ok": True}])
+    assert run(s, keyed_image(), downloads([RuntimeError("403 forbidden")])) == b"voice"
+    assert timeouts == [media_retry.TIMEOUT, media_retry.BUDGET - 30.0]
+
+
+def test_a_short_first_ask_leaves_the_second_its_full_timeout(monkeypatch):
+    timeouts = spied_asks(monkeypatch, advance_after_first=3.0)
+    s, _ = retried_session([{"error": "invalid media hmac"}, {"ok": True}])
+    run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    assert timeouts == [media_retry.TIMEOUT, media_retry.TIMEOUT]
+
+
+def test_with_no_time_left_the_second_ask_is_not_made(monkeypatch):
+    spied_asks(monkeypatch, advance_after_first=media_retry.BUDGET - 1.0)
+    s, client = retried_session({"error": "invalid media hmac"})
+    with pytest.raises(media_retry.RetriedUnreadable):
+        run(s, keyed_image(), downloads([RuntimeError("403 forbidden")]))
+    assert len(client.sent) == 1

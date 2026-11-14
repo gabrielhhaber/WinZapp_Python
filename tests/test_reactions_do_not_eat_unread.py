@@ -63,17 +63,19 @@ class TestTheDiscount:
     def test_the_unread_messages_are_still_the_ones_counted(self):
         assert _discount_non_countable_unread(_fetin_records(), 2) == 2
 
-    def test_a_system_event_after_the_reactions_is_still_discounted(self):
+    def test_a_system_event_after_the_reactions_takes_nothing(self):
+        """WhatsApp never counted it: the two unread are the document and the text."""
         records = _fetin_records() + [{
             "key": {"id": "SYS", "fromMe": False}, "messageType": "groupNotification",
             "message": {}, "messageTimestamp": 1790180700}]
-        assert _discount_non_countable_unread(records, 2) == 1
+        assert _discount_non_countable_unread(records, 2) == 2
 
-    def test_an_own_reply_after_the_reactions_is_still_discounted(self):
+    def test_an_own_reply_after_the_reactions_reads_the_chat(self):
+        """Replying marks the chat as read on WhatsApp: nothing before it is unread."""
         records = _fetin_records() + [{
             "key": {"id": "MINE", "fromMe": True}, "messageType": "conversation",
             "message": {"conversation": "eu"}, "messageTimestamp": 1790180700}]
-        assert _discount_non_countable_unread(records, 2) == 1
+        assert _discount_non_countable_unread(records, 2) == 0
 
     def test_a_chat_holding_only_reactions_is_left_as_the_server_said(self):
         records = [_reaction("OLD", 1790180655, 1)]

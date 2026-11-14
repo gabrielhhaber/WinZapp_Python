@@ -1,0 +1,87 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 13 Nov 2026 00:55:29 -0300
+Subject: [PATCH] calls: each media start gets its own quota of repeated
+ meowcaller lines
+
+The meowcaller media lines carry no call_id, so their repeat quota was the
+process's: after eight unprotect failures or audio receive summaries in a
+session, none appeared again, and a member who left a group call and joined
+it again (the session that failed) left no trace of why it heard nobody.
+The quota now starts over whenever a media starts.
+
+Tested: after the quota is spent, a media start lets the failures through
+again.
+---
+ goneonize/calls.go          |  7 +++++++
+ goneonize/calls_log_test.go | 36 +++++++++++++++++++++++++++++++++++-
+ 2 files changed, 42 insertions(+), 1 deletion(-)
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 2e141fb..20ad992 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -104,6 +104,13 @@ func (w *logChamadas) Write(p []byte) (int, error) {
+ 	linha := strings.TrimSpace(string(p))
+ 	chave := chaveLogChamadas(p)
+ 	w.mu.Lock()
++	if strings.Contains(chave, "|starting media|") {
++		// Cada mídia que começa (uma chamada nova, ou a mesma chamada depois
++		// de sair e voltar) tem a sua cota: as linhas de mídia não têm
++		// call_id, e a cota do processo se esgotava antes da volta, que era
++		// justamente a sessão que falhava.
++		clear(w.vistos)
++	}
+ 	w.vistos[chave]++
+ 	n := w.vistos[chave]
+ 	w.mu.Unlock()
+diff --git a/goneonize/calls_log_test.go b/goneonize/calls_log_test.go
+index a76a37d..e250807 100644
+--- a/goneonize/calls_log_test.go
++++ b/goneonize/calls_log_test.go
+@@ -1,6 +1,10 @@
+ package main
+ 
+-import "testing"
++import (
++	"testing"
++
++	waLog "go.mau.fi/whatsmeow/util/log"
++)
+ 
+ func TestChaveLogChamadasSeparaAsChamadas(t *testing.T) {
+ 	a := chaveLogChamadas([]byte(`{"level":"info","call_id":"AAA","message":"group roster received"}`))
+@@ -16,3 +20,33 @@ func TestChaveLogChamadasSeparaAsChamadas(t *testing.T) {
+ 		t.Fatal("linha que nao e JSON deve ser a propria chave")
+ 	}
+ }
++
++type logContado struct{ linhas []string }
++
++func (l *logContado) Warnf(msg string, args ...interface{})  { l.linhas = append(l.linhas, msg) }
++func (l *logContado) Errorf(msg string, args ...interface{}) {}
++func (l *logContado) Infof(msg string, args ...interface{})  {}
++func (l *logContado) Debugf(msg string, args ...interface{}) {}
++func (l *logContado) Sub(module string) waLog.Logger         { return l }
++
++// Cada mídia que começa tem a sua cota de linhas repetidas: na volta a uma
++// chamada as falhas de mídia ainda aparecem (sem call_id, a cota era do
++// processo e se esgotava antes).
++func TestCadaMidiaQueComecaTemASuaCota(t *testing.T) {
++	saida := &logContado{}
++	w := &logChamadas{log: saida, vistos: map[string]int{}}
++	falha := []byte(`{"level":"warn","message":"unprotect: authentication failed"}`)
++	for i := 0; i < 20; i++ {
++		_, _ = w.Write(falha)
++	}
++	if len(saida.linhas) != 8 {
++		t.Fatalf("linhas antes da volta = %d, want 8", len(saida.linhas))
++	}
++	_, _ = w.Write([]byte(`{"level":"info","call_id":"AAA","message":"starting media"}`))
++	for i := 0; i < 3; i++ {
++		_, _ = w.Write(falha)
++	}
++	if len(saida.linhas) != 8+1+3 {
++		t.Fatalf("linhas depois da volta = %d, want 12", len(saida.linhas))
++	}
++}

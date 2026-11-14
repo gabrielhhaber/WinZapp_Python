@@ -24,6 +24,7 @@ asks the network for anything.
 """
 
 import logging
+from main_window.content_panels import SIDE_PANELS
 from core.conversation_view import (
     ARCHIVED,
     LOCKED,
@@ -118,7 +119,7 @@ class ConversationPanelVisibilityMixin:
             keep = not reveal and self._detail_on_screen()
         list_panel = self._list_panel_for(shown)
         for name in ("archived_conversations_panel", "locked_conversations_panel",
-                     "status_panel", "calls_panel"):
+                     *SIDE_PANELS):
             other = getattr(mw, name, None)
             if other is not None and other is not list_panel:
                 other.Hide()

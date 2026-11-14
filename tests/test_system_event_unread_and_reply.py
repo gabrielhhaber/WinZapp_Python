@@ -1,12 +1,13 @@
 """Tests for two sides of the same reported bug: a group promote/demote
 arriving as a system event.
 
-* ``main._discount_non_countable_unread()`` must discount system events
-  (and own sends) from a server-reported unread count.  Observed live: a
-  group promote appeared as "1 não lida" in the chat list while the
-  conversation held nothing new — WhatsApp Web counts the promote toward
-  unread, the app's own on_new_message() deliberately never does, and the
-  correction that used to exist only looked at ``fromMe`` records.
+* ``main._discount_non_countable_unread()`` used to discount system events
+  from a server-reported unread count, believing WhatsApp counted a group
+  promote. WhatsApp Web's own code says otherwise (read over CDP on
+  2026-11-12, core/unread_types.py): a promote, a join, a deletion is never
+  added to unreadCount, so there was nothing of theirs to take out, and
+  taking them out ate real unread messages. Only an own message still
+  corrects the count: it marks the chat as read.
 
 * ``ConversationsPanel._on_menu_reply()`` (Alt+R) and
   ``_on_menu_reply_private()`` (Alt+Shift+R / "Responder em particular")
@@ -58,11 +59,11 @@ class TestDiscountNonCountableUnread:
         pending = _msg("conversation", from_me=True)
         assert _discount_non_countable_unread([pending] + records, 1) == 0
 
-    def test_system_event_in_the_tail_is_discounted(self):
-        """The reported bug: a group promote (groupNotification) minted a
-        phantom "1 unread".  It must be discounted just like fromMe."""
+    def test_a_system_event_never_takes_an_unread_messages_place(self):
+        """WhatsApp never counts a group promote: a count of 1 next to one is
+        an older message, not the promote."""
         records = [_msg("groupNotification")]
-        assert _discount_non_countable_unread(records, 1) == 0
+        assert _discount_non_countable_unread(records, 1) == 1
 
     def test_own_send_in_the_tail_is_still_discounted(self):
         records = [_msg("conversation", from_me=True)]
@@ -72,13 +73,13 @@ class TestDiscountNonCountableUnread:
         records = [_msg("conversation")]
         assert _discount_non_countable_unread(records, 1) == 1
 
-    def test_mixed_tail_only_discounts_the_non_countable_records(self):
+    def test_deletions_and_notices_in_the_tail_leave_the_count_alone(self):
         records = [
             _msg("conversation"),
             _msg("groupNotification"),
             _msg("protocolMessage"),
         ]
-        assert _discount_non_countable_unread(records, 3) == 1
+        assert _discount_non_countable_unread(records, 3) == 3
 
     def test_only_the_relevant_tail_is_inspected(self):
         """A server count of 1 must not discount an OLDER system event that
@@ -89,9 +90,12 @@ class TestDiscountNonCountableUnread:
         ]
         assert _discount_non_countable_unread(records, 1) == 1
 
-    def test_larger_count_discounts_every_non_countable_in_the_tail(self):
-        records = [_msg("groupNotification"), _msg("conversation")]
-        assert _discount_non_countable_unread(records, 2) == 1
+    def test_a_reply_leaves_only_what_arrived_after_it(self):
+        records = [_msg("conversation", messageTimestamp=100),
+                   _msg("conversation", from_me=True, messageTimestamp=200),
+                   _msg("groupNotification", messageTimestamp=250),
+                   _msg("imageMessage", messageTimestamp=300)]
+        assert _discount_non_countable_unread(records, 5) == 1
 
     def test_zero_or_negative_count_is_untouched(self):
         assert _discount_non_countable_unread([_msg("conversation")], 0) == 0
@@ -103,18 +107,16 @@ class TestDiscountNonCountableUnread:
 
     def test_tolerates_junk_records(self):
         records = ["nonsense", 42, None, {"key": {}}]
-        assert _discount_non_countable_unread(records, 2) == 0
+        assert _discount_non_countable_unread(records, 2) == 2
 
-    def test_discount_is_consistent_with_is_countable_message(self):
-        """Anchor: whatever is_countable_message() rejects must be
-        discounted from a server-reported count."""
+    def test_no_received_type_is_ever_subtracted(self):
+        """Whatever the type, a received record never lowers the count: what
+        WhatsApp did not count was never in it."""
         for message_type in (
             "conversation", "groupNotification", "protocolMessage",
-            "imageMessage", "e2e_notification",
+            "imageMessage", "e2e_notification", "message_history_notice",
         ):
-            records = [_msg(message_type)]
-            expected = 1 if is_countable_message(_msg(message_type)) else 0
-            assert _discount_non_countable_unread(records, 1) == expected, message_type
+            assert _discount_non_countable_unread([_msg(message_type)], 1) == 1, message_type
 
 
 class _FakeI18n:

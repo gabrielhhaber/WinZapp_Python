@@ -224,3 +224,11 @@ def register_events(cli, s):
             mirror.apply(e.Name, list(e.Index), e.Version, e.Remove, value, e.FromFullSync)
         except Exception:
             log.exception("app state mutation")
+        # neonize keeps one handler per event: the mutations no other event
+        # carries are dispatched from here
+        try:
+            import phone_chat_clear
+            phone_chat_clear.handle(s, list(e.Index), e.Remove, e.FromFullSync,
+                                    e.Action if e.HasField("Action") else None)
+        except Exception:
+            log.exception("chat clear on the phone")

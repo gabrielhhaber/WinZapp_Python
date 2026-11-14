@@ -65,12 +65,28 @@ def _records(countable: int, system_events: int):
     return records
 
 
+def _replied(unread_after: int):
+    """The group with one own reply, then *unread_after* messages: a count
+    of unread_after + 1 is one WhatsApp had not lowered after the reply
+    (core/unread_types.py), so the merge corrects it by one. Since
+    2026-11-12 the correction no longer touches system events: WhatsApp
+    never counted them."""
+    records = [{"key": {"id": "before", "fromMe": False}, "messageType": "conversation",
+                "message": {"conversation": "before"}, "timestamp": 1699999000},
+               {"key": {"id": "mine", "fromMe": True}, "messageType": "conversation",
+                "message": {"conversation": "eu"}, "timestamp": 1699999500}]
+    after = _records(unread_after, 0)
+    for i, record in enumerate(after):      # the newest at the snapshot's `t`
+        record["timestamp"] = 1700000500 - (unread_after - 1 - i)
+    return records + after
+
+
 class TestTheDiscountIsActuallyStored:
     def test_the_stored_count_matches_what_the_merge_decided(self, post):
         """The regression. The merge discounted 31 -> 30 to choose its branch
         and then stored 31 anyway, so the next round's marker comparison saw a
         change that had not happened."""
-        records = _records(countable=30, system_events=1)
+        records = _replied(30)
         existing = {JID: {
             "remoteJid": JID, "t": 1700000000, "unreadCount": 30,
             "messages": {"messages": {"records": records}},
@@ -92,7 +108,7 @@ class TestTheDiscountIsActuallyStored:
         """The property that actually matters: an unchanged server value must
         leave the stored value alone, so the sync marker can settle. Running
         the same snapshot twice is the cheapest way to state that."""
-        records = _records(countable=30, system_events=1)
+        records = _replied(30)
         existing = {JID: {
             "remoteJid": JID, "t": 1700000000, "unreadCount": 30,
             "messages": {"messages": {"records": records}},
@@ -130,15 +146,17 @@ class TestTheDiscountIsActuallyStored:
 class TestTheDiscountItself:
     """Guards the arithmetic the fix now depends on being stored."""
 
-    def test_one_trailing_system_event_costs_one(self):
-        assert _discount_non_countable_unread(_records(30, 1), 31) == 30
+    def test_a_trailing_system_event_costs_nothing(self):
+        """WhatsApp never counts it (core/unread_types.py)."""
+        assert _discount_non_countable_unread(_records(30, 1), 31) == 31
 
-    def test_own_sends_in_the_tail_count_too(self):
+    def test_a_reply_reads_everything_before_it(self):
         records = _records(3, 0) + [
             {"key": {"id": "mine", "fromMe": True}, "messageType": "conversation",
              "message": {"conversation": "eu"}, "timestamp": 1700002000}
         ]
-        assert _discount_non_countable_unread(records, 4) == 3
+        assert _discount_non_countable_unread(records, 4) == 0
+        assert _discount_non_countable_unread(_replied(30), 31) == 30
 
     def test_nothing_to_discount_leaves_it_alone(self):
         assert _discount_non_countable_unread(_records(5, 0), 3) == 3

@@ -42,6 +42,7 @@ from core.update_handoff import InstallHandoff
 from update_progress import UpdateProgressLifecycle, update_control_if_alive
 from ui.modal_utils import end_modal_if_running
 from update_node_kill import bridge_stop_lines, node_kill_lines, own_node_pids
+from core.update_exit_notice import exit_notice
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
@@ -632,7 +633,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
                             relaunch_handoff: str = "",
                             cleanup_dir: str = "", install_guard=None,
                             result_path: str = "", run_id: str = "",
-                            relaunch_app: bool = True) -> str:
+                            relaunch_app: bool = True, exit_notice=None) -> str:
     """The batch script text. Pure — every path is already console-safe.
 
     Kept apart from _run_batch_installer() so what the script says can be
@@ -660,8 +661,15 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
     a full copy of the release in the user's %TEMP%. A failed copy keeps it
     (like the script itself, it is evidence, and the retry may want it).
     """
+    # An install on exit says how it ended (core/update_exit_notice.py). A
+    # guarded install's waiter says it, outside the guardian's job.
+    notice = exit_notice if (exit_notice and not relaunch_app and not install_guard) else None
     relaunch = relaunch_lines(exe_path, log_path, relaunch_handoff,
-                              waiter_required=bool(install_guard), relaunch=relaunch_app)
+                              waiter_required=bool(install_guard), relaunch=relaunch_app,
+                              notice=notice.installed if notice else "")
+    relaunch_failed = relaunch_lines(exe_path, log_path, relaunch_handoff,
+                                     waiter_required=bool(install_guard), relaunch=relaunch_app,
+                                     notice=notice.not_installed if notice else "")
     source_node = os.path.join(source_dir, "node", "node.exe")
     target_node = os.path.join(install_dir, "node", "node.exe")
     # Keep the held payload beside, not inside, source_dir.  xcopy walks the
@@ -768,7 +776,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         + batch_receipt(result_path, "failed", run_id, "    ")
         + batch_done(install_guard, "failed", "    ")
         + relaunch_lines(exe_path, log_path, relaunch_handoff, indent="    ",
-                         waiter_required=bool(install_guard), relaunch=relaunch_app) +
+                         waiter_required=bool(install_guard), relaunch=relaunch_app,
+                         notice=notice.not_installed if notice else "") +
         # Deliberately not deleted on failure: the script and its log are the
         # only evidence of what went wrong, and erasing them is what made the
         # original report impossible to diagnose from the user's machine.
@@ -789,7 +798,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
             f'echo update failed: another WinZapp account did not exit > "{marker_path}"\n'
             + batch_receipt(result_path, "failed", run_id)
             + batch_done(install_guard, "unchanged")
-            + relaunch +
+            + relaunch_failed +
             "exit /b 1\n"
             if extra_pids else ""
         )
@@ -809,7 +818,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
               + batch_done(install_guard, "unchanged", "    ")
               + ") else (\n" + batch_done(install_guard, "failed", "    ") + ")\n"
               if install_guard else "")
-           + relaunch + "exit /b 1\n"
+           + relaunch_failed + "exit /b 1\n"
            if result_path else "")
     )
 
@@ -869,7 +878,8 @@ def _keep_newer_installed_server(source_dir: str, install_dir: str) -> None:
 
 def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,
                          extra_pids: "list[int] | tuple" = (), install_guard=None,
-                         recovery_text: str = "", relaunch_app: bool = True) -> bool:
+                         recovery_text: str = "", relaunch_app: bool = True,
+                         exit_notice=None) -> bool:
     """
     Write a batch script that:
       1. Waits for PID (and every other account's PID in extra_pids) to exit.
@@ -989,6 +999,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         result_path=os.path.join(safe_install, RESULT_NAME) if install_guard else "",
         run_id=uuid.uuid4().hex if install_guard else "",
         relaunch_app=relaunch_app,
+        exit_notice=exit_notice,
     )
     if not _write_installer_script(bat_path, script):
         return False
@@ -1000,7 +1011,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
             exe_path, install_log, pid, needs_admin, _write_installer_script,
             run_elevated, subprocess.Popen, start_relaunch_waiter,
             relaunch_environment(os.environ), recovery_text=recovery_text,
-            relaunch=relaunch_app)
+            relaunch=relaunch_app, exit_notice=None if relaunch_app else exit_notice)
 
     if sys.platform == "win32":
         if needs_admin:
@@ -1246,7 +1257,9 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
                                             api_port=getattr(self._main_window, "wpp_port", 6300),
                                             extra_pids=other_pids, install_guard=install_guard,
                                             recovery_text=self._main_window.i18n.t("update_recovery_instructions"),
-                                            relaunch_app=self._relaunch_app)
+                                            relaunch_app=self._relaunch_app,
+                                            exit_notice=None if self._relaunch_app else exit_notice(
+                                                self._main_window.i18n, self._new_version))
             if not launched:
                 self._error_msg = self._main_window.i18n.t(
                     install_guard.get("error", "update_coordination_failed"))

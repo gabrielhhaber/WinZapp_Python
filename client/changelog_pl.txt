@@ -4,6 +4,25 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
+
+- Automatyczna transkrypcja: wiadomość głosowa odebrana podczas uśpienia komputera nie zostaje już bez transkrypcji, gdy przychodzi razem z innymi po wybudzeniu.
+
+- Neonize: osoba, która dołącza do grupy przez link z zaproszeniem, jest pokazywana jako "Dołączenie przez link zaproszenia", jak w WhatsApp Web, a gdy sam dołączysz do grupy przez link, to powiadomienie także pojawia się w czacie.
+
+- Wyczyszczenie czatu w telefonie czyści teraz ten sam czat w WinZapp, w obu silnikach połączenia. Wiadomości oznaczone gwiazdką zostają, jeśli telefon je zachował, a wiadomość, która przyszła po wyczyszczeniu, nie jest usuwana.
+
+- Kanały: kanał otwarty z okna Kanały, na przykład z listy Na czasie lub Polecane, od razu wczytuje aktualizacje, zamiast pokazywać "Na tym kanale nie ma jeszcze aktualizacji." aż do następnej synchronizacji. Odczytywane są też informacje o kanale, którego nie obserwujesz.
+
+- Grupy: przycisk "Informacje o grupie" pokazuje aktualną liczbę uczestników. W grupie, do której właśnie dołączono i której lista uczestników przychodzi z opóźnieniem, liczba pojawia się, gdy tylko lista dotrze, i zmienia się, gdy ktoś dołączy lub wyjdzie przy otwartym czacie.
+
+- Po wybudzeniu komputera z uśpienia WinZapp nie pokazuje już ponownie "Aktualizowanie czatów" kilka minut później. Czaty, których nie udało się odczytać podczas przywracania połączenia, są odczytywane w tej samej synchronizacji.
+
+- Neonize: zmiana opcji prywatności WhatsAppa, na przykład "Widziano" lub "Potwierdzenia odczytu", nie pokazuje już komunikatu "Niektórych ustawień nie udało się zastosować.", gdy WhatsApp zastosował zmianę.
+
+- Dziennik konta nie zapisuje już kodu dostępu sesji WPPConnect podczas pobierania multimediów.
+
+- Silnik połączenia: Neonize jest teraz pierwszy na liście i jest opcją zaznaczoną od razu, gdy WinZapp pyta o silnik przy pierwszym uruchomieniu; nadal jest oznaczony jako eksperymentalny, ale to on jest zalecany do ogólnego użytku. WPPConnect staje się drugą opcją, z dopiskiem "alternatywny" po nazwie, przy pierwszym uruchomieniu, w oknie parowania i w Ustawienia > Połączenie. Kto już korzysta z WPPConnect, pozostaje przy nim, dopóki sam go nie zmieni.
 - Po długiej przerwie w korzystaniu z WinZapp: dopóki WhatsApp nadal dostarcza stare wiadomości po zakończeniu synchronizacji, tytuł okna wciąż pokazuje "Aktualizowanie czatów", zamiast informować, że wszystko jest zsynchronizowane, a lista czatów pozostaje nieruchoma, aby można było ją przeglądać bez zmieniania się kolejności czatów. Lista jest aktualizowana jednorazowo, gdy wiadomości przestają napływać. Dotyczy silników Neonize i WPPConnect.
 
 - Powiadomienia: gdy wiele nowych wiadomości przychodzi naraz (na przykład po powrocie niestabilnego połączenia), WinZapp odtwarza i odczytuje tylko trzy pierwsze i milczy do końca serii, zamiast powtarzać dźwięk dziesiątki razy. Wiadomości nadal są na liście i liczą się jako nieprzeczytane. Limit ustawia się w Ustawienia > Ogólne > Powiadomienia, w polu "Maksymalna liczba powiadomień na sekundę, gdy wiele wiadomości przychodzi naraz" (domyślnie: 3).
@@ -19,8 +38,6 @@ NOWOŚCI
 - Neonize: w połączeniach głos drugiej osoby jest buforowany nieco dłużej (około 60 ms), aby ograniczyć przerwy, gdy dźwięk dociera seriami.
 
 - Tłumaczenie wiadomości: naciśnij Shift+Enter na wiadomości tekstowej na liście wiadomości (skrót można zmienić) albo użyj jej menu kontekstowego. Konfiguracja jest w Ustawienia > AI online: transkrypcje i opisy > Tłumaczenie wiadomości: dostawca (Twoi dostawcy AI, Grok albo własny adres zgodny z OpenAI lub Anthropic), model, język docelowy oraz to, czy tłumaczenie zastępuje tekst, pojawia się po nim, czy otwiera się w osobnym oknie. Opcjonalne automatyczne tłumaczenie odebranych wiadomości we wszystkich czatach lub tylko w tych, w których je włączysz, z maksymalnym wiekiem wiadomości i dziennym limitem; wstrzymuje się na godzinę, jeśli dostawca odrzuci żądania z powodu klucza, limitu lub braku środków. Zabezpieczone czaty nigdy nie są tłumaczone automatycznie, a przetłumaczenie wiadomości z takiego czatu za każdym razem wymaga potwierdzenia. Rodzaje plików obsługiwanych przez AI online są teraz w oknie „Rodzaje plików do przetwarzania...” na tej samej stronie.
-
-- Silnik połączenia: Neonize jest teraz pierwszy na liście i jest opcją zaznaczoną od razu, gdy WinZapp pyta o silnik przy pierwszym uruchomieniu; nadal jest oznaczony jako eksperymentalny, ale to on jest zalecany do ogólnego użytku. WPPConnect staje się drugą opcją, z dopiskiem "starszy" po nazwie, przy pierwszym uruchomieniu, w oknie parowania i w Ustawienia > Połączenie. Kto już korzysta z WPPConnect, pozostaje przy nim, dopóki sam go nie zmieni.
 
 - Neonize: powiadomienie o usunięciu wiadomości, gdy WinZapp nie ma ani tej wiadomości, ani rozmowy, nie tworzy już "Grupy bez nazwy" na liście rozmów. Usunięte wiadomości w istniejących rozmowach pozostają bez zmian.
 

@@ -41,7 +41,8 @@ def _bridge_says(pid=900, ppid=1):
 def _handle(bridge, *, port_open=False, alive=lambda pid: False, spawned=None,
             killed=None, proc=None, my_pid=100, created=lambda pid: f"t{pid}",
             rotate=lambda path: False, identity=None,
-            shutdown=lambda port, secret: False):
+            shutdown=lambda port, secret: False,
+            node_listeners=lambda port: [], node_users=lambda pid: []):
     spawned = [] if spawned is None else spawned
     killed = [] if killed is None else killed
 
@@ -54,7 +55,8 @@ def _handle(bridge, *, port_open=False, alive=lambda pid: False, spawned=None,
         bridge, 6300, is_open=lambda port: port_open() if callable(port_open) else port_open,
         alive=alive, created=created, rotate=rotate, start_process=start_process, kill=killed.append,
         sleep=lambda s: None, clock=lambda: next(clock), my_pid=my_pid,
-        identity=identity or _bridge_says(), shutdown=shutdown)
+        identity=identity or _bridge_says(), shutdown=shutdown,
+        node_listeners=node_listeners, node_users=node_users)
 
 
 def test_the_command_uses_the_bridge_virtualenv_and_the_fixed_port(tmp_path):
@@ -463,6 +465,59 @@ def test_a_node_that_never_lets_go_leaves_the_bridge_unstarted(tmp_path):
 
     assert handle.start() is False
     assert spawned == []
+
+
+def _held_by_a_node(killed):
+    """A port the Node holds until it is stopped."""
+    return lambda: not killed
+
+
+def test_a_leftover_node_of_this_install_is_stopped_and_the_bridge_starts(tmp_path):
+    """Reported 2026-11-12: a run that ended abruptly left its WPPConnect Node
+    on the port; switching to Neonize then failed ("could not start the
+    Neonize bridge"). No other WinZapp uses it, and it is WinZapp's own
+    node.exe: it is stopped and the bridge starts."""
+    killed, spawned = [], []
+    handle = _handle(_bridge(tmp_path), port_open=_held_by_a_node(killed), identity=NODE_SAYS,
+                     killed=killed, spawned=spawned, node_listeners=lambda port: [4242])
+    handle.start()
+    assert killed == [4242] and spawned, "the leftover Node was not stopped"
+
+
+def test_a_node_another_account_uses_is_never_stopped(tmp_path):
+    killed, spawned = [], []
+    handle = _handle(_bridge(tmp_path), port_open=_held_by_a_node(killed), identity=NODE_SAYS,
+                     killed=killed, spawned=spawned, node_listeners=lambda port: [4242],
+                     node_users=lambda pid: [{"account_id": "other", "pid": 555}])
+    assert handle.start() is False
+    assert killed == [] and spawned == []
+
+
+def test_a_program_that_is_not_winzapps_node_is_never_stopped(tmp_path):
+    killed = []
+    handle = _handle(_bridge(tmp_path), port_open=_held_by_a_node(killed), identity=NODE_SAYS,
+                     killed=killed, node_listeners=lambda port: [])
+    assert handle.start() is False and killed == []
+
+
+def test_whose_node_it_is_unreadable_leaves_it_running(tmp_path):
+    killed = []
+
+    def broken(pid):
+        raise OSError("lease folder unreadable")
+    handle = _handle(_bridge(tmp_path), port_open=_held_by_a_node(killed), identity=NODE_SAYS,
+                     killed=killed, node_listeners=lambda port: [4242], node_users=broken)
+    assert handle.start() is False and killed == []
+
+
+def test_other_users_are_the_leases_of_other_processes(monkeypatch):
+    import node_coord
+    leases = [{"account_id": "me", "pid": 100}, {"account_id": "b", "pid": 200},
+              {"account_id": "x", "_corrupt": True}]
+    monkeypatch.setattr(node_coord, "live_node_leases", lambda gd, is_alive: leases)
+    monkeypatch.setattr(nb, "global_dir", lambda: "G")
+    others = nb.other_node_users(100)
+    assert [o["account_id"] for o in others] == ["b", "x"]   # a corrupt lease counts: unsure
 
 
 def test_a_foreign_bridge_is_not_waited_for(tmp_path):

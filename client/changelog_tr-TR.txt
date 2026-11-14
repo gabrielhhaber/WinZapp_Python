@@ -4,6 +4,25 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect: disk alanı azaldığında (4 GB'tan az boş), WinZapp oturumu kaybetmeden önce WhatsApp'ı güvenli şekilde kapatır, çevrimdışı olur ve nedenini söyler. En az 5 GB boş alan olduğunda kendiliğinden yeniden bağlanır. Önceden yaklaşık 3 GB boş alanla oturum silinmiş gibi çıkış yapmış olarak geri gelebiliyordu.
+
+- Otomatik yazıya dökme: bilgisayar uykudayken alınan bir sesli mesaj, uyanınca başkalarıyla birlikte geldiğinde artık yazıya dökülmeden kalmıyor.
+
+- Neonize: bir gruba davet bağlantısıyla katılan kişi WhatsApp Web'deki gibi "grubun davet bağlantısını kullanarak katıldı" olarak görünür; bir gruba bağlantıyla kendiniz katıldığınızda da bu bildirim sohbette kalır.
+
+- Telefonda bir sohbeti temizlemek artık WinZapp'teki aynı sohbeti de temizliyor; iki bağlantı motorunda da. Telefon yıldızlı mesajları koruduysa onlar kalır ve temizlemeden sonra gelen bir mesaj silinmez.
+
+- Kanallar: Kanallar penceresinden, örneğin Gündemdekiler veya Önerilenler listelerinden açılan bir kanal, bir sonraki eşitlemeye kadar "Bu kanalda henüz güncelleme yok." göstermek yerine güncellemelerini hemen yükler. Takip etmediğiniz bir kanalın ayrıntıları da okunur.
+
+- Gruplar: "Grup bilgisi" düğmesi katılımcı sayısını güncel tutar. Yeni katıldığınız ve katılımcı listesi geç gelen bir grupta sayı liste gelir gelmez görünür; sohbet açıkken biri katılınca veya ayrılınca da değişir.
+
+- Bilgisayar uykudan uyandıktan sonra WinZapp birkaç dakika sonra yeniden "Sohbetler güncelleniyor" göstermiyor. Bağlantı geri gelirken okunamayan sohbetler aynı eşitlemede okunur.
+
+- Neonize: "Son görülme" veya "Okundu bilgisi" gibi bir WhatsApp gizlilik seçeneğini değiştirmek, WhatsApp değişikliği uyguladığında artık "Bazı ayarlar uygulanamadı." göstermiyor.
+
+- Hesap günlüğü, bir medya indirilirken WPPConnect oturumunun erişim kodunu artık kaydetmiyor.
+
+- Bağlantı motoru: Neonize artık listede ilk sırada ve WinZapp ilk açılışta motoru sorduğunda zaten seçili olan seçenek; hâlâ deneysel olarak işaretli, ancak genel kullanım için önerilen motor odur. WPPConnect, adından sonra "alternatif" uyarısıyla ikinci seçenek olur: ilk açılışta, eşleştirme penceresinde ve Ayarlar > Bağlantı bölümünde. WPPConnect'i zaten kullananlar, değiştirene kadar onda kalır.
 - WinZapp uzun süre açılmadığında: eşitleme bittikten sonra WhatsApp eski mesajları göndermeyi sürdürürken pencere başlığı her şeyi eşitlenmiş göstermek yerine "Sohbetler güncelleniyor" demeye devam eder ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Hem Neonize hem WPPConnect için geçerlidir.
 
 - Bildirimler: çok sayıda yeni mesaj aynı anda geldiğinde (örneğin kararsız bir bağlantı geri geldiğinde) WinZapp sesi onlarca kez yinelemek yerine yalnızca ilk üç bildirimi çalar ve okur, ardından mesaj yağmuru bitene kadar sessiz kalır. Mesajlar yine listede yer alır ve okunmamış sayılır. Sınır, Ayarlar > Genel > Bildirimler bölümündeki "Çok sayıda mesaj aynı anda geldiğinde saniyedeki en fazla bildirim sayısı" alanından seçilir (varsayılan: 3).
@@ -19,8 +38,6 @@ YENİLİKLER
 - Neonize: aramalarda karşı tarafın sesi biraz daha uzun süre arabellekte tutuluyor (yaklaşık 60 ms); böylece ses toplu halde geldiğinde kesintiler azalıyor.
 
 - Mesaj çevirisi: mesaj listesindeki bir metin mesajında Shift+Enter tuşlarına basın (kısayol değiştirilebilir) veya mesajın bağlam menüsünü kullanın. Ayarlar > Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme > Mesaj çevirisi bölümünden sağlayıcıyı (yapay zekâ sağlayıcılarınız, Grok veya OpenAI ya da Anthropic uyumlu kendi adresiniz), modeli, hedef dili ve çevirinin metnin yerine mi geçeceğini, ondan sonra mı geleceğini yoksa ayrı bir pencerede mi açılacağını seçin. Alınan mesajlar için isteğe bağlı otomatik çeviri: tüm sohbetlerde ya da yalnızca açtıklarınızda, en fazla mesaj yaşı ve günlük sınırla; sağlayıcı anahtarı, kotayı veya krediyi reddederse bir saat duraklar. Kilitli sohbetler hiçbir zaman otomatik çevrilmez ve bunlardaki bir mesajı çevirmek her seferinde onay ister. Çevrim içi yapay zekânın içerik türleri artık aynı sayfadaki "İşlenecek içerik türleri..." penceresindedir.
-
-- Bağlantı motoru: Neonize artık listede ilk sırada ve WinZapp ilk açılışta motoru sorduğunda zaten seçili olan seçenek; hâlâ deneysel olarak işaretli, ancak genel kullanım için önerilen motor odur. WPPConnect, adından sonra "eski" uyarısıyla ikinci seçenek olur: ilk açılışta, eşleştirme penceresinde ve Ayarlar > Bağlantı bölümünde. WPPConnect'i zaten kullananlar, değiştirene kadar onda kalır.
 
 - Neonize: WinZapp'in ne mesajı ne de sohbeti bulunduğu bir mesajın silindiği bildirimi artık sohbet listesinde "Adsız grup" oluşturmuyor. Mevcut sohbetlerinizdeki silinmiş mesajlar değişmez.
 
