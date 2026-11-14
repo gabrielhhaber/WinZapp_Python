@@ -116,7 +116,8 @@ def test_photo_changed_emits_the_url_by_number(monkeypatch):
         photos={"99@lid": _photo("https://pps.whatsapp.net/a.jpg")})
     cli.handlers[ev.PictureEv](
         cli, N(JID=jid("99", "lid"), Author=jid("99", "lid"), Timestamp=1, Remove=False))
-    assert s.sent == [("contacts.update", {"session": "s1", "data": [{
+    assert s.sent[0] == ("profile-picture-changed", {"session":"s1", "chatId":"99@lid"})
+    assert s.sent[1:] == [("contacts.update", {"session": "s1", "data": [{
         "remoteJid": "5511@c.us", "profilePicUrl": "https://pps.whatsapp.net/a.jpg"}]})]
 
 
@@ -125,14 +126,15 @@ def test_repeated_photo_is_not_emitted_again(monkeypatch):
     event = N(JID=jid("5511"), Author=jid("5511"), Timestamp=1, Remove=False)
     cli.handlers[ev.PictureEv](cli, event)
     cli.handlers[ev.PictureEv](cli, event)
-    assert len(s.sent) == 1
+    assert len([e for e in s.sent if e[0] == "contacts.update"]) == 1
     cli.photos["5511@s.whatsapp.net"] = _photo("https://x/b.jpg", "F2")
     cli.handlers[ev.PictureEv](cli, event)
-    assert len(s.sent) == 2
-    assert s.sent[1][1]["data"][0]["profilePicUrl"] == "https://x/b.jpg"
+    updates = [e for e in s.sent if e[0] == "contacts.update"]
+    assert len(updates) == 2
+    assert updates[1][1]["data"][0]["profilePicUrl"] == "https://x/b.jpg"
 
 
-def test_photo_removed_from_a_group_or_without_a_url_does_not_emit(monkeypatch):
+def test_photo_removal_and_group_changes_invalidate_without_guessing_a_url(monkeypatch):
     cli, s, ev = _bind(monkeypatch, photos={
         "5511@s.whatsapp.net": _photo(""),
         "5522@s.whatsapp.net": RuntimeError("profile picture not found"),
@@ -143,7 +145,7 @@ def test_photo_removed_from_a_group_or_without_a_url_does_not_emit(monkeypatch):
     handle(cli, N(JID=jid("5511"), Remove=False))                   # without a URL
     handle(cli, N(JID=jid("5522"), Remove=False))                   # without a photo
     handle(cli, N(JID=jid("5533"), Remove=False))                   # network failure
-    assert s.sent == []
+    assert len(s.sent) == 5 and all(e[0] == "profile-picture-changed" for e in s.sent)
 
 
 def test_new_nickname_emits_once(monkeypatch):

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Contact and group picture changes or removals invalidate old URLs stored by WinZapp; a confirmed absent picture no longer reuses the old image.
+
 - Contacts saved, renamed or removed from the address book on another device, and public profile-name changes, update WinZapp when notified while preserving local names and history.
 
 - Group descriptions, settings and participants now follow live notices, including admin promotion and demotion, and refresh sending permissions in the open chat.

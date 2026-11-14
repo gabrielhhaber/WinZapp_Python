@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Schimbarea sau eliminarea fotografiei unui contact ori grup invalidează adresele vechi din WinZapp; absența confirmată a fotografiei nu mai reutilizează imaginea veche.
+
 - Contactele salvate, redenumite sau eliminate din agendă pe alt dispozitiv și schimbările numelui public actualizează WinZapp la primirea notificării, păstrând numele locale și istoricul.
 
 - Descrierile, setările și participanții grupurilor urmăresc notificările în timp real, inclusiv promovarea și retrogradarea administratorilor, iar permisiunile de trimitere sunt actualizate în conversația deschisă.

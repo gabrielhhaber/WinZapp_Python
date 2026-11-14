@@ -14,8 +14,9 @@ key), and the photo only goes with the URL.
 Sources in neonize 0.5.2 (what the proto descriptor confirms):
 - `PictureEv` (JID, Author, Timestamp, Remove) only says the photo changed, it
   does not bring the URL; that comes from `get_profile_picture` on a thread,
-  outside the handler (it is a network call). A removed photo is not emitted:
-  the client ignores an empty URL.
+  outside the handler (it is a network call). Every valid person/group picture
+  notice also emits `profile-picture-changed`, including removal, so an old URL
+  is invalidated without guessing a new one or fetching an image in the handler.
 - The name comes from the `Info.Pushname` of each received message
   (`announce_name`, which server.py's `MessageEv` handler calls: neonize keeps a
   single handler per event, so another cannot be registered here) and from the
@@ -38,6 +39,7 @@ import threading
 
 import msgmap
 import contact_state_events
+import profile_picture_events
 from profile_privacy import photo_to_wpp, no_photo
 
 log = logging.getLogger("bridge")
@@ -255,6 +257,7 @@ def register_events(cli, s):
     @cli.event(nev.PictureEv)
     def _photo(c, e):
         try:
+            profile_picture_events.changed(s, _text(e.JID))
             if e.Remove or not is_person(e.JID):
                 return
             _in_background(_announce_photo_safely, c, s, e.JID)

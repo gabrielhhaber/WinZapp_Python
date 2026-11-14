@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mudanças ou remoções de fotos de contatos e grupos invalidam os endereços antigos guardados no WinZapp; uma resposta confirmando ausência de foto não reutiliza a imagem antiga.
+
 - Contatos salvos, renomeados ou removidos da agenda em outro dispositivo e mudanças do nome público atualizam o WinZapp ao chegar o aviso, preservando nomes locais e o histórico.
 
 - Descrição, permissões e participantes dos grupos agora acompanham os avisos em tempo real, incluindo promoção e rebaixamento de administradores, com atualização das permissões de envio na conversa aberta.
