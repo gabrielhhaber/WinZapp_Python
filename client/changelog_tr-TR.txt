@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize: tepki olayları, tepkinin ve asıl mesajın tam anahtarları, gönderen ve saniye cinsinden zaman ile WPPConnect biçimini kullanır.
+
 - Açık sohbette, hem Neonize hem de WPPConnect ile yeni bir oy olayı geldiğinde anket sonuçları yenilenir. Neonize: oylar, silinen mesajlar ve etiket ilişkilendirmeleri için WPPConnect uyumlu olaylar; alınan durumların kimlikleri yazarı korur.
 
 - WPPConnect: disk alanı azaldığında (4 GB'tan az boş), WinZapp oturumu kaybetmeden önce WhatsApp'ı güvenli şekilde kapatır, çevrimdışı olur ve nedenini söyler. En az 5 GB boş alan olduğunda kendiliğinden yeniden bağlanır. Önceden yaklaşık 3 GB boş alanla oturum silinmiş gibi çıkış yapmış olarak geri gelebiliyordu.

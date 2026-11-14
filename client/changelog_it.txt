@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: gli eventi delle reazioni usano il formato WPPConnect, con le chiavi complete della reazione e del messaggio originale, il mittente e l’orario in secondi.
+
 - Nella conversazione aperta, i risultati dei sondaggi si aggiornano quando arriva un nuovo evento di voto, sia con Neonize sia con WPPConnect. Neonize: eventi compatibili con WPPConnect per voti, messaggi eliminati e associazioni delle etichette; gli identificativi degli stati ricevuti conservano l’autore.
 
 - WPPConnect: quando lo spazio su disco scarseggia (meno di 4 GB liberi), WinZapp chiude WhatsApp in sicurezza prima che perda la sessione, va offline e dice perché. Quando ci sono almeno 5 GB liberi si riconnette da solo. Prima, con circa 3 GB liberi, la sessione poteva tornare disconnessa come se fosse stata cancellata.

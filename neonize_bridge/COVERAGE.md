@@ -78,6 +78,13 @@ Checked against the callbacks and models of a live wa-js 4.7.2 / WhatsApp Web
   reads; they are not misreported as association events. The `chat` payload
   carries the serialized chat Wid and current label IDs, not a full browser
   ChatModel.
+- `onreactionmessage`: a top-level payload with separate MsgKeys for `id` and
+  `msgId`, a serialized `sender`, and `reactionText` (empty on removal). Unlike
+  poll events, the live WPP reaction timestamp is in **seconds**; the bridge
+  converts the reaction proto's `senderTimestampMS` to seconds. Existing client
+  support for the former `response` envelope/string keys is retained. `read`
+  starts true for our own reaction, false for another sender; `orphan` describes
+  whether the bridge holds the target, not a server verdict.
 
 Message keys preserve variable-length opaque IDs and explicit participants;
 received status keys now include the author's JID. Additional participants in
@@ -101,6 +108,12 @@ test from another device is still required for that event. Business label
 actions were not run on this non-Business account. Neonize was offline and the
 user requested keeping the current session, so real Neonize receipt/delivery
 remains unverified. Temporary event listeners were removed after the test.
+
+A second authorized group test sent one marked text message, added and removed
+a reaction, and edited that test message. Both real `chat.new_reaction` JSON
+payloads matched the bridge's formatter field for field, including the full
+keys and second-resolution timestamps. ACK remained 1 in the inspected message;
+no delivery ACK event was captured, so no delivery semantics were inferred.
 
 ## Through WinZapp's neonize build (raw queries and app state mutations)
 

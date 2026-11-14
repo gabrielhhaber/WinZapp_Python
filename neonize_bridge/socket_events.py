@@ -24,6 +24,25 @@ def wire_key(key):
     return out
 
 
+def milliseconds(timestamp):
+    value = float(timestamp)
+    return int(value * 1000) if value < 1e11 else int(value)
+
+
+def reaction_message(session, chat, mid, from_me, sender, target_serial, emoji,
+                     timestamp, known_target=True):
+    """Reaction key and target key are separate MsgKeys, including their authors."""
+    parts = target_serial.split("_", 3)
+    target = msgmap.message_key(parts[1], parts[0] == "true", parts[2],
+                                parts[3] if len(parts) > 3 else "")
+    chat = msgmap.jid_wpp(chat)
+    key = msgmap.message_key(chat, from_me, mid, sender if chat.endswith("@g.us") else "")
+    return {"session": session, "id": wire_key(key), "msgId": wire_key(target),
+            "reactionText": emoji, "read": bool(from_me), "sender": wid(sender),
+            "orphan": 0 if known_target else 1, "orphanReason": None,
+            "timestamp": msgmap.seconds(timestamp)}
+
+
 def poll_response(session, original, indexes, sender, timestamp):
     options = original.get("pollOptions") or []
     selected = []
@@ -36,7 +55,7 @@ def poll_response(session, original, indexes, sender, timestamp):
     key = wire_key(original["id"])
     return {"session": session, "msgId": key, "chatId": key["remote"],
             "selectedOptions": selected, "sender": wid(sender),
-            "timestamp": int(float(timestamp) * 1000) if float(timestamp) < 1e11 else int(timestamp)}
+            "timestamp": milliseconds(timestamp)}
 
 
 def revoked_message(session, message, me):

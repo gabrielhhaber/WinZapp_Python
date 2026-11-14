@@ -271,14 +271,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         who = "me" if i_reacted else sender_w
         ts = msgmap.seconds(e.Info.Timestamp)
         self.db.react(target_id, who, emoji, ts)
-        reaction_serial = f"{'true' if i_reacted else 'false'}_{chat_w}_{e.Info.ID}"
-        if group:
-            reaction_serial += f"_{sender_w}"
-        self.emit("onreactionmessage", {"session": self.name, "response": {
-            "id": reaction_serial,
-            "msgId": self.target_serial(chat_w, group, target_id, i_reacted,
-                                        key_from_me, participant),
-            "reactionText": emoji, "text": emoji, "timestamp": ts}})
+        target_serial = self.target_serial(chat_w, group, target_id, i_reacted,
+                                           key_from_me, participant)
+        reaction_timestamp = msgmap.unwrap(e.Message).reactionMessage.senderTimestampMS
+        self.emit("onreactionmessage", socket_events.reaction_message(
+            self.name, chat_w, e.Info.ID, i_reacted, sender_w, target_serial,
+            emoji, reaction_timestamp or e.Info.Timestamp,
+            known_target=self.db.wpp_message(target_id) is not None))
         return True
 
     # --------------------------------------------------------------- status
