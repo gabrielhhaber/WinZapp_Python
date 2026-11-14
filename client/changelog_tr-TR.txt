@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Başka bir cihazda kişileri engellemek veya engelini kaldırmak bildirim geldiğinde WinZapp’i günceller. Ayrıntısız bildirimler tüm listeyi yeniler; eski yanıtlar yeni değişiklikleri geri alamaz.
+
 - Kişi ve grup fotoğrafı değişiklikleri veya kaldırılmaları WinZapp’te saklanan eski adresleri geçersiz kılar; fotoğrafın olmadığı doğrulanırsa eski resim kullanılmaz.
 
 - Başka bir cihazda rehbere kaydedilen, adı değiştirilen veya rehberden kaldırılan kişiler ve genel profil adı değişiklikleri, yerel adları ve geçmişi koruyarak bildirim geldiğinde WinZapp’i günceller.

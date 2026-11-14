@@ -82,6 +82,7 @@ MIRRORED_FILES = [
     "src/util/groupMetadataBridge.ts",
     "src/util/contactStateBridge.ts",
     "src/util/profilePictureBridge.ts",
+    "src/util/blockStateBridge.ts",
     "src/tests/util/chatClearedBridge.test.ts",
     "src/util/eventsRuntime.ts",
     "src/util/eventsWatchBridge.ts",

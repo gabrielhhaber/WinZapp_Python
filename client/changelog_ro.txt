@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Blocarea sau deblocarea contactelor pe alt dispozitiv actualizează WinZapp la primirea notificării. Notificările fără detalii reîmprospătează lista completă, iar răspunsurile vechi nu anulează modificările recente.
+
 - Schimbarea sau eliminarea fotografiei unui contact ori grup invalidează adresele vechi din WinZapp; absența confirmată a fotografiei nu mai reutilizează imaginea veche.
 
 - Contactele salvate, redenumite sau eliminate din agendă pe alt dispozitiv și schimbările numelui public actualizează WinZapp la primirea notificării, păstrând numele locale și istoricul.

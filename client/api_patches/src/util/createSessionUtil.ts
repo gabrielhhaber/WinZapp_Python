@@ -41,6 +41,7 @@ import { installChatDeletedBridge } from './chatDeletedBridge';
 import { installGroupMetadataBridge } from './groupMetadataBridge';
 import { installContactStateBridge } from './contactStateBridge';
 import { installProfilePictureBridge } from './profilePictureBridge';
+import { installBlockStateBridge } from './blockStateBridge';
 import { installEventsWatchBridge } from './eventsWatchBridge';
 import { installCallParticipantsBridge } from './callParticipantsBridge';
 import {
@@ -1669,6 +1670,7 @@ export default class CreateSessionUtil {
     await installGroupMetadataBridge(client, req.io, req.logger);
     await installContactStateBridge(client, req.io, req.logger);
     await installProfilePictureBridge(client, req.io, req.logger);
+    await installBlockStateBridge(client, req.io, req.logger);
     await installEventsWatchBridge(client, req.io, req.logger);
     await installCallParticipantsBridge(client, req.io, req.logger);
   }

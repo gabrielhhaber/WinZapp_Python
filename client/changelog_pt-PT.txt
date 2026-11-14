@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Bloquear ou desbloquear contactos noutro dispositivo atualiza o WinZapp quando chega o aviso. Os avisos sem detalhes atualizam a lista completa, e as respostas antigas não desfazem alterações mais recentes.
+
 - As alterações ou remoções de fotografias de contactos e grupos invalidam os endereços antigos guardados no WinZapp; uma resposta que confirme a ausência de fotografia não reutiliza a imagem antiga.
 
 - Os contactos guardados, renomeados ou removidos da agenda noutro dispositivo e as alterações do nome público atualizam o WinZapp quando chega o aviso, preservando os nomes locais e o histórico.

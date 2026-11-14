@@ -378,6 +378,7 @@ API_CUSTOM_SRC_FILES = [
     "src/util/groupMetadataBridge.ts",
     "src/util/contactStateBridge.ts",
     "src/util/profilePictureBridge.ts",
+    "src/util/blockStateBridge.ts",
     "src/util/onlinePresenceDiagnostics.ts",
     "src/util/listChatsDiag.ts",
     "src/util/createSessionUtil.ts",
