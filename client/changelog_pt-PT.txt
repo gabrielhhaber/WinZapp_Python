@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Ajuda para escrever: chega ao WinZapp uma função semelhante à ajuda para escrever do WhatsApp para telemóveis, com a opção adicional de traduzir o rascunho. O novo botão após Emoji e o menu de contexto do campo abrem a mesma janela. Corrija, reformule, use um tom profissional ou encorajador com os fornecedores de IA configurados no WinZapp, não com a Meta AI; a tradução é feita com o Google. É pedido consentimento antes de enviar o rascunho e é mostrada uma prévia antes de o substituir; a mensagem nunca é enviada automaticamente. Escolha uma ação e depois prima "Executar ação escolhida". Abrir ou fechar esta janela não envia o rascunho.
+
 - Neonize: aceitar os termos da Meta AI já não falha com erro do WhatsApp. O WinZapp envia agora o aceite no mesmo formato que o WhatsApp Web usa para este aviso e só confirma depois de ler de novo que o aviso consta como aceite.
 
 - Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.

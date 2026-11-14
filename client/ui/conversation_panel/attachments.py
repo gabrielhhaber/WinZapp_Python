@@ -207,6 +207,8 @@ class AttachmentsMixin:
         self.message_field.Hide()
         if hasattr(self, "_emoji_btn"):
             self._emoji_btn.Hide()
+            if hasattr(self, "_writing_help_btn"):
+                self._writing_help_btn.Hide()
         self.send_message_btn.Hide()
         self.record_voice_message_btn.Hide()
         if hasattr(self, "_record_voice_system_btn"):
@@ -283,6 +285,8 @@ class AttachmentsMixin:
             self.message_field.Show()
             if hasattr(self, "_emoji_btn"):
                 self._emoji_btn.Show()
+                if hasattr(self, "_writing_help_btn"):
+                    self._writing_help_btn.Show()
             if self.message_field.GetValue().strip():
                 self.send_message_btn.Show()
             else:

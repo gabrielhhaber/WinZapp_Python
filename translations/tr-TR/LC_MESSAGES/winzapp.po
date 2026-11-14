@@ -567,6 +567,7 @@ msgstr "&Yapay zekâ özelliklerini etkinleştir (yazıya dökme ve betimleme)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 #, python-brace-format
 msgctxt "ai_answered_by"
 msgid "Answered by {provider}."
@@ -584,6 +585,7 @@ msgstr "Sor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 #, python-brace-format
 msgctxt "ai_attempt_line"
 msgid "{provider}: {reason}"
@@ -681,6 +683,7 @@ msgstr "Kullanım ve &faturalandırma"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_cancel_notice"
 msgid ""
 "Cancelled locally. A request already received by the provider may still be "
@@ -691,6 +694,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_chain_failed"
 msgid "None of the providers could process this media:"
 msgstr "Sağlayıcıların hiçbiri bu dosyayı işleyemedi:"
@@ -1092,6 +1096,8 @@ msgstr "İşlenecek &içerik türleri..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
+#: client/ui/dialogs/ai_writing_dialog.py
 msgctxt "ai_locked_consent"
 msgid ""
 "This media is from a locked chat. Sending it outside WhatsApp needs fresh "
@@ -1197,6 +1203,7 @@ msgid "&Provider privacy policy"
 msgstr "&Sağlayıcının gizlilik ilkesi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_processing_msg"
 msgid "Processing with AI, please wait..."
 msgstr "Yapay zekâ ile işleniyor, lütfen bekleyin..."
@@ -1281,6 +1288,7 @@ msgstr "Yeni yanıtları &WinZapp konuşma ayarlarıyla seslendir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_ready"
 msgid "The answer is ready."
 msgstr "Yanıt hazır."
@@ -1313,6 +1321,7 @@ msgstr "Kayıtlı tüm yapay &zekâ anahtarlarını sıfırla"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_result"
 msgid "Result and answers"
 msgstr "Sonuç ve yanıtlar"
@@ -1404,6 +1413,20 @@ msgid "Transcribe with online AI"
 msgstr "Çevrimiçi yapay zekâ ile yazıya dök"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_text_result_dialog.py
+msgctxt "ai_translate_consent"
+msgid ""
+"The text will be sent to Google Translate through the same address its web "
+"page uses, without an account or API key. That address is not a published "
+"service and could stop working without notice. Google's terms apply; the "
+"translation can be wrong. Do you want to continue?"
+msgstr ""
+"Metin, web sayfasının kullandığı adresin aynısı üzerinden, hesap veya API "
+"anahtarı olmadan Google Translate'e gönderilecek. Bu adres yayınlanmış bir "
+"hizmet değildir ve haber verilmeksizin çalışmayı durdurabilir. Google'ın "
+"koşulları geçerlidir; çeviri yanlış olabilir. Devam etmek istiyor musun?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_video_frame_notice"
 msgid ""
@@ -1417,6 +1440,21 @@ msgstr ""
 msgctxt "ai_voice_model"
 msgid "&Voice message model"
 msgstr "Sesli mesa&j modeli"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+#, python-brace-format
+msgctxt "ai_writing_consent"
+msgid ""
+"The text you are writing may be sent to {providers}, in that order, if the "
+"earlier ones fail. This may incur API charges. Chat names are not sent. "
+"Provider data policies apply; the result can be wrong. Do you want to "
+"continue?"
+msgstr ""
+"Yazmakta olduğun metin, öncekiler başarısız olursa, bu sırayla {providers} "
+"adresine gönderilebilir. Bu, API ücretlerine neden olabilir. Sohbet adları "
+"gönderilmez. Sağlayıcının veri politikaları geçerlidir; sonuç yanlış "
+"olabilir. Devam etmek istiyor musun?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -13683,6 +13721,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/ui/ai_media_demo.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "status"
 msgid "Status"
 msgstr "Durum"
@@ -18415,6 +18454,56 @@ msgid "Verif&y"
 msgstr "&Doğrula"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_again"
+msgid "Translate again"
+msgstr "Tekrar çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_de"
+msgid "German"
+msgstr "Almanca"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_en"
+msgid "English"
+msgstr "İngilizce"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_es"
+msgid "Spanish"
+msgstr "İspanyolca"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_fr"
+msgid "French"
+msgstr "Fransızca"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_it"
+msgid "Italian"
+msgstr "İtalyanca"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_pt"
+msgid "Portuguese"
+msgstr "Portekizce"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_menu"
+msgid "Translate"
+msgstr "Çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_original"
+msgid "Original text"
+msgstr "Orijinal metin"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_title"
+msgid "Translate message"
+msgstr "Mesajı çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"
 msgid "Custom API &address"
 msgstr "Özel API &adresi"
@@ -20761,6 +20850,75 @@ msgstr ""
 "Uyarı: WhatsApp Web sürümü sabitlenemedi. Bireysel kişilere gönderme "
 "sessizce başarısız olabilir; gruplar çalışmaya devam eder. Lütfen WinZapp'in"
 " WhatsApp Web'ini güncelleyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_check"
+msgid "Fix spelling and punctuation, keeping my words"
+msgstr "Kelimelerimi koruyarak yazım ve noktalamayı düzelt"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_encouraging"
+msgid "Make it more encouraging"
+msgstr "Daha cesaret verici yap"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_action_label"
+msgid "What to do with the draft"
+msgstr "Taslakla ne yapılsın"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_professional"
+msgid "Make it more professional"
+msgstr "Daha profesyonel yap"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_rephrase"
+msgid "Say it another way"
+msgstr "Başka türlü söyle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_action_translate"
+msgid "Translate"
+msgstr "Çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_choose_before_run"
+msgid ""
+"Choose an action, then press \"Run selected action\". Opening or closing "
+"this window does not send the draft."
+msgstr ""
+"Bir işlem seçin, ardından \"Seçilen işlemi çalıştır\" düğmesine basın. Bu "
+"pencereyi açmak veya kapatmak taslağı göndermez."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_writing.py client/ui/conversations.py
+msgctxt "writing_menu"
+msgid "Writing help"
+msgstr "Yazma yardımı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_replace"
+msgid "Replace draft"
+msgstr "Taslağı değiştir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_run_selected"
+msgid "Run selected action"
+msgstr "Seçilen işlemi çalıştır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_target_label"
+msgid "Translate to"
+msgstr "Şuna çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_title"
+msgid "Writing help"
+msgstr "Yazma yardımı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py
