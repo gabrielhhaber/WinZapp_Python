@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Naprawiono aktualizację czasu znikających wiadomości na bieżąco, gdy WhatsApp zmienia tylko metadane grupy.
+
 - Usunięcie rozmowy na innym urządzeniu usuwa jej kopię w WinZapp po otrzymaniu powiadomienia; rozmowa z nowszymi wiadomościami zostaje zachowana.
 
 - Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartej rozmowie po otrzymaniu powiadomienia.

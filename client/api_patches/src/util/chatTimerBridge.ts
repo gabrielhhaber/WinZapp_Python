@@ -3,13 +3,16 @@ import { installMessageStatePageBridge } from './messageStatePageBridge';
 export function installChatTimerInPage() {
   const win = globalThis['window'];
   const store = win?.['WPP']?.whatsapp?.ChatStore;
+  const groups = win?.['WPP']?.whatsapp?.GroupMetadataStore;
   const notify = win?.['__winzappOnChatTimerChanged'];
   if (typeof store?.on !== 'function' || typeof store?.off !== 'function'
       || typeof notify !== 'function') return false;
   const previous = win['__winzappChatTimerObserver'];
-  if (previous?.store === store) { previous.notify = notify; return true; }
+  if (previous?.revision === 2 && previous?.store === store && previous?.groups === groups) {
+    previous.notify = notify; return true;
+  }
   previous?.dispose();
-  const state = {store, notify, pending: new Set(), disposed: false, handler: null, dispose: null};
+  const state = {store, groups, notify, revision: 2, pending: new Set(), disposed: false, handler: null, dispose: null};
   state.handler = model => {
     if (state.pending.has(model)) return;
     state.pending.add(model);
@@ -19,7 +22,10 @@ export function installChatTimerInPage() {
       if (state.disposed) return;
       try {
         const chatId = typeof model?.id === 'string' ? model.id : model?.id?._serialized;
-        const duration = model?.ephemeralDuration, settingTimestamp = model?.ephemeralSettingTimestamp;
+        const duration = model?.ephemeralDuration;
+        // GroupMetadata owns the live group timer in Meta's split runtime;
+        // it carries no setting timestamp, unlike the conversation model.
+        const settingTimestamp = model?.ephemeralSettingTimestamp ?? 0;
         if (typeof chatId !== 'string' || !/^[\w.:-]+@(c\.us|s\.whatsapp\.net|lid|g\.us)$/.test(chatId)
             || !Number.isSafeInteger(duration) || duration < 0
             || !Number.isSafeInteger(settingTimestamp) || settingTimestamp < 0) return;
@@ -31,11 +37,14 @@ export function installChatTimerInPage() {
     state.disposed = true;
     store.off('change:ephemeralDuration', state.handler);
     store.off('change:ephemeralSettingTimestamp', state.handler);
+    if (typeof groups?.off === 'function') groups.off('change:ephemeralDuration', state.handler);
     state.pending.clear();
     if (win['__winzappChatTimerObserver'] === state) delete win['__winzappChatTimerObserver'];
   };
   store.on('change:ephemeralDuration', state.handler);
   store.on('change:ephemeralSettingTimestamp', state.handler);
+  if (typeof groups?.on === 'function' && typeof groups?.off === 'function')
+    groups.on('change:ephemeralDuration', state.handler);
   win['__winzappChatTimerObserver'] = state;
   return true;
 }

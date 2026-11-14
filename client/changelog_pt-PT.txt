@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Corrigida a atualização em tempo real das mensagens temporárias em grupos quando o WhatsApp altera apenas os metadados do grupo.
+
 - Eliminar uma conversa noutro dispositivo remove a sua cópia do WinZapp quando chega o aviso de eliminação; uma conversa com mensagens posteriores ao aviso é preservada.
 
 - Fixar ou desafixar uma mensagem noutro dispositivo atualiza a sua marca e o resumo de mensagens fixadas da conversa aberta quando chega o aviso.

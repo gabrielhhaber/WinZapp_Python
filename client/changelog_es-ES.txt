@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Corregida la actualización en tiempo real de mensajes temporales cuando WhatsApp cambia solo los metadatos del grupo.
+
 - Eliminar un chat en otro dispositivo retira su copia de WinZapp al llegar el aviso de eliminación; se conserva si contiene mensajes posteriores.
 
 - Fijar o desfijar un mensaje en otro dispositivo actualiza su marca y el resumen de mensajes fijados del chat abierto al llegar el aviso.

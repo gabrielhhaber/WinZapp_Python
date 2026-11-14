@@ -53,18 +53,25 @@ archive and pin states were restored. No native UI or Neonize session was opened
 
 `chat-timer-changed`: `{session, chatId, duration, settingTimestamp}` uses seconds
 for both the duration and Unix setting timestamp. Zero duration explicitly turns
-the timer off; absent or invalid values never do. WPPConnect coalesces changes to
-`ephemeralDuration` and `ephemeralSettingTimestamp` within one model batch and
-observes no collection hydration. Neonize emits after storing an explicit
+the timer off; absent or invalid durations never do. WPPConnect coalesces changes
+to ChatStore's `ephemeralDuration` and `ephemeralSettingTimestamp` within one model
+batch, and also observes `GroupMetadataStore.change:ephemeralDuration`. In Meta's
+split runtime the latter changes while the conversation field can remain stale;
+group metadata carries no setting timestamp, represented as zero (unknown).
+Collection hydration emits nothing. Neonize emits after storing an explicit
 EPHEMERAL_SETTING notice or GroupInfo ephemeral change; inferred timers from
 ordinary messages and history hydration do not emit. The client updates known
 conversation aliases and schedules persistence, ignoring known older timestamps.
 
-CDP on 2026-11-14 confirmed the live group fields, but the real timer-change
-action was refused with `you_are_not_allowed_set_group_property`. The setting
-remained unchanged and the temporary observer was removed. Source/Node/Python
-tests pass; a real change by a group administrator remains necessary to confirm
-live receipt. Neonize was not started.
+The initial CDP test on 2026-11-14 was refused in the development group with
+`you_are_not_allowed_set_group_property`. The user then authorized another named
+group where this account is an administrator. A real change from off to 86400
+seconds exposed the metadata-only update. After adding its observer, the exact
+source captured 86400 then 0, both with the matching group identity. The original
+off setting was verified restored and temporary observers/bindings were removed.
+Node tests reproduce the metadata-only change and verify disposal. Neonize and
+rebuilt Node-to-client delivery were not started; cross-device receipt remains
+a later live validation.
 
 ## Message pin notices
 

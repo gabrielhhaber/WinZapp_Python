@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WhatsApp yalnızca grup meta verilerini değiştirdiğinde süreli mesaj zamanlayıcısının anlık güncellenmesi düzeltildi.
+
 - Başka bir cihazda silinen sohbetin WinZapp kopyası, silme bildirimi geldiğinde kaldırılır; daha yeni mesajları olan sohbet korunur.
 
 - Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.

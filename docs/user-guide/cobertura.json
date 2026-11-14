@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "348844487143": "Corrigida a atualização em tempo real das mensagens temporárias em grupos quando",
     "6ae8e002a93b": "Excluir uma conversa em outro dispositivo remove sua cópia do WinZapp ao chegar ",
     "33d91fd29ffb": "Fixar ou desafixar uma mensagem em outro dispositivo atualiza sua marca e o resu",
     "9e2b425f8f5c": "Alterações no prazo das mensagens temporárias recebidas de outro dispositivo atu",
