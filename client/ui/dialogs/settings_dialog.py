@@ -8,10 +8,7 @@ from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
 from core import connection_engine as engines
 from core.listed_chats import channels_listed
-from core.notification_burst import (
-    BURST_LIMIT, BURST_LIMIT_MAX, BURST_LIMIT_MIN, SETTINGS_KEY as BURST_SETTINGS_KEY,
-    burst_limit,
-)
+from core.notification_burst import BURST_LIMIT, BURST_LIMIT_MAX, BURST_LIMIT_MIN, burst_limit
 from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
 from ui.dialogs import engine_picker
 from core.i18n import LANGUAGE_NAMES
@@ -4402,7 +4399,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
-            self.main_window.settings["general"][BURST_SETTINGS_KEY] = (
+            self.main_window.settings.setdefault("general", {})["notification_burst_limit"] = (
                 self._notification_burst_spin.GetValue()
             )
 
