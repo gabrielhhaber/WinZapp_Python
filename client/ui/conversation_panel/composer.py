@@ -165,7 +165,7 @@ class ComposerMixin:
             menu.AppendSubMenu(suggestions_menu, t("spell_orthography"))
             menu.AppendSeparator()
         if writing_offered:
-            writing_item = menu.Append(wx.ID_ANY, t("writing_menu"))
+            writing_item = menu.Append(wx.ID_ANY, self._writing_menu_label())
             menu.Bind(wx.EVT_MENU, lambda e: self._on_writing_help(), writing_item)
             menu.AppendSeparator()
         # Keep the standard edit commands next to the suggestions. The labels
