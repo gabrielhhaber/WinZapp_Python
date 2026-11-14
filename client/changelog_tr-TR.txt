@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sohbet özetleri: WinZapp'a, cep telefonları için WhatsApp'taki okunmamış mesaj özetlerine benzer bir özellik eklenir. Yeterince okunmamış mesaj olduğunda (varsayılan 10, Ayarlar > Çevrimiçi yapay zeka bölümünden değiştirilebilir), sohbete "Okunmayanları özetle" düğmesi ve Alt+Shift+U kısayolu eklenir: Meta AI değil, WinZapp'ta açıklamalar için yapılandırılmış yapay zeka sağlayıcıları kaçırdıklarınızı özetler ve aynı pencerede takip soruları sorabilirsiniz. İlk kullanımda ayrıca onam ister, çünkü okunmamış mesajların metni sağlayıcıya gönderilir; kilitli sohbetler bunu asla önermez. Bu özellik sesli mesajları yazıya dökmez; bu nedenle içerikleri özete dahil edilmez.
+
 - Neonize: Meta AI şartlarını kabul etmek artık bir WhatsApp hatasıyla başarısız olmuyor. WinZapp kabulü artık WhatsApp Web'in bu bildirim için kullandığı biçimde gönderiyor ve yalnızca bildirimin kabul edilmiş olarak kayıtlı olduğunu yeniden okuduktan sonra onaylıyor.
 
 - Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.

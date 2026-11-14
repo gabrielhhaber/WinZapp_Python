@@ -1322,6 +1322,11 @@ msgid "Accessible PDF text"
 msgstr "Accessible PDF text"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "Unread messages summary"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Voice message transcription (online AI)"
@@ -1365,6 +1370,39 @@ msgstr "Show or &hide key"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "S&tatus"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Summarize unread messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_consent_notice"
+msgid ""
+"This summary sends the text of your unread messages in this chat — not a "
+"file: the names and words of the people in it go with it."
+msgstr ""
+"This summary sends the text of your unread messages in this chat — not a "
+"file: the names and words of the people in it go with it."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_min_unread_label"
+msgid ""
+"Offer to summari&ze when a chat has at least this many unread messages (0 = "
+"never):"
+msgstr ""
+"Offer to summari&ze when a chat has at least this many unread messages (0 = "
+"never):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary to offer here: not enough unread messages or no provider set up."
+msgstr ""
+"No summary to offer here: not enough unread messages or no provider set up."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -12919,6 +12957,11 @@ msgid ""
 msgstr ""
 "Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
 "open the transcription already saved"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: summarize unread messages"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"

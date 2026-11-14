@@ -124,7 +124,7 @@ SETTINGS_PAGE = (
     "ai_accessibility_enabled_label", "ai_provider_list_label", "ai_provider_configure_button",
     "ai_provider_move_up_button", "ai_provider_move_down_button", "ai_kinds_button",
     "ai_profile", "ai_read_answers", "ai_hide_action_button", "ai_auto_button", "ai_settings_help",
-    "ai_technical_info", "translation_settings", "ai_reset_keys", "ai_status_label",
+    "ai_summary_min_unread_label", "ai_technical_info", "translation_settings", "ai_reset_keys", "ai_status_label",
 )
 #: The window of the kinds of media, opened from the page (ai_kinds_options.py).
 KINDS_WINDOW = (

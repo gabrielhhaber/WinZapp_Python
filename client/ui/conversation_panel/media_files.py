@@ -1153,6 +1153,7 @@ class MediaFilesMixin:
             getattr(self, "_action_open_btn", None),
             getattr(self, "_action_save_as_btn", None),
             getattr(self, "_action_describe_btn", None),
+            getattr(self, "_summary_btn", None),
             getattr(self, "_action_show_in_folder_btn", None),
             getattr(self, "_action_download_btn", None),
         )

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chat summaries: WinZapp gains a feature similar to unread-message summaries in WhatsApp for mobile. With enough unread messages (10 by default, settable in Settings > Online AI), the conversation gains a "Summarize unread messages" button and the Alt+Shift+U shortcut: the AI providers already configured for descriptions in WinZapp, not Meta AI, summarize what you missed, with follow-up questions in the same window. The first use asks consent separately, because the text of the unread messages itself is sent to the provider; locked chats never offer it. This feature does not transcribe voice messages, so their content is not included in the summary.
+
 - Neonize: accepting the Meta AI terms no longer fails with a WhatsApp error. WinZapp now sends the acceptance in the same format WhatsApp Web uses for this notice and only confirms it after reading again that the notice is recorded as accepted.
 
 - Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.

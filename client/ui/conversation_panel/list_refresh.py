@@ -390,6 +390,10 @@ class ListRefreshMixin:
         message to the list; otherwise does nothing (the unread badge in the
         conversations list is updated separately via set_chats).
         """
+        # A new unread message may cross the summary threshold either way.
+        # Tests bind this method without a wx.App: only schedule then.
+        if wx.GetApp() is not None:
+            wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))
         # Reactions are handled BEFORE the "is this conversation open?" guard
         # below — unlike a normal message, a reaction still has to be recorded
         # for a chat the user is not currently looking at. See

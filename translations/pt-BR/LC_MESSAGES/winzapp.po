@@ -1339,6 +1339,11 @@ msgid "Accessible PDF text"
 msgstr "Texto acessível do PDF"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_result_summary_title"
+msgid "Unread messages summary"
+msgstr "Resumo de mensagens não lidas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Transcrição da mensagem de voz (IA online)"
@@ -1382,6 +1387,43 @@ msgstr "Mostrar ou ocultar c&have"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "&Status"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Resumir não lidas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_consent_notice"
+msgid ""
+"This summary sends the text of your unread messages in this chat — not a "
+"file: the names and words of the people in it go with it."
+msgstr ""
+"Este resumo envia o texto das suas mensagens não lidas desta conversa, não "
+"um arquivo: os nomes e as palavras dos participantes vão junto."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#| msgid ""
+#| "Offer to summarize when a chat has at least this many unread messages (0 = "
+#| "never):"
+msgctxt "ai_summary_min_unread_label"
+msgid ""
+"Offer to summari&ze when a chat has at least this many unread messages (0 = "
+"never):"
+msgstr ""
+"Oferecer resumir quando uma conversa tiver pelo menos esta quantidade de "
+"mensagens n&ão lidas (0 = nunca):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary to offer here: not enough unread messages or no provider set up."
+msgstr ""
+"Nenhum resumo disponível aqui: não há mensagens não lidas suficientes ou "
+"nenhum provedor configurado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
@@ -13042,6 +13084,11 @@ msgid ""
 msgstr ""
 "Alt+Shift+T: transcrever localmente o status de áudio ou de vídeo com o "
 "Whisper, ou abrir a transcrição já salva"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Alt+Shift+U: summarize unread messages"
+msgstr "Alt+Shift+U: resumir mensagens não lidas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
