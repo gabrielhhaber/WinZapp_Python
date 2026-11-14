@@ -32,6 +32,7 @@ _REASONS = {
     'Configured microphone name is ambiguous': 'ambiguous_microphone',
     'Configured microphone was not found': 'microphone_not_found',
     'Invalid audio packet': 'invalid_packet',
+    'Cannot open audio process': 'open_process_failed',
     'System-audio volume must be finite and between 0 and 100': 'invalid_system_audio_volume',
     'NVDA volume must be finite and between 0 and 100': 'invalid_nvda_volume',
     'Source count must be a positive integer': 'invalid_source_count',

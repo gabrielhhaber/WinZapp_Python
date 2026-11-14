@@ -10,6 +10,7 @@ every attribute ``__init__`` sets is available in every mixin.
 Where to look (and where new code goes):
 
   Mixins (methods of MainWindow)
+    call_desktop_audio  desktop audio sharing during voice calls
     window_chrome       menu bar, title, accounts menu, IPC, bookmark/global hotkeys
     window_lifecycle    activation, tray, close/hide/restore, focus, shutdown
     shortcuts           accelerator table, Alt+N navigation, output() speech funnel

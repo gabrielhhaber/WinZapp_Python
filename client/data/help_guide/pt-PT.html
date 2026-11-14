@@ -789,6 +789,11 @@
 <p>O Neonize mantém áudio atrasado, tarefas de câmara e mudanças de dispositivo associados à chamada e ao fluxo que os iniciaram. Os dados pendentes de um fluxo terminado ou substituído são descartados, e a acumulação de dados é limitada. Uma falha temporária ao encaminhar um quadro para o cliente não interrompe permanentemente a leitura de áudio. Ao reabrir a saída, o fluxo antigo não pode consumir o áudio do novo fluxo; uma falha na referência de eco não silencia o áudio já preparado para reprodução. Uma correspondência parcial ambígua do nome de um dispositivo WASAPI mantém a API original, sem escolher uma correspondência arbitrária.</p>
 <p>Para investigar problemas, os registos de chamadas do Neonize incluem resumos numéricos do sinal sem gravar o conteúdo do áudio. Distinguem a ausência de amostras, silêncio digital e níveis do sinal; não comprovam que a fala foi compreendida ou ouvida pela outra pessoa.</p>
 
+<h3>Partilhar áudio do ambiente de trabalho</h3>
+<p>Durante uma chamada de voz no Windows 11, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema ou o de uma única aplicação, com ou sem o áudio do NVDA, no volume que escolher. De início nada vem selecionado. Silenciar o microfone não interrompe a partilha, e mudar os dispositivos de áudio da chamada mantém-na. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.</p>
+<p>Escolha o áudio do sistema ou de uma aplicação com sessão de áudio. Inclua o NVDA separadamente e ajuste o volume da partilha.</p>
+<p>Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -1423,6 +1428,9 @@
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Chamadas: melhor compatibilidade com microfones e auscultadores estéreo no modo partilhado, com recurso a mono quando necessário. A voz continua a ser enviada em mono.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Na janela da chamada, prima Ctrl+M em qualquer controlo para silenciar ou reativar o microfone e ouvir o seu estado. A janela da chamada efetuada mostra o estado e anuncia quando o telefone toca ou a ligação está a ser estabelecida.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Durante uma chamada de voz no Windows 11, utilize Partilhar áudio do ambiente de trabalho para enviar o áudio do sistema ou o de uma única aplicação, com ou sem o áudio do NVDA, no volume que escolher. De início nada vem selecionado. Silenciar o microfone não interrompe a partilha, e mudar os dispositivos de áudio da chamada mantém-na. Utilize Parar de partilhar áudio do ambiente de trabalho para terminar a partilha independentemente do microfone.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais de tempo no buffer (cerca de 60 ms), para reduzir os cortes quando o áudio chega em rajadas.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Tradução de mensagens (Shift+Enter ou menu de contexto da mensagem), com tradução automática, regras das conversas trancadas e pausa de uma hora; os tipos de conteúdo da IA online ficam em "Tipos de conteúdo processados...".</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Motor de ligação: o Neonize vem primeiro na lista e já selecionado na primeira abertura; o WPPConnect é a segunda opção, marcado como legado.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Neonize: o ficheiro multimédia antigo reenviado pelo telemóvel após o pedido de novo envio é transferido, sem depender da verificação do ficheiro original.</td></tr>

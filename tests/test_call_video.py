@@ -1020,3 +1020,13 @@ def test_a_failed_open_lets_the_user_try_video_on_again(monkeypatch):
     stub._resume_call_camera()
 
     assert stub._call_camera_resuming is False
+
+
+def test_outgoing_call_label_follows_phase():
+    base = {"outgoing": True}
+    assert active_call_label_key({**base, "phase": "CALLING"}) == "voice_call_starting"
+    assert active_call_label_key({**base, "phase": "RINGING"}) == "voice_call_ringing"
+    assert active_call_label_key({**base, "phase": "CONNECTING"}) == "voice_call_connecting"
+    assert active_call_label_key({**base, "phase": "ACTIVE"}) == "voice_call_active_label"
+    assert active_call_label_key({**base, "phase": "RINGING", "is_video": True}) == "voice_call_ringing"
+    assert active_call_label_key({"phase": "RINGING"}) == "voice_call_active_label"

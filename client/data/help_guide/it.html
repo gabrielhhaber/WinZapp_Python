@@ -789,6 +789,11 @@
 <p>Neonize associa l'audio in ritardo, le operazioni della videocamera e i cambi di dispositivo alla chiamata e al flusso che li hanno avviati. I dati in attesa di un flusso terminato o sostituito vengono scartati e l'accumulo di dati multimediali è limitato. Un errore temporaneo nell'invio di un fotogramma al client non interrompe definitivamente la lettura dell'audio. Quando si riapre l'uscita, il vecchio flusso non può consumare l'audio del nuovo; un errore nel riferimento dell'eco non silenzia l'audio pronto per la riproduzione. Una corrispondenza parziale ambigua del nome di un dispositivo WASAPI mantiene l'API originale senza scegliere una corrispondenza arbitraria.</p>
 <p>Per indagare sui problemi, i registri delle chiamate Neonize includono riepiloghi numerici del segnale senza registrare il contenuto audio. Distinguono tra campioni mancanti, silenzio digitale e livelli del segnale; non dimostrano che l'altra persona abbia capito o sentito la voce.</p>
 
+<h3>Condividi audio del desktop</h3>
+<p>Durante una chiamata vocale su Windows 11, usa Condividi audio del desktop per inviare l’audio di sistema o quello di una sola applicazione, con o senza l’audio di NVDA, al volume che scegli. All’inizio non è selezionato nulla. Disattivare il microfono non interrompe la condivisione, e cambiare i dispositivi audio della chiamata la mantiene. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.</p>
+<p>Scegli l’audio di sistema o un’applicazione con una sessione audio. Puoi includere NVDA separatamente e regolare il volume.</p>
+<p>Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato. La finestra della chiamata in uscita mostra lo stato e annuncia quando il telefono squilla o la chiamata si sta connettendo.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -1422,6 +1427,9 @@
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
   <tr><td class="field-name">Not yet released</td><td>Chiamate: migliore supporto per microfoni e cuffie stereo in modalità condivisa, con ripiego su mono quando necessario. La voce continua a essere inviata in mono.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Nella finestra della chiamata, premi Ctrl+M da qualsiasi controllo per disattivare o riattivare il microfono e ascoltarne lo stato. La finestra della chiamata in uscita mostra lo stato e annuncia quando il telefono squilla o la chiamata si sta connettendo.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Durante una chiamata vocale su Windows 11, usa Condividi audio del desktop per inviare l’audio di sistema o quello di una sola applicazione, con o senza l’audio di NVDA, al volume che scegli. All’inizio non è selezionato nulla. Disattivare il microfono non interrompe la condivisione, e cambiare i dispositivi audio della chiamata la mantiene. Usa Interrompi condivisione audio del desktop per interrompere l’invio indipendentemente dal microfono.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize: nelle chiamate, la voce dell’altra persona resta un po’ più a lungo nel buffer (circa 60 ms) per ridurre le interruzioni quando l’audio arriva a raffiche.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Traduzione dei messaggi (Shift+Enter o menu contestuale del messaggio), con traduzione automatica, regole delle chat bloccate e pausa di un'ora; i tipi di contenuto dell'IA online sono in "Tipi di contenuto elaborati...".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Connection engine: Neonize comes first in the list and is already selected on the first launch; WPPConnect is the second option, marked as legacy.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize: i media vecchi che il telefono ricarica dopo la richiesta di nuovo invio vengono scaricati, senza dipendere dalla verifica del file originale.</td></tr>

@@ -63,6 +63,10 @@ class TimelineMixer:
     def _frame(self, timestamp):
         return round((timestamp - self.epoch) * self.rate / 10_000_000)
 
+    def reset_source(self, source):
+        """Forget the packet state before reusing a slot for a new process."""
+        self._pending[source] = self._last_stamp[source] = self._last_end[source] = None
+
     def add(self, source, packet):
         if source not in range(self.source_count) or len(packet.data) % (4 * self.channels):
             raise ValueError('Invalid audio packet')
