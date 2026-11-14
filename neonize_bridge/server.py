@@ -1047,11 +1047,18 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             try:
                 jid = local_chat(c, e.JID)
                 last = self.db.raw_last(jid)
+                covered = msgmap.seconds(e.Action.messageRange.lastMessageTimestamp) if e.Action.HasField("messageRange") else 0
+                until = int(covered or msgmap.seconds(e.Timestamp))
                 if not phone_chat_delete.applies(
-                        e.FromFullSync, msgmap.seconds(e.Timestamp),
+                        e.FromFullSync, until,
                         last["t"] if last is not None else None):
                     return
+                if covered and last is not None and last["t"] > covered:
+                    return
                 self.db.delete_chat(jid)
+                if until > 0:
+                    self.emit("chat-deleted", {"session": self.name,
+                        "chatId": msgmap.jid_wpp(jid), "until": until})
                 log.info("chat deleted on the phone -> app")
             except Exception:
                 log.exception("chat delete on the phone")

@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Eliminar un chat en otro dispositivo retira su copia de WinZapp al llegar el aviso de eliminación; se conserva si contiene mensajes posteriores.
+
 - Fijar o desfijar un mensaje en otro dispositivo actualiza su marca y el resumen de mensajes fijados del chat abierto al llegar el aviso.
 
 - Los cambios del plazo de mensajes temporales recibidos de otro dispositivo actualizan los datos del chat sin esperar una sincronización completa.

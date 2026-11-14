@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Deleting a chat on another device removes its WinZapp copy when the deletion notice arrives; a chat with newer messages is preserved.
+
 - Pinning or unpinning a message on another device updates its flag and the open chat’s pinned-message overview when the notice arrives.
 
 - Disappearing-message timer changes received from another device update chat details without waiting for a full sync.

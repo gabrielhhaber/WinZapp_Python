@@ -92,6 +92,28 @@ The exact observer captured unpin, pin (86400 seconds), unpin, each with the
 correct target. Storage confirmed unpinned afterward; the temporary wrapper and
 bindings were removed. Neonize live receipt remains untested.
 
+## Conversation deletion
+
+`chat-deleted`: `{session, chatId, until}` names the latest covered message's
+Unix second. WPPConnect wraps `WAWebDeleteChatSync.applyMutations`, accepts only
+explicit SET deleteChat indexes with an available message range and successful
+native results. A generic ChatStore removal/eviction never deletes client history.
+Neonize emits after its existing storage cleanup, suppressing full-sync replay;
+it prefers the explicit message range over the mutation's operation timestamp.
+Newer bridge messages prevent cleanup.
+
+The client normalizes account/chat identity, checks both stored history and
+resident aliases for newer messages, and closes only the affected open view.
+It reuses local deletion, durable deleted-chat markers and lock cleanup, without
+sending any delete or leave-group action. Failed disk checks suppress cleanup.
+This is a deletion notice, not evidence inferred from an absent chat in a poll.
+
+CDP on 2026-11-14 inspected the actual sync index, result and range contract.
+The exact observer ran in an isolated fake-native context using the authorized
+group identity: one success emitted one notice, failed/orphan/remove cases did
+not. The real group's history was verified unchanged. A real destructive
+cross-device deletion and Neonize live delivery remain untested.
+
 ## Favorites
 
 `message-star-changed`: `{session, chatId, messageId, starred}`. `chatId` is

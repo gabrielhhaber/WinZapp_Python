@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- L’eliminazione di una chat su un altro dispositivo rimuove la copia di WinZapp all’arrivo della notifica; le chat con messaggi più recenti vengono conservate.
+
 - Fissare o rimuovere un messaggio fissato su un altro dispositivo aggiorna il contrassegno e il riepilogo dei messaggi fissati nella chat aperta all’arrivo della notifica.
 
 - Le modifiche al timer dei messaggi effimeri ricevute da un altro dispositivo aggiornano i dettagli della chat senza attendere una sincronizzazione completa.
