@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartej rozmowie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.
+
 - Neonize: edycje zachowują identyfikator oryginalnej wiadomości i zapisują pełny klucz powiadomienia o edycji, w tym autora w grupach.
 
 - Neonize: zdarzenia reakcji używają formatu WPPConnect, z pełnymi kluczami reakcji i oryginalnej wiadomości, nadawcą oraz czasem w sekundach.

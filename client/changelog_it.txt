@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Aggiungere o rimuovere la stella da un messaggio sul telefono o su un altro dispositivo aggiorna il contrassegno nella conversazione aperta quando arriva la notifica, con WPPConnect e Neonize.
+
 - Neonize: le modifiche conservano l’identificativo del messaggio originale e registrano la chiave completa dell’avviso di modifica, incluso l’autore nei gruppi.
 
 - Neonize: gli eventi delle reazioni usano il formato WPPConnect, con le chiavi complete della reazione e del messaggio originale, il mittente e l’orario in secondi.

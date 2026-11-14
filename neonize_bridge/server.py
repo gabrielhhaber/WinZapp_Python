@@ -76,6 +76,7 @@ import pairing_history
 import pairing_repair
 import group_receipts
 import message_rules
+import message_state_events
 import responses
 import remaining
 import redaction
@@ -1020,7 +1021,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageStarEv)
         def _starred_on_phone(c, e):
             try:
-                self.db.change_message(e.MessageID, star=bool(e.Action.starred))
+                message_state_events.star_changed(self, e, jid_text)
                 log.info("message %s on the phone", "starred" if e.Action.starred else "unstarred")
             except Exception:
                 log.exception("star on the phone")

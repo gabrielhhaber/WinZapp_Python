@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Marcar ou desmarcar uma mensagem como favorita no telemóvel ou noutro dispositivo atualiza a marca na conversa aberta assim que chega o aviso, com WPPConnect e Neonize.
+
 - Neonize: as edições preservam o identificador da mensagem original e registam a chave completa do aviso de edição, incluindo o autor nos grupos.
 
 - Neonize: os eventos de reações usam o formato do WPPConnect, com as chaves completas da reação e da mensagem original, o autor e a hora em segundos.

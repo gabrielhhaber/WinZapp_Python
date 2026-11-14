@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Starring or unstarring a message on the phone or another device updates its mark in the open conversation when the notice arrives, with WPPConnect and Neonize.
+
 - Neonize: edits preserve the original message ID and record the complete edit-notice key, including the author in groups.
 
 - Neonize: reaction events use the WPPConnect format, with complete keys for the reaction and original message, the sender and a timestamp in seconds.

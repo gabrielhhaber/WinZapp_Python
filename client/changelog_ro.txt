@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Marcarea sau demarcarea cu stea a unui mesaj pe telefon ori alt dispozitiv actualizează marcajul în conversația deschisă la primirea notificării, cu WPPConnect și Neonize.
+
 - Neonize: editările păstrează identificatorul mesajului original și înregistrează cheia completă a notificării de editare, inclusiv autorul în grupuri.
 
 - Neonize: evenimentele reacțiilor folosesc formatul WPPConnect, cu cheile complete ale reacției și mesajului original, expeditorul și timpul în secunde.

@@ -1,0 +1,66 @@
+"""Live star observations change flags only; content and local stars survive."""
+import logging
+import re
+import time
+
+import wx
+
+from core.jid_device import strip_device_suffix
+from core.message_stars import apply_remote_star, remote_star_state
+
+
+def message_target(data):
+    if not isinstance(data, dict):
+        return None
+    jid, mid = data.get("chatId"), data.get("messageId")
+    if (not isinstance(jid, str) or len(jid) > 128
+            or not re.fullmatch(r"[\w.:-]+@(c\.us|s\.whatsapp\.net|lid|g\.us)", jid)
+            or not isinstance(mid, str) or not mid or len(mid) > 128):
+        return None
+    return strip_device_suffix(jid).replace("@c.us", "@s.whatsapp.net"), mid
+
+
+def chat_aliases(mw, jid):
+    aliases = {jid}
+    if jid.endswith("@lid"):
+        aliases.add(getattr(mw, "_lid_to_phone", {}).get(jid))
+    elif jid.endswith("@s.whatsapp.net"):
+        aliases.add(getattr(mw, "_phone_to_lid", {}).get(jid))
+    return {strip_device_suffix(j).replace("@c.us", "@s.whatsapp.net") for j in aliases if j}
+
+
+def apply_star_changed(mw, jid, mid, state):
+    """Main thread: mutate resident flags and schedule an atomic disk update."""
+    if getattr(mw, "_shutting_down", False):
+        return
+    aliases = chat_aliases(mw, jid)
+    for alias in aliases:
+        locked = getattr(mw, "is_chat_locked", lambda j: False)(alias)
+        if locked and not getattr(mw, "_chat_lock_unlocked", False):
+            continue
+        records = getattr(mw, "chats", {}).get(alias, {}).get("messages", {}).get("messages", {}).get("records", [])
+        changed = False
+        for record in records:
+            if (record.get("key") or {}).get("id") == mid:
+                changed = apply_remote_star(record, state) or changed
+        panel = getattr(mw, "conversations_panel", None)
+        if changed and panel is not None and (panel.conversation or {}).get("remoteJid") == alias:
+            panel._repaint_or_repopulate([mid])
+    def persist():
+        try:
+            for alias in aliases:
+                mw.db.update_message_star_state(alias, mid, state)
+        except Exception:
+            logging.exception("[message-star-changed] could not persist observation")
+    if getattr(mw, "db", None) is not None:
+        mw._msg_bg_executor.submit(persist)
+
+
+def on_star_changed(client, data):
+    if not isinstance(data, dict) or not client._belongs_to_this_session(data):
+        return
+    target = message_target(data)
+    if target is None or not isinstance(data.get("starred"), bool):
+        return
+    state = remote_star_state({"star": data["starred"]}, time.time_ns())
+    wx.CallAfter(apply_star_changed, client.main_window, *target, state)

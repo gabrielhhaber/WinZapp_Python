@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Favoritar ou desfavoritar uma mensagem no celular ou em outro dispositivo atualiza a marca na conversa aberta assim que o aviso chega, com WPPConnect e Neonize.
+
 - Neonize: as edições preservam o ID da mensagem original e registram a chave completa do aviso de edição, incluindo o autor em grupos.
 
 - Neonize: os eventos de reações usam o formato do WPPConnect, com as chaves completas da reação e da mensagem original, o autor e o horário em segundos.
