@@ -36,6 +36,7 @@ import legacy_layout
 import loop_watch
 import ongoing_calls
 import quote_fallback
+import undecryptable
 import group_events
 import events
 import contact_events
@@ -801,8 +802,30 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _responded(c, e):
             self._on_drop(generation, session_lifecycle.RESTORED, "keep-alive restored")
 
+        undecryptable_tally = undecryptable.Tally()
+
+        def _report_undecryptable():
+            summary = undecryptable_tally.due()
+            if summary:
+                log.info(summary)
+
+        @cli.event(nev.UndecryptableMessageEv)
+        def _undecryptable(c, e):
+            try:
+                undecryptable_tally.failed(bool(e.Info.MessageSource.IsFromMe),
+                                           bool(e.IsUnavailable))
+                _report_undecryptable()
+            except Exception:
+                log.exception("undecryptable message")
+
         @cli.event(nev.MessageEv)
         def _message(c, e):
+            try:
+                if e.UnavailableRequestID:
+                    undecryptable_tally.recovered()
+                _report_undecryptable()
+            except Exception:
+                log.exception("undecryptable summary")
             try:
                 o = e.Info.MessageSource
                 chat = jid_text(o.Chat)
