@@ -1422,23 +1422,6 @@ msgstr "Podsumuj nieprzeczytane"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
-#, python-brace-format
-msgctxt "ai_summary_cancel_confirm"
-msgid ""
-"Voice messages are being transcribed for a summary (message {index} of "
-"{total}). Cancel the summary?"
-msgstr ""
-"Trwa transkrypcja wiadomości głosowych na potrzeby podsumowania (wiadomość "
-"{index} z {total}). Anulować podsumowanie?"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "ai_summary_cancel_menu"
-msgid "Cancel the AI summary"
-msgstr "Anuluj podsumowanie przez AI"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_cancelled"
 msgid "Summary cancelled."
 msgstr "Podsumowanie anulowane."
@@ -1542,16 +1525,6 @@ msgid ""
 msgstr ""
 "Trwa inna transkrypcja. Poczekaj, aż się skończy, i poproś o podsumowanie "
 "ponownie."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
-msgctxt "ai_summary_voice_hint"
-msgid ""
-"To cancel, use the summary item in the context menu, or the summary shortcut"
-" in an open chat."
-msgstr ""
-"Aby anulować, użyj pozycji podsumowania w menu kontekstowym albo skrótu "
-"podsumowania w otwartym czacie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -22105,6 +22078,27 @@ msgstr "&Tak"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Wczoraj o {time}"
+
+#, python-brace-format
+#~ msgctxt "ai_summary_cancel_confirm"
+#~ msgid ""
+#~ "Voice messages are being transcribed for a summary (message {index} of "
+#~ "{total}). Cancel the summary?"
+#~ msgstr ""
+#~ "Trwa transkrypcja wiadomości głosowych na potrzeby podsumowania (wiadomość "
+#~ "{index} z {total}). Anulować podsumowanie?"
+
+#~ msgctxt "ai_summary_cancel_menu"
+#~ msgid "Cancel the AI summary"
+#~ msgstr "Anuluj podsumowanie przez AI"
+
+#~ msgctxt "ai_summary_voice_hint"
+#~ msgid ""
+#~ "To cancel, use the summary item in the context menu, or the summary shortcut"
+#~ " in an open chat."
+#~ msgstr ""
+#~ "Aby anulować, użyj pozycji podsumowania w menu kontekstowym albo skrótu "
+#~ "podsumowania w otwartym czacie."
 
 #~ msgctxt "noise_reducer_device_next_start"
 #~ msgid "A new processor applies from the next time WinZapp starts."

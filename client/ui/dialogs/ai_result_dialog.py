@@ -105,9 +105,50 @@ class AIConsentDialog(wx.Dialog):
         text.SetFocus()
 
 
+def needs_consent(config, providers, kind, locked):
+    """Whether the person must be asked before ``providers`` receive ``kind``:
+    a provider without remembered consent, or a locked chat (asked every time)."""
+    remembered = config[ai_config.consent_key(kind)]
+    return locked or any(p not in remembered for p in providers)
+
+
+def ask_consent(parent, i18n, app, config, providers, kind, locked, valid=lambda: True, track=None):
+    """Show the consent window when one is needed and remember the answer;
+    True when the media or text may be sent.
+
+    Consent covers every provider the data may reach. Remembered per provider,
+    never for a locked chat. ``valid`` is asked once the window closes (the
+    vault or the app may have closed under it); ``track`` is told the open
+    window, then None, so its owner can dismiss it while closing itself.
+    """
+    if not needs_consent(config, providers, kind, locked):
+        return True
+    dialog = AIConsentDialog(parent, i18n, providers, kind, locked)
+    if track is not None:
+        track(dialog)
+    try:
+        accepted = dialog.ShowModal() == wx.ID_OK and valid()
+        if accepted and dialog.remember.GetValue() and not locked:
+            key = ai_config.consent_key(kind)
+            def merge(old):
+                return ai_config.remember_consent(old, kind, providers, locked)
+            try:
+                app.update("ai_media", merge)
+                config[key] = sorted(set(config[key]) | set(providers))
+            except (OSError, RuntimeError):
+                # Consent is valid for this session even if remembering failed.
+                pass
+        return accepted
+    finally:
+        if track is not None:
+            track(None)
+        if dialog:
+            dialog.Destroy()
+
+
 class AIResultDialog(wx.Dialog):
     def __init__(self, panel, identity, kind, locked, config, app_settings, loader, mime,
-                 notice=""):
+                 notice="", preconsented=False):
         self.panel = panel
         #: What the caller says about the summary's input (messages left out,
         #: voice messages without words); shown above a summary and spoken with it.
@@ -120,7 +161,9 @@ class AIResultDialog(wx.Dialog):
         self.app = app_settings
         self.loader = loader
         self.mime = mime
-        self._consented = False
+        #: The panel asked before it transcribed anything (summary_actions.py):
+        #: asking again would be the same question twice, locked chat included.
+        self._consented = preconsented
         self._consent_dialog = None
         self._latest = ""
         self._timer = None
@@ -197,38 +240,20 @@ class AIResultDialog(wx.Dialog):
         saved = store.saved()
         return ai_config.chain(self.config, self.kind, lambda p: p in saved, prefer=self._provider)
 
-    def _consent_key(self):
-        """Chat summaries (kind "text") send the text of the messages
-        themselves: their remembered consent is kept apart from media's."""
-        return ai_config.consent_key(self.kind)
-
     def _consent(self, providers):
-        """Consent covers every provider the media may reach. Remembered per
-        provider, never for a locked chat."""
-        needed = [p for p in providers if p not in self.config[self._consent_key()]]
-        if self._consented or (not needed and not self.session.locked):
+        """Consent covers every provider the media may reach (ask_consent).
+        Chat summaries (kind "text") keep their remembered consent apart from
+        media's."""
+        if self._consented or not needs_consent(self.config, providers, self.kind, self.session.locked):
             self._consented = True
             return True
-        dialog = AIConsentDialog(self, self.i18n, providers, self.kind, self.session.locked)
-        self._consent_dialog = dialog
         try:
-            accepted = dialog.ShowModal() == wx.ID_OK and self._valid()
-            if accepted and dialog.remember.GetValue() and not self.session.locked:
-                key = self._consent_key()
-                def merge(old):
-                    return ai_config.remember_consent(old, self.kind, providers, self.session.locked)
-                try:
-                    self.app.update("ai_media", merge)
-                    self.config[key] = sorted(set(self.config[key]) | set(providers))
-                except (OSError, RuntimeError):
-                    # Consent is valid for this session even if remembering failed.
-                    pass
+            accepted = ask_consent(self, self.i18n, self.app, self.config, providers, self.kind,
+                                   self.session.locked, valid=self._valid,
+                                   track=lambda dialog: setattr(self, "_consent_dialog", dialog))
             self._consented = accepted
             return accepted
         finally:
-            self._consent_dialog = None
-            if dialog:
-                dialog.Destroy()
             # EndModal only requests exit. The child ShowModal must return
             # before MSW can end the parent's now-active modal event loop.
             if self.session.closed and self:

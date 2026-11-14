@@ -29,8 +29,6 @@ GROUP = "120363000000000000@g.us"
 TEXTS = {"ai_summary_left_out": "in {count} left {left_out}",
          "ai_summary_voice_missing": "markers {count}",
          "ai_summary_voice_progress": "voice {index}/{total}",
-         "ai_summary_voice_hint": "hint",
-         "ai_summary_cancel_confirm": "cancel? {index}/{total}",
          "datetime_fmt": "%H:%M"}
 
 
@@ -80,10 +78,13 @@ class Dialog:
     """AIResultDialog's recorder."""
     made = []
 
-    def __init__(self, panel, identity, kind, locked, config, app, loader, mime, notice=""):
-        self.args = NS(identity=identity, kind=kind, locked=locked, notice=notice, loader=loader, mime=mime)
+    def __init__(self, panel, identity, kind, locked, config, app, loader, mime, notice="",
+                 preconsented=False):
+        self.args = NS(identity=identity, kind=kind, locked=locked, notice=notice, loader=loader, mime=mime,
+                       preconsented=preconsented)
         self.disposed = self.destroyed = False
         Dialog.made.append(self)
+        panel.events.append("result window")
 
     def ShowModal(self):
         return 0
@@ -98,12 +99,52 @@ class Dialog:
         self.destroyed = True
 
 
+class ProgressWindow:
+    """TranscriptionProgressDialog's recorder: the job starts when the modal
+    loop would, and its report closes the window (here, run() returns)."""
+    made = []
+    #: What the person does inside the window before the job starts.
+    first_cancel = False
+    #: The window's job could not even start.
+    fail = False
+
+    def __init__(self, panel, i18n, speak_output, make_job, status, title=None):
+        self.panel, self.title, self.statuses, self.ticks = panel, title, [status], []
+        self.result = self.error = None
+        self.destroyed = False
+        self.job = make_job(self.ticks.append, self._finished)
+        ProgressWindow.made.append(self)
+
+    def _finished(self, result, error):
+        self.result, self.error = result, error
+
+    def set_status(self, text):
+        self.statuses.append(text)
+
+    def run(self):
+        self.panel.events.append("progress window")
+        if self.fail:
+            self._finished(None, errors.TranscriptionError(errors.BACKEND_ERROR, "x"))
+        else:
+            if self.first_cancel:
+                self.job.cancel()
+            self.job.start()
+        return 0
+
+    def Destroy(self):
+        self.destroyed = True
+        self.panel.events.append("progress window closed")
+
+
 class Panel(SummaryActionsMixin, SummaryVoiceMixin):
     _bulk_transcription_running = BulkTranscriptionMixin._bulk_transcription_running
 
     def __init__(self, store, config=None):
         self._bulk_transcription = None
         self.spoken = []
+        self.events = []
+        self.consents = []
+        self.consent_answer = True
         self.locked = set()
         self.unlocked = False
         self.settings_reads = 0
@@ -112,6 +153,7 @@ class Panel(SummaryActionsMixin, SummaryVoiceMixin):
         self.main_window = NS(
             i18n=NS(t=lambda key: TEXTS.get(key, key), language="pt-BR"),
             output=lambda text, interrupt=False: self.spoken.append(text),
+            speak_output=NS(output=lambda text, interrupt=False: self.spoken.append(text)),
             is_chat_locked=lambda jid: jid in self.locked,
             is_chat_hidden_by_vault=lambda jid: jid in self.locked and not self.unlocked,
             _resolve_contact_name=lambda chat: chat.get("name"),
@@ -192,6 +234,9 @@ def wx(monkeypatch):
     monkeypatch.setattr(actions, "wx", fake)
     monkeypatch.setattr(voice, "wx", fake)
     monkeypatch.setattr(voice.threading, "Thread", FakeThread)
+    monkeypatch.setattr(voice, "TranscriptionProgressDialog", ProgressWindow)
+    ProgressWindow.made = []
+    ProgressWindow.first_cancel = ProgressWindow.fail = False
     return fake
 
 
@@ -204,7 +249,14 @@ def panel(wx, monkeypatch):
     monkeypatch.setattr(actions, "active_account_id", lambda: "account")
     monkeypatch.setattr(dialog_module, "AIResultDialog", Dialog)
     Dialog.made = []
-    return Panel(store)
+    the_panel = Panel(store)
+
+    def ask_consent(parent, i18n, app, config, providers, kind, locked, valid=lambda: True, track=None):
+        the_panel.events.append("consent")
+        the_panel.consents.append(NS(providers=providers, kind=kind, locked=locked, valid=valid))
+        return the_panel.consent_answer
+    monkeypatch.setattr(dialog_module, "ask_consent", ask_consent)
+    return the_panel
 
 
 def with_unread(panel, rows=None):
@@ -352,14 +404,6 @@ class TestMenus:
         menu = Menu()
         panel._append_unread_summary_item(menu, {"remoteJid": JID, "unreadCount": 4})
         assert menu.labels == []
-
-    def test_while_voice_is_transcribed_the_menus_offer_only_the_cancellation(self, panel):
-        with_unread(panel)
-        panel._summary_voice_run = NS(running=True)
-        assert self._message_menu(panel, panel._sorted_messages[0]) == ["ai_summary_cancel_menu"]
-        menu = Menu()
-        panel._append_unread_summary_item(menu, {"remoteJid": JID, "unreadCount": 4})
-        assert menu.labels == ["ai_summary_cancel_menu"]
 
 
 class TestSender:
@@ -522,14 +566,15 @@ class TestVoiceMessages:
         assert panel.transcribed == ["id2"]
         assert "[Voice message] llego tarde" in Dialog.made[0].args.loader(None).decode()
         assert panel.kept == [(JID, "id2", "llego tarde")]
-        assert "voice 1/1 hint" in panel.spoken
+        assert ProgressWindow.made[0].statuses == ["voice 1/1"]
 
     def test_only_the_newest_twenty_are_transcribed_and_the_rest_are_said(self, panel):
         rows = [audio(n) for n in range(25)]
         panel._on_summarize_messages(rows)
         assert panel.transcribed == [f"id{n}" for n in range(5, 25)]
         assert Dialog.made[0].args.notice == "markers 5"
-        assert "voice 20/20" in panel.spoken
+        assert ProgressWindow.made[0].statuses[-1] == "voice 20/20"
+        assert len(ProgressWindow.made) == 1
 
     def test_a_transcription_that_is_not_set_up_is_said_once_and_leaves_markers(self, panel):
         panel.transcribe_with = lambda msg: (None, errors.TranscriptionError(errors.MODEL_NOT_INSTALLED, "x"))
@@ -567,18 +612,62 @@ class TestVoiceMessages:
         panel.transcribe_with = lock_then_answer
         panel._on_summarize_messages([audio(1), audio(2)])
         assert panel.transcribed == ["id1"] and Dialog.made == []
-        assert panel.spoken == ["voice 1/2 hint"]
+        assert panel.spoken == [] and ProgressWindow.made[0].statuses == ["voice 1/2"]
 
-    def test_the_summary_action_while_it_runs_asks_to_cancel(self, panel, wx):
+    def test_a_second_summary_while_it_runs_starts_nothing_and_asks_nothing(self, panel, wx):
         run = NS(running=True, index=2, total=5, cancelled=False)
         run.cancel = lambda: setattr(run, "cancelled", True)
         panel._summary_voice_run = run
+        with_unread(panel)
         panel._on_summary_action()
-        assert wx.asked == ["cancel? 2/5"] and run.cancelled is True
-        wx.answer = wx.NO
-        run.cancelled = False
         panel._on_summarize_messages([text(1)])
-        assert run.cancelled is False and Dialog.made == []
+        assert run.cancelled is False and Dialog.made == [] and wx.asked == []
+        assert panel.consents == [] and panel.spoken == []
+
+    def test_cancel_in_the_progress_window_drops_the_summary_without_a_question(self, panel, wx):
+        ProgressWindow.first_cancel = True
+        panel._on_summarize_messages([audio(1), audio(2)])
+        assert panel.transcribed == [] and Dialog.made == [] and wx.asked == []
+        assert panel.spoken == ["ai_summary_cancelled"] and panel._summary_voice_run.running is False
+
+    def test_cancel_during_a_message_stops_before_the_next_and_drops_the_summary(self, panel):
+        def cancel_then_answer(msg):
+            ProgressWindow.made[0].job.cancel()
+            return NS(text="hola", is_empty=False), None
+        panel.transcribe_with = cancel_then_answer
+        panel._on_summarize_messages([audio(1), audio(2), audio(3)])
+        assert panel.transcribed == ["id1"] and Dialog.made == []
+        assert panel.spoken[-1] == "ai_summary_cancelled"
+
+    def test_the_window_is_gone_before_the_result_opens(self, panel):
+        panel._on_summarize_messages([audio(1)])
+        assert panel.events == ["consent", "progress window", "progress window closed", "result window"]
+        assert ProgressWindow.made[0].destroyed and ProgressWindow.made[0].title == "ai_result_summary_title"
+
+    def test_the_window_shows_each_message_and_a_growing_gauge(self, panel):
+        panel._on_summarize_messages([audio(1), audio(2), audio(3), audio(4)])
+        window = ProgressWindow.made[0]
+        assert window.statuses == ["voice 1/4", "voice 2/4", "voice 3/4", "voice 4/4"]
+        assert [tick.percent for tick in window.ticks] == [0, 25, 50, 75]
+        assert all(tick.update_bar and not tick.speak for tick in window.ticks)
+
+    def test_no_window_when_there_is_nothing_to_transcribe(self, panel):
+        panel._on_summarize_messages([text(1), stored_voice(audio(2), "hola")])
+        assert ProgressWindow.made == []
+
+    def test_a_job_that_cannot_start_says_why_and_the_summary_goes_on_with_markers(self, panel):
+        ProgressWindow.fail = True
+        panel._on_summarize_messages([audio(1)])
+        assert panel.spoken == [errors.error_i18n_key(errors.BACKEND_ERROR)]
+        assert Dialog.made[0].args.notice == "markers 1" and panel._summary_voice_run.running is False
+
+    def test_a_window_that_raises_leaves_no_run_marked_as_running(self, panel, monkeypatch):
+        def broken(*args):
+            raise RuntimeError("synthetic")
+        monkeypatch.setattr(voice, "TranscriptionProgressDialog", broken)
+        with pytest.raises(RuntimeError):
+            panel._on_summarize_messages([audio(1)])
+        assert panel._summary_voice_run.running is False and panel._summary_voice_running() is False
 
     def test_leaving_the_chat_stops_only_a_run_started_from_it(self, panel):
         stopped = []
@@ -685,3 +774,71 @@ class TestStoringAfterTheVault:
             stub, JID, audio(1), NS(text="hola", language=None, language_probability=None,
                                     model_id="small", backend="faster-whisper", vad_used=True))
         assert len(stored) == 1
+
+
+class TestProgressJob:
+    def test_the_gauge_is_the_share_already_transcribed(self):
+        assert [voice.voice_progress_tick(n, 4).percent for n in (1, 2, 3, 4)] == [0, 25, 50, 75]
+        tick = voice.voice_progress_tick(1, 1)
+        assert (tick.percent, tick.update_bar, tick.speak) == (0, True, False)
+
+    def test_start_runs_the_work_on_its_thread_and_reports_its_sentence(self, wx):
+        reported = []
+        run = NS(cancel=lambda: None)
+        job = voice._SummaryVoiceJob(lambda r, announce: ("stopped" if r is run else "?"), run, None,
+                                     lambda result, error: reported.append((result, error)))
+        job.start()
+        assert reported == [("stopped", None)]
+
+    def test_cancel_cancels_the_run(self):
+        stopped = []
+        voice._SummaryVoiceJob(None, NS(cancel=lambda: stopped.append(True)), None, None).cancel()
+        assert stopped == [True]
+
+
+class TestConsentComesFirst:
+    def test_a_refusal_transcribes_nothing_sends_nothing_and_says_so(self, panel):
+        panel.consent_answer = False
+        panel._on_summarize_messages([text(1), audio(2)])
+        assert panel.transcribed == [] and ProgressWindow.made == [] and Dialog.made == []
+        assert panel.spoken == ["ai_summary_cancelled"] and panel.events == ["consent"]
+
+    def test_a_refusal_counts_without_voice_messages_too(self, panel):
+        panel.consent_answer = False
+        panel._on_summarize_messages([text(1), text(2)])
+        assert Dialog.made == [] and panel.spoken == ["ai_summary_cancelled"]
+
+    def test_the_question_is_asked_before_the_transcription_and_without_voice_too(self, panel):
+        panel._on_summarize_messages([text(1), audio(2)])
+        assert panel.events[:2] == ["consent", "progress window"]
+        panel.events.clear()
+        panel._on_summarize_messages([text(1)])
+        assert panel.events == ["consent", "result window"]
+
+    def test_the_result_window_is_told_not_to_ask_again(self, panel):
+        panel._on_summarize_messages([audio(1)])
+        assert Dialog.made[0].args.preconsented is True
+
+    def test_it_asks_for_the_text_providers_with_a_saved_key(self, panel):
+        panel._config = {"enabled": True, "order": ["gemini", "openai"], "disabled": []}
+        panel._on_summarize_messages([text(1)])
+        (asked,) = panel.consents
+        assert asked.providers == ["gemini"] and asked.kind == "text" and asked.locked is False
+
+    def test_a_locked_chat_asks_with_the_locked_flag_every_time(self, panel):
+        panel.locked.add(JID)
+        panel.unlocked = True
+        panel._on_summarize_messages([text(1)])
+        panel._on_summarize_messages([text(1)])
+        assert [c.locked for c in panel.consents] == [True, True]
+        assert all(d.args.locked and d.args.preconsented for d in Dialog.made)
+
+    def test_the_answer_only_counts_while_the_chat_is_visible_and_the_app_runs(self, panel):
+        panel._on_summarize_messages([text(1)])
+        valid = panel.consents[0].valid
+        assert valid() is True
+        panel.main_window._shutting_down = True
+        assert valid() is False
+        panel.main_window._shutting_down = False
+        panel.locked.add(JID)
+        assert valid() is False

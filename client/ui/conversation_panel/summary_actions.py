@@ -16,8 +16,10 @@ Where it is offered, all ending in ``_on_summarize_messages``:
 
 Only the button has a threshold; everything else is offered whenever there is
 something to summarize and Online AI can take text. A locked chat can be summarized too, with a
-consent asked every time and never remembered (AIResultDialog). Voice messages
-carry their transcription (summary_voice.py). Nothing here logs the messages.
+consent asked every time and never remembered. The consent comes first, before any
+voice message is transcribed (``_summary_consent``); AIResultDialog is told it was
+given. Voice messages carry their transcription (summary_voice.py). Nothing here
+logs the messages.
 
 Methods run with ``self`` bound to the ConversationsPanel instance.
 """
@@ -114,19 +116,8 @@ class SummaryActionsMixin:
 
     # ── Menu items ───────────────────────────────────────────────────────
 
-    def _append_summary_cancel_item(self, menu) -> bool:
-        """While voice messages are being transcribed for a summary the menus
-        offer only its cancellation; whether it did."""
-        if not self._summary_voice_running():
-            return False
-        item = menu.Append(wx.ID_ANY, self.main_window.i18n.t("ai_summary_cancel_menu"))
-        self.Bind(wx.EVT_MENU, lambda event: self._ask_cancel_summary_voice(), item)
-        return True
-
     def _append_summary_items(self, menu, msg):
         """Message-menu items of the open chat: unread, from here to the end, selection."""
-        if self._append_summary_cancel_item(menu):
-            return
         unread = self._summary_unread_messages()
         from_here = self._summary_messages_from(msg)
         selected = self._summary_selected_messages()
@@ -149,8 +140,6 @@ class SummaryActionsMixin:
     def _append_unread_summary_item(self, menu, chat):
         """Conversations-list item for a chat with unread messages. It reads the
         stored messages only: the chat is neither opened nor marked as read."""
-        if self._append_summary_cancel_item(menu):
-            return
         jid = chat.get("remoteJid")
         if int(chat.get("unreadCount") or 0) <= 0 or not jid:
             return
@@ -234,8 +223,7 @@ class SummaryActionsMixin:
         or offer to cancel the voice transcription under way."""
         mw = self.main_window
         if self._summary_voice_running():
-            self._ask_cancel_summary_voice()
-            return
+            return  # Its progress window is open; Cancel is there.
         if not self._summary_offered():
             mw.output(mw.i18n.t("ai_summary_not_available"), interrupt=True)
             return
@@ -247,7 +235,6 @@ class SummaryActionsMixin:
         mw = self.main_window
         t = mw.i18n.t
         if self._summary_voice_running():
-            self._ask_cancel_summary_voice()
             return
         if follows_open_chat is None:
             follows_open_chat = jid is None
@@ -258,7 +245,7 @@ class SummaryActionsMixin:
         if existing is not None:
             existing.Raise()
             return  # No second window or duplicate billed request.
-        _app, config = self._ai_settings()
+        app, config = self._ai_settings()
         if not self._summary_ready(config):
             mw.output(t("ai_summary_not_available"))
             return
@@ -266,10 +253,27 @@ class SummaryActionsMixin:
         if not messages:
             mw.output(t("ai_summary_nothing"))
             return
+        # Consent first, before any voice message is transcribed: declining
+        # leaves nothing transcribed and nothing sent.
+        if not self._summary_consent(app, config, jid):
+            mw.output(t("ai_summary_cancelled"), interrupt=True)
+            return
         self._summary_voice_step(
             messages, jid,
             lambda voice: self._open_summary(messages, jid, chat, voice, follows_open_chat),
             follows_open_chat)
+
+    def _summary_consent(self, app, config, jid) -> bool:
+        """Ask to send the messages' text to the providers that would take it
+        (once, remembered, for a common chat; every time for a locked one);
+        whether the person agreed. The result window does not ask again."""
+        mw = self.main_window
+        saved = CredentialStore(global_dir()).saved()
+        providers = ai_config.chain(config, "text", lambda p: p in saved)
+        from ui.dialogs.ai_result_dialog import ask_consent
+        return ask_consent(
+            self, mw.i18n, app, config, providers, "text", mw.is_chat_locked(jid),
+            valid=lambda: not getattr(mw, "_shutting_down", False) and not mw.is_chat_hidden_by_vault(jid))
 
     def _open_summary(self, messages, jid, chat, voice, follows_open_chat):
         """The transcript is built and the result window opens, once the voice
@@ -304,7 +308,8 @@ class SummaryActionsMixin:
         locked = mw.is_chat_locked(jid)
         from ui.dialogs.ai_result_dialog import AIResultDialog
         dialog = AIResultDialog(self, identity, "text", locked, config, app,
-                                lambda operation: data, "text/plain", notice="\n".join(notices))
+                                lambda operation: data, "text/plain", notice="\n".join(notices),
+                                preconsented=True)
         self._ai_dialog = dialog
         try:
             dialog.ShowModal()

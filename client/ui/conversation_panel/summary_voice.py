@@ -9,9 +9,11 @@ marker. Before the transcript is built:
   on the spot with the same local transcription, one after another on one
   worker thread — the job bulk_transcription.py runs — and each result is
   kept with its message like a bulk run keeps it;
-* progress is spoken ("voice message 3 of 12") and the run is cancellable
-  (Ctrl+Shift+U or the summary context-menu item again, with a question);
-  cancelling drops the whole summary;
+* the run stays behind the progress window of the manual transcription
+  (TranscriptionProgressDialog: "voice message 3 of 12" shown and spoken, a
+  gauge, Cancel); Cancel drops the whole summary, with no question. The
+  window closes by itself when the worker ends (finished, cancelled, failed,
+  vault closed, app quitting) and the result opens only after that;
 * if the local transcription is not set up, or a message fails, those messages
   stay markers and the result window says how many words were missing;
 * the vault hiding the chat stops the run without a word about its messages.
@@ -26,9 +28,40 @@ import wx
 from core.ai_media.summary import MAX_VOICE_TRANSCRIPTIONS, voice_to_transcribe
 from core.transcription import auto_queue, errors
 from core.transcription import stored as stored_transcription
+from core.transcription.management import ProgressTick, progress_percent
+from ui.dialogs.transcription_progress import TranscriptionProgressDialog
 
 #: The worker's "the vault hid the chat" ending, told apart from any sentence.
 _LOCKED = object()
+
+
+def voice_progress_tick(index, total):
+    """The gauge's report as message ``index`` (1-based) of ``total`` starts:
+    the share already transcribed. Never spoken (the status line is)."""
+    percent = progress_percent(index - 1, total)
+    return ProgressTick(index - 1, total, percent, True, False)
+
+
+class _SummaryVoiceJob:
+    """What the progress window runs: the worker thread of one run, with the
+    start()/cancel() the window expects. ``work(run, announce)`` returns the
+    sentence it stopped with (or None); the window learns the end through
+    ``on_finished`` on this thread and closes itself."""
+
+    def __init__(self, work, run, announce, on_finished):
+        self._work = work
+        self._run = run
+        self._announce = announce
+        self._on_finished = on_finished
+
+    def start(self):
+        threading.Thread(target=self._thread, daemon=True, name="winzapp-summary-voice").start()
+
+    def _thread(self):
+        self._on_finished(self._work(self._run, self._announce), None)
+
+    def cancel(self):
+        self._run.cancel()
 
 
 class VoiceOutcome:
@@ -111,18 +144,39 @@ class SummaryVoiceMixin:
             return
         run = _VoiceRun(jid, to_run, outcome, on_done, follows_open_chat)
         self._summary_voice_run = run
-        threading.Thread(target=self._summary_voice_worker, args=(run,),
-                         daemon=True, name="winzapp-summary-voice").start()
+        try:
+            stop_sentence = self._run_summary_voice(run)
+        finally:
+            run.running = False
+        self._finish_summary_voice(run, stop_sentence)
 
-    def _ask_cancel_summary_voice(self):
-        run = getattr(self, "_summary_voice_run", None)
-        if run is None or not run.running:
-            return
-        i18n = self.main_window.i18n
-        text = i18n.t("ai_summary_cancel_confirm").format(index=run.index, total=run.total)
-        if wx.MessageBox(text, i18n.t("ai_result_summary_title"),
-                         wx.YES_NO | wx.ICON_QUESTION, self) == wx.YES:
-            run.cancel()
+    def _run_summary_voice(self, run):
+        """Run the worker inside the progress window's modal loop; the
+        sentence it stopped with, or None. The window starts the job from a
+        wx.CallAfter queued before ShowModal and ends itself when the job
+        reports back, so nothing here calls EndModal."""
+        mw = self.main_window
+        i18n = mw.i18n
+        window = []
+
+        def make_job(on_progress, on_finished):
+            def announce(text, tick):
+                if text is not None:
+                    window[0].set_status(text)  # thread-safe: hops to the wx thread
+                on_progress(tick)
+            return _SummaryVoiceJob(self._summary_voice_worker, run, announce, on_finished)
+
+        first = i18n.t("ai_summary_voice_progress").format(index=1, total=run.total)
+        dialog = TranscriptionProgressDialog(
+            self, i18n, mw.speak_output, make_job, first, i18n.t("ai_result_summary_title"))
+        window.append(dialog)
+        try:
+            dialog.run()
+            if dialog.error is not None:
+                return i18n.t(errors.error_i18n_key(errors.BACKEND_ERROR))
+            return dialog.result
+        finally:
+            dialog.Destroy()
 
     def cancel_summary_voice(self):
         """Leaving the chat the run was started from: stop it, no question."""
@@ -142,7 +196,9 @@ class SummaryVoiceMixin:
 
     # ── The worker ───────────────────────────────────────────────────────────
 
-    def _summary_voice_worker(self, run):
+    def _summary_voice_worker(self, run, announce):
+        """On the job's thread: transcribe the run's messages one after another,
+        announcing each start; the sentence it stopped with, or None."""
         mw = self.main_window
         i18n = mw.i18n
         stop_sentence = None
@@ -154,10 +210,10 @@ class SummaryVoiceMixin:
                     stop_sentence = _LOCKED
                     break
                 run.index += 1
-                progress = i18n.t("ai_summary_voice_progress").format(index=run.index, total=run.total)
-                if run.index == 1:
-                    progress = f"{progress} {i18n.t('ai_summary_voice_hint')}"
-                wx.CallAfter(mw.output, progress)
+                # The first line is the window's own opening status.
+                progress = (i18n.t("ai_summary_voice_progress").format(index=run.index, total=run.total)
+                            if run.index > 1 else None)
+                announce(progress, voice_progress_tick(run.index, run.total))
                 result, error = self._bulk_transcribe_one(run, msg)
                 if error is not None:
                     if error.code == errors.CANCELLED:
@@ -176,7 +232,7 @@ class SummaryVoiceMixin:
         except Exception as exc:
             logging.error("[transcription] the summary voice step stopped: %s", type(exc).__name__)
             stop_sentence = i18n.t(errors.error_i18n_key(errors.BACKEND_ERROR))
-        wx.CallAfter(self._finish_summary_voice, run, stop_sentence)
+        return stop_sentence
 
     def _finish_summary_voice(self, run, stop_sentence):
         run.running = False

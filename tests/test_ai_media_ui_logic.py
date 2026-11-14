@@ -136,8 +136,8 @@ class DialogStub:
     _speak = AIResultDialog._speak
     _chain = AIResultDialog._chain
     _start = AIResultDialog._start
-    _consent_key = AIResultDialog._consent_key
     _summary_heading = AIResultDialog._summary_heading
+    app = None  # only read when a consent is remembered
 
     def __init__(self, *, locked=False, kind="image"):
         self.kind = kind

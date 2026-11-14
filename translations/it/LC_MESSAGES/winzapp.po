@@ -1421,23 +1421,6 @@ msgstr "Riassumi non letti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
-#, python-brace-format
-msgctxt "ai_summary_cancel_confirm"
-msgid ""
-"Voice messages are being transcribed for a summary (message {index} of "
-"{total}). Cancel the summary?"
-msgstr ""
-"Sono in corso le trascrizioni dei messaggi vocali per un riepilogo "
-"(messaggio {index} di {total}). Vuoi annullare il riepilogo?"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "ai_summary_cancel_menu"
-msgid "Cancel the AI summary"
-msgstr "Annulla il riepilogo con l'IA"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_cancelled"
 msgid "Summary cancelled."
 msgstr "Riepilogo annullato."
@@ -1541,16 +1524,6 @@ msgid ""
 msgstr ""
 "È in corso un'altra trascrizione. Attendi che finisca e chiedi di nuovo il "
 "riepilogo."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
-msgctxt "ai_summary_voice_hint"
-msgid ""
-"To cancel, use the summary item in the context menu, or the summary shortcut"
-" in an open chat."
-msgstr ""
-"Per annullare, usa la voce di riepilogo del menu contestuale oppure la "
-"scorciatoia di riepilogo in una chat aperta."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -22110,6 +22083,27 @@ msgstr "&Sì"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri alle {time}"
+
+#, python-brace-format
+#~ msgctxt "ai_summary_cancel_confirm"
+#~ msgid ""
+#~ "Voice messages are being transcribed for a summary (message {index} of "
+#~ "{total}). Cancel the summary?"
+#~ msgstr ""
+#~ "Sono in corso le trascrizioni dei messaggi vocali per un riepilogo "
+#~ "(messaggio {index} di {total}). Vuoi annullare il riepilogo?"
+
+#~ msgctxt "ai_summary_cancel_menu"
+#~ msgid "Cancel the AI summary"
+#~ msgstr "Annulla il riepilogo con l'IA"
+
+#~ msgctxt "ai_summary_voice_hint"
+#~ msgid ""
+#~ "To cancel, use the summary item in the context menu, or the summary shortcut"
+#~ " in an open chat."
+#~ msgstr ""
+#~ "Per annullare, usa la voce di riepilogo del menu contestuale oppure la "
+#~ "scorciatoia di riepilogo in una chat aperta."
 
 #~ msgctxt "noise_reducer_device_next_start"
 #~ msgid "A new processor applies from the next time WinZapp starts."
