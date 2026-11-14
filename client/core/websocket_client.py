@@ -376,6 +376,7 @@ class WebSocketClient:
         self.sio.on("groups.update", self.on_groups_update)
         self.sio.on("announcement-replies", self.on_announcement_replies)
         self.sio.on("channels-changed", self.on_channels_changed)
+        self.sio.on("offline-sync", self.on_offline_sync)
         self.sio.on("chat-cleared", self.on_chat_cleared)
         self.sio.on("event-changed", self.on_event_changed)
         self.sio.on("call-participants", self.on_call_participants)
@@ -2450,6 +2451,24 @@ class WebSocketClient:
             wx.CallAfter(self._channels_changed_on_ui, str(data["id"]))
         except Exception:
             logging.exception("[WebSocketClient] channels-changed failed")
+
+    def on_offline_sync(self, data):
+        """WhatsApp announced, or finished, the delivery of what it kept while
+        this device was away (neonize_bridge/offline_sync.py; WPPConnect has no
+        such event): the chat list is held meanwhile (main_window/backlog_flood.py)."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            state = data.get("state")
+            messages = data.get("messages", 0)
+            if state not in ("started", "completed"):
+                return
+            if isinstance(messages, bool) or not isinstance(messages, int):
+                messages = 0
+            from main_window.backlog_flood import note_offline_sync
+            wx.CallAfter(note_offline_sync, self.main_window, state, messages)
+        except Exception:
+            logging.exception("[WebSocketClient] offline-sync failed")
 
     def on_event_changed(self, data):
         """An answer to a WhatsApp event arrived, or the event was edited or

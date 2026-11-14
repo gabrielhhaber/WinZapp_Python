@@ -30,6 +30,14 @@ Two bounds keep that harmless: the threshold is minutes, not seconds (a
 backlog is hours old), and a flood that goes on applies the held list every
 `MAX_HOLD_SECONDS`, so the list is never older than that.
 
+The Neonize bridge also passes on WhatsApp's own word (`offline-sync`,
+neonize_bridge/offline_sync.py): how many messages it kept while the device
+was away, and when it has handed all of them over. `note_offline_sync()`
+starts the flood from the first, before any message arrives, and lets a
+pause of up to `ANNOUNCED_QUIET_SECONDS` pass on a slow link without ending
+it; the second puts the usual quiet period back. WPPConnect has no such
+signal and relies on the message ages alone.
+
 The hold covers the handlers that fire per backlog event: `on_new_message()`,
 `on_historical_message()` and `on_chat_unread_update()`. Anything the user
 does (archive, pin, a filter) still rebuilds the list at once.
@@ -47,6 +55,8 @@ START_COUNT = 5
 START_WINDOW = 3.0
 #: A flood ends after this long without a late message.
 QUIET_SECONDS = 5.0
+#: The same, while a delivery WhatsApp announced has not been declared over.
+ANNOUNCED_QUIET_SECONDS = 60.0
 #: A flood that goes on applies the held chat list this often.
 MAX_HOLD_SECONDS = 60.0
 _POLL_MS = 1000
@@ -69,6 +79,24 @@ class BacklogFlood:
         self.list_dirty = False
         #: When the list was last left up to date (flood start or a flush).
         self.flushed_at = 0.0
+        #: WhatsApp announced a delivery and has not yet said it is over.
+        self.announced = False
+
+    def announce(self, now: float) -> bool:
+        """WhatsApp says a backlog is coming; True when this starts a flood."""
+        self.announced = True
+        # The quiet period counts from here, not from an older late message.
+        self._recent.append(now)
+        if self.active:
+            return False
+        self.active = True
+        self.count = 0
+        self.flushed_at = now
+        return True
+
+    def delivered(self) -> None:
+        """WhatsApp says the announced backlog was all handed over."""
+        self.announced = False
 
     def note(self, now: float) -> bool:
         """Record one late message; True when this one starts a flood."""
@@ -86,6 +114,7 @@ class BacklogFlood:
 
     def cancel(self) -> None:
         self.active = False
+        self.announced = False
         self.list_dirty = False
         self.count = 0
         self._recent.clear()
@@ -103,11 +132,17 @@ class BacklogFlood:
         """True when an active flood has gone quiet; it is then over."""
         if not self.active or not self._recent:
             return False
-        if now - self._recent[-1] < self.quiet_seconds:
+        quiet = ANNOUNCED_QUIET_SECONDS if self.announced else self.quiet_seconds
+        if now - self._recent[-1] < quiet:
             return False
-        self.active = False
-        self._recent.clear()
+        self.end()
         return True
+
+    def end(self) -> None:
+        """The flood is over; `list_dirty` and `count` stay for the caller."""
+        self.active = False
+        self.announced = False
+        self._recent.clear()
 
 
 def is_late_message(msg: dict, now: float) -> bool:
@@ -164,6 +199,32 @@ def note_incoming_message(window, msg: dict) -> bool:
     return True
 
 
+def note_offline_sync(window, state: str, messages: int = 0) -> None:
+    """WhatsApp's own account of a backlog, from the Neonize bridge. Main
+    thread. `state` is "started" (with how many messages are waiting) or
+    "completed"."""
+    flood = _state(window)
+    if flood is None:
+        return
+    if state == "completed":
+        if flood.announced:
+            logging.info("[backlog-flood] WhatsApp finished the announced delivery.")
+        flood.delivered()
+        return
+    if state != "started" or messages < START_COUNT:
+        return
+    if flood.announce(time.monotonic()):
+        try:
+            _start_poll(window)
+        except Exception:
+            flood.cancel()
+            return
+        logging.info(
+            "[backlog-flood] started: WhatsApp announced %s waiting message(s); "
+            "holding the chat list.", messages)
+        _refresh_status(window)
+
+
 def defer_list_update(window) -> bool:
     """True when a flood is holding the chat list; the update is remembered
     and done once when the flood ends."""
@@ -204,13 +265,13 @@ def _poll(window) -> None:
         return
     now = time.monotonic()
     if not flood.settle(now):
-        if flood.flush_due(now):
-            window._schedule_set_chats()
         try:
             _start_poll(window)
+            if flood.flush_due(now):
+                window._schedule_set_chats()
         except Exception:
-            logging.exception("[backlog-flood] timer failed; ending the flood")
-            flood.active = False
+            logging.exception("[backlog-flood] poll failed; ending the flood")
+            flood.end()
         else:
             return
     dirty, flood.list_dirty = flood.list_dirty, False
