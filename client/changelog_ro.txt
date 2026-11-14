@@ -5,6 +5,9 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 NOUTĂȚI
 
 - Ajutor la scriere: WinZapp primește o funcție similară ajutorului la scriere din WhatsApp pentru telefoane, cu posibilitatea suplimentară de a traduce ciorna. Noul buton de după Emoji și meniul contextual al câmpului deschid aceeași fereastră. Corectează, reformulează, folosește un ton profesional sau încurajator cu furnizorii IA configurați în WinZapp, nu cu Meta AI; traducerea se face cu Google. Cere acordul înainte de a trimite ciorna și arată rezultatul înainte de înlocuire; mesajul nu este trimis niciodată automat. Alege o acțiune, apoi apasă "Execută acțiunea aleasă". Deschiderea sau închiderea acestei ferestre nu trimite ciorna.
+
+- WPPConnect Server a fost actualizat la 2.10.81, cu WPPConnect 2.4.0 și WA-JS 4.8.0. Citirea istoricului de mesaje nu mai acumulează copii în memorie, browserul controlat de WinZapp este închis automat doar când l-a deschis chiar WinZapp, iar așteptarea încărcării WhatsApp Web funcționează acum și cu pagina ascunsă.
+
 - WPPConnect: când spațiul pe disc scade (sub 4 GB liberi), WinZapp închide WhatsApp în siguranță înainte să piardă sesiunea, trece offline și spune de ce. Când există cel puțin 5 GB liberi, se reconectează singur. Înainte, cu aproximativ 3 GB liberi, sesiunea putea reveni deconectată ca și cum ar fi fost ștearsă.
 
 - Transcriere automată: un mesaj vocal primit cât computerul era în repaus nu mai rămâne netranscris când sosește împreună cu altele la revenire.

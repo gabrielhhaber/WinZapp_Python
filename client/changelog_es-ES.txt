@@ -5,6 +5,9 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 NOVEDADES
 
 - Ayuda para escribir: llega a WinZapp una función similar a la ayuda para escribir de WhatsApp para celulares, con la posibilidad adicional de traducir el borrador. El nuevo botón después de Emoji y el menú contextual del campo abren la misma ventana. Permite corregir, reformular o usar un tono profesional o alentador con los proveedores de IA configurados en WinZapp, no con Meta AI; la traducción se hace con Google. Pide permiso antes de enviar el borrador y muestra el resultado antes de reemplazarlo; nunca envía el mensaje automáticamente. Elige una acción y después pulsa "Ejecutar acción elegida". Abrir o cerrar esta ventana no envía el borrador.
+
+- WPPConnect Server actualizado a la 2.10.81, con WPPConnect 2.4.0 y WA-JS 4.8.0. La lectura del historial de mensajes deja de acumular copias en memoria, el navegador que maneja WinZapp solo se cierra automáticamente cuando lo abrió el propio WinZapp, y la espera a que cargue WhatsApp Web también funciona con la página oculta.
+
 - WPPConnect: con poco espacio en disco (menos de 4 GB libres), WinZapp cierra WhatsApp de forma segura antes de que pierda la sesión, se queda sin conexión y dice el motivo. Cuando haya al menos 5 GB libres, se vuelve a conectar solo. Antes, con unos 3 GB libres, la sesión podía volver desconectada como si se hubiera borrado.
 
 - Transcripción automática: un mensaje de voz recibido mientras el ordenador estaba suspendido ya no se queda sin transcribir cuando llega junto con otros al volver.

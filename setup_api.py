@@ -480,6 +480,7 @@ from core.wppconnect_host_layer_patch import (
     patch_host_layer_source as _patch_host_layer_source,
 )
 from core.wppconnect_status_layer_patch import ALL_PATCHES as _STATUS_LAYER_PATCHES
+from core.wppconnect_status_layer_patch import ALTERNATIVE_ORIGINALS as _STATUS_LAYER_ALTERNATIVES
 from core.wppconnect_sender_layer_patch import ALL_PATCHES as _SENDER_LAYER_PATCHES
 from core.wppconnect_sender_layer_patch import patch_sender_layer_source as _patch_sender_layer_source
 from core.wppconnect_welcome_layer_patch import ALL_PATCHES as _WELCOME_LAYER_PATCHES
@@ -575,14 +576,18 @@ def _patch_wppconnect_status_layer(client_api_dir: str = None) -> bool:
     applied = 0
     already = 0
     missing = 0
-    for original, patched in _STATUS_LAYER_PATCHES:
+    for (original, patched), alternatives in zip(
+        _STATUS_LAYER_PATCHES, _STATUS_LAYER_ALTERNATIVES
+    ):
         if patched in content:
             already += 1
-        elif original in content:
-            content = content.replace(original, patched, 1)
-            applied += 1
-        else:
+            continue
+        source = next((t for t in (original, *alternatives) if t in content), None)
+        if source is None:
             missing += 1
+        else:
+            content = content.replace(source, patched, 1)
+            applied += 1
 
     if applied:
         with open(status_layer_path, "w", encoding="utf-8") as f:
