@@ -18975,11 +18975,6 @@ msgid "Verif&y"
 msgstr "&Doğrula"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_again"
-msgid "Translate again"
-msgstr "Tekrar çevir"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr "Almanca"
@@ -19008,21 +19003,6 @@ msgstr "İtalyanca"
 msgctxt "translate_lang_pt"
 msgid "Portuguese"
 msgstr "Portekizce"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_menu"
-msgid "Translate"
-msgstr "Çevir"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_original"
-msgid "Original text"
-msgstr "Orijinal metin"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_title"
-msgid "Translate message"
-msgstr "Mesajı çevir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"

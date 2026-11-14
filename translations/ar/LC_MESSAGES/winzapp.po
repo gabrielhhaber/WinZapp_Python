@@ -18743,11 +18743,6 @@ msgid "Verif&y"
 msgstr "ت&حقق"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_again"
-msgid "Translate again"
-msgstr "ترجم مرة أخرى"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr "الألمانية"
@@ -18776,21 +18771,6 @@ msgstr "الإيطالية"
 msgctxt "translate_lang_pt"
 msgid "Portuguese"
 msgstr "البرتغالية"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_menu"
-msgid "Translate"
-msgstr "ترجم"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_original"
-msgid "Original text"
-msgstr "النص الأصلي"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_title"
-msgid "Translate message"
-msgstr "ترجمة الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"

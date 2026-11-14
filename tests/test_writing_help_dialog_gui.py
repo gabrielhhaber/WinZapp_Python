@@ -1,6 +1,4 @@
 """Native Windows controls with synthetic text, no account/key/network/NVDA."""
-import os
-from pathlib import Path
 from types import SimpleNamespace
 import pytest
 import wx
@@ -49,11 +47,6 @@ def test_native_writing_dialog_layout_and_actions(wx_app, tmp_path, monkeypatch,
         dialog._busy(True)
         assert not dialog.replace.IsEnabled()
         dialog._busy(False)
-        out = os.environ.get('WINZAPP_VISUAL_OUTPUT')
-        if out:
-            folder = Path(out); folder.mkdir(parents=True, exist_ok=True)
-            from tests.test_writing_menu_gui import capture
-            capture(dialog, 'writing-' + language)
     finally:
         dialog._dispose()
         dialog.Destroy()

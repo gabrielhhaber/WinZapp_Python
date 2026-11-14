@@ -2,8 +2,6 @@
 
 Synthetic draft, no provider requests and no NVDA claim.
 """
-import os
-from pathlib import Path
 from types import SimpleNamespace
 import wx
 import pytest
@@ -71,7 +69,6 @@ def test_context_menu_choice_opens_real_modal_once(wx_app, tmp_path, monkeypatch
     def show(dialog):
         opened.append(dialog)
         def finish():
-            capture(dialog, 'writing-from-' + entry)
             dialog.EndModal(wx.ID_CANCEL)
         wx.CallLater(100, finish)
         return original_show(dialog)
@@ -88,7 +85,6 @@ def test_context_menu_choice_opens_real_modal_once(wx_app, tmp_path, monkeypatch
     monkeypatch.setattr(panel.message_field, 'PopupMenu', select_writing)
     panel.message_field.Bind(wx.EVT_CONTEXT_MENU, panel._on_message_field_context_menu)
     try:
-        capture(frame, 'composer-visible-button')
         if entry == 'context_menu':
             event = wx.ContextMenuEvent(wx.EVT_CONTEXT_MENU.typeId,
                                        panel.message_field.GetId(), wx.DefaultPosition)
@@ -103,30 +99,3 @@ def test_context_menu_choice_opens_real_modal_once(wx_app, tmp_path, monkeypatch
         assert panel.message_field.GetValue() == 'hola como estas'
     finally:
         destroy_now(frame)
-
-
-def capture(window, name):
-    out = os.environ.get('WINZAPP_VISUAL_OUTPUT')
-    if not out or wx.Platform != '__WXMSW__':
-        return
-    import ctypes, win32gui, win32ui
-    from PIL import Image
-    folder = Path(out)
-    folder.mkdir(exist_ok=True, parents=True)
-    hwnd = window.GetHandle()
-    left, top, right, bottom = win32gui.GetWindowRect(hwnd)
-    source = win32ui.CreateDCFromHandle(win32gui.GetWindowDC(hwnd))
-    target = source.CreateCompatibleDC()
-    bitmap = win32ui.CreateBitmap()
-    bitmap.CreateCompatibleBitmap(source, right-left, bottom-top)
-    target.SelectObject(bitmap)
-    try:
-        assert ctypes.windll.user32.PrintWindow(hwnd, target.GetSafeHdc(), 3)
-        info = bitmap.GetInfo()
-        image = Image.frombuffer('RGB', (info['bmWidth'], info['bmHeight']),
-                                 bitmap.GetBitmapBits(True), 'raw', 'BGRX', 0, 1)
-        image.save(folder / (name + '.png'))
-    finally:
-        win32gui.DeleteObject(bitmap.GetHandle())
-        target.DeleteDC()
-        source.DeleteDC()

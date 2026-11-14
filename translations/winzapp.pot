@@ -17830,11 +17830,6 @@ msgid "Verif&y"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_again"
-msgid "Translate again"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr ""
@@ -17862,21 +17857,6 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_pt"
 msgid "Portuguese"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_menu"
-msgid "Translate"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_original"
-msgid "Original text"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_title"
-msgid "Translate message"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

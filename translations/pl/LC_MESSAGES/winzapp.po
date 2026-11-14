@@ -19356,11 +19356,6 @@ msgid "Verif&y"
 msgstr "Sp&rawdź"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_again"
-msgid "Translate again"
-msgstr "Przetłumacz ponownie"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr "Niemiecki"
@@ -19389,21 +19384,6 @@ msgstr "Włoski"
 msgctxt "translate_lang_pt"
 msgid "Portuguese"
 msgstr "Portugalski"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_menu"
-msgid "Translate"
-msgstr "Przetłumacz"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_original"
-msgid "Original text"
-msgstr "Tekst oryginalny"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-msgctxt "translate_title"
-msgid "Translate message"
-msgstr "Przetłumacz wiadomość"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"
