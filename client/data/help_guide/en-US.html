@@ -789,6 +789,11 @@
 <p>Neonize keeps delayed audio, camera work and device changes with the call and stream that started them. Pending data from an ended or replaced stream is discarded, and media backlog is limited. A temporary failure to forward a frame to the client does not permanently stop audio reading. Reopening the output prevents a retired stream from consuming the new stream's audio; an echo-reference failure does not silence audio already prepared for playback. An ambiguous partial WASAPI device-name match keeps the original API instead of choosing an arbitrary match.</p>
 <p>For troubleshooting, Neonize call logs include numerical signal summaries without recording audio content. They distinguish missing samples, digital silence and signal levels; they do not prove that speech was understood or heard by the other person.</p>
 
+<h3>Share desktop audio</h3>
+<p>During a voice call on Windows 11, use Share desktop audio to send the system sound or the sound of a single application, with or without NVDA audio, at the volume you choose. Nothing is selected at first. Muting the microphone does not stop the share, and changing the call's audio devices keeps it going. Use Stop sharing desktop audio to end sharing independently of the microphone.</p>
+<p>Choose system audio or an application with an audio session. Include NVDA separately and adjust the sharing volume as needed.</p>
+<p>In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.</p>
+
   </section>
 
   <section id="grupos-comunidades" class="wiki-section" aria-labelledby="h-grupos-comunidades">
@@ -1422,6 +1427,9 @@
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
   <tr><td class="field-name">Not yet released</td><td>Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>During a voice call on Windows 11, use Share desktop audio to send the system sound or the sound of a single application, with or without NVDA audio, at the volume you choose. Nothing is selected at first. Muting the microphone does not stop the share, and changing the call's audio devices keeps it going. Use Stop sharing desktop audio to end sharing independently of the microphone.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Neonize: in calls, the other person's voice is buffered a little longer (about 60 ms) to reduce breakups when audio arrives in bursts.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Message translation (Shift+Enter or the message's context menu), with automatic translation, the locked-chat rules and the one-hour pause; the kinds of media of online AI are in "Types of media handled...".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Connection engine: Neonize comes first in the list and is already selected on the first launch; WPPConnect is the second option, marked as legacy.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize: old media re-uploaded by the phone after the request to send it again is downloaded, without depending on the check of the original file.</td></tr>

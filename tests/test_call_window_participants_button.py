@@ -88,6 +88,64 @@ def _inline_call_after(monkeypatch):
     monkeypatch.setattr(calls_module.wx, "CallAfter", lambda fn, *a, **kw: fn(*a, **kw))
 
 
+def test_mute_shortcut_announces_both_states_without_resyncing_the_call_window():
+    audio = SimpleNamespace(microphone_muted=False)
+    audio.set_microphone_muted = lambda muted: setattr(audio, "microphone_muted", muted)
+    labels = []
+    spoken = []
+    window = SimpleNamespace(
+        _call_audio_session=audio,
+        voice_call_window_mute_button=SimpleNamespace(SetLabel=labels.append),
+        i18n=SimpleNamespace(t=lambda key: key),
+        output=lambda text, *, interrupt: spoken.append((text, interrupt)),
+    )
+
+    CallsMixin.toggle_call_microphone(window, object())
+    assert audio.microphone_muted is True
+    CallsMixin.toggle_call_microphone(window, object())
+    assert audio.microphone_muted is False
+
+    assert labels == ["voice_call_unmute_button", "voice_call_mute_button"]
+    assert spoken == [
+        ("voice_call_microphone_muted", True),
+        ("voice_call_microphone_unmuted", True),
+    ]
+
+
+def test_outgoing_call_window_shows_and_announces_neonize_progress():
+    window = _CallWindow()
+    window._active_voice_call.update(outgoing=True, name="Peer", phase="CALLING")
+    window._voice_call_last_announced_state = ""
+    window._call_audio_session = _Audio()
+    window._normalize_jid = lambda jid: jid
+    window._chat_jids_equivalent = lambda left, right: left == right
+    shown = []
+    spoken = []
+    window.i18n.t = {
+        "voice_call_starting": "Calling {name}…",
+        "voice_call_ringing": "Ringing {name}…",
+        "voice_call_connecting": "Connecting to {name}…",
+        "voice_call_active_label": "Voice call with {name}",
+    }.get
+    get_text = window.i18n.t
+    window.i18n.t = lambda key: get_text(key) or key
+    window.voice_call_window_label = SimpleNamespace(SetLabel=shown.append)
+    window.output = lambda text, *, interrupt: spoken.append(text)
+
+    window._sync_voice_call_bar()
+    assert shown[-1] == "Calling Peer…"
+    for phase, text in (
+        ("RINGING", "Ringing Peer…"),
+        ("CONNECTING", "Connecting to Peer…"),
+        ("ACTIVE", "Voice call with Peer"),
+    ):
+        event = {"id": "C1", "peerJid": PERSON, "state": phase, "outgoing": True}
+        CallsMixin.on_voice_call_state_event(window, event)
+        CallsMixin.on_voice_call_state_event(window, event)
+        assert shown[-1] == text
+    assert spoken == ["Ringing Peer…", "Connecting to Peer…", "voice_call_connected"]
+
+
 def test_a_connected_call_offers_participants():
     window = _CallWindow()
     window._sync_voice_call_bar()
