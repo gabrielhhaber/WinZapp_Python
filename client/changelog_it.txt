@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Riepilogo dei messaggi con l'IA, come in WhatsApp: nell'elenco delle chat, "Riassumi con l'IA i messaggi non letti" riassume i messaggi non letti di una chat senza aprirla né segnarla come letta. Il menu contestuale di un messaggio ha anche "Riassumi con l'IA da qui alla fine" e "Riassumi con l'IA i messaggi selezionati". Il riepilogo arriva nella lingua di WinZapp, si apre in una finestra con il pulsante Copia e usa lo stesso fornitore e la stessa chiave della traduzione dei messaggi.
+
 - WPPConnect: quando lo spazio su disco scarseggia (meno di 4 GB liberi), WinZapp chiude WhatsApp in sicurezza prima che perda la sessione, va offline e dice perché. Quando ci sono almeno 5 GB liberi si riconnette da solo. Prima, con circa 3 GB liberi, la sessione poteva tornare disconnessa come se fosse stata cancellata.
 
 - Trascrizione automatica: un messaggio vocale ricevuto mentre il computer era in sospensione non resta più senza trascrizione quando arriva insieme ad altri al risveglio.

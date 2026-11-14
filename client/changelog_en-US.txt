@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- AI message summary, as in WhatsApp: in the conversations list, "Summarize unread messages with AI" summarizes a chat's unread messages without opening it or marking it as read. A message's context menu also has "Summarize with AI from here to the end" and "Summarize selected messages with AI". The summary comes in WinZapp's language, opens in a window with a Copy button and uses the same provider and key as message translation.
+
 - WPPConnect: when disk space runs low (less than 4 GB free), WinZapp closes WhatsApp safely before it loses the session, goes offline and says why. Once at least 5 GB are free it connects again by itself. Before, with about 3 GB free, the session could come back logged out as if it had been wiped.
 
 - Automatic transcription: a voice message received while the computer was asleep is no longer left untranscribed when it arrives together with others on waking.

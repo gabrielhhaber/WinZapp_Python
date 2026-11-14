@@ -5874,6 +5874,7 @@ msgstr ""
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
+#: client/ui/conversation_panel/summary_actions.py
 #: client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/transcription_flow.py
@@ -15108,6 +15109,61 @@ msgstr ""
 #: client/ui/conversation_panel/archived_panel.py
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "summary_from_here_menu"
+msgid "Summarize with AI from here to the end"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "summary_left_out"
+msgid ""
+"This summary covers the latest {count} messages. {left_out} older messages "
+"did not fit."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "summary_locked_confirm"
+msgid ""
+"These messages are from a locked chat. Send their text to {provider} to be "
+"summarized?"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "summary_not_configured"
+msgid ""
+"Summaries use the message translation provider. Set it up in Settings > "
+"\"Online AI: Transcriptions and Descriptions\" > \"Message translation\"."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "summary_nothing"
+msgid "There are no text messages to summarize here."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "summary_selected_menu"
+msgid "Summarize selected messages with AI"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "summary_sending"
+msgid "Summarizing {count} messages with {provider}…"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "summary_title"
+msgid "Message summary"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "summary_unread_menu"
+msgid "Summarize unread messages with AI"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py

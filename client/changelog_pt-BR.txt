@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Resumo de mensagens com IA, como no WhatsApp: na lista de conversas, "Resumir com IA as mensagens não lidas" resume as não lidas de uma conversa sem abri-la nem marcá-la como lida. No menu de contexto de uma mensagem também há "Resumir com IA daqui até o fim" e "Resumir com IA as mensagens selecionadas". O resumo vem no idioma do WinZapp, abre numa janela com o botão Copiar e usa o mesmo provedor e a mesma chave da tradução de mensagens.
+
 - WPPConnect: com pouco espaço em disco (menos de 4 GB livres), o WinZapp fecha o WhatsApp com segurança antes que ele perca a sessão, fica offline e diz o motivo. Quando houver pelo menos 5 GB livres, ele se conecta de novo sozinho. Antes, com cerca de 3 GB livres, a sessão podia voltar desconectada como se tivesse sido apagada.
 
 - Transcrição automática: um áudio recebido enquanto o computador estava suspenso não fica mais sem transcrição quando chega junto com outros na volta.

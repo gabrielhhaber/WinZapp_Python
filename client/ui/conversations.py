@@ -181,6 +181,7 @@ from ui.conversation_panel.message_data import MessageDataMixin
 from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMixin
 from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
+from ui.conversation_panel.summary_actions import SummaryActionsMixin
 
 
 class ConversationsPanel(
@@ -235,6 +236,7 @@ class ConversationsPanel(
     TranscriptionDeleteMixin,
     AIActionsMixin,
     TranslationActionsMixin,
+    SummaryActionsMixin,
     MessageDataMixin,
     wx.Panel,
 ):

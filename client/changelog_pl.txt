@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Podsumowanie wiadomości przez AI, jak w WhatsAppie: na liście czatów opcja "Podsumuj nieprzeczytane wiadomości przez AI" podsumowuje nieprzeczytane wiadomości czatu bez otwierania go i bez oznaczania jako przeczytany. W menu kontekstowym wiadomości są też "Podsumuj przez AI od tego miejsca do końca" i "Podsumuj zaznaczone wiadomości przez AI". Podsumowanie jest w języku programu WinZapp, otwiera się w oknie z przyciskiem Kopiuj i korzysta z tego samego dostawcy i klucza co tłumaczenie wiadomości.
+
 - WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
 - Automatyczna transkrypcja: wiadomość głosowa odebrana podczas uśpienia komputera nie zostaje już bez transkrypcji, gdy przychodzi razem z innymi po wybudzeniu.
