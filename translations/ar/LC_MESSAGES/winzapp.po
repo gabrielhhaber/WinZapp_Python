@@ -1479,6 +1479,15 @@ msgstr "تلخيص الرسائل غير المقروءة بالذكاء الا�
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"هناك تفريغ نصي آخر قيد التشغيل. انتظر حتى ينتهي ثم اطلب الملخص مرة أخرى."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_voice_hint"
 msgid ""
 "To cancel, use the summary item in the context menu, or the summary shortcut"
@@ -1499,6 +1508,13 @@ msgstr "الرسائل الصوتية المعروضة كعلامة فقط دو�
 msgctxt "ai_summary_voice_progress"
 msgid "Transcribing voice message {index} of {total} for the summary."
 msgstr "جارٍ تفريغ الرسالة الصوتية {index} من أصل {total} من أجل الملخص."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr "هناك ملخص يفرّغ رسائل صوتية. انتظره أو ألغه أولًا."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"

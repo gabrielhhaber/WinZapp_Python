@@ -20,6 +20,7 @@ from core.transcription import stored as stored_transcription
 from ui.conversation_panel import summary_actions as actions
 from ui.conversation_panel import summary_voice as voice
 from ui.conversation_panel.ai_actions import AIActionsMixin
+from ui.conversation_panel.bulk_transcription import BulkTranscriptionMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
 
@@ -98,7 +99,10 @@ class Dialog:
 
 
 class Panel(SummaryActionsMixin, SummaryVoiceMixin):
+    _bulk_transcription_running = BulkTranscriptionMixin._bulk_transcription_running
+
     def __init__(self, store, config=None):
+        self._bulk_transcription = None
         self.spoken = []
         self.locked = set()
         self.unlocked = False
@@ -597,3 +601,75 @@ class TestClosingWithTheChat:
         finally:
             ai_actions.close_open_dialog = original
         assert calls == ["status", "voice"]
+
+
+class TestOneLocalTranscriptionAtATime:
+    def test_a_bulk_run_refuses_the_voice_step_with_a_spoken_reason(self, panel):
+        panel._bulk_transcription = NS(running=True)
+        panel._on_summarize_messages([audio(1)])
+        assert panel.spoken == ["ai_summary_voice_busy"]
+        assert panel.transcribed == [] and Dialog.made == []
+
+    def test_a_manual_run_without_the_progress_window_refuses_it_too(self, panel):
+        panel.main_window._background_transcription = object()
+        panel._on_summarize_messages([audio(1)])
+        assert panel.spoken == ["ai_summary_voice_busy"] and Dialog.made == []
+
+    def test_a_manual_run_waiting_its_turn_counts(self, panel):
+        panel.main_window._waiting_transcriptions = [object()]
+        panel._on_summarize_messages([audio(1)])
+        assert panel.spoken == ["ai_summary_voice_busy"] and Dialog.made == []
+
+    def test_a_summary_with_nothing_to_transcribe_is_not_blocked(self, panel):
+        panel._bulk_transcription = NS(running=True)
+        panel._on_summarize_messages([text(1), stored_voice(audio(2), "hola")])
+        assert len(Dialog.made) == 1
+
+    def test_a_bulk_transcription_refuses_while_the_summary_transcribes(self):
+        spoken = []
+        stub = NS(main_window=NS(i18n=NS(t=lambda key: key), output=lambda text, interrupt=False: spoken.append(text)),
+                  _bulk_transcription_running=lambda: False, _summary_voice_running=lambda: True,
+                  selected_messages={"a"}, conversation={"remoteJid": JID})
+        BulkTranscriptionMixin._start_bulk_transcription(stub, inline=False)
+        assert spoken == ["ai_summary_voice_running"]
+
+    def test_a_manual_transcription_refuses_while_the_summary_transcribes(self, monkeypatch):
+        from ui import transcription_flow
+        spoken = []
+        flow = NS(_hidden_by_vault=lambda: False, _msg={"messageType": "audioMessage"},
+                  _main_window=NS(output=spoken.append), _i18n=NS(t=lambda key: key),
+                  _panel=NS(_summary_voice_running=lambda: True),
+                  _runs_without_dialog=lambda: pytest.fail("started a run"))
+        transcription_flow.MessageTranscriptionFlow.start(flow)
+        assert spoken == ["ai_summary_voice_running"]
+
+
+class TestEndingTheVoiceStep:
+    def test_nothing_is_said_when_the_app_is_closing(self, panel):
+        panel.main_window._shutting_down = True
+        run = NS(running=True, cancelled=NS(is_set=lambda: True), outcome=NS(texts={}), on_done=lambda o: pytest.fail("opened"))
+        panel._finish_summary_voice(run, None)
+        assert panel.spoken == [] and run.running is False
+
+
+class TestStoringAfterTheVault:
+    def _stub(self, hidden):
+        stored = []
+        stub = NS(main_window=NS(is_chat_hidden_by_vault=lambda jid: hidden,
+                                 store_message_transcription=lambda *a, **k: stored.append(a) or "stored"),
+                  conversation=None)
+        return stub, stored
+
+    def test_a_chat_locked_in_the_meantime_is_not_stored(self):
+        stub, stored = self._stub(hidden=True)
+        BulkTranscriptionMixin._store_bulk_transcription(
+            stub, JID, audio(1), NS(text="secreto", language=None, language_probability=None,
+                                    model_id="small", backend="faster-whisper", vad_used=True))
+        assert stored == []
+
+    def test_a_visible_chat_is_stored(self):
+        stub, stored = self._stub(hidden=False)
+        BulkTranscriptionMixin._store_bulk_transcription(
+            stub, JID, audio(1), NS(text="hola", language=None, language_probability=None,
+                                    model_id="small", backend="faster-whisper", vad_used=True))
+        assert len(stored) == 1

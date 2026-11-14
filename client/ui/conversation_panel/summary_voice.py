@@ -72,6 +72,15 @@ class SummaryVoiceMixin:
         run = getattr(self, "_summary_voice_run", None)
         return run is not None and run.running
 
+    def _transcription_in_progress(self) -> bool:
+        """A bulk run, or a manual one (running without the progress window, or
+        waiting its turn), is using the local transcription."""
+        mw = self.main_window
+        waiting = getattr(mw, "_waiting_transcriptions", None)
+        return bool(self._bulk_transcription_running()
+                    or getattr(mw, "_background_transcription", None) is not None
+                    or (waiting is not None and len(waiting)))
+
     def _summary_stored_voice_text(self, msg):
         """The stored transcription text of a voice message, or None."""
         selection = stored_transcription.selection_from_settings(self.main_window.settings)
@@ -94,6 +103,11 @@ class SummaryVoiceMixin:
             MAX_VOICE_TRANSCRIPTIONS)
         if not to_run:
             on_done(outcome)
+            return
+        if self._transcription_in_progress():
+            # One local transcription at a time: refuse, and say why, rather
+            # than fight another run for the model or silently skip the words.
+            self.main_window.output(self.main_window.i18n.t("ai_summary_voice_busy"))
             return
         run = _VoiceRun(jid, to_run, outcome, on_done, follows_open_chat)
         self._summary_voice_run = run
@@ -167,10 +181,12 @@ class SummaryVoiceMixin:
     def _finish_summary_voice(self, run, stop_sentence):
         run.running = False
         mw = self.main_window
+        if getattr(mw, "_shutting_down", False):
+            return
         if run.cancelled.is_set():
             mw.output(mw.i18n.t("ai_summary_cancelled"), interrupt=True)
             return
-        if stop_sentence is _LOCKED or getattr(mw, "_shutting_down", False):
+        if stop_sentence is _LOCKED:
             return
         if stop_sentence:
             # The reason first: it is what the person has to act on.

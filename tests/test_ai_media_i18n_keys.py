@@ -24,6 +24,8 @@ SOURCES = (
     CLIENT / "ui" / "conversation_panel" / "ai_actions.py",
     CLIENT / "ui" / "conversation_panel" / "summary_actions.py",
     CLIENT / "ui" / "conversation_panel" / "summary_voice.py",
+    CLIENT / "ui" / "conversation_panel" / "bulk_transcription.py",
+    CLIENT / "ui" / "transcription_flow.py",
     CLIENT / "ui" / "conversation_panel" / "message_menu.py",
     CLIENT / "ui" / "dialogs" / "shortcuts_dialog.py",
     CLIENT / "ui" / "ai_media_demo.py",

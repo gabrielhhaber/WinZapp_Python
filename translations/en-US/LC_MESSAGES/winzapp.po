@@ -1498,6 +1498,16 @@ msgstr "Summarize unread messages with AI"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_voice_hint"
 msgid ""
 "To cancel, use the summary item in the context menu, or the summary shortcut"
@@ -1518,6 +1528,14 @@ msgstr "Voice messages shown only as a marker, without their words: {count}."
 msgctxt "ai_summary_voice_progress"
 msgid "Transcribing voice message {index} of {total} for the summary."
 msgstr "Transcribing voice message {index} of {total} for the summary."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"

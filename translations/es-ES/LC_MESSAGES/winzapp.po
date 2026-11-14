@@ -1517,6 +1517,16 @@ msgstr "Resumir con IA los mensajes no leídos"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"Hay otra transcripción en curso. Espera a que termine y vuelve a pedir el "
+"resumen."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_voice_hint"
 msgid ""
 "To cancel, use the summary item in the context menu, or the summary shortcut"
@@ -1538,6 +1548,15 @@ msgstr ""
 msgctxt "ai_summary_voice_progress"
 msgid "Transcribing voice message {index} of {total} for the summary."
 msgstr "Transcribiendo el mensaje de voz {index} de {total} para el resumen."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr ""
+"Un resumen está transcribiendo mensajes de voz. Espera a que termine o "
+"cancélalo primero."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"

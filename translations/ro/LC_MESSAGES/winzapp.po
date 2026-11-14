@@ -1510,6 +1510,16 @@ msgstr "Rezumă cu AI mesajele necitite"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"O altă transcriere este în curs. Așteaptă să se termine și cere din nou "
+"rezumatul."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_voice_hint"
 msgid ""
 "To cancel, use the summary item in the context menu, or the summary shortcut"
@@ -1530,6 +1540,14 @@ msgstr "Mesaje vocale afișate doar ca marcaj, fără cuvintele lor: {count}."
 msgctxt "ai_summary_voice_progress"
 msgid "Transcribing voice message {index} of {total} for the summary."
 msgstr "Se transcrie mesajul vocal {index} din {total} pentru rezumat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr ""
+"Un rezumat transcrie mesaje vocale. Așteaptă-l sau anulează-l mai întâi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"

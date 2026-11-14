@@ -226,6 +226,28 @@ def preferences(app_settings):
     }
 
 
+def consent_key(kind):
+    """The stored list a kind's remembered consent lives in. Chat summaries send
+    the text of the messages themselves, so theirs is kept apart from media's."""
+    return "consented_text" if kind == "text" else "consented"
+
+
+def remember_consent(old, kind, providers, locked=False):
+    """The stored "ai_media" dict after the person agreed for ``providers``.
+
+    A new dict (``old`` may be damaged or missing): the providers are added to
+    the kind's own list and the other lists stay as they are. Never for a locked
+    chat: its consent is asked every time, so ``old`` comes back unchanged."""
+    value = dict(old) if isinstance(old, dict) else {}
+    if locked:
+        return value
+    key = consent_key(kind)
+    current = value.get(key, [])
+    consented = set(current if isinstance(current, list) else [])
+    value[key] = sorted(consented | set(providers))
+    return value
+
+
 def drop_consents(value, removed):
     """``value`` (the stored "ai_media" dict) without the remembered consent of
     the ``removed`` providers, in both lists: a provider whose key is removed

@@ -200,7 +200,7 @@ class AIResultDialog(wx.Dialog):
     def _consent_key(self):
         """Chat summaries (kind "text") send the text of the messages
         themselves: their remembered consent is kept apart from media's."""
-        return "consented_text" if self.kind == "text" else "consented"
+        return ai_config.consent_key(self.kind)
 
     def _consent(self, providers):
         """Consent covers every provider the media may reach. Remembered per
@@ -216,11 +216,7 @@ class AIResultDialog(wx.Dialog):
             if accepted and dialog.remember.GetValue() and not self.session.locked:
                 key = self._consent_key()
                 def merge(old):
-                    value = dict(old) if isinstance(old, dict) else {}
-                    current = value.get(key, [])
-                    consented = set(current if isinstance(current, list) else [])
-                    value[key] = sorted(consented | set(providers))
-                    return value
+                    return ai_config.remember_consent(old, self.kind, providers, self.session.locked)
                 try:
                     self.app.update("ai_media", merge)
                     self.config[key] = sorted(set(self.config[key]) | set(providers))

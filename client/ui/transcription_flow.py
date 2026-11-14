@@ -502,6 +502,11 @@ class MessageTranscriptionFlow:
             self._main_window.output(self._i18n.t("transcription_no_audio"))
             return
 
+        busy_with_summary = getattr(self._panel, "_summary_voice_running", None)
+        if callable(busy_with_summary) and busy_with_summary():
+            # The AI summary is transcribing voice messages with the same model.
+            self._main_window.output(self._i18n.t("ai_summary_voice_running"))
+            return
         if self._runs_without_dialog():
             self._start_in_background()
             return

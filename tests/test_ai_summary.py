@@ -207,6 +207,27 @@ class TestPreferencesAndConsent:
         kept = config.drop_consents({"consented": "oops"}, {"gemini"})
         assert kept["consented"] == [] and kept["consented_text"] == []
 
+    def test_the_consent_key_is_per_kind(self):
+        assert config.consent_key("text") == "consented_text"
+        assert all(config.consent_key(kind) == "consented" for kind in ("image", "audio", "pdf", "video"))
+
+    def test_a_remembered_summary_consent_goes_in_its_own_list_only(self):
+        old = {"consented": ["openai"], "enabled": True}
+        new = config.remember_consent(old, "text", ["gemini", "claude"])
+        assert new == {"consented": ["openai"], "consented_text": ["claude", "gemini"], "enabled": True}
+        assert old == {"consented": ["openai"], "enabled": True}  # the stored value is not mutated
+
+    def test_a_remembered_media_consent_merges_with_the_old_one(self):
+        assert config.remember_consent({"consented": ["openai"]}, "image", ["gemini"])["consented"] == ["gemini", "openai"]
+
+    def test_a_locked_chat_remembers_nothing(self):
+        old = {"consented_text": ["openai"]}
+        assert config.remember_consent(old, "text", ["gemini"], locked=True) == old
+
+    def test_a_damaged_store_is_rebuilt(self):
+        assert config.remember_consent(None, "text", ["gemini"]) == {"consented_text": ["gemini"]}
+        assert config.remember_consent({"consented_text": "oops"}, "text", ["gemini"]) == {"consented_text": ["gemini"]}
+
     def test_reset_drops_every_consent(self):
         kept = config.drop_consents({"consented": ["gemini"], "consented_text": ["openai"]},
                                     set(config.PROVIDERS))
