@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect Server 2.10.81 sürümüne, WPPConnect 2.4.0 ve WA-JS 4.8.0 ile birlikte güncellendi. Mesaj geçmişini okumak artık bellekte kopya biriktirmiyor, WinZapp'ın kullandığı tarayıcı yalnızca WinZapp'ın kendisi açtıysa otomatik olarak kapatılıyor ve WhatsApp Web'in yüklenmesini bekleme artık sayfa gizliyken de çalışıyor.
+
 - WPPConnect: disk alanı azaldığında (4 GB'tan az boş), WinZapp oturumu kaybetmeden önce WhatsApp'ı güvenli şekilde kapatır, çevrimdışı olur ve nedenini söyler. En az 5 GB boş alan olduğunda kendiliğinden yeniden bağlanır. Önceden yaklaşık 3 GB boş alanla oturum silinmiş gibi çıkış yapmış olarak geri gelebiliyordu.
 
 - Otomatik yazıya dökme: bilgisayar uykudayken alınan bir sesli mesaj, uyanınca başkalarıyla birlikte geldiğinde artık yazıya dökülmeden kalmıyor.

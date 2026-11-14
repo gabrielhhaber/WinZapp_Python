@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect Server zaktualizowany do wersji 2.10.81, z WPPConnect 2.4.0 i WA-JS 4.8.0. Odczyt historii wiadomości nie gromadzi już kopii w pamięci, przeglądarka sterowana przez WinZapp jest zamykana automatycznie tylko wtedy, gdy otworzył ją sam WinZapp, a oczekiwanie na załadowanie WhatsApp Web działa teraz także przy ukrytej stronie.
+
 - WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
 - Automatyczna transkrypcja: wiadomość głosowa odebrana podczas uśpienia komputera nie zostaje już bez transkrypcji, gdy przychodzi razem z innymi po wybudzeniu.
