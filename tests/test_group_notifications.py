@@ -34,6 +34,8 @@ from ui.conversations import ConversationsPanel
 class _FakeI18n:
     _STRINGS = {
         "group_notif_left": "{names} saiu do grupo",
+        "group_notif_number_changed": "{author} mudou o número de telefone para um novo número.",
+        "group_notif_number_changed_to": "{author} mudou para {number}",
         "group_notif_linked_to_community": "{author} vinculou este grupo a uma comunidade",
         "group_notif_generic_detail": "Atualização do grupo: {detail}",
         "group_notif_generic": "Atualização do grupo",
@@ -155,3 +157,26 @@ class TestParticipantNameNeverBlank:
         s.main_window.contacts["133041125077153@lid"] = {"name": "Carlos"}
         content = s._get_message_content(_gp2("leave"))
         assert content == "Carlos saiu do grupo"
+
+
+class TestANumberChange:
+    """gp2 "modify" is a participant changing their phone number (WhatsApp
+    Web's GROUP_PARTICIPANT_CHANGE_NUMBER). It read "Vinicius Siqueira:
+    modify" (reported 2026-11-12)."""
+
+    def test_a_known_person_changed_to_a_new_number(self):
+        s = _Stub()
+        s.main_window.contacts["133041125077153@lid"] = {"name": "Vinicius Siqueira"}
+        content = s._get_message_content(_gp2("modify", recipients=["5511912345678@s.whatsapp.net"]))
+        assert content == "Vinicius Siqueira mudou o número de telefone para um novo número."
+        assert "modify" not in content
+
+    def test_someone_known_by_their_number_shows_the_new_one(self):
+        """As WhatsApp Web: the new number only when the old one is how the
+        person is shown anyway."""
+        s = _Stub()
+        content = s._get_message_content(_gp2(
+            "modify", author="5511987654321@s.whatsapp.net",
+            recipients=["5511912345678@s.whatsapp.net"]))
+        assert content.endswith(" mudou para " + s._get_participant_name(
+            "5511912345678@s.whatsapp.net", {}))

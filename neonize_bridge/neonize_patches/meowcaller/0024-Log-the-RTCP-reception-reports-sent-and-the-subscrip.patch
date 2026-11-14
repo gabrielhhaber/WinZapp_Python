@@ -1,0 +1,177 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 22:48:51 -0300
+Subject: [PATCH] Log the RTCP reception reports sent and the subscription on a
+ group relay move
+
+---
+ engine_media.go          | 26 ++++++++++++++++++++---
+ rtcp_report_diag.go      | 45 ++++++++++++++++++++++++++++++++++++++++
+ rtcp_report_diag_test.go | 44 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 112 insertions(+), 3 deletions(-)
+ create mode 100644 rtcp_report_diag.go
+ create mode 100644 rtcp_report_diag_test.go
+
+diff --git a/engine_media.go b/engine_media.go
+index 4512895..dabef2d 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -534,9 +534,13 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		var relayTx [12]byte
+ 		_, _ = rand.Read(relayTx[:])
+ 		endpoint := getMediaRelayEndpoint(nextRelay, inbound)
++		movePIDs := connectedRemoteParticipantPIDs(update, audioReceivers.selfID)
++		log.Info().Str("call_id", callID).
++			Str("subscription", describeGroupSubscription(endpoint.relayName, update.Relay, movePIDs)).
++			Msg("subscribing on the relay of the new group allocation")
+ 		if _, moveErr = allocateState.ApplyWithSubscriptions(
+ 			endpoint, update.Relay, streamSsrcs, appDataSelfSsrc,
+-			connectedRemoteParticipantPIDs(update, audioReceivers.selfID), relayTx,
++			movePIDs, relayTx,
+ 			func(packet []byte) error {
+ 				_, sendErr := next.Send(packet)
+ 				return sendErr
+@@ -835,6 +839,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		ticker := time.NewTicker(1500 * time.Millisecond)
+ 		defer ticker.Stop()
+ 		var sent uint64
++		reportTick, groupTicks := 0, -1
+ 		for {
+ 			select {
+ 			case <-ctx.Done():
+@@ -847,17 +852,32 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 					groupMode.Store(true)
+ 				}
+ 				e.mu.Unlock()
++				activeAudio := []uint32(nil)
+ 				if groupMode.Load() {
+-					audioReception.Retain(audioReceivers.ActiveAudioSSRCs())
++					activeAudio = audioReceivers.ActiveAudioSSRCs()
++					audioReception.Retain(activeAudio)
+ 					videoReception.Retain(audioReceivers.ActiveVideoSSRCs())
+ 				}
+ 				audioReports := audioReception.Reports(nowMs)
++				groupReports := groupMode.Load() && audioReceivers.HasCommittedGroupUpdate()
++				reportTick++
++				if groupMode.Load() {
++					groupTicks++
++				}
++				if shouldLogRTCPReports(groupTicks, reportTick) {
++					log.Info().Str("call_id", callID).
++						Bool("group_reports", groupReports).
++						Int("active_audio_ssrcs", len(activeAudio)).
++						Uint32("packets_sent", txPipe.SenderStats().PacketsSent).
++						Str("reports", describeRTCPReports(audioReports)).
++						Msg("sent RTCP reception reports")
++				}
+ 				_, err := sendMediaSrtcpReceptionReports(
+ 					audioRtcp,
+ 					txPipe.SenderStats(),
+ 					nowMs,
+ 					audioReports,
+-					groupMode.Load() && audioReceivers.HasCommittedGroupUpdate(),
++					groupReports,
+ 					func(packet []byte) error {
+ 						_, sendErr := ch.Send(packet)
+ 						return sendErr
+diff --git a/rtcp_report_diag.go b/rtcp_report_diag.go
+new file mode 100644
+index 0000000..f180a15
+--- /dev/null
++++ b/rtcp_report_diag.go
+@@ -0,0 +1,45 @@
++package meowcaller
++
++import (
++	"fmt"
++	"strings"
++
++	"github.com/purpshell/meowcaller/rtp"
++)
++
++// rtcpReportLogTicks: after a call's media turns to group media, the reception
++// reports of the first ticks are all logged (the sender a converted call lost
++// stopped about 5 s in), then one tick in rtcpReportLogEvery (30 s at 1.5 s).
++const (
++	rtcpReportLogTicks = 8
++	rtcpReportLogEvery = 20
++)
++
++// shouldLogRTCPReports says whether the reports of tick `sinceGroup` (ticks
++// since group media started, -1 while the call is still one to one) and of
++// `tick` (all ticks) are worth a log line.
++func shouldLogRTCPReports(sinceGroup, tick int) bool {
++	if sinceGroup >= 0 && sinceGroup < rtcpReportLogTicks {
++		return true
++	}
++	return tick%rtcpReportLogEvery == 0
++}
++
++// describeRTCPReports is what this client tells the senders it hears, one
++// stream per entry: "ssrc 0x7aa6be3b lost=0/256 cum=3 seq=1234 jitter=5".
++// FractionLost is out of 256, as on the wire.
++func describeRTCPReports(reports []*rtp.RtcpReceptionReport) string {
++	parts := make([]string, 0, len(reports))
++	for _, report := range reports {
++		if report == nil {
++			continue
++		}
++		parts = append(parts, fmt.Sprintf("ssrc 0x%08x lost=%d/256 cum=%d seq=%d jitter=%d",
++			report.Ssrc, report.FractionLost, report.CumulativeLost,
++			report.ExtendedHighestSequence, report.Jitter))
++	}
++	if len(parts) == 0 {
++		return "none"
++	}
++	return strings.Join(parts, "; ")
++}
+diff --git a/rtcp_report_diag_test.go b/rtcp_report_diag_test.go
+new file mode 100644
+index 0000000..f720e18
+--- /dev/null
++++ b/rtcp_report_diag_test.go
+@@ -0,0 +1,44 @@
++package meowcaller
++
++import (
++	"testing"
++
++	"github.com/purpshell/meowcaller/rtp"
++)
++
++func TestRTCPReportsAreDescribedPerStream(t *testing.T) {
++	got := describeRTCPReports([]*rtp.RtcpReceptionReport{
++		{Ssrc: 0x7aa6be3b, FractionLost: 255, CumulativeLost: 40, ExtendedHighestSequence: 1234, Jitter: 5},
++		nil,
++		{Ssrc: 1, ExtendedHighestSequence: 7},
++	})
++	want := "ssrc 0x7aa6be3b lost=255/256 cum=40 seq=1234 jitter=5; ssrc 0x00000001 lost=0/256 cum=0 seq=7 jitter=0"
++	if got != want {
++		t.Fatalf("describeRTCPReports = %q", got)
++	}
++	if describeRTCPReports(nil) != "none" {
++		t.Fatal("no report is none")
++	}
++}
++
++func TestRTCPReportsAreLoggedRightAfterGroupMediaThenEvery30s(t *testing.T) {
++	var logged []int
++	for tick := 1; tick <= 45; tick++ {
++		sinceGroup := -1
++		if tick >= 10 {
++			sinceGroup = tick - 10
++		}
++		if shouldLogRTCPReports(sinceGroup, tick) {
++			logged = append(logged, tick)
++		}
++	}
++	want := []int{10, 11, 12, 13, 14, 15, 16, 17, 20, 40}
++	if len(logged) != len(want) {
++		t.Fatalf("logged ticks %v, want %v", logged, want)
++	}
++	for i := range want {
++		if logged[i] != want[i] {
++			t.Fatalf("logged ticks %v, want %v", logged, want)
++		}
++	}
++}

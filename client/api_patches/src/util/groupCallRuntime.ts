@@ -95,7 +95,7 @@ export function installGroupCallRuntimeInPage(): void {
       const current = activeId === callId && [6, 9, 11, 'ACTIVE', 'REJOINING', 'CONNECTED_LONELY'].includes(state);
       const record = calls.getByCallId(callId);
       const result = new Map();
-      const add = (wid: any): void => {
+      const add = (wid: any, state = 'connected'): void => {
         let normalized = wid;
         try { normalized = module('WAWebLidMigrationUtils')?.toPn?.(wid) || wid; } catch (_) { /* Keep the LID. */ }
         const jid = serialized(normalized).replace(/@c\.us$/, '@s.whatsapp.net');
@@ -106,18 +106,41 @@ export function installGroupCallRuntimeInPage(): void {
         const contact = contacts?.get?.(wid) || contacts?.get?.(normalized);
         const name = [contact?.name, contact?.pushname, contact?.pushName].find(
           value => typeof value === 'string' && value.trim() && !/^\d+@/.test(value)) || '';
-        result.set(isSelf ? 'self' : jid, { jid, name, isSelf });
+        const key = isSelf ? 'self' : jid;
+        // a connected reading of someone wins over an older state of theirs
+        if (result.get(key)?.state === 'connected' && state !== 'connected') return;
+        result.set(key, { jid, name, isSelf, state });
       };
       if (record?.callCreator) {
-        // The same filter as WhatsApp's Calls-tab participant face pile.
-        // Invited, ringing and departed people must never appear as connected.
-        const connected = module('WAWebVoipWaCallEnums')?.CallParticipantState?.Connected;
+        // Everyone the call record lists, with their state, as the phone lists
+        // a group call (WAWebVoipWaCallEnums.CallParticipantState, read over CDP
+        // on 2026-11-12: Connected 1, Incoming 2, Receipt 3, Rejected 4,
+        // Terminated 5 = left, TimedOut 6, CancelOffer 10, Invited 11). Invited,
+        // ringing and departed people are never reported as connected.
+        // Invited is not ringing: it is everyone on the call's list who is not
+        // in it (WAWebVoipActionWriteCallLogEventUpdateJoinable marks every
+        // non-connected user Invited, and WAWebVoipUiParticipantPanel offers
+        // to ring them); a member who left shows so (seen live 2026-11-13).
+        const states = module('WAWebVoipWaCallEnums')?.CallParticipantState;
         const participants = module('WAWebMsgGetters')?.getCallParticipants?.(record) ?? record.callParticipants;
-        if (connected == null || !Array.isArray(participants) || participants.length > 1024) {
+        if (states?.Connected == null || !Array.isArray(participants) || participants.length > 1024) {
           throw new Error('Connected participants are unavailable');
         }
+        // A name this WhatsApp Web lacks is undefined: it must not become the
+        // key a participant with no outcome is read by.
+        const stateOf = new Map();
+        for (const [key, name] of [
+          [states.Connected, 'connected'],
+          [states.Incoming, 'ringing'], [states.Receipt, 'ringing'], [states.Invited, 'invited'],
+          [states.Rejected, 'declined'],
+          [states.Terminated, 'left'],
+          [states.TimedOut, 'missed'], [states.CancelOffer, 'missed'],
+        ]) {
+          if (key != null) stateOf.set(key, name);
+        }
         for (const person of participants) {
-          if (person?.outcome === connected) add(person.participant);
+          const state = stateOf.get(person?.outcome);
+          if (state) add(person.participant, state);
         }
       } else if (current && active?.isGroup === false && [6, 9, 'ACTIVE', 'REJOINING'].includes(state)) {
         add(active.peerJid);
@@ -170,8 +193,18 @@ export function installGroupCallRuntimeInPage(): void {
           results.push({ jid, status: 'failed', error: 'invalid address' });
           continue;
         }
+        const target = createWid(address);
+        // Never this account itself: its own phone rang and, declined there,
+        // dropped this device from the call (reported 2026-11-12). WhatsApp's
+        // own picker never offers you; isMeAccount knows the number and LID.
+        let mine = false;
+        try { mine = module('WAWebUserPrefsMeUser')?.isMeAccount?.(target) === true; } catch (_) { /* unknown: go on */ }
+        if (mine) {
+          results.push({ jid, status: 'failed', error: 'self' });
+          continue;
+        }
         try {
-          await invite(createWid(address));
+          await invite(target);
           results.push({ jid, status: 'invited' });
         } catch (_) {
           // A fixed word, as the Neonize bridge answers: WhatsApp's own text

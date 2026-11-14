@@ -1,0 +1,390 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <noreply@example.com>
+Date: Thu, 12 Nov 2026 09:05:28 -0300
+Subject: [PATCH] media retry: WhatsApp Web's mms-type, the other key infos,
+ and what each host served
+
+Issue #766: a voice note's re-uploaded file was refused with
+"invalid media hmac". The URL now asks for WhatsApp Web's own
+mms-type (ptt, ptv, gif, sticker) before the plain kind's, opens the file
+with the other key infos when the message's own does not authenticate
+it (the plaintext hash still has to match), and a failure answers what
+each host served (size, old hash, text or not, first bytes). The
+decrypted notification also says whether it carried a message secret.
+---
+ goneonize/mediaretry.go              |   3 +
+ goneonize/mediaretry_decrypt.go      |  41 +++++
+ goneonize/mediaretry_decrypt_test.go |  24 +++
+ goneonize/mediaretry_download.go     | 262 +++++++++++++++------------
+ 4 files changed, 213 insertions(+), 117 deletions(-)
+
+diff --git a/goneonize/mediaretry.go b/goneonize/mediaretry.go
+index ba4e48e..391f462 100644
+--- a/goneonize/mediaretry.go
++++ b/goneonize/mediaretry.go
+@@ -127,5 +127,8 @@ func DecryptMediaRetry(request *C.char) *C.char {
+ 	return rawAnswer(map[string]any{
+ 		"result":      result,
+ 		"direct_path": notification.GetDirectPath(),
++		// diagnostics (issue #766): what else the phone's answer carried
++		"has_message_secret": len(notification.GetMessageSecret()) > 0,
++		"stanza_matches":     notification.GetStanzaID() == req.MessageID,
+ 	})
+ }
+diff --git a/goneonize/mediaretry_decrypt.go b/goneonize/mediaretry_decrypt.go
+index 3a76289..2239eed 100644
+--- a/goneonize/mediaretry_decrypt.go
++++ b/goneonize/mediaretry_decrypt.go
+@@ -7,8 +7,10 @@ import (
+ 	"bytes"
+ 	"crypto/hmac"
+ 	"crypto/sha256"
++	"encoding/hex"
+ 	"errors"
+ 	"fmt"
++	"unicode/utf8"
+ 
+ 	"go.mau.fi/whatsmeow"
+ 	"go.mau.fi/whatsmeow/util/cbcutil"
+@@ -45,3 +47,42 @@ func decryptRetried(data, mediaKey []byte, appInfo string, fileSHA256 []byte) ([
+ 	}
+ 	return plain, nil
+ }
++
++// retriedKeyInfos: every media key info, the message's own first.
++var retriedKeyInfos = []string{string(whatsmeow.MediaImage), string(whatsmeow.MediaVideo),
++	string(whatsmeow.MediaAudio), string(whatsmeow.MediaDocument)}
++
++// openRetried decrypts with the message's key info, else with any other one
++// (a media whose kind changed on the phone); the plaintext hash keeps it safe.
++func openRetried(data, mediaKey []byte, appInfo string, fileSHA256 []byte) ([]byte, string, error) {
++	plain, err := decryptRetried(data, mediaKey, appInfo, fileSHA256)
++	if err == nil || !errors.Is(err, errRetriedHMAC) {
++		return plain, appInfo, err
++	}
++	for _, other := range retriedKeyInfos {
++		if other == appInfo {
++			continue
++		}
++		if alt, altErr := decryptRetried(data, mediaKey, other, fileSHA256); altErr == nil {
++			return alt, other, nil
++		}
++	}
++	return nil, appInfo, err
++}
++
++// servedDiagnostics: what a host served that could not be opened (no key, no
++// plaintext: sizes, hashes compared and the first bytes of the ciphertext).
++func servedDiagnostics(host, mmsType string, data, encSHA256 []byte, fileLength int64,
++	err error) map[string]any {
++	sum := sha256.Sum256(data)
++	head := data
++	if len(head) > 16 {
++		head = head[:16]
++	}
++	return map[string]any{
++		"host": host, "mms_type": mmsType, "error": err.Error(), "size": len(data),
++		"file_length": fileLength, "old_enc_sha256": bytes.Equal(sum[:], encSHA256),
++		"looks_like_text": utf8.Valid(head) && !bytes.ContainsRune(head, 0),
++		"head":            hex.EncodeToString(head),
++	}
++}
+diff --git a/goneonize/mediaretry_decrypt_test.go b/goneonize/mediaretry_decrypt_test.go
+index 02d986b..786b970 100644
+--- a/goneonize/mediaretry_decrypt_test.go
++++ b/goneonize/mediaretry_decrypt_test.go
+@@ -63,3 +63,27 @@ func TestDecryptRetriedChecksThePlaintextHash(t *testing.T) {
+ 		t.Fatalf("wrong plaintext hash: %v", err)
+ 	}
+ }
++
++func TestOpenRetriedTriesTheOtherKeyInfos(t *testing.T) {
++	key := bytes.Repeat([]byte{7}, 32)
++	plain := []byte("a voice note")
++	sum := sha256.Sum256(plain)
++	data := encryptLikeThePhone(t, plain, key, string(whatsmeow.MediaDocument))
++	got, used, err := openRetried(data, key, string(whatsmeow.MediaAudio), sum[:])
++	if err != nil || !bytes.Equal(got, plain) || used != string(whatsmeow.MediaDocument) {
++		t.Fatalf("got %q with %q, %v", got, used, err)
++	}
++	if _, _, err := openRetried(data, bytes.Repeat([]byte{8}, 32), string(whatsmeow.MediaAudio), nil); !errors.Is(err, errRetriedHMAC) {
++		t.Fatalf("a wrong key: %v", err)
++	}
++}
++
++func TestServedDiagnosticsSayWhatCameBack(t *testing.T) {
++	page := []byte("<html><body>nope</body></html>")
++	sum := sha256.Sum256(page)
++	d := servedDiagnostics("mmg.whatsapp.net", "ptt", page, sum[:], 4096, errRetriedHMAC)
++	if d["size"] != len(page) || d["old_enc_sha256"] != true || d["looks_like_text"] != true ||
++		d["file_length"] != int64(4096) || d["head"] != "3c68746d6c3e3c626f64793e6e6f7065" {
++		t.Fatalf("diagnostics: %v", d)
++	}
++}
+diff --git a/goneonize/mediaretry_download.go b/goneonize/mediaretry_download.go
+index ef102ac..3a10b24 100644
+--- a/goneonize/mediaretry_download.go
++++ b/goneonize/mediaretry_download.go
+@@ -1,117 +1,145 @@
+-package main
+-
+-/*
+-   #include <stdlib.h>
+-*/
+-import "C"
+-
+-// Download of a media the phone uploaded again after a media retry.
+-//
+-// The MediaRetryNotification only carries the new direct path. The phone's new
+-// upload can be encrypted into different bytes than the first one, so the
+-// message's old fileEncSHA256 no longer matches them, and whatsmeow checks that
+-// hash before the HMAC: every host answered 200 and every one was refused
+-// ("hash of media ciphertext doesn't match", issue #756). Here the ciphertext
+-// is authenticated the way the media key allows, by the 10-byte HMAC, then
+-// decrypted and checked against the plaintext's fileSHA256, which does not
+-// change with the upload. JSON in and out like rawiq.go; the plaintext goes to
+-// a file the caller names.
+-
+-import (
+-	"context"
+-	"encoding/base64"
+-	"encoding/json"
+-	"errors"
+-	"fmt"
+-	"os"
+-	"strings"
+-	"time"
+-
+-	"go.mau.fi/whatsmeow"
+-)
+-
+-type retriedDownload struct {
+-	DirectPath string `json:"direct_path"`
+-	MediaKey   string `json:"media_key"`
+-	EncSHA256  string `json:"enc_sha256"`
+-	FileSHA256 string `json:"file_sha256"`
+-	Kind       string `json:"kind"`
+-	Dest       string `json:"dest"`
+-	TimeoutMs  int    `json:"timeout_ms"`
+-}
+-
+-// retriedMediaTypes: the message kind to whatsmeow's key info and the
+-// mms-type of the URL.
+-var retriedMediaTypes = map[string][2]string{
+-	"image":    {string(whatsmeow.MediaImage), "image"},
+-	"video":    {string(whatsmeow.MediaVideo), "video"},
+-	"audio":    {string(whatsmeow.MediaAudio), "audio"},
+-	"document": {string(whatsmeow.MediaDocument), "document"},
+-	"sticker":  {string(whatsmeow.MediaImage), "image"},
+-}
+-
+-// DownloadRetriedMedia downloads and decrypts the media at the new direct path
+-// into `dest`. Answers {"ok": true, "size": n} or {"error"}.
+-//
+-//export DownloadRetriedMedia
+-func DownloadRetriedMedia(id *C.char, request *C.char) *C.char {
+-	cli := clients[C.GoString(id)]
+-	if cli == nil {
+-		return rawError(fmt.Errorf("client not found"))
+-	}
+-	var req retriedDownload
+-	if err := json.Unmarshal([]byte(C.GoString(request)), &req); err != nil {
+-		return rawError(fmt.Errorf("request: %w", err))
+-	}
+-	kind, known := retriedMediaTypes[req.Kind]
+-	mediaKey, keyErr := base64.StdEncoding.DecodeString(req.MediaKey)
+-	encSHA256, _ := base64.StdEncoding.DecodeString(req.EncSHA256)
+-	fileSHA256, _ := base64.StdEncoding.DecodeString(req.FileSHA256)
+-	if !known || keyErr != nil || len(mediaKey) == 0 || req.Dest == "" ||
+-		!strings.HasPrefix(req.DirectPath, "/") {
+-		return rawError(fmt.Errorf("request: kind, media_key, dest and a direct_path starting with / are required"))
+-	}
+-	ctx, cancel := rawContext(req.TimeoutMs)
+-	defer cancel()
+-	conn, err := cli.DangerousInternals().RefreshMediaConn(ctx, false)
+-	if err != nil {
+-		return rawError(fmt.Errorf("failed to refresh media connections: %w", err))
+-	}
+-	var lastErr error
+-	for _, host := range conn.Hosts {
+-		// the same URL form whatsmeow uses (the hosts answered 200 to it)
+-		url := fmt.Sprintf("https://%s%s&hash=%s&mms-type=%s&__wa-mms=", host.Hostname,
+-			req.DirectPath, base64.URLEncoding.EncodeToString(encSHA256), kind[1])
+-		var data []byte
+-		for attempt := 0; attempt < 3; attempt++ {
+-			if data, lastErr = cli.DangerousInternals().DownloadMedia(ctx, url); lastErr == nil ||
+-				errors.Is(lastErr, context.Canceled) {
+-				break
+-			}
+-			var httpErr whatsmeow.DownloadHTTPError
+-			if errors.As(lastErr, &httpErr) {
+-				break // 403, 404, 410...: another host will not know better
+-			}
+-			time.Sleep(time.Duration(attempt+1) * time.Second)
+-		}
+-		if lastErr != nil {
+-			if errors.Is(lastErr, context.Canceled) {
+-				break
+-			}
+-			continue
+-		}
+-		plain, err := decryptRetried(data, mediaKey, kind[0], fileSHA256)
+-		if err != nil {
+-			// a bad MAC or hash is the file, not the host: no other host helps
+-			return rawError(err)
+-		}
+-		if err := os.WriteFile(req.Dest, plain, 0o600); err != nil {
+-			return rawError(err)
+-		}
+-		return rawAnswer(map[string]any{"ok": true, "size": len(plain)})
+-	}
+-	if lastErr == nil {
+-		lastErr = fmt.Errorf("no media host")
+-	}
+-	return rawError(fmt.Errorf("failed to download media from last host: %w", lastErr))
+-}
++package main
++
++/*
++   #include <stdlib.h>
++*/
++import "C"
++
++// Download of a media the phone uploaded again after a media retry.
++//
++// The MediaRetryNotification only carries the new direct path. The phone's new
++// upload can be encrypted into different bytes than the first one, so the
++// message's old fileEncSHA256 no longer matches them, and whatsmeow checks that
++// hash before the HMAC: every host answered 200 and every one was refused
++// ("hash of media ciphertext doesn't match", issue #756). Here the ciphertext
++// is authenticated the way the media key allows, by the 10-byte HMAC, then
++// decrypted and checked against the plaintext's fileSHA256, which does not
++// change with the upload. JSON in and out like rawiq.go; the plaintext goes to
++// a file the caller names.
++//
++// The URL's mms-type is WhatsApp Web's own for the message (ptt for a voice
++// note, ptv, gif, sticker), falling back to the plain kind's (issue #766: a
++// voice note fetched as "audio" was refused with "invalid media hmac"). When
++// nothing authenticates, the answer carries what was served from each host
++// (size, whether it is the old ciphertext, whether it looks like text, which
++// key info would have opened it) so a report can tell why.
++
++import (
++	"context"
++	"encoding/base64"
++	"encoding/json"
++	"errors"
++	"fmt"
++	"os"
++	"strings"
++	"time"
++
++	"go.mau.fi/whatsmeow"
++)
++
++type retriedDownload struct {
++	DirectPath string `json:"direct_path"`
++	MediaKey   string `json:"media_key"`
++	EncSHA256  string `json:"enc_sha256"`
++	FileSHA256 string `json:"file_sha256"`
++	Kind       string `json:"kind"`
++	MmsType    string `json:"mms_type"`
++	FileLength int64  `json:"file_length"`
++	Dest       string `json:"dest"`
++	TimeoutMs  int    `json:"timeout_ms"`
++}
++
++// retriedMediaTypes: the message kind to whatsmeow's key info and the
++// mms-type of the URL.
++var retriedMediaTypes = map[string][2]string{
++	"image":    {string(whatsmeow.MediaImage), "image"},
++	"video":    {string(whatsmeow.MediaVideo), "video"},
++	"audio":    {string(whatsmeow.MediaAudio), "audio"},
++	"document": {string(whatsmeow.MediaDocument), "document"},
++	"sticker":  {string(whatsmeow.MediaImage), "image"},
++}
++
++// DownloadRetriedMedia downloads and decrypts the media at the new direct path
++// into `dest`. Answers {"ok": true, "size": n} or {"error"}.
++//
++//export DownloadRetriedMedia
++func DownloadRetriedMedia(id *C.char, request *C.char) *C.char {
++	cli := clients[C.GoString(id)]
++	if cli == nil {
++		return rawError(fmt.Errorf("client not found"))
++	}
++	var req retriedDownload
++	if err := json.Unmarshal([]byte(C.GoString(request)), &req); err != nil {
++		return rawError(fmt.Errorf("request: %w", err))
++	}
++	kind, known := retriedMediaTypes[req.Kind]
++	mediaKey, keyErr := base64.StdEncoding.DecodeString(req.MediaKey)
++	encSHA256, _ := base64.StdEncoding.DecodeString(req.EncSHA256)
++	fileSHA256, _ := base64.StdEncoding.DecodeString(req.FileSHA256)
++	if !known || keyErr != nil || len(mediaKey) == 0 || req.Dest == "" ||
++		!strings.HasPrefix(req.DirectPath, "/") {
++		return rawError(fmt.Errorf("request: kind, media_key, dest and a direct_path starting with / are required"))
++	}
++	ctx, cancel := rawContext(req.TimeoutMs)
++	defer cancel()
++	conn, err := cli.DangerousInternals().RefreshMediaConn(ctx, false)
++	if err != nil {
++		return rawError(fmt.Errorf("failed to refresh media connections: %w", err))
++	}
++	mmsTypes := []string{kind[1]}
++	if req.MmsType != "" && req.MmsType != kind[1] {
++		mmsTypes = []string{req.MmsType, kind[1]}
++	}
++	var lastErr error
++	var tried []map[string]any
++	for _, host := range conn.Hosts {
++		for _, mmsType := range mmsTypes {
++			// the same URL form whatsmeow and WhatsApp Web use
++			url := fmt.Sprintf("https://%s%s&hash=%s&mms-type=%s&__wa-mms=", host.Hostname,
++				req.DirectPath, base64.URLEncoding.EncodeToString(encSHA256), mmsType)
++			var data []byte
++			for attempt := 0; attempt < 3; attempt++ {
++				if data, lastErr = cli.DangerousInternals().DownloadMedia(ctx, url); lastErr == nil ||
++					errors.Is(lastErr, context.Canceled) {
++					break
++				}
++				var httpErr whatsmeow.DownloadHTTPError
++				if errors.As(lastErr, &httpErr) {
++					break // 403, 404, 410...: retrying the same URL will not help
++				}
++				time.Sleep(time.Duration(attempt+1) * time.Second)
++			}
++			if lastErr != nil {
++				tried = append(tried, map[string]any{"host": host.Hostname, "mms_type": mmsType,
++					"error": lastErr.Error()})
++				if errors.Is(lastErr, context.Canceled) {
++					return retriedFailure(lastErr, tried)
++				}
++				continue
++			}
++			plain, appInfo, err := openRetried(data, mediaKey, kind[0], fileSHA256)
++			if err != nil {
++				tried = append(tried, servedDiagnostics(host.Hostname, mmsType, data, encSHA256,
++					req.FileLength, err))
++				lastErr = err
++				continue
++			}
++			if err := os.WriteFile(req.Dest, plain, 0o600); err != nil {
++				return rawError(err)
++			}
++			return rawAnswer(map[string]any{"ok": true, "size": len(plain), "host": host.Hostname,
++				"mms_type": mmsType, "app_info": appInfo, "tried": tried})
++		}
++	}
++	if lastErr == nil {
++		lastErr = fmt.Errorf("no media host")
++	}
++	return retriedFailure(lastErr, tried)
++}
++
++func retriedFailure(err error, tried []map[string]any) *C.char {
++	if len(tried) == 0 && !errors.Is(err, errRetriedHMAC) {
++		err = fmt.Errorf("failed to download media from last host: %w", err)
++	}
++	return rawAnswer(map[string]any{"error": err.Error(), "tried": tried})
++}

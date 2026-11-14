@@ -1938,34 +1938,12 @@ def mute_response_accepted(http_ok: bool, body: str, is_unmute: bool) -> bool:
 
 
 def first_unread_index(displayable, unread_count: int) -> int:
-    """Index of the first unread message in *displayable*, or -1.
-
-    WhatsApp's ``unreadCount`` only ever counts messages you *received*. The
-    naive ``len(displayable) - unread_count`` therefore lands in the wrong place
-    whenever any of your own messages sit at the tail of the conversation —
-    typically because you replied from your phone or another linked device. The
-    unread separator was then drawn above your own messages, announcing them as
-    unread, which is what "minhas próprias mensagens contam como não lidas"
-    describes.
-
-    Walk backwards instead, counting only incoming (``key.fromMe`` falsy)
-    messages, and stop on the *unread_count*-th one. Returns -1 when the loaded
-    history doesn't hold that many incoming messages (nothing sensible to
-    anchor the separator to).
-    """
-    if unread_count <= 0:
-        return -1
-    seen = 0
-    for idx in range(len(displayable) - 1, -1, -1):
-        msg = displayable[idx]
-        if not isinstance(msg, dict):
-            continue
-        if (msg.get("key") or {}).get("fromMe"):
-            continue
-        seen += 1
-        if seen == unread_count:
-            return idx
-    return -1
+    """Index of the first unread message in *displayable*, or -1: where
+    WhatsApp Web puts its divider (core/unread_types.py). Your own messages,
+    deletions, notices and calls among the unread ones are not counted, so
+    they never take an unread message's place."""
+    from core.unread_types import first_unread_index as whatsapp_divider
+    return whatsapp_divider(displayable, unread_count)
 
 
 def display_page_fetch_limit(configured_limit: int, cap: int = 2000, buffer: int = 50) -> int:

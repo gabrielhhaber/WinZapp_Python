@@ -111,7 +111,7 @@ WITHDRAWN_TYPE = "protocolMessage"
 OTHER_KINDS = frozenset((
     "conversation", "extendedTextMessage",
     "contactMessage", "locationMessage", "liveLocationMessage",
-    "pollCreationMessage", "buttonsMessage", "listMessage", "templateMessage",
+    "pollCreationMessage", "eventMessage", "buttonsMessage", "listMessage", "templateMessage",
     "groupNotification", "reactionMessage", "orderMessage", "orderUpdateMessage", "productMessage",
 ))
 

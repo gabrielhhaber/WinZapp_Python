@@ -330,6 +330,9 @@ class MessageListMixin:
         elif msg_type in POLL_MESSAGE_TYPES:
             self._show_poll_dialog(msg)
 
+        elif msg_type == "eventMessage":
+            self._show_event_dialog(msg)
+
         elif self._can_view_order(msg):
             # An order opens like a poll does: its items, and for a business
             # account that received it, the answer (ui/conversation_panel/commerce.py).

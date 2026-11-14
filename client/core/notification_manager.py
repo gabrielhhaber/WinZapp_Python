@@ -327,6 +327,11 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     if msg_type in ("locationMessage", "liveLocationMessage"):
         return i18n.t("notif_location")
 
+    # ── Event (core/events.py) ─────────────────────────────────────────────────
+    if msg_type == "eventMessage":
+        name = ((msg_obj.get("eventMessage") or {}).get("name") or "").strip()
+        return i18n.t("notif_event").format(name=name) if name else i18n.t("event_label")
+
     # ── Poll ──────────────────────────────────────────────────────────────────
     if msg_type in ("pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3", "pollUpdateMessage"):
         poll = (

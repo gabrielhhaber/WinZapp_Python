@@ -23,6 +23,13 @@ if sys.platform == 'win32':
         # Fallback: add to PATH environment variable
         os.environ['PATH'] = _lib_path + os.pathsep + os.environ.get('PATH', '')
 
+# The noise reducer's own process (core/cuda_components/noise_worker.py) is
+# this program started with its flag: handed over before anything else is
+# imported, so the GPU build of onnxruntime it puts in place comes first.
+if len(sys.argv) > 1 and sys.argv[1] == "--noise-reducer-worker":
+    from core.cuda_components.noise_worker import main as _noise_worker_main
+    sys.exit(_noise_worker_main())
+
 import shutil
 import socket as _socket
 
@@ -285,6 +292,7 @@ from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
 from main_window.wpp_server import WppServerMixin
 from main_window.neonize_bridge import NeonizeBridgeMixin
+from main_window.manual_reconnect import ManualReconnectMixin
 from main_window.api_start_behind_window import ApiStartBehindWindowMixin, wait_for_api_start
 from main_window.sending import SendingMixin
 from main_window.poll_sending import PollSendingMixin
@@ -353,6 +361,7 @@ class MainWindow(
     MessageEventsMixin,
     WppServerMixin,
     NeonizeBridgeMixin,
+    ManualReconnectMixin,
     ApiStartBehindWindowMixin,
     SendingMixin,
     PollSendingMixin,
@@ -529,10 +538,11 @@ class MainWindow(
             "MainWindow: CUDA transcription libraries registered=%s",
             cuda_runtime.register_installed_runtime(),
         )
-        # The noise reducer's ONNX Runtime build, before anything imports it
-        # (core/cuda_components/runtime.py).
-        from core.cuda_components import runtime as noise_runtime
-        noise_runtime.activate(self.settings)
+        # The noise reducer's device; a graphics card build runs in a process
+        # of its own, started when a recording needs it
+        # (core/cuda_components/noise_worker_host.py).
+        from core.cuda_components import noise_worker_host
+        noise_worker_host.configure_for_window(self)
         # Decrypted audio a run killed mid-way left in %TEMP% (privacy).
         temp_sweep.sweep_stale_temporaries()
         # What past updates left in %TEMP% (a full copy of every release
@@ -1461,6 +1471,13 @@ class MainWindow(
         self.status_panel.Hide()
         self.calls_panel = CallsPanel(self, self.content_panel)
         self.calls_panel.Hide()
+        # Communities (Alt+8) and Channels (Alt+9): panels like Calls
+        from ui.dialogs.communities import CommunitiesPanel
+        from ui.dialogs.channels import ChannelsPanel
+        self.communities_panel = CommunitiesPanel(self, self.content_panel)
+        self.communities_panel.Hide()
+        self.channels_panel = ChannelsPanel(self, self.content_panel)
+        self.channels_panel.Hide()
 
         # Content panel: all panels fill it; only one is shown at a time
         content_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1471,6 +1488,8 @@ class MainWindow(
         content_sizer.Add(self.locked_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.status_panel, 1, wx.EXPAND)
         content_sizer.Add(self.calls_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.communities_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.channels_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
         # Main panel: nav sidebar on left, content on right
@@ -1882,6 +1901,10 @@ def setup_logging():
         for h in root.handlers[:]:
             root.removeHandler(h)
         root.addHandler(handler)
+        # A native crash reaches no Python handler: its stacks go to fatal.log
+        # (core/abrupt_exit.py), which the log export carries.
+        from core.abrupt_exit import enable_fatal_log
+        enable_fatal_log(log_path("fatal.log"))
         # Set logging level to INFO to expose auto-updater, settings validation,
         # and startup logs. Noisy dependencies are silenced at ERROR level below.
         root.setLevel(logging.INFO)

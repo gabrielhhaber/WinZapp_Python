@@ -13,6 +13,7 @@ import tempfile
 import threading
 import time
 import wx
+from core import media_failure
 from core.utils import (
     MEASURED_SECONDS_KEY,
     auto_download_allows,
@@ -27,7 +28,7 @@ from main_window.message_rules import (
     media_fetch_timeout,
 )
 from main_window.runtime_setup import _looks_like_json_response
-from core.api_client import api_post
+from core.api_client import api_post, redact_api_url
 from app_paths import data_path
 from ui.conversations import probe_media_duration
 from core.transcription import stored as stored_transcription
@@ -657,7 +658,7 @@ class MediaMixin:
         media_type = body_data.get("type", "")
         logging.info(
             "[get_base64_from_media] Requesting media for msg_id=%s, url=%s, has_mediaKey=%s, has_clientUrl=%s, type=%s",
-            msg_id, url, has_media_key, has_client_url, media_type
+            msg_id, redact_api_url(url), has_media_key, has_client_url, media_type
         )
 
         max_attempts = 3
@@ -688,6 +689,8 @@ class MediaMixin:
                 resp_text = ""
                 if response.status_code not in (200, 201):
                     resp_text = response.text or ""
+                    # why, when the engine says (core/media_failure.py)
+                    media_failure.note(_key.get("id", ""), resp_text)
                 logging.info(
                     "[get_base64_from_media] WPPConnect server status=%d for msg_id=%s, body_snippet=%s",
                     response.status_code, msg_id, resp_text[:200]
@@ -731,6 +734,8 @@ class MediaMixin:
                 # Streaming mode so we can report per-chunk progress
                 try:
                     response = api_post(url, headers=headers, json=body_data, stream=True, timeout=timeout)
+                    if response.status_code not in (200, 201):
+                        media_failure.note(_key.get("id", ""), response.text or "")
                     if response.status_code in (403, 410):
                         raise MediaExpiredError(response.status_code)
                     

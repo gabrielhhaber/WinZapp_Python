@@ -84,6 +84,10 @@ class NeuralDenoiser:
             session, initial_state = _load_session(path or model_path())
         self._session = session
         self._initial_state = initial_state
+        try:
+            self.provider = session.get_providers()[0]
+        except Exception:
+            self.provider = ""
         inputs, outputs = session.get_inputs(), session.get_outputs()
         self._names = (inputs[0].name, inputs[1].name, outputs[0].name, outputs[1].name)
 
@@ -167,6 +171,10 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int,
     if not neural:
         from core.audio_processing import apply_noise_gate
         return apply_noise_gate(audio, rate, channels, strict=True), "gate"
+    if os.path.isfile(model_path()):
+        cleaned = _on_the_graphics_card(audio, rate, channels)
+        if cleaned is not None:
+            return cleaned, "neural"
     try:
         with _denoiser_lock:
             if _denoiser is None:
@@ -180,6 +188,21 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int,
         from core.audio_processing import apply_noise_gate
         # strict: a gate failure must reach the caller, not look like success.
         return apply_noise_gate(audio, rate, channels, strict=True), "gate"
+
+
+def _on_the_graphics_card(audio: bytes, rate: int, channels: int) -> bytes | None:
+    """The recording cleaned by the noise reducer's own process, when a
+    graphics card build is chosen (cuda_components/noise_worker_host.py);
+    None when it is not, or could not: the processor here does it then."""
+    from core.cuda_components import noise_worker_host, runtime
+    if not runtime.uses_worker(noise_worker_host.host.device):
+        return None
+    try:
+        return noise_worker_host.host.denoise(audio, rate, channels)
+    except Exception as exc:
+        logging.warning("[noise_reduction] the graphics card could not clean it (%s); "
+                        "using the processor", exc)
+        return None
 
 
 def forget_denoiser() -> None:

@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 import socketio
+from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
 from core.community_comments import comment_count, parse_reply_count_event, parse_reply_preview_event
@@ -24,6 +25,7 @@ from core.reaction_echo import reaction_echo_keys, take_matching_send
 from core.meta_ai import rich_response_text
 from core.polls import poll_message_from_wpp
 from core import channel_invites
+from core import events
 from core.sync_contracts import observe_payload
 from core.vcard_payload import contact_message_payload
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
@@ -375,6 +377,8 @@ class WebSocketClient:
         self.sio.on("announcement-replies", self.on_announcement_replies)
         self.sio.on("channels-changed", self.on_channels_changed)
         self.sio.on("offline-sync", self.on_offline_sync)
+        self.sio.on("chat-cleared", self.on_chat_cleared)
+        self.sio.on("event-changed", self.on_event_changed)
         self.sio.on("call-participants", self.on_call_participants)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
@@ -2466,6 +2470,34 @@ class WebSocketClient:
         except Exception:
             logging.exception("[WebSocketClient] offline-sync failed")
 
+    def on_event_changed(self, data):
+        """An answer to a WhatsApp event arrived, or the event was edited or
+        canceled (eventsWatchBridge.ts; neonize_bridge/events.py)."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            message_id, kind = data.get("id"), data.get("kind")
+            if (not isinstance(message_id, str) or not message_id or len(message_id) > 64
+                    or kind not in ("responses", "edited")):
+                return
+            panel = getattr(self.main_window, "conversations_panel", None)
+            if panel is not None:
+                wx.CallAfter(panel.on_event_changed, message_id, kind)
+        except Exception:
+            logging.exception("[WebSocketClient] event-changed failed")
+
+    def on_chat_cleared(self, data):
+        """A chat was cleared on another device (core/remote_chat_clear.py)."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            parsed = chat_cleared_payload(data)
+            if parsed is None:
+                return
+            wx.CallAfter(apply_remote_clear, self.main_window, *parsed)
+        except Exception:
+            logging.exception("[WebSocketClient] chat-cleared failed")
+
     def on_call_participants(self, data):
         """Who is connected to a group call changed (callParticipantsBridge.ts;
         call_media.report_rosters on Neonize): the whole connected list."""
@@ -2481,9 +2513,11 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] call-participants failed")
 
     def _channels_changed_on_ui(self, channel_id=""):
-        dialog = getattr(self.main_window, "_channels_dialog", None)
-        if dialog is not None:
-            dialog.on_channels_changed()
+        # the Channels panel reads its list again when shown; while it is on
+        # screen, at once (ui/dialogs/channels.py)
+        panel = getattr(self.main_window, "channels_panel", None)
+        if panel is not None and panel.IsShown():
+            panel.on_channels_changed()
         people = getattr(self.main_window, "_channel_people_dialog", None)
         if people is not None:
             people.on_channels_changed(channel_id)
@@ -3107,6 +3141,9 @@ class WebSocketClient:
             message_content = {
                 "pollCreationMessage": poll_message_from_wpp(wpp_msg)
             }
+        elif msg_type == events.WPP_TYPE:
+            # a WhatsApp event: name, date, place, call link (core/events.py)
+            message_content = {events.EVENT_MESSAGE_TYPE: events.event_from_wpp(wpp_msg)}
         elif msg_type in channel_invites.WPP_TYPES:
             # an invitation to follow a channel or to be its admin
             invite = channel_invites.from_wpp(msg_type, wpp_msg)
@@ -3251,6 +3288,7 @@ class WebSocketClient:
             "multi_vcard": "contactMessage",
             "pollCreation": "pollCreationMessage",
             "poll_creation": "pollCreationMessage",
+            events.WPP_TYPE: events.EVENT_MESSAGE_TYPE,
             "buttons": "buttonsMessage",
             "list": "listMessage",
             "template": "templateMessage",

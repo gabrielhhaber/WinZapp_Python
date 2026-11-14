@@ -8,7 +8,7 @@ import types
 import pytest
 
 import ui.dialogs.channels as dialogs
-from ui.dialogs.channels import FIND, MINE, ChannelsDialog
+from ui.dialogs.channels import FIND, MINE, ChannelsPanel
 
 
 class _Timer:
@@ -38,7 +38,7 @@ def window(monkeypatch):
     stub._current = lambda: True
     stub._on_search = lambda: setattr(stub, "searches", stub.searches + 1)
     for name in ("_on_filter_changed", "_filter_settled"):
-        setattr(stub, name, types.MethodType(getattr(ChannelsDialog, name), stub))
+        setattr(stub, name, types.MethodType(getattr(ChannelsPanel, name), stub))
     return stub
 
 
@@ -89,7 +89,7 @@ def _busy_stub(monkeypatch, mode=FIND, found=()):
     stub._reload = read("reload")
     stub._on_search = read("search")
     for name in ("_set_busy", "_run_pending", "_on_mode"):
-        setattr(stub, name, types.MethodType(getattr(ChannelsDialog, name), stub))
+        setattr(stub, name, types.MethodType(getattr(ChannelsPanel, name), stub))
     return stub
 
 
@@ -133,7 +133,7 @@ def _dialog_stub():
     stub = types.SimpleNamespace(_busy=False, _reload_again=False, reloads=[])
     stub._current = lambda: True
     stub._reload = lambda keep="", quiet=False: stub.reloads.append(quiet)
-    stub.on_channels_changed = types.MethodType(ChannelsDialog.on_channels_changed, stub)
+    stub.on_channels_changed = types.MethodType(ChannelsPanel.on_channels_changed, stub)
     return stub
 
 
@@ -150,13 +150,15 @@ def test_a_change_during_a_read_reloads_after_it():
     assert stub.reloads == [] and stub._reload_again is True
 
 
-def test_the_socket_hands_a_channel_change_to_the_open_window(monkeypatch):
+def test_the_socket_hands_a_channel_change_to_the_panel_on_screen(monkeypatch):
     from core import websocket_client as wsc
     calls = []
     monkeypatch.setattr(wsc.wx, "CallAfter", lambda fn, *a: fn(*a))
-    dialog = types.SimpleNamespace(on_channels_changed=lambda: calls.append("reload"))
+    shown = [True]
+    panel = types.SimpleNamespace(on_channels_changed=lambda: calls.append("reload"),
+                                  IsShown=lambda: shown[0])
     people = types.SimpleNamespace(on_channels_changed=lambda jid: calls.append(("people", jid)))
-    client = types.SimpleNamespace(main_window=types.SimpleNamespace(_channels_dialog=dialog,
+    client = types.SimpleNamespace(main_window=types.SimpleNamespace(channels_panel=panel,
                                                                      _channel_people_dialog=people),
                                    _belongs_to_this_session=lambda data: data.get("session") == "me")
     for name in ("on_channels_changed", "_channels_changed_on_ui"):
@@ -165,7 +167,9 @@ def test_the_socket_hands_a_channel_change_to_the_open_window(monkeypatch):
     client.on_channels_changed({"session": "other", "kind": "left", "id": "1@newsletter"})
     client.on_channels_changed({"session": "me", "kind": "left", "id": "5511@c.us"})
     assert calls == ["reload", ("people", "1@newsletter")]
-    client.main_window._channels_dialog = client.main_window._channel_people_dialog = None
+    # hidden: it reads the list again when shown (on_show), nothing now
+    shown[0] = False
+    client.main_window._channel_people_dialog = None
     client.on_channels_changed({"session": "me", "kind": "left", "id": "1@newsletter"})
     assert len(calls) == 2
 
@@ -185,17 +189,15 @@ def test_the_people_window_reloads_only_for_its_own_channel():
     assert loads == [True] and stub._reload_again is True
 
 
-# ---------------------------------------- Esc goes back to the Channels window
-def test_esc_in_a_channel_opened_from_the_window_shows_the_window_again(monkeypatch):
+# ----------------------------------------- Esc goes back to the Channels panel
+def test_esc_in_a_channel_opened_from_the_panel_shows_the_panel_again(monkeypatch):
+    from main_window import content_panels
     shown = []
     monkeypatch.setattr(dialogs.wx, "CallAfter", lambda fn, *a: shown.append((fn, a)))
-    left = object()
-    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter",
-                               _channels_return_state=left)
+    mw = types.SimpleNamespace(_channel_opened_from_window="1@newsletter")
     assert dialogs.channel_closed(mw, "1@newsletter") is True
-    # with the window as it was left (channels_return.py)
-    assert shown == [(dialogs.show_channels, (mw, mw, "1@newsletter", left))]
-    assert mw._channels_return_state is None
+    # the same panel, as it was left, on that channel
+    assert shown == [(content_panels.show_channels, (mw, "1@newsletter"))]
     assert mw._channel_opened_from_window == ""
     # used once: the next Esc in it goes to the chat list as usual
     assert dialogs.channel_closed(mw, "1@newsletter") is False

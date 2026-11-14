@@ -1,5 +1,13 @@
 """Shared fixtures for all WinZapp tests — async edition."""
 
+# Before anything imports win32com.client or comtypes.client: one COM
+# wrapper cache per xdist worker, or two workers race on the same files
+# (tests/win32com_cache.py).
+from tests.win32com_cache import isolate_comtypes_gen, isolate_gen_py
+
+isolate_gen_py()
+isolate_comtypes_gen()
+
 import importlib.util
 import json
 import os

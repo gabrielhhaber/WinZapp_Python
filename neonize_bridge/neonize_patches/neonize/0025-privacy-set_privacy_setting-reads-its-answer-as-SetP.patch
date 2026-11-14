@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <noreply@example.com>
+Date: Wed, 11 Nov 2026 21:01:39 -0300
+Subject: [PATCH] privacy: set_privacy_setting reads its answer as
+ SetPrivacySettingReturnFunction
+
+The Go side always fills the settings, so decoding the whole answer as an
+error text raised SetPrivacySettingError on every change WhatsApp applied.
+---
+ neonize/aioze/client.py | 19 ++++++++++++-------
+ neonize/client.py       | 15 +++++++++++----
+ 2 files changed, 23 insertions(+), 11 deletions(-)
+
+diff --git a/neonize/aioze/client.py b/neonize/aioze/client.py
+index 15516ef..16d0441 100644
+--- a/neonize/aioze/client.py
++++ b/neonize/aioze/client.py
+@@ -3003,14 +3003,19 @@ class NewAClient:
+         :param value: The new value for the privacy setting.
+         :type value: PrivacySetting
+         :raises SetPrivacySettingError: If there is an error while setting the privacy setting.
++        :return: the privacy settings after the change
++        :rtype: PrivacySettings
+         """
+-        err = (
+-            await self.__client.SetPrivacySetting(
+-                self.uuid, name.value.encode(), value.value.encode()
+-            )
+-        ).decode()
+-        if err:
+-            raise SetPrivacySettingError(err)
++        # The Go side answers a SetPrivacySettingReturnFunction, never a bare
++        # error text: its settings are always filled, so decoding the whole
++        # answer as the error raised on every successful change.
++        protobytes = await self.__client.SetPrivacySetting(
++            self.uuid, name.value.encode(), value.value.encode()
++        )
++        model = neonize_proto.SetPrivacySettingReturnFunction.FromString(protobytes)
++        if model.Error:
++            raise SetPrivacySettingError(model.Error)
++        return model.settings
+ 
+     async def set_passive(self, passive: bool):
+         """
+diff --git a/neonize/client.py b/neonize/client.py
+index 1346ab1..5c598ab 100644
+--- a/neonize/client.py
++++ b/neonize/client.py
+@@ -3157,12 +3157,19 @@ class NewClient:
+         :param value: The new value for the privacy setting.
+         :type value: PrivacySetting
+         :raises SetPrivacySettingError: If there is an error while setting the privacy setting.
++        :return: the privacy settings after the change
++        :rtype: PrivacySettings
+         """
+-        err = self.__client.SetPrivacySetting(
++        # The Go side answers a SetPrivacySettingReturnFunction, never a bare
++        # error text: its settings are always filled, so decoding the whole
++        # answer as the error raised on every successful change.
++        protobytes = self.__client.SetPrivacySetting(
+             self.uuid, name.value.encode(), value.value.encode()
+-        ).decode()
+-        if err:
+-            raise SetPrivacySettingError(err)
++        )
++        model = neonize_proto.SetPrivacySettingReturnFunction.FromString(protobytes)
++        if model.Error:
++            raise SetPrivacySettingError(model.Error)
++        return model.settings
+ 
+     def set_passive(self, passive: bool):
+         """

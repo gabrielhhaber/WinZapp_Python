@@ -39,7 +39,12 @@ OWN = "self"
 
 
 def _key(node):
-    """The literal key of an `<x>.i18n.t("key")` / `i18n.t("key")` call."""
+    """The literal key of an `<x>.i18n.t("key")` / `i18n.t("key")` call, or of
+    `t("key")` after the dialog's own `t = i18n.t`."""
+    if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "t"
+            and node.args and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)):
+        return node.args[0].value
     if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
             and node.func.attr == "t" and node.args
             and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):

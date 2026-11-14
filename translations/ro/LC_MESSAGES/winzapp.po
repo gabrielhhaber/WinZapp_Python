@@ -1874,6 +1874,12 @@ msgstr "Document"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/attachments.py
+msgctxt "attachment_event"
+msgid "Event"
+msgstr "Eveniment"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/attachments.py
 msgctxt "attachment_photos_videos"
 msgid "Photos and videos"
 msgstr "Fotografii și videoclipuri"
@@ -2710,6 +2716,18 @@ msgid "Voice call"
 msgstr "Apel vocal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_declined_row"
+msgid "{name}, declined"
+msgstr "{name}, a refuzat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_invited_row"
+msgid "{name}, not in the call"
+msgstr "{name}, nu este în apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_participants.py
 #, python-brace-format
 msgctxt "call_participant_joined"
@@ -2722,6 +2740,24 @@ msgstr "{name} a intrat în apel"
 msgctxt "call_participant_left"
 msgid "{name} left the call"
 msgstr "{name} a ieșit din apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_left_row"
+msgid "{name}, left the call"
+msgstr "{name}, a ieșit din apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_missed_row"
+msgid "{name}, did not answer"
+msgstr "{name}, nu a răspuns"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_ringing_row"
+msgid "{name}, ringing"
+msgstr "{name}, sună"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -2741,6 +2777,13 @@ msgstr "Participanții la apel"
 msgctxt "call_participants_count"
 msgid "Connected participants: {count}"
 msgstr "Participanți conectați: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+#, python-brace-format
+msgctxt "call_participants_count_with_left"
+msgid "Connected participants: {count}. Not connected: {left}"
+msgstr "Participanți conectați: {count}. Neconectați: {left}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -5569,7 +5612,7 @@ msgctxt "communities_row_admin"
 msgid "{name}, you are an admin"
 msgstr "{name}, sunteți administrator"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_title"
 msgid "Communities"
 msgstr "Comunități"
@@ -5779,8 +5822,8 @@ msgstr "Neonize (conexiune directă, experimental)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (legacy, uses the Windows browser)"
-msgstr "WPPConnect (vechi, folosește browserul Windows)"
+msgid "WPPConnect (alternative, uses the Windows browser)"
+msgstr "WPPConnect (alternativ, folosește browserul Windows)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -6172,13 +6215,14 @@ msgstr "A apărut o eroare la salvarea fișierului de mesaje:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "date_fmt"
 msgid "%m/%d/%Y"
 msgstr "%d.%m.%Y"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/main_window/whats_new_since.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -6760,6 +6804,284 @@ msgstr "Detalii despre eroare:"
 msgctxt "error_details_label"
 msgid "Error details"
 msgstr "Detaliile erorii"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_label"
+msgid "Call t&ype:"
+msgstr "Tip &apel:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_none"
+msgid "No call"
+msgstr "Fără apel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_unsupported"
+msgid ""
+"This connection engine cannot create events with a call yet. Choose no call."
+msgstr ""
+"Acest motor de conectare nu creează încă evenimente cu apel. Alegeți fără "
+"apel."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_video"
+msgid "Video call"
+msgstr "Apel video"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_voice"
+msgid "Voice call"
+msgstr "Apel vocal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/event_messages.py
+msgctxt "event_cancel_confirm"
+msgid "Cancel this event for everyone in the chat? This cannot be undone."
+msgstr ""
+"Anulați acest eveniment pentru toți din conversație? Acțiunea nu poate fi "
+"anulată."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_cancel_failed"
+msgid "The event could not be canceled."
+msgstr "Evenimentul nu a putut fi anulat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled"
+msgid "Canceled"
+msgstr "Anulat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled_done"
+msgid "Event canceled."
+msgstr "Eveniment anulat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create"
+msgid "C&reate"
+msgstr "&Creează"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create_failed"
+msgid "The event could not be created."
+msgstr "Evenimentul nu a putut fi creat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_created"
+msgid "Event created."
+msgstr "Eveniment creat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_date_invalid"
+msgid "Type the dates like {date} and the times like {time}."
+msgstr "Introduceți datele ca {date} și orele ca {time}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_description_label"
+msgid "&Description:"
+msgstr "&Descriere:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_details_label"
+msgid "&Details:"
+msgstr "&Detalii:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_failed"
+msgid "The event could not be changed."
+msgstr "Evenimentul nu a putut fi modificat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_title"
+msgid "Edit event"
+msgstr "Editează evenimentul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edited"
+msgid "Event changed."
+msgstr "Eveniment modificat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_before_start"
+msgid "The end comes before the start."
+msgstr "Sfârșitul este înaintea începutului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_date_label"
+msgid "&End date (optional):"
+msgstr "Data de &sfârșit (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_time_label"
+msgid "End t&ime (optional):"
+msgstr "O&ra de sfârșit (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_extra_guests_label"
+msgid "Allow extra &guests"
+msgstr "Permite invitați su&plimentari"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_going"
+msgid "Going ({count})"
+msgstr "Participă ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_maybe"
+msgid "Maybe ({count})"
+msgstr "Poate ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_not_going"
+msgid "Not going ({count})"
+msgstr "Nu participă ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/ui/conversation_panel/event_messages.py
+#: client/ui/dialogs/event_dialog.py
+msgctxt "event_label"
+msgid "Event"
+msgstr "Eveniment"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_link_label"
+msgid "Call link: {link}"
+msgstr "Link apel: {link}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_location"
+msgid "Place: {location}"
+msgstr "Locație: {location}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_location_label"
+msgid "&Place (optional):"
+msgstr "&Locație (opțional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_cancel"
+msgid "Cancel e&vent"
+msgstr "&Anulează evenimentul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_edit"
+msgid "&Edit event"
+msgstr "&Editează evenimentul"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_going"
+msgid "You are going"
+msgstr "Participați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_maybe"
+msgid "You may go"
+msgstr "Poate participați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_not_going"
+msgid "You are not going"
+msgstr "Nu participați"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_label"
+msgid "&Name:"
+msgstr "&Nume:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_required"
+msgid "Type the event's name."
+msgstr "Introduceți numele evenimentului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_new_title"
+msgid "New event"
+msgstr "Eveniment nou"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_passed"
+msgid "Already happened"
+msgstr "A avut deja loc"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_failed"
+msgid "The answer could not be sent."
+msgstr "Răspunsul nu a putut fi trimis."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_going"
+msgid "&Going"
+msgstr "&Particip"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_maybe"
+msgid "&Maybe"
+msgstr "Poa&te"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_not_going"
+msgid "&Not going"
+msgstr "&Nu particip"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_sent"
+msgid "Answer sent."
+msgstr "Răspuns trimis."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_responses_summary"
+msgid "{going} going, {maybe} maybe, {not_going} not going"
+msgstr "{going} participă, {maybe} poate, {not_going} nu participă"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_responses_unknown"
+msgid "The answers could not be read yet."
+msgstr "Răspunsurile nu au putut fi citite încă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_save"
+msgid "Sa&ve"
+msgstr "Sal&vează"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_date_label"
+msgid "&Start date:"
+msgstr "Data de &început:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_required"
+msgid "Type when the event starts."
+msgstr "Introduceți când începe evenimentul."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_time_label"
+msgid "Start &time:"
+msgstr "&Ora de început:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#, python-brace-format
+msgctxt "event_time_range"
+msgid "{start} until {end}"
+msgstr "{start} până la {end}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_unnamed"
+msgid "untitled"
+msgstr "fără nume"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_with_guests"
+msgid "{name} (+{count})"
+msgstr "{name} (+{count})"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -7539,6 +7861,20 @@ msgstr "{author} a legat acest grup la o comunitate"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
 #, python-brace-format
+msgctxt "group_notif_number_changed"
+msgid "{author} changed their phone number to a new number."
+msgstr "{author} și-a schimbat numărul de telefon cu unul nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+#, python-brace-format
+msgctxt "group_notif_number_changed_to"
+msgid "{author} changed to {number}"
+msgstr "{author} și-a schimbat numărul în {number}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+#, python-brace-format
 msgctxt "group_notif_picture_changed"
 msgid "{author} changed the group picture"
 msgstr "{author} a schimbat fotografia de grup"
@@ -8212,6 +8548,24 @@ msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr "Conversații blocate alt+7"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#: client/main_window/manual_reconnect.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+"Spațiu pe disc redus: doar {free} GB liberi. WhatsApp a fost închis în "
+"siguranță ca să nu se piardă această sesiune, iar WinZapp este offline. "
+"Eliberați spațiu până la cel puțin {needed} GB și se va reconecta singur."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr "Există din nou spațiu liber pe disc. Se conectează la WhatsApp."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
 msgid ""
@@ -8496,8 +8850,6 @@ msgid "{count} media file(s)"
 msgstr "{count} fișiere media"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/audio_playback.py
-#: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
 "This media file could not be downloaded. The link may have expired or the "
@@ -8505,6 +8857,11 @@ msgid ""
 msgstr ""
 "Acest fișier media nu a putut fi descărcat. Este posibil ca linkul să fi "
 "expirat sau conexiunea la WhatsApp să nu fie disponibilă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_gone_from_phone"
+msgid "This file is no longer on WhatsApp's servers or on your phone."
+msgstr "Acest fișier nu mai este nici pe serverele WhatsApp, nici pe telefon."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
@@ -8516,6 +8873,24 @@ msgid ""
 msgstr ""
 "Fișierele media nu pot fi descărcate în timp ce WhatsApp este deconectat sau"
 " se conectează. Așteptați ca conexiunea să revină și încercați din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_phone_no_answer"
+msgid ""
+"Your phone did not answer the request to send this file again. It may be "
+"busy: try again in a moment."
+msgstr ""
+"Telefonul nu a răspuns la cererea de a trimite din nou acest fișier. Poate "
+"fi ocupat: încercați din nou peste puțin timp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_retried_unreadable"
+msgid ""
+"Your phone sent this file again, but it could not be opened. If it keeps "
+"happening, send WinZapp's logs to the developers."
+msgstr ""
+"Telefonul a trimis din nou acest fișier, dar nu a putut fi deschis. Dacă se "
+"repetă, trimiteți jurnalele WinZapp dezvoltatorilor."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 #, python-brace-format
@@ -8748,9 +9123,21 @@ msgstr "&Importați setările..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_install_pending_update"
+msgid "&Install downloaded update"
+msgstr "&Instalează actualizarea descărcată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_mark_all_read"
 msgid "Mark all chats as read"
 msgstr "Marcați toate conversațiile ca citite"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
+msgctxt "menu_reconnect_now"
+msgid "Reco&nnect now"
+msgstr "Reco&nectează acum"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -9697,12 +10084,6 @@ msgid "&Processor the noise reducer runs on:"
 msgstr "&Procesorul pe care rulează reducerea zgomotului:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/cuda_components/text.py
-msgctxt "noise_reducer_device_next_start"
-msgid "A new processor applies from the next time WinZapp starts."
-msgstr "Schimbarea procesorului se aplică de la următoarea pornire a WinZapp."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_model_remove"
 msgid "Remove &the neural model"
@@ -9725,6 +10106,25 @@ msgid "The neural model was removed."
 msgstr "Modelul neural a fost eliminat."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_ready"
+msgid "The noise reducer is ready on the graphics card."
+msgstr "Reducerea zgomotului este pregătită pe placa video."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restart_failed"
+msgid ""
+"The noise reducer could not use the graphics card; voice messages will be "
+"cleaned on the computer's processor."
+msgstr ""
+"Reducerea zgomotului nu a putut folosi placa video; mesajele vocale vor fi "
+"procesate de procesorul computerului."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restarting"
+msgid "Restarting the noise reducer to use the graphics card."
+msgstr "Se repornește reducerea zgomotului pentru a folosi placa video."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/cuda_components/text.py
 msgctxt "noise_reducer_shared_cublas"
 msgid "cuBLAS 12 (the local transcription's own)"
@@ -9745,6 +10145,13 @@ msgid ""
 msgstr ""
 "Folos&iți reducerea neurală a zgomotului (mai precisă; debifați pentru cea "
 "obișnuită, mai rapidă)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_waiting_restart"
+msgid ""
+"Waiting for the noise reducer to restart before cleaning the voice message."
+msgstr ""
+"Se așteaptă repornirea reducerii zgomotului pentru a procesa mesajul vocal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/voice_recording.py
@@ -9790,6 +10197,13 @@ msgstr "Contact"
 msgctxt "notif_deleted"
 msgid "This message was deleted"
 msgstr "Acest mesaj a fost șters"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#, python-brace-format
+msgctxt "notif_event"
+msgid "Event: {name}"
+msgstr "Eveniment: {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -11124,6 +11538,39 @@ msgstr "&Citiți mai multe"
 msgctxt "recent_reactions"
 msgid "Recent reactions:"
 msgstr "Reacții recente:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_done"
+msgid "Connected to WhatsApp."
+msgstr "Conectat la WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_failed"
+msgid "Could not reconnect now. Try again in a few moments."
+msgstr ""
+"Reconectarea nu a fost posibilă acum. Încercați din nou peste câteva "
+"momente."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_no_internet"
+msgid ""
+"No internet: this computer cannot reach WhatsApp. Check the network and try "
+"again."
+msgstr ""
+"Fără internet: computerul nu poate ajunge la WhatsApp. Verificați rețeaua și"
+" încercați din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_restarting"
+msgid ""
+"The connection to WhatsApp is being restarted; this can take a few moments."
+msgstr "Conexiunea la WhatsApp se repornește; poate dura câteva momente."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/manual_reconnect.py
+msgctxt "reconnect_started"
+msgid "Reconnecting to WhatsApp…"
+msgstr "Se reconectează la WhatsApp…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_composer.py client/ui/conversations.py
@@ -15998,10 +16445,11 @@ msgctxt "terms_title"
 msgid "WinZapp | Important notice"
 msgstr "WinZapp | Notă importantă"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/formatting.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/ui/conversation_panel/formatting.py
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "time_fmt"
 msgid "%I:%M %p"
 msgstr "%H:%M"
@@ -19324,6 +19772,15 @@ msgid "Continue where you left off (last focused message)"
 msgstr "Continuă de unde ai rămas (ultimul mesaj focalizat)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused_or_unread"
+msgid ""
+"Where you left off in the middle of the conversation; if you had reached the"
+" last message, the unread separator"
+msgstr ""
+"Unde ai rămas la mijlocul conversației; dacă ajunseseși la ultimul mesaj, "
+"separatorul de necitite"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ui_message_list_open_position_unread_or_last"
 msgid "Unread separator or last message"
 msgstr "Separatorul de necitite sau ultimul mesaj"
@@ -19777,13 +20234,13 @@ msgstr "Actualizare WinZapp disponibilă"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
-msgctxt "update_background_ready_msg"
+msgctxt "update_background_ready_question"
 msgid ""
-"WinZapp update {version} has been downloaded. WinZapp will close now to "
-"install it and open again right after."
+"WinZapp update {version} has been downloaded. To install it, WinZapp closes "
+"and opens again right after. Install it now?"
 msgstr ""
-"Actualizarea WinZapp {version} a fost descărcată. WinZapp se va închide acum"
-" pentru a o instala și se va redeschide imediat după aceea."
+"Actualizarea WinZapp {version} a fost descărcată. Pentru a o instala, "
+"WinZapp se închide și se redeschide imediat. Instalați acum?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
@@ -19878,6 +20335,34 @@ msgstr ""
 "O actualizare este deja în curs de instalare. Așteptați finalizarea înainte "
 "de a încerca din nou."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_later"
+msgid "Install later"
+msgstr "Instalează mai târziu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "update_install_later_said"
+msgid ""
+"The update stays ready. Install it whenever you want from {menu} > {option}."
+msgstr ""
+"Actualizarea rămâne pregătită. Instalați-o când doriți din {menu} > "
+"{option}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/pending_install.py
+msgctxt "update_install_not_now"
+msgid ""
+"The update cannot be installed right now: finish the call or the recording, "
+"or wait for the update in progress, and try again."
+msgstr ""
+"Actualizarea nu poate fi instalată acum: încheiați apelul sau înregistrarea "
+"ori așteptați actualizarea în curs și încercați din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_now"
+msgid "Install now"
+msgstr "Instalează acum"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_installing"
 msgid "Installing update..."
@@ -19904,6 +20389,15 @@ msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "Nicio actualizare"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_installed"
+msgid ""
+"WinZapp update {version} has been installed. You can open WinZapp again."
+msgstr ""
+"Actualizarea WinZapp {version} a fost instalată. Puteți deschide din nou "
+"WinZapp."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "update_on_exit_label"
@@ -19915,6 +20409,21 @@ msgstr ""
 "Descarcă actualizările auto&mat și instalează-le când închid WinZapp, fără "
 "să întrebe (închiderea ferestrei în bara de sistem nu contează, iar WinZapp "
 "nu se mai deschide după aceea)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_not_installed"
+msgid ""
+"WinZapp update {version} could not be installed. You can open WinZapp again;"
+" it will tell you what happened."
+msgstr ""
+"Actualizarea WinZapp {version} nu a putut fi instalată. Puteți deschide din "
+"nou WinZapp; vă va spune ce s-a întâmplat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+msgctxt "update_on_exit_notice_title"
+msgid "WinZapp update"
+msgstr "Actualizarea WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
 #, python-brace-format
@@ -21009,13 +21518,14 @@ msgstr "WPPConnect este disponibilă o actualizare"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format
-msgctxt "wpp_update_background_ready_msg"
+msgctxt "wpp_update_background_ready_question"
 msgid ""
-"WPPConnect update {version} has been downloaded. WinZapp will go offline for"
-" a moment to install it and restart WPPConnect."
+"WPPConnect update {version} has been downloaded. To install it, WinZapp goes"
+" offline for a moment while WPPConnect restarts. Install it now?"
 msgstr ""
-"Actualizarea WPPConnect {version} a fost descărcată. WinZapp va fi offline "
-"câteva momente pentru a o instala și a reporni WPPConnect."
+"Actualizarea WPPConnect {version} a fost descărcată. Pentru a o instala, "
+"WinZapp trece offline câteva momente cât WPPConnect repornește. Instalați "
+"acum?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/updates.py
 msgctxt "wpp_update_background_running"
@@ -21141,6 +21651,28 @@ msgstr "&Da"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri la {time}"
+
+#~ msgctxt "noise_reducer_device_next_start"
+#~ msgid "A new processor applies from the next time WinZapp starts."
+#~ msgstr "Schimbarea procesorului se aplică de la următoarea pornire a WinZapp."
+
+#, python-brace-format
+#~ msgctxt "update_background_ready_msg"
+#~ msgid ""
+#~ "WinZapp update {version} has been downloaded. WinZapp will close now to "
+#~ "install it and open again right after."
+#~ msgstr ""
+#~ "Actualizarea WinZapp {version} a fost descărcată. WinZapp se va închide acum"
+#~ " pentru a o instala și se va redeschide imediat după aceea."
+
+#, python-brace-format
+#~ msgctxt "wpp_update_background_ready_msg"
+#~ msgid ""
+#~ "WPPConnect update {version} has been downloaded. WinZapp will go offline for"
+#~ " a moment to install it and restart WPPConnect."
+#~ msgstr ""
+#~ "Actualizarea WPPConnect {version} a fost descărcată. WinZapp va fi offline "
+#~ "câteva momente pentru a o instala și a reporni WPPConnect."
 
 #~ msgctxt "noise_reducer_components_background"
 #~ msgid "The download goes on in the background. WinZapp says when it is over."

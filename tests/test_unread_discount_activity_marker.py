@@ -48,15 +48,24 @@ def test_notifications_newer_than_t_do_not_cancel_the_unread_messages():
     assert _discount_non_countable_unread(records, 3, 1000) == 3
 
 
-def test_without_a_marker_the_old_tail_rule_still_applies():
+def test_without_a_marker_the_notifications_still_take_nothing():
+    """Since 2026-11-12 nothing is cut from a tail: WhatsApp never counts a
+    group notification (core/unread_types.py), wherever it is stamped."""
     records = _group_with_notifications_after_t()
-    assert _discount_non_countable_unread(records, 3) == 0
+    assert _discount_non_countable_unread(records, 3) == 3
 
 
-def test_a_notification_that_moved_the_chat_is_still_discounted():
-    # A subject change stamped exactly at t is what the count covers.
+def test_a_notification_at_t_is_not_in_the_count_either():
     records = [_msg("conversation", 900), _msg("groupNotification", 1000)]
-    assert _discount_non_countable_unread(records, 1, 1000) == 0
+    assert _discount_non_countable_unread(records, 1, 1000) == 1
+
+
+def test_a_notice_written_on_our_side_is_not_a_reply():
+    """A business template or encryption notice flagged as ours does not
+    read the chat: only a message the account sent does."""
+    records = [_msg("conversation", 900), _msg("notification_template", 950, from_me=True),
+               _msg("e2e_notification", 960, from_me=True)]
+    assert _discount_non_countable_unread(records, 1) == 1
 
 
 def test_own_send_at_t_is_still_discounted():

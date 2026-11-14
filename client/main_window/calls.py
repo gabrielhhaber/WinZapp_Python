@@ -1732,6 +1732,9 @@ class CallsMixin:
         sync_hotkeys = getattr(self, "_request_call_hotkey_sync", None)
         if sync_hotkeys is not None:
             sync_hotkeys()
+        follow = getattr(self, "_participants_dialog_follow_call", None)
+        if follow is not None:
+            follow()
         window = getattr(self, "voice_call_window", None)
         if window is None:
             return
@@ -2039,6 +2042,11 @@ class CallsMixin:
                 self._sync_voice_call_bar()
                 self._on_call_upgraded_to_video()
             return
+        # What the page answered, so a report says why the call was ended here
+        # (2026-11-12: a drop with only HTTP lines in the logs to read).
+        logging.info("[call] ended after a terminal event: page state=%s engine=%s live=%s",
+                     *((status.get("state"), status.get("engine"), status.get("live"))
+                       if isinstance(status, dict) else ("?", "no answer", None)))
         self._end_active_call_locally(active, call_id, peer_jid)
 
     def _end_active_call_locally(self, active: dict, call_id: str, peer_jid: str):

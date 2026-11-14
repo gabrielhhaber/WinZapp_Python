@@ -55,18 +55,16 @@ def test_communities_comes_right_after_calls_and_before_settings(lock_visible):
     assert len(nav.nav_list.rows) == len(keys)
 
 
-def test_choosing_communities_opens_its_window_and_switches_no_panel(monkeypatch):
+@pytest.mark.parametrize("key", ["communities", "channels"])
+def test_choosing_communities_or_channels_switches_to_its_panel(monkeypatch, key):
+    """Panels since 2026-11-12, the same switch as Alt+8 and Alt+9."""
     shown = Mock()
-    monkeypatch.setattr("ui.dialogs.communities.show_communities", shown)
+    monkeypatch.setattr(f"main_window.content_panels.show_{key}", shown)
     nav = _Nav()
     nav.rebuild_items()
     mw = nav.main_window
-    mw.lock_chat_vault = Mock()
-    mw.conversations_panel = SimpleNamespace(Hide=Mock())
-    nav.on_nav_item_selected(SimpleNamespace(GetIndex=lambda: nav._nav_keys.index("communities")))
-    shown.assert_called_once_with(mw, mw)
-    mw.lock_chat_vault.assert_not_called()
-    mw.conversations_panel.Hide.assert_not_called()
+    nav.on_nav_item_selected(SimpleNamespace(GetIndex=lambda: nav._nav_keys.index(key)))
+    shown.assert_called_once_with(mw)
 
 
 def test_the_starred_messages_row_opens_their_window(monkeypatch):

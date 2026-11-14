@@ -11,6 +11,7 @@ pinning names that id.
 """
 
 import logging
+import threading
 
 from core import channels as ch
 from core.channels import CHANNEL_MEDIA_TYPES, CHANNEL_POST_KINDS
@@ -19,6 +20,31 @@ from core.group_invitation import connection_identity
 
 def is_channel(jid) -> bool:
     return str(jid or "").endswith("@newsletter")
+
+
+def fetch_channel_updates(main_window, jid):
+    """Read the newest updates of *jid* from the server now, off the wx
+    thread. Opening a conversation only reads the local database and the
+    server is asked by the sync rounds, which is fine for a chat already
+    synced; a channel opened from the Channels window is usually one never
+    read, so it showed "no updates in this channel yet" until the next round
+    picked it up (47 s later, report of 2026-11-11). sync_chat_messages()
+    stores them and repaints the conversation if it is still open."""
+    chat = getattr(main_window, "chats", {}).get(jid)
+    if not is_channel(jid) or not isinstance(chat, dict):
+        return None
+
+    def run():
+        try:
+            main_window.sync_chat_messages(chat, sync_mode="full")
+        except Exception as e:
+            # A fixed line: the answer can carry the channel's name and id.
+            logging.warning("[channel-conversation] could not read the updates (%s)",
+                            type(e).__name__)
+
+    thread = threading.Thread(target=run, name="channel-open-updates", daemon=True)
+    thread.start()
+    return thread
 
 
 def remember_channel_roles(main_window, channels):

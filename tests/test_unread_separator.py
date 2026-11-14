@@ -87,8 +87,8 @@ from core.utils import first_unread_index, paginated_window, db_fetch_limit
 from ui.conversations import ConversationsPanel
 
 
-def _msg(mid, from_me=False):
-    return {"key": {"id": mid, "fromMe": from_me}}
+def _msg(mid, from_me=False, kind="conversation"):
+    return {"key": {"id": mid, "fromMe": from_me}, "messageType": kind}
 
 
 # ── Where the separator goes ────────────────────────────────────────────────
@@ -141,7 +141,23 @@ class TestFirstUnreadIndex:
         dicts without a key, and defensive code elsewhere tolerates non-dicts."""
         msgs = [None, _msg("a"), {"_type": "unread_separator"}, _msg("b")]
         assert first_unread_index(msgs, 1) == 3
-        assert first_unread_index(msgs, 2) == 2, "keyless sentinel counts as incoming"
+        # a sentinel is not a message: the second unread one is "a"
+        assert first_unread_index(msgs, 2) == 1
+
+    def test_deletions_and_notices_never_take_an_unread_messages_place(self):
+        """Reported 2026-11-12: a group with 141 unread opened with 12 of them
+        above the separator. WhatsApp Web's divider counts only real messages
+        (getIsUnreadType): a message deleted for everyone, a group notification,
+        the history notice and a call sit among the unread ones without being
+        counted, so the separator still goes above the oldest unread message."""
+        msgs = [_msg("read"), _msg("unread-1"),
+                _msg("deleted", kind="protocolMessage"),
+                _msg("joined", kind="groupNotification"),
+                _msg("history", kind="message_history_notice"),
+                _msg("unread-2", kind="audioMessage"),
+                _msg("call", kind="callLogMessage"),
+                _msg("waiting", kind="ciphertext")]
+        assert first_unread_index(msgs, 3) == 1
 
 
 # ── Pagination window vs. a large unread backlog ────────────────────────────

@@ -1,0 +1,162 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 12 Nov 2026 20:28:39 -0300
+Subject: [PATCH] End a call whose relay stays silent for 30 seconds
+
+A computer that slept through a call woke with the call still open: the
+server's terminate was lost with the socket, and the relay answered nothing
+at all (no RTP, no SRTCP, no STUN reply to the keepalive sent every second)
+for 25 minutes while the call went on locally. A call whose relay, having
+delivered something, then delivers nothing for 30 seconds is now hung up
+with the reason relay_silent, so the terminate also reaches the server.
+
+Tested: a relay silent past the limit ends the call once; a relay that
+keeps answering, or that has not answered yet, does not.
+---
+ engine.go             |  7 +++++--
+ engine_media.go       |  8 ++++++++
+ relay_traffic.go      | 34 ++++++++++++++++++++++++++++++++++
+ relay_traffic_test.go | 39 +++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 86 insertions(+), 2 deletions(-)
+
+diff --git a/engine.go b/engine.go
+index 9455450..c1d922e 100644
+--- a/engine.go
++++ b/engine.go
+@@ -766,7 +766,10 @@ func (e *engine) reject(c *Call) error {
+ }
+ 
+ // hangup ends a call (either direction) and tears down its media.
+-func (e *engine) hangup(c *Call) error {
++func (e *engine) hangup(c *Call) error { return e.hangupWithReason(c, "hangup") }
++
++// hangupWithReason is hangup with the reason the call's OnEnd listener receives.
++func (e *engine) hangupWithReason(c *Call, reason string) error {
+ 	m := e.lookup(c.id)
+ 	to, creator := c.peer, c.peer
+ 	if m != nil {
+@@ -774,7 +777,7 @@ func (e *engine) hangup(c *Call) error {
+ 	}
+ 	term := signaling.BuildTerminate(&signaling.TerminateParams{CallID: c.id, To: to, CallCreator: creator})
+ 	term.Attrs["id"] = e.nextCallNodeID()
+-	e.finishCall(c.id, "hangup")
++	e.finishCall(c.id, reason)
+ 	if err := e.transmitCallNode(context.Background(), term); err != nil {
+ 		return fmt.Errorf("send terminate: %w", err)
+ 	}
+diff --git a/engine_media.go b/engine_media.go
+index 98ecea4..c3bf72a 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -478,6 +478,14 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	var relayRx atomic.Uint64
+ 	var traffic relayTraffic
+ 	go traffic.watch(ctx, log, relayTrafficInterval)
++	go traffic.endWhenSilent(ctx, relaySilenceLimit, time.Second, func() {
++		log.Warn().Dur("silent_for", relaySilenceLimit).Msg("relay delivered nothing; ending the call")
++		if call != nil {
++			_ = e.hangupWithReason(call, "relay_silent")
++			return
++		}
++		e.finishCall(callID, "relay_silent")
++	})
+ 
+ 	// Inbound calls are torn down by the caller within ~400ms if the relay bind never
+ 	// comes alive; check at 400ms and 900ms and say so explicitly.
+diff --git a/relay_traffic.go b/relay_traffic.go
+index 79a5076..1011bed 100644
+--- a/relay_traffic.go
++++ b/relay_traffic.go
+@@ -67,3 +67,37 @@ func (t *relayTraffic) watch(ctx context.Context, log zerolog.Logger, interval t
+ 		previous = now
+ 	}
+ }
++
++// relaySilenceLimit is how long a call may receive nothing at all from its relay
++// (no RTP, no SRTCP, no STUN answer to the keepalive sent every second) before the
++// call is taken as gone.
++const relaySilenceLimit = 30 * time.Second
++
++// endWhenSilent calls onSilent once when the relay, having delivered something,
++// then delivers nothing for limit. Reported live: the computer slept through a
++// call, the server's terminate was lost with the socket, and after waking the
++// call stayed open on a relay that answered nothing for 25 minutes.
++func (t *relayTraffic) endWhenSilent(ctx context.Context, limit, tick time.Duration, onSilent func()) {
++	ticker := time.NewTicker(tick)
++	defer ticker.Stop()
++	previous := t.counts()
++	var quiet time.Duration
++	for {
++		select {
++		case <-ctx.Done():
++			return
++		case <-ticker.C:
++		}
++		now := t.counts()
++		if now == previous && now != (relayTrafficCounts{}) {
++			quiet += tick
++		} else {
++			quiet = 0
++		}
++		previous = now
++		if quiet >= limit {
++			onSilent()
++			return
++		}
++	}
++}
+diff --git a/relay_traffic_test.go b/relay_traffic_test.go
+index 0bd5758..731d80d 100644
+--- a/relay_traffic_test.go
++++ b/relay_traffic_test.go
+@@ -1,7 +1,9 @@
+ package meowcaller
+ 
+ import (
++	"context"
+ 	"testing"
++	"time"
+ 
+ 	"github.com/purpshell/meowcaller/relay"
+ )
+@@ -21,3 +23,40 @@ func TestRelayTrafficCountsEachKindAndTheWindow(t *testing.T) {
+ 		t.Fatalf("window = %q, want the silence of RTP to show as rtp=0", got)
+ 	}
+ }
++
++func TestRelaySilenceEndsTheCallOnce(t *testing.T) {
++	var traffic relayTraffic
++	ended := make(chan struct{}, 2)
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++	traffic.note(relay.RelayPacketStun)
++	go traffic.endWhenSilent(ctx, 30*time.Millisecond, 5*time.Millisecond, func() { ended <- struct{}{} })
++	select {
++	case <-ended:
++	case <-time.After(2 * time.Second):
++		t.Fatal("a relay silent past the limit did not end the call")
++	}
++	select {
++	case <-ended:
++		t.Fatal("ended twice")
++	case <-time.After(60 * time.Millisecond):
++	}
++}
++
++func TestRelayTrafficKeepsTheCallAndNothingYetWaits(t *testing.T) {
++	var traffic relayTraffic
++	ended := make(chan struct{}, 1)
++	ctx, cancel := context.WithCancel(context.Background())
++	go traffic.endWhenSilent(ctx, 30*time.Millisecond, 5*time.Millisecond, func() { ended <- struct{}{} })
++	time.Sleep(80 * time.Millisecond) // nothing ever arrived: setup is not silence
++	for i := 0; i < 20; i++ {
++		traffic.note(relay.RelayPacketStun) // the keepalive answers keep coming
++		time.Sleep(10 * time.Millisecond)
++	}
++	cancel()
++	select {
++	case <-ended:
++		t.Fatal("a live or not yet started relay ended the call")
++	default:
++	}
++}

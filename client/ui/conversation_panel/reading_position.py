@@ -16,7 +16,8 @@ class ReadingPositionMixin:
     """Remembering and restoring the reading position per conversation."""
 
     def _reading_positions(self) -> dict:
-        """{conversation JID: (message id, records depth)}, for this run."""
+        """{conversation JID: (message id, records depth, left at its last
+        message)}, for this run."""
         positions = getattr(self, "_reading_position_by_jid", None)
         if positions is None:
             positions = self._reading_position_by_jid = {}
@@ -39,7 +40,8 @@ class ReadingPositionMixin:
             records = (((conversation.get("messages") or {}).get("messages") or {})
                        .get("records") or [])
             depth = reading_position.records_depth(records, msg_id)
-            self._reading_positions()[jid] = (msg_id, depth)
+            at_end = reading_position.is_last_message(rows, msg_id)
+            self._reading_positions()[jid] = (msg_id, depth, at_end)
         except Exception:
             logging.exception("[reading_position] could not remember the position (non-fatal)")
 
@@ -51,8 +53,9 @@ class ReadingPositionMixin:
         if not jid or not reading_position.resumes_last_focused(self.main_window.settings):
             return
         remembered = self._reading_positions().get(jid)
-        if remembered:
-            self._pending_reading_resume_id, self._pending_reading_resume_depth = remembered
+        if remembered and reading_position.resume_on_open(self.main_window.settings,
+                                                          remembered[2]):
+            self._pending_reading_resume_id, self._pending_reading_resume_depth = remembered[:2]
 
     def _disarm_reading_resume(self) -> None:
         self._pending_reading_resume_id = ""
