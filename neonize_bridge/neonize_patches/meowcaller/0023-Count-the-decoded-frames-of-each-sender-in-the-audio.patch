@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 22:27:31 -0300
+Subject: [PATCH] Count the decoded frames of each sender in the audio receive
+ summary
+
+---
+ audio_receive_stats.go      | 35 +++++++++++++++++++++++++++++++++++
+ audio_receive_stats_test.go | 13 +++++++++++++
+ 2 files changed, 48 insertions(+)
+
+diff --git a/audio_receive_stats.go b/audio_receive_stats.go
+index e2fbb18..d74b6ef 100644
+--- a/audio_receive_stats.go
++++ b/audio_receive_stats.go
+@@ -1,6 +1,9 @@
+ package meowcaller
+ 
+ import (
++	"fmt"
++	"sort"
++	"strings"
+ 	"time"
+ 
+ 	"github.com/rs/zerolog"
+@@ -27,6 +30,9 @@ type audioReceiveStats struct {
+ 	noFrames      uint64 // authenticated but released nothing (held for order, late, or empty decode)
+ 	frames        uint64
+ 	pcmSamples    uint64
++	// decoded frames by sender in a group call ("pid 1", or "ssrc 0x.." for a
++	// sender without a PID): who is heard, and who stopped being heard
++	framesBySender map[string]uint64
+ }
+ 
+ func (s *audioReceiveStats) Packet(kind mediaPayloadKind, payloadType uint8) {
+@@ -55,6 +61,12 @@ func (s *audioReceiveStats) Audio(authenticated bool, frames []decodedParticipan
+ 		for _, frame := range frames {
+ 			s.frames++
+ 			s.pcmSamples += uint64(len(frame.PCM))
++			if !frame.Concealed {
++				if s.framesBySender == nil {
++					s.framesBySender = make(map[string]uint64)
++				}
++				s.framesBySender[frameSender(frame)]++
++			}
+ 		}
+ 	}
+ }
+@@ -79,5 +91,28 @@ func (s *audioReceiveStats) Log(log zerolog.Logger) {
+ 		Uint64("unknown_payload", s.unknown).Uint8("unknown_pt", s.unknownPT).
+ 		Uint64("unprotect_failed", s.unprotectFail).Uint64("no_frames", s.noFrames).
+ 		Uint64("frames", s.frames).Uint64("pcm_samples", s.pcmSamples).
++		Str("frames_by_sender", s.bySender()).
+ 		Msg("audio receive summary (totals since the media started)")
+ }
++
++// frameSender names who a decoded frame came from, without any JID.
++func frameSender(frame decodedParticipantAudio) string {
++	if frame.HasPID {
++		return fmt.Sprintf("pid %d", frame.PID)
++	}
++	return fmt.Sprintf("ssrc 0x%08x", frame.SSRC)
++}
++
++// bySender is "pid 0=120 pid 1=0 ..." sorted; "" outside a group call's frames.
++func (s *audioReceiveStats) bySender() string {
++	names := make([]string, 0, len(s.framesBySender))
++	for name := range s.framesBySender {
++		names = append(names, name)
++	}
++	sort.Strings(names)
++	parts := make([]string, 0, len(names))
++	for _, name := range names {
++		parts = append(parts, fmt.Sprintf("%s=%d", name, s.framesBySender[name]))
++	}
++	return strings.Join(parts, " ")
++}
+diff --git a/audio_receive_stats_test.go b/audio_receive_stats_test.go
+index fd2f055..8261ef7 100644
+--- a/audio_receive_stats_test.go
++++ b/audio_receive_stats_test.go
+@@ -29,3 +29,16 @@ func TestAudioReceiveStatsSayWhereInboundAudioStops(t *testing.T) {
+ 		t.Fatal("a summary is due once per interval")
+ 	}
+ }
++
++func TestTheSummaryCountsDecodedFramesBySender(t *testing.T) {
++	var s audioReceiveStats
++	s.Audio(true, []decodedParticipantAudio{
++		{PID: 0, HasPID: true, PCM: make([]float32, 10)},
++		{PID: 0, HasPID: true, PCM: make([]float32, 10)},
++		{PID: 1, HasPID: true, PCM: make([]float32, 10), Concealed: true},
++		{SSRC: 0x1234, PCM: make([]float32, 10)},
++	})
++	if got := s.bySender(); got != "pid 0=2 ssrc 0x00001234=1" {
++		t.Fatalf("bySender = %q", got)
++	}
++}
