@@ -36,6 +36,7 @@ import legacy_layout
 import loop_watch
 import ongoing_calls
 import quote_fallback
+import receipt_ids
 import undecryptable
 import group_events
 import events
@@ -1043,6 +1044,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             except Exception:
                 log.exception("mute on the phone")
 
+        receipts_without_id = receipt_ids.Skipped()
+
         @cli.event(nev.ReceiptEv)
         def _receipt(c, e):
             try:
@@ -1050,11 +1053,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 kind = Receipt.DESCRIPTOR.fields_by_name["Type"].enum_type \
                     .values_by_number[e.Type].name
                 ack = {"DELIVERED": 2, "READ": 3, "PLAYED": 4}.get(kind)
+                ids = receipt_ids.message_ids(e.MessageIDs)
+                if not ids:
+                    if receipts_without_id.note():
+                        log.info("receipt %s without a message id dropped (%d so far)",
+                                 kind, receipts_without_id.count)
+                    return
                 chat = msgmap.jid_wpp(jid_text(e.MessageSource.Chat))
                 is_mine = bool(e.MessageSource.IsFromMe)
                 log.info("receipt %s%s (%d message(s)) in %s -> ack %s ids=%s", kind,
-                         " [mine]" if is_mine else "", len(e.MessageIDs), redact(chat), ack,
-                         ",".join(list(e.MessageIDs)[:5]))
+                         " [mine]" if is_mine else "", len(ids), redact(chat), ack,
+                         ",".join(ids[:5]))
                 # read receipt that comes from me: I read on the phone (or on another device)
                 if kind == "READ_SELF" or (kind == "READ" and is_mine):
                     read_on_another_device(c, e)
@@ -1071,14 +1080,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                         who = msgmap.jid_wpp(jid_text(e.MessageSource.Sender))
                         stage = {"DELIVERED": "delivered", "READ": "read",
                                  "PLAYED": "played"}[kind]
-                        self.db.receipts(list(e.MessageIDs), who, stage,
+                        self.db.receipts(ids, who, stage,
                                          msgmap.seconds(e.Timestamp))
                     except Exception:
                         log.exception("store receipt")
                 if chat.endswith("@g.us"):
                     # group: the ack only advances when ALL the members got there
                     # (group_receipts.py); a single receipt is not enough
-                    for mid in e.MessageIDs:
+                    for mid in ids:
                         in_group = self.group_ack_to_emit(chat, mid)
                         if in_group:
                             self.emit("onack", {
@@ -1086,7 +1095,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                                 "id": {"fromMe": True, "remote": chat, "id": mid,
                                        "_serialized": f"true_{chat}_{mid}"}})
                     return
-                for mid in e.MessageIDs:
+                for mid in ids:
                     self.emit("onack", {
                         "session": self.name, "ack": ack, "to": chat, "from": chat,
                         "id": {"fromMe": True, "remote": chat, "id": mid,

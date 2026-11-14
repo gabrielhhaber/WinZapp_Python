@@ -1,0 +1,115 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 21:57:39 -0300
+Subject: [PATCH] A grouped receipt without a participants key takes the
+ receipt's own id
+
+---
+ grouped_receipt_id.go      | 33 +++++++++++++++++++++++++++++++++
+ grouped_receipt_id_test.go | 23 +++++++++++++++++++++++
+ receipt.go                 | 15 ++++++++++++++-
+ 3 files changed, 70 insertions(+), 1 deletion(-)
+ create mode 100644 grouped_receipt_id.go
+ create mode 100644 grouped_receipt_id_test.go
+
+diff --git a/grouped_receipt_id.go b/grouped_receipt_id.go
+new file mode 100644
+index 0000000..93f095a
+--- /dev/null
++++ b/grouped_receipt_id.go
+@@ -0,0 +1,33 @@
++package whatsmeow
++
++import (
++	"sort"
++	"strings"
++	"sync"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++)
++
++// groupedReceiptMessageID is the message a grouped group receipt is about:
++// its <participants key>, or the receipt's own id when the key is missing.
++// Read as empty, every member of the receipt became an event about no message
++// (16,849 of them in four minutes in WinZapp, which held back the events
++// behind them, a group call's offer among them).
++func groupedReceiptMessageID(participantsKey, receiptID string) string {
++	if participantsKey != "" {
++		return participantsKey
++	}
++	return receiptID
++}
++
++var groupedReceiptShapeLogged sync.Once
++
++// attributeNames lists a node's attribute names, never their values.
++func attributeNames(node *waBinary.Node) string {
++	names := make([]string, 0, len(node.Attrs))
++	for name := range node.Attrs {
++		names = append(names, name)
++	}
++	sort.Strings(names)
++	return strings.Join(names, ",")
++}
+diff --git a/grouped_receipt_id_test.go b/grouped_receipt_id_test.go
+new file mode 100644
+index 0000000..8aae774
+--- /dev/null
++++ b/grouped_receipt_id_test.go
+@@ -0,0 +1,23 @@
++package whatsmeow
++
++import (
++	"testing"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++)
++
++func TestGroupedReceiptMessageIDFallsBackToTheReceiptID(t *testing.T) {
++	if got := groupedReceiptMessageID("3EB0KEY", "3EB0ID"); got != "3EB0KEY" {
++		t.Fatalf("key first, got %q", got)
++	}
++	if got := groupedReceiptMessageID("", "3EB0ID"); got != "3EB0ID" {
++		t.Fatalf("receipt id without a key, got %q", got)
++	}
++	if got := groupedReceiptMessageID("", ""); got != "" {
++		t.Fatalf("nothing to go on, got %q", got)
++	}
++	node := &waBinary.Node{Attrs: waBinary.Attrs{"type": "x", "count": 2, "key": "secret"}}
++	if got := attributeNames(node); got != "count,key,type" {
++		t.Fatalf("attribute names only, got %q", got)
++	}
++}
+diff --git a/receipt.go b/receipt.go
+index c7dc47c..eca86df 100644
+--- a/receipt.go
++++ b/receipt.go
+@@ -43,7 +43,17 @@ func (cli *Client) handleReceipt(ctx context.Context, node *waBinary.Node) {
+ 
+ func (cli *Client) handleGroupedReceipt(partialReceipt events.Receipt, participants *waBinary.Node) (cancelled bool) {
+ 	pag := participants.AttrGetter()
+-	partialReceipt.MessageIDs = []types.MessageID{pag.String("key")}
++	receiptID := ""
++	if len(partialReceipt.MessageIDs) > 0 {
++		receiptID = partialReceipt.MessageIDs[0]
++	}
++	messageID := groupedReceiptMessageID(pag.OptionalString("key"), receiptID)
++	if messageID == "" {
++		groupedReceiptShapeLogged.Do(func() {
++			cli.Log.Warnf("Grouped receipt names no message (participants attrs: %s)", attributeNames(participants))
++		})
++	}
++	partialReceipt.MessageIDs = []types.MessageID{messageID}
+ 	for _, child := range participants.GetChildren() {
+ 		if child.Tag != "user" {
+ 			cli.Log.Warnf("Unexpected node in grouped receipt participants: %s", &child)
+@@ -79,6 +89,9 @@ func (cli *Client) parseReceipt(node *waBinary.Node) (*events.Receipt, []waBinar
+ 		if len(participantTags) == 0 {
+ 			return nil, nil, &ElementMissingError{Tag: "participants", In: "grouped receipt"}
+ 		}
++		if id := ag.OptionalString("id"); id != "" {
++			receipt.MessageIDs = []types.MessageID{id}
++		}
+ 		return &receipt, participantTags, nil
+ 	}
+ 	mainMessageID := ag.String("id")
