@@ -135,10 +135,14 @@ class BacklogFlood:
         quiet = ANNOUNCED_QUIET_SECONDS if self.announced else self.quiet_seconds
         if now - self._recent[-1] < quiet:
             return False
+        self.end()
+        return True
+
+    def end(self) -> None:
+        """The flood is over; `list_dirty` and `count` stay for the caller."""
         self.active = False
         self.announced = False
         self._recent.clear()
-        return True
 
 
 def is_late_message(msg: dict, now: float) -> bool:
@@ -266,8 +270,8 @@ def _poll(window) -> None:
             if flood.flush_due(now):
                 window._schedule_set_chats()
         except Exception:
-            logging.exception("[backlog-flood] timer failed; ending the flood")
-            flood.active = False
+            logging.exception("[backlog-flood] poll failed; ending the flood")
+            flood.end()
         else:
             return
     dirty, flood.list_dirty = flood.list_dirty, False

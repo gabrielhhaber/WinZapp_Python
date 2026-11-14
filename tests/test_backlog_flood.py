@@ -426,3 +426,35 @@ def test_the_socket_event_is_checked_before_it_reaches_the_window(monkeypatch):
         ("note_offline_sync", ("completed", 0)),
         ("note_offline_sync", ("started", 0)),
     ]
+
+
+def test_an_announcement_without_a_timer_starts_nothing(monkeypatch):
+    def boom(_window):
+        raise RuntimeError("no wx app")
+    monkeypatch.setattr(backlog_flood, "_start_poll", boom)
+    window = _Window()
+    backlog_flood.note_offline_sync(window, "started", 1500)
+    assert not defer_list_update(window)
+    assert not window._backlog_flood.announced
+    assert window.statuses == []
+
+
+def test_a_failing_periodic_rebuild_ends_the_flood_cleanly(polls, monkeypatch):
+    window = _Window()
+    backlog_flood.note_offline_sync(window, "started", 1500)
+    assert defer_list_update(window)            # marks the list dirty
+    flood = window._backlog_flood
+
+    def boom():
+        raise RuntimeError("list gone")
+    window._schedule_set_chats = boom
+    armed = len(polls)
+    monkeypatch.setattr(
+        backlog_flood.time, "monotonic",
+        lambda base=time.monotonic(): base + backlog_flood.MAX_HOLD_SECONDS - 1)
+    flood.flushed_at -= 2                       # the periodic flush is due
+    backlog_flood._poll(window)
+    assert len(polls) == armed + 1              # the timer was re-armed first
+    assert not flood.active and not flood.announced
+    assert not defer_list_update(window)
+    assert window.statuses[-1] == ""
