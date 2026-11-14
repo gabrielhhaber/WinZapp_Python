@@ -2,6 +2,13 @@
 import msgmap
 
 
+def timer_changed(s, jid, duration, setting_timestamp=0):
+    chat = msgmap.jid_wpp(jid)
+    if chat.endswith(("@c.us", "@lid", "@g.us")):
+        s.emit("chat-timer-changed", {"session": s.name, "chatId": chat,
+               "duration": int(duration), "settingTimestamp": int(setting_timestamp)})
+
+
 def lock_changed(s, e, jid):
     if not e.Action.HasField("locked"):
         return

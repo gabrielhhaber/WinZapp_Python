@@ -46,3 +46,14 @@ def test_lock_notice_updates_storage_before_notifying_and_suppresses_history(ses
         Action=LockChatAction(locked=locked)))
     assert seen == ([] if full else [({"session": "account1", "chatId": GROUP,
                                      "setting": "lock", "value": locked}, int(locked))])
+
+
+def test_explicit_timer_notice_is_stored_before_notification(session):
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message, ProtocolMessage
+    seen = []
+    session.emit = lambda name, payload: seen.append((name, payload, session.db.chat_timer(GROUP)))
+    for duration in (86400, 0):
+        session.observe_timer(GROUP, Message(protocolMessage=ProtocolMessage(
+            type=3, ephemeralExpiration=duration, ephemeralSettingTimestamp=100)))
+    assert seen == [("chat-timer-changed", {"session": "account1", "chatId": GROUP,
+        "duration": d, "settingTimestamp": 100}, (d, 100)) for d in (86400, 0)]

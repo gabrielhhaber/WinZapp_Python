@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Modificările duratei mesajelor temporare primite de pe alt dispozitiv actualizează detaliile conversației fără a aștepta o sincronizare completă.
+
 - Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; conversația deschisă este închisă când este blocată.
 
 - Modificările de dezactivare a sunetului, arhivare și fixare făcute pe alt dispozitiv actualizează lista conversațiilor când sosește notificarea, cu WPPConnect și Neonize.

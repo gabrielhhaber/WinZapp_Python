@@ -49,6 +49,23 @@ CDP validation on 2026-11-14 used `WAWebChatLockAction` to lock/unlock only the
 authorized development group. Both notices matched and the original lock,
 archive and pin states were restored. No native UI or Neonize session was opened.
 
+## Disappearing-message timer
+
+`chat-timer-changed`: `{session, chatId, duration, settingTimestamp}` uses seconds
+for both the duration and Unix setting timestamp. Zero duration explicitly turns
+the timer off; absent or invalid values never do. WPPConnect coalesces changes to
+`ephemeralDuration` and `ephemeralSettingTimestamp` within one model batch and
+observes no collection hydration. Neonize emits after storing an explicit
+EPHEMERAL_SETTING notice or GroupInfo ephemeral change; inferred timers from
+ordinary messages and history hydration do not emit. The client updates known
+conversation aliases and schedules persistence, ignoring known older timestamps.
+
+CDP on 2026-11-14 confirmed the live group fields, but the real timer-change
+action was refused with `you_are_not_allowed_set_group_property`. The setting
+remained unchanged and the temporary observer was removed. Source/Node/Python
+tests pass; a real change by a group administrator remains necessary to confirm
+live receipt. Neonize was not started.
+
 ## Favorites
 
 `message-star-changed`: `{session, chatId, messageId, starred}`. `chatId` is

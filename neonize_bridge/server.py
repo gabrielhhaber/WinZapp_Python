@@ -912,8 +912,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if e.Name and e.Name.Name:
                     self.db.chat(jid_text(e.JID), name=e.Name.Name)
                 if e.HasField("Ephemeral"):
-                    self.record_timer(jid_text(e.JID), int(e.Ephemeral.DisappearingTimer)
-                                      if e.Ephemeral.IsEphemeral else 0)
+                    duration = int(e.Ephemeral.DisappearingTimer) if e.Ephemeral.IsEphemeral else 0
+                    self.record_timer(jid_text(e.JID), duration)
+                    chat_settings_events.timer_changed(self, jid_text(e.JID), duration)
             except Exception:
                 log.exception("group changed")
             group_events.group_changed(c, self, e)    # groups.update (see group_events)

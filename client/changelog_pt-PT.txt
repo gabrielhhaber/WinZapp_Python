@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- As alterações ao prazo das mensagens temporárias recebidas de outro dispositivo atualizam os dados da conversa sem esperar por uma sincronização completa.
+
 - Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; uma conversa aberta que foi trancada é fechada.
 
 - As alterações de silenciamento, arquivo e fixação feitas noutro dispositivo atualizam a lista de conversas assim que chega o aviso, com WPPConnect e Neonize.

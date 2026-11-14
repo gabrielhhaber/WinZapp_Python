@@ -136,6 +136,7 @@ CUSTOM_SRC_FILES = [
     "src/util/messageStatePageBridge.ts",
     "src/util/messageDeleteBridge.ts",
     "src/util/chatSettingsBridge.ts",
+    "src/util/chatTimerBridge.ts",
     "src/tests/util/chatClearedBridge.test.ts",
     "src/util/eventsRuntime.ts",
     "src/util/eventsWatchBridge.ts",

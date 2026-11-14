@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Başka bir cihazdan alınan süreli mesaj zamanlayıcısı değişiklikleri, tam eşitlemeyi beklemeden sohbet bilgilerini günceller.
+
 - Telefonda sohbet kilitlendiğinde veya kilidi açıldığında bildirim WinZapp’i günceller; kilitlenen açık sohbet kapatılır.
 
 - Başka bir cihazda yapılan sessize alma, arşivleme ve sabitleme değişiklikleri, bildirim geldiğinde WPPConnect ve Neonize ile sohbet listesini günceller.
