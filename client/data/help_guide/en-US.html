@@ -891,7 +891,7 @@
 <p>The connection to WhatsApp is stored in the internal browser's profile. WinZapp keeps backups of it (Settings &gt; Storage &gt; Profile backup) and restores them by itself when the connection is refused, saying aloud that it restored and is reconnecting; it only asks you to pair again when there is no usable backup. If the internal browser is incomplete (usually an antivirus removed part of it), WinZapp says so and explains what to do.</p>
 <p>If WhatsApp disconnects the session, WinZapp tells you right away and opens pairing. In Settings &gt; Connection you can use a custom API (remote server); in that case, the browser profile and the backups are left to the server.</p>
 <p>When you open WinZapp after a long time without using WPPConnect, WhatsApp Web can take a few minutes to catch up. Meanwhile the window title says "syncing with WhatsApp...": the account has not dropped and there is nothing to do.</p>
-<p>After a long time without opening WinZapp, WhatsApp can keep delivering old messages after the sync ends. While they arrive, the window title says "Updating chats" and the chat list stays still, so you can move through it without chats changing place; it is updated once when the messages stop arriving. When many new messages arrive at the same time, WinZapp plays and speaks at most three notifications per second and stays quiet until the burst ends; every message is still in the list and counts as unread.</p>
+<p>After a long time without opening WinZapp, WhatsApp can keep delivering old messages after the sync ends. While they arrive, the window title says "Updating chats" and the chat list stays still, so you can move through it without chats changing place; it is updated once when the messages stop arriving. When many new messages arrive at the same time, WinZapp plays and speaks at most three notifications per second and stays quiet until the burst ends; every message is still in the list and counts as unread. The limit is chosen in Settings &gt; General &gt; Notifications, under "Maximum notifications per second when many messages arrive at once" (default: 3).</p>
 
   </section>
 
@@ -1523,6 +1523,7 @@
 <tr><td class="field-name">Not yet released</td><td>What's New window: Esc closes it.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Updating with several accounts open: WinZapp waits for the other accounts to close before it installs.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Old messages after the sync: the title says "Updating chats" and the list stays still; bursts of new messages play at most three notifications per second.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Notifications per second limit: chosen in Settings &gt; General &gt; Notifications.</td></tr>
 </table>
 
   </section>

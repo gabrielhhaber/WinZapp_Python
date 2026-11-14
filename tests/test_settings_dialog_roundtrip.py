@@ -41,6 +41,12 @@ def _write(path):
 # tmp_path when the value depends on it), how to set the controls, and how to
 # tell the reopened dialog shows it. Every function receives (dialog, tmp_path).
 SCENARIOS = {
+    # Settings > General > Notifications (core/notification_burst.py).
+    "notification_burst_limit": dict(
+        saves={("general", "notification_burst_limit"): 7},
+        set=lambda d, t: d._notification_burst_spin.SetValue(7),
+        shows=lambda d, t: d._notification_burst_spin.GetValue() == 7,
+    ),
     # Settings > Conversations (ui/dialogs/reading_position_options.py).
     "message_list_open_position": dict(
         saves={("user_interface", "message_list_open_position"): "last_focused"},

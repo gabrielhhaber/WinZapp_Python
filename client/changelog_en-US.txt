@@ -6,7 +6,7 @@ WHAT'S NEW
 
 - After a long time without opening WinZapp: while WhatsApp is still delivering old messages after the sync, the window title keeps saying "Updating chats" instead of presenting everything as synced, and the chat list stays still, so you can move through it without chats changing place. It is updated once when the messages stop arriving. This applies to both Neonize and WPPConnect.
 
-- Notifications: when many new messages arrive at once (for example, after an unstable connection comes back), WinZapp plays and speaks only the first three and stays quiet until the burst ends, instead of repeating the sound dozens of times. The messages are still in the list and count as unread.
+- Notifications: when many new messages arrive at once (for example, after an unstable connection comes back), WinZapp plays and speaks only the first three and stays quiet until the burst ends, instead of repeating the sound dozens of times. The messages are still in the list and count as unread. The limit is chosen in Settings > General > Notifications, under "Maximum notifications per second when many messages arrive at once" (default: 3).
 
 - Neonize: accepting the Meta AI terms no longer fails with a WhatsApp error. WinZapp now sends the acceptance in the same format WhatsApp Web uses for this notice and only confirms it after reading again that the notice is recorded as accepted.
 
