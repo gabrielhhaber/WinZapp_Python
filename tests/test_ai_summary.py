@@ -387,3 +387,8 @@ def test_the_summary_button_announces_the_configured_shortcut():
     assert "'messages.ID_SUMMARIZE_UNREAD'" in accessible and '"Ctrl+Shift+U"' in accessible
     assert "self._summary_btn.SetAccessible(AccessibleSummarizeUnread())" in (
         root / "conversations.py").read_text(encoding="utf-8")
+
+
+def test_gemini_defaults_to_the_lite_model_that_google_throttles_least():
+    from core.ai_media.config import PROVIDERS
+    assert PROVIDERS["gemini"].model == "gemini-3.5-flash-lite"

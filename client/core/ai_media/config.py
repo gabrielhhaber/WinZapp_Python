@@ -54,7 +54,7 @@ class TranscribeModel:
 
 PROVIDERS = {
     "gemini": Provider(
-        "Google Gemini", "gemini-3.8-flash", "https://aistudio.google.com/api-keys",
+        "Google Gemini", "gemini-3.5-flash-lite", "https://aistudio.google.com/api-keys",
         "https://ai.google.dev/gemini-api/docs/billing", "https://ai.google.dev/gemini-api/terms",
         frozenset({"image", "audio", "pdf", "text"})),
     "openai": Provider(
