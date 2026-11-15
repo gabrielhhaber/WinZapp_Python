@@ -12,7 +12,8 @@ Where it is offered, all ending in ``_on_summarize_messages``:
 * the conversations list's context menu: a chat's unread messages, read from
   the database — the chat is neither opened nor marked as read;
 * the message context menu of the open chat: unread, from this message to the
-  newest, and the selected ones.
+  newest, and the selected ones; the last two also have a key each
+  (Alt+Shift+I, Ctrl+Alt+Shift+I), shown on the item.
 
 Only the button has a threshold; everything else is offered whenever there is
 something to summarize and Online AI can take text. A locked chat can be summarized too, with a
@@ -32,6 +33,7 @@ from core.ai_media.summary import (build_unread_transcript, button_offered, is_v
                                    unread_fetch_limit, unread_messages, voice_text)
 from core.message_copy_format import format_copied_message
 from core.utils import format_number, is_phone_like
+from ui.shortcut_bindings import popup_item_label
 
 
 class SummaryActionsMixin:
@@ -127,15 +129,33 @@ class SummaryActionsMixin:
         if not self._summary_ready(config):
             return
         t = self.main_window.i18n.t
-        for rows, key, again in (
-                (unread, "ai_summary_unread_menu", self._summary_unread_messages),
-                (from_here, "ai_summary_from_here_menu", lambda: self._summary_messages_from(msg)),
-                (selected, "ai_summary_selected_menu", self._summary_selected_messages)):
+        for rows, key, again, shortcut_id in (
+                (unread, "ai_summary_unread_menu", self._summary_unread_messages,
+                 "messages.ID_SUMMARIZE_UNREAD"),
+                (from_here, "ai_summary_from_here_menu", lambda: self._summary_messages_from(msg),
+                 "messages.ID_SUMMARIZE_FROM_HERE"),
+                (selected, "ai_summary_selected_menu", self._summary_selected_messages,
+                 "messages.ID_SUMMARIZE_SELECTED")):
             if rows:
-                item = menu.Append(wx.ID_ANY, t(key))
+                item = menu.Append(wx.ID_ANY, popup_item_label(self, t(key), shortcut_id))
                 # Read again when chosen: the list moves while a menu is open.
                 self.Bind(wx.EVT_MENU, lambda event, again=again: self._on_summarize_messages(
                     again(), follows_open_chat=True), item)
+
+    def _on_summary_from_here_shortcut(self, event=None):
+        """Alt+Shift+I: the "from here to the end" menu item, for the focused
+        message. Nothing focused (or only the unread separator) says so, as the
+        menu item would not have been offered."""
+        index = self.messages_list.GetFirstSelected()
+        rows = self._sorted_messages
+        msg = rows[index] if 0 <= index < len(rows) and not self._is_separator(rows[index]) else None
+        self._on_summarize_messages(self._summary_messages_from(msg) if msg else [],
+                                    follows_open_chat=True)
+
+    def _on_summary_selected_shortcut(self, event=None):
+        """Ctrl+Alt+Shift+I: the "selected messages" menu item. Without a
+        selection _on_summarize_messages speaks ai_summary_nothing."""
+        self._on_summarize_messages(self._summary_selected_messages(), follows_open_chat=True)
 
     def _append_unread_summary_item(self, menu, chat):
         """Conversations-list item for a chat with unread messages. It reads the

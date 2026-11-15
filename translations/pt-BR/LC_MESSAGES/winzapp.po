@@ -13742,6 +13742,20 @@ msgstr ""
 "Whisper, ou abrir a transcrição já salva"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+#| msgid ""
+#| "Alt+Shift+I: summarize with AI from the focused message to the end"
+msgctxt "shortcut_summarize_from_here_label"
+msgid "Alt+Shift+I: summarize with AI from this message to the end"
+msgstr "Alt+Shift+I: resumir com IA desta mensagem até o fim"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_summarize_selected_label"
+msgid "Ctrl+Alt+Shift+I: summarize the selected messages with AI"
+msgstr "Ctrl+Alt+Shift+I: resumir com IA as mensagens selecionadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_summarize_unread_label"
 msgid "Ctrl+Shift+U: summarize unread messages"
 msgstr "Ctrl+Shift+U: resumir mensagens não lidas"
