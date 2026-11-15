@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Tłumaczenie wiadomości, które już są w rozmowie: menu kontekstowe wiadomości zyskuje pozycję "Przetłumacz od tego miejsca do końca" (Alt+Shift+Y), a działanie zbiorcze "Przetłumacz zaznaczone wiadomości" pokazuje skrót Ctrl+Alt+Shift+Y. Oba skróty można zmienić na karcie Skróty w Ustawieniach, a pozycje menu pokazują używany skrót. Gdy trwa tłumaczenie wielu wiadomości, ta sama pozycja menu i ten sam skrót zmieniają się w "Anuluj tłumaczenie wiadomości". Dotyczy odebranych wiadomości tekstowych, do 50 naraz, z dostawcą, modelem i sposobem wyświetlania z "Przetłumacz wiadomość".
+
 - Pomoc w pisaniu: WinZapp zyskuje funkcję podobną do pomocy w pisaniu w mobilnym WhatsAppie, z dodatkową możliwością tłumaczenia szkicu. Nowy przycisk po Emoji i menu kontekstowe pola otwierają to samo okno. Poprawiaj, przeredagowuj, stosuj ton profesjonalny lub zachęcający za pomocą dostawców AI skonfigurowanych w WinZapp, a nie Meta AI; tłumaczenie odbywa się przez Google. Przed wysłaniem szkicu wymagana jest zgoda, a przed zastąpieniem pokazywany jest wynik; wiadomość nigdy nie jest wysyłana automatycznie. Wybierz czynność, a następnie naciśnij "Wykonaj wybraną czynność". Otwarcie lub zamknięcie tego okna nie wysyła szkicu.
 
 - Pomoc w pisaniu: nowy skrót Alt+Shift+H otwiera okno z dowolnego miejsca czatu, gdy jest napisany szkic. Można go zmienić na karcie Skróty w Ustawieniach, a menu kontekstowe pola i przycisk pokazują teraz używany skrót.

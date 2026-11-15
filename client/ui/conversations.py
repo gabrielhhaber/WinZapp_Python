@@ -183,6 +183,7 @@ from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMi
 from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
 from ui.conversation_panel.translation_backlog import TranslationBacklogMixin
+from ui.conversation_panel.translation_to_end import TranslationToEndMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
 from ui.conversation_panel.summary_voice_choice import SummaryVoiceChoiceMixin
@@ -243,6 +244,7 @@ class ConversationsPanel(
     AIActionsMixin,
     TranslationActionsMixin,
     TranslationBacklogMixin,
+    TranslationToEndMixin,
     SummaryActionsMixin,
     SummaryVoiceMixin,
     SummaryVoiceChoiceMixin,

@@ -161,6 +161,8 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_writing_help_label"),
             i18n.t("shortcut_summarize_from_here_label"),
             i18n.t("shortcut_summarize_selected_label"),
+            i18n.t("shortcut_translate_from_here_label"),
+            i18n.t("shortcut_translate_selected_label"),
             i18n.t("shortcut_ctrl_shift_r_label"),
             i18n.t("shortcut_ctrl_shift_p_label"),
             i18n.t("shortcut_alt_comma_label"),
