@@ -136,8 +136,8 @@ class DialogStub:
     _speak = AIResultDialog._speak
     _chain = AIResultDialog._chain
     _start = AIResultDialog._start
-    _consent_key = AIResultDialog._consent_key
     _summary_heading = AIResultDialog._summary_heading
+    app = None  # only read when a consent is remembered
 
     def __init__(self, *, locked=False, kind="image"):
         self.kind = kind
@@ -1191,6 +1191,8 @@ def test_close_filter_uses_original_chat_not_current_panel_conversation():
     session = MediaSession("a", "original-locked-chat", "m", "image", locked=True)
     stub = SimpleNamespace(_ai_dialog=SimpleNamespace(session=session, _close=lambda: closed.append(True)),
                            conversation={"remoteJid": "ordinary-chat"},
+                           close_summary_consent=lambda locked_only=False: None,
+                           cancel_summary_voice_locked=lambda: None,
                            main_window=SimpleNamespace(is_chat_locked=lambda jid: jid == "original-locked-chat"))
     AIActionsMixin.close_ai_media(stub, locked_only=True)
     assert closed == [True]
@@ -1201,7 +1203,8 @@ def test_close_filter_uses_original_chat_not_current_panel_conversation():
 
 
 def test_close_does_nothing_when_no_window_is_open():
-    AIActionsMixin.close_ai_media(SimpleNamespace(), locked_only=True)
+    AIActionsMixin.close_ai_media(SimpleNamespace(close_summary_consent=lambda locked_only=False: None,
+                                                  cancel_summary_voice_locked=lambda: None), locked_only=True)
 
 
 def test_shortcut_does_nothing_outside_message_list(monkeypatch):

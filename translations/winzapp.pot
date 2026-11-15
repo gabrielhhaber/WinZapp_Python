@@ -1282,21 +1282,6 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
-#, python-brace-format
-msgctxt "ai_summary_cancel_confirm"
-msgid ""
-"Voice messages are being transcribed for a summary (message {index} of "
-"{total}). Cancel the summary?"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "ai_summary_cancel_menu"
-msgid "Cancel the AI summary"
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_cancelled"
 msgid "Summary cancelled."
 msgstr ""
@@ -1382,14 +1367,6 @@ msgctxt "ai_summary_voice_busy"
 msgid ""
 "Another transcription is running. Wait for it to finish, then summarize "
 "again."
-msgstr ""
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
-msgctxt "ai_summary_voice_hint"
-msgid ""
-"To cancel, use the summary item in the context menu, or the summary shortcut"
-" in an open chat."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

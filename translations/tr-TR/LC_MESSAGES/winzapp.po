@@ -1393,23 +1393,6 @@ msgstr "Okunmayanları özetle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
-#, python-brace-format
-msgctxt "ai_summary_cancel_confirm"
-msgid ""
-"Voice messages are being transcribed for a summary (message {index} of "
-"{total}). Cancel the summary?"
-msgstr ""
-"Bir özet için sesli mesajlar yazıya dökülüyor (mesaj {index} / {total}). "
-"Özet iptal edilsin mi?"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "ai_summary_cancel_menu"
-msgid "Cancel the AI summary"
-msgstr "Yapay zekâ özetini iptal et"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_cancelled"
 msgid "Summary cancelled."
 msgstr "Özet iptal edildi."
@@ -1509,16 +1492,6 @@ msgid ""
 "again."
 msgstr ""
 "Başka bir yazıya döküm sürüyor. Bitmesini bekleyin ve özeti yeniden isteyin."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
-msgctxt "ai_summary_voice_hint"
-msgid ""
-"To cancel, use the summary item in the context menu, or the summary shortcut"
-" in an open chat."
-msgstr ""
-"İptal etmek için bağlam menüsündeki özet öğesini ya da açık bir sohbette "
-"özet kısayolunu kullanın."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -21695,6 +21668,27 @@ msgstr "&Evet"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Dün {time}"
+
+#, python-brace-format
+#~ msgctxt "ai_summary_cancel_confirm"
+#~ msgid ""
+#~ "Voice messages are being transcribed for a summary (message {index} of "
+#~ "{total}). Cancel the summary?"
+#~ msgstr ""
+#~ "Bir özet için sesli mesajlar yazıya dökülüyor (mesaj {index} / {total}). "
+#~ "Özet iptal edilsin mi?"
+
+#~ msgctxt "ai_summary_cancel_menu"
+#~ msgid "Cancel the AI summary"
+#~ msgstr "Yapay zekâ özetini iptal et"
+
+#~ msgctxt "ai_summary_voice_hint"
+#~ msgid ""
+#~ "To cancel, use the summary item in the context menu, or the summary shortcut"
+#~ " in an open chat."
+#~ msgstr ""
+#~ "İptal etmek için bağlam menüsündeki özet öğesini ya da açık bir sohbette "
+#~ "özet kısayolunu kullanın."
 
 #~ msgctxt "noise_reducer_device_next_start"
 #~ msgid "A new processor applies from the next time WinZapp starts."

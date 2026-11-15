@@ -1398,23 +1398,6 @@ msgstr "Rezumă mesajele necitite"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
-#, python-brace-format
-msgctxt "ai_summary_cancel_confirm"
-msgid ""
-"Voice messages are being transcribed for a summary (message {index} of "
-"{total}). Cancel the summary?"
-msgstr ""
-"Mesajele vocale sunt transcrise pentru un rezumat (mesajul {index} din "
-"{total}). Anulezi rezumatul?"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "ai_summary_cancel_menu"
-msgid "Cancel the AI summary"
-msgstr "Anulează rezumatul cu AI"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_cancelled"
 msgid "Summary cancelled."
 msgstr "Rezumat anulat."
@@ -1517,16 +1500,6 @@ msgid ""
 msgstr ""
 "O altă transcriere este în curs. Așteaptă să se termine și cere din nou "
 "rezumatul."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
-msgctxt "ai_summary_voice_hint"
-msgid ""
-"To cancel, use the summary item in the context menu, or the summary shortcut"
-" in an open chat."
-msgstr ""
-"Pentru a anula, folosește elementul de rezumat din meniul contextual sau "
-"comanda rapidă de rezumat într-o conversație deschisă."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -21963,6 +21936,27 @@ msgstr "&Da"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri la {time}"
+
+#, python-brace-format
+#~ msgctxt "ai_summary_cancel_confirm"
+#~ msgid ""
+#~ "Voice messages are being transcribed for a summary (message {index} of "
+#~ "{total}). Cancel the summary?"
+#~ msgstr ""
+#~ "Mesajele vocale sunt transcrise pentru un rezumat (mesajul {index} din "
+#~ "{total}). Anulezi rezumatul?"
+
+#~ msgctxt "ai_summary_cancel_menu"
+#~ msgid "Cancel the AI summary"
+#~ msgstr "Anulează rezumatul cu AI"
+
+#~ msgctxt "ai_summary_voice_hint"
+#~ msgid ""
+#~ "To cancel, use the summary item in the context menu, or the summary shortcut"
+#~ " in an open chat."
+#~ msgstr ""
+#~ "Pentru a anula, folosește elementul de rezumat din meniul contextual sau "
+#~ "comanda rapidă de rezumat într-o conversație deschisă."
 
 #~ msgctxt "noise_reducer_device_next_start"
 #~ msgid "A new processor applies from the next time WinZapp starts."

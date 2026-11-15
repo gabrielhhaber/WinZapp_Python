@@ -1369,23 +1369,6 @@ msgstr "تلخيص الرسائل غير المقروءة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
-#, python-brace-format
-msgctxt "ai_summary_cancel_confirm"
-msgid ""
-"Voice messages are being transcribed for a summary (message {index} of "
-"{total}). Cancel the summary?"
-msgstr ""
-"يجري تفريغ رسائل صوتية من أجل ملخص (الرسالة {index} من {total}). هل تريد "
-"إلغاء الملخص؟"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_actions.py
-msgctxt "ai_summary_cancel_menu"
-msgid "Cancel the AI summary"
-msgstr "إلغاء الملخص بالذكاء الاصطناعي"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
 msgctxt "ai_summary_cancelled"
 msgid "Summary cancelled."
 msgstr "تم إلغاء الملخص."
@@ -1485,16 +1468,6 @@ msgid ""
 "again."
 msgstr ""
 "هناك تفريغ نصي آخر قيد التشغيل. انتظر حتى ينتهي ثم اطلب الملخص مرة أخرى."
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/summary_voice.py
-msgctxt "ai_summary_voice_hint"
-msgid ""
-"To cancel, use the summary item in the context menu, or the summary shortcut"
-" in an open chat."
-msgstr ""
-"للإلغاء، استخدم عنصر الملخص في قائمة السياق، أو اختصار الملخص في دردشة "
-"مفتوحة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -21411,6 +21384,27 @@ msgstr "&نعم"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "أمس في {time}"
+
+#, python-brace-format
+#~ msgctxt "ai_summary_cancel_confirm"
+#~ msgid ""
+#~ "Voice messages are being transcribed for a summary (message {index} of "
+#~ "{total}). Cancel the summary?"
+#~ msgstr ""
+#~ "يجري تفريغ رسائل صوتية من أجل ملخص (الرسالة {index} من {total}). هل تريد "
+#~ "إلغاء الملخص؟"
+
+#~ msgctxt "ai_summary_cancel_menu"
+#~ msgid "Cancel the AI summary"
+#~ msgstr "إلغاء الملخص بالذكاء الاصطناعي"
+
+#~ msgctxt "ai_summary_voice_hint"
+#~ msgid ""
+#~ "To cancel, use the summary item in the context menu, or the summary shortcut"
+#~ " in an open chat."
+#~ msgstr ""
+#~ "للإلغاء، استخدم عنصر الملخص في قائمة السياق، أو اختصار الملخص في دردشة "
+#~ "مفتوحة."
 
 #~ msgctxt "noise_reducer_device_next_start"
 #~ msgid "A new processor applies from the next time WinZapp starts."

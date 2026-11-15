@@ -247,7 +247,6 @@ def _dialog(locked=False, consented=(), consented_text=(), remember=True, accept
     dialog = NS(kind="text", config={"consented": list(consented), "consented_text": list(consented_text)},
                 _consented=False, _consent_dialog=None, session=NS(locked=locked, closed=False),
                 i18n=None, _valid=lambda: True, app=NS(update=update))
-    dialog._consent_key = lambda: AIResultDialog._consent_key(dialog)
     return dialog, fake, asked
 
 
@@ -392,3 +391,58 @@ def test_the_summary_button_announces_the_configured_shortcut():
 def test_gemini_defaults_to_the_lite_model_that_google_throttles_least():
     from core.ai_media.config import PROVIDERS
     assert PROVIDERS["gemini"].model == "gemini-3.5-flash-lite"
+
+
+class TestSharedConsent:
+    """ask_consent / needs_consent: what the panel asks before transcribing and
+    the result window asks when the panel did not."""
+
+    def _ask(self, monkeypatch, *, locked=False, remembered=(), remember=True, accept=True, valid=lambda: True):
+        import ui.dialogs.ai_result_dialog as module
+        shown, store, tracked = [], {}, []
+        fake = NS(ShowModal=lambda: wx.ID_OK if accept else wx.ID_CANCEL, Destroy=lambda: shown.append("destroyed"),
+                  remember=NS(GetValue=lambda: remember))
+        monkeypatch.setattr(module, "AIConsentDialog", lambda *args: shown.append(args[2:]) or fake)
+        config = {"consented": [], "consented_text": list(remembered)}
+        app = NS(update=lambda _key, merge: store.update(merge(store)))
+        result = module.ask_consent(None, None, app, config, ["gemini"], "text", locked, valid=valid,
+                                    track=tracked.append)
+        return result, shown, store, config, tracked
+
+    def test_a_common_chat_is_asked_once_and_remembered(self, monkeypatch):
+        result, shown, store, config, tracked = self._ask(monkeypatch)
+        assert result is True and shown[0] == (["gemini"], "text", False)
+        assert store == {"consented_text": ["gemini"]} and config["consented_text"] == ["gemini"]
+        assert tracked[0] is not None and tracked[-1] is None  # told the window, then that it is gone
+        assert self._ask(monkeypatch, remembered=["gemini"])[1] == []
+
+    def test_a_locked_chat_is_asked_every_time_and_never_remembered(self, monkeypatch):
+        for _ in range(2):
+            result, shown, store, config, _tracked = self._ask(monkeypatch, locked=True, remembered=["gemini"])
+            assert result is True and shown[0] == (["gemini"], "text", True)
+            assert store == {} and config["consented_text"] == ["gemini"]
+
+    def test_a_refusal_remembers_nothing(self, monkeypatch):
+        result, shown, store, config, _tracked = self._ask(monkeypatch, accept=False)
+        assert result is False and store == {} and config["consented_text"] == []
+        assert shown[-1] == "destroyed"
+
+    def test_an_answer_given_as_the_vault_closed_is_a_refusal(self, monkeypatch):
+        result, _shown, store, _config, _tracked = self._ask(monkeypatch, valid=lambda: False)
+        assert result is False and store == {}
+
+    def test_needs_consent_rule(self):
+        import ui.dialogs.ai_result_dialog as module
+        config = {"consented": ["openai"], "consented_text": ["gemini"]}
+        assert module.needs_consent(config, ["gemini"], "text", False) is False
+        assert module.needs_consent(config, ["gemini", "claude"], "text", False) is True
+        assert module.needs_consent(config, ["gemini"], "text", True) is True
+        assert module.needs_consent(config, ["gemini"], "image", False) is True  # media's list is apart
+        assert module.needs_consent(config, [], "text", False) is False
+
+    def test_a_preconsented_window_never_asks_again_locked_chat_included(self, monkeypatch):
+        import ui.dialogs.ai_result_dialog as module
+        monkeypatch.setattr(module, "AIConsentDialog", lambda *args: pytest.fail("asked twice"))
+        dialog, _fake, _asked = _dialog(locked=True)
+        dialog._consented = True  # what preconsented=True sets
+        assert AIResultDialog._consent(dialog, ["gemini"]) is True
