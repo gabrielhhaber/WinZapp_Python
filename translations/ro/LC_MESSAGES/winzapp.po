@@ -967,6 +967,7 @@ msgstr ""
 "setările."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice_online.py
 msgctxt "ai_error_response"
 msgid "No usable answer was received from the provider."
 msgstr "Nu s-a primit un răspuns utilizabil de la furnizor."
@@ -1100,6 +1101,7 @@ msgid "Types of me&dia handled..."
 msgstr "Tipuri de conținut &procesate..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/ai_text_result_dialog.py
 #: client/ui/dialogs/ai_writing_dialog.py
@@ -1114,6 +1116,7 @@ msgstr ""
 "seifului închide fereastra și elimină rezultatele locale."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_metadata_notice"
 msgid ""
@@ -1502,17 +1505,113 @@ msgstr ""
 "rezumatul."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_choice_intro"
+msgid ""
+"{count} voice messages in this summary have no saved transcription. Choose "
+"how to transcribe them. Nothing is sent or transcribed until you continue."
+msgstr ""
+"{count} mesaje vocale din acest rezumat nu au o transcriere salvată. Alege "
+"cum să fie transcrise. Nu se trimite și nu se transcrie nimic până nu "
+"continui."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_choice_title"
+msgid "Voice messages in the summary"
+msgstr "Mesajele vocale din rezumat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_continue"
+msgid "Continue"
+msgstr "Continuă"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_failed"
+msgid ""
+"{count} voice messages could not be transcribed and appear only as voice "
+"message markers."
+msgstr ""
+"{count} mesaje vocale nu au putut fi transcrise și apar doar ca marcaj de "
+"mesaj vocal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "ai_summary_voice_missing"
 msgid "Voice messages shown only as a marker, without their words: {count}."
 msgstr "Mesaje vocale afișate doar ca marcaj, fără cuvintele lor: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode"
+msgid "Voice message transcription"
+msgstr "Transcrierea mesajelor vocale"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_local"
+msgid "Locally, on this computer"
+msgstr "Local, pe acest computer"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_none"
+msgid "Do not transcribe voice messages"
+msgstr "Nu transcrie mesajele vocale"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_online"
+msgid "Online, with an AI provider"
+msgstr "Online, cu un furnizor de IA"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_model"
+msgid "Online transcription model"
+msgstr "Modelul transcrierii online"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_online_consent"
+msgid ""
+"{count} voice messages will be sent, exactly as they are, to {provider} to "
+"be transcribed for this summary. This may use your quota or incur charges "
+"with this provider. Provider data policies apply, and the transcription can "
+"be wrong. Do you want to continue?"
+msgstr ""
+"{count} mesaje vocale vor fi trimise, exact cum sunt, către {provider} "
+"pentru a fi transcrise în acest rezumat. Aceasta poate consuma cota ta sau "
+"poate genera costuri la acest furnizor. Se aplică politicile furnizorului, "
+"iar transcrierea poate fi greșită. Continui?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_over_limit"
+msgid ""
+"{count} older voice messages were over the limit of {limit} per summary and "
+"appear only as voice message markers."
+msgstr ""
+"{count} mesaje vocale mai vechi au depășit limita de {limit} pe rezumat și "
+"apar doar ca marcaj de mesaj vocal."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
+#: client/ui/conversation_panel/summary_voice_online.py
 #, python-brace-format
 msgctxt "ai_summary_voice_progress"
 msgid "Transcribing voice message {index} of {total} for the summary."
 msgstr "Se transcrie mesajul vocal {index} din {total} pentru rezumat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_provider"
+msgid "Online transcription provider"
+msgstr "Furnizorul transcrierii online"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
@@ -3147,7 +3246,8 @@ msgstr "&Setări video pentru apeluri"
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/status_audience_dialog.py client/updater.py
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/summary_voice_choice.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "Anulea&ză"
@@ -14184,8 +14284,8 @@ msgid ""
 "Consider activity from multiple &participants when announcing a group's "
 "status"
 msgstr ""
-"Luați în considerare activitatea &mai multor participanți când anunțați starea"
-" unui grup"
+"Luați în considerare activitatea &mai multor participanți când anunțați "
+"starea unui grup"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

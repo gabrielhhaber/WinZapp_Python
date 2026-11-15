@@ -972,6 +972,7 @@ msgstr ""
 "configurações."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice_online.py
 msgctxt "ai_error_response"
 msgid "No usable answer was received from the provider."
 msgstr "Não foi recebida uma resposta utilizável do provedor."
@@ -1106,6 +1107,7 @@ msgid "Types of me&dia handled..."
 msgstr "Tipos de mídia &processados..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/ai_text_result_dialog.py
 #: client/ui/dialogs/ai_writing_dialog.py
@@ -1120,6 +1122,7 @@ msgstr ""
 "janela e descarta os resultados locais."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_metadata_notice"
 msgid ""
@@ -1507,6 +1510,39 @@ msgstr ""
 "novo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_choice_intro"
+msgid ""
+"{count} voice messages in this summary have no saved transcription. Choose "
+"how to transcribe them. Nothing is sent or transcribed until you continue."
+msgstr ""
+"{count} mensagens de voz deste resumo não têm transcrição salva. Escolha "
+"como transcrevê-las. Nada é enviado nem transcrito até você continuar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_choice_title"
+msgid "Voice messages in the summary"
+msgstr "Mensagens de voz no resumo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_continue"
+msgid "Continue"
+msgstr "Continuar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_failed"
+msgid ""
+"{count} voice messages could not be transcribed and appear only as voice "
+"message markers."
+msgstr ""
+"{count} mensagens de voz não puderam ser transcritas e aparecem só como "
+"marcador de mensagem de voz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "ai_summary_voice_missing"
 msgid "Voice messages shown only as a marker, without their words: {count}."
@@ -1514,11 +1550,73 @@ msgstr ""
 "Mensagens de voz mostradas só como marcador, sem as palavras: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode"
+msgid "Voice message transcription"
+msgstr "Transcrição das mensagens de voz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_local"
+msgid "Locally, on this computer"
+msgstr "Localmente, neste computador"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_none"
+msgid "Do not transcribe voice messages"
+msgstr "Não transcrever as mensagens de voz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_online"
+msgid "Online, with an AI provider"
+msgstr "On-line, com um provedor de IA"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_model"
+msgid "Online transcription model"
+msgstr "Modelo da transcrição on-line"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_online_consent"
+msgid ""
+"{count} voice messages will be sent, exactly as they are, to {provider} to "
+"be transcribed for this summary. This may use your quota or incur charges "
+"with this provider. Provider data policies apply, and the transcription can "
+"be wrong. Do you want to continue?"
+msgstr ""
+"{count} mensagens de voz serão enviadas, exatamente como estão, para "
+"{provider} para serem transcritas neste resumo. Isso pode consumir sua cota "
+"ou gerar custos nesse provedor. Os termos de dados do provedor se aplicam, e"
+" a transcrição pode estar errada. Deseja continuar?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_over_limit"
+msgid ""
+"{count} older voice messages were over the limit of {limit} per summary and "
+"appear only as voice message markers."
+msgstr ""
+"{count} mensagens de voz mais antigas passaram do limite de {limit} por "
+"resumo e aparecem só como marcador de mensagem de voz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_voice.py
+#: client/ui/conversation_panel/summary_voice_online.py
 #, python-brace-format
 msgctxt "ai_summary_voice_progress"
 msgid "Transcribing voice message {index} of {total} for the summary."
 msgstr "Transcrevendo a mensagem de voz {index} de {total} para o resumo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_provider"
+msgid "Online transcription provider"
+msgstr "Provedor da transcrição on-line"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_transcription.py
@@ -3155,7 +3253,8 @@ msgstr "Configurações &de vídeo da chamada"
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/status_audience_dialog.py client/updater.py
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/summary_voice_choice.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "&Cancelar"

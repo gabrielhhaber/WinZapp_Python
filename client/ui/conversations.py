@@ -184,6 +184,8 @@ from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
+from ui.conversation_panel.summary_voice_choice import SummaryVoiceChoiceMixin
+from ui.conversation_panel.summary_voice_online import SummaryVoiceOnlineMixin
 from ui.conversation_panel.ai_writing import AIWritingMixin
 
 
@@ -241,6 +243,8 @@ class ConversationsPanel(
     TranslationActionsMixin,
     SummaryActionsMixin,
     SummaryVoiceMixin,
+    SummaryVoiceChoiceMixin,
+    SummaryVoiceOnlineMixin,
     AIWritingMixin,
     MessageDataMixin,
     wx.Panel,

@@ -14,6 +14,8 @@ WHAT'S NEW
 
 - AI summary: two new shortcuts for the message context menu, Alt+Shift+I to summarize from here to the end and Ctrl+Alt+Shift+I to summarize the selected messages. They can be changed in the Shortcuts tab of Settings, and the menu items now show the shortcut in use, including Ctrl+Shift+U on the unread one.
 
+- AI summary: when you summarize messages that include voice messages without a saved transcription, a window asks how to transcribe them: locally (the default), online with a provider and a transcription model separate from the summary's model, or not at all. Before the voice messages are sent, a question says how many go, to which provider, and that this may use quota or incur charges, with a box to remember that provider's consent. Saved transcriptions are reused, and the result warns how many voice messages failed or were left out by the limit. Opening, changing or closing the windows sends nothing. Requested by UlisesMilani (#791).
+
 - WPPConnect: when disk space runs low (less than 4 GB free), WinZapp closes WhatsApp safely before it loses the session, goes offline and says why. Once at least 5 GB are free it connects again by itself. Before, with about 3 GB free, the session could come back logged out as if it had been wiped.
 
 - Automatic transcription: a voice message received while the computer was asleep is no longer left untranscribed when it arrives together with others on waking.

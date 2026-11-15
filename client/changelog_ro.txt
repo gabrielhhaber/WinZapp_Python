@@ -14,6 +14,8 @@ NOUTĂȚI
 
 - Rezumat cu AI: două scurtături noi în meniul contextual al mesajului, Alt+Shift+I pentru a rezuma de aici până la sfârșit și Ctrl+Alt+Shift+I pentru a rezuma mesajele selectate. Pot fi schimbate în fila Scurtături din Setări, iar elementele meniului arată acum scurtătura folosită, inclusiv Ctrl+Shift+U la cel pentru mesajele necitite.
 
+- Rezumat cu IA: când rezumi mesaje care conțin mesaje vocale fără transcriere salvată, o fereastră întreabă cum să fie transcrise: local (implicit), online cu un furnizor și un model de transcriere separate de modelul rezumatului sau deloc. Înainte ca mesajele vocale să fie trimise, o întrebare spune câte pleacă, către ce furnizor și că aceasta poate consuma cota sau poate genera costuri, cu o casetă pentru a ține minte acordul pentru acel furnizor. Transcrierile salvate sunt refolosite, iar rezultatul avertizează câte mesaje vocale au eșuat sau au rămas pe dinafară din cauza limitei. Deschiderea, schimbarea sau închiderea ferestrelor nu trimite nimic. Cerut de UlisesMilani (#791).
+
 - WPPConnect: când spațiul pe disc scade (sub 4 GB liberi), WinZapp închide WhatsApp în siguranță înainte să piardă sesiunea, trece offline și spune de ce. Când există cel puțin 5 GB liberi, se reconectează singur. Înainte, cu aproximativ 3 GB liberi, sesiunea putea reveni deconectată ca și cum ar fi fost ștearsă.
 
 - Transcriere automată: un mesaj vocal primit cât computerul era în repaus nu mai rămâne netranscris când sosește împreună cu altele la revenire.
