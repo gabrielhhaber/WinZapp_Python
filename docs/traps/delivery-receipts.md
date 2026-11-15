@@ -57,3 +57,32 @@ What this note deliberately does not say: that anything about *reading* a
 message fixes the tick. Read receipts are a separate receipt (`read`/`played`)
 and are independently suppressible by the account's privacy setting
 (`read_receipts.py`); the inactive/active rule above is about delivery only.
+
+## The second, independent way to read "enviada" forever (2026-11-15, v2026.11.15.2101)
+
+The same symptom had a second cause that survived the receipt fix, measured on
+the same session: the app showed a message as *delivered* and then flipped it
+back to *sent* — every send, reliably, because the bridge emits a synthetic
+`onack {"ack": 1}` 600 ms after every send (`store_sent`, "WPPConnect says
+sent right after the send; the app only registers the message after the HTTP
+response"). The real DELIVERED from WhatsApp normally beats that 600 ms, so the
+stale `ack=1` landed on top of it, got appended to `MessageUpdate` after it,
+and `core/database.py::_delivery_status` (the indexed `status` column the
+conversation list reads) takes the *last* entry — the row read "Enviada"
+forever, on the sender's own screen, for a message that was already delivered.
+
+Two defences shipped together, both needed:
+
+- `store_sent`'s deferred ack=1 is skipped when the bridge already emitted a
+  real ack for that message id (`Session._acked_ids`, bounded to the last 512
+  ids, recorded in the `_receipt` handler for both the direct and the group
+  paths).
+- `ChatEventsMixin.on_message_status_update` drops a positive ack that would
+  move the message backwards (`_is_status_stale` + `_status_rank`): pending ->
+  sent -> delivered -> read -> played is monotonic. A failure ack (< 0) still
+  overwrites anything, because "WhatsApp gave up" is a newer verdict. Negative
+  acks and equal-stage re-acks are recorded as before.
+
+Diagnose the same way as above: an `on_message_status_update` line with
+`status=2` arriving *after* the `status=3` line for the same msg_id is this
+bug; with the fix it is logged as "ignored stale downgrade" instead.

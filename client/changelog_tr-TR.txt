@@ -6,6 +6,8 @@ YENİLİKLER
 
 - Neonize: WinZapp açıkken alınan mesajlar artık gönderene ulaşmış olarak görünüyor; pencere odakta değilken veya arkada olsa bile. Önceden WinZapp odakta değilken gönderen yalnızca "gönderildi" görüyordu; okundu bilgisi kapalıyken sohbeti açmak da bir şeyi değiştirmiyordu. Çevrimiçi durumu pencereye bağlı kalmaya devam ediyor.
 
+- Neonize: gönderdiğiniz bir mesaj, WhatsApp tarafından teslim edildiği onaylandıktan sonra "Gönderildi"ye dönebiliyordu — mesaj listesinde ve durum satırında. Uygulama artık gerçek teslim, okunma veya çalınma onayını kendi "gönderildi" onayıyla ezmiyor ve bir mesajın durumu onaylandıktan sonra gerilemiyor.
+
 - NVDA çalışırken, mikrofonu bilgisayar sesiyle birlikte kaydetmek, WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor. Bu, NVDA sesi ayrı alınmadan önce de böyleydi; artık ayrı kaydedilen NVDA sesinin ve bilgisayarın diğer seslerinin okuyucularını da kapsıyor.
 
 - Varsayılan ses paketindeki yazma, yazma balonu, yazma nabzı ve yapay zekâ işleme sesleri artık paketin geri kalanı gibi Ogg dosyalarıdır. Sesleri ve özel seslerinizde hiçbir şey değişmez.

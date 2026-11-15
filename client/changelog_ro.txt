@@ -6,6 +6,8 @@ NOUTĂȚI
 
 - Neonize: mesajele primite cu WinZapp deschis apar acum ca livrate pentru expeditor, chiar și cu fereastra fără focus sau în fundal. Înainte, expeditorul vedea doar „trimis” când WinZapp nu avea focusul; iar cu confirmările de citire dezactivate, deschiderea conversației nu schimba nimic. Prezența online rămâne legată de fereastră.
 
+- Neonize: un mesaj trimis de dumneavoastră putea reveni la „trimis” după ce WhatsApp îl confirmase deja ca livrat — în lista de mesaje și pe linia de stare. Aplicația nu mai suprascrie o confirmare reală de livrare, citire sau redare cu propriul ei ack de „trimis”, iar nicio stare a mesajului nu dă înapoi după ce a fost confirmată.
+
 - Când NVDA rulează, înregistrarea microfonului împreună cu sunetul computerului nu se mai oprește cu „problemă la dispozitivul audio” când WinZapp se blochează o secundă sau două (computer lent sau ocupat): sunetul din acel moment este omis, înregistrarea continuă, iar restul rămâne sincronizat. Mai înainte asta era valabil fără sunetul NVDA separat; acum acoperă și cititoarele pentru sunetul NVDA și celelalte sunete ale computerului, înregistrate separat.
 
 - Sunetele de scriere, bulă de scriere, puls de scriere și procesare AI din pachetul de sunete implicit sunt acum fișiere Ogg, ca restul pachetului. Nu se schimbă nimic la sunet sau la sunetele tale personalizate.

@@ -227,6 +227,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self._pending_reads = app_state_recovery.PendingReads()
         self._flushing_reads = threading.Lock()
         self.on_unlink = None       # called when the phone removes the device
+        # the raw ids the bridge already emitted a delivered/read/played onack
+        # for (id -> ack); bounded. store_sent's deferred synthetic ack=1 is
+        # skipped for these, or it lands on top of a real ack and flips the UI
+        # back to "enviada" after WhatsApp already confirmed delivery.
+        self._acked_ids = {}
         self.pairing_repairs = pairing_repair.Budget()
         self.urlcode = None
         self.me = ""                # own JID (user@s.whatsapp.net)
@@ -247,6 +252,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
     @status.setter
     def status(self, value):
         self.lifecycle.status = value
+
+    # ---------------------------------------------- synthetic sent ack gate
+    def _record_ack(self, message_id, ack):
+        """Remember that a real ack was emitted for this id (bounded)."""
+        self._acked_ids[message_id] = ack
+        if len(self._acked_ids) > 512:
+            for stale in list(self._acked_ids)[:256]:
+                self._acked_ids.pop(stale, None)
+
+    def _real_ack_emitted(self, message_id):
+        return message_id in self._acked_ids
 
     # ------------------------------------------------------------- reactions
     def target_serial(self, chat_w, group, target_id, i_reacted, key_from_me, participant):
@@ -1154,12 +1170,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     for mid in ids:
                         in_group = self.group_ack_to_emit(chat, mid)
                         if in_group:
+                            self._record_ack(mid, in_group)
                             self.emit("onack", {
                                 "session": self.name, "ack": in_group, "to": chat, "from": chat,
                                 "id": {"fromMe": True, "remote": chat, "id": mid,
                                        "_serialized": f"true_{chat}_{mid}"}})
                     return
                 for mid in ids:
+                    self._record_ack(mid, ack)
                     self.emit("onack", {
                         "session": self.name, "ack": ack, "to": chat, "from": chat,
                         "id": {"fromMe": True, "remote": chat, "id": mid,
@@ -2486,11 +2504,19 @@ def create_app(folder, fixed=""):
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"
         chat_w = msgmap.jid_wpp(chat)
         # WPPConnect says "sent" (ack 1) right after the send; the app only
-        # registers the message after the HTTP response, hence the small delay
-        asyncio.get_running_loop().call_later(0.6, lambda: asyncio.ensure_future(
-            sio.emit("onack", {"session": s.name, "ack": 1, "to": chat_w, "from": chat_w,
-                               "id": {"fromMe": True, "remote": chat_w, "id": resp.ID,
-                                      "_serialized": serial}}, room=s.name)))
+        # registers the message after the HTTP response, hence the small delay.
+        # Only emit it if no real ack for this id reached us in the meantime —
+        # a delivered/read that already went out wins over the synthetic "sent".
+        sent_id = resp.ID
+        def _emit_ack1():
+            if sent_id in getattr(s, "_acked_ids", ()):
+                log.info("skipping synthetic onack ack=1 for %s: a real ack already went out", sent_id)
+                return
+            asyncio.ensure_future(
+                sio.emit("onack", {"session": s.name, "ack": 1, "to": chat_w, "from": chat_w,
+                                   "id": {"fromMe": True, "remote": chat_w, "id": sent_id,
+                                          "_serialized": serial}}, room=s.name))
+        asyncio.get_running_loop().call_later(0.6, _emit_ack1)
         return ok(status="success", response=[{"id": serial, "ack": 1}])
 
     def quoted_context(s, quoted, ctx=None, fallback=None):

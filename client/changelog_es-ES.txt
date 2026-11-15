@@ -6,6 +6,8 @@ NOVEDADES
 
 - Neonize: los mensajes recibidos con WinZapp abierto ahora aparecen como entregados para quien los envió, incluso con la ventana desenfocada o en segundo plano. Antes, el remitente solo veía "enviado" cuando WinZapp no tenía el foco; y, con los acuses de lectura desactivados, abrir la conversación no cambiaba nada. La presencia en línea sigue ligada a la ventana.
 
+- Neonize: un mensaje que enviaste podía volver a "Enviado" después de que WhatsApp ya lo hubiera confirmado como entregado — en la lista de mensajes y en la línea de estado. La aplicación ya no sobrescribe una confirmación real de entrega, lectura o reproducción con su propio acuse de "enviado", y ningún estado de mensaje retrocede una vez confirmado.
+
 - Con el NVDA en ejecución, la grabación del micrófono y del audio del ordenador ya no se interrumpe con "problema con el dispositivo de audio" cuando WinZapp se bloquea uno o dos segundos (ordenador lento u ocupado): se omite el audio de ese instante, la grabación continúa y el resto sigue sincronizado. Antes ya valía sin el audio del NVDA separado; ahora cubre también los lectores del audio del NVDA y de los otros sonidos del ordenador, grabados por separado.
 
 - Los sonidos de escritura, burbuja de escritura, pulso de escritura y procesamiento de IA del paquete de sonido predeterminado ahora son archivos Ogg, como el resto del paquete. No cambia cómo suenan ni tus sonidos personalizados.
