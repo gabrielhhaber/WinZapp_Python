@@ -282,3 +282,50 @@ class TestOnlineWorker:
         panel._summary_voice_online_one = lambda *a: (_ for _ in ()).throw(RuntimeError("boom"))
         run = make_run([audio(1)])
         assert self.work(panel, run) == "ai_error_response" and run.outcome.failed == 1
+
+
+class TestOnlineConsent:
+    def run(self, monkeypatch, locked):
+        import ui.dialogs.ai_result_dialog as dialog
+        seen = {}
+
+        def fake(parent, i18n, app, config, providers, kind, is_locked, valid=None, track=None, text=None):
+            seen.update(providers=providers, kind=kind, locked=is_locked, text=text)
+            return True
+        monkeypatch.setattr(dialog, "ask_consent", fake)
+        panel = Panel(locked=locked)
+        panel.main_window.i18n = NS(t=lambda key: {"ai_summary_voice_online_consent": "{count}/{provider}"}.get(key, key))
+        assert panel._summary_voice_online_consent(None, {}, "j", ONLINE, 3) is True
+        return seen
+
+    def test_the_provider_audio_kind_and_text_reach_the_consent(self, monkeypatch):
+        seen = self.run(monkeypatch, False)
+        assert seen["providers"] == ["openai"] and seen["kind"] == "audio" and seen["locked"] is False
+        assert seen["text"].startswith("3/OpenAI")
+
+    def test_a_locked_chat_is_asked_as_locked(self, monkeypatch):
+        assert self.run(monkeypatch, True)["locked"] is True
+
+
+class TestAskConsentText:
+    def test_the_text_replaces_the_wording_and_is_left_alone_when_none(self, monkeypatch):
+        import ui.dialogs.ai_result_dialog as dialog
+        made = []
+
+        class Fake:
+            def __init__(self, *args, **kwargs):
+                made.append(kwargs)
+                self.remember = NS(GetValue=lambda: False)
+
+            def ShowModal(self):
+                return dialog.wx.ID_CANCEL
+
+            def Destroy(self):
+                pass
+            __bool__ = lambda self: True
+        monkeypatch.setattr(dialog, "AIConsentDialog", Fake)
+        config = {"consented": [], "consented_text": []}
+        args = (None, NS(), NS(), config, ["openai"], "audio", False)
+        assert dialog.ask_consent(*args, text="mine") is False
+        assert dialog.ask_consent(*args) is False
+        assert made == [{"text": "mine"}, {}]

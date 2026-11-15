@@ -814,6 +814,21 @@ class TestProgressJob:
 
 
 class TestConsentComesFirst:
+    def test_a_refused_online_voice_consent_transcribes_and_sends_nothing(self, panel):
+        panel.voice_choice = VoiceChoice("online", "openai", "")
+        panel.online_consent_answer = False
+        panel._on_summarize_messages([text(1), audio(2)])
+        assert panel.events == ["how to transcribe 1", "consent", "online voice consent"]
+        assert ProgressWindow.made == [] and Dialog.made == [] and panel.transcribed == []
+        assert panel.spoken == ["ai_summary_cancelled"]
+
+    def test_none_asks_no_voice_consent_and_runs_no_worker(self, panel):
+        panel.voice_choice = VoiceChoice("none")
+        panel.online_consent_answer = False
+        panel._on_summarize_messages([text(1), audio(2)])
+        assert panel.events == ["how to transcribe 1", "consent", "result window"]
+        assert ProgressWindow.made == [] and panel.transcribed == []
+
     def test_a_refusal_transcribes_nothing_sends_nothing_and_says_so(self, panel):
         panel.consent_answer = False
         panel._on_summarize_messages([text(1), audio(2)])
