@@ -125,6 +125,8 @@ class MessageMenuMixin:
             inline_item = mass_menu.Append(
                 wx.ID_ANY, f"{i18n.t('transcribe_selected_inline')}\tCtrl+Alt+Shift+N")
             self.Bind(wx.EVT_MENU, self._on_mass_transcribe_inline_messages, inline_item)
+            translate_item = mass_menu.Append(wx.ID_ANY, i18n.t('translate_selected'))
+            self.Bind(wx.EVT_MENU, self._on_mass_translate_messages, translate_item)
             delete_transcriptions_item = mass_menu.Append(
                 wx.ID_ANY,
                 f"{i18n.t('transcription_bulk_delete_menu')}\tCtrl+Alt+Shift+Delete")

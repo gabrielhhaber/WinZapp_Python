@@ -12,6 +12,7 @@ from coord_locks import LockTimeout
 from core.ai_media.errors import DescriptionError
 from core.message_translation import TranslationSettings, credential_id, message_identity
 from ui.conversation_panel import translation_actions as actions
+from ui.conversation_panel import translation_backlog as backlog
 
 JID = "5511999990000@s.whatsapp.net"
 LID = "777@lid"
@@ -78,13 +79,13 @@ class List:
         return 0
 
 
-class Panel(actions.TranslationActionsMixin):
+class Panel(actions.TranslationActionsMixin, backlog.TranslationBacklogMixin):
     def __init__(self, raw=AUTOMATIC):
         self.spoken = []
         self.locked = set()
         self.main_window = SimpleNamespace(
             _app_settings=App(raw), i18n=SimpleNamespace(t=lambda key: TEXTS.get(key, key)),
-            output=self.spoken.append, is_chat_locked=lambda jid: jid in self.locked,
+            output=lambda text, **kwargs: self.spoken.append(text), is_chat_locked=lambda jid: jid in self.locked,
             _chat_lock_unlocked=False, _normalize_jid=lambda jid: jid,
             _lid_to_phone={LID: JID}, _phone_to_lid={JID: LID}, settings={},
             db=SimpleNamespace(get_metadata_json=lambda key, default: {},
@@ -99,6 +100,10 @@ class Panel(actions.TranslationActionsMixin):
 
     def _update_read_more_button(self, index):
         pass
+
+    @staticmethod
+    def _is_separator(msg):
+        return bool(msg.get("separator"))
 
     def _resolve_mentions_in_text(self, text, mentioned):
         return text.replace("@5511888", "@Ana") if mentioned else text
@@ -119,6 +124,7 @@ def message(number, text=None, jid=JID):
 def wx(monkeypatch):
     fake = FakeWx()
     monkeypatch.setattr(actions, "wx", fake)
+    monkeypatch.setattr(backlog, "wx", fake)
     return fake
 
 
@@ -340,3 +346,92 @@ def test_manual_translation_without_settings_says_what_is_missing(wx, submitted)
     panel._on_translate_message(message(1))
     assert submitted == [] and panel.spoken == ["translation_not_configured"]
     assert TranslationSettings().provider == ""
+
+
+def old_message(number, text=None, age=3600):
+    row = message(number, text)
+    row["messageTimestamp"] = int(time.time()) - age
+    return row
+
+
+def test_turning_a_chat_on_translates_its_latest_old_messages_too(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", all_accounts_confirmed=False))
+    panel._translation_opt_in = {}
+    rows = [old_message(number) for number in range(1, 4)]
+    panel._sorted_messages = [{"separator": True}] + rows
+    config = panel._translation_settings()
+    assert not panel._translation_candidate(rows[0], config)
+    panel._toggle_translation_chat(JID, config)
+    assert panel._translation_running[2] == "hello 1"
+    assert [entry[2] for entry in panel._translation_queue] == ["hello 2", "hello 3"]
+    assert panel._translation_candidate(rows[0], config)
+
+
+def test_the_backlog_leaves_other_chats_and_own_messages_alone(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", all_accounts_confirmed=False))
+    panel._translation_opt_in = {JID: {"provider": "gemini", "enabled": True}}
+    mine = old_message(1)
+    mine["key"]["fromMe"] = True
+    panel._sorted_messages = [mine]
+    panel._translate_chat_backlog(JID)
+    panel._translate_chat_backlog("5511000@s.whatsapp.net")
+    assert not submitted and not hasattr(panel, "_translation_running")
+
+
+def test_selected_texts_keep_the_order_and_skip_what_has_no_text():
+    rows = [message(1), {"separator": True, "key": {"id": "id2"}}, message(3), message(4)]
+    audio = {"key": {"remoteJid": JID, "id": "id5"}, "messageType": "audioMessage",
+             "message": {"audioMessage": {}}}
+    found = backlog.selected_texts(rows + [audio], {"id1", "id2", "id3", "id5"},
+                                   lambda row: bool(row.get("separator")))
+    assert [row["key"]["id"] for row in found] == ["id1", "id3"]
+    assert len(backlog.selected_texts([message(n) for n in range(80)], {f"id{n}" for n in range(80)})) == 50
+
+
+def test_the_bulk_translation_asks_then_translates_each_selected_message(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    panel._on_mass_translate_messages()
+    assert wx.asked and panel.spoken[-1] == "sending Google Gemini"
+    assert len(submitted) == 1
+    submitted[0]("one", None)
+    assert len(submitted) == 2
+    submitted[1]("two", None)
+    assert panel.spoken[-1] == "translation_bulk_done"
+    assert panel._bulk_translation is None
+    assert [value[2] for value in panel._translation_results.values()] == ["one", "two"]
+
+
+def test_the_bulk_translation_stops_on_the_first_error_and_says_why(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    panel._on_mass_translate_messages()
+    assert len(submitted) == 1
+    submitted[0](None, "ai_error_credentials")
+    assert panel.spoken[-1] == "ai_error_credentials"
+    assert panel._bulk_translation is None and len(submitted) == 1
+
+
+def test_the_bulk_translation_refuses_an_empty_selection_and_a_second_run(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [message(1)]
+    panel.selected_messages = {"nothing"}
+    panel._on_mass_translate_messages()
+    assert panel.spoken[-1] == "translation_bulk_none" and not wx.asked
+    panel._bulk_translation = object()
+    panel._on_mass_translate_messages()
+    assert panel.spoken[-1] == "ai_error_busy"
+
+
+def test_the_bulk_translation_shows_one_window_in_the_separate_display(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", display="separate"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    shown = []
+    panel._show_translation = lambda answer, **kwargs: shown.append(answer)
+    panel._on_mass_translate_messages()
+    submitted[0]("one", None)
+    submitted[1]("two", None)
+    assert shown == ["one\n\ntwo"]

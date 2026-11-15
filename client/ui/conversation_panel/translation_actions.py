@@ -13,10 +13,10 @@ from core.ai_media.auto import day_key
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, submit
 from core.message_translation import (
-    CUSTOM, DISPLAY_SEPARATE, MAX_TEXT_CHARS, PAUSE_SECONDS, TranslationSettings,
-    automatic_candidate, chat_allows_automatic, credential_id, message_identity, message_text,
-    pauses_automatic, preferences, reserve_automatic_request, translate, translated_body,
-    translation_model_ready,
+    CUSTOM, DISPLAY_SEPARATE, MAX_TEXT_CHARS, NO_AGE_LIMIT_MINUTES, PAUSE_SECONDS,
+    TranslationSettings, automatic_candidate, chat_allows_automatic, credential_id,
+    message_identity, message_text, pauses_automatic, preferences,
+    reserve_automatic_request, translate, translated_body, translation_model_ready,
 )
 from core.utils import link_preview_text
 from ui.dialogs.translation_settings import LABELS
@@ -81,6 +81,15 @@ class TranslationActionsMixin:
         except (DescriptionError, OSError, RuntimeError, SQLiteError):
             return False
 
+    def _translation_candidate(self, message, config):
+        """A message the automatic translation may translate: a recent one, or
+        one asked for through the chat's backlog."""
+        if automatic_candidate(message, config):
+            return True
+        return (message_identity(message) in getattr(self, "_translation_backlog_keys", ())
+                and automatic_candidate(
+                    message, replace(config, max_age_minutes=NO_AGE_LIMIT_MINUTES)))
+
     def _automatic_translation_may_be_enabled(self, jid, config):
         # The request worker loads the account's chat choices on a cache miss,
         # before it is allowed to send anything. Keep SQLite off live UI admission.
@@ -120,7 +129,7 @@ class TranslationActionsMixin:
         self._translation_opt_in = saved
         mw.output(t("translation_auto_chat_enabled" if not enabled else "translation_auto_chat_disabled"))
         if not enabled:
-            self._translate_focused_recent(jid)
+            self._translate_chat_backlog(jid)
 
     def _translate_focused_recent(self, jid=None):
         active = (self.conversation or {}).get("remoteJid")
@@ -198,7 +207,7 @@ class TranslationActionsMixin:
                 jid, message = automatic
                 token.check()
                 if (self._translation_settings() != config
-                        or not automatic_candidate(message, config)
+                        or not self._translation_candidate(message, config)
                         or message_text(message) != text
                         or not self._automatic_translation_enabled(jid, config)):
                     raise DescriptionError("cancelled")
@@ -336,7 +345,7 @@ class TranslationActionsMixin:
         if not text or len(text) > MAX_TEXT_CHARS or not key:
             return
         config = self._translation_settings()
-        if (not translation_model_ready(config) or not automatic_candidate(message, config)
+        if (not translation_model_ready(config) or not self._translation_candidate(message, config)
                 or not self._automatic_translation_may_be_enabled(jid, config)):
             return
         state = self.__dict__
@@ -374,7 +383,7 @@ class TranslationActionsMixin:
         while pending:
             entry = jid, _key, text, config, message = pending.popleft()
             if (config == self._translation_settings()
-                    and automatic_candidate(message, config) and message_text(message) == text
+                    and self._translation_candidate(message, config) and message_text(message) == text
                     and self._automatic_translation_may_be_enabled(jid, config)):
                 return entry
         return None
