@@ -14184,7 +14184,7 @@ msgid ""
 "Consider activity from multiple &participants when announcing a group's "
 "status"
 msgstr ""
-"Luați în considerare activitatea &mai multor participanți când anunți starea"
+"Luați în considerare activitatea &mai multor participanți când anunțați starea"
 " unui grup"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
