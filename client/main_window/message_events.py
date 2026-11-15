@@ -34,7 +34,7 @@ from core.message_edit import (
     is_edit_event,
 )
 from core.reply_failure import clear_reply_draft
-from core.notification_burst import notification_allowed
+from core.notification_burst import log_background_skip, notification_allowed
 from main_window.backlog_flood import defer_list_update, note_incoming_message
 from core.call_log import (
     call_log_supersedes,
@@ -1359,10 +1359,12 @@ class MessageEventsMixin:
         # exempting it — the chat being open only ever matters while the
         # window is active. A reply/mention still gets through, same as above.
         if muted and not priority:
+            log_background_skip("muted chat")
             return
 
         # An archived chat in the background never sends a toast or sound/speech.
         if archived:
+            log_background_skip("archived chat")
             return
 
         # Send system toast notification. general.notifications_enabled is
@@ -1372,9 +1374,11 @@ class MessageEventsMixin:
         # a muted/archived chat before this point, nothing else) whenever the
         # user turned it off.
         if not self.settings.get("general", {}).get("notifications_enabled", True):
+            log_background_skip("background notifications are off in Settings")
             return
         # Same burst limit as the foreground: sound, speech and toast alike.
         if not notification_allowed(self):
+            log_background_skip("burst limit")
             return
         from core.notification_manager import (
             background_notification_content, notification_content_level,
