@@ -21,7 +21,8 @@ import threading
 import wx
 
 from core import whatsapp_privacy as privacy
-from core.remote_privacy_events import register_panel, event_state, observations_since
+from core.remote_privacy_events import (register_panel, event_state, observations_since,
+                                        keep_archived_for_load, status_since)
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 
 
@@ -132,6 +133,13 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         if context is not None and not sync_context_is_current(self.main_window, context):
             return
         i18n = self._i18n
+        if revision is not None:
+            keep = keep_archived_for_load(self.main_window, revision, keep)
+            observed_status = status_since(self.main_window, revision)
+            if observed_status is not None:
+                answer = dict(answer) if answer else None
+                if answer is not None:
+                    answer["status"] = observed_status
         self._show_keep_archived(keep)
         if not answer:
             self._message.SetLabel(i18n.t("wa_privacy_load_failed"))
@@ -305,8 +313,17 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         if status_confirmed:
             self._status_loaded = privacy.StatusPrivacy(status[0], tuple(status[1]))
             self._status_people = None
+        revision = getattr(self, "_privacy_apply_revision", None)
+        observed_status = (status_since(self.main_window, revision)
+                           if revision is not None else None)
+        if observed_status is not None and status_confirmed:
+            self._status_loaded = privacy.parse_status_privacy(observed_status)
+            self._status_choice.SetSelection(privacy.status_option_index(
+                self._status_loaded.setting))
+            self._status_people = None
         if keep is not None and keep_error is None and not keep_unconfirmed:
-            self._keep_loaded = keep
+            self._keep_loaded = keep_archived_for_load(
+                self.main_window, revision, keep) if revision is not None else keep
 
         # The field labels carry their Alt key ("&"); a message does not.
         labels = {field.setting: i18n.t(field.label_key).replace("&", "")

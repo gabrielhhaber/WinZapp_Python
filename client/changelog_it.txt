@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Le modifiche da un altro dispositivo a Mantieni le chat archiviate e alla privacy dello stato aggiornano il pannello aperto, preservando le scelte non applicate e ignorando risposte obsolete o di altri account.
+
 - Corretti i contatti salvati che non comparivano su WhatsApp su iPhone: l'identificativo collegato viene ora inviato completo, come nella schermata nativa di WhatsApp.
 
 - Quando si salva un contatto sul telefono, WinZapp segnala la sincronizzazione richiesta, senza affermare che la rubrica sia già aggiornata. Le risposte senza conferma del contatto salvato non indicano successo.

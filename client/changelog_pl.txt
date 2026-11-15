@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Zmiany opcji pozostawiania czatów w archiwum i prywatności statusu na innym urządzeniu aktualizują otwarty panel, zachowując niezastosowane wybory i odrzucając stare odpowiedzi lub odpowiedzi innego konta.
+
 - Naprawiono zapisywanie kontaktów, które nie pojawiały się w WhatsApp na iPhonie: identyfikator kontaktu jest teraz wysyłany w całości, tak jak w natywnym ekranie WhatsApp.
 
 - Po zapisaniu kontaktu WinZapp informuje o wysłaniu prośby o synchronizację, nie o zakończeniu aktualizacji książki adresowej telefonu. Odpowiedź bez potwierdzenia zapisania kontaktu nie oznacza powodzenia.
