@@ -369,23 +369,23 @@ class TestMenus:
     def test_unread_from_here_and_selection_appear_only_when_they_apply(self, panel):
         with_unread(panel)
         assert self._message_menu(panel, panel._sorted_messages[0]) == [
-            "ai_summary_unread_menu", "ai_summary_from_here_menu"]
+            "ai_summary_unread_menu\tCtrl+Shift+U", "ai_summary_from_here_menu\tAlt+Shift+I"]
         panel.selected_messages = {"id1"}
         assert self._message_menu(panel, panel._sorted_messages[0]) == [
-            "ai_summary_unread_menu", "ai_summary_from_here_menu", "ai_summary_selected_menu"]
+            "ai_summary_unread_menu\tCtrl+Shift+U", "ai_summary_from_here_menu\tAlt+Shift+I", "ai_summary_selected_menu\tCtrl+Alt+Shift+I"]
 
     def test_with_nothing_unread_from_here_and_selected_still_work(self, panel):
         panel._sorted_messages = [text(1), text(2)]
         panel.selected_messages = {"id2"}
         assert self._message_menu(panel, panel._sorted_messages[0]) == [
-            "ai_summary_from_here_menu", "ai_summary_selected_menu"]
+            "ai_summary_from_here_menu\tAlt+Shift+I", "ai_summary_selected_menu\tCtrl+Alt+Shift+I"]
 
     def test_an_image_with_nothing_after_it_offers_no_from_here(self, panel):
         image = {"key": {"id": "i", "remoteJid": JID}, "messageType": "imageMessage", "message": {"imageMessage": {}}}
         panel._sorted_messages = [image]
-        assert self._message_menu(panel, image) == ["ai_summary_from_here_menu"]
+        assert self._message_menu(panel, image) == ["ai_summary_from_here_menu\tAlt+Shift+I"]
         panel._sorted_messages = [image, {"key": {"id": "r"}, "messageType": "reactionMessage", "message": {}}]
-        assert self._message_menu(panel, image) == ["ai_summary_from_here_menu"]
+        assert self._message_menu(panel, image) == ["ai_summary_from_here_menu\tAlt+Shift+I"]
 
     def test_nothing_is_offered_without_a_configured_provider(self, panel):
         with_unread(panel)
