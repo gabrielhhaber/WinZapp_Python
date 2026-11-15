@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Fixed saved contacts missing from WhatsApp on iPhone: the linked-device contact ID is now sent in full, matching WhatsApp's native contact screen.
+
 - Saving a contact to the phone now reports synchronization requested, without claiming that the phone's address book has already updated. Responses without a saved-contact confirmation no longer report success.
 
 - Privacy changes received from another device update untouched fields in the open panel, preserving pending choices and rejecting responses from another account.

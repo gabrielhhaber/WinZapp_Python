@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "712489d5a12f": "Corrigido o salvamento de contatos que não apareciam no WhatsApp do iPhone: o ID",
     "2650a2a3e111": "Ao salvar um contato no celular, o WinZapp informa que a sincronização foi solic",
     "759d67b3e5bb": "Mudanças de privacidade recebidas de outro dispositivo atualizam os campos ainda",
     "4242fa8d41d3": "Bloquear ou desbloquear contatos em outro dispositivo atualiza o WinZapp ao cheg",

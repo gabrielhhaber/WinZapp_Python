@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Corregido el guardado de contactos que no aparecían en WhatsApp en el iPhone: ahora se envía el identificador vinculado completo, como en la pantalla nativa de WhatsApp.
+
 - Al guardar un contacto en el móvil, WinZapp indica que se solicitó la sincronización, sin afirmar que la agenda del teléfono ya se actualizó. Las respuestas sin confirmación del contacto guardado no indican éxito.
 
 - Los cambios de privacidad recibidos de otro dispositivo actualizan los campos sin editar del panel abierto, conservando las elecciones pendientes y descartando respuestas de otra cuenta.

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Corrigido o salvamento de contatos que não apareciam no WhatsApp do iPhone: o ID vinculado agora é enviado completo, no formato usado pela tela nativa do WhatsApp.
+
 - Ao salvar um contato no celular, o WinZapp informa que a sincronização foi solicitada, sem afirmar que a agenda do telefone já foi atualizada. Respostas sem confirmação de contato salvo não geram sucesso.
 
 - Mudanças de privacidade recebidas de outro dispositivo atualizam os campos ainda não editados no painel aberto, preservando escolhas em preparação e descartando respostas de outra conta.
