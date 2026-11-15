@@ -42,6 +42,7 @@ export function installPrivacyEventsInPage() {
     previous.notify = notify; return true;
   }
   previous?.dispose();
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({prefs, notify, wrappers: new Map(), originals: new Map(), descriptors: new Map(),
     pending: false, disposed: false, revision: 0, changed: null, dispose: null});
   const fields = ['lastSeen', 'online', 'about', 'profilePicture', 'readReceipts', 'groupAdd'];

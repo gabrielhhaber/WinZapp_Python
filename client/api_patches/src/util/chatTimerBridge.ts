@@ -12,6 +12,7 @@ export function installChatTimerInPage() {
     previous.notify = notify; return true;
   }
   previous?.dispose();
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({store, groups, notify, revision: 2, pending: new Set(), disposed: false, handler: null, dispose: null});
   state.handler = model => {
     if (state.pending.has(model)) return;

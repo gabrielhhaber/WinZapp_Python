@@ -17,6 +17,7 @@ export function installChatDeletedInPage() {
   previous?.dispose();
   const original = api.applyMutations;
   const descriptor = Object.getOwnPropertyDescriptor(api, 'applyMutations');
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({api, notify, wrapper: null, dispose: null, disposed: false});
   const seconds = value => {
     const n = Number(value && typeof value === 'object' && 'low' in value

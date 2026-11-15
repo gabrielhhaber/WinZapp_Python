@@ -23,6 +23,7 @@ export function installMessageDeleteInPage() {
   const originalSync = sync.applyMutations, originalLocal = chat.deleteMessage;
   const syncDescriptor = Object.getOwnPropertyDescriptor(sync, 'applyMutations');
   const localDescriptor = Object.getOwnPropertyDescriptor(chat, 'deleteMessage');
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({ sync, chat, notify, revision: 1, disposed: false, timers: new Set(),
     syncWrapper: null, localWrapper: null, dispose: null });
   const emit = (chatId, messageId) => {

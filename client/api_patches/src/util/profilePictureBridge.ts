@@ -11,6 +11,7 @@ export function installProfilePictureInPage() {
   if (previous?.store === store) { previous.notify = notify; return true; }
   previous?.dispose();
   const events = ['change:tag', 'change:eurl', 'change:fullDirectPath', 'change:previewDirectPath'];
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({store, notify, pending: new Set(), disposed: false, handler: null, dispose: null});
   state.handler = model => {
     if (state.pending.has(model)) return;

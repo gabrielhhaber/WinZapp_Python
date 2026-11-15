@@ -14,6 +14,7 @@ export function installChatSettingsInPage() {
     return true;
   }
   previous?.dispose();
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({chats, mutes, notify, revision: 2, listeners: [], dispose: null});
   const observe = (store, event, setting, valueOf) => {
     const handler = model => {

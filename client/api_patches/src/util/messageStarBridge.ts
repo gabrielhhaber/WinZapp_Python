@@ -23,6 +23,7 @@ export function installMessageStarInPage() {
     return !!sync;  // false keeps retrying until the sync module loads
   }
   previous?.dispose();
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({ store, sync, notify, revision: 2, disposed: false,
     handler: null, syncWrapper: null, dispose: null });
   const emit = (chatId, messageId, starred) => {

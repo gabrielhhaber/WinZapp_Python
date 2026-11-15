@@ -9,6 +9,7 @@ export function installContactStateInPage() {
   const previous = win['__winzappContactStateObserver'];
   if (previous?.store === store) { previous.notify = notify; return true; }
   previous?.dispose();
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({store, notify, handlers: new Map(), pending: new Map(), disposed: false, dispose: null});
   const observe = (field, kind) => {
     const handler = model => {

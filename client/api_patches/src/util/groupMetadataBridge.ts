@@ -9,6 +9,7 @@ export function installGroupMetadataInPage() {
   const previous = win['__winzappGroupMetadataObserver'];
   if (previous?.revision === 2 && previous?.store === store) { previous.notify = notify; return true; }
   previous?.dispose();
+  // Object(...) is `any` to strict tsc (a bare literal infers null fields and breaks the build).
   const state = Object({store, notify, revision: 2, handlers: new Map(), members: new Map(), attach: null, detach: null, dispose: null});
   const emit = value => {
     try { Promise.resolve(state.notify(JSON.stringify(value))).catch(() => {}); }
