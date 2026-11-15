@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Tradução das mensagens que já estão na conversa: o menu de contexto de uma mensagem ganha "Traduzir daqui até o fim" e "Traduzir as mensagens selecionadas". A tradução automática só alcança as mensagens que chegam depois de ativada; agora dá para traduzir também as que já estavam lá. Vale para as mensagens de texto recebidas, até 50 de cada vez, com o provedor, o modelo e a exibição de "Traduzir mensagem": cada tradução aparece na linha da mensagem, ou todas juntas numa janela quando a exibição é em janela separada. O WinZapp diz o progresso a cada 10 mensagens, e "Cancelar a tradução das mensagens", no mesmo menu, interrompe. Em conversa trancada pede confirmação toda vez, e a tradução para quando o cofre é bloqueado.
+
 - Ajuda para escrever: chega ao WinZapp uma função semelhante à ajuda para escrever do WhatsApp para celulares, com a opção adicional de traduzir o rascunho. O novo botão após Emoji e o menu de contexto do campo abrem a mesma janela. Corrija, reformule, use um tom profissional ou encorajador com os provedores de IA configurados no WinZapp, não com a Meta AI; a tradução é feita com o Google. Há consentimento antes de enviar o rascunho e uma prévia antes de substituí-lo; a mensagem nunca é enviada automaticamente. Escolha uma ação e depois pressione "Executar ação escolhida". Abrir ou fechar esta janela não envia o rascunho.
 
 - Ajuda para escrever: novo atalho Alt+Shift+H para abrir a janela a partir de qualquer lugar da conversa com um rascunho escrito. Dá para trocá-lo na aba Atalhos das Configurações, e o menu de contexto do campo e o botão passam a mostrar o atalho em uso.

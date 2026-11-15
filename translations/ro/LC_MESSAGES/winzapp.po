@@ -6500,6 +6500,7 @@ msgstr "%d.%m.%Y"
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
+#: client/ui/conversation_panel/translation_batch.py
 #: client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/transcription_flow.py
@@ -19616,6 +19617,65 @@ msgstr "C&onversații cu traducere automată"
 msgctxt "translation_automatic"
 msgid "A&utomatic translation"
 msgstr "Traducere a&utomată"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_cancel_menu"
+msgid "Cancel translating the messages"
+msgstr "Anulează traducerea mesajelor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_batch.py
+#, python-brace-format
+msgctxt "translation_batch_cancelled"
+msgid "Translation cancelled. Messages translated: {done}"
+msgstr "Traducere anulată. Mesaje traduse: {done}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_batch_done"
+msgid "Translation finished. Messages translated: {count}"
+msgstr "Traducere încheiată. Mesaje traduse: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_batch.py
+#, python-brace-format
+msgctxt "translation_batch_failed"
+msgid "Translation stopped: {error} Messages translated: {done}"
+msgstr "Traducerea s-a oprit: {error} Mesaje traduse: {done}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_from_here_menu"
+msgid "Translate from here to the end"
+msgstr "Tradu de aici până la sfârșit"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_batch_left_out"
+msgid "Messages beyond the limit, not translated: {left_out}."
+msgstr "Mesaje peste limită, netraduse: {left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_nothing"
+msgid "There are no received text messages to translate here."
+msgstr "Nu există aici mesaje text primite de tradus."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_batch.py
+#, python-brace-format
+msgctxt "translation_batch_progress"
+msgid "Translated: {done} of {total}"
+msgstr "Traduse: {done} din {total}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_selected_menu"
+msgid "Translate the selected messages"
+msgstr "Tradu mesajele selectate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_batch_sending"
+msgid "Translating with {provider}… Messages: {count}"
+msgstr "Se traduce cu {provider}… Mesaje: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"

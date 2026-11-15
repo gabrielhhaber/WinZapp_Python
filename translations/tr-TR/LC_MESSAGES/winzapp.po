@@ -6472,6 +6472,7 @@ msgstr "%d.%m.%Y"
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
+#: client/ui/conversation_panel/translation_batch.py
 #: client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/conversation_data_dialog.py
 #: client/ui/transcription_flow.py
@@ -19394,6 +19395,65 @@ msgstr "Otomatik çevrilecek sohbet&ler"
 msgctxt "translation_automatic"
 msgid "A&utomatic translation"
 msgstr "&Otomatik çeviri"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_cancel_menu"
+msgid "Cancel translating the messages"
+msgstr "Mesajların çevirisini iptal et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_batch.py
+#, python-brace-format
+msgctxt "translation_batch_cancelled"
+msgid "Translation cancelled. Messages translated: {done}"
+msgstr "Çeviri iptal edildi. Çevrilen mesaj sayısı: {done}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_batch_done"
+msgid "Translation finished. Messages translated: {count}"
+msgstr "Çeviri tamamlandı. Çevrilen mesaj sayısı: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_batch.py
+#, python-brace-format
+msgctxt "translation_batch_failed"
+msgid "Translation stopped: {error} Messages translated: {done}"
+msgstr "Çeviri durdu: {error} Çevrilen mesaj sayısı: {done}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_from_here_menu"
+msgid "Translate from here to the end"
+msgstr "Buradan sona kadar çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_batch_left_out"
+msgid "Messages beyond the limit, not translated: {left_out}."
+msgstr "Sınırın ötesinde kalan, çevrilmeyen mesajlar: {left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_nothing"
+msgid "There are no received text messages to translate here."
+msgstr "Burada çevrilecek alınmış metin mesajı yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_batch.py
+#, python-brace-format
+msgctxt "translation_batch_progress"
+msgid "Translated: {done} of {total}"
+msgstr "Çevrilen: {done} / {total}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_batch_selected_menu"
+msgid "Translate the selected messages"
+msgstr "Seçili mesajları çevir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_batch_sending"
+msgid "Translating with {provider}… Messages: {count}"
+msgstr "{provider} ile çevriliyor… Mesaj sayısı: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"

@@ -414,6 +414,8 @@ class MessageMenuMixin:
         if message_text(msg):
             translation_item = menu.Append(wx.ID_ANY, self._translation_menu_label())
             self.Bind(wx.EVT_MENU, lambda event: self._on_translate_message(msg), translation_item)
+        # The messages already here, from this one or the selection (translation_batch.py).
+        self._append_translation_batch_items(menu, msg)
         chat = self.conversation or {}
         if chat.get("remoteJid"):
             self._append_translation_chat_item(menu, chat["remoteJid"])

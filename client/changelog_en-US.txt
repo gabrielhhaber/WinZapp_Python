@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Translating the messages already in a chat: the message context menu gains "Translate from here to the end" and "Translate the selected messages". Automatic translation only reaches messages that arrive after it is turned on; now the ones that were already there can be translated too. It covers received text messages, up to 50 at a time, with the provider, model and display of "Translate message": each translation appears in the message's line, or all of them together in one window when the display is a separate window. WinZapp says the progress every 10 messages, and "Cancel translating the messages" in the same menu stops it. In a locked chat it asks for confirmation every time, and the translation stops when the vault is locked.
+
 - Writing help: WinZapp gains a feature similar to writing help in WhatsApp for mobile, with the added option of translating the draft. The new button after Emoji and the composer context menu open the same window. Correct, rephrase, use a professional or encouraging tone with the AI providers configured in WinZapp, not Meta AI; translation uses Google. Consent is requested before sending the draft and the result is previewed before replacement; the message is never sent automatically. Choose an action, then press "Run selected action". Opening or closing this window does not send the draft.
 
 - Writing help: new Alt+Shift+H shortcut to open the window from anywhere in the chat while a draft is written. It can be changed in the Shortcuts tab of Settings, and the field's context menu and the button now show the shortcut in use.

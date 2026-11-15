@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sohbette zaten bulunan mesajların çevirisi: bir mesajın bağlam menüsüne "Buradan sona kadar çevir" ve "Seçili mesajları çevir" eklendi. Otomatik çeviri yalnızca açıldıktan sonra gelen mesajlara ulaşır; artık önceden orada olan mesajlar da çevrilebilir. Alınan metin mesajları için geçerlidir, tek seferde en fazla 50 mesaj, "Mesajı çevir" ile aynı sağlayıcı, model ve görüntüleme biçimiyle: her çeviri mesajın satırında görünür, görüntüleme ayrı pencere olduğunda ise hepsi tek pencerede birlikte gösterilir. WinZapp her 10 mesajda ilerlemeyi söyler ve aynı menüdeki "Mesajların çevirisini iptal et" işlemi durdurur. Kilitli bir sohbette her seferinde onay ister ve kasa kilitlendiğinde çeviri durur.
+
 - Yazma yardımı: WinZapp'a, cep telefonları için WhatsApp'taki yazma yardımına benzer bir özellik ve ek olarak taslağı çevirme seçeneği eklenir. Emoji sonrasındaki yeni düğme ve yazı alanının bağlam menüsü aynı pencereyi açar. Meta AI yerine WinZapp'ta yapılandırılmış yapay zeka sağlayıcılarıyla düzeltme, yeniden yazma, profesyonel veya teşvik edici ton sunar; çeviri Google ile yapılır. Taslak gönderilmeden önce onay istenir ve değiştirmeden önce sonuç gösterilir; mesaj hiçbir zaman otomatik gönderilmez. Bir işlem seçin, ardından "Seçilen işlemi çalıştır" düğmesine basın. Bu pencereyi açmak veya kapatmak taslağı göndermez.
 
 - Yazma yardımı: taslak yazılıyken sohbetin herhangi bir yerinden pencereyi açan yeni Alt+Shift+H kısayolu. Ayarlar'ın Kısayollar sekmesinden değiştirilebilir; alanın bağlam menüsü ve düğme artık kullanımdaki kısayolu gösterir.

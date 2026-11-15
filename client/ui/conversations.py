@@ -182,6 +182,7 @@ from ui.conversation_panel.message_data import MessageDataMixin
 from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMixin
 from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
+from ui.conversation_panel.translation_batch import TranslationBatchMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
 from ui.conversation_panel.summary_voice_choice import SummaryVoiceChoiceMixin
@@ -241,6 +242,7 @@ class ConversationsPanel(
     TranscriptionDeleteMixin,
     AIActionsMixin,
     TranslationActionsMixin,
+    TranslationBatchMixin,
     SummaryActionsMixin,
     SummaryVoiceMixin,
     SummaryVoiceChoiceMixin,
