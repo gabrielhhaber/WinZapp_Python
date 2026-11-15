@@ -209,6 +209,11 @@ The `mattpocock-skills` plugin provides `/grill-with-docs` → `/to-spec` →
   Its `tools:` line still applies; give it no more than that. The same goes
   for `.claude/skills/`: read the `SKILL.md` and follow it.
 - Commit only when the user asks, whatever `/implement` says.
+- **Write issues, PRs and commit messages in English**, to match the
+  project, whatever language the conversation is in. The only exceptions are
+  the three pinned issues of Claude's routines, which stay in Portuguese. This
+  covers titles, bodies and comments; translate an issue you opened in
+  another language.
 - **Open every PR as a draft** and keep it a draft until the reviewer
   (the `winzapp-reviewer` agent) has finished and approved. Only
   then mark it ready for review or merge it. This applies to every developer
