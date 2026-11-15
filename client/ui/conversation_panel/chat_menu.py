@@ -81,6 +81,9 @@ class ChatMenuMixin:
         else:
             unread_item = menu.Append(wx.ID_ANY, f"{i18n.t('mark_as_unread')}\tCtrl+Shift+M")
             self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_menu_mark_unread(j), unread_item)
+        # Like WhatsApp: summarize the unread messages without opening the chat
+        # (ui/conversation_panel/summary_actions.py).
+        self._append_unread_summary_item(menu, chat)
 
         menu.AppendSeparator()
 

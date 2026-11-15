@@ -212,6 +212,7 @@ class ContactPresenceMixin:
             timer.Stop()
         self._presence_timers = {}
         self._composing_chats = {}
+        self._group_activity_spoken = {}
         notify_personal_presence(self)
         panel = getattr(self, "conversations_panel", None)
         if panel is not None and hasattr(panel, "refresh_typing_row"):

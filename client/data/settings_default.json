@@ -177,6 +177,7 @@
         "typing_sound_interval": 3,
         "typing_sound_silence_capture": true,
         "announce_recording": true,
+        "announce_group_multiple_activity": true,
         "announce_conversations_update_start": true,
         "announce_conversations_update_complete": true,
         "announce_sync_progress": true,

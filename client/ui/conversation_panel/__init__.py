@@ -47,6 +47,13 @@ Where to look (and where new code goes):
     media_files              opening/saving/downloading media, transfer progress
     message_data             the Message data window (local history, live receipts, group breakdown)
     ai_actions               transcribe/describe a message's media with the person's AI providers
+    summary_actions          AI summary of unread / from here / selected messages (Online AI), button, menus
+    summary_voice            transcribes a summary's voice messages (local Whisper) before it is sent
+    summary_voice_choice     asks how: local, online (own provider and consent) or not at all
+    summary_voice_online     the online transcription worker of that step
+    translation_actions      translating a message and the chats that translate on arrival
+    translation_backlog      translating what a chat already holds (on turning it on, selected messages)
+    ai_writing               writing help on the draft
     audio_playback           voice/audio playback, chaining, speed, seek
     links                    links panel of the focused message
     mentions                 @mentions panel and suggestions

@@ -83,3 +83,15 @@ def notification_allowed(window) -> bool:
     elif limiter.limit != limit:
         limiter.set_limit(limit)
     return limiter.allow()
+
+
+def log_background_skip(reason: str) -> None:
+    """Say in log.log why a message got no background notification.
+
+    Without this line a notification dropped on purpose (muted or archived
+    chat, the setting off, the burst limit) left no trace, and a report of
+    "no notifications outside WinZapp" (#795) could not be told apart from a
+    toast that never reached Windows. The reason is a fixed phrase: never a
+    JID, a name or message text.
+    """
+    logging.info("[notify] background notification skipped: %s.", reason)

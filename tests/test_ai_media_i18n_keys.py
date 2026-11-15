@@ -22,6 +22,13 @@ SOURCES = (
     *sorted((CLIENT / "core" / "ai_media").glob("*.py")),
     *sorted((CLIENT / "ui" / "dialogs").glob("ai_*.py")),
     CLIENT / "ui" / "conversation_panel" / "ai_actions.py",
+    CLIENT / "ui" / "conversation_panel" / "summary_actions.py",
+    CLIENT / "ui" / "conversation_panel" / "summary_voice.py",
+    CLIENT / "ui" / "conversation_panel" / "summary_voice_choice.py",
+    CLIENT / "ui" / "conversation_panel" / "summary_voice_online.py",
+    CLIENT / "ui" / "dialogs" / "summary_voice_choice.py",
+    CLIENT / "ui" / "conversation_panel" / "bulk_transcription.py",
+    CLIENT / "ui" / "transcription_flow.py",
     CLIENT / "ui" / "conversation_panel" / "message_menu.py",
     CLIENT / "ui" / "dialogs" / "shortcuts_dialog.py",
     CLIENT / "ui" / "ai_media_demo.py",
@@ -120,6 +127,8 @@ def test_no_two_keys_say_the_same_thing():
 #: letter may appear once per window. Every other ai_ label (the result window,
 #: menus) carries none, and no label writes a shortcut such as Ctrl+Enter.
 CONSENT_WINDOW = ("ai_remember_consent", "ai_send_media")
+#: The same window when it asks about the text of messages to summarize.
+SUMMARY_CONSENT_WINDOW = ("ai_summary_remember_consent", "ai_summary_send")
 SETTINGS_PAGE = (
     "ai_accessibility_enabled_label", "ai_provider_list_label", "ai_provider_configure_button",
     "ai_provider_move_up_button", "ai_provider_move_down_button", "ai_kinds_button",
@@ -155,7 +164,7 @@ def test_only_the_keyboard_reachable_windows_carry_mnemonics_and_never_a_shortcu
     the consent window, the settings page, its automatic options and kinds of
     media windows and the provider window only; the
     result window and the menus stay free of them."""
-    allowed = {*CONSENT_WINDOW, *SETTINGS_PAGE, *PROVIDER_WINDOW, *AUTO_WINDOW, *KINDS_WINDOW}
+    allowed = {*CONSENT_WINDOW, *SUMMARY_CONSENT_WINDOW, *SETTINGS_PAGE, *PROVIDER_WINDOW, *AUTO_WINDOW, *KINDS_WINDOW}
     for key, value in locale(name).items():
         if OWNED.match(key) and key != "ai_demo_notice":
             if key not in allowed:
@@ -166,6 +175,7 @@ def test_only_the_keyboard_reachable_windows_carry_mnemonics_and_never_a_shortcu
 @pytest.mark.parametrize("name", LOCALES)
 @pytest.mark.parametrize("keys,fixed", [
     (CONSENT_WINDOW, ("cancel",)),
+    (SUMMARY_CONSENT_WINDOW, ("cancel",)),
     (SETTINGS_PAGE, ("ok", "apply", "cancel", "settings_search_label")),
     (AUTO_WINDOW, ("ok",)),
     (KINDS_WINDOW, ("ok",)),

@@ -129,6 +129,9 @@ class BulkTranscriptionMixin:
         if self._bulk_transcription_running():
             self._ask_cancel_bulk_transcription()
             return
+        if self._summary_voice_running():
+            self.main_window.output(i18n.t("ai_summary_voice_running"), interrupt=True)
+            return
         if not self.selected_messages or not self.conversation:
             self.main_window.output(i18n.t("bulk_no_message_selection"), interrupt=True)
             return
@@ -346,6 +349,10 @@ class BulkTranscriptionMixin:
     # ── Back on the wx thread ────────────────────────────────────────────────
 
     def _store_bulk_transcription(self, jid, msg, result, inline_run=False, item=None):
+        if self.main_window.is_chat_hidden_by_vault(jid):
+            # Queued by wx.CallAfter: the vault may have closed since the worker
+            # produced it, and a locked chat's text is not stored while it is hidden.
+            return
         msg_id = (msg.get("key") or {}).get("id", "")
         previous = msg.get(stored_transcription.TRANSCRIPTION_KEY)
         # Into the line for the Alt+Shift+N form; for the Alt+Shift+T form a

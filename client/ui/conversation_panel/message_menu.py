@@ -125,6 +125,8 @@ class MessageMenuMixin:
             inline_item = mass_menu.Append(
                 wx.ID_ANY, f"{i18n.t('transcribe_selected_inline')}\tCtrl+Alt+Shift+N")
             self.Bind(wx.EVT_MENU, self._on_mass_transcribe_inline_messages, inline_item)
+            translate_item = mass_menu.Append(wx.ID_ANY, i18n.t('translate_selected'))
+            self.Bind(wx.EVT_MENU, self._on_mass_translate_messages, translate_item)
             delete_transcriptions_item = mass_menu.Append(
                 wx.ID_ANY,
                 f"{i18n.t('transcription_bulk_delete_menu')}\tCtrl+Alt+Shift+Delete")
@@ -417,6 +419,8 @@ class MessageMenuMixin:
         chat = self.conversation or {}
         if chat.get("remoteJid"):
             self._append_translation_chat_item(menu, chat["remoteJid"])
+        # AI summary: unread, from here, selected (ui/conversation_panel/summary_actions.py).
+        self._append_summary_items(menu, msg)
         # AI transcription / description (ui/conversation_panel/ai_actions.py).
         # Offered only while the feature is on and a provider with a key takes
         # this kind of media. Ctrl+Shift+I is the accelerator of the same action;

@@ -1,7 +1,7 @@
 """What goes to a provider: one bounded, validated media payload of any kind."""
 from dataclasses import dataclass
 
-from .config import MAX_SOURCE_BYTES
+from .config import MAX_SOURCE_BYTES, capability
 from .errors import DescriptionError
 from .image_input import prepare_image
 from .video_frame import extract_frame
@@ -47,6 +47,12 @@ def prepare_media(kind, data, mime="", profile="balanced"):
     """
     if not data or len(data) > MAX_SOURCE_BYTES[kind]:
         raise DescriptionError("media_size")
+    if capability(kind) == "text":
+        # The transcript of messages to summarize, or the draft of the writing
+        # help: it travels inline in the prompt, so it only needs the size
+        # check above.
+        filename = "messages.txt" if kind == "text" else "draft.txt"
+        return Media(kind, data, "text/plain; charset=utf-8", filename)
     if kind in ("image", "sticker"):
         image = prepare_image(data, profile, first_frame=kind == "sticker")
         return Media(kind, image.data, image.mime, "image.jpg")

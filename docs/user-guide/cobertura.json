@@ -25,6 +25,12 @@
     "53ccc9a9cf8f": "Neonize: as edições preservam o ID da mensagem original e registram a chave comp",
     "0c68eff642b5": "Neonize: os eventos de reações usam o formato do WPPConnect, com as chaves compl",
     "748fa269cc66": "Na conversa aberta, os resultados das enquetes são atualizados quando chega um n",
+    "666f65cc139b": "Ajuda para escrever: chega ao WinZapp uma função semelhante à ajuda para escreve",
+    "6f6871865aa0": "Ajuda para escrever: novo atalho Alt+Shift+H para abrir a janela a partir de qua",
+    "bb84824f1cf4": "O WPPConnect Server foi atualizado para a 2.10.81, com o WPPConnect 2.4.0 e o WA",
+    "3029b47134cf": "Resumo de mensagens com IA, como no WhatsApp: a conversa aberta ganha o botão \"R",
+    "ce2252417b51": "Resumo com IA: dois novos atalhos no menu de contexto da mensagem, Alt+Shift+I p",
+    "ecc3aec057dd": "Resumo com IA: ao resumir mensagens com áudios sem transcrição salva, uma janela",
     "6bf1a2b21013": "WPPConnect: com pouco espaço em disco (menos de 4 GB livres), o WinZapp fecha o ",
     "e75bfbd92e81": "Transcrição automática: um áudio recebido enquanto o computador estava suspenso ",
     "0547aca508b8": "Neonize: quem entra num grupo pelo link de convite aparece como \"entrou usando l",
@@ -261,6 +267,9 @@
     "aeea4d08ab76": "Neonize: status \"Adicione o seu\", de pergunta e de figurinha animada deixam de a",
     "3e4b8b37fbb5": "Digitação: o aviso \"digitando\" não reaparece mais alguns segundos depois de a pe",
     "520714aee515": "Janela de novidades: a tecla Esc agora a fecha, tanto em Ajuda > Novidades quant",
-    "cc7cba19292a": "Atualização com várias contas abertas: o WinZapp agora espera as outras contas t"
+    "cc7cba19292a": "Atualização com várias contas abertas: o WinZapp agora espera as outras contas t",
+    "38c9ba5f097c": "O modelo padrão do Google Gemini na IA on-line passou a ser o Gemini 3.5 Flash-L",
+    "529f38b2783f": "Grupos: a prévia na lista de conversas e o anúncio do leitor de tela passam a mo",
+    "62d1e1e84ef3": "Campo de mensagem: inserir um emoji no campo não gera mais o erro \"surrogates no"
   }
 }
