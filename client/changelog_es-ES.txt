@@ -491,6 +491,8 @@ NOVEDADES
 
 - Campo de mensaje: insertar un emoji ya no provoca el error "surrogates not allowed" al activar el botón de ayuda para escribir. Informado por UlisesMilani (#797).
 
+- Nuevas opciones en Configuración > Notificaciones para descontar los chats archivados y los silenciados del recuento de no leídos del icono de la bandeja y del título de la ventana. Ambas vienen marcadas: los archivados ya no contaban y ahora puede cambiarlo; los silenciados dejan de contar, lo que cambia el comportamiento anterior. Desmarque la opción para volver a contarlos.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

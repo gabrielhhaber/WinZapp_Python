@@ -6821,6 +6821,26 @@ msgid "Disconnect"
 msgstr "Rozłącz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_archived_from_unread_badge_label"
+msgid ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+msgstr ""
+"&Nie wliczaj zarchiwizowanych czatów do licznika nieprzeczytanych w ikonie "
+"zasobnika i tytule okna"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_muted_from_unread_badge_label"
+msgid ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+msgstr ""
+"Nie wliczaj wyciszonych &czatów do licznika nieprzeczytanych w ikonie "
+"zasobnika i tytule okna"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/status_tab/status_rules.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -19793,7 +19813,9 @@ msgctxt "translation_bulk_confirm"
 msgid ""
 "Send the text of {count} messages to {provider} to be translated? This may "
 "use quota or incur charges."
-msgstr "Wysłać tekst {count} wiadomości do {provider}, aby je przetłumaczyć? Może to zużyć limit lub wiązać się z opłatami."
+msgstr ""
+"Wysłać tekst {count} wiadomości do {provider}, aby je przetłumaczyć? Może to"
+" zużyć limit lub wiązać się z opłatami."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_backlog.py
@@ -19805,7 +19827,8 @@ msgstr "Tłumaczenie zakończone: przetłumaczono wiadomości: {count}."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_bulk_none"
 msgid "None of the selected messages has text to translate."
-msgstr "Żadna z zaznaczonych wiadomości nie zawiera tekstu do przetłumaczenia."
+msgstr ""
+"Żadna z zaznaczonych wiadomości nie zawiera tekstu do przetłumaczenia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"

@@ -6796,6 +6796,26 @@ msgid "Disconnect"
 msgstr "Deconectare"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_archived_from_unread_badge_label"
+msgid ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+msgstr ""
+"Nu număra conversațiile ar&hivate în numărul de mesaje necitite din "
+"pictograma din bara de sistem și din titlul ferestrei"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_muted_from_unread_badge_label"
+msgid ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+msgstr ""
+"Nu număra conversațiile dezactivate în numărul de mesaje necitite din "
+"pictograma din bara de sistem și din &titlul ferestrei"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/status_tab/status_rules.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -19629,7 +19649,9 @@ msgctxt "translation_bulk_confirm"
 msgid ""
 "Send the text of {count} messages to {provider} to be translated? This may "
 "use quota or incur charges."
-msgstr "Trimiteți textul a {count} mesaje către {provider} pentru a fi traduse? Aceasta poate consuma din cotă sau poate genera costuri."
+msgstr ""
+"Trimiteți textul a {count} mesaje către {provider} pentru a fi traduse? "
+"Aceasta poate consuma din cotă sau poate genera costuri."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_backlog.py

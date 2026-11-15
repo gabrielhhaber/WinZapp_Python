@@ -6745,6 +6745,26 @@ msgid "Disconnect"
 msgstr "Disconnect"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_archived_from_unread_badge_label"
+msgid ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+msgstr ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_muted_from_unread_badge_label"
+msgid ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+msgstr ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/status_tab/status_rules.py
 #: client/ui/conversation_panel/message_rendering.py

@@ -20,6 +20,7 @@ class _MainWindowStub:
         self.chats = chats
         self._sync_completed = True
         self._deleted_chats = set()
+        self.settings = {}
         self._archived_jids = set(archived_jids)
         self._locked_jids = set(locked_jids)
 
@@ -28,6 +29,9 @@ class _MainWindowStub:
 
     def is_chat_locked(self, jid):
         return jid in self._locked_jids
+
+    def is_chat_muted(self, jid):
+        return False
 
     def _resolve_contact_name(self, chat):
         return ""

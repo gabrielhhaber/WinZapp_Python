@@ -493,6 +493,8 @@ V3.0.0.0
 
 - حقل الرسالة: لم يعد إدراج رمز تعبيري يسبب الخطأ "surrogates not allowed" عند تفعيل زر المساعدة في الكتابة. أبلغ عنه UlisesMilani (#797).
 
+- خيارات جديدة في الإعدادات > الإشعارات لعدم احتساب الدردشات المؤرشفة والمكتومة في عدد الرسائل غير المقروءة على أيقونة منطقة الإشعارات وعنوان النافذة. الخياران محددان افتراضيًا: الدردشات المؤرشفة لم تكن تُحتسب أصلًا ويمكن الآن تغيير ذلك، أما المكتومة فلم تعد تُحتسب، وهذا يغيّر السلوك السابق. أزل التحديد لاحتسابها من جديد.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
