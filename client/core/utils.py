@@ -1073,6 +1073,8 @@ DEFAULT_SETTINGS = {
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": True,
+        "discount_archived_from_unread_badge": True,
+        "discount_muted_from_unread_badge": True,
         # Message notifications let through per second when many arrive at
         # once (core.notification_burst).
         "notification_burst_limit": 3,

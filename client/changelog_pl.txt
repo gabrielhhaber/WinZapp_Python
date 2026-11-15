@@ -533,6 +533,8 @@ NOWOŚCI
 
 - Pole wiadomości: wstawienie emoji nie powoduje już błędu "surrogates not allowed" przy włączaniu przycisku pomocy w pisaniu. Zgłosił UlisesMilani (#797).
 
+- Nowe opcje w Ustawienia > Powiadomienia pozwalają nie wliczać czatów zarchiwizowanych i wyciszonych do licznika nieprzeczytanych w ikonie zasobnika i w tytule okna. Obie są domyślnie zaznaczone: zarchiwizowane czaty już wcześniej nie były liczone, a teraz można to zmienić; wyciszone nie są już liczone, co zmienia dotychczasowe działanie. Odznacz opcję, aby znów je liczyć.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

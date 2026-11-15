@@ -99,6 +99,7 @@ class TrayIcon(wx.adv.TaskBarIcon):
     def _get_unread_info(self):
         """Return (total_unread_count, [chat_names_with_unread])."""
         from core.utils import effective_unread_count
+        from core.unread_badge import counts_toward_badge
         total = 0
         names = []
         mw = self.main_window
@@ -113,7 +114,11 @@ class TrayIcon(wx.adv.TaskBarIcon):
                 # see anywhere in the main conversation list.
                 if (
                     jid in deleted
-                    or mw.is_chat_archived(jid)
+                    or not counts_toward_badge(
+                        mw.settings,
+                        archived=mw.is_chat_archived(jid),
+                        muted=mw.is_chat_muted(jid),
+                    )
                     or getattr(mw, "is_chat_locked", lambda _jid: False)(jid)
                 ):
                     continue

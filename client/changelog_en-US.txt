@@ -533,6 +533,8 @@ WHAT'S NEW
 
 - Message field: inserting an emoji no longer raises a "surrogates not allowed" error while the writing help button is being enabled. Reported by UlisesMilani (#797).
 
+- New options in Settings > Notifications to leave archived and muted chats out of the unread count shown in the tray icon and the window title. Both are on by default: archived chats were already left out and can now be counted again; muted chats are now left out, which changes the previous behavior. Clear an option to count those chats again.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

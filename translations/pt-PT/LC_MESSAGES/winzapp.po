@@ -6823,6 +6823,26 @@ msgid "Disconnect"
 msgstr "Desconectar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_archived_from_unread_badge_label"
+msgid ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+msgstr ""
+"Descontar as conversas &arquivadas da contagem de não lidas no ícone do "
+"tabuleiro e no título da janela"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_muted_from_unread_badge_label"
+msgid ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+msgstr ""
+"Descontar as conversas silenciadas da contagem de não lidas no ícone do "
+"tabuleiro e no t&ítulo da janela"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/status_tab/status_rules.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -19662,7 +19682,9 @@ msgctxt "translation_bulk_confirm"
 msgid ""
 "Send the text of {count} messages to {provider} to be translated? This may "
 "use quota or incur charges."
-msgstr "Enviar o texto de {count} mensagens para {provider} traduzir? Isto pode consumir quota ou gerar custos."
+msgstr ""
+"Enviar o texto de {count} mensagens para {provider} traduzir? Isto pode "
+"consumir quota ou gerar custos."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_backlog.py

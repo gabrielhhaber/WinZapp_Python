@@ -675,6 +675,17 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
 
+        # Which conversations the unread count in the tray icon and the
+        # window title includes (core/unread_badge.py).
+        self._discount_archived_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("discount_archived_from_unread_badge_label")
+        )
+        notif_sizer.Add(self._discount_archived_check, 0, wx.ALL, 8)
+        self._discount_muted_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("discount_muted_from_unread_badge_label")
+        )
+        notif_sizer.Add(self._discount_muted_check, 0, wx.ALL, 8)
+
         # How many message notifications a burst may play per second
         # (core/notification_burst.py).
         self._notification_burst_label = wx.StaticText(
@@ -2476,8 +2487,16 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         keep_muted_silent = self.main_window.settings.get("general", {}).get(
             "keep_muted_chats_silent_when_open", True
         )
+        discount_archived = self.main_window.settings.get("general", {}).get(
+            "discount_archived_from_unread_badge", True
+        )
+        discount_muted = self.main_window.settings.get("general", {}).get(
+            "discount_muted_from_unread_badge", True
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
+            self._discount_archived_check.SetValue(discount_archived)
+            self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
 
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
@@ -4410,9 +4429,19 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
+            self.main_window.settings.setdefault("general", {})["discount_archived_from_unread_badge"] = (
+                self._discount_archived_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["discount_muted_from_unread_badge"] = (
+                self._discount_muted_check.GetValue()
+            )
             self.main_window.settings.setdefault("general", {})["notification_burst_limit"] = (
                 self._notification_burst_spin.GetValue()
             )
+            # The title and the tray icon follow the two options right away.
+            refresh_title = getattr(self.main_window, "_update_title", None)
+            if refresh_title is not None:
+                refresh_title()
 
         # Incoming calls live in their own settings namespace so future call
         # options do not overload the unrelated General/notification settings.
@@ -4837,6 +4866,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
         if ready(self, "notifications"):
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
+            self._discount_archived_check.SetLabel(i18n.t("discount_archived_from_unread_badge_label"))
+            self._discount_muted_check.SetLabel(i18n.t("discount_muted_from_unread_badge_label"))
             self._notification_burst_label.SetLabel(i18n.t("notification_burst_limit_label"))
         if ready(self, "speech"):
             self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))

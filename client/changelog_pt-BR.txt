@@ -533,6 +533,8 @@ NOVIDADES
 
 - Campo de mensagem: inserir um emoji no campo não gera mais o erro "surrogates not allowed" ao habilitar o botão de ajuda para escrever. Relatado por UlisesMilani (#797).
 
+- Novas opções em Configurações > Notificações para descontar as conversas arquivadas e as silenciadas da contagem de não lidas no ícone da bandeja e no título da janela. As duas vêm marcadas: as arquivadas já não entravam na contagem e agora dá para mudar isso; as silenciadas passam a não entrar, o que muda o comportamento anterior. Desmarque a opção para voltar a contá-las.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.
