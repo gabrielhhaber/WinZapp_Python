@@ -14194,7 +14194,7 @@ msgctxt "speech_announce_group_multiple_label"
 msgid ""
 "Consider activity from multiple &participants when announcing a group's "
 "status"
-msgstr "&Uwzględniaj aktywność wielu uczestników przy ogłaszaniu stanu grupy"
+msgstr "&Uwzględniaj aktywność wielu członków grupy przy ogłaszaniu jej stanu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

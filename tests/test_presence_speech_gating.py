@@ -265,3 +265,37 @@ def test_group_setting_off_keeps_the_old_per_participant_speech():
     assert stub.speak_output.outputs == [
         "Ana está digitando...", "Bia está digitando...",
     ]
+
+
+def test_group_timer_expiry_announces_the_remaining_people_then_stays_silent(monkeypatch):
+    callbacks = {}
+
+    class _CapturedTimer:
+        def __init__(self, ms, callback, *args, **kwargs):
+            self.callback = callback
+
+        def Stop(self):
+            pass
+
+    def _call_later(ms, callback, *args, **kwargs):
+        timer = _CapturedTimer(ms, callback)
+        callbacks.setdefault("timers", []).append(timer)
+        return timer
+
+    monkeypatch.setattr(wx, "CallLater", _call_later)
+    stub = _group_stub()
+    stub._refresh_chat_row_in_list = lambda *a, **k: None
+    stub.on_presence_update(GROUP_JID, {
+        jid: {"lastKnownPresence": "composing", "lastSeen": None}
+        for jid in (ANA, BIA)
+    }, refresh_offline=False)
+    ana_timer, bia_timer = callbacks["timers"][:2]
+
+    ana_timer.callback()
+    bia_timer.callback()
+
+    assert stub.speak_output.outputs == [
+        "Ana e Bia estão digitando...",
+        "Bia está digitando...",
+    ]
+    assert GROUP_JID not in stub._group_activity_spoken
