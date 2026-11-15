@@ -19,13 +19,24 @@ class Timer:
     def Stop(self): self.stopped = True
 
 
+
+def fake_t(key):
+    """Echoes the key plus the placeholders its real string takes: the sentence
+    for a group (``group_*``) uses {names}, its joiners {first}/{second}."""
+    if key.startswith("group_activity"):
+        return key + " {first}{second}"
+    if key.startswith("group_"):
+        return key + " {names}"
+    return key + " {name}"
+
+
 @pytest.fixture
 def burst(monkeypatch):
     callbacks, views, timers, speech = [], [], [], []
     owner = PresenceOwner()
     owner.IsShown, owner.IsIconized, owner.IsActive = lambda: True, lambda: False, lambda: True
     owner._resolve_jid_name = lambda *args, **kwargs: "Contact"
-    owner.i18n = SimpleNamespace(t=lambda key: key + " {name}")
+    owner.i18n = SimpleNamespace(t=fake_t)
     owner.speak_output = SimpleNamespace(output=speech.append)
     owner._presence_ui = PresenceUiUpdates(owner, callbacks.append, clock=lambda: 0)
     def later(delay, callback):

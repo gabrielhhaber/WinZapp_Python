@@ -485,6 +485,8 @@ WHAT'S NEW
 
 - The default Google Gemini model for online AI is now Gemini 3.5 Flash-Lite, which tends to run into fewer high-demand errors. Anyone who already picked another fixed model keeps it; anyone using the model WinZapp recommends moves to the new one.
 
+- Groups: the conversations-list preview and the screen reader announcement now show everyone who is typing or recording audio at the same time, with the right singular and plural ("Ana and Bia are typing...", "Ana is typing and Bia is recording audio..."), not only the last one. The screen reader announces the whole list on every change, including when someone stops and others carry on, and says nothing once nobody is active. With a single person, the preview now reads "Ana is typing...", without the colon. Alt+T uses the list too, and the options to announce typing and recording apply to the spoken announcements. The "Consider activity from multiple participants when announcing a group's status" option, in Settings > Accessibility > Spoken content, is on by default; turned off, groups go back to the old behavior.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

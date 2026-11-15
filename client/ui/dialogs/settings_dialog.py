@@ -776,6 +776,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         speech_sizer.Add(self._announce_recording_check, 0, wx.ALL, 8)
 
+        self._announce_group_multiple_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_group_multiple_label")
+        )
+        speech_sizer.Add(self._announce_group_multiple_check, 0, wx.ALL, 8)
+
         self._announce_conversations_update_start_check = wx.CheckBox(
             self._speech_page, label=i18n.t("speech_announce_conversations_update_start_label")
         )
@@ -2788,6 +2793,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "speech"):
             self._announce_typing_check.SetValue(speech.get("announce_typing", True))
             self._announce_recording_check.SetValue(speech.get("announce_recording", True))
+            self._announce_group_multiple_check.SetValue(
+                speech.get("announce_group_multiple_activity", True)
+            )
             self._announce_conversations_update_start_check.SetValue(
                 speech.get("announce_conversations_update_start", True)
             )
@@ -4318,6 +4326,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "announce_recording"
             ] = self._announce_recording_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
+                "announce_group_multiple_activity"
+            ] = self._announce_group_multiple_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
                 "announce_conversations_update_start"
             ] = self._announce_conversations_update_start_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
@@ -4996,6 +5007,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "speech"):
             self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
             self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
+            self._announce_group_multiple_check.SetLabel(
+                i18n.t("speech_announce_group_multiple_label")
+            )
             self._announce_conversations_update_start_check.SetLabel(
                 i18n.t("speech_announce_conversations_update_start_label")
             )

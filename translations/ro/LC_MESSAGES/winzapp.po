@@ -7453,6 +7453,18 @@ msgstr ""
 "grup pot face acest lucru."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_activity_and"
+msgid "{first} and {second}"
+msgstr "{first} și {second}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_activity_comma"
+msgid "{first}, {second}"
+msgstr "{first}, {second}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "group_admin"
 msgid "admin"
@@ -8117,6 +8129,18 @@ msgid "{name}: {action}"
 msgstr "{name}: {action}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_recording_plural"
+msgid "{names} are recording audio"
+msgstr "{names} înregistrează mesaje vocale"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_recording_singular"
+msgid "{names} is recording audio"
+msgstr "{names} înregistrează un mesaj vocal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_requests_approve"
 msgid "&Approve"
 msgstr "&Aprobați"
@@ -8288,6 +8312,18 @@ msgstr "Ordinea mesajelor de &grup în notificările toast:"
 msgctxt "group_toast_order_participant"
 msgid "Participant name first"
 msgstr "Mai întâi numele participantului"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_typing_plural"
+msgid "{names} are typing"
+msgstr "{names} tastează"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_typing_singular"
+msgid "{names} is typing"
+msgstr "{names} tastează"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -14140,6 +14176,16 @@ msgstr "Anunțați când actualizarea conversațiilor &este finalizată"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "A&nunțați când începe actualizarea conversațiilor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_group_multiple_label"
+msgid ""
+"Consider activity from multiple &participants when announcing a group's "
+"status"
+msgstr ""
+"Luați în considerare activitatea &mai multor participanți când anunțați starea"
+" unui grup"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

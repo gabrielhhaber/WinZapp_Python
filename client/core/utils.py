@@ -1355,6 +1355,9 @@ DEFAULT_SETTINGS = {
         "typing_sound_interval": 3,
         "typing_sound_silence_capture": True,
         "announce_recording": True,
+        # Groups: name everyone typing/recording at once; off = the old
+        # one-participant preview, speech and Alt+T.
+        "announce_group_multiple_activity": True,
         "announce_conversations_update_start": True,
         "announce_conversations_update_complete": True,
         "announce_sync_progress": True,
