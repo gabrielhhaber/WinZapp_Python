@@ -490,3 +490,21 @@ def test_the_menu_offers_from_here_or_cancel(wx):
     panel._append_translation_to_end_items(menu, message(1))
     assert [label.split("\t")[0] for label in menu.labels] == ["translate_from_here", "translation_bulk_cancel_menu"]
     assert all(label.endswith("\tAlt+Shift+Y") for label in menu.labels)
+
+
+def test_the_shortcuts_start_a_run_or_cancel_the_one_going(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.messages_list.GetFirstSelected = lambda: 1
+    assert panel._message_at_selection()["key"]["id"] == "id2"
+    panel._on_translate_from_here_shortcut()
+    assert wx.asked and len(submitted) == 1
+    panel._on_translate_from_here_shortcut()
+    assert panel._bulk_translation is None and panel.spoken[-1] == "translation_bulk_cancelled"
+    panel.selected_messages = {"id1"}
+    panel._on_translate_selected_shortcut()
+    assert panel._bulk_translation is not None
+    panel._on_translate_selected_shortcut()
+    assert panel._bulk_translation is None
+    panel.messages_list.GetFirstSelected = lambda: -1
+    assert panel._message_at_selection() is None
