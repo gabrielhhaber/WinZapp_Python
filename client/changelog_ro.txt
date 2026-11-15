@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Modificările asocierilor de etichete de pe alt dispozitiv actualizează listele și filtrul deschis fără a schimba lista selectată; notificările repetate sunt grupate, iar citirile vechi nu permit editarea datelor depășite.
+
 - Notificările despre propria fotografie actualizează starea ei în panoul Profil deschis, fără a suprascrie numele, informațiile sau fotografia aleasă; citirile vechi ori ale altui cont sunt ignorate.
 
 - Modificările de pe alt dispozitiv pentru păstrarea conversațiilor arhivate și confidențialitatea stării actualizează panoul deschis, păstrând alegerile neaplicate și ignorând răspunsurile vechi sau ale altui cont.

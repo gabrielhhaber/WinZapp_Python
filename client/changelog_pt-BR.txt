@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mudanças de associação de etiquetas recebidas de outro dispositivo atualizam as listas e o filtro aberto, sem trocar a lista selecionada; avisos repetidos são agrupados e leituras antigas não liberam edições sobre dados desatualizados.
+
 - Avisos de mudança da sua foto de perfil atualizam o estado da foto no painel de Perfil aberto, sem sobrescrever nome, recado ou uma foto escolhida para salvar; leituras antigas e de outra conta são descartadas.
 
 - Mudanças de outro dispositivo em Manter conversas arquivadas e na privacidade dos status atualizam o painel aberto, preservando escolhas ainda não aplicadas e ignorando respostas antigas ou de outra conta.

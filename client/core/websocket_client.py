@@ -401,6 +401,7 @@ class WebSocketClient:
         self.sio.on("chat-cleared", self.on_chat_cleared)
         self.sio.on("event-changed", self.on_event_changed)
         self.sio.on("call-participants", self.on_call_participants)
+        self.sio.on("onupdatelabel", self.on_wpp_label_update)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
         # WPPConnect emits asynchronously via Socket.IO after /start-session.
@@ -2501,6 +2502,10 @@ class WebSocketClient:
         people = getattr(self.main_window, "_channel_people_dialog", None)
         if people is not None:
             people.on_channels_changed(channel_id)
+
+    def on_wpp_label_update(self, data):
+        from core.remote_label_updates import on_label_update
+        on_label_update(self, data)
 
     def on_wpp_reaction(self, data):
         try:

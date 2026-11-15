@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Zmiany przypisania etykiet na innym urządzeniu odświeżają listy i otwarty filtr bez zmiany wybranej listy; powtarzane powiadomienia są łączone, a stare odczyty nie pozwalają edytować nieaktualnych danych.
+
 - Powiadomienia o zmianie własnego zdjęcia aktualizują jego stan w otwartym panelu Profil bez nadpisywania nazwy, informacji i wybranego zdjęcia; stare odczyty i odczyty innego konta są odrzucane.
 
 - Zmiany opcji pozostawiania czatów w archiwum i prywatności statusu na innym urządzeniu aktualizują otwarty panel, zachowując niezastosowane wybory i odrzucając stare odpowiedzi lub odpowiedzi innego konta.

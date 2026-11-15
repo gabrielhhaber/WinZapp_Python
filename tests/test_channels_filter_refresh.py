@@ -174,6 +174,24 @@ def test_the_socket_hands_a_channel_change_to_the_panel_on_screen(monkeypatch):
     assert len(calls) == 2
 
 
+def test_the_socket_refreshes_lists_only_for_chat_label_associations(monkeypatch):
+    from core import websocket_client as wsc
+    calls = []
+    monkeypatch.setattr(wsc.wx, "CallAfter", lambda fn, *a: fn(*a))
+    client = types.SimpleNamespace(
+        main_window=types.SimpleNamespace(
+            _refresh_wa_lists_after_label_event=lambda: calls.append("refresh")),
+        _belongs_to_this_session=lambda data: data.get("session") == "me")
+    client.on_wpp_label_update = types.MethodType(wsc.WebSocketClient.on_wpp_label_update, client)
+    event = {"session": "me", "chat": {"id": {"_serialized": "123@lid"}},
+             "ids": ["custom"], "labels": [], "type": "add"}
+    client.on_wpp_label_update(event)
+    client.on_wpp_label_update({**event, "session": "other"})
+    client.on_wpp_label_update({**event, "chat": None})  # message label has no chat
+    client.on_wpp_label_update({**event, "chat": {"id": "123@newsletter"}})
+    assert calls == ["refresh"]
+
+
 def test_the_people_window_reloads_only_for_its_own_channel():
     from ui.dialogs.channel_admins import ChannelAdminsDialog
     loads = []

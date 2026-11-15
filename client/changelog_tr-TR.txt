@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Başka bir cihazdaki sohbet etiketi değişiklikleri seçili listeyi değiştirmeden listeleri ve açık filtreyi yeniler; yinelenen bildirimler birleştirilir ve eski okumalar güncel olmayan verilerin düzenlenmesine izin vermez.
+
 - Kendi profil fotoğrafı bildirimleri, açık Profil panelinde ad, Hakkında veya seçili fotoğrafı değiştirmeden fotoğraf durumunu yeniler; eski ve başka hesaba ait okumalar yok sayılır.
 
 - Başka bir cihazdaki Sohbetleri arşivde tut ve Durum gizliliği değişiklikleri açık paneli günceller; uygulanmamış seçimler korunur, eski veya başka hesaba ait yanıtlar yok sayılır.
