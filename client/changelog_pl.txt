@@ -4,6 +4,10 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Gdy NVDA działa, nagrywanie mikrofonu wraz z dźwiękiem komputera nie przerywa się już z komunikatem o problemie z urządzeniem audio, gdy WinZapp zawiesza się na sekundę lub dwie (wolny lub obciążony komputer): dźwięk z tej chwili jest pomijany, nagrywanie trwa dalej, a reszta pozostaje zsynchronizowana. Wcześniej działało to już bez oddzielnie nagrywanego dźwięku NVDA; teraz obejmuje także czytniki oddzielnie nagrywanego dźwięku NVDA i innych dźwięków komputera.
+
+- WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
+
 - Dźwięki pisania, bańki pisania, impulsu pisania i przetwarzania AI w domyślnym pakiecie dźwięków są teraz plikami Ogg, tak jak reszta pakietu. Brzmienie i Twoje własne dźwięki się nie zmieniają.
 
 - W otwartym czacie z aktywnym wyszukiwaniem wiadomości (Ctrl+Shift+F) pierwszy Esc czyści wyszukiwanie i zamyka pasek, a czytnik ekranu mówi „Wyszukiwanie wiadomości wyczyszczone”; kolejny Esc zamyka czat. Można to wyłączyć w Ustawieniach, Czaty.
