@@ -1,5 +1,5 @@
 """Text translation through the AI credential store and bounded REST transport."""
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 from urllib.parse import urlsplit
 
@@ -103,6 +103,23 @@ def automatic_candidate(message, config, *, now=None):
         return False
     return bool(message_text(message)) and not too_old(
         message, now=now, max_age=config.max_age_minutes * 60)
+
+
+#: The age limit of a message the user asked to translate: none.
+NO_AGE_LIMIT_MINUTES = 10 ** 9
+
+#: How many of a chat's latest messages turning its automatic translation on translates.
+BACKLOG_LIMIT = 10
+
+
+def backlog_messages(messages, config, limit=BACKLOG_LIMIT, is_separator=None):
+    """The latest received text messages of a chat, oldest first, whatever
+    their age: what turning automatic translation on translates at once."""
+    own = replace(config, max_age_minutes=NO_AGE_LIMIT_MINUTES)
+    found = [message for message in reversed(list(messages or ()))
+             if isinstance(message, dict) and not (is_separator and is_separator(message))
+             and automatic_candidate(message, own)]
+    return found[:limit][::-1]
 
 
 def chat_allows_automatic(config, entries, addresses):

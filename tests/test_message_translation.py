@@ -370,3 +370,22 @@ def test_a_custom_endpoint_key_cannot_be_written_to_the_shared_vault(tmp_path):
         CredentialStore(tmp_path).apply({custom: "fake"})
     with pytest.raises(CredentialError):
         CredentialStore(tmp_path).apply({"grok": "fake"})
+
+
+def test_backlog_messages_are_the_latest_received_texts_whatever_their_age():
+    import time
+    from core.message_translation import BACKLOG_LIMIT, backlog_messages
+
+    def row(number, **extra):
+        return {"key": {"remoteJid": "a@s.whatsapp.net", "id": f"m{number}"},
+                "messageType": "conversation", "message": {"conversation": f"hi {number}"},
+                "messageTimestamp": int(time.time()) - 86400, **extra}
+
+    rows = [row(n) for n in range(15)]
+    rows[5]["key"]["fromMe"] = True
+    rows.append({"separator": True})
+    found = backlog_messages(rows, TranslationSettings(provider="gemini"),
+                             is_separator=lambda message: bool(message.get("separator")))
+    assert len(found) == BACKLOG_LIMIT
+    assert found[-1]["key"]["id"] == "m14" and found[0]["key"]["id"] == "m4"
+    assert all(not message["key"].get("fromMe") for message in found)

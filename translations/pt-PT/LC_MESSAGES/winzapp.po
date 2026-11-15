@@ -19560,6 +19560,12 @@ msgid "Portuguese"
 msgstr "Português"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "translate_selected"
+msgid "Translate the selected messages"
+msgstr "Traduzir as mensagens selecionadas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_api_url"
 msgid "Custom API &address"
 msgstr "&Endereço personalizado da API"
@@ -19644,6 +19650,26 @@ msgstr "&Conversas com tradução automática"
 msgctxt "translation_automatic"
 msgid "A&utomatic translation"
 msgstr "Tradução &automática"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_bulk_confirm"
+msgid ""
+"Send the text of {count} messages to {provider} to be translated? This may "
+"use quota or incur charges."
+msgstr "Enviar o texto de {count} mensagens para {provider} traduzir? Isto pode consumir quota ou gerar custos."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_backlog.py
+#, python-brace-format
+msgctxt "translation_bulk_done"
+msgid "Translation finished: {count} messages translated."
+msgstr "Tradução concluída: {count} mensagens traduzidas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_bulk_none"
+msgid "None of the selected messages has text to translate."
+msgstr "Nenhuma das mensagens selecionadas tem texto para traduzir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"
