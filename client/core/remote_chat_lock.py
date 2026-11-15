@@ -1,4 +1,5 @@
 """A phone lock updates the existing fingerprint index and closes its view."""
+from core.remote_conversation_close import close_for_remote_change
 from core.remote_message_state import chat_aliases
 
 
@@ -10,10 +11,8 @@ def apply_phone_lock(mw, jid, locked):
     if changed:
         mw._persist_phone_locked_chats()
     panel = getattr(mw, "conversations_panel", None)
-    shown = (getattr(panel, "conversation", None) or {}).get("remoteJid")
-    if locked and shown in aliases:
-        panel.close_conversation_for_panel_switch()
     if locked:
+        close_for_remote_change(mw, aliases, "remote_chat_locked_closed")
         if hasattr(mw, "_invalidate_star_sync_for_lock"):
             mw._invalidate_star_sync_for_lock()
         if panel is not None and hasattr(panel, "close_ai_media"):

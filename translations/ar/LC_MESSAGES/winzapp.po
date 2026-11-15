@@ -9711,7 +9711,7 @@ msgid ""
 "Saves the contact in WhatsApp and requests synchronization with the phone's "
 "address book. Completion on the phone cannot be verified here."
 msgstr ""
-"يحفظ جهة الاتصال في واتساب ويطلب مزامنتها مع دفتر عناوين الهاتف. لا يمكن "
+"يحفظ جهة الاتصال في واتساب ويطلب مزامنتها مع دليل عناوين الهاتف. لا يمكن "
 "التحقّق هنا من اكتمال الحفظ على الهاتف."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -9740,7 +9740,7 @@ msgid ""
 "Contact saved in WhatsApp; synchronization with the phone requested. Check "
 "the phone's address book."
 msgstr ""
-"تم حفظ جهة الاتصال في واتساب وطلب مزامنتها مع الهاتف. تحقّق من دفتر عناوين "
+"تم حفظ جهة الاتصال في واتساب وطلب مزامنتها مع الهاتف. تحقّق من دليل عناوين "
 "الهاتف."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -11710,6 +11710,16 @@ msgstr "تم إيقاف التسجيل مؤقتًا."
 msgctxt "recording_text"
 msgid "{name} is recording audio..."
 msgstr "{name} يسجل صوتًا..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr "تم حذف هذه الدردشة على جهاز آخر، لذا تم إغلاقها."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr "تم قفل هذه الدردشة على هاتفك، لذا تم إغلاقها."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py

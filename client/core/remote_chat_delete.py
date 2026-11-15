@@ -2,6 +2,7 @@
 import logging
 import wx
 
+from core.remote_conversation_close import close_for_remote_change
 from core.remote_message_state import chat_target, chat_aliases
 
 
@@ -24,7 +25,8 @@ def apply_chat_deleted(mw, jid, until, stored_latest=0):
     if shown in aliases:
         if latest_message_time(panel.conversation) > until:
             return
-        panel.close_conversation_for_panel_switch()
+        if not close_for_remote_change(mw, aliases, "remote_chat_deleted_closed"):
+            return  # still on screen: its rows cannot be removed under it
     # Reuse the existing durable deleted-chat markers and lock cleanup.
     # No request is sent to WhatsApp; all known aliases lose their stored rows.
     for alias in aliases:
@@ -40,8 +42,7 @@ def on_chat_deleted(client, data):
         return
     mw = client.main_window
     if getattr(mw, "db", None) is None:
-        wx.CallAfter(apply_chat_deleted, mw, jid, until)
-        return
+        return  # no stored history to compare: no evidence for a destructive cleanup
     def check_stored_history():
         try:
             newest = 0
@@ -52,4 +53,7 @@ def on_chat_deleted(client, data):
         except Exception:
             # Missing evidence must not authorize destructive local cleanup.
             logging.exception("[chat-deleted] could not check stored history")
-    mw._msg_bg_executor.submit(check_stored_history)
+    try:
+        mw._msg_bg_executor.submit(check_stored_history)
+    except RuntimeError:
+        pass  # executor closed during shutdown

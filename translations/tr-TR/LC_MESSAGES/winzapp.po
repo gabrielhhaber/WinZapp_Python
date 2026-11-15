@@ -9821,8 +9821,8 @@ msgid ""
 "Saves the contact in WhatsApp and requests synchronization with the phone's "
 "address book. Completion on the phone cannot be verified here."
 msgstr ""
-"Kişiyi WhatsApp'a kaydeder ve telefonun adres defteriyle eşitleme ister. "
-"Telefonun kaydı tamamlayıp tamamlamadığı buradan doğrulanamaz."
+"Kişiyi WhatsApp'a kaydeder ve telefonun rehberiyle eşitleme ister. Telefonun"
+" kaydı tamamlayıp tamamlamadığı buradan doğrulanamaz."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_lid_unknown"
@@ -9850,8 +9850,8 @@ msgid ""
 "Contact saved in WhatsApp; synchronization with the phone requested. Check "
 "the phone's address book."
 msgstr ""
-"Kişi WhatsApp'a kaydedildi; telefonla eşitleme istendi. Telefonun adres "
-"defterini kontrol edin."
+"Kişi WhatsApp'a kaydedildi; telefonla eşitleme istendi. Telefonun rehberini "
+"kontrol edin."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved_unconfirmed"
@@ -11841,6 +11841,16 @@ msgstr "Kayıt duraklatıldı."
 msgctxt "recording_text"
 msgid "{name} is recording audio..."
 msgstr "{name} ses kaydediyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr "Bu sohbet başka bir cihazda silindiği için kapatıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr "Bu sohbet telefonunuzda kilitlendiği için kapatıldı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py

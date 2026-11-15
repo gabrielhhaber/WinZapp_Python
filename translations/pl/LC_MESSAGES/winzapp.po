@@ -9909,7 +9909,7 @@ msgid ""
 "Saves the contact in WhatsApp and requests synchronization with the phone's "
 "address book. Completion on the phone cannot be verified here."
 msgstr ""
-"Zapisuje kontakt w WhatsApp i wysyła prośbę o synchronizację z książką "
+"Zapisuje kontakt w WhatsAppie i wysyła prośbę o synchronizację z książką "
 "adresową telefonu. Nie można tu sprawdzić, czy telefon zakończył "
 "zapisywanie."
 
@@ -9939,7 +9939,7 @@ msgid ""
 "Contact saved in WhatsApp; synchronization with the phone requested. Check "
 "the phone's address book."
 msgstr ""
-"Kontakt zapisano w WhatsApp; wysłano prośbę o synchronizację z telefonem. "
+"Kontakt zapisano w WhatsAppie; wysłano prośbę o synchronizację z telefonem. "
 "Sprawdź książkę adresową telefonu."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -9948,7 +9948,7 @@ msgid ""
 "Contact saved in WhatsApp, but the phone synchronization request could not "
 "be confirmed."
 msgstr ""
-"Kontakt zapisano w WhatsApp, ale nie udało się potwierdzić prośby o "
+"Kontakt zapisano w WhatsAppie, ale nie udało się potwierdzić prośby o "
 "synchronizację z telefonem."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_contact.py
@@ -11959,6 +11959,18 @@ msgstr "Nagrywanie wstrzymane."
 msgctxt "recording_text"
 msgid "{name} is recording audio..."
 msgstr "{name} nagrywa wiadomość głosową..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr "Ten czat został usunięty na innym urządzeniu, więc został zamknięty."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr ""
+"Dostęp do tego czatu został zabezpieczony w WhatsAppie na telefonie, więc "
+"czat został zamknięty."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py

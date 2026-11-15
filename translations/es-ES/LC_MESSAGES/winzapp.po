@@ -9903,7 +9903,8 @@ msgid ""
 "address book. Completion on the phone cannot be verified here."
 msgstr ""
 "Guarda el contacto en WhatsApp y solicita la sincronización con la agenda "
-"del móvil. Aquí no se puede verificar si el móvil ha terminado de guardarlo."
+"del teléfono. Aquí no se puede verificar si el teléfono ha terminado de "
+"guardarlo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_lid_unknown"
@@ -9931,8 +9932,8 @@ msgid ""
 "Contact saved in WhatsApp; synchronization with the phone requested. Check "
 "the phone's address book."
 msgstr ""
-"Contacto guardado en WhatsApp; sincronización con el móvil solicitada. "
-"Comprueba la agenda del móvil."
+"Contacto guardado en WhatsApp; sincronización con el teléfono solicitada. "
+"Comprueba la agenda del teléfono."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved_unconfirmed"
@@ -9941,7 +9942,7 @@ msgid ""
 "be confirmed."
 msgstr ""
 "Contacto guardado en WhatsApp, pero no se pudo confirmar la solicitud de "
-"sincronización con el móvil."
+"sincronización con el teléfono."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_contact.py
 msgctxt "new_contact_phone_saving"
@@ -11951,6 +11952,16 @@ msgstr "Grabación en pausa."
 msgctxt "recording_text"
 msgid "{name} is recording audio..."
 msgstr "{name} está grabando audio..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr "Este chat se ha eliminado en otro dispositivo, así que se ha cerrado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr "Este chat se ha bloqueado en tu teléfono, así que se ha cerrado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py

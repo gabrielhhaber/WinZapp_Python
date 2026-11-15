@@ -38,7 +38,10 @@ def apply_message_pin(mw, jid, mid, pinned, timestamp, duration):
                     mw.db.update_message_pin_state(alias, mid, pinned, timestamp, duration)
             except Exception:
                 logging.exception("[message-pin-changed] could not persist observation")
-        mw._msg_bg_executor.submit(persist)
+        try:
+            mw._msg_bg_executor.submit(persist)
+        except RuntimeError:
+            pass  # executor closed during shutdown
 
 
 def on_message_pin(client, data):

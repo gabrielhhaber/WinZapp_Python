@@ -32,7 +32,10 @@ def apply_star_changed(mw, jid, mid, state):
         except Exception:
             logging.exception("[message-star-changed] could not persist observation")
     if getattr(mw, "db", None) is not None:
-        mw._msg_bg_executor.submit(persist)
+        try:
+            mw._msg_bg_executor.submit(persist)
+        except RuntimeError:
+            pass  # executor closed during shutdown
 
 
 def on_star_changed(client, data):

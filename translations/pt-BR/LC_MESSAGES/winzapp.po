@@ -11935,6 +11935,16 @@ msgid "{name} is recording audio..."
 msgstr "{name} está gravando áudio..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr "Esta conversa foi apagada em outro dispositivo, por isso foi fechada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr "Esta conversa foi trancada no celular, por isso foi fechada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
 #: client/ui/conversation_panel/attachments.py
 msgctxt "remove_attachment"
