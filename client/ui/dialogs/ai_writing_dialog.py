@@ -132,7 +132,7 @@ class WritingHelpDialog(TextAIResultDialog):
                                                                   cancel_check=operation.check)
                 return translated, "Google Translate"
             return work
-        media = prepare_media("writing", self.draft.encode("utf-8"), "", self.config["profile"])
+        media = prepare_media("writing", ai_config.utf8_bytes(self.draft), "", self.config["profile"])
         providers = self._providers
         store = self._store
         config = dict(self.config)
