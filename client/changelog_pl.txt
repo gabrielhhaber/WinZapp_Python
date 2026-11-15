@@ -489,6 +489,8 @@ NOWOŚCI
 
 - Grupy: podgląd na liście czatów i komunikat czytnika ekranu pokazują teraz wszystkie osoby, które w tej samej chwili piszą lub nagrywają wiadomość głosową, z poprawną liczbą pojedynczą i mnogą ("Ana i Bia piszą...", "Ana pisze i Bia nagrywa wiadomość głosową..."), a nie tylko ostatnią. Czytnik ekranu ogłasza całą listę przy każdej zmianie, także gdy ktoś przestaje, a inni piszą dalej, i milczy, gdy nikt już nie jest aktywny. Przy jednej osobie podgląd mówi teraz "Ana pisze...", bez dwukropka. Alt+T też korzysta z listy, a opcje ogłaszania pisania i nagrywania dotyczą komunikatów mówionych. Opcja "Uwzględniaj aktywność wielu członków grupy przy ogłaszaniu jej stanu" w Ustawienia > Dostępność > Zawartość mówiona jest domyślnie zaznaczona; po odznaczeniu grupy wracają do dawnego zachowania.
 
+- Pole wiadomości: wstawienie emoji nie powoduje już błędu "surrogates not allowed" przy włączaniu przycisku pomocy w pisaniu. Zgłosił UlisesMilani (#797).
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

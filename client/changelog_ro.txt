@@ -489,6 +489,8 @@ NOUTĂȚI
 
 - Grupuri: previzualizarea din lista de conversații și anunțul cititorului de ecran arată acum toate persoanele care scriu sau înregistrează un mesaj vocal în același timp, cu singularul și pluralul corecte ("Ana și Bia tastează...", "Ana tastează și Bia înregistrează un mesaj vocal..."), nu doar pe ultima. Cititorul de ecran anunță lista întreagă la fiecare schimbare, inclusiv când cineva se oprește și ceilalți continuă, și nu spune nimic când nimeni nu mai este activ. Cu o singură persoană, previzualizarea spune acum "Ana tastează...", fără două puncte. Alt+T folosește și el lista, iar opțiunile de anunțare a scrierii și a înregistrării se aplică anunțurilor vorbite. Opțiunea "Luați în considerare activitatea mai multor participanți când anunțați starea unui grup", din Setări > Accesibilitate > Conținut vorbit, este bifată implicit; debifată, grupurile revin la comportamentul vechi.
 
+- Câmpul de mesaj: inserarea unui emoji nu mai provoacă eroarea "surrogates not allowed" la activarea butonului de ajutor pentru scris. Raportat de UlisesMilani (#797).
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
