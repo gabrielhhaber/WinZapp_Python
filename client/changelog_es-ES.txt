@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Los avisos de cambio de tu foto actualizan su estado en el panel Perfil abierto sin sobrescribir el nombre, la información ni una foto elegida para guardar; se descartan las lecturas antiguas o de otra cuenta.
+
 - Los cambios desde otro dispositivo en Mantener chats archivados y la privacidad de los estados actualizan el panel abierto, conservando las opciones pendientes e ignorando respuestas antiguas o de otra cuenta.
 
 - Corregido el guardado de contactos que no aparecían en WhatsApp en el iPhone: ahora se envía el identificador vinculado completo, como en la pantalla nativa de WhatsApp.

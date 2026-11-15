@@ -24,6 +24,8 @@ import threading
 import wx
 
 from core import whatsapp_profile as profile
+from core.remote_own_profile import register_panel, revision, merge_read
+from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 
 
 def photo_button_description(current_label: str, chosen_label: str) -> str:
@@ -93,6 +95,7 @@ class WhatsAppProfilePanel(wx.Panel):
         sizer.Add(self._save_button, 0, wx.ALL, 8)
 
         self.SetSizer(sizer)
+        register_panel(self)
 
     def load(self):
         """Read the current profile from WhatsApp (once, when first shown)."""
@@ -116,9 +119,13 @@ class WhatsAppProfilePanel(wx.Panel):
     # ── Reading what is set now ───────────────────────────────────────────────
 
     def _load_current(self):
+        observed_revision = revision(self.main_window)
+        context = capture_sync_context(self.main_window)
         def work():
+            if not sync_context_is_current(self.main_window, context):
+                return
             current = self.main_window.fetch_my_profile()
-            wx.CallAfter(self._on_loaded, current)
+            wx.CallAfter(self._on_loaded, current, observed_revision, context)
 
         threading.Thread(target=work, daemon=True, name="wa-profile-read").start()
 
@@ -128,8 +135,10 @@ class WhatsAppProfilePanel(wx.Panel):
         self._photo_current.SetLabel(self._i18n.t(key) if key else "")
         self.Layout()
 
-    def _on_loaded(self, current):
+    def _on_loaded(self, current, observed_revision=None, context=None):
         if not self:  # closed while the server was still answering
+            return
+        if context is not None and not sync_context_is_current(self.main_window, context):
             return
         if current is None:
             # Not worth a dialog: the page works as it always did, the fields
@@ -137,6 +146,8 @@ class WhatsAppProfilePanel(wx.Panel):
             self._show(self._i18n.t("profile_load_failed"))
             self._say(self._i18n.t("profile_load_failed"))
             return
+        if observed_revision is not None:
+            current = merge_read(self.main_window, current, observed_revision)
         self._current = current
         # Whatever the person already typed while this was loading is theirs.
         if current.name and not self._name_field.GetValue():
@@ -190,15 +201,21 @@ class WhatsAppProfilePanel(wx.Panel):
         self._show(i18n.t("profile_saving"))
         self._say(i18n.t("profile_saving"))
         main_window = self.main_window
+        observed_revision = revision(main_window)
+        context = capture_sync_context(main_window)
 
         def work():
+            if not sync_context_is_current(main_window, context):
+                return
             errors = main_window.apply_profile_changes(changes)
-            wx.CallAfter(self._on_saved, changes, errors)
+            wx.CallAfter(self._on_saved, changes, errors, observed_revision, context)
 
         threading.Thread(target=work, daemon=True, name="wa-profile-write").start()
 
-    def _on_saved(self, changes, errors):
+    def _on_saved(self, changes, errors, observed_revision=None, context=None):
         if not self:  # closed while the server was still answering
+            return
+        if context is not None and not sync_context_is_current(self.main_window, context):
             return
         i18n = self._i18n
         self._save_button.Enable()
@@ -206,6 +223,8 @@ class WhatsAppProfilePanel(wx.Panel):
         # field, as the new baseline, and a chosen photo is done with. What
         # failed stays as it was, ready for another try.
         self._current = profile.current_after_save(self._current, changes, errors)
+        if observed_revision is not None:
+            self._current = merge_read(self.main_window, self._current, observed_revision)
         if changes.photo and "photo" not in errors:
             self._photo_path = ""
             self._photo_label.SetLabel(i18n.t("profile_no_photo_chosen"))

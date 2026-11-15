@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Avisos de mudança da sua foto de perfil atualizam o estado da foto no painel de Perfil aberto, sem sobrescrever nome, recado ou uma foto escolhida para salvar; leituras antigas e de outra conta são descartadas.
+
 - Mudanças de outro dispositivo em Manter conversas arquivadas e na privacidade dos status atualizam o painel aberto, preservando escolhas ainda não aplicadas e ignorando respostas antigas ou de outra conta.
 
 - Corrigido o salvamento de contatos que não apareciam no WhatsApp do iPhone: o ID vinculado agora é enviado completo, no formato usado pela tela nativa do WhatsApp.

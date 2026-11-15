@@ -22,8 +22,11 @@ def test_picture_change_clears_both_aliases_without_changing_names_or_history():
 def test_picture_account_validation_and_shutdown(monkeypatch):
     calls=[]
     monkeypatch.setattr(pictures.wx,"CallAfter",lambda fn,*a:calls.append(a))
-    client=N(main_window="mw",_belongs_to_this_session=lambda d:d.get("session")=="ours")
+    mw=N(token="current")
+    client=N(main_window=mw,_belongs_to_this_session=lambda d:d.get("session")=="ours")
     for session,jid in [("other","7@g.us"),("ours","status@broadcast"),("ours","7@g.us")]:
         pictures.on_picture_changed(client,{"session":session,"chatId":jid})
-    assert calls==[("mw","7@g.us")]
+    assert len(calls)==1 and calls[0][:2]==(mw,"7@g.us")
+    mw.token="other"
+    pictures.apply_picture_changed(*calls[0])  # no contacts: a stale notice must exit before touching them
     pictures.apply_picture_changed(N(_shutting_down=True),"7@g.us")

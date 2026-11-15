@@ -16,6 +16,13 @@ because an event arrived. The next explicit view queries the current picture.
 An API success with `response: null` no longer retries the old fallback URL;
 network/server failures retain the established fallback behavior.
 
+For the account's own JID, an already open WhatsApp Profile settings panel also
+re-reads `my-profile` on a worker and refreshes only whether a photo is set.
+Bursts coalesce to one in-flight read plus at most one follow-up read; an older
+read is discarded if another photo notice arrived, account/sync changes discard
+the result, and no request is made without an open panel. Name and About drafts,
+and a locally chosen photo file, are left untouched.
+
 CDP validation on 2026-11-14 invoked the exact observer over the authorized
 development group's existing native thumbnail. Two same-batch observations
 produced one identity-only notice; the model was unchanged. Temporary observers

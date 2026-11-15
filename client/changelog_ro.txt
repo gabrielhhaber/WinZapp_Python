@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Notificările despre propria fotografie actualizează starea ei în panoul Profil deschis, fără a suprascrie numele, informațiile sau fotografia aleasă; citirile vechi ori ale altui cont sunt ignorate.
+
 - Modificările de pe alt dispozitiv pentru păstrarea conversațiilor arhivate și confidențialitatea stării actualizează panoul deschis, păstrând alegerile neaplicate și ignorând răspunsurile vechi sau ale altui cont.
 
 - S-a corectat salvarea contactelor care nu apăreau în WhatsApp pe iPhone: identificatorul asociat este acum trimis complet, ca în ecranul nativ WhatsApp.

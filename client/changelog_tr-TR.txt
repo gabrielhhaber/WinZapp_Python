@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Kendi profil fotoğrafı bildirimleri, açık Profil panelinde ad, Hakkında veya seçili fotoğrafı değiştirmeden fotoğraf durumunu yeniler; eski ve başka hesaba ait okumalar yok sayılır.
+
 - Başka bir cihazdaki Sohbetleri arşivde tut ve Durum gizliliği değişiklikleri açık paneli günceller; uygulanmamış seçimler korunur, eski veya başka hesaba ait yanıtlar yok sayılır.
 
 - iPhone'da WhatsApp'ta görünmeyen kayıtlı kişiler düzeltildi: bağlı kişi kimliği artık WhatsApp'ın kendi kişi ekranındaki gibi tam olarak gönderiliyor.

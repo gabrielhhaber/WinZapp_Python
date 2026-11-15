@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Gli avvisi sulla propria foto aggiornano lo stato della foto nel pannello Profilo aperto senza sovrascrivere nome, Info o una foto scelta; le letture obsolete o di altri account vengono ignorate.
+
 - Le modifiche da un altro dispositivo a Mantieni le chat archiviate e alla privacy dello stato aggiornano il pannello aperto, preservando le scelte non applicate e ignorando risposte obsolete o di altri account.
 
 - Corretti i contatti salvati che non comparivano su WhatsApp su iPhone: l'identificativo collegato viene ora inviato completo, come nella schermata nativa di WhatsApp.
