@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: i messaggi ricevuti con WinZapp aperto ora appaiono come consegnati a chi li ha inviati, anche con la finestra senza focus o in background. Prima, il mittente vedeva solo "inviato" quando WinZapp non aveva il focus; e, con le conferme di lettura disattivate, aprire la conversazione non cambiava nulla. La presenza online resta legata alla finestra.
+
 - Con NVDA in esecuzione, la registrazione del microfono e dell'audio del computer non si interrompe più con "problema con il dispositivo audio" quando WinZapp si blocca per un secondo o due (computer lento o occupato): l'audio di quell'istante viene saltato, la registrazione continua e il resto resta sincronizzato. Valeva già senza l'audio di NVDA separato; ora copre anche i lettori dell'audio di NVDA e degli altri suoni del computer, registrati separatamente.
 
 - I suoni di digitazione, bolla di digitazione, impulso di digitazione ed elaborazione IA del pacchetto sonoro predefinito ora sono file Ogg, come il resto del pacchetto. Non cambia nulla nel suono né nei tuoi suoni personalizzati.

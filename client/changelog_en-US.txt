@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize: messages received while WinZapp is open now show as delivered to the sender, even with the window unfocused or in the background. Before, the sender only ever saw "sent" while WinZapp was unfocused; and with read receipts off, opening the conversation changed nothing. The online presence stays bound to the window.
+
 - While NVDA is running, recording the microphone together with the computer's audio no longer stops with "audio device problem" when WinZapp stalls for a second or two (a busy or slow computer): the audio from that moment is skipped, the recording goes on, and the rest stays in sync. This already held without separate NVDA capture; the separately recorded NVDA and other computer sound readers are covered now too.
 
 - The default sound pack's typing, typing_bubble, typing_pulse and AI processing sounds are now Ogg files, like the rest of the pack. Nothing changes in how they sound or in your custom sounds.

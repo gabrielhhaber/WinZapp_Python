@@ -769,6 +769,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         cli = self.client = NewClient(
             os.path.join(self.folder, "session.db"),
             props=device_props(self.pairing_days))
+        # Delivery receipts must render for the sender whatever the window is
+        # doing: whatsmeow answers every received message with a receipt, but
+        # marks it type="inactive" while the client is not online, and the
+        # sender's app does not render an inactive receipt (2026-11-15: with
+        # the window out of focus the sender only ever saw "sent"). Presence
+        # stays bound to the window through set-online-presence; this flag
+        # only decouples the delivered tick from it, and both SendPresence
+        # directions keep the value (they compare against 0 and 1).
+        cli.set_force_activate_delivery_receipts(True)
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
