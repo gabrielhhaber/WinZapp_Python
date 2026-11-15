@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Traduzione dei messaggi già presenti nella conversazione: il menu contestuale del messaggio include "Traduci da qui alla fine" (Alt+Shift+Y) e l'azione di gruppo "Traduci i messaggi selezionati" mostra il suo tasto di scelta rapida, Ctrl+Alt+Shift+Y. Entrambi si possono cambiare nella scheda Scorciatoie delle Impostazioni, e le voci del menu mostrano la scorciatoia in uso. Mentre la traduzione di più messaggi è in corso, la stessa voce di menu e la stessa scorciatoia diventano "Annulla la traduzione dei messaggi". Vale per i messaggi di testo ricevuti, fino a 50 per volta, con il provider, il modello e la visualizzazione di "Traduci messaggio".
+
 - Aiuto alla scrittura: WinZapp introduce una funzione simile all'aiuto alla scrittura di WhatsApp per cellulari, con la possibilità aggiuntiva di tradurre la bozza. Il nuovo pulsante dopo Emoji e il menu contestuale del campo aprono la stessa finestra. Corregge, riformula, usa un tono professionale o incoraggiante con i fornitori IA configurati in WinZapp, non con Meta AI; la traduzione usa Google. Chiede il consenso prima di inviare la bozza e mostra il risultato prima di sostituirla; il messaggio non viene mai inviato automaticamente. Scegli un'azione, poi premi "Esegui l'azione scelta". Aprire o chiudere questa finestra non invia la bozza.
 
 - Aiuto per la scrittura: nuova scorciatoia Alt+Shift+H per aprire la finestra da qualsiasi punto della chat con una bozza scritta. Si può cambiare nella scheda Scorciatoie delle Impostazioni, e il menu contestuale del campo e il pulsante ora mostrano la scorciatoia in uso.

@@ -13,6 +13,7 @@ from core.ai_media.errors import DescriptionError
 from core.message_translation import TranslationSettings, credential_id, message_identity
 from ui.conversation_panel import translation_actions as actions
 from ui.conversation_panel import translation_backlog as backlog
+from ui.conversation_panel import translation_to_end as to_end
 
 JID = "5511999990000@s.whatsapp.net"
 LID = "777@lid"
@@ -79,7 +80,7 @@ class List:
         return 0
 
 
-class Panel(actions.TranslationActionsMixin, backlog.TranslationBacklogMixin):
+class Panel(actions.TranslationActionsMixin, backlog.TranslationBacklogMixin, to_end.TranslationToEndMixin):
     def __init__(self, raw=AUTOMATIC):
         self.spoken = []
         self.locked = set()
@@ -435,3 +436,75 @@ def test_the_bulk_translation_shows_one_window_in_the_separate_display(wx, submi
     submitted[0]("one", None)
     submitted[1]("two", None)
     assert shown == ["one\n\ntwo"]
+
+
+def test_from_here_takes_received_text_messages_from_the_focused_one_on():
+    own = message(3)
+    own["key"]["fromMe"] = True
+    audio = {"key": {"remoteJid": JID, "id": "id4"}, "message": {}}
+    rows = [message(1), message(2), own, audio, message(5), {"separator": True}, message(6)]
+    found = to_end.messages_from_here(rows, rows[1], lambda row: bool(row.get("separator")))
+    assert [row["key"]["id"] for row in found] == ["id2", "id5", "id6"]
+    assert to_end.messages_from_here(rows, {"key": {}}) == []
+    assert len(to_end.messages_from_here([message(n) for n in range(80)], message(0))) == 50
+
+
+def test_translate_from_here_asks_then_translates_to_the_end(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2), old_message(3)]
+    panel._on_translate_from_here(panel._sorted_messages[1])
+    assert wx.asked and len(submitted) == 1
+    submitted[0]("two", None)
+    submitted[1]("three", None)
+    assert panel.spoken[-1] == "translation_bulk_done" and panel._bulk_translation is None
+    assert [value[2] for value in panel._translation_results.values()] == ["two", "three"]
+
+
+def test_cancelling_a_run_stops_it_and_says_so(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel._on_translate_from_here(panel._sorted_messages[0])
+    panel._cancel_bulk_translation()
+    assert panel._bulk_translation is None and panel.spoken[-1] == "translation_bulk_cancelled"
+    submitted[0]("late", None)
+    assert len(submitted) == 1 and not getattr(panel, "_translation_results", {})
+    panel._cancel_bulk_translation()
+    assert panel.spoken.count("translation_bulk_cancelled") == 1
+
+
+class Menu:
+    def __init__(self):
+        self.labels = []
+
+    def Append(self, _id, label):
+        self.labels.append(label)
+        return label
+
+
+def test_the_menu_offers_from_here_or_cancel(wx):
+    panel = Panel()
+    panel.Bind = lambda *args: None
+    menu = Menu()
+    panel._append_translation_to_end_items(menu, message(1))
+    panel._bulk_translation = object()
+    panel._append_translation_to_end_items(menu, message(1))
+    assert [label.split("\t")[0] for label in menu.labels] == ["translate_from_here", "translation_bulk_cancel_menu"]
+    assert all(label.endswith("\tAlt+Shift+Y") for label in menu.labels)
+
+
+def test_the_shortcuts_start_a_run_or_cancel_the_one_going(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.messages_list.GetFirstSelected = lambda: 1
+    assert panel._message_at_selection()["key"]["id"] == "id2"
+    panel._on_translate_from_here_shortcut()
+    assert wx.asked and len(submitted) == 1
+    panel._on_translate_from_here_shortcut()
+    assert panel._bulk_translation is None and panel.spoken[-1] == "translation_bulk_cancelled"
+    panel.selected_messages = {"id1"}
+    panel._on_translate_selected_shortcut()
+    assert panel._bulk_translation is not None
+    panel._on_translate_selected_shortcut()
+    assert panel._bulk_translation is None
+    panel.messages_list.GetFirstSelected = lambda: -1
+    assert panel._message_at_selection() is None

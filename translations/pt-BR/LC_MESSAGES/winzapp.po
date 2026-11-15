@@ -13915,6 +13915,18 @@ msgctxt "shortcut_summarize_unread_label"
 msgid "Ctrl+Shift+U: summarize unread messages"
 msgstr "Ctrl+Shift+U: resumir mensagens não lidas"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_translate_from_here_label"
+msgid "Alt+Shift+Y: translate the messages from this one to the end"
+msgstr "Alt+Shift+Y: traduzir as mensagens desta até o fim"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_translate_selected_label"
+msgid "Ctrl+Alt+Shift+Y: translate the selected messages"
+msgstr "Ctrl+Alt+Shift+Y: traduzir as mensagens selecionadas"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
 msgid "Not assigned"
@@ -19494,6 +19506,11 @@ msgid "Verif&y"
 msgstr "Veri&ficar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_from_here"
+msgid "Translate from here to the end"
+msgstr "Traduzir daqui até o fim"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr "Alemão"
@@ -19614,6 +19631,17 @@ msgstr "&Conversas com tradução automática"
 msgctxt "translation_automatic"
 msgid "A&utomatic translation"
 msgstr "Tradução &automática"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_bulk_cancel_menu"
+msgid "Cancel translating the messages"
+msgstr "Cancelar a tradução das mensagens"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_to_end.py
+msgctxt "translation_bulk_cancelled"
+msgid "Translation cancelled."
+msgstr "Tradução cancelada."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
