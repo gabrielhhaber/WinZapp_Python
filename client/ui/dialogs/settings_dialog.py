@@ -4435,7 +4435,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._notification_burst_spin.GetValue()
             )
             # The title and the tray icon follow the two options right away.
-            self.main_window._update_title()
+            refresh_title = getattr(self.main_window, "_update_title", None)
+            if refresh_title is not None:
+                refresh_title()
 
         # Incoming calls live in their own settings namespace so future call
         # options do not overload the unrelated General/notification settings.
