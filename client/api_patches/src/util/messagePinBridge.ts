@@ -16,7 +16,7 @@ export function installMessagePinInPage() {
   previous?.dispose();
   const descriptor = Object.getOwnPropertyDescriptor(api, 'createOrUpdatePinInChat');
   const original = api.createOrUpdatePinInChat;
-  const state = {api, notify, wrapper: null, dispose: null, disposed: false};
+  const state = Object({api, notify, wrapper: null, dispose: null, disposed: false});
   state.wrapper = function (...args) {
     return Promise.resolve(original.apply(this, args)).then(rows => {
       if (!state.disposed && Array.isArray(rows)) for (const row of rows) {

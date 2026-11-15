@@ -14,7 +14,7 @@ export function installChatSettingsInPage() {
     return true;
   }
   previous?.dispose();
-  const state = {chats, mutes, notify, revision: 2, listeners: [], dispose: null};
+  const state = Object({chats, mutes, notify, revision: 2, listeners: [], dispose: null});
   const observe = (store, event, setting, valueOf) => {
     const handler = model => {
       try {

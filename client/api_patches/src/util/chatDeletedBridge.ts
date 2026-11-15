@@ -17,7 +17,7 @@ export function installChatDeletedInPage() {
   previous?.dispose();
   const original = api.applyMutations;
   const descriptor = Object.getOwnPropertyDescriptor(api, 'applyMutations');
-  const state = {api, notify, wrapper: null, dispose: null, disposed: false};
+  const state = Object({api, notify, wrapper: null, dispose: null, disposed: false});
   const seconds = value => {
     const n = Number(value && typeof value === 'object' && 'low' in value
       ? value.low + value.high * 4294967296 : value);

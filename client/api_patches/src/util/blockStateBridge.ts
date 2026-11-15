@@ -10,7 +10,7 @@ export function installBlockStateInPage() {
   const previous = win['__winzappBlockStateObserver'];
   if (previous?.contacts === contacts && previous?.blocks === blocks) { previous.notify = notify; return true; }
   previous?.dispose();
-  const state = {contacts, blocks, notify, handler: null, refresh: null, dispose: null};
+  const state = Object({contacts, blocks, notify, handler: null, refresh: null, dispose: null});
   const emit = value => {
     try { Promise.resolve(state.notify(JSON.stringify(value))).catch(() => {}); }
     catch (_) { /* no side effect on native block operations */ }

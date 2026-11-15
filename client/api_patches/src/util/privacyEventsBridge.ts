@@ -42,15 +42,15 @@ export function installPrivacyEventsInPage() {
     previous.notify = notify; return true;
   }
   previous?.dispose();
-  const state = {prefs, notify, wrappers: new Map(), originals: new Map(), descriptors: new Map(),
-    pending: false, disposed: false, revision: 0, changed: null, dispose: null};
+  const state = Object({prefs, notify, wrappers: new Map(), originals: new Map(), descriptors: new Map(),
+    pending: false, disposed: false, revision: 0, changed: null, dispose: null});
   const fields = ['lastSeen', 'online', 'about', 'profilePicture', 'readReceipts', 'groupAdd'];
   const toIds = value => {
     const items = Array.isArray(value) ? value
       : typeof value?.toArray === 'function' ? value.toArray()
         : typeof value?.getModelsArray === 'function' ? value.getModelsArray() : null;
     if (!Array.isArray(items)) return null;
-    const ids = [];
+    const ids = Object([]);
     for (const item of items) {
       const wid = item?.id && typeof item.id === 'object' ? item.id : item;
       const id = typeof wid === 'string' ? wid
@@ -83,7 +83,7 @@ export function installPrivacyEventsInPage() {
         if (status) {
           try {
             const setting = String(await status.getStatusPrivacySetting());
-            let list = [];
+            let list = Object([]);
             if (setting === 'allow-list') list = await toIds(await status.getStatusAllowList());
             else if (setting === 'deny-list') list = await toIds(await status.getStatusDenyList());
             if (Array.isArray(list) && ['contact', 'allow-list', 'deny-list'].includes(setting))
@@ -105,7 +105,10 @@ export function installPrivacyEventsInPage() {
     const original = prefs[name];
     state.originals.set(name, original);
     state.descriptors.set(name, Object.getOwnPropertyDescriptor(prefs, name));
-    const wrapper = function (...args) {
+    // Built on an untyped holder so tsc types the receiver `this` as any,
+    // while the file still runs as plain JavaScript (no annotations).
+    const built = Object({});
+    built.wrapper = function (...args) {
       const interested = name === 'bulkSetItemsToIndexedDB'
         ? Array.isArray(args[0]) && args[0].some(v => watched.has(v?.key)) : watched.has(args[0]);
       const result = original.apply(this, args);
@@ -115,7 +118,7 @@ export function installPrivacyEventsInPage() {
       state.changed();
       return result;
     };
-    state.wrappers.set(name, wrapper);
+    state.wrappers.set(name, built.wrapper);
   }
   state.dispose = () => {
     state.disposed = true;

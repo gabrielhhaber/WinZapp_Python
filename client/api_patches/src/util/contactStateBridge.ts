@@ -9,7 +9,7 @@ export function installContactStateInPage() {
   const previous = win['__winzappContactStateObserver'];
   if (previous?.store === store) { previous.notify = notify; return true; }
   previous?.dispose();
-  const state = {store, notify, handlers: new Map(), pending: new Map(), disposed: false, dispose: null};
+  const state = Object({store, notify, handlers: new Map(), pending: new Map(), disposed: false, dispose: null});
   const observe = (field, kind) => {
     const handler = model => {
       let kinds = state.pending.get(model);

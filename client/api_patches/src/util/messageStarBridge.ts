@@ -14,7 +14,7 @@ export function installMessageStarInPage() {
     return true;
   }
   previous?.dispose();
-  const state = { store, notify, handler: null, dispose: null };
+  const state = Object({ store, notify, handler: null, dispose: null });
   state.handler = (model) => {
     try {
       const key = model?.id;

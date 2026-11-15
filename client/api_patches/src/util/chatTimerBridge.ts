@@ -12,7 +12,7 @@ export function installChatTimerInPage() {
     previous.notify = notify; return true;
   }
   previous?.dispose();
-  const state = {store, groups, notify, revision: 2, pending: new Set(), disposed: false, handler: null, dispose: null};
+  const state = Object({store, groups, notify, revision: 2, pending: new Set(), disposed: false, handler: null, dispose: null});
   state.handler = model => {
     if (state.pending.has(model)) return;
     state.pending.add(model);

@@ -11,7 +11,7 @@ export function installProfilePictureInPage() {
   if (previous?.store === store) { previous.notify = notify; return true; }
   previous?.dispose();
   const events = ['change:tag', 'change:eurl', 'change:fullDirectPath', 'change:previewDirectPath'];
-  const state = {store, notify, pending: new Set(), disposed: false, handler: null, dispose: null};
+  const state = Object({store, notify, pending: new Set(), disposed: false, handler: null, dispose: null});
   state.handler = model => {
     if (state.pending.has(model)) return;
     state.pending.add(model);

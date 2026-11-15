@@ -9,7 +9,7 @@ export function installGroupMetadataInPage() {
   const previous = win['__winzappGroupMetadataObserver'];
   if (previous?.revision === 2 && previous?.store === store) { previous.notify = notify; return true; }
   previous?.dispose();
-  const state = {store, notify, revision: 2, handlers: new Map(), members: new Map(), attach: null, detach: null, dispose: null};
+  const state = Object({store, notify, revision: 2, handlers: new Map(), members: new Map(), attach: null, detach: null, dispose: null});
   const emit = value => {
     try { Promise.resolve(state.notify(JSON.stringify(value))).catch(() => {}); }
     catch (_) { /* native metadata updates must remain unaffected */ }

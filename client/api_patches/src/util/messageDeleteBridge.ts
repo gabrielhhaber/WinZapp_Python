@@ -23,8 +23,8 @@ export function installMessageDeleteInPage() {
   const originalSync = sync.applyMutations, originalLocal = chat.deleteMessage;
   const syncDescriptor = Object.getOwnPropertyDescriptor(sync, 'applyMutations');
   const localDescriptor = Object.getOwnPropertyDescriptor(chat, 'deleteMessage');
-  const state = { sync, chat, notify, revision: 1, disposed: false, timers: new Set(),
-    syncWrapper: null, localWrapper: null, dispose: null };
+  const state = Object({ sync, chat, notify, revision: 1, disposed: false, timers: new Set(),
+    syncWrapper: null, localWrapper: null, dispose: null });
   const emit = (chatId, messageId) => {
     if (state.disposed || typeof chatId !== 'string' || typeof messageId !== 'string'
         || !messageId || !/^[\w.:-]+@(c\.us|s\.whatsapp\.net|lid|g\.us)$/.test(chatId)) return;
