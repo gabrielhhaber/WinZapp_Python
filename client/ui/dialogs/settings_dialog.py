@@ -7,7 +7,6 @@ from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
 from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
 from core import connection_engine as engines
-from core.unread_badge import DISCOUNT_ARCHIVED_KEY, DISCOUNT_MUTED_KEY, badge_discount_flags
 from core.listed_chats import channels_listed
 from core.notification_burst import BURST_LIMIT, BURST_LIMIT_MAX, BURST_LIMIT_MIN, burst_limit
 from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
@@ -2488,9 +2487,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         keep_muted_silent = self.main_window.settings.get("general", {}).get(
             "keep_muted_chats_silent_when_open", True
         )
+        discount_archived = self.main_window.settings.get("general", {}).get(
+            "discount_archived_from_unread_badge", True
+        )
+        discount_muted = self.main_window.settings.get("general", {}).get(
+            "discount_muted_from_unread_badge", True
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
-            discount_archived, discount_muted = badge_discount_flags(self.main_window.settings)
             self._discount_archived_check.SetValue(discount_archived)
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
@@ -4425,10 +4429,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
-            self.main_window.settings.setdefault("general", {})[DISCOUNT_ARCHIVED_KEY] = (
+            self.main_window.settings.setdefault("general", {})["discount_archived_from_unread_badge"] = (
                 self._discount_archived_check.GetValue()
             )
-            self.main_window.settings.setdefault("general", {})[DISCOUNT_MUTED_KEY] = (
+            self.main_window.settings.setdefault("general", {})["discount_muted_from_unread_badge"] = (
                 self._discount_muted_check.GetValue()
             )
             self.main_window.settings.setdefault("general", {})["notification_burst_limit"] = (
