@@ -20,7 +20,7 @@ export function installChatDeletedInPage() {
   const state = Object({api, notify, wrapper: null, dispose: null, disposed: false});
   const seconds = value => {
     const n = Number(value && typeof value === 'object' && 'low' in value
-      ? value.low + value.high * 4294967296 : value);
+      ? (value.low >>> 0) + value.high * 4294967296 : value);
     if (!Number.isFinite(n) || n <= 0) return 0;
     return Math.floor(n > 1e11 ? n / 1000 : n);
   };

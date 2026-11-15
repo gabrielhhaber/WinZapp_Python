@@ -91,7 +91,7 @@ export function installMessageDeleteInPage() {
   };
   try {
     sync.applyMutations = state.syncWrapper;
-    // WA-JS 4.7.2 exports a configurable getter, with no setter.
+    // WA-JS (4.7.2 through 4.8.0) exports a configurable getter, with no setter.
     if (localDescriptor?.configurable === false) chat.deleteMessage = state.localWrapper;
     else Object.defineProperty(chat, 'deleteMessage', {
       value: state.localWrapper, writable: true, configurable: true,

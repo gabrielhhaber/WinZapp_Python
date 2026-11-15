@@ -103,7 +103,7 @@ export async function saveContact(req: Request, res: Response) {
           (minor === 3000 && build >= 1030209354)));
         let contact: any;
         if (modern) {
-          // WA-JS 4.7.2 passes bare LID digits to this action. The native UI
+          // WA-JS (4.7.2 through 4.8.0) passes bare LID digits to this action. The native UI
           // passes a Wid: contact sync serializes lid.toString() into lidJid,
           // so the digits lose @lid and the iPhone does not apply the save.
           // Use the native argument shape, without changing shared exports.
@@ -126,6 +126,7 @@ export async function saveContact(req: Request, res: Response) {
             firstName: cmd.name,
             lastName: cmd.lastName,
             syncToAddressbook: cmd.syncAddressBook,
+            username: null,
           });
           // Never retry through WPP.contact.save after this write: it would
           // replace the corrected mutation with the malformed one again.
