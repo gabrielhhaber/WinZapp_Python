@@ -777,7 +777,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         # stays bound to the window through set-online-presence; this flag
         # only decouples the delivered tick from it, and both SendPresence
         # directions keep the value (they compare against 0 and 1).
-        cli.set_force_activate_delivery_receipts(True)
+        try:
+            cli.set_force_activate_delivery_receipts(True)
+        except Exception:
+            # Degraded on purpose, never fatal: an install whose neonize build
+            # lacks the export (both approved releases carry it) keeps receipts
+            # inactive — the pre-fix behaviour — instead of the bridge thread
+            # dying here and the app hanging on "connecting" forever.
+            log.exception("delivery receipts could not be forced active")
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
