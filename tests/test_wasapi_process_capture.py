@@ -186,6 +186,50 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(stream.read_packets(), [])
         stream.stop()
 
+    def test_continuous_drain_stall_never_kills_the_reader(self):
+        """Log evidence 2026-11-15: a scheduling stall stretched the running
+        drain past its 1 s wall budget (process_drain_timeout) and killed the
+        reader, ending the recording with an audio-device error. The
+        forgiving running path must overrun its iteration cap without
+        failing, keep the stream alive and keep streaming; the bounded
+        deadline itself stays for stop/reset."""
+        m = module()
+        stream = self.make_stream()
+        native = self.natives[0]
+        packets = [packet(100000 + i * 100000, frames=200) for i in range(300)]
+        for p in packets:
+            native.packets.put(p)
+        # A clock that jumps past any wall budget on every call: the bounded
+        # stop/reset drain must still refuse to complete (kept guard — the
+        # empty native never reaches read(), so no ownership violation),
+        # while the forgiving running drain ignores the clock entirely.
+        original_time = m.time
+
+        class StalledClock:
+            count = 0
+
+            @classmethod
+            def monotonic(cls):
+                cls.count += 1
+                return cls.count * 2.0  # every call jumps past any budget
+
+        m.time = StalledClock
+        try:
+            with self.assertRaisesRegex(RuntimeError, 'drain timeout'):
+                stream._drain(native)
+        finally:
+            m.time = original_time
+        stream.start()
+        deadline = time.monotonic() + 2
+        while (stream.diagnostic_snapshot()['packets'] < len(packets)
+               and time.monotonic() < deadline):
+            time.sleep(.001)
+        self.assertEqual(stream.read_packets(), packets)
+        self.assertIsNone(stream._failure)
+        self.assertTrue(stream._thread.is_alive())
+        self.assertGreaterEqual(stream.diagnostic_snapshot()['drain_overruns'], 1)
+        stream.stop()
+
     def test_start_failure_is_returned_synchronously_and_cleanup_is_owned(self):
         stream = self.make_stream()
         def fail():

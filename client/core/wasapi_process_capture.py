@@ -490,7 +490,8 @@ class ProcessLoopbackStream:
         self._ready = threading.Event()
         self._failure = self._cleanup_error = None
         self._running = False
-        self._diagnostic = dict(queue_peak_frames=0, packets=0, frames=0)
+        self._diagnostic = dict(queue_peak_frames=0, packets=0, frames=0,
+                                drain_overruns=0)
         target.acquire()
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name='wasapi-process-reader')
@@ -525,16 +526,33 @@ class ProcessLoopbackStream:
             d['packets'] += 1
             d['frames'] += frames
 
-    def _drain(self, native, *, discard=False):
-        deadline = time.monotonic() + 1.0
+    def _drain(self, native, *, discard=False, forgiving=False):
+        """Drain the native capture buffer into the bounded queue.
+
+        forgiving=True is the continuous running loop and must never end the
+        recording: a scheduling stall (observed 249/335 ms, worse under load —
+        log evidence 2026-11-15, reason process_drain_timeout) can stretch the
+        drain past any wall-clock budget. A wedged native call cannot be
+        interrupted anyway, so raising there only killed the reader and the
+        recording. The remainder is left for the next loop iteration; packets
+        the mixer has already rendered past are clipped as late audio —
+        the audio from that moment is skipped, the recording goes on.
+        stop/reset keep the bounded deadline: their command acknowledgement
+        depends on completion.
+        """
+        deadline = None if forgiving else time.monotonic() + 1.0
         for _ in range(256):
-            if time.monotonic() >= deadline:
+            if deadline is not None and time.monotonic() >= deadline:
                 raise WasapiError('Process loopback drain timeout')
             packet = native.read()
             if packet is None:
                 return
             if not discard:
                 self._put(packet)
+        if forgiving:
+            with self._lock:
+                self._diagnostic['drain_overruns'] += 1
+            return
         raise WasapiError('Process loopback bounded drain exceeded')
 
     def _run(self):
@@ -583,7 +601,7 @@ class ProcessLoopbackStream:
                     done.set()
                     command = None
                 if self.running and not self._cancel.is_set():
-                    self._drain(native)
+                    self._drain(native, forgiving=True)
                     with self._lock:
                         self._diagnostic.update(native.diagnostic_snapshot())
         except BaseException as exc:
