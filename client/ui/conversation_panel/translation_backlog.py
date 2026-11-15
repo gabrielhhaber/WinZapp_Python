@@ -18,7 +18,7 @@ import wx
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken
 from core.message_translation import (
-    MAX_TEXT_CHARS, backlog_messages, message_identity, message_text, translation_model_ready,
+    DISPLAY_SEPARATE, MAX_TEXT_CHARS, backlog_messages, message_identity, message_text, translation_model_ready,
 )
 from ui.dialogs.translation_settings import LABELS
 
@@ -86,7 +86,7 @@ class TranslationBacklogMixin:
         # The vault's timer fires inside the box's modal loop too.
         if self._translation_chat_hidden(jid) or (self.conversation or {}).get("remoteJid") != jid:
             return
-        run = self._bulk_translation = {"jid": jid, "rows": rows, "done": 0, "config": config}
+        run = self._bulk_translation = {"jid": jid, "rows": rows, "done": 0, "config": config, "texts": []}
         mw.output(t("translation_sending").format(provider=provider))
         self._bulk_translation_step(run)
 
@@ -95,6 +95,10 @@ class TranslationBacklogMixin:
             self._bulk_translation = None
         self.main_window.output(
             self.main_window.i18n.t("translation_bulk_done").format(count=run["done"]))
+        # A separate window is this display's way of reading: one for the run.
+        if run["config"].display == DISPLAY_SEPARATE and run["texts"]:
+            self._show_translation("\n\n".join(run["texts"]), original="", same=False,
+                                   jid=run["jid"])
 
     def _bulk_translation_step(self, run):
         if getattr(self, "_bulk_translation", None) is not run:
@@ -114,6 +118,7 @@ class TranslationBacklogMixin:
         cached = getattr(self, "_translation_results", {}).get(key)
         if cached and cached[1] == text and replace(cached[0], display=config.display) == config:
             run["done"] += 1
+            run["texts"].append(self._translation_for_reading(message, cached[2]))
             self._bulk_translation_step(run)
             return
 
@@ -127,6 +132,7 @@ class TranslationBacklogMixin:
                 return
             self._present_translation(jid, key, config, text, answer, message=message)
             run["done"] += 1
+            run["texts"].append(self._translation_for_reading(message, answer))
             self._bulk_translation_step(run)
 
         try:

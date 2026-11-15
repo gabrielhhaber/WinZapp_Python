@@ -423,3 +423,15 @@ def test_the_bulk_translation_refuses_an_empty_selection_and_a_second_run(wx, su
     panel._bulk_translation = object()
     panel._on_mass_translate_messages()
     assert panel.spoken[-1] == "ai_error_busy"
+
+
+def test_the_bulk_translation_shows_one_window_in_the_separate_display(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", display="separate"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    shown = []
+    panel._show_translation = lambda answer, **kwargs: shown.append(answer)
+    panel._on_mass_translate_messages()
+    submitted[0]("one", None)
+    submitted[1]("two", None)
+    assert shown == ["one\n\ntwo"]

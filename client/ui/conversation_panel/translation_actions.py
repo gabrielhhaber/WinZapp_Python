@@ -15,8 +15,8 @@ from core.ai_media.service import RequestToken, submit
 from core.message_translation import (
     CUSTOM, DISPLAY_SEPARATE, MAX_TEXT_CHARS, NO_AGE_LIMIT_MINUTES, PAUSE_SECONDS,
     TranslationSettings, automatic_candidate, chat_allows_automatic, credential_id,
-    message_identity, message_text, pauses_automatic, preferences, reserve_automatic_request, translate, translated_body,
-    translation_model_ready,
+    message_identity, message_text, pauses_automatic, preferences,
+    reserve_automatic_request, translate, translated_body, translation_model_ready,
 )
 from core.utils import link_preview_text
 from ui.dialogs.translation_settings import LABELS
