@@ -597,6 +597,8 @@ class ChatEventsMixin:
         # per-participant announcement above is for private chats only).
         if presence_scope:
             announce_group_activity(self, chat_jid_norm)
+            if getattr(self, "_shutting_down", False):
+                return
         # Persist the updated pushName map to database metadata.
         if _ppm_updated and hasattr(self, "db") and self.db is not None:
             try:

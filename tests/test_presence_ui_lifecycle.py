@@ -358,8 +358,11 @@ def test_shutdown_during_one_group_event_stops_later_participants_and_db_work(bu
     owner.speak_output.output = announce
     owner.on_presence_update(group, {CONTACT: {"lastKnownPresence": "composing"},
                                     other: {"lastKnownPresence": "recording"}})
-    assert len(speech) == len(timers) == 1 and not callbacks
-    assert other not in owner._composing_chats[group]
+    # A group's batch is applied first and spoken once, as one sentence; shutdown
+    # during that speech stops the paint and the name persistence (the DB fails
+    # the test if touched).
+    assert len(speech) == 1 and not callbacks
+    assert len(timers) == 2
 
 
 def test_one_large_group_event_keeps_participant_scope_with_one_dirty_row(burst, record_testsuite_property):
