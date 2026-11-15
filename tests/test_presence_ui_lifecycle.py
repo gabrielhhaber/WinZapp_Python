@@ -8,7 +8,7 @@ from core.contact_presence import cached, merge
 from main_window import presence_ui
 from main_window.presence_ui import PresenceUiUpdates, request_presence_ui
 from tests.test_presence_ui_load import PresenceOwner
-from tests.test_presence_ui_batching import burst, active_panel, drain, push
+from tests.test_presence_ui_batching import burst, active_panel, drain, fake_t, push
 from tests.test_typing_row import CONTACT, _msg, dismiss_typing_row_for_message, typing_row_shown
 
 
@@ -190,7 +190,7 @@ def matrix_owner(queued):
     owner = PresenceOwner()
     owner.IsShown, owner.IsIconized, owner.IsActive = lambda: True, lambda: False, lambda: True
     owner._resolve_jid_name = lambda *args, **kwargs: "Contact"
-    owner.i18n = SimpleNamespace(t=lambda key: key + " {name}")
+    owner.i18n = SimpleNamespace(t=fake_t)
     owner.speak_output = SimpleNamespace(output=spoken.append)
     panel = active_panel(owner)
     if queued:
