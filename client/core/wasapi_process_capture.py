@@ -491,7 +491,7 @@ class ProcessLoopbackStream:
         self._failure = self._cleanup_error = None
         self._running = False
         self._diagnostic = dict(queue_peak_frames=0, packets=0, frames=0,
-                                drain_overruns=0)
+                                drain_overruns=0, dropped_packets=0)
         target.acquire()
         self._thread = threading.Thread(target=self._run, daemon=True,
                                         name='wasapi-process-reader')
@@ -518,7 +518,15 @@ class ProcessLoopbackStream:
         frames = len(packet.data) // (self.channels * 4)
         with self._lock:
             if self._queued_frames + frames > self.rate * 2:
-                raise WasapiError('Process loopback queue overflow')
+                # The queue is exactly the two seconds of stall tolerance the
+                # recording contract promises. A consumer that stays stalled
+                # past it must not end the recording: drop the newest packet
+                # and keep the reader alive. Everything still queued behind
+                # the stalled position is late audio the mixer clips anyway,
+                # and the dropped span renders as silence — the recording
+                # goes on and the rest stays in sync.
+                self._diagnostic['dropped_packets'] += 1
+                return
             self._packets.append(packet)
             self._queued_frames += frames
             d = self._diagnostic

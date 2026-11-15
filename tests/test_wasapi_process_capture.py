@@ -242,19 +242,28 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(self.log[-1], 'close')
         self.assertFalse(stream.running)
 
-    def test_queue_is_bounded_and_failure_preserves_copied_prefix(self):
+    def test_queue_is_bounded_and_overflow_drops_newest_without_failing(self):
         stream = self.make_stream()
         native = self.natives[0]
-        native.packets.put(packet(frames=48000))
-        native.packets.put(packet(200000, frames=48000))
+        first = packet(frames=48000)
+        second = packet(200000, frames=48000)
+        native.packets.put(first)
+        native.packets.put(second)
         native.packets.put(packet(300000))
         stream.start()
-        stream._thread.join(1)
-        self.assertFalse(stream._thread.is_alive())
-        self.assertEqual(len(stream.read_packets()), 2)
-        with self.assertRaisesRegex(RuntimeError, 'overflow'):
-            stream.read_packets()
+        deadline = time.monotonic() + 1
+        while (stream.diagnostic_snapshot()['dropped_packets'] < 1
+               and time.monotonic() < deadline):
+            time.sleep(.001)
+        # The 2 s queue cap is the stall tolerance: overflowing it drops the
+        # newest packet instead of killing the reader, so a stalled consumer
+        # only loses that span instead of the whole recording.
+        self.assertEqual(stream.diagnostic_snapshot()['dropped_packets'], 1)
         self.assertEqual(stream.diagnostic_snapshot()['queue_peak_frames'], 96000)
+        self.assertEqual(stream.read_packets(), [first, second])
+        self.assertIsNone(stream._failure)
+        self.assertTrue(stream._thread.is_alive())
+        stream.stop()
 
     def test_target_exit_stops_reader_and_cannot_resume(self):
         stream = self.make_stream()
