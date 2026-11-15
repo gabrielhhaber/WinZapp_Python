@@ -75,3 +75,17 @@ def test_the_shortcut_does_nothing_without_a_draft():
     stub, calls = _stub(False)
     AIWritingMixin._on_writing_help_shortcut(stub)
     assert calls == []
+
+
+def test_utf8_bytes_survives_a_lone_surrogate():
+    """#797: wx can return half of an emoji; the strict encode raised."""
+    from core.ai_media.config import utf8_bytes
+    assert utf8_bytes("ola") == b"ola"
+    assert utf8_bytes("a\ud83d") == "a�".encode("utf-8")
+    assert utf8_bytes("😀") == "\U0001F600".encode("utf-8")
+
+
+def test_writing_help_offered_with_a_lone_surrogate_in_the_draft():
+    field = NS(GetValue=lambda: "oi \ud83d", IsEnabled=lambda: True, IsEditable=lambda: True)
+    stub = NS(message_field=field)
+    assert AIWritingMixin._writing_help_offered(stub) is True

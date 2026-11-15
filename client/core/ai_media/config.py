@@ -106,6 +106,20 @@ _INLINE_MAX = 14 * 1024 * 1024
 MAX_SOURCE_BYTES = {"image": 20 * 1024 * 1024, "sticker": 20 * 1024 * 1024,
                     "audio": _INLINE_MAX, "pdf": _INLINE_MAX, "video": 64 * 1024 * 1024,
                     "text": 200_000, "writing": 20_000}
+def utf8_bytes(text):
+    """The text as UTF-8, never raising.
+
+    wx can hand back a lone UTF-16 surrogate (half of an emoji typed or
+    inserted into the composer); a strict encode raised on it (#797). A
+    well-formed pair is joined into its character, a lone half becomes U+FFFD.
+    """
+    try:
+        return text.encode("utf-8")
+    except UnicodeEncodeError:
+        joined = text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "replace")
+        return joined.encode("utf-8", "replace")
+
+
 #: Longest answer kept; a converted PDF or a long voice message is far longer
 #: than a description, and cutting it silently would drop content.
 MAX_OUTPUT_CHARS = {"image": 12_000, "sticker": 12_000, "video": 12_000,

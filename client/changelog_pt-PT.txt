@@ -489,6 +489,8 @@ NOVIDADES
 
 - Grupos: a pré-visualização na lista de conversas e o anúncio do leitor de ecrã passam a mostrar todas as pessoas que estão a escrever ou a gravar áudio ao mesmo tempo, com o singular e o plural certos ("Ana e Bia estão a escrever...", "Ana está a escrever e Bia está a gravar áudio..."), e não só a última. O leitor de ecrã anuncia a lista inteira a cada mudança, incluindo quando alguém pára e outros continuam, e não diz nada quando já ninguém está em atividade. Com uma só pessoa, a pré-visualização passa a dizer "Ana está a escrever...", sem os dois pontos. O Alt+T também usa a lista, e as opções de anunciar a escrita e a gravação valem para os anúncios falados. A opção "Considerar a atividade de vários participantes ao anunciar o estado de um grupo", em Definições > Acessibilidade > Conteúdo falado, vem marcada; desmarcada, os grupos voltam ao comportamento antigo.
 
+- Campo de mensagem: inserir um emoji no campo já não gera o erro "surrogates not allowed" ao ativar o botão de ajuda para escrever. Reportado por UlisesMilani (#797).
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.

@@ -489,6 +489,8 @@ WHAT'S NEW
 
 - Gruppi: l’anteprima nell’elenco delle conversazioni e l’annuncio dello screen reader mostrano ora tutte le persone che stanno scrivendo o registrando l’audio nello stesso momento, con singolare e plurale corretti ("Ana e Bia stanno scrivendo...", "Ana sta scrivendo e Bia sta registrando l’audio..."), e non solo l’ultima. Lo screen reader annuncia l’intero elenco a ogni cambiamento, anche quando qualcuno smette e altri continuano, e non dice nulla quando nessuno è più in attività. Con una sola persona, l’anteprima dice ora "Ana sta scrivendo...", senza i due punti. Anche Alt+T usa l’elenco, e le opzioni per annunciare la scrittura e la registrazione valgono per gli annunci parlati. L’opzione "Considera l’attività di più partecipanti quando annunci lo stato di un gruppo", in Impostazioni > Accessibilità > Contenuto parlato, è attiva per impostazione predefinita; se disattivata, i gruppi tornano al comportamento precedente.
 
+- Campo del messaggio: inserire un emoji non genera più l'errore "surrogates not allowed" quando si abilita il pulsante di aiuto alla scrittura. Segnalato da UlisesMilani (#797).
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
