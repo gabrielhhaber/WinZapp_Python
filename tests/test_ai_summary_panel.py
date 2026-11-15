@@ -23,11 +23,14 @@ from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.bulk_transcription import BulkTranscriptionMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
+from core.ai_media.summary_voice_choice import VoiceChoice
 
 JID = "5511999990000@s.whatsapp.net"
 GROUP = "120363000000000000@g.us"
 TEXTS = {"ai_summary_left_out": "in {count} left {left_out}",
          "ai_summary_voice_missing": "markers {count}",
+         "ai_summary_voice_failed": "failed {count}",
+         "ai_summary_voice_over_limit": "over {count} of {limit}",
          "ai_summary_voice_progress": "voice {index}/{total}",
          "datetime_fmt": "%H:%M"}
 
@@ -145,6 +148,8 @@ class Panel(SummaryActionsMixin, SummaryVoiceMixin):
         self.events = []
         self.consents = []
         self.consent_answer = True
+        self.voice_choice = VoiceChoice("local")
+        self.online_consent_answer = True
         self.locked = set()
         self.unlocked = False
         self.settings_reads = 0
@@ -181,6 +186,14 @@ class Panel(SummaryActionsMixin, SummaryVoiceMixin):
 
     def Bind(self, *args):
         pass
+
+    def _summary_voice_decide(self, app, config, jid, count):
+        self.events.append(f"how to transcribe {count}")
+        return self.voice_choice
+
+    def _summary_voice_online_consent(self, app, config, jid, choice, count):
+        self.events.append("online voice consent")
+        return self.online_consent_answer
 
     def _ai_settings(self):
         self.settings_reads += 1
@@ -496,19 +509,19 @@ class TestSummarizing:
         assert dialog.args.identity[1] == JID and panel.restored == []
 
     def test_the_vault_closing_before_the_window_opens_drops_it(self, panel):
-        panel._summary_voice_step = lambda messages, jid, on_done, follows: (
+        panel._summary_voice_step = lambda messages, jid, on_done, follows, choice=None: (
             panel.locked.add(JID), on_done(NS(texts={})))
         panel._on_summarize_messages([text(1)])
         assert Dialog.made == []
 
     def test_another_chat_opened_while_voice_was_transcribed_drops_it(self, panel):
-        panel._summary_voice_step = lambda messages, jid, on_done, follows: (
+        panel._summary_voice_step = lambda messages, jid, on_done, follows, choice=None: (
             panel.conversation.update(remoteJid="other@s.whatsapp.net"), on_done(NS(texts={})))
         panel._on_summarize_messages([text(1)])
         assert Dialog.made == []
 
     def test_a_summary_from_the_list_survives_another_chat_opening(self, panel):
-        panel._summary_voice_step = lambda messages, jid, on_done, follows: (
+        panel._summary_voice_step = lambda messages, jid, on_done, follows, choice=None: (
             panel.conversation.update(remoteJid="other@s.whatsapp.net"), on_done(NS(texts={})))
         panel._on_summarize_messages([text(1)], jid=JID, chat={"remoteJid": JID, "name": "Bia"})
         assert len(Dialog.made) == 1
@@ -572,7 +585,7 @@ class TestVoiceMessages:
         rows = [audio(n) for n in range(25)]
         panel._on_summarize_messages(rows)
         assert panel.transcribed == [f"id{n}" for n in range(5, 25)]
-        assert Dialog.made[0].args.notice == "markers 5"
+        assert Dialog.made[0].args.notice == "markers 5\nover 5 of 20"
         assert ProgressWindow.made[0].statuses[-1] == "voice 20/20"
         assert len(ProgressWindow.made) == 1
 
@@ -581,7 +594,7 @@ class TestVoiceMessages:
         panel._on_summarize_messages([audio(1), audio(2), audio(3)])
         assert panel.transcribed == ["id1"]  # it would fail the same way for each one
         assert errors.error_i18n_key(errors.MODEL_NOT_INSTALLED) in panel.spoken
-        assert Dialog.made[0].args.notice == "markers 3"
+        assert Dialog.made[0].args.notice == "markers 3\nfailed 1"
 
     def test_a_failing_message_does_not_stop_the_others(self, panel):
         def one_fails(msg):
@@ -591,7 +604,7 @@ class TestVoiceMessages:
         panel.transcribe_with = one_fails
         panel._on_summarize_messages([audio(1), audio(2)])
         assert panel.transcribed == ["id1", "id2"]
-        assert Dialog.made[0].args.notice == "markers 1"
+        assert Dialog.made[0].args.notice == "markers 1\nfailed 1"
 
     def test_a_message_with_no_speech_stays_a_marker(self, panel):
         panel.transcribe_with = lambda msg: (NS(text="", is_empty=True), None)
@@ -641,7 +654,8 @@ class TestVoiceMessages:
 
     def test_the_window_is_gone_before_the_result_opens(self, panel):
         panel._on_summarize_messages([audio(1)])
-        assert panel.events == ["consent", "progress window", "progress window closed", "result window"]
+        assert panel.events == ["how to transcribe 1", "consent", "progress window",
+                                "progress window closed", "result window"]
         assert ProgressWindow.made[0].destroyed and ProgressWindow.made[0].title == "ai_result_summary_title"
 
     def test_the_window_shows_each_message_and_a_growing_gauge(self, panel):
@@ -804,7 +818,8 @@ class TestConsentComesFirst:
         panel.consent_answer = False
         panel._on_summarize_messages([text(1), audio(2)])
         assert panel.transcribed == [] and ProgressWindow.made == [] and Dialog.made == []
-        assert panel.spoken == ["ai_summary_cancelled"] and panel.events == ["consent"]
+        assert panel.spoken == ["ai_summary_cancelled"]
+        assert panel.events == ["how to transcribe 1", "consent"]
 
     def test_a_refusal_counts_without_voice_messages_too(self, panel):
         panel.consent_answer = False
@@ -813,7 +828,7 @@ class TestConsentComesFirst:
 
     def test_the_question_is_asked_before_the_transcription_and_without_voice_too(self, panel):
         panel._on_summarize_messages([text(1), audio(2)])
-        assert panel.events[:2] == ["consent", "progress window"]
+        assert panel.events[:3] == ["how to transcribe 1", "consent", "progress window"]
         panel.events.clear()
         panel._on_summarize_messages([text(1)])
         assert panel.events == ["consent", "result window"]

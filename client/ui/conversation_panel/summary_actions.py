@@ -29,8 +29,10 @@ import wx
 from app_paths import active_account_id, global_dir
 from core.ai_credentials import CredentialStore
 from core.ai_media import config as ai_config
-from core.ai_media.summary import (build_unread_transcript, button_offered, is_voice_message, message_text,
+from core.ai_media.summary import (MAX_VOICE_TRANSCRIPTIONS, build_unread_transcript, button_offered,
+                                   is_voice_message, message_text,
                                    unread_fetch_limit, unread_messages, voice_text)
+from core.ai_media.summary_voice_choice import MODE_LOCAL, MODE_ONLINE
 from core.message_copy_format import format_copied_message
 from core.utils import format_number, is_phone_like
 from ui.shortcut_bindings import popup_item_label
@@ -273,21 +275,32 @@ class SummaryActionsMixin:
         if not messages:
             mw.output(t("ai_summary_nothing"))
             return
-        # Another local transcription running refuses before any question:
-        # asking consent for a summary that cannot start would be noise.
         _outcome, to_run = self._summary_voice_plan(messages)
-        if self._summary_voice_blocked(to_run):
-            return
+        choice = None
+        if to_run:
+            # How the voice messages are handled, before anything is asked
+            # about sending: the dialog sends and transcribes nothing.
+            choice = self._summary_voice_decide(app, config, jid, len(to_run))
+            if choice is None:
+                if not (getattr(mw, "_shutting_down", False) or mw.is_chat_hidden_by_vault(jid)):
+                    mw.output(t("ai_summary_cancelled"), interrupt=True)
+                return
+            # Another local transcription running refuses before any consent
+            # question: asking for a summary that cannot start would be noise.
+            if choice.mode == MODE_LOCAL and self._summary_voice_blocked(to_run):
+                return
         # Consent first, before any voice message is transcribed: declining
         # leaves nothing transcribed and nothing sent.
-        if not self._summary_consent(app, config, jid):
+        if not self._summary_consent(app, config, jid) or (
+                choice is not None and choice.mode == MODE_ONLINE
+                and not self._summary_voice_online_consent(app, config, jid, choice, len(to_run))):
             if not (getattr(mw, "_shutting_down", False) or mw.is_chat_hidden_by_vault(jid)):
                 mw.output(t("ai_summary_cancelled"), interrupt=True)  # the person said no
             return
         self._summary_voice_step(
             messages, jid,
             lambda voice: self._open_summary(messages, jid, chat, voice, follows_open_chat),
-            follows_open_chat)
+            follows_open_chat, choice=choice)
 
     def _summary_consent(self, app, config, jid) -> bool:
         """Ask to send the messages' text to the providers that would take it
@@ -346,6 +359,11 @@ class SummaryActionsMixin:
             notices.append(t("ai_summary_left_out").format(count=built.included, left_out=built.left_out))
         if built.voice_markers:
             notices.append(t("ai_summary_voice_missing").format(count=built.voice_markers))
+        if getattr(voice, "failed", 0):
+            notices.append(t("ai_summary_voice_failed").format(count=voice.failed))
+        if getattr(voice, "over_limit", 0):
+            notices.append(t("ai_summary_voice_over_limit").format(
+                count=voice.over_limit, limit=MAX_VOICE_TRANSCRIPTIONS))
         data = built.text.encode("utf-8")
         identity = (active_account_id(), jid, "summary")
         locked = mw.is_chat_locked(jid)

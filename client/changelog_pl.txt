@@ -14,6 +14,8 @@ NOWOŚCI
 
 - Podsumowanie przez AI: dwa nowe skróty w menu kontekstowym wiadomości, Alt+Shift+I do podsumowania od tego miejsca do końca i Ctrl+Alt+Shift+I do podsumowania zaznaczonych wiadomości. Można je zmienić na karcie Skróty w Ustawieniach, a pozycje menu pokazują teraz używany skrót, także Ctrl+Shift+U przy nieprzeczytanych.
 
+- Podsumowanie z AI: gdy podsumowujesz wiadomości z wiadomościami głosowymi bez zapisanej transkrypcji, okno pyta, jak je transkrybować: lokalnie (domyślnie), online z dostawcą i modelem transkrypcji niezależnym od modelu podsumowania albo wcale. Przed wysłaniem wiadomości głosowych pytanie podaje, ile ich zostanie wysłanych, do którego dostawcy oraz że może to zużyć limit lub wiązać się z opłatami, z polem do zapamiętania zgody dla tego dostawcy. Zapisane transkrypcje są używane ponownie, a wynik ostrzega, ile wiadomości głosowych się nie udało lub zostało pominiętych przez limit. Otwieranie, zmiana i zamykanie okien niczego nie wysyła. Prośba UlisesMilani (#791).
+
 - WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
 - Automatyczna transkrypcja: wiadomość głosowa odebrana podczas uśpienia komputera nie zostaje już bez transkrypcji, gdy przychodzi razem z innymi po wybudzeniu.

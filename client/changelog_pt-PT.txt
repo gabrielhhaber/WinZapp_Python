@@ -14,6 +14,8 @@ NOVIDADES
 
 - Resumo com IA: dois novos atalhos no menu de contexto da mensagem, Alt+Shift+I para resumir daqui até ao fim e Ctrl+Alt+Shift+I para resumir as mensagens selecionadas. Podem ser alterados no separador Atalhos das Definições, e os itens do menu passam a mostrar o atalho em uso, incluindo o de Ctrl+Shift+U nas não lidas.
 
+- Resumo com IA: ao resumir mensagens com áudios sem transcrição guardada, uma janela pergunta como os transcrever: localmente (predefinição), online com um fornecedor e um modelo de transcrição à parte do modelo do resumo, ou não transcrever. Antes de enviar os áudios, uma pergunta diz quantos seguem, para que fornecedor e que isso pode consumir quota ou gerar custos, com a caixa para lembrar o consentimento desse fornecedor. As transcrições guardadas são reaproveitadas, e o resultado avisa quantos áudios falharam ou ficaram de fora pelo limite. Abrir, mudar ou fechar as janelas não envia nada. Pedido de UlisesMilani (#791).
+
 - WPPConnect: com pouco espaço em disco (menos de 4 GB livres), o WinZapp fecha o WhatsApp em segurança antes que perca a sessão, fica offline e diz o motivo. Quando houver pelo menos 5 GB livres, volta a ligar-se sozinho. Antes, com cerca de 3 GB livres, a sessão podia voltar desligada como se tivesse sido apagada.
 
 - Transcrição automática: uma mensagem de voz recebida enquanto o computador estava suspenso já não fica sem transcrição quando chega juntamente com outras no regresso.

@@ -112,18 +112,22 @@ def needs_consent(config, providers, kind, locked):
     return locked or any(p not in remembered for p in providers)
 
 
-def ask_consent(parent, i18n, app, config, providers, kind, locked, valid=lambda: True, track=None):
+def ask_consent(parent, i18n, app, config, providers, kind, locked, valid=lambda: True, track=None,
+                text=None):
     """Show the consent window when one is needed and remember the answer;
     True when the media or text may be sent.
 
     Consent covers every provider the data may reach. Remembered per provider,
     never for a locked chat. ``valid`` is asked once the window closes (the
     vault or the app may have closed under it); ``track`` is told the open
-    window, then None, so its owner can dismiss it while closing itself.
+    window, then None, so its owner can dismiss it while closing itself. ``text``
+    replaces the usual wording (a summary's online voice transcription names
+    its own messages and provider).
     """
     if not needs_consent(config, providers, kind, locked):
         return True
-    dialog = AIConsentDialog(parent, i18n, providers, kind, locked)
+    dialog = (AIConsentDialog(parent, i18n, providers, kind, locked) if text is None
+              else AIConsentDialog(parent, i18n, providers, kind, locked, text=text))
     if track is not None:
         track(dialog)
     try:

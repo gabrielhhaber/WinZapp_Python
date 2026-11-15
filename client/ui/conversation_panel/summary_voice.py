@@ -14,8 +14,10 @@ marker. Before the transcript is built:
   gauge, Cancel); Cancel drops the whole summary, with no question. The
   window closes by itself when the worker ends (finished, cancelled, failed,
   vault closed, app quitting) and the result opens only after that;
-* if the local transcription is not set up, or a message fails, those messages
-  stay markers and the result window says how many words were missing;
+* the person picks how (summary_voice_choice.py): local as above, online with
+  one provider (summary_voice_online.py) or not at all; a message that fails,
+  is over the limit or is not transcribed stays a marker, and the result
+  window says how many words were missing and why;
 * the vault hiding the chat stops the run without a word about its messages.
 
 Nothing here logs the text, the contact or a message id.
@@ -26,6 +28,7 @@ import threading
 import wx
 
 from core.ai_media.summary import MAX_VOICE_TRANSCRIPTIONS, voice_to_transcribe
+from core.ai_media.summary_voice_choice import MODE_LOCAL, MODE_NONE, pending_voice
 from core.transcription import auto_queue, errors
 from core.transcription import stored as stored_transcription
 from core.transcription.management import ProgressTick, progress_percent
@@ -33,6 +36,12 @@ from ui.dialogs.transcription_progress import TranscriptionProgressDialog
 
 #: The worker's "the vault hid the chat" ending, told apart from any sentence.
 _LOCKED = object()
+
+
+def mw_language(main_window) -> str:
+    """The language the summary is written in: the window's own, which the
+    online worker cannot read from the wx thread's i18n."""
+    return getattr(main_window.i18n, "language", "") or ""
 
 
 def voice_progress_tick(index, total):
@@ -70,13 +79,22 @@ class VoiceOutcome:
     def __init__(self):
         #: message id -> transcription text, for every voice message that has one.
         self.texts = {}
+        #: Voice messages that failed to transcribe, and older ones over the
+        #: per-summary limit: they stay markers and the window says so.
+        self.failed = 0
+        self.over_limit = 0
 
 
 class _VoiceRun:
     """The state of one voice step, shared with its worker thread."""
 
-    def __init__(self, jid, to_run, outcome, on_done, follows_open_chat):
+    def __init__(self, jid, to_run, outcome, on_done, follows_open_chat, choice=None):
         self.jid = jid
+        #: The person's choice (local when None) and what the online worker
+        #: needs from the wx thread: the summary's profile and language.
+        self.choice = choice
+        self.profile = "balanced"
+        self.language = ""
         #: Started from the open chat (not from the conversations list): leaving
         #: that chat drops the summary, so the run stops with it.
         self.follows_open_chat = follows_open_chat
@@ -131,6 +149,8 @@ class SummaryVoiceMixin:
         to_run = voice_to_transcribe(
             messages, lambda msg: bool(outcome.texts.get((msg.get("key") or {}).get("id", ""))),
             MAX_VOICE_TRANSCRIPTIONS)
+        pending = pending_voice(messages, lambda msg: bool(outcome.texts.get((msg.get("key") or {}).get("id", ""))))
+        outcome.over_limit = max(len(pending) - len(to_run), 0)
         return outcome, to_run
 
     def _summary_voice_blocked(self, to_run) -> bool:
@@ -142,19 +162,26 @@ class SummaryVoiceMixin:
             return True
         return False
 
-    def _summary_voice_step(self, messages, jid, on_done, follows_open_chat=False):
+    def _summary_voice_step(self, messages, jid, on_done, follows_open_chat=False, choice=None):
         """Collect the words of ``messages``' voice messages, then call
         ``on_done(VoiceOutcome)`` on the wx thread (at once when no run is
         needed; never when the person cancels). The voice messages that stay
         markers (over the limit, failed, not set up) are counted later, from
         the transcript itself."""
         outcome, to_run = self._summary_voice_plan(messages)
+        mode = choice.mode if choice is not None else MODE_LOCAL
+        if mode == MODE_NONE:
+            to_run, outcome.over_limit = [], 0  # not asked for: markers, not a shortfall
         if not to_run:
             on_done(outcome)
             return
-        if self._summary_voice_blocked(to_run):
+        if mode == MODE_LOCAL and self._summary_voice_blocked(to_run):
             return
-        run = _VoiceRun(jid, to_run, outcome, on_done, follows_open_chat)
+        run = _VoiceRun(jid, to_run, outcome, on_done, follows_open_chat, choice)
+        if mode != MODE_LOCAL:
+            _app, config = self._ai_settings()
+            run.profile = config["profile"]
+            run.language = mw_language(self.main_window)
         self._summary_voice_run = run
         try:
             stop_sentence = self._run_summary_voice(run)
@@ -176,7 +203,9 @@ class SummaryVoiceMixin:
                 if text is not None:
                     window[0].set_status(text)  # thread-safe: hops to the wx thread
                 on_progress(tick)
-            return _SummaryVoiceJob(self._summary_voice_worker, run, announce, on_finished)
+            worker = (self._summary_voice_worker if run.choice is None or run.choice.mode == MODE_LOCAL
+                      else self._summary_voice_online_worker)
+            return _SummaryVoiceJob(worker, run, announce, on_finished)
 
         first = i18n.t("ai_summary_voice_progress").format(index=1, total=run.total)
         dialog = TranscriptionProgressDialog(
@@ -238,6 +267,7 @@ class SummaryVoiceMixin:
                     if error.code == errors.CANCELLED:
                         run.cancelled.set()  # whoever cancelled the job, the summary stops
                         break
+                    run.outcome.failed += 1
                     logging.info("[transcription] a summary voice message failed: %s", error.code)
                     if auto_queue.pauses_the_queue(error):
                         stop_sentence = i18n.t(errors.error_i18n_key(error.code)).format(

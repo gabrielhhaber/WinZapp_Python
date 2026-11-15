@@ -14,6 +14,8 @@ WHAT'S NEW
 
 - Riepilogo con l'IA: due nuove scorciatoie nel menu contestuale del messaggio, Alt+Shift+I per riassumere da qui alla fine e Ctrl+Alt+Shift+I per riassumere i messaggi selezionati. Si possono cambiare nella scheda Scorciatoie delle Impostazioni, e le voci del menu ora mostrano la scorciatoia in uso, compresa Ctrl+Shift+U su quella dei non letti.
 
+- Riepilogo con IA: quando riassumi messaggi con messaggi vocali senza trascrizione salvata, una finestra chiede come trascriverli: in locale (predefinito), online con un provider e un modello di trascrizione separati dal modello del riepilogo, o non trascrivere. Prima di inviare i messaggi vocali, una domanda dice quanti vengono inviati, a quale provider e che ciò potrebbe consumare quota o comportare costi, con una casella per ricordare il consenso di quel provider. Le trascrizioni salvate vengono riutilizzate e il risultato avvisa quanti messaggi vocali sono falliti o esclusi dal limite. Aprire, cambiare o chiudere le finestre non invia nulla. Richiesto da UlisesMilani (#791).
+
 - WPPConnect: quando lo spazio su disco scarseggia (meno di 4 GB liberi), WinZapp chiude WhatsApp in sicurezza prima che perda la sessione, va offline e dice perché. Quando ci sono almeno 5 GB liberi si riconnette da solo. Prima, con circa 3 GB liberi, la sessione poteva tornare disconnessa come se fosse stata cancellata.
 
 - Trascrizione automatica: un messaggio vocale ricevuto mentre il computer era in sospensione non resta più senza trascrizione quando arriva insieme ad altri al risveglio.
