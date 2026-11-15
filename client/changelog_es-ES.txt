@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Al guardar un contacto en el móvil, WinZapp indica que se solicitó la sincronización, sin afirmar que la agenda del teléfono ya se actualizó. Las respuestas sin confirmación del contacto guardado no indican éxito.
+
 - Los cambios de privacidad recibidos de otro dispositivo actualizan los campos sin editar del panel abierto, conservando las elecciones pendientes y descartando respuestas de otra cuenta.
 
 - Bloquear o desbloquear contactos en otro dispositivo actualiza WinZapp al llegar el aviso. Los avisos sin detalles actualizan la lista completa y las respuestas antiguas no deshacen cambios recientes.

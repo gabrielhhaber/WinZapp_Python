@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- La salvarea unui contact pe telefon, WinZapp anunță solicitarea sincronizării, fără a afirma că agenda telefonului a fost deja actualizată. Răspunsurile fără confirmarea salvării contactului nu mai indică succes.
+
 - Modificările de confidențialitate primite de pe alt dispozitiv actualizează câmpurile needitate din panoul deschis, păstrând opțiunile în pregătire și ignorând răspunsurile altui cont.
 
 - Blocarea sau deblocarea contactelor pe alt dispozitiv actualizează WinZapp la primirea notificării. Notificările fără detalii reîmprospătează lista completă, iar răspunsurile vechi nu anulează modificările recente.

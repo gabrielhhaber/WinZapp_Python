@@ -173,6 +173,27 @@ class TestLocalTab:
 
 
 class TestSyncedTab:
+    def test_success_announces_a_request_not_a_completed_phone_write(self, boxes):
+        strings = load_strings("en-US")
+        d = _Dialog(MODE_PHONE)
+        d._mw.i18n = SimpleNamespace(t=lambda key: strings[key])
+        d.saving()
+        d._mw.on_done(_ok())
+        assert d._mw.spoken[-1] == (
+            "Contact saved in WhatsApp; synchronization with the phone requested. "
+            "Check the phone's address book.")
+
+    @pytest.mark.parametrize("answer", [{}, {"syncToAddressbook": True},
+                                       {"isMyContact": False, "syncToAddressbook": True}])
+    def test_unproven_save_does_not_store_a_contact_or_close_the_dialog(self, boxes, answer):
+        d = _Dialog(MODE_PHONE).saving()
+        response = SimpleNamespace(ok=True, json=lambda: {"response": answer})
+        result = phone_contacts.save_contact(
+            "base", "token", JID, "Ana", post=lambda *a, **k: response)
+        d._mw.on_done(result)
+        assert d._mw.local_saved == [] and d.ended == []
+        assert d._mw.spoken[-1] == phone_contacts.ERR_FAILED
+
     def test_it_asks_whatsapp_and_waits_before_storing(self, boxes):
         d = _Dialog(MODE_PHONE).saving()
         assert d._mw.requests == [(JID, "Ana", "Silva")]

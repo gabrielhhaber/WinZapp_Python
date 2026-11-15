@@ -9602,10 +9602,12 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_hint"
 msgid ""
-"This contact is saved in WhatsApp and synced with the phone's address book."
+"Saves the contact in WhatsApp and requests synchronization with the phone's "
+"address book. Completion on the phone cannot be verified here."
 msgstr ""
-"Questo contatto è salvato su WhatsApp e sincronizzato con la rubrica del "
-"telefono."
+"Salva il contatto su WhatsApp e richiede la sincronizzazione con la rubrica "
+"del telefono. Qui non è possibile verificare se il telefono ha completato il"
+" salvataggio."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_lid_unknown"
@@ -9629,17 +9631,21 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved"
-msgid "Contact saved and synced with the phone."
-msgstr "Contatto salvato e sincronizzato con il telefono."
+msgid ""
+"Contact saved in WhatsApp; synchronization with the phone requested. Check "
+"the phone's address book."
+msgstr ""
+"Contatto salvato su WhatsApp; sincronizzazione con il telefono richiesta. "
+"Controlla la rubrica del telefono."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved_unconfirmed"
 msgid ""
-"Contact saved in WhatsApp, but the sync with the phone could not be "
-"confirmed."
+"Contact saved in WhatsApp, but the phone synchronization request could not "
+"be confirmed."
 msgstr ""
-"Contatto salvato in WhatsApp, ma non è stato possibile confermare la "
-"sincronizzazione con il telefono."
+"Contatto salvato su WhatsApp, ma non è stato possibile confermare la "
+"richiesta di sincronizzazione con il telefono."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_contact.py
 msgctxt "new_contact_phone_saving"

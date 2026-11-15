@@ -1,8 +1,13 @@
 # Live address-book and profile names
 
 `contact-state-changed` is an account-scoped Socket.IO event with a serialized
-person JID in `contactId`, never a group ID or a message key. Two kinds separate
-saved names from public nicknames:
+person JID in `contactId`, never a group ID or a message key.
+
+These are observations, not phone-write acknowledgements. See
+[phone-contact-sync.md](phone-contact-sync.md) for the save action's limits
+and the distinction between frontend contact models and persisted state.
+
+Two kinds separate saved names from public nicknames:
 
 - `kind: address-book`, `name`, `saved: boolean`, optional
   `syncedToPhone: boolean`. An explicit removal has `saved: false` and clears

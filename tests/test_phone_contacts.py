@@ -84,9 +84,28 @@ class TestSaveContact:
         result = pc.save_contact("b", "t", PHONE, "Ana", post=post)
         assert result.ok is True and result.synced is False
 
-    def test_an_answer_with_no_details_is_a_save_without_a_confirmed_sync(self):
+    def test_an_answer_with_no_details_does_not_prove_a_save(self):
         result = pc.save_contact("b", "t", PHONE, "Ana", post=_Post(_resp(200, {})))
-        assert result == pc.SaveResult(True, "", PHONE, False)
+        assert result == pc.SaveResult(False, pc.ERR_FAILED, PHONE, False)
+
+    @pytest.mark.parametrize("saved", [False, None, 1, "true", "false"])
+    def test_sync_preference_without_a_saved_contact_is_not_success(self, saved):
+        post = _Post(_resp(200, {"response": {
+            "isMyContact": saved, "syncToAddressbook": True}}))
+        assert pc.save_contact("b", "t", PHONE, "Ana", post=post) == pc.SaveResult(
+            False, pc.ERR_FAILED, PHONE, False)
+
+    @pytest.mark.parametrize("sync", [False, None, 1, "true", "false"])
+    def test_only_an_explicit_boolean_reports_phone_sync_enabled(self, sync):
+        post = _Post(_resp(200, {"response": {
+            "isMyContact": True, "syncToAddressbook": sync}}))
+        result = pc.save_contact("b", "t", PHONE, "Ana", post=post)
+        assert result.ok is True and result.synced is False
+
+    def test_an_error_envelope_cannot_report_success_even_with_contact_flags(self):
+        post = _Post(_resp(200, {"status": "error", "response": {
+            "isMyContact": True, "syncToAddressbook": True}}))
+        assert pc.save_contact("b", "t", PHONE, "Ana", post=post).ok is False
 
     def test_an_lid_is_sent_whole(self):
         post = _Post(_resp(200, {"response": {"id": "123456789012345@lid"}}))

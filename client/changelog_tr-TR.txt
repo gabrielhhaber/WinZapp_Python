@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Telefon için kişi kaydederken WinZapp artık adres defterinin güncellendiğini söylemek yerine eşitlemenin istendiğini bildirir. Kişinin kaydedildiğini doğrulamayan yanıtlar başarı sayılmaz.
+
 - Başka bir cihazdan alınan gizlilik değişiklikleri, açık paneldeki düzenlenmemiş alanları günceller; hazırlanmakta olan seçimler korunur ve başka hesaba ait yanıtlar yok sayılır.
 
 - Başka bir cihazda kişileri engellemek veya engelini kaldırmak bildirim geldiğinde WinZapp’i günceller. Ayrıntısız bildirimler tüm listeyi yeniler; eski yanıtlar yeni değişiklikleri geri alamaz.
