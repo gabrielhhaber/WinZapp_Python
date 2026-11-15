@@ -7459,6 +7459,18 @@ msgstr ""
 "grupo pueden hacerlo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_activity_and"
+msgid "{first} and {second}"
+msgstr "{first} y {second}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_activity_comma"
+msgid "{first}, {second}"
+msgstr "{first}, {second}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "group_admin"
 msgid "admin"
@@ -8123,6 +8135,18 @@ msgid "{name}: {action}"
 msgstr "{name}: {action}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_recording_plural"
+msgid "{names} are recording audio"
+msgstr "{names} están grabando audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_recording_singular"
+msgid "{names} is recording audio"
+msgstr "{names} está grabando audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_requests_approve"
 msgid "&Approve"
 msgstr "&Aprobar"
@@ -8297,6 +8321,18 @@ msgstr "Orden de los mensajes de &grupo en las notificaciones toast:"
 msgctxt "group_toast_order_participant"
 msgid "Participant name first"
 msgstr "Primero el nombre del participante"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_typing_plural"
+msgid "{names} are typing"
+msgstr "{names} están escribiendo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_typing_singular"
+msgid "{names} is typing"
+msgstr "{names} está escribiendo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -14146,6 +14182,16 @@ msgstr "Anunciar cuando &la actualización de chats se haya completado"
 msgctxt "speech_announce_conversations_update_start_label"
 msgid "Announce &when chats update starts"
 msgstr "Anunciar cuando la actualización &de chats se haya iniciado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_group_multiple_label"
+msgid ""
+"Consider activity from multiple &participants when announcing a group's "
+"status"
+msgstr ""
+"Tener en cuenta la actividad de &varios participantes al anunciar el estado "
+"de un grupo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

@@ -13,6 +13,8 @@ import time
 import wx
 from core.chat_row_text import name_with_unread, unread_position
 from main_window.typing_feedback import observe_typing_batch
+from main_window.group_activity import announce_group_activity, group_entries, multiple_enabled
+from core.group_activity import group_activity_text
 from core.conversation_view import conversation_in_view
 from core.unsaved_contact_marker import marked_chat_name
 from core.pinned_chat_order import sync_pinned_order
@@ -189,6 +191,14 @@ class ChatEventsMixin:
         active = getattr(self, "_composing_chats", {}).get(chat_jid_norm, {})
         if not active:
             return ""
+        if is_group and multiple_enabled(self):
+            # Everyone active in the group, not only the last one heard.
+            text = group_activity_text(
+                group_entries(self, chat_jid_norm, resolve_missing=resolve_missing),
+                self.i18n.t,
+            )
+            if text:
+                return text
         participant_jid, action = next(iter(active.items()))
         if action == "composing":
             action_label = self.i18n.t("typing_indicator")
@@ -197,14 +207,12 @@ class ChatEventsMixin:
         else:
             return ""
         if is_group:
+            # The old preview: only the first participant, "name: action".
             if resolve_missing:
                 name = self._resolve_jid_name(participant_jid, chat_jid_norm)
             else:
                 name = self._resolve_jid_name(
-                    participant_jid,
-                    chat_jid_norm,
-                    resolve_missing=False,
-                )
+                    participant_jid, chat_jid_norm, resolve_missing=False)
             if name:
                 return self.i18n.t("group_presence_indicator").format(
                     name=name, action=action_label
@@ -520,6 +528,7 @@ class ChatEventsMixin:
                         self._presence_timers.pop((cjid, part), None)
                         if getattr(self, "_shutting_down", False):
                             return
+                        announce_group_activity(self, cjid)
                         request_presence_ui(self, cjid, row=True)
                         # A missing final push must not leave expired activity
                         # waiting for the next periodic active-chat tick.
@@ -541,7 +550,8 @@ class ChatEventsMixin:
 
             # Speak via AO2 only when a composing/recording event starts in the ACTIVE conversation.
             # Events from other chats are intentionally silent to avoid interrupting the user.
-            if new_lkp != old_lkp and new_lkp in ("composing", "recording"):
+            if (not (presence_scope and multiple_enabled(self)) and new_lkp != old_lkp
+                    and new_lkp in ("composing", "recording")):
                 speech = self.settings.get("speech_content", {})
                 announce_enabled = (
                     speech.get("announce_typing", True) if new_lkp == "composing"
@@ -583,6 +593,10 @@ class ChatEventsMixin:
         if getattr(self, "_shutting_down", False):
             return
         observe_typing_batch(self, chat_jid_norm, _typing_sound_changes)
+        # Groups: one announcement of the whole current list per change (the
+        # per-participant announcement above is for private chats only).
+        if presence_scope:
+            announce_group_activity(self, chat_jid_norm)
         # Persist the updated pushName map to database metadata.
         if _ppm_updated and hasattr(self, "db") and self.db is not None:
             try:
