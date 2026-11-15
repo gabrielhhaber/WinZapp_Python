@@ -264,7 +264,11 @@ def test_a_stereo_voice_message_asks_the_aac_encoder_for_the_chosen_bitrate(monk
     assert not m4a.exists()
 
 
-def test_microphone_plus_computer_audio_keeps_its_192k(monkeypatch, tmp_path):
+def test_the_aac_encoder_keeps_its_192k_default(monkeypatch, tmp_path):
+    """encode_system_audio_to_m4a's default is the plain AAC encoder's contract
+    (Audio attachments reach WhatsApp upscaled to 48 kHz AAC at 192k). The
+    microphone + computer audio recording is a voice message and always passes
+    the stereo voice bitrate explicitly, so it does not use this default."""
     from core import audio_transcode
     calls = []
 

@@ -730,10 +730,10 @@ class VoiceRecordingMixin:
         bytes_per_frame = 2 * actual_ch
         quoted_msg      = self._quoted_message
         output_ch       = recording_output_channels(actual_ch, channel_mode)
-        stereo_out      = not mixed_audio and encode_as_stereo(output_ch)
-        # Microphone + computer audio goes out as an audio message
-        # (Ctrl+Shift+H's AAC-LC M4A through /send-file).
-        as_audio_file   = mixed_audio
+        # Stereo stays stereo however it was captured (#679 applies only in
+        # automatic mode); microphone + computer audio is a voice message
+        # too — a stereo one is M4A through the stereo-voice path.
+        stereo_out      = encode_as_stereo(output_ch)
 
         # Duration from frame byte counts — no allocation, no join on UI thread.
         total_bytes  = sum(len(f) for f in frames)
@@ -758,12 +758,10 @@ class VoiceRecordingMixin:
             "message": {
                 "audioMessage": {
                     "seconds": duration_sec,
-                    # Microphone + computer audio goes out as an audio message
-                    # rather than a voice message — say so already. A stereo
-                    # voice message is M4A too (core/voice_stereo.py).
-                    "ptt":     not as_audio_file,
+                    # A stereo voice message is M4A too (core/voice_stereo.py).
+                    "ptt":     True,
                     **({"mimetype": "audio/mp4", "fileName": f"{local_id}.m4a"}
-                       if as_audio_file or stereo_out else {}),
+                       if stereo_out else {}),
                 }
             },
             "messageTimestamp": pending_send_timestamp(
@@ -877,7 +875,7 @@ class VoiceRecordingMixin:
                              _time.perf_counter() - _t0, wav_path)
             except Exception as exc:
                 logging.error("[_send_voice_message] failed to write WAV: %s", exc)
-                if as_audio_file or send_stereo:
+                if send_stereo:
                     if tmp is not None:
                         try:
                             os.unlink(tmp.name)
@@ -886,11 +884,6 @@ class VoiceRecordingMixin:
                     wx.CallAfter(mw._on_message_failed, local_id,
                                  mw.i18n.t("media_audio_convert_failed"), True)
                 return
-
-            if as_audio_file:
-                return lambda: self._enqueue_system_audio_file(
-                    wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg,
-                )
 
             # 3. Encode: stereo as AAC M4A (core/voice_stereo.py), never quietly
             # downmixed when that fails; mono as OGG Opus via ffmpeg conversion.
@@ -924,7 +917,18 @@ class VoiceRecordingMixin:
                          _time.perf_counter() - _t_enc,
                          len(ogg_bytes) if ogg_bytes else 0)
 
-            # 4. Encrypt OGG (or raw PCM fallback) and save as .msv for offline playback.
+            # 4. The user cancelled while the encoder was running: the recording
+            # must not reach the queue at all, whatever the outcome. (The
+            # microphone + computer audio path had this guard; keep it for
+            # every voice message.)
+            if virtual_msg.get("_cancelled_awaiting_id") or self._is_cancelled_pending(local_id):
+                try:
+                    os.unlink(wav_path)
+                except OSError:
+                    pass
+                mw._on_cancelled_message_dropped(local_id)
+                return
+            # 5. Encrypt OGG (or raw PCM fallback) and save as .msv for offline playback.
             _t_msv = _time.perf_counter()
             try:
                 voice_messages_dir = data_path("voice_messages")
@@ -938,7 +942,7 @@ class VoiceRecordingMixin:
             except Exception as exc:
                 logging.warning("[_send_voice_message] failed to save local audio copy: %s", exc)
 
-            # 5. Enqueue — ogg_bytes pre-encoded so worker skips encoding, just POSTs.
+            # 6. Enqueue — ogg_bytes pre-encoded so worker skips encoding, just POSTs.
             logging.info("[VOICE_TIMING] T+%.3fs — calling enqueue (ogg_bytes=%s)",
                          _time.perf_counter() - _t0,
                          "yes" if ogg_bytes else "NO — will fallback to WAV")
