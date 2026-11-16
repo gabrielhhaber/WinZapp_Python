@@ -186,6 +186,7 @@ class _Panel(PinnedMessagesMixin):
     _on_messages_list_key_down = ConversationsPanel._on_messages_list_key_down
     _on_conv_list_key_down = ConversationsPanel._on_conv_list_key_down
     _handle_chat_selection_key = ConversationsPanel._handle_chat_selection_key
+    _clear_chat_list_filters = lambda self: False  # Esc-clears-filters has its own tests
     _repaint_chat_selection = ConversationsPanel._repaint_chat_selection
     _announce_chat_selected = ConversationsPanel._announce_chat_selected
     _reset_after_chat_cleared = ConversationsPanel._reset_after_chat_cleared

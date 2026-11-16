@@ -7430,6 +7430,12 @@ msgctxt "files_selected"
 msgid "{count} file(s) selected"
 msgstr "{count} arquivo(s) selecionado(s)"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_list_selection.py
+msgctxt "filters_cleared"
+msgid "Filters cleared"
+msgstr "Filtros limpos"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
 msgctxt "force_reinstall_confirm_msg"
@@ -20057,6 +20063,12 @@ msgstr ""
 "na lista em vez de reproduzi-la (Alt+Shift+N a reproduz ou abre); "
 "desmarcado, Enter e Espaço a reproduzem ou abrem e Alt+Shift+N a transcreve "
 "na linha"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_filters"
+msgid "Esc clears the search an&d the filters in a list of chats"
+msgstr "Esc limpa a pes&quisa e os filtros em uma lista de conversas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

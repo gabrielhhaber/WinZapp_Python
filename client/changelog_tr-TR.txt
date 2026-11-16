@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sohbet listelerinde (normal, arşivlenmiş ve kilitli) Esc aramayı ve filtreleri temizler ve ekran okuyucu "Filtreler temizlendi" der; sohbetler seçiliyse ilk Esc yine yalnızca seçimi kaldırır. Ayarlar, Sohbetler bölümünden kapatılabilir.
+
 - Başka bir cihazda bir sohbeti listeye eklemek veya listeden çıkarmak, seçili listeyi değiştirmeden listeleri ve açık filtreyi günceller.
 
 - Başka bir cihazda profil fotoğrafınızı değiştirmek, henüz kaydetmediğiniz ad, Hakkında veya fotoğrafı değiştirmeden açık Profil panelini günceller.

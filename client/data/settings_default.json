@@ -108,6 +108,7 @@
         "system_audio_consent_revision": 0,
         "space_selects_in_selection_mode": true,
         "escape_clears_selection": true,
+        "escape_clears_filters": true,
         "keep_search_after_open": false,
         "enter_transcribes_voice_messages": false,
         "enter_transcribes_statuses": false,

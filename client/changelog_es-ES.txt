@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- En las listas de chats (normal, archivados y bloqueados), Esc borra la búsqueda y los filtros y el lector de pantalla dice "Filtros borrados"; con chats seleccionados, la primera pulsación de Esc sigue anulando solo la selección. Se puede desactivar en Configuración, Chats.
+
 - Añadir un chat a una lista o quitarlo de ella en otro dispositivo actualiza las listas y el filtro abierto, sin cambiar la lista seleccionada.
 
 - Cambiar tu foto de perfil en otro dispositivo actualiza el panel Perfil abierto, sin sustituir el nombre, la información ni una foto que aún no hayas guardado.

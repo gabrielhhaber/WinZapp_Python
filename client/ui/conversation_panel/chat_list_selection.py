@@ -157,6 +157,47 @@ class ChatListSelectionMixin:
             "escape_clears_selection", True
         )
 
+    def _escape_clears_filters_enabled(self) -> bool:
+        """Settings > User Interface > "Esc limpa os filtros e a pesquisa na
+        lista de conversas" (default on)."""
+        return bool(self.main_window.settings.get("user_interface", {}).get(
+            "escape_clears_filters", True
+        ))
+
+    def _chat_list_filters_active(self) -> bool:
+        """True while the list is narrowed by its search text or by a filter
+        other than "all" (the locked list has no filter radio buttons)."""
+        search = getattr(self, "search_field", None)
+        if search is not None and search.GetValue():
+            return True
+        return (getattr(self, "_filter_radio", None) is not None
+                and getattr(self, "_conv_filter", "all") != "all")
+
+    def _rebuild_chat_list_after_filters_cleared(self) -> None:
+        self.main_window.add_chats_to_ui()
+
+    def _clear_chat_list_filters(self) -> bool:
+        """Esc on a chat list (or its search field): clear the search text and
+        reset the filter radio buttons to "all", announce it and rebuild the
+        list once. Returns False, doing nothing, when the setting is off or
+        nothing narrows the list, so Esc keeps its old job. A chat selection
+        still wins: _handle_chat_selection_key() clears that first."""
+        if not self._escape_clears_filters_enabled() or not self._chat_list_filters_active():
+            return False
+        if self.selected_chats and self._escape_clears_selection_enabled():
+            return False  # the selection goes first; the next Esc gets here
+        # ChangeValue() raises no EVT_TEXT, so the list is rebuilt just once.
+        search = getattr(self, "search_field", None)
+        if search is not None:
+            search.ChangeValue("")
+        radio = getattr(self, "_filter_radio", None)
+        if radio is not None:
+            radio.SetSelection(0)
+            self._conv_filter = "all"
+        self._rebuild_chat_list_after_filters_cleared()
+        self.main_window.output(self.main_window.i18n.t("filters_cleared"), interrupt=True)
+        return True
+
     def _selection_mode_announcement(self, base: str, was_active: bool, is_active: bool) -> str:
         """Append the selection-mode transition to *base* when the mode just
         turned on or off, and return the combined line.
@@ -199,8 +240,9 @@ class ChatListSelectionMixin:
         Shift+Home/Shift+End select every row above/below the focused one and
         move focus to the first/last row; Ctrl+Shift+Space selects every chat,
         or clears the selection if everything is already selected. Esc clears
-        the selection when "Esc desmarca" is on, as it does for messages;
-        with nothing selected it keeps whatever it did before.
+        the selection when "Esc desmarca" is on, as it does for messages; with
+        nothing selected it clears the search and filters (_clear_chat_list_filters)
+        and, with none active, keeps whatever it did before.
         """
         event = command_key_event(self, 'chat_selection', event)
         key   = event.GetKeyCode()
@@ -256,6 +298,10 @@ class ChatListSelectionMixin:
                 self._selection_mode_announcement(
                     self.main_window.i18n.t("all_unselected"), was_active, False),
                 interrupt=True)
+            return True
+
+        if (key == wx.WXK_ESCAPE and not ctrl and not shift and not event.AltDown()
+                and self._clear_chat_list_filters()):
             return True
 
         if ctrl and shift and key == wx.WXK_SPACE:

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- In the chat lists (regular, archived and locked), Esc clears the search and the filters and the screen reader says "Filters cleared"; with chats selected, the first Esc still deselects just the selection. You can turn it off in Settings, Chats.
+
 - Adding a chat to a list or removing it from one on another device updates the lists and the open filter, without changing the list you selected.
 
 - Changing your profile photo on another device updates the open Profile panel, without replacing a name, About or photo you have not saved yet.

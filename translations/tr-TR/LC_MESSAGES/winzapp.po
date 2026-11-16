@@ -7396,6 +7396,12 @@ msgctxt "files_selected"
 msgid "{count} file(s) selected"
 msgstr "{count} dosya seçildi"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_list_selection.py
+msgctxt "filters_cleared"
+msgid "Filters cleared"
+msgstr "Filtreler temizlendi"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
 msgctxt "force_reinstall_confirm_msg"
@@ -19862,6 +19868,12 @@ msgstr ""
 "Sesli mesajda &veya videoda Enter ve Boşluk, onu oynatmak yerine listedeki "
 "satırına yazıya döker (Alt+Shift+N oynatır veya açar); kapalıyken Enter ve "
 "Boşluk oynatır veya açar, Alt+Shift+N satıra yazıya döker"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_filters"
+msgid "Esc clears the search an&d the filters in a list of chats"
+msgstr "Esc, sohbet listesinde aramayı ve &filtreleri temizler"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
