@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Inside an open chat with the message search (Ctrl+Shift+F) active, the first Esc clears the search and closes the bar, and the screen reader says "Message search cleared"; the next Esc closes the chat. You can turn it off in Settings, Chats.
+
 - In the chat lists (regular, archived and locked), Esc clears the search and the filters and the screen reader says "Filters cleared"; with chats selected, the first Esc still deselects just the selection. You can turn it off in Settings, Chats. This also works from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.
 
 - Adding a chat to a list or removing it from one on another device updates the lists and the open filter, without changing the list you selected.

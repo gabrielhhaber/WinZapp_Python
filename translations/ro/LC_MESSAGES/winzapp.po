@@ -9580,6 +9580,12 @@ msgctxt "message_recovered_from_quote_label"
 msgid "(recovered from a reply)"
 msgstr "(recuperat dintr-un răspuns)"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_search.py
+msgctxt "message_search_cleared"
+msgid "Message search cleared"
+msgstr "Căutarea mesajelor a fost ștearsă"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 msgctxt "message_send_unconfirmed"
 msgid ""
@@ -20102,6 +20108,12 @@ msgstr ""
 msgctxt "ui_escape_clears_filters"
 msgid "Esc clears the search an&d the filters in a list of chats"
 msgstr "Esc șterge căutarea și filtrele din lista de con&versații"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_message_search"
+msgid "Esc clears the messa&ge search in the active chat"
+msgstr "Esc șter&ge căutarea în conversația activă"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

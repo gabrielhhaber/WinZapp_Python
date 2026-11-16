@@ -693,6 +693,8 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
+        if not mention_open and self._clear_message_search_on_escape():
+            return
         self.close_conversation(event, from_user=True)
 
     def _focus_in_conversation_area(self) -> bool:

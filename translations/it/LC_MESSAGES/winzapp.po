@@ -9628,6 +9628,12 @@ msgctxt "message_recovered_from_quote_label"
 msgid "(recovered from a reply)"
 msgstr "(recuperato da una risposta)"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_search.py
+msgctxt "message_search_cleared"
+msgid "Message search cleared"
+msgstr "Ricerca dei messaggi cancellata"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 msgctxt "message_send_unconfirmed"
 msgid ""
@@ -20248,7 +20254,15 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_escape_clears_filters"
 msgid "Esc clears the search an&d the filters in a list of chats"
-msgstr "&Quando si preme Esc, vengono azzerati la ricerca e i filtri di un elenco di chat"
+msgstr ""
+"&Quando si preme Esc, vengono azzerati la ricerca e i filtri di un elenco di"
+" chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_message_search"
+msgid "Esc clears the messa&ge search in the active chat"
+msgstr "In &WinZapp, Esc cancella la ricerca nella chat attiva"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
