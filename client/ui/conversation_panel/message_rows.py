@@ -119,7 +119,9 @@ class MessageRowsMixin:
             if not row_text_unchanged(lst.GetItemText(index), text):
                 lst.SetItemText(index, text)
                 rewritten += 1
-        if deletes or inserts or rewritten:
+        # A pass that changed nothing is logged too when rendering alone was slow:
+        # that is the worst case of issue #812 and would otherwise leave no trace.
+        if deletes or inserts or rewritten or rendered - started > 0.5:
             done = time.monotonic()
             logging.info(
                 "[_sync_message_rows] %d row(s) deleted, %d inserted, %d rewritten, "
