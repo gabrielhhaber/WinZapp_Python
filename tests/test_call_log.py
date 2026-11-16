@@ -74,6 +74,28 @@ class TestPayload:
         raw = {"callOutcome": ONGOING, "finalCallOutcome": COMPLETED, "callDuration": 5}
         assert call_log_payload(raw)["outcome"] == COMPLETED
 
+    @pytest.mark.parametrize("final", [MISSED, REJECTED, CANCELED])
+    def test_a_group_call_that_went_on_without_this_account_is_not_answered(self, final):
+        """Rung, never answered, and the others talked for 2:57: WhatsApp Web
+        ends the record as Completed with the whole call's duration, while
+        finalCallOutcome keeps what this device did (user report, 2026-11-14)."""
+        raw = {"callOutcome": COMPLETED, "finalCallOutcome": final, "callDuration": 177,
+               "callParticipants": [{}, {}, {}]}
+        assert call_log_payload(raw)["outcome"] == final
+
+    @pytest.mark.parametrize("final", [COMPLETED, "", None, "Unknown", ONGOING, ACCEPTED_ELSEWHERE])
+    def test_a_group_call_answered_here_stays_completed(self, final):
+        """Only a final outcome that says "never connected" overrides Completed:
+        a call this device was in has finalCallOutcome Completed, and a synced
+        record may have none."""
+        raw = {"callOutcome": COMPLETED, "finalCallOutcome": final, "callDuration": 1817,
+               "callParticipants": [{}, {}, {}, {}]}
+        assert call_log_payload(raw)["outcome"] == COMPLETED
+
+    def test_answered_elsewhere_is_not_turned_into_missed(self):
+        raw = {"callOutcome": ACCEPTED_ELSEWHERE, "finalCallOutcome": MISSED}
+        assert call_log_payload(raw)["outcome"] == ACCEPTED_ELSEWHERE
+
     def test_more_than_two_participants_is_a_group_call(self):
         raw = {"callOutcome": MISSED, "callParticipants": [{}, {}, {}]}
         assert call_log_payload(raw)["isGroupCall"] is True

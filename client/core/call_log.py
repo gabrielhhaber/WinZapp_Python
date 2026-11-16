@@ -39,6 +39,17 @@ UNKNOWN = "Unknown"
 # Outcomes WhatsApp later overwrites with the real one.
 PENDING_OUTCOMES = frozenset({ONGOING, UNKNOWN, ""})
 
+# What ``finalCallOutcome`` reads when this device never connected to the call.
+# ``finalCallOutcome`` is this device's own result (WhatsApp Web writes it from
+# the native call's ``callResult`` on every state change), while ``callOutcome``
+# of a group call is overwritten with the call's own fate: a group call that
+# went on without this account ends as ``Completed`` with the whole call's
+# duration (WAWebVoipActionWriteCallLogEventUpdateJoinable, read 2026-11-16).
+# WhatsApp's own "missed" test reads the pair the same way
+# (WAWebCallLogUtils.getIsMissedCallOrNotConnected). A call answered here has
+# ``finalCallOutcome`` Completed, so it never matches.
+NOT_CONNECTED_OUTCOMES = frozenset({MISSED, REJECTED, CANCELED})
+
 # Statuses, from this account's point of view. Direction matters: a "Missed"
 # incoming call is one the user missed, an outgoing one is one the other side
 # did not answer.
@@ -96,6 +107,8 @@ def call_log_payload(wpp_msg: dict) -> dict:
     # WhatsApp records the settled outcome here while callOutcome can still
     # read Ongoing (its own label code checks both the same way).
     if outcome in PENDING_OUTCOMES and final and final not in PENDING_OUTCOMES:
+        outcome = final
+    elif outcome == COMPLETED and final in NOT_CONNECTED_OUTCOMES:
         outcome = final
     participants = wpp_msg.get("callParticipants")
     participant_count = len(participants) if isinstance(participants, list) else 0
