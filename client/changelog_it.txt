@@ -4,7 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
-- Inside an open chat with the message search (Ctrl+Shift+F) active, the first Esc clears the search and closes the bar, and the screen reader says "Ricerca dei messaggi cancellata"; the next Esc closes the chat. You can turn it off in Impostazioni, Chat.
+- In una chat aperta, con la ricerca dei messaggi (Ctrl+Shift+F) attiva, il primo Esc cancella la ricerca e chiude la barra, e il lettore di schermo dice "Ricerca dei messaggi cancellata"; il successivo Esc chiude la chat. Si può disattivare in Impostazioni, Chat.
 
 - Negli elenchi di chat (normale, archiviate e bloccate), Esc azzera la ricerca e i filtri e il lettore di schermo dice "Filtri azzerati"; con delle chat selezionate, il primo Esc annulla ancora solo la selezione. Si può disattivare in Impostazioni, Chat. This also works from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.
 

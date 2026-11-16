@@ -105,3 +105,11 @@ def test_focus_inside_the_bar_is_left_to_the_close(monkeypatch):
     panel._clear_message_search_on_escape()
     assert field.focused == 0
     panel._on_close_search.assert_called_once()
+
+
+def test_the_mention_popup_keeps_its_esc(monkeypatch):
+    """The popup is dismissed by its own hook; the search must not also go."""
+    panel = _Panel(monkeypatch)
+    panel._mention_panel = _Bar(True)
+    panel._on_escape_conversation(None)
+    panel._on_close_search.assert_not_called()
