@@ -59,6 +59,12 @@ class TranslationBacklogMixin:
             self._maybe_auto_translate(active, row)
 
     def _on_mass_translate_messages(self, event=None):
+        self._start_bulk_translation(
+            selected_texts(self._sorted_messages, self.selected_messages, self._is_separator))
+
+    def _start_bulk_translation(self, rows):
+        """Check the settings, confirm, then translate *rows* one after another
+        (the run's steps below). Shared by the selection and "from here"."""
         mw = self.main_window
         t = mw.i18n.t
         config = self._translation_settings()
@@ -75,7 +81,6 @@ class TranslationBacklogMixin:
                 self, "_manual_translation", None) is not None:
             mw.output(t("ai_error_busy"), interrupt=True)
             return
-        rows = selected_texts(self._sorted_messages, self.selected_messages, self._is_separator)
         if not rows:
             mw.output(t("translation_bulk_none"), interrupt=True)
             return

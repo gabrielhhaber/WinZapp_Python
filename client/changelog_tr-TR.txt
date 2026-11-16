@@ -46,6 +46,8 @@ YENİLİKLER
 
 - Açık sohbette, hem Neonize hem de WPPConnect ile yeni bir oy olayı geldiğinde anket sonuçları yenilenir. Neonize: oylar, silinen mesajlar ve etiket ilişkilendirmeleri için WPPConnect uyumlu olaylar; alınan durumların kimlikleri yazarı korur.
 
+- Konuşmada zaten bulunan mesajların çevirisi: mesajın bağlam menüsüne "Buradan sona kadar çevir" (Alt+Shift+Y) eklendi ve toplu eylem "Seçili mesajları çevir" kısayolunu, Ctrl+Alt+Shift+Y'yi gösteriyor. İkisi de Ayarlar'ın Kısayollar sekmesinden değiştirilebilir ve menü öğeleri kullanılan kısayolu gösterir. Birden fazla mesajın çevirisi sürerken aynı menü öğesi ve kısayol "Mesajların çevirisini iptal et" olur. Alınan metin mesajları için geçerlidir, bir seferde en fazla 50 mesaj, "Mesajı çevir" ile aynı sağlayıcı, model ve görüntüleme kullanılır.
+
 - Yazma yardımı: WinZapp'a, cep telefonları için WhatsApp'taki yazma yardımına benzer bir özellik ve ek olarak taslağı çevirme seçeneği eklenir. Emoji sonrasındaki yeni düğme ve yazı alanının bağlam menüsü aynı pencereyi açar. Meta AI yerine WinZapp'ta yapılandırılmış yapay zeka sağlayıcılarıyla düzeltme, yeniden yazma, profesyonel veya teşvik edici ton sunar; çeviri Google ile yapılır. Taslak gönderilmeden önce onay istenir ve değiştirmeden önce sonuç gösterilir; mesaj hiçbir zaman otomatik gönderilmez. Bir işlem seçin, ardından "Seçilen işlemi çalıştır" düğmesine basın. Bu pencereyi açmak veya kapatmak taslağı göndermez.
 
 - Yazma yardımı: taslak yazılıyken sohbetin herhangi bir yerinden pencereyi açan yeni Alt+Shift+H kısayolu. Ayarlar'ın Kısayollar sekmesinden değiştirilebilir; alanın bağlam menüsü ve düğme artık kullanımdaki kısayolu gösterir.

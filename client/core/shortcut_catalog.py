@@ -71,6 +71,8 @@ SHORTCUTS = (
     Shortcut('messages.ID_SUMMARIZE_UNREAD', 'messages', 'ID_SUMMARIZE_UNREAD', 'shortcut_summarize_unread_label', 6, 85, 0),
     Shortcut('messages.ID_SUMMARIZE_FROM_HERE', 'messages', 'ID_SUMMARIZE_FROM_HERE', 'shortcut_summarize_from_here_label', 5, 73, 0),
     Shortcut('messages.ID_SUMMARIZE_SELECTED', 'messages', 'ID_SUMMARIZE_SELECTED', 'shortcut_summarize_selected_label', 7, 73, 0),
+    Shortcut('messages.ID_TRANSLATE_FROM_HERE', 'messages', 'ID_TRANSLATE_FROM_HERE', 'shortcut_translate_from_here_label', 5, 89, 0),
+    Shortcut('messages.ID_TRANSLATE_SELECTED', 'messages', 'ID_TRANSLATE_SELECTED', 'shortcut_translate_selected_label', 7, 89, 0),
     Shortcut('messages.ID_CTRL_R', 'messages', 'ID_CTRL_R', 'shortcut_ctrl_r_label', 2, 82, 0),
     Shortcut('main.ID_ALT_2', 'messages', 'ID_ALT_2', 'shortcut_alt2_label', 1, 50, 0),
     Shortcut('messages.ID_ESC', 'messages', 'ID_ESC', 'shortcut_esc_ctrl_w_label', 0, 27, 0),
