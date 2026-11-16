@@ -139,7 +139,8 @@ def test_label_routes_read_phone_metadata_and_mirror_their_own_writes(session):
 
 
 def test_business_labels_drop_the_accounts_chat_lists():
-    registry = {"3": {"type": 0}, "4": {"type": 4, "isImmutable": False}, "5": {"type": 5},
+    registry = {"3": {"type": 0}, "4": {"type": 4, "isImmutable": False, "predefinedID": 2},
+                "8": {"type": 4, "predefinedID": 0}, "5": {"type": 5},
                 "6": {"type": 3, "isImmutable": True}, "7": {"type": 0, "isImmutable": True},
                 "1000": {"name": "legacy, no type"}}
     assert set(label_events.business_labels(registry)) == {"3", "4", "1000"}
