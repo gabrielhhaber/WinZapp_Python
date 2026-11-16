@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Bir sohbeti arşivlemek artık, bağlam menüsünden ya da Ctrl+Shift+Q ile, silmede olduğu gibi onay ister. Pencere "Bu sohbeti arşivlemek istediğinizden emin misiniz?" diye sorar; "Sohbeti arşivle" (Alt+S) ve "İptal" (Alt+L) düğmeleri ile yalnızca onayla birlikte geçerli olan "Tekrar gösterme" kutusu vardır. Ayarlar'da "Sohbetleri arşivlemeden önce onay iste" seçeneği soruyu yeniden açar.
+
 - Konuşmada zaten bulunan mesajların çevirisi: mesajın bağlam menüsüne "Buradan sona kadar çevir" (Alt+Shift+Y) eklendi ve toplu eylem "Seçili mesajları çevir" kısayolunu, Ctrl+Alt+Shift+Y'yi gösteriyor. İkisi de Ayarlar'ın Kısayollar sekmesinden değiştirilebilir ve menü öğeleri kullanılan kısayolu gösterir. Birden fazla mesajın çevirisi sürerken aynı menü öğesi ve kısayol "Mesajların çevirisini iptal et" olur. Alınan metin mesajları için geçerlidir, bir seferde en fazla 50 mesaj, "Mesajı çevir" ile aynı sağlayıcı, model ve görüntüleme kullanılır.
 
 - Yazma yardımı: WinZapp'a, cep telefonları için WhatsApp'taki yazma yardımına benzer bir özellik ve ek olarak taslağı çevirme seçeneği eklenir. Emoji sonrasındaki yeni düğme ve yazı alanının bağlam menüsü aynı pencereyi açar. Meta AI yerine WinZapp'ta yapılandırılmış yapay zeka sağlayıcılarıyla düzeltme, yeniden yazma, profesyonel veya teşvik edici ton sunar; çeviri Google ile yapılır. Taslak gönderilmeden önce onay istenir ve değiştirmeden önce sonuç gösterilir; mesaj hiçbir zaman otomatik gönderilmez. Bir işlem seçin, ardından "Seçilen işlemi çalıştır" düğmesine basın. Bu pencereyi açmak veya kapatmak taslağı göndermez.

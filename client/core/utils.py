@@ -1199,6 +1199,7 @@ DEFAULT_SETTINGS = {
         "confirm_mark_all_read": True,
         "confirm_clear_chat": True,
         "confirm_delete_chat": True,
+        "confirm_archive_chat": True,
         # Ask before F5 / Shift+F5 (MainWindow._confirm_resync()); the
         # confirmations' own "don't show again" boxes clear these.
         "confirm_resync_all": True,

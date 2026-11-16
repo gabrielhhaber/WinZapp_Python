@@ -503,6 +503,8 @@ This release brings transcription of voice messages on your own computer, with n
 
 WHAT'S NEW
 
+- أرشفة دردشة تطلب الآن تأكيدًا، من قائمة السياق أو بالضغط على Ctrl+Shift+Q، مثل الحذف. تسأل النافذة "هل أنت متأكد أنك تريد أرشفة هذه الدردشة؟" وفيها الزران "أرشف الدردشة" (Alt+ر) و"إلغاء" (Alt+ل) ومربع "لا تظهر مرة أخرى" الذي لا يسري إلا مع التأكيد. في الإعدادات، يعيد الخيار "طلب التأكيد قبل أرشفة الدردشات" السؤال.
+
 - Local transcription with faster-whisper: fixed CUDA library loading on Windows that could prevent graphics-card use and leave later transcriptions stuck. If the libraries cannot be loaded, WinZapp reports the problem before starting GPU inference.
 
 - Your online status now follows the current window even when you switch away quickly, hide WinZapp to the tray or reconnect in the background. A delayed online update can no longer overtake the offline update, and a failed offline update is retried.
