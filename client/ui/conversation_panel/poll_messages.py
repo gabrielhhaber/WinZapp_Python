@@ -102,6 +102,21 @@ class PollMessagesMixin:
     _POLL_VOTES_MIN_INTERVAL = 10
     _POLL_VOTES_MAX_POLLS = 10
 
+    def on_poll_response(self, chat: str, message_id: str) -> None:
+        """A live vote changed an open poll; fetch authoritative aggregate counts."""
+        def normalize(jid):
+            return getattr(self.main_window, "_lid_to_phone", {}).get(
+                jid, jid).replace("@c.us", "@s.whatsapp.net")
+        if normalize((self.conversation or {}).get("remoteJid", "")) != normalize(chat):
+            return
+        if not any((record.get("key") or {}).get("id") == message_id
+                   for record in self._open_poll_records()):
+            return
+        if getattr(self, "_poll_votes_busy", False):
+            self._poll_votes_pending_event = (chat, message_id)
+        else:
+            self.refresh_poll_votes(force=True)
+
     def _open_poll_records(self) -> list:
         """The newest confirmed poll records of the open conversation."""
         container = (self.conversation or {}).get("messages")
@@ -142,6 +157,10 @@ class PollMessagesMixin:
 
     def _apply_poll_votes(self, remote_jid: str, records: list, result: dict) -> None:
         self._poll_votes_busy = False
+        pending = getattr(self, "_poll_votes_pending_event", None)
+        self._poll_votes_pending_event = None
+        if pending:
+            self.on_poll_response(*pending)
         if not result or (self.conversation or {}).get("remoteJid", "") != remote_jid:
             return
         changed = False

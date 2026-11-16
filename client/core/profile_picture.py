@@ -107,7 +107,12 @@ def fetch_profile_picture(base_url, token, jid, api_get, http_get, fallback_url=
             timeout=15,
         )
         if r.status_code in (200, 201):
-            url = picture_url_from_response(r.json())
+            payload = r.json()
+            # A definitive absent/hidden picture must not revive a cached URL.
+            if (isinstance(payload, dict) and payload.get("status") in (None, "success")
+                    and "response" in payload and payload["response"] is None):
+                return None
+            url = picture_url_from_response(payload)
             if url:
                 candidates.append(url)
         else:

@@ -104,8 +104,8 @@ class ContactsMixin:
         Runs the request on its own thread; *on_done(result)* is called on the
         wx thread with a phone_contacts.SaveResult: whether it worked, the i18n
         key of the error, the JID WhatsApp filed the contact under and whether
-        the sync with the phone was confirmed. The caller stores the local
-        record on success (save_local_contact()), under that JID.
+        phone sync was requested (not a phone completion receipt). The caller
+        stores the local record on success (save_local_contact()), under that JID.
         """
         base, token = f"{self.wpp_server}:{self.wpp_port}", self.token
 

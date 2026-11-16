@@ -370,6 +370,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista czatów</h2>
 <p class="lead">Lista czatów (Alt+1) pokazuje nazwy osób i grup, nigdy kody wewnętrzne. Każdy wiersz odczytuje nazwę, ostatnią wiadomość i stan (nieprzeczytany, przypięty, wyciszony...).</p>
+<p>Zmiany wprowadzone w telefonie lub na innym urządzeniu docierają do WinZapp, gdy tylko WhatsApp je zgłosi, w WPPConnect i Neonize: wyciszenie, archiwizacja i przypięcie czatów, dodanie ich do list lub usunięcie z nich, czas znikających wiadomości, kontakty zapisane, przemianowane lub usunięte, nazwy publiczne, zdjęcia profilowe i zablokowane kontakty. Czat usunięty na innym urządzeniu znika także z WinZapp, chyba że ma wiadomości nowsze niż usunięcie; jeśli jest otwarty, WinZapp go zamyka i podaje powód.</p>
 <p>W Neonize czat jest oznaczany jako przeczytany po jego otwarciu lub ręcznym wybraniu tej czynności. Ten sam stan jest widoczny także na telefonie i w WhatsApp Web.</p>
 <p>W Neonize po dotarciu do najstarszych lokalnie dostępnych wiadomości WinZapp prosi telefon o wcześniejszą historię czatu, tak jak WhatsApp Web. Wiadomości docierają po chwili, jeśli telefon jest połączony.</p>
 
@@ -422,7 +423,7 @@
 <h3>Kontakty: lokalne lub zsynchronizowane z telefonem</h3>
 <p>Gdy dodajesz kontakt (w Informacje o czacie, w Nowy czat lub z wiadomości z kontaktem), są dwie karty:</p>
 <ul>
-  <li><strong>Kontakt zsynchronizowany z telefonem:</strong> zapisuje nazwę w WhatsApp i w książce adresowej telefonu. Otwiera się domyślnie; jeśli numer jest już w książce adresowej telefonu, pojawia się tylko ta karta. Usunięcie zsynchronizowanego kontaktu usuwa go także z WhatsApp i z telefonu.</li>
+  <li><strong>Kontakt zsynchronizowany z telefonem:</strong> zapisuje kontakt w WhatsAppie i wysyła prośbę o synchronizację z książką adresową telefonu. Nie można tu sprawdzić, czy telefon zakończył zapisywanie. Otwiera się domyślnie; jeśli numer jest już w książce adresowej telefonu, pojawia się tylko ta karta. Usunięcie zsynchronizowanego kontaktu usuwa go także z WhatsApp i z telefonu.</li>
   <li><strong>Kontakt lokalny WinZappa:</strong> nazwa jest zapisana tylko w WinZappie.</li>
 </ul>
 <p>Zweryfikowane firmy, których nie zapisałeś (banki, aplikacje płatnicze...), pojawiają się ze zweryfikowaną nazwą firmy. Nazwa zapisana w twoich kontaktach zawsze ma pierwszeństwo.</p>
@@ -477,6 +478,7 @@
   <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Przejdź do poprzedniej / następnej wiadomości, która jest odpowiedzią do ciebie (kolejne naciśnięcie cofa się po odpowiedziach, a po najstarszej wraca do najnowszej)</td></tr>
   <tr><td class="field-name">Alt+T</td><td>Ogłoś stan kontaktu: widziano, online, pisze. Przycisk czatu i dane kontaktu pokazują te same informacje, zawsze aktualne</td></tr>
 </table>
+<p>Wiadomości usunięte u Ciebie na innym urządzeniu znikają z czatu po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.</p>
 <p>Alt+T odczytuje najnowsze dostępne informacje o kontakcie bez oczekiwania na odpowiedź z sieci. Informacja o pisaniu lub nagrywaniu wiadomości głosowej może być dostępna także wtedy, gdy kontakt nie udostępnia swojego stanu online. Wskaźnik aktywności znika po dziesięciu sekundach bez aktualizacji. Ustawienia prywatności informacji „Widziano” są respektowane. Aktywność w grupach i czatach prywatnych jest śledzona oddzielnie.</p>
 <p>Częste aktualizacje informacji o kontaktach nie powodują zbędnego odświeżania interfejsu ani zmiany liczników nieprzeczytanych wiadomości. Komunikaty o pisaniu i nagrywaniu są zgodne z ustawieniami mowy. Nowe nazwy kontaktów są zapisywane w tle; nie trzeba włączać dodatkowej opcji.</p>
 
@@ -510,10 +512,11 @@
 
 <h3>Gwiazdka i przypinanie</h3>
 <ul>
-  <li><strong>Gwiazdka</strong> (Ctrl+Shift+O): gwiazdki są synchronizowane z WhatsApp, a każda zmiana jest sprawdzana. Aby wysłać do WhatsApp swoje stare lokalne gwiazdki, użyj "Synchronizuj wcześniejsze lokalne oznaczenia gwiazdką z WhatsApp" w menu czatu.</li>
+  <li><strong>Gwiazdka</strong> (Ctrl+Shift+O): gwiazdki są synchronizowane z WhatsApp, a każda zmiana jest sprawdzana. Aby wysłać do WhatsApp swoje stare lokalne gwiazdki, użyj "Synchronizuj wcześniejsze lokalne oznaczenia gwiazdką z WhatsApp" w menu czatu. Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartym czacie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.</li>
   <li><strong>Wiadomości oznaczone gwiazdką</strong> (Alt+0 lub wiersz "Wiadomości oznaczone gwiazdką" na liście nawigacji): wszystkie wiadomości oznaczone gwiazdką ze wszystkich czatów, od najnowszych, czytane jako czat, nadawca, tekst i data. "Szukaj w oznaczonych gwiazdką" zawęża listę po dowolnym słowie, bez względu na znaki diakrytyczne i wielkość liter; Enter lub "Otwórz w czacie" otwiera czat na tej wiadomości, a Delete lub "Usuń gwiazdkę" usuwa gwiazdkę.</li>
   <li><strong>Przypięcie wiadomości</strong> (Ctrl+Shift+P, gdy nie nagrywasz): przycisk w każdym czacie wymienia wiadomości przypięte w WhatsApp, także stare; Enter przenosi do wiadomości w historii. Po otwarciu czatu liczba przypiętych wiadomości jest ogłaszana bez zmiany fokusu.</li>
 </ul>
+<p>Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartym czacie po otrzymaniu powiadomienia.</p>
 
 <h3>Zakładki</h3>
 <p>Zakładki to pozycje, które tworzysz na wiadomościach, aby wrócić do nich później. Przy wiadomości z fokusem Ctrl+0 do Ctrl+9 tworzy zakładkę (lub, jeśli ten numer już istnieje, przechodzi do niej); Ctrl+Shift+0 do 9 usuwa ją. Alt+Shift+0 do 9 tworzy zakładki tymczasowe, usuwane po opuszczeniu czatu; Ctrl+Alt+Shift+0 do 9 usuwa tymczasowe. W Ustawienia &gt; Interfejs &gt; Czaty opcje "Automatycznie usuwaj stałe zakładki po pierwszym użyciu" i "Automatycznie usuwaj tymczasowe zakładki po pierwszym użyciu" sprawiają, że przejście do zakładki od razu ją usuwa, a ten sam klawisz następnym razem tworzy nową zakładkę.</p>
@@ -531,7 +534,7 @@
 <h3>Kontakty, ankiety i karty</h3>
 <ul>
   <li><strong>Otrzymana karta kontaktu:</strong> Enter lub Spacja zapisuje ją jako kontakt. Menu kontekstowe pozwala wyświetlić nazwę i numer, skopiować numer (Ctrl+C) oraz rozpocząć czat. Jeśli karta ma więcej niż jeden numer, WinZapp pyta, którego użyć.</li>
-  <li><strong>Otrzymane ankiety:</strong> wiersz odczytuje pytanie, a potem każdą opcję, z procentami i głosami, gdy WinZapp je otrzyma. Enter otwiera okno z tą samą listą, polami wyboru do głosowania i paskiem postępu dla każdej opcji. W ankiecie z jedną odpowiedzią Tab od wiadomości prowadzi do opcji, a zaznaczenie jednej już głosuje. Przycisk "Pokaż głosy" (Alt+V) wymienia, kto na co głosował. Aby utworzyć ankietę, zobacz sekcję Załączniki.</li>
+  <li><strong>Otrzymane ankiety:</strong> wiersz odczytuje pytanie, a potem każdą opcję, z procentami i głosami, gdy WinZapp je otrzyma. Enter otwiera okno z tą samą listą, polami wyboru do głosowania i paskiem postępu dla każdej opcji. W ankiecie z jedną odpowiedzią Tab od wiadomości prowadzi do opcji, a zaznaczenie jednej już głosuje. Przycisk "Pokaż głosy" (Alt+V) wymienia, kto na co głosował. Aby utworzyć ankietę, zobacz sekcję Załączniki. W otwartym czacie wyniki ankiet odświeżają się po odebraniu nowego zdarzenia głosu, zarówno w Neonize, jak i w WPPConnect.</li>
   <li><strong>Wiadomości z zamówieniami:</strong> Enter otwiera zamówienie; zobacz sekcję Firmy.</li>
   <li><strong>Ogłoszenia społeczności:</strong> w menu wiadomości z ogłoszeniem "Odpowiedzi na ogłoszenie społeczności" otwiera okno do czytania i wysyłania odpowiedzi oraz odświeżania listy; tekst jest zachowywany, jeśli wysłanie nie zostanie potwierdzone.</li>
 </ul>
@@ -812,6 +815,7 @@
     <h2 id="h-grupos-comunidades">👥 10. Grupy i społeczności</h2>
 <h3>Informacje o czacie i o grupie</h3>
 <p>Ctrl+Shift+D (lub "Informacje o czacie" w menu kontekstowym) otwiera okno z kartami. Wszystkie przyciski i pola mają literę skrótu (Alt+litera).</p>
+<p>Zmiany opisu, ustawień i uczestników grupy, w tym nadanie i odebranie uprawnień administratora, docierają do WinZapp, gdy tylko WhatsApp je zgłosi; jeśli tylko administratorzy mogą wysyłać wiadomości, pole wiadomości w otwartym czacie od razu uwzględnia zmianę.</p>
 <ul>
   <li><strong>Kontakt:</strong> karta Przegląd z nazwą, nazwą profilu wybraną przez kontakt, zweryfikowaną nazwą i informacją, czy konto jest kontem firmowym, czy powiadomienia są wyciszone (i do kiedy), z licznikiem znikających wiadomości oraz z informacją, że wiadomości i połączenia są szyfrowane end-to-end. Przycisk "Zdjęcie profilowe" (Alt+F) pokazuje zdjęcie, a "Otwórz w zewnętrznej przeglądarce" (Alt+A) otwiera je w domyślnym programie Windows; jeśli nie ma zdjęcia lub osoba nie pozwala ci go zobaczyć, WinZapp o tym mówi. Jest też karta <strong>Wspólne grupy</strong> (Enter otwiera grupę) i karta Media.</li>
   <li><strong>Grupa:</strong> karta Przegląd (nazwa, opis, zdjęcie grupy, czy tylko administratorzy wysyłają wiadomości), karta Członkowie (Enter na uczestniku otwiera z nim czat prywatny; "Dodaj członka" przyjmuje kontakty lub dodatkowy numer) i karta Media. Dane pojawiają się, gdy tylko grupa odpowie, a brakujące nazwy i numery są uzupełniane zaraz potem. Na karcie Media Ctrl+C na dokumencie, zdjęciu, filmie lub nagraniu audio kopiuje plik do schowka, tak jak na liście wiadomości.</li>
@@ -848,6 +852,7 @@
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
     <h2 id="h-trancadas">🔒 11. Zabezpieczone czaty</h2>
 <p class="lead">Zabezpieczone czaty (Alt+7) pozostają w sejfie chronionym kodem PIN, poza listą czatów, zarchiwizowanymi, wyszukiwaniem i oknem przekazywania.</p>
+<p>Zabezpieczenie dostępu do czatu lub wyłączenie tego zabezpieczenia w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; jeśli czat był otwarty, zostaje zamknięty, a WinZapp podaje powód.</p>
 <ul>
   <li><strong>Zabezpieczanie:</strong> "Zabezpiecz dostęp do czatu" w menu kontekstowym lub Ctrl+Shift+T. PIN ma od 6 do 12 cyfr. Przy konfiguracji sejfu WinZapp tworzy <em>klucz odzyskiwania</em> (można go odczytać na głos lub skopiować), aby ustawić nowy PIN, jeśli zapomnisz obecnego.</li>
   <li><strong>Powiadomienia:</strong> powiadomienia tych czatów mówią tylko, ile nowych wiadomości przyszło, bez nazwy i treści. Ich wiadomości nigdy nie są transkrybowane automatycznie, a AI online pyta ponownie przy każdym wysłaniu.</li>
@@ -957,6 +962,7 @@
   <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
     <h2 id="h-privacidade">🛡️ 15. Ustawienia WhatsApp</h2>
 <p class="lead">Polecenie Plik &gt; Ustawienia WhatsApp otwiera kategorię z przyciskami „Prywatność” i „Profil”. Wprowadzone tam zmiany dotyczą twojego konta WhatsApp, a nie tylko ustawień WinZappa.</p>
+<p>Zmiany prywatności, opcji pozostawiania czatów w archiwum, prywatności statusu lub zdjęcia profilowego wprowadzone na innym urządzeniu aktualizują też otwarty panel Prywatność lub Profil; pole zmienione, ale jeszcze niezastosowane, zachowuje Twój wybór.</p>
 <h3>Przycisk Prywatność</h3>
 <ul>
   <li>Widziano oraz Kto widzi, że jestem online; Informacje; zdjęcie profilowe; potwierdzenia odczytu; kto może dodawać cię do grup; kto może widzieć twój status (moje kontakty, moje kontakty oprócz..., lub udostępnij tylko...).</li>
@@ -1447,6 +1453,26 @@
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Dodanie czatu do listy lub usunięcie go z listy na innym urządzeniu aktualizuje listy i otwarty filtr, bez zmiany wybranej listy.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zmiana własnego zdjęcia profilowego na innym urządzeniu aktualizuje otwarty panel Profil, bez zastępowania nazwy, informacji ani zdjęcia, których jeszcze nie zapisano.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zmiana opcji pozostawiania czatów w archiwum lub prywatności statusu na innym urządzeniu aktualizuje otwarty panel, zachowując jeszcze niezastosowane wybory.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Naprawiono zapisywanie kontaktów, które nie pojawiały się w WhatsAppie na iPhonie: identyfikator kontaktu jest teraz wysyłany w całości, tak jak w natywnym ekranie WhatsApp.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Po zapisaniu kontaktu w telefonie WinZapp informuje teraz, że wysłano do telefonu prośbę o jego dodanie, zamiast twierdzić, że kontakt jest już w książce adresowej; zapis, którego WhatsApp nie potwierdził, nie jest już zgłaszany jako zakończony.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zmiany prywatności wprowadzone na innym urządzeniu aktualizują otwarty panel, zachowując pola zmienione, ale jeszcze niezastosowane.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zablokowanie lub odblokowanie kontaktu na innym urządzeniu aktualizuje WinZapp, gdy tylko WhatsApp to zgłosi.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Gdy kontakt lub grupa zmieni albo usunie zdjęcie, WinZapp przestaje pokazywać stare.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zapisanie, zmiana nazwy lub usunięcie kontaktu z książki adresowej na innym urządzeniu oraz zmiana publicznej nazwy aktualizują WinZapp po powiadomieniu, zachowując nazwy lokalne i historię.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Opisy, ustawienia i uczestnicy grup są aktualizowani na bieżąco, w tym nadawanie i odbieranie uprawnień administratora oraz uprawnienia do wysyłania w otwartym czacie.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Usunięcie czatu na innym urządzeniu usuwa go z WinZapp po otrzymaniu powiadomienia; czat z wiadomościami nowszymi niż powiadomienie zostaje zachowany. Jeśli był otwarty, zostaje zamknięty, a WinZapp podaje powód.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartym czacie po otrzymaniu powiadomienia.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zmiana czasu znikających wiadomości na innym urządzeniu, w czacie lub w grupie, aktualizuje WinZapp bez czekania na pełną synchronizację.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zabezpieczenie dostępu do czatu lub wyłączenie tego zabezpieczenia w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; jeśli czat był otwarty, zostaje zamknięty, a WinZapp podaje powód.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Zmiany wyciszenia, archiwizacji i przypięcia na innym urządzeniu aktualizują listę czatów po otrzymaniu powiadomienia w WPPConnect i Neonize.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Wiadomości usunięte u Ciebie na innym urządzeniu znikają z czatu po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartym czacie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: edycje zachowują identyfikator oryginalnej wiadomości i zapisują pełny klucz powiadomienia o edycji, w tym autora w grupach.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Neonize: zdarzenia reakcji używają formatu WPPConnect, z pełnymi kluczami reakcji i oryginalnej wiadomości, nadawcą oraz czasem w sekundach.</td></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>W otwartym czacie wyniki ankiet odświeżają się po odebraniu nowego zdarzenia głosu, zarówno w Neonize, jak i w WPPConnect. Neonize: zdarzenia głosów, usuniętych wiadomości i przypisania etykiet zgodne z WPPConnect; identyfikatory odebranych statusów zachowują autora.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Tłumaczenie tego, co już jest w rozmowie: "Przetłumacz od tego miejsca do końca" (Alt+Shift+Y) i skrót Ctrl+Alt+Shift+Y dla zaznaczonych wiadomości, oba widoczne w pozycjach menu; podczas tłumaczenia zmieniają się w "Anuluj tłumaczenie wiadomości".</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Grupy: wszystkie osoby piszące lub nagrywające w podglądzie listy czatów i w komunikatach, z poprawną liczbą pojedynczą i mnogą; Alt+T także; opcja "Uwzględniaj aktywność wielu członków grupy przy ogłaszaniu jej stanu".</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Domyślny model Google Gemini w sztucznej inteligencji online to Gemini 3.5 Flash-Lite; wybrany wcześniej stały model się nie zmienia.</td></tr>

@@ -4,6 +4,46 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Dodanie czatu do listy lub usunięcie go z listy na innym urządzeniu aktualizuje listy i otwarty filtr, bez zmiany wybranej listy.
+
+- Zmiana własnego zdjęcia profilowego na innym urządzeniu aktualizuje otwarty panel Profil, bez zastępowania nazwy, informacji ani zdjęcia, których jeszcze nie zapisano.
+
+- Zmiana opcji pozostawiania czatów w archiwum lub prywatności statusu na innym urządzeniu aktualizuje otwarty panel, zachowując jeszcze niezastosowane wybory.
+
+- Naprawiono zapisywanie kontaktów, które nie pojawiały się w WhatsAppie na iPhonie: identyfikator kontaktu jest teraz wysyłany w całości, tak jak w natywnym ekranie WhatsApp.
+
+- Po zapisaniu kontaktu w telefonie WinZapp informuje teraz, że wysłano do telefonu prośbę o jego dodanie, zamiast twierdzić, że kontakt jest już w książce adresowej; zapis, którego WhatsApp nie potwierdził, nie jest już zgłaszany jako zakończony.
+
+- Zmiany prywatności wprowadzone na innym urządzeniu aktualizują otwarty panel, zachowując pola zmienione, ale jeszcze niezastosowane.
+
+- Zablokowanie lub odblokowanie kontaktu na innym urządzeniu aktualizuje WinZapp, gdy tylko WhatsApp to zgłosi.
+
+- Gdy kontakt lub grupa zmieni albo usunie zdjęcie, WinZapp przestaje pokazywać stare.
+
+- Zapisanie, zmiana nazwy lub usunięcie kontaktu z książki adresowej na innym urządzeniu oraz zmiana publicznej nazwy aktualizują WinZapp po powiadomieniu, zachowując nazwy lokalne i historię.
+
+- Opisy, ustawienia i uczestnicy grup są aktualizowani na bieżąco, w tym nadawanie i odbieranie uprawnień administratora oraz uprawnienia do wysyłania w otwartym czacie.
+
+- Usunięcie czatu na innym urządzeniu usuwa go z WinZapp po otrzymaniu powiadomienia; czat z wiadomościami nowszymi niż powiadomienie zostaje zachowany. Jeśli był otwarty, zostaje zamknięty, a WinZapp podaje powód.
+
+- Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartym czacie po otrzymaniu powiadomienia.
+
+- Zmiana czasu znikających wiadomości na innym urządzeniu, w czacie lub w grupie, aktualizuje WinZapp bez czekania na pełną synchronizację.
+
+- Zabezpieczenie dostępu do czatu lub wyłączenie tego zabezpieczenia w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; jeśli czat był otwarty, zostaje zamknięty, a WinZapp podaje powód.
+
+- Zmiany wyciszenia, archiwizacji i przypięcia na innym urządzeniu aktualizują listę czatów po otrzymaniu powiadomienia w WPPConnect i Neonize.
+
+- Wiadomości usunięte u Ciebie na innym urządzeniu znikają z czatu po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.
+
+- Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartym czacie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.
+
+- Neonize: edycje zachowują identyfikator oryginalnej wiadomości i zapisują pełny klucz powiadomienia o edycji, w tym autora w grupach.
+
+- Neonize: zdarzenia reakcji używają formatu WPPConnect, z pełnymi kluczami reakcji i oryginalnej wiadomości, nadawcą oraz czasem w sekundach.
+
+- W otwartym czacie wyniki ankiet odświeżają się po odebraniu nowego zdarzenia głosu, zarówno w Neonize, jak i w WPPConnect. Neonize: zdarzenia głosów, usuniętych wiadomości i przypisania etykiet zgodne z WPPConnect; identyfikatory odebranych statusów zachowują autora.
+
 - Archiwizowanie czatu wymaga teraz potwierdzenia, z menu kontekstowego lub skrótem Ctrl+Shift+Q, tak jak usuwanie. Okno pyta "Czy na pewno chcesz zarchiwizować ten czat?" i ma przyciski "Zarchiwizuj czat" (Alt+Z) oraz "Anuluj" (Alt+A), a także pole "Nie pokazuj ponownie", które działa tylko razem z potwierdzeniem. W Ustawieniach opcja "Pytaj o potwierdzenie przed archiwizowaniem czatów" przywraca pytanie.
 
 - Tłumaczenie wiadomości, które już są w rozmowie: menu kontekstowe wiadomości zyskuje pozycję "Przetłumacz od tego miejsca do końca" (Alt+Shift+Y), a działanie zbiorcze "Przetłumacz zaznaczone wiadomości" pokazuje skrót Ctrl+Alt+Shift+Y. Oba skróty można zmienić na karcie Skróty w Ustawieniach, a pozycje menu pokazują używany skrót. Gdy trwa tłumaczenie wielu wiadomości, ta sama pozycja menu i ten sam skrót zmieniają się w "Anuluj tłumaczenie wiadomości". Dotyczy odebranych wiadomości tekstowych, do 50 naraz, z dostawcą, modelem i sposobem wyświetlania z "Przetłumacz wiadomość".

@@ -808,6 +808,10 @@ class DatabaseManager:
     async def update_message_star_state(self, remote_jid: str, message_id: str, state: dict) -> None:
         await update_star_state(self, remote_jid, message_id, state)
 
+    async def update_message_pin_state(self, jid, mid, pinned, timestamp, duration):
+        from core.message_pin_state import update_pin_state
+        await update_pin_state(self, jid, mid, pinned, timestamp, duration)
+
     async def merge_message_star_states(self, remote_jid: str, messages: list[dict]) -> list[dict]:
         async with self._write_lock:
             return await preserve_stars(self, await self._ensure_conn(), remote_jid, messages)

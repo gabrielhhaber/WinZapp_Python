@@ -24,6 +24,7 @@
   <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Go to the previous / next message that replies to you (pressing again goes back through the replies and, after the oldest, returns to the most recent)</td></tr>
   <tr><td class="field-name">Alt+T</td><td>Announce the contact's state: last seen, online, typing. The chat button and the contact details show the same information, always up to date</td></tr>
 </table>
+<p>Messages deleted for you on another device are removed from the conversation when the deletion notice arrives, with WPPConnect and Neonize.</p>
 <p>Alt+T reads the most recent available information without waiting for a network request. Typing and voice recording can be reported even when online visibility is unavailable; these indicators do not mean that online visibility is shared. An activity indicator expires after ten seconds without a refresh. Last-seen privacy remains respected. Activity belongs to the conversation where it occurs: groups and private chats are tracked separately.</p>
 <p>Contact status updates leave unread totals unchanged and do not rewrite unchanged window titles or archived-chat labels. Typing and recording announcements follow your speech settings. Newly learned contact names are saved in the background; no additional setting is needed.</p>
 
@@ -57,10 +58,11 @@
 
 <h3>Star and pin</h3>
 <ul>
-  <li><strong>Star</strong> (Ctrl+Shift+O): stars are synced with WhatsApp, and each change is verified. To send your old local stars to WhatsApp, use "Sync old local stars with WhatsApp" in the chat menu.</li>
+  <li><strong>Star</strong> (Ctrl+Shift+O): stars are synced with WhatsApp, and each change is verified. To send your old local stars to WhatsApp, use "Sync old local stars with WhatsApp" in the chat menu. Starring or unstarring a message on the phone or another device updates its mark in the open conversation when the notice arrives, with WPPConnect and Neonize.</li>
   <li><strong>Starred messages</strong> (Alt+0, or the "Starred messages" row of the navigation list): every starred message of every chat, newest first, read as chat, sender, text and date. "Search starred messages" narrows the list by any word, accents and case ignored; Enter or "Open in the conversation" opens the chat on that message, and Delete or "Remove star" removes the star.</li>
   <li><strong>Pin a message</strong> (Ctrl+Shift+P, when you are not recording): a button in each chat lists the messages pinned on WhatsApp, including old ones; Enter takes you to the message in the history. When you open the chat, the number of pinned messages is announced without changing focus.</li>
 </ul>
+<p>Pinning or unpinning a message on another device updates its flag and the open chat’s pinned-message overview when the notice arrives.</p>
 
 <h3>Bookmarks</h3>
 <p>Bookmarks are positions you create on messages to come back to later. With the message focused, Ctrl+0 to Ctrl+9 creates a bookmark (or, if that number already exists, goes to it); Ctrl+Shift+0 to 9 removes it. Alt+Shift+0 to 9 creates temporary bookmarks, deleted when you leave the chat; Ctrl+Alt+Shift+0 to 9 removes the temporary ones. In Settings &gt; Interface &gt; Chats, "Remove permanent bookmarks automatically after the first use" and "Remove temporary bookmarks automatically after the first use" make jumping to a bookmark remove it right away, so the same key creates a new bookmark next time.</p>
@@ -78,7 +80,7 @@
 <h3>Contacts, polls and cards</h3>
 <ul>
   <li><strong>Received contact card:</strong> Enter or Space saves it as a contact. The context menu has see name and number, copy the number with Ctrl+C, and chat. If the card has more than one number, WinZapp asks which one to use.</li>
-  <li><strong>Received polls:</strong> the row reads the question and then each option, with percentage and votes when WinZapp receives them. Enter opens a window with the same list, check boxes to vote and a progress bar per option. In a single-answer poll, Tab from the message leads to the options and checking one already votes. The "View votes" button (Alt+V) lists who voted for what. To create a poll, see the Attachments section.</li>
+  <li><strong>Received polls:</strong> the row reads the question and then each option, with percentage and votes when WinZapp receives them. Enter opens a window with the same list, check boxes to vote and a progress bar per option. In a single-answer poll, Tab from the message leads to the options and checking one already votes. The "View votes" button (Alt+V) lists who voted for what. To create a poll, see the Attachments section. In the open conversation, poll results refresh when a new vote event arrives, with both Neonize and WPPConnect.</li>
   <li><strong>Order messages:</strong> Enter opens the order; see the Businesses section.</li>
   <li><strong>Community announcements:</strong> in the menu of an announcement message, "Community announcement replies" opens a window to read and send replies and refresh the list; the text is kept if the send is not confirmed.</li>
 </ul>

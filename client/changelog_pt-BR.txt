@@ -4,6 +4,46 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Incluir uma conversa numa lista ou tirá-la de uma lista em outro dispositivo atualiza as listas e o filtro aberto, sem trocar a lista selecionada.
+
+- Trocar a sua foto de perfil em outro dispositivo atualiza o painel de Perfil aberto, sem substituir nome, recado ou foto que você ainda não salvou.
+
+- Mudar Manter conversas arquivadas ou a privacidade dos status em outro dispositivo atualiza o painel aberto, preservando as escolhas ainda não aplicadas.
+
+- Corrigido o salvamento de contatos que não apareciam no WhatsApp do iPhone: o ID vinculado agora é enviado completo, no formato usado pela tela nativa do WhatsApp.
+
+- Ao salvar um contato no celular, o WinZapp agora diz que pediu ao celular para incluí-lo, em vez de afirmar que ele já está na agenda; um salvamento que o WhatsApp não confirmou deixa de ser informado como concluído.
+
+- Mudanças de privacidade feitas em outro dispositivo atualizam o painel aberto, preservando os campos que você alterou e ainda não aplicou.
+
+- Bloquear ou desbloquear um contato em outro dispositivo atualiza o WinZapp assim que o WhatsApp avisa.
+
+- Quando um contato ou grupo troca ou remove a foto, o WinZapp deixa de mostrar a antiga.
+
+- Contatos salvos, renomeados ou removidos da agenda em outro dispositivo e mudanças do nome público atualizam o WinZapp ao chegar o aviso, preservando nomes locais e o histórico.
+
+- Descrição, permissões e participantes dos grupos agora acompanham os avisos em tempo real, incluindo promoção e rebaixamento de administradores, com atualização das permissões de envio na conversa aberta.
+
+- Apagar uma conversa em outro dispositivo a remove do WinZapp ao chegar o aviso; uma conversa com mensagens posteriores ao aviso é mantida. Se ela estava aberta, é fechada e o WinZapp diz o motivo.
+
+- Fixar ou desafixar uma mensagem em outro dispositivo atualiza sua marca e o resumo de mensagens fixadas da conversa aberta ao chegar o aviso.
+
+- Mudar o prazo das mensagens temporárias em outro dispositivo, numa conversa ou num grupo, atualiza o WinZapp sem esperar uma sincronização completa.
+
+- Trancar ou destrancar uma conversa no celular atualiza o WinZapp ao chegar o aviso; se ela estava aberta, é fechada e o WinZapp diz o motivo.
+
+- Mudanças de silenciamento, arquivo e fixação feitas em outro dispositivo atualizam a lista de conversas assim que o aviso chega, com WPPConnect e Neonize.
+
+- Mensagens apagadas para você em outro dispositivo são removidas da conversa quando chega o aviso de exclusão, com WPPConnect e Neonize.
+
+- Favoritar ou desfavoritar uma mensagem no celular ou em outro dispositivo atualiza a marca na conversa aberta assim que o aviso chega, com WPPConnect e Neonize.
+
+- Neonize: as edições preservam o ID da mensagem original e registram a chave completa do aviso de edição, incluindo o autor em grupos.
+
+- Neonize: os eventos de reações usam o formato do WPPConnect, com as chaves completas da reação e da mensagem original, o autor e o horário em segundos.
+
+- Na conversa aberta, os resultados das enquetes são atualizados quando chega um novo evento de voto, tanto com Neonize quanto com WPPConnect. Neonize: eventos compatíveis com WPPConnect para votos, mensagens apagadas e associação de etiquetas; os IDs de status recebidos preservam o autor.
+
 - Arquivar uma conversa agora pede confirmação, pelo menu de contexto ou pelo Ctrl+Shift+Q, como apagar. O diálogo pergunta "Tem certeza de que deseja arquivar esta conversa?" e tem os botões "Arquivar conversa" (Alt+A) e "Cancelar" (Alt+C), mais a caixa "Não mostrar novamente", que só vale junto com a confirmação. Em Configurações > Interface do usuário, a opção "Pedir confirmação antes de arquivar conversas" volta a perguntar.
 
 - Tradução das mensagens que já estão na conversa: o menu de contexto da mensagem ganha "Traduzir daqui até o fim" (Alt+Shift+Y) e a ação em massa "Traduzir as mensagens selecionadas" passa a mostrar o atalho Ctrl+Alt+Shift+Y. Os dois podem ser trocados na aba Atalhos das Configurações, e os itens do menu mostram o atalho em uso. Enquanto uma tradução de várias mensagens roda, o mesmo item de menu e atalho viram "Cancelar a tradução das mensagens". Vale para mensagens de texto recebidas, até 50 por vez, com o provedor, o modelo e a exibição de "Traduzir mensagem".

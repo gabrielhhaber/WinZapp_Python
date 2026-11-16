@@ -9904,9 +9904,11 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_hint"
 msgid ""
-"This contact is saved in WhatsApp and synced with the phone's address book."
+"Saves the contact in WhatsApp and requests synchronization with the phone's "
+"address book. Completion on the phone cannot be verified here."
 msgstr ""
-"Acest contact este salvat în WhatsApp și sincronizat cu agenda telefonului."
+"Salvează contactul în WhatsApp și solicită sincronizarea cu agenda "
+"telefonului. Finalizarea salvării pe telefon nu poate fi verificată aici."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_lid_unknown"
@@ -9930,17 +9932,21 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved"
-msgid "Contact saved and synced with the phone."
-msgstr "Contact salvat și sincronizat cu telefonul."
+msgid ""
+"Contact saved in WhatsApp; synchronization with the phone requested. Check "
+"the phone's address book."
+msgstr ""
+"Contact salvat în WhatsApp; sincronizare cu telefonul solicitată. Verificați"
+" agenda telefonului."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved_unconfirmed"
 msgid ""
-"Contact saved in WhatsApp, but the sync with the phone could not be "
-"confirmed."
+"Contact saved in WhatsApp, but the phone synchronization request could not "
+"be confirmed."
 msgstr ""
-"Contact salvat în WhatsApp, dar sincronizarea cu telefonul nu a putut fi "
-"confirmată."
+"Contact salvat în WhatsApp, dar solicitarea de sincronizare cu telefonul nu "
+"a putut fi confirmată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_contact.py
 msgctxt "new_contact_phone_saving"
@@ -11947,6 +11953,17 @@ msgstr "Înregistrarea a fost întreruptă."
 msgctxt "recording_text"
 msgid "{name} is recording audio..."
 msgstr "{name} înregistrează un mesaj vocal..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr ""
+"Această conversație a fost ștearsă pe alt dispozitiv, așa că a fost închisă."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr "Această conversație a fost blocată pe telefon, așa că a fost închisă."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py

@@ -41,6 +41,8 @@ import undecryptable
 import group_events
 import events
 import contact_events
+import block_events
+import privacy_events
 import media_retry
 import offline_sync
 import app_state_mirror
@@ -67,6 +69,7 @@ import channel_media
 import channel_updates
 import cleanup
 import msgmap
+import socket_events
 import unread_rule
 import pairing
 import commerce_routes
@@ -76,6 +79,8 @@ import pairing_history
 import pairing_repair
 import group_receipts
 import message_rules
+import message_state_events
+import chat_settings_events
 import responses
 import remaining
 import redaction
@@ -271,14 +276,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         who = "me" if i_reacted else sender_w
         ts = msgmap.seconds(e.Info.Timestamp)
         self.db.react(target_id, who, emoji, ts)
-        reaction_serial = f"{'true' if i_reacted else 'false'}_{chat_w}_{e.Info.ID}"
-        if group:
-            reaction_serial += f"_{sender_w}"
-        self.emit("onreactionmessage", {"session": self.name, "response": {
-            "id": reaction_serial,
-            "msgId": self.target_serial(chat_w, group, target_id, i_reacted,
-                                        key_from_me, participant),
-            "reactionText": emoji, "text": emoji, "timestamp": ts}})
+        target_serial = self.target_serial(chat_w, group, target_id, i_reacted,
+                                           key_from_me, participant)
+        reaction_timestamp = msgmap.unwrap(e.Message).reactionMessage.senderTimestampMS
+        self.emit("onreactionmessage", socket_events.reaction_message(
+            self.name, chat_w, e.Info.ID, i_reacted, sender_w, target_serial,
+            emoji, reaction_timestamp or e.Info.Timestamp,
+            known_target=self.db.wpp_message(target_id) is not None))
         return True
 
     # --------------------------------------------------------------- status
@@ -322,9 +326,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         """True if the message was the notice of pinning or unpinning a message."""
         data = msgmap.pin(e.Message)
         if data is None:
-            return False
+            # A pin notice of another type (UNKNOWN_TYPE) is no unpin, but it is
+            # still a notice: consumed here, it never becomes an "unsupported" row.
+            return msgmap.unwrap(e.Message).HasField("pinInChatMessage")
         target, pin, duration = data
         self.db.pin_message(target, chat, pin, msgmap.seconds(e.Info.Timestamp), duration)
+        stamp = msgmap.unwrap(e.Message).pinInChatMessage.senderTimestampMS
+        stamp = int(stamp) if stamp else int(msgmap.seconds(e.Info.Timestamp) * 1000)
+        self.emit("message-pin-changed", {"session": self.name, "chatId": msgmap.jid_wpp(chat),
+            "messageId": target, "pinned": pin, "timestamp": stamp, "duration": duration})
         return True
 
     def pin_message(self, serial, pin, duration=7 * 86400):
@@ -357,13 +367,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return True
 
     # -------------------------------------------------------------- edit
-    def mark_edited(self, target, chat_w, edit_id, from_me, **fields):
+    def mark_edited(self, target, chat_w, edit_id, from_me, *,
+                    edit_timestamp=None, edit_participant="", **fields):
         """Puts the new text in the stored message, with the edited mark
         (latestEditMsgKey, which the app reads), and returns the message."""
+        original = self.db.wpp_message(target) or {}
+        original_key = original.get("id") or {}
+        participant = ""
+        if chat_w.endswith("@g.us"):
+            participant = (edit_participant or original_key.get("participant")
+                           or original.get("author", ""))
+            if not participant:
+                parts = str(original_key.get("_serialized") or "").split("_", 3)
+                participant = parts[3] if len(parts) > 3 else ""
         self.db.change_message(
             target, **fields,
-            latestEditMsgKey={"id": edit_id, "remote": chat_w, "fromMe": bool(from_me)},
-            latestEditSenderTimestampMs=int(time.time() * 1000))
+            latestEditMsgKey=msgmap.message_key(chat_w, from_me, edit_id, participant),
+            latestEditSenderTimestampMs=msgmap.seconds(edit_timestamp or time.time()))
         return self.db.wpp_message(target)
 
     def _edit_received(self, chat, o, e):
@@ -383,8 +403,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             return True
         fields = {"body": w.get("body", "")} if w.get("type") == "chat" \
             else {"caption": w.get("caption", "")}
+        timestamp = msgmap.unwrap(e.Message).protocolMessage.timestampMS or e.Info.Timestamp
         edited = self.mark_edited(target, msgmap.jid_wpp(chat), e.Info.ID,
-                                  o.IsFromMe, **fields)
+                                  o.IsFromMe, edit_timestamp=timestamp,
+                                  edit_participant=jid_text(o.Sender), **fields)
         self.emit("received-message", {"session": self.name, "response": edited})
         return True
 
@@ -417,11 +439,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 new = Message(conversation=text)
             fields = {"body": text}
         try:
-            self.client.edit_message(build_jid(u, srv), mid, new)
+            response = self.client.edit_message(build_jid(u, srv), mid, new)
         except Exception:
             log.exception("edit message")
             return False
-        self.mark_edited(mid, msgmap.jid_wpp(conversation), mid, True, **fields)
+        self.mark_edited(mid, msgmap.jid_wpp(conversation),
+                         getattr(response, "ID", "") or mid, True,
+                         edit_timestamp=getattr(response, "Timestamp", None), **fields)
         return True
 
     def message_to_forward(self, serial, keep_voice=False, keep_preview=False):
@@ -463,12 +487,20 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             fix_poll_vote_decryption(self.client)
             datum = self.client.decrypt_poll_vote(e)
         except Exception as error:
-            log.info("vote I could not decrypt (%s: %s)", type(error).__name__,
-                     str(error)[:100])
+            log.info("vote I could not decrypt (%s); no vote event emitted",
+                     type(error).__name__)
             return True
         who = "me" if o.IsFromMe else msgmap.jid_wpp(jid_text(o.Sender))
-        self.db.vote(target, who, msgmap.vote_indexes(names, datum.selectedOptions),
-                     msgmap.seconds(e.Info.Timestamp))
+        indexes = msgmap.vote_indexes(names, datum.selectedOptions)
+        if len(indexes) != len(datum.selectedOptions):
+            log.info("vote with unknown poll options ignored")
+            return True
+        self.db.vote(target, who, indexes, msgmap.seconds(e.Info.Timestamp))
+        if original.get("id"):
+            vote_timestamp = msgmap.unwrap(e.Message).pollUpdateMessage.senderTimestampMS
+            self.emit("onpollresponse", socket_events.poll_response(
+                self.name, original, indexes, jid_text(o.Sender),
+                vote_timestamp or e.Info.Timestamp))
         return True
 
     def poll_wpp(self, serial):
@@ -757,6 +789,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         presence.register_events(cli, self)
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
+        block_events.register_events(cli, self)
+        privacy_events.register_events(cli, self)
         media_retry.register_events(cli, self)
         offline_sync.register_events(cli, self)
         channel_events.register_events(cli, self)
@@ -857,6 +891,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if w is None:
                     return
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    original = self.db.wpp_message(w["protocolMessageKey"]["id"])
+                    if original and original.get("id"):
+                        w["protocolMessageKey"] = dict(original["id"])
                     # deleted for everyone by whoever sent it: the original becomes deleted too
                     if not self.db.revocation(chat, w):
                         return      # unknown original and chat: not a conversation (#762)
@@ -875,6 +912,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
+                if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    self.emit("onrevokedmessage", socket_events.revoked_message(
+                        self.name, w, self.me))
             except Exception:
                 log.exception("received message")
 
@@ -884,8 +924,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if e.Name and e.Name.Name:
                     self.db.chat(jid_text(e.JID), name=e.Name.Name)
                 if e.HasField("Ephemeral"):
-                    self.record_timer(jid_text(e.JID), int(e.Ephemeral.DisappearingTimer)
-                                      if e.Ephemeral.IsEphemeral else 0)
+                    duration = int(e.Ephemeral.DisappearingTimer) if e.Ephemeral.IsEphemeral else 0
+                    self.record_timer(jid_text(e.JID), duration)
+                    chat_settings_events.timer_changed(self, jid_text(e.JID), duration)
             except Exception:
                 log.exception("group changed")
             group_events.group_changed(c, self, e)    # groups.update (see group_events)
@@ -994,7 +1035,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageStarEv)
         def _starred_on_phone(c, e):
             try:
-                self.db.change_message(e.MessageID, star=bool(e.Action.starred))
+                message_state_events.star_changed(self, e, jid_text)
                 log.info("message %s on the phone", "starred" if e.Action.starred else "unstarred")
             except Exception:
                 log.exception("star on the phone")
@@ -1002,9 +1043,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageDeleteForMeEv)
         def _deleted_on_phone(c, e):
             try:
-                if e.FromFullSync:
-                    return
-                self.db.delete_message(e.MessageID)
+                message_state_events.deleted_for_me(self, e, jid_text)
                 log.info("message deleted on the phone")
             except Exception:
                 log.exception("delete on the phone")
@@ -1016,11 +1055,21 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             try:
                 jid = local_chat(c, e.JID)
                 last = self.db.raw_last(jid)
+                covered = msgmap.seconds(e.Action.messageRange.lastMessageTimestamp) if e.Action.HasField("messageRange") else 0
+                until = int(covered or msgmap.seconds(e.Timestamp))
                 if not phone_chat_delete.applies(
-                        e.FromFullSync, msgmap.seconds(e.Timestamp),
+                        e.FromFullSync, until,
                         last["t"] if last is not None else None):
                     return
+                if covered and last is not None and last["t"] > covered:
+                    return
                 self.db.delete_chat(jid)
+                chat_id = msgmap.jid_wpp(jid)
+                # Like the WPPConnect observer: only a deletion that states the
+                # range it covers is announced; the client rejects other ids.
+                if covered and chat_id.endswith(("@c.us", "@lid", "@g.us")):
+                    self.emit("chat-deleted", {"session": self.name,
+                        "chatId": chat_id, "until": int(covered)})
                 log.info("chat deleted on the phone -> app")
             except Exception:
                 log.exception("chat delete on the phone")
@@ -1029,7 +1078,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _locked_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                self.db.chat(jid, locked=int(bool(e.Action.locked)))
+                chat_settings_events.lock_changed(self, e, jid)
                 log.info("chat %s on the phone", "locked" if e.Action.locked else "unlocked")
             except Exception:
                 log.exception("lock on the phone")
@@ -1038,10 +1087,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _muted_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                end = 0
-                if e.Action.muted:
-                    end = msgmap.seconds(e.Action.muteEndTimestamp)                         if e.Action.muteEndTimestamp > 0 else 2**31 - 1
-                self.db.chat(jid, muted=int(end))
+                chat_settings_events.mute_changed(self, e, jid)
                 log.info("chat %s on the phone", "muted" if e.Action.muted else "with sound again")
             except Exception:
                 log.exception("mute on the phone")

@@ -24,6 +24,7 @@
   <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Mergi la mesajul anterior / următor care îți răspunde (o nouă apăsare merge înapoi prin răspunsuri și, după cel mai vechi, revine la cel mai recent)</td></tr>
   <tr><td class="field-name">Alt+T</td><td>Anunță starea contactului: văzut ultima oară, online, scrie. Butonul conversației și datele contactului arată aceeași informație, mereu actualizată</td></tr>
 </table>
+<p>Mesajele șterse doar pentru tine pe alt dispozitiv sunt eliminate din conversație când sosește notificarea de ștergere, cu WPPConnect și Neonize.</p>
 <p>Alt+T citește cele mai recente informații disponibile fără să aștepte o cerere de rețea. Scrierea și înregistrarea audio pot apărea chiar dacă informațiile despre vizibilitatea online nu sunt disponibile; acești indicatori nu înseamnă că persoana își partajează starea online. Activitatea expiră după zece secunde fără actualizare. Confidențialitatea ultimei accesări este respectată în continuare. Activitatea aparține conversației în care are loc: grupurile și conversațiile private sunt urmărite separat.</p>
 <p>Actualizările de prezență ale contactelor nu schimbă numărul mesajelor necitite și nu rescriu titlurile ferestrei sau etichetele chaturilor arhivate care nu s-au schimbat. Anunțurile despre tastare și înregistrare respectă setările de vorbire. Numele noi ale contactelor sunt salvate în fundal; nu trebuie activată o opțiune suplimentară.</p>
 
@@ -57,10 +58,11 @@
 
 <h3>Stea și fixare</h3>
 <ul>
-  <li><strong>Stea</strong> (Ctrl+Shift+O): stelele sunt sincronizate cu WhatsApp, iar fiecare modificare este verificată. Pentru a trimite la WhatsApp stelele tale locale vechi, folosește "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației.</li>
+  <li><strong>Stea</strong> (Ctrl+Shift+O): stelele sunt sincronizate cu WhatsApp, iar fiecare modificare este verificată. Pentru a trimite la WhatsApp stelele tale locale vechi, folosește "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației. Marcarea sau demarcarea cu stea a unui mesaj pe telefon ori alt dispozitiv actualizează marcajul în conversația deschisă la primirea notificării, cu WPPConnect și Neonize.</li>
   <li><strong>Mesaje marcate cu stea</strong> (Alt+0 sau rândul "Mesaje marcate cu stea" din lista de navigare): toate mesajele marcate cu stea din toate conversațiile, de la cele mai noi, citite ca conversație, expeditor, text și dată. "Căutați în mesajele marcate cu stea" restrânge lista după orice cuvânt, fără a ține cont de diacritice sau majuscule; Enter sau "Deschideți în conversație" deschide conversația la acel mesaj, iar Delete sau "Eliminați marcajul cu stea" elimină steaua.</li>
   <li><strong>Fixarea unui mesaj</strong> (Ctrl+Shift+P, când nu înregistrezi): un buton din fiecare conversație listează mesajele fixate în WhatsApp, inclusiv cele vechi; Enter te duce la mesajul din istoric. Când deschizi conversația, numărul de mesaje fixate este anunțat fără a schimba focalizarea.</li>
 </ul>
+<p>Fixarea sau desprinderea unui mesaj pe alt dispozitiv actualizează marcajul și lista mesajelor fixate din conversația deschisă la primirea notificării.</p>
 
 <h3>Marcaje</h3>
 <p>Marcajele sunt poziții pe care le creezi pe mesaje pentru a reveni la ele mai târziu. Cu mesajul având focalizarea, Ctrl+0 până la Ctrl+9 creează un marcaj (sau, dacă acel număr există deja, merge la el); Ctrl+Shift+0 până la 9 îl elimină. Alt+Shift+0 până la 9 creează marcaje temporare, șterse când părăsești conversația; Ctrl+Alt+Shift+0 până la 9 elimină cele temporare. În Setări &gt; Interfață &gt; Conversații, "Elimină automat marcajele permanente după prima utilizare" și "Elimină automat marcajele temporare după prima utilizare" fac ca mutarea la un marcaj să-l elimine imediat, iar aceeași tastă creează un marcaj nou data următoare.</p>
@@ -78,7 +80,7 @@
 <h3>Contacte, sondaje și cartonașe</h3>
 <ul>
   <li><strong>Cartonaș de contact primit:</strong> Enter sau Spațiu îl salvează ca contact. Meniul contextual are vezi numele și numărul, copiază numărul cu Ctrl+C și conversează. Dacă cartonașul are mai multe numere, WinZapp întreabă pe care să-l folosească.</li>
-  <li><strong>Sondaje primite:</strong> rândul citește întrebarea și apoi fiecare opțiune, cu procent și voturi când WinZapp le primește. Enter deschide o fereastră cu aceeași listă, casete pentru vot și o bară de progres pentru fiecare opțiune. Într-un sondaj cu un singur răspuns, Tab de la mesaj duce la opțiuni, iar bifarea uneia votează deja. Butonul "Vezi voturile" (Alt+V) listează cine a votat ce. Pentru a crea un sondaj, vezi secțiunea Atașamente.</li>
+  <li><strong>Sondaje primite:</strong> rândul citește întrebarea și apoi fiecare opțiune, cu procent și voturi când WinZapp le primește. Enter deschide o fereastră cu aceeași listă, casete pentru vot și o bară de progres pentru fiecare opțiune. Într-un sondaj cu un singur răspuns, Tab de la mesaj duce la opțiuni, iar bifarea uneia votează deja. Butonul "Vezi voturile" (Alt+V) listează cine a votat ce. Pentru a crea un sondaj, vezi secțiunea Atașamente. În conversația deschisă, rezultatele sondajelor se actualizează la primirea unui nou eveniment de vot, atât cu Neonize, cât și cu WPPConnect.</li>
   <li><strong>Mesaje de comenzi:</strong> Enter deschide comanda; vezi secțiunea Firme.</li>
   <li><strong>Anunțurile comunității:</strong> în meniul unui mesaj de anunț, "Răspunsuri la anunțul comunității" deschide o fereastră pentru a citi și trimite răspunsuri și a actualiza lista; textul este păstrat dacă trimiterea nu este confirmată.</li>
 </ul>

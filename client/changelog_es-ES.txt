@@ -4,6 +4,46 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Añadir un chat a una lista o quitarlo de ella en otro dispositivo actualiza las listas y el filtro abierto, sin cambiar la lista seleccionada.
+
+- Cambiar tu foto de perfil en otro dispositivo actualiza el panel Perfil abierto, sin sustituir el nombre, la información ni una foto que aún no hayas guardado.
+
+- Cambiar Mantener chats archivados o la privacidad de los estados en otro dispositivo actualiza el panel abierto, conservando las opciones que aún no has aplicado.
+
+- Corregido el guardado de contactos que no aparecían en WhatsApp en el iPhone: ahora se envía el identificador vinculado completo, como en la pantalla nativa de WhatsApp.
+
+- Al guardar un contacto en el teléfono, WinZapp ahora indica que se pidió al teléfono que lo añadiera, en lugar de afirmar que ya está en la agenda; un guardado que WhatsApp no confirmó ya no se indica como completado.
+
+- Los cambios de privacidad hechos en otro dispositivo actualizan el panel abierto, conservando los campos que has cambiado y aún no has aplicado.
+
+- Bloquear o desbloquear un contacto en otro dispositivo actualiza WinZapp en cuanto WhatsApp lo comunica.
+
+- Cuando un contacto o grupo cambia o quita su foto, WinZapp deja de mostrar la anterior.
+
+- Los contactos guardados, renombrados o eliminados de la agenda en otro dispositivo y los cambios de nombre público actualizan WinZapp al llegar el aviso, conservando los nombres locales y el historial.
+
+- La descripción, los permisos y los participantes de los grupos siguen los avisos en tiempo real, incluidos los cambios de administradores, y actualizan los permisos de envío del chat abierto.
+
+- Eliminar un chat en otro dispositivo lo quita de WinZapp al llegar el aviso; un chat con mensajes posteriores al aviso se conserva. Si estaba abierto, se cierra y WinZapp indica el motivo.
+
+- Fijar o desfijar un mensaje en otro dispositivo actualiza su marca y el resumen de mensajes fijados del chat abierto al llegar el aviso.
+
+- Cambiar el plazo de los mensajes temporales en otro dispositivo, en un chat o en un grupo, actualiza WinZapp sin esperar una sincronización completa.
+
+- Bloquear o desbloquear un chat en el teléfono actualiza WinZapp al llegar el aviso; si estaba abierto, se cierra y WinZapp indica el motivo.
+
+- Los cambios de silencio, archivo y fijación realizados en otro dispositivo actualizan la lista de chats al llegar el aviso, con WPPConnect y Neonize.
+
+- Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.
+
+- Marcar o desmarcar un mensaje como favorito en el móvil u otro dispositivo actualiza la marca en la conversación abierta al recibir el aviso, con WPPConnect y Neonize.
+
+- Neonize: las ediciones conservan el identificador del mensaje original y registran la clave completa del aviso de edición, incluido el autor en los grupos.
+
+- Neonize: los eventos de reacciones usan el formato de WPPConnect, con las claves completas de la reacción y del mensaje original, el autor y la hora en segundos.
+
+- En la conversación abierta, los resultados de las encuestas se actualizan al recibir un nuevo evento de voto, tanto con Neonize como con WPPConnect. Neonize: eventos compatibles con WPPConnect para votos, mensajes eliminados y asociación de etiquetas; los identificadores de estados recibidos conservan al autor.
+
 - Archivar un chat ahora pide confirmación, desde el menú contextual o con Ctrl+Shift+Q, igual que eliminar. El diálogo pregunta "¿Seguro que deseas archivar este chat?" y tiene los botones "Archivar chat" (Alt+A) y "Cancelar" (Alt+C), además de la casilla "No volver a mostrar", que solo vale junto con la confirmación. En Configuración > Interfaz de usuario, la opción "Pedir confirmación antes de archivar chats" vuelve a preguntar.
 
 - Traducción de los mensajes que ya están en la conversación: el menú contextual del mensaje incluye "Traducir desde aquí hasta el final" (Alt+Shift+Y) y la acción en masa "Traducir los mensajes seleccionados" muestra su atajo, Ctrl+Alt+Shift+Y. Ambos se pueden cambiar en la pestaña Atajos de Configuración, y los elementos del menú muestran el atajo en uso. Mientras se traducen varios mensajes, el mismo elemento de menú y atajo pasan a ser "Cancelar la traducción de los mensajes". Se aplica a los mensajes de texto recibidos, hasta 50 a la vez, con el proveedor, el modelo y la visualización de "Traducir mensaje".

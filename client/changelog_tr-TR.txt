@@ -4,6 +4,46 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Başka bir cihazda bir sohbeti listeye eklemek veya listeden çıkarmak, seçili listeyi değiştirmeden listeleri ve açık filtreyi günceller.
+
+- Başka bir cihazda profil fotoğrafınızı değiştirmek, henüz kaydetmediğiniz ad, Hakkında veya fotoğrafı değiştirmeden açık Profil panelini günceller.
+
+- Başka bir cihazda Sohbetleri arşivde tut veya Durum gizliliği ayarını değiştirmek, henüz uygulanmamış seçimleri koruyarak açık paneli günceller.
+
+- iPhone'da WhatsApp'ta görünmeyen kayıtlı kişiler düzeltildi: bağlı kişi kimliği artık WhatsApp'ın kendi kişi ekranındaki gibi tam olarak gönderiliyor.
+
+- Telefona kişi kaydederken WinZapp artık kişinin rehberde olduğunu söylemek yerine telefondan eklemesinin istendiğini bildirir; WhatsApp'ın doğrulamadığı bir kayıt artık tamamlandı olarak bildirilmez.
+
+- Başka bir cihazda yapılan gizlilik değişiklikleri, değiştirip henüz uygulamadığınız alanları koruyarak açık paneli günceller.
+
+- Başka bir cihazda bir kişiyi engellemek veya engelini kaldırmak, WhatsApp bildirdiği anda WinZapp’i günceller.
+
+- Bir kişi veya grup fotoğrafını değiştirdiğinde ya da kaldırdığında WinZapp eski fotoğrafı göstermeyi bırakır.
+
+- Başka bir cihazda rehbere kaydedilen, adı değiştirilen veya rehberden kaldırılan kişiler ve genel profil adı değişiklikleri, yerel adları ve geçmişi koruyarak bildirim geldiğinde WinZapp’i günceller.
+
+- Grup açıklamaları, ayarları ve katılımcıları; yönetici atama ve görevden alma dahil canlı bildirimlerle güncellenir, açık sohbette gönderme izinleri yenilenir.
+
+- Başka bir cihazda silinen sohbet, bildirim geldiğinde WinZapp’ten kaldırılır; bildirimden daha yeni mesajları olan sohbet korunur. Sohbet açıksa kapatılır ve WinZapp nedenini söyler.
+
+- Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.
+
+- Başka bir cihazda bir sohbette veya grupta süreli mesaj zamanlayıcısını değiştirmek, tam eşitlemeyi beklemeden WinZapp’i günceller.
+
+- Telefonda bir sohbeti kilitlemek veya kilidini açmak, bildirim geldiğinde WinZapp’i günceller; sohbet açıksa kapatılır ve WinZapp nedenini söyler.
+
+- Başka bir cihazda yapılan sessize alma, arşivleme ve sabitleme değişiklikleri, bildirim geldiğinde WPPConnect ve Neonize ile sohbet listesini günceller.
+
+- Başka bir cihazda kendiniz için sildiğiniz mesajlar, silme bildirimi geldiğinde WPPConnect ve Neonize ile sohbetten kaldırılır.
+
+- Telefonda veya başka bir cihazda bir mesaja yıldız eklemek ya da kaldırmak, bildirim geldiğinde açık sohbetteki işareti WPPConnect ve Neonize ile günceller.
+
+- Neonize: düzenlemeler asıl mesajın kimliğini korur ve gruplardaki yazar dahil düzenleme bildiriminin tam anahtarını kaydeder.
+
+- Neonize: tepki olayları, tepkinin ve asıl mesajın tam anahtarları, gönderen ve saniye cinsinden zaman ile WPPConnect biçimini kullanır.
+
+- Açık sohbette, hem Neonize hem de WPPConnect ile yeni bir oy olayı geldiğinde anket sonuçları yenilenir. Neonize: oylar, silinen mesajlar ve etiket ilişkilendirmeleri için WPPConnect uyumlu olaylar; alınan durumların kimlikleri yazarı korur.
+
 - Bir sohbeti arşivlemek artık, bağlam menüsünden ya da Ctrl+Shift+Q ile, silmede olduğu gibi onay ister. Pencere "Bu sohbeti arşivlemek istediğinizden emin misiniz?" diye sorar; "Sohbeti arşivle" (Alt+S) ve "İptal" (Alt+L) düğmeleri ile yalnızca onayla birlikte geçerli olan "Tekrar gösterme" kutusu vardır. Ayarlar'da "Sohbetleri arşivlemeden önce onay iste" seçeneği soruyu yeniden açar.
 
 - Konuşmada zaten bulunan mesajların çevirisi: mesajın bağlam menüsüne "Buradan sona kadar çevir" (Alt+Shift+Y) eklendi ve toplu eylem "Seçili mesajları çevir" kısayolunu, Ctrl+Alt+Shift+Y'yi gösteriyor. İkisi de Ayarlar'ın Kısayollar sekmesinden değiştirilebilir ve menü öğeleri kullanılan kısayolu gösterir. Birden fazla mesajın çevirisi sürerken aynı menü öğesi ve kısayol "Mesajların çevirisini iptal et" olur. Alınan metin mesajları için geçerlidir, bir seferde en fazla 50 mesaj, "Mesajı çevir" ile aynı sağlayıcı, model ve görüntüleme kullanılır.

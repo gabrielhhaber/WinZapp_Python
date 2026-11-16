@@ -39,7 +39,7 @@ These answer, but not everything the WPPConnect route does. None of the routes a
 - `group-property`: only `announce`, `restrict` and `ephemeral`; other properties answer 400.
 - `last-seen/:phone`, `chat-is-online/:phone`: answer from an in-memory presence cache fed by presence events; `unsupported` when there is no data or the person hides it.
 - `set-profile-pic`: JPEG, and other images converted to JPEG with Pillow (415 for a non-image).
-- `get-all-labels`, `delete-all-labels`: only labels created through the bridge (`labels.json`); the labels the account already had are in the app state mirror (below) but these routes do not read it yet.
+- `get-all-labels`, `delete-all-labels`: read phone labels and associations from the app state mirror. Before the first complete `regular` sync, locally created labels remain a fallback; the mirror is authoritative once that sync completes.
 - `message-ack`: answers from the receipts the bridge stored (they survive a restart); 404 when none. In groups, `deliveryRemaining` counts the members who sent no receipt yet.
 - Group message ticks (`onack`, `get-messages`): delivered/read/played only when every recipient has delivered/read/played; a member who delivered but never read stops blocking the read tick after a 10-minute grace (a guess, not confirmed on a real group).
 - `message-comments/:messageId`: reads and sends community announcement comments with the message secret that whatsmeow keeps in `session.db`. Receiving, decrypting and the send format are written from the whatsmeow source, not confirmed against real traffic; the server may not accept the sent stanza.
@@ -50,6 +50,82 @@ These answer, but not everything the WPPConnect route does. None of the routes a
 - `temporary-messages`: accepts 0, 24 hours, 7 days or 90 days.
 - `meta-ai-terms` and `meta-ai-terms/accept`: the `tos` query WhatsApp Web uses to read the notice, and, to accept, WhatsApp Web's own disclosure stanza (`<trackable id="20250502" result="5"/>`, read from its code over CDP), after the same stanza with `result="105"` (shown) that its dialog sends; the accept answers success only when WhatsApp, read again, says accepted. The legacy ToS formats (`session_update`, a `notice` with `stage` or `state`) do not record this notice. `UNKNOWN` when the state cannot be read. Meta AI's replies (`richResponseMessage`) arrive as `rich_response`.
 - `clear-chat`, `delete-chat` and the `*-all-chats` routes, `save-contact`, and the label routes send app-state patches written from the WhatsApp Web layout, not confirmed on a real account.
+
+## Socket events matching WPPConnect
+
+Checked against the callbacks and models of a live wa-js 4.7.2 (rechecked on 4.8.0) / WhatsApp Web
+2.3000.1054603161 session over CDP (read-only, 2026-11-14):
+
+- `onpollresponse`: emitted after a successfully decrypted vote is stored,
+  including a vote retraction. `msgId` is the original poll's MsgKey, `chatId`
+  and `sender` are serialized Wids (JID strings, as the browser's `toJSON`
+  returns), `selectedOptions` is a sparse array of option objects
+  (JSON nulls before a selected option at a later index), and `timestamp` is in
+  milliseconds. A poll without its secret cannot produce this event.
+  The timestamp preserves the vote's `senderTimestampMS`, falling back to the
+  event timestamp only when the protocol field is absent. Unknown
+  option hashes do not erase a previous vote. The client requests fresh poll
+  totals when a vote for an open poll arrives, retaining one follow-up request
+  if an older read is still running.
+- `onrevokedmessage`: emitted alongside the existing `received-message`
+  revocation path. `id` identifies the revoke notice; `refId` identifies the
+  target message, using its stored key when available. The client continues
+  applying revocations through `received-message`, so it does not apply the
+  same revoke twice. This is event compatibility for API consumers.
+- `onupdatelabel`: `label_jid` mutations emit `chat`, `ids`, `labels` and
+  `type: add|remove`, after updating the mirror. Full sync hydrates the mirror
+  without announcing replayed associations. Metadata edits affect label route
+  reads; they are not misreported as association events. The `chat` payload
+  carries the serialized chat Wid and current label IDs, not a full browser
+  ChatModel.
+- `onreactionmessage`: a top-level payload with separate MsgKeys for `id` and
+  `msgId`, a serialized `sender`, and `reactionText` (empty on removal). Unlike
+  poll events, the live WPP reaction timestamp is in **seconds**; the bridge
+  converts the reaction proto's `senderTimestampMS` to seconds. Existing client
+  support for the former `response` envelope/string keys is retained. `read`
+  starts true for our own reaction, false for another sender; `orphan` describes
+  whether the bridge holds the target, not a server verdict.
+- Message edits continue through `received-message` under the original key.
+  `latestEditMsgKey` now holds the complete, separate edit-notice key, including
+  the group author. Locally sent edits use the actual SendResponse ID when
+  available; incoming edits use the protocol notice ID. The original message
+  date, quote and key remain unchanged. The live WPP
+  `latestEditSenderTimestampMs` field held seconds despite its name, so the
+  bridge normalizes the protocol timestamp to seconds for that field too.
+
+Message keys preserve variable-length opaque IDs and explicit participants;
+received status keys now include the author's JID. Additional participants in
+unusual private-chat keys must come from an explicit key, never a phone/LID
+guess. New payloads are covered with fake traffic and local tests; these
+Neonize emitters were not exercised end-to-end on a real account. An isolated
+CDP simulation copied the live WPP callbacks into a sandbox with captured
+outputs and compared their JSON with the Python emitters: vote, retraction,
+revoke, label add and label remove matched. The simulation also confirmed that
+Wid.toJSON returns JID strings, and kept live listeners and account state
+untouched. It validates the payload contract, not WhatsApp network delivery.
+
+A subsequent authorized live group test sent a clearly identified test poll,
+voted for its second option, retracted that vote and revoked only that test
+poll. WhatsApp confirmed the sends/revocation; real vote/retraction payloads
+matched the Python formatter, including sparse options and serialized JIDs.
+The vote's millisecond precision comes from `senderTimestampMS` in the proto,
+not the second-resolution MessageInfo timestamp. No `chat.msg_revoke` event was
+observed on the originating WPP device for its own local deletion. A receive
+test from another device is still required for that event. Business label
+actions were not run on this non-Business account. Neonize was offline and the
+user requested keeping the current session, so real Neonize receipt/delivery
+remains unverified. Temporary event listeners were removed after the test.
+
+A second authorized group test sent one marked text message, added and removed
+a reaction, and edited that test message. Both real `chat.new_reaction` JSON
+payloads matched the bridge's formatter field for field, including the full
+keys and second-resolution timestamps. ACK remained 1 in the inspected message;
+no delivery ACK event was captured, so no delivery semantics were inferred.
+The actual edit event also matched an isolated call to the bridge's storage
+update for the original key, full edit key, edit timestamp and original date.
+The marked test text was then revoked successfully, and both event listeners
+and the temporary ACK observer were removed. This tested WPP behavior and
+bridge formatter/storage functions, without starting a Neonize session.
 
 ## Through WinZapp's neonize build (raw queries and app state mutations)
 

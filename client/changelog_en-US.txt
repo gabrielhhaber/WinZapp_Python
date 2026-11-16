@@ -4,6 +4,46 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Adding a chat to a list or removing it from one on another device updates the lists and the open filter, without changing the list you selected.
+
+- Changing your profile photo on another device updates the open Profile panel, without replacing a name, About or photo you have not saved yet.
+
+- Changing Keep chats archived or Status privacy on another device updates the open panel, keeping the choices you have not applied yet.
+
+- Fixed saved contacts missing from WhatsApp on iPhone: the linked-device contact ID is now sent in full, matching WhatsApp's native contact screen.
+
+- Saving a contact to the phone now says that the phone was asked to add it, instead of saying it is already in the address book; a save WhatsApp did not confirm is no longer reported as done.
+
+- Privacy changes made on another device update the open panel, keeping the fields you have changed but not applied yet.
+
+- Blocking or unblocking a contact on another device updates WinZapp as soon as WhatsApp reports it.
+
+- When a contact or group changes or removes its picture, WinZapp stops showing the old one.
+
+- Contacts saved, renamed or removed from the address book on another device, and public profile-name changes, update WinZapp when notified while preserving local names and history.
+
+- Group descriptions, settings and participants now follow live notices, including admin promotion and demotion, and refresh sending permissions in the open chat.
+
+- Deleting a chat on another device removes it from WinZapp when the notice arrives; a chat with messages newer than the notice is kept. If it was open, it is closed and WinZapp says why.
+
+- Pinning or unpinning a message on another device updates its flag and the open chat’s pinned-message overview when the notice arrives.
+
+- Changing the disappearing-messages timer on another device, in a chat or a group, updates WinZapp without waiting for a full sync.
+
+- Locking or unlocking a chat on your phone updates WinZapp when the notice arrives; if it was open, it is closed and WinZapp says why.
+
+- Mute, archive and pin changes made on another device update the chat list when the notice arrives, with WPPConnect and Neonize.
+
+- Messages deleted for you on another device are removed from the conversation when the deletion notice arrives, with WPPConnect and Neonize.
+
+- Starring or unstarring a message on the phone or another device updates its mark in the open conversation when the notice arrives, with WPPConnect and Neonize.
+
+- Neonize: edits preserve the original message ID and record the complete edit-notice key, including the author in groups.
+
+- Neonize: reaction events use the WPPConnect format, with complete keys for the reaction and original message, the sender and a timestamp in seconds.
+
+- In the open conversation, poll results refresh when a new vote event arrives, with both Neonize and WPPConnect. Neonize: WPPConnect-compatible events for votes, revoked messages and label associations; received status IDs preserve the author.
+
 - Archiving a chat now asks for confirmation, from the context menu or with Ctrl+Shift+Q, like deleting does. The dialog asks "Are you sure you want to archive this chat?" and has the buttons "Archive chat" (Alt+A) and "Cancel" (Alt+C), plus a "Don't show again" box that only counts together with the confirmation. In Settings > User Interface, the option "Ask for confirmation before archiving chats" turns the question back on.
 
 - Translating the messages already in a chat: the message context menu gains "Translate from here to the end" (Alt+Shift+Y) and the bulk action "Translate the selected messages" shows its shortcut, Ctrl+Alt+Shift+Y. Both can be changed in the Shortcuts tab of Settings, and the menu items show the shortcut in use. While a translation of several messages runs, the same menu item and shortcut become "Cancel translating the messages". It covers received text messages, up to 50 at a time, with the provider, model and display of "Translate message".

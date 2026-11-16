@@ -4,6 +4,17 @@ import logging
 import threading
 import time
 import socketio
+from core.poll_events import on_poll_response
+from core.remote_message_star import on_star_changed
+from core.remote_message_delete import on_message_deleted
+from core.remote_chat_settings import on_chat_settings
+from core.remote_chat_timer import on_chat_timer
+from core.remote_message_pin import on_message_pin
+from core.remote_chat_delete import on_chat_deleted
+from core.remote_contact_state import on_contact_state
+from core.remote_profile_picture import on_picture_changed
+from core.remote_block_state import on_block_state
+from core.remote_privacy_events import on_privacy_event
 from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
@@ -358,6 +369,17 @@ class WebSocketClient:
         self.sio.on("chats-update", self.on_chats_update)
         self.sio.on("messages.update", self.on_messages_update)
         self.sio.on("onreactionmessage", self.on_wpp_reaction)
+        self.sio.on("onpollresponse", lambda data: on_poll_response(self, data))
+        self.sio.on("message-star-changed", lambda data: on_star_changed(self, data))
+        self.sio.on("message-deleted-for-me", lambda data: on_message_deleted(self, data))
+        self.sio.on("chat-settings-changed", lambda data: on_chat_settings(self, data))
+        self.sio.on("chat-timer-changed", lambda data: on_chat_timer(self, data))
+        self.sio.on("message-pin-changed", lambda data: on_message_pin(self, data))
+        self.sio.on("chat-deleted", lambda data: on_chat_deleted(self, data))
+        self.sio.on("contact-state-changed", lambda data: on_contact_state(self, data))
+        self.sio.on("profile-picture-changed", lambda data: on_picture_changed(self, data))
+        self.sio.on("block-state-changed", lambda data: on_block_state(self, data))
+        self.sio.on("privacy-settings-changed", lambda data: on_privacy_event(self, data))
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)
@@ -380,6 +402,7 @@ class WebSocketClient:
         self.sio.on("chat-cleared", self.on_chat_cleared)
         self.sio.on("event-changed", self.on_event_changed)
         self.sio.on("call-participants", self.on_call_participants)
+        self.sio.on("onupdatelabel", self.on_wpp_label_update)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
         # WPPConnect emits asynchronously via Socket.IO after /start-session.
@@ -1620,31 +1643,8 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] on_messages_upsert error")
 
     def on_groups_update(self, info):
-        """
-        Handle group metadata updates from WPPConnect.
-        """
-        try:
-            if not isinstance(info, dict) or not self._belongs_to_this_session(info):
-                return
-            updates = info.get("data", [])
-            if not isinstance(updates, list):
-                updates = [updates]
-
-            for update in updates:
-                if not isinstance(update, dict):
-                    continue
-                jid = self._clean_jid(update.get("id") or update.get("remoteJid") or "")
-                subject = update.get("subject") or update.get("name") or ""
-
-                if jid.endswith("@g.us") and isinstance(subject, str) and subject.strip():
-                    remote_jid = self.main_window._normalize_jid(jid)
-                    wx.CallAfter(
-                        self.main_window.on_group_subject_updated,
-                        remote_jid,
-                        subject.strip(),
-                    )
-        except Exception:
-            logging.exception("[WebSocketClient] on_groups_update error")
+        from core.remote_group_events import on_groups_event
+        on_groups_event(self, info)
 
     def on_messages_update(self, info):
         """
@@ -2521,6 +2521,10 @@ class WebSocketClient:
         people = getattr(self.main_window, "_channel_people_dialog", None)
         if people is not None:
             people.on_channels_changed(channel_id)
+
+    def on_wpp_label_update(self, data):
+        from core.remote_label_updates import on_label_update
+        on_label_update(self, data)
 
     def on_wpp_reaction(self, data):
         try:

@@ -4,6 +4,46 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Aggiungere una chat a una lista o toglierla da una lista su un altro dispositivo aggiorna le liste e il filtro aperto, senza cambiare la lista selezionata.
+
+- Cambiare la propria foto profilo su un altro dispositivo aggiorna il pannello Profilo aperto, senza sostituire nome, Info o una foto non ancora salvata.
+
+- Cambiare Mantieni le chat archiviate o la privacy dello stato su un altro dispositivo aggiorna il pannello aperto, preservando le scelte non ancora applicate.
+
+- Corretti i contatti salvati che non comparivano su WhatsApp su iPhone: l'identificativo collegato viene ora inviato completo, come nella schermata nativa di WhatsApp.
+
+- Quando si salva un contatto sul telefono, WinZapp ora indica che al telefono è stato chiesto di aggiungerlo, invece di affermare che è già in rubrica; un salvataggio non confermato da WhatsApp non viene più indicato come completato.
+
+- Le modifiche alla privacy fatte su un altro dispositivo aggiornano il pannello aperto, preservando i campi modificati e non ancora applicati.
+
+- Bloccare o sbloccare un contatto su un altro dispositivo aggiorna WinZapp appena WhatsApp lo segnala.
+
+- Quando un contatto o un gruppo cambia o rimuove la foto, WinZapp smette di mostrare quella vecchia.
+
+- I contatti salvati, rinominati o rimossi dalla rubrica su un altro dispositivo e le modifiche al nome pubblico aggiornano WinZapp alla notifica, preservando nomi locali e cronologia.
+
+- Descrizioni, impostazioni e partecipanti dei gruppi seguono gli avvisi in tempo reale, comprese promozione e revoca degli amministratori, aggiornando i permessi di invio nella chat aperta.
+
+- L’eliminazione di una chat su un altro dispositivo la rimuove da WinZapp all’arrivo della notifica; una chat con messaggi più recenti della notifica viene conservata. Se era aperta, viene chiusa e WinZapp ne spiega il motivo.
+
+- Fissare o rimuovere un messaggio fissato su un altro dispositivo aggiorna il contrassegno e il riepilogo dei messaggi fissati nella chat aperta all’arrivo della notifica.
+
+- Cambiare il timer dei messaggi effimeri su un altro dispositivo, in una chat o in un gruppo, aggiorna WinZapp senza attendere una sincronizzazione completa.
+
+- Il blocco o lo sblocco di una chat sul telefono aggiorna WinZapp all’arrivo della notifica; se era aperta, viene chiusa e WinZapp ne spiega il motivo.
+
+- Le modifiche a silenziamento, archiviazione e fissaggio effettuate su un altro dispositivo aggiornano l’elenco delle chat all’arrivo della notifica, con WPPConnect e Neonize.
+
+- I messaggi eliminati per te su un altro dispositivo vengono rimossi dalla conversazione quando arriva l’avviso di eliminazione, con WPPConnect e Neonize.
+
+- Aggiungere o rimuovere la stella da un messaggio sul telefono o su un altro dispositivo aggiorna il contrassegno nella conversazione aperta quando arriva la notifica, con WPPConnect e Neonize.
+
+- Neonize: le modifiche conservano l’identificativo del messaggio originale e registrano la chiave completa dell’avviso di modifica, incluso l’autore nei gruppi.
+
+- Neonize: gli eventi delle reazioni usano il formato WPPConnect, con le chiavi complete della reazione e del messaggio originale, il mittente e l’orario in secondi.
+
+- Nella conversazione aperta, i risultati dei sondaggi si aggiornano quando arriva un nuovo evento di voto, sia con Neonize sia con WPPConnect. Neonize: eventi compatibili con WPPConnect per voti, messaggi eliminati e associazioni delle etichette; gli identificativi degli stati ricevuti conservano l’autore.
+
 - Archiving a chat now asks for confirmation, from the context menu or with Ctrl+Shift+Q, like deleting does. The dialog asks "Sei sicuro di voler archiviare questa chat?" and has the buttons "Archivia chat" (Alt+C) and "Annulla" (Alt+A), plus a "Non mostrare più" box that only counts together with the confirmation. In Settings > User Interface, the option "Chiedi conferma prima di archiviare le chat" turns the question back on.
 
 - Traduzione dei messaggi già presenti nella conversazione: il menu contestuale del messaggio include "Traduci da qui alla fine" (Alt+Shift+Y) e l'azione di gruppo "Traduci i messaggi selezionati" mostra il suo tasto di scelta rapida, Ctrl+Alt+Shift+Y. Entrambi si possono cambiare nella scheda Scorciatoie delle Impostazioni, e le voci del menu mostrano la scorciatoia in uso. Mentre la traduzione di più messaggi è in corso, la stessa voce di menu e la stessa scorciatoia diventano "Annulla la traduzione dei messaggi". Vale per i messaggi di testo ricevuti, fino a 50 per volta, con il provider, il modello e la visualizzazione di "Traduci messaggio".

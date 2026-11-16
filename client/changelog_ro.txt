@@ -4,6 +4,46 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Adăugarea unei conversații într-o listă sau scoaterea ei dintr-o listă pe alt dispozitiv actualizează listele și filtrul deschis, fără a schimba lista selectată.
+
+- Schimbarea propriei fotografii de profil pe alt dispozitiv actualizează panoul Profil deschis, fără a înlocui numele, informațiile sau o fotografie încă nesalvată.
+
+- Schimbarea păstrării conversațiilor arhivate sau a confidențialității stării pe alt dispozitiv actualizează panoul deschis, păstrând alegerile încă neaplicate.
+
+- S-a corectat salvarea contactelor care nu apăreau în WhatsApp pe iPhone: identificatorul asociat este acum trimis complet, ca în ecranul nativ WhatsApp.
+
+- La salvarea unui contact pe telefon, WinZapp anunță acum că telefonului i s-a cerut să-l adauge, în loc să afirme că este deja în agendă; o salvare neconfirmată de WhatsApp nu mai este anunțată ca reușită.
+
+- Modificările de confidențialitate făcute pe alt dispozitiv actualizează panoul deschis, păstrând câmpurile modificate și încă neaplicate.
+
+- Blocarea sau deblocarea unui contact pe alt dispozitiv actualizează WinZapp imediat ce WhatsApp o anunță.
+
+- Când un contact sau un grup își schimbă ori își elimină fotografia, WinZapp nu o mai afișează pe cea veche.
+
+- Contactele salvate, redenumite sau eliminate din agendă pe alt dispozitiv și schimbările numelui public actualizează WinZapp la primirea notificării, păstrând numele locale și istoricul.
+
+- Descrierile, setările și participanții grupurilor urmăresc notificările în timp real, inclusiv promovarea și retrogradarea administratorilor, iar permisiunile de trimitere sunt actualizate în conversația deschisă.
+
+- Ștergerea unei conversații pe alt dispozitiv o elimină din WinZapp la primirea notificării; o conversație cu mesaje mai noi decât notificarea este păstrată. Dacă era deschisă, este închisă și WinZapp spune de ce.
+
+- Fixarea sau desprinderea unui mesaj pe alt dispozitiv actualizează marcajul și lista mesajelor fixate din conversația deschisă la primirea notificării.
+
+- Schimbarea duratei mesajelor temporare pe alt dispozitiv, într-o conversație sau într-un grup, actualizează WinZapp fără a aștepta o sincronizare completă.
+
+- Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; dacă era deschisă, este închisă și WinZapp spune de ce.
+
+- Modificările de dezactivare a sunetului, arhivare și fixare făcute pe alt dispozitiv actualizează lista conversațiilor când sosește notificarea, cu WPPConnect și Neonize.
+
+- Mesajele șterse doar pentru tine pe alt dispozitiv sunt eliminate din conversație când sosește notificarea de ștergere, cu WPPConnect și Neonize.
+
+- Marcarea sau demarcarea cu stea a unui mesaj pe telefon ori alt dispozitiv actualizează marcajul în conversația deschisă la primirea notificării, cu WPPConnect și Neonize.
+
+- Neonize: editările păstrează identificatorul mesajului original și înregistrează cheia completă a notificării de editare, inclusiv autorul în grupuri.
+
+- Neonize: evenimentele reacțiilor folosesc formatul WPPConnect, cu cheile complete ale reacției și mesajului original, expeditorul și timpul în secunde.
+
+- În conversația deschisă, rezultatele sondajelor se actualizează la primirea unui nou eveniment de vot, atât cu Neonize, cât și cu WPPConnect. Neonize: evenimente compatibile cu WPPConnect pentru voturi, mesaje șterse și asocieri de etichete; identificatorii stărilor primite păstrează autorul.
+
 - Arhivarea unei conversații cere acum confirmare, din meniul contextual sau cu Ctrl+Shift+Q, ca la ștergere. Fereastra întreabă "Sigur doriți să arhivați această conversație?" și are butoanele "Arhivați conversația" (Alt+A) și "Anulează" (Alt+Z), plus caseta "Nu mai afișați", care contează doar împreună cu confirmarea. În Setări, opțiunea "Cereți confirmare înainte de a arhiva conversațiile" reactivează întrebarea.
 
 - Traducerea mesajelor care sunt deja în conversație: meniul contextual al mesajului primește "Traduceți de aici până la sfârșit" (Alt+Shift+Y), iar acțiunea în bloc "Traduceți mesajele selectate" arată scurtătura Ctrl+Alt+Shift+Y. Ambele pot fi schimbate în fila Scurtături din Setări, iar elementele de meniu arată scurtătura folosită. Cât timp rulează traducerea mai multor mesaje, același element de meniu și aceeași scurtătură devin "Anulați traducerea mesajelor". Se aplică mesajelor text primite, până la 50 odată, cu furnizorul, modelul și afișarea de la "Traduceți mesajul".

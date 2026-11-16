@@ -24,6 +24,7 @@
   <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Ir al mensaje anterior / siguiente que responde a ti (si vuelves a pulsar, recorre las respuestas hacia atrás y, tras la más antigua, vuelve a la más reciente)</td></tr>
   <tr><td class="field-name">Alt+T</td><td>Anunciar el estado del contacto: última vez, en línea, escribiendo. El botón del chat y los datos del contacto muestran la misma información, siempre actualizada</td></tr>
 </table>
+<p>Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.</p>
 <p>Alt+T lee la información disponible más reciente sin esperar una consulta a la red. La escritura y la grabación de audio pueden aparecer aunque no haya información de visibilidad en línea; estos indicadores no significan que la persona comparta esa visibilidad. La actividad caduca tras diez segundos sin actualizarse. Se sigue respetando la privacidad de la última conexión. La actividad pertenece al chat donde ocurre: los grupos y los chats privados se siguen por separado.</p>
 <p>Las actualizaciones de presencia no cambian los totales de mensajes sin leer ni vuelven a escribir títulos de ventana o etiquetas de chats archivados que no han cambiado. Los avisos de escritura y grabación siguen tus ajustes de voz. Los nuevos nombres de contactos se guardan en segundo plano; no hace falta activar otra opción.</p>
 
@@ -57,10 +58,11 @@
 
 <h3>Destacar y fijar</h3>
 <ul>
-  <li><strong>Destacar</strong> (Ctrl+Shift+O): los destacados se sincronizan con WhatsApp y cada cambio se comprueba. Para enviar a WhatsApp tus destacados locales antiguos, usa "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat.</li>
+  <li><strong>Destacar</strong> (Ctrl+Shift+O): los destacados se sincronizan con WhatsApp y cada cambio se comprueba. Para enviar a WhatsApp tus destacados locales antiguos, usa "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat. Marcar o desmarcar un mensaje como favorito en el móvil u otro dispositivo actualiza la marca en la conversación abierta al recibir el aviso, con WPPConnect y Neonize.</li>
   <li><strong>Mensajes destacados</strong> (Alt+0, o la fila "Mensajes destacados" de la lista de navegación): todos los mensajes destacados de todos los chats, de los más nuevos a los más antiguos, leídos como chat, remitente, texto y fecha. "Buscar en los destacados" filtra la lista por cualquier palabra, sin distinguir acentos ni mayúsculas; Intro o "Abrir en el chat" abre el chat en ese mensaje, y Supr o "Quitar destacado" quita el destacado.</li>
   <li><strong>Fijar un mensaje</strong> (Ctrl+Shift+P, cuando no estás grabando): un botón en cada chat lista los mensajes fijados en WhatsApp, incluidos los antiguos; Intro te lleva al mensaje en el historial. Al abrir el chat, se anuncia el número de mensajes fijados sin cambiar el foco.</li>
 </ul>
+<p>Fijar o desfijar un mensaje en otro dispositivo actualiza su marca y el resumen de mensajes fijados del chat abierto al llegar el aviso.</p>
 
 <h3>Marcadores</h3>
 <p>Los marcadores son posiciones que creas en los mensajes para volver a ellos más tarde. Con el mensaje con el foco, Ctrl+0 a Ctrl+9 crea un marcador (o, si ese número ya existe, va a él); Ctrl+Shift+0 a 9 lo quita. Alt+Shift+0 a 9 crea marcadores temporales, que se borran al salir del chat; Ctrl+Alt+Shift+0 a 9 quita los temporales. En Configuración &gt; Interfaz &gt; Chats, "Eliminar marcadores permanentes automáticamente tras el primer uso" y "Quitar marcadores temporales automáticamente tras el primer uso" hacen que ir a un marcador lo quite enseguida, y la misma tecla crea un marcador nuevo la próxima vez.</p>
@@ -78,7 +80,7 @@
 <h3>Contactos, encuestas y tarjetas</h3>
 <ul>
   <li><strong>Tarjeta de contacto recibida:</strong> Intro o Espacio la guarda como contacto. El menú contextual tiene ver nombre y número, copiar el número con Ctrl+C y conversar. Si la tarjeta tiene más de un número, WinZapp pregunta cuál usar.</li>
-  <li><strong>Encuestas recibidas:</strong> la fila lee la pregunta y luego cada opción, con porcentaje y votos cuando WinZapp los recibe. Intro abre una ventana con la misma lista, casillas para votar y una barra de progreso por opción. En una encuesta de respuesta única, Tab desde el mensaje lleva a las opciones y marcar una ya vota. El botón "Ver votos" (Alt+V) lista quién votó qué. Para crear una encuesta, consulta la sección Archivos adjuntos.</li>
+  <li><strong>Encuestas recibidas:</strong> la fila lee la pregunta y luego cada opción, con porcentaje y votos cuando WinZapp los recibe. Intro abre una ventana con la misma lista, casillas para votar y una barra de progreso por opción. En una encuesta de respuesta única, Tab desde el mensaje lleva a las opciones y marcar una ya vota. El botón "Ver votos" (Alt+V) lista quién votó qué. Para crear una encuesta, consulta la sección Archivos adjuntos. En la conversación abierta, los resultados de las encuestas se actualizan al recibir un nuevo evento de voto, tanto con Neonize como con WPPConnect.</li>
   <li><strong>Mensajes de pedido:</strong> Intro abre el pedido; consulta la sección Empresas.</li>
   <li><strong>Anuncios de comunidad:</strong> en el menú de un mensaje de anuncio, "Respuestas al anuncio de la comunidad" abre una ventana para leer y enviar respuestas y actualizar la lista; el texto se conserva si el envío no se confirma.</li>
 </ul>

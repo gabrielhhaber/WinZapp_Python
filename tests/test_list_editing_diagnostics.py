@@ -71,3 +71,26 @@ def test_completion_announces_fixed_reason_and_releases_buttons(editable, reason
     assert not stub._busy and stub._buttons['reload'].enabled
     assert stub._buttons['create'].enabled == editable
     assert labels[-1] == expected and speech == [expected]
+
+
+def test_a_read_superseded_by_a_pending_label_refresh_is_not_announced_read_only():
+    stub = dialog_stub(ListSnapshot((), False, ''))
+    callbacks, speech = [], []
+    stub._status = SimpleNamespace(SetLabel=lambda text: None)
+    stub.Layout = lambda: None
+    stub._mw.i18n = SimpleNamespace(t=lambda key: key)
+    stub._mw.output = speech.append
+    stub._mw._request_wa_lists = lambda callback, command: callbacks.append(callback)
+    stub._mw._wa_lists_remote_refresh_pending = True
+    WhatsAppListsDialog._submit_list_command(stub)
+    callbacks[0](SimpleNamespace(outcome='loaded'))
+    assert speech == ['wa_lists_loaded']
+
+
+def test_list_completion_text_only_explains_read_only_after_a_settled_read():
+    from ui.conversation_panel.chat_lists import list_completion_text
+    i18n = SimpleNamespace(t=lambda key: key)
+    read_only = ListSnapshot((), False, 'account_disabled')
+    assert list_completion_text(i18n, 'loaded', read_only) == 'wa_lists_loaded wa_lists_account_disabled'
+    assert list_completion_text(i18n, 'loaded', read_only, refresh_pending=True) == 'wa_lists_loaded'
+    assert list_completion_text(i18n, 'failed', read_only) == 'wa_lists_failed'

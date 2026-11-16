@@ -203,6 +203,12 @@ def send(s, collection, mutations) -> None:
     mirror = mirror_of(s)
     for index, version, value, remove in mutations:
         mirror.apply(collection, list(index), version, remove, value.SerializeToString())
+        try:
+            import label_events
+            label_events.association(s, index, remove, False, value)
+        except Exception:
+            # The patch was accepted: an event failure must not invite a resend.
+            log.exception("label association notification")
 
 
 def register_events(cli, s):
@@ -222,6 +228,32 @@ def register_events(cli, s):
         try:
             value = e.Action.SerializeToString() if e.HasField("Action") else b""
             mirror.apply(e.Name, list(e.Index), e.Version, e.Remove, value, e.FromFullSync)
+            if (not e.FromFullSync and e.Name == "regular_low"
+                    and list(e.Index) == ["setting_unarchiveChats"] and (e.Remove or (
+                        e.HasField("Action") and e.Action.HasField("unarchiveChatsSetting")
+                        and e.Action.unarchiveChatsSetting.HasField("unarchiveChats")))):
+                import chat_archive
+                keep = chat_archive.keep_archived(mirror.entries(chat_archive.SETTING))
+                s.emit("privacy-settings-changed", {"session": s.name, "keepArchived": keep})
+            if (not e.FromFullSync and e.Name == "regular_high"
+                    and list(e.Index) == ["status_privacy"]):
+                import status_privacy
+                if e.Remove:
+                    status = status_privacy.status_field(None, ())
+                elif (e.HasField("Action") and e.Action.HasField("statusPrivacy")
+                      and e.Action.statusPrivacy.HasField("mode")):
+                    action = e.Action.statusPrivacy
+                    valid = len(action.userJID) <= status_privacy.MAX_LIST and all(
+                        status_privacy.PERSON.fullmatch(status_privacy.client_jid(p))
+                        for p in action.userJID)
+                    status = status_privacy.status_field(action.mode, action.userJID) if valid else None
+                else:
+                    status = None
+                if status is not None:
+                    s.emit("privacy-settings-changed", {"session": s.name, "status": status})
+            import label_events
+            label_events.association(s, e.Index, e.Remove, e.FromFullSync,
+                                     e.Action if e.HasField("Action") else None)
         except Exception:
             log.exception("app state mutation")
         # neonize keeps one handler per event: the mutations no other event

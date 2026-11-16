@@ -369,6 +369,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista de conversații</h2>
 <p class="lead">Lista de conversații (Alt+1) afișează numele persoanelor și grupurilor, niciodată coduri interne. Fiecare rând citește numele, ultimul mesaj și starea (necitit, fixat, dezactivat sonor...).</p>
+<p>Modificările făcute pe telefon sau pe alt dispozitiv ajung în WinZapp imediat ce WhatsApp le anunță, cu WPPConnect și Neonize: dezactivarea sunetului, arhivarea și fixarea conversațiilor, adăugarea lor în liste sau scoaterea din liste, durata mesajelor temporare, contactele salvate, redenumite sau eliminate, numele publice, fotografiile de profil și contactele blocate. O conversație ștearsă pe alt dispozitiv dispare și din WinZapp, dacă nu are mesaje mai noi decât ștergerea; dacă este deschisă, WinZapp o închide și spune de ce.</p>
 <p>Cu Neonize, o conversație este marcată ca citită doar când o deschizi sau o marchezi ca citită, și apare ca citită și pe telefon și în WhatsApp Web.</p>
 <p>Cu Neonize, când ajungi la începutul a ceea ce are WinZapp dintr-o conversație, cere telefonului mesajele mai vechi, cum face WhatsApp Web; sosesc în câteva clipe, cu telefonul conectat.</p>
 
@@ -421,7 +422,7 @@
 <h3>Contacte: locale sau sincronizate cu telefonul</h3>
 <p>Când adaugi un contact (în Informații despre conversație, în Conversație nouă sau dintr-un mesaj cu contact), există două file:</p>
 <ul>
-  <li><strong>Contact sincronizat cu telefonul:</strong> salvează numele în WhatsApp și în agenda telefonului. Se deschide implicit; dacă numărul este deja în agenda telefonului, apare doar această filă. Ștergerea unui contact sincronizat îl elimină și din WhatsApp și de pe telefon.</li>
+  <li><strong>Contact sincronizat cu telefonul:</strong> salvează contactul în WhatsApp și solicită sincronizarea cu agenda telefonului. Finalizarea salvării pe telefon nu poate fi verificată aici. Se deschide implicit; dacă numărul este deja în agenda telefonului, apare doar această filă. Ștergerea unui contact sincronizat îl elimină și din WhatsApp și de pe telefon.</li>
   <li><strong>Contact local WinZapp:</strong> numele există doar în WinZapp.</li>
 </ul>
 <p>Firmele verificate pe care nu le-ai salvat (bănci, aplicații de plată...) apar cu numele verificat al firmei. Un nume salvat în contactele tale are mereu prioritate.</p>
@@ -476,6 +477,7 @@
   <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Mergi la mesajul anterior / următor care îți răspunde (o nouă apăsare merge înapoi prin răspunsuri și, după cel mai vechi, revine la cel mai recent)</td></tr>
   <tr><td class="field-name">Alt+T</td><td>Anunță starea contactului: văzut ultima oară, online, scrie. Butonul conversației și datele contactului arată aceeași informație, mereu actualizată</td></tr>
 </table>
+<p>Mesajele șterse doar pentru tine pe alt dispozitiv sunt eliminate din conversație când sosește notificarea de ștergere, cu WPPConnect și Neonize.</p>
 <p>Alt+T citește cele mai recente informații disponibile fără să aștepte o cerere de rețea. Scrierea și înregistrarea audio pot apărea chiar dacă informațiile despre vizibilitatea online nu sunt disponibile; acești indicatori nu înseamnă că persoana își partajează starea online. Activitatea expiră după zece secunde fără actualizare. Confidențialitatea ultimei accesări este respectată în continuare. Activitatea aparține conversației în care are loc: grupurile și conversațiile private sunt urmărite separat.</p>
 <p>Actualizările de prezență ale contactelor nu schimbă numărul mesajelor necitite și nu rescriu titlurile ferestrei sau etichetele chaturilor arhivate care nu s-au schimbat. Anunțurile despre tastare și înregistrare respectă setările de vorbire. Numele noi ale contactelor sunt salvate în fundal; nu trebuie activată o opțiune suplimentară.</p>
 
@@ -509,10 +511,11 @@
 
 <h3>Stea și fixare</h3>
 <ul>
-  <li><strong>Stea</strong> (Ctrl+Shift+O): stelele sunt sincronizate cu WhatsApp, iar fiecare modificare este verificată. Pentru a trimite la WhatsApp stelele tale locale vechi, folosește "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației.</li>
+  <li><strong>Stea</strong> (Ctrl+Shift+O): stelele sunt sincronizate cu WhatsApp, iar fiecare modificare este verificată. Pentru a trimite la WhatsApp stelele tale locale vechi, folosește "Sincronizează marcajele cu stea locale vechi cu WhatsApp" din meniul conversației. Marcarea sau demarcarea cu stea a unui mesaj pe telefon ori alt dispozitiv actualizează marcajul în conversația deschisă la primirea notificării, cu WPPConnect și Neonize.</li>
   <li><strong>Mesaje marcate cu stea</strong> (Alt+0 sau rândul "Mesaje marcate cu stea" din lista de navigare): toate mesajele marcate cu stea din toate conversațiile, de la cele mai noi, citite ca conversație, expeditor, text și dată. "Căutați în mesajele marcate cu stea" restrânge lista după orice cuvânt, fără a ține cont de diacritice sau majuscule; Enter sau "Deschideți în conversație" deschide conversația la acel mesaj, iar Delete sau "Eliminați marcajul cu stea" elimină steaua.</li>
   <li><strong>Fixarea unui mesaj</strong> (Ctrl+Shift+P, când nu înregistrezi): un buton din fiecare conversație listează mesajele fixate în WhatsApp, inclusiv cele vechi; Enter te duce la mesajul din istoric. Când deschizi conversația, numărul de mesaje fixate este anunțat fără a schimba focalizarea.</li>
 </ul>
+<p>Fixarea sau desprinderea unui mesaj pe alt dispozitiv actualizează marcajul și lista mesajelor fixate din conversația deschisă la primirea notificării.</p>
 
 <h3>Marcaje</h3>
 <p>Marcajele sunt poziții pe care le creezi pe mesaje pentru a reveni la ele mai târziu. Cu mesajul având focalizarea, Ctrl+0 până la Ctrl+9 creează un marcaj (sau, dacă acel număr există deja, merge la el); Ctrl+Shift+0 până la 9 îl elimină. Alt+Shift+0 până la 9 creează marcaje temporare, șterse când părăsești conversația; Ctrl+Alt+Shift+0 până la 9 elimină cele temporare. În Setări &gt; Interfață &gt; Conversații, "Elimină automat marcajele permanente după prima utilizare" și "Elimină automat marcajele temporare după prima utilizare" fac ca mutarea la un marcaj să-l elimine imediat, iar aceeași tastă creează un marcaj nou data următoare.</p>
@@ -530,7 +533,7 @@
 <h3>Contacte, sondaje și cartonașe</h3>
 <ul>
   <li><strong>Cartonaș de contact primit:</strong> Enter sau Spațiu îl salvează ca contact. Meniul contextual are vezi numele și numărul, copiază numărul cu Ctrl+C și conversează. Dacă cartonașul are mai multe numere, WinZapp întreabă pe care să-l folosească.</li>
-  <li><strong>Sondaje primite:</strong> rândul citește întrebarea și apoi fiecare opțiune, cu procent și voturi când WinZapp le primește. Enter deschide o fereastră cu aceeași listă, casete pentru vot și o bară de progres pentru fiecare opțiune. Într-un sondaj cu un singur răspuns, Tab de la mesaj duce la opțiuni, iar bifarea uneia votează deja. Butonul "Vezi voturile" (Alt+V) listează cine a votat ce. Pentru a crea un sondaj, vezi secțiunea Atașamente.</li>
+  <li><strong>Sondaje primite:</strong> rândul citește întrebarea și apoi fiecare opțiune, cu procent și voturi când WinZapp le primește. Enter deschide o fereastră cu aceeași listă, casete pentru vot și o bară de progres pentru fiecare opțiune. Într-un sondaj cu un singur răspuns, Tab de la mesaj duce la opțiuni, iar bifarea uneia votează deja. Butonul "Vezi voturile" (Alt+V) listează cine a votat ce. Pentru a crea un sondaj, vezi secțiunea Atașamente. În conversația deschisă, rezultatele sondajelor se actualizează la primirea unui nou eveniment de vot, atât cu Neonize, cât și cu WPPConnect.</li>
   <li><strong>Mesaje de comenzi:</strong> Enter deschide comanda; vezi secțiunea Firme.</li>
   <li><strong>Anunțurile comunității:</strong> în meniul unui mesaj de anunț, "Răspunsuri la anunțul comunității" deschide o fereastră pentru a citi și trimite răspunsuri și a actualiza lista; textul este păstrat dacă trimiterea nu este confirmată.</li>
 </ul>
@@ -811,6 +814,7 @@
     <h2 id="h-grupos-comunidades">👥 10. Grupuri și comunități</h2>
 <h3>Informații despre conversație și despre grup</h3>
 <p>Ctrl+Shift+D (sau "Informații despre conversație" din meniul contextual) deschide o fereastră cu file. Toate butoanele și câmpurile au o literă de comandă rapidă (Alt+literă).</p>
+<p>Modificările descrierii, setărilor și participanților unui grup, inclusiv administratorii numiți sau retrași, ajung în WinZapp imediat ce WhatsApp le anunță; dacă doar administratorii pot trimite mesaje, câmpul de mesaj al conversației deschise urmează imediat schimbarea.</p>
 <ul>
   <li><strong>Contact:</strong> fila de prezentare cu numele, numele de profil ales de contact, numele verificat și dacă este un cont de afaceri, dacă notificările sunt dezactivate (și până când), temporizatorul mesajelor temporare și mențiunea că mesajele și apelurile sunt criptate end-to-end. Butonul "Fotografie de profil" (Alt+F) afișează poza, iar "Deschide în vizualizator extern" (Alt+A) o deschide în programul implicit din Windows; dacă nu există poză sau persoana nu îți permite să o vezi, WinZapp spune asta. Există și fila <strong>Grupuri comune</strong> (Enter deschide grupul) și fila Media.</li>
   <li><strong>Grup:</strong> fila de prezentare (nume, descriere, poza grupului, dacă doar administratorii trimit mesaje), fila Participanți (Enter pe un participant deschide conversația privată cu el; "Adăugați membru" acceptă contacte sau un număr suplimentar) și fila Media. Datele apar de îndată ce grupul răspunde, iar numele și numerele lipsă sunt completate imediat după. În fila Media, Ctrl+C pe un document, o fotografie, un video sau un fișier audio copiază fișierul în clipboard, ca în lista de mesaje.</li>
@@ -847,6 +851,7 @@
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
     <h2 id="h-trancadas">🔒 11. Conversații blocate</h2>
 <p class="lead">Conversațiile blocate (Alt+7) rămân într-un seif protejat cu PIN, în afara listei de conversații, a celor arhivate, a căutării și a ferestrei de redirecționare.</p>
+<p>Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; dacă era deschisă, este închisă și WinZapp spune de ce.</p>
 <ul>
   <li><strong>Blocare:</strong> "Blocați conversația" din meniul contextual sau Ctrl+Shift+T. PIN-ul are între 6 și 12 cifre. Când configurezi seiful, WinZapp creează o <em>cheie de recuperare</em> (poate fi citită cu voce tare sau copiată) pentru a stabili un PIN nou dacă îl uiți pe cel actual.</li>
   <li><strong>Notificări:</strong> cele ale acestor conversații spun doar câte mesaje noi au sosit, fără nume sau conținut. Mesajele lor nu sunt niciodată transcrise automat, iar IA online întreabă din nou la fiecare trimitere.</li>
@@ -956,6 +961,7 @@
   <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
     <h2 id="h-privacidade">🛡️ 15. Setări WhatsApp</h2>
 <p class="lead">Fișier &gt; Setări WhatsApp deschide Setările la categoria Setări WhatsApp, care are două butoane, Confidențialitate și Profil, și modifică contul tău WhatsApp direct în WhatsApp.</p>
+<p>Modificările făcute pe alt dispozitiv la confidențialitate, la păstrarea conversațiilor arhivate, la confidențialitatea stării sau la fotografia de profil actualizează și panoul Confidențialitate sau Profil deschis; un câmp modificat și încă neaplicat își păstrează alegerea ta.</p>
 <h3>Butonul Confidențialitate</h3>
 <ul>
   <li>Ultima accesare și online; Despre; poza de profil; confirmările de citire; cine te poate adăuga în grupuri; cine îți poate vedea starea (contactele mele, contactele mele cu excepția..., sau partajează doar cu...).</li>
@@ -1446,6 +1452,26 @@
 <p class="lead">Fiecare alfa nou care aduce funcții este adăugat în ghid. Această listă arată până la ce alfa este complet ghidul și ce a intrat în fiecare rundă.</p>
 <table class="field-table">
   <tr><th>Alfa</th><th>Ce a intrat în ghid</th></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Adăugarea unei conversații într-o listă sau scoaterea ei dintr-o listă pe alt dispozitiv actualizează listele și filtrul deschis, fără a schimba lista selectată.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Schimbarea propriei fotografii de profil pe alt dispozitiv actualizează panoul Profil deschis, fără a înlocui numele, informațiile sau o fotografie încă nesalvată.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Schimbarea păstrării conversațiilor arhivate sau a confidențialității stării pe alt dispozitiv actualizează panoul deschis, păstrând alegerile încă neaplicate.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>S-a corectat salvarea contactelor care nu apăreau în WhatsApp pe iPhone: identificatorul asociat este acum trimis complet, ca în ecranul nativ WhatsApp.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>La salvarea unui contact pe telefon, WinZapp anunță acum că telefonului i s-a cerut să-l adauge, în loc să afirme că este deja în agendă; o salvare neconfirmată de WhatsApp nu mai este anunțată ca reușită.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Modificările de confidențialitate făcute pe alt dispozitiv actualizează panoul deschis, păstrând câmpurile modificate și încă neaplicate.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Blocarea sau deblocarea unui contact pe alt dispozitiv actualizează WinZapp imediat ce WhatsApp o anunță.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Când un contact sau un grup își schimbă ori își elimină fotografia, WinZapp nu o mai afișează pe cea veche.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Contactele salvate, redenumite sau eliminate din agendă pe alt dispozitiv și schimbările numelui public actualizează WinZapp la primirea notificării, păstrând numele locale și istoricul.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Descrierile, setările și participanții grupurilor urmăresc notificările în timp real, inclusiv promovarea și retrogradarea administratorilor, iar permisiunile de trimitere sunt actualizate în conversația deschisă.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Ștergerea unei conversații pe alt dispozitiv o elimină din WinZapp la primirea notificării; o conversație cu mesaje mai noi decât notificarea este păstrată. Dacă era deschisă, este închisă și WinZapp spune de ce.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Fixarea sau desprinderea unui mesaj pe alt dispozitiv actualizează marcajul și lista mesajelor fixate din conversația deschisă la primirea notificării.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Schimbarea duratei mesajelor temporare pe alt dispozitiv, într-o conversație sau într-un grup, actualizează WinZapp fără a aștepta o sincronizare completă.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; dacă era deschisă, este închisă și WinZapp spune de ce.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Modificările de dezactivare a sunetului, arhivare și fixare făcute pe alt dispozitiv actualizează lista conversațiilor când sosește notificarea, cu WPPConnect și Neonize.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Mesajele șterse doar pentru tine pe alt dispozitiv sunt eliminate din conversație când sosește notificarea de ștergere, cu WPPConnect și Neonize.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Marcarea sau demarcarea cu stea a unui mesaj pe telefon ori alt dispozitiv actualizează marcajul în conversația deschisă la primirea notificării, cu WPPConnect și Neonize.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Neonize: editările păstrează identificatorul mesajului original și înregistrează cheia completă a notificării de editare, inclusiv autorul în grupuri.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>Neonize: evenimentele reacțiilor folosesc formatul WPPConnect, cu cheile complete ale reacției și mesajului original, expeditorul și timpul în secunde.</td></tr>
+  <tr><td class="field-name">Nelansat încă</td><td>În conversația deschisă, rezultatele sondajelor se actualizează la primirea unui nou eveniment de vot, atât cu Neonize, cât și cu WPPConnect. Neonize: evenimente compatibile cu WPPConnect pentru voturi, mesaje șterse și asocieri de etichete; identificatorii stărilor primite păstrează autorul.</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Traducerea a ceea ce este deja în conversație: "Traduceți de aici până la sfârșit" (Alt+Shift+Y) și scurtătura Ctrl+Alt+Shift+Y pentru mesajele selectate, ambele afișate în elementele de meniu; în timpul traducerii devin "Anulați traducerea mesajelor".</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Grupuri: toate persoanele care scriu sau înregistrează apar în previzualizare și sunt anunțate, cu singularul și pluralul corecte; și Alt+T; opțiunea "Luați în considerare activitatea mai multor participanți când anunțați starea unui grup".</td></tr>
   <tr><td class="field-name">Nelansat încă</td><td>Modelul implicit Google Gemini din IA online este Gemini 3.5 Flash-Lite; un model fix ales deja nu se schimbă.</td></tr>

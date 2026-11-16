@@ -369,6 +369,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista de chats</h2>
 <p class="lead">La lista de chats (Alt+1) muestra los nombres de personas y grupos, nunca códigos internos. Cada fila lee el nombre, el último mensaje y el estado (no leído, fijado, silenciado...).</p>
+<p>Los cambios hechos en el teléfono o en otro dispositivo llegan a WinZapp en cuanto WhatsApp los comunica, con WPPConnect y Neonize: silenciar, archivar y fijar chats, añadirlos a listas o quitarlos, el plazo de los mensajes temporales, contactos guardados, renombrados o eliminados, nombres públicos, fotos de perfil y contactos bloqueados. Un chat eliminado en otro dispositivo también desaparece de WinZapp, salvo que tenga mensajes posteriores a la eliminación; si está abierto, WinZapp lo cierra e indica el motivo.</p>
 <p>Con Neonize, un chat solo se marca como leído cuando lo abres o lo marcas como leído, y aparece como leído también en el teléfono y en WhatsApp Web.</p>
 <p>Con Neonize, cuando llegas al principio de lo que WinZapp tiene de un chat, pide al teléfono los mensajes más antiguos, como hace WhatsApp Web; llegan en unos instantes, con el teléfono conectado.</p>
 
@@ -421,7 +422,7 @@
 <h3>Contactos: locales o sincronizados con el teléfono</h3>
 <p>Al añadir un contacto (en Datos del chat, en Nuevo chat o desde un mensaje de contacto), hay dos pestañas:</p>
 <ul>
-  <li><strong>Contacto sincronizado con el teléfono:</strong> guarda el nombre en WhatsApp y en la agenda del teléfono. Se abre por defecto; si el número ya está en la agenda del teléfono, solo aparece esta pestaña. Eliminar un contacto sincronizado también lo quita de WhatsApp y del teléfono.</li>
+  <li><strong>Contacto sincronizado con el teléfono:</strong> guarda el contacto en WhatsApp y solicita la sincronización con la agenda del teléfono. Aquí no se puede verificar si el teléfono ha terminado de guardarlo. Se abre por defecto; si el número ya está en la agenda del teléfono, solo aparece esta pestaña. Eliminar un contacto sincronizado también lo quita de WhatsApp y del teléfono.</li>
   <li><strong>Contacto local de WinZapp:</strong> el nombre existe solo en WinZapp.</li>
 </ul>
 <p>Las empresas verificadas que no has guardado (bancos, aplicaciones de pago...) aparecen con el nombre verificado de la empresa. Un nombre guardado en tus contactos siempre tiene prioridad.</p>
@@ -476,6 +477,7 @@
   <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Ir al mensaje anterior / siguiente que responde a ti (si vuelves a pulsar, recorre las respuestas hacia atrás y, tras la más antigua, vuelve a la más reciente)</td></tr>
   <tr><td class="field-name">Alt+T</td><td>Anunciar el estado del contacto: última vez, en línea, escribiendo. El botón del chat y los datos del contacto muestran la misma información, siempre actualizada</td></tr>
 </table>
+<p>Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.</p>
 <p>Alt+T lee la información disponible más reciente sin esperar una consulta a la red. La escritura y la grabación de audio pueden aparecer aunque no haya información de visibilidad en línea; estos indicadores no significan que la persona comparta esa visibilidad. La actividad caduca tras diez segundos sin actualizarse. Se sigue respetando la privacidad de la última conexión. La actividad pertenece al chat donde ocurre: los grupos y los chats privados se siguen por separado.</p>
 <p>Las actualizaciones de presencia no cambian los totales de mensajes sin leer ni vuelven a escribir títulos de ventana o etiquetas de chats archivados que no han cambiado. Los avisos de escritura y grabación siguen tus ajustes de voz. Los nuevos nombres de contactos se guardan en segundo plano; no hace falta activar otra opción.</p>
 
@@ -509,10 +511,11 @@
 
 <h3>Destacar y fijar</h3>
 <ul>
-  <li><strong>Destacar</strong> (Ctrl+Shift+O): los destacados se sincronizan con WhatsApp y cada cambio se comprueba. Para enviar a WhatsApp tus destacados locales antiguos, usa "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat.</li>
+  <li><strong>Destacar</strong> (Ctrl+Shift+O): los destacados se sincronizan con WhatsApp y cada cambio se comprueba. Para enviar a WhatsApp tus destacados locales antiguos, usa "Sincronizar destacados locales antiguos con WhatsApp" en el menú del chat. Marcar o desmarcar un mensaje como favorito en el móvil u otro dispositivo actualiza la marca en la conversación abierta al recibir el aviso, con WPPConnect y Neonize.</li>
   <li><strong>Mensajes destacados</strong> (Alt+0, o la fila "Mensajes destacados" de la lista de navegación): todos los mensajes destacados de todos los chats, de los más nuevos a los más antiguos, leídos como chat, remitente, texto y fecha. "Buscar en los destacados" filtra la lista por cualquier palabra, sin distinguir acentos ni mayúsculas; Intro o "Abrir en el chat" abre el chat en ese mensaje, y Supr o "Quitar destacado" quita el destacado.</li>
   <li><strong>Fijar un mensaje</strong> (Ctrl+Shift+P, cuando no estás grabando): un botón en cada chat lista los mensajes fijados en WhatsApp, incluidos los antiguos; Intro te lleva al mensaje en el historial. Al abrir el chat, se anuncia el número de mensajes fijados sin cambiar el foco.</li>
 </ul>
+<p>Fijar o desfijar un mensaje en otro dispositivo actualiza su marca y el resumen de mensajes fijados del chat abierto al llegar el aviso.</p>
 
 <h3>Marcadores</h3>
 <p>Los marcadores son posiciones que creas en los mensajes para volver a ellos más tarde. Con el mensaje con el foco, Ctrl+0 a Ctrl+9 crea un marcador (o, si ese número ya existe, va a él); Ctrl+Shift+0 a 9 lo quita. Alt+Shift+0 a 9 crea marcadores temporales, que se borran al salir del chat; Ctrl+Alt+Shift+0 a 9 quita los temporales. En Configuración &gt; Interfaz &gt; Chats, "Eliminar marcadores permanentes automáticamente tras el primer uso" y "Quitar marcadores temporales automáticamente tras el primer uso" hacen que ir a un marcador lo quite enseguida, y la misma tecla crea un marcador nuevo la próxima vez.</p>
@@ -530,7 +533,7 @@
 <h3>Contactos, encuestas y tarjetas</h3>
 <ul>
   <li><strong>Tarjeta de contacto recibida:</strong> Intro o Espacio la guarda como contacto. El menú contextual tiene ver nombre y número, copiar el número con Ctrl+C y conversar. Si la tarjeta tiene más de un número, WinZapp pregunta cuál usar.</li>
-  <li><strong>Encuestas recibidas:</strong> la fila lee la pregunta y luego cada opción, con porcentaje y votos cuando WinZapp los recibe. Intro abre una ventana con la misma lista, casillas para votar y una barra de progreso por opción. En una encuesta de respuesta única, Tab desde el mensaje lleva a las opciones y marcar una ya vota. El botón "Ver votos" (Alt+V) lista quién votó qué. Para crear una encuesta, consulta la sección Archivos adjuntos.</li>
+  <li><strong>Encuestas recibidas:</strong> la fila lee la pregunta y luego cada opción, con porcentaje y votos cuando WinZapp los recibe. Intro abre una ventana con la misma lista, casillas para votar y una barra de progreso por opción. En una encuesta de respuesta única, Tab desde el mensaje lleva a las opciones y marcar una ya vota. El botón "Ver votos" (Alt+V) lista quién votó qué. Para crear una encuesta, consulta la sección Archivos adjuntos. En la conversación abierta, los resultados de las encuestas se actualizan al recibir un nuevo evento de voto, tanto con Neonize como con WPPConnect.</li>
   <li><strong>Mensajes de pedido:</strong> Intro abre el pedido; consulta la sección Empresas.</li>
   <li><strong>Anuncios de comunidad:</strong> en el menú de un mensaje de anuncio, "Respuestas al anuncio de la comunidad" abre una ventana para leer y enviar respuestas y actualizar la lista; el texto se conserva si el envío no se confirma.</li>
 </ul>
@@ -811,6 +814,7 @@
     <h2 id="h-grupos-comunidades">👥 10. Grupos y comunidades</h2>
 <h3>Datos del chat y del grupo</h3>
 <p>Ctrl+Shift+D (o "Datos del chat" en el menú contextual) abre una ventana con pestañas. Todos los botones y campos tienen una letra de atajo (Alt+letra).</p>
+<p>Los cambios en la descripción, los ajustes y los participantes de un grupo, incluidos los administradores nombrados o retirados, llegan a WinZapp en cuanto WhatsApp los comunica; si solo los administradores pueden enviar mensajes, el campo de mensaje del chat abierto sigue el cambio al momento.</p>
 <ul>
   <li><strong>Contacto:</strong> pestaña Resumen con el nombre, el nombre de perfil que eligió el contacto, el nombre verificado y si la cuenta es de empresa, si las notificaciones están silenciadas (y hasta cuándo), el temporizador de mensajes temporales y el aviso de que los mensajes y las llamadas están cifrados de extremo a extremo. El botón "Foto de perfil" (Alt+F) muestra la foto y "Abrir en visor externo" (Alt+A) la abre en el programa predeterminado de Windows; si no hay foto, o la persona no permite que la veas, WinZapp lo dice. También está la pestaña <strong>Grupos en común</strong> (Intro abre el grupo) y la pestaña Multimedia.</li>
   <li><strong>Grupo:</strong> pestaña Resumen (nombre, descripción, foto del grupo, si solo los administradores envían mensajes), pestaña Participantes (Intro en un participante abre el chat privado con él; "Agregar miembro" admite contactos o un número aparte) y pestaña Multimedia. Los datos aparecen en cuanto el grupo responde y los nombres y números que faltan se completan justo después. En la pestaña Multimedia, Ctrl+C sobre un documento, foto, vídeo o audio copia el archivo al portapapeles, como en la lista de mensajes.</li>
@@ -847,6 +851,7 @@
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
     <h2 id="h-trancadas">🔒 11. Chats bloqueados</h2>
 <p class="lead">Los chats bloqueados (Alt+7) se quedan en una cámara protegida por un PIN, fuera de la lista de chats, de los archivados, de la búsqueda y de la ventana de reenviar.</p>
+<p>Bloquear o desbloquear un chat en el teléfono actualiza WinZapp al llegar el aviso; si estaba abierto, se cierra y WinZapp indica el motivo.</p>
 <ul>
   <li><strong>Bloquear:</strong> "Bloquear chat" en el menú contextual o Ctrl+Shift+T. El PIN tiene de 6 a 12 dígitos. Al configurar la cámara, WinZapp crea una <em>clave de recuperación</em> (se puede leer en voz alta o copiar) para definir un PIN nuevo si olvidas el actual.</li>
   <li><strong>Notificaciones:</strong> las de estos chats solo dicen cuántos mensajes nuevos llegaron, sin nombre ni contenido. Sus mensajes nunca se transcriben automáticamente, y la IA en línea vuelve a preguntar en cada envío.</li>
@@ -956,6 +961,7 @@
   <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
     <h2 id="h-privacidade">🛡️ 15. Configuración de WhatsApp</h2>
 <p class="lead">Archivo &gt; Configuración de WhatsApp abre la configuración en la categoría Configuración de WhatsApp, que tiene dos botones, Privacidad y Perfil, y cambia tu cuenta de WhatsApp directamente en WhatsApp.</p>
+<p>Los cambios hechos en otro dispositivo en la privacidad, en Mantener chats archivados, en la privacidad de los estados o en tu foto de perfil también actualizan el panel Privacidad o Perfil abierto; un campo que has cambiado y aún no has aplicado conserva tu elección.</p>
 <h3>Botón Privacidad</h3>
 <ul>
   <li>Última vez y en línea; Info; foto de perfil; confirmaciones de lectura; quién puede añadirte a grupos; quién puede ver tu estado (mis contactos, mis contactos excepto..., o compartir solo con...).</li>
@@ -1446,6 +1452,26 @@
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Añadir un chat a una lista o quitarlo de ella en otro dispositivo actualiza las listas y el filtro abierto, sin cambiar la lista seleccionada.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Cambiar tu foto de perfil en otro dispositivo actualiza el panel Perfil abierto, sin sustituir el nombre, la información ni una foto que aún no hayas guardado.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Cambiar Mantener chats archivados o la privacidad de los estados en otro dispositivo actualiza el panel abierto, conservando las opciones que aún no has aplicado.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Corregido el guardado de contactos que no aparecían en WhatsApp en el iPhone: ahora se envía el identificador vinculado completo, como en la pantalla nativa de WhatsApp.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Al guardar un contacto en el teléfono, WinZapp ahora indica que se pidió al teléfono que lo añadiera, en lugar de afirmar que ya está en la agenda; un guardado que WhatsApp no confirmó ya no se indica como completado.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Los cambios de privacidad hechos en otro dispositivo actualizan el panel abierto, conservando los campos que has cambiado y aún no has aplicado.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Bloquear o desbloquear un contacto en otro dispositivo actualiza WinZapp en cuanto WhatsApp lo comunica.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Cuando un contacto o grupo cambia o quita su foto, WinZapp deja de mostrar la anterior.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Los contactos guardados, renombrados o eliminados de la agenda en otro dispositivo y los cambios de nombre público actualizan WinZapp al llegar el aviso, conservando los nombres locales y el historial.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>La descripción, los permisos y los participantes de los grupos siguen los avisos en tiempo real, incluidos los cambios de administradores, y actualizan los permisos de envío del chat abierto.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Eliminar un chat en otro dispositivo lo quita de WinZapp al llegar el aviso; un chat con mensajes posteriores al aviso se conserva. Si estaba abierto, se cierra y WinZapp indica el motivo.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Fijar o desfijar un mensaje en otro dispositivo actualiza su marca y el resumen de mensajes fijados del chat abierto al llegar el aviso.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Cambiar el plazo de los mensajes temporales en otro dispositivo, en un chat o en un grupo, actualiza WinZapp sin esperar una sincronización completa.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Bloquear o desbloquear un chat en el teléfono actualiza WinZapp al llegar el aviso; si estaba abierto, se cierra y WinZapp indica el motivo.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Los cambios de silencio, archivo y fijación realizados en otro dispositivo actualizan la lista de chats al llegar el aviso, con WPPConnect y Neonize.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Los mensajes eliminados para ti en otro dispositivo se retiran de la conversación cuando llega el aviso de eliminación, con WPPConnect y Neonize.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Marcar o desmarcar un mensaje como favorito en el móvil u otro dispositivo actualiza la marca en la conversación abierta al recibir el aviso, con WPPConnect y Neonize.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Neonize: las ediciones conservan el identificador del mensaje original y registran la clave completa del aviso de edición, incluido el autor en los grupos.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Neonize: los eventos de reacciones usan el formato de WPPConnect, con las claves completas de la reacción y del mensaje original, el autor y la hora en segundos.</td></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>En la conversación abierta, los resultados de las encuestas se actualizan al recibir un nuevo evento de voto, tanto con Neonize como con WPPConnect. Neonize: eventos compatibles con WPPConnect para votos, mensajes eliminados y asociación de etiquetas; los identificadores de estados recibidos conservan al autor.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Traducción de lo que ya está en la conversación: "Traducir desde aquí hasta el final" (Alt+Shift+Y) y el atajo Ctrl+Alt+Shift+Y para los mensajes seleccionados, ambos en los elementos del menú; los mismos pasan a ser "Cancelar la traducción de los mensajes" mientras se ejecuta.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Grupos: todas las personas que escriben o graban audio aparecen en la vista previa y se anuncian, con el singular y el plural correctos; Alt+T también; opción "Tener en cuenta la actividad de varios participantes al anunciar el estado de un grupo".</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>El modelo predeterminado de Google Gemini en la IA en línea es Gemini 3.5 Flash-Lite; un modelo fijo ya elegido no se ve afectado.</td></tr>

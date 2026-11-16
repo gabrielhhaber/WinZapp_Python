@@ -21,6 +21,9 @@ import threading
 import wx
 
 from core import whatsapp_privacy as privacy
+from core.remote_privacy_events import (register_panel, event_state, observations_since,
+                                        keep_archived_for_load, status_since)
+from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 
 
 class WhatsAppPrivacyPanel(wx.ScrolledWindow):
@@ -36,6 +39,7 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         self.SetScrollRate(0, 20)
         self.SetMinSize((460, 420))
         self._build(i18n)
+        register_panel(self)
 
     def _say(self, text):
         self.main_window.speak_output.output(text)
@@ -105,10 +109,12 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
 
     def load(self):
         """Read the account's privacy from WhatsApp (once, when first shown)."""
+        context = capture_sync_context(self.main_window)
+        revision = event_state(self.main_window)["revision"]
         def work():
             answer = self.main_window.fetch_privacy_settings()
             keep = self.main_window.fetch_keep_chats_archived()
-            wx.CallAfter(self._on_loaded, answer, keep)
+            wx.CallAfter(self._on_loaded, answer, keep, context, revision)
 
         threading.Thread(target=work, daemon=True, name="wa-privacy-read").start()
 
@@ -121,16 +127,27 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
         self._keep_archived_check.Enable()
         self._apply_button.Enable()
 
-    def _on_loaded(self, answer, keep=None):
+    def _on_loaded(self, answer, keep=None, context=None, revision=None):
         if not self:  # closed while the server was still answering
             return
+        if context is not None and not sync_context_is_current(self.main_window, context):
+            return
         i18n = self._i18n
+        if revision is not None:
+            keep = keep_archived_for_load(self.main_window, revision, keep)
+            observed_status = status_since(self.main_window, revision)
+            if observed_status is not None:
+                answer = dict(answer) if answer else None
+                if answer is not None:
+                    answer["status"] = observed_status
         self._show_keep_archived(keep)
         if not answer:
             self._message.SetLabel(i18n.t("wa_privacy_load_failed"))
             self._say(i18n.t("wa_privacy_load_failed"))
             return
-        settings = answer["settings"]
+        settings = dict(answer["settings"])
+        if revision is not None:
+            settings.update(observations_since(self.main_window, revision))
         if privacy.unreadable(settings):
             # WhatsApp answered, but with nothing this window understands.
             # Silent empty dropdowns look like a working tab that ignores you.
@@ -244,6 +261,7 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
             return
 
         self._apply_button.Disable()
+        self._privacy_apply_revision = event_state(self.main_window)["revision"]
         self._message.SetLabel(i18n.t("wa_privacy_applying"))
         self._say(i18n.t("wa_privacy_applying"))
         mw = self.main_window
@@ -280,17 +298,32 @@ class WhatsAppPrivacyPanel(wx.ScrolledWindow):
                     status_unconfirmed, keep=None, keep_error=None, keep_unconfirmed=None):
         if not self:
             return
+        context = getattr(self, "_privacy_event_context", None)
+        if context is not None and not sync_context_is_current(self.main_window, context):
+            return
         i18n = self._i18n
         self._apply_button.Enable()
         confirmed, status_confirmed = privacy.apply_outcome(
             changes, errors, unconfirmed, status, status_error, status_unconfirmed)
         if self._loaded is not None:
             self._loaded.update(confirmed)  # confirmed by the read-back
+            revision = getattr(self, "_privacy_apply_revision", None)
+            if revision is not None:
+                self._loaded.update(observations_since(self.main_window, revision))
         if status_confirmed:
             self._status_loaded = privacy.StatusPrivacy(status[0], tuple(status[1]))
             self._status_people = None
+        revision = getattr(self, "_privacy_apply_revision", None)
+        observed_status = (status_since(self.main_window, revision)
+                           if revision is not None else None)
+        if observed_status is not None and status_confirmed:
+            self._status_loaded = privacy.parse_status_privacy(observed_status)
+            self._status_choice.SetSelection(privacy.status_option_index(
+                self._status_loaded.setting))
+            self._status_people = None
         if keep is not None and keep_error is None and not keep_unconfirmed:
-            self._keep_loaded = keep
+            self._keep_loaded = keep_archived_for_load(
+                self.main_window, revision, keep) if revision is not None else keep
 
         # The field labels carry their Alt key ("&"); a message does not.
         labels = {field.setting: i18n.t(field.label_key).replace("&", "")

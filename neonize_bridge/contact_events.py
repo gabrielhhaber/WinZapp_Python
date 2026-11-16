@@ -14,18 +14,20 @@ key), and the photo only goes with the URL.
 Sources in neonize 0.5.2 (what the proto descriptor confirms):
 - `PictureEv` (JID, Author, Timestamp, Remove) only says the photo changed, it
   does not bring the URL; that comes from `get_profile_picture` on a thread,
-  outside the handler (it is a network call). A removed photo is not emitted:
-  the client ignores an empty URL.
+  outside the handler (it is a network call). Every valid person/group picture
+  notice also emits `profile-picture-changed`, including removal, so an old URL
+  is invalidated without guessing a new one or fetching an image in the handler.
 - The name comes from the `Info.Pushname` of each received message
   (`announce_name`, which server.py's `MessageEv` handler calls: neonize keeps a
   single handler per event, so another cannot be registered here) and from the
   history package.
-- The address book's names (stored, not emitted: the client reads them from
-  `all-contacts` on its next sync) come from WinZapp's neonize build:
+- The address book's names come from WinZapp's neonize build and are now
+  forwarded through `contact-state-changed` after storage:
   `ContactUpdateEv` for a contact saved, renamed or removed on the phone, and
   `AppStateSyncCompleteEv` for the bulk of them right after pairing, which
   reloads neonize's contact store. `PushNameUpdateEv` keeps a nickname under
-  both forms of the JID.
+  both forms of the JID and emits a separate profile observation, without
+  marking it as a saved contact.
 
 Each fact is only emitted when it changes from the last one emitted
 (`Announced`, in RAM): the bridge's store already keeps the names and is not
@@ -36,6 +38,8 @@ import logging
 import threading
 
 import msgmap
+import contact_state_events
+import profile_picture_events
 from profile_privacy import photo_to_wpp, no_photo
 
 log = logging.getLogger("bridge")
@@ -216,8 +220,8 @@ def register_events(cli, s):
                 if not is_person(e.JID):
                     return
                 name = saved_name(e.Action)
-                s.db.set_contact_name(_text(e.JID), name)
-                log.info("contact: address book entry %s", "saved" if name else "removed")
+                if contact_state_events.address_book(s, e, name, _text(e.JID)):
+                    log.info("contact: address book entry %s", "saved" if name else "removed")
             except Exception:
                 log.exception("address book changed")
 
@@ -243,6 +247,8 @@ def register_events(cli, s):
             # this keeps it under the other form of the JID too (number <-> LID)
             try:
                 name = clean_name(e.NewPushName)
+                if name and is_person(getattr(e, "JID", None)):
+                    contact_state_events.profile(s, _text(e.JID), name)
                 if name and e.HasField("JIDAlt") and is_person(e.JIDAlt):
                     s.db.contact(_text(e.JIDAlt), pushname=name)
             except Exception:
@@ -251,6 +257,7 @@ def register_events(cli, s):
     @cli.event(nev.PictureEv)
     def _photo(c, e):
         try:
+            profile_picture_events.changed(s, _text(e.JID))
             if e.Remove or not is_person(e.JID):
                 return
             _in_background(_announce_photo_safely, c, s, e.JID)
