@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from ui.conversation_panel import chat_menu
 from ui.conversation_panel.chat_menu import ChatMenuMixin
 
 
@@ -23,7 +24,9 @@ def _panel():
     ("_on_menu_pin", "pin_chat", "chat_action_pinned"),
     ("_on_menu_unpin", "unpin_chat", "chat_action_unpinned"),
 ])
-def test_action_is_confirmed_through_output(handler, action, key):
+def test_action_is_confirmed_through_output(handler, action, key, monkeypatch):
+    # Archiving asks first; accept so no dialog is built.
+    monkeypatch.setattr(chat_menu, "confirm_archive_chat", lambda *a, **k: True)
     panel = _panel()
     getattr(ChatMenuMixin, handler)(panel, "1@s.whatsapp.net")
     getattr(panel.main_window, action).assert_called_once_with("1@s.whatsapp.net")

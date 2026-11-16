@@ -101,6 +101,7 @@
         "confirm_mark_all_read": true,
         "confirm_clear_chat": true,
         "confirm_delete_chat": true,
+        "confirm_archive_chat": true,
         "confirm_resync_all": true,
         "confirm_resync_conversation": true,
         "warn_system_audio_recording": true,

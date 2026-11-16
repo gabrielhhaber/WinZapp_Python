@@ -2077,6 +2077,18 @@ msgid "Archive chat"
 msgstr "Sohbeti arşivle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_menu.py
+msgctxt "archive_confirm_button"
+msgid "&Archive chat"
+msgstr "&Sohbeti arşivle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_menu.py
+msgctxt "archive_confirm_msg"
+msgid "Are you sure you want to archive this chat?"
+msgstr "Bu sohbeti arşivlemek istediğinizden emin misiniz?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "archive_selected_chats"
 msgid "Archive selected chats"
 msgstr "Seçili sohbetleri arşivle"
@@ -3222,6 +3234,7 @@ msgstr "&Görüntülü arama ayarları"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/ui/chat_lock.py
 #: client/ui/conversation_panel/bulk_messages.py
+#: client/ui/conversation_panel/chat_menu.py
 #: client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/reactions.py
@@ -19783,6 +19796,12 @@ msgstr "Sohbet &ve mesaj seçerken kısayolları toplu işlemlerle değiştir"
 msgctxt "ui_chats_button"
 msgid "C&hats"
 msgstr "&Sohbetler"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_archive_chat"
+msgid "Ask for confirmation before archi&ving chats"
+msgstr "Sohbetleri arşivlemeden ön&ce onay iste"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

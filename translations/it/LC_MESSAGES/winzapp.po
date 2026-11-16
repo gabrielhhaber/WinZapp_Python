@@ -2117,6 +2117,18 @@ msgid "Archive chat"
 msgstr "Archivia chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_menu.py
+msgctxt "archive_confirm_button"
+msgid "&Archive chat"
+msgstr "Archivia &chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_menu.py
+msgctxt "archive_confirm_msg"
+msgid "Are you sure you want to archive this chat?"
+msgstr "Sei sicuro di voler archiviare questa chat?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "archive_selected_chats"
 msgid "Archive selected chats"
 msgstr "Archivia le chat selezionate"
@@ -3270,6 +3282,7 @@ msgstr "Impostazioni &videochiamate"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/ui/chat_lock.py
 #: client/ui/conversation_panel/bulk_messages.py
+#: client/ui/conversation_panel/chat_menu.py
 #: client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/reactions.py
@@ -20156,6 +20169,12 @@ msgstr ""
 msgctxt "ui_chats_button"
 msgid "C&hats"
 msgstr "C&hat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_archive_chat"
+msgid "Ask for confirmation before archi&ving chats"
+msgstr "Chiedi conferma prima di arch&iviare le chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
