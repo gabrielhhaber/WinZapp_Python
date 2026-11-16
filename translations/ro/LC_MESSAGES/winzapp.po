@@ -7427,6 +7427,12 @@ msgctxt "files_selected"
 msgid "{count} file(s) selected"
 msgstr "{count} fișiere selectate"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_list_selection.py
+msgctxt "filters_cleared"
+msgid "Filters cleared"
+msgstr "Filtre șterse"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
 msgctxt "force_reinstall_confirm_msg"
@@ -20090,6 +20096,12 @@ msgstr ""
 "listă în loc să îl redea (Alt+Shift+N îl redă sau îl deschide); dezactivat, "
 "Enter și Spațiu îl redau sau îl deschid, iar Alt+Shift+N îl transcrie în "
 "linie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_filters"
+msgid "Esc clears the search an&d the filters in a list of chats"
+msgstr "Esc șterge căutarea și filtrele din lista de con&versații"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

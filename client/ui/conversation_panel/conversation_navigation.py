@@ -583,6 +583,8 @@ class ConversationNavigationMixin:
                 lst.Focus(0)
                 lst.Select(0)
             return
+        if event.GetKeyCode() == wx.WXK_ESCAPE and self._clear_chat_list_filters():
+            return
         event.Skip()
 
     def _on_search_field_enter(self, event):

@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- În listele de conversații (obișnuită, arhivate și blocate), Esc șterge căutarea și filtrele, iar cititorul de ecran spune „Filtre șterse”; cu conversații selectate, primul Esc deselectează în continuare doar selecția. Se poate dezactiva în Setări, Conversații.
+
 - Adăugarea unei conversații într-o listă sau scoaterea ei dintr-o listă pe alt dispozitiv actualizează listele și filtrul deschis, fără a schimba lista selectată.
 
 - Schimbarea propriei fotografii de profil pe alt dispozitiv actualizează panoul Profil deschis, fără a înlocui numele, informațiile sau o fotografie încă nesalvată.

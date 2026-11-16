@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "aed10ba59c19": "Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa",
     "bef0d0d133d3": "Incluir uma conversa numa lista ou tirá-la de uma lista em outro dispositivo atu",
     "88ed9a71d0ce": "Trocar a sua foto de perfil em outro dispositivo atualiza o painel de Perfil abe",
     "36dd2c44054c": "Mudar Manter conversas arquivadas ou a privacidade dos status em outro dispositi",

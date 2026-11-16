@@ -398,9 +398,14 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
     def _on_search(self, event):
         self.refresh()
 
+    def _rebuild_chat_list_after_filters_cleared(self) -> None:
+        self.refresh()
+
     def _on_search_key(self, event):
         if event.GetKeyCode() == wx.WXK_DOWN and self.chats_list:
             self.restore_selection()
+            return
+        if event.GetKeyCode() == wx.WXK_ESCAPE and self._clear_chat_list_filters():
             return
         event.Skip()
 

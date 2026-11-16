@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros e o leitor de tela diz "Filtros limpos"; com conversas marcadas, o primeiro Esc ainda desmarca só a seleção. Dá para desligar em Configurações, Conversas.
+
 - Incluir uma conversa numa lista ou tirá-la de uma lista em outro dispositivo atualiza as listas e o filtro aberto, sem trocar a lista selecionada.
 
 - Trocar a sua foto de perfil em outro dispositivo atualiza o painel de Perfil aberto, sem substituir nome, recado ou foto que você ainda não salvou.
