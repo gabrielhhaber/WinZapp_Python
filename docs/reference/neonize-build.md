@@ -136,6 +136,24 @@ What the patches carry today:
   its device number; an `<accept>` with a bare `from` while the call's peer is
   still bare counts as the phone (device 0). Before a release, call a contact
   with a phone and a companion device and answer on each in turn.
+- **meowcaller 0026**: adding someone to a one-to-one call. The roster the
+  inviter sends names the peer's device that answered: every device that rings
+  sends a `<preaccept>` with its capability and the last one (usually the
+  phone) was kept, because meowcaller's own `<accept>` carries none. With the
+  phone named, the server took the companion really in the call for a device
+  that had not answered: it got the group invite as a new offer, no PIDs and
+  no group key, so it rang again and went silent (user logs, 2026-11-14).
+  WhatsApp Web's `<accept>` carries none either, and the inviter loses too:
+  its group receiver is keyed by the device the roster names, so every packet
+  of the companion fails to unprotect (`unprotect_failed` climbs while
+  `frames` stops; logs of both sides, 2026-11-16). A `<preaccept>` that
+  arrives after the answer (a phone woken by a push) does not replace the
+  device that answered. And
+  the device in the call no longer rings again when that invite arrives:
+  `onGroupOffer` replaced the live `Call` with a ringing one; it now applies
+  the invite as a group update. **Not yet validated on a live call**: call a
+  contact on Neonize, let them answer on the computer, add a third person and
+  check that the second one keeps hearing and is not rung.
 - **meowcaller 0010**: diagnostics only, no behaviour change. For every call it
   logs the relay endpoints (name, `is_fna`, token ids; never an address), the
   one media runs on (`*`), the first STUN packets the relay sends back, and
