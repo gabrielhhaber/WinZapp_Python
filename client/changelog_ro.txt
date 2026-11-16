@@ -541,6 +541,8 @@ NOUTĂȚI
 
 - Opțiuni noi în Setări > Notificări pentru a nu număra conversațiile arhivate și pe cele dezactivate în numărul de mesaje necitite din pictograma din bara de sistem și din titlul ferestrei. Ambele sunt bifate implicit: cele arhivate nu erau deja numărate și acum se poate schimba; cele dezactivate nu mai sunt numărate, ceea ce schimbă comportamentul anterior. Debifați opțiunea pentru a le număra din nou.
 
+- Conversații lungi: actualizarea istoricului unei conversații deschise cu mii de mesaje nu mai blochează fereastra zeci de secunde atunci când lista de mesaje afișează poziția fiecărui mesaj („N din M”).
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
