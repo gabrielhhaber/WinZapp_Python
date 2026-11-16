@@ -257,6 +257,7 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         )
         self._init_ui()
         self._create_accelerator_table()
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_chat_list_char_hook)
 
     def _init_ui(self):
         i18n = self.main_window.i18n

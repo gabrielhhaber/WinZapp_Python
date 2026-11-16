@@ -11,6 +11,7 @@ import threading
 import wx
 from core.conversation_view import ARCHIVED, LOCKED
 from ui.conversation_panel.typing_row import message_row_count
+from ui.conversation_panel.chat_list_selection import is_inside
 from main_window.typing_feedback import resume_typing_sound
 from core.utils import (
     db_fetch_limit,
@@ -692,7 +693,20 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
+        # Esc anywhere on the chat-list side of the panel (filter radio
+        # buttons, search field, buttons) clears the search and filters before
+        # it closes the conversation. Inside the conversation itself the
+        # message selection and the close above always win.
+        if not self._focus_in_conversation_area() and self._clear_chat_list_filters():
+            return
         self.close_conversation(event, from_user=True)
+
+    def _focus_in_conversation_area(self) -> bool:
+        return is_inside(wx.Window.FindFocus(), self.conversation_panel)
+
+    def _escape_clears_filters_blocked(self) -> bool:
+        """A selection of messages in the open conversation owns the next Esc."""
+        return bool(self.selected_messages)
 
     def close_conversation(self, event=None, from_user=False):
         """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close

@@ -4,7 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
-- Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros e o leitor de tela diz "Filtros limpos"; com conversas marcadas, o primeiro Esc ainda desmarca só a seleção. Dá para desligar em Configurações, Conversas.
+- Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros e o leitor de tela diz "Filtros limpos"; com conversas marcadas, o primeiro Esc ainda desmarca só a seleção. Dá para desligar em Configurações, Conversas. Isso vale também a partir dos filtros, da pesquisa e dos demais controles do painel de conversas; dentro de uma conversa aberta, o Esc continua fechando a conversa ou desmarcando as mensagens.
 
 - Incluir uma conversa numa lista ou tirá-la de uma lista em outro dispositivo atualiza as listas e o filtro aberto, sem trocar a lista selecionada.
 
