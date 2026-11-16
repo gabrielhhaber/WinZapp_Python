@@ -207,38 +207,36 @@ class TestWholePanel:
         panel.selected_messages = set()
         assert panel._clear_chat_list_filters() is True
 
-    def _escape(self, monkeypatch, panel, area, focus):
+    def _hook(self, monkeypatch, query, area, focus):
         class _Conv(_Panel):
             _escape_clears_filters_blocked = (
                 ConversationsPanel._escape_clears_filters_blocked)
             _focus_in_conversation_area = ConversationsPanel._focus_in_conversation_area
-            _on_escape_conversation = ConversationsPanel._on_escape_conversation
-        stub = _Conv(query=panel)
+            _on_panel_char_hook = ConversationsPanel._on_panel_char_hook
+            _on_chat_list_char_hook = ChatListSelectionMixin._on_chat_list_char_hook
+        stub = _Conv(query=query)
         stub.selected_messages = set()
         stub.conversation_panel = area
-        stub.close_conversation = Mock()
-        stub._mention_panel = Mock(IsShown=Mock(return_value=False))
         monkeypatch.setattr(wx.Window, "FindFocus", staticmethod(lambda: focus),
                             raising=False)
-        stub._on_escape_conversation(None)
-        return stub
+        event = _Event()
+        stub._on_panel_char_hook(event)
+        return stub, event
 
-    def test_escape_on_the_filter_bar_clears_before_closing(self, monkeypatch):
+    def test_escape_on_the_filter_bar_clears_the_filters(self, monkeypatch):
         root = _Win(); area = _Win(root); radio = _Win(root)
-        stub = self._escape(monkeypatch, "ana", area, radio)
-        assert stub.search_field.value == ""
-        stub.close_conversation.assert_not_called()
+        stub, event = self._hook(monkeypatch, "ana", area, radio)
+        assert stub.search_field.value == "" and not event.skipped
 
-    def test_escape_inside_the_conversation_closes_it(self, monkeypatch):
+    def test_escape_inside_the_conversation_is_left_alone(self, monkeypatch):
         root = _Win(); area = _Win(root); composer = _Win(area)
-        stub = self._escape(monkeypatch, "ana", area, composer)
-        assert stub.search_field.value == "ana"
-        stub.close_conversation.assert_called_once()
+        stub, event = self._hook(monkeypatch, "ana", area, composer)
+        assert stub.search_field.value == "ana" and event.skipped
 
-    def test_escape_with_nothing_to_clear_still_closes(self, monkeypatch):
+    def test_escape_with_nothing_to_clear_is_passed_on(self, monkeypatch):
         root = _Win(); area = _Win(root); radio = _Win(root)
-        stub = self._escape(monkeypatch, "", area, radio)
-        stub.close_conversation.assert_called_once()
+        stub, event = self._hook(monkeypatch, "", area, radio)
+        assert event.skipped
 
     def test_char_hook_clears_from_any_control(self):
         panel = _Panel(query="ana")

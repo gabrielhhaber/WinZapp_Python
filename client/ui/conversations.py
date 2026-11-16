@@ -1167,6 +1167,7 @@ class ConversationsPanel(
 
         self.conversation_panel.SetSizer(conv_sizer)
         self.conversation_panel.Bind(wx.EVT_CHAR_HOOK, self._on_conversation_char_hook)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_panel_char_hook)
         self.conversation_panel.Hide()
         outer_sizer.Add(self.conversation_panel, 1, wx.EXPAND | wx.ALL, 5)
 

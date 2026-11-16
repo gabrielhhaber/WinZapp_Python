@@ -693,16 +693,21 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
-        # Esc anywhere on the chat-list side of the panel (filter radio
-        # buttons, search field, buttons) clears the search and filters before
-        # it closes the conversation. Inside the conversation itself the
-        # message selection and the close above always win.
-        if not self._focus_in_conversation_area() and self._clear_chat_list_filters():
-            return
         self.close_conversation(event, from_user=True)
 
     def _focus_in_conversation_area(self) -> bool:
         return is_inside(wx.Window.FindFocus(), self.conversation_panel)
+
+    def _on_panel_char_hook(self, event):
+        """Esc from any control of the chat-list side of the panel (filter
+        radio buttons, search field, buttons, list) clears the search and the
+        filters. The Esc accelerator lives on conversation_panel, so it never
+        sees those controls; and inside the conversation (whose own hook and
+        accelerator close it or clear the message selection) this stays out."""
+        if self._focus_in_conversation_area():
+            event.Skip()
+            return
+        self._on_chat_list_char_hook(event)
 
     def _escape_clears_filters_blocked(self) -> bool:
         """A selection of messages in the open conversation owns the next Esc."""
