@@ -24,8 +24,8 @@ def apply_group_update(mw, jid, fields, membership):
     from main_window.groups import _GROUP_INFO_GUARD
     with _GROUP_INFO_GUARD:
         getattr(mw, "_group_info_recent", {}).pop(jid, None)
-    if "subject" in fields:
-        mw.on_group_subject_updated(jid, fields["subject"])
+    # The subject never reaches here: on_groups_event() routes it to
+    # on_group_subject_updated(), the existing rename path.
     if "announce" in fields or membership:
         if mw._record_group_send_perms(jid, chat) is not None:
             mw._persist_group_send_perms()
