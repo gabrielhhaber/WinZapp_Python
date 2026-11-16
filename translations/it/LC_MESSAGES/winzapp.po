@@ -20156,7 +20156,7 @@ msgstr "C&hat"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_confirm_archive_chat"
 msgid "Ask for confirmation before archi&ving chats"
-msgstr "Chiedi conferma prima di archi&viare le chat"
+msgstr "Chiedi conferma prima di arch&iviare le chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
