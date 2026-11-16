@@ -39,7 +39,8 @@ class CallParticipantsMixin:
         and refresh its participants dialog if one is open."""
         rosters = self.__dict__.setdefault("_call_rosters", {})
         mine = {user_of(j) for j in (getattr(self, "my_jid", ""), getattr(self, "my_lid", ""))} - {""}
-        joined, left = remember(rosters, call_id, connected, mine)
+        joined, left = remember(rosters, call_id, connected, mine,
+                                lambda jid: CallParticipantsMixin._call_person(self, jid))
         # everyone ever connected, for the "left" rows of the participants list
         note_seen(self.__dict__.setdefault("_call_seen", {}), call_id,
                   [(jid, "") for jid in connected], mine)
@@ -55,6 +56,13 @@ class CallParticipantsMixin:
         dialog = getattr(self, "_call_participants_dialog", None)
         if dialog is not None and getattr(dialog, "_call_id", None) == call_id:
             dialog._refresh_participants()
+
+    def _call_person(self, jid):
+        """The one address a call's participant is compared by: the number of
+        an @lid this account has a mapping for, the address itself otherwise
+        (core.call_roster.person_key)."""
+        jid = str(jid or "")
+        return getattr(self, "_lid_to_phone", {}).get(jid) or jid
 
     def _call_held_here(self, call_id):
         """True while *call_id* is the call this device is in, live: its
