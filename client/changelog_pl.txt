@@ -541,6 +541,8 @@ NOWOŚCI
 
 - Nowe opcje w Ustawienia > Powiadomienia pozwalają nie wliczać czatów zarchiwizowanych i wyciszonych do licznika nieprzeczytanych w ikonie zasobnika i w tytule okna. Obie są domyślnie zaznaczone: zarchiwizowane czaty już wcześniej nie były liczone, a teraz można to zmienić; wyciszone nie są już liczone, co zmienia dotychczasowe działanie. Odznacz opcję, aby znów je liczyć.
 
+- Długie czaty: odświeżanie historii otwartego czatu z tysiącami wiadomości nie zawiesza już okna na dziesiątki sekund, gdy lista wiadomości pokazuje pozycję każdej wiadomości („N z M”).
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

@@ -1679,6 +1679,18 @@ class BackfillMixin:
                 if cp.conversation is not None else ""
             )
             if self._chat_jids_equivalent(current_jid, expected_jid):
+                def _count(c):
+                    try:
+                        return len(c["messages"]["messages"]["records"])
+                    except (KeyError, TypeError):
+                        return -1
+                # Sizes only, no JID: a window that shrinks from thousands of
+                # rows to hundreds and back (issue #812) is explained by what
+                # the swapped-in dict holds.
+                logging.info(
+                    "[_refresh_open_conversation_after_sync] records %d -> %d "
+                    "(window %d row(s))", _count(cp.conversation), _count(new_chat),
+                    len(getattr(cp, "_sorted_messages", ()) or ()))
                 cp.conversation = new_chat
                 cp.refresh_messages_if_changed()
         wx.CallAfter(_apply)

@@ -541,6 +541,8 @@ WHAT'S NEW
 
 - Nuove opzioni in Impostazioni > Notifiche per non conteggiare le chat archiviate e quelle silenziate tra i messaggi non letti dell'icona nell'area di notifica e del titolo della finestra. Sono entrambe attive: le archiviate già non venivano conteggiate e ora si può cambiare; le silenziate non vengono più conteggiate, il che cambia il comportamento precedente. Disattiva l'opzione per conteggiarle di nuovo.
 
+- Chat lunghe: aggiornare la cronologia di una chat aperta con migliaia di messaggi non blocca più la finestra per decine di secondi quando l'elenco dei messaggi mostra la posizione di ogni messaggio ("N di M").
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
