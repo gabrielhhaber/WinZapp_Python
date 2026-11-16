@@ -136,3 +136,36 @@ def test_label_routes_read_phone_metadata_and_mirror_their_own_writes(session):
             assert [row["id"] for row in (await response.json())["response"]] == ["1000"]
     asyncio.run(run())
     assert len(sent) == 3
+
+
+def test_business_labels_drop_the_accounts_chat_lists():
+    registry = {"3": {"type": 0}, "4": {"type": 4, "isImmutable": False}, "5": {"type": 5},
+                "6": {"type": 3, "isImmutable": True}, "7": {"type": 0, "isImmutable": True},
+                "1000": {"name": "legacy, no type"}}
+    assert set(label_events.business_labels(registry)) == {"3", "4", "1000"}
+
+
+def test_label_routes_never_list_or_delete_chat_lists(session):
+    s = session
+    metadata(s)
+    metadata(s, "5", type=LabelEditAction.CUSTOM)
+    metadata(s, "6", type=LabelEditAction.FAVORITES, isImmutable=True)
+    s.app_state_synced("regular")
+    sent = []
+    s.client.send_app_state = sent.append
+
+    async def run():
+        app = web.Application()
+        labels.register_routes(app.router, session=lambda req: s,
+            ok=lambda **kw: web.json_response(kw), jid_from_text=lambda text: text,
+            jid_text=str)
+        async with TestClient(TestServer(app)) as http:
+            response = await http.get('/api/t/get-all-labels')
+            assert [row["id"] for row in (await response.json())["response"]] == ["3"]
+            response = await http.put('/api/t/delete-label/5')
+            assert response.status == 404
+            response = await http.put('/api/t/delete-all-labels')
+            assert (await response.json())["response"] == {"ids": ["3"]}
+    asyncio.run(run())
+    assert len(sent) == 1  # only the Business label's deletion
+    assert set(label_events.registry(s)) == {"5", "6"}

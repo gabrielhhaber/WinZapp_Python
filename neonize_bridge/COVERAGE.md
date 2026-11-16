@@ -53,7 +53,7 @@ These answer, but not everything the WPPConnect route does. None of the routes a
 
 ## Socket events matching WPPConnect
 
-Checked against the callbacks and models of a live wa-js 4.7.2 / WhatsApp Web
+Checked against the callbacks and models of a live wa-js 4.7.2 (rechecked on 4.8.0) / WhatsApp Web
 2.3000.1054603161 session over CDP (read-only, 2026-11-14):
 
 - `onpollresponse`: emitted after a successfully decrypted vote is stored,

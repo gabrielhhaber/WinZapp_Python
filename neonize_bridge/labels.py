@@ -173,6 +173,12 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
         from label_events import registry
         return registry(s)
 
+    def visible(s):
+        # Writes keep the full registry (a new id must not reuse a list's id);
+        # reads and deletions never reach the account's chat lists.
+        from label_events import business_labels
+        return business_labels(current(s))
+
     async def add_new_label(req):
         s = session(req)
         body = await req.json()
@@ -221,7 +227,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
 
     async def get_all_labels(req):
         s = session(req)
-        return ok(status="success", response=list_to_wpp(current(s)))
+        return ok(status="success", response=list_to_wpp(visible(s)))
 
     async def delete(s, ids):
         async with lock:
@@ -239,6 +245,8 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
         if not connected(s):
             return error("Disconnected", 400)
         label_id = req.match_info["id"]
+        if label_id not in visible(s):
+            return error("label not found", 404)
         try:
             await delete(s, [label_id])
         except Exception as e:
@@ -252,7 +260,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
             return error("Disconnected", 400)
         try:
             async with lock:
-                ids = list(current(s))
+                ids = list(visible(s))
             if ids:
                 await delete(s, ids)
         except Exception as e:

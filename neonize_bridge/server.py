@@ -326,7 +326,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         """True if the message was the notice of pinning or unpinning a message."""
         data = msgmap.pin(e.Message)
         if data is None:
-            return False
+            # A pin notice of another type (UNKNOWN_TYPE) is no unpin, but it is
+            # still a notice: consumed here, it never becomes an "unsupported" row.
+            return msgmap.unwrap(e.Message).HasField("pinInChatMessage")
         target, pin, duration = data
         self.db.pin_message(target, chat, pin, msgmap.seconds(e.Info.Timestamp), duration)
         stamp = msgmap.unwrap(e.Message).pinInChatMessage.senderTimestampMS
@@ -1062,9 +1064,12 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if covered and last is not None and last["t"] > covered:
                     return
                 self.db.delete_chat(jid)
-                if until > 0:
+                chat_id = msgmap.jid_wpp(jid)
+                # Like the WPPConnect observer: only a deletion that states the
+                # range it covers is announced; the client rejects other ids.
+                if covered and chat_id.endswith(("@c.us", "@lid", "@g.us")):
                     self.emit("chat-deleted", {"session": self.name,
-                        "chatId": msgmap.jid_wpp(jid), "until": until})
+                        "chatId": chat_id, "until": int(covered)})
                 log.info("chat deleted on the phone -> app")
             except Exception:
                 log.exception("chat delete on the phone")

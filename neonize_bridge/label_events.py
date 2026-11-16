@@ -31,6 +31,7 @@ def registry(s):
             continue
         result[label_id] = {"name": action.name, "colorIndex": action.color,
                             "type": action.type, "isActive": action.isActive,
+                            "isImmutable": action.isImmutable,
                             "chats": result.get(label_id, {}).get("chats", [])}
     for index, _, value in mirror.entries("label_jid"):
         if len(index) != 3:
@@ -38,6 +39,19 @@ def registry(s):
         action = SyncActionValue.FromString(value).labelAssociationAction
         labels.apply(result, str(index[1]), msgmap.jid_whatsmeow(index[2]), action.labeled)
     return result
+
+
+# LabelEditAction.ListType: NONE (a Business label) and PREDEFINED (Business's
+# predefined labels). Every other type is one of the account's chat lists
+# (Unread, Favorites, CUSTOM lists...), which the label routes must not show or
+# delete; custom_lists.py owns those.
+LABEL_TYPES = (0, 4)
+
+
+def business_labels(labels):
+    """Only the labels the label routes may list or delete."""
+    return {i: data for i, data in labels.items()
+            if int(data.get("type", 0) or 0) in LABEL_TYPES and not data.get("isImmutable")}
 
 
 def association(s, index, remove, full_sync, action):

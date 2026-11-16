@@ -1,4 +1,4 @@
-"""WPPConnect event payloads, checked on wa-js 4.7.2 over CDP.
+"""WPPConnect event payloads, checked on wa-js 4.7.2 and 4.8.0 over CDP.
 
 Poll options are sparse option objects (not integer indexes), with a millisecond
 timestamp. A revoke's own key and its target key must stay distinct.

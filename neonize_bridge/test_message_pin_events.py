@@ -23,3 +23,16 @@ def test_unknown_pin_type_is_not_an_unpin():
     message = Message()
     message.pinInChatMessage.key.ID = "TARGET"
     assert msgmap.pin(message) is None
+
+
+def test_unknown_pin_type_is_consumed_without_storing_or_emitting(session):
+    message = Message()
+    message.pinInChatMessage.key.ID = "TARGET"
+    calls = []
+    session.db.pin_message = lambda *args: calls.append(args)
+    before = list(session.emitted)
+    assert session._pin_received(GROUP, N(Message=message, Info=N(Timestamp=2000000000))) is True
+    assert calls == [] and session.emitted == before
+    # Any other message is left to the regular mapping.
+    plain = Message(conversation="hi")
+    assert session._pin_received(GROUP, N(Message=plain, Info=N(Timestamp=2000000000))) is False

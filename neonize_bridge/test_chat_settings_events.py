@@ -57,3 +57,21 @@ def test_explicit_timer_notice_is_stored_before_notification(session):
             type=3, ephemeralExpiration=duration, ephemeralSettingTimestamp=100)))
     assert seen == [("chat-timer-changed", {"session": "account1", "chatId": GROUP,
         "duration": d, "settingTimestamp": 100}, (d, 100)) for d in (86400, 0)]
+
+
+@pytest.mark.parametrize("is_ephemeral,expected", [(True, 86400), (False, 0)])
+def test_group_settings_timer_is_stored_before_its_notice(session, monkeypatch, is_ephemeral, expected):
+    """GroupInfoEv.Ephemeral: turning the timer off in the group settings is 0, not the old timer."""
+    import neonize.events as nev
+    import group_events
+    monkeypatch.setattr(group_events, "group_changed", lambda c, s, e: None)
+    seen = []
+    session.emit = lambda name, payload: seen.append(
+        (name, payload, next(c for c in session.db.chats() if c["jid"] == GROUP)))
+    event = N(JID=jid_n(GROUP), Name=None, HasField=lambda field: field == "Ephemeral",
+              Ephemeral=N(IsEphemeral=is_ephemeral, DisappearingTimer=86400))
+    session.handlers[nev.GroupInfoEv](session.client, event)
+    name, payload, chat = seen[-1]
+    assert name == "chat-timer-changed"
+    assert payload == {"session": "account1", "chatId": GROUP, "duration": expected, "settingTimestamp": 0}
+    assert chat["ephemeral"] == expected

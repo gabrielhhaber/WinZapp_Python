@@ -23,3 +23,20 @@ def test_chat_deletion_is_emitted_only_after_eligible_storage_removal(session, f
     session.handlers[nev.ChatDeleteEv](session.client, N(JID=jid_n(GROUP), Timestamp=200000,
         Action=action, FromFullSync=full))
     assert seen == ([("chat-deleted", {"session": "account1", "chatId": GROUP, "until": 100}, False)] if expected else [])
+
+
+def test_deletion_without_a_message_range_is_applied_but_not_announced(session, monkeypatch):
+    """Like the WPPConnect observer, only a deletion stating its range is announced."""
+    import neonize.events as nev
+    import server, sys
+    def fail_on_exception(*args, **kwargs):
+        raise sys.exception()
+    monkeypatch.setattr(server.log, "exception", fail_on_exception)
+    session.db.delete_chat(GROUP)
+    session.db.chat(GROUP)
+    session.db.message(GROUP, {"id": {"id": "M"}, "t": 90})
+    seen = []
+    session.emit = lambda name, payload: seen.append(name)
+    session.handlers[nev.ChatDeleteEv](session.client, N(JID=jid_n(GROUP), Timestamp=200000,
+        Action=DeleteChatAction(), FromFullSync=False))
+    assert not session.db.has_chat(GROUP) and seen == []
