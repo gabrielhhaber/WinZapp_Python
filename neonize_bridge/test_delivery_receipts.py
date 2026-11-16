@@ -55,18 +55,23 @@ class FakeNewClient:
     def __init__(self, *args, **kw):
         self.event = EventRegistry()
         self.forced = []
+        self.uuid = b"fake-client-uuid"
+        self.get_me_calls = 0
 
     def set_force_activate_delivery_receipts(self, active):
         self.forced.append(active)
 
     def connect(self):
-        pass
+        self.connected = True
 
     def disconnect(self):
         pass
 
     def stop(self):
         pass
+
+    def get_me(self):
+        return types.SimpleNamespace(JID="jid@s.whatsapp.net", LID="lid@lid")
 
 
 def _install_neonize_fakes(monkeypatch, client_class):
@@ -101,6 +106,25 @@ def test_the_client_is_created_with_active_delivery_receipts(tmp_path, monkeypat
     s.emitted = []
     s.emit = lambda event, data: s.emitted.append((event, data))
     s._run(None, s.lifecycle.open())
+    assert s.client.forced == [True]
+
+
+def test_connected_event_also_forces_active_receipts(tmp_path, monkeypatch):
+    """The real application calls `connect()` later, when the Go client already
+    exists; `_on_connect` must re-apply the force to that client (the one
+    actually connected to WhatsApp), not just to the Python-side instance
+    created in `_run`."""
+    _install_neonize_fakes(monkeypatch, FakeNewClient)
+
+    s = server.Session("account1", str(tmp_path / "account1"), None, None)
+    s.emitted = []
+    s.emit = lambda event, data: s.emitted.append((event, data))
+    generation = s.lifecycle.open()
+    s._run(None, generation)
+    s.client.forced.clear()
+
+    s._on_connect(generation, s.client, None)
+
     assert s.client.forced == [True]
 
 

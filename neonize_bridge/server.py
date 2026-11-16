@@ -692,6 +692,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
     def _on_connect(self, generation, c, phone_number):
         if not self.lifecycle.current(generation):
             return
+        # The Go client only registers itself in its clients map inside
+        # the FFI entry (called from connect()), so set_force_active_delivery_receipts
+        # is a silent no-op if called before connect(). Re-apply the force
+        # here, once the client exists, so the delivery receipts are always
+        # sent as typeless (active) regardless of presence.
+        try:
+            c.set_force_activate_delivery_receipts(True)
+            log.info("[Session %s] delivery receipts forced active on connect (uuid=%r)",
+                     self.name, getattr(c, 'uuid', None))
+        except Exception:
+            log.exception("delivery receipts could not be forced active on connect")
         try:
             me = c.get_me()
             self.me = jid_text(me.JID)
@@ -790,9 +801,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         # marks it type="inactive" while the client is not online, and the
         # sender's app does not render an inactive receipt (2026-11-15: with
         # the window out of focus the sender only ever saw "sent"). Presence
-        # stays bound to the window through set-online-presence; this flag
-        # only decouples the delivered tick from it, and both SendPresence
-        # directions keep the value (they compare against 0 and 1).
+        # stays bound to the window through set-online-presence.
+        #
+        # This early call happens BEFORE the FFI entry runs, so clientFor()
+        # returns nil and the call is a silent no-op on the Go side; the real
+        # fix is the re-application inside _on_connect, once the client exists.
         try:
             cli.set_force_activate_delivery_receipts(True)
         except Exception:
