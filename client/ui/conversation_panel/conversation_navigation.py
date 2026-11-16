@@ -709,10 +709,6 @@ class ConversationNavigationMixin:
             return
         self._on_chat_list_char_hook(event)
 
-    def _escape_clears_filters_blocked(self) -> bool:
-        """A selection of messages in the open conversation owns the next Esc."""
-        return bool(self.selected_messages)
-
     def close_conversation(self, event=None, from_user=False):
         """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close
         menu item); every other caller closes it for WinZapp's own reasons

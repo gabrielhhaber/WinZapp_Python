@@ -199,8 +199,7 @@ class TestWholePanel:
 
     def test_message_selection_blocks_the_clearing(self):
         class _Conv(_Panel):
-            _escape_clears_filters_blocked = (
-                ConversationsPanel._escape_clears_filters_blocked)
+            pass
         panel = _Conv(query="ana")
         panel.selected_messages = {"m1"}
         assert panel._clear_chat_list_filters() is False
@@ -209,8 +208,6 @@ class TestWholePanel:
 
     def _hook(self, monkeypatch, query, area, focus):
         class _Conv(_Panel):
-            _escape_clears_filters_blocked = (
-                ConversationsPanel._escape_clears_filters_blocked)
             _focus_in_conversation_area = ConversationsPanel._focus_in_conversation_area
             _on_panel_char_hook = ConversationsPanel._on_panel_char_hook
             _on_chat_list_char_hook = ChatListSelectionMixin._on_chat_list_char_hook

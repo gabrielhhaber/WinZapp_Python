@@ -183,9 +183,9 @@ class ChatListSelectionMixin:
                 and getattr(self, "_conv_filter", "all") != "all")
 
     def _escape_clears_filters_blocked(self) -> bool:
-        """True while something else owns Esc. The conversations panel
-        overrides it: an open conversation's message selection comes first."""
-        return False
+        """True while something else owns Esc: a selection of messages in the
+        open conversation (only the conversations panel has one) comes first."""
+        return bool(getattr(self, "selected_messages", None))
 
     def _on_chat_list_char_hook(self, event) -> None:
         """Panel-wide Esc for the archived and locked panels, which have no
