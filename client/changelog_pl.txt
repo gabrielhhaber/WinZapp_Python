@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- W otwartym czacie z aktywnym wyszukiwaniem wiadomości (Ctrl+Shift+F) pierwszy Esc czyści wyszukiwanie i zamyka pasek, a czytnik ekranu mówi „Wyszukiwanie wiadomości wyczyszczone”; kolejny Esc zamyka czat. Można to wyłączyć w Ustawieniach, Czaty.
+
 - Na listach czatów (zwykłej, zarchiwizowanych i zablokowanych) klawisz Esc czyści wyszukiwanie i filtry, a czytnik ekranu mówi „Filtry wyczyszczone”; gdy zaznaczono czaty, pierwszy Esc nadal odznacza tylko zaznaczenie. Można to wyłączyć w Ustawieniach, Czaty. Działa to także z poziomu filtrów, wyszukiwania i pozostałych kontrolek panelu czatów; wewnątrz otwartego czatu Esc nadal najpierw zamyka czat lub odznacza wiadomości.
 
 - Dodanie czatu do listy lub usunięcie go z listy na innym urządzeniu aktualizuje listy i otwarty filtr, bez zmiany wybranej listy.

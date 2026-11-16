@@ -1888,6 +1888,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._escape_clears_filters_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._escape_clears_message_search_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_escape_clears_message_search")
+        )
+        chats_sizer.Add(
+            self._escape_clears_message_search_cb, 0,
+            wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._keep_search_after_open_cb = wx.CheckBox(
             self._chats_page, label=i18n.t("ui_keep_search_after_open")
         )
@@ -2685,6 +2693,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "chats"):
             self._escape_clears_filters_cb.SetValue(bool(escape_clears_filters))
+
+        escape_clears_message_search = self.main_window.settings.get(
+            "user_interface", {}
+        ).get("escape_clears_message_search", True)
+        if wanted(unit, "chats"):
+            self._escape_clears_message_search_cb.SetValue(
+                bool(escape_clears_message_search)
+            )
 
         keep_search_after_open = self.main_window.settings.get("user_interface", {}).get(
             "keep_search_after_open", False
@@ -4238,6 +4254,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "escape_clears_filters"
             ] = self._escape_clears_filters_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
+                "escape_clears_message_search"
+            ] = self._escape_clears_message_search_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
                 "keep_search_after_open"
             ] = self._keep_search_after_open_cb.GetValue()
         if ready(self, "audio_playback"):
@@ -5056,6 +5075,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
             self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
             self._escape_clears_filters_cb.SetLabel(i18n.t("ui_escape_clears_filters"))
+            self._escape_clears_message_search_cb.SetLabel(
+                i18n.t("ui_escape_clears_message_search"))
             self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
         if ready(self, "audio_playback"):
             self._auto_play_voice_in_sequence_cb.SetLabel(i18n.t("ui_auto_play_voice_in_sequence"))

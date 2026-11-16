@@ -9,6 +9,7 @@ from ui.shortcut_bindings import command_key_event
 import wx
 from core.call_log import is_call_log
 from core.utils import normalize_for_search
+from ui.conversation_panel.chat_list_selection import is_inside
 
 
 class MessageSearchMixin:
@@ -34,6 +35,33 @@ class MessageSearchMixin:
         self._search_field.SetValue("")
         self.conversation_panel.Layout()
         self.messages_list.SetFocus()
+
+    def _escape_clears_message_search_enabled(self) -> bool:
+        """Settings > User Interface > Chats, "Esc clears the search in the
+        active chat" (default on)."""
+        return bool(self.main_window.settings.get("user_interface", {}).get(
+            "escape_clears_message_search", True
+        ))
+
+    def _clear_message_search_on_escape(self) -> bool:
+        """Esc inside an open conversation while the message search bar is up:
+        clear the search and close the bar instead of closing the chat.
+        Returns False, doing nothing, when the option is off or no search is
+        open, so Esc closes the conversation as before. Focus stays where it
+        was (composer, a button...) unless it was inside the bar itself, which
+        is about to disappear: then it goes back to the messages list."""
+        if not self._escape_clears_message_search_enabled():
+            return False
+        if not (hasattr(self, "_search_panel") and self._search_panel.IsShown()):
+            return False
+        focus = wx.Window.FindFocus()
+        in_bar = is_inside(focus, self._search_panel)
+        self._on_close_search(None)
+        if not in_bar and focus is not None:
+            focus.SetFocus()
+        self.main_window.output(
+            self.main_window.i18n.t("message_search_cleared"), interrupt=True)
+        return True
 
     def _message_search_text(self, msg) -> str:
         """The part of a message row that searching should actually look at.

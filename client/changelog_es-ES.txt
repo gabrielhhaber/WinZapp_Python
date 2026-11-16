@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Dentro de un chat abierto, con la búsqueda de mensajes (Ctrl+Shift+F) activa, la primera pulsación de Esc borra la búsqueda y cierra la barra, y el lector de pantalla dice "Búsqueda de mensajes borrada"; la siguiente cierra el chat. Se puede desactivar en Configuración, Chats.
+
 - En las listas de chats (normal, archivados y bloqueados), Esc borra la búsqueda y los filtros y el lector de pantalla dice "Filtros borrados"; con chats seleccionados, la primera pulsación de Esc sigue anulando solo la selección. Se puede desactivar en Configuración, Chats. Esto también vale desde los filtros, la búsqueda y los demás controles del panel de chats; dentro de un chat abierto, Esc sigue cerrando el chat o anulando la selección de mensajes primero.
 
 - Añadir un chat a una lista o quitarlo de ella en otro dispositivo actualiza las listas y el filtro abierto, sin cambiar la lista seleccionada.

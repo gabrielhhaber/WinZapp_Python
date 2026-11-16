@@ -1214,6 +1214,7 @@ DEFAULT_SETTINGS = {
         "space_selects_in_selection_mode": True,
         "escape_clears_selection": True,
         "escape_clears_filters": True,
+        "escape_clears_message_search": True,
         # Opening a conversation keeps the chat search, so Esc returns to the
         # results. Off: the long-standing behaviour, so no migration.
         "keep_search_after_open": False,
