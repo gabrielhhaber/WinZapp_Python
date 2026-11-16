@@ -369,13 +369,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Lista de conversas</h2>
 <p class="lead">A lista de conversas (Alt+1) mostra os nomes das pessoas e grupos, nunca códigos internos. Cada linha lê o nome, a última mensagem e o estado (não lidas, afixada, silenciada...).</p>
-<p>Alterações de associação de etiquetas recebidas de outro dispositivo atualizam as listas e o filtro aberto, sem mudar a lista selecionada; avisos repetidos são agrupados e leituras antigas não permitem editar dados desatualizados.</p>
-<p>Bloquear ou desbloquear contactos noutro dispositivo atualiza o WinZapp quando chega o aviso. Os avisos sem detalhes atualizam a lista completa, e as respostas antigas não desfazem alterações mais recentes.</p>
-<p>As alterações ou remoções de fotografias de contactos e grupos invalidam os endereços antigos guardados no WinZapp; uma resposta que confirme a ausência de fotografia não reutiliza a imagem antiga.</p>
-<p>Os contactos guardados, renomeados ou removidos da agenda noutro dispositivo e as alterações do nome público atualizam o WinZapp quando chega o aviso, preservando os nomes locais e o histórico.</p>
-<p>Eliminar uma conversa noutro dispositivo remove a sua cópia do WinZapp quando chega o aviso de eliminação; uma conversa com mensagens posteriores ao aviso é preservada.</p>
-<p>As alterações ao prazo das mensagens temporárias recebidas de outro dispositivo atualizam os dados da conversa sem esperar por uma sincronização completa.</p>
-<p>As alterações de silenciamento, arquivo e fixação feitas noutro dispositivo atualizam a lista de conversas assim que chega o aviso, com WPPConnect e Neonize.</p>
+<p>As alterações feitas no telemóvel ou noutro dispositivo chegam ao WinZapp assim que o WhatsApp avisa, com WPPConnect e Neonize: silenciar, arquivar e fixar conversas, adicioná-las a listas ou retirá-las, o prazo das mensagens temporárias, contactos guardados, renomeados ou removidos, nomes públicos, fotografias de perfil e contactos bloqueados. Uma conversa eliminada noutro dispositivo também sai do WinZapp, a menos que tenha mensagens posteriores à eliminação; se estiver aberta, o WinZapp fecha-a e diz porquê.</p>
 <p>Com o Neonize, uma conversa só é marcada como lida quando a abre ou a marca como lida, e aparece como lida também no telemóvel e no WhatsApp Web.</p>
 <p>Com o Neonize, quando chega ao início do que o WinZapp tem de uma conversa, ele pede ao telemóvel as mensagens mais antigas, como o WhatsApp Web faz; chegam em alguns instantes, com o telemóvel ligado.</p>
 
@@ -427,7 +421,7 @@
 <h3>Contactos: locais ou sincronizados com o telemóvel</h3>
 <p>Ao adicionar um contacto (em Dados da conversa, em Nova conversa ou a partir de uma mensagem de contacto), há dois separadores:</p>
 <ul>
-  <li><strong>Contacto sincronizado com o telemóvel:</strong> Guarda o contacto no WhatsApp e pede a sincronização com a agenda do telemóvel. Não é possível verificar aqui se o telemóvel concluiu a gravação.</li>
+  <li><strong>Contacto sincronizado com o telemóvel:</strong> guarda o contacto no WhatsApp e pede a sincronização com a agenda do telemóvel. Não é possível verificar aqui se o telemóvel concluiu a gravação. Abre por predefinição; se o número já está na agenda do telemóvel, só esse separador aparece. Eliminar um contacto sincronizado também o remove do WhatsApp e do telemóvel.</li>
   <li><strong>Contacto local do WinZapp:</strong> o nome existe só no WinZapp.</li>
 </ul>
 <p>Empresas verificadas que o utilizador não salvou (bancos, aplicativos de pagamento...) aparecem com o nome verificado da empresa. Um nome guardado nos seus contactos sempre tem preferência.</p>
@@ -458,7 +452,6 @@
   <section id="dentro-conversa" class="wiki-section" aria-labelledby="h-dentro-conversa">
     <h2 id="h-dentro-conversa">📨 4. Dentro de uma conversa</h2>
 <p class="lead">Ao abrir uma conversa o utilizador tem a lista de mensagens e o campo de mensagem. Cada mensagem é uma linha que o leitor de ecrã lê com remetente, conteúdo e estado.</p>
-<p>Fixar ou desafixar uma mensagem noutro dispositivo atualiza a sua marca e o resumo de mensagens fixadas da conversa aberta quando chega o aviso.</p>
 
 <h3>Enviar mensagens</h3>
 <p>Digite no campo de mensagem e aperte Enter; Shift+Enter insere uma nova linha. Os envios vão por uma fila em segundo plano. Se o WhatsApp aceitar a mensagem mas não confirmar a entrega, o WinZapp avisa para o utilizador verificar a conversa antes de reenviar, para não entregar duas vezes. Enviar mensagem para si mesmo (a conversa "Eu (envie mensagens para si próprio)") também funciona.</p>
@@ -521,6 +514,7 @@
   <li><strong>Mensagens marcadas com estrela</strong> (Alt+0, ou a linha "Mensagens marcadas com estrela" da lista de navegação): todas as mensagens marcadas com estrela de todas as conversas, das mais recentes para as mais antigas, lidas como conversa, remetente, texto e data. "Pesquisar nas marcadas com estrela" filtra a lista por qualquer palavra, sem diferenciar acentos nem maiúsculas; Enter ou "Abrir na conversa" abre a conversa nessa mensagem, e Delete ou "Desmarcar estrela" retira a estrela.</li>
   <li><strong>Afixar mensagem</strong> (Ctrl+Shift+P, quando o utilizador não está a gravar): um botão em cada conversa lista as mensagens afixadas no WhatsApp, inclusive antigas; Enter leva até a mensagem no histórico. Ao abrir a conversa, a quantidade de afixadas é anunciada sem mudar o foco.</li>
 </ul>
+<p>Fixar ou desafixar uma mensagem noutro dispositivo atualiza a sua marca e o resumo de mensagens fixadas da conversa aberta quando chega o aviso.</p>
 
 <h3>Marcadores</h3>
 <p>Marcadores são posições que o utilizador cria nas mensagens para voltar depois. Com a mensagem em foco, Ctrl+0 a Ctrl+9 cria um marcador (ou, se o número já existe, vai até ele); Ctrl+Shift+0 a 9 remove. Alt+Shift+0 a 9 cria marcadores temporários, eliminados quando o utilizador sai da conversa; Ctrl+Alt+Shift+0 a 9 remove os temporários. Em Definições &gt; Interface &gt; Conversas, "Remover marcadores permanentes automaticamente após a primeira utilização" e "Remover marcadores temporários automaticamente após a primeira utilização" fazem com que ir até um marcador o remova logo, e a mesma tecla cria um marcador novo da próxima vez.</p>
@@ -819,7 +813,7 @@
     <h2 id="h-grupos-comunidades">👥 10. Grupos e comunidades</h2>
 <h3>Dados da conversa e dos grupos</h3>
 <p>Ctrl+Shift+D (ou "Detalhes da conversa" no menu de contexto) abre uma janela com separadores. Todos os botões e campos têm uma letra de atalho (Alt+letra).</p>
-<p>A descrição, as permissões e os participantes dos grupos acompanham agora os avisos em tempo real, incluindo promoção e despromoção de administradores, com atualização das permissões de envio na conversa aberta.</p>
+<p>As alterações à descrição, às definições e aos participantes de um grupo, incluindo quem passa a ser ou deixa de ser administrador, chegam ao WinZapp assim que o WhatsApp avisa; se só os administradores puderem enviar mensagens, o campo de mensagem da conversa aberta acompanha a alteração de imediato.</p>
 <ul>
   <li><strong>Contacto:</strong> separador Visão geral com nome, nome de perfil que o contacto escolheu, nome verificado e se a conta é comercial, se as notificações estão silenciadas (e até quando), o tempo das mensagens temporárias e o aviso de que as mensagens e as chamadas são protegidas com encriptação de ponta a ponta. O botão "Fotografia do perfil" (Alt+F) mostra a foto, e "Abrir num visualizador externo" (Alt+A) abre no programa predefinição do Windows; se não houver foto, ou a pessoa não permitir que o utilizador a veja, o WinZapp avisa. Também há o separador <strong>Grupos em comum</strong> (Enter abre o grupo) e o separador Multimédia.</li>
   <li><strong>Grupo:</strong> separadores Visão geral (nome, descrição, foto/imagem do grupo, se só administradores enviam mensagens), Participantes (Enter num participante abre a conversa particular com ele; "Adicionar membro" aceita contactos ou um número adicional) e Multimédia. Os dados aparecem assim que o grupo responde e os nomes e números que faltam são preenchidos em seguida. No separador Multimédia, Ctrl+C num documento, foto, vídeo ou áudio copia o ficheiro para a área de transferência, como na lista de mensagens.</li>
@@ -856,7 +850,7 @@
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
     <h2 id="h-trancadas">🔒 11. Conversas trancadas</h2>
 <p class="lead">As conversas trancadas (Alt+7) ficam num cofre protegido por um PIN, fora da lista de conversas, das arquivadas, da pesquisa e da janela de reencaminhar.</p>
-<p>Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; uma conversa aberta que foi trancada é fechada.</p>
+<p>Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; se estava aberta, é fechada e o WinZapp diz porquê.</p>
 <ul>
   <li><strong>Trancar:</strong> "Trancar conversa" no menu de contexto ou Ctrl+Shift+T. O PIN tem de 6 a 12 dígitos. Ao configurar o cofre, o WinZapp cria uma <em>chave de recuperação</em> (pode ser lida em voz alta ou copiada) para definir um novo PIN se o utilizador esquecer o atual.</li>
   <li><strong>Notificações:</strong> as dessas conversas dizem só quantas mensagens novas chegaram, sem nome nem conteúdo. Mensagens delas nunca são transcritas automaticamente, e a IA online pergunta de novo a cada envio.</li>
@@ -921,7 +915,6 @@
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ 14. Definições</h2>
 <p>O árabe está agora disponível em Definições > Geral > Idioma, com textos em árabe no instalador e no desinstalador do Windows.</p>
-<p>As alterações de privacidade recebidas de outro dispositivo atualizam os campos ainda não editados no painel aberto, preservando escolhas em preparação e ignorando respostas de outra conta.</p>
 <p class="lead">Ficheiro &gt; Definições (Ctrl+,) tem um campo de pesquisa no topo e uma lista de categorias. Escreva no campo de pesquisa e use a seta para baixo para ir aos resultados; Enter ou Espaço abre a opção encontrada. Sem pesquisa, as setas mudam de categoria e Tab entra nas opções dela. Em algumas categorias, botões abrem a janela de um assunto (como Mensagens ou Conteúdo falado). Altere o que quiser e use Aplicar ou OK. Em Interface, o botão Atalhos de teclado permite trocar qualquer atalho. A janela abre logo na categoria Geral; as outras categorias e janelas são criadas da primeira vez que lá vai. Os resultados da pesquisa chegam à medida que carregam, e pode continuar a escrever.</p>
 
 <table class="field-table">
@@ -967,8 +960,7 @@
   <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
     <h2 id="h-privacidade">🛡️ 15. Definições do WhatsApp</h2>
 <p class="lead">Ficheiro &gt; Definições do WhatsApp abre as Definições na categoria Definições do WhatsApp, que tem dois botões, Privacidade e Perfil, e altera a sua conta do WhatsApp diretamente no WhatsApp.</p>
-<p>Os avisos de alteração da sua fotografia atualizam o estado da fotografia no painel de Perfil aberto, sem substituir o nome, o recado ou uma fotografia escolhida para guardar; leituras antigas ou de outra conta são ignoradas.</p>
-<p>Alterações noutro dispositivo em Manter conversas arquivadas e na privacidade dos estados atualizam o painel aberto, preservando escolhas ainda não aplicadas e ignorando respostas antigas ou de outra conta.</p>
+<p>As alterações feitas noutro dispositivo à privacidade, a Manter conversas arquivadas, à privacidade dos estados ou à sua fotografia de perfil também atualizam o painel de Privacidade ou de Perfil aberto; um campo que alterou e ainda não aplicou mantém a sua escolha.</p>
 <h3>Botão Privacidade</h3>
 <ul>
   <li>Visto por último e online; recado; foto do perfil; confirmação de leitura; quem pode adicionar o utilizador a grupos; quem pode ver o seu estados (meus contactos, meus contactos exceto..., ou compartilhar somente com...).</li>
@@ -1459,21 +1451,20 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Alterações de associação de etiquetas recebidas de outro dispositivo atualizam as listas e o filtro aberto, sem mudar a lista selecionada; avisos repetidos são agrupados e leituras antigas não permitem editar dados desatualizados.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Os avisos de alteração da sua fotografia atualizam o estado da fotografia no painel de Perfil aberto, sem substituir o nome, o recado ou uma fotografia escolhida para guardar; leituras antigas ou de outra conta são ignoradas.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Alterações noutro dispositivo em Manter conversas arquivadas e na privacidade dos estados atualizam o painel aberto, preservando escolhas ainda não aplicadas e ignorando respostas antigas ou de outra conta.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Adicionar uma conversa a uma lista ou retirá-la de uma lista noutro dispositivo atualiza as listas e o filtro aberto, sem mudar a lista selecionada.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Alterar a sua fotografia de perfil noutro dispositivo atualiza o painel de Perfil aberto, sem substituir o nome, o recado ou a fotografia que ainda não guardou.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Alterar Manter conversas arquivadas ou a privacidade dos estados noutro dispositivo atualiza o painel aberto, preservando as escolhas ainda não aplicadas.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Corrigida a gravação de contactos que não apareciam no WhatsApp do iPhone: o identificador associado é agora enviado completo, no formato usado pelo ecrã nativo do WhatsApp.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Ao guardar um contacto no telemóvel, o WinZapp informa que a sincronização foi solicitada, sem afirmar que a agenda do telefone já foi atualizada. Respostas sem confirmação de contacto guardado não indicam sucesso.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>As alterações de privacidade recebidas de outro dispositivo atualizam os campos ainda não editados no painel aberto, preservando escolhas em preparação e ignorando respostas de outra conta.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Bloquear ou desbloquear contactos noutro dispositivo atualiza o WinZapp quando chega o aviso. Os avisos sem detalhes atualizam a lista completa, e as respostas antigas não desfazem alterações mais recentes.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>As alterações ou remoções de fotografias de contactos e grupos invalidam os endereços antigos guardados no WinZapp; uma resposta que confirme a ausência de fotografia não reutiliza a imagem antiga.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Ao guardar um contacto no telemóvel, o WinZapp diz agora que pediu ao telemóvel para o adicionar, em vez de afirmar que já está na agenda; um registo que o WhatsApp não confirmou deixa de ser indicado como concluído.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>As alterações de privacidade feitas noutro dispositivo atualizam o painel aberto, preservando os campos que alterou e ainda não aplicou.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Bloquear ou desbloquear um contacto noutro dispositivo atualiza o WinZapp assim que o WhatsApp avisa.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Quando um contacto ou grupo altera ou remove a fotografia, o WinZapp deixa de mostrar a antiga.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Os contactos guardados, renomeados ou removidos da agenda noutro dispositivo e as alterações do nome público atualizam o WinZapp quando chega o aviso, preservando os nomes locais e o histórico.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>A descrição, as permissões e os participantes dos grupos acompanham agora os avisos em tempo real, incluindo promoção e despromoção de administradores, com atualização das permissões de envio na conversa aberta.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Corrigida a atualização em tempo real das mensagens temporárias em grupos quando o WhatsApp altera apenas os metadados do grupo.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Eliminar uma conversa noutro dispositivo remove a sua cópia do WinZapp quando chega o aviso de eliminação; uma conversa com mensagens posteriores ao aviso é preservada.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Eliminar uma conversa noutro dispositivo remove-a do WinZapp quando chega o aviso; uma conversa com mensagens posteriores ao aviso é mantida. Se estava aberta, é fechada e o WinZapp diz porquê.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Fixar ou desafixar uma mensagem noutro dispositivo atualiza a sua marca e o resumo de mensagens fixadas da conversa aberta quando chega o aviso.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>As alterações ao prazo das mensagens temporárias recebidas de outro dispositivo atualizam os dados da conversa sem esperar por uma sincronização completa.</td></tr>
-  <tr><td class="field-name">Ainda não lançado</td><td>Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; uma conversa aberta que foi trancada é fechada.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Alterar o prazo das mensagens temporárias noutro dispositivo, numa conversa ou num grupo, atualiza o WinZapp sem esperar por uma sincronização completa.</td></tr>
+  <tr><td class="field-name">Ainda não lançado</td><td>Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; se estava aberta, é fechada e o WinZapp diz porquê.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>As alterações de silenciamento, arquivo e fixação feitas noutro dispositivo atualizam a lista de conversas assim que chega o aviso, com WPPConnect e Neonize.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>As mensagens apagadas para si noutro dispositivo são removidas da conversa quando chega o aviso de eliminação, com WPPConnect e Neonize.</td></tr>
   <tr><td class="field-name">Ainda não lançado</td><td>Marcar ou desmarcar uma mensagem como favorita no telemóvel ou noutro dispositivo atualiza a marca na conversa aberta assim que chega o aviso, com WPPConnect e Neonize.</td></tr>

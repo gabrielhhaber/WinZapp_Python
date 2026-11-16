@@ -4,47 +4,45 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
-- Zmiany przypisania etykiet na innym urządzeniu odświeżają listy i otwarty filtr bez zmiany wybranej listy; powtarzane powiadomienia są łączone, a stare odczyty nie pozwalają edytować nieaktualnych danych.
+- Dodanie czatu do listy lub usunięcie go z listy na innym urządzeniu aktualizuje listy i otwarty filtr, bez zmiany wybranej listy.
 
-- Powiadomienia o zmianie własnego zdjęcia aktualizują jego stan w otwartym panelu Profil bez nadpisywania nazwy, informacji i wybranego zdjęcia; stare odczyty i odczyty innego konta są odrzucane.
+- Zmiana własnego zdjęcia profilowego na innym urządzeniu aktualizuje otwarty panel Profil, bez zastępowania nazwy, informacji ani zdjęcia, których jeszcze nie zapisano.
 
-- Zmiany opcji pozostawiania czatów w archiwum i prywatności statusu na innym urządzeniu aktualizują otwarty panel, zachowując niezastosowane wybory i odrzucając stare odpowiedzi lub odpowiedzi innego konta.
+- Zmiana opcji pozostawiania czatów w archiwum lub prywatności statusu na innym urządzeniu aktualizuje otwarty panel, zachowując jeszcze niezastosowane wybory.
 
-- Naprawiono zapisywanie kontaktów, które nie pojawiały się w WhatsApp na iPhonie: identyfikator kontaktu jest teraz wysyłany w całości, tak jak w natywnym ekranie WhatsApp.
+- Naprawiono zapisywanie kontaktów, które nie pojawiały się w WhatsAppie na iPhonie: identyfikator kontaktu jest teraz wysyłany w całości, tak jak w natywnym ekranie WhatsApp.
 
-- Po zapisaniu kontaktu WinZapp informuje o wysłaniu prośby o synchronizację, nie o zakończeniu aktualizacji książki adresowej telefonu. Odpowiedź bez potwierdzenia zapisania kontaktu nie oznacza powodzenia.
+- Po zapisaniu kontaktu w telefonie WinZapp informuje teraz, że wysłano do telefonu prośbę o jego dodanie, zamiast twierdzić, że kontakt jest już w książce adresowej; zapis, którego WhatsApp nie potwierdził, nie jest już zgłaszany jako zakończony.
 
-- Zmiany prywatności z innego urządzenia aktualizują nieedytowane pola w otwartym panelu, zachowując przygotowywane wybory i odrzucając odpowiedzi z innego konta.
+- Zmiany prywatności wprowadzone na innym urządzeniu aktualizują otwarty panel, zachowując pola zmienione, ale jeszcze niezastosowane.
 
-- Zablokowanie lub odblokowanie kontaktów na innym urządzeniu aktualizuje WinZapp po powiadomieniu. Powiadomienia bez szczegółów odświeżają całą listę, a stare odpowiedzi nie cofają nowszych zmian.
+- Zablokowanie lub odblokowanie kontaktu na innym urządzeniu aktualizuje WinZapp, gdy tylko WhatsApp to zgłosi.
 
-- Zmiana lub usunięcie zdjęcia kontaktu albo grupy unieważnia stare adresy w WinZapp; potwierdzony brak zdjęcia nie powoduje użycia poprzedniego obrazu.
+- Gdy kontakt lub grupa zmieni albo usunie zdjęcie, WinZapp przestaje pokazywać stare.
 
 - Zapisanie, zmiana nazwy lub usunięcie kontaktu z książki adresowej na innym urządzeniu oraz zmiana publicznej nazwy aktualizują WinZapp po powiadomieniu, zachowując nazwy lokalne i historię.
 
-- Opisy, ustawienia i uczestnicy grup są aktualizowani na bieżąco, w tym nadawanie i odbieranie uprawnień administratora oraz uprawnienia do wysyłania w otwartej rozmowie.
+- Opisy, ustawienia i uczestnicy grup są aktualizowani na bieżąco, w tym nadawanie i odbieranie uprawnień administratora oraz uprawnienia do wysyłania w otwartym czacie.
 
-- Naprawiono aktualizację czasu znikających wiadomości na bieżąco, gdy WhatsApp zmienia tylko metadane grupy.
+- Usunięcie czatu na innym urządzeniu usuwa go z WinZapp po otrzymaniu powiadomienia; czat z wiadomościami nowszymi niż powiadomienie zostaje zachowany. Jeśli był otwarty, zostaje zamknięty, a WinZapp podaje powód.
 
-- Usunięcie rozmowy na innym urządzeniu usuwa jej kopię w WinZapp po otrzymaniu powiadomienia; rozmowa z nowszymi wiadomościami zostaje zachowana.
+- Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartym czacie po otrzymaniu powiadomienia.
 
-- Przypięcie lub odpięcie wiadomości na innym urządzeniu aktualizuje jej oznaczenie i przegląd przypiętych wiadomości w otwartej rozmowie po otrzymaniu powiadomienia.
+- Zmiana czasu znikających wiadomości na innym urządzeniu, w czacie lub w grupie, aktualizuje WinZapp bez czekania na pełną synchronizację.
 
-- Zmiany czasu znikających wiadomości otrzymane z innego urządzenia aktualizują dane rozmowy bez czekania na pełną synchronizację.
+- Zabezpieczenie dostępu do czatu lub wyłączenie tego zabezpieczenia w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; jeśli czat był otwarty, zostaje zamknięty, a WinZapp podaje powód.
 
-- Zablokowanie lub odblokowanie rozmowy w telefonie aktualizuje WinZapp po otrzymaniu powiadomienia; otwarta rozmowa zostaje zamknięta po zablokowaniu.
+- Zmiany wyciszenia, archiwizacji i przypięcia na innym urządzeniu aktualizują listę czatów po otrzymaniu powiadomienia w WPPConnect i Neonize.
 
-- Zmiany wyciszenia, archiwizacji i przypięcia na innym urządzeniu aktualizują listę rozmów po otrzymaniu powiadomienia w WPPConnect i Neonize.
+- Wiadomości usunięte u Ciebie na innym urządzeniu znikają z czatu po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.
 
-- Wiadomości usunięte u Ciebie na innym urządzeniu znikają z rozmowy po otrzymaniu powiadomienia o usunięciu w WPPConnect i Neonize.
-
-- Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartej rozmowie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.
+- Oznaczenie wiadomości gwiazdką lub usunięcie gwiazdki na telefonie albo innym urządzeniu aktualizuje oznaczenie w otwartym czacie po odebraniu powiadomienia, zarówno w WPPConnect, jak i Neonize.
 
 - Neonize: edycje zachowują identyfikator oryginalnej wiadomości i zapisują pełny klucz powiadomienia o edycji, w tym autora w grupach.
 
 - Neonize: zdarzenia reakcji używają formatu WPPConnect, z pełnymi kluczami reakcji i oryginalnej wiadomości, nadawcą oraz czasem w sekundach.
 
-- W otwartej rozmowie wyniki ankiet odświeżają się po odebraniu nowego zdarzenia głosu, zarówno w Neonize, jak i w WPPConnect. Neonize: zdarzenia głosów, usuniętych wiadomości i przypisania etykiet zgodne z WPPConnect; identyfikatory odebranych statusów zachowują autora.
+- W otwartym czacie wyniki ankiet odświeżają się po odebraniu nowego zdarzenia głosu, zarówno w Neonize, jak i w WPPConnect. Neonize: zdarzenia głosów, usuniętych wiadomości i przypisania etykiet zgodne z WPPConnect; identyfikatory odebranych statusów zachowują autora.
 
 - Tłumaczenie wiadomości, które już są w rozmowie: menu kontekstowe wiadomości zyskuje pozycję "Przetłumacz od tego miejsca do końca" (Alt+Shift+Y), a działanie zbiorcze "Przetłumacz zaznaczone wiadomości" pokazuje skrót Ctrl+Alt+Shift+Y. Oba skróty można zmienić na karcie Skróty w Ustawieniach, a pozycje menu pokazują używany skrót. Gdy trwa tłumaczenie wielu wiadomości, ta sama pozycja menu i ten sam skrót zmieniają się w "Anuluj tłumaczenie wiadomości". Dotyczy odebranych wiadomości tekstowych, do 50 naraz, z dostawcą, modelem i sposobem wyświetlania z "Przetłumacz wiadomość".
 

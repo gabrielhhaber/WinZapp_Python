@@ -1,12 +1,6 @@
 <!--nav: 💬 Chat list-->
 <p class="lead">The chat list (Alt+1) shows the names of people and groups, never internal codes. Each row reads the name, the last message and the state (unread, pinned, muted...).</p>
-<p>Remote chat-label association changes refresh lists and the open filter without changing the selected list; repeated notices coalesce and stale reads cannot enable editing outdated data.</p>
-<p>Blocking or unblocking contacts on another device updates WinZapp when notified. Notices without details refresh the full list, and old responses cannot undo newer changes.</p>
-<p>Contact and group picture changes or removals invalidate old URLs stored by WinZapp; a confirmed absent picture no longer reuses the old image.</p>
-<p>Contacts saved, renamed or removed from the address book on another device, and public profile-name changes, update WinZapp when notified while preserving local names and history.</p>
-<p>Deleting a chat on another device removes its WinZapp copy when the deletion notice arrives; a chat with newer messages is preserved.</p>
-<p>Disappearing-message timer changes received from another device update chat details without waiting for a full sync.</p>
-<p>Mute, archive and pin changes made on another device update the chat list when the notice arrives, with WPPConnect and Neonize.</p>
+<p>Changes made on the phone or on another device reach WinZapp as soon as WhatsApp reports them, with WPPConnect and Neonize: muting, archiving and pinning chats, adding chats to lists or removing them, the disappearing-messages timer, contacts saved, renamed or removed, public profile names, profile pictures and blocked contacts. A chat deleted on another device is removed from WinZapp too, unless it has messages newer than the deletion; if it is open, WinZapp closes it and says why.</p>
 <p>With Neonize, a chat is marked as read only when you open it or mark it as read, and it shows as read on the phone and on WhatsApp Web too.</p>
 <p>With Neonize, when you reach the start of what WinZapp holds of a chat, it asks the phone for the older messages, as WhatsApp Web does; they arrive in a few moments, with the phone connected.</p>
 
@@ -58,7 +52,7 @@
 <h3>Contacts: local or synced with the phone</h3>
 <p>When you add a contact (in Chat info, in New chat or from a contact message), there are two tabs:</p>
 <ul>
-  <li><strong>Contact synced with the phone:</strong> Saves the contact in WhatsApp and requests synchronization with the phone's address book. Completion on the phone cannot be verified here.</li>
+  <li><strong>Contact synced with the phone:</strong> saves the contact in WhatsApp and requests synchronization with the phone's address book. Completion on the phone cannot be verified here. It opens by default; if the number is already in the phone's address book, only this tab appears. Deleting a synced contact also removes it from WhatsApp and from the phone.</li>
   <li><strong>Local WinZapp contact:</strong> the name exists only in WinZapp.</li>
 </ul>
 <p>Verified businesses you have not saved (banks, payment apps...) appear with the business's verified name. A name saved in your contacts always takes precedence.</p>

@@ -369,13 +369,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Sohbet listesi</h2>
 <p class="lead">Sohbet listesi (Alt+1) kişilerin ve grupların adlarını gösterir, dahili kodları asla. Her satır adı, son mesajı ve durumu (okunmamış, sabitlenmiş, sessize alınmış...) okur.</p>
-<p>Başka bir cihazdaki sohbet etiketi değişiklikleri seçili listeyi değiştirmeden listeleri ve açık filtreyi yeniler; yinelenen bildirimler birleştirilir ve eski okumalar güncel olmayan verilerin düzenlenmesine izin vermez.</p>
-<p>Başka bir cihazda kişileri engellemek veya engelini kaldırmak bildirim geldiğinde WinZapp’i günceller. Ayrıntısız bildirimler tüm listeyi yeniler; eski yanıtlar yeni değişiklikleri geri alamaz.</p>
-<p>Kişi ve grup fotoğrafı değişiklikleri veya kaldırılmaları WinZapp’te saklanan eski adresleri geçersiz kılar; fotoğrafın olmadığı doğrulanırsa eski resim kullanılmaz.</p>
-<p>Başka bir cihazda rehbere kaydedilen, adı değiştirilen veya rehberden kaldırılan kişiler ve genel profil adı değişiklikleri, yerel adları ve geçmişi koruyarak bildirim geldiğinde WinZapp’i günceller.</p>
-<p>Başka bir cihazda silinen sohbetin WinZapp kopyası, silme bildirimi geldiğinde kaldırılır; daha yeni mesajları olan sohbet korunur.</p>
-<p>Başka bir cihazdan alınan süreli mesaj zamanlayıcısı değişiklikleri, tam eşitlemeyi beklemeden sohbet bilgilerini günceller.</p>
-<p>Başka bir cihazda yapılan sessize alma, arşivleme ve sabitleme değişiklikleri, bildirim geldiğinde WPPConnect ve Neonize ile sohbet listesini günceller.</p>
+<p>Telefonda veya başka bir cihazda yapılan değişiklikler, WhatsApp bildirdiği anda WPPConnect ve Neonize ile WinZapp’e ulaşır: sohbetleri sessize alma, arşivleme ve sabitleme, listelere ekleme veya listelerden çıkarma, süreli mesaj zamanlayıcısı, kaydedilen, adı değiştirilen veya kaldırılan kişiler, genel profil adları, profil fotoğrafları ve engellenen kişiler. Başka bir cihazda silinen sohbet, silmeden daha yeni mesajları yoksa WinZapp’ten de kaldırılır; sohbet açıksa WinZapp onu kapatır ve nedenini söyler.</p>
 <p>Neonize ile bir sohbet yalnızca onu açtığınızda veya okundu olarak işaretlediğinizde okundu olur ve telefonda ve WhatsApp Web'de de okundu görünür.</p>
 <p>Neonize ile bir sohbette WinZapp'ın sahip olduklarının başına geldiğinizde, WhatsApp Web'in yaptığı gibi telefondan daha eski mesajları ister; telefon bağlıyken birkaç saniye içinde gelirler.</p>
 
@@ -427,7 +421,7 @@
 <h3>Kişiler: yerel veya telefonla eşitlenmiş</h3>
 <p>Bir kişi eklerken (Sohbet bilgisi içinde, Yeni sohbet içinde veya bir kişi mesajından) iki sekme vardır:</p>
 <ul>
-  <li><strong>Telefonla eşitlenmiş kişi:</strong> Kişiyi WhatsApp'a kaydeder ve telefonun adres defteriyle eşitleme ister. Telefonun kaydı tamamlayıp tamamlamadığı buradan doğrulanamaz.</li>
+  <li><strong>Telefonla eşitlenmiş kişi:</strong> kişiyi WhatsApp'a kaydeder ve telefonun rehberiyle eşitleme ister. Telefonun kaydı tamamlayıp tamamlamadığı buradan doğrulanamaz. Varsayılan olarak açılır; numara zaten telefonun rehberindeyse yalnızca bu sekme görünür. Eşitlenmiş bir kişiyi silmek onu WhatsApp'tan ve telefondan da kaldırır.</li>
   <li><strong>Yerel WinZapp kişisi:</strong> ad yalnızca WinZapp'ta bulunur.</li>
 </ul>
 <p>Kaydetmediğiniz doğrulanmış işletmeler (bankalar, ödeme uygulamaları...) işletmenin doğrulanmış adıyla görünür. Kişilerinize kaydedilmiş bir ad her zaman önceliklidir.</p>
@@ -458,7 +452,6 @@
   <section id="dentro-conversa" class="wiki-section" aria-labelledby="h-dentro-conversa">
     <h2 id="h-dentro-conversa">📨 4. Sohbetin içinde</h2>
 <p class="lead">Bir sohbeti açtığınızda mesaj listesini ve mesaj alanını görürsünüz. Her mesaj, ekran okuyucunun gönderen, içerik ve durumla birlikte okuduğu bir satırdır.</p>
-<p>Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.</p>
 
 <h3>Mesaj gönderme</h3>
 <p>Mesaj alanına yazıp Enter'a basın; Shift+Enter yeni satır ekler. Gönderimler arka plandaki bir kuyruktan geçer. WhatsApp mesajı kabul edip iletimi doğrulamazsa, WinZapp tekrar göndermeden önce sohbeti kontrol etmenizi söyler; böylece mesaj iki kez iletilmez. Kendinize mesaj göndermek ("Kendim (kendime mesajlar)" sohbeti) de çalışır.</p>
@@ -521,6 +514,7 @@
   <li><strong>Yıldızlı mesajlar</strong> (Alt+0 veya gezinme listesindeki "Yıldızlı mesajlar" satırı): tüm sohbetlerdeki tüm yıldızlı mesajlar, en yeniden başlayarak sohbet, gönderen, metin ve tarih olarak okunur. "Yıldızlılarda ara" listeyi aksan ve büyük/küçük harf ayırt etmeden herhangi bir sözcükle daraltır; Enter veya "Sohbette aç" sohbeti o mesajda açar, Delete veya "Yıldızı kaldır" yıldızı kaldırır.</li>
   <li><strong>Mesajı sabitleme</strong> (Ctrl+Shift+P, kayıt yapmıyorken): her sohbetteki bir düğme, eskiler dahil WhatsApp'ta sabitlenmiş mesajları listeler; Enter sizi geçmişteki mesaja götürür. Sohbeti açtığınızda, sabitlenmiş mesaj sayısı odak değişmeden duyurulur.</li>
 </ul>
+<p>Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.</p>
 
 <h3>Yer imleri</h3>
 <p>Yer imleri, daha sonra dönmek için mesajlar üzerinde oluşturduğunuz konumlardır. Mesaj odaktayken Ctrl+0 ile Ctrl+9 bir yer imi oluşturur (ya da o numara zaten varsa ona gider); Ctrl+Shift+0 ile 9 onu kaldırır. Alt+Shift+0 ile 9 sohbetten çıktığınızda silinen geçici yer imleri oluşturur; Ctrl+Alt+Shift+0 ile 9 geçici olanları kaldırır. Ayarlar &gt; Arayüz &gt; Sohbetler içindeki "Kalıcı yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır" ve "Geçici yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır" seçenekleri, bir yer imine gitmenin onu hemen kaldırmasını sağlar; böylece aynı tuş bir dahaki sefere yeni bir yer imi oluşturur.</p>
@@ -819,7 +813,7 @@
     <h2 id="h-grupos-comunidades">👥 10. Gruplar ve topluluklar</h2>
 <h3>Sohbet bilgisi ve grup bilgisi</h3>
 <p>Ctrl+Shift+D (veya bağlam menüsündeki "Sohbet bilgisi") sekmeli bir pencere açar. Tüm düğme ve alanların bir kısayol harfi vardır (Alt+harf).</p>
-<p>Grup açıklamaları, ayarları ve katılımcıları; yönetici atama ve görevden alma dahil canlı bildirimlerle güncellenir, açık sohbette gönderme izinleri yenilenir.</p>
+<p>Bir grubun açıklaması, ayarları ve katılımcılarındaki değişiklikler, yönetici atama ve görevden alma dahil, WhatsApp bildirdiği anda WinZapp’e ulaşır; yalnızca yöneticiler mesaj gönderebiliyorsa açık sohbetin mesaj alanı değişikliğe hemen uyar.</p>
 <ul>
   <li><strong>Kişi:</strong> ad, kişinin seçtiği profil adı, doğrulanmış ad ve hesabın işletme hesabı olup olmadığı, bildirimlerin sessize alınıp alınmadığı (ve ne zamana kadar), kaybolan mesajlar zamanlayıcısı ve mesajların ve aramaların uçtan uca şifreli olduğu bilgisini içeren Genel bakış sekmesi. "Profil fotoğrafı" düğmesi (Alt+F) fotoğrafı gösterir, "Harici görüntüleyicide aç" (Alt+A) onu Windows'un varsayılan programında açar; fotoğraf yoksa ya da kişi görmenize izin vermiyorsa WinZapp bunu söyler. Ayrıca <strong>Ortak gruplar</strong> sekmesi (Enter grubu açar) ve Medya sekmesi vardır.</li>
   <li><strong>Grup:</strong> Genel bakış sekmesi (ad, açıklama, grup fotoğrafı, yalnızca yöneticilerin mesaj gönderip göndermediği), Katılımcılar sekmesi (bir katılımcıda Enter onunla özel sohbeti açar; "Üye ekle" kişileri ya da ek bir numarayı kabul eder) ve Medya sekmesi. Veriler grup yanıt verir vermez görünür, eksik adlar ve numaralar hemen ardından tamamlanır. Medya sekmesinde bir belge, fotoğraf, video veya sesin üzerinde Ctrl+C, mesaj listesindeki gibi dosyayı panoya kopyalar.</li>
@@ -856,7 +850,7 @@
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
     <h2 id="h-trancadas">🔒 11. Kilitli sohbetler</h2>
 <p class="lead">Kilitli sohbetler (Alt+7), sohbet listesinin, arşivlenmişlerin, aramanın ve iletme penceresinin dışında, PIN ile korunan bir kasada durur.</p>
-<p>Telefonda sohbet kilitlendiğinde veya kilidi açıldığında bildirim WinZapp’i günceller; kilitlenen açık sohbet kapatılır.</p>
+<p>Telefonda bir sohbeti kilitlemek veya kilidini açmak, bildirim geldiğinde WinZapp’i günceller; sohbet açıksa kapatılır ve WinZapp nedenini söyler.</p>
 <ul>
   <li><strong>Kilitleme:</strong> bağlam menüsünde "Sohbeti kilitle" ya da Ctrl+Shift+T. PIN 6 ila 12 haneden oluşur. Kasayı kurarken WinZapp, mevcut PIN'i unutursanız yeni bir PIN belirlemek için bir <em>kurtarma anahtarı</em> oluşturur (yüksek sesle okunabilir veya kopyalanabilir).</li>
   <li><strong>Bildirimler:</strong> bu sohbetlerin bildirimleri yalnızca kaç yeni mesaj geldiğini söyler, ad ve içerik olmadan. Mesajları asla otomatik olarak yazıya dökülmez ve çevrimiçi yapay zekâ her gönderimde yeniden sorar.</li>
@@ -921,7 +915,6 @@
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ 14. Ayarlar</h2>
 <p>Arapça artık Ayarlar > Genel > Dil bölümünde ve Windows yükleyicisi ile kaldırma programında kullanılabilir.</p>
-<p>Başka bir cihazdan alınan gizlilik değişiklikleri, açık paneldeki düzenlenmemiş alanları günceller; hazırlanmakta olan seçimler korunur ve başka hesaba ait yanıtlar yok sayılır.</p>
 <p class="lead">Dosya &gt; Ayarlar (Ctrl+,) üstte bir arama alanı ve bir kategori listesi içerir. Arama alanına yazın ve sonuçlara geçmek için aşağı oka basın; Enter veya Boşluk bulunan seçeneği açar. Arama yokken oklar kategoriyi değiştirir, Tab ise seçeneklerine girer. Bazı kategorilerde düğmeler bir konunun penceresini açar (Mesajlar veya Konuşulan içerik gibi). Dilediğinizi değiştirin ve Uygula veya Tamam'ı kullanın. Arayüz içinde Kısayollar düğmesi herhangi bir kısayolu değiştirmenizi sağlar. Pencere doğrudan Genel kategorisinde açılır; diğer kategoriler ve pencereler onlara ilk gittiğinizde oluşturulur. Arama sonuçları bunlar yüklendikçe gelir ve yazmaya devam edebilirsiniz.</p>
 
 <table class="field-table">
@@ -967,8 +960,7 @@
   <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
     <h2 id="h-privacidade">🛡️ 15. WhatsApp ayarları</h2>
 <p class="lead">Dosya &gt; WhatsApp ayarları, Ayarlar'ı WhatsApp ayarları kategorisinde açar; bu kategoride Gizlilik ve Profil adlı iki düğme vardır ve WhatsApp hesabınızı doğrudan WhatsApp üzerinde değiştirir.</p>
-<p>Kendi profil fotoğrafı bildirimleri, açık Profil panelinde ad, Hakkında veya seçili fotoğrafı değiştirmeden fotoğraf durumunu yeniler; eski ve başka hesaba ait okumalar yok sayılır.</p>
-<p>Başka bir cihazdaki Sohbetleri arşivde tut ve Durum gizliliği değişiklikleri açık paneli günceller; uygulanmamış seçimler korunur, eski veya başka hesaba ait yanıtlar yok sayılır.</p>
+<p>Başka bir cihazda gizlilik ayarlarında, Sohbetleri arşivde tut seçeneğinde, Durum gizliliğinde veya profil fotoğrafınızda yapılan değişiklikler açık Gizlilik veya Profil panelini de günceller; değiştirip henüz uygulamadığınız bir alan seçiminizi korur.</p>
 <h3>Gizlilik düğmesi</h3>
 <ul>
   <li>Son görülme ve çevrimiçi; Hakkında; profil fotoğrafı; okundu bilgisi; sizi gruplara kimlerin ekleyebileceği; durumunuzu kimlerin görebileceği (kişilerim, kişilerim hariç..., veya yalnızca şunlarla paylaş...).</li>
@@ -1459,21 +1451,20 @@
 <p class="lead">Özellik getiren her yeni alpha kılavuza eklenir. Bu liste kılavuzun hangi alpha'ya kadar tam olduğunu ve her turda neyin eklendiğini gösterir.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Kılavuza girenler</th></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazdaki sohbet etiketi değişiklikleri seçili listeyi değiştirmeden listeleri ve açık filtreyi yeniler; yinelenen bildirimler birleştirilir ve eski okumalar güncel olmayan verilerin düzenlenmesine izin vermez.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kendi profil fotoğrafı bildirimleri, açık Profil panelinde ad, Hakkında veya seçili fotoğrafı değiştirmeden fotoğraf durumunu yeniler; eski ve başka hesaba ait okumalar yok sayılır.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazdaki Sohbetleri arşivde tut ve Durum gizliliği değişiklikleri açık paneli günceller; uygulanmamış seçimler korunur, eski veya başka hesaba ait yanıtlar yok sayılır.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda bir sohbeti listeye eklemek veya listeden çıkarmak, seçili listeyi değiştirmeden listeleri ve açık filtreyi günceller.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda profil fotoğrafınızı değiştirmek, henüz kaydetmediğiniz ad, Hakkında veya fotoğrafı değiştirmeden açık Profil panelini günceller.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda Sohbetleri arşivde tut veya Durum gizliliği ayarını değiştirmek, henüz uygulanmamış seçimleri koruyarak açık paneli günceller.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>iPhone'da WhatsApp'ta görünmeyen kayıtlı kişiler düzeltildi: bağlı kişi kimliği artık WhatsApp'ın kendi kişi ekranındaki gibi tam olarak gönderiliyor.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Telefon için kişi kaydederken WinZapp artık adres defterinin güncellendiğini söylemek yerine eşitlemenin istendiğini bildirir. Kişinin kaydedildiğini doğrulamayan yanıtlar başarı sayılmaz.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazdan alınan gizlilik değişiklikleri, açık paneldeki düzenlenmemiş alanları günceller; hazırlanmakta olan seçimler korunur ve başka hesaba ait yanıtlar yok sayılır.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda kişileri engellemek veya engelini kaldırmak bildirim geldiğinde WinZapp’i günceller. Ayrıntısız bildirimler tüm listeyi yeniler; eski yanıtlar yeni değişiklikleri geri alamaz.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Kişi ve grup fotoğrafı değişiklikleri veya kaldırılmaları WinZapp’te saklanan eski adresleri geçersiz kılar; fotoğrafın olmadığı doğrulanırsa eski resim kullanılmaz.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Telefona kişi kaydederken WinZapp artık kişinin rehberde olduğunu söylemek yerine telefondan eklemesinin istendiğini bildirir; WhatsApp'ın doğrulamadığı bir kayıt artık tamamlandı olarak bildirilmez.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda yapılan gizlilik değişiklikleri, değiştirip henüz uygulamadığınız alanları koruyarak açık paneli günceller.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda bir kişiyi engellemek veya engelini kaldırmak, WhatsApp bildirdiği anda WinZapp’i günceller.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Bir kişi veya grup fotoğrafını değiştirdiğinde ya da kaldırdığında WinZapp eski fotoğrafı göstermeyi bırakır.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda rehbere kaydedilen, adı değiştirilen veya rehberden kaldırılan kişiler ve genel profil adı değişiklikleri, yerel adları ve geçmişi koruyarak bildirim geldiğinde WinZapp’i günceller.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Grup açıklamaları, ayarları ve katılımcıları; yönetici atama ve görevden alma dahil canlı bildirimlerle güncellenir, açık sohbette gönderme izinleri yenilenir.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>WhatsApp yalnızca grup meta verilerini değiştirdiğinde süreli mesaj zamanlayıcısının anlık güncellenmesi düzeltildi.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda silinen sohbetin WinZapp kopyası, silme bildirimi geldiğinde kaldırılır; daha yeni mesajları olan sohbet korunur.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda silinen sohbet, bildirim geldiğinde WinZapp’ten kaldırılır; bildirimden daha yeni mesajları olan sohbet korunur. Sohbet açıksa kapatılır ve WinZapp nedenini söyler.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazdan alınan süreli mesaj zamanlayıcısı değişiklikleri, tam eşitlemeyi beklemeden sohbet bilgilerini günceller.</td></tr>
-  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Telefonda sohbet kilitlendiğinde veya kilidi açıldığında bildirim WinZapp’i günceller; kilitlenen açık sohbet kapatılır.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda bir sohbette veya grupta süreli mesaj zamanlayıcısını değiştirmek, tam eşitlemeyi beklemeden WinZapp’i günceller.</td></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Telefonda bir sohbeti kilitlemek veya kilidini açmak, bildirim geldiğinde WinZapp’i günceller; sohbet açıksa kapatılır ve WinZapp nedenini söyler.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda yapılan sessize alma, arşivleme ve sabitleme değişiklikleri, bildirim geldiğinde WPPConnect ve Neonize ile sohbet listesini günceller.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Başka bir cihazda kendiniz için sildiğiniz mesajlar, silme bildirimi geldiğinde WPPConnect ve Neonize ile sohbetten kaldırılır.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Telefonda veya başka bir cihazda bir mesaja yıldız eklemek ya da kaldırmak, bildirim geldiğinde açık sohbetteki işareti WPPConnect ve Neonize ile günceller.</td></tr>

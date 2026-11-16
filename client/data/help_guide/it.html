@@ -369,13 +369,7 @@
   <section id="conversas" class="wiki-section" aria-labelledby="h-conversas">
     <h2 id="h-conversas">💬 3. Chat list</h2>
 <p class="lead">The chat list (Alt+1) shows the names of people and groups, never internal codes. Each row reads the name, the last message and the state (unread, pinned, muted...).</p>
-<p>Le modifiche alle associazioni delle etichette da un altro dispositivo aggiornano liste e filtro aperto senza cambiare la lista selezionata; gli avvisi ripetuti vengono raggruppati e le letture obsolete non consentono modifiche su dati superati.</p>
-<p>Bloccare o sbloccare contatti su un altro dispositivo aggiorna WinZapp alla notifica. Gli avvisi senza dettagli aggiornano l’intero elenco e le vecchie risposte non annullano le modifiche più recenti.</p>
-<p>Le modifiche o rimozioni delle foto di contatti e gruppi invalidano i vecchi indirizzi di WinZapp; l’assenza confermata di una foto non riutilizza l’immagine precedente.</p>
-<p>I contatti salvati, rinominati o rimossi dalla rubrica su un altro dispositivo e le modifiche al nome pubblico aggiornano WinZapp alla notifica, preservando nomi locali e cronologia.</p>
-<p>L’eliminazione di una chat su un altro dispositivo rimuove la copia di WinZapp all’arrivo della notifica; le chat con messaggi più recenti vengono conservate.</p>
-<p>Le modifiche al timer dei messaggi effimeri ricevute da un altro dispositivo aggiornano i dettagli della chat senza attendere una sincronizzazione completa.</p>
-<p>Le modifiche a silenziamento, archiviazione e fissaggio effettuate su un altro dispositivo aggiornano l’elenco delle chat all’arrivo della notifica, con WPPConnect e Neonize.</p>
+<p>Le modifiche fatte sul telefono o su un altro dispositivo arrivano a WinZapp appena WhatsApp le segnala, con WPPConnect e Neonize: silenziare, archiviare e fissare le chat, aggiungerle alle liste o toglierle, il timer dei messaggi effimeri, contatti salvati, rinominati o rimossi, nomi pubblici, foto profilo e contatti bloccati. Una chat eliminata su un altro dispositivo viene rimossa anche da WinZapp, a meno che abbia messaggi più recenti dell’eliminazione; se è aperta, WinZapp la chiude e ne spiega il motivo.</p>
 <p>With Neonize, a chat is marked as read only when you open it or mark it as read, and it shows as read on the phone and on WhatsApp Web too.</p>
 <p>With Neonize, when you reach the start of what WinZapp holds of a chat, it asks the phone for the older messages, as WhatsApp Web does; they arrive in a few moments, with the phone connected.</p>
 
@@ -427,7 +421,7 @@
 <h3>Contacts: local or synced with the phone</h3>
 <p>When you add a contact (in Chat info, in New chat or from a contact message), there are two tabs:</p>
 <ul>
-  <li><strong>Contact synced with the phone:</strong> Salva il contatto su WhatsApp e richiede la sincronizzazione con la rubrica del telefono. Qui non è possibile verificare se il telefono ha completato il salvataggio.</li>
+  <li><strong>Contact synced with the phone:</strong> salva il contatto su WhatsApp e richiede la sincronizzazione con la rubrica del telefono. Qui non è possibile verificare se il telefono ha completato il salvataggio. It opens by default; if the number is already in the phone's address book, only this tab appears. Deleting a synced contact also removes it from WhatsApp and from the phone.</li>
   <li><strong>Local WinZapp contact:</strong> the name exists only in WinZapp.</li>
 </ul>
 <p>Verified businesses you have not saved (banks, payment apps...) appear with the business's verified name. A name saved in your contacts always takes precedence.</p>
@@ -458,7 +452,6 @@
   <section id="dentro-conversa" class="wiki-section" aria-labelledby="h-dentro-conversa">
     <h2 id="h-dentro-conversa">📨 4. Inside a chat</h2>
 <p class="lead">When you open a chat you get the message list and the message field. Each message is a row that the screen reader reads with sender, content and state.</p>
-<p>Fissare o rimuovere un messaggio fissato su un altro dispositivo aggiorna il contrassegno e il riepilogo dei messaggi fissati nella chat aperta all’arrivo della notifica.</p>
 
 <h3>Send messages</h3>
 <p>Type in the message field and press Enter; Shift+Enter inserts a new line. Sends go through a background queue. If WhatsApp accepts the message but does not confirm delivery, WinZapp tells you to check the chat before resending, so it is not delivered twice. Sending a message to yourself (the "Me (messages to myself)" chat) works too.</p>
@@ -521,6 +514,7 @@
   <li><strong>Starred messages</strong> (Alt+0, or the "Starred messages" row of the navigation list): every starred message of every chat, newest first, read as chat, sender, text and date. "Search starred messages" narrows the list by any word, accents and case ignored; Enter or "Open in the conversation" opens the chat on that message, and Delete or "Remove star" removes the star.</li>
   <li><strong>Pin a message</strong> (Ctrl+Shift+P, when you are not recording): a button in each chat lists the messages pinned on WhatsApp, including old ones; Enter takes you to the message in the history. When you open the chat, the number of pinned messages is announced without changing focus.</li>
 </ul>
+<p>Fissare o rimuovere un messaggio fissato su un altro dispositivo aggiorna il contrassegno e il riepilogo dei messaggi fissati nella chat aperta all’arrivo della notifica.</p>
 
 <h3>Bookmarks</h3>
 <p>Bookmarks are positions you create on messages to come back to later. With the message focused, Ctrl+0 to Ctrl+9 creates a bookmark (or, if that number already exists, goes to it); Ctrl+Shift+0 to 9 removes it. Alt+Shift+0 to 9 creates temporary bookmarks, deleted when you leave the chat; Ctrl+Alt+Shift+0 to 9 removes the temporary ones. In Settings &gt; Interface &gt; Chats, "Rimuovi automaticamente i segnalibri permanenti dopo il primo utilizzo" and "Rimuovi automaticamente i segnalibri temporanei dopo il primo utilizzo" make jumping to a bookmark remove it right away, so the same key creates a new bookmark next time.</p>
@@ -819,7 +813,7 @@
     <h2 id="h-grupos-comunidades">👥 10. Groups and communities</h2>
 <h3>Chat info and group info</h3>
 <p>Ctrl+Shift+D (or "Chat info" in the context menu) opens a window with tabs. All buttons and fields have a shortcut letter (Alt+letter).</p>
-<p>Descrizioni, impostazioni e partecipanti dei gruppi seguono gli avvisi in tempo reale, comprese promozione e revoca degli amministratori, aggiornando i permessi di invio nella chat aperta.</p>
+<p>Le modifiche a descrizione, impostazioni e partecipanti di un gruppo, compresi gli amministratori nominati o rimossi, arrivano a WinZapp appena WhatsApp le segnala; se solo gli amministratori possono inviare messaggi, il campo del messaggio della chat aperta segue subito la modifica.</p>
 <ul>
   <li><strong>Contact:</strong> Overview tab with name, the profile name the contact chose, verified name and whether the account is a business account, whether notifications are muted (and until when), the disappearing messages timer and the notice that messages and calls are end-to-end encrypted. The "Profile picture" button (Alt+F) shows the picture, and "Open in external viewer" (Alt+A) opens it in the Windows default program; if there is no picture, or the person does not allow you to see it, WinZapp says so. There is also the <strong>Groups in common</strong> tab (Enter opens the group) and the Media tab.</li>
   <li><strong>Group:</strong> Overview tab (name, description, group picture, whether only admins send messages), Participants tab (Enter on a participant opens the private chat with them; "Add member" accepts contacts or an extra number) and Media tab. The data appears as soon as the group answers and missing names and numbers are filled in right after. On the Media tab, Ctrl+C on a document, photo, video or audio copies the file to the clipboard, as in the message list.</li>
@@ -856,7 +850,7 @@
   <section id="trancadas" class="wiki-section" aria-labelledby="h-trancadas">
     <h2 id="h-trancadas">🔒 11. Locked chats</h2>
 <p class="lead">Locked chats (Alt+7) stay in a vault protected by a PIN, outside the chat list, the archived chats, the search and the forward window.</p>
-<p>Il blocco o lo sblocco di una chat sul telefono aggiorna WinZapp all’arrivo della notifica; una chat aperta viene chiusa quando è bloccata.</p>
+<p>Il blocco o lo sblocco di una chat sul telefono aggiorna WinZapp all’arrivo della notifica; se era aperta, viene chiusa e WinZapp ne spiega il motivo.</p>
 <ul>
   <li><strong>Lock:</strong> "Lock chat" in the context menu or Ctrl+Shift+T. The PIN has 6 to 12 digits. When you set up the vault, WinZapp creates a <em>recovery key</em> (it can be read aloud or copied) to set a new PIN if you forget the current one.</li>
   <li><strong>Notifications:</strong> those of these chats only say how many new messages arrived, with no name or content. Their messages are never transcribed automatically, and online AI asks again for every send.</li>
@@ -921,7 +915,6 @@
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ 14. Settings</h2>
 <p>Arabic is now available in Settings > General > Language, with Arabic text in the Windows installer and uninstaller.</p>
-<p>Le modifiche alla privacy ricevute da un altro dispositivo aggiornano i campi non modificati nel pannello aperto, preservando le scelte in preparazione e scartando le risposte di un altro account.</p>
 <p class="lead">File &gt; Settings (Ctrl+,) has a search field at the top and a list of categories. Type in the search field and press the down arrow to go to the results; Enter or Space opens the option found. Without a search, the arrow keys change category and Tab enters its options. In some categories, buttons open the window of one subject (such as Messages or Spoken content). Change what you want and use Apply or OK. In Interface, the Keyboard shortcuts button lets you change any shortcut. The window opens straight on General; the other categories and windows are built the first time you go to them. Search results arrive as they load, and you can keep typing.</p>
 
 <table class="field-table">
@@ -967,8 +960,7 @@
   <section id="privacidade" class="wiki-section" aria-labelledby="h-privacidade">
     <h2 id="h-privacidade">🛡️ 15. WhatsApp settings</h2>
 <p class="lead">File &gt; WhatsApp settings opens Settings on the WhatsApp settings category, which has two buttons, Privacy and Profile, and changes your WhatsApp account directly on WhatsApp.</p>
-<p>Gli avvisi sulla propria foto aggiornano lo stato della foto nel pannello Profilo aperto senza sovrascrivere nome, Info o una foto scelta; le letture obsolete o di altri account vengono ignorate.</p>
-<p>Le modifiche da un altro dispositivo a Mantieni le chat archiviate e alla privacy dello stato aggiornano il pannello aperto, preservando le scelte non applicate e ignorando risposte obsolete o di altri account.</p>
+<p>Le modifiche fatte su un altro dispositivo alla privacy, a Mantieni le chat archiviate, alla privacy dello stato o alla propria foto profilo aggiornano anche il pannello Privacy o Profilo aperto; un campo modificato e non ancora applicato mantiene la tua scelta.</p>
 <h3>Privacy button</h3>
 <ul>
   <li>Last seen and online; About; profile picture; read receipts; who can add you to groups; who can see your status (my contacts, my contacts except..., or share only with...).</li>
@@ -1458,21 +1450,20 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
-  <tr><td class="field-name">Not yet released</td><td>Le modifiche alle associazioni delle etichette da un altro dispositivo aggiornano liste e filtro aperto senza cambiare la lista selezionata; gli avvisi ripetuti vengono raggruppati e le letture obsolete non consentono modifiche su dati superati.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Gli avvisi sulla propria foto aggiornano lo stato della foto nel pannello Profilo aperto senza sovrascrivere nome, Info o una foto scelta; le letture obsolete o di altri account vengono ignorate.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Le modifiche da un altro dispositivo a Mantieni le chat archiviate e alla privacy dello stato aggiornano il pannello aperto, preservando le scelte non applicate e ignorando risposte obsolete o di altri account.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Aggiungere una chat a una lista o toglierla da una lista su un altro dispositivo aggiorna le liste e il filtro aperto, senza cambiare la lista selezionata.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Cambiare la propria foto profilo su un altro dispositivo aggiorna il pannello Profilo aperto, senza sostituire nome, Info o una foto non ancora salvata.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Cambiare Mantieni le chat archiviate o la privacy dello stato su un altro dispositivo aggiorna il pannello aperto, preservando le scelte non ancora applicate.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Corretti i contatti salvati che non comparivano su WhatsApp su iPhone: l'identificativo collegato viene ora inviato completo, come nella schermata nativa di WhatsApp.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Quando si salva un contatto sul telefono, WinZapp segnala la sincronizzazione richiesta, senza affermare che la rubrica sia già aggiornata. Le risposte senza conferma del contatto salvato non indicano successo.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Le modifiche alla privacy ricevute da un altro dispositivo aggiornano i campi non modificati nel pannello aperto, preservando le scelte in preparazione e scartando le risposte di un altro account.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Bloccare o sbloccare contatti su un altro dispositivo aggiorna WinZapp alla notifica. Gli avvisi senza dettagli aggiornano l’intero elenco e le vecchie risposte non annullano le modifiche più recenti.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Le modifiche o rimozioni delle foto di contatti e gruppi invalidano i vecchi indirizzi di WinZapp; l’assenza confermata di una foto non riutilizza l’immagine precedente.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Quando si salva un contatto sul telefono, WinZapp ora indica che al telefono è stato chiesto di aggiungerlo, invece di affermare che è già in rubrica; un salvataggio non confermato da WhatsApp non viene più indicato come completato.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Le modifiche alla privacy fatte su un altro dispositivo aggiornano il pannello aperto, preservando i campi modificati e non ancora applicati.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Bloccare o sbloccare un contatto su un altro dispositivo aggiorna WinZapp appena WhatsApp lo segnala.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Quando un contatto o un gruppo cambia o rimuove la foto, WinZapp smette di mostrare quella vecchia.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>I contatti salvati, rinominati o rimossi dalla rubrica su un altro dispositivo e le modifiche al nome pubblico aggiornano WinZapp alla notifica, preservando nomi locali e cronologia.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Descrizioni, impostazioni e partecipanti dei gruppi seguono gli avvisi in tempo reale, comprese promozione e revoca degli amministratori, aggiornando i permessi di invio nella chat aperta.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Corretto l’aggiornamento in tempo reale del timer dei messaggi effimeri quando WhatsApp modifica solo i metadati del gruppo.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>L’eliminazione di una chat su un altro dispositivo rimuove la copia di WinZapp all’arrivo della notifica; le chat con messaggi più recenti vengono conservate.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>L’eliminazione di una chat su un altro dispositivo la rimuove da WinZapp all’arrivo della notifica; una chat con messaggi più recenti della notifica viene conservata. Se era aperta, viene chiusa e WinZapp ne spiega il motivo.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Fissare o rimuovere un messaggio fissato su un altro dispositivo aggiorna il contrassegno e il riepilogo dei messaggi fissati nella chat aperta all’arrivo della notifica.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Le modifiche al timer dei messaggi effimeri ricevute da un altro dispositivo aggiornano i dettagli della chat senza attendere una sincronizzazione completa.</td></tr>
-  <tr><td class="field-name">Not yet released</td><td>Il blocco o lo sblocco di una chat sul telefono aggiorna WinZapp all’arrivo della notifica; una chat aperta viene chiusa quando è bloccata.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Cambiare il timer dei messaggi effimeri su un altro dispositivo, in una chat o in un gruppo, aggiorna WinZapp senza attendere una sincronizzazione completa.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Il blocco o lo sblocco di una chat sul telefono aggiorna WinZapp all’arrivo della notifica; se era aperta, viene chiusa e WinZapp ne spiega il motivo.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Le modifiche a silenziamento, archiviazione e fissaggio effettuate su un altro dispositivo aggiornano l’elenco delle chat all’arrivo della notifica, con WPPConnect e Neonize.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>I messaggi eliminati per te su un altro dispositivo vengono rimossi dalla conversazione quando arriva l’avviso di eliminazione, con WPPConnect e Neonize.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Aggiungere o rimuovere la stella da un messaggio sul telefono o su un altro dispositivo aggiorna il contrassegno nella conversazione aperta quando arriva la notifica, con WPPConnect e Neonize.</td></tr>

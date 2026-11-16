@@ -4,35 +4,33 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
-- Başka bir cihazdaki sohbet etiketi değişiklikleri seçili listeyi değiştirmeden listeleri ve açık filtreyi yeniler; yinelenen bildirimler birleştirilir ve eski okumalar güncel olmayan verilerin düzenlenmesine izin vermez.
+- Başka bir cihazda bir sohbeti listeye eklemek veya listeden çıkarmak, seçili listeyi değiştirmeden listeleri ve açık filtreyi günceller.
 
-- Kendi profil fotoğrafı bildirimleri, açık Profil panelinde ad, Hakkında veya seçili fotoğrafı değiştirmeden fotoğraf durumunu yeniler; eski ve başka hesaba ait okumalar yok sayılır.
+- Başka bir cihazda profil fotoğrafınızı değiştirmek, henüz kaydetmediğiniz ad, Hakkında veya fotoğrafı değiştirmeden açık Profil panelini günceller.
 
-- Başka bir cihazdaki Sohbetleri arşivde tut ve Durum gizliliği değişiklikleri açık paneli günceller; uygulanmamış seçimler korunur, eski veya başka hesaba ait yanıtlar yok sayılır.
+- Başka bir cihazda Sohbetleri arşivde tut veya Durum gizliliği ayarını değiştirmek, henüz uygulanmamış seçimleri koruyarak açık paneli günceller.
 
 - iPhone'da WhatsApp'ta görünmeyen kayıtlı kişiler düzeltildi: bağlı kişi kimliği artık WhatsApp'ın kendi kişi ekranındaki gibi tam olarak gönderiliyor.
 
-- Telefon için kişi kaydederken WinZapp artık adres defterinin güncellendiğini söylemek yerine eşitlemenin istendiğini bildirir. Kişinin kaydedildiğini doğrulamayan yanıtlar başarı sayılmaz.
+- Telefona kişi kaydederken WinZapp artık kişinin rehberde olduğunu söylemek yerine telefondan eklemesinin istendiğini bildirir; WhatsApp'ın doğrulamadığı bir kayıt artık tamamlandı olarak bildirilmez.
 
-- Başka bir cihazdan alınan gizlilik değişiklikleri, açık paneldeki düzenlenmemiş alanları günceller; hazırlanmakta olan seçimler korunur ve başka hesaba ait yanıtlar yok sayılır.
+- Başka bir cihazda yapılan gizlilik değişiklikleri, değiştirip henüz uygulamadığınız alanları koruyarak açık paneli günceller.
 
-- Başka bir cihazda kişileri engellemek veya engelini kaldırmak bildirim geldiğinde WinZapp’i günceller. Ayrıntısız bildirimler tüm listeyi yeniler; eski yanıtlar yeni değişiklikleri geri alamaz.
+- Başka bir cihazda bir kişiyi engellemek veya engelini kaldırmak, WhatsApp bildirdiği anda WinZapp’i günceller.
 
-- Kişi ve grup fotoğrafı değişiklikleri veya kaldırılmaları WinZapp’te saklanan eski adresleri geçersiz kılar; fotoğrafın olmadığı doğrulanırsa eski resim kullanılmaz.
+- Bir kişi veya grup fotoğrafını değiştirdiğinde ya da kaldırdığında WinZapp eski fotoğrafı göstermeyi bırakır.
 
 - Başka bir cihazda rehbere kaydedilen, adı değiştirilen veya rehberden kaldırılan kişiler ve genel profil adı değişiklikleri, yerel adları ve geçmişi koruyarak bildirim geldiğinde WinZapp’i günceller.
 
 - Grup açıklamaları, ayarları ve katılımcıları; yönetici atama ve görevden alma dahil canlı bildirimlerle güncellenir, açık sohbette gönderme izinleri yenilenir.
 
-- WhatsApp yalnızca grup meta verilerini değiştirdiğinde süreli mesaj zamanlayıcısının anlık güncellenmesi düzeltildi.
-
-- Başka bir cihazda silinen sohbetin WinZapp kopyası, silme bildirimi geldiğinde kaldırılır; daha yeni mesajları olan sohbet korunur.
+- Başka bir cihazda silinen sohbet, bildirim geldiğinde WinZapp’ten kaldırılır; bildirimden daha yeni mesajları olan sohbet korunur. Sohbet açıksa kapatılır ve WinZapp nedenini söyler.
 
 - Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.
 
-- Başka bir cihazdan alınan süreli mesaj zamanlayıcısı değişiklikleri, tam eşitlemeyi beklemeden sohbet bilgilerini günceller.
+- Başka bir cihazda bir sohbette veya grupta süreli mesaj zamanlayıcısını değiştirmek, tam eşitlemeyi beklemeden WinZapp’i günceller.
 
-- Telefonda sohbet kilitlendiğinde veya kilidi açıldığında bildirim WinZapp’i günceller; kilitlenen açık sohbet kapatılır.
+- Telefonda bir sohbeti kilitlemek veya kilidini açmak, bildirim geldiğinde WinZapp’i günceller; sohbet açıksa kapatılır ve WinZapp nedenini söyler.
 
 - Başka bir cihazda yapılan sessize alma, arşivleme ve sabitleme değişiklikleri, bildirim geldiğinde WPPConnect ve Neonize ile sohbet listesini günceller.
 

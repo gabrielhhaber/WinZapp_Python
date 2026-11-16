@@ -4,35 +4,33 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
-- Alterações de associação de etiquetas recebidas de outro dispositivo atualizam as listas e o filtro aberto, sem mudar a lista selecionada; avisos repetidos são agrupados e leituras antigas não permitem editar dados desatualizados.
+- Adicionar uma conversa a uma lista ou retirá-la de uma lista noutro dispositivo atualiza as listas e o filtro aberto, sem mudar a lista selecionada.
 
-- Os avisos de alteração da sua fotografia atualizam o estado da fotografia no painel de Perfil aberto, sem substituir o nome, o recado ou uma fotografia escolhida para guardar; leituras antigas ou de outra conta são ignoradas.
+- Alterar a sua fotografia de perfil noutro dispositivo atualiza o painel de Perfil aberto, sem substituir o nome, o recado ou a fotografia que ainda não guardou.
 
-- Alterações noutro dispositivo em Manter conversas arquivadas e na privacidade dos estados atualizam o painel aberto, preservando escolhas ainda não aplicadas e ignorando respostas antigas ou de outra conta.
+- Alterar Manter conversas arquivadas ou a privacidade dos estados noutro dispositivo atualiza o painel aberto, preservando as escolhas ainda não aplicadas.
 
 - Corrigida a gravação de contactos que não apareciam no WhatsApp do iPhone: o identificador associado é agora enviado completo, no formato usado pelo ecrã nativo do WhatsApp.
 
-- Ao guardar um contacto no telemóvel, o WinZapp informa que a sincronização foi solicitada, sem afirmar que a agenda do telefone já foi atualizada. Respostas sem confirmação de contacto guardado não indicam sucesso.
+- Ao guardar um contacto no telemóvel, o WinZapp diz agora que pediu ao telemóvel para o adicionar, em vez de afirmar que já está na agenda; um registo que o WhatsApp não confirmou deixa de ser indicado como concluído.
 
-- As alterações de privacidade recebidas de outro dispositivo atualizam os campos ainda não editados no painel aberto, preservando escolhas em preparação e ignorando respostas de outra conta.
+- As alterações de privacidade feitas noutro dispositivo atualizam o painel aberto, preservando os campos que alterou e ainda não aplicou.
 
-- Bloquear ou desbloquear contactos noutro dispositivo atualiza o WinZapp quando chega o aviso. Os avisos sem detalhes atualizam a lista completa, e as respostas antigas não desfazem alterações mais recentes.
+- Bloquear ou desbloquear um contacto noutro dispositivo atualiza o WinZapp assim que o WhatsApp avisa.
 
-- As alterações ou remoções de fotografias de contactos e grupos invalidam os endereços antigos guardados no WinZapp; uma resposta que confirme a ausência de fotografia não reutiliza a imagem antiga.
+- Quando um contacto ou grupo altera ou remove a fotografia, o WinZapp deixa de mostrar a antiga.
 
 - Os contactos guardados, renomeados ou removidos da agenda noutro dispositivo e as alterações do nome público atualizam o WinZapp quando chega o aviso, preservando os nomes locais e o histórico.
 
 - A descrição, as permissões e os participantes dos grupos acompanham agora os avisos em tempo real, incluindo promoção e despromoção de administradores, com atualização das permissões de envio na conversa aberta.
 
-- Corrigida a atualização em tempo real das mensagens temporárias em grupos quando o WhatsApp altera apenas os metadados do grupo.
-
-- Eliminar uma conversa noutro dispositivo remove a sua cópia do WinZapp quando chega o aviso de eliminação; uma conversa com mensagens posteriores ao aviso é preservada.
+- Eliminar uma conversa noutro dispositivo remove-a do WinZapp quando chega o aviso; uma conversa com mensagens posteriores ao aviso é mantida. Se estava aberta, é fechada e o WinZapp diz porquê.
 
 - Fixar ou desafixar uma mensagem noutro dispositivo atualiza a sua marca e o resumo de mensagens fixadas da conversa aberta quando chega o aviso.
 
-- As alterações ao prazo das mensagens temporárias recebidas de outro dispositivo atualizam os dados da conversa sem esperar por uma sincronização completa.
+- Alterar o prazo das mensagens temporárias noutro dispositivo, numa conversa ou num grupo, atualiza o WinZapp sem esperar por uma sincronização completa.
 
-- Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; uma conversa aberta que foi trancada é fechada.
+- Trancar ou destrancar uma conversa no telemóvel atualiza o WinZapp quando chega o aviso; se estava aberta, é fechada e o WinZapp diz porquê.
 
 - As alterações de silenciamento, arquivo e fixação feitas noutro dispositivo atualizam a lista de conversas assim que chega o aviso, com WPPConnect e Neonize.
 

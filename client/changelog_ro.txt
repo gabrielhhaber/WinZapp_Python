@@ -4,35 +4,33 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
-- Modificările asocierilor de etichete de pe alt dispozitiv actualizează listele și filtrul deschis fără a schimba lista selectată; notificările repetate sunt grupate, iar citirile vechi nu permit editarea datelor depășite.
+- Adăugarea unei conversații într-o listă sau scoaterea ei dintr-o listă pe alt dispozitiv actualizează listele și filtrul deschis, fără a schimba lista selectată.
 
-- Notificările despre propria fotografie actualizează starea ei în panoul Profil deschis, fără a suprascrie numele, informațiile sau fotografia aleasă; citirile vechi ori ale altui cont sunt ignorate.
+- Schimbarea propriei fotografii de profil pe alt dispozitiv actualizează panoul Profil deschis, fără a înlocui numele, informațiile sau o fotografie încă nesalvată.
 
-- Modificările de pe alt dispozitiv pentru păstrarea conversațiilor arhivate și confidențialitatea stării actualizează panoul deschis, păstrând alegerile neaplicate și ignorând răspunsurile vechi sau ale altui cont.
+- Schimbarea păstrării conversațiilor arhivate sau a confidențialității stării pe alt dispozitiv actualizează panoul deschis, păstrând alegerile încă neaplicate.
 
 - S-a corectat salvarea contactelor care nu apăreau în WhatsApp pe iPhone: identificatorul asociat este acum trimis complet, ca în ecranul nativ WhatsApp.
 
-- La salvarea unui contact pe telefon, WinZapp anunță solicitarea sincronizării, fără a afirma că agenda telefonului a fost deja actualizată. Răspunsurile fără confirmarea salvării contactului nu mai indică succes.
+- La salvarea unui contact pe telefon, WinZapp anunță acum că telefonului i s-a cerut să-l adauge, în loc să afirme că este deja în agendă; o salvare neconfirmată de WhatsApp nu mai este anunțată ca reușită.
 
-- Modificările de confidențialitate primite de pe alt dispozitiv actualizează câmpurile needitate din panoul deschis, păstrând opțiunile în pregătire și ignorând răspunsurile altui cont.
+- Modificările de confidențialitate făcute pe alt dispozitiv actualizează panoul deschis, păstrând câmpurile modificate și încă neaplicate.
 
-- Blocarea sau deblocarea contactelor pe alt dispozitiv actualizează WinZapp la primirea notificării. Notificările fără detalii reîmprospătează lista completă, iar răspunsurile vechi nu anulează modificările recente.
+- Blocarea sau deblocarea unui contact pe alt dispozitiv actualizează WinZapp imediat ce WhatsApp o anunță.
 
-- Schimbarea sau eliminarea fotografiei unui contact ori grup invalidează adresele vechi din WinZapp; absența confirmată a fotografiei nu mai reutilizează imaginea veche.
+- Când un contact sau un grup își schimbă ori își elimină fotografia, WinZapp nu o mai afișează pe cea veche.
 
 - Contactele salvate, redenumite sau eliminate din agendă pe alt dispozitiv și schimbările numelui public actualizează WinZapp la primirea notificării, păstrând numele locale și istoricul.
 
 - Descrierile, setările și participanții grupurilor urmăresc notificările în timp real, inclusiv promovarea și retrogradarea administratorilor, iar permisiunile de trimitere sunt actualizate în conversația deschisă.
 
-- S-a corectat actualizarea în timp real a duratei mesajelor temporare când WhatsApp modifică doar metadatele grupului.
-
-- Ștergerea unei conversații pe alt dispozitiv elimină copia din WinZapp la primirea notificării; conversațiile cu mesaje mai noi sunt păstrate.
+- Ștergerea unei conversații pe alt dispozitiv o elimină din WinZapp la primirea notificării; o conversație cu mesaje mai noi decât notificarea este păstrată. Dacă era deschisă, este închisă și WinZapp spune de ce.
 
 - Fixarea sau desprinderea unui mesaj pe alt dispozitiv actualizează marcajul și lista mesajelor fixate din conversația deschisă la primirea notificării.
 
-- Modificările duratei mesajelor temporare primite de pe alt dispozitiv actualizează detaliile conversației fără a aștepta o sincronizare completă.
+- Schimbarea duratei mesajelor temporare pe alt dispozitiv, într-o conversație sau într-un grup, actualizează WinZapp fără a aștepta o sincronizare completă.
 
-- Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; conversația deschisă este închisă când este blocată.
+- Blocarea sau deblocarea unei conversații pe telefon actualizează WinZapp la primirea notificării; dacă era deschisă, este închisă și WinZapp spune de ce.
 
 - Modificările de dezactivare a sunetului, arhivare și fixare făcute pe alt dispozitiv actualizează lista conversațiilor când sosește notificarea, cu WPPConnect și Neonize.
 
