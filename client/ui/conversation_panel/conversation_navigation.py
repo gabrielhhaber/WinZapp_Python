@@ -11,6 +11,7 @@ import threading
 import wx
 from core.conversation_view import ARCHIVED, LOCKED
 from ui.conversation_panel.typing_row import message_row_count
+from ui.conversation_panel.chat_list_selection import is_inside
 from main_window.typing_feedback import resume_typing_sound
 from core.utils import (
     db_fetch_limit,
@@ -693,6 +694,20 @@ class ConversationNavigationMixin:
                 interrupt=True)
             return
         self.close_conversation(event, from_user=True)
+
+    def _focus_in_conversation_area(self) -> bool:
+        return is_inside(wx.Window.FindFocus(), self.conversation_panel)
+
+    def _on_panel_char_hook(self, event):
+        """Esc from any control of the chat-list side of the panel (filter
+        radio buttons, search field, buttons, list) clears the search and the
+        filters. The Esc accelerator lives on conversation_panel, so it never
+        sees those controls; and inside the conversation (whose own hook and
+        accelerator close it or clear the message selection) this stays out."""
+        if self._focus_in_conversation_area():
+            event.Skip()
+            return
+        self._on_chat_list_char_hook(event)
 
     def close_conversation(self, event=None, from_user=False):
         """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close

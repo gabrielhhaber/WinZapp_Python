@@ -27,6 +27,15 @@ from ui.dialogs.clear_chat_confirm import confirm_clear_chat
 from ui.dialogs.delete_chat_confirm import confirm_delete_chat
 
 
+def is_inside(window, ancestor) -> bool:
+    """True when *window* is *ancestor* or one of its descendants."""
+    while window is not None:
+        if window is ancestor:
+            return True
+        window = window.GetParent()
+    return False
+
+
 class ChatListSelectionMixin:
     """Selecting chats in a list and the settings/announcements around it."""
 
@@ -173,6 +182,22 @@ class ChatListSelectionMixin:
         return (getattr(self, "_filter_radio", None) is not None
                 and getattr(self, "_conv_filter", "all") != "all")
 
+    def _escape_clears_filters_blocked(self) -> bool:
+        """True while something else owns Esc: a selection of messages in the
+        open conversation (only the conversations panel has one) comes first."""
+        return bool(getattr(self, "selected_messages", None))
+
+    def _on_chat_list_char_hook(self, event) -> None:
+        """Panel-wide Esc for the archived and locked panels, which have no
+        Esc accelerator: from any control (filter radio buttons, buttons,
+        search field, list) it clears the filters; with nothing to clear Esc
+        keeps doing whatever it did."""
+        if (event.GetKeyCode() == wx.WXK_ESCAPE and not event.ControlDown()
+                and not event.ShiftDown() and not event.AltDown()
+                and self._clear_chat_list_filters()):
+            return
+        event.Skip()
+
     def _rebuild_chat_list_after_filters_cleared(self) -> None:
         self.main_window.add_chats_to_ui()
 
@@ -183,6 +208,8 @@ class ChatListSelectionMixin:
         nothing narrows the list, so Esc keeps its old job. A chat selection
         still wins: _handle_chat_selection_key() clears that first."""
         if not self._escape_clears_filters_enabled() or not self._chat_list_filters_active():
+            return False
+        if self._escape_clears_filters_blocked():
             return False
         if self.selected_chats and self._escape_clears_selection_enabled():
             return False  # the selection goes first; the next Esc gets here

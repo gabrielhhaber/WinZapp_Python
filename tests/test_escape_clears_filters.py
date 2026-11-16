@@ -14,6 +14,7 @@ import wx
 
 from core.utils import DEFAULT_SETTINGS
 from ui.conversation_panel.chat_list_selection import ChatListSelectionMixin
+from ui.conversation_panel.conversation_navigation import ConversationNavigationMixin as ConversationsPanel
 
 
 class _Field:
@@ -68,6 +69,7 @@ class _Panel:
     _escape_clears_filters_enabled = ChatListSelectionMixin._escape_clears_filters_enabled
     _escape_clears_selection_enabled = ChatListSelectionMixin._escape_clears_selection_enabled
     _chat_list_filters_active = ChatListSelectionMixin._chat_list_filters_active
+    _escape_clears_filters_blocked = ChatListSelectionMixin._escape_clears_filters_blocked
     _clear_chat_list_filters = ChatListSelectionMixin._clear_chat_list_filters
     _rebuild_chat_list_after_filters_cleared = (
         ChatListSelectionMixin._rebuild_chat_list_after_filters_cleared)
@@ -173,3 +175,76 @@ class TestKeyHandler:
         panel = self._Keys(query="ana")
         assert panel._handle_chat_selection_key(_Event(ctrl=True)) is False
         assert panel.search_field.value == "ana"
+
+
+class _Win:
+    def __init__(self, parent=None):
+        self.parent = parent
+
+    def GetParent(self):
+        return self.parent
+
+
+class TestWholePanel:
+    """Esc from any control of the chat-list side, never from the conversation."""
+
+    def test_is_inside(self):
+        from ui.conversation_panel.chat_list_selection import is_inside
+        panel = _Win()
+        area = _Win(panel)
+        field = _Win(area)
+        radio = _Win(panel)
+        assert is_inside(field, area) and is_inside(area, area)
+        assert not is_inside(radio, area) and not is_inside(None, area)
+
+    def test_message_selection_blocks_the_clearing(self):
+        class _Conv(_Panel):
+            pass
+        panel = _Conv(query="ana")
+        panel.selected_messages = {"m1"}
+        assert panel._clear_chat_list_filters() is False
+        panel.selected_messages = set()
+        assert panel._clear_chat_list_filters() is True
+
+    def _hook(self, monkeypatch, query, area, focus):
+        class _Conv(_Panel):
+            _focus_in_conversation_area = ConversationsPanel._focus_in_conversation_area
+            _on_panel_char_hook = ConversationsPanel._on_panel_char_hook
+            _on_chat_list_char_hook = ChatListSelectionMixin._on_chat_list_char_hook
+        stub = _Conv(query=query)
+        stub.selected_messages = set()
+        stub.conversation_panel = area
+        monkeypatch.setattr(wx.Window, "FindFocus", staticmethod(lambda: focus),
+                            raising=False)
+        event = _Event()
+        stub._on_panel_char_hook(event)
+        return stub, event
+
+    def test_escape_on_the_filter_bar_clears_the_filters(self, monkeypatch):
+        root = _Win(); area = _Win(root); radio = _Win(root)
+        stub, event = self._hook(monkeypatch, "ana", area, radio)
+        assert stub.search_field.value == "" and not event.skipped
+
+    def test_escape_inside_the_conversation_is_left_alone(self, monkeypatch):
+        root = _Win(); area = _Win(root); composer = _Win(area)
+        stub, event = self._hook(monkeypatch, "ana", area, composer)
+        assert stub.search_field.value == "ana" and event.skipped
+
+    def test_escape_with_nothing_to_clear_is_passed_on(self, monkeypatch):
+        root = _Win(); area = _Win(root); radio = _Win(root)
+        stub, event = self._hook(monkeypatch, "", area, radio)
+        assert event.skipped
+
+    def test_char_hook_clears_from_any_control(self):
+        panel = _Panel(query="ana")
+        panel._on_chat_list_char_hook = ChatListSelectionMixin._on_chat_list_char_hook.__get__(panel)
+        event = _Event()
+        panel._on_chat_list_char_hook(event)
+        assert panel.search_field.value == "" and not event.skipped
+        event = _Event()
+        panel._on_chat_list_char_hook(event)
+        assert event.skipped
+        event = _Event(ctrl=True)
+        panel.search_field.value = "x"
+        panel._on_chat_list_char_hook(event)
+        assert event.skipped and panel.search_field.value == "x"
