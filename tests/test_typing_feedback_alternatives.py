@@ -78,9 +78,9 @@ def test_group_handover_in_one_payload_does_not_restart_the_cadence(rig, new_per
 
 @pytest.mark.parametrize("override", [[], {"path": "broken"}])
 def test_malformed_imported_custom_path_falls_back_instead_of_breaking_sound_loading(tmp_path, monkeypatch, override):
-    default_file = tmp_path / "typing.wav"
+    default_file = tmp_path / "typing.ogg"
     default_file.write_bytes(b"fake sound; the decoder is mocked")
-    pack = {"dir": str(tmp_path), "events": {"typing": "typing.wav"}}
+    pack = {"dir": str(tmp_path), "events": {"typing": "typing.ogg"}}
     expected = SimpleNamespace()
     monkeypatch.setattr(typing_sound, "load_sound", lambda *args, **kwargs: expected)
     assert typing_sound.load_typing_sound(None, pack, pack, override, "default") is expected

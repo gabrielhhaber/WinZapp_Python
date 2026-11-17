@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Os sons de digitação, bolha de digitação, pulso de digitação e processamento de IA do pacote de som padrão agora são arquivos Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.
+
 - Dentro de uma conversa aberta, com a pesquisa de mensagens (Ctrl+Shift+F) ativa, o primeiro Esc limpa a pesquisa e fecha a barra, e o leitor de tela diz "Pesquisa de mensagens limpa"; o Esc seguinte fecha a conversa. Dá para desligar em Configurações, Conversas.
 
 - Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros e o leitor de tela diz "Filtros limpos"; com conversas marcadas, o primeiro Esc ainda desmarca só a seleção. Dá para desligar em Configurações, Conversas. Isso vale também a partir dos filtros, da pesquisa e dos demais controles do painel de conversas; dentro de uma conversa aberta, o Esc continua fechando a conversa ou desmarcando as mensagens.

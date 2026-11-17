@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Varsayılan ses paketindeki yazma, yazma balonu, yazma nabzı ve yapay zekâ işleme sesleri artık paketin geri kalanı gibi Ogg dosyalarıdır. Sesleri ve özel seslerinizde hiçbir şey değişmez.
+
 - Açık bir sohbetin içinde mesaj araması (Ctrl+Shift+F) etkinken ilk Esc aramayı temizler ve çubuğu kapatır, ekran okuyucu "Mesaj araması temizlendi" der; sonraki Esc sohbeti kapatır. Ayarlar, Sohbetler bölümünden kapatılabilir.
 
 - Sohbet listelerinde (normal, arşivlenmiş ve kilitli) Esc aramayı ve filtreleri temizler ve ekran okuyucu "Filtreler temizlendi" der; sohbetler seçiliyse ilk Esc yine yalnızca seçimi kaldırır. Ayarlar, Sohbetler bölümünden kapatılabilir. Bu, sohbet panelindeki filtrelerden, aramadan ve diğer denetimlerden de çalışır; açık bir sohbetin içinde Esc yine önce sohbeti kapatır veya mesaj seçimini kaldırır.
