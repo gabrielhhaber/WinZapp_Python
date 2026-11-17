@@ -38,9 +38,15 @@ CLIENT = pathlib.Path(__file__).resolve().parents[1] / "client"
 DIALOGS = CLIENT / "ui" / "dialogs"
 
 #: The settings dialog and the windows it opens.
+#: Mixins of a window of their own, not of the settings dialog: their
+#: controls share that window. Hand-kept like FILES; any other ``*Mixin`` is
+#: read as part of SettingsDialog.
+MIXIN_WINDOWS = {"TranslationLocalModelsMixin": "TranslationSettingsDialog"}
+
 FILES = (
     "settings_dialog.py", "settings_pages.py", "shortcuts_tab.py", "shortcut_capture.py",
-    "ai_settings_page.py", "translation_settings.py", "status_audience_dialog.py", "common_groups_tab.py",
+    "ai_settings_page.py", "translation_settings.py", "translation_local_models.py",
+    "status_audience_dialog.py", "common_groups_tab.py",
     "whatsapp_privacy_panel.py", "whatsapp_profile_panel.py",
     "transcription_background.py", "transcription_cache.py", "transcription_external.py",
     "transcription_model_marks.py", "transcription_options.py", "transcription_precision.py",
@@ -146,12 +152,13 @@ class _Source:
         trees = {f: ast.parse((DIALOGS / f).read_text(encoding="utf-8")) for f in FILES}
         panels = {n.name for t in trees.values() for n in t.body if isinstance(n, ast.ClassDef)
                   and not any("Dialog" in ast.unparse(b) for b in n.bases)}
+        owners = MIXIN_WINDOWS
         for filename, tree in trees.items():
             constants = {t.id: node.value for node in tree.body if isinstance(node, ast.Assign)
                          for t in node.targets if isinstance(t, ast.Name)}
             for cls in [n for n in tree.body if isinstance(n, ast.ClassDef)]:
-                namespace = (SETTINGS if cls.name == SETTINGS or cls.name.endswith("Mixin")
-                             else cls.name)
+                namespace = owners.get(cls.name) or (
+                    SETTINGS if cls.name == SETTINGS or cls.name.endswith("Mixin") else cls.name)
                 for func in [n for n in cls.body if isinstance(n, ast.FunctionDef)]:
                     self._read_function(filename, namespace, func, constants, panels)
 

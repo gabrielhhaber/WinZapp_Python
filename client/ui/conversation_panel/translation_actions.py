@@ -13,13 +13,14 @@ from core.ai_media.auto import day_key
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, submit
 from core.message_translation import (
-    CUSTOM, DISPLAY_SEPARATE, MAX_TEXT_CHARS, NO_AGE_LIMIT_MINUTES, PAUSE_SECONDS,
-    TranslationSettings, automatic_candidate, chat_allows_automatic, credential_id,
-    message_identity, message_text, pauses_automatic, preferences,
-    reserve_automatic_request, translate, translated_body, translation_model_ready,
+    DISPLAY_SEPARATE, MAX_TEXT_CHARS, NO_AGE_LIMIT_MINUTES, PAUSE_SECONDS,
+    TranslationSettings, automatic_candidate, chat_allows_automatic, counts_against_limit,
+    credential_id, message_identity, message_text, not_ready_key, pauses_automatic, preferences,
+    reserve_automatic_request, sends_text_out, translate, translated_body,
+    translation_model_ready, uses_key,
 )
 from core.utils import link_preview_text
-from ui.dialogs.translation_settings import LABELS
+from ui.dialogs.translation_settings import ORDER, provider_label
 from ui.shortcut_bindings import popup_item_label
 
 _OPT_IN = "automatic_text_translation_chats"
@@ -103,7 +104,7 @@ class TranslationActionsMixin:
 
     def _append_translation_chat_item(self, menu, jid):
         config = self._translation_settings()
-        if not config.automatic or config.provider not in LABELS or self.main_window.is_chat_locked(jid):
+        if not config.automatic or config.provider not in ORDER or self.main_window.is_chat_locked(jid):
             return
         enabled = self._automatic_translation_enabled(jid, config)
         label = "translation_auto_off" if enabled else "translation_auto_on"
@@ -118,8 +119,8 @@ class TranslationActionsMixin:
             return
         saved = dict(self._translation_chats())
         enabled = self._automatic_translation_enabled(jid, config)
-        if not enabled:
-            prompt = t("translation_auto_confirm").format(provider=LABELS[config.provider])
+        if not enabled and sends_text_out(config.provider):
+            prompt = t("translation_auto_confirm").format(provider=provider_label(t, config.provider))
             if wx.MessageBox(prompt, t("translation_auto_on"), wx.YES_NO | wx.NO_DEFAULT, self) != wx.YES:
                 return
         for address in (key, jid, getattr(mw, "_phone_to_lid", {}).get(key)):
@@ -150,7 +151,7 @@ class TranslationActionsMixin:
             mw.output(t("translation_not_configured"))
             return
         if not translation_model_ready(config):
-            mw.output(t("translation_test_required"))
+            mw.output(t(not_ready_key(config)))
             return
         jid = (self.conversation or {}).get("remoteJid", "")
         if not jid or self._translation_chat_hidden(jid):
@@ -165,10 +166,11 @@ class TranslationActionsMixin:
         if getattr(self, "_manual_translation", None) is not None:
             mw.output(t("ai_error_busy"))
             return
-        provider = LABELS.get(config.provider, config.provider)
+        provider = provider_label(t, config.provider)
         # A locked chat's text leaves WhatsApp only with fresh consent, asked
-        # each time like the AI media window does (ai_locked_consent).
-        if mw.is_chat_locked(jid):
+        # each time like the AI media window does (ai_locked_consent). The
+        # offline model sends it nowhere.
+        if mw.is_chat_locked(jid) and sends_text_out(config.provider):
             answer = wx.MessageBox(
                 t("translation_locked_confirm").format(provider=provider), t("translation_message"),
                 wx.YES_NO | wx.NO_DEFAULT, self)
@@ -211,12 +213,14 @@ class TranslationActionsMixin:
                         or message_text(message) != text
                         or not self._automatic_translation_enabled(jid, config)):
                     raise DescriptionError("cancelled")
-            try:
-                provider = credential_id(config)
-                key = store_for_translation(CredentialStore(global_dir()), provider).get(provider)
-            except CredentialError:
-                raise DescriptionError("credentials") from None
-            if automatic is not None and (key or config.provider in CUSTOM):
+            key = ""
+            if uses_key(config.provider):
+                try:
+                    provider = credential_id(config)
+                    key = store_for_translation(CredentialStore(global_dir()), provider).get(provider)
+                except CredentialError:
+                    raise DescriptionError("credentials") from None
+            if automatic is not None and counts_against_limit(config, key):
                 reserve_automatic_request(self._translation_app(), config)
                 if (message_text(message) != text or not self._automatic_translation_enabled(jid, config)):
                     raise DescriptionError("cancelled")
@@ -227,8 +231,10 @@ class TranslationActionsMixin:
     def _set_translation_view(self, config):
         previous = getattr(self, "_translation_view_config", None)
         if previous is not None and (
-                previous.provider, previous.base_url, previous.model, previous.language
-        ) != (config.provider, config.base_url, config.model, config.language):
+                previous.provider, previous.base_url, previous.model, previous.language,
+                previous.source_language,
+        ) != (config.provider, config.base_url, config.model, config.language,
+              config.source_language):
             getattr(self, "_translation_results", {}).clear()
         self._translation_view_config = config
         self._translation_display = config.display

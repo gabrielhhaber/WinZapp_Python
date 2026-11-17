@@ -508,3 +508,43 @@ def test_the_shortcuts_start_a_run_or_cancel_the_one_going(wx, submitted):
     assert panel._bulk_translation is None
     panel.messages_list.GetFirstSelected = lambda: -1
     assert panel._message_at_selection() is None
+
+
+OFFLINE = {"provider": "local", "model": "small100-int8", "language": "English", "automatic": True,
+           "scope": "selected", "daily_limit": 1}
+
+
+def test_the_offline_model_turns_a_chat_on_without_asking_to_send_text(wx):
+    saved = {}
+    panel = Panel(OFFLINE)
+    panel.main_window.db.set_metadata_json = lambda key, value: saved.update(value)
+    panel._translation_opt_in = {}
+    panel._toggle_translation_chat(JID, panel._translation_settings())
+    assert wx.asked == [] and saved == {JID: {"provider": "local", "enabled": True}}
+
+
+def test_a_locked_chat_is_translated_offline_without_the_consent_question(wx, submitted, monkeypatch):
+    monkeypatch.setattr(actions, "translation_model_ready", lambda config: True)
+    panel = Panel(dict(OFFLINE, automatic=False))
+    panel.locked.add(JID)
+    panel.main_window._chat_lock_unlocked = True
+    row = message(1)
+    panel._sorted_messages = [row]
+    panel._on_translate_message(row)
+    assert wx.asked == [] and len(submitted) == 1
+
+
+def test_offline_work_reads_no_key_and_charges_no_daily_request(wx, monkeypatch):
+    works = []
+    monkeypatch.setattr(actions, "submit", lambda work, complete: works.append(work))
+    monkeypatch.setattr(actions, "CredentialStore", lambda *a: pytest.fail("no key is read"))
+    monkeypatch.setattr(actions, "translate", lambda config, key, text, token: f"{key!r}:{text}")
+    monkeypatch.setattr(actions, "translation_model_ready", lambda config: True)
+    panel = Panel(OFFLINE)
+    panel._translation_opt_in = {JID: {"provider": "local", "enabled": True}}
+    row = message(1)
+    config = panel._translation_settings()
+    panel._submit_translation(config, "hello 1", actions.RequestToken(), lambda *a: None,
+                              automatic=(JID, row))
+    assert works[0]() == "'':hello 1"
+    assert "auto_usage" not in panel.main_window._app_settings.raw

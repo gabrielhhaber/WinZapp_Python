@@ -48,7 +48,11 @@ def strings(path):
 def error_categories():
     """The ``ai_error_<category>`` keys: one per category a DescriptionError can carry."""
     found = set()
+    # Message translation's engines raise their own categories too
+    # (core/message_translation.py, core/text_translation/).
     for path in sorted((CLIENT / "core" / "ai_media").glob("*.py")) + sorted(
+            (CLIENT / "core" / "text_translation").glob("*.py")) + [
+            CLIENT / "core" / "message_translation.py"] + sorted(
             (CLIENT / "ui").rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):

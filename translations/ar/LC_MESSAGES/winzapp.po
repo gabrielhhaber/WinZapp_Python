@@ -965,6 +965,42 @@ msgstr ""
 " للرسوم."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_translation_engine_missing"
+msgid ""
+"This copy of WinZapp lacks a component the offline translation needs. "
+"Reinstall WinZapp, or choose another translation provider."
+msgstr ""
+"تفتقد نسخة WinZapp هذه مكونًا تحتاجه الترجمة دون اتصال. أعد تثبيت WinZapp أو"
+" اختر موفّر ترجمة آخر."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_translation_language"
+msgid ""
+"The chosen translation provider cannot translate this language. Choose "
+"another target or source language in the \"Message translation\" settings."
+msgstr ""
+"لا يستطيع موفّر الترجمة المختار ترجمة هذه اللغة. اختر لغة هدف أو مصدر أخرى "
+"في إعدادات \"ترجمة الرسائل\"."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_translation_local_failed"
+msgid ""
+"The offline model could not translate this text. Try again, choose a smaller"
+" model, or run it on the processor."
+msgstr ""
+"تعذّر على النموذج دون اتصال ترجمة هذا النص. حاول مرة أخرى، أو اختر نموذجًا "
+"أصغر، أو شغّله على المعالج."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_translation_model_missing"
+msgid ""
+"The offline model is not on this computer. Download it with \"Download "
+"model\" in the \"Message translation\" settings."
+msgstr ""
+"النموذج دون اتصال غير موجود على هذا الجهاز. نزّله بزر \"تنزيل النموذج\" في "
+"إعدادات \"ترجمة الرسائل\"."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_fast"
 msgid "Quick"
 msgstr "سريع"
@@ -19329,6 +19365,14 @@ msgstr ""
 "يترتب عليه رسوم."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_bulk_confirm_local"
+msgid ""
+"Translate the text of {count} messages on this computer? This may take a "
+"while."
+msgstr "هل تترجم نص {count} رسالة على هذا الجهاز؟ قد يستغرق ذلك بعض الوقت."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_backlog.py
 #, python-brace-format
 msgctxt "translation_bulk_done"
@@ -19376,6 +19420,103 @@ msgid "Target &language"
 msgstr "اللغة ال&هدف"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_local_device"
+msgid "W&here to run the offline model"
+msgstr "مكان ت&شغيل النموذج"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_local_download"
+msgid "Do&wnload model"
+msgstr "تن&زيل النموذج"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/text_translation/local_text.py
+#, python-brace-format
+msgctxt "translation_local_download_confirm"
+msgid ""
+"Download the {name} translation model ({license}) from Hugging Face? "
+"Download size: {size}. Messages are then translated on this computer, and "
+"their text is not sent anywhere."
+msgstr ""
+"هل تريد تنزيل نموذج الترجمة {name} ({license}) من Hugging Face؟ حجم التنزيل:"
+" {size}. ستُترجم الرسائل بعد ذلك على هذا الجهاز، ولن يُرسل نصها إلى أي مكان."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/text_translation/local_text.py
+msgctxt "translation_local_download_failed"
+msgid ""
+"The translation model could not be downloaded. Check your connection and try"
+" again."
+msgstr "تعذّر تنزيل نموذج الترجمة. تحقق من اتصالك وحاول مرة أخرى."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_local_download_required"
+msgid ""
+"The offline model is not on this computer. Download it with \"Download "
+"model\" in the \"Message translation\" settings."
+msgstr ""
+"النموذج دون اتصال غير موجود على هذا الجهاز. نزّله بزر \"تنزيل النموذج\" في "
+"إعدادات \"ترجمة الرسائل\"."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_local_downloading"
+msgid "Downloading the {name} translation model…"
+msgstr "جارٍ تنزيل نموذج الترجمة {name}…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_local_model"
+msgid "&Offline model"
+msgstr "النموذج دون ات&صال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_local_model_available"
+msgid ""
+"{name} ({publisher}, {license}): {count} languages, {size} download, not "
+"installed"
+msgstr ""
+"{name} ({publisher}، {license}): عدد اللغات: {count}، {size} للتنزيل، غير "
+"مثبت"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_local_model_incomplete"
+msgid ""
+"{name} ({publisher}, {license}): {count} languages, {size} download, "
+"download unfinished"
+msgstr ""
+"{name} ({publisher}، {license}): عدد اللغات: {count}، {size} للتنزيل، "
+"التنزيل غير مكتمل"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_local_model_installed"
+msgid ""
+"{name} ({publisher}, {license}): {count} languages, {size} on disk, "
+"installed"
+msgstr ""
+"{name} ({publisher}، {license}): عدد اللغات: {count}، {size} على القرص، مثبت"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_local_remove"
+msgid "R&emove model"
+msgstr "إزالة النم&وذج"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/text_translation/local_text.py
+#, python-brace-format
+msgctxt "translation_local_remove_confirm"
+msgid "Remove the {name} translation model from this computer?"
+msgstr "هل تريد إزالة نموذج الترجمة {name} من هذا الجهاز؟"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_local_removing"
+msgid "Removing the {name} translation model…"
+msgstr "جارٍ إزالة نموذج الترجمة {name}…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "translation_locked_confirm"
 msgid ""
@@ -19415,6 +19556,16 @@ msgid "&Provider"
 msgstr "ال&موفّر"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_provider_local"
+msgid "Offline model on this computer"
+msgstr "نموذج دون اتصال على هذا الجهاز"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_region"
+msgid "Microsoft resource regio&n, blank for a global resource"
+msgstr "منط&قة مورد Microsoft، اتركها فارغة للمورد العام"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_actions.py
 #, python-brace-format
 msgctxt "translation_result"
@@ -19439,6 +19590,16 @@ msgstr "جارٍ الترجمة عبر {provider}…"
 msgctxt "translation_settings"
 msgid "Message t&ranslation"
 msgstr "&ترجمة الرسائل"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_source_auto"
+msgid "Detect automatically"
+msgstr "اكتشاف تلقائي"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_source_language"
+msgid "Translate &from"
+msgstr "ل&غة المصدر"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_status"

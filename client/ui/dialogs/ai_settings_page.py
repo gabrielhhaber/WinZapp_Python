@@ -574,7 +574,7 @@ class AISettingsPage(ScrolledPanel):
             lambda provider: key_for_dialog(
                 store_for_translation(self.store, provider), provider,
                 self._drafts, self._deleted, self._reset),
-            window_title(self._t("translation_settings")))
+            window_title(self._t("translation_settings")), self.main_window.speak_output)
         try:
             if dialog.ShowModal() == wx.ID_OK:
                 self._translation, key = dialog.result

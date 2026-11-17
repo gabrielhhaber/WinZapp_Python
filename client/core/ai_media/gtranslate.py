@@ -16,6 +16,7 @@ This module is pure and wx-free: the caller owns threading, cancellation and
 the consent shown before anything is sent.
 """
 
+import re
 import time
 
 from .. import tls_trust
@@ -112,12 +113,18 @@ def _translate_chunk(session, text, target, source):
     return translated, detected
 
 
+#: The shape of a language code the endpoint takes ("pt", "zh-CN", "ceb").
+_CODE = re.compile(r"[a-z]{2,3}(-[A-Za-z]{2,4})?")
+
+
 def translate_text(text, target, source="auto", session_factory=tls_trust.create_session,
-                   sleep=time.sleep, cancel_check=None):
+                   sleep=time.sleep, cancel_check=None, any_target=False):
     """Translate ``text`` into ``target``. Returns (translated, detected).
 
     ``cancel_check`` is a callable that raises to abort (the AI window's
     operation token); with it omitted the translation cannot be cancelled.
+    ``any_target`` lets message translation (core/text_translation/services.py)
+    ask for any language code, not only the AI window's short list.
     Raises DescriptionError with an existing ai_error_* category on any
     failure — safe keys only, never response bodies or the person's text.
     """
@@ -127,7 +134,9 @@ def translate_text(text, target, source="auto", session_factory=tls_trust.create
     if len(text) > MAX_TEXT_CHARS:
         raise DescriptionError("media_size")
     targets = [code for code, _key in TARGET_LANGUAGES]
-    if target not in targets:
+    if not (target in targets or (any_target and _CODE.fullmatch(str(target)))):
+        raise DescriptionError("request")
+    if source != "auto" and not _CODE.fullmatch(str(source)):
         raise DescriptionError("request")
     session = session_factory()
     parts = []

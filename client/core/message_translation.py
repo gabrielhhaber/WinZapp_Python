@@ -1,4 +1,6 @@
-"""Text translation through the AI credential store and bounded REST transport."""
+"""Text translation: the AI providers through the AI credential store and
+bounded REST transport, and the engines that are not a language model (an
+offline model, translation services: core/text_translation/, issue #798)."""
 from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 from urllib.parse import urlsplit
@@ -11,9 +13,19 @@ from core.ai_media.errors import DescriptionError
 from core.ai_media.model_catalog import COMPATIBLE_MODELS, ModelOption, _list_request, fetch_catalog
 from core.ai_media.providers import Request, parse_answer
 from core.ai_media.service import post_answer
+from core.i18n import LANGUAGE_NAMES
+from core.text_translation import languages, local_catalog, local_engine, local_store, services
 
-CUSTOM = ("custom_openai", "custom_anthropic")
-PROVIDER_NAMES = {key: spec.name for key, spec in PROVIDERS.items()} | {"grok": "Grok (xAI)"}
+#: An offline model, on this computer (core/text_translation/local_engine.py).
+LOCAL = "local"
+#: Language models on the user's own machine, through their OpenAI-compatible
+#: API: custom endpoints whose address comes filled in.
+LOCAL_LLM_URLS = {"ollama": "http://localhost:11434/v1", "lm_studio": "http://localhost:1234/v1"}
+CUSTOM = ("custom_openai", "custom_anthropic", *LOCAL_LLM_URLS)
+#: The engines that are not a language model: no model to test, no prompt.
+NON_LLM = (LOCAL, *services.SERVICES)
+PROVIDER_NAMES = ({key: spec.name for key, spec in PROVIDERS.items()} | {"grok": "Grok (xAI)"}
+                  | {"ollama": "Ollama", "lm_studio": "LM Studio"} | services.NAMES)
 MAX_TEXT_CHARS = 12000
 GEMINI_DEFAULT_MODEL = "gemini-flash-lite-latest"
 #: A light text model per engine with a reviewed model list, so choosing the
@@ -27,6 +39,7 @@ DEFAULT_MODELS = {
     "groq": "qwen/qwen3.8-27b",
     "openrouter": "google/gemini-3.5-flash-lite",
     "mistral": "mistral-small-latest",
+    LOCAL: local_catalog.DEFAULT_MODEL_ID,
 }
 SCOPE_SELECTED, SCOPE_ALL = "selected", "all"
 DISPLAY_REPLACE, DISPLAY_APPEND, DISPLAY_SEPARATE = "replace", "append", "separate"
@@ -56,6 +69,7 @@ def pauses_automatic(error_key):
 @dataclass(frozen=True)
 class TranslationSettings:
     provider: str = ""
+    #: The AI model, or the offline model's catalogue id for LOCAL.
     model: str = ""
     language: str = ""
     base_url: str = ""
@@ -66,6 +80,13 @@ class TranslationSettings:
     display: str = DISPLAY_APPEND
     model_tested: bool = False
     all_accounts_confirmed: bool = False
+    # Issue #798, last so older positional construction keeps its meaning.
+    #: "" detects it; read by the engines that are not a language model.
+    source_language: str = ""
+    #: Where the offline model runs (local_engine.DEVICES).
+    device: str = local_engine.DEVICE_CPU
+    #: Microsoft Translator's resource region, "" for a global resource.
+    region: str = ""
 
     def saved(self):
         return asdict(self)
@@ -80,8 +101,12 @@ def preferences(app, *, snapshot=False):
 def settings_from(raw):
     raw = raw if isinstance(raw, dict) else {}
     strings = {field: raw.get(field) if isinstance(raw.get(field), str) else ""
-               for field in ("provider", "model", "language", "base_url")}
+               for field in ("provider", "model", "language", "base_url", "source_language",
+                             "region")}
     strings["model"] = strings["model"] or default_model(strings["provider"])
+    strings["base_url"] = strings["base_url"] or default_url(strings["provider"])
+    if not services.valid_region(strings["region"]):
+        strings["region"] = ""
     age, limit = raw.get("max_age_minutes"), raw.get("daily_limit")
     return TranslationSettings(
         **strings,
@@ -94,7 +119,62 @@ def settings_from(raw):
         display=raw["display"] if raw.get("display") in DISPLAY_MODES else DISPLAY_APPEND,
         model_tested=raw.get("model_tested") is True,
         all_accounts_confirmed=raw.get("all_accounts_confirmed") is True,
+        device=raw["device"] if raw.get("device") in local_engine.DEVICES else local_engine.DEVICE_CPU,
     )
+
+
+def default_url(provider):
+    """The address a local LLM or a self-hosted LibreTranslate usually has."""
+    return LOCAL_LLM_URLS.get(provider) or services.DEFAULT_URLS.get(provider, "")
+
+
+def is_ai(provider):
+    """Whether ``provider`` is a language model (a prompt, a model to test)."""
+    return provider not in NON_LLM
+
+
+def uses_key(provider):
+    """Whether the engine takes an API key at all."""
+    return provider not in (LOCAL, services.GOOGLE_WEB)
+
+
+def needs_key(provider):
+    """Whether the engine refuses to run without a key (a custom endpoint or a
+    self-hosted LibreTranslate usually has none)."""
+    return uses_key(provider) and provider not in CUSTOM and provider not in services.WITH_URL
+
+
+def sends_text_out(provider):
+    """Whether translating sends the message's text off this computer: every
+    engine but the offline model, which is why only that one asks nothing."""
+    return provider != LOCAL
+
+
+def not_ready_key(config):
+    """Why a configured engine cannot translate yet: the offline model is not
+    downloaded, or an AI model was never tested."""
+    return ("translation_local_download_required" if config.provider == LOCAL
+            else "translation_test_required")
+
+
+def counts_against_limit(config, key):
+    """Whether an automatic request counts against the daily limit: every one
+    that reaches a service (a key, a custom address, a keyless service), never
+    the offline model."""
+    return config.provider != LOCAL and bool(
+        key or config.provider in CUSTOM or config.provider in services.SERVICES)
+
+
+def language_codes(config):
+    """(target, source) as codes of core/text_translation/languages; source is
+    None to detect it. DescriptionError("translation_language") for a target
+    or source no engine can name."""
+    target = languages.language_code(config.language, LANGUAGE_NAMES)
+    wanted = config.source_language.strip()
+    source = languages.language_code(wanted, LANGUAGE_NAMES) if wanted else None
+    if target is None or (wanted and source is None):
+        raise DescriptionError("translation_language")
+    return target, source
 
 
 def automatic_candidate(message, config, *, now=None):
@@ -171,6 +251,9 @@ def normalized_base(value):
 
 
 def credential_id(config):
+    if config.provider in services.WITH_URL:
+        identity = f"{config.provider} {services.service_base(config.base_url)}"
+        return "translation_" + sha256(identity.encode()).hexdigest()
     if config.provider in CUSTOM:
         identity = f"{config.provider} {normalized_base(config.base_url)}"
         return "translation_" + sha256(identity.encode()).hexdigest()
@@ -182,6 +265,10 @@ def model_test_identity(config):
 
 
 def translation_model_ready(config):
+    if config.provider == LOCAL:
+        return local_store.is_installed(local_catalog.get_model(config.model))
+    if config.provider in services.SERVICES:
+        return True
     return _text_model_id(config.model) and (
         config.model_tested or config.model == default_model(config.provider)
         or config.model in COMPATIBLE_MODELS.get(config.provider, {})
@@ -333,6 +420,41 @@ def translation_request(config, key, text):
     })
 
 
+def check_request(config, key, text):
+    """Raise the DescriptionError a translation of ``text`` would fail with
+    before reaching any engine (the settings' OK and Test check this)."""
+    if is_ai(config.provider):
+        translation_request(config, key, text)
+        return
+    if not 0 < len(text) <= MAX_TEXT_CHARS:
+        raise DescriptionError("request")
+    target, source = language_codes(config)
+    if config.provider == LOCAL:
+        model = local_catalog.get_model(config.model)
+        if model is None:
+            raise DescriptionError("translation_model_missing")
+        if not local_engine.supports(model, target) or (
+                source and not local_engine.supports(model, source)):
+            raise DescriptionError("translation_language")
+        return
+    if config.provider in services.KEY_REQUIRED and not key:
+        raise DescriptionError("credentials")
+    if config.provider in services.WITH_URL:
+        services.service_base(config.base_url)
+    if not services.valid_region(config.region):
+        raise DescriptionError("request")
+
+
 def translate(config, key, text, token):
+    if config.provider == LOCAL:
+        check_request(config, key, text)
+        target, source = language_codes(config)
+        return local_engine.translate(config.model, text, target, source, config.device,
+                                      should_cancel=token.cancelled.is_set)
+    if config.provider in services.SERVICES:
+        check_request(config, key, text)
+        target, source = language_codes(config)
+        return services.translate(config.provider, key, text, target, token, source,
+                                  config.base_url, config.region)
     shape, request = translation_request(config, key, text)
     return post_answer(request, lambda body: parse_answer(shape, body, "text"), token)
