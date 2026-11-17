@@ -14,6 +14,7 @@ import time
 import uuid
 import wave
 import wx
+from core.ordered_dispatch import voice_dispatcher
 from core.pending_timestamp import pending_send_timestamp
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from main_window.typing_feedback import stop_typing_for_capture
@@ -800,7 +801,11 @@ class VoiceRecordingMixin:
         mw      = self.main_window
         enc_key = mw.key
 
-        def _write_and_enqueue():
+        # Recordings reach the send queue in recording order, whichever
+        # finishes processing first (core/ordered_dispatch.py).
+        ticket = voice_dispatcher.reserve(remote_jid)
+
+        def _process():
             import time as _time
             _tw0 = _time.perf_counter()
             logging.info("[VOICE_TIMING] T+%.3fs — _write_and_enqueue thread started",
@@ -883,10 +888,9 @@ class VoiceRecordingMixin:
                 return
 
             if as_audio_file:
-                self._enqueue_system_audio_file(
+                return lambda: self._enqueue_system_audio_file(
                     wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg,
                 )
-                return
 
             # 3. Encode: stereo as AAC M4A (core/voice_stereo.py), never quietly
             # downmixed when that fails; mono as OGG Opus via ffmpeg conversion.
@@ -941,8 +945,20 @@ class VoiceRecordingMixin:
             pm = PendingMessage(local_id, remote_jid, audio_path=wav_path,
                                 ogg_bytes=ogg_bytes, quoted=quoted_msg,
                                 voice_mimetype=voice_mimetype)
-            mw.message_queue.enqueue(pm)
-            mw.mark_conversation_as_read(remote_jid)
+
+            def _enqueue():
+                mw.message_queue.enqueue(pm)
+                mw.mark_conversation_as_read(remote_jid)
+            return _enqueue
+
+        def _write_and_enqueue():
+            action = None
+            try:
+                action = _process()
+            except Exception:
+                logging.exception("[voice] Preparing the recording failed")
+            finally:
+                voice_dispatcher.complete(remote_jid, ticket, action)
 
         threading.Thread(target=_write_and_enqueue, daemon=True).start()
 

@@ -545,6 +545,8 @@ WHAT'S NEW
 
 - Chat lunghe: aggiornare la cronologia di una chat aperta con migliaia di messaggi non blocca più la finestra per decine di secondi quando l'elenco dei messaggi mostra la posizione di ogni messaggio ("N di M").
 
+- Corretto: con la cancellazione del rumore vocale neurale attiva, i messaggi vocali ora vengono inviati nell'ordine in cui sono stati registrati, anche quando uno finisce l'elaborazione prima di un altro.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
