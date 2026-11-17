@@ -808,7 +808,7 @@ class VoiceRecordingMixin:
         def _process():
             import time as _time
             _tw0 = _time.perf_counter()
-            logging.info("[VOICE_TIMING] T+%.3fs — _write_and_enqueue thread started",
+            logging.info("[VOICE_TIMING] T+%.3fs — voice processing thread started",
                          _tw0 - _t0)
 
             # 1. Join raw PCM frames.
@@ -960,7 +960,14 @@ class VoiceRecordingMixin:
             finally:
                 voice_dispatcher.complete(remote_jid, ticket, action)
 
-        threading.Thread(target=_write_and_enqueue, daemon=True).start()
+        # A worker that waits on an earlier recording holds nothing but its own
+        # ticket; later ones are held back by design (order over latency).
+        try:
+            threading.Thread(target=_write_and_enqueue, daemon=True).start()
+        except Exception:
+            # No worker will ever complete this ticket: free it.
+            voice_dispatcher.complete(remote_jid, ticket, None)
+            raise
 
     def _encode_stereo_voice(self, wav_path):
         """The M4A bytes of a stereo voice message, or None if it could not be
