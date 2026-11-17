@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- The default sound pack's typing, typing_bubble, typing_pulse and AI processing sounds are now Ogg files, like the rest of the pack. Nothing changes in how they sound or in your custom sounds.
+
+- Inside an open chat with the message search (Ctrl+Shift+F) active, the first Esc clears the search and closes the bar, and the screen reader says "Message search cleared"; the next Esc closes the chat. You can turn it off in Settings, Chats.
+
 - In the chat lists (regular, archived and locked), Esc clears the search and the filters and the screen reader says "Filters cleared"; with chats selected, the first Esc still deselects just the selection. You can turn it off in Settings, Chats. This also works from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.
 
 - Adding a chat to a list or removing it from one on another device updates the lists and the open filter, without changing the list you selected.
@@ -538,6 +542,8 @@ WHAT'S NEW
 - Message field: inserting an emoji no longer raises a "surrogates not allowed" error while the writing help button is being enabled. Reported by UlisesMilani (#797).
 
 - New options in Settings > Notifications to leave archived and muted chats out of the unread count shown in the tray icon and the window title. Both are on by default: archived chats were already left out and can now be counted again; muted chats are now left out, which changes the previous behavior. Clear an option to count those chats again.
+
+- Long chats: refreshing the history of an open chat with thousands of messages no longer freezes the window for tens of seconds when the message list shows each message's position ("N of M").
 
 V2.1.0.0
 

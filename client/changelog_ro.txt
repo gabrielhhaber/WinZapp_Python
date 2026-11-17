@@ -4,6 +4,10 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Sunetele de scriere, bulă de scriere, puls de scriere și procesare AI din pachetul de sunete implicit sunt acum fișiere Ogg, ca restul pachetului. Nu se schimbă nimic la sunet sau la sunetele tale personalizate.
+
+- Într-o conversație deschisă, cu căutarea mesajelor (Ctrl+Shift+F) activă, primul Esc șterge căutarea și închide bara, iar cititorul de ecran spune „Căutarea mesajelor a fost ștearsă”; următorul Esc închide conversația. Se poate dezactiva în Setări, Conversații.
+
 - În listele de conversații (obișnuită, arhivate și blocate), Esc șterge căutarea și filtrele, iar cititorul de ecran spune „Filtre șterse”; cu conversații selectate, primul Esc deselectează în continuare doar selecția. Se poate dezactiva în Setări, Conversații. Funcționează și din filtre, din căutare și din celelalte controale ale panoului de conversații; într-o conversație deschisă, Esc continuă să închidă conversația sau să deselecteze mesajele.
 
 - Adăugarea unei conversații într-o listă sau scoaterea ei dintr-o listă pe alt dispozitiv actualizează listele și filtrul deschis, fără a schimba lista selectată.
@@ -538,6 +542,8 @@ NOUTĂȚI
 - Câmpul de mesaj: inserarea unui emoji nu mai provoacă eroarea "surrogates not allowed" la activarea butonului de ajutor pentru scris. Raportat de UlisesMilani (#797).
 
 - Opțiuni noi în Setări > Notificări pentru a nu număra conversațiile arhivate și pe cele dezactivate în numărul de mesaje necitite din pictograma din bara de sistem și din titlul ferestrei. Ambele sunt bifate implicit: cele arhivate nu erau deja numărate și acum se poate schimba; cele dezactivate nu mai sunt numărate, ceea ce schimbă comportamentul anterior. Debifați opțiunea pentru a le număra din nou.
+
+- Conversații lungi: actualizarea istoricului unei conversații deschise cu mii de mesaje nu mai blochează fereastra zeci de secunde atunci când lista de mesaje afișează poziția fiecărui mesaj („N din M”).
 
 V2.1.0.0
 

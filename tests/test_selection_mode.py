@@ -135,6 +135,7 @@ class _Stub(ReadingPositionMixin):
     _announce_chat_selected = ConversationsPanel._announce_chat_selected
     _reset_after_chat_cleared = ConversationsPanel._reset_after_chat_cleared
     _on_escape_conversation = ConversationsPanel._on_escape_conversation
+    _clear_message_search_on_escape = lambda self: False  # has its own tests
 
     def __init__(self, sorted_messages=None, chats_list=None, ui_settings=None,
                  focused=0, video_viewer_dialog=False):

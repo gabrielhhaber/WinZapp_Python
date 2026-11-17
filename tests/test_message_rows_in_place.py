@@ -380,3 +380,21 @@ class TestARealListBoxKeepsTheSelectedRow:
             assert box.GetItemText(box.GetFirstSelected()) == "r3"
         finally:
             frame.Destroy()
+
+
+class TestSyncMessageRowsPassesPositions:
+    def test_each_row_is_rendered_with_its_index_and_the_total(self):
+        """Without them _render_message_line() scans _sorted_messages per row
+        (quadratic over a long window; 39 s at 11,000 rows, issue #812)."""
+        seen = []
+
+        class Stub(_Stub):
+            def _render_message_line(self, msg, index=None, total=None):
+                seen.append((msg["key"]["id"], index, total))
+                return msg["_text"]
+
+        old = [_msg("a")]
+        new = [_msg("a"), _msg("b"), _msg("c")]
+        stub = Stub(old)
+        stub._sync_message_rows(old, new)
+        assert seen == [("a", 0, 3), ("b", 1, 3), ("c", 2, 3)]

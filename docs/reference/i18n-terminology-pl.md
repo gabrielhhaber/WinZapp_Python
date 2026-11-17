@@ -28,6 +28,7 @@ independently verifiable official source when recording future decisions.
 - [Chat access protection and contact blocking](#chat-access-protection-and-contact-blocking)
 - [Other reviewed terms](#other-reviewed-terms)
 - [Device linking and channel roles](#device-linking-and-channel-roles)
+- [Events, writing help and noise reduction](#events-writing-help-and-noise-reduction)
 - [Meaning, sources and spoken wording](#meaning-sources-and-spoken-wording)
 - [Language review and technical references](#language-review-and-technical-references)
 
@@ -193,6 +194,49 @@ of `parowanie`, `Informacje`, `administrator` or `kod`. Keep the mnemonic
 `Pozost&aw czaty zarchiwizowane`, and preserve ellipses where another dialog
 opens. Apply the reviewed wording to quoted labels in the Polish guide and
 changelog as well as to the PO.
+
+## Events, writing help and noise reduction
+
+The following wording was reviewed and accepted by @djgraco on 16 November
+2026, together with the Polish UI, guide and changelog review. The three event
+response labels were checked in the supplied Polish WhatsApp APK
+(`assets/i18n_pl/strings_pl.pack`: IDs 4474/7398, 4476/7501 and 4477/7510).
+This records verification of that supplied resource, not a claim about every
+WhatsApp version or a public APK download. Related plural group labels are
+Polish adaptations of the same participation terminology.
+
+| Meaning / UI role | Polish |
+| --- | --- |
+| event response: going | Wezmę udział |
+| event response: maybe | Może wezmę udział |
+| event response: not going | Nie wezmę udziału |
+| event response groups | Wezmą udział / Może wezmą udział / Nie wezmą udziału |
+| rewrite a message draft | Przeredaguj wiadomość |
+| make a message draft more professional | Nadaj wiadomości bardziej profesjonalny ton |
+| make a message draft encouraging | Nadaj wiadomości bardziej wspierający ton |
+| noise-reduction device selector | Urządzenie używane do redukcji szumów |
+| channel reach | Liczba kont, do których dotarły aktualizacje |
+| channel unfollows, a statistics counter | Rezygnacje z obserwowania |
+
+Describe participation in an event rather than physical travel (`Idę`): the
+event may also be online. Match the response, own-response state and response
+group terminology, preserving each control's mnemonic.
+
+The writing-help labels describe WinZapp's own draft actions and prompts;
+they are reviewed Polish choices, not quotations from WhatsApp's writing-help
+interface. Applying a result replaces a draft only after the user's explicit
+choice; it does not send the chat message.
+
+Use `urządzenie` as the umbrella term for CPU, NVIDIA GPU and Core ML in
+noise-reduction settings. Keep `procesor` for the CPU option and other places
+where it really means CPU. cuBLAS is a library; CUDA 12 can share it with local
+transcription, whereas CUDA 13 has separate components. Do not make a blanket
+claim that every downloaded component is shared.
+
+Apply these names to quoted labels in the guide and changelog too. When the
+English source is stale, verify the actual behavior in code and explain the
+Polish clarification in the PR rather than silently treating the source as
+correct or changing other locales without review.
 
 ## Meaning, sources and spoken wording
 

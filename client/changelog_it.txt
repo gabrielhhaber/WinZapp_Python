@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- I suoni di digitazione, bolla di digitazione, impulso di digitazione ed elaborazione IA del pacchetto sonoro predefinito ora sono file Ogg, come il resto del pacchetto. Non cambia nulla nel suono né nei tuoi suoni personalizzati.
+
+- In una chat aperta, con la ricerca dei messaggi (Ctrl+Shift+F) attiva, il primo Esc cancella la ricerca e chiude la barra, e il lettore di schermo dice "Ricerca dei messaggi cancellata"; il successivo Esc chiude la chat. Si può disattivare in Impostazioni, Chat.
+
 - Negli elenchi di chat (normale, archiviate e bloccate), Esc azzera la ricerca e i filtri e il lettore di schermo dice "Filtri azzerati"; con delle chat selezionate, il primo Esc annulla ancora solo la selezione. Si può disattivare in Impostazioni, Chat. This also works from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.
 
 - Aggiungere una chat a una lista o toglierla da una lista su un altro dispositivo aggiorna le liste e il filtro aperto, senza cambiare la lista selezionata.
@@ -538,6 +542,8 @@ WHAT'S NEW
 - Campo del messaggio: inserire un emoji non genera più l'errore "surrogates not allowed" quando si abilita il pulsante di aiuto alla scrittura. Segnalato da UlisesMilani (#797).
 
 - Nuove opzioni in Impostazioni > Notifiche per non conteggiare le chat archiviate e quelle silenziate tra i messaggi non letti dell'icona nell'area di notifica e del titolo della finestra. Sono entrambe attive: le archiviate già non venivano conteggiate e ora si può cambiare; le silenziate non vengono più conteggiate, il che cambia il comportamento precedente. Disattiva l'opzione per conteggiarle di nuovo.
+
+- Chat lunghe: aggiornare la cronologia di una chat aperta con migliaia di messaggi non blocca più la finestra per decine di secondi quando l'elenco dei messaggi mostra la posizione di ogni messaggio ("N di M").
 
 V2.1.0.0
 

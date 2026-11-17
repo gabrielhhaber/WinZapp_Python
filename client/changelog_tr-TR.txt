@@ -4,6 +4,10 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Varsayılan ses paketindeki yazma, yazma balonu, yazma nabzı ve yapay zekâ işleme sesleri artık paketin geri kalanı gibi Ogg dosyalarıdır. Sesleri ve özel seslerinizde hiçbir şey değişmez.
+
+- Açık bir sohbetin içinde mesaj araması (Ctrl+Shift+F) etkinken ilk Esc aramayı temizler ve çubuğu kapatır, ekran okuyucu "Mesaj araması temizlendi" der; sonraki Esc sohbeti kapatır. Ayarlar, Sohbetler bölümünden kapatılabilir.
+
 - Sohbet listelerinde (normal, arşivlenmiş ve kilitli) Esc aramayı ve filtreleri temizler ve ekran okuyucu "Filtreler temizlendi" der; sohbetler seçiliyse ilk Esc yine yalnızca seçimi kaldırır. Ayarlar, Sohbetler bölümünden kapatılabilir. Bu, sohbet panelindeki filtrelerden, aramadan ve diğer denetimlerden de çalışır; açık bir sohbetin içinde Esc yine önce sohbeti kapatır veya mesaj seçimini kaldırır.
 
 - Başka bir cihazda bir sohbeti listeye eklemek veya listeden çıkarmak, seçili listeyi değiştirmeden listeleri ve açık filtreyi günceller.
@@ -538,6 +542,8 @@ YENİLİKLER
 - Mesaj alanı: bir emoji eklemek, yazma yardımı düğmesi etkinleştirilirken artık "surrogates not allowed" hatası vermiyor. UlisesMilani bildirdi (#797).
 
 - Ayarlar > Bildirimler bölümüne, arşivlenmiş ve sessize alınmış sohbetleri sistem tepsisi simgesindeki ve pencere başlığındaki okunmamış sayısına dahil etmemek için iki yeni seçenek eklendi. İkisi de varsayılan olarak işaretli: arşivlenmiş sohbetler zaten sayılmıyordu ve artık bu değiştirilebiliyor; sessize alınmış sohbetler artık sayılmıyor, bu da önceki davranışı değiştiriyor. Yeniden saymak için seçeneğin işaretini kaldırın.
+
+- Uzun sohbetler: binlerce mesajlı açık bir sohbetin geçmişi yenilenirken, mesaj listesi her mesajın konumunu ("N / M") gösterdiğinde pencere artık onlarca saniye donmuyor.
 
 V2.1.0.0
 

@@ -4,6 +4,10 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Os sons de digitação, bolha de digitação, pulso de digitação e processamento de IA do pacote de som padrão agora são arquivos Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.
+
+- Dentro de uma conversa aberta, com a pesquisa de mensagens (Ctrl+Shift+F) ativa, o primeiro Esc limpa a pesquisa e fecha a barra, e o leitor de tela diz "Pesquisa de mensagens limpa"; o Esc seguinte fecha a conversa. Dá para desligar em Configurações, Conversas.
+
 - Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros e o leitor de tela diz "Filtros limpos"; com conversas marcadas, o primeiro Esc ainda desmarca só a seleção. Dá para desligar em Configurações, Conversas. Isso vale também a partir dos filtros, da pesquisa e dos demais controles do painel de conversas; dentro de uma conversa aberta, o Esc continua fechando a conversa ou desmarcando as mensagens.
 
 - Incluir uma conversa numa lista ou tirá-la de uma lista em outro dispositivo atualiza as listas e o filtro aberto, sem trocar a lista selecionada.
@@ -538,6 +542,8 @@ NOVIDADES
 - Campo de mensagem: inserir um emoji no campo não gera mais o erro "surrogates not allowed" ao habilitar o botão de ajuda para escrever. Relatado por UlisesMilani (#797).
 
 - Novas opções em Configurações > Notificações para descontar as conversas arquivadas e as silenciadas da contagem de não lidas no ícone da bandeja e no título da janela. As duas vêm marcadas: as arquivadas já não entravam na contagem e agora dá para mudar isso; as silenciadas passam a não entrar, o que muda o comportamento anterior. Desmarque a opção para voltar a contá-las.
+
+- Conversas longas: atualizar o histórico de uma conversa aberta com milhares de mensagens não congela mais a janela por dezenas de segundos quando a lista de mensagens mostra a posição de cada mensagem ("N de M").
 
 V2.1.0.0
 
