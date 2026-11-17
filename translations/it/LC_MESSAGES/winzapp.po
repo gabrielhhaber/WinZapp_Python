@@ -2902,10 +2902,11 @@ msgctxt "call_invite_nothing_selected"
 msgid "Check at least one person."
 msgstr "Seleziona almeno una persona."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#, python-brace-format
 msgctxt "call_invite_sending"
-msgid "Adding participants..."
-msgstr "Aggiunta dei partecipanti in corso..."
+msgid "Calling {names}..."
+msgstr "Chiamata in corso a {names}..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
 #, python-brace-format
@@ -20248,7 +20249,9 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_escape_clears_filters"
 msgid "Esc clears the search an&d the filters in a list of chats"
-msgstr "&Quando si preme Esc, vengono azzerati la ricerca e i filtri di un elenco di chat"
+msgstr ""
+"&Quando si preme Esc, vengono azzerati la ricerca e i filtri di un elenco di"
+" chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

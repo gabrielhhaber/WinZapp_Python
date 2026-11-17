@@ -1,0 +1,255 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Tue, 17 Nov 2026 00:14:26 -0300
+Subject: [PATCH] engine: an invite to a call is sent only once the server
+ acked it with the person on the roster
+
+AddParticipant and RingParticipant returned as soon as the stanza left the socket. An invite the server dropped (every one after the first, before the previous commit) was therefore reported as sent, and the caller was told the person had been invited while nobody rang (user logs, 2026-11-16).
+
+The invite is now a request: sendParticipantInvite waits up to 15 s for the ack with the same id and succeeds only when it carries a roster that lists the invited person, which is what WhatsApp's server answered WhatsApp Web's invite with on 2026-11-17 (the user in state "outgoing", 0.3 s later). No ack, an error ack, an ack without a roster or a roster without the person are failures; none of them ends the call.
+
+whatsmeow hands an ack with a waiter to the waiter and not to the node handlers, so this ack no longer reaches onCallAck: its roster is applied here, with the same log line.
+
+Validated: engine_group_invite_ack_test.go (four tests), go test . ./signaling green. Not yet validated on a live call.
+---
+ CHANGELOG.md                    |   5 ++
+ engine_group_api.go             |   6 +-
+ engine_group_invite.go          |  48 +++++++++++++
+ engine_group_invite_ack_test.go | 122 ++++++++++++++++++++++++++++++++
+ 4 files changed, 177 insertions(+), 4 deletions(-)
+ create mode 100644 engine_group_invite_ack_test.go
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 18a5ab4..f331abb 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -15,6 +15,11 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+   the person with the whole roster stays for the first person added to a
+   one-to-one call; in a group call the server dropped it without an answer.
+   Unit-tested on the stanzas; not yet validated on a live call.
++- `AddParticipant` and `RingParticipant` return once the server acked the
++  invite with a roster that lists the person, and fail on no ack within 15 s,
++  an error ack, or a roster without them. They used to return as soon as the
++  stanza left, so an invite the server dropped was reported as sent. The ack is
++  waited for by id and its roster applied there.
+ 
+ ### engine/ring-dismiss — `implemented`
+ 
+diff --git a/engine_group_api.go b/engine_group_api.go
+index 4e71a8e..1fed32a 100644
+--- a/engine_group_api.go
++++ b/engine_group_api.go
+@@ -109,8 +109,7 @@ func (e *engine) inviteParticipant(ctx context.Context, callID, target string) e
+ 	if err != nil {
+ 		return err
+ 	}
+-	node.Attrs["id"] = e.nextCallNodeID()
+-	if err = e.transmitCallNode(ctx, node); err != nil {
++	if err = e.sendParticipantInvite(ctx, node, targetLID); err != nil {
+ 		return fmt.Errorf("meowcaller: add participant: %w", err)
+ 	}
+ 	return nil
+@@ -145,8 +144,7 @@ func (e *engine) ringParticipant(ctx context.Context, callID, target string) err
+ 	if err != nil {
+ 		return err
+ 	}
+-	node.Attrs["id"] = e.nextCallNodeID()
+-	if err = e.transmitCallNode(ctx, node); err != nil {
++	if err = e.sendParticipantInvite(ctx, node, targetLID); err != nil {
+ 		return fmt.Errorf("meowcaller: ring participant: %w", err)
+ 	}
+ 	return nil
+diff --git a/engine_group_invite.go b/engine_group_invite.go
+index 1b1d468..e3948d9 100644
+--- a/engine_group_invite.go
++++ b/engine_group_invite.go
+@@ -3,6 +3,8 @@ package meowcaller
+ import (
+ 	"context"
+ 	"errors"
++	"fmt"
++	"time"
+ 
+ 	waBinary "go.mau.fi/whatsmeow/binary"
+ 	"go.mau.fi/whatsmeow/types"
+@@ -76,6 +78,52 @@ func ringRoster(roster inviteRoster, target types.JID) (inviteRoster, types.JID,
+ 	return roster, targetPN, nil
+ }
+ 
++// inviteAckTimeout is how long an invite waits for the server's ack. WhatsApp
++// Web got it in 0.3 s; a call whose invite the server drops gets none at all.
++const inviteAckTimeout = 15 * time.Second
++
++// sendParticipantInvite sends the invite and returns only when the server
++// confirmed it: its ack carries the call's roster with the invited person on
++// it. The ack is waited for by id, so it never reaches onCallAck; its roster is
++// applied here. A refusal leaves the call as it is.
++func (e *engine) sendParticipantInvite(ctx context.Context, node waBinary.Node, target types.JID) error {
++	// Source of truth: WhatsApp Web 2.3000.1052669929, the ack to its invite on 2026-11-17: <ack class="call" type="offer"> with <group_info>, the invited user in state "outgoing" (docs/reference/neonize-build.md, meowcaller 0028)
++	requestID := e.nextCallNodeID()
++	node.Attrs["id"] = requestID
++	ctx, cancel := context.WithTimeout(ctx, inviteAckTimeout)
++	defer cancel()
++	ack, err := e.requestCall(ctx, node, requestID)
++	if err != nil {
++		return fmt.Errorf("no answer from the server: %w", err)
++	}
++	if code := ack.AttrGetter().OptionalString("error"); code != "" {
++		e.c.log.Warn().Str("error_code", code).Msg("participant invite refused by server")
++		return fmt.Errorf("the server refused the invite (%s)", code)
++	}
++	update, isGroup, err := signaling.ParseInitialGroupCallAck(ack)
++	if err != nil {
++		return fmt.Errorf("unreadable invite ack: %w", err)
++	}
++	if !isGroup {
++		return errors.New("the server's ack carries no roster")
++	}
++	fromAck := groupCallUpdateFromSignaling(*update)
++	e.c.log.Info().
++		Str("call_id", fromAck.CallID).
++		Uint32("transaction_id", fromAck.TransactionID).
++		Str("ack_type", ack.AttrGetter().OptionalString("type")).
++		Str("roster", describeGroupRoster(fromAck)).
++		Str("relay", describeGroupRelay(fromAck)).
++		Msg("group update from a participant invite ack")
++	e.applyGroupUpdate(fromAck)
++	for _, participant := range update.Participants {
++		if participant.JID.ToNonAD() == target.ToNonAD() {
++			return nil
++		}
++	}
++	return errors.New("the server's roster leaves the invited participant out")
++}
++
+ // phoneNumberOf is the phone number JID stored for a LID, empty when unknown:
+ // the invite then goes without user_pn.
+ func (e *engine) phoneNumberOf(ctx context.Context, lid types.JID) types.JID {
+diff --git a/engine_group_invite_ack_test.go b/engine_group_invite_ack_test.go
+new file mode 100644
+index 0000000..2a0d9f1
+--- /dev/null
++++ b/engine_group_invite_ack_test.go
+@@ -0,0 +1,122 @@
++package meowcaller
++
++import (
++	"context"
++	"errors"
++	"testing"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++)
++
++func rosterUser(user, state string, device uint16) waBinary.Node {
++	return waBinary.Node{
++		Tag:   "user",
++		Attrs: waBinary.Attrs{"jid": types.NewJID(user, types.HiddenUserServer), "state": state},
++		Content: []waBinary.Node{{Tag: "device", Attrs: waBinary.Attrs{
++			"jid": types.JID{User: user, Server: types.HiddenUserServer, Device: device},
++		}}},
++	}
++}
++
++// The ack WhatsApp's server gave WhatsApp Web's invite: the roster, with the
++// invited person in state "outgoing".
++func inviteAck(creator types.JID, users ...waBinary.Node) *waBinary.Node {
++	return &waBinary.Node{
++		Tag:   "ack",
++		Attrs: waBinary.Attrs{"from": types.NewJID("GROUP", "call"), "class": "call", "type": "offer"},
++		Content: []waBinary.Node{{
++			Tag: "group_info",
++			Attrs: waBinary.Attrs{
++				"call-id": "GROUP", "call-creator": creator, "transaction-id": "94",
++				"media": "audio", "connected-limit": "32",
++			},
++			Content: users,
++		}},
++	}
++}
++
++func invitingEngine(t *testing.T, answer func(waBinary.Node) (*waBinary.Node, error)) (*engine, types.JID) {
++	t.Helper()
++	eng, call, creator := testGroupEngine("GROUP")
++	call.setPhase(CallPhaseActive)
++	eng.requestCallNode = func(_ context.Context, node waBinary.Node, requestID string) (*waBinary.Node, error) {
++		if node.Attrs["id"] != requestID || requestID == "" {
++			t.Fatalf("invite id = %v, waited for %q", node.Attrs["id"], requestID)
++		}
++		return answer(node)
++	}
++	return eng, creator
++}
++
++func inviteStanza() waBinary.Node {
++	return waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"to": types.NewJID("GROUP", "call")}}
++}
++
++func TestAnInviteTheServerAcksWithThePersonOnTheRosterSucceeds(t *testing.T) {
++	target := types.NewJID("400", types.HiddenUserServer)
++	var eng *engine
++	eng, creator := invitingEngine(t, func(waBinary.Node) (*waBinary.Node, error) {
++		return inviteAck(types.NewJID("100", types.HiddenUserServer),
++			rosterUser("100", "connected", 14), rosterUser("400", "outgoing", 0)), nil
++	})
++
++	if err := eng.sendParticipantInvite(context.Background(), inviteStanza(), target); err != nil {
++		t.Fatalf("sendParticipantInvite: %v", err)
++	}
++
++	// the ack never reaches onCallAck: its roster has to be applied here
++	update := eng.calls["GROUP"].groupUpdate
++	if update == nil || update.TransactionID != 94 || len(update.Participants) != 2 {
++		t.Fatalf("roster after the ack = %+v", update)
++	}
++	if update.CallCreator != creator {
++		t.Fatalf("creator after the ack = %v", update.CallCreator)
++	}
++}
++
++// What happened to every invite after the first one (user logs, 2026-11-16):
++// the server answered nothing, and the caller was told the person was invited.
++func TestAnInviteTheServerDoesNotAnswerFails(t *testing.T) {
++	eng, _ := invitingEngine(t, func(waBinary.Node) (*waBinary.Node, error) {
++		return nil, context.DeadlineExceeded
++	})
++
++	err := eng.sendParticipantInvite(context.Background(), inviteStanza(), types.NewJID("400", types.HiddenUserServer))
++
++	if !errors.Is(err, context.DeadlineExceeded) {
++		t.Fatalf("err = %v, want the missing answer", err)
++	}
++}
++
++func TestAnInviteTheServerRefusesFailsAndLeavesTheCallUp(t *testing.T) {
++	eng, _ := invitingEngine(t, func(waBinary.Node) (*waBinary.Node, error) {
++		return &waBinary.Node{Tag: "ack", Attrs: waBinary.Attrs{"class": "call", "type": "offer", "error": "403"}}, nil
++	})
++
++	err := eng.sendParticipantInvite(context.Background(), inviteStanza(), types.NewJID("400", types.HiddenUserServer))
++
++	if err == nil {
++		t.Fatal("a refused invite was reported as sent")
++	}
++	if m := eng.calls["GROUP"]; m == nil || m.call.State() != CallPhaseActive {
++		t.Fatal("a refused invite ended the call")
++	}
++}
++
++func TestAnAckWithoutTheInvitedPersonFails(t *testing.T) {
++	answers := map[string]*waBinary.Node{
++		"no roster": {Tag: "ack", Attrs: waBinary.Attrs{"class": "call", "type": "offer"}},
++		"person left out": inviteAck(types.NewJID("100", types.HiddenUserServer),
++			rosterUser("100", "connected", 14)),
++	}
++	for name, ack := range answers {
++		eng, _ := invitingEngine(t, func(waBinary.Node) (*waBinary.Node, error) { return ack, nil })
++
++		err := eng.sendParticipantInvite(context.Background(), inviteStanza(), types.NewJID("400", types.HiddenUserServer))
++
++		if err == nil {
++			t.Fatalf("%s: the invite was reported as sent", name)
++		}
++	}
++}

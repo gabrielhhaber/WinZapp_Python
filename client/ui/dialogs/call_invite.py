@@ -11,8 +11,8 @@ import threading
 
 import wx
 
-from core.call_invites import (candidates, one_per_person, parse_results, room_left,
-                                saved_contact_jids, summary)
+from core.call_invites import (calling_line, candidates, one_per_person, parse_results,
+                                request_timeout, room_left, saved_contact_jids, summary)
 from core.call_participants import CONNECTED, parse_participants
 from ui.dialogs.call_invite_marks import CallInviteMarksMixin
 
@@ -149,18 +149,20 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
         # Windows would move the focus to Cancel and the next Space would
         # close the window (call_participants.py does the same).
         self._busy = True
-        sending = i18n.t("call_invite_sending")
-        self._status.SetLabel(sending)
-        self._mw.output(sending, interrupt=True)
         jids = [jid for jid, _name in picked]
         names = {jid: name for jid, name in picked}
+        # "Calling ..." now; who was invited is only said when the server
+        # confirmed it (summary), never because the request left
+        sending = calling_line([name for _jid, name in picked], i18n)
+        self._status.SetLabel(sending)
+        self._mw.output(sending, interrupt=True)
 
         def worker():
             spoken, error, invited = None, None, False
             try:
                 response = self._mw._raise_for_call_response(self._mw._post_call_control(
                     "add-participants", {"callId": self._call_id, "participants": jids},
-                    timeout=60), "add-participants")
+                    timeout=request_timeout(len(jids))), "add-participants")
                 results = parse_results(response.json(), self._call_id, jids)
                 invited = any(status in ("invited", "rang") for status in results.values())
                 spoken = summary(results, names, i18n)

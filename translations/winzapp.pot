@@ -2605,9 +2605,10 @@ msgctxt "call_invite_nothing_selected"
 msgid "Check at least one person."
 msgstr ""
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
+#, python-brace-format
 msgctxt "call_invite_sending"
-msgid "Adding participants..."
+msgid "Calling {names}..."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py

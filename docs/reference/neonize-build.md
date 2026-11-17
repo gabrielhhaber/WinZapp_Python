@@ -174,6 +174,20 @@ What the patches carry today:
   the call too, so that form is left as it was, since it works. **Not yet
   validated on a live call**: on Neonize, call someone, add a third person,
   wait for them to join and add a fourth.
+- **meowcaller 0028**: an invite is confirmed by the server before it is
+  reported. `AddParticipant` / `RingParticipant` returned as soon as the stanza
+  left, so the invites the server dropped answered `invited` and WinZapp said
+  so. `sendParticipantInvite` sends the invite as a request and waits up to
+  15 s for the ack with its id; it succeeds only when the ack's roster lists
+  the person (what WhatsApp Web got: the user in state `outgoing`). No ack, an
+  error ack, no roster or a roster without the person fail, and none of them
+  ends the call. whatsmeow gives an awaited ack to the waiter, not to the
+  node handlers, so `onCallAck` no longer sees it: the roster is applied
+  there. `call/add-participants` therefore answers only after the server did,
+  one person at a time, and the client waits `request_timeout(people)`
+  (`client/core/call_invites.py`), saying "Calling <names>..." meanwhile.
+  WPPConnect is unchanged: WhatsApp Web's own `inviteToCall` resolves before
+  its offer is acked.
 - **meowcaller 0010**: diagnostics only, no behaviour change. For every call it
   logs the relay endpoints (name, `is_fna`, token ids; never an address), the
   one media runs on (`*`), the first STUN packets the relay sends back, and

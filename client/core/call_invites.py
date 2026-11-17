@@ -100,9 +100,24 @@ def parse_results(body, call_id, asked):
     return out
 
 
+def request_timeout(people) -> int:
+    """Seconds to wait for `call/add-participants`. The Neonize bridge answers
+    only after WhatsApp's server confirmed each person, one at a time, and
+    gives up on one after 15 s (meowcaller patch 0028): a fixed 60 s ran out
+    with four people the server did not answer for."""
+    return 30 + 20 * max(1, int(people or 0))
+
+
+def calling_line(names, i18n) -> str:
+    """The line spoken while the request is out: who is being called. "Added"
+    is only said by summary(), once the server confirmed."""
+    return i18n.t("call_invite_sending").format(
+        names=", ".join(name or i18n.t("unknown_contact") for name in names))
+
+
 def summary(results, names, i18n) -> str:
-    """The line spoken after the request: who was invited or rung, and who
-    could not be."""
+    """The line spoken after the request, when WhatsApp's server answered: who
+    was invited or rung, and who could not be."""
     ok = [names.get(jid) or i18n.t("unknown_contact")
           for jid, status in results.items() if status in ("invited", "rang")]
     failed = [names.get(jid) or i18n.t("unknown_contact")

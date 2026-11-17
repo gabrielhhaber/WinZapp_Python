@@ -2,8 +2,10 @@
 import pytest
 
 from core.call_invites import (
+    calling_line,
     candidates,
     parse_results,
+    request_timeout,
     room_left,
     saved_contact_jids,
     summary,
@@ -14,7 +16,8 @@ from main_window.call_participants import CallParticipantsMixin
 class I18n:
     def t(self, key):
         return {"call_invite_sent_people": "sent {names}", "call_invite_failed_people": "not {names}",
-                "call_invite_failed": "failed", "unknown_contact": "unknown"}[key]
+                "call_invite_failed": "failed", "unknown_contact": "unknown",
+                "call_invite_sending": "calling {names}"}[key]
 
 
 def same(a, b):
@@ -64,6 +67,17 @@ def test_the_summary_names_who_was_invited_and_who_failed():
     assert summary({"a": "invited", "b": "rang", "c": "failed"}, names, I18n()) == "sent Ana, Bia not unknown"
     assert summary({"a": "failed"}, {"a": "Ana", "b": "Bia"}, I18n()) == "not Ana, Bia"
     assert summary({}, {}, I18n()) == "failed"
+
+
+def test_who_is_being_called_is_named_before_the_server_answers():
+    assert calling_line(["Ana", "", "Bia"], I18n()) == "calling Ana, unknown, Bia"
+
+
+@pytest.mark.parametrize("people, seconds", [(1, 50), (4, 110), (31, 650), (0, 50), (None, 50)])
+def test_the_request_waits_long_enough_for_every_person_asked(people, seconds):
+    # the bridge waits up to 15 s for the server per person, one at a time
+    assert request_timeout(people) == seconds
+    assert request_timeout(people) > 15 * max(1, people or 0)
 
 
 class Window:
