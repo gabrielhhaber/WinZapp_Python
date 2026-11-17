@@ -848,16 +848,10 @@ class MessageEventsMixin:
         # new message — that is what WhatsApp itself does.  Without lifting the
         # deleted flag here the chat would be re-created in self.chats but
         # filtered out of every list, so the message would arrive invisibly.
-        if remote_jid in self._deleted_chats:
-            self._deleted_chats.discard(remote_jid)
-            alt = (getattr(self, "_phone_to_lid", {}).get(remote_jid)
-                   or getattr(self, "_lid_to_phone", {}).get(remote_jid))
-            if alt:
-                self._deleted_chats.discard(alt)
-            if hasattr(self, "db") and self.db is not None:
-                self.db.set_metadata_json("deleted_chats", list(self._deleted_chats))
-            logging.info("[on_new_message] %s was deleted locally — restored by a new message.",
-                         remote_jid)
+        # Every form of the person: a chat deleted under the number and
+        # written to again under its @lid or the other 8/9-digit form stayed
+        # hidden (core/deleted_chats.py).
+        self.restore_deleted_chat(remote_jid)
 
         # A chat "Nova conversa" created under one Brazilian 8/9-digit form of
         # the number, while the chat WhatsApp generates for the first message

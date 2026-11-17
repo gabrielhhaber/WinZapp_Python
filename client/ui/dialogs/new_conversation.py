@@ -249,12 +249,18 @@ class NewConversationDialog(wx.Dialog):
         mw = self._mw
         chat["remoteJid"] = jid
         norm_jid, existing = self._find_existing_chat(mw, jid)
+        # A conversation deleted earlier is wanted again: without lifting its
+        # mark it stayed out of the list even after a message was sent to it.
+        restore = getattr(mw, "restore_deleted_chat", None)
+        restored = bool(restore(norm_jid)) if restore is not None else False
         if existing is None:
             chat["remoteJid"] = norm_jid
             mw.chats[norm_jid] = chat
             mw._schedule_set_chats()
         else:
             chat = existing
+            if restored:
+                mw._schedule_set_chats()
         # Navigate after the dialog is gone
         wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
         wx.CallAfter(mw.conversations_panel.message_field.SetFocus)
