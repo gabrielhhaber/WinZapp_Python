@@ -1017,7 +1017,7 @@ msgid ""
 "This copy of WinZapp lacks a component the offline translation needs. "
 "Reinstall WinZapp, or choose another translation provider."
 msgstr ""
-"W tej kopii WinZapp brakuje składnika potrzebnego do tłumaczenia offline. "
+"W tej kopii WinZapp brakuje składnika potrzebnego do tłumaczenia lokalnego. "
 "Zainstaluj ponownie WinZapp lub wybierz innego dostawcę tłumaczenia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -1035,7 +1035,7 @@ msgid ""
 "The offline model could not translate this text. Try again, choose a smaller"
 " model, or run it on the processor."
 msgstr ""
-"Model offline nie zdołał przetłumaczyć tego tekstu. Spróbuj ponownie, "
+"Model lokalny nie zdołał przetłumaczyć tego tekstu. Spróbuj ponownie, "
 "wybierz mniejszy model albo uruchom go na procesorze."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -1044,7 +1044,7 @@ msgid ""
 "The offline model is not on this computer. Download it with \"Download "
 "model\" in the \"Message translation\" settings."
 msgstr ""
-"Modelu offline nie ma na tym komputerze. Pobierz go przyciskiem „Pobierz "
+"Modelu lokalnego nie ma na tym komputerze. Pobierz go przyciskiem „Pobierz "
 "model” w ustawieniach „Tłumaczenie wiadomości”."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20069,7 +20069,7 @@ msgstr "&Język docelowy"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_local_device"
 msgid "W&here to run the offline model"
-msgstr "&Gdzie uruchamiać model offline"
+msgstr "U&rządzenie używane przez model lokalny"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_local_download"
@@ -20105,7 +20105,7 @@ msgid ""
 "The offline model is not on this computer. Download it with \"Download "
 "model\" in the \"Message translation\" settings."
 msgstr ""
-"Modelu offline nie ma na tym komputerze. Pobierz go przyciskiem „Pobierz "
+"Modelu lokalnego nie ma na tym komputerze. Pobierz go przyciskiem „Pobierz "
 "model” w ustawieniach „Tłumaczenie wiadomości”."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20117,7 +20117,7 @@ msgstr "Pobieranie modelu tłumaczenia {name}…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_local_model"
 msgid "&Offline model"
-msgstr "Model o&ffline"
+msgstr "Model lokaln&y"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -20211,12 +20211,12 @@ msgstr "&Dostawca"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_provider_local"
 msgid "Offline model on this computer"
-msgstr "Model offline na tym komputerze"
+msgstr "Model lokalny na tym komputerze"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_region"
 msgid "Microsoft resource regio&n, blank for a global resource"
-msgstr "&Region zasobu Microsoft, puste dla zasobu globalnego"
+msgstr "Re&gion zasobu Microsoft, pozostaw puste dla zasobu globalnego"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/translation_actions.py
