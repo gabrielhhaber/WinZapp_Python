@@ -154,6 +154,26 @@ What the patches carry today:
   the invite as a group update. **Not yet validated on a live call**: call a
   contact on Neonize, let them answer on the computer, add a third person and
   check that the second one keeps hearing and is not rung.
+- **meowcaller 0027**: adding someone to a call that is already a group call.
+  Every invite went out as the first one does: an offer to the invited person
+  with a `<destination>` and the whole roster in `<group_info>`. That offer is
+  what turns a one-to-one call into a group call; once the server holds the
+  group call it answers nothing to it, so the bridge logged "participante
+  convidado" and nobody rang (user logs, 2026-11-16: the first person added
+  joined, the next six invites got no ack and no group update). WhatsApp Web
+  (2.3000.1052669929, captured over CDP on 2026-11-17 with
+  `diagnostico_cdp/callstanza_out.js`) sends
+  `<call to="<call-id>@call"><offer call-id call-creator><audio enc="opus" rate="16000"/><net medium="2"/><invite><user jid user_pn><device jid/>…</user></invite></offer></call>`:
+  to the call, only the invited user and their devices, no roster, no
+  capability. The server acks it with the roster, the user in state
+  `outgoing`, then `receipt` when a device rings. `participantInviteNode`
+  (`engine_group_invite.go`) picks the form: the group one as soon as a group
+  update arrived for the call (the ack of the first invite is one). Ringing
+  someone already on the list takes the same stanza. What Web puts in its
+  first invite (one-to-one to group) was not captured: only that it goes to
+  the call too, so that form is left as it was, since it works. **Not yet
+  validated on a live call**: on Neonize, call someone, add a third person,
+  wait for them to join and add a fourth.
 - **meowcaller 0010**: diagnostics only, no behaviour change. For every call it
   logs the relay endpoints (name, `is_fna`, token ids; never an address), the
   one media runs on (`*`), the first STUN packets the relay sends back, and
