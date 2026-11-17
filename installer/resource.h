@@ -8,5 +8,8 @@
 #define IDC_CANCEL         1008
 #define IDC_PATH_LABEL     1009
 #define IDC_UNINSTALL_PROMPT 1010
+#define IDC_SOUNDS_GROUP   1011
+#define IDC_SOUNDS_FULL    1012
+#define IDC_SOUNDS_WHATSAPP 1013
 #define IDD_INSTALL        101
 #define IDD_UNINSTALL      102

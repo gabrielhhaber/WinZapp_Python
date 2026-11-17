@@ -43,6 +43,7 @@ from update_progress import UpdateProgressLifecycle, update_control_if_alive
 from ui.modal_utils import end_modal_if_running
 from update_node_kill import bridge_stop_lines, node_kill_lines, own_node_pids
 from core.update_exit_notice import exit_notice
+from core.sound_selection import keeps_only_whatsapp, prune_to_whatsapp
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
@@ -901,6 +902,11 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
     if os.path.isdir(winzapp_sub):
         source_dir = winzapp_sub
     _keep_newer_installed_server(source_dir, install_dir)
+    if keeps_only_whatsapp(install_dir):
+        # The install chose only WhatsApp's own sounds (issue #769): the
+        # update must not bring the rest of the pack back.
+        removed = prune_to_whatsapp(os.path.join(source_dir, "sounds"))
+        logging.info("Auto-updater: %d sound(s) left out, as the install chose.", removed)
 
     bat_fd, bat_path = tempfile.mkstemp(suffix=".bat", prefix="winzapp_upd_")
     os.close(bat_fd)
