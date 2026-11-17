@@ -427,7 +427,7 @@ class ContactsMixin:
                         # skipping this cycle cannot be mistaken for a round
                         # that succeeded. See sync_chat_messages()' own note.
                         logging.info(
-                            "[periodic_contacts_sync] skipped during active voice call"
+                            "[periodic_contacts_sync] skipped during voice call or audio recording"
                         )
                         continue
                     context = capture_sync_context(self)

@@ -859,7 +859,7 @@ class BackfillMixin:
                     # file users are asked to send.
                     if not getattr(self, "_backfill_call_pause_logged", False):
                         self._backfill_call_pause_logged = True
-                        logging.info("[backfill] paused during active voice call")
+                        logging.info("[backfill] paused during voice call or audio recording")
                     delay = 1
                     continue
                 self._backfill_call_pause_logged = False
@@ -1574,7 +1574,7 @@ class BackfillMixin:
         downloaded, not every media message in memory.
         """
         if self._voice_call_in_progress():
-            logging.info("[sync_media_for_all_chats] paused during active voice call")
+            logging.info("[sync_media_for_all_chats] paused during voice call or audio recording")
             return 0
 
         _MEDIA_TYPES = {"audioMessage", "documentMessage", "imageMessage",

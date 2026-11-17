@@ -141,20 +141,51 @@ class CallsMixin:
     # is up. Bounded on purpose, for the reason in _voice_call_in_progress().
     _VOICE_CALL_PAUSE_MAX_SECONDS = 2 * 60 * 60
 
+    def _audio_capture_in_progress(self) -> bool:
+        """Voice message or mixed system-audio recording open? Unbounded check.
+
+        Recording is explicit state: ``_is_recording`` / ``_recording_starting`` /
+        ``_recording_system_audio`` on any conversation panel, cleared on every
+        stop/cancel/error exit. Checked across the same three panels the rest of
+        the window walks (live, archived, locked).
+        """
+        for attr in ("conversations_panel", "archived_conversations_panel",
+                     "locked_conversations_panel"):
+            panel = getattr(self, attr, None)
+            if panel is None:
+                continue
+            if (getattr(panel, "_is_recording", False)
+                    or getattr(panel, "_recording_starting", False)
+                    or getattr(panel, "_recording_system_audio", False)):
+                return True
+        return False
+
     def _voice_call_in_progress(self) -> bool:
-        """Is a voice call up, for the purpose of standing background work down?
+        """Is a voice call or an audio capture up, for the purpose of standing
+        background work down?
+
+        Recording wants the machine to itself for the same reason a call does:
+        a full chat-sync pass landing mid-take starves the audio thread and the
+        take loses seconds of voice (log 2026-11-17 15:40: mic 163 late packets /
+        1.6 s lost, 3 discontinuities — the sync ran straight through the
+        recording). Standing every recurring background pass down while a take
+        is open costs a few minutes of delay to work that is already incremental.
 
         Bounded deliberately. ``_active_voice_call`` is cleared by a terminal
         ``callstate`` event or by hanging up inside WinZapp; a call torn down on
         the phone in a way that produces neither would otherwise pause the
         periodic poll and the history backfill for the rest of the session —
         and a paused sync is invisible, the user simply stops receiving
-        messages. The clock starts the first time this is asked rather than
-        where the call is registered, because that flag is assigned from four
-        separate places and one of them forgetting to stamp it is exactly the
-        silent failure this bound exists to prevent.
+        messages. A panel that forgets to clear its recording flag fails the
+        same way, which is why the same clock bounds both. The clock starts the
+        first time this is asked rather than where the call is registered,
+        because that flag is assigned from four separate places and one of them
+        forgetting to stamp it is exactly the silent failure this bound exists
+        to prevent.
         """
-        if not getattr(self, "_active_voice_call", None):
+        capturing = bool(getattr(self, "_active_voice_call", None)) \
+            or self._audio_capture_in_progress()
+        if not capturing:
             self._voice_call_pause_since = 0.0
             return False
         since = getattr(self, "_voice_call_pause_since", 0.0) or 0.0

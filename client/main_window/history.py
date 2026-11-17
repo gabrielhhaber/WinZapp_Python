@@ -106,7 +106,7 @@ class HistoryMixin:
             # 200-message pages after audio became active.
             if self._voice_call_in_progress():
                 logging.info(
-                    "[deep-backfill] Pausing %s during active voice call.",
+                    "[deep-backfill] Pausing %s during voice call or audio recording.",
                     remote_jid,
                 )
                 break
