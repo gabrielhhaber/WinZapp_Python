@@ -545,6 +545,8 @@ NOVEDADES
 
 - Chats largos: actualizar el historial de un chat abierto con miles de mensajes ya no congela la ventana durante decenas de segundos cuando la lista de mensajes muestra la posición de cada mensaje ("N de M").
 
+- Corregido: con la cancelación de ruido de voz neuronal activada, los mensajes de voz ahora se envían en el orden en que se grabaron, aunque uno termine de procesarse antes que otro.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

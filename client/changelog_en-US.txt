@@ -545,6 +545,8 @@ WHAT'S NEW
 
 - Long chats: refreshing the history of an open chat with thousands of messages no longer freezes the window for tens of seconds when the message list shows each message's position ("N of M").
 
+- Fixed: with neural voice noise cancellation on, voice messages are now sent in the order they were recorded, even when one finishes processing before another.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

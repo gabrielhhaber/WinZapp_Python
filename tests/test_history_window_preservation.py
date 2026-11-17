@@ -677,3 +677,26 @@ class TestTheWindowIsReadFromTheScreenBeforeEachRebuild:
         assert src.index("self._refresh_expanded_window_before_rebuild()") < src.index(
             "self._sync_message_rows("
         )
+
+
+class TestWideWindowIsExplained:
+    def test_a_wide_window_logs_which_input_widened_it(self, caplog):
+        import logging
+        stub = _Stub()
+        stub._sorted_messages = []
+        stub._expanded_visible_count = 5000
+        stub._expanded_oldest_msg_id = "m1"
+        displayable = [{"key": {"id": str(i)}} for i in range(6000)]
+        with caplog.at_level(logging.INFO):
+            offset, _ = stub._history_window_for_rebuild(displayable, 200)
+        assert any("wide window" in r.getMessage() and "expanded_floor=5000" in r.getMessage()
+                   for r in caplog.records)
+
+    def test_a_normal_window_logs_nothing(self, caplog):
+        import logging
+        stub = _Stub()
+        stub._sorted_messages = []
+        displayable = [{"key": {"id": str(i)}} for i in range(600)]
+        with caplog.at_level(logging.INFO):
+            stub._history_window_for_rebuild(displayable, 200)
+        assert not any("wide window" in r.getMessage() for r in caplog.records)
