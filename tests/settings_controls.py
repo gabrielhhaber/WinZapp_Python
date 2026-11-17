@@ -41,7 +41,8 @@ DIALOGS = CLIENT / "ui" / "dialogs"
 #: Mixins of a window of their own, not of the settings dialog: their
 #: controls share that window. Hand-kept like FILES; any other ``*Mixin`` is
 #: read as part of SettingsDialog.
-MIXIN_WINDOWS = {"TranslationLocalModelsMixin": "TranslationSettingsDialog"}
+MIXIN_WINDOWS = {"TranslationLocalModelsMixin": "TranslationSettingsDialog",
+                 "NoiseModelSectionMixin": "NoiseReducerDialog"}
 
 FILES = (
     "settings_dialog.py", "settings_pages.py", "shortcuts_tab.py", "shortcut_capture.py",

@@ -10398,8 +10398,8 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_model_label"
-msgid "Noise reduction model"
-msgstr "Model redukcji szumów"
+msgid "&Noise reduction model"
+msgstr "Model re&dukcji szumów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
