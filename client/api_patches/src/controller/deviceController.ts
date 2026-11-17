@@ -4391,6 +4391,43 @@ export async function getAllContacts(req: Request, res: Response) {
           c.isMyContact === true || c.isMe === true || activeChatIds.has(jid)
         );
       });
+
+      // A contact saved under an @lid carries its number in WhatsApp Web
+      // (Contact.phoneNumber), but WAPI's serializer leaves it out, so the
+      // client never learned that the @lid and the number are one person:
+      // 144 of 189 saved @lid contacts of a real account had no mapping and
+      // showed twice in "Add participant" (2026-11-17). The number goes on the
+      // row as `phoneNumber` ('<digits>@c.us'); a failure only leaves it out.
+      const lids = response
+        .map((c: any) => c?.id?._serialized || c?.id)
+        .filter((jid: any) => typeof jid === 'string' && jid.endsWith('@lid'));
+      if (lids.length) {
+        try {
+          const phones: Record<string, string> = await req.client.page.evaluate(
+            (ids: string[]) => {
+              const store = (window as any).WPP?.whatsapp?.ContactStore;
+              const found: Record<string, string> = {};
+              for (const id of ids) {
+                const pn = store?.get?.(id)?.phoneNumber;
+                const text = typeof pn === 'string' ? pn : pn?._serialized;
+                if (typeof text === 'string' && /^\d+@c\.us$/.test(text)) found[id] = text;
+              }
+              return found;
+            },
+            lids
+          );
+          for (const c of response) {
+            const jid = c?.id?._serialized || c?.id;
+            if (typeof jid === 'string' && phones?.[jid]) c.phoneNumber = phones[jid];
+          }
+        } catch (lookupError: any) {
+          req.logger.warn(
+            `[getAllContacts] @lid phone numbers unavailable: ${
+              lookupError?.name || 'error'
+            }`
+          );
+        }
+      }
     }
 
     res.status(200).json({

@@ -456,6 +456,7 @@ class TestTheContactSyncAppliesIt:
     class _Window(_Mw):
         get_remote_contacts = MainWindow.get_remote_contacts
         _clear_stale_phone_sync_marks = MainWindow._clear_stale_phone_sync_marks
+        _learn_address_book_lids = MainWindow._learn_address_book_lids
         wpp_server, wpp_port, token = "http://127.0.0.1", 6300, "tok"
 
         def __init__(self):

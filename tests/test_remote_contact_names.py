@@ -78,6 +78,7 @@ def test_real_contact_sync_keeps_nickname_separate_from_the_phonebook(monkeypatc
         _clear_stale_phone_sync_marks=lambda *a: None,
         _schedule_refresh_active_messages=refreshed.append,
         _schedule_save=lambda **kw: None)
+    window._learn_address_book_lids = lambda rows: ContactsMixin._learn_address_book_lids(window, rows)
     result = ContactsMixin.get_remote_contacts(window)
     assert result[PHONE]["pushName"] == "aninha"
     assert result[LID]["pushName"] == "aninha"
@@ -87,3 +88,36 @@ def test_real_contact_sync_keeps_nickname_separate_from_the_phonebook(monkeypatc
         assert result[PHONE]["name"] == "Nome local"
     else:
         assert not contact_is_saved(result[PHONE])
+
+
+def test_an_lid_row_with_its_number_is_one_person_with_that_number():
+    """All-contacts rows carry `phoneNumber` on an @lid (both engines); without
+    it 144 saved @lid contacts of a real account had no number and showed twice
+    in "Add participant" (2026-11-17)."""
+    from core.remote_contact_names import lid_phone_pairs
+    rows = [{"id": {"_serialized": "77@lid"}, "phoneNumber": "5511999990000@c.us"},
+            {"id": "88@lid", "phoneNumber": {"_serialized": "5522999990000@c.us"}},
+            {"id": "99@lid"},                                            # no number
+            {"id": "5533@c.us", "phoneNumber": "5533@c.us"},             # not an @lid
+            {"id": "66@lid", "phoneNumber": "1203@g.us"},                # not a number
+            None]
+    assert lid_phone_pairs(rows, normalize) == [
+        ("77@lid", "5511999990000@s.whatsapp.net"), ("88@lid", "5522999990000@s.whatsapp.net")]
+
+
+def test_the_contact_sync_registers_only_the_pairs_it_did_not_know(monkeypatch):
+    scheduled = []
+    monkeypatch.setattr(module.wx, "CallAfter", lambda f, *a: scheduled.append(f))
+    registered = []
+    window = SimpleNamespace(
+        _normalize_jid=normalize, _lid_to_phone={"77@lid": "5511999990000@s.whatsapp.net"},
+        register_jid_mapping=lambda lid, phone, **kw: registered.append((lid, phone, kw)),
+        _schedule_set_chats="refresh")
+    rows = [{"id": "77@lid", "phoneNumber": "5511999990000@c.us"},
+            {"id": "88@lid", "phoneNumber": "5522999990000@c.us"}]
+    ContactsMixin._learn_address_book_lids(window, rows)
+    assert registered == [("88@lid", "5522999990000@s.whatsapp.net", {"defer_ui": True})]
+    assert scheduled == ["refresh"]
+    registered.clear(), scheduled.clear()
+    ContactsMixin._learn_address_book_lids(window, rows[:1])
+    assert registered == [] and scheduled == []
