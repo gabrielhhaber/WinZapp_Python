@@ -4291,6 +4291,30 @@ export async function checkNumberStatus(req: Request, res: Response) {
       response = await req.client.checkNumberStatus(`${contato}`);
     }
 
+    // WhatsApp Web (2.3000.1052669929) answers a typed number with the
+    // person's @lid, not their number. WinZapp then kept the typed form, and
+    // a Brazilian number typed with the 9th digit WhatsApp does not use gave
+    // a second conversation next to the real one (2026-11-17). The number
+    // the @lid belongs to goes on the answer as `phoneNumber` ('<digits>@c.us').
+    const answered = response?.id?._serialized || response?.id;
+    if (typeof answered === 'string' && answered.endsWith('@lid')) {
+      try {
+        const number = await req.client.page.evaluate((lid: string) => {
+          const wpp = (window as any).WPP?.whatsapp;
+          const pn = wpp?.ApiContact?.getPhoneNumber?.(wpp?.WidFactory?.createWid?.(lid));
+          const text = typeof pn === 'string' ? pn : pn?._serialized;
+          return typeof text === 'string' && /^\d+@c\.us$/.test(text) ? text : '';
+        }, answered);
+        if (number) response = { ...response, phoneNumber: number };
+      } catch (lookupError: any) {
+        req.logger.warn(
+          `[checkNumberStatus] number of the answered @lid unavailable: ${
+            lookupError?.name || 'error'
+          }`
+        );
+      }
+    }
+
     res.status(200).json({ status: 'success', response: response });
   } catch (error) {
     req.logger.error(error);
