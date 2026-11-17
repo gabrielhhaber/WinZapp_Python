@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core import deleted_chats
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
 from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
@@ -851,7 +852,7 @@ class MessageEventsMixin:
         # Every form of the person: a chat deleted under the number and
         # written to again under its @lid or the other 8/9-digit form stayed
         # hidden (core/deleted_chats.py).
-        self.restore_deleted_chat(remote_jid)
+        deleted_chats.restore(self, remote_jid)
 
         # A chat "Nova conversa" created under one Brazilian 8/9-digit form of
         # the number, while the chat WhatsApp generates for the first message

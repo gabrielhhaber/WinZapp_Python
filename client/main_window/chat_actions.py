@@ -9,7 +9,7 @@ import logging
 import threading
 import time
 import wx
-from core.deleted_chats import marks_to_lift
+from core import deleted_chats
 from core.jid_device import strip_device_suffix
 from core.pinned_chat_order import sync_pinned_order
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
@@ -556,17 +556,7 @@ class ChatActionsMixin:
         message, or the user opening the conversation again, brings it back
         whichever form it was deleted under (core/deleted_chats.py). True when
         a mark was lifted."""
-        lifted = marks_to_lift(self._deleted_chats, jid,
-                               getattr(self, "_lid_to_phone", None) or {},
-                               getattr(self, "_phone_to_lid", None) or {})
-        if not lifted:
-            return False
-        self._deleted_chats.difference_update(lifted)
-        if getattr(self, "db", None) is not None:
-            self.db.set_metadata_json("deleted_chats", list(self._deleted_chats))
-        logging.info("[chats] %s was deleted locally — restored (%d mark(s) lifted).",
-                     jid, len(lifted))
-        return True
+        return deleted_chats.restore(self, jid)
 
     def delete_chat_local(self, jid: str):
         self._forget_chat_lock(jid)

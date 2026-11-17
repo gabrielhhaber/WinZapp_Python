@@ -56,3 +56,19 @@ def test_reopening_a_deleted_conversation_from_new_conversation_brings_it_back(m
     NewConversationDialog._finish_open(dialog, "Ana", PHONE8, {"remoteJid": PHONE8})
     assert window._deleted_chats == set()
     assert PHONE8 in window.chats and window.listed
+
+
+def test_the_message_pipeline_restores_on_a_plain_window_and_logs_no_number(caplog):
+    """on_new_message calls core.deleted_chats.restore() itself, so a window
+    stub without the ChatActionsMixin method still works, and the log line
+    names the person by a tag, never by the number."""
+    import logging
+
+    from core import deleted_chats
+
+    window = SimpleNamespace(_deleted_chats={PHONE8, OTHER}, _lid_to_phone={}, _phone_to_lid={})
+    with caplog.at_level(logging.INFO):
+        assert deleted_chats.restore(window, PHONE9)
+    assert window._deleted_chats == {OTHER}
+    assert "5511999990000" not in caplog.text and "restored" in caplog.text
+    assert not deleted_chats.restore(SimpleNamespace(_deleted_chats=set()), PHONE9)
