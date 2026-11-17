@@ -143,10 +143,12 @@ def state_event(call, *, state, event="state", now=None) -> dict:
 def finished_info(call, state, now) -> dict:
     """What the session needs to write the record of a call that ended: who and
     which way it went, the state it ended in, and when it became active (the
-    answer), so its duration is known."""
+    answer), so its duration is known, and when a call placed here was placed
+    (the start the phone's call history shows)."""
     return {"id": call["id"], "peer": call.get("peer", ""), "outgoing": bool(call.get("outgoing")),
             "video": bool(call.get("video")), "group": call.get("group") or "",
-            "state": state, "activeAt": call.get("active_at"), "endedAt": now}
+            "state": state, "activeAt": call.get("active_at"), "endedAt": now,
+            "placedAt": call.get("placed_at")}
 
 
 def roster_connected(participants, mine) -> tuple:
@@ -897,7 +899,7 @@ class CallMedia(CallIngressMixin):
         with self._lock:
             self._audio_readers.pop(call_id, None)
             call = {"id": call_id, "peer": peer, "outgoing": True, "state": "",
-                    "video": bool(video), "group": group}
+                    "video": bool(video), "group": group, "placed_at": time.time()}
             if generation is not None:
                 call["native_generation"] = generation
             self._calls[call_id] = call

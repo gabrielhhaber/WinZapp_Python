@@ -521,6 +521,23 @@ def test_record_finished_files_the_call_placed_here_as_mine(monkeypatch):
     assert (w["callOutcome"], w["callDuration"], w["isVideoCall"]) == ("Completed", 100, True)
 
 
+def test_record_finished_tells_the_phone_after_filing_the_call(monkeypatch):
+    order = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: order.append("chat") or True)
+    monkeypatch.setattr(calls.call_log_sync, "publish",
+                        lambda s, info, outcome, duration: order.append(
+                            ("phone", outcome, duration)) or False)
+    s = N(me="5599@s.whatsapp.net", lid="7@lid", db=N(chat_exists=lambda jid: True))
+    assert calls.record_finished(s, finished(outgoing=True, activeAt=900.0), 1000)
+    assert order == ["chat", ("phone", "Completed", 100)]
+    # nothing filed in a chat (a broadcast peer): the phone still gets its record
+    order.clear()
+    assert not calls.record_finished(
+        s, finished(outgoing=True, activeAt=900.0, peer="status@broadcast"), 1000)
+    assert order == [("phone", "Completed", 100)]
+
+
 def test_record_finished_files_a_group_call_in_the_group(monkeypatch):
     stored = []
     monkeypatch.setattr(calls.system_messages, "store_and_emit",

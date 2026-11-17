@@ -1723,14 +1723,20 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         The chat goes in the index the way WhatsApp Web names it (a person's
         chat by its LID, chat_aliases.mutation_index_jid), or the phone does
         not find it."""
+        return self.send_mutation([index, self.mutation_jid(conversation), *extra],
+                                  version, kind, value)
+
+    def send_mutation(self, index, version, kind, value):
+        """One state notice with its whole index (send_state names a chat in
+        it; the call_log record names this account): True if WhatsApp accepted."""
         from neonize.proto.Neonize_pb2 import MutationInfo, PatchInfo
         if self.client is None or self.status != "CONNECTED":
             return False
         patch = PatchInfo(Timestamp=time.time_ns(), Type=kind, Mutations=[
-            MutationInfo(Index=[index, self.mutation_jid(conversation), *extra],
-                         Version=version, Value=value)])
+            MutationInfo(Index=list(index), Version=version, Value=value)])
         collection = {PatchInfo.REGULAR_LOW: "regular_low",
-                      PatchInfo.REGULAR_HIGH: "regular_high"}.get(kind, "regular_low")
+                      PatchInfo.REGULAR_HIGH: "regular_high",
+                      PatchInfo.REGULAR: "regular"}.get(kind, "regular_low")
         try:
             try:
                 self.client.send_app_state(patch)
@@ -1742,7 +1748,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 self.client.send_app_state(patch)
             return True
         except Exception:
-            log.exception("state notice %s not accepted", index)
+            log.exception("state notice %s not accepted", index[0] if index else "")
             return False
 
     def archive(self, conversation, archive):

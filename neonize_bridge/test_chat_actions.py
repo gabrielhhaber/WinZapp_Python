@@ -253,6 +253,20 @@ def test_a_state_notice_names_a_persons_chat_by_its_lid():
     sent = []
     s = N(client=N(send_app_state=sent.append), status="CONNECTED",
           mutation_jid=lambda jid: "9@lid" if jid == "55@s.whatsapp.net" else jid)
+    s.send_mutation = lambda *a: server.Session.send_mutation(s, *a)
     assert server.Session.send_state(s, "clearChat", 6, PatchInfo.REGULAR_HIGH, None,
                                      "55@s.whatsapp.net", extra=("0", "0")) is True
     assert list(sent[0].Mutations[0].Index) == ["clearChat", "9@lid", "0", "0"]
+
+
+def test_a_mutation_goes_out_with_its_whole_index_to_the_regular_collection():
+    import server
+    from neonize.proto.Neonize_pb2 import PatchInfo
+    sent = []
+    s = N(client=N(send_app_state=sent.append), status="CONNECTED")
+    assert server.Session.send_mutation(s, ["call_log", "7@lid", "C1", "1"], 1,
+                                        PatchInfo.REGULAR, None) is True
+    assert sent[0].Type == PatchInfo.REGULAR
+    assert list(sent[0].Mutations[0].Index) == ["call_log", "7@lid", "C1", "1"]
+    assert server.Session.send_mutation(N(client=None, status="CONNECTED"), ["x"], 1,
+                                        PatchInfo.REGULAR, None) is False

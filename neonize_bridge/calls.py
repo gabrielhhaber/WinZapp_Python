@@ -29,6 +29,7 @@ from aiohttp import web
 
 import system_messages
 import msgmap
+import call_log_sync
 import ongoing_calls
 from redaction import redact
 from call_placement_errors import placement_failure
@@ -347,6 +348,15 @@ def record_finished(s, info, now):
     if outcome is None or not info.get("id"):
         return False
     outcome, duration = outcome
+    recorded = _file_finished(s, info, outcome, duration, now)
+    # after the local record: the phone's call history (call_log_sync) waits
+    # for WhatsApp's answer, the chat's record does not
+    call_log_sync.publish(s, info, outcome, duration)
+    return recorded
+
+
+def _file_finished(s, info, outcome, duration, now):
+    """record_finished's record in the chat: False if nothing was stored."""
     chat = msgmap.jid_whatsmeow(info["group"]) if info.get("group") else peer_chat(
         s.db, info.get("peer") or "", getattr(s, "_phone_of_lid", None))
     if not chat or chat.endswith("@broadcast"):
