@@ -547,6 +547,8 @@ V3.0.0.0
 
 - المحادثات الطويلة: لم يعد تحديث سجل محادثة مفتوحة تضم آلاف الرسائل يجمّد النافذة عشرات الثواني عندما تعرض قائمة الرسائل موضع كل رسالة ("N من M").
 
+- تم الإصلاح: عند تفعيل إلغاء ضوضاء الصوت العصبي، تُرسَل الرسائل الصوتية الآن بالترتيب الذي سُجّلت به، حتى لو انتهت معالجة إحداها قبل الأخرى.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
