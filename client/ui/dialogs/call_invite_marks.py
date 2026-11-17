@@ -17,6 +17,11 @@ This replaces a wx.CheckListBox, whose check boxes gave a screen reader no
 sound and no "selected" announcement when Space ticked one. The marks are a
 plain set of JIDs; the rows say "selected" in their text (position per
 Settings), and the selection mode is derived from the set, never stored.
+
+The dialog has several lists (the contacts, the conversations): `_panes`, one
+{"list", "rows", "labels"} each. The keys act on the list they came from
+(`_list`/`_rows` are that pane's), and one set of marks serves them all, so a
+person listed in both reads as selected in both.
 """
 import logging
 import os
@@ -43,11 +48,30 @@ class CallInviteMarksMixin:
         self._marks = set()
         self._labels = []
         self._mark_sound = None
-        self._list.Bind(wx.EVT_KEY_DOWN, self._on_invite_key_down)
-        self._list.Bind(wx.EVT_LISTBOX, self._on_invite_row_focused)
-        # Esc is the dialog's Cancel before it is anything else; only a hook on
-        # the list that does not pass it on can keep it for "unmark everything".
-        self._list.Bind(wx.EVT_CHAR_HOOK, self._on_invite_char_hook)
+        for pane in self._invite_panes() or [{"list": self._list}]:
+            listbox = pane["list"]
+            listbox.Bind(wx.EVT_KEY_DOWN, self._on_invite_key_down)
+            listbox.Bind(wx.EVT_LISTBOX, self._on_invite_row_focused)
+            listbox.Bind(wx.EVT_SET_FOCUS, self._on_invite_list_focused)
+            # Esc is the dialog's Cancel before it is anything else; only a hook on
+            # the list that does not pass it on can keep it for "unmark everything".
+            listbox.Bind(wx.EVT_CHAR_HOOK, self._on_invite_char_hook)
+
+    # ── Lists ────────────────────────────────────────────────────────────────
+
+    def _invite_panes(self):
+        return getattr(self, "_panes", None) or []
+
+    def _use_invite_pane(self, listbox) -> None:
+        """Make `listbox` the list the marking keys act on."""
+        for pane in self._invite_panes():
+            if pane["list"] is listbox:
+                self._list, self._rows, self._labels = pane["list"], pane["rows"], pane["labels"]
+                return
+
+    def _on_invite_list_focused(self, event) -> None:
+        self._use_invite_pane(event.GetEventObject())
+        event.Skip()
 
     # ── Settings (Settings > User Interface), shared with the other lists ────
 
@@ -56,33 +80,42 @@ class CallInviteMarksMixin:
 
     # ── Rows ─────────────────────────────────────────────────────────────────
 
-    def _invite_labels(self):
+    def _invite_labels(self, rows=None):
         i18n = self._mw.i18n
         return row_labels(
-            self._rows, self._marks, i18n.t("unknown_contact"), i18n.t("selected_suffix"),
+            self._rows if rows is None else rows, self._marks, i18n.t("unknown_contact"), i18n.t("selected_suffix"),
             self._invite_ui_setting("selected_announcement_position", "end"))
 
     def _invite_jid_at(self, index):
         return self._rows[index][0] if 0 <= index < len(self._rows) else ""
 
     def _invite_marks_visible(self) -> bool:
-        return visible_jid_selected(self._marks, (jid for jid, _name in self._rows))
+        panes = self._invite_panes() or [{"rows": self._rows}]
+        return visible_jid_selected(
+            self._marks, (jid for pane in panes for jid, _name in pane["rows"]))
 
     def _repaint_invite_marks(self) -> None:
-        """Redraw only the rows whose text changed, so the reader hears none of
-        the rows that did not, and keep the row the list is on."""
-        fresh = self._invite_labels()
-        focus = self._list.GetSelection()
-        self._list.Freeze()
-        try:
-            for index, (old, new) in enumerate(zip(self._labels, fresh)):
-                if old != new:
-                    self._list.SetString(index, new)
-            if focus != wx.NOT_FOUND:
-                self._list.SetSelection(focus)
-        finally:
-            self._list.Thaw()
-        self._labels = fresh
+        """Redraw only the rows whose text changed, in every list, so the
+        reader hears none of the rows that did not, and keep the row each
+        list is on."""
+        panes = self._invite_panes() or [
+            {"list": self._list, "rows": self._rows, "labels": self._labels}]
+        for pane in panes:
+            listbox = pane["list"]
+            fresh = self._invite_labels(pane["rows"])
+            focus = listbox.GetSelection()
+            listbox.Freeze()
+            try:
+                for index, (old, new) in enumerate(zip(pane["labels"], fresh)):
+                    if old != new:
+                        listbox.SetString(index, new)
+                if focus != wx.NOT_FOUND:
+                    listbox.SetSelection(focus)
+            finally:
+                listbox.Thaw()
+            pane["labels"] = fresh
+            if listbox is self._list:
+                self._labels = fresh
 
     # ── Announcements ────────────────────────────────────────────────────────
 
@@ -112,6 +145,7 @@ class CallInviteMarksMixin:
 
     def _on_invite_row_focused(self, event) -> None:
         """Arrowing onto a marked person plays the cue, so the marks are audible."""
+        self._use_invite_pane(event.GetEventObject())
         if self._invite_jid_at(self._list.GetSelection()) in self._marks:
             self._play_invite_mark_sound()
         event.Skip()
@@ -142,6 +176,7 @@ class CallInviteMarksMixin:
         return True
 
     def _toggle_all_invite_marks(self) -> bool:
+        """Everyone of the list the key came from."""
         everyone = [jid for jid, _name in self._rows if jid]
         if not everyone:
             return False
@@ -204,12 +239,14 @@ class CallInviteMarksMixin:
         return False
 
     def _on_invite_key_down(self, event) -> None:
+        self._use_invite_pane(event.GetEventObject())
         event = command_key_event(self, "chat_selection", event)
         if not self._handle_invite_mark_key(
                 event.GetKeyCode(), event.ControlDown(), event.ShiftDown()):
             event.Skip()
 
     def _on_invite_char_hook(self, event) -> None:
+        self._use_invite_pane(event.GetEventObject())
         if (event.GetKeyCode() == wx.WXK_ESCAPE
                 and not event.ControlDown() and not event.ShiftDown() and not event.AltDown()
                 and self._invite_ui_setting("escape_clears_selection")

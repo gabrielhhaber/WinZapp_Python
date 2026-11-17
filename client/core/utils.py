@@ -1858,14 +1858,21 @@ def contact_dedup_key(main_window, jid: str) -> str:
     """
     normalize_jid = getattr(main_window, "_normalize_jid", None)
     norm = normalize_jid(jid) if normalize_jid else jid
+    return person_dedup_key(norm, getattr(main_window, "_lid_to_phone", {}) or {})
+
+
+def person_dedup_key(jid: str, lid_to_phone) -> str:
+    """contact_dedup_key() without a window: *jid* already normalized, the
+    @lid bridged through *lid_to_phone*. An @lid with no known number keys by
+    its own digits; a group by its whole JID."""
+    norm = str(jid or "")
     if norm.endswith("@g.us"):
         return norm
     if norm.endswith("@lid"):
-        lid_map = getattr(main_window, "_lid_to_phone", {}) or {}
-        phone = lid_map.get(norm, "")
+        phone = (lid_to_phone or {}).get(norm, "")
         if phone:
             norm = phone
-    local = norm.split("@", 1)[0]
+    local = norm.split("@", 1)[0].split(":", 1)[0]
     # Brazilian mobile 8/9-digit interchangeability: 5511999999999 ↔ 551199999999
     if local.startswith("55") and len(local) == 13 and local[4] == "9":
         local = local[:4] + local[5:]

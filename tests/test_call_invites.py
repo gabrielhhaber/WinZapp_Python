@@ -119,3 +119,52 @@ def test_the_account_is_never_offered_even_when_the_session_does_not_know_its_li
     rows = candidates(["777000@lid", "888000@lid"], [], is_self, mw._chat_jids_equivalent,
                       lambda jid: "Name")
     assert [jid for jid, _name in rows] == ["888000@lid"]
+
+
+def test_the_same_person_in_every_form_is_offered_once_and_by_one_address():
+    """Reported 2026-11-17: most contacts showed twice in "Add participant"."""
+    from core.call_invites import offered_lists
+    phone_of_lid = {"1@lid": "5511999990000@s.whatsapp.net"}
+    saved = ["5511999990000@s.whatsapp.net", "1@lid", "551199990000@c.us",  # one person, 3 forms
+             "5522988880000@s.whatsapp.net"]
+    chats = ["5511999990000@s.whatsapp.net", "5533977770000@s.whatsapp.net"]
+    contacts, conversations = offered_lists([saved, chats], phone_of_lid)
+    assert contacts == ["1@lid", "5522988880000@s.whatsapp.net"]
+    # the same address in the second list, so one mark serves both
+    assert conversations == ["1@lid", "5533977770000@s.whatsapp.net"]
+
+
+def test_an_lid_whose_number_is_not_known_yet_joins_the_one_contact_saved_by_that_name():
+    from core.call_invites import one_per_person, saved_name_of
+    contacts = {"5511999990000@s.whatsapp.net": {"name": "Ana Souza", "isMyContact": True},
+                "7@lid": {"name": " ana  souza", "isMyContact": True},
+                "5522988880000@s.whatsapp.net": {"name": "Bia", "isSaved": True},
+                "5533977770000@s.whatsapp.net": {"name": "Bia", "isSaved": True},
+                "8@lid": {"name": "Bia", "isSaved": True},          # two Bias: no guess
+                "9@lid": {"name": "Ana Souza"}}                      # not saved: a nickname
+    rows = one_per_person(list(contacts), {}, saved_name_of(contacts))
+    assert rows == ["5511999990000@s.whatsapp.net", "5522988880000@s.whatsapp.net",
+                    "5533977770000@s.whatsapp.net", "8@lid", "9@lid"]
+
+
+def test_conversations_are_the_one_to_one_chats_saved_or_not():
+    from core.call_invites import conversation_jids
+    chats = ["5511@s.whatsapp.net", "1203-4@g.us", "status@broadcast", "1@newsletter",
+             "7@lid", "5522@c.us"]
+    assert conversation_jids(chats) == ["5511@s.whatsapp.net", "7@lid", "5522@c.us"]
+
+
+@pytest.mark.parametrize("text, jid", [
+    ("+55 (11) 99999-0000", "5511999990000@s.whatsapp.net"),
+    ("5511999990000", "5511999990000@s.whatsapp.net"),
+    ("1234567", ""), ("1234567890123456", ""), ("ana 5511999990000", ""), ("", ""),
+])
+def test_a_typed_phone_number_becomes_an_address(text, jid):
+    from core.call_invites import typed_number_jid
+    assert typed_number_jid(text) == jid
+
+
+def test_the_people_marked_in_both_lists_are_asked_once():
+    from core.call_invites import picked_people
+    rows = [("1@lid", "Ana"), ("2@lid", "Bia"), ("1@lid", "Ana"), ("3@lid", "Caio")]
+    assert picked_people(rows, {"1@lid", "3@lid"}) == [("1@lid", "Ana"), ("3@lid", "Caio")]

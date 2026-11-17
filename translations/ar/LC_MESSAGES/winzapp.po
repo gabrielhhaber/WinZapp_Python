@@ -431,7 +431,7 @@ msgid "Add number"
 msgstr "إضافة رقم"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/add_member_dialog.py
+#: client/ui/dialogs/add_member_dialog.py client/ui/dialogs/call_invite.py
 msgctxt "add_member_custom_number_label"
 msgid "Or, add by phone number"
 msgstr "أو، أضف برقم هاتف"
@@ -443,7 +443,7 @@ msgctxt "add_member_error"
 msgid "Error adding members: {error}"
 msgstr "خطأ في إضافة الأعضاء: {error}"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "add_member_invalid_number"
 msgid "Type a valid phone number."
 msgstr "اكتب رقم هاتف صالح."
@@ -2787,6 +2787,11 @@ msgid "Contacts not in the call"
 msgstr "جهات الاتصال غير الموجودة في المكالمة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
+msgctxt "call_invite_list_conversations"
+msgid "Conversations not in the call"
+msgstr "المحادثات غير الموجودة في المكالمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_none"
 msgid "Every member of the group is already in the call."
 msgstr "جميع أعضاء المجموعة موجودون في المكالمة بالفعل."
@@ -3141,6 +3146,7 @@ msgid "Open a &window when a call comes in"
 msgstr "افتح نافذة عند ورود م&كالمة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/group_calls.py
 msgctxt "calls_return_to_current"
 msgid "Return to call"
 msgstr "العودة إلى المكالمة"
