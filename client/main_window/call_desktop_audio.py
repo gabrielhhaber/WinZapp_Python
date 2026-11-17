@@ -4,7 +4,10 @@ import threading
 
 import wx
 
-from core.call_desktop_audio import DEFAULT_VOLUME, desktop_audio_supported, share_button_visible
+from core.call_desktop_audio import (
+    DEFAULT_VOLUME, desktop_audio_supported, share_button_visible,
+    should_auto_retry_desktop_audio,
+)
 from core.desktop_audio_sources import load_audio_apps
 
 
@@ -101,6 +104,9 @@ class DesktopCallAudioMixin:
             return
         if not self._call_desktop_audio_allowed(call, audio) or getattr(self, "_call_desktop_apps_loading", False):
             return
+        # A manual share press re-opens the one automatic retry the desktop
+        # share gets on a pinned-NVDA exit (see _on_call_desktop_audio).
+        audio._desktop_auto_retry_used = False
         self._call_desktop_apps_loading = True
         threading.Thread(target=self._load_call_desktop_audio_apps, args=(call, audio),
                          name="call-desktop-apps", daemon=True).start()
@@ -154,12 +160,47 @@ class DesktopCallAudioMixin:
             return
         self._start_call_desktop_audio(audio, settings, announce=False)
 
+    def _maybe_retry_desktop_share(self, audio, worker):
+        """One quiet automatic re-share after the pinned NVDA process exits.
+
+        The share cannot retarget a hot-restarted NVDA silently, so the worker
+        stops; NVDA's own watchdog restarts it within seconds. Re-sharing here
+        is one fresh activation (what pressing Share would do), silent on
+        success like a device-switch resume, and strictly bounded to one retry
+        per manual share press.
+        """
+        call = getattr(self, "_active_voice_call", None)
+        allowed = bool(call is not None and self._call_desktop_audio_allowed(call, audio))
+        already = getattr(audio, "_desktop_auto_retry_used", False)
+        reason = getattr(worker, "failure_reason", None)
+        if not should_auto_retry_desktop_audio(ok=False, reason=reason,
+                                               call_running=allowed,
+                                               already_retried=already):
+            return False
+        audio._desktop_auto_retry_used = True
+        settings = worker.settings
+        logging.info("[call] desktop share stopped on the pinned NVDA process exiting; re-sharing once")
+
+        def _retry():
+            if self._call_desktop_audio_allowed(call, audio):
+                self._start_call_desktop_audio(audio, settings, announce=False)
+            else:
+                self.output(self.i18n.t("call_desktop_failed"), interrupt=True)
+
+        wx.CallLater(1200, _retry)
+        return True
+
     def _on_call_desktop_audio(self, audio, worker, ok, announce=True):
         if (getattr(self, "_call_audio_session", None) is not audio or audio.desktop_audio is not worker
                 or getattr(self, "_shutting_down", False)):
             return
         if not ok:
             audio.stop_desktop_audio(expected=worker)
+            if self._maybe_retry_desktop_share(audio, worker):
+                # The retry announces its own outcome; a successful resume
+                # stays quiet like a device-switch share resumption.
+                self._sync_voice_call_bar()
+                return
         self._sync_voice_call_bar()
         if announce or not ok:
             self.output(self.i18n.t("call_desktop_started") if ok else self.i18n.t("call_desktop_failed"), interrupt=True)

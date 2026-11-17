@@ -540,10 +540,20 @@ stops, the call continues. The default policy pins by name+session, image name
 and creation identity precisely so a *restarted* NVDA can never be silently
 retargeted; "it was just NVDA, grab the new one" would be capture of whatever
 process happens to hold that name on this machine. Retargeting inside a stream
-is forbidden (`test_exit_and_restart_does_not_retarget_new_pid`); re-enabling
-the share is always a new activation through the user's own toggle. If the
-share dies on NVDA exit every time it is enabled, the fix is NVDA (its
-watchdog restarts it under heavy load), not the capture code.
+is forbidden (`test_exit_and_restart_does_not_retarget_new_pid`).
+
+Since 2026-11-17 the call window papers over the death with **one** quiet
+re-share: `should_auto_retry_desktop_audio` re-activates the share once when
+`failure_reason` carries `The pinned NVDA process exited`, the call is
+still ACTIVE and this share has not already had its one retry (a manual
+Share press resets the budget). A successful re-share is silent, like a
+device-switch resumption; a failed one announces the usual
+`call_desktop_failed`. This activates a *fresh* process pin, it does not
+retarget the old one, and the re-pin is the same name+session/image/identity
+policy as the first share — the machine can change *who* NVDA is between
+death and retry, never *what kind of process* gets captured. If the share
+dies on NVDA exit every time, the fix is still NVDA (its watchdog restarts
+it under heavy load), not the capture code.
 
 **The call controls live in exactly one place**, the modeless
 `voice_call_window`. An in-frame bar was tried alongside it and removed: two
