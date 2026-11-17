@@ -15,6 +15,7 @@ Screen-reader accessibility is achieved through standard wxPython controls
 and proper label association — no visual-only information is presented.
 """
 
+from ui.dialogs.contact_removal import delete_contact_with_confirmation
 from ui.shortcut_bindings import command_key_event
 from ui.shortcut_bindings import refresh_popup_shortcuts
 import logging
@@ -1862,41 +1863,18 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
     def _on_delete_contact(self, event):
         """Remove the contact entry for this number (confirmation first — this
         can't be undone from here). A contact saved to the phone is removed
-        from WhatsApp and the phone too, and kept here if that fails."""
+        from WhatsApp and the phone too, and kept here if that fails
+        (ui/dialogs/contact_removal.py, shared with the Contacts panel)."""
         if getattr(self, "_deleting_contact", False):
             return      # the request of an earlier press is still running
-        i18n = self._i18n
         entry = self._contact_entry()
         # The key the record is really stored under: the tolerant lookup finds
         # it under the other 8/9-digit form of this chat's JID too, and
         # deleting "this chat's JID" would then leave the record behind.
         jid = phone_contacts.key_of(self._mw, entry, self._resolve_contact_phone_jid())
-        synced = phone_contacts.is_phone_synced(entry)
-        message_key = "delete_contact_phone_confirm_msg" if synced else "delete_contact_local_confirm_msg"
-        if wx.MessageBox(
-            i18n.t(message_key).format(name=self._name),
-            i18n.t("delete_contact_local").replace("&", ""),
-            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
-            self,
-        ) != wx.YES:
-            return
-        if not synced:
-            self._finish_delete_contact(jid)
-            return
-
-        def _removed(ok):
-            self._deleting_contact = False
-            if not ok:
-                text = i18n.t("delete_contact_phone_failed")
-                self._mw.output(text)
-                if self:
-                    wx.MessageBox(text, i18n.t("app_name"), wx.OK | wx.ICON_WARNING, self)
-                return
-            self._finish_delete_contact(jid)
-
-        self._deleting_contact = True
-        self._mw.output(i18n.t("delete_contact_phone_removing"))
-        self._mw.remove_phone_synced_contact(jid, _removed)
+        delete_contact_with_confirmation(
+            self._mw, self, self._i18n, entry, jid, self._name, self._finish_delete_contact,
+            lambda busy: setattr(self, "_deleting_contact", busy))
 
     def _finish_delete_contact(self, jid: str):
         self._mw.remove_local_contact(jid)

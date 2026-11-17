@@ -2021,9 +2021,8 @@ msgstr "إصدار WPPConnect قديم"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #: client/ui/conversation_panel/attachments.py
 #: client/ui/conversation_panel/message_menu.py
-#: client/ui/dialogs/conversation_data_dialog.py
-#: client/ui/dialogs/new_contact.py client/ui/dialogs/new_group.py
-#: client/ui/dialogs/new_poll_dialog.py
+#: client/ui/dialogs/contact_removal.py client/ui/dialogs/new_contact.py
+#: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 msgctxt "app_name"
 msgid "WinZapp"
 msgstr "WinZapp"
@@ -6140,6 +6139,73 @@ msgctxt "contacts_count"
 msgid "{count} contacts"
 msgstr "{count} جهات اتصال"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+msgctxt "contacts_nav"
+msgid "Contacts"
+msgstr "جهات الاتصال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
+#, python-brace-format
+msgctxt "contacts_tab_count"
+msgid "Contacts: {count}"
+msgstr "جهات الاتصال: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_delete"
+msgid "Delete contact"
+msgstr "حذف جهة الاتصال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
+#, python-brace-format
+msgctxt "contacts_tab_deleted"
+msgid "Contact deleted: {name}."
+msgstr "حُذفت جهة الاتصال: {name}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
+msgctxt "contacts_tab_empty"
+msgid "No saved contacts."
+msgstr "لا توجد جهات اتصال محفوظة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_enter_label"
+msgid "Enter on a contact"
+msgstr "Enter على جهة اتصال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_info"
+msgid "Contact details"
+msgstr "بيانات جهة الاتصال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_list"
+msgid "Contacts"
+msgstr "جهات الاتصال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_new_contact"
+msgid "New contact"
+msgstr "جهة اتصال جديدة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_open_chat"
+msgid "Open conversation"
+msgstr "فتح المحادثة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_search"
+msgid "Search contacts"
+msgstr "البحث في جهات الاتصال"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_video_call"
+msgid "Video call"
+msgstr "مكالمة فيديو"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_voice_call"
+msgid "Voice call"
+msgstr "مكالمة صوتية"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "continue"
 msgid "&Continue"
@@ -6503,6 +6569,7 @@ msgstr ""
 "الإجراء."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/contact_removal.py
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "delete_contact_local"
 msgid "&Delete contact"
@@ -6529,13 +6596,13 @@ msgstr ""
 "ومن دليل عناوين الهاتف."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
+#: client/ui/dialogs/contact_removal.py
 msgctxt "delete_contact_phone_failed"
 msgid "Could not remove the contact from WhatsApp. It was not deleted."
 msgstr "لم يمكن إزالة جهة الاتصال من واتساب. لم يتم حذفها."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
+#: client/ui/dialogs/contact_removal.py
 msgctxt "delete_contact_phone_removing"
 msgid "Removing contact…"
 msgstr "جاري إزالة جهة الاتصال…"
@@ -9936,7 +10003,7 @@ msgctxt "no_replies_found"
 msgid "No replies to you found."
 msgstr "لم يتم العثور على ردود لك."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
 #: client/ui/dialogs/new_conversation.py
 msgctxt "no_results"
 msgid "No results found."
@@ -20078,7 +20145,8 @@ msgstr "واجه {app_name} خطأً غير متوقع ولم يمكن إكما�
 #: client/core/polls.py client/main_window/calls.py
 #: client/main_window/chat_list.py client/main_window/chats_store.py
 #: client/main_window/groups.py client/main_window/shortcuts.py
-#: client/status_tab/status_rules.py client/ui/conversation_panel/commerce.py
+#: client/status_tab/status_rules.py client/ui/contacts_panel.py
+#: client/ui/conversation_panel/commerce.py
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py

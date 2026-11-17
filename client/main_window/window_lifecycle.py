@@ -454,7 +454,7 @@ class WindowLifecycleMixin:
             if calls_lst is not None and calls_lst.IsShownOnScreen():
                 calls_lst.SetFocus()
                 return
-            for name in ("communities_panel", "channels_panel"):
+            for name in ("contacts_panel", "communities_panel", "channels_panel"):
                 side = getattr(self, name, None)
                 side_lst = getattr(side, "_list", None) if side else None
                 if side_lst is not None and side_lst.IsShownOnScreen():

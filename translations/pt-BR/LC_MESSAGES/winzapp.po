@@ -2070,9 +2070,8 @@ msgstr "Versão do WPPConnect desatualizada"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #: client/ui/conversation_panel/attachments.py
 #: client/ui/conversation_panel/message_menu.py
-#: client/ui/dialogs/conversation_data_dialog.py
-#: client/ui/dialogs/new_contact.py client/ui/dialogs/new_group.py
-#: client/ui/dialogs/new_poll_dialog.py
+#: client/ui/dialogs/contact_removal.py client/ui/dialogs/new_contact.py
+#: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 msgctxt "app_name"
 msgid "WinZapp"
 msgstr "WinZapp"
@@ -6257,6 +6256,73 @@ msgctxt "contacts_count"
 msgid "{count} contacts"
 msgstr "{count} contatos"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+msgctxt "contacts_nav"
+msgid "Contacts"
+msgstr "Contatos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
+#, python-brace-format
+msgctxt "contacts_tab_count"
+msgid "Contacts: {count}"
+msgstr "Contatos: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_delete"
+msgid "Delete contact"
+msgstr "Apagar contato"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
+#, python-brace-format
+msgctxt "contacts_tab_deleted"
+msgid "Contact deleted: {name}."
+msgstr "Contato apagado: {name}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
+msgctxt "contacts_tab_empty"
+msgid "No saved contacts."
+msgstr "Nenhum contato salvo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_enter_label"
+msgid "Enter on a contact"
+msgstr "Enter em um contato"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_info"
+msgid "Contact details"
+msgstr "Dados do contato"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_list"
+msgid "Contacts"
+msgstr "Contatos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_new_contact"
+msgid "New contact"
+msgstr "Novo contato"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_open_chat"
+msgid "Open conversation"
+msgstr "Abrir conversa"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_search"
+msgid "Search contacts"
+msgstr "Pesquisar contatos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_video_call"
+msgid "Video call"
+msgstr "Ligação de vídeo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "contacts_tab_voice_call"
+msgid "Voice call"
+msgstr "Ligação de voz"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "continue"
 msgid "&Continue"
@@ -6621,6 +6687,7 @@ msgstr ""
 "ação não pode ser desfeita."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/contact_removal.py
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "delete_contact_local"
 msgid "&Delete contact"
@@ -6647,13 +6714,13 @@ msgstr ""
 "do WhatsApp e da agenda do celular."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
+#: client/ui/dialogs/contact_removal.py
 msgctxt "delete_contact_phone_failed"
 msgid "Could not remove the contact from WhatsApp. It was not deleted."
 msgstr "Não foi possível remover o contato do WhatsApp. Ele não foi apagado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/conversation_data_dialog.py
+#: client/ui/dialogs/contact_removal.py
 msgctxt "delete_contact_phone_removing"
 msgid "Removing contact…"
 msgstr "Removendo contato…"
@@ -10122,7 +10189,7 @@ msgctxt "no_replies_found"
 msgid "No replies to you found."
 msgstr "Nenhuma resposta a você encontrada."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/contacts_panel.py
 #: client/ui/dialogs/new_conversation.py
 msgctxt "no_results"
 msgid "No results found."
@@ -20528,7 +20595,8 @@ msgstr ""
 #: client/core/polls.py client/main_window/calls.py
 #: client/main_window/chat_list.py client/main_window/chats_store.py
 #: client/main_window/groups.py client/main_window/shortcuts.py
-#: client/status_tab/status_rules.py client/ui/conversation_panel/commerce.py
+#: client/status_tab/status_rules.py client/ui/contacts_panel.py
+#: client/ui/conversation_panel/commerce.py
 #: client/ui/conversation_panel/contact_messages.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/message_rendering.py

@@ -59,7 +59,7 @@ class NavigationPanel(wx.Panel):
             self.main_window, "chat_lock_navigation_visible", lambda: False
         )():
             keys.append("locked")
-        keys.extend(["status", "calls", "communities", "channels", "starred", "settings"])
+        keys.extend(["status", "calls", "communities", "channels", "contacts", "starred", "settings"])
         i18n = self.main_window.i18n
         labels = {
             "conversations": f"{i18n.t('conversations')} alt+1",
@@ -67,6 +67,7 @@ class NavigationPanel(wx.Panel):
             "locked": i18n.t("locked_chats_nav"),
             "status": i18n.t("status_nav"),
             "calls": i18n.t("calls_nav"),
+            "contacts": i18n.t("contacts_nav"),
             "communities": i18n.t("communities_nav"),
             "channels": i18n.t("channels_nav"),
             "starred": i18n.t("starred_nav"),
@@ -136,6 +137,12 @@ class NavigationPanel(wx.Panel):
 
         if key == "locked":
             mw.show_locked_chats_panel()
+            return
+
+        if key == "contacts":
+            # a panel, as Communities (main_window/content_panels.py)
+            from main_window.content_panels import show_contacts
+            show_contacts(mw)
             return
 
         if key == "communities":

@@ -31,7 +31,7 @@ class _Shown:
 def _window(open_conversation=None):
     mw = types.SimpleNamespace(
         status_panel=_Shown(True), calls_panel=_Shown(), communities_panel=_Shown(),
-        channels_panel=_Shown(), archived_conversations_panel=_Shown(True),
+        channels_panel=_Shown(), contacts_panel=_Shown(), archived_conversations_panel=_Shown(True),
         locked_conversations_panel=_Shown(), lock_chat_vault=Mock(),
         content_panel=types.SimpleNamespace(Layout=Mock()),
         _channel_opened_from_window="1@newsletter")
@@ -46,9 +46,9 @@ def test_every_side_panel_is_hidden_but_the_one_kept():
     mw, _closed = _window()
     mw.channels_panel.shown = True
     content_panels.hide_side_panels(mw, keep=mw.calls_panel)
-    assert [p.shown for p in content_panels.side_panels(mw)] == [False, False, False, False]
+    assert [p.shown for p in content_panels.side_panels(mw)] == [False] * 5
     assert [name for name in content_panels.SIDE_PANELS] == [
-        "status_panel", "calls_panel", "communities_panel", "channels_panel"]
+        "status_panel", "calls_panel", "communities_panel", "channels_panel", "contacts_panel"]
 
 
 def test_alt_8_shows_communities_alone_and_closes_the_conversation():
