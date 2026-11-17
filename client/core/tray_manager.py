@@ -106,7 +106,12 @@ class TrayIcon(wx.adv.TaskBarIcon):
         # Only return unread info if initial sync has completed
         if getattr(mw, "_sync_completed", False):
             deleted = getattr(mw, "_deleted_chats", set())
-            for jid, chat in mw.chats.items():
+            # A snapshot, like _update_title()'s own count: a sync (a Neonize
+            # account downloading media) moves a chat to another address
+            # while this walks, and the live view raised "dictionary keys
+            # changed during iteration" out of the title update. list() of
+            # the view is copied in C under the GIL.
+            for jid, chat in list(mw.chats.items()):
                 # Archived conversations get their own unread indicator on the
                 # "Conversas arquivadas" nav item — same exclusion as the
                 # window title (_update_title()), so the tray tooltip/icon

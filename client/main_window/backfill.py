@@ -1583,7 +1583,7 @@ class BackfillMixin:
         allowed = None if jids is None else {self._normalize_jid(j) for j in jids if j}
         tasks = [
             msg
-            for key, chat in self.chats.items()
+            for key, chat in list(self.chats.items())
             if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)

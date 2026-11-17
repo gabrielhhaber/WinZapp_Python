@@ -156,7 +156,7 @@ class NewConversationDialog(wx.Dialog):
             )
 
         # ── Search existing chats ─────────────────────────────────────────────
-        for jid, chat in mw.chats.items():
+        for jid, chat in list(mw.chats.items()):
             if not jid or jid.endswith(("@g.us", "@broadcast", "@newsletter")):
                 continue
             name = _name_for_chat(chat)
@@ -290,7 +290,7 @@ class NewConversationDialog(wx.Dialog):
             existing = mw.chats.get(norm_jid) or mw.chats.get(jid)
         if existing is None:
             target_key = contact_dedup_key(mw, norm_jid)
-            for existing_jid, existing_chat in mw.chats.items():
+            for existing_jid, existing_chat in list(mw.chats.items()):
                 if existing_jid.endswith("@g.us"):
                     continue
                 if contact_dedup_key(mw, existing_jid) == target_key:

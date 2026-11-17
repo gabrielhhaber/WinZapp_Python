@@ -98,7 +98,7 @@ class ChatEventsMixin:
         # LID (the account LID), not the recipient's JID, so none of the candidates
         # matched. The message is actually stored in the recipient's chat.
         if not found_msg:
-            for jid, chat_data in self.chats.items():
+            for jid, chat_data in list(self.chats.items()):
                 if jid in candidates:
                     continue
                 recs = (

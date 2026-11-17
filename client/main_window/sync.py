@@ -2107,7 +2107,7 @@ class SyncMixin:
                     list(self.chats.values())
                     if media_scope_jids is None
                     else [
-                        chat for key, chat in self.chats.items()
+                        chat for key, chat in list(self.chats.items())
                         if self._normalize_jid(chat.get("remoteJid") or key) in media_scope_jids
                     ]
                 )

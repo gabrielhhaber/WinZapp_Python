@@ -1842,7 +1842,7 @@ class MessageEventsMixin:
         ConversationsPanel can rebuild the in-conversation reaction display
         on reopen), so replaying it here needs no extra DB round-trip.
         """
-        for jid, chat in self.chats.items():
+        for jid, chat in list(self.chats.items()):
             if not isinstance(chat, dict):
                 continue
             records = (
