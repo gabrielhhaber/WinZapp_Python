@@ -90,7 +90,7 @@ def test_opening_and_cancelling_settings_never_writes_defaults_or_changes_choice
 
 def test_preview_uses_current_working_path_and_falls_back_when_removed(tmp_path):
     custom = tmp_path / "custom.wav"
-    bundled = tmp_path / "typing.wav"
+    bundled = tmp_path / "typing.ogg"
     custom.write_bytes(b"custom")
     bundled.write_bytes(b"default")
     p = SoundEventFiles.__new__(SoundEventFiles)
@@ -99,7 +99,7 @@ def test_preview_uses_current_working_path_and_falls_back_when_removed(tmp_path)
         _sound_events_list=Control(next(i for i, (key, _) in enumerate(SOUND_EVENTS) if key == "typing")),
         _sound_event_path_field=Control(str(custom)), _current_pack_id="other",
         main_window=SimpleNamespace(_sound_packs={"other": {"dir": str(tmp_path), "events": {}}},
-                                    _default_sound_pack={"dir": str(tmp_path), "events": {"typing": "typing.wav"}}))
+                                    _default_sound_pack={"dir": str(tmp_path), "events": {"typing": "typing.ogg"}}))
     assert p.resolve() == str(custom)
     custom.unlink()
     assert p.resolve() == str(bundled)

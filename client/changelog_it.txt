@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- I suoni di digitazione, bolla di digitazione, impulso di digitazione ed elaborazione IA del pacchetto sonoro predefinito ora sono file Ogg, come il resto del pacchetto. Non cambia nulla nel suono né nei tuoi suoni personalizzati.
+
 - In una chat aperta, con la ricerca dei messaggi (Ctrl+Shift+F) attiva, il primo Esc cancella la ricerca e chiude la barra, e il lettore di schermo dice "Ricerca dei messaggi cancellata"; il successivo Esc chiude la chat. Si può disattivare in Impostazioni, Chat.
 
 - Negli elenchi di chat (normale, archiviate e bloccate), Esc azzera la ricerca e i filtri e il lettore di schermo dice "Filtri azzerati"; con delle chat selezionate, il primo Esc annulla ancora solo la selezione. Si può disattivare in Impostazioni, Chat. This also works from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.
