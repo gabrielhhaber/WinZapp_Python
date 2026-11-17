@@ -11,6 +11,7 @@ import threading
 import time
 import wx
 from main_window.typing_feedback import stop_typing_for_capture
+from ui.conversation_panel.call_capabilities import refresh_call_controls
 from main_window.call_desktop_audio import call_desktop_share_settings, stop_call_desktop_audio
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
@@ -1735,6 +1736,9 @@ class CallsMixin:
         follow = getattr(self, "_participants_dialog_follow_call", None)
         if follow is not None:
             follow()
+        # The open chat's call buttons and its "Return to call" follow the
+        # call; a one-to-one chat has nothing else that brings them back.
+        refresh_call_controls(self)
         window = getattr(self, "voice_call_window", None)
         if window is None:
             return

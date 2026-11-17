@@ -233,3 +233,34 @@ def test_a_legacy_phone_chat_id_is_canonical_so_a_locked_chat_stays_hidden():
     panel.main_window._locked_jids.add(phone)
     panel._populate_all()
     assert not panel._rows[TAB_ONGOING]
+
+
+PERSON_CHAT = "5511999990000@s.whatsapp.net"
+CREATOR_LID = "123456789012345@lid"
+
+
+def same_chat(a, b):
+    return a == b or {a, b} == {PERSON_CHAT, CREATOR_LID}
+
+
+def test_the_call_of_a_one_to_one_chat_is_found_under_the_creators_lid():
+    from core.ongoing_calls import ongoing_for_chat
+    entries = [{"jid": "1203@g.us", "ongoing": {"id": "G", "chatJid": "1203@g.us", "isVideo": False}},
+               {"jid": CREATOR_LID, "ongoing": {"id": "C1", "chatJid": CREATOR_LID, "isVideo": True}}]
+    assert ongoing_for_chat(entries, PERSON_CHAT, same_chat) == {
+        "id": "C1", "groupJid": PERSON_CHAT, "chatJid": CREATOR_LID, "isVideo": True}
+    assert ongoing_for_chat(entries, "5522@s.whatsapp.net", same_chat) is None
+
+
+@pytest.mark.parametrize("ongoing, active, kind", [
+    (None, None, ""),
+    ({"id": "C1", "groupJid": PERSON_CHAT, "isVideo": False}, None, "join"),
+    ({"id": "C1", "groupJid": "other@s.whatsapp.net", "isVideo": False}, None, ""),
+    (None, {"call_id": "C1", "peer_jid": CREATOR_LID}, "return"),
+    (None, {"call_id": "C2", "peer_jid": "5522@s.whatsapp.net"}, ""),
+    ({"id": "C1", "groupJid": PERSON_CHAT, "isVideo": False},
+     {"call_id": "C1", "peer_jid": "5599@lid"}, "return"),
+])
+def test_what_a_chat_offers_in_place_of_its_call_buttons(ongoing, active, kind):
+    from core.ongoing_calls import chat_call_button
+    assert chat_call_button(PERSON_CHAT, ongoing, active, same_chat) == kind

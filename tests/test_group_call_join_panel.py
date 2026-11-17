@@ -274,16 +274,72 @@ def test_an_unchanged_poll_answer_does_not_relayout(runtime):
     assert panel.conversation_panel.layouts == before + 1
 
 
-def test_one_to_one_start_buttons_stay_while_a_call_with_that_contact_is_active(runtime):
-    """Only the group watch re-syncs the start buttons after a call ends, so a
-    one-to-one chat reopened during a call must never lose them."""
+LID = "123456789012345@lid"
+
+
+def person_panel():
+    """A one-to-one chat kept under the number, whose call WhatsApp files under
+    the creator's @lid (seen over CDP on 2026-11-17)."""
     panel = Panel()
     panel.conversation = {"remoteJid": PERSON}
-    panel.main_window._active_voice_call = {"call_id": "C1", "peer_jid": PERSON}
+    panel.conversation_name = "Ana"
+    panel.main_window._chat_jids_equivalent = lambda a, b: a == b or {a, b} == {PERSON, LID}
+    panel.main_window._sync_voice_call_bar = lambda: panel.started.append("bar")
+    panel.main_window._focus_call_window = lambda: panel.started.append("focus")
+    return panel
+
+
+def test_a_call_with_that_contact_on_this_device_offers_return_to_call(runtime):
+    """Reported 2026-11-17: in a call with a contact, their chat kept "Call"
+    instead of offering the call in progress."""
+    panel = person_panel()
+    panel.main_window._active_voice_call = {"call_id": "C1", "peer_jid": LID}
     panel._sync_voice_call_button(PERSON)
+    assert not panel._voice_call_btn.shown and not panel._video_call_btn.shown
+    assert panel._group_call_join_btn.shown
+    assert panel._group_call_join_btn.label == "calls_return_to_current"
+    panel._on_join_ongoing_group_call()
+    assert panel.started == ["bar", "focus"]
+    # hang-up: MainWindow._sync_voice_call_bar refreshes from the cache
+    panel.main_window._active_voice_call = None
+    panel._show_ongoing_group_call(getattr(panel, "_ongoing_group_call", None))
     assert panel._voice_call_btn.shown and panel._video_call_btn.shown
-    panel.main_window._active_voice_call = None  # hang-up: nothing re-syncs
+    assert not panel._group_call_join_btn.shown
+
+
+def test_a_call_filed_under_the_contacts_lid_is_found_and_joined(runtime):
+    queued, _ = runtime
+    panel = person_panel()
+    panel.result = [{"id": "C9", "chatJid": "5599@lid", "isVideo": False},
+                    {"id": "C1", "chatJid": LID, "isVideo": True}]
+    panel._sync_voice_call_button(PERSON)
+    queued.pop(0)()
+    assert panel.requests == [("ongoing", {})]
+    assert panel._group_call_join_btn.shown
+    assert panel._group_call_join_btn.label == "group_call_join_video_button"
+    assert not panel._voice_call_btn.shown and not panel._video_call_btn.shown
+    panel._on_join_ongoing_group_call()
+    # joined under the engine's own form of the chat (call/group/join checks it)
+    assert panel.started == [((LID, "Ana"), {
+        "is_group": True, "is_video": True, "join_call_id": "C1"})]
+
+
+def test_a_contact_with_no_call_keeps_the_call_buttons(runtime):
+    queued, _ = runtime
+    panel = person_panel()
+    panel.result = [{"id": "C9", "chatJid": "5599@lid", "isVideo": False}]
+    panel._sync_voice_call_button(PERSON)
+    queued.pop(0)()
+    assert not panel._group_call_join_btn.shown
     assert panel._voice_call_btn.shown and panel._video_call_btn.shown
+
+
+def test_the_self_chat_is_never_watched(runtime):
+    queued, _ = runtime
+    panel = person_panel()
+    panel.main_window._is_self_jid = lambda jid: jid == PERSON
+    panel._watch_group_calls(PERSON)
+    assert not queued
 
 
 @pytest.mark.parametrize("handler", [ComposerMixin._on_voice_call, ComposerMixin._on_video_call])
