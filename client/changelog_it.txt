@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Quando crei un sondaggio, la casella Nascondi i nomi dei votanti e la scelta Limite di tempo (nessun limite, 1 ora, 8 ore, 24 ore, 3 giorni o 7 giorni) ora funzionano sia con Neonize sia con WPPConnect. In Vedi voti, un sondaggio che nasconde i nomi mostra "Nome nascosto" al posto di chi ha votato; il tuo voto continua a comparire come "Me".
+
 - I messaggi contrassegnati con stella ora finiscono con le parole "Contrassegnato con stella", come "Modificato" e "Inoltrato", invece di iniziare con il simbolo ★. Una nuova opzione in Impostazioni > Interfaccia utente > Messaggi annuncia la parola all'inizio della riga, prima del mittente.
 
 - I suoni di digitazione, bolla di digitazione, impulso di digitazione ed elaborazione IA del pacchetto sonoro predefinito ora sono file Ogg, come il resto del pacchetto. Non cambia nulla nel suono né nei tuoi suoni personalizzati.

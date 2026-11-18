@@ -21,6 +21,7 @@ from aiohttp import web
 
 import audio_message
 import media_probe
+import poll_settings
 import send_log
 import channels
 import administration
@@ -550,7 +551,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             voters.append({"sender": sender, "mine": who == "me",
                            "name": name.get("name") or name.get("pushname") or "",
                            "localIds": ids})
-        return {"ok": True, "options": options, "voters": voters}
+        original = self.db.wpp_message(self.id_parts(serial)[2]) or {}
+        return {"ok": True, "options": options, "voters": voters,
+                "hideVoterNames": original.get("pollHideVoterNames") is True}
 
     def vote_in_poll(self, serial, local_ids):
         """Votes (or, with no ids, removes the vote) in a poll."""
@@ -2969,6 +2972,7 @@ def create_app(folder, fixed=""):
             phone += "@g.us"
         destination = destination_of(phone)
         multiple = int((body.get("options") or {}).get("selectableCount", 1)) != 1
+        hide_voters, duration = poll_settings.wanted(body.get("options"))
 
         def send():
             if channel_media.is_channel(destination):
@@ -2977,6 +2981,7 @@ def create_app(folder, fixed=""):
             created = s.client.build_poll_vote_creation(
                 body["name"], list(body["choices"]),
                 VoteType.MULTIPLE if multiple else VoteType.SINGLE)
+            created = poll_settings.apply(created, hide_voters, duration, int(time.time() * 1000))
             return s.client.send_message(destination, created)
         try:
             resp = await in_thread(send)

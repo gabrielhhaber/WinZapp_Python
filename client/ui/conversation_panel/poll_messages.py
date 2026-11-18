@@ -34,6 +34,7 @@ class PollMessagesMixin:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             question, options, selectable = dlg.question, dlg.options, dlg.selectable
+            hide_voters, duration = dlg.hide_voter_names, dlg.duration_seconds
         finally:
             dlg.Destroy()
 
@@ -48,6 +49,7 @@ class PollMessagesMixin:
                     "name": question,
                     "options": [{"name": opt} for opt in options],
                     "selectableOptionsCount": selectable,
+                    **({"hideVoterNames": True} if hide_voters else {}),
                 }
             },
             "messageTimestamp": pending_send_timestamp(
@@ -62,7 +64,8 @@ class PollMessagesMixin:
             self.messages_list.EnsureVisible(last)
         pm = PendingMessage(
             local_id, remote_jid,
-            poll={"name": question, "options": options, "selectableCount": selectable},
+            poll={"name": question, "options": options, "selectableCount": selectable,
+                  "hideVoterNames": hide_voters, "durationSeconds": duration},
         )
         self.main_window.message_queue.enqueue(pm)
         self.main_window.mark_conversation_as_read(remote_jid)

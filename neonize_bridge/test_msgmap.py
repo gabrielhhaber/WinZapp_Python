@@ -111,6 +111,24 @@ def test_poll_carries_position_and_option_limit():
     assert m["pollOptions"] == [{"name": "Yes", "localId": 0}, {"name": "No", "localId": 1}]
 
 
+def test_poll_v6_carries_hidden_voter_names_and_end_time():
+    msg = Message()
+    msg.pollCreationMessageV6.name = "Lunch?"
+    msg.pollCreationMessageV6.hideParticipantName = True
+    msg.pollCreationMessageV6.endTime = 1893456000000
+    for name in ("Yes", "No"):
+        msg.pollCreationMessageV6.options.add().optionName = name
+    m = msgmap.build(chat="1@g.us", from_me=False, id="P", sender="2@s.whatsapp.net",
+                     ts=5, message=msg)
+    assert m["type"] == "poll_creation"
+    assert m["pollHideVoterNames"] is True and m["pollEndTime"] == 1893456000000
+    plain = Message()
+    plain.pollCreationMessage.name = "x"
+    m = msgmap.build(chat="1@g.us", from_me=False, id="Q", sender="2@s.whatsapp.net",
+                     ts=5, message=plain)
+    assert "pollHideVoterNames" not in m and "pollEndTime" not in m
+
+
 def test_vote_is_recognized_and_the_options_come_from_the_hash():
     import hashlib
     msg = Message()

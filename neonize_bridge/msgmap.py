@@ -281,6 +281,11 @@ def _content(inner, field, chat_w, out) -> bool:
                    pollSelectableOptionsCount=int(poll.selectableOptionsCount or 0),
                    pollOptions=[{"name": o.optionName, "localId": i}
                                 for i, o in enumerate(poll.options)])
+        # V6 (hide voter names, time limit): WhatsApp Web's own field names
+        if poll.hideParticipantName:
+            out["pollHideVoterNames"] = True
+        if poll.endTime:
+            out["pollEndTime"] = int(poll.endTime)
     elif field == "eventMessage":
         import events
         out.update(events.event_fields(inner.eventMessage))
