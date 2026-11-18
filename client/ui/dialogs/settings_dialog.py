@@ -1716,6 +1716,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._forwarded_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._starred_prefix_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_starred_prefix_label")
+        )
+        messages_sizer.Add(
+            self._starred_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         # How the box of the delete confirmations starts; the confirmation
         # itself still lets each delete decide.
         self._delete_media_default_cb = wx.CheckBox(
@@ -2751,6 +2758,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "messages"):
             self._forwarded_prefix_cb.SetValue(bool(forwarded_prefix_enabled))
+
+        starred_prefix_enabled = self.main_window.settings.get("user_interface", {}).get(
+            "starred_prefix_enabled", False
+        )
+        if wanted(unit, "messages"):
+            self._starred_prefix_cb.SetValue(bool(starred_prefix_enabled))
 
         delete_media_from_phone = self.main_window.settings.get("user_interface", {}).get(
             "delete_media_from_phone", True
@@ -4289,6 +4302,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "forwarded_prefix_enabled"
             ] = self._forwarded_prefix_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
+                "starred_prefix_enabled"
+            ] = self._starred_prefix_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
                 "delete_media_from_phone"
             ] = self._delete_media_default_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
@@ -5019,6 +5035,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
             self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
             self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
+            self._starred_prefix_cb.SetLabel(i18n.t("ui_starred_prefix_label"))
             self._delete_media_default_cb.SetLabel(i18n.t("ui_delete_media_default_label"))
             self._forward_keep_link_preview_cb.SetLabel(
                 i18n.t("ui_forward_keep_link_preview_label"))

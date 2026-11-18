@@ -15197,6 +15197,12 @@ msgid "Sent"
 msgstr "Inviato"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "Contrassegnato con stella"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
 msgctxt "status_text"
 msgid "Text"
@@ -20580,11 +20586,11 @@ msgstr "Mostra anteprime dei lin&k nell'elenco dei messaggi"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
-"&Mostra la posizione e il conteggio degli elementi quando si utilizza la "
-"modalità Casella elenco (si applica solo quando è selezionata la modalità "
+"Mostra la posizione e il conteggio degli elementi quando si utilizza la "
+"modalit&à Casella elenco (si applica solo quando è selezionata la modalità "
 "Casella elenco)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20609,6 +20615,14 @@ msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr ""
 "&Utilizza la barra spaziatrice per selezionare/deselezionare quando è già "
 "presente una selezione"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr ""
+"Pronuncia \"Contrassegnato con stella\" all'inizio del &messaggio, prima del"
+" mittente"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

@@ -15133,6 +15133,12 @@ msgid "Sent"
 msgstr "Enviada"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "Marcada com estrela"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
 msgctxt "status_text"
 msgid "Text"
@@ -20110,7 +20116,7 @@ msgid ""
 "&When deleting a media message, start with \"Also delete the media from your"
 " phone\" checked"
 msgstr ""
-"&Ao eliminar uma mensagem multimédia, deixar já marcada a opção \"Eliminar "
+"Ao eliminar uma mensagem multimédia, deixar &já marcada a opção \"Eliminar "
 "também a multimédia do telemóvel\""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20449,7 +20455,7 @@ msgstr "Mostrar pré-visuali&zações de links na lista de mensagens"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
 "E&xibir posição e quantidade de itens ao usar o modo Caixa de lista (Válido "
@@ -20475,6 +20481,13 @@ msgstr "&Mostrar mensagens do dia anterior com data omitida (ontem)"
 msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr "&Utilizar Espaço para marcar/desmarcar enquanto existir algo marcado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr ""
+"&Anunciar \"Marcada com estrela\" no início da mensagem, antes do remetente"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

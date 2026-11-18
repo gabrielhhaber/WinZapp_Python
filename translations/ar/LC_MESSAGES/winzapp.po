@@ -14806,6 +14806,12 @@ msgid "Sent"
 msgstr "تم الإرسال"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "تم التمييز بنجمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
 msgctxt "status_text"
 msgid "Text"
@@ -19943,7 +19949,7 @@ msgstr "إظهار معاينات ال&روابط في قائمة الرسائل
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
 "إظهار موضع العنصر وعدد العناصر عند استخدام وضع صندوق ال&قائمة (ينطبق فقط "
@@ -19967,6 +19973,12 @@ msgstr "إظهار رسائل أمس مع حذف ال&تاريخ (أمس)"
 msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr "استخدام Space &لتحديد/إلغاء تحديد كلما كان هناك تحديد موجود"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr "إعلان \"تم التمييز بن&جمة\" في بداية الرسالة، قبل المرسل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

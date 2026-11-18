@@ -1236,6 +1236,7 @@ DEFAULT_SETTINGS = {
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
+        "starred_prefix_enabled": False,
         # How the "also delete the media from your phone" box of the delete
         # confirmations starts. On is WhatsApp Web's own default and what
         # WinZapp did before the box existed, so no migration.
