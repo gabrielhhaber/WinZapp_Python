@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens favoritadas agora terminam com a palavra "Favoritada", como "Editada" e "Encaminhada", em vez de começarem com o símbolo ★.
+
 - Os sons de digitação, bolha de digitação, pulso de digitação e processamento de IA do pacote de som padrão agora são arquivos Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.
 
 - Dentro de uma conversa aberta, com a pesquisa de mensagens (Ctrl+Shift+F) ativa, o primeiro Esc limpa a pesquisa e fecha a barra, e o leitor de tela diz "Pesquisa de mensagens limpa"; o Esc seguinte fecha a conversa. Dá para desligar em Configurações, Conversas.

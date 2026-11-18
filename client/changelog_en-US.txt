@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Starred messages now end with the word "Starred", like "Edited" and "Forwarded", instead of starting with the ★ symbol.
+
 - The default sound pack's typing, typing_bubble, typing_pulse and AI processing sounds are now Ogg files, like the rest of the pack. Nothing changes in how they sound or in your custom sounds.
 
 - Inside an open chat with the message search (Ctrl+Shift+F) active, the first Esc clears the search and closes the bar, and the screen reader says "Message search cleared"; the next Esc closes the chat. You can turn it off in Settings, Chats.

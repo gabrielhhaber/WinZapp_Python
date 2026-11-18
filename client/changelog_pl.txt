@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wiadomości oznaczone gwiazdką kończą się teraz słowami "Oznaczono gwiazdką", tak jak "Edytowano" i "Przekazano", zamiast zaczynać się od symbolu ★.
+
 - Dźwięki pisania, bańki pisania, impulsu pisania i przetwarzania AI w domyślnym pakiecie dźwięków są teraz plikami Ogg, tak jak reszta pakietu. Brzmienie i Twoje własne dźwięki się nie zmieniają.
 
 - W otwartym czacie z aktywnym wyszukiwaniem wiadomości (Ctrl+Shift+F) pierwszy Esc czyści wyszukiwanie i zamyka pasek, a czytnik ekranu mówi „Wyszukiwanie wiadomości wyczyszczone”; kolejny Esc zamyka czat. Można to wyłączyć w Ustawieniach, Czaty.

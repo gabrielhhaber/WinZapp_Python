@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Los mensajes destacados ahora terminan con la palabra "Destacado", como "Editado" y "Reenviado", en lugar de empezar con el símbolo ★.
+
 - Los sonidos de escritura, burbuja de escritura, pulso de escritura y procesamiento de IA del paquete de sonido predeterminado ahora son archivos Ogg, como el resto del paquete. No cambia cómo suenan ni tus sonidos personalizados.
 
 - Dentro de un chat abierto, con la búsqueda de mensajes (Ctrl+Shift+F) activa, la primera pulsación de Esc borra la búsqueda y cierra la barra, y el lector de pantalla dice "Búsqueda de mensajes borrada"; la siguiente cierra el chat. Se puede desactivar en Configuración, Chats.

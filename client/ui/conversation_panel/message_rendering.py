@@ -1251,8 +1251,6 @@ class MessageRenderingMixin:
                                or (not sender and hide_unnamed_sender_numbers_enabled(
                                    self.main_window.settings)))]
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
-        if msg.get("starred"):
-            pieces[0] = f"★ {pieces[0]}"
         if msg.get("pinInChat"):
             pieces[0] = f"📌 {i18n.t('message_pinned')}, {pieces[0]}"
         # Settings > Interface do usuário > "Anunciar 'Encaminhada' no início
@@ -1279,6 +1277,11 @@ class MessageRenderingMixin:
             pieces[-1] += f", {i18n.t('status_edited')}"
         if is_forwarded:
             pieces[-1] += f", {i18n.t('status_forwarded')}"
+        # A starred message ends with the word "Favoritada", like "Editada"
+        # and "Encaminhada". It used to open with a star glyph, which screen
+        # readers skip or read differently depending on the symbol level.
+        if msg.get("starred"):
+            pieces[-1] += f", {i18n.t('status_starred')}"
 
         # Append quoted message preview (if this is a reply)
         if ctx and include_quoted_preview:

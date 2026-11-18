@@ -21,6 +21,7 @@ class _FakeI18n:
     _STRINGS = {
         "status_forwarded": "Encaminhada",
         "status_edited": "Editada",
+        "status_starred": "Favoritada",
         "selected_suffix": "selecionada",
     }
 
@@ -106,11 +107,11 @@ class TestEnabledMovesItToTheFront:
         line = stub._render_message_line(_forwarded_msg())
         assert line.count("Encaminhada") == 1
 
-    def test_it_precedes_the_star_marker_too(self):
+    def test_it_precedes_the_starred_word_too(self):
         stub = _Stub(forwarded_prefix_enabled=True)
         msg = _forwarded_msg(starred=True)
         line = stub._render_message_line(msg)
-        assert line == "Encaminhada, ★ Fulano: corpo da mensagem"
+        assert line == "Encaminhada, Fulano: corpo da mensagem, Favoritada"
 
     def test_a_non_forwarded_message_is_unaffected(self):
         stub = _Stub(forwarded_prefix_enabled=True)
