@@ -175,7 +175,10 @@ class MessageRenderingMixin:
 
         # ── Call ─────────────────────────────────────────────────────────────
         if is_call_log(msg):
-            return call_log_label(msg, i18n, self._format_duration)
+            # A one-to-one call that became a group call says who it was with.
+            people = getattr(self.main_window, "call_log_participants_text", None)
+            return call_log_label(msg, i18n, self._format_duration,
+                                  people(msg) if people is not None else "")
 
         # ── Order, or a seller's follow-up to one (core/commerce.py) ─────────
         commerce_text = commerce_message_label(msg, i18n)

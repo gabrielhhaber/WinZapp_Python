@@ -140,15 +140,31 @@ def state_event(call, *, state, event="state", now=None) -> dict:
             "observedAt": int(now if now is not None else time.time())}
 
 
-def finished_info(call, state, now) -> dict:
+def finished_info(call, state, now, participants=()) -> dict:
     """What the session needs to write the record of a call that ended: who and
     which way it went, the state it ended in, and when it became active (the
     answer), so its duration is known, and when a call placed here was placed
-    (the start the phone's call history shows)."""
+    (the start the phone's call history shows). `participants` are the people
+    its group roster ever listed (CallMedia.participants_of): a one-to-one call
+    that became a group call is named after them, as on the phone."""
     return {"id": call["id"], "peer": call.get("peer", ""), "outgoing": bool(call.get("outgoing")),
             "video": bool(call.get("video")), "group": call.get("group") or "",
             "state": state, "activeAt": call.get("active_at"), "endedAt": now,
-            "placedAt": call.get("placed_at")}
+            "placedAt": call.get("placed_at"), "participants": list(participants or ())}
+
+
+def roster_people(participants, known=()) -> list:
+    """`known` plus every person on a roster ([{jid, pn, state}]) it did not
+    have yet, in the order they appeared: everyone who was on the call's list,
+    whatever their state, as WhatsApp's own record keeps them."""
+    out = list(known or ())
+    for p in participants or ():
+        if not isinstance(p, dict):
+            continue
+        jid = ongoing_calls.person_jid(p)
+        if jid and jid not in out:
+            out.append(jid)
+    return out
 
 
 def roster_connected(participants, mine) -> tuple:
@@ -231,6 +247,10 @@ class CallMedia(CallIngressMixin):
         self.own_users = lambda: set()
         # call id -> the connected people last reported (report_rosters)
         self._reported_rosters = {}
+        # call id -> everyone a group roster of the call ever listed: outlives
+        # the call, so its call_log names them (calls.record_end and
+        # record_finished) whatever order the end reaches the two layers
+        self._participants = {}
         # called with the facts of each call that ended (finished_info), for
         # the session to write its call_log: WhatsApp Web writes no record of
         # a call this engine placed or hung up itself
@@ -389,7 +409,8 @@ class CallMedia(CallIngressMixin):
                 self._unowned_audio.report(force=True)
                 self.emit("callstate", {"session": self.name, "data": data})
                 try:
-                    self.on_finished(finished_info(call, state, time.time()))
+                    self.on_finished(finished_info(call, state, time.time(),
+                                                   self.participants_of(call_id)))
                 except Exception:
                     log.exception("call finished")
 
@@ -454,6 +475,7 @@ class CallMedia(CallIngressMixin):
             if not roster.get("group"):
                 continue                    # a private call: no roster to follow
             participants = roster.get("participants")
+            self._note_participants(call_id, participants)
             connected = roster_connected(participants, mine)
             seen = (connected, roster_states(participants))
             with self._lock:
@@ -1010,6 +1032,19 @@ class CallMedia(CallIngressMixin):
         with self._lock:
             found = self._answered.get(call_id)
             return dict(found) if found else None
+
+    def participants_of(self, call_id):
+        """Everyone the call's group roster listed while it ran (this account
+        included), or [] for a call that never had one."""
+        with self._lock:
+            return list(self._participants.get(call_id) or ())
+
+    def _note_participants(self, call_id, participants):
+        with self._lock:
+            known = self._participants.pop(call_id, ())
+            self._participants[call_id] = roster_people(participants, known)
+            while len(self._participants) > ANSWERED_KEPT:
+                self._participants.pop(next(iter(self._participants)))
 
     def _note_answered(self, call_id):
         with self._lock:

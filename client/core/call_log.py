@@ -21,6 +21,8 @@ build the same label from the same record.
 
 from __future__ import annotations
 
+from core.call_log_participants import call_participant_jids
+
 CALL_LOG_MESSAGE_TYPE = "callLogMessage"
 # What builds before this module stored: the raw WhatsApp type with no call
 # data at all (the normalizer had no branch for it). Rendered generically until
@@ -112,13 +114,18 @@ def call_log_payload(wpp_msg: dict) -> dict:
         outcome = final
     participants = wpp_msg.get("callParticipants")
     participant_count = len(participants) if isinstance(participants, list) else 0
-    return {
+    payload = {
         "outcome": outcome,
         "isVideo": bool(wpp_msg.get("isVideoCall")),
         "durationSeconds": _as_int(wpp_msg.get("callDuration")),
         # More than the two ends of a one-to-one call, or a call link.
         "isGroupCall": participant_count > 2 or bool(wpp_msg.get("isCallLink")),
     }
+    if participant_count > 2:
+        # Who a one-to-one call that became a group call was with: the row is
+        # named after them, as on the phone (core/call_log_participants.py).
+        payload["participants"] = call_participant_jids(participants)
+    return payload
 
 
 def call_log_creator(wpp_msg: dict) -> str:
@@ -177,12 +184,21 @@ def call_log_is_video(msg) -> bool:
     return bool(call_log_data(msg).get("isVideo"))
 
 
-def call_log_label(msg, i18n, format_duration) -> str:
+def call_log_participants(msg) -> list:
+    """The stored participant JIDs of a call that became a group call, or []."""
+    people = call_log_data(msg).get("participants")
+    return [str(j) for j in people if j] if isinstance(people, list) else []
+
+
+def call_log_label(msg, i18n, format_duration, participants: str = "") -> str:
     """The sentence a call-log row reads, e.g. "Ligação de voz atendida,
     duração: 30 minutos e 59 segundos".
 
     *format_duration* turns seconds into words ("" when unknown) — the
     conversation panel passes the one voice messages already use.
+    *participants* names the people of a one-to-one call that became a group
+    call ("A, B e mais 3 pessoas", MainWindow.call_log_participants_text());
+    the sentence then says who the call was with.
     """
     if not is_call_log(msg):
         return ""
@@ -191,6 +207,9 @@ def call_log_label(msg, i18n, format_duration) -> str:
         return i18n.t("call_log_generic")
     status = call_log_status(msg)
     label = i18n.t(_LABEL_KEYS[(status, bool(data.get("isVideo")))])
+    if participants:
+        label = i18n.t("call_log_label_with_participants").format(
+            label=label, names=participants)
     seconds = _as_int(data.get("durationSeconds"))
     if status in _DURATION_STATUSES and seconds > 0:
         duration = format_duration(seconds)

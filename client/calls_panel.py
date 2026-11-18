@@ -227,7 +227,13 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         if panel is not None:
             ts = panel._extract_timestamp(msg)
             when = panel._format_date(ts) if ts else ""
-        return call_row_text(entry, mw.chat_display_name(entry["jid"]), label, when)
+        # A one-to-one call that became a group call is named after its people,
+        # as on the phone ("A, B e mais 3 pessoas"), not after the chat it was
+        # filed under (for one placed here, the account's own chat).
+        people = getattr(mw, "call_log_participants_text", None)
+        name = (people(msg, entry["jid"]) if people is not None else "") \
+            or mw.chat_display_name(entry["jid"])
+        return call_row_text(entry, name, label, when)
 
     def _show_placeholder(self, text):
         for tab in CALL_TABS:

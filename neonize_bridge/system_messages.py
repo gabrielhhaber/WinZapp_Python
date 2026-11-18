@@ -181,13 +181,19 @@ def call_outcome(state, was_ringing):
 
 
 def call_record(*, call_id, chat_w, creator_w, outcome, video, ts, duration=0,
-                from_me=False) -> dict:
+                from_me=False, participants=()) -> dict:
     """`call_log` message (id = the call's id). `chat_w` is the peer in an
     ordinary call and the group in a group one; `creator_w` is who called;
-    `from_me` is a call this account placed."""
+    `from_me` is a call this account placed. `participants` (the people a
+    group roster of the call listed, this account included) become
+    `callParticipants` as WhatsApp Web keeps them ([{participant}]), for a
+    one-to-one call that became a group call to be named after its people."""
     w = _base(chat_w, call_id, ts, "call_log", creator_w, from_me)
     w.update(callOutcome=outcome, finalCallOutcome=outcome, isVideoCall=bool(video),
              callDuration=int(duration or 0), callCreator=creator_w)
+    people = [msgmap.jid_wpp(p) for p in participants or () if p]
+    if people:
+        w["callParticipants"] = [{"participant": p} for p in dict.fromkeys(people)]
     return w
 
 

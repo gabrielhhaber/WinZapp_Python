@@ -2925,6 +2925,12 @@ msgctxt "call_log_generic"
 msgid "Call"
 msgstr "مكالمة"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_log.py
+#, python-brace-format
+msgctxt "call_log_label_with_participants"
+msgid "{label} with {names}"
+msgstr "{label} مع {names}"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_log_made_video"
 msgid "Outgoing video call"
@@ -2954,6 +2960,12 @@ msgstr "مكالمة فيديو جارية"
 msgctxt "call_log_ongoing_voice"
 msgid "Voice call in progress"
 msgstr "مكالمة صوتية جارية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_log_participants_more"
+msgid "{first} and {count} more people"
+msgstr "{first} وآخرون: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_log_unanswered_video"

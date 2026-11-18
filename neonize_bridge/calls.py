@@ -374,7 +374,7 @@ def _file_finished(s, info, outcome, duration, now):
     w = system_messages.call_record(
         call_id=info["id"], chat_w=msgmap.jid_wpp(chat), creator_w=creator,
         outcome=outcome, video=info.get("video"), ts=int(info["endedAt"] - duration),
-        duration=duration, from_me=outgoing)
+        duration=duration, from_me=outgoing, participants=info.get("participants") or ())
     return system_messages.store_and_emit(s, chat, w, now)
 
 
@@ -400,10 +400,12 @@ def record_end(s, e, data, was_ringing, now, answered=None):
     chat = call_chat(s.db, e.basicCallMeta, data["groupJid"])
     if not chat:
         return False
+    media = getattr(s, "call_media", None)
     w = system_messages.call_record(
         call_id=data["id"], chat_w=msgmap.jid_wpp(chat), creator_w=creator,
         outcome=outcome, video=data["isVideo"],
-        ts=data["timestamp"] or int(now), duration=data.get("callDuration", 0))
+        ts=data["timestamp"] or int(now), duration=data.get("callDuration", 0),
+        participants=media.participants_of(data["id"]) if media is not None else ())
     return system_messages.store_and_emit(s, chat, w, now)
 
 

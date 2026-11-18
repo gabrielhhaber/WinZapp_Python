@@ -619,3 +619,32 @@ def test_the_offer_of_another_device_only_becomes_a_call_to_join():
     assert media.away == ["OWN"]
     assert ongoing_calls.known(media).get("OWN")["chat"] == "5511888@c.us"
     calls.own_device_offer(N(call_media=None), data, jid("21", "lid"))     # no call layer
+
+
+def test_a_call_that_became_a_group_call_is_filed_with_its_people(monkeypatch):
+    """Both layers that file a call record name the people a group roster of
+    the call listed, as WhatsApp Web's callParticipants ([{participant}])."""
+    stored = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append(w) or True)
+    monkeypatch.setattr(calls.call_log_sync, "publish", lambda *a: False)
+    s = N(me="5599@s.whatsapp.net", lid="", db=N(chat_exists=lambda jid: True))
+    people = ["5599@s.whatsapp.net", "5511@s.whatsapp.net", "7@lid"]
+    assert calls.record_finished(
+        s, finished(outgoing=True, activeAt=900.0, participants=people), 1000)
+    assert stored[0]["callParticipants"] == [
+        {"participant": "5599@c.us"}, {"participant": "5511@c.us"}, {"participant": "7@lid"}]
+
+    monkeypatch.setattr(calls, "call_chat", lambda db, meta, group: "5511@s.whatsapp.net")
+    s.call_media = N(participants_of=lambda call_id: people if call_id == "C1" else [])
+    assert calls.record_end(s, N(basicCallMeta=None), ended(), True, 1000,
+                            {"at": 640.0, "video": False})
+    assert [p["participant"] for p in stored[1]["callParticipants"]] == [
+        "5599@c.us", "5511@c.us", "7@lid"]
+
+
+def test_a_plain_call_record_lists_no_participants():
+    w = calls.system_messages.call_record(
+        call_id="C1", chat_w="5511@c.us", creator_w="5511@c.us", outcome="Missed",
+        video=False, ts=1)
+    assert "callParticipants" not in w

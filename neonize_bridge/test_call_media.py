@@ -752,3 +752,30 @@ def test_an_invite_no_longer_held_falls_back_to_a_fresh_join():
     m.elsewhere("OWN")
     assert m.join_ongoing("OWN", "21@lid", "1203@g.us") == "OWN"
     assert fake.joined == [("OWN", "21@lid", False)] and m.in_call("OWN")
+
+
+def test_everyone_a_call_that_became_a_group_call_listed_is_kept_for_its_record():
+    """A private call someone was added to: its record names the people its
+    roster listed (whatever their state), as WhatsApp's own call_log keeps
+    them, and that list outlives the call, for whichever layer files it."""
+    fake = RosterCalls()
+    m, _sent = media(fake)
+    m._calls["P1"] = {"id": "P1", "group": "", "state": "ACTIVE"}
+    fake.people = [{"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+                   {"jid": "2@lid", "state": "ringing"}]
+    m.report_rosters()
+    fake.people = [{"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+                   {"jid": "3@lid", "state": "connected"}]
+    m.report_rosters()
+    m._calls.pop("P1")
+    assert m.participants_of("P1") == ["5511@s.whatsapp.net", "2@lid", "3@lid"]
+    assert m.participants_of("other") == []
+
+
+def test_the_facts_of_a_finished_call_carry_its_people():
+    call = {"id": "C1", "peer": "1@lid", "outgoing": True, "state": "ACTIVE"}
+    assert cm.finished_info(call, "ENDED", 10.0)["participants"] == []
+    assert cm.finished_info(call, "ENDED", 10.0, ["1@lid", "2@lid"])["participants"] == [
+        "1@lid", "2@lid"]
+    assert cm.roster_people([{"jid": "9:3@lid"}, {"state": "connected"}, "x"], ["1@lid"]) == [
+        "1@lid", "9@lid"]
