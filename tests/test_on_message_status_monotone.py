@@ -76,6 +76,8 @@ def _ack(status):
 
 
 def _statuses(win):
+    # The nested update.status of a real messages.update event is stored as
+    # its string (on_message_status_update's str()); the seeded ones are ints.
     return [u["status"] for u in win.chats[JID]["messages"]["messages"]["records"][0]["MessageUpdate"]]
 
 
@@ -104,7 +106,7 @@ def test_stale_ack_uses_the_top_level_status_as_a_reached_stage():
 def test_failure_after_delivered_is_allowed_through():
     win = _win_with_message(updates=[2, 3])
     win.on_message_status_update(_ack(-1))
-    assert _statuses(win) == [2, 3, -1]
+    assert _statuses(win) == [2, 3, "-1"]
     assert win.db.written                   # the failure was persisted
     assert win.conversations_panel.refreshed
 
@@ -112,20 +114,20 @@ def test_failure_after_delivered_is_allowed_through():
 def test_sent_then_delivered_still_advances():
     win = _win_with_message(updates=[2])
     win.on_message_status_update(_ack(3))
-    assert _statuses(win) == [2, 3]
+    assert _statuses(win) == [2, "3"]
 
 
 def test_delivered_then_read_then_played_still_advances():
     win = _win_with_message(updates=[3])
     win.on_message_status_update(_ack(4))
     win.on_message_status_update(_ack(5))
-    assert _statuses(win) == [3, 4, 5]
+    assert _statuses(win) == [3, "4", "5"]
 
 
 def test_equal_stage_is_recorded_like_before():
     win = _win_with_message(updates=[3])
     win.on_message_status_update(_ack(3))
-    assert _statuses(win) == [3, 3]
+    assert _statuses(win) == [3, "3"]
 
 
 def test_delivered_string_ack_is_recognised():
