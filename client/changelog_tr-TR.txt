@@ -12,6 +12,8 @@ YENİLİKLER
 
 - NVDA çalışırken, mikrofonu bilgisayar sesiyle birlikte kaydetmek, WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor. Bu, NVDA sesi ayrı alınmadan önce de böyleydi; artık ayrı kaydedilen NVDA sesinin ve bilgisayarın diğer seslerinin okuyucularını da kapsıyor.
 
+- Yıldızlanan iletiler artık ★ simgesiyle başlamak yerine, "Düzenlendi" ve "İletildi" gibi "Yıldızlandı" sözcüğüyle bitiyor. Ayarlar > Kullanıcı arayüzü > Mesajlar bölümündeki yeni bir seçenek, sözcüğü satırın başında, göndericiden önce duyurur.
+
 - Varsayılan ses paketindeki yazma, yazma balonu, yazma nabzı ve yapay zekâ işleme sesleri artık paketin geri kalanı gibi Ogg dosyalarıdır. Sesleri ve özel seslerinizde hiçbir şey değişmez.
 
 - Açık bir sohbetin içinde mesaj araması (Ctrl+Shift+F) etkinken ilk Esc aramayı temizler ve çubuğu kapatır, ekran okuyucu "Mesaj araması temizlendi" der; sonraki Esc sohbeti kapatır. Ayarlar, Sohbetler bölümünden kapatılabilir.

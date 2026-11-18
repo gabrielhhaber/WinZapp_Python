@@ -15507,6 +15507,12 @@ msgid "Sent"
 msgstr "Trimis"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "Marcat cu stea"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
 msgctxt "status_text"
 msgid "Text"
@@ -20945,7 +20951,7 @@ msgstr "Afișea&ză previzualizările linkurilor în lista de mesaje"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
 "Afișează poziția și &numărul elementelor când utilizați modul Casetă listă "
@@ -20972,6 +20978,13 @@ msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr ""
 "Folosiți Spațiu pentru a selecta/deselecta când &există deja o selecție"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr ""
+"Anun&țați „Marcat cu stea” la începutul mesajului, înaintea expeditorului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

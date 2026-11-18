@@ -12,6 +12,8 @@ NOVIDADES
 
 - Com o NVDA em execução, a gravação do microfone e do áudio do computador não é mais interrompida com "problema com o dispositivo de áudio" quando o WinZapp trava por um ou dois segundos (computador lento ou ocupado): o áudio desse instante é pulado, a gravação continua e o resto permanece sincronizado. Antes, isso já valia sem o áudio do NVDA separado; agora cobre também os leitores do áudio do NVDA e dos outros sons do computador, gravados separadamente.
 
+- Mensagens favoritadas agora terminam com a palavra "Favoritada", como "Editada" e "Encaminhada", em vez de começarem com o símbolo ★. Uma nova opção em Configurações > Interface do usuário > Mensagens permite ouvir a palavra no início da linha, antes do remetente.
+
 - Os sons de digitação, bolha de digitação, pulso de digitação e processamento de IA do pacote de som padrão agora são arquivos Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.
 
 - Dentro de uma conversa aberta, com a pesquisa de mensagens (Ctrl+Shift+F) ativa, o primeiro Esc limpa a pesquisa e fecha a barra, e o leitor de tela diz "Pesquisa de mensagens limpa"; o Esc seguinte fecha a conversa. Dá para desligar em Configurações, Conversas.

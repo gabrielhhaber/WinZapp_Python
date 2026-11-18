@@ -15510,6 +15510,12 @@ msgid "Sent"
 msgstr "Enviado"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "Destacado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
 msgctxt "status_text"
 msgid "Text"
@@ -20850,7 +20856,7 @@ msgstr "&Mensajes"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_page_size_label"
 msgid "When opening a chat, show &up to this many messages:"
-msgstr "Al abrir &un chat, mostrar número de mensajes hasta:"
+msgstr "Al abrir un chat, mostrar número de mensajes &hasta:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20966,7 +20972,7 @@ msgstr "Mo&strar vistas previas de enlaces en la lista de mensajes"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
 "Mostrar &posición y cantidad de elementos al usar el modo Cuadro de lista "
@@ -20992,6 +20998,12 @@ msgstr "Mostrar los mensajes de ayer con la &fecha omitida (ayer)"
 msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr "&Usar Espacio para marcar/desmarcar cuando ya haya algo marcado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr "An&unciar \"Destacado\" al inicio del mensaje, antes del remitente"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

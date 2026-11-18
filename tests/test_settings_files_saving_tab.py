@@ -197,6 +197,7 @@ class TestRegroupedSettings:
         assert dialog._focus_message_field_rb.GetParent() is dialog._chats_page
         assert dialog._bulk_action_shortcuts_cb.GetParent() is dialog._chats_page
         assert dialog._forwarded_prefix_cb.GetParent() is dialog._messages_page
+        assert dialog._starred_prefix_cb.GetParent() is dialog._messages_page
 
     def test_spoken_content_needs_extended_compatibility(self, make_dialog):
         dialog = make_dialog({"accessibility": {"extended_sr_compat_enabled": False}})

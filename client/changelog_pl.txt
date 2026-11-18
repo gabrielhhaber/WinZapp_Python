@@ -14,6 +14,8 @@ NOWOŚCI
 
 - WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
+- Wiadomości oznaczone gwiazdką kończą się teraz słowami "Oznaczono gwiazdką", tak jak "Edytowano" i "Przekazano", zamiast zaczynać się od symbolu ★. Nowa opcja w Ustawienia > Interfejs użytkownika > Wiadomości ogłasza to słowo na początku wiersza, przed nadawcą.
+
 - Dźwięki pisania, bańki pisania, impulsu pisania i przetwarzania AI w domyślnym pakiecie dźwięków są teraz plikami Ogg, tak jak reszta pakietu. Brzmienie i Twoje własne dźwięki się nie zmieniają.
 
 - W otwartym czacie z aktywnym wyszukiwaniem wiadomości (Ctrl+Shift+F) pierwszy Esc czyści wyszukiwanie i zamyka pasek, a czytnik ekranu mówi „Wyszukiwanie wiadomości wyczyszczone”; kolejny Esc zamyka czat. Można to wyłączyć w Ustawieniach, Czaty.

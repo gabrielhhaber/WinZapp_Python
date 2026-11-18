@@ -12,6 +12,8 @@ NOVEDADES
 
 - Con el NVDA en ejecución, la grabación del micrófono y del audio del ordenador ya no se interrumpe con "problema con el dispositivo de audio" cuando WinZapp se bloquea uno o dos segundos (ordenador lento u ocupado): se omite el audio de ese instante, la grabación continúa y el resto sigue sincronizado. Antes ya valía sin el audio del NVDA separado; ahora cubre también los lectores del audio del NVDA y de los otros sonidos del ordenador, grabados por separado.
 
+- Los mensajes destacados ahora terminan con la palabra "Destacado", como "Editado" y "Reenviado", en lugar de empezar con el símbolo ★. Una opción nueva en Configuración > Interfaz de usuario > Mensajes anuncia la palabra al principio de la línea, antes del remitente.
+
 - Los sonidos de escritura, burbuja de escritura, pulso de escritura y procesamiento de IA del paquete de sonido predeterminado ahora son archivos Ogg, como el resto del paquete. No cambia cómo suenan ni tus sonidos personalizados.
 
 - Dentro de un chat abierto, con la búsqueda de mensajes (Ctrl+Shift+F) activa, la primera pulsación de Esc borra la búsqueda y cierra la barra, y el lector de pantalla dice "Búsqueda de mensajes borrada"; la siguiente cierra el chat. Se puede desactivar en Configuración, Chats.

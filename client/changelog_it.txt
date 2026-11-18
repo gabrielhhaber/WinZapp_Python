@@ -12,6 +12,8 @@ WHAT'S NEW
 
 - Con NVDA in esecuzione, la registrazione del microfono e dell'audio del computer non si interrompe più con "problema con il dispositivo audio" quando WinZapp si blocca per un secondo o due (computer lento o occupato): l'audio di quell'istante viene saltato, la registrazione continua e il resto resta sincronizzato. Valeva già senza l'audio di NVDA separato; ora copre anche i lettori dell'audio di NVDA e degli altri suoni del computer, registrati separatamente.
 
+- I messaggi contrassegnati con stella ora finiscono con le parole "Contrassegnato con stella", come "Modificato" e "Inoltrato", invece di iniziare con il simbolo ★. Una nuova opzione in Impostazioni > Interfaccia utente > Messaggi annuncia la parola all'inizio della riga, prima del mittente.
+
 - I suoni di digitazione, bolla di digitazione, impulso di digitazione ed elaborazione IA del pacchetto sonoro predefinito ora sono file Ogg, come il resto del pacchetto. Non cambia nulla nel suono né nei tuoi suoni personalizzati.
 
 - In una chat aperta, con la ricerca dei messaggi (Ctrl+Shift+F) attiva, il primo Esc cancella la ricerca e chiude la barra, e il lettore di schermo dice "Ricerca dei messaggi cancellata"; il successivo Esc chiude la chat. Si può disattivare in Impostazioni, Chat.

@@ -12,6 +12,8 @@ NOUTĂȚI
 
 - Când NVDA rulează, înregistrarea microfonului împreună cu sunetul computerului nu se mai oprește cu „problemă la dispozitivul audio” când WinZapp se blochează o secundă sau două (computer lent sau ocupat): sunetul din acel moment este omis, înregistrarea continuă, iar restul rămâne sincronizat. Mai înainte asta era valabil fără sunetul NVDA separat; acum acoperă și cititoarele pentru sunetul NVDA și celelalte sunete ale computerului, înregistrate separat.
 
+- Mesajele marcate cu stea se termină acum cu cuvintele "Marcat cu stea", ca "Editat" și "Redirecționat", în loc să înceapă cu simbolul ★. O opțiune nouă în Setări > Interfața utilizatorului > Mesaje anunță cuvintele la începutul liniei, înaintea expeditorului.
+
 - Sunetele de scriere, bulă de scriere, puls de scriere și procesare AI din pachetul de sunete implicit sunt acum fișiere Ogg, ca restul pachetului. Nu se schimbă nimic la sunet sau la sunetele tale personalizate.
 
 - Într-o conversație deschisă, cu căutarea mesajelor (Ctrl+Shift+F) activă, primul Esc șterge căutarea și închide bara, iar cititorul de ecran spune „Căutarea mesajelor a fost ștearsă”; următorul Esc închide conversația. Se poate dezactiva în Setări, Conversații.
