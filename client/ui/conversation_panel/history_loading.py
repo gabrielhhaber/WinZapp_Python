@@ -90,7 +90,7 @@ class HistoryLoadingMixin:
         sem isto o passo que corrige o bug ficava sem teste nenhum — dava para
         apagar o argumento da âncora com a suíte inteira verde.
         """
-        return history_window(
+        offset, sep_idx = history_window(
             displayable,
             getattr(self, "_pinned_jump_id", "") or getattr(self, "_expanded_oldest_msg_id", "")
             or self._reading_resume_anchor(),
@@ -98,6 +98,21 @@ class HistoryLoadingMixin:
             limit,
             self._unread_sep_idx,
         )
+        window = len(displayable) - offset
+        if window > max(2 * limit, 1000):
+            # Which input made the window this wide (issue #812: 1,655 -> 12,021
+            # rows in one refresh). Flags and counts only: no id, JID or name.
+            logging.info(
+                "[_history_window_for_rebuild] wide window of %d row(s) of %d "
+                "(page %d): pinned_jump=%s resume_anchor=%s expanded_anchor=%s "
+                "expanded_floor=%d unread_separator_rows=%d",
+                window, len(displayable), limit,
+                bool(getattr(self, "_pinned_jump_id", "")),
+                bool(self._reading_resume_anchor()),
+                bool(getattr(self, "_expanded_oldest_msg_id", "")),
+                getattr(self, "_expanded_visible_count", 0),
+                len(displayable) - self._unread_sep_idx if self._unread_sep_idx >= 0 else 0)
+        return offset, sep_idx
 
     def _remember_expanded_window(self) -> None:
         """Registra até onde a lista está materializada agora.

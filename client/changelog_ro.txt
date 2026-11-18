@@ -547,6 +547,8 @@ NOUTĂȚI
 
 - Conversații lungi: actualizarea istoricului unei conversații deschise cu mii de mesaje nu mai blochează fereastra zeci de secunde atunci când lista de mesaje afișează poziția fiecărui mesaj („N din M”).
 
+- Remediat: cu anularea neuronală a zgomotului vocal activată, mesajele vocale sunt acum trimise în ordinea în care au fost înregistrate, chiar dacă procesarea uneia se termină înaintea alteia.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

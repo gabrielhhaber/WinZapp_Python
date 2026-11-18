@@ -547,6 +547,8 @@ NOWOŚCI
 
 - Długie czaty: odświeżanie historii otwartego czatu z tysiącami wiadomości nie zawiesza już okna na dziesiątki sekund, gdy lista wiadomości pokazuje pozycję każdej wiadomości („N z M”).
 
+- Naprawiono: przy włączonej neuronowej redukcji szumów głosu wiadomości głosowe są teraz wysyłane w kolejności nagrywania, nawet gdy przetwarzanie jednej kończy się przed drugą.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
