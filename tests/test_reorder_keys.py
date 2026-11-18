@@ -56,7 +56,7 @@ def test_plain_arrows_keep_walking_the_list(event):
 
 def test_the_keys_follow_what_the_user_set_in_settings():
     window = SimpleNamespace(
-        settings={SECTION: {'reorder.move_up': {'mod': 2, 'key': wx.WXK_PAGEUP}}},
+        settings={SECTION: {'reorder.move_up': [2, wx.WXK_PAGEUP]}},
         i18n=SimpleNamespace(t=lambda key: key))
     owner = SimpleNamespace(main_window=window)
     assert reorder_keys.reorder_direction(owner, Key(wx.WXK_PAGEUP, ctrl=True)) == -1
