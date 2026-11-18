@@ -46,7 +46,8 @@ export async function readPollVotes({ messageIds }) {
     const votes = group?.toArray?.() ?? [];
     let mine = new Set();
     try {
-      const me = meUser?.getMeLidUserOrThrow?.();
+      // WhatsApp Web 2.3000.1055167106 dropped getMeLidUserOrThrow; the nullable getter remains.
+      const me = meUser?.getMeLidUserOrThrow?.() ?? meUser?.getMaybeMeLidUser?.();
       const mineVote = me ? group?.getVoteFromSenderAddressingModeInsensitive?.(me) : undefined;
       mine = new Set(mineVote?.selectedOptionLocalIds ?? []);
     } catch { /* not knowing my vote must not hide the counts */ }
@@ -98,7 +99,8 @@ export async function readPollVoters({ messageId }) {
       try { await hydrate({ ids: [msg.id], hydrationType }); } catch { /* best effort */ }
     }
     let me = '';
-    try { me = idOf(loadModule('WAWebUserPrefsMeUser')?.getMeLidUserOrThrow?.()); } catch { /* unknown */ }
+    try { const prefs = loadModule('WAWebUserPrefsMeUser');
+      me = idOf(prefs?.getMeLidUserOrThrow?.() ?? prefs?.getMaybeMeLidUser?.()); } catch { /* unknown */ }
     const group = collection.getForParentAddressingModeInsensitive([msg.id])?.[0];
     const meUser = loadModule('WAWebUserPrefsMeUser');
     const contacts = loadModule('WAWebContactCollection')?.ContactCollection;

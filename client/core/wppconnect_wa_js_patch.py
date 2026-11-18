@@ -65,6 +65,19 @@ _GUARDED_PERSONA_ID = re.compile(
     r"botPersonaId:\(" + _PROFILE_LOOKUP + r"\|\|\{\}\)\.personaId"
 )
 
+# wa-js 4.8.0: `t.getMyUserLid=function(){return n.UserPrefs.getMeLidUserOrThrow()}`.
+# WhatsApp Web 2.3000.1055167106 no longer has that getter (only
+# getMaybeMeLidUser / getMaybeMePnUser), so every send to a group or an @lid
+# chat died with "UserPrefs.getMeLidUserOrThrow is not a function" (HTTP 500,
+# nothing sent). wa-js 4.8.2 fixed it upstream the same day; this is that
+# fallback, kept here so the pinned 4.8.0 keeps working.
+_UNGUARDED_MY_LID = re.compile(
+    r"(?P<head>\.getMyUserLid=function\(\)\{)return (?P<ns>[\w$]+)\.UserPrefs\.getMeLidUserOrThrow\(\)\}"
+)
+_GUARDED_MY_LID = re.compile(
+    r"\.getMyUserLid=function\(\)\{const [\w$]+=[\w$]+\.UserPrefs;(?:if\(|return)\"function\"==typeof.{0,40}getMeLidUserOrThrow"
+)
+
 STATUS_APPLIED = "applied"
 STATUS_ALREADY = "already"
 STATUS_NO_MATCH = "no_match"
@@ -168,4 +181,49 @@ def patch_wa_js_bundle(api_dir: str) -> tuple[bool, str]:
         "wppconnect-wa.js: the bot persona-id lookup did not match the "
         "expected upstream source — skipping (the installed @wppconnect/wa-js "
         "version may have changed it)."
+    )
+
+
+def patch_my_user_lid_source(content: str) -> tuple[str, str]:
+    """*content* with ``getMyUserLid`` falling back to ``getMaybeMeLidUser``
+    when the account-LID getter that wa-js calls no longer exists.
+
+    Idempotent; the form wa-js 4.8.2 ships already has the fallback and is
+    reported as STATUS_ALREADY.
+    """
+    patched, count = _UNGUARDED_MY_LID.subn(
+        lambda m: (
+            f'{m.group("head")}const e={m.group("ns")}.UserPrefs;'
+            'return"function"==typeof e.getMeLidUserOrThrow'
+            "?e.getMeLidUserOrThrow():e.getMaybeMeLidUser()}"
+        ),
+        content,
+    )
+    if count:
+        return patched, STATUS_APPLIED
+    if _GUARDED_MY_LID.search(content):
+        return content, STATUS_ALREADY
+    return content, STATUS_NO_MATCH
+
+
+def patch_my_user_lid_bundle(api_dir: str) -> tuple[bool, str]:
+    """Apply the account-LID fallback to an installed wa-js bundle."""
+    path = os.path.join(api_dir, *WA_JS_BUNDLE_PARTS)
+    if not os.path.isfile(path):
+        return False, "wppconnect-wa.js not found — skipping the account-LID patch."
+    with open(path, encoding="utf-8", newline="") as stream:
+        content = stream.read()
+    patched, status = patch_my_user_lid_source(content)
+    if status == STATUS_APPLIED:
+        with open(path, "w", encoding="utf-8", newline="") as stream:
+            stream.write(patched)
+        return True, (
+            "Patched wppconnect-wa.js — sending to groups and @lid chats no longer "
+            "needs the account-LID getter newer WhatsApp Web removed."
+        )
+    if status == STATUS_ALREADY:
+        return True, "wppconnect-wa.js account-LID fallback already present."
+    return False, (
+        "wppconnect-wa.js: getMyUserLid did not match the expected upstream source — "
+        "skipping (the installed @wppconnect/wa-js version may have changed it)."
     )

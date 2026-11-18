@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Corrigido o envio de mensagens com WPPConnect, que falhava em grupos e conversas com ID associado no WhatsApp Web mais recente, porque o WhatsApp removeu uma função que a biblioteca usava. O envio e a leitura do seu próprio voto nas sondagens também deixam de depender dela.
+
 - As mensagens marcadas com estrela passam a terminar com as palavras "Marcada com estrela", como "Editada" e "Reencaminhada", em vez de começarem com o símbolo ★. Uma nova opção em Definições > Interface do utilizador > Mensagens permite ouvir as palavras no início da linha, antes do remetente.
 
 - Os sons de escrita, bolha de escrita, pulso de escrita e processamento de IA do pacote de som predefinido são agora ficheiros Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.

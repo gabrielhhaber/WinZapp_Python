@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect ile ileti gönderimi düzeltildi: en yeni WhatsApp Web'de gruplarda ve bağlı kimlikli sohbetlerde bir hatayla başarısız oluyordu, çünkü WhatsApp kitaplığın kullandığı bir işlevi kaldırmıştı. Anketlerde oy vermek ve kendi oyunuzu okumak da artık ona bağlı değil.
+
 - Yıldızlanan iletiler artık ★ simgesiyle başlamak yerine, "Düzenlendi" ve "İletildi" gibi "Yıldızlandı" sözcüğüyle bitiyor. Ayarlar > Kullanıcı arayüzü > Mesajlar bölümündeki yeni bir seçenek, sözcüğü satırın başında, göndericiden önce duyurur.
 
 - Varsayılan ses paketindeki yazma, yazma balonu, yazma nabzı ve yapay zekâ işleme sesleri artık paketin geri kalanı gibi Ogg dosyalarıdır. Sesleri ve özel seslerinizde hiçbir şey değişmez.

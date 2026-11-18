@@ -652,6 +652,15 @@ class ApiSetupDialog(wx.Dialog):
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch wa-js chat lookup: %s", exc)
 
+        # WhatsApp Web removed the account-LID getter wa-js calls to send to a
+        # group or an @lid chat (wppconnect_wa_js_patch.py).
+        try:
+            from core.wppconnect_wa_js_patch import patch_my_user_lid_bundle
+            ok, note = patch_my_user_lid_bundle(api_dir)
+            logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch wa-js account LID: %s", exc)
+
         # A post to a channel: chat.find() looked only in ChatStore, which
         # never holds a channel's chat (wppconnect_newsletter_chat_patch.py).
         try:

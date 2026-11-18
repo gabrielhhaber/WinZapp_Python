@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Corrigido o envio de mensagens com WPPConnect, que falhava em grupos e conversas com ID vinculado no WhatsApp Web mais recente, pois o WhatsApp removeu uma função que a biblioteca usava. O envio e a leitura do seu próprio voto em enquetes também deixam de depender dela.
+
 - Mensagens favoritadas agora terminam com a palavra "Favoritada", como "Editada" e "Encaminhada", em vez de começarem com o símbolo ★. Uma nova opção em Configurações > Interface do usuário > Mensagens permite ouvir a palavra no início da linha, antes do remetente.
 
 - Os sons de digitação, bolha de digitação, pulso de digitação e processamento de IA do pacote de som padrão agora são arquivos Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.

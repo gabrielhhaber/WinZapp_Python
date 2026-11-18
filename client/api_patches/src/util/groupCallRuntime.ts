@@ -150,7 +150,10 @@ export function installGroupCallRuntimeInPage(): void {
         return { id: callId, available: false, participants: [] };
       }
       if (current) {
-        try { add(module('WAWebUserPrefsMeUser')?.getMeLidUserOrThrow?.()); } catch (_) { /* No self id yet. */ }
+        try {
+          const prefs = module('WAWebUserPrefsMeUser');
+          add(prefs?.getMeLidUserOrThrow?.() ?? prefs?.getMaybeMeLidUser?.());
+        } catch (_) { /* No self id yet. */ }
       }
       return { id: callId, available: true, participants: Array.from(result.values()) };
     },

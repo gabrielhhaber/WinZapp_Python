@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Corretto l'invio dei messaggi con WPPConnect, che falliva nei gruppi e nelle chat con ID collegato sull'ultimo WhatsApp Web, perché WhatsApp ha rimosso una funzione usata dalla libreria. Anche il voto nei sondaggi e la lettura del tuo voto non dipendono più da essa.
+
 - I messaggi contrassegnati con stella ora finiscono con le parole "Contrassegnato con stella", come "Modificato" e "Inoltrato", invece di iniziare con il simbolo ★. Una nuova opzione in Impostazioni > Interfaccia utente > Messaggi annuncia la parola all'inizio della riga, prima del mittente.
 
 - I suoni di digitazione, bolla di digitazione, impulso di digitazione ed elaborazione IA del pacchetto sonoro predefinito ora sono file Ogg, come il resto del pacchetto. Non cambia nulla nel suono né nei tuoi suoni personalizzati.
