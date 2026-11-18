@@ -100,15 +100,16 @@ def test_the_choice_is_always_sent_and_defaults_to_removing_the_file(post, metho
 
 def test_the_server_route_hands_the_field_to_whatsapp():
     """Structural, on the patched route: deleteMediaInDevice goes to
-    client.deleteMessage() as its fourth argument, after onlyLocal."""
+    deleteMessageWithResult() as its fourth argument, before onlyLocal (upstream
+    2.10.86's order; the page turns onlyLocal into `revoke`)."""
     from pathlib import Path
 
     source = (Path(__file__).resolve().parents[1] / "client" / "api_patches" / "src"
               / "controller" / "deviceController.ts").read_text(encoding="utf-8")
-    call = source[source.index("req.client.deleteMessage("):]
+    call = source[source.index("await deleteMessageWithResult("):]
     call = call[:call.index(");")]
     assert [part.strip() for part in call.split("(", 1)[1].split(",") if part.strip()] == [
-        "`${phone}`", "messageId", "onlyLocal", "deleteMediaInDevice"]
+        "req.client.page", "phone[0]", "messageId", "deleteMediaInDevice", "onlyLocal"]
 
 
 # ── the panel passing the choice on ──────────────────────────────────────────
