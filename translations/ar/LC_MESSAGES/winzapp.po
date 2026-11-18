@@ -9840,6 +9840,9 @@ msgstr "ال&سماح بإجابات متعددة"
 msgctxt "new_poll_hide_voters"
 msgid "&Hide voter names"
 msgstr "إخفاء &أسماء المصوّتين"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
 msgstr "ن&قل إلى أسفل"

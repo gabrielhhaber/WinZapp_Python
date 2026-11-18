@@ -9931,6 +9931,9 @@ msgstr "Allow &multiple answers"
 msgctxt "new_poll_hide_voters"
 msgid "&Hide voter names"
 msgstr "&Hide voter names"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
 msgstr "Move do&wn"

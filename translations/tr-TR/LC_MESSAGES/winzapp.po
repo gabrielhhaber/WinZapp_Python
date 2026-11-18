@@ -9951,6 +9951,9 @@ msgstr "&Birden çok yanıta izin ver"
 msgctxt "new_poll_hide_voters"
 msgid "&Hide voter names"
 msgstr "Oy verenlerin &adlarını gizle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
 msgstr "Aşağ&ı taşı"

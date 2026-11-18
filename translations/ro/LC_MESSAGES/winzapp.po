@@ -10025,6 +10025,9 @@ msgstr "Permite &mai multe răspunsuri"
 msgctxt "new_poll_hide_voters"
 msgid "&Hide voter names"
 msgstr "Ascunde &numele votanților"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
 msgstr "Mutați în &jos"

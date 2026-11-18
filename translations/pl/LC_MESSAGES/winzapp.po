@@ -10049,6 +10049,9 @@ msgstr "Zezwól na &kilka odpowiedzi"
 msgctxt "new_poll_hide_voters"
 msgid "&Hide voter names"
 msgstr "Ukryj &nazwy głosujących"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
 msgstr "Przenieś w dó&ł"

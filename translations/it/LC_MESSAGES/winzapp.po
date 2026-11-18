@@ -10074,6 +10074,9 @@ msgstr "Consenti &risposte multiple"
 msgctxt "new_poll_hide_voters"
 msgid "&Hide voter names"
 msgstr "Nascondi i nomi dei vo&tanti"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
 msgstr "Sposta in &basso"
