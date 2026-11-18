@@ -32,6 +32,12 @@ class _WxStub(types.ModuleType):
 wx_stub = _WxStub("wx")
 WX_CALLS = []
 wx_stub.CallAfter = lambda fn, *a, **k: WX_CALLS.append((fn, a, k))
+# setdefault only wins when nothing imported the real wx first. On a Windows
+# CI shard another test module imports the installed wx earlier, the real wx
+# stays in sys.modules, the module under test binds it, and wx.CallAfter then
+# fails with "No wx.App created yet". The autouse fixture below forces the
+# recorder onto whichever wx object the module under test actually holds, and
+# monkeypatch restores it afterwards.
 sys.modules.setdefault("wx", wx_stub)
 _sound_lib = types.ModuleType("sound_lib")
 _sound_lib.stream = types.ModuleType("sound_lib.stream")
@@ -42,6 +48,22 @@ from core.incremental_denoise import (  # noqa: E402
     CANCELLED, IncrementalDenoiseController,
 )
 from ui.conversation_panel import voice_recording as vr  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _record_wx_calls(monkeypatch):
+    """Route the module under test's wx dispatch into WX_CALLS and restore it.
+
+    Patching the attribute on ``vr.wx`` works whichever wx the module bound
+    at import time: the stub above (no wx installed) or the real wx (Windows
+    CI shard, where setdefault lost to an earlier import).
+    """
+    monkeypatch.setattr(vr.wx, "CallAfter",
+                        lambda fn, *a, **k: WX_CALLS.append((fn, a, k)))
+    monkeypatch.setattr(vr.wx, "CallLater",
+                        lambda ms, fn, *a, **k: WX_CALLS.append((fn, a, k)))
+    yield
+    WX_CALLS.clear()
 
 
 class _FakeMainWindow:

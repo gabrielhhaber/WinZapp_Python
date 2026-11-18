@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import struct
 import sys
-from types import SimpleNamespace
+from types import MethodType, SimpleNamespace
 from unittest.mock import Mock
 import wave
 
@@ -93,6 +93,16 @@ class Radio:
     def SetItemLabel(self, index, label):
         self.choices[index] = label
 
+    # ComboBox-shaped extras: the noise-reduction controls are combos now.
+    def SetString(self, index, label):
+        self.choices[index] = label
+
+    def Bind(self, *args, **kwargs):
+        pass
+
+    def Enable(self, enable=True):
+        self.enabled = enable
+
 
 @pytest.mark.parametrize('mode', RECORDING_MODES)
 def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch):
@@ -100,9 +110,17 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
     monkeypatch.setattr(options.wx, 'RadioBox', Radio)
     monkeypatch.setattr(options.wx, 'StaticText', Radio)
     monkeypatch.setattr(options.wx, 'Choice', Radio)
+    monkeypatch.setattr(options.wx, 'ComboBox', Radio)
     dialog = SimpleNamespace(main_window=SimpleNamespace(
         settings={'general': {'voice_recording_mode': mode}},
-        i18n=SimpleNamespace(t=lambda key: 'first:' + key)))
+        i18n=SimpleNamespace(t=lambda key: 'first:' + key)),
+        # Bound by the real builder to the combos (Bind is a no-op double).
+        _on_voice_nr_engine_changed=Mock(),
+        _on_voice_nr_master_toggled=Mock())
+    # The real conditional-enabling helper, bound as it is on the dialog:
+    # _load calls it and the combos' Enable/GetSelection doubles support it.
+    dialog._update_voice_nr_options_state = MethodType(
+        VoiceRecordingOptionsMixin._update_voice_nr_options_state, dialog)
     sizer = SimpleNamespace(Add=Mock())
     VoiceRecordingOptionsMixin._build_voice_recording_options(dialog, object(), sizer)
     VoiceRecordingOptionsMixin._load_voice_recording_options(dialog)
@@ -119,6 +137,9 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
 def test_unselected_control_cannot_save_stereo_by_negative_index():
     dialog = SimpleNamespace(main_window=SimpleNamespace(settings={}),
                              _voice_recording_mode_radio=Radio(),
+                             _voice_nr_engine_combo=Radio(),
+                             _voice_nr_moment_combo=Radio(),
+                             _voice_nr_on_failure_combo=Radio(),
                              _voice_bitrate_choice=Radio(),
                              _voice_bitrate_stereo_choice=Radio())
     dialog._voice_recording_mode_radio.selection = -1
