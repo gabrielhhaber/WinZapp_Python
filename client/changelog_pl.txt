@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Przyciski wiadomości od firmy pojawiają się teraz także wtedy, gdy rozmowa otwiera się z już zaznaczoną wiadomością, na przykład w rozmowie z jedną wiadomością, a nie dopiero po przesunięciu na nią fokusu. Działa z Neonize i WPPConnect.
+
 - Na liście dostawców AI online i w opcjach nowej ankiety Alt+Strzałka w górę i Alt+Strzałka w dół przenoszą zaznaczony element, a przyciski Przenieś w górę i Przenieś w dół zapowiadają te klawisze. Klawisze widać na liście pod F1, a zmienić je można w Ustawienia > Skróty klawiszowe.
 
 - Podczas tworzenia ankiety pole wyboru Ukryj nazwy głosujących i lista Limit czasu (bez limitu, 1 godzina, 8 godzin, 24 godziny, 3 dni lub 7 dni) działają teraz w Neonize i w WPPConnect. W oknie wyświetlania głosów ankieta, która ukrywa nazwy, pokazuje "Ukryta nazwa" zamiast głosującego; Twój własny głos nadal jest podpisany jako "Ty".

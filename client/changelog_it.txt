@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- The buttons of a business message now also show when the conversation opens with the message already focused, such as a conversation with a single message, not only after moving focus to it. This works with Neonize and WPPConnect.
+
 - Nell'elenco dei provider di IA online e nelle opzioni di un nuovo sondaggio, Alt+Freccia su e Alt+Freccia giù spostano l'elemento selezionato, e i pulsanti Sposta in alto e Sposta in basso annunciano quei tasti. I tasti compaiono nell'elenco di F1 e si possono cambiare in Impostazioni > Scorciatoie da tastiera.
 
 - Quando crei un sondaggio, la casella Nascondi i nomi dei votanti e la scelta Limite di tempo (nessun limite, 1 ora, 8 ore, 24 ore, 3 giorni o 7 giorni) ora funzionano sia con Neonize sia con WPPConnect. In Vedi voti, un sondaggio che nasconde i nomi mostra "Nome nascosto" al posto di chi ha votato; il tuo voto continua a comparire come "Me".

@@ -571,6 +571,30 @@ class MessageListMixin:
         self._update_read_more_button(idx)
         self._update_inline_poll(idx)
         self._update_reactions_button(idx)
+        self._update_business_buttons(idx)
+
+    def _update_business_buttons(self, idx: int):
+        """The business buttons of the focused row, decided without a selection
+        event: a conversation opened with its message already focused (a single
+        row, or the row it resumes on) never gets one, so the buttons never
+        showed. Shown again only when they are not already the focused
+        message's own; hidden when the focused row has none."""
+        from core.business_message_content import message_business_buttons
+        msg = None
+        if 0 <= idx < len(self._sorted_messages):
+            candidate = self._sorted_messages[idx]
+            if not self._is_separator(candidate) and message_business_buttons(candidate):
+                msg = candidate
+        if msg is None:
+            if getattr(self, "_business_context", None) is not None:
+                self._business_context = None
+                self._buttons_container.Hide()
+                self.conversation_panel.Layout()
+            return
+        shown = getattr(self, "_business_shown_msg", None)
+        if shown is msg and getattr(self, "_business_context", None) is not None:
+            return
+        self._show_business_buttons(msg)
 
     def _update_return_call_button(self, idx: int):
         """Show "Retornar ligação" only while a returnable missed call is focused."""
