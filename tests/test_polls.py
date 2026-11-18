@@ -591,3 +591,26 @@ def test_the_inline_poll_is_the_same_poll_by_id_not_by_dict():
     assert not same_inline_poll(old, "g@g.us", fresh, "other@g.us")
     assert not same_inline_poll(None, "g@g.us", fresh, "g@g.us")
     assert not same_inline_poll({"key": {}}, "g@g.us", {"key": {}}, "g@g.us")
+
+
+# -- reordering the options of a new poll -----------------------------------
+
+
+def test_move_option_swaps_with_the_neighbour_and_follows_it():
+    assert polls.move_option(["a", "b", "c"], 1, -1) == (["b", "a", "c"], 0)
+    assert polls.move_option(["a", "b", "c"], 1, 1) == (["a", "c", "b"], 2)
+
+
+@pytest.mark.parametrize("index,direction", [(0, -1), (2, 1), (-1, 1), (5, -1)])
+def test_move_option_does_nothing_at_the_ends_or_out_of_range(index, direction):
+    options = ["a", "b", "c"]
+    moved, where = polls.move_option(options, index, direction)
+    assert moved == options and moved is not options
+    assert where == index
+
+
+def test_moved_order_is_what_the_send_body_carries():
+    options, _ = polls.move_option(["Pizza", "Sushi", "Taco"], 2, -1)
+    poll = {"name": "Q?", "options": options, "selectableCount": 1}
+    payload = polls.poll_send_payload(PHONE, poll, is_group=False, is_lid=False)
+    assert payload["choices"] == ["Pizza", "Taco", "Sushi"]

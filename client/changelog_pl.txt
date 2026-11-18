@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Podczas tworzenia ankiety przyciski Przenieś w górę i Przenieś w dół zmieniają kolejność opcji przed wysłaniem; ankieta trafia do WhatsApp w ustawionej przez Ciebie kolejności, zarówno w Neonize, jak i w WPPConnect.
+
 - Wiadomości oznaczone gwiazdką kończą się teraz słowami "Oznaczono gwiazdką", tak jak "Edytowano" i "Przekazano", zamiast zaczynać się od symbolu ★. Nowa opcja w Ustawienia > Interfejs użytkownika > Wiadomości ogłasza to słowo na początku wiersza, przed nadawcą.
 
 - Dźwięki pisania, bańki pisania, impulsu pisania i przetwarzania AI w domyślnym pakiecie dźwięków są teraz plikami Ogg, tak jak reszta pakietu. Brzmienie i Twoje własne dźwięki się nie zmieniają.

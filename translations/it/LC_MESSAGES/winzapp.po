@@ -10071,6 +10071,18 @@ msgstr "Consenti &risposte multiple"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_move_down"
+msgid "Move do&wn"
+msgstr "Sposta in &basso"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_move_up"
+msgid "Move &up"
+msgstr "Sposta i&n alto"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_option_label"
 msgid "&Option:"
 msgstr "&Opzione:"

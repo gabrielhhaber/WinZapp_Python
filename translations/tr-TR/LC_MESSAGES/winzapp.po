@@ -9948,6 +9948,18 @@ msgstr "&Birden çok yanıta izin ver"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_move_down"
+msgid "Move do&wn"
+msgstr "Aşağ&ı taşı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_move_up"
+msgid "Move &up"
+msgstr "Yuka&rı taşı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_option_label"
 msgid "&Option:"
 msgstr "&Seçenek:"
