@@ -150,7 +150,8 @@ def answer_of(message):
 
 #: every HistorySync.HistorySyncType, for the log
 TYPE_NAMES = {0: "INITIAL_BOOTSTRAP", 1: "INITIAL_STATUS_V3", **TRANSFER_TYPES,
-              4: "PUSH_NAME", 5: "NON_BLOCKING_DATA", 6: "ON_DEMAND"}
+              4: "PUSH_NAME", 5: "NON_BLOCKING_DATA", 6: "ON_DEMAND",
+              9: "RECENT_CONVERSATIONS_ON_DEMAND"}
 
 
 def type_name(kind):

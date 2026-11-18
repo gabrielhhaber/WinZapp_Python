@@ -51,3 +51,67 @@ def test_a_block_is_stored_without_a_write_per_chat(tmp_path):
     assert chats["5511@s.whatsapp.net"]["unread"] == 2 and chats["1203@g.us"]["ts"] == 200
     assert len(db.messages("5511@s.whatsapp.net")) == 3 and len(db.messages("1203@g.us")) == 2
     assert db.contact_of("5511@s.whatsapp.net")["pushname"] == "Ana"
+
+
+def test_omitted_metadata_batch_stores_chats_and_skips_parent_groups_and_progress(tmp_path):
+    from neonize.proto.waHistorySync.WAWebProtobufsHistorySync_pb2 import Conversation, HistorySync
+    import history_progress
+    import history_resume
+    import omitted_history as oh
+
+    db = Store(str(tmp_path / "omitted.db"))
+    s = N(db=db, _history_progress=None, _history_resume=None)
+    s._store_history_block = lambda d: server.Session._store_history_block(s, d)
+    parent = Conversation(ID="999@g.us", name="Community Parent", isParentGroup=True)
+    older_group = Conversation(ID="888@g.us", name="Old Group", lastMsgTimestamp=1690000000)
+    older_dm = Conversation(
+        ID="111@lid",
+        name="Older Contact",
+        conversationTimestamp=1700000000,
+        archived=True,
+        pnJID="5511999990001@s.whatsapp.net",
+        lidJID="111@lid",
+        accountLid="111@lid",
+    )
+    batch = oh.encode_omitted_batch(
+        [parent, older_group, older_dm],
+        sync_type=HistorySync.RECENT,
+        chunk_order=1,
+        progress=100,
+    )
+    server.Session._store_history(s, batch)
+
+    # Progress and history_resume must NOT falsely treat omitted metadata as 100% synced
+    assert history_progress.progress_of(s, 0).percent is None
+    assert history_resume.status_of(s, 0)["historyTransfer"] is None
+
+    chats = {c["jid"]: c for c in db.chats()}
+    assert set(chats) == {"111@lid", "888@g.us"}
+    assert chats["111@lid"]["archived"] == 1 and chats["111@lid"]["ts"] == 1700000000
+    assert db.chat_omitted_info(["111@lid"]) == {"chat": "111@lid", "account_lid": "111@lid"}
+    assert db.phone_of_lid("111@lid") == "5511999990001@s.whatsapp.net"
+
+
+def test_load_names_skips_community_parent_groups(tmp_path):
+    db = Store(str(tmp_path / "groups.db"))
+    community = N(
+        JID=N(User="999", Server="g.us"),
+        GroupName=N(Name="My Community"),
+        GroupParent=N(IsParent=True),
+        Participants=[],
+    )
+    subgroup = N(
+        JID=N(User="888", Server="g.us"),
+        GroupName=N(Name="Subgroup"),
+        GroupParent=N(IsParent=False),
+        Participants=[],
+    )
+    client = N(
+        contact=N(get_all_contacts=lambda: []),
+        get_joined_groups=lambda: [community, subgroup],
+        get_newsletter_subscribed=lambda: [],
+    )
+    s = N(db=db, client=client, reload_names=lambda: 0, roster_register=lambda g: None)
+    server.Session._load_names(s)
+    assert [c["jid"] for c in db.chats()] == ["888@g.us"]
+    assert "999@g.us" in s._community_ids

@@ -233,6 +233,20 @@ What the patches carry today:
   whatsmeow's check of the old `fileEncSHA256` refused all 7 hosts (issue #756).
   The ciphertext is authenticated by the media key's HMAC and the plaintext by
   `fileSHA256` (`mediaretry_decrypt.go`, tested alone with `go test`).
+- **neonize 0033**: `applyDeviceProps` (`goneonize/device_props.go`, tested in
+  `device_props_test.go`) resets `store.DeviceProps` from a clean clone of
+  `baseDeviceProps` before merging each session's `DeviceProps` in `Neonize()`
+  (`goneonize/main.go`), preventing `FullSyncDaysLimit` and unknown protobuf
+  fields (`supportOmittedConversationMetadata`) from leaking or accumulating
+  across sessions in the same process.
+- **whatsmeow 0016**: `omittedHistoryConversations` and
+  `storeConversationPNLIDMappings` (`omitted_history.go`, tested in
+  `omitted_history_test.go`) decode `HistorySync.omittedConversationMetadata`
+  (field 25) via `protowire`, store PN↔LID mappings from
+  `PhoneNumberToLidMappings` and regular/omitted `Conversation` entries
+  synchronously before `DownloadHistorySync` dispatches `events.HistorySync`,
+  and pass omitted conversations to `storeHistoricalMessageSecrets` for
+  `tcToken` privacy-token storage (`docs/traps/sync-completion.md`).
 
 ## Toolchain (once)
 

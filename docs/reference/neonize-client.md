@@ -179,6 +179,24 @@ The order matters twice: a notice applied first keeps an active range that cover
 the messages arriving after it, and one applied to a chat already holding newer
 messages is stored as `Success` and changes nothing.
 
+## Pairing history cap and omitted conversations
+
+WhatsApp's iPhone client caps `INITIAL_BOOTSTRAP` (`syncType = 0`) at 399 chats
+and delivers older conversations only as `OmittedConversationMetadata` (field
+25) batches when the companion advertises
+`DeviceProps.HistorySyncConfig.supportOmittedConversationMetadata = true` (field
+28) during registration (`neonize_bridge/omitted_history.py`,
+`neonize_bridge/server.py`). Because `DeviceProps` capabilities are sent only
+in `getRegistrationPayload`, an account paired on an older build must re-pair
+once to receive omitted conversations. Unopened omitted chats hold zero local
+messages and trigger no phone requests in the background; opening one or
+pressing Home requests its initial 50-message page via
+`PeerDataOperationRequestMessage` in `INITIAL_REVERSE_HISTORY` mode (`mode = 1`,
+`neonize_bridge/older_history.py`), while community parent containers
+(`isParentGroup` / `GroupParent.IsParent`) are skipped from `chats`. See
+[the sync completion traps](docs/traps/sync-completion.md) for wire fields and
+protocol details.
+
 ## Known leftovers (not fixed)
 
 - Video and group call buttons are still shown when the bridge cannot take

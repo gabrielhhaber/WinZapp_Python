@@ -197,4 +197,5 @@ def test_type_name_names_every_block_and_survives_a_new_one():
     assert hr.type_name(HistorySync.INITIAL_BOOTSTRAP) == "INITIAL_BOOTSTRAP"
     assert hr.type_name(FULL) == "FULL"
     assert hr.type_name(HistorySync.NON_BLOCKING_DATA) == "NON_BLOCKING_DATA"
+    assert hr.type_name(9) == "RECENT_CONVERSATIONS_ON_DEMAND"
     assert hr.type_name(42) == "42"

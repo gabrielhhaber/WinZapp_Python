@@ -63,6 +63,7 @@ import groups_extra
 import history_progress
 import history_resume
 import older_history
+import omitted_history
 import call_invites
 import channels_panel
 import channel_events
@@ -121,10 +122,8 @@ def device_props(days):
         props.historySyncConfig.fullSyncSizeMbLimit = 102400
         props.historySyncConfig.storageQuotaMb = 102400
     else:
-        # said outright: neonize merges these into one DeviceProps for the
-        # whole process, and an earlier session's full sync would stay on
         props.requireFullSync = False
-    return props
+    return omitted_history.advertise_omitted_metadata(props)
 
 
 def fix_poll_vote_decryption(client):
@@ -970,12 +969,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.GroupInfoEv)
         def _group(c, e):
             try:
-                if e.Name and e.Name.Name:
-                    self.db.chat(jid_text(e.JID), name=e.Name.Name)
+                gid = jid_text(e.JID)
+                if e.Name and e.Name.Name and gid not in getattr(self, "_community_ids", ()):
+                    self.db.chat(gid, name=e.Name.Name)
                 if e.HasField("Ephemeral"):
                     duration = int(e.Ephemeral.DisappearingTimer) if e.Ephemeral.IsEphemeral else 0
-                    self.record_timer(jid_text(e.JID), duration)
-                    chat_settings_events.timer_changed(self, jid_text(e.JID), duration)
+                    self.record_timer(gid, duration)
+                    chat_settings_events.timer_changed(self, gid, duration)
             except Exception:
                 log.exception("group changed")
             group_events.group_changed(c, self, e)    # groups.update (see group_events)
@@ -1059,7 +1059,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             try:
                 jid = local_chat(c, e.JID)
                 arch = bool(e.Action.archived)
-                self.db.chat(jid, archived=int(arch))
+                fields = {"archived": int(arch)}
+                msg_range = getattr(e.Action, "messageRange", None)
+                if not self.db.chat_exists(jid) and getattr(msg_range, "lastMessageTimestamp", 0):
+                    fields["ts"] = msgmap.seconds(msg_range.lastMessageTimestamp)
+                self.db.chat(jid, **fields)
                 chat_w = msgmap.jid_wpp(jid)
                 log.info("chat %s on the phone -> app", "archived" if arch else "unarchived")
                 self.emit("chats-update", {"session": self.name, "data": [{
@@ -1356,14 +1360,50 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             # history: history-sync-status must not go back to "landing"
             self._store_history_block(data)
             return
+        omitted_batch = omitted_history.is_omitted_batch(data)
         progress = history_progress.progress_of(self, time.monotonic())
         progress.started(time.monotonic())
         percent = None
         try:
             percent = self._store_history_block(data)
-            history_resume.note_block(self, data, time.monotonic())
+            if omitted_batch:
+                percent = None
+            elif omitted_history.tracks_transfer_progress(data):
+                history_resume.note_block(self, data, time.monotonic())
         finally:
             progress.finished(time.monotonic(), percent)
+
+    @staticmethod
+    def _conversation_fields(c, history_end, *, omitted=False):
+        """Extracts Store.chats columns from a HistorySync Conversation proto."""
+        fields = {
+            "name": getattr(c, "name", "") or getattr(c, "displayName", "") or None,
+            "history_end": history_end,
+            "ts": msgmap.seconds(getattr(c, "conversationTimestamp", 0)
+                                 or getattr(c, "lastMsgTimestamp", 0)),
+        }
+        if c.HasField("unreadCount"):
+            fields["unread"] = int(c.unreadCount)
+        if c.HasField("archived"):
+            fields["archived"] = int(bool(c.archived))
+        if c.HasField("pinned"):
+            # I cannot tell the unit (order or pinning time); the app only looks
+            # at whether it is greater than zero. The bridge does not enforce the
+            # limit of 3 pinned chats either: WhatsApp refuses the fourth
+            fields["pinned"] = int(c.pinned)
+        if c.HasField("muteEndTime"):
+            fields["muted"] = int(c.muteEndTime)
+        if c.HasField("locked"):
+            fields["locked"] = int(bool(c.locked))
+        if c.HasField("ephemeralExpiration"):
+            fields["ephemeral"] = int(c.ephemeralExpiration)
+            fields["ephemeral_ts"] = int(getattr(c, "ephemeralSettingTimestamp", 0) or 0)
+        account_lid = omitted_history.account_lid_of(c)
+        if account_lid:
+            fields["account_lid"] = account_lid
+        if omitted:
+            fields["omitted"] = 1
+        return {k: v for k, v in fields.items() if v is not None}
 
     def _store_history_block(self, data):
         """Stores a block of the history; returns the progress (0-100) it brings.
@@ -1373,6 +1413,43 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         client took the bridge for disconnected."""
         self.db.contacts_in_batch([(x.ID, None, x.pushname) for x in data.pushnames
                                    if x.ID and x.pushname])
+        snap_id = omitted_history.snapshot_id_of(data)
+        if snap_id:
+            log.info("history omitted snapshot advertised (%d chars)", len(snap_id))
+        batch = omitted_history.omitted_batch_of(data)
+        lid_pairs = omitted_history.block_lid_mappings(
+            data, batch["conversations"] if batch is not None else ())
+        if lid_pairs and hasattr(self.db, "put_lid_mappings"):
+            self.db.put_lid_mappings(lid_pairs)
+
+        existing_fn = getattr(self, "existing_chat", None)
+        keys_fn = getattr(self, "chat_keys", None)
+        emit_fn = getattr(self, "emit", None)
+        community_ids = self.__dict__.setdefault("_community_ids", set())
+
+        if batch is not None:
+            omitted_chats = []
+            for c in batch["conversations"]:
+                jid = getattr(c, "ID", "")
+                if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
+                    continue
+                if getattr(c, "isParentGroup", False):
+                    community_ids.add(jid)
+                    continue
+                target = (existing_fn(jid) if callable(existing_fn) else "") or jid
+                if (hasattr(self.db, "has_chat") and hasattr(self.db, "last")
+                        and self.db.has_chat(target) and self.db.last(target) is not None):
+                    continue
+                history_end = (int(c.endOfHistoryTransferType)
+                               if c.HasField("endOfHistoryTransferType") else None)
+                omitted_chats.append((target, Session._conversation_fields(
+                    c, history_end, omitted=True)))
+            self.db.chats_in_batch(omitted_chats)
+            log.info("history omitted metadata: %d chats (batch %d/%d, complete=%s)",
+                     len(omitted_chats), batch["batch_index"] + 1, batch["batch_count"],
+                     batch["complete"])
+            return data.progress
+
         total = 0
         chats, rows = [], []
         # The phone's answer to an older-history request (older_history.py)
@@ -1380,9 +1457,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         # count or archiving would only undo what the live events set since.
         on_demand = older_history.is_on_demand(data)
         ends = []
+        on_demand_new = []
         for c in data.conversations:
             jid = c.ID
             if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
+                continue
+            if getattr(c, "isParentGroup", False):
+                community_ids.add(jid)
                 continue
             history_end = (int(c.endOfHistoryTransferType)
                            if c.HasField("endOfHistoryTransferType") else None)
@@ -1390,52 +1471,46 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 # under the key the chat is stored with: the phone may answer
                 # by its other address (number vs LID), which get-messages,
                 # joining only stored keys, would never read
-                target = self.existing_chat(jid) or jid
+                target = (existing_fn(jid) if callable(existing_fn) else "") or jid
                 if history_end is not None:
                     ends.append((target, history_end))
-                count = len(rows)
                 answer = Session._history_rows(target, c)
                 rows.extend(answer)
-                total += len(rows) - count
-                if older_history.brought_nothing_new(
-                        answer, lambda mid: self.db.wpp_message(mid) is not None):
+                total += len(answer)
+                if hasattr(self.db, "wpp_message"):
+                    new_rows = [row for row in answer
+                                if self.db.wpp_message(row[1]["id"]["id"]) is None]
+                else:
+                    new_rows = list(answer)
+                on_demand_new.extend(new_rows)
+                if not new_rows:
                     # Home asked and the phone has nothing more before this
                     # anchor: it is not asked again (older_history.py)
-                    keys = self.chat_keys(target) or [target]
+                    keys = (keys_fn(target) if callable(keys_fn) else None) or [target]
                     anchor = self.db.oldest_real(keys)
                     if anchor is not None:
                         self.db.mark_history_exhausted(keys, anchor["id"])
+                    elif (hasattr(self.db, "chat_omitted_info")
+                          and self.db.chat_omitted_info(keys) is not None):
+                        self.db.mark_history_exhausted(keys, older_history.OMITTED_ANCHOR)
                 continue
-            fields = {"name": c.name or c.displayName or None,
-                      "history_end": history_end,
-                      "ts": msgmap.seconds(c.conversationTimestamp or c.lastMsgTimestamp)}
-            if c.HasField("unreadCount"):
-                fields["unread"] = int(c.unreadCount)
-            if c.HasField("archived"):
-                fields["archived"] = int(bool(c.archived))
-            if c.HasField("pinned"):
-                # I cannot tell the unit (order or pinning time); the app only looks
-                # at whether it is greater than zero. The bridge does not enforce the
-                # limit of 3 pinned chats either: WhatsApp refuses the fourth
-                fields["pinned"] = int(c.pinned)
-            if c.HasField("muteEndTime"):
-                fields["muted"] = int(c.muteEndTime)
-            if c.HasField("locked"):
-                fields["locked"] = int(bool(c.locked))
-            if c.HasField("ephemeralExpiration"):
-                fields["ephemeral"] = int(c.ephemeralExpiration)
-                fields["ephemeral_ts"] = int(c.ephemeralSettingTimestamp or 0)
-            chats.append((jid, {k: v for k, v in fields.items() if v is not None}))
-            count = len(rows)
-            rows.extend(Session._history_rows(jid, c))
-            total += len(rows) - count
+            chats.append((jid, Session._conversation_fields(c, history_end)))
+            answer = Session._history_rows(jid, c)
+            rows.extend(answer)
+            total += len(answer)
         self.db.chats_in_batch(chats)
         if ends:
             self.db.history_ends_of_existing(ends)
         self.db.messages_in_batch(rows)
+        if on_demand and on_demand_new and callable(emit_fn):
+            session_name = getattr(self, "name", "")
+            for _chat, w, _raw in on_demand_new:
+                emit_fn("received-message", {
+                    "session": session_name, "response": {**w, "isMdHistoryMsg": True}})
         log.info("history%s: %d chats, %d messages (%s%%) [%s block %s]",
                  " on demand" if on_demand else "", len(data.conversations), total,
-                 data.progress, history_resume.type_name(data.syncType), data.chunkOrder)
+                 data.progress, history_resume.type_name(getattr(data, "syncType", -1)),
+                 getattr(data, "chunkOrder", 0))
         return data.progress
 
     @staticmethod
@@ -1670,26 +1745,46 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return learned
 
     def _phone_of_lid(self, lid):
-        """'123@lid' -> the number's JID text, or '' when whatsmeow does not know it."""
+        """'123@lid' -> the number's JID text, using store `lid_map` when whatsmeow
+        does not yet know it."""
         from neonize.utils import build_jid
-        try:
-            return jid_text(self.client.get_pn_from_lid(build_jid(lid.split("@")[0], "lid")))
-        except Exception:
-            return ""
+        found = ""
+        client = getattr(self, "client", None)
+        if client is not None:
+            try:
+                found = jid_text(client.get_pn_from_lid(build_jid(lid.split("@")[0], "lid")))
+            except Exception:
+                found = ""
+        if found:
+            return found
+        db = getattr(self, "db", None)
+        return db.phone_of_lid(lid) if db is not None and hasattr(db, "phone_of_lid") else ""
 
     def _lid_of_phone(self, phone):
-        """'5511@s.whatsapp.net' -> the LID's JID text, or '' when whatsmeow does not know it."""
+        """'5511@s.whatsapp.net' -> the LID's JID text, using store `lid_map` fallback."""
         from neonize.utils import build_jid
-        try:
-            return jid_text(self.client.get_lid_from_pn(build_jid(phone.split("@")[0], "s.whatsapp.net")))
-        except Exception:
-            return ""
+        found = ""
+        client = getattr(self, "client", None)
+        if client is not None:
+            try:
+                found = jid_text(client.get_lid_from_pn(build_jid(phone.split("@")[0], "s.whatsapp.net")))
+            except Exception:
+                found = ""
+        if found:
+            return found
+        db = getattr(self, "db", None)
+        return db.lid_of_phone(phone) if db is not None and hasattr(db, "lid_of_phone") else ""
 
     def _load_names(self):
         self.reload_names()
+        community_ids = self.__dict__.setdefault("_community_ids", set())
         try:
             for g in self.client.get_joined_groups():
-                self.db.chat(jid_text(g.JID), name=g.GroupName.Name)
+                gid = jid_text(g.JID)
+                if bool(getattr(getattr(g, "GroupParent", None), "IsParent", False)):
+                    community_ids.add(gid)
+                elif gid:
+                    self.db.chat(gid, name=g.GroupName.Name)
                 self.roster_register(g)    # members, for the group ack (group_receipts)
         except Exception:
             log.exception("groups")

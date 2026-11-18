@@ -1,0 +1,242 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp build <build@winzapp.invalid>
+Date: Wed, 18 Nov 2026 01:18:04 -0300
+Subject: [PATCH] Store LID mappings and privacy tokens from omitted history
+ metadata
+
+---
+ message.go              |  22 ++++++--
+ omitted_history.go      | 113 ++++++++++++++++++++++++++++++++++++++++
+ omitted_history_test.go |  64 +++++++++++++++++++++++
+ 3 files changed, 194 insertions(+), 5 deletions(-)
+ create mode 100644 omitted_history.go
+ create mode 100644 omitted_history_test.go
+
+diff --git a/message.go b/message.go
+index 190866b..ee9bb7a 100644
+--- a/message.go
++++ b/message.go
+@@ -800,17 +800,29 @@ func (cli *Client) DownloadHistorySync(ctx context.Context, notif *waE2E.History
+ 		return nil, fmt.Errorf("failed to unmarshal: %w", err)
+ 	}
+ 	cli.Log.Debugf("Received history sync (type %s, chunk %d, progress %d)", historySync.GetSyncType(), historySync.GetChunkOrder(), historySync.GetProgress())
++	allConvs := historySync.GetConversations()
++	if omittedConvs := omittedHistoryConversations(historySync.ProtoReflect().GetUnknown()); len(omittedConvs) > 0 {
++		merged := make([]*waHistorySync.Conversation, 0, len(allConvs)+len(omittedConvs))
++		merged = append(merged, allConvs...)
++		merged = append(merged, omittedConvs...)
++		allConvs = merged
++	}
++	if cli != nil && cli.Store != nil && cli.Store.LIDs != nil {
++		if len(historySync.GetPhoneNumberToLidMappings()) > 0 {
++			cli.storeHistoricalPNLIDMappings(ctx, historySync.GetPhoneNumberToLidMappings())
++		}
++		if len(allConvs) > 0 {
++			cli.storeConversationPNLIDMappings(ctx, allConvs)
++		}
++	}
+ 	doStorage := func(ctx context.Context) {
+ 		if err := cli.storeNCTSalt(ctx, historySync.GetNctSalt()); err != nil {
+ 			cli.Log.Warnf("Failed to store NCT salt from history sync: %v", err)
+ 		}
+-		if len(historySync.GetPhoneNumberToLidMappings()) > 0 {
+-			cli.storeHistoricalPNLIDMappings(ctx, historySync.GetPhoneNumberToLidMappings())
+-		}
+ 		if historySync.GetSyncType() == waHistorySync.HistorySync_PUSH_NAME {
+ 			cli.handleHistoricalPushNames(ctx, historySync.GetPushnames())
+-		} else if len(historySync.GetConversations()) > 0 {
+-			cli.storeHistoricalMessageSecrets(ctx, historySync.GetConversations())
++		} else if len(allConvs) > 0 {
++			cli.storeHistoricalMessageSecrets(ctx, allConvs)
+ 		}
+ 		if historySync.GlobalSettings != nil {
+ 			cli.storeGlobalSettings(ctx, historySync.GlobalSettings)
+diff --git a/omitted_history.go b/omitted_history.go
+new file mode 100644
+index 0000000..41ab3fa
+--- /dev/null
++++ b/omitted_history.go
+@@ -0,0 +1,113 @@
++// Copyright (c) 2026 WinZapp Contributors
++//
++// This Source Code Form is subject to the terms of the Mozilla Public
++// License, v. 2.0. If a copy of the MPL was not distributed with this
++// file, You can obtain one at http://mozilla.org/MPL/2.0/.
++
++package whatsmeow
++
++import (
++	"context"
++
++	"go.mau.fi/whatsmeow/proto/waHistorySync"
++	"go.mau.fi/whatsmeow/store"
++	"go.mau.fi/whatsmeow/types"
++	"google.golang.org/protobuf/encoding/protowire"
++	"google.golang.org/protobuf/proto"
++)
++
++const (
++	historySyncFieldOmittedMetadata protowire.Number = 25
++	omittedMetadataFieldConvs       protowire.Number = 6
++)
++
++func consumeLengthFields(b []byte, target protowire.Number, fn func([]byte)) {
++	for len(b) > 0 {
++		num, typ, n := protowire.ConsumeTag(b)
++		if n < 0 {
++			return
++		}
++		b = b[n:]
++		if typ == protowire.BytesType {
++			val, m := protowire.ConsumeBytes(b)
++			if m < 0 {
++				return
++			}
++			b = b[m:]
++			if num == target {
++				fn(val)
++			}
++		} else {
++			m := protowire.ConsumeFieldValue(num, typ, b)
++			if m < 0 {
++				return
++			}
++			b = b[m:]
++		}
++	}
++}
++
++func omittedHistoryConversations(unknown []byte) []*waHistorySync.Conversation {
++	var convs []*waHistorySync.Conversation
++	consumeLengthFields(unknown, historySyncFieldOmittedMetadata, func(metaBytes []byte) {
++		consumeLengthFields(metaBytes, omittedMetadataFieldConvs, func(convBytes []byte) {
++			var conv waHistorySync.Conversation
++			if err := proto.Unmarshal(convBytes, &conv); err == nil {
++				convs = append(convs, &conv)
++			}
++		})
++	})
++	return convs
++}
++
++func extractConversationLIDMappings(conversations []*waHistorySync.Conversation) []store.LIDMapping {
++	type pairKey struct{ lid, pn types.JID }
++	seen := make(map[pairKey]struct{})
++	var pairs []store.LIDMapping
++	for _, conv := range conversations {
++		if conv == nil {
++			continue
++		}
++		cid, _ := types.ParseJID(conv.GetID())
++		pn, _ := types.ParseJID(conv.GetPnJID())
++		if pn.IsEmpty() && cid.Server == types.DefaultUserServer {
++			pn = cid
++		}
++		if pn.Server == types.LegacyUserServer {
++			pn.Server = types.DefaultUserServer
++		}
++		var lid types.JID
++		for _, candidate := range []string{conv.GetAccountLid(), conv.GetLidJID(), conv.GetID()} {
++			if parsed, err := types.ParseJID(candidate); err == nil && parsed.Server == types.HiddenUserServer {
++				lid = parsed
++				break
++			}
++		}
++		lid = lid.ToNonAD()
++		pn = pn.ToNonAD()
++		if lid.Server == types.HiddenUserServer && pn.Server == types.DefaultUserServer && !lid.IsEmpty() && !pn.IsEmpty() {
++			k := pairKey{lid: lid, pn: pn}
++			if _, ok := seen[k]; !ok {
++				seen[k] = struct{}{}
++				pairs = append(pairs, store.LIDMapping{LID: lid, PN: pn})
++			}
++		}
++	}
++	return pairs
++}
++
++func (cli *Client) storeConversationPNLIDMappings(ctx context.Context, conversations []*waHistorySync.Conversation) {
++	if cli == nil || cli.Store == nil || cli.Store.LIDs == nil {
++		return
++	}
++	lidPairs := extractConversationLIDMappings(conversations)
++	if len(lidPairs) == 0 {
++		return
++	}
++	err := cli.Store.LIDs.PutManyLIDMappings(ctx, lidPairs)
++	if err != nil {
++		cli.Log.Errorf("Failed to store conversation PN-LID mappings from history sync: %v", err)
++	} else {
++		cli.Log.Debugf("Stored %d conversation PN-LID mappings from history sync", len(lidPairs))
++	}
++}
+diff --git a/omitted_history_test.go b/omitted_history_test.go
+new file mode 100644
+index 0000000..1cf4a50
+--- /dev/null
++++ b/omitted_history_test.go
+@@ -0,0 +1,64 @@
++// Copyright (c) 2026 WinZapp Contributors
++//
++// This Source Code Form is subject to the terms of the Mozilla Public
++// License, v. 2.0. If a copy of the MPL was not distributed with this
++// file, You can obtain one at http://mozilla.org/MPL/2.0/.
++
++package whatsmeow
++
++import (
++	"testing"
++
++	"go.mau.fi/whatsmeow/proto/waHistorySync"
++	"google.golang.org/protobuf/encoding/protowire"
++	"google.golang.org/protobuf/proto"
++)
++
++func TestOmittedHistoryConversationsAndLIDExtraction(t *testing.T) {
++	c1 := &waHistorySync.Conversation{
++		ID:         proto.String("111@lid"),
++		PnJID:      proto.String("5511999990001@s.whatsapp.net"),
++		AccountLid: proto.String("111@lid"),
++	}
++	c2 := &waHistorySync.Conversation{
++		ID:     proto.String("5511999990002:0@s.whatsapp.net"),
++		LidJID: proto.String("222@lid"),
++	}
++	c1Raw, err := proto.Marshal(c1)
++	if err != nil {
++		t.Fatal(err)
++	}
++	c2Raw, err := proto.Marshal(c2)
++	if err != nil {
++		t.Fatal(err)
++	}
++
++	var meta []byte
++	meta = protowire.AppendTag(meta, 1, protowire.BytesType)
++	meta = protowire.AppendString(meta, "snap-1")
++	meta = protowire.AppendTag(meta, 3, protowire.VarintType)
++	meta = protowire.AppendVarint(meta, 0)
++	meta = protowire.AppendTag(meta, omittedMetadataFieldConvs, protowire.BytesType)
++	meta = protowire.AppendBytes(meta, c1Raw)
++	meta = protowire.AppendTag(meta, omittedMetadataFieldConvs, protowire.BytesType)
++	meta = protowire.AppendBytes(meta, c2Raw)
++
++	var unknown []byte
++	unknown = protowire.AppendTag(unknown, historySyncFieldOmittedMetadata, protowire.BytesType)
++	unknown = protowire.AppendBytes(unknown, meta)
++
++	convs := omittedHistoryConversations(unknown)
++	if len(convs) != 2 {
++		t.Fatalf("expected 2 conversations, got %d", len(convs))
++	}
++	pairs := extractConversationLIDMappings(convs)
++	if len(pairs) != 2 {
++		t.Fatalf("expected 2 LID mappings, got %d: %+v", len(pairs), pairs)
++	}
++	if pairs[0].LID.String() != "111@lid" || pairs[0].PN.String() != "5511999990001@s.whatsapp.net" {
++		t.Fatalf("unexpected first pair: %+v", pairs[0])
++	}
++	if pairs[1].LID.String() != "222@lid" || pairs[1].PN.String() != "5511999990002@s.whatsapp.net" {
++		t.Fatalf("unexpected second pair: %+v", pairs[1])
++	}
++}

@@ -9,7 +9,7 @@ import logging
 import threading
 import time
 import wx
-from core.sync_lifecycle import capture_sync_context, sync_context_is_current, record_phone_request_attempt
+from core.sync_lifecycle import capture_sync_context, sync_context_is_current, record_phone_request_attempt, schedule_backfill
 from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
@@ -28,6 +28,35 @@ from core import short_chat_rest
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
+
+
+def _wake_backfill_for_opened_chat(window, jid: str) -> None:
+    """Queue a short non-exhausted opened chat and wake the backfill loop."""
+    if history_ends_on_server(jid):
+        return
+    canonical = window._canonical_backfill_jid(jid)
+    forms = set(window._jid_address_forms(jid))
+    forms.add(canonical)
+    if forms & getattr(window, "_exhausted_chats", set()):
+        return
+    local_count_fn = getattr(window, "_local_record_count", None)
+    page_target_fn = getattr(window, "history_page_target", None)
+    if not callable(local_count_fn) or not callable(page_target_fn):
+        return
+    count = local_count_fn(canonical)
+    if count >= page_target_fn():
+        return
+    already_pending = (
+        callable(getattr(window, "_is_backfill_pending", None))
+        and window._is_backfill_pending(canonical)
+    )
+    if not already_pending and callable(getattr(window, "_keep_backfill_pending", None)):
+        window._keep_backfill_pending(canonical, count)
+        persist_pending = getattr(window, "_persist_backfill_pending_state", None)
+        if callable(persist_pending):
+            persist_pending()
+    if getattr(window, "_wa_connected", False) and not getattr(window, "offline_mode", False):
+        schedule_backfill(window)
 
 
 class BackfillMixin:
@@ -636,6 +665,7 @@ class BackfillMixin:
         except Exception:
             pass
         if forms <= opened:
+            _wake_backfill_for_opened_chat(self, jid)
             return
         opened.update(forms)
         try:
@@ -644,6 +674,7 @@ class BackfillMixin:
                     "opened_conversations_v1", sorted(opened))
         except Exception as exc:
             logging.warning("[history-sync] could not persist opened conversations: %s", exc)
+        _wake_backfill_for_opened_chat(self, jid)
 
     def _user_has_opened(self, jid: str) -> bool:
         """Whether the phone may be asked about this chat's older history."""
