@@ -1253,11 +1253,21 @@ class MessageRenderingMixin:
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
         if msg.get("pinInChat"):
             pieces[0] = f"📌 {i18n.t('message_pinned')}, {pieces[0]}"
+        # Settings > User interface > "Announce 'Starred' at the start of the
+        # message" (default off): off keeps the word as a trailing clause
+        # below, like "Edited". On moves it to the front, before the sender.
+        # Done ahead of the forwarded block so "Forwarded" still comes first.
+        is_starred = bool(msg.get("starred"))
+        if is_starred and self.main_window.settings.get("user_interface", {}).get(
+            "starred_prefix_enabled", False
+        ):
+            pieces[0] = f"{i18n.t('status_starred')}, {pieces[0]}"
+            is_starred = False  # already announced; don't also append the suffix below
         # Settings > Interface do usuário > "Anunciar 'Encaminhada' no início
         # da mensagem" (default off). Off keeps the long-standing behavior of
         # a trailing ", Encaminhada" clause below, same position as "Editada"
         # and the delivery status. On moves it to the very front — ahead of
-        # the sender, and even ahead of the star/pin markers above — so a
+        # the sender, and even ahead of the starred word and pin marker above — so a
         # screen reader user arrowing quickly through a busy forwarded chat
         # (a forward chain, a viral message) hears it's forwarded before
         # anything else, instead of only after the sender and full body.
@@ -1277,10 +1287,11 @@ class MessageRenderingMixin:
             pieces[-1] += f", {i18n.t('status_edited')}"
         if is_forwarded:
             pieces[-1] += f", {i18n.t('status_forwarded')}"
-        # A starred message ends with the word "Favoritada", like "Editada"
-        # and "Encaminhada". It used to open with a star glyph, which screen
-        # readers skip or read differently depending on the symbol level.
-        if msg.get("starred"):
+        # A starred message ends with the word "Starred", like "Edited" and
+        # "Forwarded" (or opens with it, see above). It used to open with a
+        # star glyph, which screen readers skip or read differently depending
+        # on the symbol level.
+        if is_starred:
             pieces[-1] += f", {i18n.t('status_starred')}"
 
         # Append quoted message preview (if this is a reply)

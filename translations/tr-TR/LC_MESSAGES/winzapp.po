@@ -20198,7 +20198,7 @@ msgstr "Mesaj &listesinde bağlantı önizlemelerini göster"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
 "Liste &kutusu modu kullanılırken öğe konumunu ve sayısını göster (Yalnızca "
@@ -20224,6 +20224,12 @@ msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr ""
 "&Zaten bir seçim varken seçmek/seçimi kaldırmak için Boşluk tuşunu kullan"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr "Mesajın başında, göndericiden &önce \"Yıldızlandı\" duyur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

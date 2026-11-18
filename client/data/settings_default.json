@@ -120,6 +120,7 @@
         "show_yesterday_label": true,
         "show_link_previews": true,
         "forwarded_prefix_enabled": false,
+        "starred_prefix_enabled": false,
         "delete_media_from_phone": true,
         "forward_voice_as_voice": false,
         "forward_keep_link_preview": true,

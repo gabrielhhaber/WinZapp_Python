@@ -18970,7 +18970,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
 
@@ -18991,6 +18991,12 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
