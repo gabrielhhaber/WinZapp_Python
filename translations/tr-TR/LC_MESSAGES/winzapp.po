@@ -1245,7 +1245,7 @@ msgstr "Aşağ&ı taşı"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_move_up_button"
 msgid "&Move up"
-msgstr "Yuka&rı taşı"
+msgstr "&Yukarı taşı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_state_disabled"
@@ -9956,7 +9956,7 @@ msgstr "Aşağ&ı taşı"
 #: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_up"
 msgid "Move &up"
-msgstr "Yuka&rı taşı"
+msgstr "&Yukarı taşı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
