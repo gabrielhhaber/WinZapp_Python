@@ -443,3 +443,50 @@ def test_a_call_that_replaced_this_one_is_not_torn_down_by_the_failure():
     assert stub._active_voice_call is other
     # Neither the other call's audio nor its record may be touched here.
     assert stub.stop_audio_calls == []
+
+
+LINK = "https://call.whatsapp.com/voice/AbCdEfGhIjKlMnOpQrStUv"
+
+
+def test_joining_a_call_link_posts_the_link_and_adopts_the_call():
+    """A link call has no chat: the link is posted, and the join's answer is
+    handed over so the call's "connected" can be replayed (call_links.py)."""
+    stub = _MainStub()
+    requests, joined = [], []
+    stub._call_links_supported = lambda: True
+    stub._on_call_link_joined = lambda record, body: joined.append((record, body))
+    stub._post_call_control = lambda endpoint, payload, **kw: (
+        requests.append((endpoint, payload)) or _Response("link-call"))
+
+    stub._start_call("", "call link participants", is_group=True, is_video=False, call_link=LINK)
+
+    assert requests == [("link/join", {"link": LINK})]
+    record = stub._active_voice_call
+    assert record["call_id"] == "link-call" and record["call_link"] == LINK
+    assert record["outgoing"] is False
+    assert joined == [(record, {"id": "link-call"})]
+    assert "call_link_joining" in stub.announcements
+
+
+def test_a_call_link_the_engine_cannot_join_is_refused_before_any_device_opens():
+    stub = _MainStub()
+    stub._call_links_supported = lambda: False
+    stub._start_call("", "x", is_group=True, is_video=False, call_link=LINK)
+    assert stub.posted == [] and stub._active_voice_call is None
+    assert stub.announcements == ["group_call_join_failed"]
+
+
+def test_a_failed_call_link_join_leaves_no_call_behind():
+    stub = _MainStub()
+    stub._call_links_supported = lambda: True
+    stub._on_call_link_joined = lambda record, body: pytest.fail("not joined")
+
+    def refuse(endpoint, payload, **kwargs):
+        stub.posted.append(endpoint)
+        raise RuntimeError("refused")
+
+    stub._post_call_control = refuse
+    stub._start_call("", "x", is_group=True, is_video=False, call_link=LINK)
+    assert stub.posted == ["link/join"]
+    assert stub._active_voice_call is None
+    assert "group_call_join_failed" in stub.announcements

@@ -57,6 +57,7 @@ Where to look (and where new code goes):
     status_transcription    saved transcriptions of statuses, their media and automatic runs
     calls               voice/video calls, call bar, call-log watcher
     call_participants   explicit connected-participant views for active/joinable calls
+    call_links          call links: create, join (also from a message), the link call's waiting room
     call_hotkeys        answer/decline a ringing call from any window (global keys, only while it rings)
     chat_lock           locked-chats vault
     phone_chat_lock     chats locked with WhatsApp Chat Lock on the phone

@@ -111,6 +111,10 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         sizer.Add(self._return_call_btn, 0, wx.LEFT | wx.BOTTOM, 5)
         self._return_call_btn.Hide()
         self._init_ongoing_calls(sizer)
+        # WhatsApp's "New call link" (ui/call_link_dialog.py); always there.
+        self._call_link_btn = wx.Button(self, label=i18n.t("calls_create_call_link_button"))
+        self._call_link_btn.Bind(wx.EVT_BUTTON, self._on_create_call_link)
+        sizer.Add(self._call_link_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
         self.SetSizer(sizer)
 
@@ -143,8 +147,14 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
             col.SetText(i18n.t("calls_list_label").replace("&", ""))
             self._lists[tab].SetColumn(0, col)
         self._return_call_btn.SetLabel(i18n.t("return_call_button"))
+        self._call_link_btn.SetLabel(i18n.t("calls_create_call_link_button"))
         if self._loaded:
             self._populate_all()
+
+    def _on_create_call_link(self, _event=None):
+        from ui.call_link_dialog import CallLinkDialog
+        with CallLinkDialog(self, self.main_window) as dialog:
+            dialog.ShowModal()
 
     # ── State ────────────────────────────────────────────────────────────────
 

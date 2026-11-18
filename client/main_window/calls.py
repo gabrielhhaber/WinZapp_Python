@@ -1507,8 +1507,11 @@ class CallsMixin:
         self._start_call(peer_jid, name, is_video=is_video, is_group=True)
 
     def _start_call(self, peer_jid: str, name: str, *, is_video: bool,
-                    is_group: bool, join_call_id: str = ""):
-        """Start or join a call and keep Python's audio attached to it."""
+                    is_group: bool, join_call_id: str = "", call_link: str = ""):
+        """Start or join a call and keep Python's audio attached to it.
+
+        ``call_link``: join the call of a WhatsApp call link instead
+        (main_window/call_links.py); such a call has no chat."""
         peer_jid = self._normalize_jid(str(peer_jid or ""))
         # The self-chat belongs on this list with the other unreachable kinds.
         # Hiding the call buttons for it (#268) covers the mouse and the Tab
@@ -1528,6 +1531,9 @@ class CallsMixin:
             unreachable = unreachable or peer_jid.endswith("@g.us")
         if join_call_id and not is_group:
             unreachable = True
+        if call_link:
+            # the link is the call's only address (core/call_links.py)
+            unreachable = not is_group
         if unreachable:
             self.output(self.i18n.t("voice_call_individual_only"), interrupt=True)
             return
@@ -1536,6 +1542,11 @@ class CallsMixin:
             or bool(getattr(self, "_active_incoming_calls", {}))
         ):
             self.output(self.i18n.t("voice_call_already_active"), interrupt=True)
+            return
+        if call_link and not self._call_links_supported():
+            t = self.i18n.t
+            self.output(t("group_call_join_failed").format(
+                error=t("call_log_action_unavailable")), interrupt=True)
             return
         if engine_refuses_call(self._uses_neonize(), getattr(self, "_neonize_calls", False),
                                placing=True, is_video=is_video, is_group=is_group,
@@ -1549,7 +1560,8 @@ class CallsMixin:
             self.output(t("voice_call_start_failed").format(
                 error=t("call_log_action_unavailable")), interrupt=True)
             return
-        identity = join_call_id or f"outgoing:{peer_jid}"
+        joining = bool(join_call_id or call_link)
+        identity = join_call_id or f"outgoing:{call_link or peer_jid}"
         details = {
             "call_id": identity,
             "peer_jid": peer_jid,
@@ -1560,12 +1572,14 @@ class CallsMixin:
                 if peer_jid.endswith("@g.us")
                 else self._preview_sender_from_jid(peer_jid) or peer_jid
             ),
-            "outgoing": not bool(join_call_id),
+            "outgoing": not joining,
             "is_video": is_video,
-            "phase": "" if join_call_id else "CALLING",
+            "phase": "" if joining else "CALLING",
+            "call_link": call_link,
         }
         self.output(
-            (self.i18n.t("group_call_joining") if join_call_id
+            (self.i18n.t("call_link_joining") if call_link
+             else self.i18n.t("group_call_joining") if join_call_id
              else self.i18n.t("voice_call_starting")).format(name=details["name"]),
             interrupt=True,
         )
@@ -1618,12 +1632,14 @@ class CallsMixin:
                     if not peer_jid.endswith("@g.us"):
                         call_payload = {"chatJid": peer_jid, "isVideo": is_video}
                     call_payload["callId"] = join_call_id
+                if call_link:
+                    endpoint, call_payload = "link/join", {"link": call_link}
                 response = self._raise_for_call_response(
                     self._post_call_control(
                         endpoint, call_payload,
                         timeout=75,
                     ),
-                    "join" if join_call_id else "offer",
+                    "join" if joining else "offer",
                 )
                 try:
                     body = response.json().get("response") or {}
@@ -1647,6 +1663,8 @@ class CallsMixin:
                     # cannot match a call nobody holds any more.
                     if offered and call_id:
                         call_record["call_id"] = call_id
+                    if offered and call_link:
+                        wx.CallAfter(self._on_call_link_joined, call_record, body)
                     if cancelled and (
                         # A newer attempt owns the page now; its call is not
                         # ours to hang up.
@@ -1680,7 +1698,7 @@ class CallsMixin:
                 logging.exception("[call] outgoing call failed")
                 wx.CallAfter(
                     self.output,
-                    (self.i18n.t("group_call_join_failed") if join_call_id
+                    (self.i18n.t("group_call_join_failed") if joining
                      else self.i18n.t("voice_call_start_failed")).format(
                         error=self._call_error_text(exc)
                     ),
@@ -1715,7 +1733,7 @@ class CallsMixin:
             # transmit.
             if offered and is_video:
                 try:
-                    if join_call_id:
+                    if joining:
                         # Joining someone else's video call must not put the
                         # user on camera unasked (as Answer without video):
                         # the probe only lets them turn the camera on.
@@ -1770,6 +1788,10 @@ class CallsMixin:
         # The open chat's call buttons and its "Return to call" follow the
         # call; a one-to-one chat has nothing else that brings them back.
         refresh_call_controls(self)
+        # a call-link call's waiting room and its button (call_links.py)
+        sync_link = getattr(self, "_sync_call_link_controls", None)
+        if sync_link is not None:
+            sync_link()
         window = getattr(self, "voice_call_window", None)
         if window is None:
             return

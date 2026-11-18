@@ -2941,6 +2941,246 @@ msgid "Too many people checked. Room left in the call: {count}"
 msgstr "Demasiadas personas marcadas. Plazas libres en la llamada: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_admit_button"
+msgid "&Let in"
+msgstr "&Admitir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_link_admitted"
+msgid "{name} was let into the call."
+msgstr "{name} ha entrado en la llamada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_call_name"
+msgid "call link participants"
+msgstr "participantes del enlace"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_link_dialog.py
+msgctxt "call_link_copied"
+msgid "Call link copied."
+msgstr "Enlace de llamada copiado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_copy_button"
+msgid "C&opy link"
+msgstr "C&opiar enlace"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_create_button"
+msgid "C&reate link"
+msgstr "C&rear enlace"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_link_dialog.py
+#, python-brace-format
+msgctxt "call_link_create_failed"
+msgid "Could not create the call link: {error}"
+msgstr "No se pudo crear el enlace de llamada: {error}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_create_failed_generic"
+msgid "WhatsApp did not answer a link"
+msgstr "WhatsApp no devolvió ningún enlace"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_created_video"
+msgid "Video call link created."
+msgstr "Enlace de videollamada creado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_created_voice"
+msgid "Voice call link created."
+msgstr "Enlace de llamada de voz creado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_link_dialog.py
+msgctxt "call_link_creating"
+msgid "Creating call link..."
+msgstr "Creando enlace de llamada..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_link_decision_failed"
+msgid "WhatsApp did not take the decision about {name}."
+msgstr "WhatsApp no aceptó la decisión sobre {name}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_link_denied"
+msgid "{name} was not let in."
+msgstr "{name} no ha sido admitido."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_deny_button"
+msgid "&Deny"
+msgstr "&Rechazar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_explanation"
+msgid ""
+"Anyone with this link can join the call. People who open it without a "
+"WhatsApp account wait until you let them in."
+msgstr ""
+"Cualquier persona con este enlace puede unirse a la llamada. Quien lo abre "
+"sin una cuenta de WhatsApp espera hasta que le dejes entrar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_field_label"
+msgid "&Link"
+msgstr "&Enlace"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_invalid"
+msgid "This is not a valid WhatsApp call link."
+msgstr "Este no es un enlace de llamada de WhatsApp válido."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_join_button"
+msgid "&Join call"
+msgstr "&Unirse a la llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/links.py
+msgctxt "call_link_join_menu"
+msgid "Join call"
+msgstr "Unirse a la llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_join_video_confirm"
+msgid ""
+"Join the video call of this link? Your camera stays off and your microphone "
+"will be on."
+msgstr ""
+"¿Unirse a la videollamada de este enlace? Tu cámara seguirá apagada y tu "
+"micrófono estará activado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_join_voice_confirm"
+msgid "Join the voice call of this link? Your microphone will be on."
+msgstr ""
+"¿Unirse a la llamada de voz de este enlace? Tu micrófono estará activado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "call_link_joining"
+msgid "Joining the call through its link..."
+msgstr "Uniéndose a la llamada mediante su enlace..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_kind_label"
+msgid "Call &type"
+msgstr "&Tipo de llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_kind_video"
+msgid "Video"
+msgstr "Vídeo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_kind_voice"
+msgid "Voice"
+msgstr "Voz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_no_conversations"
+msgid "There is no chat to send the link to."
+msgstr "No hay ningún chat al que enviar el enlace."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_no_waiting_room"
+msgid "This call has no waiting room."
+msgstr "Esta llamada no tiene sala de espera."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/call_waiting_room_dialog.py
+msgctxt "call_link_nobody_waiting"
+msgid "Nobody is waiting"
+msgstr "Nadie está esperando"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_send_button"
+msgid "&Send to a chat..."
+msgstr "Enviar a un c&hat..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_link_send_failed"
+msgid "Could not send the call link to {name}."
+msgstr "No se pudo enviar el enlace de llamada a {name}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_send_prompt"
+msgid "Chat to send the link to:"
+msgstr "Chat al que enviar el enlace:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_send_title"
+msgid "Send call link"
+msgstr "Enviar enlace de llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_link_sent"
+msgid "Call link sent to {name}."
+msgstr "Enlace de llamada enviado a {name}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_title"
+msgid "Call link"
+msgstr "Enlace de llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_unnamed_guest"
+msgid "A guest"
+msgstr "Un invitado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_unnamed_person"
+msgid "Someone"
+msgstr "Alguien"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_waiting_for_admin"
+msgid "You are in the waiting room. The call's organizer will let you in."
+msgstr ""
+"Estás en la sala de espera. El organizador de la llamada te dejará entrar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_waiting_list_label"
+msgid "&People waiting"
+msgstr "&Personas esperando"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_links.py
+#, python-brace-format
+msgctxt "call_link_waiting_many"
+msgid "{count} people are waiting to join the call."
+msgstr "{count} personas están esperando para unirse a la llamada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_links.py
+#, python-brace-format
+msgctxt "call_link_waiting_one"
+msgid ""
+"{name} is waiting to join the call. Open the waiting room in the call window"
+" to let them in."
+msgstr ""
+"{name} está esperando para unirse a la llamada. Abre la sala de espera en la"
+" ventana de la llamada para dejarle entrar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+msgctxt "call_link_waiting_room_button"
+msgid "&Waiting room"
+msgstr "Sala de &espera"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+#, python-brace-format
+msgctxt "call_link_waiting_room_button_count"
+msgid "&Waiting room ({count})"
+msgstr "Sala de &espera ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_waiting_room_title"
+msgid "Waiting room"
+msgstr "Sala de espera"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
 #: client/ui/conversation_panel/bulk_messages.py
 msgctxt "call_log_action_unavailable"
 msgid "This action is not available for calls."
@@ -3200,6 +3440,11 @@ msgstr "Anunciar cuando alguien &sale de la llamada"
 msgctxt "calls_audio_settings_button"
 msgid "Ca&ll audio settings"
 msgstr "Configuración de audio de &la llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
+msgctxt "calls_create_call_link_button"
+msgid "Create call l&ink"
+msgstr "Crear &enlace de llamada"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "calls_echo_cancellation_label"
@@ -8615,14 +8860,19 @@ msgctxt "history_transfer_stalled"
 msgid ""
 "The phone stopped sending the message history at {percent}%. Open WhatsApp "
 "on your phone and keep it on the screen; WinZapp will ask for the rest."
-msgstr "El teléfono dejó de enviar el historial de mensajes al {percent}%. Abre WhatsApp en tu teléfono y déjalo abierto en la pantalla; WinZapp pedirá el resto."
+msgstr ""
+"El teléfono dejó de enviar el historial de mensajes al {percent}%. Abre "
+"WhatsApp en tu teléfono y déjalo abierto en la pantalla; WinZapp pedirá el "
+"resto."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "history_transfer_started"
 msgid ""
 "The phone is sending the message history. Keep WhatsApp open on your phone's"
 " screen until WinZapp says it has finished."
-msgstr "El teléfono está enviando el historial de mensajes. Mantén WhatsApp abierto en la pantalla del teléfono hasta que WinZapp avise de que ha terminado."
+msgstr ""
+"El teléfono está enviando el historial de mensajes. Mantén WhatsApp abierto "
+"en la pantalla del teléfono hasta que WinZapp avise de que ha terminado."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 msgctxt "hotkey_first_run_message"
@@ -9858,7 +10108,7 @@ msgctxt "msg_copied"
 msgid "Message copied."
 msgstr "Mensaje copiado."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_link_dialog.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/business_buttons.py
 #: client/ui/conversation_panel/contact_messages.py
