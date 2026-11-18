@@ -591,8 +591,11 @@ class MessageListMixin:
                 self._buttons_container.Hide()
                 self.conversation_panel.Layout()
             return
+        # By message id, not identity: a rebuild replaces the dicts, and
+        # rebuilding the buttons would drop a Tab focus sitting on one.
         shown = getattr(self, "_business_shown_msg", None)
-        if shown is msg and getattr(self, "_business_context", None) is not None:
+        if (shown is not None and getattr(self, "_business_context", None) is not None
+                and (shown.get("key") or {}).get("id") == (msg.get("key") or {}).get("id")):
             return
         self._show_business_buttons(msg)
 

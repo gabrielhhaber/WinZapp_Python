@@ -326,3 +326,18 @@ class TestButtonsOfAFocusedRowWithoutSelectionEvent:
         update(panel, 1)
         panel._buttons_container.Hide.assert_called_once()
         assert panel._business_context is None
+
+    def test_buttons_hidden_by_the_media_reset_show_again_on_the_same_row(self):
+        panel, update = self.stub([self.BUTTONED])
+        update(panel, 0)
+        panel._business_context = None
+        panel._business_shown_msg = None  # what _hide_all_media_controls now does
+        update(panel, 0)
+        assert panel._show_business_buttons.call_count == 2
+
+    def test_a_rebuilt_copy_of_the_same_message_is_not_rebuilt(self):
+        panel, update = self.stub([self.BUTTONED])
+        update(panel, 0)
+        panel._sorted_messages = [dict(self.BUTTONED)]
+        update(panel, 0)
+        panel._show_business_buttons.assert_called_once()
