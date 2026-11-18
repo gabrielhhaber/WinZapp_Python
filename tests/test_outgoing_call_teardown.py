@@ -67,6 +67,9 @@ class _MainStub:
     # docs/traps/voice-calls.md).
     _voice_call_in_progress = MainWindow._voice_call_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
+    # _voice_call_in_progress() also asks about a recording or a mixed
+    # capture (background sync paused during audio capture); none here.
+    _audio_capture_in_progress = lambda self: False
 
     def _ensure_page_call_ended(self, call_id, *, delay=1.5, unless_active=False):
         # end_active_call() follows up with a scoped ensure-ended; it is a
