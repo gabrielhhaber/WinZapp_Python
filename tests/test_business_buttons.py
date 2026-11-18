@@ -297,6 +297,13 @@ class TestButtonsOfAFocusedRowWithoutSelectionEvent:
         {"buttonId": "1", "buttonText": {"displayText": "Car"}, "type": 1}]}
     PLAIN = {"key": {"id": "b"}}
 
+    @pytest.fixture(autouse=True)
+    def _buttons_of(self, monkeypatch):
+        # Only BUTTONED carries buttons; its stored shape is not what is under test.
+        from core import business_message_content
+        monkeypatch.setattr(business_message_content, "message_business_buttons",
+                            lambda m: [{"kind": "reply"}] if m is not None and "dynamicReplyButtons" in m else [])
+
     def stub(self, messages):
         from ui.conversation_panel.message_list import MessageListMixin
         panel = SimpleNamespace(

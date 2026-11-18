@@ -61,6 +61,9 @@ class _Stub:
     def _update_inline_poll(self, idx):
         self.calls.append(("poll", idx))
 
+    def _update_business_buttons(self, idx):
+        self.calls.append(("business", idx))
+
 
 def _msg(msg_id, text="hi"):
     return {"key": {"id": msg_id}, "messageType": "conversation", "text": text}
