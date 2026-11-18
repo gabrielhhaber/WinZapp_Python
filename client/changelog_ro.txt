@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- La crearea unui sondaj, butoanele Mutați în sus și Mutați în jos reordonează opțiunile înainte de trimitere; sondajul ajunge pe WhatsApp în ordinea lăsată de dumneavoastră, atât cu Neonize, cât și cu WPPConnect.
+
 - Mesajele marcate cu stea se termină acum cu cuvintele "Marcat cu stea", ca "Editat" și "Redirecționat", în loc să înceapă cu simbolul ★. O opțiune nouă în Setări > Interfața utilizatorului > Mesaje anunță cuvintele la începutul liniei, înaintea expeditorului.
 
 - Sunetele de scriere, bulă de scriere, puls de scriere și procesare AI din pachetul de sunete implicit sunt acum fișiere Ogg, ca restul pachetului. Nu se schimbă nimic la sunet sau la sunetele tale personalizate.

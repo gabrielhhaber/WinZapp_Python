@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Al crear una encuesta, los botones Subir y Bajar reordenan las opciones antes de enviarla; la encuesta llega a WhatsApp en el orden que dejaste, tanto con Neonize como con WPPConnect.
+
 - Los mensajes destacados ahora terminan con la palabra "Destacado", como "Editado" y "Reenviado", en lugar de empezar con el símbolo ★. Una opción nueva en Configuración > Interfaz de usuario > Mensajes anuncia la palabra al principio de la línea, antes del remitente.
 
 - Los sonidos de escritura, burbuja de escritura, pulso de escritura y procesamiento de IA del paquete de sonido predeterminado ahora son archivos Ogg, como el resto del paquete. No cambia cómo suenan ni tus sonidos personalizados.

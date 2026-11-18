@@ -67,6 +67,21 @@ def poll_input_error(question: str, options) -> str | None:
     return None
 
 
+def move_option(options, index: int, direction: int) -> tuple[list, int]:
+    """*options* with the one at *index* swapped with its neighbour
+    (*direction* -1 = up, +1 = down), and where that option now is.
+
+    At either end, or for an index out of range, nothing moves: the list is
+    returned as a copy and the index as it was.
+    """
+    options = list(options)
+    target = index + direction
+    if not 0 <= index < len(options) or not 0 <= target < len(options):
+        return options, index
+    options[index], options[target] = options[target], options[index]
+    return options, target
+
+
 def selectable_count(multiple: bool) -> int:
     """``selectableCount`` for the send: 1 for a single answer, 0 for any."""
     return 0 if multiple else 1

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- When creating a poll, the Move up and Move down buttons reorder the options before sending; the poll goes to WhatsApp in the order you left it, with both Neonize and WPPConnect.
+
 - Starred messages now end with the word "Starred", like "Edited" and "Forwarded", instead of starting with the ★ symbol. A new option in Settings > User interface > Messages announces the word at the start of the line, before the sender.
 
 - The default sound pack's typing, typing_bubble, typing_pulse and AI processing sounds are now Ogg files, like the rest of the pack. Nothing changes in how they sound or in your custom sounds.
