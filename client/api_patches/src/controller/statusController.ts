@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 
 import { unlinkAsync } from '../util/functions';
+import { parseStatusAudience, sendStatus } from '../util/statusAudience';
 
 function returnError(req: Request, res: Response, error: any) {
   req.logger.error(error);
@@ -116,6 +117,8 @@ export async function sendTextStorie(req: Request, res: Response) {
     }
    */
   const { text, options = {} } = req.body;
+  const audience = parseStatusAudience(req.body);
+  if (audience.error) return res.status(400).json({ message: audience.error });
 
   if (!text) {
     res.status(401).send({
@@ -141,7 +144,10 @@ export async function sendTextStorie(req: Request, res: Response) {
   try {
     await ensureStatusChat(req.client);
     const results: any = [];
-    const sendPromise = req.client.sendTextStatus(text, statusOptions);
+    const sendPromise = sendStatus(req.client, 'text', text, {
+      ...statusOptions,
+      contacts: audience.contacts,
+    });
     const timeoutPromise = new Promise((resolve) =>
       setTimeout(
         () =>
@@ -222,7 +228,12 @@ export async function sendImageStorie(req: Request, res: Response) {
       },
     }
    */
-  const { path } = req.body;
+  const { path, caption } = req.body;
+  const audience = parseStatusAudience(req.body);
+  if (audience.error) return res.status(400).json({ message: audience.error });
+  if (caption !== undefined && typeof caption !== 'string')
+    return res.status(400).json({ message: 'Invalid caption' });
+  const options = { caption, contacts: audience.contacts };
 
   if (!path && !req.file)
     return res.status(401).send({
@@ -234,7 +245,7 @@ export async function sendImageStorie(req: Request, res: Response) {
   try {
     await ensureStatusChat(req.client);
     const results: any = [];
-    results.push(await req.client.sendImageStatus(pathFile));
+    results.push(await sendStatus(req.client, 'image', pathFile, options));
 
     if (results.length === 0)
       return res.status(400).json('Error sending the image of stories');
@@ -276,7 +287,11 @@ export async function sendVideoStorie(req: Request, res: Response) {
       }
     }
    */
-  const { path } = req.body;
+  const { path, caption } = req.body;
+  const audience = parseStatusAudience(req.body);
+  if (audience.error) return res.status(400).json({ message: audience.error });
+  if (caption !== undefined && typeof caption !== 'string')
+    return res.status(400).json({ message: 'Invalid caption' });
 
   if (!path && !req.file)
     return res.status(401).send({
@@ -289,7 +304,12 @@ export async function sendVideoStorie(req: Request, res: Response) {
     await ensureStatusChat(req.client);
     const results: any = [];
 
-    results.push(await req.client.sendVideoStatus(pathFile));
+    results.push(
+      await sendStatus(req.client, 'video', pathFile, {
+        caption,
+        contacts: audience.contacts,
+      })
+    );
 
     if (results.length === 0) res.status(400).json('Error sending message');
     if (req.file) await unlinkAsync(pathFile);
