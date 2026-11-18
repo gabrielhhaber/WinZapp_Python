@@ -4,6 +4,7 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Al crear una encuesta, la casilla Ocultar nombres de los votantes y la opción Límite de tiempo (sin límite, 1 hora, 8 horas, 24 horas, 3 días o 7 días) ahora funcionan con Neonize y con WPPConnect. En Ver votos, una encuesta que oculta los nombres muestra "Nombre oculto" en lugar de quién votó; tu propio voto sigue apareciendo como "Yo".
 - Al crear una encuesta, los botones Subir y Bajar reordenan las opciones antes de enviarla; la encuesta llega a WhatsApp en el orden que dejaste, tanto con Neonize como con WPPConnect.
 
 - Los mensajes destacados ahora terminan con la palabra "Destacado", como "Editado" y "Reenviado", en lugar de empezar con el símbolo ★. Una opción nueva en Configuración > Interfaz de usuario > Mensajes anuncia la palabra al principio de la línea, antes del remitente.

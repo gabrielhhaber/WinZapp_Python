@@ -4,6 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Podczas tworzenia ankiety pole wyboru Ukryj nazwy głosujących i lista Limit czasu (bez limitu, 1 godzina, 8 godzin, 24 godziny, 3 dni lub 7 dni) działają teraz w Neonize i w WPPConnect. W oknie wyświetlania głosów ankieta, która ukrywa nazwy, pokazuje "Ukryta nazwa" zamiast głosującego; Twój własny głos nadal jest podpisany jako "Ty".
 - Podczas tworzenia ankiety przyciski Przenieś w górę i Przenieś w dół zmieniają kolejność opcji przed wysłaniem; ankieta trafia do WhatsApp w ustawionej przez Ciebie kolejności, zarówno w Neonize, jak i w WPPConnect.
 
 - Wiadomości oznaczone gwiazdką kończą się teraz słowami "Oznaczono gwiazdką", tak jak "Edytowano" i "Przekazano", zamiast zaczynać się od symbolu ★. Nowa opcja w Ustawienia > Interfejs użytkownika > Wiadomości ogłasza to słowo na początku wiersza, przed nadawcą.

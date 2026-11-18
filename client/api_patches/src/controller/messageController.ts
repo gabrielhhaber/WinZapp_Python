@@ -23,6 +23,7 @@ import {
   normalizeMixedButtons,
 } from '../util/mixedButtons';
 import { writePinnedMessage } from '../util/pinnedMessagesRuntime';
+import { sendPollWithSettings } from '../util/pollRuntime';
 import { editChannelUpdate } from './channelsPanelController';
 import {
   missingReplyQuoteResponse,
@@ -1059,13 +1060,22 @@ export async function sendPollMessage(req: Request, res: Response) {
     const results: any = [];
 
     for (const contact of phone) {
-      results.push(
-        auditSendResult(
-          req,
-          await req.client.sendPollMessage(contact, name, choices, options),
-          'send-poll-message'
-        )
-      );
+      const hideVoterNames = options?.hideVoterNames === true;
+      const durationSeconds = Number(options?.durationSeconds) || 0;
+      // Only a poll that asks for one of the two goes the long way; the rest
+      // keeps the library's own call.
+      const sent =
+        hideVoterNames || durationSeconds > 0
+          ? await (req.client as any).page.evaluate(sendPollWithSettings, {
+              chatId: contact,
+              name,
+              choices,
+              selectableCount: options?.selectableCount,
+              hideVoterNames,
+              durationSeconds,
+            })
+          : await req.client.sendPollMessage(contact, name, choices, options);
+      results.push(auditSendResult(req, sent, 'send-poll-message'));
     }
 
     if (results.length === 0)

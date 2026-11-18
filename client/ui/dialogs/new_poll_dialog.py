@@ -11,11 +11,15 @@ reader reads each one by its label. Validation is core.polls.poll_input_error().
 
 import wx
 
-from core.polls import MAX_OPTIONS, clean_poll_input, move_option, poll_input_error, selectable_count
+from core.polls import (
+    MAX_OPTIONS, TIME_LIMITS, clean_poll_input, move_option, poll_input_error,
+    selectable_count, time_limit_seconds,
+)
 
 
 class NewPollDialog(wx.Dialog):
-    """After ``wx.ID_OK``: :attr:`question`, :attr:`options`, :attr:`selectable`."""
+    """After ``wx.ID_OK``: :attr:`question`, :attr:`options`, :attr:`selectable`,
+    :attr:`hide_voter_names` and :attr:`duration_seconds` (0 = no time limit)."""
 
     def __init__(self, main_window):
         self._mw = main_window
@@ -28,6 +32,8 @@ class NewPollDialog(wx.Dialog):
         self.question: str = ""
         self.options: list[str] = []
         self.selectable: int = 1
+        self.hide_voter_names: bool = False
+        self.duration_seconds: int = 0
 
         self._build_ui(i18n)
         self.SetMinSize((420, 420))
@@ -77,6 +83,15 @@ class NewPollDialog(wx.Dialog):
 
         self._multiple = wx.CheckBox(panel, label=i18n.t("new_poll_allow_multiple"))
         sizer.Add(self._multiple, 0, wx.ALL, 8)
+        self._hide_voters = wx.CheckBox(panel, label=i18n.t("new_poll_hide_voters"))
+        sizer.Add(self._hide_voters, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        # The label comes right before the choice, so its Alt letter lands on it.
+        sizer.Add(wx.StaticText(panel, label=i18n.t("new_poll_time_limit")),
+                  0, wx.LEFT | wx.RIGHT, 8)
+        self._time_limit = wx.Choice(panel, choices=[i18n.t(key) for key, _ in TIME_LIMITS])
+        self._time_limit.SetSelection(0)
+        sizer.Add(self._time_limit, 0, wx.EXPAND | wx.ALL, 8)
 
         btns = wx.BoxSizer(wx.HORIZONTAL)
         ok_btn = wx.Button(panel, wx.ID_OK, label=i18n.t("send_attachment"))
@@ -167,4 +182,6 @@ class NewPollDialog(wx.Dialog):
         self.question = question
         self.options = options
         self.selectable = selectable_count(self._multiple.GetValue())
+        self.hide_voter_names = self._hide_voters.GetValue()
+        self.duration_seconds = time_limit_seconds(self._time_limit.GetSelection())
         self.EndModal(wx.ID_OK)

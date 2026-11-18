@@ -18,7 +18,7 @@ pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="Node is no
 def _run(body: str):
     script = r"""
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
-const sent = [];
+const sent = [], raw = [];
 const options = [{name:'A', localId:0}, {name:'B', localId:1}, {name:'C', localId:2}];
 const poll = {id:'poll-key', type:'poll_creation', pollOptions:options, pollSelectableOptionsCount:1};
 const votes = [
@@ -33,11 +33,12 @@ const modules = {
 };
 const wpp = {loader:{loadModule:n=>modules[n]},
   chat:{getMessageById:async id=>id==='poll-id'?poll:(id==='other-id'?{id:'x',type:'chat'}:undefined)}};
-const ctx = vm.createContext({WPP:wpp});
+wpp.chat.sendRawMessage = async (chat, msg, opts) => { raw.push([chat, msg, opts]); return {id: 'new-id'}; };
+const ctx = vm.createContext({WPP:wpp, WAPI:{getMessageById: async id => ({id, type: 'poll_creation'})}, self:{crypto:{getRandomValues:a=>a.fill(7)}}});
 // Serialize like Puppeteer: only each function's own text reaches the page.
 const source = fs.readFileSync(process.argv[1],'utf8').replaceAll('export ','');
 vm.runInContext(source, vm.createContext({}));
-for (const name of ['readPollVotes', 'readPollVoters', 'writePollVote']) {
+for (const name of ['readPollVotes', 'readPollVoters', 'writePollVote', 'sendPollWithSettings']) {
   const fn = new vm.Script('(' + (() => { const c = vm.createContext({}); vm.runInContext(source, c); return c[name].toString(); })() + ')').runInContext(ctx);
   ctx[name] = fn;
 }
@@ -111,4 +112,33 @@ assert.strictEqual(JSON.stringify(await ctx.readPollVoters({messageId:'other-id'
   '{"ok":false,"error":"poll_voters_unavailable"}');
 delete modules.WAWebPollsPollVoteCollection;
 assert.strictEqual((await ctx.readPollVoters({messageId:'poll-id'})).error, 'poll_voters_unavailable');
+""")
+
+
+def test_poll_settings_go_into_the_message_model_wa_web_reads():
+    _run("""
+const before = Date.now();
+const out = await ctx.sendPollWithSettings({chatId:'c@g.us', name:'Q?', choices:['A','B'],
+  selectableCount:1, hideVoterNames:true, durationSeconds:3600});
+const after = Date.now();
+const [chat, msg] = raw[0];
+assert.strictEqual(chat, 'c@g.us');
+assert.strictEqual(msg.type, 'poll_creation');
+assert.strictEqual(msg.pollHideVoterNames, true);
+assert.ok(msg.pollEndTime >= before + 3600000 && msg.pollEndTime <= after + 3600000);
+assert.strictEqual(msg.pollSelectableOptionsCount, 1);
+assert.strictEqual(JSON.stringify(msg.pollOptions), '[{"name":"A","localId":0},{"name":"B","localId":1}]');
+assert.strictEqual(msg.pollEncKey.length, 32);
+assert.strictEqual(msg.messageSecret.length, 32);
+assert.strictEqual(JSON.stringify(out), '{"id":"new-id","type":"poll_creation"}');
+""")
+
+
+def test_only_what_was_asked_is_added_to_the_poll():
+    _run("""
+await ctx.sendPollWithSettings({chatId:'c@g.us', name:'Q?', choices:['A','B'], selectableCount:0,
+  hideVoterNames:false, durationSeconds:0});
+const msg = raw[0][1];
+assert.ok(!('pollHideVoterNames' in msg) && !('pollEndTime' in msg));
+assert.strictEqual(msg.pollSelectableOptionsCount, 0);
 """)

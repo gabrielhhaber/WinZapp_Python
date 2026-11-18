@@ -32,6 +32,7 @@ class _I18n:
             "poll_option_votes_percent": "{name}, {count} votes ({percent}%)",
             "poll_option_vote_one_percent": "{name}, {count} vote ({percent}%)",
             "poll_voter_row": "{name}: {options}",
+            "poll_voter_hidden": "Hidden name",
             "sender_you": "You",
             "poll_row_question": "Poll: {name}",
             "poll_row_options": "{question}. Options: {options}",
@@ -593,6 +594,48 @@ def test_the_inline_poll_is_the_same_poll_by_id_not_by_dict():
     assert not same_inline_poll({"key": {}}, "g@g.us", {"key": {}}, "g@g.us")
 
 
+# -- hide voter names and time limit -----------------------------------------
+
+
+def test_time_limit_choices_start_with_no_limit_and_map_to_seconds():
+    assert polls.TIME_LIMITS[0] == ("poll_time_limit_none", 0)
+    assert [polls.time_limit_seconds(i) for i in range(len(polls.TIME_LIMITS))] == [
+        0, 3600, 8 * 3600, 24 * 3600, 3 * 86400, 7 * 86400]
+    assert polls.time_limit_seconds(-1) == polls.time_limit_seconds(99) == 0
+    assert polls.time_limit_seconds(None) == 0
+
+
+def test_send_body_only_carries_the_settings_that_were_asked_for():
+    plain = polls.poll_send_payload(PHONE, {"name": "Q", "options": ["a", "b"]},
+                                    is_group=False, is_lid=False)
+    assert plain["options"] == {"selectableCount": 1}
+    both = polls.poll_send_payload(
+        PHONE, {"name": "Q", "options": ["a", "b"], "hideVoterNames": True, "durationSeconds": 3600},
+        is_group=False, is_lid=False)
+    assert both["options"] == {"selectableCount": 1, "hideVoterNames": True, "durationSeconds": 3600}
+    off = polls.poll_send_payload(
+        PHONE, {"name": "Q", "options": ["a", "b"], "hideVoterNames": False, "durationSeconds": 0},
+        is_group=False, is_lid=False)
+    assert off["options"] == {"selectableCount": 1}
+
+
+def test_a_received_poll_keeps_hidden_names_and_end_time():
+    poll = polls.poll_message_from_wpp(_raw_poll(pollHideVoterNames=True, pollEndTime=1893456000000))
+    assert polls.hides_voter_names(poll) is True
+    assert poll["endTime"] == 1893456000000
+    plain = polls.poll_message_from_wpp(_raw_poll())
+    assert polls.hides_voter_names(plain) is False and "endTime" not in plain
+
+
+def test_voters_of_a_hiding_poll_read_as_hidden_name_but_you_stay_you():
+    i18n = _I18n({"sender_you": "You", "poll_voter_hidden": "Hidden name",
+                  "poll_voter_row": "{name}: {options}"})
+    options = [{"name": "Sim", "localId": 0}, {"name": "Não", "localId": 1}]
+    voters = [{"sender": "g", "mine": False, "name": "Gus", "localIds": [0]},
+              {"sender": "me", "mine": True, "localIds": [1]}]
+    rows = polls.voter_rows(i18n, voters, options, {"g": "gustavo"}.get, hide_names=True)
+    assert rows == ["Hidden name: Sim", "You: Não"]
+    assert "gustavo" not in " ".join(rows) and "Gus" not in " ".join(rows)
 # -- reordering the options of a new poll -----------------------------------
 
 

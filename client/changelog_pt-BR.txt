@@ -4,6 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Ao criar uma enquete, a caixa Ocultar nomes de quem votou e a escolha Limite de tempo (sem limite, 1 hora, 8 horas, 24 horas, 3 dias ou 7 dias) agora funcionam com Neonize e com WPPConnect. Em Ver votos, uma enquete que oculta os nomes mostra "Nome oculto" no lugar de quem votou; o seu próprio voto continua aparecendo como "Eu".
 - Ao criar uma enquete, os botões Mover para cima e Mover para baixo reordenam as opções antes do envio; a enquete vai para o WhatsApp na ordem que você deixou, com Neonize e com WPPConnect.
 
 - Mensagens favoritadas agora terminam com a palavra "Favoritada", como "Editada" e "Encaminhada", em vez de começarem com o símbolo ★. Uma nova opção em Configurações > Interface do usuário > Mensagens permite ouvir a palavra no início da linha, antes do remetente.

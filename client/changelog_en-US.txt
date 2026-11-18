@@ -4,6 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- When creating a poll, the Hide voter names checkbox and the Time limit choice (no limit, 1 hour, 8 hours, 24 hours, 3 days or 7 days) now work with both Neonize and WPPConnect. In View votes, a poll that hides names shows "Hidden name" in place of who voted; your own vote still reads "You".
 - When creating a poll, the Move up and Move down buttons reorder the options before sending; the poll goes to WhatsApp in the order you left it, with both Neonize and WPPConnect.
 
 - Starred messages now end with the word "Starred", like "Edited" and "Forwarded", instead of starting with the ★ symbol. A new option in Settings > User interface > Messages announces the word at the start of the line, before the sender.

@@ -4,6 +4,7 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Ao criar uma sondagem, a caixa Ocultar nomes dos votantes e a escolha Limite de tempo (sem limite, 1 hora, 8 horas, 24 horas, 3 dias ou 7 dias) passam a funcionar com Neonize e com WPPConnect. Em Ver votos, uma sondagem que oculta os nomes mostra "Nome oculto" no lugar de quem votou; o seu próprio voto continua a aparecer como "Eu".
 - Ao criar uma sondagem, os botões Mover para cima e Mover para baixo reordenam as opções antes do envio; a sondagem segue para o WhatsApp na ordem que deixou, com Neonize e com WPPConnect.
 
 - As mensagens marcadas com estrela passam a terminar com as palavras "Marcada com estrela", como "Editada" e "Reencaminhada", em vez de começarem com o símbolo ★. Uma nova opção em Definições > Interface do utilizador > Mensagens permite ouvir as palavras no início da linha, antes do remetente.

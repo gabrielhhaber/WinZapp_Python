@@ -4,6 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Quando crei un sondaggio, la casella Nascondi i nomi dei votanti e la scelta Limite di tempo (nessun limite, 1 ora, 8 ore, 24 ore, 3 giorni o 7 giorni) ora funzionano sia con Neonize sia con WPPConnect. In Vedi voti, un sondaggio che nasconde i nomi mostra "Nome nascosto" al posto di chi ha votato; il tuo voto continua a comparire come "Me".
 - Quando crei un sondaggio, i pulsanti Sposta in alto e Sposta in basso riordinano le opzioni prima dell'invio; il sondaggio arriva su WhatsApp nell'ordine che hai lasciato, sia con Neonize sia con WPPConnect.
 
 - I messaggi contrassegnati con stella ora finiscono con le parole "Contrassegnato con stella", come "Modificato" e "Inoltrato", invece di iniziare con il simbolo ★. Una nuova opzione in Impostazioni > Interfaccia utente > Messaggi annuncia la parola all'inizio della riga, prima del mittente.
