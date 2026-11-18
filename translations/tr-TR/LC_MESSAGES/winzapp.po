@@ -1245,7 +1245,7 @@ msgstr "Aşağ&ı taşı"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_move_up_button"
 msgid "&Move up"
-msgstr "&Yukarı taşı"
+msgstr "Yuka&rı taşı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_state_disabled"
