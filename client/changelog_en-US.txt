@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- In the online AI provider list and in the options of a new poll, Alt+Up Arrow and Alt+Down Arrow move the selected item, and the Move up and Move down buttons announce those keys. The keys appear in the F1 list and can be changed in Settings > Shortcuts.
+
 - When creating a poll, the Move up and Move down buttons reorder the options before sending; the poll goes to WhatsApp in the order you left it, with both Neonize and WPPConnect.
 
 - Starred messages now end with the word "Starred", like "Edited" and "Forwarded", instead of starting with the ★ symbol. A new option in Settings > User interface > Messages announces the word at the start of the line, before the sender.

@@ -17,7 +17,7 @@ TECLAS = {32: 'Space', 13: 'Enter', 27: 'Esc', 127: 'Delete', 9: 'Tab', 44: ',',
 TECLAS.update({340 + i: f'F{i + 1}' for i in range(12)})
 
 GRUPOS = ['main', 'navigation', 'device', 'chats', 'chat_selection', 'archived', 'locked', 'search',
-          'messages', 'message_list', 'composer', 'links', 'mention', 'autocomplete', 'media', 'emoji',
+          'messages', 'message_list', 'composer', 'links', 'mention', 'autocomplete', 'media', 'emoji', 'reorder',
           'ai_result', 'status', 'status_list', 'status_reply', 'calls', 'call', 'incoming',
           'call_participants', 'channels', 'channel_people']
 

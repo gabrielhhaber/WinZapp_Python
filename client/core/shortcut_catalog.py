@@ -285,6 +285,10 @@ SHORTCUTS = (
     Shortcut('emoji.queue', 'emoji', 'queue', 'emoji_picker_insert', 2, 13, 0),
     Shortcut('emoji.previous_tone', 'emoji', 'previous_tone', 'shortcut_previous_tone', 0, 314, 0),
     Shortcut('emoji.next_tone', 'emoji', 'next_tone', 'shortcut_next_tone', 0, 316, 0),
+    # The lists whose order the user sets (AI providers, the options of a new
+    # poll): one preference for both, next to their Move up / Move down buttons.
+    Shortcut('reorder.move_up', 'reorder', 'move_up', 'shortcut_reorder_up_label', 1, 315, 0),
+    Shortcut('reorder.move_down', 'reorder', 'move_down', 'shortcut_reorder_down_label', 1, 317, 0),
     Shortcut('links.open', 'links', 'open', 'open', 0, 13, 0),
     Shortcut('links.open_space', 'links', 'open_space', 'open', 0, 32, 0),
     Shortcut('links.copy', 'links', 'copy', 'copy_link', 2, 67, 0),

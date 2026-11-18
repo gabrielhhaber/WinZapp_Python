@@ -1,6 +1,6 @@
 # WinZapp kısayol düzenleme envanteri
 
-Bu belge uygulamanın merkezi komut kataloğunu açıklar. Katalogda 301 ayrı düzenlenebilir yerel atama ve bunların 321 bağlam kaydı bulunur. Sistem genelinde WinZapp'ı gösterme ataması bunlara ek olarak listelenir. Aynı komutun ana pencere ve alt panellerdeki kayıtları tek ayarı paylaşır. Rakamlı ailelerin her rakamı ve alternatif tuş birleşimleri ayrı düzenlenebilir.
+Bu belge uygulamanın merkezi komut kataloğunu açıklar. Katalogda 303 ayrı düzenlenebilir yerel atama ve bunların 323 bağlam kaydı bulunur. Sistem genelinde WinZapp'ı gösterme ataması bunlara ek olarak listelenir. Aynı komutun ana pencere ve alt panellerdeki kayıtları tek ayarı paylaşır. Rakamlı ailelerin her rakamı ve alternatif tuş birleşimleri ayrı düzenlenebilir.
 
 ## Kullanım
 
@@ -287,6 +287,8 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Emoji seç | Ekle | Kontrol+Enter | emoji.queue |
 | Emoji seç | Önceki emoji ten rengi | Sol | emoji.previous_tone |
 | Emoji seç | Sonraki emoji ten rengi | Sağ | emoji.next_tone |
+| Yeniden sıralanabilir listeler | Seçili öğeyi yukarı taşı | Alt+Yukarı | reorder.move_up |
+| Yeniden sıralanabilir listeler | Seçili öğeyi aşağı taşı | Alt+Aşağı | reorder.move_down |
 | Bağlantılar | Aç | Enter | links.open |
 | Bağlantılar | Aç | Boşluk | links.open_space |
 | Bağlantılar | Bağlantıyı kopyala | Kontrol+C | links.copy |

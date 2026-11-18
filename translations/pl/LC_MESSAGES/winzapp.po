@@ -381,6 +381,16 @@ msgctxt "accessibility_sapi_fallback_label_macos"
 msgid "&Use the system voice when VoiceOver is not running"
 msgstr "&Używaj głosu systemowego, gdy VoiceOver nie jest uruchomiony"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "accessible_alt_down"
+msgid "Alt+Down Arrow"
+msgstr "Alt+Strzałka w dół"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "accessible_alt_up"
+msgid "Alt+Up Arrow"
+msgstr "Alt+Strzałka w górę"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_dialogs.py client/ui/media_viewer.py
 msgctxt "accessible_ctrl_left"
@@ -13596,7 +13606,7 @@ msgstr "Delete"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_down"
 msgid "Down"
-msgstr "W dół"
+msgstr "Strzałka w dół"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_end"
@@ -13661,7 +13671,7 @@ msgstr "Tab"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_up"
 msgid "Up"
-msgstr "W górę"
+msgstr "Strzałka w górę"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
@@ -13759,6 +13769,16 @@ msgid "Remove &shortcut"
 msgstr "&Usuń skrót"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_reorder_down_label"
+msgid "Move the selected item down"
+msgstr "Przenieś zaznaczony element w dół"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_reorder_up_label"
+msgid "Move the selected item up"
+msgstr "Przenieś zaznaczony element w górę"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_resend_message_label"
 msgid ""
 "Ctrl+Shift+Y: on a message whose send failed or was not confirmed, try "
@@ -13809,6 +13829,11 @@ msgstr "Linki"
 msgctxt "shortcut_scope_mentions"
 msgid "Mentions"
 msgstr "Wzmianki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_scope_reorder"
+msgid "Reorderable lists"
+msgstr "Listy z kolejnością do zmiany"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

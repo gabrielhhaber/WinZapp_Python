@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Nell'elenco dei provider di IA online e nelle opzioni di un nuovo sondaggio, Alt+Freccia su e Alt+Freccia giù spostano l'elemento selezionato, e i pulsanti Sposta in alto e Sposta in basso annunciano quei tasti. I tasti compaiono nell'elenco di F1 e si possono cambiare in Impostazioni > Scorciatoie da tastiera.
+
 - Quando crei un sondaggio, i pulsanti Sposta in alto e Sposta in basso riordinano le opzioni prima dell'invio; il sondaggio arriva su WhatsApp nell'ordine che hai lasciato, sia con Neonize sia con WPPConnect.
 
 - I messaggi contrassegnati con stella ora finiscono con le parole "Contrassegnato con stella", come "Modificato" e "Inoltrato", invece di iniziare con il simbolo ★. Una nuova opzione in Impostazioni > Interfaccia utente > Messaggi annuncia la parola all'inizio della riga, prima del mittente.
