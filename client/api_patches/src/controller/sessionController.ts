@@ -69,11 +69,7 @@ async function downloadFileFunction(
         result = `${filename}.${mime.extension(message.mimetype)}`;
       }
 
-      await fs.writeFile(result, buffer, (err) => {
-        if (err) {
-          logger.error(err);
-        }
-      });
+      await fs.promises.writeFile(result, buffer);
 
       return result;
     } else {
@@ -95,11 +91,7 @@ async function downloadFileFunction(
           result = `${filename}.${mime.extension(message.mimetype)}`;
         }
 
-        await fs.writeFile(result, buffer, (err) => {
-          if (err) {
-            logger.error(err);
-          }
-        });
+        await fs.promises.writeFile(result, buffer);
 
         return result;
       } else {

@@ -247,3 +247,28 @@ def test_server_2_10_77_private_media_cache_is_not_served_in_the_restored_index(
     index = _patch("src/index.ts")
     assert "express.static('WhatsAppImages')" not in index
     assert "'/files'" not in index
+
+
+def test_server_2_10_86_changes_reach_the_restored_files_without_losing_ours():
+    """The restored files carry upstream's 2.10.86 work (carousel route, the
+    delete result, mixed buttons, the status audience) next to WinZapp's own
+    behaviour, which the merge must not have taken out."""
+    assert "send-carousel" in _patch("src/routes/index.ts")
+
+    device = _patch("src/controller/deviceController.ts")
+    assert "deleteMessageWithResult" in device
+    assert "readNewestChannelUpdates" in device
+
+    message = _patch("src/controller/messageController.ts")
+    assert "normalizeMixedButtons" in message
+    assert "writePinnedMessage" in message and "replyQuoteIsMissing" in message
+
+    session = _patch("src/controller/sessionController.ts")
+    assert "probeIsConnected" in session
+
+    status = _patch("src/controller/statusController.ts")
+    assert "parseStatusAudience" in status
+    # the bounded wait and the rejection check stay around upstream's sender
+    assert "sendStatus(req.client, 'text', text" in status
+    assert "Status post rejected by WhatsApp" in status
+    assert "statusTimeoutHandled" in status
