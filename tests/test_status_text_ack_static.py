@@ -11,7 +11,7 @@ def test_text_status_has_bounded_ack_wait():
         / "statusController.ts"
     ).read_text(encoding="utf-8")
     assert "waitForAck: true" in source
-    assert "const sendPromise = req.client.sendTextStatus(" in source
+    assert "const sendPromise = sendStatus(req.client, 'text', text, {" in source
     assert "const timeoutPromise = new Promise(" in source
     assert "statusTimeoutHandled: true" in source
     assert "10000" in source

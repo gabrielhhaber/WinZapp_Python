@@ -16,7 +16,12 @@
 
 import { Request, Response } from 'express';
 
+import { isValidCarousel } from '../util/carousel';
 import { unlinkAsync } from '../util/functions';
+import {
+  InvalidMixedButtonsError,
+  normalizeMixedButtons,
+} from '../util/mixedButtons';
 import { writePinnedMessage } from '../util/pinnedMessagesRuntime';
 import { sendPollWithSettings } from '../util/pollRuntime';
 import { editChannelUpdate } from './channelsPanelController';
@@ -773,9 +778,10 @@ export async function sendButtons(req: Request, res: Response) {
      }
      #swagger.deprecated=true
    */
-  const { phone, message, options } = req.body;
+  const { phone, message } = req.body;
 
   try {
+    const options = normalizeMixedButtons(req.body.options);
     const results: any = [];
 
     for (const contact of phone) {
@@ -787,7 +793,38 @@ export async function sendButtons(req: Request, res: Response) {
 
     returnSucess(res, phone);
   } catch (error) {
+    if (error instanceof InvalidMixedButtonsError) {
+      return res.status(400).json({ status: 'Error', message: error.message });
+    }
     returnError(req, res, error);
+  }
+}
+
+export async function sendCarousel(req: Request, res: Response) {
+  const { phone, body, cards, footer } = req.body;
+  if (!isValidCarousel(phone, body, cards, footer)) {
+    return res
+      .status(400)
+      .json({ status: 'error', message: 'Invalid carousel' });
+  }
+  try {
+    const results: any[] = [];
+    for (const contact of phone) {
+      results.push(
+        await req.client.page.evaluate(
+          async (args: any) => {
+            return await (window as any).WPP.chat.sendCarouselMessage(
+              args.contact,
+              args.options
+            );
+          },
+          { contact, options: { body, cards, footer } }
+        )
+      );
+    }
+    return returnSucess(res, results);
+  } catch (error) {
+    return returnError(req, res, error);
   }
 }
 

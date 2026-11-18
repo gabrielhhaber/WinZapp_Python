@@ -636,3 +636,24 @@ def test_voters_of_a_hiding_poll_read_as_hidden_name_but_you_stay_you():
     rows = polls.voter_rows(i18n, voters, options, {"g": "gustavo"}.get, hide_names=True)
     assert rows == ["Hidden name: Sim", "You: Não"]
     assert "gustavo" not in " ".join(rows) and "Gus" not in " ".join(rows)
+# -- reordering the options of a new poll -----------------------------------
+
+
+def test_move_option_swaps_with_the_neighbour_and_follows_it():
+    assert polls.move_option(["a", "b", "c"], 1, -1) == (["b", "a", "c"], 0)
+    assert polls.move_option(["a", "b", "c"], 1, 1) == (["a", "c", "b"], 2)
+
+
+@pytest.mark.parametrize("index,direction", [(0, -1), (2, 1), (-1, 1), (5, -1)])
+def test_move_option_does_nothing_at_the_ends_or_out_of_range(index, direction):
+    options = ["a", "b", "c"]
+    moved, where = polls.move_option(options, index, direction)
+    assert moved == options and moved is not options
+    assert where == index
+
+
+def test_moved_order_is_what_the_send_body_carries():
+    options, _ = polls.move_option(["Pizza", "Sushi", "Taco"], 2, -1)
+    poll = {"name": "Q?", "options": options, "selectableCount": 1}
+    payload = polls.poll_send_payload(PHONE, poll, is_group=False, is_lid=False)
+    assert payload["choices"] == ["Pizza", "Taco", "Sushi"]

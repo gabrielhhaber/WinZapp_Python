@@ -115,6 +115,15 @@ Verified on a scratch checkout of 2.10.58 with the patches laid over it: `tsc --
 
 Verified by building 2.10.62 with `setup_api.py` (TypeScript compiled with the patch, all `node_modules` patches reported applied).
 
+## 2.10.81 → 2.10.86, with the pair wppconnect 2.4.0 → 2.4.6 and wa-js 4.8.0 → 4.8.2 (2026-11-18)
+
+**Why now.** WhatsApp Web removed `UserPrefs.getMeLidUserOrThrow`, which wa-js 4.8.0 `getMyUserLid` called, so every WPPConnect send failed ("Não foi possível confirmar o envio"). wa-js 4.8.2 falls back to the nullable `getMaybeMeLidUser`; this port is the real fix, no bundle patch of ours.
+
+- wppconnect 2.4.6 depends on `@wppconnect/wa-js ^4.8.2`; against 2.4.0 only `dist/controllers/browser.js` changed among the `node_modules` patch targets, and it is the `injectionTimeout` form the patch already reports as "no patch needed". Every other patch (host, status, sender, welcome, wa-js Meta AI/chat lookup/newsletter) reports applied on a real `npm install` of the pair.
+- wa-js 4.8.1/4.8.2: `dist/lists`, `dist/labels` and `dist/loader` are identical to 4.8.0, so both join `nativeContractVersions` (not measured live).
+- Server 2.10.86 changed five overridden files, merged three ways: `routes/index.ts` (`send-carousel`, clean), `deviceController.ts` (`deleteMessageWithResult` and the 400 validation of `deleteMessage`), `messageController.ts` (`normalizeMixedButtons` import beside ours), `sessionController.ts` (**`checkConnectionSession` stays ours**: the bounded `probeIsConnected`), `statusController.ts` (text/image/video now go through upstream's `sendStatus`/`parseStatusAudience`, serialized per session; our 10 s bound and the `messageSendResult` rejection check stay around the text post). Pinned by `tests/test_api_runtime_regressions.py`.
+- Verified: `npm install` of the pair on 2.10.86 with the patches overlaid, every `node_modules` patch applied, `tsc --noEmit` clean in every patched file (only `dto/sync.ts` zod typing errors, an upstream file resolved against a newer zod because the yarn lock was not used). Not verified live: sends, status posts and calls on a real WhatsApp Web session.
+
 ## 2.10.78 → 2.10.81, with the pair wppconnect 2.3.6 → 2.4.0 and wa-js 4.7.2 → 4.8.0 (2026-11-14)
 
 2.10.79–2.10.81 are `package.json`/`yarn.lock` resolutions (minimatch, ws, fast-xml-parser, browserslist, axios, aws-sdk, mongoose) and one upstream test: nothing WinZapp restores or compiles (`audit_wpp_upgrade.py`, run through git, clean). The pair is what broke patches. Measured by running every `node_modules` patch of `setup_api.py` against the npm tarballs (`npm pack`) of both versions, then a real `setup_api.py` build on 2.10.81 (tsc and babel pass, all patches applied):

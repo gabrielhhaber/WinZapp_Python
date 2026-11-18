@@ -12,8 +12,8 @@ reader reads each one by its label. Validation is core.polls.poll_input_error().
 import wx
 
 from core.polls import (
-    MAX_OPTIONS, TIME_LIMITS, clean_poll_input, poll_input_error, selectable_count,
-    time_limit_seconds,
+    MAX_OPTIONS, TIME_LIMITS, clean_poll_input, move_option, poll_input_error,
+    selectable_count, time_limit_seconds,
 )
 
 
@@ -64,10 +64,22 @@ class NewPollDialog(wx.Dialog):
                   0, wx.LEFT | wx.RIGHT, 8)
         self._list = wx.ListBox(panel, style=wx.LB_SINGLE)
         sizer.Add(self._list, 1, wx.EXPAND | wx.ALL, 8)
+        buttons = wx.BoxSizer(wx.HORIZONTAL)
         self._remove_btn = wx.Button(panel, label=i18n.t("new_poll_remove_option"))
         self._remove_btn.Bind(wx.EVT_BUTTON, self._on_remove_option)
         self._remove_btn.Disable()   # nothing to remove until an option is added
-        sizer.Add(self._remove_btn, 0, wx.LEFT | wx.RIGHT, 8)
+        buttons.Add(self._remove_btn, 0, wx.RIGHT, 6)
+        # Moving needs two options to swap; like the AI provider list, the
+        # buttons stay enabled at the ends and simply do nothing there.
+        self._up_btn = wx.Button(panel, label=i18n.t("new_poll_move_up"))
+        self._up_btn.Bind(wx.EVT_BUTTON, lambda event: self._on_move_option(-1))
+        self._down_btn = wx.Button(panel, label=i18n.t("new_poll_move_down"))
+        self._down_btn.Bind(wx.EVT_BUTTON, lambda event: self._on_move_option(1))
+        self._up_btn.Disable()
+        self._down_btn.Disable()
+        buttons.Add(self._up_btn, 0, wx.RIGHT, 6)
+        buttons.Add(self._down_btn, 0)
+        sizer.Add(buttons, 0, wx.LEFT | wx.RIGHT, 8)
 
         self._multiple = wx.CheckBox(panel, label=i18n.t("new_poll_allow_multiple"))
         sizer.Add(self._multiple, 0, wx.ALL, 8)
@@ -116,6 +128,7 @@ class NewPollDialog(wx.Dialog):
             return
         self._list.Append(text)
         self._remove_btn.Enable()
+        self._update_move_buttons()
         self._option.Clear()
         self._option.SetFocus()
 
@@ -130,6 +143,29 @@ class NewPollDialog(wx.Dialog):
         else:
             self._remove_btn.Disable()
             self._option.SetFocus()
+        self._update_move_buttons()
+
+    def _update_move_buttons(self):
+        """Enabled while there are two options to swap. (A button that disables
+        itself under focus drops the screen reader's place, so the ends are
+        not a reason to disable.)"""
+        enabled = self._list.GetCount() >= 2
+        self._up_btn.Enable(enabled)
+        self._down_btn.Enable(enabled)
+
+    def _on_move_option(self, direction: int):
+        index = self._list.GetSelection()
+        if index == wx.NOT_FOUND:
+            return
+        options, target = move_option(self._current_options(), index, direction)
+        if target == index:
+            return
+        self._list.Freeze()
+        try:
+            self._list.Set(options)
+            self._list.SetSelection(target)
+        finally:
+            self._list.Thaw()
 
     def _on_ok(self, event):
         # An option typed but not yet added still counts: Send is the natural
