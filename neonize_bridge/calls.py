@@ -345,7 +345,8 @@ def record_finished(s, info, now):
     answered and hung up itself. record_end writes the ones that rang; a call
     already stored (same id) is left as it is. False if nothing was recorded."""
     outcome = finished_outcome(info)
-    if outcome is None or not info.get("id"):
+    if outcome is None or not info.get("id") or info.get("link"):
+        # a call-link call has no chat to file it in (call_links.py)
         return False
     outcome, duration = outcome
     recorded = _file_finished(s, info, outcome, duration, now)

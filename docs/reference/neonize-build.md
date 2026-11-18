@@ -88,6 +88,7 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
+- **neonize 0034 / meowcaller 0029**: call links. `CallLinkCreate`, `CallLinkJoin`, `CallWaitingRoom` and `CallWaitingRoomDecide` (Python `create_link`, `join_link`, `waiting_room`, `decide_waiting`; `neonize_bridge/call_links.py`). meowcaller's link join follows a WhatsApp Web capture (`datasheets/voip-call-link-join.md`): incoming with the camera off, the codec of the join ACK, a 10 s `<heartbeat>` for the whole call; rosters and waiting rooms keep each person's push name and guest flag.
 - **neonize 0014**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
   already on the call's list), WhatsApp's "Add participant"; Python

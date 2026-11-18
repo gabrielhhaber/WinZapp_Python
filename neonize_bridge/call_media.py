@@ -136,7 +136,9 @@ def state_event(call, *, state, event="state", now=None) -> dict:
     return {"id": call["id"], "peerJid": call["peer"], "state": state, "event": event,
             "mediaEpoch": epoch,
             "outgoing": call["outgoing"], "isVideo": bool(call.get("video")),
-            "isGroup": bool(group), "groupJid": group,
+            # a call-link call is a group call with no group and no peer
+            "isGroup": bool(group) or bool(call.get("link")), "groupJid": group,
+            "isCallLink": bool(call.get("link")),
             "observedAt": int(now if now is not None else time.time())}
 
 
@@ -150,7 +152,8 @@ def finished_info(call, state, now, participants=()) -> dict:
     return {"id": call["id"], "peer": call.get("peer", ""), "outgoing": bool(call.get("outgoing")),
             "video": bool(call.get("video")), "group": call.get("group") or "",
             "state": state, "activeAt": call.get("active_at"), "endedAt": now,
-            "placedAt": call.get("placed_at"), "participants": list(participants or ())}
+            "placedAt": call.get("placed_at"), "participants": list(participants or ()),
+            "link": bool(call.get("link"))}
 
 
 def roster_people(participants, known=()) -> list:
@@ -1006,6 +1009,42 @@ class CallMedia(CallIngressMixin):
         self._set_state(joined, "ACTIVE")
         self._ensure_audio(joined)
         return joined
+
+    # ------------------------------------------------------------ call links
+    def call_links_available(self):
+        """Whether this build creates call links and joins them (call_links.py)."""
+        if not callable(getattr(self.calls, "join_link", None)):
+            return False
+        built = getattr(sys.modules.get(type(self.calls).__module__), "call_links_available", None)
+        return built() if callable(built) else True
+
+    def create_link(self, video=False):
+        """{"link", "video"} of a new call link."""
+        return self.calls.create_link(video=video)
+
+    @_serialized
+    def join_link(self, link, video=False):
+        """Joins the call behind a call link: (its id, the layer's answer with
+        "waiting" and "admin"). Like joining an ongoing group call: the call
+        counts as answered here and its audio starts at once. It has no peer
+        and no group (call_links.py), and no chat records it."""
+        answer = self.calls.join_link(link, video=video)
+        joined = str(answer["call"])
+        with self._lock:
+            self._elsewhere.discard(joined)
+            self._calls[joined] = {"id": joined, "peer": "", "outgoing": False, "state": "",
+                                   "video": bool(video), "connected": True, "group": "",
+                                   "link": True}
+        self._note_answered(joined)
+        self._set_state(joined, "ACTIVE")
+        self._ensure_audio(joined)
+        return joined, answer
+
+    def waiting_room(self, call_id):
+        return self.calls.waiting_room(call_id)
+
+    def decide_waiting(self, call_id, user, admit):
+        return self.calls.decide_waiting(call_id, user, admit)
 
     def _answer_held_invite(self, call_id, chat, video):
         """A call another device of this account started is still held by

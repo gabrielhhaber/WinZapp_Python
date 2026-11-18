@@ -25,6 +25,7 @@ import send_log
 import channels
 import administration
 import authentication
+import call_links
 import call_media
 import calls
 import session_lifecycle
@@ -2967,6 +2968,7 @@ def create_app(folder, fixed=""):
     cleanup.register_routes(r, ok=ok, state=state, folder=folder, mark_active=mark_active)
     calls.register_routes(r, session=session, ok=ok)
     ongoing_calls.register_routes(r, session=session, ok=ok)
+    call_links.register_routes(r, session=session, ok=ok)
     call_invites.register_routes(r, session=session, ok=ok)
     presence.register_routes(r, session=session, ok=ok)
     labels.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text,
@@ -3277,6 +3279,8 @@ def create_app(folder, fixed=""):
             "compatible": True, "calls": calls_ready,
             "videoCalls": calls_ready and can["video"],
             "groupCalls": calls_ready and can["groupCalls"],
+            # `callLinks`: creates call links and joins them (call_links.py)
+            "callLinks": calls_ready and media.call_links_available(),
             "channelMedia": channel, "channelPolls": channel})
 
     async def media_of_socket(sid):

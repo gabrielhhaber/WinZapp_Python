@@ -45,7 +45,8 @@ def device_jid(jid) -> str:
 
 def person_jid(participant) -> str:
     """The address the client shows a participant by: the number when the
-    roster has it, the LID otherwise; never a device."""
+    roster has it, the LID otherwise; never a device. A call-link guest has
+    only a LID, and its push name is the name shown (connected_rows)."""
     for key in ("pn", "jid"):
         text = str(participant.get(key) or "")
         if text:
@@ -70,7 +71,7 @@ def connected_rows(participants, mine, name_of) -> list:
         if key in seen:
             continue
         seen.add(key)
-        rows.append({"jid": jid, "name": "" if is_self else (name_of(jid, p.get("jid") or "") or ""),
+        rows.append({"jid": jid, "name": "" if is_self else (name_of(jid, p.get("jid") or "") or str(p.get("pushName") or "")),
                      "isSelf": is_self})
     return rows
 
@@ -111,7 +112,7 @@ def all_rows(participants, mine, name_of) -> list:
                 rows[index[key]]["state"] = "connected"
             continue
         index[key] = len(rows)
-        rows.append({"jid": jid, "name": "" if is_self else (name_of(jid, p.get("jid") or "") or ""),
+        rows.append({"jid": jid, "name": "" if is_self else (name_of(jid, p.get("jid") or "") or str(p.get("pushName") or "")),
                      "isSelf": is_self, "state": state})
     return rows
 

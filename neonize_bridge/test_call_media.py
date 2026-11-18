@@ -442,6 +442,31 @@ def test_joining_an_ongoing_call_makes_it_live_and_answered_here():
     assert m.status("G1")["live"] is True
 
 
+class LinkCalls(FakeCalls):
+    """A call layer that also joins call links."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.links = []
+
+    def join_link(self, link, video=False):
+        self.links.append((link, video))
+        return {"call": "L1", "waiting": False, "admin": True}
+
+
+def test_joining_a_call_link_makes_a_live_group_call_with_no_chat():
+    fake = LinkCalls(remote=[None])
+    m, sent = media(fake)
+    assert not media(FakeCalls())[0].call_links_available() and m.call_links_available()
+    joined, answer = m.join_link("https://call.whatsapp.com/voice/T", False)
+    assert (joined, answer["admin"]) == ("L1", True)
+    assert fake.links == [("https://call.whatsapp.com/voice/T", False)]
+    assert states(sent)[-1] == "ACTIVE" and m.live_call() == "L1"
+    event = [e for e in sent if e[0] == "callstate"][-1][1]["data"]
+    assert event["isCallLink"] is True and event["isGroup"] is True and event["peerJid"] == ""
+    assert m.answered_here("L1") is not None
+
+
 def test_a_group_call_placed_here_can_be_found_again():
     import ongoing_calls
     fake = OngoingCalls()
