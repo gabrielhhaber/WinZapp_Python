@@ -8599,6 +8599,31 @@ msgctxt "help_guide_unavailable"
 msgid "The usage guide could not be opened."
 msgstr "No se pudo abrir la guía de uso."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "history_transfer_done"
+msgid "The phone has finished sending the message history."
+msgstr "El teléfono ha terminado de enviar el historial de mensajes."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "history_transfer_resumed"
+msgid "The phone is sending the message history again."
+msgstr "El teléfono vuelve a enviar el historial de mensajes."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "history_transfer_stalled"
+msgid ""
+"The phone stopped sending the message history at {percent}%. Open WhatsApp "
+"on your phone and keep it on the screen; WinZapp will ask for the rest."
+msgstr "El teléfono dejó de enviar el historial de mensajes al {percent}%. Abre WhatsApp en tu teléfono y déjalo abierto en la pantalla; WinZapp pedirá el resto."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "history_transfer_started"
+msgid ""
+"The phone is sending the message history. Keep WhatsApp open on your phone's"
+" screen until WinZapp says it has finished."
+msgstr "El teléfono está enviando el historial de mensajes. Mantén WhatsApp abierto en la pantalla del teléfono hasta que WinZapp avise de que ha terminado."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 msgctxt "hotkey_first_run_message"
 msgid ""

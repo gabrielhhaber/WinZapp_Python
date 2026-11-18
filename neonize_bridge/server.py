@@ -61,6 +61,7 @@ import chat_remaining
 import groups
 import groups_extra
 import history_progress
+import history_resume
 import older_history
 import call_invites
 import channels_panel
@@ -725,6 +726,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             media.start_pump(lambda: self.client is client and self.lifecycle.current(generation))
         threading.Thread(target=self._check_always, daemon=True).start()
         threading.Thread(target=self._copy_always, daemon=True).start()
+        threading.Thread(target=history_resume.watch, args=(self,), daemon=True).start()
         self.flush_pending_reads()      # read notices kept while disconnected
 
     def _on_unlinked(self, generation, c):
@@ -910,6 +912,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 log.exception("undecryptable summary")
             try:
                 o = e.Info.MessageSource
+                if history_resume.received(self, e.Message, bool(o.IsFromMe)):
+                    return      # the phone's answer to a history block request
                 chat = jid_text(o.Chat)
                 if message_rules.is_channel_chat(chat):
                     return      # channel posts are not conversations
@@ -1357,6 +1361,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         percent = None
         try:
             percent = self._store_history_block(data)
+            history_resume.note_block(self, data, time.monotonic())
         finally:
             progress.finished(time.monotonic(), percent)
 
@@ -2391,7 +2396,8 @@ def create_app(folder, fixed=""):
         return ok(status="success", response={
             "backendWorkerBridgeReady": True, **state,
             "unprocessed": state["unprocessedChunks"], "restarted": False, "removed": [],
-            "onDemandEnabled": False, "chunkStatus": {}, "storeCounts": counts})
+            "onDemandEnabled": False, "chunkStatus": {}, "storeCounts": counts,
+            **history_resume.status_of(s, time.monotonic())})
 
     async def send_seen(req):
         s = session(req)

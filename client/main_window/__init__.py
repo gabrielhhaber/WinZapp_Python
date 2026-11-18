@@ -71,6 +71,7 @@ Where to look (and where new code goes):
     message_rules       unread/history-gap/countable-message rules
     backlog_flood       old messages still arriving after the sync: status, chat list held still
     history_boundary    older history that is only on the phone (API verdict, probe)
+    history_transfer    spoken progress of the phone's history transfer (Neonize)
     identity_rules      linked phone number, group participant identity
     runtime_setup       legacy API state, npm health marker, restore choice
     wpp_update_validation  HTTP validation and recovery of the previous API after an update
