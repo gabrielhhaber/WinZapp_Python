@@ -13485,8 +13485,8 @@ msgstr "Delete"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_down"
-msgid "Down"
-msgstr "Down"
+msgid "Down Arrow"
+msgstr "Down Arrow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_end"
@@ -13550,8 +13550,8 @@ msgstr "Tab"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_up"
-msgid "Up"
-msgstr "Up"
+msgid "Up Arrow"
+msgstr "Up Arrow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py

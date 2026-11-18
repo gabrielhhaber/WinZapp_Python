@@ -13652,7 +13652,7 @@ msgstr "Delete"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_down"
-msgid "Down"
+msgid "Down Arrow"
 msgstr "Seta para baixo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -13717,7 +13717,7 @@ msgstr "Tab"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_up"
-msgid "Up"
+msgid "Up Arrow"
 msgstr "Seta para cima"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

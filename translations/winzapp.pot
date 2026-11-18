@@ -12781,7 +12781,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_down"
-msgid "Down"
+msgid "Down Arrow"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -12846,7 +12846,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_up"
-msgid "Up"
+msgid "Up Arrow"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

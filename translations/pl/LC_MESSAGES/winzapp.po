@@ -13654,7 +13654,7 @@ msgstr "Delete"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_down"
-msgid "Down"
+msgid "Down Arrow"
 msgstr "Strzałka w dół"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -13719,7 +13719,7 @@ msgstr "Tab"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_up"
-msgid "Up"
+msgid "Up Arrow"
 msgstr "Strzałka w górę"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

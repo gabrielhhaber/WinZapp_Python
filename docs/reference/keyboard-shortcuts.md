@@ -287,8 +287,8 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Emoji seç | Ekle | Kontrol+Enter | emoji.queue |
 | Emoji seç | Önceki emoji ten rengi | Sol | emoji.previous_tone |
 | Emoji seç | Sonraki emoji ten rengi | Sağ | emoji.next_tone |
-| Yeniden sıralanabilir listeler | Seçili öğeyi yukarı taşı | Alt+Yukarı | reorder.move_up |
-| Yeniden sıralanabilir listeler | Seçili öğeyi aşağı taşı | Alt+Aşağı | reorder.move_down |
+| Yeniden sıralanabilir listeler | Seçili öğeyi yukarı taşı | Alt+Yukarı Ok | reorder.move_up |
+| Yeniden sıralanabilir listeler | Seçili öğeyi aşağı taşı | Alt+Aşağı Ok | reorder.move_down |
 | Bağlantılar | Aç | Enter | links.open |
 | Bağlantılar | Aç | Boşluk | links.open_space |
 | Bağlantılar | Bağlantıyı kopyala | Kontrol+C | links.copy |
