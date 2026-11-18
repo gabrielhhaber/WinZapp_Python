@@ -11,6 +11,9 @@ reader reads each one by its label. Validation is core.polls.poll_input_error().
 
 import wx
 
+from ui.accessible import AccessibleReorderButton
+from ui.reorder_keys import MOVE_DOWN, MOVE_UP, bind_reorder_keys
+
 from core.polls import (
     MAX_OPTIONS, TIME_LIMITS, clean_poll_input, move_option, poll_input_error,
     selectable_count, time_limit_seconds,
@@ -77,6 +80,11 @@ class NewPollDialog(wx.Dialog):
         self._down_btn.Bind(wx.EVT_BUTTON, lambda event: self._on_move_option(1))
         self._up_btn.Disable()
         self._down_btn.Disable()
+        # Alt+Up / Alt+Down move the selected option too, and the buttons
+        # announce those keys (one preference for every reorderable list).
+        self._up_btn.SetAccessible(AccessibleReorderButton(MOVE_UP, i18n.t("accessible_alt_up")))
+        self._down_btn.SetAccessible(AccessibleReorderButton(MOVE_DOWN, i18n.t("accessible_alt_down")))
+        bind_reorder_keys(self._list, self._on_move_option)
         buttons.Add(self._up_btn, 0, wx.RIGHT, 6)
         buttons.Add(self._down_btn, 0)
         sizer.Add(buttons, 0, wx.LEFT | wx.RIGHT, 8)

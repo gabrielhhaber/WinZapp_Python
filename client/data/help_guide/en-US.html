@@ -598,7 +598,7 @@
   <li><strong>Audio files:</strong> a stereo or surround (5.1, 7.1) WAV or OGG Vorbis arrives with all channels, as ordinary audio, and keeps the sample rate up to 48 kHz. A file with more than 8 channels is sent unchanged as a document. Audio files pasted into the message field with Ctrl+V can go as audio or as a document (Settings &gt; Audio; the default is audio).</li>
   <li><strong>Attach contact:</strong> the list opens with the search field focused, filters by name (including surname) and number, and has no duplicates.</li>
   <li>Receiving a contact: an attached contact you receive shows the name and the number, which you can read, copy and use to chat with the person.</li>
-  <li><strong>Poll:</strong> choose Poll and enter the question, up to 12 options and whether multiple answers are allowed. You can also check "Hide voter names" and choose a "Time limit" (no limit, 1 hour, 8 hours, 24 hours, 3 days or 7 days). In View votes, a poll that hides names shows "Hidden name" instead of who voted. The "Move up" and "Move down" buttons reorder the options before sending, and the poll goes to WhatsApp in the order you left it.</li>
+  <li><strong>Poll:</strong> choose Poll and enter the question, up to 12 options and whether multiple answers are allowed. You can also check "Hide voter names" and choose a "Time limit" (no limit, 1 hour, 8 hours, 24 hours, 3 days or 7 days). In View votes, a poll that hides names shows "Hidden name" instead of who voted. The "Move up" and "Move down" buttons reorder the options before sending, and the poll goes to WhatsApp in the order you left it. Alt+Up Arrow and Alt+Down Arrow on the options list do the same.</li>
   <li>Sent documents already show the file size in the list; while a document is downloading, the row shows progress, for example "35% (13.8 MB of 39.4 MB)".</li>
   <li>Downloaded files always have the same size as the original, including those whose size is a multiple of 16 bytes, such as an APK, which Android installs normally.</li>
 </ul>
@@ -695,7 +695,7 @@
 </ul>
 
 <h3>Online AI</h3>
-<p>In the <strong>Online AI: Transcriptions and Descriptions</strong> tab of Settings, you turn the features on (they start off) and enter the API key of one or more providers: Gemini, OpenAI, Claude, Groq, OpenRouter and Mistral. They are tried in the order you set: if one fails or runs out of quota, the next one answers. Each provider has its own window, with the "Use the model recommended by WinZapp" box (WinZapp always uses the model it recommends) or the choice of a fixed model.</p>
+<p>In the <strong>Online AI: Transcriptions and Descriptions</strong> tab of Settings, you turn the features on (they start off) and enter the API key of one or more providers: Gemini, OpenAI, Claude, Groq, OpenRouter and Mistral. They are tried in the order you set: if one fails or runs out of quota, the next one answers. Each provider has its own window, with the "Use the model recommended by WinZapp" box (WinZapp always uses the model it recommends) or the choice of a fixed model. The "Move up" and "Move down" buttons of the provider list, or Alt+Up Arrow and Alt+Down Arrow on the list, change that order.</p>
 <table class="field-table">
   <tr><th>Where</th><th>What it does</th></tr>
   <tr><td>Voice message or audio: "Transcribe with online AI"</td><td>Turns it into text.</td></tr>
@@ -1328,6 +1328,12 @@
 <tr><td class="field-name">Left Arrow</td><td>Previous emoji skin tone</td></tr>
 <tr><td class="field-name">Right Arrow</td><td>Next emoji skin tone</td></tr>
 </table>
+<h3>Reorderable lists</h3>
+<table class="field-table">
+<tr><th>Shortcut</th><th>Action</th></tr>
+<tr><td class="field-name">Alt+Up Arrow</td><td>Move the selected item up</td></tr>
+<tr><td class="field-name">Alt+Down Arrow</td><td>Move the selected item down</td></tr>
+</table>
 <h3>Result window (AI and transcription)</h3>
 <table class="field-table">
 <tr><th>Shortcut</th><th>Action</th></tr>
@@ -1454,6 +1460,7 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>In the online AI provider list and in the options of a new poll, Alt+Up Arrow and Alt+Down Arrow move the selected item, and the Move up and Move down buttons announce those keys. The keys appear in the F1 list and can be changed in Settings &gt; Shortcuts.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>When creating a poll, the Hide voter names checkbox and the Time limit choice (no limit, 1 hour, 8 hours, 24 hours, 3 days or 7 days) now work with both Neonize and WPPConnect. In View votes, a poll that hides names shows "Hidden name" in place of who voted; your own vote still reads "You".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>When creating a poll, the Move up and Move down buttons reorder the options before sending; the poll goes to WhatsApp in the order you left it, with both Neonize and WPPConnect.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Starred messages end with the word "Starred" instead of starting with the ★ symbol. An option can put it at the start.</td></tr>

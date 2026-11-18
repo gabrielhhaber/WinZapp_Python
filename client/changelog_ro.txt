@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- În lista furnizorilor de IA online și în opțiunile unui sondaj nou, Alt+Săgeată sus și Alt+Săgeată jos mută elementul selectat, iar butoanele Mutați în sus și Mutați în jos anunță aceste taste. Tastele apar în lista de la F1 și pot fi schimbate în Setări > Comenzi rapide.
+
 - La crearea unui sondaj, caseta Ascunde numele votanților și alegerea Limită de timp (fără limită, 1 oră, 8 ore, 24 de ore, 3 zile sau 7 zile) funcționează acum cu Neonize și cu WPPConnect. În Vezi voturile, un sondaj care ascunde numele arată "Nume ascuns" în locul persoanei care a votat; votul dumneavoastră apare în continuare ca "Dvs.".
 - La crearea unui sondaj, butoanele Mutați în sus și Mutați în jos reordonează opțiunile înainte de trimitere; sondajul ajunge pe WhatsApp în ordinea lăsată de dumneavoastră, atât cu Neonize, cât și cu WPPConnect.
 

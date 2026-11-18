@@ -598,7 +598,7 @@
   <li><strong>Ses dosyaları:</strong> stereo ya da çevresel (5.1, 7.1) bir WAV veya OGG Vorbis tüm kanallarıyla, sıradan ses olarak ulaşır ve örnekleme hızını 48 kHz'e kadar korur. 8'den fazla kanallı bir dosya değiştirilmeden belge olarak gönderilir. Ctrl+V ile mesaj alanına yapıştırılan ses dosyaları ses ya da belge olarak gidebilir (Ayarlar &gt; Ses; varsayılan ses).</li>
   <li><strong>Kişi ekle:</strong> liste arama alanı odaktayken açılır, ada (soyadı dahil) ve numaraya göre filtreler ve yinelenen kayıt içermez.</li>
   <li>Kişi alma: alınan bir kişi, adı ve numarayı gösterir; numarayı görebilir, kopyalayabilir ve kişiyle sohbet etmek için kullanabilirsiniz.</li>
-  <li><strong>Anket:</strong> Anket'i seçin ve soruyu, en fazla 12 seçeneği ve birden fazla yanıta izin verilip verilmediğini girin. "Oy verenlerin adlarını gizle" kutusunu işaretleyebilir ve bir "Zaman sınırı" seçebilirsiniz (sınırsız, 1 saat, 8 saat, 24 saat, 3 gün veya 7 gün). Oyları gör penceresinde adları gizleyen bir anket, oy vereni göstermek yerine "Gizli ad" gösterir. "Yukarı taşı" ve "Aşağı taşı" düğmeleri seçenekleri göndermeden önce yeniden sıralar; anket WhatsApp'a bıraktığınız sırayla gider.</li>
+  <li><strong>Anket:</strong> Anket'i seçin ve soruyu, en fazla 12 seçeneği ve birden fazla yanıta izin verilip verilmediğini girin. "Oy verenlerin adlarını gizle" kutusunu işaretleyebilir ve bir "Zaman sınırı" seçebilirsiniz (sınırsız, 1 saat, 8 saat, 24 saat, 3 gün veya 7 gün). Oyları gör penceresinde adları gizleyen bir anket, oy vereni göstermek yerine "Gizli ad" gösterir. "Yukarı taşı" ve "Aşağı taşı" düğmeleri seçenekleri göndermeden önce yeniden sıralar; anket WhatsApp'a bıraktığınız sırayla gider. Seçenekler listesinde Alt+Yukarı Ok ve Alt+Aşağı Ok aynı işi yapar.</li>
   <li>Gönderilen belgeler listede dosya boyutunu zaten gösterir; bir belge inerken satır ilerlemeyi gösterir, örneğin "indiriliyor, 35% (13,8 MB / 39,4 MB)".</li>
   <li>İndirilen dosyalar, boyutu 16 baytın katı olanlar da dahil (örneğin bir APK, Android bunu sorunsuz yükler), her zaman aslıyla aynı boyuttadır.</li>
 </ul>
@@ -695,7 +695,7 @@
 </ul>
 
 <h3>Çevrimiçi yapay zekâ</h3>
-<p>Ayarlar'ın <strong>Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme</strong> sekmesinde özellikleri açar (kapalı başlar) ve bir ya da daha fazla sağlayıcının API anahtarını girersiniz: Gemini, OpenAI, Claude, Groq, OpenRouter ve Mistral. Belirlediğiniz sırayla denenirler: biri başarısız olursa ya da kotası biterse sonraki yanıtlar. Her sağlayıcının kendi penceresi vardır; "WinZapp'in önerdiği modeli kullan" kutusu (WinZapp her zaman önerdiği modeli kullanır) ya da sabit bir model seçimi ile.</p>
+<p>Ayarlar'ın <strong>Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme</strong> sekmesinde özellikleri açar (kapalı başlar) ve bir ya da daha fazla sağlayıcının API anahtarını girersiniz: Gemini, OpenAI, Claude, Groq, OpenRouter ve Mistral. Belirlediğiniz sırayla denenirler: biri başarısız olursa ya da kotası biterse sonraki yanıtlar. Her sağlayıcının kendi penceresi vardır; "WinZapp'in önerdiği modeli kullan" kutusu (WinZapp her zaman önerdiği modeli kullanır) ya da sabit bir model seçimi ile. Sağlayıcı listesindeki "Yukarı taşı" ve "Aşağı taşı" düğmeleri ya da listede Alt+Yukarı Ok ve Alt+Aşağı Ok bu sırayı değiştirir.</p>
 <table class="field-table">
   <tr><th>Nerede</th><th>Ne yapar</th></tr>
   <tr><td>Sesli mesaj veya ses: "Çevrimiçi yapay zekâ ile yazıya dök"</td><td>Metne dönüştürür.</td></tr>
@@ -1328,6 +1328,12 @@
 <tr><td class="field-name">Sol Ok</td><td>Önceki emoji ten rengi</td></tr>
 <tr><td class="field-name">Sağ Ok</td><td>Sonraki emoji ten rengi</td></tr>
 </table>
+<h3>Yeniden sıralanabilir listeler</h3>
+<table class="field-table">
+<tr><th>Kısayol</th><th>İşlem</th></tr>
+<tr><td class="field-name">Alt+Yukarı Ok</td><td>Seçili öğeyi yukarı taşı</td></tr>
+<tr><td class="field-name">Alt+Aşağı Ok</td><td>Seçili öğeyi aşağı taşı</td></tr>
+</table>
 <h3>Sonuç penceresi (YZ ve yazıya dökme)</h3>
 <table class="field-table">
 <tr><th>Kısayol</th><th>İşlem</th></tr>
@@ -1454,6 +1460,7 @@
 <p class="lead">Özellik getiren her yeni alpha kılavuza eklenir. Bu liste kılavuzun hangi alpha'ya kadar tam olduğunu ve her turda neyin eklendiğini gösterir.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Kılavuza girenler</th></tr>
+  <tr><td class="field-name">Henüz yayımlanmadı</td><td>Çevrimiçi yapay zekâ sağlayıcıları listesinde ve yeni bir anketin seçeneklerinde Alt+Yukarı Ok ve Alt+Aşağı Ok seçili öğeyi taşır; Yukarı taşı ve Aşağı taşı düğmeleri bu tuşları duyurur. Tuşlar F1 listesinde görünür ve Ayarlar &gt; Kısayollar içinde değiştirilebilir.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Anket oluştururken Oy verenlerin adlarını gizle kutusu ve Zaman sınırı seçimi (sınırsız, 1 saat, 8 saat, 24 saat, 3 gün veya 7 gün) artık hem Neonize hem WPPConnect ile çalışıyor. Oyları gör penceresinde adları gizleyen bir anket, oy vereni göstermek yerine "Gizli ad" gösterir; kendi oyunuz yine "Siz" olarak görünür.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Anket oluştururken Yukarı taşı ve Aşağı taşı düğmeleri seçenekleri göndermeden önce yeniden sıralar; anket WhatsApp'a bıraktığınız sırayla gider, hem Neonize hem WPPConnect ile.</td></tr>
   <tr><td class="field-name">Henüz yayımlanmadı</td><td>Yıldızlanan iletiler ★ simgesiyle başlamak yerine "Yıldızlandı" sözcüğüyle biter. Bir seçenek onu başa taşıyabilir.</td></tr>

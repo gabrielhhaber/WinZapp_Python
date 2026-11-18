@@ -16,7 +16,7 @@ ENGLISH_KEYS = {
     'shortcut_key_enter': 'Enter', 'shortcut_key_escape': 'Esc',
     'shortcut_key_space': 'Space', 'shortcut_key_tab': 'Tab',
     'shortcut_key_left': 'Left', 'shortcut_key_right': 'Right',
-    'shortcut_key_up': 'Up', 'shortcut_key_down': 'Down',
+    'shortcut_key_up': 'Up Arrow', 'shortcut_key_down': 'Down Arrow',
     'shortcut_key_home': 'Home', 'shortcut_key_end': 'End',
     'shortcut_key_pageup': 'PageUp', 'shortcut_key_pagedown': 'PageDown',
     'shortcut_key_insert': 'Insert',

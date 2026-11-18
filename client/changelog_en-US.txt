@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- In the online AI provider list and in the options of a new poll, Alt+Up Arrow and Alt+Down Arrow move the selected item, and the Move up and Move down buttons announce those keys. The keys appear in the F1 list and can be changed in Settings > Shortcuts.
+
 - When creating a poll, the Hide voter names checkbox and the Time limit choice (no limit, 1 hour, 8 hours, 24 hours, 3 days or 7 days) now work with both Neonize and WPPConnect. In View votes, a poll that hides names shows "Hidden name" in place of who voted; your own vote still reads "You".
 - When creating a poll, the Move up and Move down buttons reorder the options before sending; the poll goes to WhatsApp in the order you left it, with both Neonize and WPPConnect.
 

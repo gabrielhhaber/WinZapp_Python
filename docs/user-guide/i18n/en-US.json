@@ -49,6 +49,7 @@
   "autocomplete": "Mention suggestions",
   "media": "Media viewer and playback",
   "emoji": "Emoji picker",
+  "reorder": "Reorderable lists",
   "ai_result": "Result window (AI and transcription)",
   "status": "Status",
   "status_list": "Status list",

@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Çevrimiçi yapay zekâ sağlayıcıları listesinde ve yeni bir anketin seçeneklerinde Alt+Yukarı Ok ve Alt+Aşağı Ok seçili öğeyi taşır; Yukarı taşı ve Aşağı taşı düğmeleri bu tuşları duyurur. Tuşlar F1 listesinde görünür ve Ayarlar > Kısayollar içinde değiştirilebilir.
+
 - Anket oluştururken Oy verenlerin adlarını gizle kutusu ve Zaman sınırı seçimi (sınırsız, 1 saat, 8 saat, 24 saat, 3 gün veya 7 gün) artık hem Neonize hem WPPConnect ile çalışıyor. Oyları gör penceresinde adları gizleyen bir anket, oy vereni göstermek yerine "Gizli ad" gösterir; kendi oyunuz yine "Siz" olarak görünür.
 - Anket oluştururken Yukarı taşı ve Aşağı taşı düğmeleri seçenekleri göndermeden önce yeniden sıralar; anket WhatsApp'a bıraktığınız sırayla gider, hem Neonize hem WPPConnect ile.
 
