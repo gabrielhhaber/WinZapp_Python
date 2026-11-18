@@ -14866,12 +14866,6 @@ msgstr "Renunțați"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
-msgctxt "status_starred"
-msgid "Starred"
-msgstr "Marcat cu stea"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "status_edited"
 msgid "Edited"
 msgstr "Editat"
@@ -15120,6 +15114,12 @@ msgstr "&Publică starea"
 msgctxt "status_sent"
 msgid "Sent"
 msgstr "Trimis"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "Marcat cu stea"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
