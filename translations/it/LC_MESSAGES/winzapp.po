@@ -380,11 +380,13 @@ msgid "&Use the system voice when VoiceOver is not running"
 msgstr "&Usa la voce di sistema quando VoiceOver non è in esecuzione"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "accessible_alt_down"
 msgid "Alt+Down Arrow"
 msgstr "Alt+Freccia giù"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "accessible_alt_up"
 msgid "Alt+Up Arrow"
 msgstr "Alt+Freccia su"

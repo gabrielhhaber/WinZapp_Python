@@ -372,11 +372,13 @@ msgid "&Use the system voice when VoiceOver is not running"
 msgstr "&Use the system voice when VoiceOver is not running"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "accessible_alt_down"
 msgid "Alt+Down Arrow"
 msgstr "Alt+Down Arrow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "accessible_alt_up"
 msgid "Alt+Up Arrow"
 msgstr "Alt+Up Arrow"
