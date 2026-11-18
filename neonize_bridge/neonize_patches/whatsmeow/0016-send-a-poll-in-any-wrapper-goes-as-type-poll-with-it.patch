@@ -64,6 +64,3 @@ index 1489e08..85cc26c 100644
  		return "poll"
  	case getMediaTypeFromMessage(msg) != "":
  		return "media"
--- 
-2.43.0
-
