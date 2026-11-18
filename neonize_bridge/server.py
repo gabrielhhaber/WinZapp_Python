@@ -1433,8 +1433,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         if ends:
             self.db.history_ends_of_existing(ends)
         self.db.messages_in_batch(rows)
-        log.info("history%s: %d chats, %d messages (%s%%)", " on demand" if on_demand else "",
-                 len(data.conversations), total, data.progress)
+        log.info("history%s: %d chats, %d messages (%s%%) [%s block %s]",
+                 " on demand" if on_demand else "", len(data.conversations), total,
+                 data.progress, history_resume.type_name(data.syncType), data.chunkOrder)
         return data.progress
 
     @staticmethod

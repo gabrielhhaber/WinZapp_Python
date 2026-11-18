@@ -191,3 +191,10 @@ def test_watch_runs_while_connected_and_only_once():
     s._history_resume_watch = True             # a loop already running
     s.status = "CONNECTED"
     hr.watch(s, sleep=lambda _s: (_ for _ in ()).throw(AssertionError("second loop")))
+
+
+def test_type_name_names_every_block_and_survives_a_new_one():
+    assert hr.type_name(HistorySync.INITIAL_BOOTSTRAP) == "INITIAL_BOOTSTRAP"
+    assert hr.type_name(FULL) == "FULL"
+    assert hr.type_name(HistorySync.NON_BLOCKING_DATA) == "NON_BLOCKING_DATA"
+    assert hr.type_name(42) == "42"

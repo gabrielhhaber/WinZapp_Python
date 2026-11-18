@@ -148,6 +148,16 @@ def answer_of(message):
     return None, None, None
 
 
+#: every HistorySync.HistorySyncType, for the log
+TYPE_NAMES = {0: "INITIAL_BOOTSTRAP", 1: "INITIAL_STATUS_V3", **TRANSFER_TYPES,
+              4: "PUSH_NAME", 5: "NON_BLOCKING_DATA", 6: "ON_DEMAND"}
+
+
+def type_name(kind):
+    """The history block's type as the log writes it."""
+    return TYPE_NAMES.get(int(kind), str(int(kind)))
+
+
 # ── The session side ─────────────────────────────────────────────────────────
 
 def tracker_of(s):
