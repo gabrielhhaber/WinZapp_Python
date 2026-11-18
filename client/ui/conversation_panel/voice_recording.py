@@ -920,14 +920,15 @@ class VoiceRecordingMixin:
             # 4. The user cancelled while the encoder was running: the recording
             # must not reach the queue at all, whatever the outcome. (The
             # microphone + computer audio path had this guard; keep it for
-            # every voice message.)
+            # every voice message.) This runs on the worker: the panel is
+            # released on the main thread.
             if virtual_msg.get("_cancelled_awaiting_id") or self._is_cancelled_pending(local_id):
                 try:
                     os.unlink(wav_path)
                 except OSError:
                     pass
-                mw._on_cancelled_message_dropped(local_id)
-                return
+                wx.CallAfter(mw._on_cancelled_message_dropped, local_id)
+                return None
             # 5. Encrypt OGG (or raw PCM fallback) and save as .msv for offline playback.
             _t_msv = _time.perf_counter()
             try:
