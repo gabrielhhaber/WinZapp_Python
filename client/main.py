@@ -289,6 +289,7 @@ from main_window.call_desktop_audio import DesktopCallAudioMixin
 from main_window.call_participants import CallParticipantsMixin
 from main_window.call_links import CallLinksMixin
 from main_window.call_hotkeys import CallHotkeysMixin
+from main_window.default_audio_devices import DefaultAudioDevicesMixin
 from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
 from main_window.wpp_server import WppServerMixin
@@ -359,6 +360,7 @@ class MainWindow(
     CallParticipantsMixin,
     CallLinksMixin,
     CallHotkeysMixin,
+    DefaultAudioDevicesMixin,
     IdentityMixin,
     MessageEventsMixin,
     WppServerMixin,
@@ -610,6 +612,9 @@ class MainWindow(
         # Windows default and warns — settings.json itself is left untouched
         # so the same device is retried on the next launch.
         self._apply_configured_audio_devices()
+        # Sounds on "system default" follow Windows' default from now on
+        # (a headset plugged in): main_window/default_audio_devices.py.
+        self._start_default_output_follow()
 
         # ── Auto-updater ──────────────────────────────────────────────────────
         # Schedule the update checker on the event loop early (but after i18n

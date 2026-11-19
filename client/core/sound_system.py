@@ -515,6 +515,52 @@ class SoundSystem:
             self._warn_device_failure("output", name)
         return True
 
+    def follows_default_output(self) -> bool:
+        """Whether the output or the effects play on "system default"."""
+        return not self._configured_output_device or not self._configured_effects_device
+
+    def follow_default_output(self) -> bool:
+        """Windows moved its default output: move what plays on "default".
+
+        Plugging in a wired headset often makes a new endpoint the default
+        while the speakers stay valid, so no stream fails and the failure
+        recovery above never runs: every other program moved to the headset
+        and WinZapp's sounds stayed on the speakers (report of 2026-11-18).
+        Taking it out did reach the recovery, but only after a sound had been
+        lost to the device that vanished. main_window/default_audio_devices.py
+        calls this when the default changes (UI thread).
+
+        The output is reinitialised only when it is on the default and BASS is
+        no longer on the default's index; the reinit invalidates every stream,
+        so the sounds are reloaded, and the failures of streams that were
+        playing must not start a recovery of their own (the cooldown is
+        armed). The effects are only re-pointed: their device is chosen at
+        every play(). Returns whether anything moved.
+        """
+        default = find_default_output_device_index()
+        if default is None:
+            return False   # no default right now: nothing to move to
+        reinitialised = False
+        if not self._configured_output_device and not self._output_device_is_healthy(-1):
+            if not self._reinit_output_device(-1, force=True):
+                return False
+            self._last_recovery_at = time.monotonic()
+            reinitialised = True
+        effects_moved = False
+        if not self._configured_effects_device and (
+                reinitialised or self._effects_device != default):
+            self.apply_effects_device("")
+            effects_moved = True
+        if not (reinitialised or effects_moved):
+            return False
+        logging.info("[sound_system] Windows default output changed; sounds moved to it")
+        if reinitialised:
+            try:
+                self.main_window.load_sounds()
+            except Exception:
+                logging.exception("[sound_system] load_sounds() failed after the default output moved")
+        return True
+
 
 
 # ── Sound event registry ────────────────────────────────────────────────────

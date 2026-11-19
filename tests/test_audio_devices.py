@@ -691,3 +691,69 @@ class TestStoppingAStaleChannelIsNotFatal:
         import inspect
         src = inspect.getsource(__import__("core.sound_system", fromlist=["Sound"]).Sound.play)
         assert src.index("try:") < src.index("super().stop()")
+
+
+class TestFollowDefaultOutput:
+    """Plugging in a wired headset made a new endpoint Windows' default while
+    the speakers stayed valid: no stream failed, so the recovery never ran and
+    WinZapp's sounds stayed on the speakers while every other program moved
+    (report of 2026-11-18)."""
+
+    def _sound_system(self, monkeypatch, *, default=7, healthy=False,
+                      output="", effects="", effects_device=3):
+        ss = _make_sound_system(monkeypatch, {})
+        ss._configured_output_device = output
+        ss._configured_effects_device = effects
+        ss._effects_device = effects_device
+        ss.effects_applied = []
+        monkeypatch.setattr(sound_system_module, "find_default_output_device_index",
+                            lambda: default)
+        monkeypatch.setattr(ss, "_output_device_is_healthy", lambda device: healthy)
+        monkeypatch.setattr(ss, "_reinit_output_device",
+                            lambda device, force=False: ss.output.free() or True)
+
+        def _apply_effects(name, warn_on_failure=False):
+            ss.effects_applied.append(name)
+            ss._effects_device = default
+            return True
+        monkeypatch.setattr(ss, "apply_effects_device", _apply_effects)
+        return ss
+
+    def test_sounds_on_the_default_move_to_the_new_default(self, monkeypatch):
+        ss = self._sound_system(monkeypatch)
+        assert ss.follow_default_output() is True
+        assert ss.output.free_calls == 1
+        assert ss.effects_applied == [""]
+        # every stream died with the reinit: the sounds are built again
+        assert ss.main_window.load_sounds_calls == 1
+
+    def test_the_streams_it_killed_do_not_start_a_recovery_of_their_own(self, monkeypatch):
+        ss = self._sound_system(monkeypatch)
+        ss.follow_default_output()
+        assert ss.handle_playback_failure() is False
+        assert ss.output.free_calls == 1
+
+    def test_nothing_moves_when_bass_is_already_on_the_default(self, monkeypatch):
+        ss = self._sound_system(monkeypatch, healthy=True, effects_device=7)
+        assert ss.follow_default_output() is False
+        assert ss.output.free_calls == 0
+        assert ss.main_window.load_sounds_calls == 0
+
+    def test_a_named_output_stays_while_default_effects_move(self, monkeypatch):
+        ss = self._sound_system(monkeypatch, output="Caixas USB")
+        assert ss.follow_default_output() is True
+        assert ss.output.free_calls == 0
+        assert ss.effects_applied == [""]
+        # effects pick their device at every play(): nothing to rebuild
+        assert ss.main_window.load_sounds_calls == 0
+
+    def test_named_devices_are_never_moved(self, monkeypatch):
+        ss = self._sound_system(monkeypatch, output="Caixas USB", effects="Fone")
+        assert ss.follows_default_output() is False
+        assert ss.follow_default_output() is False
+        assert ss.output.free_calls == 0 and ss.effects_applied == []
+
+    def test_no_default_at_all_moves_nothing(self, monkeypatch):
+        ss = self._sound_system(monkeypatch, default=None)
+        assert ss.follow_default_output() is False
+        assert ss.output.free_calls == 0

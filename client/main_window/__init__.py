@@ -59,6 +59,7 @@ Where to look (and where new code goes):
     call_participants   explicit connected-participant views for active/joinable calls
     call_links          call links: create, join (also from a message), the link call's waiting room
     call_hotkeys        answer/decline a ringing call from any window (global keys, only while it rings)
+    default_audio_devices  calls and program sounds on "system default" follow Windows' default (headset plugged in)
     chat_lock           locked-chats vault
     phone_chat_lock     chats locked with WhatsApp Chat Lock on the phone
     quick_audio_devices Ctrl+Alt+Shift+H/G quick output/recording device switch

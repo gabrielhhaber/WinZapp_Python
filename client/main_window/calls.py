@@ -496,6 +496,11 @@ class CallsMixin:
         self._call_ring_audio_session = None
         logging.info("[call_audio] streams started session=%s", session_name)
         self._call_audio_session = audio
+        # A device on "system default" follows Windows' default during the
+        # call (main_window/default_audio_devices.py); idempotent on a switch.
+        follow = getattr(self, "_start_call_default_device_follow", None)
+        if callable(follow):
+            follow()
         if keep_active_call:
             wx.CallAfter(self._sync_voice_call_bar)
             return True
@@ -547,6 +552,9 @@ class CallsMixin:
         if not keep_call:
             retire_media_epoch(self, (getattr(self, '_active_voice_call', None) or {}).get('media_epoch'))
             stop_call_tone(self)
+            unfollow = getattr(self, "_stop_call_default_device_follow", None)
+            if callable(unfollow):
+                unfollow()
         stop_call_desktop_audio(self)
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -591,15 +599,21 @@ class CallsMixin:
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
 
-    def _restart_active_voice_call_audio(self):
-        """Apply changed call devices without ending the WhatsApp call."""
+    def _restart_active_voice_call_audio(self, *, refresh_device_list: bool = False):
+        """Apply changed call devices without ending the WhatsApp call.
+
+        ``refresh_device_list`` makes PortAudio enumerate again between the
+        close and the reopen, for a change of Windows' default device
+        (main_window/default_audio_devices.py). Returns whether a switch was
+        started.
+        """
         active = getattr(self, "_active_voice_call", None)
         if (
             not active
             or getattr(self, "_call_audio_session", None) is None
             or getattr(self, "_call_audio_restart_pending", False)
         ):
-            return
+            return False
         self._call_audio_restart_pending = True
 
         def _worker():
@@ -615,6 +629,11 @@ class CallsMixin:
                     # session shares the same sources again (UI thread).
                     share = call_desktop_share_settings(self)
                     self._stop_voice_call_audio(keep_call=True)
+                    if refresh_device_list:
+                        # Only now: the refresh closes every PortAudio stream.
+                        from core.call_audio import sd as portaudio
+                        from core.default_audio_endpoints import refresh_portaudio_devices
+                        refresh_portaudio_devices(portaudio)
                     last_error = None
                     for attempt in range(3):
                         try:
@@ -657,6 +676,7 @@ class CallsMixin:
                     self._call_audio_restart_pending = False
 
         threading.Thread(target=_worker, daemon=True).start()
+        return True
 
     def _stop_active_voice_call_if_matches(self, identity: str, peer_jid: str):
         active = getattr(self, "_active_voice_call", None)
