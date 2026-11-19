@@ -560,6 +560,8 @@ NOVIDADES
 
 - Corrigido: com o cancelamento de ruído por voz neural ligado, as mensagens de voz agora são enviadas na ordem em que foram gravadas, mesmo quando o processamento de uma termina antes da outra.
 
+- Mensagens mostradas ao abrir uma conversa: a configuração agora aceita no máximo 1.000. Valores de dezenas de milhares congelavam a janela por mais de um minuto quando chegavam muitas mensagens de uma vez ou enquanto você digitava; um valor salvo maior é tratado como 1.000 e Configurações > Mensagens pede um número de 1 a 1.000.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.

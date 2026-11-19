@@ -562,6 +562,8 @@ V3.0.0.0
 
 - تم الإصلاح: عند تفعيل إلغاء ضوضاء الصوت العصبي، تُرسَل الرسائل الصوتية الآن بالترتيب الذي سُجّلت به، حتى لو انتهت معالجة إحداها قبل الأخرى.
 
+- الرسائل المعروضة عند فتح محادثة: صار الإعداد يقبل 1000 كحد أقصى. كانت القيم بعشرات الآلاف تجمّد النافذة أكثر من دقيقة عندما تصل رسائل كثيرة دفعة واحدة أو أثناء الكتابة؛ وتُعامل القيمة المحفوظة الأعلى على أنها 1000، وتطلب الإعدادات > الرسائل رقمًا من 1 إلى 1000.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
