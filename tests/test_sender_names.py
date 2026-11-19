@@ -113,7 +113,9 @@ class TestLearnSenderName:
 
     def test_reports_change_when_pushname_was_updated(self):
         mw = _Stub(_presence_pushname_map={"55555@lid": "Carlos"})
-        assert mw.learn(_group_msg("55555@lid", "Carlos Silva")) is True
+        # a replayed (non-live) message only fills a gap: it never renames
+        assert mw.learn(_group_msg("55555@lid", "Carlos Silva")) is False
+        assert mw.learn(_group_msg("55555@lid", "Carlos Silva"), live=True) is True
         assert mw._presence_pushname_map["55555@lid"] == "Carlos Silva"
 
     def test_learns_from_a_private_chat_sender(self):
