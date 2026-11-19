@@ -1,3 +1,11 @@
+V2.1.1.0
+
+Aceasta este o versiune de întreținere a celei stabile. Corectează doar trimiterea mesajelor, care a încetat să funcționeze când WhatsApp Web s-a schimbat pe dinăuntru.
+
+CORECTĂRI
+
+- Trimiterea mesajelor funcționează din nou. Biblioteca WPPConnect care leagă WinZapp de WhatsApp a fost actualizată (WPPConnect 2.4.6 și WA-JS 4.8.2) pentru a urma schimbarea din WhatsApp Web care o bloca. După actualizarea WinZapp, acceptați când vă cere să actualizați WPPConnect.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

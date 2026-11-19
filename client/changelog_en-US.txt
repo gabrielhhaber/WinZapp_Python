@@ -1,3 +1,11 @@
+V2.1.1.0
+
+This is a maintenance release for the stable version. It only fixes sending messages, which stopped working when WhatsApp Web changed internally.
+
+FIXES
+
+- Sending messages works again. The WPPConnect library that connects WinZapp to WhatsApp was updated (WPPConnect 2.4.6 and WA-JS 4.8.2) to follow the WhatsApp Web change that was blocking it. After updating WinZapp, accept when it asks to update WPPConnect.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
