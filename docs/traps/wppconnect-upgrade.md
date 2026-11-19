@@ -187,3 +187,7 @@ Server 2.10.63 changed only `CHANGELOG.md`, `package.json` (a dev dependency) an
 - The drift gate (`library_drifts()`) needed no change: it reads exact pins, so an installed 4.6.1 against a pinned 4.7.1 asks for the reinstall, and "Continue without updating" keeps the old libraries with the old pin text.
 
 **Trap.** Anyone who reinstalls or updates WPPConnect gets the newest WhatsApp Web build, whatever the app version. When a send route answers 201 with `failed:` in its text, look at what changed in WhatsApp Web (`npm view @wppconnect/wa-version time`) before looking at the client.
+
+## 2.10.86 → 2.10.87 (2026-11-19)
+
+`util/functions.ts` is one of our own restored files, so upstream's change to `autoDownload` does not flow in by itself: a message without `clientUrl`/`deprecatedMms3Url` (what wa-js 4.8 can deliver) is now downloaded with `client.downloadMedia(message.id)` instead of `client.decryptFile(message)`, which needs the URL. Ported by hand and covered in `tests/test_media_event_payload.py` (the fake client in `media_event_payload_runtime.cjs` now records which method ran). The rest is `package.json`/`yarn.lock` (`@babel/runtime`, `@babel/preset-env`) and upstream tests: nothing we restore or compile.

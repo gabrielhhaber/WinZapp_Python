@@ -48,3 +48,15 @@ def test_explicit_websocket_download_is_still_honored():
     result = run(websocket=True)
     assert result["downloads"] == 1
     assert result["emitted"][0]["data"]["response"]["body"]
+
+
+def test_media_without_a_url_is_downloaded_by_message_id():
+    # wa-js 4.8 messages can arrive with no clientUrl to decrypt from.
+    result = run(websocket=True)
+    assert result["via"] == ["downloadMedia"]
+    assert result["emitted"][0]["data"]["response"]["body"]
+
+
+def test_media_with_a_url_still_goes_through_decrypt_file():
+    result = run(websocket=True, clientUrl=True)
+    assert result["via"] == ["decryptFile"]
