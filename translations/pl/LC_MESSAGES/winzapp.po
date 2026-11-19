@@ -8710,9 +8710,10 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
 msgctxt "invalid_messages_page_size"
-msgid "The messages per page value must be a positive integer."
-msgstr "Liczba wiadomości na stronę musi być dodatnią liczbą całkowitą."
+msgid "The messages per page value must be a whole number from 1 to {max}."
+msgstr "Liczba wiadomości na stronę musi być liczbą całkowitą od 1 do {max}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

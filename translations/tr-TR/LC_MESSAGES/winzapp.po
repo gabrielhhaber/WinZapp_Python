@@ -8631,9 +8631,10 @@ msgstr "Medya indirme boyutu sınırı tam sayı olmalıdır (0 veya daha büyü
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
 msgctxt "invalid_messages_page_size"
-msgid "The messages per page value must be a positive integer."
-msgstr "Sayfa başına mesaj değeri pozitif bir tamsayı olmalıdır."
+msgid "The messages per page value must be a whole number from 1 to {max}."
+msgstr "Sayfa başına mesaj değeri 1 ile {max} arasında bir tamsayı olmalıdır."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

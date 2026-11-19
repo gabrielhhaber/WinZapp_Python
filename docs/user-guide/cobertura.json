@@ -285,6 +285,7 @@
     "62d1e1e84ef3": "Campo de mensagem: inserir um emoji no campo não gera mais o erro \"surrogates no",
     "af4b8f039777": "Novas opções em Configurações > Notificações para descontar as conversas arquiva",
     "785caa493c55": "Conversas longas: atualizar o histórico de uma conversa aberta com milhares de m",
-    "ced79b326bda": "Corrigido: com o cancelamento de ruído por voz neural ligado, as mensagens de vo"
+    "ced79b326bda": "Corrigido: com o cancelamento de ruído por voz neural ligado, as mensagens de vo",
+    "984cd50b2671": "Mensagens mostradas ao abrir uma conversa: a configuração agora aceita no máximo"
   }
 }

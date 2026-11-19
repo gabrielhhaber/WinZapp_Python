@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from core.page_size import messages_page_size
 import logging
 import time
 import wx
@@ -418,7 +419,7 @@ class HistoryMixin:
             if anchor_jid.endswith(("@lid", "@c.us", "@g.us")):
                 phone = anchor_jid
 
-        limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
+        limit = messages_page_size(self.settings)
         extra = channel_history.older_page_query(remote_jid, oldest_msg)
         url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}{extra}"
         headers = {

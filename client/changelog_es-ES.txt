@@ -562,6 +562,8 @@ NOVEDADES
 
 - Corregido: con la cancelación de ruido de voz neuronal activada, los mensajes de voz ahora se envían en el orden en que se grabaron, aunque uno termine de procesarse antes que otro.
 
+- Mensajes mostrados al abrir un chat: el ajuste ahora acepta como máximo 1.000. Valores de decenas de miles congelaban la ventana durante más de un minuto cuando llegaban muchos mensajes a la vez o mientras escribías; un valor guardado mayor se trata como 1.000 y Configuración > Mensajes pide un número de 1 a 1.000.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.
