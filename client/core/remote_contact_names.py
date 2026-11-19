@@ -65,7 +65,8 @@ def learn_remote_profiles(contacts, rows, normalize, invalid, lid_to_phone, phon
                 record = contacts[key]
                 # The name of a record nobody saved is only the profile name it
                 # was listed with: it moves along (core/profile_names.py).
-                if not contact_is_saved(record) and (record.get("name") or "") != record.get("pushName"):
+                if (record.get("name") and not contact_is_saved(record)
+                        and record["name"] != record.get("pushName")):
                     record["name"] = record.get("pushName") or record.get("name")
                     learned[key] = record
                 if before[target] != record.get("pushName"):
