@@ -41,15 +41,25 @@ Where to look (and where new code goes):
     reactions                sending/applying/backfilling reactions
     attachments              attaching files and contacts
     poll_messages            attaching a poll and opening a received one
+    event_messages           WhatsApp events: creating, opening, answering
     poll_inline              options list that follows a focused single-answer poll
     contact_messages         contact (vCard) and location messages
     media_files              opening/saving/downloading media, transfer progress
     message_data             the Message data window (local history, live receipts, group breakdown)
     ai_actions               transcribe/describe a message's media with the person's AI providers
+    summary_actions          AI summary of unread / from here / selected messages (Online AI), button, menus
+    summary_voice            transcribes a summary's voice messages (local Whisper) before it is sent
+    summary_voice_choice     asks how: local, online (own provider and consent) or not at all
+    summary_voice_online     the online transcription worker of that step
+    translation_actions      translating a message and the chats that translate on arrival
+    translation_backlog      translating what a chat already holds (on turning it on, selected messages)
+    translation_to_end       translating from a message to the end of the chat; cancelling a run
+    ai_writing               writing help on the draft
     audio_playback           voice/audio playback, chaining, speed, seek
     links                    links panel of the focused message
     mentions                 @mentions panel and suggestions
     bookmarks                message bookmarks
+    reading_position         "continue where you left off": the row each conversation was left on
     pinned_messages          pinned-message overview and history navigation
     channel_conversation     a channel's role (who posts and pins) and its pinned updates
     message_search           search inside the conversation

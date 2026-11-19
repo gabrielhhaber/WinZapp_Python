@@ -60,7 +60,7 @@ ANSWERED_KEPT = 50
 # offer queued for minutes and no <terminate> ever arrives), and WhatsApp Web
 # ends the call itself, so the window would otherwise ring until hung up.
 OUTGOING_RING_LIMIT = 60
-# How long a group call placed here is remembered after its placement (its end can come later).
+# How long a call placed here is remembered after its placement (its end can come later).
 PLACED_GROUP_KEEP = 6 * 3600
 
 
@@ -149,6 +149,22 @@ def finished_info(call, state, now) -> dict:
             "state": state, "activeAt": call.get("active_at"), "endedAt": now}
 
 
+def roster_connected(participants, mine) -> tuple:
+    """The people other than this account connected to a group call, from
+    its roster, in the form call/participants answers (a person's number
+    where the roster has it, the LID otherwise), sorted."""
+    rows = ongoing_calls.connected_rows(participants, mine, lambda jid, lid: "")
+    return tuple(sorted(row["jid"] for row in rows if not row["isSelf"]))
+
+
+def roster_states(participants) -> tuple:
+    """Everyone on a group call's roster with their state, sorted: what has to
+    change for the participants window to be refreshed (someone who declines
+    or stops ringing changes no connected list, yet changes the window)."""
+    return tuple(sorted((str(p.get("jid") or ""), str(p.get("state") or ""))
+                        for p in participants or () if isinstance(p, dict)))
+
+
 def remote_members_connected(participants, mine) -> int:
     """How many people other than this account are connected to a group call,
     from the roster's participants ([{jid, pn, state}]). `mine` are the
@@ -211,6 +227,8 @@ class CallMedia(CallIngressMixin):
         # the account's own users (number and LID digits), set by the session
         # once it knows them: a roster lists this account too
         self.own_users = lambda: set()
+        # call id -> the connected people last reported (report_rosters)
+        self._reported_rosters = {}
         # called with the facts of each call that ended (finished_info), for
         # the session to write its call_log: WhatsApp Web writes no record of
         # a call this engine placed or hung up itself
@@ -218,8 +236,22 @@ class CallMedia(CallIngressMixin):
         # id -> {"groupJid", "isVideo", "at"} of the group calls placed here,
         # for the end event the native layer sends without the group
         self._placed_groups = {}
+        # ids of calls another device of this account holds (calls.own_device_offer):
+        # never a ring here, so never what a hangup without an id refuses
+        self._elsewhere = set()
 
     # ---------------------------------------------------------------- state
+    def elsewhere(self, call_id):
+        """`call_id` belongs to another device of this account: forget its ring
+        (meowcaller's offer event may already have recorded one) and ignore
+        the ones that come later."""
+        with self._lock:
+            self._elsewhere.add(call_id)
+            call = self._calls.get(call_id)
+            if call is not None and call["state"] == "INCOMING_RING":
+                self._calls.pop(call_id, None)
+                self._publish_ingress_owner_locked()
+
     def _known(self, call_id):
         with self._lock:
             return dict(self._calls[call_id]) if call_id in self._calls else None
@@ -288,6 +320,8 @@ class CallMedia(CallIngressMixin):
                     return
         if kind == "incoming":
             with self._lock:
+                if call_id in self._elsewhere:
+                    return
                 previous = self._calls.get(call_id)
                 if generation is not None and previous is not None and previous.get("native_generation") not in (None, generation):
                     self._calls.pop(call_id, None)
@@ -334,6 +368,7 @@ class CallMedia(CallIngressMixin):
             event, state = end_state(ev.get("reason"))
             self._stop_ring_timer(call_id)
             with self._lock:
+                self._elsewhere.discard(call_id)
                 call = self._calls.pop(call_id, None)
                 if call and call.get("unanswered"):
                     event, state = "timeout", "NOT_ANSWERED"
@@ -379,11 +414,67 @@ class CallMedia(CallIngressMixin):
         self._set_state(call_id, "ACTIVE", expected=call)
         self._ensure_audio(call_id, call)
 
+    #: how often the group calls' rosters are compared, in seconds
+    ROSTER_EVERY = 2.0
+
+    def report_rosters(self):
+        """`call-participants` for each live group call whose roster changed
+        since the last report (who is in it, or anyone's state): the whole
+        connected list, as WPPConnect's callParticipantsBridge.ts sends it on
+        every change of the participants' states. The client says who joined
+        or left and refreshes an open participants window from it. The call
+        layer has no roster event, so the roster it keeps is compared here,
+        from the event pump.
+
+        Every live call is asked, not only a group's: a private call becomes a
+        group call when someone is added to it, and it has no group of its own
+        (the lobby names none). Its roster says so ("group"), and its open
+        participants window, which follows these events, was never refreshed
+        (reported 2026-11-13: someone ringing stayed "calling" after answering)."""
+        with self._lock:
+            live = [(call_id, call) for call_id, call in self._calls.items()
+                    if call.get("state") == "ACTIVE"]
+            reported = self._reported_rosters
+            for gone in set(reported) - {call_id for call_id, _call in live}:
+                reported.pop(gone, None)
+        mine = self.own_users()
+        for call_id, _call in live:
+            try:
+                roster = self.calls.roster(call_id)
+            except Exception:
+                log.exception("group call roster")
+                continue
+            if roster is None:
+                # the call ended natively before its end event was handled:
+                # no roster is not an empty one, or the client would say
+                # that everyone left just as the call ends
+                continue
+            if not roster.get("group"):
+                continue                    # a private call: no roster to follow
+            participants = roster.get("participants")
+            connected = roster_connected(participants, mine)
+            seen = (connected, roster_states(participants))
+            with self._lock:
+                if reported.get(call_id) == seen:
+                    continue
+                reported[call_id] = seen
+            self.emit("call-participants", {"session": self.name, "callId": call_id,
+                                            "connected": list(connected)})
+
     def placed_group(self, call_id):
         """{"groupJid", "isVideo"} of a group call placed here, or None."""
         with self._lock:
             found = self._placed_groups.get(call_id)
-        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]} if found else None
+        if not found or not found.get("groupJid"):
+            return None
+        return {"groupJid": found["groupJid"], "isVideo": found["isVideo"]}
+
+    def placed_peer(self, call_id):
+        """Who a one-to-one call placed here called (the JID as placed), or
+        "" when the call was not placed here."""
+        with self._lock:
+            found = self._placed_groups.get(call_id)
+        return (found.get("peer") or "") if found and not found.get("groupJid") else ""
 
     def start_pump(self, keep_going):
         """Starts pump_events on its own thread, unless it is already going (a
@@ -400,6 +491,7 @@ class CallMedia(CallIngressMixin):
         """The call layer's events, while `keep_going()` (start_pump runs it)."""
         stopped = layer_error()
         try:
+            rosters_at = 0.0
             while keep_going():
                 try:
                     ev = self.calls.next_event(500)
@@ -410,6 +502,12 @@ class CallMedia(CallIngressMixin):
                         self.handle(ev)
                     except Exception:
                         log.exception("call event")
+                if time.monotonic() - rosters_at >= self.ROSTER_EVERY:
+                    rosters_at = time.monotonic()
+                    try:
+                        self.report_rosters()
+                    except Exception:
+                        log.exception("call rosters")
         finally:
             self._running = False
             self.close()
@@ -803,11 +901,14 @@ class CallMedia(CallIngressMixin):
             if generation is not None:
                 call["native_generation"] = generation
             self._calls[call_id] = call
-            if group:
-                now = time.time()
-                self._placed_groups = {i: g for i, g in self._placed_groups.items()
-                                       if now - g["at"] < PLACED_GROUP_KEEP}
-                self._placed_groups[call_id] = {"groupJid": group, "isVideo": bool(video), "at": now}
+            # every call placed here, not only group ones: the <terminate> of
+            # a one-to-one call names this account as its creator, not the
+            # person called (calls.with_own_call)
+            now = time.time()
+            self._placed_groups = {i: g for i, g in self._placed_groups.items()
+                                   if now - g["at"] < PLACED_GROUP_KEEP}
+            self._placed_groups[call_id] = {"groupJid": group or "", "peer": peer or "",
+                                            "isVideo": bool(video), "at": now}
         if recovered is not None and (snapshot is None or snapshot["ended"]):
             self.handle({"ev": "end", "call": call_id, "generation": generation,
                          "reason": "ended_before_registration"})
@@ -868,8 +969,12 @@ class CallMedia(CallIngressMixin):
         at once, flowing when the relay's media arrives."""
         if self.in_call(call_id):
             return call_id
+        if self._answer_held_invite(call_id, chat, video):
+            return call_id
         joined = str(self.calls.join_ongoing(call_id, creator, video=video)["call"])
         with self._lock:
+            self._elsewhere.discard(call_id)
+            self._elsewhere.discard(joined)
             self._calls[joined] = {"id": joined, "peer": chat, "outgoing": False, "state": "",
                                    "video": bool(video), "connected": True,
                                    "group": chat if chat.endswith("@g.us") else ""}
@@ -877,6 +982,26 @@ class CallMedia(CallIngressMixin):
         self._set_state(joined, "ACTIVE")
         self._ensure_audio(joined)
         return joined
+
+    def _answer_held_invite(self, call_id, chat, video):
+        """A call another device of this account started is still held by
+        meowcaller as the invite it received (calls.own_device_offer): a fresh
+        join is refused there ("already in this call"), so joining it answers
+        that invite. False when there is none (the join goes on as usual)."""
+        with self._lock:
+            if call_id not in self._elsewhere:
+                return False
+            self._elsewhere.discard(call_id)
+            self._calls[call_id] = {"id": call_id, "peer": chat, "outgoing": False,
+                                    "state": "INCOMING_RING", "video": bool(video),
+                                    "group": chat if chat.endswith("@g.us") else ""}
+        if self.answer(call_id):
+            return True
+        with self._lock:
+            call = self._calls.get(call_id)
+            if call is not None and call["state"] == "INCOMING_RING":
+                self._calls.pop(call_id, None)
+        return False
 
     def answered_here(self, call_id):
         """{"at", "video"} of a call this client answered, or None."""

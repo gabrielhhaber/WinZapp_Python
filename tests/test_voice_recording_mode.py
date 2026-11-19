@@ -175,7 +175,7 @@ def test_send_snapshots_mode_and_queues_matching_pcm_and_mimetype(
     source = pcm(0, 20000) * 48000 if captured == 2 else pcm(20000) * 48000
     panel._recording_frames = [source]
     wanted = pcm(10000) * 48000 if expected < captured else source
-    reduce_noise = Mock(side_effect=lambda data, rate, channels: (data, 'neural'))
+    reduce_noise = Mock(side_effect=lambda data, rate, channels, neural=True: (data, 'neural'))
     monkeypatch.setitem(sys.modules, 'core.neural_noise_reduction',
                         SimpleNamespace(reduce_voice_noise=reduce_noise))
     encoded = h.folder / 'mono.ogg'

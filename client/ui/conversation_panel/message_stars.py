@@ -33,12 +33,15 @@ class StarActionsMixin:
         return not locked or bool(getattr(mw, "_chat_lock_unlocked", False))
 
     def _sync_message_stars(self, jid, messages, star):
+        """Stars or unstars *messages* of *jid* on a worker. True when the job
+        started; False when it was refused (another one is running) or there
+        was nothing to do, so a caller that drops a row drops it only then."""
         mw = self.main_window
         if getattr(mw, "_star_sync_job", None) is not None:
             mw.output(mw.i18n.t("star_sync_running"), interrupt=True)
-            return
+            return False
         if not jid or not messages:
-            return
+            return False
         job = {"cancelled": False, "jid": jid, "star": bool(star)}
         mw._star_sync_job = job
         items = [(m, dict(m.get("key") or {})) for m in messages]
@@ -47,6 +50,7 @@ class StarActionsMixin:
             mw.output(mw.i18n.t("star_sync_running"), interrupt=True)
         threading.Thread(target=self._star_batch_worker,
                          args=(jid, items, bool(star), job), daemon=True).start()
+        return True
 
     def _star_batch_worker(self, jid, items, star, job):
         mw = self.main_window

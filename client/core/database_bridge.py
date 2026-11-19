@@ -298,6 +298,9 @@ class DatabaseBridge:
     def update_message_star_state(self, remote_jid: str, message_id: str, state: dict) -> None:
         return self._call(self._db.update_message_star_state(remote_jid, message_id, state))
 
+    def update_message_pin_state(self, jid, mid, pinned, timestamp, duration):
+        return self._call(self._db.update_message_pin_state(jid, mid, pinned, timestamp, duration))
+
     def merge_message_star_states(self, remote_jid: str, messages: list[dict]) -> list[dict]:
         return self._call(self._db.merge_message_star_states(remote_jid, messages), timeout=_BULK_CALL_TIMEOUT)
 
@@ -306,6 +309,9 @@ class DatabaseBridge:
 
     def get_call_logs(self, limit: int = 1000) -> list[tuple[str, dict]]:
         return self._call(self._db.get_call_logs(limit))
+
+    def get_starred_messages(self, limit: int = 2000) -> list[tuple[str, dict]]:
+        return self._call(self._db.get_starred_messages(limit), timeout=_BULK_CALL_TIMEOUT)
 
     def get_message_count(self, remote_jid: str) -> int:
         return self._call(self._db.get_message_count(remote_jid))

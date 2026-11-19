@@ -7,10 +7,13 @@ ConversationsPanel.__init__/init_UI is available here.
 
 import logging
 import threading
-from core.chat_notices import conversation_start_text
+import time
+from core.chat_notices import conversation_start_text, empty_conversation_key
 from core.community_comments import comment_count
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.polls import POLL_MESSAGE_TYPES, poll_content, poll_row_text
+from core import channel_invites
+from core import events
 from core.call_log import (
     CALL_LOG_MESSAGE_TYPE,
     LEGACY_CALL_LOG_TYPE,
@@ -140,6 +143,9 @@ class MessageRenderingMixin:
         msg_type = msg.get("messageType", "conversation")
         msg_obj  = msg.get("message") or {}
         i18n     = self.main_window.i18n
+        from core.business_message_content import TYPES, business_message_text
+        if msg_type in TYPES:
+            return business_message_text(msg, i18n)
 
         # A reaction to one of our statuses is a row of its own (see
         # _is_displayable_message): there is no message here for it to
@@ -162,6 +168,10 @@ class MessageRenderingMixin:
         # replaces this record when it arrives (MainWindow._fill_stored_placeholder).
         if msg_type == "ciphertext":
             return i18n.t("message_awaiting_decryption")
+
+        # ── WhatsApp event (core/events.py) ──────────────────────────────────
+        if msg_type == events.EVENT_MESSAGE_TYPE:
+            return events.event_text(events.event_content(msg_obj), i18n, time.time())
 
         # ── Call ─────────────────────────────────────────────────────────────
         if is_call_log(msg):
@@ -294,41 +304,13 @@ class MessageRenderingMixin:
             # Its sound track transcribed into the line, as for a voice message.
             return _with_inline_text(self.main_window, msg, line, i18n)
 
-        # ── Interactive buttons ───────────────────────────────────────────────
-        if msg_type == "buttonsMessage":
-            btns_msg = msg_obj.get("buttonsMessage") or {}
-            # contentText = message body; text = header when headerType=TEXT
-            content  = (btns_msg.get("contentText") or btns_msg.get("text") or "").strip()
-            buttons  = btns_msg.get("buttons") or []
-            labels   = [
-                (b.get("buttonText") or {}).get("displayText", "")
-                for b in buttons
-                if isinstance(b, dict)
-            ]
-            opts = ", ".join(l for l in labels if l)
-            if opts:
-                return f"{content} {i18n.t('options')}: {opts}"
-            return content
-
-        # ── List message ─────────────────────────────────────────────────────
-        if msg_type == "listMessage":
-            list_msg = msg_obj.get("listMessage") or {}
-            # title = header; description = body
-            title    = (list_msg.get("title") or list_msg.get("description") or "").strip()
-            sections = list_msg.get("sections") or []
-            all_opts = [
-                row.get("title", "")
-                for sec in sections if isinstance(sec, dict)
-                for row in (sec.get("rows") or []) if isinstance(row, dict)
-            ]
-            opts = ", ".join(o for o in all_opts if o)
-            if opts:
-                return f"{title} {i18n.t('options')}: {opts}"
-            return title
-
         # ── Contact ──────────────────────────────────────────────────────────
         if msg_type == "contactMessage":
             return i18n.t("contact_message").format(name=self._contact_display_name(msg))
+
+        # ── Channel invitation (to follow, or to be an admin) ───────────────
+        if msg_type in channel_invites.INVITE_TYPES:
+            return channel_invites.row_text(i18n, msg)
 
         if msg_type == "contactsArrayMessage":
             arr = msg_obj.get("contactsArrayMessage") or {}
@@ -345,11 +327,6 @@ class MessageRenderingMixin:
         # ── Location ─────────────────────────────────────────────────────────
         if msg_type in ("locationMessage", "liveLocationMessage"):
             return i18n.t("notif_location")
-
-        # ── Template ─────────────────────────────────────────────────────────
-        if msg_type == "templateMessage":
-            template = msg_obj.get("templateMessage") or {}
-            return template.get("hydratedContentText") or i18n.t("notif_template")
 
         # ── Revoked / Protocol Message ───────────────────────────────────────
         if msg_type == "protocolMessage":
@@ -371,10 +348,6 @@ class MessageRenderingMixin:
             reply = (lst.get("singleSelectReply") or {}).get("selectedRowId", "")
             return title or reply or i18n.t("list_reply")
 
-        if msg_type == "interactiveMessage":
-            inter = msg_obj.get("interactiveMessage") or {}
-            body = (inter.get("body") or {}).get("text", "")
-            return body or i18n.t("interactive_message")
 
         # ── Group participant/settings notifications (join, leave, …) ──────────
         if msg_type == "groupNotification":
@@ -432,6 +405,16 @@ class MessageRenderingMixin:
                 return i18n.t("group_notif_promoted").format(author=author_name, names=names)
             if subtype in ("demote", "demotion"):
                 return i18n.t("group_notif_demoted").format(author=author_name, names=names)
+            if subtype == "modify":
+                # A participant changed their phone number (WhatsApp Web's
+                # GROUP_PARTICIPANT_CHANGE_NUMBER, WAWebFormatGroupNotification):
+                # the author is the old number, the recipient the new one. As
+                # there, the new number is said only for someone known by their
+                # number anyway. It read "Fulano: modify" (reported 2026-11-12).
+                if recipient_jids and is_phone_like(author_name):
+                    return i18n.t("group_notif_number_changed_to").format(
+                        author=author_name, number=_name(recipient_jids[0]))
+                return i18n.t("group_notif_number_changed").format(author=author_name or names)
             # WhatsApp sends the new group name / description text in the body
             # of the notification; showing it turns a vague "X alterou o nome do
             # grupo" into something that actually says what changed.
@@ -549,6 +532,7 @@ class MessageRenderingMixin:
             "locationMessage",
             "liveLocationMessage",
             "pollCreationMessage",
+            "eventMessage",
             "pollCreationMessageV2",
             "pollCreationMessageV3",
             "pollUpdateMessage",
@@ -1018,7 +1002,7 @@ class MessageRenderingMixin:
             "extendedTextMessage", "audioMessage", "imageMessage",
             "videoMessage", "documentMessage", "stickerMessage",
             "locationMessage", "contactMessage", "buttonsMessage",
-            "listMessage",
+            "listMessage", "templateMessage", "interactiveMessage",
         ):
             sub = msg_obj.get(sub_key)
             if isinstance(sub, dict):
@@ -1206,11 +1190,10 @@ class MessageRenderingMixin:
             # shows at the top of one (encryption and, if running, the
             # disappearing-messages timer). One row, text only: it adds no row
             # to the list and so shifts no index.
+            jid = (getattr(self, "conversation", None) or {}).get("remoteJid", "")
             return conversation_start_text(
-                self.main_window,
-                (getattr(self, "conversation", None) or {}).get("remoteJid", ""),
-                self.main_window.i18n,
-                self.main_window.i18n.t("no_messages_in_conversation"),
+                self.main_window, jid, self.main_window.i18n,
+                self.main_window.i18n.t(empty_conversation_key(jid)),
             )
         # Unread separator sentinel
         if self._is_separator(msg):
@@ -1235,6 +1218,11 @@ class MessageRenderingMixin:
         ts       = self._extract_timestamp(msg)
         time_str = self._format_date(ts) if ts else ""
         body     = (self._get_message_content(msg) or "")
+        # The cached translation (translation_actions.py); a panel without
+        # that mixin renders the original.
+        translated_row = getattr(self, "_translated_row_body", None)
+        if include_quoted_preview and translated_row is not None:
+            body = translated_row(msg, body)
         sender   = message_sender_label(
             self._sender_label(msg), msg, self.main_window, self.main_window.i18n
         )
@@ -1263,15 +1251,23 @@ class MessageRenderingMixin:
                                or (not sender and hide_unnamed_sender_numbers_enabled(
                                    self.main_window.settings)))]
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
-        if msg.get("starred"):
-            pieces[0] = f"★ {pieces[0]}"
         if msg.get("pinInChat"):
             pieces[0] = f"📌 {i18n.t('message_pinned')}, {pieces[0]}"
+        # Settings > User interface > "Announce 'Starred' at the start of the
+        # message" (default off): off keeps the word as a trailing clause
+        # below, like "Edited". On moves it to the front, before the sender.
+        # Done ahead of the forwarded block so "Forwarded" still comes first.
+        is_starred = bool(msg.get("starred"))
+        if is_starred and self.main_window.settings.get("user_interface", {}).get(
+            "starred_prefix_enabled", False
+        ):
+            pieces[0] = f"{i18n.t('status_starred')}, {pieces[0]}"
+            is_starred = False  # already announced; don't also append the suffix below
         # Settings > Interface do usuário > "Anunciar 'Encaminhada' no início
         # da mensagem" (default off). Off keeps the long-standing behavior of
         # a trailing ", Encaminhada" clause below, same position as "Editada"
         # and the delivery status. On moves it to the very front — ahead of
-        # the sender, and even ahead of the star/pin markers above — so a
+        # the sender, and even ahead of the starred word and pin marker above — so a
         # screen reader user arrowing quickly through a busy forwarded chat
         # (a forward chain, a viral message) hears it's forwarded before
         # anything else, instead of only after the sender and full body.
@@ -1291,6 +1287,12 @@ class MessageRenderingMixin:
             pieces[-1] += f", {i18n.t('status_edited')}"
         if is_forwarded:
             pieces[-1] += f", {i18n.t('status_forwarded')}"
+        # A starred message ends with the word "Starred", like "Edited" and
+        # "Forwarded" (or opens with it, see above). It used to open with a
+        # star glyph, which screen readers skip or read differently depending
+        # on the symbol level.
+        if is_starred:
+            pieces[-1] += f", {i18n.t('status_starred')}"
 
         # Append quoted message preview (if this is a reply)
         if ctx and include_quoted_preview:
@@ -1404,16 +1406,18 @@ class MessageRenderingMixin:
                 cn = (chat_obj.get("name") or "").strip()
                 if cn and not mw._is_bad_contact_name(cn):
                     return cn
-        if msg is not None:
-            for key_candidate in ("pushName", "pushname", "name", "displayName"):
-                push = msg.get(key_candidate, "")
-                if push and not mw._is_bad_contact_name(push):
-                    return push
         # Fallback: presence-learned pushName map
         for cjid in candidates:
             pname = (ppm.get(cjid) or "").strip()
             if pname and not mw._is_bad_contact_name(pname):
                 return pname
+        # The name the message itself carries is the one its sender had THEN:
+        # only when nothing current is known, never ahead of it.
+        if msg is not None:
+            for key_candidate in ("pushName", "pushname", "name", "displayName"):
+                push = msg.get(key_candidate, "")
+                if push and not mw._is_bad_contact_name(push):
+                    return push
         # Fallback 2: scan sorted messages in the current conversation
         for m in getattr(self, "_sorted_messages", []):
             if not isinstance(m, dict):

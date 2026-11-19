@@ -12,7 +12,8 @@ import threading
 import time
 import uuid
 import wx
-from ui.conversation_panel.channel_conversation import refuse_in_channel
+from ui.conversation_panel.channel_conversation import (
+    refuse_attachments_in_channel, refuse_in_channel)
 from core.utils import (
     MEASURED_SECONDS_KEY,
     encrypt,
@@ -20,6 +21,7 @@ from core.utils import (
     normalize_line_separators,
 )
 from core.message_queue import PendingMessage
+from core.pending_timestamp import pending_send_timestamp
 from core.message_resend import RESEND_PATH_KEY
 from core.coalesced_callback import CoalescedCallback
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
@@ -45,16 +47,18 @@ class AttachmentsMixin:
         aud_item = menu.Append(wx.ID_ANY, i18n.t("attachment_audio_file"))
         con_item = menu.Append(wx.ID_ANY, i18n.t("attachment_contact"))
         poll_item = menu.Append(wx.ID_ANY, i18n.t("attachment_poll"))
+        event_item = menu.Append(wx.ID_ANY, i18n.t("attachment_event"))
         self.Bind(wx.EVT_MENU, self._on_attach_photo_video, pv_item)
         self.Bind(wx.EVT_MENU, self._on_attach_document,    doc_item)
         self.Bind(wx.EVT_MENU, self._on_attach_audio_file,  aud_item)
         self.Bind(wx.EVT_MENU, self._on_attach_contact,     con_item)
         self.Bind(wx.EVT_MENU, self._on_attach_poll,        poll_item)
+        self.Bind(wx.EVT_MENU, self._on_attach_event,       event_item)
         self.PopupMenu(menu)
         menu.Destroy()
 
     def _on_attach_photo_video(self, event):
-        if refuse_in_channel(self):
+        if refuse_in_channel(self, "photo_video"):
             return
         i18n = self.main_window.i18n
         wildcard = (
@@ -145,7 +149,8 @@ class AttachmentsMixin:
                     "vcard": "",
                 }
             },
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, self._quoted_message),
             "pushName": "",
         }
         if self._quoted_message:
@@ -204,6 +209,8 @@ class AttachmentsMixin:
         self.message_field.Hide()
         if hasattr(self, "_emoji_btn"):
             self._emoji_btn.Hide()
+            if hasattr(self, "_writing_help_btn"):
+                self._writing_help_btn.Hide()
         self.send_message_btn.Hide()
         self.record_voice_message_btn.Hide()
         if hasattr(self, "_record_voice_system_btn"):
@@ -280,6 +287,8 @@ class AttachmentsMixin:
             self.message_field.Show()
             if hasattr(self, "_emoji_btn"):
                 self._emoji_btn.Show()
+                if hasattr(self, "_writing_help_btn"):
+                    self._writing_help_btn.Show()
             if self.message_field.GetValue().strip():
                 self.send_message_btn.Show()
             else:
@@ -296,7 +305,7 @@ class AttachmentsMixin:
 
     def _on_send_attachment(self, event=None):
         """Enqueue all staged attachments as outgoing messages."""
-        if refuse_in_channel(self):
+        if refuse_attachments_in_channel(self, self._staged_attachments):
             return
         if not self._staged_attachments or self.conversation is None:
             return
@@ -445,7 +454,8 @@ class AttachmentsMixin:
             "key": {"id": local_id, "fromMe": True, "remoteJid": remote_jid},
             "messageType": vtype,
             "message": {vtype: _body},
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, self._quoted_message),
             "pushName": "",
             # What Try sending again sends, should this fail or go unconfirmed
             # (core/message_resend.py).

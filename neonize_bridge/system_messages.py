@@ -7,8 +7,8 @@ WhatsApp Web keeps both as chat messages and WPPConnect delivers them through
 WPPConnect's format, which the client reads in core/websocket_client.py
 (`_normalize_wpp_message`, branches `gp2` and `call_log`):
 
-- `gp2`: `subtype` (add, leave, remove, promote, demote, subject, description,
-  restrict, announce, ephemeral), `recipients` (ids of those affected), `author`
+- `gp2`: `subtype` (add, invite, leave, remove, promote, demote, subject,
+  description, restrict, announce, ephemeral), `recipients` (ids of those affected), `author`
   (who did it), `body` (new name/description, or "on"/"off" in the settings) and
   `value` (boolean of the settings). The text of the notice is built by the client.
 - `call_log`: `callOutcome`/`finalCallOutcome` (WhatsApp Web's `CallOutcome`
@@ -77,6 +77,26 @@ def _base(chat_w, msg_id, ts, kind, author="", from_me=False) -> dict:
     }
 
 
+def own_join_notice(e, me, now):
+    """JoinedGroupEv -> the `gp2` "invite" notice of the account itself joining
+    by the group's invite link ("You joined using this group's invite link"),
+    or None for any other join (created, added by someone: GroupInfoEv's own
+    notices say those). whatsmeow sets `Reason` to "invite" only for a join by
+    link. The id comes from the group's participant version, the same for the
+    same join delivered twice and new for a later one."""
+    if getattr(e, "Reason", "") != "invite" or not me:
+        return None
+    info = getattr(e, "GroupInfo", None)
+    group = msgmap.jid_wpp(_text(getattr(info, "JID", None)))
+    if not group.endswith("@g.us"):
+        return None
+    ts = int(now)
+    version = getattr(info, "ParticipantVersionID", "") or str(ts // 60)
+    w = _base(group, notice_id(group, "own-invite-join", me, version), ts, "gp2")
+    w.update(subtype="invite", recipients=[me], body="")
+    return w
+
+
 # ------------------------------------------------------------- group notices
 def group_notices(e, person_id, now) -> list:
     """GroupInfoEv -> one `gp2` message per change (name, description, settings
@@ -119,9 +139,15 @@ def group_notices(e, person_id, now) -> list:
         return [i for i in (person_id(j) for j in getattr(e, field_name, ())) if i]
 
     joined, left = people("Join"), people("Leave")
-    if joined:
-        # joined by link/invite: nobody added them (the client reads "joined")
-        notice("add", joined, notice_author="" if getattr(e, "JoinReason", "") else None)
+    reason = getattr(e, "JoinReason", "")
+    if joined and reason == "invite":
+        # by the group's invite link: WhatsApp Web's own `gp2` subtype for it,
+        # which the client reads as "joined using the invite link"
+        notice("invite", joined, notice_author="")
+    elif joined:
+        # another reason (a community, an approved request): nobody added them
+        # (the client reads "joined")
+        notice("add", joined, notice_author="" if reason else None)
     if left:
         if author and author not in left:
             notice("remove", left)

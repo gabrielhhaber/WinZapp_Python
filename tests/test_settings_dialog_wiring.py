@@ -42,6 +42,7 @@ SETTINGS_DIALOG = (
 
 #: Saved in _apply_values() but loaded somewhere other than _load_values().
 READ_ELSEWHERE = {
+    ("general", "notification_burst_limit"): "normalized by burst_limit(settings) in _load_values(); behavior covered by test_notification_burst_setting.py",
     ("general", "voice_recording_bitrate"): "normalized by voice_bitrate_kbps(settings) in _load_voice_recording_options(); behavior covered by test_stereo_voice_messages.py",
     ("general", "voice_recording_bitrate_stereo"): "normalized by stereo_voice_bitrate_kbps(settings) in _load_voice_recording_options(); behavior covered by test_stereo_voice_messages.py",
     ("general", "voice_recording_mode"): "normalized by voice_recording_mode(settings) in _load_voice_recording_options(); behavior covered by test_voice_recording_mode.py",
@@ -83,8 +84,10 @@ ROUNDTRIP_EXEMPT = {
 #: (test_every_split_half_is_still_called), or it would count keys the dialog
 #: no longer loads or saves.
 SPLIT_HALVES = {
-    "_load_values": ("_load_install_wide_values", "_load_switch_behavior", "_load_voice_recording_options"),
-    "_apply_values": ("_apply_install_wide_values", "_apply_switch_behavior", "_save_voice_recording_options"),
+    "_load_values": ("_load_install_wide_values", "_load_switch_behavior", "_load_voice_recording_options",
+                     "_load_open_position_options", "_load_bookmark_removal_options"),
+    "_apply_values": ("_apply_install_wide_values", "_apply_switch_behavior", "_save_voice_recording_options",
+                      "_save_open_position_options", "_save_bookmark_removal_options"),
 }
 
 
@@ -94,6 +97,9 @@ def _class():
     options = ast.parse(SETTINGS_DIALOG.with_name("voice_recording_options.py").read_text(encoding="utf-8"))
     cls.body += next(n.body for n in options.body
                      if isinstance(n, ast.ClassDef) and n.name == "VoiceRecordingOptionsMixin")
+    reading = ast.parse(SETTINGS_DIALOG.with_name("reading_position_options.py").read_text(encoding="utf-8"))
+    cls.body += next(n.body for n in reading.body
+                     if isinstance(n, ast.ClassDef) and n.name == "ReadingPositionOptionsMixin")
     return cls
 
 

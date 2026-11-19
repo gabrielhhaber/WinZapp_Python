@@ -49,12 +49,16 @@
   "autocomplete": "Sugestões de menção",
   "media": "Visualizador de mídia e reprodução",
   "emoji": "Seletor de emojis",
+  "reorder": "Listas reordenáveis",
   "ai_result": "Janela de resultado (IA e transcrição)",
   "status": "Status",
   "status_list": "Lista de status",
   "status_reply": "Resposta a status",
   "calls": "Aba Ligações",
   "call": "Durante uma ligação",
-  "incoming": "Ligação recebida"
+  "incoming": "Ligação recebida",
+  "channels": "Janela Canais",
+  "channel_people": "Administradores e seguidores do canal",
+  "call_participants": "Participantes da chamada"
  }
 }

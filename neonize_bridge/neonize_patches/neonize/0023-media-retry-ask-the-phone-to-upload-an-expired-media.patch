@@ -1,0 +1,335 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gabriel Haberkamp <noreply@example.com>
+Date: Wed, 11 Nov 2026 12:10:37 -0300
+Subject: [PATCH] media retry: ask the phone to upload an expired media again
+ (SendMediaRetry, DecryptMediaRetry, MediaRetry event 59)
+
+whatsmeow already has SendMediaRetryReceipt and DecryptMediaRetryNotification;
+neonize exported neither nor the events.MediaRetry answer. JSON in and out like
+rawiq.go; the event is 59.
+---
+ goneonize/Neonize.proto          |  13 +++
+ goneonize/defproto/Neonize.proto |  13 +++
+ goneonize/main.go                |  24 ++++++
+ goneonize/mediaretry.go          | 131 +++++++++++++++++++++++++++++++
+ neonize/_binder.py               |   8 ++
+ neonize/aioze/events.py          |   2 +
+ neonize/client.py                |  24 ++++++
+ neonize/events.py                |   2 +
+ 8 files changed, 217 insertions(+)
+ create mode 100644 goneonize/mediaretry.go
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index 95327db..3849e01 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -1006,6 +1006,19 @@ message NewsletterChange { //58
+     required string Op = 2;
+     optional string Payload = 3;
+ }
++// The phone's answer to a media retry request (whatsmeow's events.MediaRetry):
++// the notification is encrypted with the media key, so Ciphertext and IV are
++// opened by DecryptMediaRetry; an unencrypted failure carries ErrorCode instead.
++message MediaRetry { //59
++    required string MessageID = 1;
++    optional JID ChatID = 2;
++    optional JID SenderID = 3;
++    required bool FromMe = 4;
++    optional bytes Ciphertext = 5;
++    optional bytes IV = 6;
++    optional int32 ErrorCode = 7;
++    required int64 Timestamp = 8;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index 95327db..3849e01 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -1006,6 +1006,19 @@ message NewsletterChange { //58
+     required string Op = 2;
+     optional string Payload = 3;
+ }
++// The phone's answer to a media retry request (whatsmeow's events.MediaRetry):
++// the notification is encrypted with the media key, so Ciphertext and IV are
++// opened by DecryptMediaRetry; an unencrypted failure carries ErrorCode instead.
++message MediaRetry { //59
++    required string MessageID = 1;
++    optional JID ChatID = 2;
++    optional JID SenderID = 3;
++    required bool FromMe = 4;
++    optional bytes Ciphertext = 5;
++    optional bytes IV = 6;
++    optional int32 ErrorCode = 7;
++    required int64 Timestamp = 8;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 0c0e237..e92a8c4 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -1335,6 +1335,30 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 				}
+ 				eventChan <- &messageEvent
+ 			}
++		case *events.MediaRetry:
++			if _, ok := subscribers[59]; ok {
++				retry := defproto.MediaRetry{
++					MessageID:  proto.String(string(v.MessageID)),
++					FromMe:     proto.Bool(v.FromMe),
++					Ciphertext: v.Ciphertext,
++					IV:         v.IV,
++					Timestamp:  proto.Int64(v.Timestamp.Unix()),
++				}
++				if !v.ChatID.IsEmpty() {
++					retry.ChatID = utils.EncodeJidProto(v.ChatID)
++				}
++				if !v.SenderID.IsEmpty() {
++					retry.SenderID = utils.EncodeJidProto(v.SenderID)
++				}
++				if v.Error != nil {
++					retry.ErrorCode = proto.Int32(int32(v.Error.Code))
++				}
++				messageEvent := MessageEvent{
++					eventType: 59,
++					message:   &retry,
++				}
++				eventChan <- &messageEvent
++			}
+ 		case *events.AppStateMutation:
+ 			if _, ok := subscribers[57]; ok {
+ 				mutation := defproto.AppStateMutation{
+diff --git a/goneonize/mediaretry.go b/goneonize/mediaretry.go
+new file mode 100644
+index 0000000..ba4e48e
+--- /dev/null
++++ b/goneonize/mediaretry.go
+@@ -0,0 +1,131 @@
++package main
++
++/*
++   #include <stdlib.h>
++*/
++import "C"
++
++// Media retry: when a media's CDN link has expired (403/404/410) the phone
++// that holds the file can upload it again. Two calls, JSON in and out like
++// rawiq.go (the Python wrapper is Client.send_media_retry /
++// Client.decrypt_media_retry), and the events.MediaRetry event (59):
++//
++//   - SendMediaRetry(id, request) asks the account's own phone to upload the
++//     media of one message again;
++//   - DecryptMediaRetry(request) opens the phone's answer (the MediaRetry event)
++//     with the media key and says whether it succeeded and the new direct path.
++
++import (
++	"context"
++	"encoding/base64"
++	"encoding/json"
++	"errors"
++	"fmt"
++	"time"
++
++	"go.mau.fi/whatsmeow"
++	"go.mau.fi/whatsmeow/proto/waMmsRetry"
++	"go.mau.fi/whatsmeow/types"
++	"go.mau.fi/whatsmeow/types/events"
++)
++
++type mediaRetryRequest struct {
++	Chat     string `json:"chat"`
++	Sender   string `json:"sender"`
++	ID       string `json:"id"`
++	FromMe   bool   `json:"from_me"`
++	IsGroup  bool   `json:"is_group"`
++	MediaKey string `json:"media_key"`
++}
++
++type mediaRetryDecrypt struct {
++	MediaKey   string `json:"media_key"`
++	MessageID  string `json:"message_id"`
++	Ciphertext string `json:"ciphertext"`
++	IV         string `json:"iv"`
++	ErrorCode  int    `json:"error_code"`
++	HasError   bool   `json:"has_error"`
++}
++
++// SendMediaRetry sends the retry receipt; answers {"ok": true} or {"error"}.
++//
++//export SendMediaRetry
++func SendMediaRetry(id *C.char, request *C.char) *C.char {
++	cli := clients[C.GoString(id)]
++	if cli == nil {
++		return rawError(fmt.Errorf("client not found"))
++	}
++	var req mediaRetryRequest
++	if err := json.Unmarshal([]byte(C.GoString(request)), &req); err != nil {
++		return rawError(fmt.Errorf("request: %w", err))
++	}
++	key, err := base64.StdEncoding.DecodeString(req.MediaKey)
++	if err != nil || len(key) == 0 {
++		return rawError(fmt.Errorf("request: media_key must be base64 and not empty"))
++	}
++	chat, err := types.ParseJID(req.Chat)
++	if err != nil {
++		return rawError(fmt.Errorf("chat: %w", err))
++	}
++	info := &types.MessageInfo{
++		MessageSource: types.MessageSource{Chat: chat, IsFromMe: req.FromMe, IsGroup: req.IsGroup},
++		ID:            types.MessageID(req.ID),
++	}
++	if req.Sender != "" {
++		sender, err := types.ParseJID(req.Sender)
++		if err != nil {
++			return rawError(fmt.Errorf("sender: %w", err))
++		}
++		info.Sender = sender
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
++	defer cancel()
++	if err := cli.SendMediaRetryReceipt(ctx, info, key); err != nil {
++		return rawError(err)
++	}
++	return rawAnswer(map[string]any{"ok": true})
++}
++
++// DecryptMediaRetry answers {"result": "SUCCESS" | "NOT_FOUND" |
++// "DECRYPTION_ERROR" | "GENERAL_ERROR", "direct_path": ...}. A phone that no
++// longer has the media (the unencrypted error code 2, or NOT_FOUND inside the
++// notification) answers NOT_FOUND; {"error"} is a notification that cannot be
++// opened with this key.
++//
++//export DecryptMediaRetry
++func DecryptMediaRetry(request *C.char) *C.char {
++	var req mediaRetryDecrypt
++	if err := json.Unmarshal([]byte(C.GoString(request)), &req); err != nil {
++		return rawError(fmt.Errorf("request: %w", err))
++	}
++	key, err := base64.StdEncoding.DecodeString(req.MediaKey)
++	if err != nil || len(key) == 0 {
++		return rawError(fmt.Errorf("request: media_key must be base64 and not empty"))
++	}
++	evt := &events.MediaRetry{MessageID: types.MessageID(req.MessageID)}
++	if req.HasError {
++		evt.Error = &events.MediaRetryError{Code: req.ErrorCode}
++	}
++	if req.Ciphertext != "" {
++		if evt.Ciphertext, err = base64.StdEncoding.DecodeString(req.Ciphertext); err != nil {
++			return rawError(fmt.Errorf("ciphertext: %w", err))
++		}
++	}
++	if req.IV != "" {
++		if evt.IV, err = base64.StdEncoding.DecodeString(req.IV); err != nil {
++			return rawError(fmt.Errorf("iv: %w", err))
++		}
++	}
++	notification, err := whatsmeow.DecryptMediaRetryNotification(evt, key)
++	if err != nil {
++		if errors.Is(err, whatsmeow.ErrMediaNotAvailableOnPhone) {
++			return rawAnswer(map[string]any{"result": "NOT_FOUND"})
++		}
++		return rawError(err)
++	}
++	result := waMmsRetry.MediaRetryNotification_ResultType_name[int32(notification.GetResult())]
++	return rawAnswer(map[string]any{
++		"result":      result,
++		"direct_path": notification.GetDirectPath(),
++	})
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 199ee53..d0fef1c 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -886,6 +886,14 @@ if not os.environ.get("SPHINX"):
+         gocode.MediaConn.argtypes = [ctypes.c_char_p, ctypes.c_int]
+         gocode.MediaConn.restype = ctypes.c_void_p
+         gocode.MediaConn.errcheck = consume_cstring
++    if hasattr(gocode, "SendMediaRetry"):
++        # Media retry (goneonize/mediaretry.go): JSON in, JSON C string out.
++        gocode.SendMediaRetry.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
++        gocode.SendMediaRetry.restype = ctypes.c_void_p
++        gocode.SendMediaRetry.errcheck = consume_cstring
++        gocode.DecryptMediaRetry.argtypes = [ctypes.c_char_p]
++        gocode.DecryptMediaRetry.restype = ctypes.c_void_p
++        gocode.DecryptMediaRetry.errcheck = consume_cstring
+     if hasattr(gocode, "CallsConfigure"):
+         # The call layer (goneonize/calls.go): plain C types, no protobuf; the
+         # wrapper is neonize/calls.py.
+diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
+index 2f4955f..d822902 100644
+--- a/neonize/aioze/events.py
++++ b/neonize/aioze/events.py
+@@ -46,6 +46,7 @@ from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
+ from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+ from ..proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
+ from ..proto.Neonize_pb2 import NewsletterChange as NewsletterChangeEv
++from ..proto.Neonize_pb2 import MediaRetry as MediaRetryEv
+ from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
+@@ -115,6 +116,7 @@ __all__ = [
+     "AppStateSyncCompleteEv",
+     "AppStateMutationEv",
+     "NewsletterChangeEv",
++    "MediaRetryEv",
+     "NewsLetterMessageMetaEv",
+     "NewsletterJoinEv",
+     "NewsletterLeaveEv",
+diff --git a/neonize/client.py b/neonize/client.py
+index 84e0db2..2fca0e3 100644
+--- a/neonize/client.py
++++ b/neonize/client.py
+@@ -2911,6 +2911,30 @@ class NewClient:
+         raw = self.__client.MediaConn(self.uuid, 1 if force else 0)
+         return json.loads(raw.decode() or "{}")
+ 
++    def send_media_retry(self, request: dict) -> dict:
++        """Asks the account's own phone to upload a message's media again (its
++        CDN link expired). request is {"chat", "sender" (groups), "id",
++        "from_me", "is_group", "media_key": base64}. The phone's answer comes
++        later as ``MediaRetryEv`` (see :meth:`decrypt_media_retry`).
++
++        :return: {"ok": true} or {"error"}.
++        :raises AttributeError: on a build without media retry.
++        """
++        raw = self.__client.SendMediaRetry(self.uuid, json.dumps(request).encode())
++        return json.loads(raw.decode() or "{}")
++
++    def decrypt_media_retry(self, request: dict) -> dict:
++        """Opens the phone's answer to :meth:`send_media_retry`. request is
++        {"media_key": base64, "message_id", "ciphertext": base64, "iv":
++        base64, "has_error", "error_code"}.
++
++        :return: {"result": SUCCESS | NOT_FOUND | DECRYPTION_ERROR |
++            GENERAL_ERROR, "direct_path"} or {"error"}.
++        :raises AttributeError: on a build without media retry.
++        """
++        raw = self.__client.DecryptMediaRetry(json.dumps(request).encode())
++        return json.loads(raw.decode() or "{}")
++
+     def request_app_state_recovery(self, name: str):
+         """Asks the primary device for a recovery snapshot of an app state
+         collection that keeps failing with ``mismatching LTHash`` even after a
+diff --git a/neonize/events.py b/neonize/events.py
+index 59077da..fefd58e 100644
+--- a/neonize/events.py
++++ b/neonize/events.py
+@@ -49,6 +49,7 @@ from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
+ from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+ from .proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
+ from .proto.Neonize_pb2 import NewsletterChange as NewsletterChangeEv
++from .proto.Neonize_pb2 import MediaRetry as MediaRetryEv
+ from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
+@@ -128,6 +129,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
+     AppStateSyncCompleteEv: 56,
+     AppStateMutationEv: 57,
+     NewsletterChangeEv: 58,
++    MediaRetryEv: 59,
+ }
+ INT_TO_EVENT: dict[int, type[Message]] = {code: ev for ev, code in EVENT_TO_INT.items()}
+ 

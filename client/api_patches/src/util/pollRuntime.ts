@@ -122,6 +122,7 @@ export async function readPollVoters({ messageId }) {
     }
     return {
       ok: true,
+      hideVoterNames: msg.pollHideVoterNames === true,
       options: (msg.pollOptions ?? []).map((option) => ({ name: option.name, localId: option.localId })),
       voters,
     };
@@ -167,4 +168,36 @@ export async function writePollVote({ messageId, localIds }) {
     // Native errors may carry contact names, message content and identifiers.
     return { ok: false, error: 'poll_vote_failed' };
   }
+}
+
+// WPP.chat.sendCreatePollMessage takes no end time and no "hide voter names".
+// WhatsApp Web, read over CDP on 2026-11-18, builds the poll's protobuf from the
+// message model's `pollEndTime` (absolute, milliseconds) and `pollHideVoterNames`
+// (WAWebPollsGeneratePollCreationMessageProto: either one makes it a
+// pollCreationMessageV6). wa-js' sendRawMessage keeps every field of the model
+// it is given, so the poll is built here as sendCreatePollMessage builds it and
+// the two fields are added (the time limit as `pollEndTime`). Answers like the library's sendPollMessage: the
+// sent message, read back with WAPI.getMessageById.
+export async function sendPollWithSettings({
+  chatId, name, choices, selectableCount, hideVoterNames, durationSeconds,
+}) {
+  const wpp = globalThis['WPP'];
+  const random = (size) => globalThis['self'].crypto.getRandomValues(new Uint8Array(size));
+  // Only what was asked for becomes a field: WhatsApp Web treats the presence
+  // of either one as "this poll is a V6". The time limit arrives as a length
+  // and becomes WhatsApp's absolute end time here, when the poll is sent.
+  const hasLimit = Number.isFinite(durationSeconds) && durationSeconds > 0;
+  const poll = {
+    type: 'poll_creation',
+    pollName: name,
+    pollOptions: choices.map((choice, localId) => ({ name: choice, localId })),
+    pollEncKey: random(32),
+    pollSelectableOptionsCount: selectableCount || 0,
+    messageSecret: random(32),
+    ...(hideVoterNames === true ? { pollHideVoterNames: true } : {}),
+    ...(hasLimit ? { pollEndTime: Date.now() + Math.floor(durationSeconds) * 1000 } : {}),
+  };
+  const sent = await wpp.chat.sendRawMessage(chatId, poll, {});
+  const message = await globalThis['WAPI'].getMessageById(sent.id);
+  return JSON.parse(JSON.stringify(message));
 }

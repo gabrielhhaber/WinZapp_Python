@@ -49,12 +49,16 @@
   "autocomplete": "Bahsetme önerileri",
   "media": "Medya görüntüleyici ve oynatma",
   "emoji": "Emoji seçici",
+  "reorder": "Yeniden sıralanabilir listeler",
   "ai_result": "Sonuç penceresi (YZ ve yazıya dökme)",
   "status": "Durumlar",
   "status_list": "Durum listesi",
   "status_reply": "Duruma yanıt",
   "calls": "Aramalar sekmesi",
   "call": "Arama sırasında",
-  "incoming": "Gelen arama"
+  "incoming": "Gelen arama",
+  "channels": "Kanallar penceresi",
+  "channel_people": "Kanal yöneticileri ve takipçileri",
+  "call_participants": "Arama katılımcıları"
  }
 }

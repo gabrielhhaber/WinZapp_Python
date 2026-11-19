@@ -49,12 +49,16 @@
   "autocomplete": "Sugerencias de mención",
   "media": "Visor de multimedia y reproducción",
   "emoji": "Selector de emojis",
+  "reorder": "Listas reordenables",
   "ai_result": "Ventana de resultado (IA y transcripción)",
   "status": "Estados",
   "status_list": "Lista de estados",
   "status_reply": "Respuesta a estados",
   "calls": "Pestaña Llamadas",
   "call": "Durante una llamada",
-  "incoming": "Llamada entrante"
+  "incoming": "Llamada entrante",
+  "channels": "Ventana Canales",
+  "channel_people": "Administradores y seguidores del canal",
+  "call_participants": "Participantes de la llamada"
  }
 }

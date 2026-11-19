@@ -55,6 +55,8 @@ class Channel:
     invite: str
     created: int              # Unix seconds, 0 when unknown
     pinned: tuple = ()        # server ids of the pinned updates, when the answer said
+    reactions: str = ""       # ALL, BASIC or NONE (REACTION_SETTINGS), "" when unknown
+    admin_profiles: bool | None = None  # "show admin profile", None when unknown
 
     @property
     def following(self) -> bool:
@@ -183,6 +185,53 @@ def server_id_of(message) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else 0
 
 
+#: what WhatsApp lets a channel's admins post besides text, as WinZapp posts it
+#: (wa-js accepts "chat", "image", "video" and "poll_creation" for a channel)
+CHANNEL_POST_KINDS = ("photo_video", "poll")
+#: an attachment's media_type that is a photo or a video
+CHANNEL_MEDIA_TYPES = ("image", "video")
+
+
+def channel_post_kinds(capabilities):
+    """The kinds the engine posts in a channel, from /send-capabilities.
+
+    WPPConnect does not state them: wa-js posts photos, videos and polls to a
+    channel through WhatsApp Web's own newsletter job, so a missing field is
+    all of them. The Neonize bridge states `channelMedia` / `channelPolls`.
+    None when nothing is known yet (the probe has not answered).
+    """
+    if not isinstance(capabilities, dict):
+        return None
+    if "channelMedia" not in capabilities and "channelPolls" not in capabilities:
+        return set(CHANNEL_POST_KINDS)
+    kinds = set()
+    if capabilities.get("channelMedia") is True:
+        kinds.add("photo_video")
+    if capabilities.get("channelPolls") is True:
+        kinds.add("poll")
+    return kinds
+
+
+def older_page_query(jid, oldest_msg) -> str:
+    """What a channel's `before` page of get-messages adds to its query: the
+    anchor's server id, so the Neonize bridge finds it even when it no longer
+    remembers the id (it remembers ids only while it runs). WPPConnect ignores
+    it. Empty for any other chat or an update with no server id."""
+    if not str(jid or "").endswith("@newsletter"):
+        return ""
+    server_id = server_id_of(oldest_msg)
+    return f"&serverId={server_id}" if server_id else ""
+
+
+def history_ends_on_server(jid) -> bool:
+    """True for a channel: its updates are on WhatsApp's server, which the
+    page (WPPConnect) or the bridge (Neonize) has just read back to the
+    channel's start, so an empty older page is the end. The phone has no
+    channel history to send, and asking it (a peer-data request) only shows
+    up on the phone."""
+    return str(jid or "").endswith("@newsletter")
+
+
 def pinned_ids(thread, now=None):
     """The server ids of a channel's pinned updates (thread_metadata's
     pinned_messages), leaving out a pin whose time has run out."""
@@ -203,6 +252,28 @@ def pinned_messages(records, pinned):
     such: the channel's entry of the pinned-messages overview."""
     wanted = set(pinned or ())
     return [dict(m, pinInChat=True) for m in records or () if server_id_of(m) in wanted]
+
+
+#: who may react to a channel's updates, as WhatsApp Web's channel settings
+#: offer it (NewsletterReactionCodesSetting All, Basic, None; its Blocklist
+#: is no choice of the settings screen)
+REACTION_SETTINGS = ("ALL", "BASIC", "NONE")
+
+
+def reaction_setting(thread) -> str:
+    """thread_metadata.settings.reaction_codes.value, "" when absent or unknown."""
+    settings = thread.get("settings") if isinstance(thread, dict) else None
+    codes = settings.get("reaction_codes") if isinstance(settings, dict) else None
+    value = str(codes.get("value") or "").upper() if isinstance(codes, dict) else ""
+    return value if value in REACTION_SETTINGS else ""
+
+
+def admin_profiles_setting(thread):
+    """thread_metadata.settings.admin_profiles_enabled, None when absent (the
+    channel queries do not carry it; WPPConnect adds what its page knows)."""
+    settings = thread.get("settings") if isinstance(thread, dict) else None
+    value = settings.get("admin_profiles_enabled") if isinstance(settings, dict) else None
+    return value if isinstance(value, bool) else None
 
 
 def parse_channel(node, *, default_role=""):
@@ -227,7 +298,8 @@ def parse_channel(node, *, default_role=""):
         verified=str(thread.get("verification") or "").upper() == "VERIFIED",
         role=role, muted=True if mute == "ON" else False if mute == "OFF" else None,
         invite=invite.strip() if isinstance(invite, str) else "",
-        created=_int(thread.get("creation_time")) or 0, pinned=pinned_ids(thread))
+        created=_int(thread.get("creation_time")) or 0, pinned=pinned_ids(thread),
+        reactions=reaction_setting(thread), admin_profiles=admin_profiles_setting(thread))
 
 
 def parse_channels(body, *, default_role=""):
@@ -402,6 +474,21 @@ def create_channel(connection, name, description):
     data = body.get("response", body) if isinstance(body, dict) else {}
     jid = (data.get("idJid") or data.get("id")) if isinstance(data, dict) else ""
     return jid if isinstance(jid, str) and _CHANNEL.fullmatch(jid) else ""
+
+
+def set_channel_reactions(connection, jid, value):
+    """Who may react to the channel's updates (REACTION_SETTINGS)."""
+    if value not in REACTION_SETTINGS:
+        raise ValueError("channel_reactions_failed")
+    _post(connection, "channels/reactions", {"id": jid, "value": value},
+          "channel_reactions_failed", timeout=60)
+
+
+def set_channel_admin_profiles(connection, jid, enabled):
+    """WhatsApp Web's "Show admin profile": each admin's own name and photo
+    on the updates they share."""
+    _post(connection, "channels/admin-profiles", {"id": jid, "enabled": bool(enabled)},
+          "channel_admin_profiles_failed", timeout=60)
 
 
 def edit_channel(connection, jid, name, description):

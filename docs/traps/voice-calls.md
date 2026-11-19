@@ -289,7 +289,13 @@ removed: if choppiness returns, the next step is data (underrun counts, device
 period, reported latency), not another guess.
 
 Two consequences worth stating. The prebuffer is ~60 ms of one-way latency the
-listener pays on every call. And with the blocking write gone, `_output_queue`
+listener pays on every WPPConnect call. The Neonize engine uses its own profile
+(`output_buffer_profile`, `CALL_OUTPUT_NEONIZE_*`: 120 ms prebuffer, target up
+to 240 ms, cap 360 ms) because its bridge hands over the peer's audio in native
+60 ms Opus blocks, sometimes several at once, and a 60 ms prebuffer is a single
+such block — so every Neonize call pays ~120 ms. The session logs
+`output profile=` once; if Neonize underruns stay frequent with it, measure
+before deepening it further. And with the blocking write gone, `_output_queue`
 (40 packets, ~850 ms, drop-oldest) is effectively depth-1 — the player thread
 empties it into the reservoir as fast as it arrives — so the 200 ms cap is now
 the only bound in the path: a ~300 ms stall drops ~100 ms of speech where it
@@ -781,6 +787,14 @@ different, and easy to get wrong:
   with the peer by number, video and group); meowcaller's `incoming` only says
   it holds the call. A ringing call meowcaller holds is rejected through it
   (its Reject also ends its own record), any other through `reject_call`.
+- **The end of a call placed here names this account.** WhatsApp's
+  `<terminate>` carries the call's creator; `calls.with_own_call` turns it into
+  an outgoing end with the person called (`CallMedia.placed_peer`, kept for
+  every call placed here), and skips `refine_end`'s "answered on another
+  device", which is about received calls. Told as a received call from
+  ourselves, the client wrote it over the call's peer and filed the call in
+  the user's own chat (2026-11-09); `on_voice_call_state_event` also never
+  takes this account as a call's peer.
 - No group calls, no video (`call/group/offer`, `call/upgrade-video` and an
   offer with `isVideo` answer 501). An incoming video or group call is answered
   with voice only.

@@ -47,6 +47,7 @@ from core.transcription.management import (
 
 PHASE_I18N_KEYS = {
     job.PHASE_PREPARING_AUDIO: "transcription_phase_preparing_audio",
+    job.PHASE_WAITING_FOR_SLOT: "transcription_phase_waiting_for_slot",
     job.PHASE_LOADING_MODEL: "transcription_phase_loading_model",
     job.PHASE_TRANSCRIBING: "transcription_phase_transcribing",
 }

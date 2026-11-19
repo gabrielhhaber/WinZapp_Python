@@ -104,7 +104,8 @@ class _Stub:
             self._exhausted_chats.add(jid)
         return page
 
-    def request_older_messages(self, jid, outcome_out=None, expected_context=None):
+    def request_older_messages(self, jid, outcome_out=None, expected_context=None,
+                               user_asked=False):
         self.requested.append(jid)
         return True
 
@@ -354,7 +355,7 @@ def _loop(deep_pending, pending=(), names=()):
                  "_voice_call_in_progress"):
         setattr(stub, name, types.MethodType(inspect.getattr_static(MainWindow, name), stub))
     for name in ("_initial_backfill_delay", "_background_backfill_work_allowed",
-                 "_backfill_short_queue_delays"):
+                 "_chats_blocking_background_work", "_backfill_short_queue_delays"):
         setattr(stub, name, getattr(MainWindow, name))
     for const in ("_BACKFILL_BUDGET", "_BACKFILL_LANDING_BUDGET",
                   "_BACKFILL_FIRST_DELAY", "_BACKFILL_CHUNK_DELAY",
@@ -629,3 +630,29 @@ class TestOlderHistoryIsToldApartFromANewMessage:
     def test_an_empty_chat_has_a_stable_anchor(self):
         stub = self._stub(None)
         assert self._anchor(stub) == self._anchor(stub)
+
+
+class TestAnEmptyButReQueryablePageMovesTheChatBack:
+    """Issue #766 (Neonize): an empty page that leaves the chat re-queryable
+    (the background walk never asks the phone) kept the chat in front of the
+    queue, so the same first 8 chats were walked on every pass and the other
+    144 never were."""
+
+    def _chat(self, n):
+        return {"messages": {"messages": {"records": [_msg(i) for i in range(n)]}}}
+
+    def test_the_chat_waits_behind_those_that_can_still_progress(self):
+        stub = _make([[]], oldest=_msg(1))
+        # the real fetch leaves a chat at the bridge's edge re-queryable
+        stub.fetch_older_messages = lambda jid, anchor, **kw: []
+        stub.chats = {"chat@g.us": self._chat(200), "b@g.us": self._chat(200), "c@g.us": self._chat(200)}
+        assert stub._chats_needing_deep_history()[0] == "chat@g.us"
+        assert stub.deep_backfill_chat("chat@g.us") == 0
+        assert "chat@g.us" not in stub._exhausted_chats
+        assert stub._chats_needing_deep_history() == ["b@g.us", "c@g.us", "chat@g.us"]
+
+    def test_an_exhausted_chat_is_not_parked(self):
+        stub = _make([[]], oldest=_msg(1))
+        stub.deep_backfill_chat("chat@g.us")          # this stub exhausts on empty
+        assert "chat@g.us" in stub._exhausted_chats
+        assert "chat@g.us" not in getattr(stub, "_deep_stalled_anchors", {})

@@ -3,9 +3,12 @@
 Three ways, all spoken to through the same WPPConnect-shaped REST/Socket.IO
 API, so the rest of the client does not care which one is behind it:
 
-* ``wppconnect`` -- the bundled WPPConnect server (Node + a browser). Default.
 * ``neonize``    -- the neonize bridge (``neonize_bridge/``), a direct
-  connection without a browser. It answers on a fixed local address.
+  connection without a browser. It answers on a fixed local address. The
+  engine the pickers list first and preselect (still labelled experimental).
+* ``wppconnect`` -- the bundled WPPConnect server (Node + a browser), labelled
+  alternative. Still what an install with no stored choice runs on, and the
+  fallback wherever Neonize has no bridge installed.
 * ``custom``     -- any WPPConnect-compatible server the user types in.
 
 ``connection.wpp_custom_api`` stays the switch the rest of the client reads
@@ -25,12 +28,14 @@ Pure functions, no wx.
 WPPCONNECT = "wppconnect"
 NEONIZE = "neonize"
 CUSTOM = "custom"
-ENGINES = (WPPCONNECT, NEONIZE, CUSTOM)
+# The order the pickers list them in; the first one offered is the one a
+# picker preselects, so Neonize is what a new install pairs with by default.
+ENGINES = (NEONIZE, WPPCONNECT, CUSTOM)
 
-# i18n key of each engine's name, in the order the pickers list them.
+# i18n key of each engine's name.
 LABEL_KEYS = {
-    WPPCONNECT: "connection_engine_wppconnect",
     NEONIZE: "connection_engine_neonize",
+    WPPCONNECT: "connection_engine_wppconnect",
     CUSTOM: "connection_engine_custom",
 }
 
@@ -78,6 +83,17 @@ def uses_custom_api(engine: str) -> bool:
     return engine != WPPCONNECT
 
 
+def loaded_engine(main_window) -> str:
+    """The engine this process was started with (WPPCONNECT when unknown)."""
+    return getattr(main_window, "wpp_engine", WPPCONNECT)
+
+
+def uses_profile_backup(engine: str) -> bool:
+    """Whether the browser-profile backup (restore points of the WhatsApp login
+    profile) means anything for the engine. Neonize has no browser profile."""
+    return engine != NEONIZE
+
+
 def fixed_address(engine: str):
     """(server, websocket server, port) the engine always uses, or None when
     the user (custom) or the bundled server (wppconnect) decides."""
@@ -93,7 +109,9 @@ def addresses_editable(engine: str) -> bool:
 
 
 def index_of(engine: str) -> int:
-    return ENGINES.index(engine) if engine in ENGINES else 0
+    """The engine's row in a picker; an unknown one is WPPConnect's, like
+    engine_at() and loaded_engine()."""
+    return ENGINES.index(engine if engine in ENGINES else WPPCONNECT)
 
 
 def engine_at(index: int) -> str:

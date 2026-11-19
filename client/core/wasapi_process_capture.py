@@ -44,6 +44,9 @@ class _ProcessAPI:
             fn.argtypes, fn.restype = args, result
 
     def processes(self):
+        return [(pid, name) for pid, _, name in self.process_tree()]
+
+    def process_tree(self):
         snapshot = self.k.CreateToolhelp32Snapshot(2, 0)
         if snapshot == P(-1).value:
             raise WasapiError('NVDA process snapshot failed')
@@ -53,7 +56,7 @@ class _ProcessAPI:
             result = self.k.Process32FirstW(snapshot, C.byref(row))
             rows = []
             while result:
-                rows.append((row.th32ProcessID, row.szExeFile))
+                rows.append((row.th32ProcessID, row.th32ParentProcessID, row.szExeFile))
                 result = self.k.Process32NextW(snapshot, C.byref(row))
             if C.get_last_error() != 18:  # ERROR_NO_MORE_FILES
                 raise WasapiError('NVDA process enumeration failed')
@@ -73,7 +76,9 @@ class _ProcessAPI:
     def open(self, pid):
         handle = self.k.OpenProcess(0x1000 | 0x100000, False, pid)
         if not handle:
-            raise WasapiError('Cannot pin NVDA process')
+            code = C.get_last_error()
+            raise WasapiError('Cannot open audio process', hresult=0x80070000 | code,
+                              operation='OpenProcess')
         return handle
 
     def image_name(self, handle):
@@ -108,6 +113,10 @@ class _PinnedProcess:
         self._identity = identity
         self._refs = 1
         self._lock = threading.Lock()
+
+    @property
+    def creation_time(self):
+        return self._identity
 
     def acquire(self):
         with self._lock:

@@ -94,7 +94,7 @@ call rejection, server management): they pass their tests against stubs but
 have not run against a real account. One-to-one voice calls (placing,
 answering, the audio both ways) go through meowcaller's call layer
 (`call_media.py`) and have not been tried on a real account yet. Video and group
-calls go through meowcaller too (neonize 0008, with ffmpeg for the video) and
+calls go through meowcaller too (neonize 0007, with ffmpeg for the video) and
 have not been tried on a real account either. Missing: a few WPPConnect-only
 routes: the bridge implements 210 of the 217 that WPPConnect Server defines
 for WinZapp.

@@ -36,6 +36,7 @@ The pure functions are at the top (test_chat_timers.py).
 import logging
 
 import msgmap
+import chat_settings_events
 
 log = logging.getLogger("bridge")
 
@@ -180,3 +181,7 @@ class ChatTimers:
         timer = timer_in(message)
         if timer is not None:
             self.record_timer(jid, *timer)
+            inner = msgmap.unwrap(message)
+            if (has_timer(jid) and inner.HasField("protocolMessage")
+                    and int(inner.protocolMessage.type) == EPHEMERAL_SETTING):
+                chat_settings_events.timer_changed(self, jid, *timer)

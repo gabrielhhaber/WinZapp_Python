@@ -35,7 +35,6 @@ import ctypes
 import logging
 import os
 import queue
-import re as _re
 import sys
 import threading
 import time
@@ -43,6 +42,7 @@ import uuid
 import wx
 from app_paths import _is_frozen
 from core.i18n import I18n
+from core.mention_all import says_everyone
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE
 from core.commerce import message_label as commerce_message_label
 from core.message_queue import PendingMessage
@@ -148,7 +148,7 @@ def _build_notif_prefix(msg: dict, main_window, i18n) -> str:
 
     # @all / @todos / @everyone — check text for the keyword
     text = _extract_msg_text(msg)
-    if _re.search(r"@(all|todos|everyone)\b", text, _re.IGNORECASE):
+    if says_everyone(text, i18n.t("mention_all_keyword")):
         return i18n.t("notif_mentioned_all")
 
     # Direct @mention of the user
@@ -169,6 +169,9 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     msg_type = msg.get("messageType", "conversation")
     msg_obj  = msg.get("message") or {}
     sep      = i18n.t("decimal_separator")
+    from core.business_message_content import TYPES, business_message_text
+    if msg_type in TYPES:
+        return business_message_text(msg, i18n)
 
     if not isinstance(msg_obj, dict):
         return i18n.t("notif_unsupported")
@@ -290,6 +293,11 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     if msg_type == VIEW_ONCE_UNAVAILABLE_TYPE:
         return i18n.t("view_once_message")
 
+    # ── Channel invitation ────────────────────────────────────────────────────
+    from core import channel_invites
+    if msg_type in channel_invites.INVITE_TYPES:
+        return channel_invites.row_text(i18n, msg)
+
     # ── Contact ───────────────────────────────────────────────────────────────
     if msg_type == "contactMessage":
         contact = msg_obj.get("contactMessage") or {}
@@ -319,6 +327,11 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
     if msg_type in ("locationMessage", "liveLocationMessage"):
         return i18n.t("notif_location")
 
+    # ── Event (core/events.py) ─────────────────────────────────────────────────
+    if msg_type == "eventMessage":
+        name = ((msg_obj.get("eventMessage") or {}).get("name") or "").strip()
+        return i18n.t("notif_event").format(name=name) if name else i18n.t("event_label")
+
     # ── Poll ──────────────────────────────────────────────────────────────────
     if msg_type in ("pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3", "pollUpdateMessage"):
         poll = (
@@ -330,24 +343,7 @@ def format_notification_body(msg: dict, main_window, i18n) -> str:
         name = (poll.get("name") or "").strip()
         return i18n.t("notif_poll").format(name=name) if name else i18n.t("notif_poll_no_name")
 
-    # ── Buttons / list (message with selectable options) ────────────────────────
-    if msg_type == "buttonsMessage":
-        btns_msg = msg_obj.get("buttonsMessage") or {}
-        return (btns_msg.get("contentText") or btns_msg.get("text") or "").strip() or i18n.t("interactive_message")
-
-    if msg_type == "listMessage":
-        list_msg = msg_obj.get("listMessage") or {}
-        return (list_msg.get("title") or list_msg.get("description") or "").strip() or i18n.t("interactive_message")
-
-    if msg_type == "templateMessage":
-        template = msg_obj.get("templateMessage") or {}
-        return (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
-
-    if msg_type == "interactiveMessage":
-        inter = msg_obj.get("interactiveMessage") or {}
-        body = (inter.get("body") or {}).get("text", "")
-        return body or i18n.t("interactive_message")
-
+    # ── Replies to business messages ──────────────────────────────────────────
     if msg_type == "buttonsResponseMessage":
         btn = msg_obj.get("buttonsResponseMessage") or {}
         return btn.get("selectedDisplayText") or i18n.t("interactive_reply")

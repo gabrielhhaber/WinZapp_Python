@@ -25,6 +25,8 @@ from core.audio_devices import repair_device_name
 from core.call_audio_processing import CallAudioProcessor
 from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
 from core.call_audio_output import render_output
+from core.call_audio_channels import MicrophoneDownmix, log_downmix_side, shared_channel_counts
+from core.call_desktop_audio import CallDesktopAudio, mix_desktop_pcm
 
 try:
     import sounddevice as sd
@@ -75,6 +77,17 @@ CALL_OUTPUT_TARGET_DECAY_MS = 30_000
 # starvation and resumption are ramped rather than cut.
 CALL_OUTPUT_FADE_MS = 5
 CALL_OUTPUT_UNDERRUN_LOG_EVERY = 50
+# The Neonize engine (neonize_bridge/call_media.py) decodes the peer's Opus in
+# native 60 ms blocks and hands them over Socket.IO, sometimes several at once.
+# The 60 ms prebuffer above is a single such block, so one late block already
+# starves the device; these values leave room for two blocks of prebuffer and
+# a target that can grow to four. The cost is ~60 ms more one-way latency on
+# every Neonize call (none on WPPConnect, whose page tap delivers ~21 ms
+# batches). Logged once per session ("output profile") so a report shows which
+# profile played.
+CALL_OUTPUT_NEONIZE_PREBUFFER_MS = 120
+CALL_OUTPUT_NEONIZE_TARGET_MAX_MS = 240
+CALL_OUTPUT_NEONIZE_MAX_BUFFER_MS = 360
 
 
 @dataclass(frozen=True)
@@ -98,6 +111,7 @@ class CallAudioConfig:
     # WebRTC noise suppression (fans, hiss, hum) on the outgoing microphone,
     # in the same module as the echo canceller.
     noise_suppression: bool = False
+    neonize_audio: bool = False
 
 
 class CallAudioUnavailable(RuntimeError):
@@ -152,6 +166,14 @@ def _pcm16_float32(pcm: bytes) -> np.ndarray:
     return np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
 
 
+def output_buffer_profile(neonize: bool) -> tuple[int, int, int]:
+    """Prebuffer, adaptive-target ceiling and hard cap of the playback reservoir, in ms."""
+    if neonize:
+        return (CALL_OUTPUT_NEONIZE_PREBUFFER_MS, CALL_OUTPUT_NEONIZE_TARGET_MAX_MS,
+                CALL_OUTPUT_NEONIZE_MAX_BUFFER_MS)
+    return CALL_OUTPUT_PREBUFFER_MS, CALL_OUTPUT_TARGET_MAX_MS, CALL_OUTPUT_MAX_BUFFER_MS
+
+
 class _OutputJitterBuffer:
     """Bounded reservoir of float32 mono samples between network and device.
 
@@ -168,8 +190,9 @@ class _OutputJitterBuffer:
     PortAudio asking for one device period at a time.
     """
 
-    def __init__(self, rate: int):
+    def __init__(self, rate: int, *, neonize=False):
         self._lock = threading.Lock()
+        self._neonize = neonize
         self._owner = None
         self._chunks: "deque[np.ndarray]" = deque()
         self._size = 0
@@ -200,17 +223,18 @@ class _OutputJitterBuffer:
         with self._lock:
             rate_changed = rate != self._rate
             self._rate = rate
-            self._prebuffer_samples = max(1, rate * CALL_OUTPUT_PREBUFFER_MS // 1000)
+            prebuffer, target_max, capacity = output_buffer_profile(self._neonize)
+            self._prebuffer_samples = max(1, rate * prebuffer // 1000)
             self._target_step_samples = max(1, rate * CALL_OUTPUT_TARGET_STEP_MS // 1000)
             self._max_target_samples = max(
-                self._prebuffer_samples, rate * CALL_OUTPUT_TARGET_MAX_MS // 1000
+                self._prebuffer_samples, rate * target_max // 1000
             )
             self._growth_window_samples = max(
                 1, rate * CALL_OUTPUT_TARGET_GROWTH_WINDOW_MS // 1000
             )
             self._decay_samples = max(1, rate * CALL_OUTPUT_TARGET_DECAY_MS // 1000)
             self._max_samples = max(
-                self._prebuffer_samples, rate * CALL_OUTPUT_MAX_BUFFER_MS // 1000
+                self._prebuffer_samples, rate * capacity // 1000
             )
             self._fade_samples = max(1, rate * CALL_OUTPUT_FADE_MS // 1000)
             # Precomputed so a fade costs no allocation in the common case;
@@ -395,7 +419,10 @@ class CallAudioSession:
             maxsize=CALL_OUTPUT_QUEUE_LIMIT
         )
         # The reservoir the output callback drains; the player thread fills it.
-        self._output_buffer = _OutputJitterBuffer(self._output_rate)
+        self._output_buffer = _OutputJitterBuffer(self._output_rate, neonize=config.neonize_audio)
+        logging.info("[call_audio] output profile=%s prebuffer/target/cap=%s ms",
+                     "neonize" if config.neonize_audio else "default",
+                     "/".join(map(str, output_buffer_profile(config.neonize_audio))))
         self._output_resampler = StreamingMonoResampler()
         self._output_underruns_logged = 0
         self._stop_event = threading.Event()
@@ -411,6 +438,8 @@ class CallAudioSession:
         self._mic_bytes_sent = 0
         self._mic_frames_dropped_for_latency = 0
         self._microphone_muted = False
+        self._desktop_audio = None
+        self._desktop_audio_lock = threading.Lock()
         self._media_epoch = ''
         self._dequeued_media_epoch = ''
         self._stream_epoch = next_stream_epoch()
@@ -431,6 +460,33 @@ class CallAudioSession:
         """Mute only this call's outgoing microphone, keeping the stream alive."""
         self._microphone_muted = bool(muted)
         logging.info("[call_audio] microphone %s", "muted" if self._microphone_muted else "unmuted")
+
+    @property
+    def desktop_audio(self):
+        return self._desktop_audio
+
+    def start_desktop_audio(self, system, nvda, on_state, *, app=None, volume=200):
+        with self._desktop_audio_lock:
+            if not self.running or self._desktop_audio is not None:
+                return False
+            worker = CallDesktopAudio(system, nvda, on_state, app=app, volume=volume)
+            self._desktop_audio = worker
+            try:
+                worker.start()
+            except BaseException:
+                self._desktop_audio = None
+                worker.stop()
+                raise
+            return True
+
+    def stop_desktop_audio(self, expected=None):
+        with self._desktop_audio_lock:
+            worker = self._desktop_audio
+            if worker is None or (expected is not None and worker is not expected):
+                return False
+            worker.stop()
+            self._desktop_audio = None
+            return True
 
     @property
     def media_epoch(self):
@@ -622,6 +678,7 @@ class CallAudioSession:
         silence for the rest of the call.
         """
         self._stop_event.set()
+        self.stop_desktop_audio()
         self._output_buffer.set_owner(None)
         if notify_bridge:
             self._emit_stop()
@@ -888,6 +945,22 @@ class CallAudioSession:
             )
             return None
 
+    def _candidate_formats(self, device, *, input_device, exclusive):
+        channels = (1,)
+        if not exclusive and self._stream_extra_settings(
+            device, input_device=input_device, exclusive=False
+        ) is not None:
+            actual = device if device is not None else self._default_device_index(
+                input_device=input_device
+            )
+            try:
+                channels = shared_channel_counts(
+                    self._sd.query_devices(actual), input_device=input_device
+                )
+            except Exception:
+                pass
+        return [(rate, count) for rate in self._candidate_rates(device) for count in channels]
+
     def _open_input_stream(self):
         last_error = None
         # Exclusive mode is attempted first (unless the user opted out), across
@@ -901,7 +974,9 @@ class CallAudioSession:
                 self._config.input_device_name, input_device=True,
                 include_fallbacks=not exclusive,
             ):
-                for rate in self._candidate_rates(device):
+                for rate, channels in self._candidate_formats(
+                    device, input_device=True, exclusive=exclusive
+                ):
                     try:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=True, exclusive=exclusive
@@ -921,7 +996,7 @@ class CallAudioSession:
                             samplerate=rate,
                             blocksize=max(1, int(rate * CALL_FRAME_MS / 1000)),
                             device=device,
-                            channels=1,
+                            channels=channels,
                             dtype="float32",
                             latency="low",
                             extra_settings=extra_settings,
@@ -938,10 +1013,11 @@ class CallAudioSession:
                         # is precisely what hid the fact that the whole
                         # exclusive path was unreachable on a default install.
                         logging.info(
-                            "[call_audio] input opened device=%r hostapi=%s rate=%s latency=%r exclusive=%s",
+                            "[call_audio] input opened device=%r hostapi=%s rate=%s channels=%s latency=%r exclusive=%s",
                             device,
                             self._hostapi_name(device) if device is not None else "default",
                             rate,
+                            channels,
                             getattr(stream, "latency", "low"),
                             bool(exclusive and extra_settings is not None),
                         )
@@ -949,7 +1025,7 @@ class CallAudioSession:
                     except Exception as exc:
                         last_error = exc
                         self._log_candidate_failure(
-                            "input", device, rate, exclusive, exc
+                            "input", device, rate, exclusive, exc, channels=channels
                         )
         raise CallAudioUnavailable(f"No microphone could be opened for the call: {last_error}")
 
@@ -963,7 +1039,9 @@ class CallAudioSession:
                 self._config.output_device_name, input_device=False,
                 include_fallbacks=not exclusive,
             ):
-                for rate in self._candidate_rates(device):
+                for rate, channels in self._candidate_formats(
+                    device, input_device=False, exclusive=exclusive
+                ):
                     try:
                         extra_settings = self._stream_extra_settings(
                             device, input_device=False, exclusive=exclusive
@@ -990,7 +1068,7 @@ class CallAudioSession:
                             # block size.
                             blocksize=0,
                             device=device,
-                            channels=1,
+                            channels=channels,
                             dtype="float32",
                             latency="low",
                             extra_settings=extra_settings,
@@ -1003,10 +1081,11 @@ class CallAudioSession:
                         # Actually applied, not merely requested — see the
                         # matching note in _open_input_stream().
                         logging.info(
-                            "[call_audio] output opened device=%r hostapi=%s rate=%s latency=%r exclusive=%s",
+                            "[call_audio] output opened device=%r hostapi=%s rate=%s channels=%s latency=%r exclusive=%s",
                             device,
                             self._hostapi_name(device) if device is not None else "default",
                             rate,
+                            channels,
                             getattr(stream, "latency", "low"),
                             bool(exclusive and extra_settings is not None),
                         )
@@ -1015,11 +1094,11 @@ class CallAudioSession:
                         self._output_buffer.set_owner(None)
                         last_error = exc
                         self._log_candidate_failure(
-                            "output", device, rate, exclusive, exc
+                            "output", device, rate, exclusive, exc, channels=channels
                         )
         raise CallAudioUnavailable(f"No speaker could be opened for the call: {last_error}")
 
-    def _log_candidate_failure(self, direction, device, rate, exclusive, exc) -> None:
+    def _log_candidate_failure(self, direction, device, rate, exclusive, exc, *, channels=1) -> None:
         """Say WHY a candidate lost, instead of swallowing it into last_error.
 
         Measured 2026-09-22: on one machine the same headset opened on WASAPI
@@ -1032,12 +1111,13 @@ class CallAudioSession:
         a device name can carry the owner's own name).
         """
         logging.info(
-            "[call_audio] %s candidate failed device=%r hostapi=%s rate=%s exclusive=%s error=%s",
+            "[call_audio] %s candidate failed device=%r hostapi=%s rate=%s exclusive=%s channels=%s error=%s",
             direction,
             device,
             self._hostapi_name(device) if device is not None else "default",
             rate,
             exclusive,
+            channels,
             exc,
         )
 
@@ -1050,7 +1130,9 @@ class CallAudioSession:
                 return
             # Copy PortAudio's borrowed buffer only. Rate conversion and
             # PCM16 encoding run on the sender, not its realtime callback.
-            samples = np.array(indata, dtype=np.float32, copy=True).reshape(-1)
+            samples = np.array(indata, dtype=np.float32, copy=True)
+            if samples.ndim == 2 and samples.shape[1] == 1:
+                samples = samples[:, 0]
             if samples.size:
                 self._put_drop_oldest(self._mic_queue, CapturedPCM(samples, epoch))
 
@@ -1068,7 +1150,7 @@ class CallAudioSession:
                 item = self._mic_queue.get_nowait()
                 next_samples = item.samples if isinstance(item, CapturedPCM) else item
                 epoch = item.epoch if isinstance(item, CapturedPCM) else self._media_epoch
-                dropped_samples += samples.size
+                dropped_samples += len(samples)
                 samples = next_samples
                 dropped += 1
             except queue.Empty:
@@ -1078,6 +1160,8 @@ class CallAudioSession:
 
     def _send_microphone_loop(self) -> None:
         encoder = MicrophonePCMEncoder(CALL_SAMPLE_RATE, CALL_FRAME_SAMPLES)
+        downmix = MicrophoneDownmix()
+        selected_side = None
         encoder_epoch = self._media_epoch
         while not self._stop_event.is_set():
             try:
@@ -1087,9 +1171,11 @@ class CallAudioSession:
             epoch = self._dequeued_media_epoch
             if epoch != self._media_epoch:
                 encoder.reset()
+                downmix.reset()
                 continue
             if epoch != encoder_epoch:
                 encoder.reset()
+                downmix.reset()
                 encoder_epoch = epoch
 
             if dropped:
@@ -1099,6 +1185,8 @@ class CallAudioSession:
                 # jump in the microphone stream is just a delay change it
                 # re-estimates.
                 encoder.skip(dropped_source_samples, self._input_rate)
+                # The downmix keeps its channel decision across the gap: a
+                # skipped backlog is a jump in time, not a new device.
                 previous_dropped = self._mic_frames_dropped_for_latency
                 self._mic_frames_dropped_for_latency += dropped
                 if previous_dropped == 0 or (
@@ -1113,10 +1201,13 @@ class CallAudioSession:
                     )
 
             try:
-                frames = encoder.process(samples, self._input_rate)
+                mono = downmix.process(samples, self._input_rate)
+                selected_side = log_downmix_side(downmix, selected_side)
+                frames = encoder.process(mono, self._input_rate)
             except Exception:
                 logging.exception("[call_audio] failed to convert microphone audio")
                 encoder.reset()
+                downmix.reset()
                 continue
             for frame in frames:
                 if self._stop_event.is_set():
@@ -1140,16 +1231,7 @@ class CallAudioSession:
                         break
                     if self._microphone_muted:
                         pcm = b"\x00" * len(pcm)
-                    self._sio.emit(
-                        "call:audio:mic",
-                        {
-                            "session": self._config.session,
-                            **media_fields(epoch, self._stream_epoch),
-                            "sampleRate": CALL_SAMPLE_RATE,
-                            "encoding": "base64",
-                            "pcm": base64.b64encode(pcm).decode("ascii"),
-                        },
-                    )
+                    self._emit_microphone_frame(pcm, epoch)
                     self._mic_frames_sent += 1
                     self._mic_bytes_sent += len(pcm)
                     if processor is not None and self._mic_frames_sent % 250 == 0:
@@ -1163,6 +1245,25 @@ class CallAudioSession:
                 except Exception:
                     logging.exception("[call_audio] failed to send microphone audio")
                     time.sleep(0.05)
+
+    def _emit_microphone_frame(self, pcm, epoch):
+        # The lock covers only the mix: Stop sharing and hang-up take it from
+        # the UI thread, so it must never be held across network I/O.
+        with self._desktop_audio_lock:
+            if self._stop_event.is_set() or epoch != self._media_epoch:
+                return
+            worker = self._desktop_audio
+            if worker is not None:
+                pcm = mix_desktop_pcm(pcm, worker.take(len(pcm)), worker.volume)
+        if self._stop_event.is_set() or epoch != self._media_epoch:
+            return
+        self._sio.emit("call:audio:mic", {
+            "session": self._config.session,
+            **media_fields(epoch, self._stream_epoch),
+            "sampleRate": CALL_SAMPLE_RATE,
+            "encoding": "base64",
+            "pcm": base64.b64encode(pcm).decode("ascii"),
+        })
 
     def _process_microphone(self, processor: CallAudioProcessor, pcm: bytes) -> bytes:
         """Run one microphone chunk through the processor.

@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Sun, 8 Nov 2026 22:47:57 -0300
+Subject: [PATCH] send: a channel's photo, video or document carries its media
+ handle
+
+SendNewsletterMessage (Python: send_newsletter_message) is SendMessage
+with SendRequestExtra.MediaHandle, the Handle upload_newsletter answers.
+whatsmeow sends it as the message node's media_id; a channel refuses
+media without it, and SendMessage had no way to pass it.
+---
+ goneonize/main.go  | 16 +++++++++++++++-
+ neonize/_binder.py |  9 +++++++++
+ neonize/client.py  | 23 +++++++++++++++++++++++
+ 3 files changed, 47 insertions(+), 1 deletion(-)
+
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 45a156b..88424f0 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -499,6 +499,20 @@ func TestStruct() *C.struct_BytesReturn {
+ 
+ //export SendMessage
+ func SendMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uchar, messageSize C.int) *C.struct_BytesReturn {
++	return sendMessage(id, JIDByte, JIDSize, messageByte, messageSize, "")
++}
++
++// SendNewsletterMessage is SendMessage with the media handle a channel
++// (newsletter) photo, video or document needs: UploadNewsletter answers it and
++// whatsmeow sends it as the message node's media_id. Without it the channel
++// refuses the media.
++//
++//export SendNewsletterMessage
++func SendNewsletterMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uchar, messageSize C.int, mediaHandle *C.char) *C.struct_BytesReturn {
++	return sendMessage(id, JIDByte, JIDSize, messageByte, messageSize, C.GoString(mediaHandle))
++}
++
++func sendMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uchar, messageSize C.int, mediaHandle string) *C.struct_BytesReturn {
+ 	// fmt.Println("SendMessage: Getting client from ID")
+ 	client := clientFor(C.GoString(id))
+ 	// fmt.Println("SendMessage: Getting JID byte array")
+@@ -526,7 +540,7 @@ func SendMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uch
+ 		return ProtoReturnV3(&return_)
+ 	}
+ 	// extra params
+-	extra := whatsmeow.SendRequestExtra{}
++	extra := whatsmeow.SendRequestExtra{MediaHandle: mediaHandle}
+ 	extra.AdditionalNodes = GenerateWABinary(context.Background(), utils.DecodeJidProto(&neonize_jid), &message)
+ 	// fmt.Println("SendMessage: Sending message to WhatsApp")
+ 	sendresponse, err := client.SendMessage(context.Background(), utils.DecodeJidProto(&neonize_jid), &message, extra)
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 5a19e8c..5f76693 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -250,6 +250,15 @@ if not os.environ.get("SPHINX"):
+         ctypes.c_int,
+     ]
+     gocode.SendMessage.restype = ctypes.POINTER(Bytes)
++    gocode.SendNewsletterMessage.argtypes = [
++        ctypes.c_char_p,
++        ctypes.c_char_p,
++        ctypes.c_int,
++        ctypes.c_char_p,
++        ctypes.c_int,
++        ctypes.c_char_p,
++    ]
++    gocode.SendNewsletterMessage.restype = ctypes.POINTER(Bytes)
+     gocode.SendSPRMessage.argtypes = [
+         ctypes.c_char_p,
+         ctypes.c_char_p,
+diff --git a/neonize/client.py b/neonize/client.py
+index 950360e..84e0db2 100644
+--- a/neonize/client.py
++++ b/neonize/client.py
+@@ -706,6 +706,29 @@ class NewClient:
+         model.SendResponse.MergeFrom(model.SendResponse.__class__(Message=msg))
+         return model.SendResponse
+ 
++    def send_newsletter_message(
++        self, to: JID | str, message: Message, media_handle: str = ""
++    ) -> SendResponse:
++        """Send ``message`` to the channel (newsletter) ``to``. A photo, video
++        or document uploaded with :meth:`upload_newsletter` goes with the
++        upload's ``Handle`` as ``media_handle``: the channel refuses the media
++        without it.
++
++        :raises SendMessageError: If there was an error sending the message.
++        """
++        to = _ensure_jid(to)
++        to_bytes = to.SerializeToString()
++        message_bytes = message.SerializeToString()
++        protobytes = self.__client.SendNewsletterMessage(
++            self.uuid, to_bytes, len(to_bytes), message_bytes, len(message_bytes),
++            (media_handle or "").encode(),
++        )
++        model = SendMessageReturnFunction.FromString(protobytes)
++        if model.Error:
++            raise SendMessageError(model.Error)
++        model.SendResponse.MergeFrom(model.SendResponse.__class__(Message=message))
++        return model.SendResponse
++
+     def send_spr_group(
+         self,
+         group: JID | str,

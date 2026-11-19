@@ -235,3 +235,42 @@ async def test_session_routes_accept_bearer_with_only_the_session_name(tmp_path,
         assert response.status == 200
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_pairing_history_is_stored_and_a_qr_on_screen_is_redone(tmp_path, sessions, monkeypatch):
+    import pairing_history
+    restarted = []
+    monkeypatch.setattr(server.Session, "restart_pairing",
+                        lambda self: restarted.append(self.name) or True)
+    client, token, _ = await _bridge(tmp_path)
+    try:
+        response = await client.post(f"/api/{token}/pairing-history", json={"days": -7})
+        assert response.status == 400
+        s = sessions["account1"]
+        s.status = "QRCODE"
+        response = await client.post(f"/api/{token}/pairing-history", json={"days": 3650})
+        body = await response.json()
+        assert body["response"] == {"days": 3650, "reason": "stored", "restarted": True}
+        assert pairing_history.load(s.folder, 0) == 3650 and restarted == ["account1"]
+        s.status = "CONNECTED"
+        response = await client.post(f"/api/{token}/pairing-history", json={"days": 30})
+        assert (await response.json())["response"]["reason"] == "paired"
+        assert pairing_history.load(s.folder, 0) == 3650
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_start_session_stores_the_history_chosen_before_pairing(tmp_path, sessions, monkeypatch):
+    import pairing_history
+    monkeypatch.setattr(server.Session, "begin", lambda self, phone_number=None: True)
+    client, token, _ = await _bridge(tmp_path)
+    try:
+        await client.post(f"/api/{token}/start-session", json={"historyDays": 365})
+        s = sessions["account1"]
+        assert pairing_history.load(s.folder, 0) == 365
+        await client.post(f"/api/{token}/start-session", json={"historyDays": "x"})   # not a number
+        assert pairing_history.load(s.folder, 0) == 365
+    finally:
+        await client.close()

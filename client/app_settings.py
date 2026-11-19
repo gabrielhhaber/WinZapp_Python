@@ -35,6 +35,7 @@ _DEFAULTS: dict[str, Any] = {
     "language": "",
     # Only preferences and consent; credentials have a separate encrypted store.
     "ai_media": {},
+    "message_translation": {},
     "updates_enabled": True,
     # Opt-in to the alpha channel (one build per commit landed on main, see
     # .github/workflows/alpha-release.yml). Global rather than per-account for
@@ -46,11 +47,24 @@ _DEFAULTS: dict[str, Any] = {
     # and only interrupt the app to install (update_background.py). Global for
     # the same reason as the two above: the install and its api/ are shared.
     "background_update_downloads": False,
+    # Download updates with no question and install them when the user exits
+    # WinZapp, without starting it again (update_on_exit.py). Global like the
+    # options above.
+    "update_on_exit": False,
     # Offer every upstream WPPConnect Server release, not only the approved
     # ones (core/wpp_upstream.py). Global because api/ is shared.
     "wpp_all_updates": False,
     "show_tray_icon": True,
     "autostart": False,
+    # Open every paired account (in the background) whenever WinZapp starts,
+    # not only the one that would open. Edited by the account manager's check
+    # box; has no legacy flat-settings equivalent, so it is not in
+    # _GENERAL_GLOBAL.
+    "connect_all_accounts": False,
+    # The installed build registers itself for whatsapp: links once
+    # (core/whatsapp_link_association.py); after that the Settings check box
+    # is the only thing that changes it, so turning it off sticks.
+    "whatsapp_links_auto_registered": False,
     # install-wide one-time setup prompts (asked once per install, NOT per
     # account — a new account must not re-ask autostart/hotkey/api-type).
     "first_run": True,
@@ -101,7 +115,7 @@ _DEFAULTS: dict[str, Any] = {
 
 # Which legacy general.* keys are global (the rest stay per-account).
 _GENERAL_GLOBAL = ("language", "updates_enabled", "alpha_updates_enabled",
-                   "background_update_downloads", "wpp_all_updates",
+                   "background_update_downloads", "update_on_exit", "wpp_all_updates",
                    "show_tray_icon", "autostart",
                    "first_run", "hotkey_first_run_asked", "api_type_first_run_asked",
                    "neonize_offer_asked",
@@ -182,6 +196,13 @@ class AppSettings:
         if key not in _DEFAULTS:
             raise KeyError(f"{key!r} is not a global setting")
         return self._read(strict=True).get(key, _default(key))
+
+    def get_snapshot(self, key: str) -> Any:
+        """Read a setting without waiting on another process's writer."""
+        if key not in _DEFAULTS:
+            raise KeyError(f"{key!r} is not a global setting")
+        with app_settings_lock(self.global_dir, timeout=0):
+            return self._read_unlocked().get(key, _default(key))
 
     def set(self, key: str, value: Any) -> None:
         if key not in _DEFAULTS:

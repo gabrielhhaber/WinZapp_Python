@@ -49,6 +49,7 @@ from ui.accessible import (
     AccessibleSaveAs,
     AccessibleShowInFolder,
     AccessibleDescribeButton,
+    AccessibleSummarizeUnread,
     AccessibleConversationDataButton,
     AccessibleVoiceCallButton,
     AccessibleVideoCallButton,
@@ -141,7 +142,7 @@ from ui.conversation_panel.system_audio_recording import SystemAudioRecordingMix
 from ui.conversation_panel.text_sending import TextSendingMixin
 from ui.conversation_panel.list_refresh import ListRefreshMixin
 from ui.conversation_panel.chat_menu import ChatMenuMixin
-from ui.conversation_panel.message_list import MessageListMixin
+from ui.conversation_panel.message_list import MessageListMixin, handle_translation_shortcut
 from ui.conversation_panel.message_menu import MessageMenuMixin
 from ui.conversation_panel.media_files import MediaFilesMixin
 from ui.conversation_panel.links import LinksMixin
@@ -161,6 +162,7 @@ from ui.conversation_panel.message_actions import MessageActionsMixin
 from ui.conversation_panel.message_stars import StarActionsMixin
 from ui.conversation_panel.message_accels import MessageAccelsMixin
 from ui.conversation_panel.bookmarks import BookmarksMixin
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 from ui.conversation_panel.message_search import MessageSearchMixin
 from ui.conversation_panel.community_comments import CommunityCommentsPanelMixin
 from ui.conversation_panel.commerce import CommercePanelMixin
@@ -171,6 +173,7 @@ from ui.conversation_panel.reactions import ReactionsMixin
 from ui.conversation_panel.attachments import AttachmentsMixin
 from ui.conversation_panel.poll_inline import PollInlineMixin
 from ui.conversation_panel.poll_messages import PollMessagesMixin
+from ui.conversation_panel.event_messages import EventMessagesMixin
 from ui.conversation_panel.contact_messages import ContactMessagesMixin
 from ui.conversation_panel.bulk_messages import BulkMessagesMixin
 from ui.conversation_panel.bulk_transcription import BulkTranscriptionMixin
@@ -178,6 +181,14 @@ from ui.conversation_panel.transcription_delete import TranscriptionDeleteMixin
 from ui.conversation_panel.message_data import MessageDataMixin
 from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMixin
 from ui.conversation_panel.ai_actions import AIActionsMixin
+from ui.conversation_panel.translation_actions import TranslationActionsMixin
+from ui.conversation_panel.translation_backlog import TranslationBacklogMixin
+from ui.conversation_panel.translation_to_end import TranslationToEndMixin
+from ui.conversation_panel.summary_actions import SummaryActionsMixin
+from ui.conversation_panel.summary_voice import SummaryVoiceMixin
+from ui.conversation_panel.summary_voice_choice import SummaryVoiceChoiceMixin
+from ui.conversation_panel.summary_voice_online import SummaryVoiceOnlineMixin
+from ui.conversation_panel.ai_writing import AIWritingMixin
 
 
 class ConversationsPanel(
@@ -214,6 +225,7 @@ class ConversationsPanel(
     StarActionsMixin,
     MessageAccelsMixin,
     BookmarksMixin,
+    ReadingPositionMixin,
     MessageSearchMixin,
     CommunityCommentsPanelMixin,
     CommercePanelMixin,
@@ -223,12 +235,21 @@ class ConversationsPanel(
     ReactionsMixin,
     AttachmentsMixin,
     PollMessagesMixin,
+    EventMessagesMixin,
     PollInlineMixin,
     ContactMessagesMixin,
     BulkMessagesMixin,
     BulkTranscriptionMixin,
     TranscriptionDeleteMixin,
     AIActionsMixin,
+    TranslationActionsMixin,
+    TranslationBacklogMixin,
+    TranslationToEndMixin,
+    SummaryActionsMixin,
+    SummaryVoiceMixin,
+    SummaryVoiceChoiceMixin,
+    SummaryVoiceOnlineMixin,
+    AIWritingMixin,
     MessageDataMixin,
     wx.Panel,
 ):
@@ -841,6 +862,17 @@ class ConversationsPanel(
         self._media_action_sizer.Add(self._action_describe_btn, 0, wx.TOP, 2)
         self._action_describe_btn.Hide()
 
+        # Summarize unread (Ctrl+Shift+U), right after Describe in the Tab
+        # order; summary_actions.py shows it only when the chat has unread
+        # messages and a text-capable provider holds a key.
+        self._summary_btn = wx.Button(
+            self._media_action_slot, label=i18n.t("ai_summary_button")
+        )
+        self._summary_btn.SetAccessible(AccessibleSummarizeUnread())
+        self._summary_btn.Bind(wx.EVT_BUTTON, self._on_summary_action)
+        self._media_action_sizer.Add(self._summary_btn, 0, wx.TOP, 2)
+        self._summary_btn.Hide()
+
         self._action_show_in_folder_btn = wx.Button(
             self._media_action_slot, label=i18n.t("show_in_folder")
         )
@@ -984,6 +1016,9 @@ class ConversationsPanel(
         self._emoji_btn.SetAccessible(AccessibleEmojiButton())
         self._emoji_btn.Bind(wx.EVT_BUTTON, self._on_open_emoji_picker)
         conv_sizer.Add(self._emoji_btn, 0, wx.LEFT | wx.BOTTOM, 5)
+
+        self._writing_help_btn = self._create_writing_help_button(self.conversation_panel)
+        conv_sizer.Add(self._writing_help_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
         self._cancel_edit_btn = wx.Button(
             self.conversation_panel, label=i18n.t("cancel_edit")
@@ -1132,6 +1167,7 @@ class ConversationsPanel(
 
         self.conversation_panel.SetSizer(conv_sizer)
         self.conversation_panel.Bind(wx.EVT_CHAR_HOOK, self._on_conversation_char_hook)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_panel_char_hook)
         self.conversation_panel.Hide()
         outer_sizer.Add(self.conversation_panel, 1, wx.EXPAND | wx.ALL, 5)
 
@@ -1159,6 +1195,9 @@ class ConversationsPanel(
         control.Bind(wx.EVT_KEY_DOWN, self._on_messages_list_key_down)
         if isinstance(control, CompatListBoxMessagesCtrl):
             control.set_key_down_handler(self._on_messages_list_key_down)
+            control.set_shortcut_handler(lambda event: handle_translation_shortcut(self, event))
+        else:
+            control.Bind(wx.EVT_CHAR_HOOK, self._on_messages_list_char_hook)
         return control
 
     def _rerender_messages_list_rows(self):
@@ -1290,6 +1329,9 @@ class ConversationsPanel(
 
         self.send_message_btn.SetLabel(i18n.t("send_message"))
         self._emoji_btn.SetLabel(i18n.t("emoji_button"))
+        self._writing_help_btn.SetLabel(i18n.t("writing_menu"))
+        self._writing_help_btn.SetName(i18n.t("writing_menu"))
+        self._sync_writing_help_button()
         self._cancel_edit_btn.SetLabel(i18n.t("cancel_edit"))
         if hasattr(self, "_remove_quote_btn"):
             self._remove_quote_btn.SetLabel(i18n.t("remove_quote"))
@@ -1324,5 +1366,4 @@ class ConversationsPanel(
 
 
 # ── Archived Conversations Panel ─────────────────────────────────────────────
-
 

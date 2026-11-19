@@ -27,6 +27,8 @@ independently verifiable official source when recording future decisions.
 - [WhatsApp chat means czat](#whatsapp-chat-means-czat)
 - [Chat access protection and contact blocking](#chat-access-protection-and-contact-blocking)
 - [Other reviewed terms](#other-reviewed-terms)
+- [Device linking and channel roles](#device-linking-and-channel-roles)
+- [Events, writing help and noise reduction](#events-writing-help-and-noise-reduction)
 - [Meaning, sources and spoken wording](#meaning-sources-and-spoken-wording)
 - [Language review and technical references](#language-review-and-technical-references)
 
@@ -145,6 +147,96 @@ require replacing every descriptive use of `multimedia`.
 Keep the reviewed phone-linking label `Połącz, korzystając z &numeru telefonu`;
 the ampersand is a mnemonic. Preserve established reply terminology where it
 matches the same action; check context before borrowing a term from another app.
+
+## Device linking and channel roles
+
+The following additions were reviewed by @djgraco on 9 November 2026 after
+comparing WinZapp's behavior with the Polish strings in a supplied WhatsApp APK.
+That is the source of the phone-app labels below; it is not a claim that every
+APK string is displayed in every account or platform variant.
+
+| Meaning / UI role | Polish |
+| --- | --- |
+| keep chats archived | Pozostaw czaty zarchiwizowane |
+| invite channel administrators | Zaproś administratorów... |
+| invite a follower to become a channel administrator | Zaproś do roli administratora kanału... |
+| remove a channel administrator's role | Odwołaj z roli administratora... |
+| leave the channel administrator role | Zrezygnuj z roli administratora... |
+| cancel a channel administrator invitation | Odwołaj zaproszenie do roli administratora... |
+| transfer channel ownership | Przenieś prawa własności... |
+| News, the channel directory category | Wiadomości |
+| Linked devices, the WhatsApp phone menu | Połączone urządzenia |
+| Link a device, the WhatsApp phone action | Połącz urządzenie |
+| phone-linking code dialog title | Wprowadź kod na telefonie |
+| code label in that dialog | Kod: |
+| cancel device linking | Anuluj łączenie |
+
+For channels, use `zaproszenie do roli administratora` consistently in results,
+errors and pending states. Inviting does not grant the role immediately: the
+recipient becomes an administrator only after accepting. Removing that role
+does not remove the person from the channel. Do not apply these channel labels
+to community administration without checking the different behavior.
+
+Prefer `łączenie` and a contextual `kod` in the reviewed login flow rather
+than technical `parowanie` / `kod parowania`. Distinguish the phone-number
+route from a QR image: `qrcode_updated` announces a phone-linking code, whereas
+`qrcode_image_updated` announces the QR image. The phone-linking code can
+contain letters; do not describe it as an eight-digit number.
+
+Use the exact phone labels in the guide, including
+`Zamiast tego połącz, korzystając z numeru telefonu`. Preserve WinZapp's actual
+recovery instructions: a terminally expired code requires cancelling and
+trying again, and a rate limit requires waiting. Do not invent a
+`Wygeneruj nowy kod` button in WinZapp merely because WhatsApp has that label.
+
+These are contextual decisions, not a global replacement of every occurrence
+of `parowanie`, `Informacje`, `administrator` or `kod`. Keep the mnemonic
+`Pozost&aw czaty zarchiwizowane`, and preserve ellipses where another dialog
+opens. Apply the reviewed wording to quoted labels in the Polish guide and
+changelog as well as to the PO.
+
+## Events, writing help and noise reduction
+
+The following wording was reviewed and accepted by @djgraco on 16 November
+2026, together with the Polish UI, guide and changelog review. The three event
+response labels were checked in the supplied Polish WhatsApp APK
+(`assets/i18n_pl/strings_pl.pack`: IDs 4474/7398, 4476/7501 and 4477/7510).
+This records verification of that supplied resource, not a claim about every
+WhatsApp version or a public APK download. Related plural group labels are
+Polish adaptations of the same participation terminology.
+
+| Meaning / UI role | Polish |
+| --- | --- |
+| event response: going | Wezmę udział |
+| event response: maybe | Może wezmę udział |
+| event response: not going | Nie wezmę udziału |
+| event response groups | Wezmą udział / Może wezmą udział / Nie wezmą udziału |
+| rewrite a message draft | Przeredaguj wiadomość |
+| make a message draft more professional | Nadaj wiadomości bardziej profesjonalny ton |
+| make a message draft encouraging | Nadaj wiadomości bardziej wspierający ton |
+| noise-reduction device selector | Urządzenie używane do redukcji szumów |
+| channel reach | Liczba kont, do których dotarły aktualizacje |
+| channel unfollows, a statistics counter | Rezygnacje z obserwowania |
+
+Describe participation in an event rather than physical travel (`Idę`): the
+event may also be online. Match the response, own-response state and response
+group terminology, preserving each control's mnemonic.
+
+The writing-help labels describe WinZapp's own draft actions and prompts;
+they are reviewed Polish choices, not quotations from WhatsApp's writing-help
+interface. Applying a result replaces a draft only after the user's explicit
+choice; it does not send the chat message.
+
+Use `urządzenie` as the umbrella term for CPU, NVIDIA GPU and Core ML in
+noise-reduction settings. Keep `procesor` for the CPU option and other places
+where it really means CPU. cuBLAS is a library; CUDA 12 can share it with local
+transcription, whereas CUDA 13 has separate components. Do not make a blanket
+claim that every downloaded component is shared.
+
+Apply these names to quoted labels in the guide and changelog too. When the
+English source is stale, verify the actual behavior in code and explain the
+Polish clarification in the PR rather than silently treating the source as
+correct or changing other locales without review.
 
 ## Meaning, sources and spoken wording
 

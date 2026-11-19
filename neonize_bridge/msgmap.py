@@ -4,6 +4,7 @@ No dependency on the server: a pure function, tested in test_msgmap.py."""
 import base64
 import hashlib
 import json
+import logging
 
 import buttons
 import commerce_messages
@@ -11,7 +12,14 @@ import commerce_messages
 # layers that only wrap another message
 WRAPPERS = ("ephemeralMessage", "viewOnceMessage", "viewOnceMessageV2",
             "viewOnceMessageV2Extension", "documentWithCaptionMessage",
-            "deviceSentMessage", "editedMessage", "botInvokeMessage")
+            "deviceSentMessage", "editedMessage", "botInvokeMessage",
+            # status layers: "Add yours" and question statuses, spoiler and
+            # mentioned-group wrappers, animated stickers. Unwrapped, their
+            # text/media shows; before, each was an "Incompatible message".
+            "statusAddYours", "questionMessage", "spoilerMessage",
+            "groupMentionedMessage", "lottieStickerMessage")
+
+log = logging.getLogger("bridge")
 
 MEDIA_KINDS = {  # field -> (WhatsApp Web type, default mimetype)
     "imageMessage": ("image", "image/jpeg"),
@@ -171,7 +179,7 @@ def pin(message):
     if _field(inner) != "pinInChatMessage":
         return None
     p = inner.pinInChatMessage
-    if not p.key.ID:
+    if not p.key.ID or p.type not in (PinInChatMessage.PIN_FOR_ALL, PinInChatMessage.UNPIN_FOR_ALL):
         return None
     duration = int(inner.messageContextInfo.messageAddOnDurationInSecs or 0)
     return p.key.ID, p.type == PinInChatMessage.PIN_FOR_ALL, duration
@@ -264,10 +272,8 @@ def _content(inner, field, chat_w, out) -> bool:
         if p.type != 0:        # only the revoke (delete for everyone) matters
             return False
         target = p.key.ID
-        ser = f"{'true' if p.key.fromMe else 'false'}_{chat_w}_{target}"
-        out.update(type="revoked", body="", protocolMessageKey={
-            "id": target, "remote": chat_w, "fromMe": bool(p.key.fromMe),
-            "_serialized": ser})
+        out.update(type="revoked", body="", protocolMessageKey=message_key(
+            p.key.remoteJID or chat_w, p.key.fromMe, target, p.key.participant))
     elif field.startswith("pollCreationMessage"):
         poll = getattr(inner, field)
         out.update(type="poll_creation", body=poll.name,
@@ -275,18 +281,57 @@ def _content(inner, field, chat_w, out) -> bool:
                    pollSelectableOptionsCount=int(poll.selectableOptionsCount or 0),
                    pollOptions=[{"name": o.optionName, "localId": i}
                                 for i, o in enumerate(poll.options)])
+        # V6 (hide voter names, time limit): WhatsApp Web's own field names
+        if poll.hideParticipantName:
+            out["pollHideVoterNames"] = True
+        if poll.endTime:
+            out["pollEndTime"] = int(poll.endTime)
+    elif field == "eventMessage":
+        import events
+        out.update(events.event_fields(inner.eventMessage))
+    elif field in CHANNEL_INVITES:
+        out.update(channel_invite_fields(field, getattr(inner, field)))
     elif field == "orderMessage":
         out.update(commerce_messages.order_fields(inner.orderMessage))
     elif field == "productMessage":
         out.update(commerce_messages.product_fields(inner.productMessage))
     elif field == "richResponseMessage":
         out.update(rich_response_fields(inner.richResponseMessage))
-    elif field in ("reactionMessage", "pollUpdateMessage", "keepInChatMessage", ""):
+    elif field in ("reactionMessage", "pollUpdateMessage", "keepInChatMessage", "",
+                   "encEventResponseMessage", "secretEncryptedMessage"):
         return False
+    elif field in ("buttonsMessage", "listMessage", "templateMessage", "highlyStructuredMessage",
+                   "interactiveMessage", "buttonsResponseMessage", "listResponseMessage",
+                   "templateButtonReplyMessage", "interactiveResponseMessage"):
+        out.update(buttons.button_fields(inner))
     else:
         out["type"] = "unknown"
+        # the proto field name carries no personal data; it is what a report of
+        # an "Incompatible message" needs to be traced to a message type
+        log.info("message with no mapping: field=%s", field)
         out.update(buttons.button_fields(inner))
     return True
+
+
+#: A channel invitation received in a chat -> WhatsApp Web's type and the
+#: model field wa-js serializes it under (client/core/channel_invites.py reads both)
+CHANNEL_INVITES = {
+    "newsletterFollowerInviteMessageV2": ("newsletter_follower_invite",
+                                          "newsletterFollowerInviteInfo"),
+    "newsletterAdminInviteMessage": ("newsletter_admin_invite", "newsletterAdminInviteInfo"),
+}
+
+
+def channel_invite_fields(field, invite) -> dict:
+    """An invitation to follow a channel or to be its admin, in the shape
+    WhatsApp Web's model gives it (WAWebParseNewsletter...InviteMessageProto)."""
+    kind, info_field = CHANNEL_INVITES[field]
+    info = {"newsletterId": invite.newsletterJID, "newsletterName": invite.newsletterName,
+            "inviteMessage": invite.caption}
+    expiration = int(getattr(invite, "inviteExpiration", 0) or 0)
+    if expiration:
+        info["inviteExpiration"] = expiration
+    return {"type": kind, "body": invite.caption, info_field: info}
 
 
 def rich_response_fields(rich) -> dict:
@@ -309,7 +354,8 @@ def rich_response_fields(rich) -> dict:
 # content fields that carry contextInfo (reply, mention, forwarded)
 CONTEXT = ("extendedTextMessage", "imageMessage", "videoMessage", "ptvMessage",
            "audioMessage", "documentMessage", "stickerMessage", "locationMessage",
-           "liveLocationMessage", "contactMessage", "contactsArrayMessage")
+           "liveLocationMessage", "contactMessage", "contactsArrayMessage",
+           "templateMessage", "interactiveMessage", "buttonsMessage", "listMessage")
 
 # what the client reads of a quote: the rest (keys, thumbnail...) would only bloat
 # what it stores (core/utils.py _slim_quoted_message)
@@ -374,6 +420,17 @@ def _context(ctx, chat_w):
     return out
 
 
+def message_key(chat, from_me, mid, participant=""):
+    """A WPP message key; the optional author is an identity, never a phone guess."""
+    chat, participant = jid_wpp(chat), jid_wpp(participant)
+    serial = f"{'true' if from_me else 'false'}_{chat}_{mid}"
+    key = {"fromMe": bool(from_me), "remote": chat, "id": mid}
+    if participant:
+        key["participant"] = participant
+        serial += f"_{participant}"
+    return {**key, "_serialized": serial}
+
+
 def build(*, chat: str, from_me: bool, id: str, sender: str, ts,
           message, sender_name: str = ""):
     """Object in WPPConnect format, or None if it is only control/reaction."""
@@ -383,12 +440,9 @@ def build(*, chat: str, from_me: bool, id: str, sender: str, ts,
     sender_w = jid_wpp(sender)
     group = chat_w.endswith("@g.us")
     status = chat_w == "status@broadcast"      # the author is whoever posted
-    serial = f"{'true' if from_me else 'false'}_{chat_w}_{id}"
-    if group:
-        serial += f"_{sender_w}"
+    participant = sender_w if group or (status and not from_me) else ""
     out = {
-        "id": {"fromMe": from_me, "remote": chat_w, "id": id,
-               "_serialized": serial},
+        "id": message_key(chat_w, from_me, id, participant),
         "fromMe": from_me,
         "from": "" if from_me else (sender_w if (group or status) else chat_w),
         "to": chat_w,

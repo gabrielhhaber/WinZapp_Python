@@ -16,6 +16,8 @@ class _I18n:
         "notif_poll_no_name": "[poll]",
         "notif_system_message": "[system]",
         "notif_template": "[template]",
+        "business_template_unavailable": "[business content unavailable]",
+        "business_parts_unavailable": "[some parts unavailable]",
     }
 
     def t(self, key):
@@ -76,7 +78,7 @@ def test_related_open_conversation_previews_use_translation_keys():
 
     assert stub._get_message_content(_message("pollCreationMessage", {"name": "Lunch"})) == "[poll: Lunch]"
     assert stub._get_message_content(_message("liveLocationMessage", {})) == "[location]"
-    assert stub._get_message_content(_message("templateMessage", {})) == "[template]"
+    assert stub._get_message_content(_message("templateMessage", {})) == "[business content unavailable]"
     assert stub._get_message_content(_message("protocolMessage", {"type": 14})) == "[system]"
 
 
@@ -85,9 +87,9 @@ def test_related_chat_list_previews_use_translation_keys():
     cases = (
         ("pollCreationMessageV2", {"name": "Lunch"}, "[poll: Lunch]"),
         ("liveLocationMessage", {}, "[location]"),
-        ("buttonsMessage", {}, "[button]"),
-        ("listMessage", {}, "[list]"),
-        ("templateMessage", {}, "[template]"),
+        ("buttonsMessage", {}, "[business content unavailable]"),
+        ("listMessage", {}, "[business content unavailable]"),
+        ("templateMessage", {}, "[business content unavailable]"),
     )
 
     for message_type, payload, expected in cases:

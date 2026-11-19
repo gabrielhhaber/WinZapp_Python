@@ -1060,6 +1060,9 @@ def _echo_window(controller, jid, records):
         _is_self_jid=lambda s: False,
         my_jid="",
         my_lid="",
+        _lid_mapping_lock=threading.Lock(),
+        _lid_to_phone={},
+        _phone_to_lid={},
         _redirect_self_chat_artifact=lambda rj, key, fm: (rj, fm),
         _extract_lid_mapping=lambda msg: None,
         _drop_protocol_edit=lambda rj, msg: False,
@@ -3713,3 +3716,38 @@ def test_menu_offers_send_raw_only_on_nr_pending_notes():
     assert 'msg.get("_nr_pending_retry")' in src
     assert "nr_pending_send_raw" in src
     assert "_on_menu_send_nr_pending_raw" in src
+
+
+def test_ordered_send_checks_revoke_when_delayed_action_is_released(send_env, monkeypatch):
+    """A later prepared note can be deleted while an earlier ticket is pending."""
+    from core.ordered_dispatch import OrderedDispatcher
+    import core.audio_processing as ap
+    dispatcher = OrderedDispatcher()
+    monkeypatch.setattr(vr, 'voice_dispatcher', dispatcher)
+    monkeypatch.setattr(ap, 'apply_noise_gate', lambda data, rate, ch, **kw: data)
+    jid = 'peer@s.whatsapp.net'
+    previous = dispatcher.reserve(jid)
+    controller = IncrementalDenoiseController()
+    frames = [b'\x01\x02' * 480]
+    session = _send_session(controller, frames, worker=None,
+                            spool=str(send_env / 'unused.pcm'),
+                            stream=_FakeStream())
+    session['basic_only'] = True
+    controller.release_slot(session['local_id'])
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    complete = threading.Event()
+    original_complete = dispatcher.complete
+
+    def finished(key, ticket, action):
+        original_complete(key, ticket, action)
+        complete.set()
+
+    monkeypatch.setattr(dispatcher, 'complete', finished)
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert complete.wait(10)
+    assert not mw.message_queue.enqueued
+    assert controller.revoke(session['local_id'])
+    original_complete(jid, previous, None)
+    assert not mw.message_queue.enqueued
+    assert not controller.is_preparing(session['local_id'])

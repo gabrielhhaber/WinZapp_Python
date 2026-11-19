@@ -51,6 +51,7 @@ import pytest
 
 from core.utils import expanded_min_visible, history_window, paginated_window
 from ui.conversations import ConversationsPanel
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 JID = "1234567890@s.whatsapp.net"
 OTHER_JID = "1098765432@s.whatsapp.net"
@@ -140,7 +141,7 @@ class _FakeMainWindow:
         return bool(left_forms and right_forms and (left_forms & right_forms))
 
 
-class _Stub:
+class _Stub(ReadingPositionMixin):
     """Minimal stand-in for ConversationsPanel for the history-load paths."""
 
     def __init__(self, conversation=None, main_window=None, sorted_messages=None,
@@ -676,3 +677,26 @@ class TestTheWindowIsReadFromTheScreenBeforeEachRebuild:
         assert src.index("self._refresh_expanded_window_before_rebuild()") < src.index(
             "self._sync_message_rows("
         )
+
+
+class TestWideWindowIsExplained:
+    def test_a_wide_window_logs_which_input_widened_it(self, caplog):
+        import logging
+        stub = _Stub()
+        stub._sorted_messages = []
+        stub._expanded_visible_count = 5000
+        stub._expanded_oldest_msg_id = "m1"
+        displayable = [{"key": {"id": str(i)}} for i in range(6000)]
+        with caplog.at_level(logging.INFO):
+            offset, _ = stub._history_window_for_rebuild(displayable, 200)
+        assert any("wide window" in r.getMessage() and "expanded_floor=5000" in r.getMessage()
+                   for r in caplog.records)
+
+    def test_a_normal_window_logs_nothing(self, caplog):
+        import logging
+        stub = _Stub()
+        stub._sorted_messages = []
+        displayable = [{"key": {"id": str(i)}} for i in range(600)]
+        with caplog.at_level(logging.INFO):
+            stub._history_window_for_rebuild(displayable, 200)
+        assert not any("wide window" in r.getMessage() for r in caplog.records)

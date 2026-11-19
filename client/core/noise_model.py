@@ -70,3 +70,16 @@ def download(root: str | None = None, progress=None, should_cancel=None, session
     """Fetch the model if it is missing and return the path of the .onnx file."""
     model_store.download_model(DPDFNET2_48K, root or models_dir(), progress, should_cancel, session)
     return installed_path(root)
+
+
+def remove(root: str | None = None) -> bool:
+    """Delete the model's files (only the catalogue's names). True if any went.
+    A model the reducer has loaded in this process stays until a restart."""
+    global_root = root or models_dir()
+    removed = model_store.remove_model_files(global_root, DPDFNET2_48K)
+    try:
+        from core import neural_noise_reduction
+        neural_noise_reduction.forget_denoiser()
+    except Exception:
+        pass
+    return removed

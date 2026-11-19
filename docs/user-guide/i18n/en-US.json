@@ -49,12 +49,16 @@
   "autocomplete": "Mention suggestions",
   "media": "Media viewer and playback",
   "emoji": "Emoji picker",
+  "reorder": "Reorderable lists",
   "ai_result": "Result window (AI and transcription)",
   "status": "Status",
   "status_list": "Status list",
   "status_reply": "Status reply",
   "calls": "Calls tab",
   "call": "During a call",
-  "incoming": "Incoming call"
+  "incoming": "Incoming call",
+  "channels": "Channels window",
+  "channel_people": "Channel admins and followers",
+  "call_participants": "Call participants"
  }
 }

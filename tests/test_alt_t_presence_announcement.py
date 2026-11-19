@@ -11,6 +11,12 @@ class _I18n:
         "typing_indicator": "typing...",
         "recording_indicator": "recording audio...",
         "group_presence_indicator": "{name}: {action}",
+        "group_typing_singular": "{names} is typing",
+        "group_typing_plural": "{names} are typing",
+        "group_recording_singular": "{names} is recording audio",
+        "group_recording_plural": "{names} are recording audio",
+        "group_activity_and": "{first} and {second}",
+        "group_activity_comma": "{first}, {second}",
         "presence_online": "Online",
         "presence_last_seen": "Last seen {time}",
         "presence_unavailable": "No presence information available",
@@ -35,11 +41,16 @@ class _Stub:
         self._lid_to_phone = {}
         self.outputs = []
         self.conversations_panel = None
+        self.settings = {}
 
     def output(self, text, interrupt=False):
         self.outputs.append(text)
 
+    names = None
+
     def _resolve_jid_name(self, jid_norm, chat_jid_norm=""):
+        if self.names is not None:
+            return self.names.get(jid_norm, "")
         return "Fulano"
 
 
@@ -62,6 +73,25 @@ class TestPresenceAnnouncementContent:
 
     def test_group_typing_includes_participant_name(self):
         stub = _Stub()
+        jid = "12345-6789@g.us"
+        stub._composing_chats[jid] = {"participant@s.whatsapp.net": "composing"}
+        result = stub._presence_announcement_for_chat(_chat(jid, is_group=True))
+        assert result == "Fulano is typing..."
+
+    def test_group_names_everyone_active(self):
+        stub = _Stub()
+        stub.names = {"a@s.whatsapp.net": "Ana", "b@s.whatsapp.net": "Bia"}
+        jid = "12345-6789@g.us"
+        stub._composing_chats[jid] = {
+            "a@s.whatsapp.net": "composing",
+            "b@s.whatsapp.net": "recording",
+        }
+        result = stub._presence_announcement_for_chat(_chat(jid, is_group=True))
+        assert result == "Ana is typing and Bia is recording audio..."
+
+    def test_group_setting_off_keeps_the_old_wording(self):
+        stub = _Stub()
+        stub.settings = {"speech_content": {"announce_group_multiple_activity": False}}
         jid = "12345-6789@g.us"
         stub._composing_chats[jid] = {"participant@s.whatsapp.net": "composing"}
         result = stub._presence_announcement_for_chat(_chat(jid, is_group=True))

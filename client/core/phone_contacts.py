@@ -3,7 +3,8 @@
 A local contact (NewContactDialog's first tab) lives only inside WinZapp. A
 phone-synced one is saved in WhatsApp through the server's ``save-contact``
 route (WPP.contact.save with syncAddressBook), which is the action WhatsApp
-Web's own "add contact" runs, and ends up in the phone's address book.
+Web's own "add contact" runs. The sync flag requests a phone address-book
+update; it is not an acknowledgement that the phone completed that update.
 
 Plain functions over an injectable ``post``, no wx and no network of their
 own, so the request shapes, the error mapping and the record rules are tested
@@ -42,7 +43,8 @@ _PHONE_SUFFIXES = ("@s.whatsapp.net", "@c.us")
 
 #: What save_contact() answers. *jid* is the JID WhatsApp filed the contact
 #: under (it may differ from the typed number in the Brazilian 9th digit);
-#: *synced* is whether WhatsApp confirmed the sync with the phone.
+#: *synced* is whether WhatsApp reports phone sync enabled for this save,
+#: not whether the phone has completed writing its address book.
 SaveResult = namedtuple("SaveResult", "ok error_key jid synced")
 
 
@@ -303,7 +305,7 @@ def _error_of(resp) -> str:
 
 def save_contact(base: str, token: str, jid: str, first: str, last: str = "",
                  post=_api_post) -> SaveResult:
-    """Save the contact in WhatsApp, synced to the phone.
+    """Save the contact in WhatsApp and request phone synchronization.
 
     Blocks for the length of the request: call it off the main thread.
     """
@@ -318,10 +320,15 @@ def save_contact(base: str, token: str, jid: str, first: str, last: str = "",
         return SaveResult(False, ERR_FAILED, jid, False)
     if not resp.ok:
         return SaveResult(False, _error_of(resp), jid, False)
-    answer = _body(resp).get("response")
+    body = _body(resp)
+    answer = body.get("response")
     answer = answer if isinstance(answer, dict) else {}
+    # HTTP success alone does not prove the save, and the sync preference is
+    # not proof that a contact was saved (or that the phone has written it).
+    if body.get("status") == "error" or answer.get("isMyContact") is not True:
+        return SaveResult(False, ERR_FAILED, jid, False)
     return SaveResult(True, "", jid_from_server(answer.get("id"), jid),
-                      bool(answer.get("syncToAddressbook")))
+                      answer.get("syncToAddressbook") is True)
 
 
 def remove_contact(base: str, token: str, jid: str, post=_api_post) -> bool:

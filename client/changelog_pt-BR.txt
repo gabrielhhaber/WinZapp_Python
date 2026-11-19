@@ -4,7 +4,211 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
-- As mensagens de voz podem usar redução de ruído neural em segundo plano durante a gravação, em vez de esperar pelo envio. Configurações > Áudio permite escolher redução básica ou neural, processar durante a gravação ou ao enviar (padrão), e o que fazer se a redução neural falhar: enviar com redução básica ou deixar a mensagem pendente para uma nova tentativa manual. As opções dessas listas não incluem mais marcadores de atalhos de teclado dentro das palavras.
+- As mensagens de voz podem usar redução de ruído neural em segundo plano durante a gravação, em vez de esperar pelo envio. Configurações > Áudio permite escolher redução básica ou neural, processar durante a gravação ou ao enviar (padrão), e o que fazer se a redução neural falhar: enviar com redução básica ou deixar a mensagem pendente para uma nova tentativa manual. As opções dessas listas não incluem mais marcadores de atalhos de teclado dentro das palavras. O processamento durante a gravação usa CPU ou a via CoreML dentro do programa; ao escolher CUDA, ele é desativado e o processamento ocorre ao enviar. Não há processamento CUDA durante a gravação. A via CoreML durante a gravação não foi validada em uso real.
+
+- O nome de um contato agora é único: quando alguém troca o nome do perfil, todas as mensagens dele, inclusive as antigas e as de grupos, passam a mostrar o nome novo em vez de alternar entre o antigo e o novo. Vale para Neonize e para WPPConnect.
+
+- Inicialização: o suporte de voz agora usa seu próprio cache COM temporário, evitando erros de importação circular quando o cache compartilhado do Windows perde o índice.
+
+- Os botões de uma mensagem de empresa agora aparecem também quando a conversa abre com a mensagem já focada, como numa conversa com uma única mensagem, e não só depois de mover o foco para ela. Vale para Neonize e para WPPConnect.
+
+- Na lista de provedores de IA online e nas opções de uma nova enquete, Alt+Seta para cima e Alt+Seta para baixo movem o item selecionado, e os botões Mover para cima e Mover para baixo anunciam essas teclas. As teclas aparecem na lista do F1 e podem ser trocadas em Configurações > Atalhos.
+
+- Ao criar uma enquete, a caixa Ocultar nomes de quem votou e a escolha Limite de tempo (sem limite, 1 hora, 8 horas, 24 horas, 3 dias ou 7 dias) agora funcionam com Neonize e com WPPConnect. Em Ver votos, uma enquete que oculta os nomes mostra "Nome oculto" no lugar de quem votou; o seu próprio voto continua aparecendo como "Eu".
+- Ao criar uma enquete, os botões Mover para cima e Mover para baixo reordenam as opções antes do envio; a enquete vai para o WhatsApp na ordem que você deixou, com Neonize e com WPPConnect.
+
+- Mensagens favoritadas agora terminam com a palavra "Favoritada", como "Editada" e "Encaminhada", em vez de começarem com o símbolo ★. Uma nova opção em Configurações > Interface do usuário > Mensagens permite ouvir a palavra no início da linha, antes do remetente.
+
+- Os sons de digitação, bolha de digitação, pulso de digitação e processamento de IA do pacote de som padrão agora são arquivos Ogg, como o resto do pacote. Nada muda no som nem nos seus sons personalizados.
+
+- Dentro de uma conversa aberta, com a pesquisa de mensagens (Ctrl+Shift+F) ativa, o primeiro Esc limpa a pesquisa e fecha a barra, e o leitor de tela diz "Pesquisa de mensagens limpa"; o Esc seguinte fecha a conversa. Dá para desligar em Configurações, Conversas.
+
+- Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros e o leitor de tela diz "Filtros limpos"; com conversas marcadas, o primeiro Esc ainda desmarca só a seleção. Dá para desligar em Configurações, Conversas. Isso vale também a partir dos filtros, da pesquisa e dos demais controles do painel de conversas; dentro de uma conversa aberta, o Esc continua fechando a conversa ou desmarcando as mensagens.
+
+- Incluir uma conversa numa lista ou tirá-la de uma lista em outro dispositivo atualiza as listas e o filtro aberto, sem trocar a lista selecionada.
+
+- Trocar a sua foto de perfil em outro dispositivo atualiza o painel de Perfil aberto, sem substituir nome, recado ou foto que você ainda não salvou.
+
+- Mudar Manter conversas arquivadas ou a privacidade dos status em outro dispositivo atualiza o painel aberto, preservando as escolhas ainda não aplicadas.
+
+- Corrigido o salvamento de contatos que não apareciam no WhatsApp do iPhone: o ID vinculado agora é enviado completo, no formato usado pela tela nativa do WhatsApp.
+
+- Ao salvar um contato no celular, o WinZapp agora diz que pediu ao celular para incluí-lo, em vez de afirmar que ele já está na agenda; um salvamento que o WhatsApp não confirmou deixa de ser informado como concluído.
+
+- Mudanças de privacidade feitas em outro dispositivo atualizam o painel aberto, preservando os campos que você alterou e ainda não aplicou.
+
+- Bloquear ou desbloquear um contato em outro dispositivo atualiza o WinZapp assim que o WhatsApp avisa.
+
+- Quando um contato ou grupo troca ou remove a foto, o WinZapp deixa de mostrar a antiga.
+
+- Contatos salvos, renomeados ou removidos da agenda em outro dispositivo e mudanças do nome público atualizam o WinZapp ao chegar o aviso, preservando nomes locais e o histórico.
+
+- Descrição, permissões e participantes dos grupos agora acompanham os avisos em tempo real, incluindo promoção e rebaixamento de administradores, com atualização das permissões de envio na conversa aberta.
+
+- Apagar uma conversa em outro dispositivo a remove do WinZapp ao chegar o aviso; uma conversa com mensagens posteriores ao aviso é mantida. Se ela estava aberta, é fechada e o WinZapp diz o motivo.
+
+- Fixar ou desafixar uma mensagem em outro dispositivo atualiza sua marca e o resumo de mensagens fixadas da conversa aberta ao chegar o aviso.
+
+- Mudar o prazo das mensagens temporárias em outro dispositivo, numa conversa ou num grupo, atualiza o WinZapp sem esperar uma sincronização completa.
+
+- Trancar ou destrancar uma conversa no celular atualiza o WinZapp ao chegar o aviso; se ela estava aberta, é fechada e o WinZapp diz o motivo.
+
+- Mudanças de silenciamento, arquivo e fixação feitas em outro dispositivo atualizam a lista de conversas assim que o aviso chega, com WPPConnect e Neonize.
+
+- Mensagens apagadas para você em outro dispositivo são removidas da conversa quando chega o aviso de exclusão, com WPPConnect e Neonize.
+
+- Favoritar ou desfavoritar uma mensagem no celular ou em outro dispositivo atualiza a marca na conversa aberta assim que o aviso chega, com WPPConnect e Neonize.
+
+- Neonize: as edições preservam o ID da mensagem original e registram a chave completa do aviso de edição, incluindo o autor em grupos.
+
+- Neonize: os eventos de reações usam o formato do WPPConnect, com as chaves completas da reação e da mensagem original, o autor e o horário em segundos.
+
+- Na conversa aberta, os resultados das enquetes são atualizados quando chega um novo evento de voto, tanto com Neonize quanto com WPPConnect. Neonize: eventos compatíveis com WPPConnect para votos, mensagens apagadas e associação de etiquetas; os IDs de status recebidos preservam o autor.
+
+- Arquivar uma conversa agora pede confirmação, pelo menu de contexto ou pelo Ctrl+Shift+Q, como apagar. O diálogo pergunta "Tem certeza de que deseja arquivar esta conversa?" e tem os botões "Arquivar conversa" (Alt+A) e "Cancelar" (Alt+C), mais a caixa "Não mostrar novamente", que só vale junto com a confirmação. Em Configurações > Interface do usuário, a opção "Pedir confirmação antes de arquivar conversas" volta a perguntar.
+
+- Tradução das mensagens que já estão na conversa: o menu de contexto da mensagem ganha "Traduzir daqui até o fim" (Alt+Shift+Y) e a ação em massa "Traduzir as mensagens selecionadas" passa a mostrar o atalho Ctrl+Alt+Shift+Y. Os dois podem ser trocados na aba Atalhos das Configurações, e os itens do menu mostram o atalho em uso. Enquanto uma tradução de várias mensagens roda, o mesmo item de menu e atalho viram "Cancelar a tradução das mensagens". Vale para mensagens de texto recebidas, até 50 por vez, com o provedor, o modelo e a exibição de "Traduzir mensagem".
+
+- Ajuda para escrever: chega ao WinZapp uma função semelhante à ajuda para escrever do WhatsApp para celulares, com a opção adicional de traduzir o rascunho. O novo botão após Emoji e o menu de contexto do campo abrem a mesma janela. Corrija, reformule, use um tom profissional ou encorajador com os provedores de IA configurados no WinZapp, não com a Meta AI; a tradução é feita com o Google. Há consentimento antes de enviar o rascunho e uma prévia antes de substituí-lo; a mensagem nunca é enviada automaticamente. Escolha uma ação e depois pressione "Executar ação escolhida". Abrir ou fechar esta janela não envia o rascunho.
+
+- Ajuda para escrever: novo atalho Alt+Shift+H para abrir a janela a partir de qualquer lugar da conversa com um rascunho escrito. Dá para trocá-lo na aba Atalhos das Configurações, e o menu de contexto do campo e o botão passam a mostrar o atalho em uso.
+
+- O WPPConnect Server foi atualizado para a 2.10.87, com o WPPConnect 2.4.6 e o WA-JS 4.8.2, o que volta a permitir o envio de mensagens quando o WhatsApp Web mudou por dentro. A leitura do histórico de mensagens deixa de acumular cópias na memória, o navegador que o WinZapp controla só é fechado automaticamente quando foi o próprio WinZapp que o abriu, e a espera pelo carregamento do WhatsApp Web passa a funcionar também com a página oculta. Mídia recebida sem endereço de download passa a ser baixada pelo identificador da mensagem.
+
+- Resumo de mensagens com IA, como no WhatsApp: a conversa aberta ganha o botão "Resumir não lidas" e o atalho Ctrl+Shift+U; o menu de contexto da lista de conversas ganha "Resumir com IA as mensagens não lidas", que lê as mensagens do banco sem abrir a conversa nem marcá-la como lida; e o menu de contexto de uma mensagem oferece resumir as não lidas, "daqui até o fim" e as selecionadas. O botão só aparece com 10 ou mais mensagens não lidas; o atalho funciona com qualquer quantidade. O resumo usa os provedores de IA já configurados em Configurações > IA on-line (não a Meta AI), vem numa janela com perguntas de acompanhamento e o botão Copiar, e avisa que foi feito por IA e pode conter erros. As mensagens de voz entram com o texto: o WinZapp usa a transcrição já salva ou transcreve na hora, com a transcrição local, as 20 mais recentes, numa janela que mostra o progresso e tem o botão Cancelar; sem a transcrição configurada elas ficam só como marcador e o resultado avisa. O consentimento é próprio, pedido antes de qualquer transcrição, uma vez, e lembrado nas conversas comuns; nas conversas bloqueadas é pedido sempre, nunca lembrado, e a janela fecha quando o cofre é bloqueado. O resumo cobre até 200 mensagens e 15.000 caracteres e diz quantas mensagens mais antigas ficaram de fora.
+
+- Resumo com IA: dois novos atalhos no menu de contexto da mensagem, Alt+Shift+I para resumir daqui até o fim e Ctrl+Alt+Shift+I para resumir as mensagens selecionadas. Dá para trocá-los na aba Atalhos das Configurações, e os itens do menu passam a mostrar o atalho em uso, inclusive o de Ctrl+Shift+U nas não lidas.
+
+- Resumo com IA: ao resumir mensagens com áudios sem transcrição salva, uma janela pergunta como transcrevê-los: localmente (padrão), on-line com um provedor e um modelo de transcrição à parte do modelo do resumo, ou não transcrever. Antes de enviar os áudios, uma pergunta diz quantos vão, para qual provedor e que isso pode consumir cota ou gerar custos, com a caixa para lembrar o consentimento desse provedor. As transcrições salvas são reaproveitadas, e o resultado avisa quantos áudios falharam ou ficaram de fora do limite. Abrir, mudar ou fechar as janelas não envia nada. Pedido de UlisesMilani (#791).
+
+- WPPConnect: com pouco espaço em disco (menos de 4 GB livres), o WinZapp fecha o WhatsApp com segurança antes que ele perca a sessão, fica offline e diz o motivo. Quando houver pelo menos 5 GB livres, ele se conecta de novo sozinho. Antes, com cerca de 3 GB livres, a sessão podia voltar desconectada como se tivesse sido apagada.
+
+- Transcrição automática: um áudio recebido enquanto o computador estava suspenso não fica mais sem transcrição quando chega junto com outros na volta.
+
+- Neonize: quem entra num grupo pelo link de convite aparece como "entrou usando link de convite do grupo", como no WhatsApp Web, e entrar você mesmo num grupo por link também deixa esse aviso na conversa.
+
+- Limpar uma conversa no celular agora limpa a mesma conversa no WinZapp, nos dois motores de conexão. As mensagens favoritas continuam quando o celular as manteve, e uma mensagem que chegou depois da limpeza não é apagada.
+
+- Canais: um canal aberto pela janela Canais, por exemplo pelas listas Em alta ou Recomendados, carrega as atualizações na hora, em vez de mostrar "Nenhuma atualização neste canal ainda." até a próxima sincronização. Os detalhes de um canal que você não segue também passam a ser lidos.
+
+- Grupos: o botão "Dados do grupo" acompanha o número de participantes. Num grupo em que você acabou de entrar e cuja lista de participantes demora a chegar, o número aparece assim que a lista chega, e muda quando alguém entra ou sai com a conversa aberta.
+
+- Depois de o computador voltar da suspensão, o WinZapp não mostra mais "Atualizando conversas" de novo alguns minutos depois. As conversas que não puderam ser lidas enquanto a conexão voltava são lidas na mesma sincronização.
+
+- Neonize: mudar uma opção de privacidade do WhatsApp, como "Visto por último" ou "Confirmação de leitura", não mostra mais "Algumas configurações não puderam ser aplicadas." quando o WhatsApp aplicou a mudança.
+
+- O log da conta não grava mais o código de acesso da sessão do WPPConnect quando uma mídia é baixada.
+
+- Motor de conexão: o Neonize agora é o primeiro da lista e a opção já selecionada quando o WinZapp pergunta o motor na primeira abertura; ele continua marcado como experimental, mas é o mais recomendado para uso geral. A WPPConnect passa a ser a segunda opção, com o aviso "alternativa" depois do nome, na primeira abertura, na janela de pareamento e em Configurações > Conexão. Quem já usa a WPPConnect continua nela até trocar.
+- Depois de muito tempo sem abrir o WinZapp: enquanto o WhatsApp ainda entrega mensagens antigas depois da sincronização, o título da janela continua dizendo "Atualizando conversas" em vez de dar tudo como sincronizado, e a lista de conversas fica parada, para você navegar sem as conversas mudarem de lugar. Ela é atualizada de uma vez quando as mensagens param de chegar. Vale para o Neonize e para a WPPConnect. No Neonize, o WinZapp também usa o aviso do próprio WhatsApp de que há mensagens antigas a entregar, então o estado aparece desde a primeira mensagem e só some quando a entrega termina.
+
+- Notificações: quando muitas mensagens novas chegam de uma vez (por exemplo, ao voltar de uma conexão instável), o WinZapp toca e fala só as três primeiras e fica em silêncio até a rajada acabar, em vez de repetir o som dezenas de vezes. As mensagens continuam na lista e contam como não lidas. O limite é escolhido em Configurações > Geral > Notificações, em "Máximo de notificações por segundo quando muitas mensagens chegam de uma vez" (padrão: 3).
+
+- Neonize: aceitar os termos da Meta AI não falha mais com erro do WhatsApp. O WinZapp agora envia o aceite no mesmo formato que o WhatsApp Web usa para esse aviso e só confirma depois de ler de novo que o aviso consta como aceito.
+
+- Ligações: melhor compatibilidade com microfones e fones de ouvido estéreo no modo compartilhado, com retorno a mono quando necessário. A voz continua sendo enviada em mono.
+
+- Na janela da chamada, pressione Ctrl+M em qualquer controle para silenciar ou reativar o microfone e ouvir seu estado. A janela da ligação feita mostra o estado e anuncia quando o telefone toca ou a ligação está sendo conectada.
+
+- Durante uma chamada de voz no Windows 11, use Compartilhar áudio da área de trabalho para enviar o áudio do sistema ou o de um único aplicativo, com ou sem o áudio do NVDA, no volume que você escolher. Nada vem selecionado. Silenciar o microfone não interrompe o compartilhamento, e trocar os dispositivos de áudio da chamada o mantém. Use Parar de compartilhar áudio da área de trabalho para encerrar o compartilhamento independentemente do microfone.
+
+- Neonize: nas chamadas, a voz da outra pessoa fica um pouco mais no buffer (cerca de 60 ms), para reduzir os cortes quando o áudio chega em rajadas.
+
+- Tradução de mensagens: pressione Shift+Enter em uma mensagem de texto da lista de mensagens (o atalho pode ser trocado) ou use o menu de contexto dela. Configure em Configurações > IA online: Transcrições e Descrições > Tradução de mensagens: o provedor (os seus provedores de IA, Grok ou um endereço próprio compatível com OpenAI ou Anthropic), o modelo, o idioma de destino e se a tradução substitui o texto, aparece depois dele ou abre em uma janela separada. Tradução automática opcional das mensagens recebidas, em todas as conversas ou só nas que você ativar, com idade máxima da mensagem e limite diário; ela pausa por uma hora se o provedor recusar a chave, a cota ou o crédito. Conversas trancadas nunca são traduzidas automaticamente, e traduzir uma mensagem delas pede confirmação toda vez. Os tipos de mídia da IA online ficam agora na janela "Tipos de mídia processados...", na mesma página. Ativar a tradução automática em uma conversa agora também traduz as 10 últimas mensagens recebidas, seja qual for a idade, e "Traduzir as mensagens selecionadas", nas ações em massa, traduz as mensagens de texto selecionadas (até 50) depois de pedir confirmação. Pedido de UlisesMilani (#793).
+
+- Neonize: o aviso de que uma mensagem foi apagada, quando o WinZapp não tem a mensagem nem a conversa, não cria mais um "Grupo sem nome" na lista de conversas. As mensagens apagadas nas suas conversas existentes continuam iguais.
+
+- Neonize: a mídia antiga que o celular reenvia depois do pedido de novo envio agora é baixada de verdade. Antes, o arquivo reenviado era recusado por não bater com a verificação do arquivo original e a mídia continuava sem abrir.
+
+- Atualizar ao sair: nova opção em Configurações > Geral que baixa as atualizações automaticamente, sem perguntar, e as instala quando você sai do WinZapp. Fechar a janela para a bandeja não conta como sair, e o WinZapp não abre de novo depois da instalação: ele fica fechado e usa a versão nova na próxima vez que você abri-lo.
+
+- Neonize: o histórico antigo das conversas agora é importado de fato durante a sincronização em segundo plano; a correção anterior ainda era anulada ao fim de cada varredura. Mídia antiga que não dá mais para recuperar, mesmo depois de pedir ao celular, agora aparece como expirada em vez de um erro de conexão repetido.
+
+- Neonize: mídia cujo link expirou agora é pedida de novo ao celular. Quando o download falha por link expirado, o WinZapp pede ao celular que envie a mídia outra vez e baixa pelo novo link; se o celular não tem mais o arquivo, a mídia continua marcada como expirada.
+
+- Respostas e envios novos não aparecem mais acima da mensagem original quando o relógio do computador está atrasado em relação ao WhatsApp. O horário provisório da mensagem enviada nunca fica anterior ao da última mensagem já exibida nem ao da mensagem respondida.
+
+- Neonize: o histórico que o celular envia durante várias horas não é mais dado como completo por uma pausa de 45 segundos entre blocos. Enquanto o progresso informado estiver abaixo de 100%, o WinZapp espera até 10 minutos de silêncio, para não tratar conversas como finais cedo demais.
+
+- Mídia que não baixa: a mensagem de erro não cita mais o WPPConnect, que não existe no motor Neonize. Ela agora fala em link expirado ou conexão com o WhatsApp indisponível.
+
+- Modelos comerciais: preserva o texto disponível e os botões compatíveis, mantém a posição dos botões e explica conteúdo ausente ou ações incompatíveis. Registros antigos vazios não podem ser reconstruídos.
+
+- O WPPConnect Server 2.10.79 agora é oferecido como atualização sem esperar por uma nova versão do WinZapp. Ele só atualiza dependências de segurança e não afeta as alterações que o WinZapp faz no servidor.
+
+- Neonize: depois de parear com "Todo o histórico", o histórico antigo das conversas agora é importado de verdade. Antes, centenas de conversas antigas e vazias que você nunca abriu travavam essa importação, e a maior parte das mensagens já baixadas não aparecia. Mídias antigas cujo link expirou agora são reconhecidas como expiradas, em vez de falhar com erro e tentar de novo várias vezes.
+
+- Menções: numa mensagem de grupo com @todos, o Tab não passa mais por um link para cada participante logo depois de abrir a conversa. Antes isso acontecia até os participantes do grupo terminarem de carregar e a mensagem perder o foco.
+
+- Transcrição local: alternar de conta enquanto áudios são transcritos não enche mais a memória do computador. Só um modelo fica carregado por vez: uma segunda transcrição, da mesma conta ou de outra, espera a primeira e avisa que está aguardando, e o modelo parado de uma conta é liberado quando outra precisa.
+
+- Limpar conversa (Neonize): limpar uma conversa no WinZapp agora limpa também no celular. Antes o aviso não chegava ao celular e as mensagens voltavam na sincronização seguinte.
+
+- Transcrição automática: as mensagens de voz que chegam todas de uma vez depois de o computador hibernar ou ficar sem internet agora são transcritas. O tempo em que o computador ficou desligado ou sem conexão não conta mais como idade da mensagem, e a fila guarda até 100 mensagens.
+
+- Transcrição local: nova opção "Transcrever também as que chegarem atrasadas", que aparece com a transcrição automática ligada, para transcrever as mensagens recebidas por mais antigas que sejam.
+
+- Mensagens temporárias (Neonize): áudios gravados com Ctrl+Shift+H, fotos, vídeos e documentos agora seguem a duração das mensagens temporárias da conversa.
+
+- Ligações (Neonize): uma ligação feita para um contato não aparece mais na sua conversa pessoal, como se você tivesse ligado para si mesmo.
+
+- Mensagens de grupo (Neonize): uma mensagem que este computador não conseguiu abrir agora é pedida também ao seu celular, como o WhatsApp Web faz. Antes ela se perdia quando o aparelho de quem enviou não a reenviava.
+
+- Pareamento (Neonize): ao conectar, você escolhe quanto histórico trazer: só as mensagens recentes, 30 dias, 6 meses, 1 ano, todo o histórico ou um período personalizado em dias, meses ou anos. Mensagens com mais de cerca de um ano só chegam assim.
+
+- Mensagens antigas (Neonize): a tecla Home continua pedindo ao celular as mensagens mais antigas até ele não ter mais nada, mesmo onde o WhatsApp Web para.
+
+- Canais: convites para seguir um canal ou para ser administrador dele agora aparecem na conversa, com o nome do canal e a mensagem de quem convidou. Enter abre o canal.
+
+- Redutor de ruído: nova janela "Configurações avançadas do redutor de ruído" em Configurações, Áudio, com o modelo neural e o processador em que ele roda: o do computador, uma placa NVIDIA com CUDA 12 (que aproveita os componentes da transcrição local) ou com CUDA 13, ou o Core ML no Mac. Só os componentes que faltam são baixados, seguindo a opção de baixar em segundo plano, e eles podem ser removidos ali. Uma nova caixa escolhe entre o redutor neural e o comum, mais rápido.
+
+- Transcrição local (whisper.cpp): em computadores com Windows ARM64, o WinZapp usa a versão nativa para ARM64 e oferece, como opção, a versão para placas NVIDIA com CUDA 13.
+
+- Canais: onde o WhatsApp oferece isso à sua conta, "Editar canal..." tem "Mostrar o perfil do administrador nas atualizações", como no WhatsApp Web (WPPConnect).
+
+- Canais: "Estatísticas..." na janela Canais lê as estatísticas de um canal que você administra, como o WhatsApp Web as mostra (alcance, seguidores, saldo, novos seguidores e quem deixou de seguir em 30 dias, entre quem segue e quem não segue e por país), na WPPConnect e no Neonize. O WhatsApp as oferece a partir de 100 seguidores.
+
+- Download de mídias: "Baixando mídias: X de Y" agora conta só as mídias que ainda faltam baixar. Antes contava também as já baixadas em sessões anteriores, e parecia que quase nada tinha sido baixado (por exemplo "723 de 728 processadas (66 baixadas)", quando as outras 659 já estavam no computador).
+
+- Canais: em "Criar canal..." e "Editar canal...", a escolha Reações define como os seguidores podem reagir às atualizações (qualquer emoji, só os emojis padrão ou nenhuma reação), como no WhatsApp Web, na WPPConnect e no Neonize.
+
+- Mensagens favoritas: uma nova janela lista todas as mensagens favoritas de todas as conversas (Alt+0, ou a linha "Mensagens favoritas" da lista de navegação), com um campo de pesquisa; Enter abre a conversa na mensagem, e Delete tira o favorito. Sugestão da issue #708.
+
+- Configurações > Interface do usuário > Conversas: nova opção "Posição focada automaticamente na lista de mensagens". Com "Continuar de onde você parou (última mensagem focada)", ao voltar para uma conversa (inclusive trocando de uma conversa para outra), a lista de mensagens fica na mensagem em que você estava quando saiu, haja ou não mensagens novas não lidas. O separador de não lidas e outras linhas que não são mensagens não contam como posição. O padrão continua sendo "Separador de não lidas ou última mensagem". A opção escolhe só a mensagem da lista: se o foco vai para a lista ou para o campo de mensagem continua sendo decidido pela opção que já existia.
+
+- Marcadores: duas novas caixas de verificação em Configurações > Interface do usuário > Conversas, "Remover marcadores permanentes automaticamente após o primeiro uso" e "Remover marcadores temporários automaticamente após o primeiro uso". Marcadas, ir até um marcador (Ctrl+0 a 9 nos permanentes, Alt+Shift+0 a 9 nos temporários) já o remove, e a mesma tecla cria um marcador novo na próxima vez, sem precisar removê-lo com Ctrl+Shift+número.
+
+- Sons: duas novas opções em Configurações, Sons permitem escolher o som tocado numa nova mensagem com o WinZapp em primeiro plano, uma para a conversa aberta e outra para as demais conversas. Cada uma pode manter o som dedicado de primeiro plano, como antes, ou usar o mesmo som de notificação escolhido para as mensagens em segundo plano.
+
+- Links do WhatsApp: o WinZapp agora abre links de conversa. Um link wa.me ou api.whatsapp.com (por exemplo, de uma companhia aérea, de uma loja ou de um site) abre a conversa com aquele número, mesmo que ele não esteja nos seus contatos, coloca a mensagem do link no campo de mensagem e deixa o foco ali, pronta para você revisar e enviar. Links só com o número também funcionam. A versão instalada agora se registra para links do WhatsApp na primeira vez que abre, e por isso o WinZapp aparece em Aplicativos padrão do Windows; na versão portátil a opção continua em Configurações, Geral.
+
+- Gerenciar contas: nova caixa de verificação "Conectar todas as contas ao iniciar o WinZapp". Quando ativada, ao iniciar o WinZapp todas as outras contas pareadas também são abertas em segundo plano.
+
+- Cópia de segurança: a cópia de segurança do perfil (em Configurações > Armazenamento e no gerenciador de armazenamento) não aparece mais quando o WinZapp roda com o motor Neonize, que não tem perfil de navegador para copiar.
+
+- Mensagens: identidades alternativas conflitantes não direcionam mais mensagens enviadas a outra pessoa ou recebidas dela para a conversa com você mesmo. Correspondências inválidas são ignoradas; as mensagens permanecem no chat original até a identidade ser resolvida.
+
+- Filtro de não lidas: depois de atualizar ou reiniciar o programa, algumas conversas com mensagens não lidas deixavam de aparecer no filtro (por exemplo, 12 viravam 9) até você ressincronizar com F5. A contagem agora olha as mensagens mais recentes da conversa, e não as mais antigas. Também deixaram de sumir as conversas de grupo cujas últimas mensagens eram avisos do grupo (convites, membros adicionados, descrição alterada): esses avisos não tomam mais o lugar das mensagens não lidas de verdade.
+
+- Atalhos Alt+letra: em várias janelas dois controles usavam a mesma letra, e Alt+letra só alternava entre eles (por exemplo "Atualizar" e "Adicionar participantes" na janela de participantes da chamada). Agora cada controle de uma janela tem a sua letra, em todos os idiomas.
+
+- Lista de conversas: quando o filtro escolhido (Não lidas, Grupos, Individuais), uma lista do WhatsApp ou a pesquisa não encontra nenhuma conversa, a lista mostra uma linha dizendo isso (por exemplo "Nenhuma conversa não lida."), como a lista de mensagens já fazia numa conversa vazia, em vez de não ter nada para o leitor de tela ler.
+
+- Ligações em grupo: o WinZapp agora diz quem entra e quem sai da ligação (Configurações > Chamadas, "Anunciar quando alguém entra na chamada" e "Anunciar quando alguém sai da chamada", ligadas por padrão), e a janela "Participantes da ligação" se atualiza sozinha nessas horas, sem o botão Atualizar; F5 lê a lista de novo.
+
+- Atalho global: com uma janela do WinZapp esperando resposta, como o aviso de atualização deixado aberto com o programa na bandeja, o atalho global agora traz essa janela para a frente. Antes a janela principal aparecia e não respondia a nada.
+
+- Descrição de imagens com IA: quando a conta do provedor fica sem crédito (o OpenRouter responde 402), o WinZapp agora diz isso e sugere adicionar créditos ou escolher um modelo gratuito, em vez de mandar conferir o identificador do modelo; com vários provedores, passa para o próximo.
+
+- Gravação com o áudio do computador: em computadores mais lentos, gravar o microfone junto com o áudio do computador (Ctrl+Shift+H) saía com cortes e engasgos, pior ainda com a fala do NVDA gravada à parte, porque a mistura dos sons não dava conta e pedaços do áudio se perdiam. A mistura agora é muitas vezes mais rápida e a gravação sai inteira.
+
+- Canais: na WPPConnect, postar num canal que você administra (texto, foto, vídeo ou enquete) falhava antes de chegar ao WhatsApp, e um canal aberto mostrava só o que o WhatsApp Web já tinha, muitas vezes nenhuma atualização (por exemplo The New York Times) e nenhuma das suas postagens novas. Agora as postagens saem e o canal abre com uma página inteira das atualizações mais recentes, lidas do servidor do WhatsApp. Ao voltar de um canal com Esc, a janela Canais fica como você a deixou: a mesma lista, busca, categoria e canal selecionado.
+
+- Atualização: num computador ocupado, a atualização podia parar com "O WinZapp não conseguiu verificar se é seguro instalar a atualização. A instalação não foi iniciada.", porque o PowerShell que protege a instalação demorava mais de 15 segundos para começar; agora ele tem até um minuto. No Neonize, a atualização também podia parar pela metade, com a ponte ainda fechando em segundo plano e segurando o arquivo dela: o instalador agora espera ela fechar, e a fecha se for preciso, antes de copiar os arquivos.
+
+- Canais no Neonize: abrir ou sincronizar um canal pedia ao WhatsApp mil atualizações de uma vez; o servidor não respondia, o canal ficava vazio e a sincronização tentava de novo a cada 30 segundos. Agora elas são pedidas de 100 em 100, como o WhatsApp Web faz.
+
+- Lista de mensagens: num teclado ABNT2, apertar "/" na lista de mensagens escrevia "Á" no campo de mensagem, e o "ç" saía como "º". Agora o que você digita na lista vai para o campo como o teclado digita de verdade, e as pontuações ficam na lista. Pelo mesmo motivo, o "ÿ" que os gestos do NVDA com a tecla Windows deixavam no campo vinha de uma tecla que o próprio NVDA injeta; agora só ela é ignorada, e dá para digitar um "ÿ" de verdade.
 
 - Chamadas: a janela "Adicionar participantes" agora funciona com leitor de tela. As pessoas são marcadas com as mesmas teclas, som e anúncios das listas de conversas e mensagens (Ctrl+Espaço, Espaço enquanto houver algo marcado, Shift+setas, Ctrl+Shift+Espaço, Esc), e o resultado é falado: quem foi convidado, quem não pôde ser adicionado ou por que o pedido falhou.
 
@@ -38,6 +242,10 @@ NOVIDADES
 
 - Chamadas do Neonize: as chamadas que você faz, e as que você atende e desliga, agora aparecem no histórico da conversa e na seção Chamadas. Antes elas não eram registradas (problema #689).
 
+- Chamadas do Neonize: o registro agora conta, a cada 5 segundos, os pacotes de cada tipo que o relay entrega (sem nomes), para descobrir por que o áudio de quem liga some em algumas chamadas recebidas (problema #689). Nenhuma mudança de comportamento.
+
+- Chamadas em grupo do Neonize: depois de desligar uma chamada em grupo e voltar para ela pelo painel de ligações (ou entrar numa que já está em andamento), você deixava de ouvir todo mundo. O WinZapp ignorava quem já estava na chamada antes de você voltar; agora ele ouve essas pessoas de novo. O registro de chamadas também conta as mensagens repetidas por chamada, para que as linhas de diagnóstico não sumam de uma chamada depois de algumas chamadas (problema #689).
+
 - Neonize: a primeira mensagem para um número de telefone novo digitado numa nova conversa (Ctrl+N) não termina mais como "envio não confirmado" quando o WhatsApp tem o número registrado na outra forma (com ou sem o nono dígito dos celulares brasileiros): agora ela é enviada ao endereço que o WhatsApp conhece. Além disso, um número digitado numa nova conversa agora abre o chat com o endereço que o WhatsApp conhece, sem deixar uma conversa duplicada.
 
 - Mensagens de voz: a taxa de bits das gravações voltou a 64 kbps, que envia rápido mesmo com mais de um minuto (a mudança para 256 kbps tinha deixado o envio lento). Configurações > Áudio ganhou "Taxa de bits das mensagens de voz (kbps)", para escolher de 32 a 256 kbps.
@@ -46,9 +254,11 @@ NOVIDADES
 - Configurações > Interface do usuário > Conversas: nova opção "Número de mensagens novas na lista de conversas", para o leitor de tela falar o número de mensagens novas antes do nome da conversa em vez de depois. Vale para a lista de conversas, as arquivadas e as trancadas. (sugestão de Michal Suchý)
 
 - Nova janela de Canais (Alt+9, também na lista de navegação): mostra os canais que você segue ou procura no diretório de canais do WhatsApp (sem texto, aparecem os recomendados). Para o canal escolhido dá para abrir e ler as atualizações, seguir ou deixar de seguir, silenciar ou ativar as notificações, copiar o link e, nos seus canais, editar ou excluir. Também dá para seguir um canal a partir do link e criar um canal. Mostrar os canais na lista de conversas continua sendo uma opção à parte. Funciona com a WPPConnect e com o Neonize.
-- Canais, como no WhatsApp Web: em "Encontrar canais", Categoria (negócios, entretenimento, estilo de vida, notícias, organizações, pessoas, esportes) e Lista (recomendados, em alta, populares, novos) filtram o diretório. Nos canais que você administra, o campo de mensagem fica liberado para postar atualizações de texto, uma atualização pode ser fixada ou desafixada pelo menu da mensagem (Ctrl+Shift+P) e as fixadas aparecem em "Mensagens fixadas"; o botão "Administradores e seguidores..." mostra quantos administradores o canal tem e, para o dono, convida um contato para ser administrador ou cancela o convite. Funciona com a WPPConnect e com o Neonize. Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de sê-lo.
+- Canais, como no WhatsApp Web: em "Encontrar canais", Categoria (negócios, entretenimento, estilo de vida, notícias, organizações, pessoas, esportes) e Lista (recomendados, em alta, populares, novos) filtram o diretório. Nos canais que você administra, o campo de mensagem fica liberado para postar atualizações de texto, fotos, vídeos e enquetes, as suas podem ser editadas pelo menu da mensagem (Alt+E) dentro do prazo do WhatsApp, uma atualização pode ser fixada ou desafixada pelo menu da mensagem (Ctrl+Shift+P) e as fixadas aparecem em "Mensagens fixadas"; o botão "Administradores e seguidores..." mostra quantos administradores o canal tem e, para o dono, convida um contato para ser administrador ou cancela o convite. Funciona com a WPPConnect e com o Neonize. Essa janela lista o dono, os administradores, os convites pendentes e os seguidores: o dono pode tornar um seguidor administrador, cancelar um convite, remover um administrador ou tornar um administrador o dono, e um administrador pode deixar de sê-lo.
 
 - Chamadas: agora dá para adicionar pessoas à chamada em andamento, pelo botão "Adicionar participantes" na lista de participantes da chamada. Numa chamada em grupo aparecem os membros do grupo que ainda não estão nela; numa chamada privada, os seus contatos, e a chamada passa a ter várias pessoas, como no WhatsApp. Quem já foi chamado e ainda não entrou é chamado de novo. Funciona com a WPPConnect e com o Neonize.
+
+- O motor experimental Neonize foi atualizado da versão 0.6.0 para a 0.10.0. Uma conversa apagada no celular agora também some do WinZapp, e marcar uma conversa como lida ou não lida no celular volta a atualizar o contador de não lidas.
 
 - O WPPConnect Server foi atualizado para a 2.10.78, que deixa de servir o cache privado de mídia por HTTP.
 
@@ -331,6 +541,26 @@ NOVIDADES
 - Status: localização, enquete, lista de contatos e outros tipos de status de contatos que apareciam como "Mensagem incompatível" agora são mostrados com o seu rótulo.
 
 - Chamadas: o botão "Participantes da ligação" da janela da chamada agora tem o atalho Ctrl+Shift+P (o Ctrl+P continua sendo a promoção para vídeo). O leitor de tela anuncia essa tecla de atalho no botão, e o atalho aparece na lista de atalhos da janela da chamada.
+
+- Neonize: status "Adicione o seu", de pergunta e de figurinha animada deixam de aparecer como "Mensagem incompatível"; o registro do bridge agora anota o tipo das mensagens sem mapeamento.
+
+- Digitação: o aviso "digitando" não reaparece mais alguns segundos depois de a pessoa enviar a mensagem (problema #743).
+
+- Janela de novidades: a tecla Esc agora a fecha, tanto em Ajuda > Novidades quanto em Ajuda > "Novidades desde a última vez que você viu". Antes o Esc não fazia nada e era preciso ir até o botão de fechar.
+
+- Atualização com várias contas abertas: o WinZapp agora espera as outras contas terminarem de fechar antes de instalar a atualização. Antes, a instalação podia falhar com o aviso de que outras contas estavam abertas e só seguia depois de você responder Sim para tentar de novo.
+
+- O modelo padrão do Google Gemini na IA on-line passou a ser o Gemini 3.5 Flash-Lite, que costuma ter menos problemas de alta demanda. Quem já escolheu outro modelo fixo continua com ele; quem usa o modelo recomendado pelo WinZapp passa a usar o novo.
+
+- Grupos: a prévia na lista de conversas e o anúncio do leitor de tela passam a mostrar todas as pessoas que estão digitando ou gravando áudio ao mesmo tempo, com o singular e o plural certos ("Ana e Bia estão digitando...", "Ana está digitando e Bia está gravando áudio..."), e não só a última. O leitor de tela anuncia a lista inteira a cada mudança, inclusive quando alguém para e outros continuam, e não diz nada quando ninguém mais está em atividade. Com uma pessoa só, a prévia agora diz "Ana está digitando...", sem os dois-pontos. O Alt+T também usa a lista, e as opções de anunciar digitando e gravando valem para os anúncios falados. A opção "Considerar atividades de múltiplos participantes ao anunciar o status de um grupo", em Configurações > Acessibilidade > Conteúdo falado, vem marcada; desmarcada, os grupos voltam ao comportamento antigo.
+
+- Campo de mensagem: inserir um emoji no campo não gera mais o erro "surrogates not allowed" ao habilitar o botão de ajuda para escrever. Relatado por UlisesMilani (#797).
+
+- Novas opções em Configurações > Notificações para descontar as conversas arquivadas e as silenciadas da contagem de não lidas no ícone da bandeja e no título da janela. As duas vêm marcadas: as arquivadas já não entravam na contagem e agora dá para mudar isso; as silenciadas passam a não entrar, o que muda o comportamento anterior. Desmarque a opção para voltar a contá-las.
+
+- Conversas longas: atualizar o histórico de uma conversa aberta com milhares de mensagens não congela mais a janela por dezenas de segundos quando a lista de mensagens mostra a posição de cada mensagem ("N de M").
+
+- Corrigido: com o cancelamento de ruído por voz neural ligado, as mensagens de voz agora são enviadas na ordem em que foram gravadas, mesmo quando o processamento de uma termina antes da outra.
 
 V2.1.0.0
 

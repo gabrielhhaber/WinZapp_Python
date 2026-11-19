@@ -1,0 +1,500 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 26 Oct 2026 09:15:41 -0300
+Subject: [PATCH] Raw info queries, MEX queries and every app state mutation
+
+- SendIQ / SendMexIQ (goneonize/rawiq.go, JSON in and out) and the
+  client's send_iq / send_mex, for what whatsmeow has no function for;
+- AppStateMutation (57): every app state mutation with its collection,
+  version and operation, also during a full sync;
+- MutationInfo.Remove: send_app_state can send a REMOVE.
+---
+ goneonize/Neonize.proto          |  14 ++
+ goneonize/defproto/Neonize.proto |  14 ++
+ goneonize/main.go                |  16 ++
+ goneonize/rawiq.go               | 248 +++++++++++++++++++++++++++++++
+ goneonize/utils/decoder.go       |   7 +-
+ neonize/_binder.py               |   8 +
+ neonize/aioze/events.py          |   2 +
+ neonize/client.py                |  26 ++++
+ neonize/events.py                |   2 +
+ 9 files changed, 336 insertions(+), 1 deletion(-)
+ create mode 100644 goneonize/rawiq.go
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index cbdc7df..c79a8f8 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -549,6 +549,8 @@ message MutationInfo {
+     repeated string Index = 1;
+     required int32 Version = 2;
+     required WAWebProtobufSyncAction.SyncActionValue Value = 3;
++    // REMOVE instead of SET: deletes the entry at Index (it must exist).
++    optional bool Remove = 4;
+ }
+ message PatchInfo {
+     enum WAPatchName {
+@@ -979,6 +981,18 @@ message AppStateSyncComplete { //56
+     required uint64 Version = 2;
+     required bool Recovery = 3;
+ }
++// Every app state mutation, set or remove (Remove), with its collection
++// (Name) and Version, also during a full sync (but not the contacts a full sync
++// stores in bulk). For the entries no other event carries: labels and lists,
++// status privacy...
++message AppStateMutation { //57
++    required string Name = 1;
++    repeated string Index = 2;
++    required int32 Version = 3;
++    required bool Remove = 4;
++    optional WAWebProtobufSyncAction.SyncActionValue Action = 5;
++    required bool FromFullSync = 6;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index cbdc7df..c79a8f8 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -549,6 +549,8 @@ message MutationInfo {
+     repeated string Index = 1;
+     required int32 Version = 2;
+     required WAWebProtobufSyncAction.SyncActionValue Value = 3;
++    // REMOVE instead of SET: deletes the entry at Index (it must exist).
++    optional bool Remove = 4;
+ }
+ message PatchInfo {
+     enum WAPatchName {
+@@ -979,6 +981,18 @@ message AppStateSyncComplete { //56
+     required uint64 Version = 2;
+     required bool Recovery = 3;
+ }
++// Every app state mutation, set or remove (Remove), with its collection
++// (Name) and Version, also during a full sync (but not the contacts a full sync
++// stores in bulk). For the entries no other event carries: labels and lists,
++// status privacy...
++message AppStateMutation { //57
++    required string Name = 1;
++    repeated string Index = 2;
++    required int32 Version = 3;
++    required bool Remove = 4;
++    optional WAWebProtobufSyncAction.SyncActionValue Action = 5;
++    required bool FromFullSync = 6;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 917988e..3fa2034 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -1433,6 +1433,22 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 				}
+ 				eventChan <- &messageEvent
+ 			}
++		case *events.AppStateMutation:
++			if _, ok := subscribers[57]; ok {
++				mutation := defproto.AppStateMutation{
++					Name:         proto.String(string(v.Name)),
++					Index:        v.Index,
++					Version:      proto.Int32(v.Version),
++					Remove:       proto.Bool(v.Remove),
++					Action:       v.Action,
++					FromFullSync: proto.Bool(v.FromFullSync),
++				}
++				messageEvent := MessageEvent{
++					eventType: 57,
++					message:   &mutation,
++				}
++				eventChan <- &messageEvent
++			}
+ 		case *events.RotateADVSecret:
+ 			if _, ok := subscribers[45]; ok {
+ 				rot := defproto.RotateADVSecret{
+diff --git a/goneonize/rawiq.go b/goneonize/rawiq.go
+new file mode 100644
+index 0000000..282275a
+--- /dev/null
++++ b/goneonize/rawiq.go
+@@ -0,0 +1,248 @@
++package main
++
++/*
++   #include <stdlib.h>
++*/
++import "C"
++
++// Raw info queries for what whatsmeow has no function for (catalogs, business
++// profile, status privacy...). JSON in and out, no protobuf:
++//
++//   - SendIQ(id, query) sends one <iq> and answers the response node;
++//   - SendMexIQ(id, queryID, variables) runs one w:mex (GraphQL) query and
++//     answers its "data".
++//
++// A node is {"tag": "...", "attrs": {...}, "content": [node...] | {"bytes":
++// base64} | "text"}. An attribute value written as {"jid": "..."} is sent as a
++// JID (the server tells a JID from a string by its encoding); in a response,
++// JIDs come back as plain strings. Every answer is {"node"|"data": ...} or
++// {"error": text, "code": n, "node": error node}.
++
++import (
++	"context"
++	"encoding/base64"
++	"encoding/json"
++	"errors"
++	"fmt"
++	"time"
++
++	"go.mau.fi/whatsmeow"
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++)
++
++type rawNode struct {
++	Tag     string                     `json:"tag"`
++	Attrs   map[string]json.RawMessage `json:"attrs,omitempty"`
++	Content json.RawMessage            `json:"content,omitempty"`
++}
++
++type rawIQ struct {
++	Namespace string          `json:"namespace"`
++	Type      string          `json:"type"`
++	To        string          `json:"to"`
++	Target    string          `json:"target"`
++	SMaxID    string          `json:"smax_id"`
++	Content   json.RawMessage `json:"content"`
++	TimeoutMs int             `json:"timeout_ms"`
++}
++
++func decodeRawAttr(value json.RawMessage) (any, error) {
++	var text string
++	if err := json.Unmarshal(value, &text); err == nil {
++		return text, nil
++	}
++	var jid struct {
++		JID string `json:"jid"`
++	}
++	if err := json.Unmarshal(value, &jid); err == nil && jid.JID != "" {
++		parsed, err := types.ParseJID(jid.JID)
++		if err != nil {
++			return nil, fmt.Errorf("attribute jid %q: %w", jid.JID, err)
++		}
++		return parsed, nil
++	}
++	return nil, fmt.Errorf("attribute value must be a string or {\"jid\": ...}")
++}
++
++func decodeRawContent(content json.RawMessage) (any, error) {
++	if len(content) == 0 || string(content) == "null" {
++		return nil, nil
++	}
++	var children []rawNode
++	if err := json.Unmarshal(content, &children); err == nil {
++		nodes := make([]waBinary.Node, 0, len(children))
++		for _, child := range children {
++			node, err := decodeRawNode(child)
++			if err != nil {
++				return nil, err
++			}
++			nodes = append(nodes, node)
++		}
++		return nodes, nil
++	}
++	var text string
++	if err := json.Unmarshal(content, &text); err == nil {
++		return []byte(text), nil
++	}
++	var blob struct {
++		Bytes string `json:"bytes"`
++	}
++	if err := json.Unmarshal(content, &blob); err == nil {
++		return base64.StdEncoding.DecodeString(blob.Bytes)
++	}
++	return nil, fmt.Errorf("content must be a list of nodes, a string or {\"bytes\": base64}")
++}
++
++func decodeRawNode(raw rawNode) (waBinary.Node, error) {
++	if raw.Tag == "" {
++		return waBinary.Node{}, fmt.Errorf("node without tag")
++	}
++	attrs := waBinary.Attrs{}
++	for key, value := range raw.Attrs {
++		decoded, err := decodeRawAttr(value)
++		if err != nil {
++			return waBinary.Node{}, fmt.Errorf("<%s %s>: %w", raw.Tag, key, err)
++		}
++		attrs[key] = decoded
++	}
++	content, err := decodeRawContent(raw.Content)
++	if err != nil {
++		return waBinary.Node{}, fmt.Errorf("<%s>: %w", raw.Tag, err)
++	}
++	return waBinary.Node{Tag: raw.Tag, Attrs: attrs, Content: content}, nil
++}
++
++func encodeRawNode(node *waBinary.Node) map[string]any {
++	if node == nil {
++		return nil
++	}
++	out := map[string]any{"tag": node.Tag}
++	if len(node.Attrs) > 0 {
++		attrs := make(map[string]string, len(node.Attrs))
++		for key, value := range node.Attrs {
++			attrs[key] = fmt.Sprint(value)
++		}
++		out["attrs"] = attrs
++	}
++	switch content := node.Content.(type) {
++	case []waBinary.Node:
++		children := make([]map[string]any, 0, len(content))
++		for i := range content {
++			children = append(children, encodeRawNode(&content[i]))
++		}
++		out["content"] = children
++	case []byte:
++		out["content"] = map[string]string{"bytes": base64.StdEncoding.EncodeToString(content)}
++	case nil:
++	default:
++		out["content"] = fmt.Sprint(content)
++	}
++	return out
++}
++
++func rawAnswer(value map[string]any) *C.char {
++	b, err := json.Marshal(value)
++	if err != nil {
++		b, _ = json.Marshal(map[string]any{"error": err.Error()})
++	}
++	return C.CString(string(b))
++}
++
++func rawError(err error) *C.char {
++	answer := map[string]any{"error": err.Error()}
++	var iqErr *whatsmeow.IQError
++	if errors.As(err, &iqErr) {
++		answer["code"] = iqErr.Code
++		answer["text"] = iqErr.Text
++		answer["node"] = encodeRawNode(iqErr.ErrorNode)
++	}
++	return rawAnswer(answer)
++}
++
++func rawContext(timeoutMs int) (context.Context, context.CancelFunc) {
++	if timeoutMs <= 0 {
++		timeoutMs = 30000
++	}
++	return context.WithTimeout(context.Background(), time.Duration(timeoutMs)*time.Millisecond)
++}
++
++// SendIQ sends the info query described by the JSON `query` and answers the
++// response node (see the top of this file).
++//
++//export SendIQ
++func SendIQ(id *C.char, query *C.char) *C.char {
++	cli := clients[C.GoString(id)]
++	if cli == nil {
++		return rawError(fmt.Errorf("client not found"))
++	}
++	var iq rawIQ
++	if err := json.Unmarshal([]byte(C.GoString(query)), &iq); err != nil {
++		return rawError(fmt.Errorf("query: %w", err))
++	}
++	if iq.Namespace == "" || (iq.Type != "get" && iq.Type != "set") {
++		return rawError(fmt.Errorf("query needs a namespace and type get or set"))
++	}
++	to := types.ServerJID
++	if iq.To != "" {
++		parsed, err := types.ParseJID(iq.To)
++		if err != nil {
++			return rawError(fmt.Errorf("to: %w", err))
++		}
++		to = parsed
++	}
++	var target types.JID
++	if iq.Target != "" {
++		parsed, err := types.ParseJID(iq.Target)
++		if err != nil {
++			return rawError(fmt.Errorf("target: %w", err))
++		}
++		target = parsed
++	}
++	content, err := decodeRawContent(iq.Content)
++	if err != nil {
++		return rawError(err)
++	}
++	ctx, cancel := rawContext(iq.TimeoutMs)
++	defer cancel()
++	resp, err := cli.DangerousInternals().SendIQ(ctx, whatsmeow.DangerousInfoQuery{
++		Namespace: iq.Namespace,
++		Type:      whatsmeow.DangerousInfoQueryType(iq.Type),
++		To:        to,
++		Target:    target,
++		SMaxID:    iq.SMaxID,
++		Content:   content,
++		Timeout:   time.Duration(max(iq.TimeoutMs, 0)) * time.Millisecond,
++	})
++	if err != nil {
++		return rawError(err)
++	}
++	return rawAnswer(map[string]any{"node": encodeRawNode(resp)})
++}
++
++// SendMexIQ runs one w:mex (GraphQL) query: `variables` is its JSON object.
++// Answers {"data": ...}, or {"error": ..., "data": ...} when the server
++// answered with GraphQL errors.
++//
++//export SendMexIQ
++func SendMexIQ(id *C.char, queryID *C.char, variables *C.char, timeoutMs C.int) *C.char {
++	cli := clients[C.GoString(id)]
++	if cli == nil {
++		return rawError(fmt.Errorf("client not found"))
++	}
++	vars := json.RawMessage(C.GoString(variables))
++	if !json.Valid(vars) {
++		return rawError(fmt.Errorf("variables are not JSON"))
++	}
++	ctx, cancel := rawContext(int(timeoutMs))
++	defer cancel()
++	data, err := cli.DangerousInternals().SendMexIQ(ctx, C.GoString(queryID), vars)
++	answer := map[string]any{}
++	if len(data) > 0 {
++		answer["data"] = json.RawMessage(data)
++	}
++	if err != nil {
++		answer["error"] = err.Error()
++	}
++	return rawAnswer(answer)
++}
+diff --git a/goneonize/utils/decoder.go b/goneonize/utils/decoder.go
+index a758473..20e185b 100644
+--- a/goneonize/utils/decoder.go
++++ b/goneonize/utils/decoder.go
+@@ -7,6 +7,7 @@ import (
+ 	defproto "github.com/krypton-byte/neonize/defproto"
+ 	"go.mau.fi/whatsmeow"
+ 	"go.mau.fi/whatsmeow/appstate"
++	waServerSync "go.mau.fi/whatsmeow/proto/waServerSync"
+ 	waVname "go.mau.fi/whatsmeow/proto/waVnameCert"
+ 	"go.mau.fi/whatsmeow/store"
+ 	"go.mau.fi/whatsmeow/types"
+@@ -159,11 +160,15 @@ func DecodeGetProfilePictureParams(params *defproto.GetProfilePictureParams) *wh
+ }
+ 
+ func DecodeMutationInfo(mutationInfo *defproto.MutationInfo) appstate.MutationInfo {
+-	return appstate.MutationInfo{
++	info := appstate.MutationInfo{
+ 		Index:   mutationInfo.Index,
+ 		Version: *mutationInfo.Version,
+ 		Value:   mutationInfo.Value,
+ 	}
++	if mutationInfo.GetRemove() {
++		info.Operation = waServerSync.SyncdMutation_REMOVE
++	}
++	return info
+ }
+ 
+ func DecodePatchInfo(patchInfo *defproto.PatchInfo) *appstate.PatchInfo {
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index b8e0756..aae2f15 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -865,6 +865,14 @@ if not os.environ.get("SPHINX"):
+         ]
+         gocode.UploadFile.restype = ctypes.POINTER(Bytes)
+         gocode.UploadFile.errcheck = consume_bytes_struct
++    if hasattr(gocode, "SendIQ"):
++        # Raw info queries (goneonize/rawiq.go): JSON in, JSON C string out.
++        gocode.SendIQ.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
++        gocode.SendIQ.restype = ctypes.c_void_p
++        gocode.SendIQ.errcheck = consume_cstring
++        gocode.SendMexIQ.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
++        gocode.SendMexIQ.restype = ctypes.c_void_p
++        gocode.SendMexIQ.errcheck = consume_cstring
+     if hasattr(gocode, "CallsConfigure"):
+         # The call layer (goneonize/calls.go): plain C types, no protobuf; the
+         # wrapper is neonize/calls.py.
+diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
+index 6fffb2a..f4150d4 100644
+--- a/neonize/aioze/events.py
++++ b/neonize/aioze/events.py
+@@ -44,6 +44,7 @@ from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
+ from ..proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
+ from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
+ from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
++from ..proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
+ from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
+@@ -111,6 +112,7 @@ __all__ = [
+     "ContactUpdateEv",
+     "PushNameUpdateEv",
+     "AppStateSyncCompleteEv",
++    "AppStateMutationEv",
+     "NewsLetterMessageMetaEv",
+     "NewsletterJoinEv",
+     "NewsletterLeaveEv",
+diff --git a/neonize/client.py b/neonize/client.py
+index 9f87754..52958bb 100644
+--- a/neonize/client.py
++++ b/neonize/client.py
+@@ -2,6 +2,7 @@ from __future__ import annotations
+ 
+ import base64
+ import ctypes
++import json
+ import logging
+ import re
+ import struct
+@@ -2853,6 +2854,31 @@ class NewClient:
+         if err:
+             raise SendAppStateError(err)
+ 
++    def send_iq(self, query: dict) -> dict:
++        """Sends one raw info query and answers the response node, for what
++        whatsmeow has no function for. query is {"namespace", "type"
++        (get|set), "to" (default s.whatsapp.net), "target", "smax_id",
++        "content": [node...], "timeout_ms"}; a node is {"tag", "attrs",
++        "content"}, content a list of nodes, a string or {"bytes":
++        base64}, and an attribute {"jid": ...} is sent as a JID.
++
++        :return: {"node": response} or {"error", "code", "text",
++            "node"} (an error answered by the server has its code).
++        :raises AttributeError: on a build without raw queries.
++        """
++        raw = self.__client.SendIQ(self.uuid, json.dumps(query).encode())
++        return json.loads(raw.decode() or "{}")
++
++    def send_mex(self, query_id: str, variables: dict, timeout_ms: int = 30000) -> dict:
++        """Runs one w:mex (GraphQL) query: {"data": ...}, with "error"
++        when it failed or the server answered GraphQL errors.
++
++        :raises AttributeError: on a build without raw queries.
++        """
++        raw = self.__client.SendMexIQ(self.uuid, str(query_id).encode(),
++                                      json.dumps(variables).encode(), int(timeout_ms))
++        return json.loads(raw.decode() or "{}")
++
+     def request_app_state_recovery(self, name: str):
+         """Asks the primary device for a recovery snapshot of an app state
+         collection that keeps failing with ``mismatching LTHash`` even after a
+diff --git a/neonize/events.py b/neonize/events.py
+index 1083346..0ce8dd8 100644
+--- a/neonize/events.py
++++ b/neonize/events.py
+@@ -47,6 +47,7 @@ from .proto.Neonize_pb2 import MessageStar as MessageStarEv
+ from .proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
+ from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
+ from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
++from .proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
+ from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
+@@ -124,6 +125,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
+     ContactUpdateEv: 54,
+     PushNameUpdateEv: 55,
+     AppStateSyncCompleteEv: 56,
++    AppStateMutationEv: 57,
+ }
+ INT_TO_EVENT: dict[int, type[Message]] = {code: ev for ev, code in EVENT_TO_INT.items()}
+ 

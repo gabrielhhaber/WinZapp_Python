@@ -131,6 +131,11 @@ class _Session(ct.ChatTimers):
     def __init__(self, db, keys):
         self.db = db
         self._keys = keys
+        self.name = "test"
+        self.emitted = []
+
+    def emit(self, name, payload):
+        self.emitted.append((name, payload))
 
     def chat_keys(self, jid):
         return self._keys
@@ -148,6 +153,8 @@ def test_a_timer_is_kept_under_the_number_and_the_lid(tmp_path):
         session.observe_timer("77@lid", Message(protocolMessage=ProtocolMessage(
             type=ct.EPHEMERAL_SETTING, ephemeralExpiration=0)))
         assert db.chat_timer("77@lid")[0] == 0
+        assert session.emitted[-1] == ("chat-timer-changed", {
+            "session": "test", "chatId": "77@lid", "duration": 0, "settingTimestamp": 0})
     finally:
         db.close()
 

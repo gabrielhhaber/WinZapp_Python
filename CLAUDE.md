@@ -40,7 +40,11 @@ you open a matching file; the reasoning is in `docs/traps/` and
    (`docs/reference/neonize-build.md`).
 5. **All speech goes through `MainWindow.speak_output`**; plain wx controls
    only; list mutations inside `Freeze()`/`Thaw()`; titles and rows show
-   names, never raw JIDs. Skill: `accessible-ui`.
+   names, never raw JIDs. Skill: `accessible-ui`. **A new module holding a
+   window, page or panel reached from Settings goes into `FILES` of
+   `tests/settings_controls.py`** (hand-kept; every other window is found by
+   `tests/window_mnemonics.py` on its own), or its controls' Alt letters are
+   never checked by `tests/test_settings_mnemonics.py`.
 6. **Never grow a file just because it is open.** Put code in the module that
    owns the responsibility (`client/main_window/`,
    `client/ui/conversation_panel/`, `client/core/`) or create one. Pure logic
@@ -98,6 +102,16 @@ uv run translations-check               # release-ready catalog validation
 - CI splits the suite into 4 jobs (`--shard K/N`) with `-n auto` in each
   (`tests/ci_shards.py`). `-n` is for CI and cloud sessions, never a local
   session (rule 7).
+- **A changelog item is owed to the usage guide too.**
+  `tests/test_user_guide_coverage.py` fails while an item of the unreleased
+  version in `client/changelog_pt-BR.txt` is not in `docs/user-guide/cobertura.json`.
+  Describe the feature in `docs/user-guide/secoes/<every locale>/` (a bug fix
+  the guide already describes needs no text), add an "unreleased" row to each
+  `99-registro.html`, then `python docs/user-guide/verificar_guia.py . --registrar`
+  and `python docs/user-guide/gerar_guia.py .` (it writes the git-ignored
+  `client/data/help_guide/`: `git add -f`). Shortcut tables come from the
+  catalog; a new catalog scope needs a title in `docs/user-guide/i18n/<locale>.json`.
+  Process: `docs/user-guide/PROCESSO.md`.
 - A dependency change goes into `pyproject.toml` and `requirements.txt`, then
   `uv lock` (`tests/test_requirements_in_sync.py`).
 - `client/api/` and `client/node/` are git-ignored and must exist before
@@ -122,7 +136,9 @@ uv run translations-check               # release-ready catalog validation
   `client/core/wppconnect_welcome_layer_patch.py`,
   `client/core/wppconnect_browser_layer_patch.py`. A sixth,
   `client/core/wppconnect_wa_js_patch.py`, patches `@wppconnect/wa-js`'s
-  bundle, the script injected into the WhatsApp Web page.
+  bundle, the script injected into the WhatsApp Web page; a seventh,
+  `client/core/wppconnect_newsletter_chat_patch.py`, patches the same bundle
+  so a post to a channel finds the channel's chat and its send job.
 - **`neonize_bridge/neonize_patches/`** — WinZapp's patches on official
   neonize, whatsmeow and meowcaller (the Neonize engine's DLL);
   `build_neonize.py` applies them and builds into the git-ignored
@@ -184,7 +200,20 @@ The `mattpocock-skills` plugin provides `/grill-with-docs` → `/to-spec` →
 `/diagnosing-bugs`. WinZapp's bounds on it:
 
 - Tests: the files for what changed, never `--run-wx-gui`.
+- **Project agents not in your agent list (`winzapp-reviewer`,
+  `winzapp-implementer`, `refactor-extractor`)?** Some sessions (cloud and
+  project threads) do not register `.claude/agents/*.md`, although the files
+  are valid. Do not skip the step: read `.claude/agents/<name>.md`, drop its
+  frontmatter, and run a `general-purpose` subagent with the body as the
+  prompt plus the task (for the reviewer: the PR number or the diff range).
+  Its `tools:` line still applies; give it no more than that. The same goes
+  for `.claude/skills/`: read the `SKILL.md` and follow it.
 - Commit only when the user asks, whatever `/implement` says.
+- **Write issues, PRs and commit messages in English**, to match the
+  project, whatever language the conversation is in. The only exceptions are
+  the three pinned issues of Claude's routines, which stay in Portuguese. This
+  covers titles, bodies and comments; translate an issue you opened in
+  another language.
 - **Open every PR as a draft** and keep it a draft until the reviewer
   (the `winzapp-reviewer` agent) has finished and approved. Only
   then mark it ready for review or merge it. This applies to every developer

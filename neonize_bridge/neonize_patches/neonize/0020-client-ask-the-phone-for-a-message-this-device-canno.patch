@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 9 Nov 2026 18:51:36 -0300
+Subject: [PATCH] client: ask the phone for a message this device cannot
+ decrypt
+
+AutomaticMessageRerequestFromPhone, off by default in whatsmeow: a group message without its sender key was lost whenever the sender's device did not resend it. WhatsApp Web asks the account's own phone (PLACEHOLDER_MESSAGE_RESEND).
+---
+ goneonize/main.go | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 25985aa..0c0e237 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -691,6 +691,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 	proto.Merge(store.DeviceProps, &deviceProps)
+ 	clientLog := utils.NewLogger("Client", C.GoString(logLevel), utils.Callback(logCb))
+ 	client := whatsmeow.NewClient(deviceStore, clientLog)
++	// A message this device cannot decrypt (a group's "no sender key") is asked
++	// of the account's own phone too, as WhatsApp Web does, when its sender does
++	// not resend it within RequestFromPhoneDelay. Off by default in whatsmeow:
++	// the message was lost for good whenever the sender's device stayed silent.
++	client.AutomaticMessageRerequestFromPhone = true
+ 	setClient(uuid, client)
+ 	instalarChamadas(uuid)
+ 	sprStore := newSPRRetryStore(C.GoString(db))

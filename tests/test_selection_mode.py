@@ -57,6 +57,7 @@ def _account_scope(tmp_path, monkeypatch):
     yield tmp_path
     app_paths.set_active_account(previous_account)
 
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -131,7 +132,7 @@ def _separator():
     return {"_type": "unread_separator", "count": 1}
 
 
-class _Stub:
+class _Stub(ReadingPositionMixin):
     """Minimal stand-in for ConversationsPanel."""
 
     _is_separator = ConversationsPanel._is_separator
@@ -149,10 +150,12 @@ class _Stub:
     _on_messages_list_key_down = ConversationsPanel._on_messages_list_key_down
     _on_conv_list_key_down = ConversationsPanel._on_conv_list_key_down
     _handle_chat_selection_key = ConversationsPanel._handle_chat_selection_key
+    _clear_chat_list_filters = lambda self: False  # Esc-clears-filters has its own tests
     _repaint_chat_selection = ConversationsPanel._repaint_chat_selection
     _announce_chat_selected = ConversationsPanel._announce_chat_selected
     _reset_after_chat_cleared = ConversationsPanel._reset_after_chat_cleared
     _on_escape_conversation = ConversationsPanel._on_escape_conversation
+    _clear_message_search_on_escape = lambda self: False  # has its own tests
 
     def __init__(self, sorted_messages=None, chats_list=None, ui_settings=None,
                  focused=0, video_viewer_dialog=False):

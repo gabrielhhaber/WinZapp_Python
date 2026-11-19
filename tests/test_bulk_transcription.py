@@ -146,6 +146,7 @@ class _Panel:
     _on_accel_transcribe_inline = ConversationsPanel._on_accel_transcribe_inline
     _is_separator = ConversationsPanel._is_separator
     _bulk_transcription_running = ConversationsPanel._bulk_transcription_running
+    _summary_voice_running = ConversationsPanel._summary_voice_running
     _bulk_transcription_menu_key = ConversationsPanel._bulk_transcription_menu_key
     _bulk_transcription_worker = ConversationsPanel._bulk_transcription_worker
     _bulk_transcribe_one = ConversationsPanel._bulk_transcribe_one

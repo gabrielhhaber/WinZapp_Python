@@ -23,6 +23,13 @@ if sys.platform == 'win32':
         # Fallback: add to PATH environment variable
         os.environ['PATH'] = _lib_path + os.pathsep + os.environ.get('PATH', '')
 
+# The noise reducer's own process (core/cuda_components/noise_worker.py) is
+# this program started with its flag: handed over before anything else is
+# imported, so the GPU build of onnxruntime it puts in place comes first.
+if len(sys.argv) > 1 and sys.argv[1] == "--noise-reducer-worker":
+    from core.cuda_components.noise_worker import main as _noise_worker_main
+    sys.exit(_noise_worker_main())
+
 import shutil
 import socket as _socket
 
@@ -39,7 +46,7 @@ import ctypes
 import ctypes.wintypes
 import uuid
 from urllib.parse import quote as _url_quote
-from accessible_output2 import outputs
+from core.speech_backend import outputs
 from core.accessible_speech import AccessibleSpeechOutput
 from core.sound_system import (
     SoundSystem, Sound, load_sound, SOUND_EVENTS,
@@ -278,12 +285,14 @@ from main_window.window_lifecycle import WindowLifecycleMixin
 from main_window.chat_list import ChatListMixin
 from main_window.chat_lists import WhatsAppListsMixin
 from main_window.calls import CallsMixin
+from main_window.call_desktop_audio import DesktopCallAudioMixin
 from main_window.call_participants import CallParticipantsMixin
 from main_window.call_hotkeys import CallHotkeysMixin
 from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
 from main_window.wpp_server import WppServerMixin
 from main_window.neonize_bridge import NeonizeBridgeMixin
+from main_window.manual_reconnect import ManualReconnectMixin
 from main_window.api_start_behind_window import ApiStartBehindWindowMixin, wait_for_api_start
 from main_window.sending import SendingMixin
 from main_window.poll_sending import PollSendingMixin
@@ -345,12 +354,14 @@ class MainWindow(
     ChatListMixin,
     WhatsAppListsMixin,
     CallsMixin,
+    DesktopCallAudioMixin,
     CallParticipantsMixin,
     CallHotkeysMixin,
     IdentityMixin,
     MessageEventsMixin,
     WppServerMixin,
     NeonizeBridgeMixin,
+    ManualReconnectMixin,
     ApiStartBehindWindowMixin,
     SendingMixin,
     PollSendingMixin,
@@ -533,6 +544,11 @@ class MainWindow(
             "MainWindow: CUDA transcription libraries registered=%s",
             cuda_runtime.register_installed_runtime(),
         )
+        # The noise reducer's device; a graphics card build runs in a process
+        # of its own, started when a recording needs it
+        # (core/cuda_components/noise_worker_host.py).
+        from core.cuda_components import noise_worker_host
+        noise_worker_host.configure_for_window(self)
         # Decrypted audio a run killed mid-way left in %TEMP% (privacy).
         temp_sweep.sweep_stale_temporaries()
         # What past updates left in %TEMP% (a full copy of every release
@@ -1410,6 +1426,8 @@ class MainWindow(
         controls.Add(self.voice_call_window_video_button, 0, wx.ALL, 8)
         call_sizer.Add(controls, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         call_sizer.Add(self.voice_call_window_participants_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+        self.voice_call_window_desktop_audio_button = self._make_call_desktop_audio_button(call_panel)
+        call_sizer.Add(self.voice_call_window_desktop_audio_button, 0, wx.ALL, 8)
         call_panel.SetSizer(call_sizer)
         self._call_window_sizer = call_sizer
         self.voice_call_window.Bind(wx.EVT_CLOSE, self._on_voice_call_window_close)
@@ -1459,6 +1477,13 @@ class MainWindow(
         self.status_panel.Hide()
         self.calls_panel = CallsPanel(self, self.content_panel)
         self.calls_panel.Hide()
+        # Communities (Alt+8) and Channels (Alt+9): panels like Calls
+        from ui.dialogs.communities import CommunitiesPanel
+        from ui.dialogs.channels import ChannelsPanel
+        self.communities_panel = CommunitiesPanel(self, self.content_panel)
+        self.communities_panel.Hide()
+        self.channels_panel = ChannelsPanel(self, self.content_panel)
+        self.channels_panel.Hide()
 
         # Content panel: all panels fill it; only one is shown at a time
         content_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1469,6 +1494,8 @@ class MainWindow(
         content_sizer.Add(self.locked_conversations_panel, 1, wx.EXPAND)
         content_sizer.Add(self.status_panel, 1, wx.EXPAND)
         content_sizer.Add(self.calls_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.communities_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.channels_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
         # Main panel: nav sidebar on left, content on right
@@ -1880,6 +1907,10 @@ def setup_logging():
         for h in root.handlers[:]:
             root.removeHandler(h)
         root.addHandler(handler)
+        # A native crash reaches no Python handler: its stacks go to fatal.log
+        # (core/abrupt_exit.py), which the log export carries.
+        from core.abrupt_exit import enable_fatal_log
+        enable_fatal_log(log_path("fatal.log"))
         # Set logging level to INFO to expose auto-updater, settings validation,
         # and startup logs. Noisy dependencies are silenced at ERROR level below.
         root.setLevel(logging.INFO)
@@ -1943,10 +1974,10 @@ if __name__ == "__main__":
 
         background = "--background" in sys.argv
         startup_source = parse_startup_source(sys.argv)
-        # A group invitation link Windows handed over (the optional whatsapp:
+        # A group invitation or chat link Windows handed over (the whatsapp:
         # association, core/whatsapp_link_association.py).
-        from core.group_invitation_link import invitation_link_argument
-        _invitation_link = invitation_link_argument(sys.argv)
+        from core.whatsapp_chat_link import whatsapp_link_argument
+        _invitation_link = whatsapp_link_argument(sys.argv)
         if (_invitation_link and not getattr(sys, "frozen", False)
                 and not sys.argv[0].lower().endswith(".exe")):
             # A source checkout keeps its data under the working directory,
@@ -2044,7 +2075,7 @@ if __name__ == "__main__":
                 try:
                     import ipc
                     # The running process comes to the foreground either way;
-                    # with a link it also opens the join dialog.
+                    # with a link it also opens it (join dialog or chat).
                     if ((_invitation_link and ipc.request_open_link(
                             gd, _account_id, _invitation_link))
                             or ipc.request_activate(gd, _account_id, source=startup_source)):
@@ -2058,6 +2089,25 @@ if __name__ == "__main__":
 
         setup_logging()
         logging.info("Instance lock acquired for account %s (%s).", _account_id, _account_name)
+        # "Connect all accounts at startup" (account manager check box): open the
+        # other paired accounts in the background. A sibling already running
+        # exits at its own instance lock, so a repeat is harmless.
+        try:
+            from account_bootstrap import accounts_to_connect
+            from account_launcher import build_launch_command
+            from app_settings import AppSettings
+            _already = set(_startup.get("background", [])) if _mode == "autostart_boot" else set()
+            for _other_id in accounts_to_connect(
+                    sys.argv, _registry, _account_id,
+                    AppSettings(gd).get("connect_all_accounts")):
+                if _other_id in _already:
+                    continue
+                subprocess.Popen(build_launch_command(
+                    sys.argv[0], sys.executable, _other_id,
+                    getattr(sys, "frozen", False),
+                    startup_source="autostart", background=True))
+        except Exception:
+            logging.exception("[startup] connecting all accounts failed")
         logging.info("Creating wx.App...")
         app = wx.App()
         # WinZapp only ever exits on purpose (real_exit(), the tray, Windows
@@ -2072,8 +2122,9 @@ if __name__ == "__main__":
                            startup_source=startup_source, resume_pending=_resume_pending,
                            registry=_registry, global_dir=gd)
         _main_frame_ref.append(frame)
+        wx.CallAfter(frame._register_whatsapp_links_for_install)
         if _invitation_link:
-            wx.CallAfter(frame.open_group_invitation_link, _invitation_link)
+            wx.CallAfter(frame.open_whatsapp_link, _invitation_link)
     except SystemExit:
         raise
     except KeyboardInterrupt:

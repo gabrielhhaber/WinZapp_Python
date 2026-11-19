@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 11 Nov 2026 03:42:39 +0000
+Subject: [PATCH] calls: count the repeated meowcaller log lines per call
+
+The counter lived for the whole process, so after a few calls the group roster, key epoch and audio summary lines stopped showing in the very call that failed. The call id is now part of the key.
+---
+ goneonize/calls.go          | 21 +++++++++++++++------
+ goneonize/calls_log_test.go | 18 ++++++++++++++++++
+ 2 files changed, 33 insertions(+), 6 deletions(-)
+ create mode 100644 goneonize/calls_log_test.go
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 20121fb..2e141fb 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -80,20 +80,29 @@ func mascararNumero(s string) string {
+ // logChamadas leva o que o meowcaller escreve (zerolog, JSON) para o log do
+ // cliente, que chega ao Python. Sai tudo como aviso (WARN) com o prefixo
+ // "chamadas:", porque o Python so grava avisos do whatsmeow por padrao. Uma
+-// mensagem que se repete aparece nas 8 primeiras vezes e depois a cada 200.
++// mensagem que se repete aparece nas 8 primeiras vezes e depois a cada 200,
++// contadas por chamada: uma chamada nova volta a ter as suas 8 primeiras.
+ type logChamadas struct {
+ 	log    waLog.Logger
+ 	mu     sync.Mutex
+ 	vistos map[string]int
+ }
+ 
+-func (w *logChamadas) Write(p []byte) (int, error) {
+-	linha := strings.TrimSpace(string(p))
++// chaveLogChamadas diz a que mensagem repetida uma linha pertence. O
++// call_id entra na chave: sem ele o contador era do processo e, depois de
++// poucas chamadas, o resumo de audio, o roster e a chave do grupo deixavam de
++// aparecer no log justo da chamada que falhou.
++func chaveLogChamadas(p []byte) string {
+ 	var campos map[string]any
+-	chave := linha
+-	if json.Unmarshal(p, &campos) == nil {
+-		chave = fmt.Sprint(campos["level"], "|", campos["message"])
++	if json.Unmarshal(p, &campos) != nil {
++		return strings.TrimSpace(string(p))
+ 	}
++	return fmt.Sprint(campos["level"], "|", campos["message"], "|", campos["call_id"])
++}
++
++func (w *logChamadas) Write(p []byte) (int, error) {
++	linha := strings.TrimSpace(string(p))
++	chave := chaveLogChamadas(p)
+ 	w.mu.Lock()
+ 	w.vistos[chave]++
+ 	n := w.vistos[chave]
+diff --git a/goneonize/calls_log_test.go b/goneonize/calls_log_test.go
+new file mode 100644
+index 0000000..a76a37d
+--- /dev/null
++++ b/goneonize/calls_log_test.go
+@@ -0,0 +1,18 @@
++package main
++
++import "testing"
++
++func TestChaveLogChamadasSeparaAsChamadas(t *testing.T) {
++	a := chaveLogChamadas([]byte(`{"level":"info","call_id":"AAA","message":"group roster received"}`))
++	b := chaveLogChamadas([]byte(`{"level":"info","call_id":"BBB","message":"group roster received"}`))
++	if a == b {
++		t.Fatalf("duas chamadas dividem a chave %q", a)
++	}
++	again := chaveLogChamadas([]byte(`{"level":"info","call_id":"AAA","message":"group roster received","transaction_id":9}`))
++	if a != again {
++		t.Fatalf("a mesma mensagem da mesma chamada mudou de chave: %q != %q", a, again)
++	}
++	if chaveLogChamadas([]byte("texto solto\n")) != "texto solto" {
++		t.Fatal("linha que nao e JSON deve ser a propria chave")
++	}
++}

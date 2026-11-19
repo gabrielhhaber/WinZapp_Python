@@ -19,9 +19,12 @@ from core.api_client import (
     api_post,
     sync_throttled,
 )
+from core.channels import history_ends_on_server
 from core.utils import auto_download_enabled
 from core.page_heap import collect_after_batch
 from core.sync_progress import ProgressThrottle
+from core.media_on_disk import already_stored
+from core import short_chat_rest
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
@@ -84,6 +87,20 @@ class BackfillMixin:
                                           continuing_short_sweep: bool) -> bool:
         """Names and deep history must not block short-page recovery."""
         return not short_chats_pending and not continuing_short_sweep
+
+    @staticmethod
+    def _chats_blocking_background_work(pending, attempted, user_has_opened):
+        """The pending chats that still hold names and deep history back.
+
+        A chat the user never opened, whose local fetch already ran in this
+        sweep, has nothing more to give until someone opens it: the phone is
+        deliberately left alone for it (see `_backfill_empty_chats`). Counting
+        it as "short" kept the queue non-empty forever on an account with
+        hundreds of old empty chats, so deep history never ran and most of
+        what the bridge had already downloaded stayed out of messages.db.
+        """
+        return [jid for jid in pending
+                if jid not in attempted or user_has_opened(jid)]
 
     @staticmethod
     def _phone_request_gap_elapsed(last_at, now_monotonic, min_gap) -> bool:
@@ -816,6 +833,10 @@ class BackfillMixin:
         attempt = 0
         attempted: set[str] = set()
         sweep_made_progress = False
+        # A finished sweep keeps `attempted` until the next pass has judged
+        # whether background work may run: clearing it at the sweep's end made
+        # every unopened chat look untried again (issue #756).
+        sweep_done = False
         try:
             while time.monotonic() < deadline:
                 # Sleep in slices so a shutdown or a newer sync is noticed
@@ -859,12 +880,12 @@ class BackfillMixin:
                 # several chunks quickly and do not need to hammer this status
                 # endpoint between each one.
                 landing_now = getattr(self, "_history_still_landing", False)
-                if not attempted:
+                if not attempted or sweep_done:
                     landing_now = self.refresh_history_still_landing(
                         context=f"backfill pass {attempt}")
                 if not landing_now:
                     self._start_deferred_media_sync()
-                if not attempted and landing_now:
+                if (not attempted or sweep_done) and landing_now:
                     # Two things can stall the queue, and both are silent: a
                     # chunk the processing loop will never accept parked at the
                     # head of it, and a loop that simply stopped scheduling
@@ -878,21 +899,31 @@ class BackfillMixin:
                 # Read the pending set *after* the queue check: a chat can join
                 # it as history lands, and the sync that added it may have
                 # finished while this pass was sleeping.
-                pending = self._collapse_and_list_backfill_pending()
+                all_pending = self._collapse_and_list_backfill_pending()
+                # Short chats that keep coming back empty rest between turns,
+                # so they stop holding deep history back (core/short_chat_rest.py).
+                rest = getattr(self, "_short_chat_rest", None)
+                if rest is None:
+                    rest = self._short_chat_rest = {}
+                pending = short_chat_rest.due_chats(
+                    all_pending, rest, time.monotonic(),
+                    opened=self._user_has_opened, landing=landing_now)
                 pending_set = set(pending)
                 attempted = {
                     canonical for jid in attempted
                     if (canonical := self._canonical_backfill_jid(jid)) in pending_set
                 }
+                blocking = self._chats_blocking_background_work(
+                    pending, attempted, self._user_has_opened)
                 continuing_short_sweep = bool(
-                    attempted and any(jid not in attempted for jid in pending))
+                    attempted and any(jid not in attempted for jid in blocking))
                 names_pending = self._pending_name_resolution()
                 # Chats that already hold a full page but whose older history
                 # has never been walked. Without this the loop declared itself
                 # finished the moment every chat had 200 messages, which for a
                 # 20,000-message conversation is 1% of it.
                 deep_pending = self._chats_needing_deep_history()
-                if not pending and not names_pending and not deep_pending:
+                if not all_pending and not names_pending and not deep_pending:
                     if getattr(self, "_history_still_landing", False):
                         # Nothing to re-query yet, but history is still arriving
                         # — keep the loop alive to notice when it does.
@@ -913,7 +944,7 @@ class BackfillMixin:
                 # sweep. Repeating them between every fast queue chunk would
                 # merely move the old 30-second bottleneck to another endpoint.
                 background_work_allowed = self._background_backfill_work_allowed(
-                    bool(pending), continuing_short_sweep)
+                    bool(blocking), continuing_short_sweep)
                 named = self._backfill_names() if background_work_allowed else 0
                 if named:
                     wx.CallAfter(self._schedule_set_chats)
@@ -955,9 +986,10 @@ class BackfillMixin:
                                        max(deadline, time.monotonic() + self._BACKFILL_BUDGET))
 
                 if not pending:
-                    # No chat is short of a page; names and/or deep history
-                    # were this round's work.
+                    # No chat is short of a page, or every short one is
+                    # resting; names and/or deep history were this round's work.
                     attempted.clear()
+                    sweep_done = False
                     if named or deep_stored:
                         retry_delay = self._BACKFILL_FIRST_DELAY
                     else:
@@ -965,6 +997,11 @@ class BackfillMixin:
                     delay = retry_delay
                     continue
 
+                if sweep_done:
+                    # The gate above has seen the finished sweep; the next one
+                    # starts from nothing attempted.
+                    attempted.clear()
+                    sweep_done = False
                 before = len(pending)
                 # Sweep by remembering what has been tried, not by advancing an
                 # index: `pending` shrinks as chats recover, so index arithmetic
@@ -985,13 +1022,14 @@ class BackfillMixin:
                 # gentler than sync_remote_chats(), because an unchunked pass
                 # fired 463 get-messages calls in ~6 s through the one Puppeteer
                 # page, on top of the media phase. None of this is urgent.
-                targets, missing = [], []
+                targets, target_jids, missing = [], [], []
                 for j in window:
                     _key, chat = self._resolve_backfill_target(j)
                     if chat is None:
                         missing.append(j)
                     else:
                         targets.append(chat.copy())
+                        target_jids.append(j)
                 if missing:
                     # The chat is gone for good (deleted, or merged away) —
                     # stop asking about it.
@@ -1017,9 +1055,10 @@ class BackfillMixin:
                 # the budget expires with pending chats still queued and
                 # nothing says so.
                 logging.info(
-                    "[backfill-queue] pass=%d short=%d deep=%d unnamed=%d "
+                    "[backfill-queue] pass=%d short=%d resting=%d deep=%d unnamed=%d "
                     "elapsed=%.0fs of %ds budget",
-                    attempt, before, len(deep_pending), len(names_pending),
+                    attempt, before, len(all_pending) - before, len(deep_pending),
+                    len(names_pending),
                     time.monotonic() - (deadline - self._BACKFILL_BUDGET),
                     self._BACKFILL_BUDGET,
                 )
@@ -1043,14 +1082,20 @@ class BackfillMixin:
                     j: self._anchor_identity(self._oldest_stored_message(j))
                     for j, c in counts_before.items() if c < _target
                 }
+                # The chats whose fetch was answered, for the rest below: a fetch
+                # that timed out or met a dropped connection says nothing about
+                # the chat being empty.
+                fetched_ok = set()
                 if targets:
                     with ThreadPoolExecutor(max_workers=self._BACKFILL_WORKERS) as pool:
                         futs = [pool.submit(
                             sync_throttled(self.sync_chat_messages), c, my_run,
                             expected_context=context) for c in targets]
+                        which = dict(zip(map(id, futs), target_jids))
                         for fut in as_completed(futs):
                             try:
-                                fut.result()
+                                if fut.result():
+                                    fetched_ok.add(which[id(fut)])
                             except Exception as exc:
                                 logging.warning("[backfill] chat sync failed: %s", exc)
                     # The pass's batch is answered (core/page_heap.py).
@@ -1090,6 +1135,12 @@ class BackfillMixin:
                         attempts.pop(jid, None)
                         older_arrived.add(jid)
                     if now >= self.history_page_target() or now > was:
+                        continue
+                    if history_ends_on_server(jid):
+                        # A channel: its updates are on WhatsApp's server, read
+                        # back to its start already; the phone has none to send,
+                        # and a request would only light up its lock screen.
+                        self._remove_backfill_pending(jid)
                         continue
                     if jid in getattr(self, "_exhausted_chats", set()):
                         # Already answered, durably: the phone was asked and
@@ -1141,8 +1192,14 @@ class BackfillMixin:
                         self._retire_chat_without_older_history(jid)
 
                 completed = self._completed_backfill_targets(window)
-                grew = sum(1 for j, was in counts_before.items()
-                           if self._local_record_count(j) > was)
+                grew = 0
+                brought_by = {}
+                for j, was in counts_before.items():
+                    brought_by[j] = self._local_record_count(j) > was
+                    grew += brought_by[j]
+                short_chat_rest.note_pass(
+                    rest, brought_by, fetched_ok, getattr(self, "_wa_connected", False),
+                    time.monotonic(), opened=self._user_has_opened)
                 logging.info(
                     "[backfill] Pass %d: %d chat(s) gained messages (%d of them older "
                     "history), %d no longer pending (of %d).",
@@ -1168,7 +1225,7 @@ class BackfillMixin:
                 delay, retry_delay = BackfillMixin._backfill_short_queue_delays(
                     retry_delay, finishes_sweep, sweep_made_progress)
                 if finishes_sweep:
-                    attempted.clear()
+                    sweep_done = True
                     sweep_made_progress = False
             still = len(self._collapse_and_list_backfill_pending())
             unnamed = len(self._pending_name_resolution())
@@ -1334,7 +1391,8 @@ class BackfillMixin:
             return None
 
     def request_older_messages(self, remote_jid: str, timeout: int = 60,
-                               outcome_out=None, expected_context=None) -> bool | None:
+                               outcome_out=None, expected_context=None,
+                               user_asked: bool = False) -> bool | None:
         """Ask the phone for history older than what this device holds.
 
         Fire-and-forget by nature: the phone answers with a history-sync chunk
@@ -1344,6 +1402,10 @@ class BackfillMixin:
         False means an explicit no-more/phone-only verdict. None is temporary
         or unknown. outcome_out marks an ambiguous send so callers keep the
         reply grace and notification budget rather than blindly resending.
+
+        *user_asked*: the user pressed Home at the top of the chat. Only then
+        does the Neonize bridge ask the phone for a chat whose history ends on
+        the phone (types 2/3, older_history.py); the backfill never says so.
         """
         context = expected_context if expected_context is not None else capture_sync_context(self)
         if outcome_out is not None:
@@ -1357,6 +1419,7 @@ class BackfillMixin:
                 url,
                 headers={"Authorization": f"Bearer {self.token}",
                          "Content-Type": "application/json"},
+                json={"userAsked": True} if user_asked else None,
                 timeout=timeout,
             )
             body = {}
@@ -1524,7 +1587,10 @@ class BackfillMixin:
             if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)
-            and self._media_sync_candidate(msg, explicit=explicit) is not None
+            and (kind := self._media_sync_candidate(msg, explicit=explicit)) is not None
+            # already downloaded in an earlier session: not counted as left to
+            # do (core/media_on_disk.py)
+            and not already_stored(msg, kind)
         ]
         if not tasks:
             return 0
@@ -1549,9 +1615,9 @@ class BackfillMixin:
                         downloaded += 1
                 except Exception:
                     pass
-                # "Processed" (not "downloaded") is the X: most candidates
-                # still end up skipped (already on disk, CDN expired), and a
-                # count of downloads alone looks stuck while the sweep moves.
+                # "Processed" (not "downloaded") is the X: some candidates
+                # still end up skipped (CDN expired, refused), and a count of
+                # downloads alone looks stuck while the sweep moves.
                 # Nothing is said once it has been superseded; a voice call is
                 # _report_sync_progress()'s to check.
                 if (progress is not None and progress.step()
@@ -1613,6 +1679,18 @@ class BackfillMixin:
                 if cp.conversation is not None else ""
             )
             if self._chat_jids_equivalent(current_jid, expected_jid):
+                def _count(c):
+                    try:
+                        return len(c["messages"]["messages"]["records"])
+                    except (KeyError, TypeError):
+                        return -1
+                # Sizes only, no JID: a window that shrinks from thousands of
+                # rows to hundreds and back (issue #812) is explained by what
+                # the swapped-in dict holds.
+                logging.info(
+                    "[_refresh_open_conversation_after_sync] records %d -> %d "
+                    "(window %d row(s))", _count(cp.conversation), _count(new_chat),
+                    len(getattr(cp, "_sorted_messages", ()) or ()))
                 cp.conversation = new_chat
                 cp.refresh_messages_if_changed()
         wx.CallAfter(_apply)

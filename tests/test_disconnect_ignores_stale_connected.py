@@ -181,3 +181,33 @@ class TestStaleConnectedReportAfterDisconnect:
         s._set_wa_connected(True, "status-session CONNECTED")
         assert s.connected_sound.played == 1
         assert s.sync_triggered == 1
+
+
+class TestTimeOfflineIsAListeningGap:
+    """Automatic transcription does not count the time WhatsApp was offline as
+    a message's age (core/transcription/auto_queue.listening_gaps)."""
+
+    @pytest.fixture
+    def gaps(self, monkeypatch):
+        from core.transcription import auto_queue
+        clock = iter(range(1000, 2000, 10))
+        fresh = auto_queue.ListeningGaps(clock=lambda: next(clock))
+        monkeypatch.setattr(auto_queue, "listening_gaps", fresh)
+        return fresh
+
+    def test_a_drop_and_its_recovery_become_one_gap(self, gaps):
+        s = _Stub(token="tok")
+        s._set_wa_connected(True, "status-session CONNECTED")
+        assert gaps.snapshot() == ()
+        s._set_wa_connected(False, "network")
+        s._set_wa_connected(True, "reconnected")
+        (start, end), = gaps.snapshot()
+        assert start < end
+
+    def test_a_stale_report_with_no_token_records_nothing(self, gaps):
+        s = _Stub(token="tok")
+        s._set_wa_connected(True, "status-session CONNECTED")
+        s._set_wa_connected(False, "network")
+        s.token = ""
+        s._set_wa_connected(True, "stale")
+        assert gaps.snapshot() == ()

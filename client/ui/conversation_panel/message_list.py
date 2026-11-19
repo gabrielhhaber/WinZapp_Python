@@ -5,7 +5,8 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
-from ui.shortcut_bindings import command_key_event
+from core.message_translation import message_text
+from ui.shortcut_bindings import command_key_event, matches
 import base64 as _b64
 import logging
 import os
@@ -13,6 +14,7 @@ import threading
 import wx
 from core.group_invitation_link import invitation_code
 from core.polls import POLL_MESSAGE_TYPES
+from core import channel_invites
 from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES, cached_media_path
 from core.call_log import (
     call_log_is_video,
@@ -71,6 +73,18 @@ def activate_audio_message(panel, msg: dict) -> None:
     panel._toggle_audio_message_playback(msg)
 
 
+def handle_translation_shortcut(self, event):
+    """The translation chord on a text row; any other row keeps what the
+    chord did before (Shift+Enter opens it like Enter)."""
+    if not matches(self, event, "message_list.translate"):
+        return False
+    row = self.messages_list.GetFocusedItem()
+    if not 0 <= row < len(self._sorted_messages) or not message_text(self._sorted_messages[row]):
+        return False
+    self._on_translate_message(self._sorted_messages[row])
+    return True
+
+
 class MessageListMixin:
     """Moving around the message list: selection, activation, focus, paging,
     quick-reply buttons and jumps.
@@ -100,6 +114,7 @@ class MessageListMixin:
         if getattr(self, "_suppress_selection_side_effects", False):
             return
         index = event.GetIndex()
+        self._business_context = None
         self._hide_all_media_controls()   # also clears links panel
         if index < 0 or index >= len(self._sorted_messages):
             return
@@ -157,19 +172,6 @@ class MessageListMixin:
                     self._action_download_btn.Show()
             self.conversation_panel.Layout()
 
-        elif msg_type == "buttonsMessage":
-            buttons = (msg_obj.get("buttonsMessage") or {}).get("buttons", [])
-            remote_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
-            self._show_reply_buttons(buttons, remote_jid)
-
-        elif msg_type == "listMessage":
-            sections = (msg_obj.get("listMessage") or {}).get("sections", [])
-            rows: list = []
-            for sec in sections:
-                rows.extend(sec.get("rows", []) if isinstance(sec, dict) else [])
-            remote_jid = self.conversation.get("remoteJid", "") if self.conversation else ""
-            self._show_list_rows(rows, remote_jid)
-
         elif msg_type == "contactMessage":
             contact = msg_obj.get("contactMessage") or {}
             vcard = contact.get("vcard", "")
@@ -185,7 +187,8 @@ class MessageListMixin:
                 self._action_open_btn.Show()
                 self.conversation_panel.Layout()
 
-        if msg.get("businessButtons"):
+        from core.business_message_content import message_business_buttons
+        if message_business_buttons(msg):
             self._show_business_buttons(msg)
 
         self._update_ai_describe_button(msg)
@@ -327,10 +330,22 @@ class MessageListMixin:
         elif msg_type in POLL_MESSAGE_TYPES:
             self._show_poll_dialog(msg)
 
+        elif msg_type == "eventMessage":
+            self._show_event_dialog(msg)
+
         elif self._can_view_order(msg):
             # An order opens like a poll does: its items, and for a business
             # account that received it, the answer (ui/conversation_panel/commerce.py).
             self._show_order(msg)
+
+        elif msg_type in channel_invites.INVITE_TYPES:
+            # Enter on a channel invitation opens the channel, where it can be
+            # followed (an admin one is accepted on the phone, as on WhatsApp Web)
+            channel = channel_invites.channel_of(msg)
+            if channel is not None:
+                from ui.dialogs.group_join_dialog import open_group_chat
+                open_group_chat(self.main_window, channel[0],
+                                channel[1] or self.main_window.i18n.t("channels_unnamed"))
 
         elif msg_type == "contactMessage":
             # Enter on a contact message → open a conversation with that
@@ -556,6 +571,33 @@ class MessageListMixin:
         self._update_read_more_button(idx)
         self._update_inline_poll(idx)
         self._update_reactions_button(idx)
+        self._update_business_buttons(idx)
+
+    def _update_business_buttons(self, idx: int):
+        """The business buttons of the focused row, decided without a selection
+        event: a conversation opened with its message already focused (a single
+        row, or the row it resumes on) never gets one, so the buttons never
+        showed. Shown again only when they are not already the focused
+        message's own; hidden when the focused row has none."""
+        from core.business_message_content import message_business_buttons
+        msg = None
+        if 0 <= idx < len(self._sorted_messages):
+            candidate = self._sorted_messages[idx]
+            if not self._is_separator(candidate) and message_business_buttons(candidate):
+                msg = candidate
+        if msg is None:
+            if getattr(self, "_business_context", None) is not None:
+                self._business_context = None
+                self._buttons_container.Hide()
+                self.conversation_panel.Layout()
+            return
+        # By message id, not identity: a rebuild replaces the dicts, and
+        # rebuilding the buttons would drop a Tab focus sitting on one.
+        shown = getattr(self, "_business_shown_msg", None)
+        if (shown is not None and getattr(self, "_business_context", None) is not None
+                and (shown.get("key") or {}).get("id") == (msg.get("key") or {}).get("id")):
+            return
+        self._show_business_buttons(msg)
 
     def _update_return_call_button(self, idx: int):
         """Show "Retornar ligação" only while a returnable missed call is focused."""
@@ -805,6 +847,11 @@ class MessageListMixin:
                 found.add(mid)
         return found
 
+    def _on_messages_list_char_hook(self, event):
+        # Windows can consume Enter before it reaches EVT_KEY_DOWN.
+        if not handle_translation_shortcut(self, event):
+            event.Skip()
+
     def _on_messages_list_key_down(self, event):
         """Ctrl+Space toggles the focused row's membership in
         self.selected_messages (the mass actions act on that set). Plain Space
@@ -821,6 +868,8 @@ class MessageListMixin:
         Activation stayed on Enter / double-click — see _do_activate_message.
         Page Up / Page Down jump by a configurable number of messages (page_up_down_step setting).
         Trigger loading older messages on Arrow Up / Page Up when at the top (index 0)."""
+        if handle_translation_shortcut(self, event):
+            return
         event = command_key_event(self, 'message_list', event)
         key = event.GetKeyCode()
         ctrl = event.ControlDown()
@@ -1040,67 +1089,9 @@ class MessageListMixin:
         except Exception:
             pass
 
-    def _show_reply_buttons(self, buttons: list, remote_jid: str):
-        """Render interactive message buttons (buttonsMessage) in the container."""
-        self._buttons_container.DestroyChildren()
-        sizer = wx.WrapSizer(wx.HORIZONTAL)
-        for btn_data in buttons:
-            if not isinstance(btn_data, dict):
-                continue
-            label = (btn_data.get("buttonText") or {}).get("displayText", "").strip()
-            if not label:
-                continue
-            btn = wx.Button(self._buttons_container, label=label)
-            btn.Bind(
-                wx.EVT_BUTTON,
-                lambda e, d=btn_data, jid=remote_jid: self._on_reply_button(d, jid),
-            )
-            sizer.Add(btn, 0, wx.ALL, 4)
-        self._buttons_container.SetSizer(sizer, True)
-        self._buttons_container.Layout()
-        self._buttons_container.Show()
-        self.conversation_panel.Layout()
 
-    def _show_list_rows(self, rows: list, remote_jid: str):
-        """Render list-message rows as reply buttons."""
-        self._buttons_container.DestroyChildren()
-        sizer = wx.WrapSizer(wx.HORIZONTAL)
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            label = row.get("title", "").strip()
-            if not label:
-                continue
-            btn = wx.Button(self._buttons_container, label=label)
-            btn.Bind(
-                wx.EVT_BUTTON,
-                lambda e, r=row, jid=remote_jid: self._on_list_row_selected(r, jid),
-            )
-            sizer.Add(btn, 0, wx.ALL, 4)
-        self._buttons_container.SetSizer(sizer, True)
-        self._buttons_container.Layout()
-        self._buttons_container.Show()
-        self.conversation_panel.Layout()
 
-    def _on_reply_button(self, btn_data: dict, remote_jid: str):
-        label = (btn_data.get("buttonText") or {}).get("displayText", "").strip()
-        if not label or not remote_jid:
-            return
-        threading.Thread(
-            target=self.main_window.send_text_message,
-            args=(remote_jid, label),
-            daemon=True,
-        ).start()
 
-    def _on_list_row_selected(self, row: dict, remote_jid: str):
-        label = row.get("title", "").strip()
-        if not label or not remote_jid:
-            return
-        threading.Thread(
-            target=self.main_window.send_text_message,
-            args=(remote_jid, label),
-            daemon=True,
-        ).start()
 
     # ── Alt+2: jump to last message ────────────────────────────────────────
 

@@ -17,6 +17,7 @@ class Window:
 
     def __init__(self):
         self.chats = {}
+        self.settings = {}
         self._deleted_chats = set()
         self.offline_mode = False
         self._tray_status = ""
@@ -29,6 +30,7 @@ class Window:
 
     def is_chat_archived(self, jid): return False
     def is_chat_locked(self, jid): return False
+    def is_chat_muted(self, jid): return False
     def GetTitle(self): return self.title
 
     def SetTitle(self, title):

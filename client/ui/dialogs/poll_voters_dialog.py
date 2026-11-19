@@ -12,7 +12,7 @@ import threading
 
 import wx
 
-from core.polls import poll_options, poll_content, voter_rows
+from core.polls import hides_voter_names, poll_options, poll_content, voter_rows
 
 
 class PollVotersDialog(wx.Dialog):
@@ -64,7 +64,9 @@ class PollVotersDialog(wx.Dialog):
             self._mw.speak_output.output(i18n.t("poll_voters_failed"))
             return
         options = data.get("options") or poll_options(poll_content(self._msg.get("message") or {}))
-        rows = voter_rows(i18n, data.get("voters") or [], options, self._name_of)
+        poll = poll_content(self._msg.get("message") or {})
+        hidden = hides_voter_names(poll) or data.get("hideVoterNames") is True
+        rows = voter_rows(i18n, data.get("voters") or [], options, self._name_of, hide_names=hidden)
         self._list.Freeze()
         try:
             self._list.DeleteAllItems()

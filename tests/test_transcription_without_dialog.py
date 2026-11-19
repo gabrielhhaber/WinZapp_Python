@@ -33,6 +33,7 @@ class Flow:
 
     def __init__(self, window, message_id="A", without_dialog=True, inline=False):
         self._main_window = window
+        self._panel = SimpleNamespace(_summary_voice_running=lambda: False)
         self._inline = inline
         self._selection = ("auto", "auto")
         self.saved_shown = 0

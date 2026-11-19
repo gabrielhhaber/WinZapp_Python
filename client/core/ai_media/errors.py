@@ -20,6 +20,11 @@ class DescriptionError(RuntimeError):
 def status_error(status):
     if status in (401, 403):
         return DescriptionError("authentication")
+    if status == 402:
+        # Payment Required: OpenRouter's answer to an account without the
+        # credit a request needs. Read as "request" it said "check the model
+        # identifier and settings", on a reported log with three 402s in a row.
+        return DescriptionError("credits")
     if status == 429:
         return DescriptionError("quota")
     if status >= 500:

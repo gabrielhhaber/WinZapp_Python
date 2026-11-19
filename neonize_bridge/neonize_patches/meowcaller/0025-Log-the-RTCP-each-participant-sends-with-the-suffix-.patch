@@ -1,0 +1,184 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 23:08:36 -0300
+Subject: [PATCH] Log the RTCP each participant sends, with the suffix of its
+ group reports
+
+---
+ engine_media.go          |  5 ++++
+ rtcp_report_diag.go      | 58 ++++++++++++++++++++++++++++++++++++++
+ rtcp_report_diag_test.go | 61 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 124 insertions(+)
+
+diff --git a/engine_media.go b/engine_media.go
+index dabef2d..dd28ff5 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -920,6 +920,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	buf := make([]byte, 1500)
+ 	var receiveStats audioReceiveStats
+ 	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid, stunIn uint64
++	incomingRTCP := incomingRTCPLog{}
+ 	for {
+ 		if ctx.Err() != nil {
+ 			return ctx.Err()
+@@ -981,6 +982,10 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			if rtcpIn++; rtcpIn == 1 {
+ 				log.Info().Uint32("ssrc", senderSsrc).Uint32("index", index).Msg("first authenticated peer SRTCP received")
+ 			}
++			if incomingRTCP.due(senderSsrc) {
++				log.Info().Uint32("ssrc", senderSsrc).Str("rtcp", describeIncomingRTCP(plain)).
++					Msg("peer RTCP received")
++			}
+ 			keyframe := rtp.RtcpRequestsKeyframe(plain, videoSelfSsrc)
+ 			if keyframe {
+ 				vsender.requestKeyframe()
+diff --git a/rtcp_report_diag.go b/rtcp_report_diag.go
+index f180a15..f9e5286 100644
+--- a/rtcp_report_diag.go
++++ b/rtcp_report_diag.go
+@@ -1,6 +1,8 @@
+ package meowcaller
+ 
+ import (
++	"encoding/binary"
++	"encoding/hex"
+ 	"fmt"
+ 	"strings"
+ 
+@@ -43,3 +45,59 @@ func describeRTCPReports(reports []*rtp.RtcpReceptionReport) string {
+ 	}
+ 	return strings.Join(parts, "; ")
+ }
++
++// describeIncomingRTCP is the first packet of a decrypted compound RTCP from a
++// participant: its type and, for a sender report, each reception block and
++// the bytes after the blocks (the eight-byte suffix group reports carry, which
++// this client sends as zeros; an official client's shows what it means).
++// Only header fields and that suffix are described, never media.
++func describeIncomingRTCP(plain []byte) string {
++	if len(plain) < 8 {
++		return fmt.Sprintf("short len=%d", len(plain))
++	}
++	count := int(plain[0] & 0x1f)
++	packetType := plain[1]
++	length := (int(binary.BigEndian.Uint16(plain[2:4])) + 1) * 4
++	if length > len(plain) {
++		length = len(plain)
++	}
++	if packetType != rtp.RtcpPtSr {
++		return fmt.Sprintf("pt=%d count=%d len=%d total=%d", packetType, count, length, len(plain))
++	}
++	const senderSection = 28
++	if length < senderSection {
++		return fmt.Sprintf("sr short len=%d", length)
++	}
++	parts := []string{fmt.Sprintf("sr from 0x%08x", binary.BigEndian.Uint32(plain[4:8]))}
++	offset := senderSection
++	for i := 0; i < count && offset+24 <= length; i++ {
++		block := plain[offset : offset+24]
++		parts = append(parts, fmt.Sprintf("block ssrc 0x%08x lost=%d/256 seq=%d",
++			binary.BigEndian.Uint32(block[0:4]), block[4], binary.BigEndian.Uint32(block[8:12])))
++		offset += 24
++	}
++	if offset < length {
++		parts = append(parts, "suffix="+hex.EncodeToString(plain[offset:length]))
++	}
++	if length+1 < len(plain) { // the next packet's header byte 1 must exist
++		parts = append(parts, fmt.Sprintf("then pt=%d", plain[length+1]))
++	}
++	return strings.Join(parts, " ")
++}
++
++// incomingRTCPLogSenders bounds incomingRTCPLog: a participant may rotate its
++// SSRC, and the map lives as long as the call's media loop.
++const incomingRTCPLogSenders = 256
++
++// incomingRTCPLog counts the RTCP of each sender: its first 4 and then one in
++// 40 are logged. Past incomingRTCPLogSenders senders a new one is not logged.
++type incomingRTCPLog map[uint32]int
++
++func (l incomingRTCPLog) due(ssrc uint32) bool {
++	if _, known := l[ssrc]; !known && len(l) >= incomingRTCPLogSenders {
++		return false
++	}
++	l[ssrc]++
++	n := l[ssrc]
++	return n <= 4 || n%40 == 0
++}
+diff --git a/rtcp_report_diag_test.go b/rtcp_report_diag_test.go
+index f720e18..dbdadbc 100644
+--- a/rtcp_report_diag_test.go
++++ b/rtcp_report_diag_test.go
+@@ -1,6 +1,8 @@
+ package meowcaller
+ 
+ import (
++	"fmt"
++	"strings"
+ 	"testing"
+ 
+ 	"github.com/purpshell/meowcaller/rtp"
+@@ -42,3 +44,62 @@ func TestRTCPReportsAreLoggedRightAfterGroupMediaThenEvery30s(t *testing.T) {
+ 		}
+ 	}
+ }
++
++func TestAnIncomingGroupReportShowsItsBlocksAndSuffix(t *testing.T) {
++	extension := rtp.RTCPGroupReportExtension{1, 2, 3, 4, 5, 6, 7, 8}
++	plain := rtp.BuildGroupSenderReport(0xabcdef01, &rtp.RtcpSenderStats{}, 1000,
++		&rtp.RtcpReceptionReport{Ssrc: 0x9c9e8888, FractionLost: 12, ExtendedHighestSequence: 626}, extension)
++	got := describeIncomingRTCP(plain)
++	want := "sr from 0xabcdef01 block ssrc 0x9c9e8888 lost=12/256 seq=626 suffix=0102030405060708"
++	if got != want {
++		t.Fatalf("describeIncomingRTCP = %q", got)
++	}
++	if describeIncomingRTCP([]byte{1, 2}) != "short len=2" {
++		t.Fatal("a short packet is said to be short")
++	}
++	pli := rtp.BuildPictureLossIndication(1, 2, false)
++	if got := describeIncomingRTCP(pli[:]); got != "pt=206 count=1 len=12 total=12" {
++		t.Fatalf("another type = %q", got)
++	}
++}
++
++func TestIncomingRTCPIsLoggedFirstThenOneInForty(t *testing.T) {
++	l := incomingRTCPLog{}
++	var logged []int
++	for n := 1; n <= 80; n++ {
++		if l.due(7) {
++			logged = append(logged, n)
++		}
++	}
++	if len(logged) != 6 || logged[4] != 40 || logged[5] != 80 || !l.due(8) {
++		t.Fatalf("logged %v", logged)
++	}
++}
++
++func TestAnIncomingReportWithTrailingBytesDoesNotReadPastThePacket(t *testing.T) {
++	plain := rtp.BuildGroupSenderReport(0xabcdef01, &rtp.RtcpSenderStats{}, 1000,
++		&rtp.RtcpReceptionReport{Ssrc: 0x9c9e8888}, rtp.RTCPGroupReportExtension{})
++	// one byte after the first packet: no second header to read, and no panic
++	if got := describeIncomingRTCP(append(append([]byte{}, plain...), 0x80)); strings.Contains(got, "then") {
++		t.Fatalf("one trailing byte = %q", got)
++	}
++	got := describeIncomingRTCP(append(append([]byte{}, plain...), 0x80, rtp.RtcpPtSdes))
++	if !strings.HasSuffix(got, fmt.Sprintf("then pt=%d", rtp.RtcpPtSdes)) {
++		t.Fatalf("a second packet's type is shown: %q", got)
++	}
++}
++
++func TestIncomingRTCPLogStopsAddingSendersPastItsBound(t *testing.T) {
++	l := incomingRTCPLog{}
++	for ssrc := uint32(0); ssrc < incomingRTCPLogSenders; ssrc++ {
++		if !l.due(ssrc) {
++			t.Fatalf("sender %d is logged", ssrc)
++		}
++	}
++	if l.due(incomingRTCPLogSenders) || len(l) != incomingRTCPLogSenders {
++		t.Fatalf("a sender past the bound is not added (%d kept)", len(l))
++	}
++	if !l.due(0) || l[0] != 2 {
++		t.Fatal("a sender already counted still is")
++	}
++}

@@ -21,6 +21,7 @@ from aiohttp import web
 
 import audio_message
 import media_probe
+import poll_settings
 import send_log
 import channels
 import administration
@@ -35,8 +36,16 @@ import inputs
 import legacy_layout
 import loop_watch
 import ongoing_calls
+import quote_fallback
+import receipt_ids
+import undecryptable
 import group_events
+import events
 import contact_events
+import block_events
+import privacy_events
+import media_retry
+import offline_sync
 import app_state_mirror
 import app_state_recovery
 import labels
@@ -48,6 +57,7 @@ import chat_aliases
 import chat_archive
 import chat_timers
 import read_receipts
+import phone_chat_delete
 import chat_remaining
 import groups
 import groups_extra
@@ -55,16 +65,23 @@ import history_progress
 import older_history
 import call_invites
 import channels_panel
+import channel_events
+import channel_media
 import channel_updates
 import cleanup
 import msgmap
+import socket_events
+import unread_rule
 import pairing
 import commerce_routes
 import profile_privacy
 import presence
+import pairing_history
 import pairing_repair
 import group_receipts
 import message_rules
+import message_state_events
+import chat_settings_events
 import responses
 import remaining
 import redaction
@@ -103,6 +120,10 @@ def device_props(days):
         props.historySyncConfig.fullSyncDaysLimit = days
         props.historySyncConfig.fullSyncSizeMbLimit = 102400
         props.historySyncConfig.storageQuotaMb = 102400
+    else:
+        # said outright: neonize merges these into one DeviceProps for the
+        # whole process, and an earlier session's full sync would stay on
+        props.requireFullSync = False
     return props
 
 
@@ -167,6 +188,22 @@ def jid_text(jid) -> str:
         return ""
     return f"{jid.User}@{jid.Server}"
 
+
+
+def connect_until_stopped(cli):
+    """Runs the client's event loop until stop(). When the loop fails instead,
+    the Go client may still hold the WhatsApp socket: it is disconnected, or
+    the session started again after this would open a second connection and
+    WhatsApp would replace the stream (seen live 2026-11-12: a group call
+    dropped that way)."""
+    try:
+        cli.connect()
+    except Exception:
+        log.exception("connect")
+        try:
+            cli.disconnect()
+        except Exception:
+            log.info("disconnect after the failed event loop failed", exc_info=True)
 
 class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.ReadReceipts,
               group_receipts.GroupReceipts):
@@ -240,14 +277,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         who = "me" if i_reacted else sender_w
         ts = msgmap.seconds(e.Info.Timestamp)
         self.db.react(target_id, who, emoji, ts)
-        reaction_serial = f"{'true' if i_reacted else 'false'}_{chat_w}_{e.Info.ID}"
-        if group:
-            reaction_serial += f"_{sender_w}"
-        self.emit("onreactionmessage", {"session": self.name, "response": {
-            "id": reaction_serial,
-            "msgId": self.target_serial(chat_w, group, target_id, i_reacted,
-                                        key_from_me, participant),
-            "reactionText": emoji, "text": emoji, "timestamp": ts}})
+        target_serial = self.target_serial(chat_w, group, target_id, i_reacted,
+                                           key_from_me, participant)
+        reaction_timestamp = msgmap.unwrap(e.Message).reactionMessage.senderTimestampMS
+        self.emit("onreactionmessage", socket_events.reaction_message(
+            self.name, chat_w, e.Info.ID, i_reacted, sender_w, target_serial,
+            emoji, reaction_timestamp or e.Info.Timestamp,
+            known_target=self.db.wpp_message(target_id) is not None))
         return True
 
     # --------------------------------------------------------------- status
@@ -291,9 +327,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         """True if the message was the notice of pinning or unpinning a message."""
         data = msgmap.pin(e.Message)
         if data is None:
-            return False
+            # A pin notice of another type (UNKNOWN_TYPE) is no unpin, but it is
+            # still a notice: consumed here, it never becomes an "unsupported" row.
+            return msgmap.unwrap(e.Message).HasField("pinInChatMessage")
         target, pin, duration = data
         self.db.pin_message(target, chat, pin, msgmap.seconds(e.Info.Timestamp), duration)
+        stamp = msgmap.unwrap(e.Message).pinInChatMessage.senderTimestampMS
+        stamp = int(stamp) if stamp else int(msgmap.seconds(e.Info.Timestamp) * 1000)
+        self.emit("message-pin-changed", {"session": self.name, "chatId": msgmap.jid_wpp(chat),
+            "messageId": target, "pinned": pin, "timestamp": stamp, "duration": duration})
         return True
 
     def pin_message(self, serial, pin, duration=7 * 86400):
@@ -326,13 +368,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return True
 
     # -------------------------------------------------------------- edit
-    def mark_edited(self, target, chat_w, edit_id, from_me, **fields):
+    def mark_edited(self, target, chat_w, edit_id, from_me, *,
+                    edit_timestamp=None, edit_participant="", **fields):
         """Puts the new text in the stored message, with the edited mark
         (latestEditMsgKey, which the app reads), and returns the message."""
+        original = self.db.wpp_message(target) or {}
+        original_key = original.get("id") or {}
+        participant = ""
+        if chat_w.endswith("@g.us"):
+            participant = (edit_participant or original_key.get("participant")
+                           or original.get("author", ""))
+            if not participant:
+                parts = str(original_key.get("_serialized") or "").split("_", 3)
+                participant = parts[3] if len(parts) > 3 else ""
         self.db.change_message(
             target, **fields,
-            latestEditMsgKey={"id": edit_id, "remote": chat_w, "fromMe": bool(from_me)},
-            latestEditSenderTimestampMs=int(time.time() * 1000))
+            latestEditMsgKey=msgmap.message_key(chat_w, from_me, edit_id, participant),
+            latestEditSenderTimestampMs=msgmap.seconds(edit_timestamp or time.time()))
         return self.db.wpp_message(target)
 
     def _edit_received(self, chat, o, e):
@@ -352,8 +404,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             return True
         fields = {"body": w.get("body", "")} if w.get("type") == "chat" \
             else {"caption": w.get("caption", "")}
+        timestamp = msgmap.unwrap(e.Message).protocolMessage.timestampMS or e.Info.Timestamp
         edited = self.mark_edited(target, msgmap.jid_wpp(chat), e.Info.ID,
-                                  o.IsFromMe, **fields)
+                                  o.IsFromMe, edit_timestamp=timestamp,
+                                  edit_participant=jid_text(o.Sender), **fields)
         self.emit("received-message", {"session": self.name, "response": edited})
         return True
 
@@ -386,11 +440,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 new = Message(conversation=text)
             fields = {"body": text}
         try:
-            self.client.edit_message(build_jid(u, srv), mid, new)
+            response = self.client.edit_message(build_jid(u, srv), mid, new)
         except Exception:
             log.exception("edit message")
             return False
-        self.mark_edited(mid, msgmap.jid_wpp(conversation), mid, True, **fields)
+        self.mark_edited(mid, msgmap.jid_wpp(conversation),
+                         getattr(response, "ID", "") or mid, True,
+                         edit_timestamp=getattr(response, "Timestamp", None), **fields)
         return True
 
     def message_to_forward(self, serial, keep_voice=False, keep_preview=False):
@@ -432,12 +488,20 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             fix_poll_vote_decryption(self.client)
             datum = self.client.decrypt_poll_vote(e)
         except Exception as error:
-            log.info("vote I could not decrypt (%s: %s)", type(error).__name__,
-                     str(error)[:100])
+            log.info("vote I could not decrypt (%s); no vote event emitted",
+                     type(error).__name__)
             return True
         who = "me" if o.IsFromMe else msgmap.jid_wpp(jid_text(o.Sender))
-        self.db.vote(target, who, msgmap.vote_indexes(names, datum.selectedOptions),
-                     msgmap.seconds(e.Info.Timestamp))
+        indexes = msgmap.vote_indexes(names, datum.selectedOptions)
+        if len(indexes) != len(datum.selectedOptions):
+            log.info("vote with unknown poll options ignored")
+            return True
+        self.db.vote(target, who, indexes, msgmap.seconds(e.Info.Timestamp))
+        if original.get("id"):
+            vote_timestamp = msgmap.unwrap(e.Message).pollUpdateMessage.senderTimestampMS
+            self.emit("onpollresponse", socket_events.poll_response(
+                self.name, original, indexes, jid_text(o.Sender),
+                vote_timestamp or e.Info.Timestamp))
         return True
 
     def poll_wpp(self, serial):
@@ -487,7 +551,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             voters.append({"sender": sender, "mine": who == "me",
                            "name": name.get("name") or name.get("pushname") or "",
                            "localIds": ids})
-        return {"ok": True, "options": options, "voters": voters}
+        original = self.db.wpp_message(self.id_parts(serial)[2]) or {}
+        return {"ok": True, "options": options, "voters": voters,
+                "hideVoterNames": original.get("pollHideVoterNames") is True}
 
     def vote_in_poll(self, serial, local_ids):
         """Votes (or, with no ids, removes the vote) in a poll."""
@@ -699,8 +765,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         if previous_media is not None:
             previous_media.close()
         self.call_media = None
-        cli = self.client = NewClient(os.path.join(self.folder, "session.db"),
-                                      props=device_props(HISTORY_DAYS))
+        # the history the user chose for this session in the pairing dialog
+        # (pairing_history.py); it only matters until the session pairs
+        # what this client registers with, which pairing-history compares
+        self.pairing_days = pairing_history.load(self.folder, HISTORY_DAYS)
+        cli = self.client = NewClient(
+            os.path.join(self.folder, "session.db"),
+            props=device_props(self.pairing_days))
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
@@ -721,6 +792,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         presence.register_events(cli, self)
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
+        block_events.register_events(cli, self)
+        privacy_events.register_events(cli, self)
+        media_retry.register_events(cli, self)
+        offline_sync.register_events(cli, self)
+        channel_events.register_events(cli, self)
         app_state_mirror.register_events(cli, self)
         pairing_repair.WATCH.add(self, generation, phone_number)
 
@@ -766,8 +842,30 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _responded(c, e):
             self._on_drop(generation, session_lifecycle.RESTORED, "keep-alive restored")
 
+        undecryptable_tally = undecryptable.Tally()
+
+        def _report_undecryptable():
+            summary = undecryptable_tally.due()
+            if summary:
+                log.info(summary)
+
+        @cli.event(nev.UndecryptableMessageEv)
+        def _undecryptable(c, e):
+            try:
+                undecryptable_tally.failed(bool(e.Info.MessageSource.IsFromMe),
+                                           bool(e.IsUnavailable))
+                _report_undecryptable()
+            except Exception:
+                log.exception("undecryptable message")
+
         @cli.event(nev.MessageEv)
         def _message(c, e):
+            try:
+                if e.UnavailableRequestID:
+                    undecryptable_tally.recovered()
+                _report_undecryptable()
+            except Exception:
+                log.exception("undecryptable summary")
             try:
                 o = e.Info.MessageSource
                 chat = jid_text(o.Chat)
@@ -780,6 +878,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if self._reaction_received(chat, o, e):
                     return
                 if self._vote_received(o, e):
+                    return
+                if events.received(self, chat, o, e, jid_text):   # answer or edit of an event
                     return
                 if comments.receive(self, chat, o, e):    # announcement comment
                     return
@@ -794,18 +894,30 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if w is None:
                     return
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    original = self.db.wpp_message(w["protocolMessageKey"]["id"])
+                    if original and original.get("id"):
+                        w["protocolMessageKey"] = dict(original["id"])
                     # deleted for everyone by whoever sent it: the original becomes deleted too
-                    self.db.change_message(w["protocolMessageKey"]["id"], type="revoked", body="")
-                self.db.message(chat, w, msgmap.media_record_of(e.Message))
-                self.db.on_arrival(chat, w["t"], w["fromMe"])
+                    if not self.db.revocation(chat, w):
+                        return      # unknown original and chat: not a conversation (#762)
+                else:
+                    self.db.message(chat, w, msgmap.media_record_of(e.Message))
+                    if w.get("type") == "event_creation":
+                        events.remember(self, chat, e.Info.ID, bool(o.IsFromMe), o,
+                                        e.Message, jid_text)
+                # a deletion raises the date but is never unread (unread_rule.py)
+                self.db.on_arrival(chat, w["t"], not unread_rule.counted(w))
                 try:
                     chat_archive.on_arrival(self, chat, w)
                 except Exception:
                     log.exception("archived chat with a new message")
                 if e.Info.Pushname and not o.IsFromMe:
-                    self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
+                    contact_events.store_nickname(c, self, o.Sender, e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
+                if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    self.emit("onrevokedmessage", socket_events.revoked_message(
+                        self.name, w, self.me))
             except Exception:
                 log.exception("received message")
 
@@ -815,8 +927,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if e.Name and e.Name.Name:
                     self.db.chat(jid_text(e.JID), name=e.Name.Name)
                 if e.HasField("Ephemeral"):
-                    self.record_timer(jid_text(e.JID), int(e.Ephemeral.DisappearingTimer)
-                                      if e.Ephemeral.IsEphemeral else 0)
+                    duration = int(e.Ephemeral.DisappearingTimer) if e.Ephemeral.IsEphemeral else 0
+                    self.record_timer(jid_text(e.JID), duration)
+                    chat_settings_events.timer_changed(self, jid_text(e.JID), duration)
             except Exception:
                 log.exception("group changed")
             group_events.group_changed(c, self, e)    # groups.update (see group_events)
@@ -887,13 +1000,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     log.info("read on the phone, but there is a newer message: kept")
                     return
                 fields, new = change
+                before = self.db.unread(jid)
                 self.db.chat(jid, **fields)
                 log.info("chat marked as %s on the phone -> app",
                          "read" if action.read else "unread")
-                chat_w = msgmap.jid_wpp(jid)
-                self.emit("chats-update", {"session": self.name, "data": [{
-                    "remoteJid": chat_w, "id": chat_w, "unreadCount": new,
-                    "previousUnreadCount": before}]})
+                announce_read(jid, before, new)
             except Exception:
                 log.exception("chat read on the phone")
 
@@ -927,7 +1038,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageStarEv)
         def _starred_on_phone(c, e):
             try:
-                self.db.change_message(e.MessageID, star=bool(e.Action.starred))
+                message_state_events.star_changed(self, e, jid_text)
                 log.info("message %s on the phone", "starred" if e.Action.starred else "unstarred")
             except Exception:
                 log.exception("star on the phone")
@@ -935,18 +1046,42 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageDeleteForMeEv)
         def _deleted_on_phone(c, e):
             try:
-                if e.FromFullSync:
-                    return
-                self.db.delete_message(e.MessageID)
+                message_state_events.deleted_for_me(self, e, jid_text)
                 log.info("message deleted on the phone")
             except Exception:
                 log.exception("delete on the phone")
+
+        @cli.event(nev.ChatDeleteEv)
+        def _chat_deleted_on_phone(c, e):
+            """Chat deleted on the phone: the bridge forgets it, so list-chats and
+            the next history sync no longer bring it back."""
+            try:
+                jid = local_chat(c, e.JID)
+                last = self.db.raw_last(jid)
+                covered = msgmap.seconds(e.Action.messageRange.lastMessageTimestamp) if e.Action.HasField("messageRange") else 0
+                until = int(covered or msgmap.seconds(e.Timestamp))
+                if not phone_chat_delete.applies(
+                        e.FromFullSync, until,
+                        last["t"] if last is not None else None):
+                    return
+                if covered and last is not None and last["t"] > covered:
+                    return
+                self.db.delete_chat(jid)
+                chat_id = msgmap.jid_wpp(jid)
+                # Like the WPPConnect observer: only a deletion that states the
+                # range it covers is announced; the client rejects other ids.
+                if covered and chat_id.endswith(("@c.us", "@lid", "@g.us")):
+                    self.emit("chat-deleted", {"session": self.name,
+                        "chatId": chat_id, "until": int(covered)})
+                log.info("chat deleted on the phone -> app")
+            except Exception:
+                log.exception("chat delete on the phone")
 
         @cli.event(nev.ChatLockEv)
         def _locked_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                self.db.chat(jid, locked=int(bool(e.Action.locked)))
+                chat_settings_events.lock_changed(self, e, jid)
                 log.info("chat %s on the phone", "locked" if e.Action.locked else "unlocked")
             except Exception:
                 log.exception("lock on the phone")
@@ -955,13 +1090,12 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _muted_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                end = 0
-                if e.Action.muted:
-                    end = msgmap.seconds(e.Action.muteEndTimestamp)                         if e.Action.muteEndTimestamp > 0 else 2**31 - 1
-                self.db.chat(jid, muted=int(end))
+                chat_settings_events.mute_changed(self, e, jid)
                 log.info("chat %s on the phone", "muted" if e.Action.muted else "with sound again")
             except Exception:
                 log.exception("mute on the phone")
+
+        receipts_without_id = receipt_ids.Skipped()
 
         @cli.event(nev.ReceiptEv)
         def _receipt(c, e):
@@ -970,11 +1104,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 kind = Receipt.DESCRIPTOR.fields_by_name["Type"].enum_type \
                     .values_by_number[e.Type].name
                 ack = {"DELIVERED": 2, "READ": 3, "PLAYED": 4}.get(kind)
+                ids = receipt_ids.message_ids(e.MessageIDs)
+                if not ids:
+                    if receipts_without_id.note():
+                        log.info("receipt %s without a message id dropped (%d so far)",
+                                 kind, receipts_without_id.count)
+                    return
                 chat = msgmap.jid_wpp(jid_text(e.MessageSource.Chat))
                 is_mine = bool(e.MessageSource.IsFromMe)
                 log.info("receipt %s%s (%d message(s)) in %s -> ack %s ids=%s", kind,
-                         " [mine]" if is_mine else "", len(e.MessageIDs), redact(chat), ack,
-                         ",".join(list(e.MessageIDs)[:5]))
+                         " [mine]" if is_mine else "", len(ids), redact(chat), ack,
+                         ",".join(ids[:5]))
                 # read receipt that comes from me: I read on the phone (or on another device)
                 if kind == "READ_SELF" or (kind == "READ" and is_mine):
                     read_on_another_device(c, e)
@@ -991,14 +1131,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                         who = msgmap.jid_wpp(jid_text(e.MessageSource.Sender))
                         stage = {"DELIVERED": "delivered", "READ": "read",
                                  "PLAYED": "played"}[kind]
-                        self.db.receipts(list(e.MessageIDs), who, stage,
+                        self.db.receipts(ids, who, stage,
                                          msgmap.seconds(e.Timestamp))
                     except Exception:
                         log.exception("store receipt")
                 if chat.endswith("@g.us"):
                     # group: the ack only advances when ALL the members got there
                     # (group_receipts.py); a single receipt is not enough
-                    for mid in e.MessageIDs:
+                    for mid in ids:
                         in_group = self.group_ack_to_emit(chat, mid)
                         if in_group:
                             self.emit("onack", {
@@ -1006,7 +1146,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                                 "id": {"fromMe": True, "remote": chat, "id": mid,
                                        "_serialized": f"true_{chat}_{mid}"}})
                     return
-                for mid in e.MessageIDs:
+                for mid in ids:
                     self.emit("onack", {
                         "session": self.name, "ack": ack, "to": chat, "from": chat,
                         "id": {"fromMe": True, "remote": chat, "id": mid,
@@ -1074,9 +1214,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             threading.Thread(target=_phone_code, daemon=True).start()
 
         try:
-            cli.connect()      # blocks until stop()
-        except Exception:
-            log.exception("connect")
+            connect_until_stopped(cli)      # blocks until stop()
         finally:
             pairing_repair.WATCH.remove(self, generation)
             self._apply(generation, session_lifecycle.THREAD_ENDED)
@@ -1089,6 +1227,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         log.warning("WhatsApp refused the pairing (%s)", kind)
         threading.Thread(target=self._repair_pairing, args=(generation, kind, phone_number),
                          daemon=True, name="pairing-repair").start()
+
+    def restart_pairing(self):
+        """A session showing a QR code starts over, so the next code carries
+        what changed (the history choice). True when it did. Never touches a
+        paired session or one that holds an identity."""
+        with self._lifecycle_lock:
+            if self.status != session_lifecycle.QRCODE or self._has_identity():
+                return False
+            self.stop(session_lifecycle.CLOSED)
+            thread = self.thread
+            if thread is not None and thread is not threading.current_thread():
+                thread.join(session_lifecycle.OLD_THREAD_DEADLINE)
+            if self._thread_alive():
+                log.warning("the old thread of session %s did not finish; pairing not restarted",
+                            redact(self.name))
+                return False
+            return self.begin()
 
     def _repair_pairing(self, generation, kind, phone_number):
         with self._lifecycle_lock:
@@ -1168,7 +1323,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         the routes waited on it, the client's socket missed its pings and the
         client took the bridge for disconnected."""
         self.db.contacts_in_batch([(x.ID, None, x.pushname) for x in data.pushnames
-                                   if x.ID and x.pushname])
+                                   if x.ID and x.pushname], keep_pushname=True)
         total = 0
         chats, rows = [], []
         # The phone's answer to an older-history request (older_history.py)
@@ -1190,8 +1345,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if history_end is not None:
                     ends.append((target, history_end))
                 count = len(rows)
-                rows.extend(Session._history_rows(target, c))
+                answer = Session._history_rows(target, c)
+                rows.extend(answer)
                 total += len(rows) - count
+                if older_history.brought_nothing_new(
+                        answer, lambda mid: self.db.wpp_message(mid) is not None):
+                    # Home asked and the phone has nothing more before this
+                    # anchor: it is not asked again (older_history.py)
+                    keys = self.chat_keys(target) or [target]
+                    anchor = self.db.oldest_real(keys)
+                    if anchor is not None:
+                        self.db.mark_history_exhausted(keys, anchor["id"])
                 continue
             fields = {"name": c.name or c.displayName or None,
                       "history_end": history_end,
@@ -1558,12 +1722,16 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         threading.Thread(target=flush, daemon=True, name="pending-reads").start()
 
     def send_state(self, index, version, kind, value, conversation, extra=()):
-        """Generic state notice (archive, pin...): True if WhatsApp accepted."""
+        """Generic state notice (archive, pin...): True if WhatsApp accepted.
+        The chat goes in the index the way WhatsApp Web names it (a person's
+        chat by its LID, chat_aliases.mutation_index_jid), or the phone does
+        not find it."""
         from neonize.proto.Neonize_pb2 import MutationInfo, PatchInfo
         if self.client is None or self.status != "CONNECTED":
             return False
         patch = PatchInfo(Timestamp=time.time_ns(), Type=kind, Mutations=[
-            MutationInfo(Index=[index, conversation, *extra], Version=version, Value=value)])
+            MutationInfo(Index=[index, self.mutation_jid(conversation), *extra],
+                         Version=version, Value=value)])
         collection = {PatchInfo.REGULAR_LOW: "regular_low",
                       PatchInfo.REGULAR_HIGH: "regular_high"}.get(kind, "regular_low")
         try:
@@ -1917,6 +2085,13 @@ def create_app(folder, fixed=""):
             body = await req.json()
         except Exception:
             body = {}
+        if not isinstance(body, dict):
+            body = {}
+        # the pairing dialog's history choice, stored before the session comes
+        # up so the device registers with it (pairing_history.py)
+        days = pairing_history.chosen(body.get("historyDays"))
+        if days is not None and s.status != "CONNECTED":
+            pairing_history.save(s.folder, days)
         # begin() waits for the old thread to finish: never inside the aiohttp loop
         await asyncio.get_running_loop().run_in_executor(None, s.begin, body.get("phone"))
         mark_active(key_of(req), True)
@@ -1928,6 +2103,39 @@ def create_app(folder, fixed=""):
             await sio.emit("session-logged", {"session": s.name, "status": True},
                            room=s.name)
         return ok(status=s.status, qrcode=None, urlcode=s.urlcode)
+
+    async def set_pairing_history(req):
+        """{days}: how much history the session asks for when it pairs
+        (pairing_history.CHOICES). A QR code on screen is replaced by one
+        carrying the choice; a paired session is left as it is."""
+        s = session(req)
+        try:
+            body = await req.json()
+        except Exception:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        days = pairing_history.chosen(body.get("days"))
+        if days is None:
+            return web.json_response({"status": "error", "message": "invalid days"}, status=400)
+        stored = pairing_history.load(s.folder, HISTORY_DAYS)
+        store, restart, reason = pairing_history.answer(
+            s.status, stored, days, getattr(s, "pairing_days", None))
+        if store and not pairing_history.save(s.folder, days):
+            return web.json_response({"status": "error", "message": "not stored"}, status=500)
+        restarted = False
+        if restart and s.status == "QRCODE":
+            restarted = bool(await asyncio.get_running_loop().run_in_executor(
+                None, s.restart_pairing))
+        elif restart:
+            # still starting: its first QR would carry the old choice
+            async def restart():
+                return await asyncio.get_running_loop().run_in_executor(None, s.restart_pairing)
+            asyncio.ensure_future(pairing_history.redo_when_qr(
+                s, lambda: pairing_history.load(s.folder, HISTORY_DAYS), restart, asyncio.sleep))
+        log.info("pairing history: %s (%s days, restarted=%s)", reason, days, restarted)
+        return ok(status="success", response={"days": days, "reason": reason,
+                                              "restarted": restarted})
 
     async def status_session(req):
         s = session(req)
@@ -2017,7 +2225,8 @@ def create_app(folder, fixed=""):
             if s.status != "CONNECTED" or s.client is None:
                 return ok(status="success", response=[])
             return ok(status="success", response=await in_thread(
-                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text))
+                channel_updates.read, s, jid, int(q.get("count", 20)), before, jid_from_text,
+                q.get("serverId")))
         # the chat may be stored by the number or by the LID (or both)
         keys = await in_thread(s.chat_keys, jid) or [msgmap.jid_whatsmeow(jid)]
         count = int(q.get("count", 20))
@@ -2067,6 +2276,7 @@ def create_app(folder, fixed=""):
     r = app.router
     r.add_post("/api/{session}/{key}/generate-token", generate_token)
     r.add_post("/api/{tok}/start-session", start_session)
+    r.add_post("/api/{tok}/pairing-history", set_pairing_history)
     r.add_get("/api/{tok}/status-session", status_session)
     r.add_get("/api/{tok}/check-connection-session", check_connection)
     r.add_post("/api/{tok}/close-session", close_session)
@@ -2216,14 +2426,20 @@ def create_app(folder, fixed=""):
         except Exception:
             body = None            # the body is optional: it only carries the progressId
         try:
-            data = await transfers.download_with_progress_async(
-                s.client, message, body, s.emit, s.name)
+            async def download(message):
+                return await transfers.download_with_progress_async(
+                    s.client, message, body, s.emit, s.name)
+            # an expired link: the phone is asked to upload the media again
+            data = await media_retry.download_async(
+                s, message, req.match_info["msgid"], download)
         except Exception as error:
             log.exception("download")
-            text = str(error).lower()
-            # media that left WhatsApp's server: the app treats 410 as "expired"
-            status = 410 if ("404" in text or "410" in text or "not found" in text) else 500
-            return web.json_response({"status": "error", "message": str(error)}, status=status)
+            status = transfers.status_for_download_error(error)
+            code = media_retry.failure_code(error)
+            if isinstance(error, media_retry.PhoneDidNotAnswer):
+                status = 504           # try again later; not an expired media
+            return web.json_response({"status": "error", "message": str(error), "code": code},
+                                     status=status)
         if "octet-stream" in req.headers.get("Accept", ""):
             return web.Response(body=data, content_type="application/octet-stream")
         import base64 as b64
@@ -2245,6 +2461,9 @@ def create_app(folder, fixed=""):
         if w is not None and channel_updates.kept_in_store(chat):
             s.db.message(chat, w, msgmap.media_record_of(resp.Message))
             s.db.on_arrival(chat, w["t"], True)
+        # a channel post: known at once, with its server id, for an edit
+        channel_updates.remember_sent(s, chat, w, getattr(resp, "ServerID", 0),
+                                      msgmap.media_record_of(resp.Message))
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"
         chat_w = msgmap.jid_wpp(chat)
         # WPPConnect says "sent" (ack 1) right after the send; the app only
@@ -2255,15 +2474,19 @@ def create_app(folder, fixed=""):
                                       "_serialized": serial}}, room=s.name)))
         return ok(status="success", response=[{"id": serial, "ack": 1}])
 
-    def quoted_context(s, quoted, ctx=None):
+    def quoted_context(s, quoted, ctx=None, fallback=None):
         """ContextInfo that quotes the message `quoted` (serialized id), or None if
-        it is not stored."""
+        it is neither stored nor described by the client (`fallback`, see
+        quote_fallback.py)."""
         from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import ContextInfo
         parts = quoted.split("_")
         quoted_id = parts[2] if len(parts) > 2 else parts[-1]
         original = s.db.wpp_message(quoted_id)
         if original is None:
-            return None
+            original = quote_fallback.described(fallback)
+            if original is None:
+                return None
+            log.info("reply: quote built from the client's description (not stored here)")
         ctx = ctx if ctx is not None else ContextInfo()
         ctx.stanzaID = quoted_id
         ctx.participant = msgmap.quoted_participant(original, s.me)
@@ -2283,8 +2506,12 @@ def create_app(folder, fixed=""):
 
     def send_media_message(s, destination, kind, file, caption, name, mime, ptt, ctx=None,
                            client=None):
-        c = s.client if client is None else client
         caption = inputs.whole_text(caption)
+        if channel_media.is_channel(destination):
+            # unencrypted, with the upload's handle; not through the progress
+            # client, whose upload is the encrypted one
+            return channel_media.send(s.client, destination, kind, file, caption)
+        c = s.client if client is None else client
         # audio and video: not neonize's build_*_message, which need ffprobe
         # (WinZapp does not ship it)
         if kind in ("audio", "video"):
@@ -2614,7 +2841,7 @@ def create_app(folder, fixed=""):
         destination = destination_of(body["phone"])
         ctx = ContextInfo()
         quoted = body.get("messageId")
-        if quoted and quoted_context(s, quoted, ctx) is None:
+        if quoted and quoted_context(s, quoted, ctx, body.get("quotedMessage")) is None:
             return responses.missing_quote()
         if with_mentions:
             ctx.mentionedJID.extend(msgmap.jid_whatsmeow(j) for j in body.get("mentioned", []))
@@ -2745,11 +2972,16 @@ def create_app(folder, fixed=""):
             phone += "@g.us"
         destination = destination_of(phone)
         multiple = int((body.get("options") or {}).get("selectableCount", 1)) != 1
+        hide_voters, duration = poll_settings.wanted(body.get("options"))
 
         def send():
+            if channel_media.is_channel(destination):
+                return channel_media.send_poll(s.client, destination, body["name"],
+                                               list(body["choices"]), multiple)
             created = s.client.build_poll_vote_creation(
                 body["name"], list(body["choices"]),
                 VoteType.MULTIPLE if multiple else VoteType.SINGLE)
+            created = poll_settings.apply(created, hide_voters, duration, int(time.time() * 1000))
             return s.client.send_message(destination, created)
         try:
             resp = await in_thread(send)
@@ -2797,7 +3029,19 @@ def create_app(folder, fixed=""):
             return error
         # refusals that happen before anything is sent: the client only undoes the
         # optimistic text when the body says so (responses.edit_refused)
-        from_me, _, mid, _ = s.id_parts(body["id"])
+        from_me, conversation, mid, _ = s.id_parts(body["id"])
+        if channel_updates.is_channel(conversation):
+            reason = message_rules.channel_edit_refusal(
+                from_me, channel_updates.details_of(s, mid), time.time(),
+                media_kept=s.db.media_record(mid) is not None)
+            if reason:
+                return responses.edit_refused(reason)
+            done = await in_thread(channel_updates.edit, s, conversation, mid,
+                                   inputs.whole_text(body["newText"]))
+            if not done:
+                return web.json_response({"status": "error", "message": "not accepted"},
+                                         status=500)
+            return ok(status="success", response={"edited": True})
         reason = message_rules.refusal_reason(from_me, s.db.wpp_message(mid), time.time())
         if reason:
             return responses.edit_refused(reason)
@@ -2866,10 +3110,16 @@ def create_app(folder, fixed=""):
         media = getattr(session(req), "call_media", None)
         calls_ready = media is not None and media.calls.enabled()
         can = calls.capabilities(media)
+        # `channelMedia` / `channelPolls`: photos, videos and polls posted to a
+        # channel. Media goes out with the handle of its unencrypted upload and
+        # polls as WhatsApp Web posts them (channel_media.py), which needs
+        # WinZapp's neonize build.
+        channel = channel_media.can_post_media(getattr(session(req), "client", None))
         return ok(status="success", response={
             "compatible": True, "calls": calls_ready,
             "videoCalls": calls_ready and can["video"],
-            "groupCalls": calls_ready and can["groupCalls"]})
+            "groupCalls": calls_ready and can["groupCalls"],
+            "channelMedia": channel, "channelPolls": channel})
 
     async def media_of_socket(sid):
         try:
@@ -2973,6 +3223,8 @@ def create_app(folder, fixed=""):
     r.add_post("/api/{tok}/forward-messages", forward_messages)
     older_history.register_routes(r, session=session, ok=ok, in_thread=in_thread)
     r.add_post("/api/{tok}/send-poll-message", send_poll_message)
+    events.register_routes(r, session=session, ok=ok, destination_of=destination_of,
+                           store_sent=store_sent, in_thread=in_thread)
     r.add_post("/api/{tok}/poll-votes", poll_votes)
     r.add_post("/api/{tok}/poll-voters", poll_voters)
     r.add_post("/api/{tok}/vote-poll", vote_poll)

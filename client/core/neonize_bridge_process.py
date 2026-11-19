@@ -312,14 +312,32 @@ def _read_pid_file(path: str):
         return 0, ""
 
 
+def own_node_listeners(port: int) -> list:
+    """PIDs listening on *port* that run WinZapp's own node.exe."""
+    from update_node_kill import own_node_pids
+    return own_node_pids(port, (resource_path("node", "node.exe"),))
+
+
+def other_node_users(my_pid: int) -> list:
+    """The live WinZapp processes, other than *my_pid*, that hold a Node lease
+    (node_coord): an account still on WPPConnect may be using that Node."""
+    import node_coord
+    import update_coord
+    leases = node_coord.live_node_leases(global_dir(), is_alive=update_coord.lease_alive)
+    return [lease for lease in leases
+            if lease.get("_corrupt") or lease.get("pid") != my_pid]
+
+
 class NeonizeBridge:
     """One client's handle on the shared bridge."""
 
     def __init__(self, bridge=None, port=PORT, *, is_open=port_open,
                  alive=pid_alive, created=process_created, rotate=rotate_output,
                  start_process=spawn, kill=kill_tree, sleep=time.sleep, clock=time.monotonic, my_pid=None,
-                 lock=neonize_bridge_lock, identity=fetch_identity, shutdown=request_shutdown):
+                 lock=neonize_bridge_lock, identity=fetch_identity, shutdown=request_shutdown,
+                 node_listeners=own_node_listeners, node_users=other_node_users):
         self.bridge = bridge or bridge_dir()
+        self._node_listeners, self._node_users = node_listeners, node_users
         self._shutdown = shutdown
         self.port = port
         self._is_open, self._alive = is_open, alive
@@ -514,13 +532,51 @@ class NeonizeBridge:
         if not getattr(self, "_last_answer_was_a_node", False) or cmd_is_missing(self):
             return False
         log.info("port %s is held by a WPPConnect Node; waiting for it to close", self.port)
+        if self._waited_port_free():
+            return True
+        if self._stop_orphan_node():
+            return True
+        log.error("port %s is still held by a WPPConnect Node; the neonize bridge cannot start", self.port)
+        return False
+
+    def _waited_port_free(self) -> bool:
         deadline = self._clock() + PORT_FREE_WAIT
         while self._clock() < deadline:
             if not self._is_open(self.port):
                 return True
             self._sleep(0.5)
-        log.error("port %s is still held by a WPPConnect Node; the neonize bridge cannot start", self.port)
         return False
+
+    def _stop_orphan_node(self) -> bool:
+        """The Node did not let go: when it is WinZapp's own node.exe and no
+        other WinZapp process uses it (node leases), it is the leftover of a
+        run that closed without stopping it, and nothing else ever will
+        (reported 2026-11-12: switching to Neonize after a run that ended
+        abruptly failed with "could not start the Neonize bridge", and the
+        client then paired a new WPPConnect session on that Node). Stopped,
+        the bridge starts. Another account's Node is never touched."""
+        try:
+            users = self._node_users(self.pid)
+            pids = self._node_listeners(self.port) if not users else []
+        except Exception:
+            log.exception("port %s: could not tell whose Node holds it", self.port)
+            return False
+        if users:
+            log.info("port %s: the WPPConnect Node is used by %d other WinZapp process(es); "
+                     "left running", self.port, len(users))
+            return False
+        if not pids:
+            log.info("port %s: the program holding it is not WinZapp's own Node; left running",
+                     self.port)
+            return False
+        log.warning("port %s: stopping WinZapp's leftover WPPConnect Node (pid %s), "
+                    "used by no running WinZapp", self.port, ", ".join(map(str, pids)))
+        for pid in pids:
+            try:
+                self._kill(pid)
+            except Exception:
+                log.exception("stopping the leftover Node %s failed", pid)
+        return self._waited_port_free()
 
     def _spawn_and_wait(self, cmd) -> bool:
         output = os.path.join(run_dir(self.bridge), OUTPUT_FILE)

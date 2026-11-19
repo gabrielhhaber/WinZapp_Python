@@ -185,6 +185,7 @@ class _Stub:
     _drop_protocol_edit = MainWindow._drop_protocol_edit
 
     def __init__(self, chat, own_sent_ids=()):
+        self._lid_mapping_lock = threading.RLock()
         self.chats = {REMOTE: chat}
         self._deleted_chats = set()
         self._own_sent_ids = set(own_sent_ids)

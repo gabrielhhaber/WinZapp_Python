@@ -75,3 +75,17 @@ def test_disconnected_session_only_finds_the_exact_key(tmp_path):
     db.chat(LID)
     assert _Session(db, None, "CLOSED").existing_chat(PN) == ""
     assert _Session(db, None, "CLOSED").existing_chat(LID) == LID
+
+
+def test_a_mutation_names_a_persons_chat_by_its_lid():
+    """WhatsApp Web indexes clearChat, archive, pin... by the chat's LID; the
+    phone did not clear a chat named by its number."""
+    mapping = {PN: LID}
+    assert ca.mutation_index_jid(PN, lambda j: mapping.get(j, "")) == LID
+    assert ca.mutation_index_jid("5511999990000@c.us", lambda j: mapping.get(j, "")) == LID
+    assert ca.mutation_index_jid(LID, lambda j: PN) == LID
+    # LID unknown: the number, as before
+    assert ca.mutation_index_jid(PN, lambda j: "") == PN
+    asked = []
+    assert ca.mutation_index_jid("1203630@g.us", lambda j: asked.append(j) or LID) == "1203630@g.us"
+    assert asked == []

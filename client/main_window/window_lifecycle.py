@@ -401,6 +401,13 @@ class WindowLifecycleMixin:
             logging.exception("[tray] syncing the icon on restore failed")
         if hasattr(self, "conversations_panel"):
             wx.CallAfter(self.add_chats_to_ui)
+        # A modal dialog open (an update prompt waiting while the window was in
+        # the tray) disables this window: it, not the list, gets the front.
+        from core.dialog_foreground import bring_modal_to_front, open_modal_dialog
+        modal = open_modal_dialog(wx.GetTopLevelWindows())
+        if modal is not None:
+            wx.CallAfter(bring_modal_to_front, modal)
+            return
         # Put keyboard focus on a real navigable control. After a
         # hide/restore (and especially repeated account switches) the frame can
         # come forward with focus sitting on the bare window, so arrow-key
@@ -447,6 +454,12 @@ class WindowLifecycleMixin:
             if calls_lst is not None and calls_lst.IsShownOnScreen():
                 calls_lst.SetFocus()
                 return
+            for name in ("communities_panel", "channels_panel"):
+                side = getattr(self, name, None)
+                side_lst = getattr(side, "_list", None) if side else None
+                if side_lst is not None and side_lst.IsShownOnScreen():
+                    side_lst.SetFocus()
+                    return
             # Last resort, and only when none of the lists above is on screen:
             # an ARCHIVED conversation open. ArchivedConversationsPanel shows
             # conversations_panel but hides its conversations_list, and hides
@@ -645,6 +658,12 @@ class WindowLifecycleMixin:
                 except Exception as exc:
                     logging.warning("[shutdown] stopping transcriptions failed: %s",
                                     type(exc).__name__)
+            # The noise reducer's own process: os._exit() below skips atexit.
+            try:
+                from core.cuda_components import noise_worker_host
+                noise_worker_host.stop_for_exit()
+            except Exception:
+                logging.warning("[shutdown] stopping the noise reducer failed", exc_info=True)
             self._stop_wpp_server()
             self._flush_pending_debounced_saves()
             if hasattr(self, "db") and self.db is not None:

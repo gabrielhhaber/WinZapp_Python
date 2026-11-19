@@ -107,6 +107,137 @@ def matches_patches(name):
         shutil.rmtree(probe, ignore_errors=True)
 
 
+#: exit code of `export` refusing a workspace older than the repository's patches
+PATCHES_MOVED = 5
+
+
+def _commit_time(cwd, *args):
+    result = subprocess.run(["git", "log", "-1", "--format=%ct", *args], cwd=cwd,
+                            capture_output=True, text=True)
+    try:
+        return int(result.stdout.strip() or 0) if result.returncode == 0 else 0
+    except ValueError:
+        return 0
+
+
+def _prepared_time(tree):
+    """When `prepare` applied the patches: the committer date of the tree's
+    oldest commit of its own (git am stamps them all at once). A later commit
+    of its own does not move it."""
+    result = subprocess.run(["git", "log", "--format=%ct", f"{BASE}..{BRANCH}"], cwd=tree,
+                            capture_output=True, text=True)
+    stamps = ([int(line) for line in result.stdout.split() if line.isdigit()]
+              if result.returncode == 0 else [])
+    return min(stamps) if stamps else _commit_time(tree, BRANCH)
+
+
+def overwritten_patches(name):
+    """The files of neonize_patches/<name> an export would change or delete
+    (export writes the tree's commits over the folder)."""
+    probe = os.path.join(WORK, f".probe-{name}")
+    shutil.rmtree(probe, ignore_errors=True)
+    try:
+        format_patches(name, probe)
+        exported = _patch_files(probe)
+    finally:
+        shutil.rmtree(probe, ignore_errors=True)
+    current = _patch_files(os.path.join(PATCHES, name))
+    return sorted(file for file, data in current.items() if exported.get(file) != data)
+
+
+def _synced_path(name):
+    return os.path.join(WORK, f"{name}.synced.json")
+
+
+def _patch_hashes(name):
+    return {file: hashlib.sha256(data).hexdigest()
+            for file, data in _patch_files(os.path.join(PATCHES, name)).items()}
+
+
+def record_synced(name):
+    """Notes what neonize_patches/<name> held when this tree last matched it
+    (after `prepare` applied it, or `export` wrote it): patches_moved() tells
+    the repository's later changes from the workspace's own by it."""
+    with open(_synced_path(name), "w", encoding="utf-8", newline="\n") as f:
+        json.dump(_patch_hashes(name), f, indent=1, sort_keys=True)
+        f.write("\n")
+
+
+def _synced(name):
+    try:
+        with open(_synced_path(name), encoding="utf-8") as f:
+            found = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return found if isinstance(found, dict) else None
+
+
+def patches_moved(name):
+    """True when an export of this tree would overwrite a patch that changed in
+    the repository after the tree last matched it.
+
+    Exporting such a tree writes its older commits over the newer patches, and
+    building it builds the older code. Seen after pulling #732 (the call layer
+    hooked back into Neonize()): the workspace was still at the commits of
+    the patches before it, at the same pinned neonize version, so the version
+    check passed, `export` put the old 0002 back and the DLL had no calls.
+
+    Per file, by content: a patch the export would change or delete counts
+    when the repository's copy is not the one recorded at the last `prepare`
+    or `export` (record_synced). A patch the export leaves as it is, or one it
+    adds, never counts, so new patches and more commits in the same workspace
+    export fine (2026-11-09), and the workspace may amend what it exported
+    itself. Commit times were used before and fail both ways on this
+    repository, whose main is squash-merged: a teammate's patch merged before
+    the prepare of an older branch was missed, and amending a patch this
+    workspace had just exported and committed was refused (review,
+    2026-11-10). A workspace prepared before the record existed falls back to
+    those times (_moved_by_time). Not a git checkout, or no workspace: never
+    moved.
+    """
+    tree = tree_path(name)
+    if not os.path.isdir(os.path.join(tree, ".git")):
+        return False
+    synced = _synced(name)
+    if synced is None:
+        return _moved_by_time(name, tree)
+    current = _patch_hashes(name)
+    return any(file in current and synced.get(file) != current[file]
+               for file in overwritten_patches(name))
+
+
+def _moved_by_time(name, tree):
+    """patches_moved() for a workspace with no record: a patch the export
+    would overwrite counts when its last commit in the repository is newer
+    than the prepare (the tree's oldest commit of its own; its newest would
+    let a new commit on a stale tree hide it, 2026-11-08)."""
+    prepared = _prepared_time(tree)
+    if not prepared:
+        return False
+    for file in overwritten_patches(name):
+        changed = _commit_time(HERE, "--", os.path.join(PATCHES, name, file))
+        if changed and changed > prepared:
+            return True
+    return False
+
+
+def moved_trees():
+    return [name for name in TREES if patches_moved(name)]
+
+
+def back_up_workspace(folder=None):
+    """Keep every tree's commits as patches before a prepare replaces them."""
+    folder = folder or os.path.join(WORK, "stale-backup")
+    shutil.rmtree(folder, ignore_errors=True)
+    for name in TREES:
+        if os.path.isdir(os.path.join(tree_path(name), ".git")):
+            try:
+                format_patches(name, os.path.join(folder, name))
+            except SystemExit:
+                continue
+    say(f"the workspace's commits are kept in {folder}")
+
+
 def ensure_clean(name):
     """Refuse to throw away work: uncommitted changes outside the generated files,
     or workspace commits that are not exported yet."""
@@ -138,6 +269,10 @@ def _writable_retry(function, path, _error):
 
 def apply_patches(tree, name):
     patches = sorted(glob.glob(os.path.join(PATCHES, name, "*.patch")))
+    try:            # a prepare that stops half way matches nothing
+        os.remove(_synced_path(name))
+    except FileNotFoundError:
+        pass
     git(tree, "checkout", "-q", "-f", "-B", BRANCH, BASE)
     for patch in patches:
         result = subprocess.run(["git", *GIT_ID, "am", "-q", "--3way", "--keep-cr", patch],
@@ -145,6 +280,7 @@ def apply_patches(tree, name):
         if result.returncode != 0:
             sys.exit(f"{os.path.basename(patch)} does not apply to {name}:\n{result.stdout}"
                      f"{result.stderr}\nResolve it in {tree} (git am --continue), then `export`.")
+    record_synced(name)
     say(f"{name}: {len(patches)} patch(es) applied")
 
 
@@ -212,11 +348,18 @@ def workspace_ready():
 
 # ------------------------------------------------------------------ export
 def export():
+    moved = moved_trees()
+    if moved:
+        say(f"neonize_patches/ changed after the workspace was prepared ({', '.join(moved)}): "
+            "exporting would put the older patches back. Run `prepare --force` to take the "
+            "repository's patches (copy your own commits from the workspace first).")
+        sys.exit(PATCHES_MOVED)
     for name in TREES:
         target = os.path.join(PATCHES, name)
         for old in glob.glob(os.path.join(target, "*.patch")):
             os.remove(old)
         format_patches(name, target)
+        record_synced(name)
         say(f"{name}: {len(glob.glob(os.path.join(target, '*.patch')))} patch(es) exported")
 
 
@@ -412,7 +555,14 @@ def main(argv=None):
     elif args.command in ("all", "check", "approve"):
         if args.command == "approve" and not (args.ref and args.version):
             sys.exit("approve needs --ref and --version.")
-        if args.command == "all" and workspace_ready() and not args.force:
+        moved = moved_trees() if args.command == "all" and workspace_ready() else []
+        if moved and not args.force:
+            # building it would build the code from before the pull
+            say(f"neonize_patches/ changed after the workspace was prepared ({', '.join(moved)}): "
+                "preparing it again from the repository's patches")
+            back_up_workspace()
+            commit = prepare(info, args.ref, True)
+        elif args.command == "all" and workspace_ready() and not args.force:
             # keeps the workspace (and any commit not exported yet) as it is
             commit = git(tree_path("neonize"), "rev-parse", BASE, capture=True)
             say("using the existing workspace (prepare rebuilds it from the patches)")

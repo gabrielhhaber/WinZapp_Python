@@ -255,10 +255,10 @@ def test_the_start_passes_the_link_on_and_falls_back_to_activating():
     first, because its data lives under the working directory."""
     source = (Path(__file__).resolve().parents[1] / "client" / "main.py").read_text(
         encoding="utf-8")
-    assert "_invitation_link = invitation_link_argument(sys.argv)" in source
+    assert "_invitation_link = whatsapp_link_argument(sys.argv)" in source
     assert "ipc.request_open_link(" in source
     assert "ipc.request_activate(gd, _account_id, source=startup_source)" in source
-    assert "wx.CallAfter(frame.open_group_invitation_link, _invitation_link)" in source
+    assert "wx.CallAfter(frame.open_whatsapp_link, _invitation_link)" in source
     chdir = source.index("os.chdir(os.path.dirname(os.path.abspath(__file__)))")
     assert chdir < source.index("gd = app_paths.global_dir()")
 
@@ -268,6 +268,7 @@ def test_the_start_passes_the_link_on_and_falls_back_to_activating():
 
 class _Window:
     open_group_invitation_link = GroupInvitationLinksMixin.open_group_invitation_link
+    _wait_for_whatsapp = GroupInvitationLinksMixin._wait_for_whatsapp
     _apply_whatsapp_link_association = GroupInvitationLinksMixin._apply_whatsapp_link_association
     _INVITATION_LINK_WAIT_SECONDS = GroupInvitationLinksMixin._INVITATION_LINK_WAIT_SECONDS
     _INVITATION_LINK_POLL_MS = GroupInvitationLinksMixin._INVITATION_LINK_POLL_MS

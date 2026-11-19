@@ -1,0 +1,144 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 7 Nov 2026 20:02:39 +0000
+Subject: [PATCH] Log the relay traffic by kind every 5 seconds, silence
+ included
+
+The audio receive summary only prints when a packet arrives, so a call whose
+relay went quiet after the answer logged nothing. A watcher now logs how many
+RTP, RTCP, STUN and other packets the relay delivered in each 5 second window
+and in total, so rtp=0 with rtcp or stun still arriving tells the relay is up
+and the peer sends no audio. Diagnostics only.
+---
+ engine_media.go       |  3 ++
+ relay_traffic.go      | 69 +++++++++++++++++++++++++++++++++++++++++++
+ relay_traffic_test.go | 23 +++++++++++++++
+ 3 files changed, 95 insertions(+)
+ create mode 100644 relay_traffic.go
+ create mode 100644 relay_traffic_test.go
+
+diff --git a/engine_media.go b/engine_media.go
+index a608c38..98ecea4 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -476,6 +476,8 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	// relayRx counts packets received from the relay, so the silence watchdog can warn if
+ 	// the relay never answers our allocate.
+ 	var relayRx atomic.Uint64
++	var traffic relayTraffic
++	go traffic.watch(ctx, log, relayTrafficInterval)
+ 
+ 	// Inbound calls are torn down by the caller within ~400ms if the relay bind never
+ 	// comes alive; check at 400ms and 900ms and say so explicitly.
+@@ -859,6 +861,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			continue
+ 		}
+ 		packetKind := relay.ClassifyRelayPacket(pkt)
++		traffic.note(packetKind)
+ 		isRTP := packetKind == relay.RelayPacketRtp
+ 		e.c.diag.Emit("relay", map[string]any{
+ 			"event": "packet_in", "bytes": n, "is_rtp": isRTP,
+diff --git a/relay_traffic.go b/relay_traffic.go
+new file mode 100644
+index 0000000..79a5076
+--- /dev/null
++++ b/relay_traffic.go
+@@ -0,0 +1,69 @@
++package meowcaller
++
++import (
++	"context"
++	"fmt"
++	"sync/atomic"
++	"time"
++
++	"github.com/purpshell/meowcaller/relay"
++	"github.com/rs/zerolog"
++)
++
++const relayTrafficInterval = 5 * time.Second
++
++// relayTraffic counts what the relay delivers by kind, from the media loop, and
++// is read by a ticker. The receive summary only prints when a packet arrives,
++// so a call whose relay went quiet said nothing; this says "0 RTP in the last 5
++// seconds" and whether SRTCP or STUN kept coming. It only counts.
++type relayTraffic struct {
++	rtp, rtcp, stun, other atomic.Uint64
++}
++
++type relayTrafficCounts struct{ rtp, rtcp, stun, other uint64 }
++
++func (t *relayTraffic) note(kind relay.RelayPacketKind) {
++	switch kind {
++	case relay.RelayPacketRtp:
++		t.rtp.Add(1)
++	case relay.RelayPacketRtcp:
++		t.rtcp.Add(1)
++	case relay.RelayPacketStun:
++		t.stun.Add(1)
++	default:
++		t.other.Add(1)
++	}
++}
++
++func (t *relayTraffic) counts() relayTrafficCounts {
++	return relayTrafficCounts{t.rtp.Load(), t.rtcp.Load(), t.stun.Load(), t.other.Load()}
++}
++
++// since is what arrived after earlier was taken.
++func (c relayTrafficCounts) since(earlier relayTrafficCounts) relayTrafficCounts {
++	return relayTrafficCounts{c.rtp - earlier.rtp, c.rtcp - earlier.rtcp, c.stun - earlier.stun, c.other - earlier.other}
++}
++
++func (c relayTrafficCounts) String() string {
++	return fmt.Sprintf("rtp=%d rtcp=%d stun=%d other=%d", c.rtp, c.rtcp, c.stun, c.other)
++}
++
++// watch logs the window's counts every interval until ctx ends.
++func (t *relayTraffic) watch(ctx context.Context, log zerolog.Logger, interval time.Duration) {
++	ticker := time.NewTicker(interval)
++	defer ticker.Stop()
++	previous := t.counts()
++	for {
++		select {
++		case <-ctx.Done():
++			return
++		case <-ticker.C:
++		}
++		now := t.counts()
++		log.Info().
++			Str("last_window", now.since(previous).String()).
++			Str("totals", now.String()).
++			Msg("relay traffic by kind")
++		previous = now
++	}
++}
+diff --git a/relay_traffic_test.go b/relay_traffic_test.go
+new file mode 100644
+index 0000000..0bd5758
+--- /dev/null
++++ b/relay_traffic_test.go
+@@ -0,0 +1,23 @@
++package meowcaller
++
++import (
++	"testing"
++
++	"github.com/purpshell/meowcaller/relay"
++)
++
++func TestRelayTrafficCountsEachKindAndTheWindow(t *testing.T) {
++	var traffic relayTraffic
++	traffic.note(relay.RelayPacketRtp)
++	traffic.note(relay.RelayPacketRtp)
++	traffic.note(relay.RelayPacketRtcp)
++	first := traffic.counts()
++	if got := first.String(); got != "rtp=2 rtcp=1 stun=0 other=0" {
++		t.Fatalf("counts = %q", got)
++	}
++	traffic.note(relay.RelayPacketStun)
++	traffic.note(relay.RelayPacketOther)
++	if got := traffic.counts().since(first).String(); got != "rtp=0 rtcp=0 stun=1 other=1" {
++		t.Fatalf("window = %q, want the silence of RTP to show as rtp=0", got)
++	}
++}

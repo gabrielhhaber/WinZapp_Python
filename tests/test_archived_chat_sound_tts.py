@@ -136,6 +136,7 @@ class _StubMainWindow:
         self.db = MagicMock()
         self._lid_to_phone = {}
         self._phone_to_lid = {}
+        self._lid_mapping_lock = threading.RLock()
         self._pending_lid_inserts = {}
         self._own_sent_ids = set()
         self._own_sent_ids_lock = threading.Lock()
@@ -211,7 +212,7 @@ class _StubMainWindow:
     def _live_events_ready(self):
         return True
 
-    def _learn_sender_name(self, msg):
+    def _learn_sender_name(self, msg, live=False):
         return False
 
     def _extract_lid_mapping(self, msg):

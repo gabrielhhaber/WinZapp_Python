@@ -49,7 +49,34 @@ def test_a_category_narrows_the_search_and_the_list():
     assert variables["input"] == {"limit": 20, "country_codes": []}       # neither is sent
 
 
+def test_the_lists_are_of_the_accounts_own_country():
+    """A view or a category with no country is refused "Bad Request"
+    (measured over CDP: 20 channels with ["BR"], an error with [])."""
+    _, variables, _ = cp.directory_request({"view": "TRENDING"}, "BR")
+    assert variables["input"]["filters"] == {"country_codes": ["BR"], "categories": []}
+    _, variables, _ = cp.directory_request({}, "BR")
+    assert variables["input"] == {"limit": 20, "country_codes": ["BR"]}
+    _, variables, _ = cp.directory_request({"query": "gol"}, "BR")
+    assert "country_codes" not in variables["input"]
+
+
+@pytest.mark.parametrize("me, country", [
+    ("5535999990000:12@s.whatsapp.net", "BR"),
+    ("5535999990000@s.whatsapp.net", "BR"),
+    ("14155550123@s.whatsapp.net", "US"),
+    ("351912345678", "PT"),
+    ("", ""),
+    (None, ""),
+    ("abc@lid", ""),
+    ("999@s.whatsapp.net", ""),
+])
+def test_the_country_comes_from_the_accounts_own_number(me, country):
+    assert cp.account_country(me) == country
+
+
 def test_one_channel_is_read_by_jid_or_by_invite():
+    assert cp.channel_request("1@newsletter")["fetch_viewer_metadata"] is True
+    assert cp.channel_request("1@newsletter", viewer=False)["fetch_viewer_metadata"] is False
     assert cp.channel_request("1@newsletter")["input"] == {
         "key": "1@newsletter", "type": "JID", "view_role": "GUEST"}
     assert cp.channel_request("0029VaAbCdEfGhIjKlMnOp")["input"]["type"] == "INVITE"
@@ -178,6 +205,28 @@ def test_reads_answer_whatsapps_own_nodes(session):
     assert (s2, found["response"]) == (200, [NODE])
     assert (s3, one["response"]) == (200, NODE)
     assert s4 == 503 and refused == {"status": "error", "code": "channels_unavailable"}
+
+
+def test_a_channel_not_followed_is_read_again_without_the_viewer(session):
+    # WhatsApp refuses the viewer's metadata of a channel this account does
+    # not follow ("Not Allowed", WhatsApp Web 2026-11-11)
+    asked = []
+
+    def send_mex(query_id, variables):
+        asked.append(variables["fetch_viewer_metadata"])
+        if variables["fetch_viewer_metadata"]:
+            return {"error": "Not Allowed"}
+        return {"data": {cp.CHANNEL_FIELD: NODE}}
+    session.client.send_mex = send_mex
+    (status, body), = post(session, ("info", {"id": "120363159356548761@newsletter"}))
+    assert (status, body["response"]) == (200, NODE)
+    assert asked == [True, False]
+
+
+def test_a_channel_refused_both_ways_is_not_found(session):
+    session.client.send_mex = lambda query_id, variables: {"error": "Bad Request"}
+    (status, body), = post(session, ("info", {"id": "120363159356548761@newsletter"}))
+    assert (status, body["code"]) == (503, "channel_not_found")
 
 
 def test_follow_takes_only_a_channel(session):

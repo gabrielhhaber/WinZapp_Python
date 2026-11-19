@@ -158,7 +158,7 @@ when it holds a saved key.
   (masked), and only stages a key that differs from it.
 - All speech goes through `MainWindow.output` (the `speak_output` gate). A
   request speaks its status once at the start; the waiting sound
-  (`sound_event_ai_processing`, bundled `ai_processing.wav`) loops until the
+  (`sound_event_ai_processing`, bundled `ai_processing.ogg`) loops until the
   answer exists and is stopped and freed **before** the answer is spoken.
   Reading answers aloud is an option (on by default); only the spoken copy has
   its line breaks joined.

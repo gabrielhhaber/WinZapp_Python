@@ -13,6 +13,29 @@ _SUBJECT = {"image": "a photo", "sticker": "a sticker", "video": "a single frame
 
 def instructions(language, profile, kind="image"):
     """System prompt for ``kind``; ``profile`` only shapes descriptions."""
+    if kind == "text":
+        length = _LENGTH.get(profile, "Two or three concise paragraphs")
+        return (
+            "You summarize messages of a chat for a blind reader who is "
+            "catching up. Answer in language " + language + ". " + length + ". "
+            "The input is a transcript of the newest messages, oldest first, one "
+            "line per message: date and time, the sender's name, then the text. "
+            "A voice message reads [Voice message] followed by its transcription, "
+            "or only the marker when it could not be transcribed: never guess what "
+            "such a one said. "
+            "Group by topic, keep the chronological order of topics, name who said "
+            "what, and call out questions, requests, dates, places and decisions "
+            "that ask something of the reader. Keep links as plain text. "
+            "Never invent messages or senders: if the transcript says little, say "
+            "little. " + _UNTRUSTED)
+    if kind == "writing":
+        return (
+            "You help a blind person polish a message they are about to send in a "
+            "chat app. Answer in language " + language + ". "
+            "The draft may be in any language: keep the draft's own language unless "
+            "the request says otherwise. Return only the resulting message text: no "
+            "explanations, no quotes, no alternatives, no Markdown. Keep links, "
+            "@mentions and emojis exactly as they are. " + _UNTRUSTED)
     if kind == "audio":
         return (
             "You transcribe a voice message for a deaf or hard-of-hearing reader. "
@@ -41,4 +64,5 @@ def instructions(language, profile, kind="image"):
 def first_question(kind):
     """The application's own opening request (never shown as a user question)."""
     return {"audio": "Transcribe this voice message.",
-            "pdf": "Convert this PDF into accessible text."}.get(kind, "Describe this.")
+            "pdf": "Convert this PDF into accessible text.",
+            "text": "Summarize these messages."}.get(kind, "Describe this.")

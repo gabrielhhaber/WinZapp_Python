@@ -1,6 +1,5 @@
 """Owned waiting audio and speech handoff; every audio/device call is fake."""
 import json
-import wave
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -164,10 +163,10 @@ def test_load_sound_passes_request_ownership_without_changing_default_recovery(m
 
 def test_processing_event_resolves_to_a_bundled_asset_and_has_all_locale_labels():
     root = Path(__file__).resolve().parents[1]
-    assert ("ai_processing", "ai_processing.wav") in sound_system.SOUND_EVENTS
+    assert ("ai_processing", "ai_processing.ogg") in sound_system.SOUND_EVENTS
     folder = root / "client" / "sounds" / "default"
     manifest = json.loads((folder / "default.pack.json").read_text(encoding="utf-8"))
-    assert manifest["events"]["ai_processing"] == "ai_processing.wav"
+    assert manifest["events"]["ai_processing"] == "ai_processing.ogg"
     assert (folder / manifest["events"]["ai_processing"]).is_file()
     from tests.locales import load_strings, registered_locale_codes
     for locale in registered_locale_codes():
@@ -175,22 +174,18 @@ def test_processing_event_resolves_to_a_bundled_asset_and_has_all_locale_labels(
         assert values["sound_event_ai_processing"]
 
 
-def test_digital_signature_is_a_complete_five_second_pcm_wave():
-    path = Path(__file__).resolve().parents[1] / "client" / "sounds" / "default" / "ai_processing.wav"
-    with wave.open(str(path), "rb") as audio:
-        assert audio.getcomptype() == "NONE"
-        assert (audio.getnchannels(), audio.getsampwidth(), audio.getframerate()) == (1, 2, 44100)
-        assert audio.getnframes() == 5 * 44100
-        frames = audio.readframes(audio.getnframes())
-    assert len(frames) == 5 * 44100 * 2
-    assert any(frames), "The loading cue must not be entirely silent"
-    assert frames[:2] == frames[-2:] == b"\x00\x00"
+def test_digital_signature_is_a_complete_five_second_ogg_vorbis():
+    from tests.ogg_info import ogg_vorbis_info
+    path = Path(__file__).resolve().parents[1] / "client" / "sounds" / "default" / "ai_processing.ogg"
+    channels, rate, frames = ogg_vorbis_info(path)
+    assert (channels, rate) == (1, 44100)
+    assert frames == 5 * 44100
 
 
 @pytest.mark.parametrize("selection,expected", [
-    ("default", "ai_processing.wav"),
-    ("older_pack", "ai_processing.wav"),
-    ("stale_override", "ai_processing.wav"),
+    ("default", "ai_processing.ogg"),
+    ("older_pack", "ai_processing.ogg"),
+    ("stale_override", "ai_processing.ogg"),
     ("custom_pack", "synchronizing.ogg"),
     ("custom_override", "synchronizing.ogg"),
 ])

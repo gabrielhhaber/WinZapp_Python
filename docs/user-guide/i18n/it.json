@@ -49,12 +49,16 @@
   "autocomplete": "Suggerimenti di menzione",
   "media": "Visualizzatore e riproduzione dei contenuti multimediali",
   "emoji": "Selettore di emoji",
+  "reorder": "Elenchi riordinabili",
   "ai_result": "Finestra del risultato (IA e trascrizione)",
   "status": "Stato",
   "status_list": "Elenco degli stati",
   "status_reply": "Risposta a uno stato",
   "calls": "Scheda Chiamate",
   "call": "Durante una chiamata",
-  "incoming": "Chiamata in arrivo"
+  "incoming": "Chiamata in arrivo",
+  "channels": "Finestra Canali",
+  "channel_people": "Amministratori e follower del canale",
+  "call_participants": "Partecipanti alla chiamata"
  }
 }

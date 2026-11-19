@@ -20,7 +20,7 @@ def prepare_guard(global_dir, token):
 
 def launch_guarded(batch, paths, package_root, handoff, exe, log, parent_pid,
                    needs_admin, write_batch, run_elevated, popen, start_waiter,
-                   environment, recovery_text=""):
+                   environment, recovery_text="", relaunch=True, exit_notice=None):
     """False is safe: until a commit receipt exists, no install writes occur."""
     guardian = batch[:-4] + "_guard.ps1"
     launcher = batch[:-4] + "_launch.bat"
@@ -57,10 +57,15 @@ def launch_guarded(batch, paths, package_root, handoff, exe, log, parent_pid,
                 update_coord.transfer_installer_guard(paths.owner_root, paths.owner_token,
                                                        guardian_pid)
             phase = "waiter"
+            # Only said when false, so a waiter stub that predates the option
+            # keeps its signature.
+            extra = {} if relaunch else {"relaunch": False}
+            if exit_notice is not None:
+                extra["notice"] = exit_notice
             ready = start_waiter(
                 batch, guardian_pid, exe, log, handoff, write_batch,
                 parent_pid=parent_pid, completion_path=paths["done"],
-                installer_image="powershell.exe", recovery_path=recovery_path)
+                installer_image="powershell.exe", recovery_path=recovery_path, **extra)
             if ready:
                 phase = "grant_verify"
             return ready

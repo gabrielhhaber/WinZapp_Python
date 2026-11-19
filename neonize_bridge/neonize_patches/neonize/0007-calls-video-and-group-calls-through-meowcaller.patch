@@ -1,0 +1,462 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 26 Oct 2026 15:58:07 -0300
+Subject: [PATCH] calls: video and group calls through meowcaller
+
+CallDialWith (voice or video), CallGroupDial (every member of a group),
+CallVideo (ask for / accept an upgrade, stop, camera on/off),
+CallWriteVideo / CallReadVideo (H.264 Annex-B access units each way) and
+CallInfo; events video, keyframe and group; incoming carries video and
+group. Python: Calls.dial(video=), group_dial, video, write_video,
+read_video, info.
+---
+ goneonize/calls.go       |  23 +++--
+ goneonize/calls_video.go | 206 +++++++++++++++++++++++++++++++++++++++
+ neonize/_binder.py       |  18 ++++
+ neonize/calls.py         |  79 +++++++++++++--
+ 4 files changed, 311 insertions(+), 15 deletions(-)
+ create mode 100644 goneonize/calls_video.go
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 3c6309e..c9c898c 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -53,7 +53,7 @@ var (
+ 	chamadasMu      sync.Mutex
+ 	chamadasCliente = map[string]*meowcaller.Client{}
+ 	chamadasEventos = map[string]chan string{}
+-	chamadasLogs    = map[string]waLog.Logger{} // log do cliente, para registrar()
++	chamadasLogs    = map[string]waLog.Logger{}  // log do cliente, para registrar()
+ 	chamadasAtivas  = map[string]*chamadaAtiva{} // chave: id do cliente + "|" + id da chamada
+ )
+ 
+@@ -130,6 +130,10 @@ type chamadaAtiva struct {
+ 	// quadros que passaram, para o log dizer se o som chegou ou saiu
+ 	recebidos atomic.Int64 // do outro lado (WriteFrame)
+ 	enviados  atomic.Int64 // do nosso microfone (ReadFrame)
++	// video: unidades de acesso H.264 (Annex-B) que chegam do outro lado
++	// (calls_video.go)
++	video          chan []byte
++	videoRecebidos atomic.Int64
+ }
+ 
+ func (c *chamadaAtiva) encerrar() { c.uma.Do(func() { close(c.fim) }) }
+@@ -213,6 +217,7 @@ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAti
+ 		entrada:  make(chan []byte, quadrosNaFila),
+ 		saida:    make(chan []byte, quadrosNaFila),
+ 		fim:      make(chan struct{}),
++		video:    make(chan []byte, videoNaFila),
+ 	}
+ 	id := c.ID()
+ 	chamadasMu.Lock()
+@@ -220,6 +225,7 @@ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAti
+ 	chamadasMu.Unlock()
+ 	c.Receive(a)
+ 	c.Play(a)
++	ligarVideo(cliente, c, a)
+ 	inicio := time.Now()
+ 	go func() { // a cada 5 s: quantos quadros ja passaram
+ 		t := time.NewTicker(5 * time.Second)
+@@ -303,7 +309,9 @@ func instalarChamadas(id string) {
+ 	chamadasMu.Unlock()
+ 	mc.OnIncomingCall(func(c *meowcaller.Call) {
+ 		ligarChamada(id, c, true)
+-		emitirEvento(id, map[string]any{"ev": "incoming", "call": c.ID(), "peer": c.Peer()})
++		_, grupo := c.GroupState()
++		emitirEvento(id, map[string]any{"ev": "incoming", "call": c.ID(), "peer": c.Peer(),
++			"video": c.IsVideo(), "group": grupo})
+ 	})
+ }
+ 
+@@ -392,7 +400,11 @@ func CallsNextEvent(id *C.char, buf *C.char, cap C.int, timeoutMs C.int) C.int {
+ //
+ //export CallDial
+ func CallDial(id *C.char, target *C.char, buf *C.char, cap C.int) C.int {
+-	cliente := C.GoString(id)
++	return discar(C.GoString(id), C.GoString(target), false, buf, cap)
++}
++
++// discar liga para um numero (ou endereco), de voz ou de video.
++func discar(cliente, numero string, video bool, buf *C.char, cap C.int) C.int {
+ 	chamadasMu.Lock()
+ 	mc := chamadasCliente[cliente]
+ 	chamadasMu.Unlock()
+@@ -409,7 +421,6 @@ func CallDial(id *C.char, target *C.char, buf *C.char, cap C.int) C.int {
+ 	}
+ 	ctx, cancelar := context.WithTimeout(context.Background(), 30*time.Second)
+ 	defer cancelar()
+-	numero := C.GoString(target)
+ 	destino := numero
+ 	if strings.Contains(numero, "@") {
+ 		// ja e um endereco (ex.: 123@lid): nao ha o que resolver
+@@ -426,8 +437,8 @@ func CallDial(id *C.char, target *C.char, buf *C.char, cap C.int) C.int {
+ 			break
+ 		}
+ 	}
+-	registrar(cliente, "ligando para %s (pedido: %s)", mascararNumero(destino), mascararNumero(numero))
+-	c, err := mc.Call(ctx, destino)
++	registrar(cliente, "ligando para %s (pedido: %s, video=%v)", mascararNumero(destino), mascararNumero(numero), video)
++	c, err := mc.CallWithOptions(ctx, destino, meowcaller.CallOptions{Video: video})
+ 	if err != nil {
+ 		registrar(cliente, "a ligacao para %s falhou: %v", mascararNumero(destino), err)
+ 		return erro(err)
+diff --git a/goneonize/calls_video.go b/goneonize/calls_video.go
+new file mode 100644
+index 0000000..2ccff90
+--- /dev/null
++++ b/goneonize/calls_video.go
+@@ -0,0 +1,206 @@
++package main
++
++/*
++   #include <stdlib.h>
++   #include <stdint.h>
++*/
++import "C"
++
++// Video e chamadas em grupo pelo meowcaller, no mesmo estilo do audio
++// (calls.go): sem protobuf nem callbacks.
++//
++// O video e H.264 em unidades de acesso Annex-B (os NAL de um quadro, com os
++// codigos de inicio); o meowcaller nao codifica nem decodifica pixels, so os
++// leva pelo relay. Quem chama codifica a camera e decodifica o que chega.
++//
++// Eventos novos (CallsNextEvent): {"ev": "video", "call", "active",
++// "upgrade", "orientation", "raw"} a cada <video> do outro lado;
++// {"ev": "keyframe", "call"} quando o outro lado pede um quadro-chave;
++// {"ev": "group", "call", "participants"} quando a lista de uma chamada em
++// grupo muda. "incoming" traz tambem "video" e "group".
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"time"
++	"unsafe"
++
++	"github.com/purpshell/meowcaller"
++)
++
++const (
++	videoNaFila = 30 // 3 s de video a 10 quadros por segundo
++
++	// CallVideo: o que fazer com o video da chamada
++	videoPedir    = 1 // pedir para passar a chamada de voz para video
++	videoAceitar  = 2 // aceitar o pedido do outro lado
++	videoParar    = 3 // parar o nosso video
++	videoLigar    = 4 // ligar a camera de novo (estado 1)
++	videoDesligar = 5 // desligar a camera sem sair do video (estado 0)
++)
++
++// ligarVideo anexa a fila de video e os avisos de video e de grupo a uma chamada.
++func ligarVideo(cliente string, c *meowcaller.Call, a *chamadaAtiva) {
++	id := c.ID()
++	c.ReceiveVideo(meowcaller.VideoSinkFunc(func(au []byte) {
++		if a.videoRecebidos.Add(1) == 1 {
++			registrar(cliente, "chamada %s: primeiro quadro de video do outro lado (%d bytes)", id, len(au))
++		}
++		b := append([]byte(nil), au...)
++		select {
++		case a.video <- b:
++		default: // fila cheia: descarta o mais antigo
++			select {
++			case <-a.video:
++			default:
++			}
++			select {
++			case a.video <- b:
++			default:
++			}
++		}
++	}))
++	c.OnVideoState(func(v meowcaller.VideoState) {
++		registrar(cliente, "chamada %s: video do outro lado ativo=%v pedido=%v estado=%d", id, v.Active, v.Upgrade, v.Raw)
++		emitirEvento(cliente, map[string]any{"ev": "video", "call": id, "active": v.Active,
++			"upgrade": v.Upgrade, "orientation": v.Orientation, "raw": v.Raw})
++	})
++	c.OnVideoKeyframeRequest(func() {
++		emitirEvento(cliente, map[string]any{"ev": "keyframe", "call": id})
++	})
++	c.OnGroupState(func(g meowcaller.GroupCallState) {
++		emitirEvento(cliente, map[string]any{"ev": "group", "call": id, "participants": len(g.Participants)})
++	})
++}
++
++// CallDialWith liga para um numero, de voz (video=0) ou de video (1). O
++// resultado e o de CallDial.
++//
++//export CallDialWith
++func CallDialWith(id *C.char, target *C.char, video C.int, buf *C.char, cap C.int) C.int {
++	return discar(C.GoString(id), C.GoString(target), video != 0, buf, cap)
++}
++
++// CallGroupDial liga para todos os membros de um grupo (o endereco @g.us ou
++// so o numero do grupo), de voz ou de video, e escreve em buf o JSON
++// {"call": id} ou {"error": texto}.
++//
++//export CallGroupDial
++func CallGroupDial(id *C.char, group *C.char, video C.int, buf *C.char, cap C.int) C.int {
++	cliente := C.GoString(id)
++	chamadasMu.Lock()
++	mc := chamadasCliente[cliente]
++	chamadasMu.Unlock()
++	erro := func(e error) C.int {
++		b, _ := json.Marshal(map[string]any{"error": e.Error()})
++		return escreverTexto(string(b), buf, cap)
++	}
++	if mc == nil {
++		return erro(fmt.Errorf("chamadas desligadas neste cliente"))
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 30*time.Second)
++	defer cancelar()
++	grupo := C.GoString(group)
++	registrar(cliente, "ligando para o grupo %s (video=%v)", grupo, video != 0)
++	c, err := mc.GroupCallByIDWithOptions(ctx, grupo, meowcaller.GroupCallOptions{Video: video != 0})
++	if err != nil {
++		registrar(cliente, "a ligacao para o grupo falhou: %v", err)
++		return erro(err)
++	}
++	ligarChamada(cliente, c, false)
++	b, _ := json.Marshal(map[string]any{"call": c.ID()})
++	return escreverTexto(string(b), buf, cap)
++}
++
++// CallVideo muda o video da chamada (videoPedir ... videoDesligar). 0 = ok,
++// -1 o meowcaller recusou, -2 sem chamada, -4 acao desconhecida.
++//
++//export CallVideo
++func CallVideo(id *C.char, call *C.char, action C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	var err error
++	switch int(action) {
++	case videoPedir:
++		err = a.call.StartVideo()
++	case videoAceitar:
++		err = a.call.AcceptVideo()
++	case videoParar:
++		err = a.call.StopVideo()
++	case videoLigar:
++		err = a.call.SetVideoEnabled(true)
++	case videoDesligar:
++		err = a.call.SetVideoEnabled(false)
++	default:
++		return erroTamanho
++	}
++	if err != nil {
++		registrar(C.GoString(id), "video %d da chamada %s falhou: %v", int(action), C.GoString(call), err)
++		return -1
++	}
++	return 0
++}
++
++// CallWriteVideo manda uma unidade de acesso H.264 (Annex-B) da nossa camera,
++// que dura durationMs (0 = o passo padrao). 0 = ok, -1 sem video ativo ainda,
++// -2 sem chamada.
++//
++//export CallWriteVideo
++func CallWriteVideo(id *C.char, call *C.char, buf *C.uchar, n C.int, durationMs C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	if n <= 0 {
++		return erroTamanho
++	}
++	au := C.GoBytes(unsafe.Pointer(buf), n)
++	if err := a.call.SendVideoWithDuration(au, time.Duration(durationMs)*time.Millisecond); err != nil {
++		return -1
++	}
++	return 0
++}
++
++// CallReadVideo entrega uma unidade de acesso do outro lado, esperando ate
++// timeoutMs. Devolve o tamanho, 0 (nada), -2 (chamada acabou) ou -4 (buffer
++// pequeno: a unidade e descartada).
++//
++//export CallReadVideo
++func CallReadVideo(id *C.char, call *C.char, buf *C.uchar, cap C.int, timeoutMs C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	select {
++	case b := <-a.video:
++		if len(b) > int(cap) {
++			return erroTamanho
++		}
++		copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(cap)), b)
++		return C.int(len(b))
++	case <-a.fim:
++		return erroSemChamada
++	case <-time.After(time.Duration(timeoutMs) * time.Millisecond):
++		return erroTempoLimite
++	}
++}
++
++// CallInfo escreve em buf o JSON {"video", "sendingVideo", "receivingVideo",
++// "group", "participants"} da chamada. Devolve o tamanho, ou -2 sem chamada.
++//
++//export CallInfo
++func CallInfo(id *C.char, call *C.char, buf *C.char, cap C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	g, grupo := a.call.GroupState()
++	b, _ := json.Marshal(map[string]any{
++		"video": a.call.IsVideo(), "sendingVideo": a.call.IsSendingVideo(),
++		"receivingVideo": a.call.IsReceivingVideo(), "group": grupo,
++		"participants": len(g.Participants)})
++	return escreverTexto(string(b), buf, cap)
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index ab6639a..3b91fcd 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -897,6 +897,24 @@ if not os.environ.get("SPHINX"):
+         gocode.CallWriteAudio.argtypes = [
+             ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+         gocode.CallWriteAudio.restype = ctypes.c_int
++    if hasattr(gocode, "CallVideo"):
++        # Video and group calls (goneonize/calls_video.go).
++        gocode.CallDialWith.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallDialWith.restype = ctypes.c_int
++        gocode.CallGroupDial.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallGroupDial.restype = ctypes.c_int
++        gocode.CallVideo.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
++        gocode.CallVideo.restype = ctypes.c_int
++        gocode.CallWriteVideo.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_int]
++        gocode.CallWriteVideo.restype = ctypes.c_int
++        gocode.CallReadVideo.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
++        gocode.CallReadVideo.restype = ctypes.c_int
++        gocode.CallInfo.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallInfo.restype = ctypes.c_int
+ 
+ else:
+     gocode: Any = object()
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 09b44d9..d3afc2e 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -4,8 +4,10 @@ meowcaller).
+ `configure(True)` before a client connects installs the call layer on every
+ client created afterwards; then `Calls(client.uuid)` drives that client's
+ calls. Events and results are small JSON objects; audio is PCM s16le, mono,
+-SAMPLE_RATE Hz, one FRAME_BYTES frame (60 ms) at a time. Every call releases
+-the GIL (ctypes), so the blocking ones belong on their own threads.
++SAMPLE_RATE Hz, one FRAME_BYTES frame (60 ms) at a time. Video is H.264, one
++Annex-B access unit at a time, each way (goneonize/calls_video.go); a build
++without it has `video_available()` False. Every call releases the GIL
++(ctypes), so the blocking ones belong on their own threads.
+ """
+ import ctypes
+ import json
+@@ -19,6 +21,10 @@ FRAME_BYTES = FRAME_SAMPLES * 2
+ _NO_CALL = -2
+ _EVENT_BUFFER = 64 * 1024       # an event that does not fit is lost on the Go side
+ _RESULT_BUFFER = 4 * 1024
++_VIDEO_BUFFER = 1024 * 1024     # a larger access unit is dropped on the Go side
++
++# CallVideo actions
++VIDEO_REQUEST, VIDEO_ACCEPT, VIDEO_STOP, VIDEO_ENABLE, VIDEO_DISABLE = 1, 2, 3, 4, 5
+ 
+ 
+ class CallError(Exception):
+@@ -30,6 +36,11 @@ def available() -> bool:
+     return hasattr(gocode, "CallsConfigure")
+ 
+ 
++def video_available() -> bool:
++    """Whether this build carries video and group calls."""
++    return hasattr(gocode, "CallVideo")
++
++
+ def configure(enabled: bool) -> None:
+     """Turns the call layer on (or off) for the clients that connect from now on."""
+     if not available():
+@@ -59,17 +70,58 @@ class Calls:
+             return None
+         return json.loads(buf.raw[:size].decode("utf-8"))
+ 
+-    def dial(self, target: str) -> dict:
++    def dial(self, target: str, video: bool = False) -> dict:
+         """Calls `target` (digits with the country code, or an address such as
+         123@lid). {"call": id, "peer": jid}; CallError on failure."""
+         buf = ctypes.create_string_buffer(_RESULT_BUFFER)
+-        size = gocode.CallDial(self.uuid, target.encode(), buf, _RESULT_BUFFER)
++        if video:
++            if not video_available():
++                raise CallError("this neonize build has no video calls")
++            size = gocode.CallDialWith(self.uuid, target.encode(), 1, buf, _RESULT_BUFFER)
++        else:
++            size = gocode.CallDial(self.uuid, target.encode(), buf, _RESULT_BUFFER)
++        return _result(buf, size)
++
++    def group_dial(self, group: str, video: bool = False) -> dict:
++        """Calls every member of the group `group` (an @g.us address). {"call":
++        id}; CallError on failure."""
++        if not video_available():
++            raise CallError("this neonize build has no group calls")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallGroupDial(self.uuid, group.encode(), 1 if video else 0, buf,
++                                    _RESULT_BUFFER)
++        return _result(buf, size)
++
++    def video(self, call_id: str, action: int) -> bool:
++        """One of VIDEO_REQUEST ... VIDEO_DISABLE on the call; False when the
++        call layer refused it or the call is over."""
++        return video_available() and gocode.CallVideo(self.uuid, call_id.encode(), int(action)) == 0
++
++    def write_video(self, call_id: str, access_unit: bytes, duration_ms: int = 0) -> bool:
++        """Sends one H.264 access unit of our camera; False when the call has
++        no video media yet, or is over."""
++        return gocode.CallWriteVideo(self.uuid, call_id.encode(), access_unit,
++                                     len(access_unit), int(duration_ms)) == 0
++
++    def read_video(self, call_id: str, timeout_ms: int = 200):
++        """An access unit from the other side; b"" when none came in time;
++        None once the call is over."""
++        buf = ctypes.create_string_buffer(_VIDEO_BUFFER)
++        size = gocode.CallReadVideo(self.uuid, call_id.encode(), buf, _VIDEO_BUFFER, int(timeout_ms))
++        if size == _NO_CALL:
++            return None
+         if size <= 0:
+-            raise CallError("the call could not be placed")
+-        result = json.loads(buf.raw[:size].decode("utf-8"))
+-        if "error" in result:
+-            raise CallError(result["error"])
+-        return result
++            return b""
++        return buf.raw[:size]
++
++    def info(self, call_id: str):
++        """{"video", "sendingVideo", "receivingVideo", "group", "participants"},
++        or None once the call is over."""
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallInfo(self.uuid, call_id.encode(), buf, _RESULT_BUFFER)
++        if size <= 0:
++            return None
++        return json.loads(buf.raw[:size].decode("utf-8"))
+ 
+     def answer(self, call_id: str) -> bool:
+         return gocode.CallAnswer(self.uuid, call_id.encode()) == 0
+@@ -94,3 +146,12 @@ class Calls:
+         if len(frame) != FRAME_BYTES:
+             raise ValueError(f"a frame is {FRAME_BYTES} bytes, not {len(frame)}")
+         return gocode.CallWriteAudio(self.uuid, call_id.encode(), frame, FRAME_BYTES) == 0
++
++
++def _result(buf, size) -> dict:
++    if size <= 0:
++        raise CallError("the call could not be placed")
++    result = json.loads(buf.raw[:size].decode("utf-8"))
++    if "error" in result:
++        raise CallError(result["error"])
++    return result

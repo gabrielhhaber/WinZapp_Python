@@ -80,3 +80,39 @@ ALL_PATCHES = (
     (ORIGINAL_SEND_IMAGE_STATUS, PATCHED_SEND_IMAGE_STATUS),
     (ORIGINAL_SEND_VIDEO_STATUS, PATCHED_SEND_VIDEO_STATUS),
 )
+
+
+# wppconnect 2.4.0 fixed the missing await itself, but each method now returns
+# only {ack, id}. That is not enough: statusController.ts (the WPPConnect
+# Server side of WinZapp) reads `sendMsgResult.messageSendResult` from the
+# result to tell a status WhatsApp rejected (e.g. "ERROR_UNKNOWN") from one it
+# accepted, and with that field gone every rejected status would be answered
+# 201 again. So 2.4.0's text is one more thing to rewrite into the same
+# patched forms above, which return WPP's whole result, not a shape the patch
+# leaves alone. One tuple of alternative originals per ALL_PATCHES entry, in
+# the same order.
+V240_SEND_TEXT_STATUS = (
+    "    async sendTextStatus(text, options) {\n"
+    "        return await (0, helpers_1.evaluateAndReturn)(this.page, async ({ text, options }) => {\n"
+    "            const result = await WPP.status.sendTextStatus(text, options);\n"
+    "            return { ack: result?.ack, id: result?.id };\n"
+    "        }, { text, options });\n"
+    "    }\n"
+)
+V240_SEND_IMAGE_STATUS = (
+    "        return await (0, helpers_1.evaluateAndReturn)(this.page, async ({ base64, options }) => {\n"
+    "            const result = await WPP.status.sendImageStatus(base64, options);\n"
+    "            return { ack: result?.ack, id: result?.id };\n"
+    "        }, { base64, options });\n"
+)
+V240_SEND_VIDEO_STATUS = (
+    "        return await (0, helpers_1.evaluateAndReturn)(this.page, async ({ base64, options }) => {\n"
+    "            const result = await WPP.status.sendVideoStatus(base64, options);\n"
+    "            return { ack: result?.ack, id: result?.id };\n"
+    "        }, { base64, options });\n"
+)
+ALTERNATIVE_ORIGINALS = (
+    (V240_SEND_TEXT_STATUS,),
+    (V240_SEND_IMAGE_STATUS,),
+    (V240_SEND_VIDEO_STATUS,),
+)

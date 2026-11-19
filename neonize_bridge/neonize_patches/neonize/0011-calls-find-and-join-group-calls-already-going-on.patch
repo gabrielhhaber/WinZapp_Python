@@ -1,0 +1,260 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Wed, 28 Oct 2026 13:23:50 -0300
+Subject: [PATCH] calls: find and join group calls already going on
+
+CallLobby asks the server where a group call stands (meowcaller's lobby
+query), CallJoinOngoing joins it by its id and wires its audio like a call
+placed here, CallRoster lists who is in a call this client is in. Python:
+Calls.lobby, join_ongoing and roster; ongoing_available().
+---
+ goneonize/calls_ongoing.go      | 121 ++++++++++++++++++++++++++++++++
+ goneonize/calls_ongoing_test.go |  21 ++++++
+ neonize/_binder.py              |  11 +++
+ neonize/calls.py                |  41 +++++++++++
+ 4 files changed, 194 insertions(+)
+ create mode 100644 goneonize/calls_ongoing.go
+ create mode 100644 goneonize/calls_ongoing_test.go
+
+diff --git a/goneonize/calls_ongoing.go b/goneonize/calls_ongoing.go
+new file mode 100644
+index 0000000..ae422ce
+--- /dev/null
++++ b/goneonize/calls_ongoing.go
+@@ -0,0 +1,121 @@
++package main
++
++/*
++   #include <stdlib.h>
++   #include <stdint.h>
++*/
++import "C"
++
++// Chamadas em grupo em andamento, como o Entrar do WhatsApp Web: perguntar
++// ao servidor como esta uma chamada de que esta conta nao participa (a
++// consulta do lobby), entrar nela pelo id e ler quem esta numa chamada.
++// O meowcaller faz a sinalizacao (api/ongoing-group-join); aqui so o JSON.
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"time"
++
++	"github.com/purpshell/meowcaller"
++	"go.mau.fi/whatsmeow/types"
++)
++
++type participanteJSON struct {
++	JID   string `json:"jid"`
++	PN    string `json:"pn,omitempty"`
++	State string `json:"state"`
++}
++
++func participantesJSON(g meowcaller.GroupCallState) []participanteJSON {
++	lista := make([]participanteJSON, 0, len(g.Participants))
++	for _, p := range g.Participants {
++		item := participanteJSON{JID: p.JID.ToNonAD().String(), State: p.State}
++		if !p.PN.IsEmpty() {
++			item.PN = p.PN.ToNonAD().String()
++		}
++		lista = append(lista, item)
++	}
++	return lista
++}
++
++func clienteDeChamadas(cliente string) *meowcaller.Client {
++	chamadasMu.Lock()
++	defer chamadasMu.Unlock()
++	return chamadasCliente[cliente]
++}
++
++func erroJSON(e error, buf *C.char, cap C.int) C.int {
++	b, _ := json.Marshal(map[string]any{"error": e.Error()})
++	return escreverTexto(string(b), buf, cap)
++}
++
++// CallLobby pergunta ao servidor como esta a chamada `call` criada por
++// `creator`: {"call", "groupJid", "video", "participants": [{"jid", "pn",
++// "state"}]}, {"over": true} quando o servidor ja nao a tem, ou {"error"}.
++//
++//export CallLobby
++func CallLobby(id *C.char, call *C.char, creator *C.char, buf *C.char, cap C.int) C.int {
++	mc := clienteDeChamadas(C.GoString(id))
++	if mc == nil {
++		return erroJSON(fmt.Errorf("chamadas desligadas neste cliente"), buf, cap)
++	}
++	criador, err := types.ParseJID(C.GoString(creator))
++	if err != nil {
++		return erroJSON(err, buf, cap)
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 15*time.Second)
++	defer cancelar()
++	o, err := mc.QueryOngoingGroupCall(ctx, C.GoString(call), criador)
++	if err != nil {
++		return erroJSON(err, buf, cap)
++	}
++	if o == nil {
++		return escreverTexto(`{"over":true}`, buf, cap)
++	}
++	b, _ := json.Marshal(map[string]any{
++		"call": o.CallID, "groupJid": o.GroupJID.String(), "video": o.Video,
++		"participants": participantesJSON(o.State)})
++	return escreverTexto(string(b), buf, cap)
++}
++
++// CallJoinOngoing entra na chamada em grupo `call` que ja esta acontecendo:
++// {"call": id} ou {"error"}. O audio e ligado como numa chamada feita daqui.
++//
++//export CallJoinOngoing
++func CallJoinOngoing(id *C.char, call *C.char, creator *C.char, video C.int, buf *C.char, cap C.int) C.int {
++	cliente := C.GoString(id)
++	mc := clienteDeChamadas(cliente)
++	if mc == nil {
++		return erroJSON(fmt.Errorf("chamadas desligadas neste cliente"), buf, cap)
++	}
++	criador, err := types.ParseJID(C.GoString(creator))
++	if err != nil {
++		return erroJSON(err, buf, cap)
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 30*time.Second)
++	defer cancelar()
++	registrar(cliente, "entrando numa chamada em grupo em andamento (video=%v)", video != 0)
++	c, err := mc.JoinOngoingGroupCall(ctx, C.GoString(call), criador, video != 0)
++	if err != nil {
++		registrar(cliente, "a entrada na chamada em grupo falhou: %v", err)
++		return erroJSON(err, buf, cap)
++	}
++	ligarChamada(cliente, c, false)
++	b, _ := json.Marshal(map[string]any{"call": c.ID()})
++	return escreverTexto(string(b), buf, cap)
++}
++
++// CallRoster: {"group", "participants": [{"jid", "pn", "state"}]} da chamada
++// em que este cliente esta. Devolve o tamanho, ou -2 sem chamada.
++//
++//export CallRoster
++func CallRoster(id *C.char, call *C.char, buf *C.char, cap C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	g, grupo := a.call.GroupState()
++	b, _ := json.Marshal(map[string]any{"group": grupo, "participants": participantesJSON(g)})
++	return escreverTexto(string(b), buf, cap)
++}
+diff --git a/goneonize/calls_ongoing_test.go b/goneonize/calls_ongoing_test.go
+new file mode 100644
+index 0000000..dfb3ecf
+--- /dev/null
++++ b/goneonize/calls_ongoing_test.go
+@@ -0,0 +1,21 @@
++package main
++
++import (
++	"testing"
++
++	"github.com/purpshell/meowcaller"
++	"go.mau.fi/whatsmeow/types"
++)
++
++func TestARosterKeepsEachPersonsAddressNumberAndState(t *testing.T) {
++	lid := types.JID{User: "100001", Server: types.HiddenUserServer, Device: 3}
++	pn := types.NewJID("5511900000000", types.DefaultUserServer)
++	got := participantesJSON(meowcaller.GroupCallState{Participants: []meowcaller.GroupCallParticipant{
++		{JID: lid, PN: pn, State: "connected"},
++		{JID: types.NewJID("100002", types.HiddenUserServer), State: "invited"},
++	}})
++	if len(got) != 2 || got[0].JID != "100001@lid" || got[0].PN != "5511900000000@s.whatsapp.net" ||
++		got[0].State != "connected" || got[1].PN != "" || got[1].State != "invited" {
++		t.Fatalf("roster %+v", got)
++	}
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 3b91fcd..958e9aa 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -915,6 +915,17 @@ if not os.environ.get("SPHINX"):
+         gocode.CallReadVideo.restype = ctypes.c_int
+         gocode.CallInfo.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
+         gocode.CallInfo.restype = ctypes.c_int
++    if hasattr(gocode, "CallLobby"):
++        # Ongoing group calls (goneonize/calls_ongoing.go).
++        gocode.CallLobby.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallLobby.restype = ctypes.c_int
++        gocode.CallJoinOngoing.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p,
++            ctypes.c_int]
++        gocode.CallJoinOngoing.restype = ctypes.c_int
++        gocode.CallRoster.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallRoster.restype = ctypes.c_int
+ 
+ else:
+     gocode: Any = object()
+diff --git a/neonize/calls.py b/neonize/calls.py
+index d3afc2e..380a0c8 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -21,6 +21,8 @@ FRAME_BYTES = FRAME_SAMPLES * 2
+ _NO_CALL = -2
+ _EVENT_BUFFER = 64 * 1024       # an event that does not fit is lost on the Go side
+ _RESULT_BUFFER = 4 * 1024
++# a group call's roster: every member invited, with their address and number
++_ROSTER_BUFFER = 128 * 1024
+ _VIDEO_BUFFER = 1024 * 1024     # a larger access unit is dropped on the Go side
+ 
+ # CallVideo actions
+@@ -36,6 +38,11 @@ def available() -> bool:
+     return hasattr(gocode, "CallsConfigure")
+ 
+ 
++def ongoing_available() -> bool:
++    """Whether this build finds and joins group calls already going on."""
++    return hasattr(gocode, "CallLobby")
++
++
+ def video_available() -> bool:
+     """Whether this build carries video and group calls."""
+     return hasattr(gocode, "CallVideo")
+@@ -123,6 +130,40 @@ class Calls:
+             return None
+         return json.loads(buf.raw[:size].decode("utf-8"))
+ 
++    def lobby(self, call_id: str, creator: str):
++        """Where the group call `call_id` started by `creator` stands, as the
++        server says while this account is not in it: {"call", "groupJid",
++        "video", "participants": [{"jid", "pn", "state"}]}, or None once it
++        is over. CallError when the server could not be asked."""
++        if not ongoing_available():
++            raise CallError("this neonize build does not find ongoing group calls")
++        buf = ctypes.create_string_buffer(_ROSTER_BUFFER)
++        size = gocode.CallLobby(self.uuid, call_id.encode(), creator.encode(), buf,
++                                _ROSTER_BUFFER)
++        result = _result(buf, size)
++        return None if result.get("over") else result
++
++    def join_ongoing(self, call_id: str, creator: str, video: bool = False) -> dict:
++        """Joins the group call `call_id` that is already going on. {"call":
++        id}; CallError on failure."""
++        if not ongoing_available():
++            raise CallError("this neonize build does not join ongoing group calls")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallJoinOngoing(self.uuid, call_id.encode(), creator.encode(),
++                                      1 if video else 0, buf, _RESULT_BUFFER)
++        return _result(buf, size)
++
++    def roster(self, call_id: str):
++        """{"group", "participants": [{"jid", "pn", "state"}]} of a call this
++        client is in, or None once it is over."""
++        if not ongoing_available():
++            return None
++        buf = ctypes.create_string_buffer(_ROSTER_BUFFER)
++        size = gocode.CallRoster(self.uuid, call_id.encode(), buf, _ROSTER_BUFFER)
++        if size <= 0:
++            return None
++        return json.loads(buf.raw[:size].decode("utf-8"))
++
+     def answer(self, call_id: str) -> bool:
+         return gocode.CallAnswer(self.uuid, call_id.encode()) == 0
+ 

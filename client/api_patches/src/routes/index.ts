@@ -33,6 +33,7 @@ import * as MessageController from '../controller/messageController';
 import * as PinnedMessagesController from '../controller/pinnedMessagesController';
 import * as PrivacyController from '../controller/privacyController';
 import * as PollController from '../controller/pollController';
+import * as EventController from '../controller/eventController';
 import * as CommunityCommentsController from '../controller/communityCommentsController';
 import * as CommunityOverviewController from '../controller/communityOverviewController';
 import * as ChannelsPanelController from '../controller/channelsPanelController';
@@ -238,6 +239,30 @@ routes.post(
   PollController.votePollRoute
 );
 routes.post(
+  '/api/:session/event-responses',
+  verifyToken,
+  statusConnection,
+  EventController.readEventResponsesRoute
+);
+routes.post(
+  '/api/:session/event-respond',
+  verifyToken,
+  statusConnection,
+  EventController.respondEventRoute
+);
+routes.post(
+  '/api/:session/send-event',
+  verifyToken,
+  statusConnection,
+  EventController.sendEventRoute
+);
+routes.post(
+  '/api/:session/edit-event',
+  verifyToken,
+  statusConnection,
+  EventController.editEventRoute
+);
+routes.post(
   '/api/:session/mark-played',
   verifyToken,
   statusConnection,
@@ -343,6 +368,12 @@ routes.post(
   verifyToken,
   statusConnection,
   MessageController.sendButtons
+);
+routes.post(
+  '/api/:session/send-carousel',
+  verifyToken,
+  statusConnection,
+  MessageController.sendCarousel
 );
 routes.post(
   '/api/:session/send-list-message',
@@ -1288,6 +1319,12 @@ routes.post('/api/:session/channels/mute', verifyToken, statusConnection,
   ChannelsPanelController.muteChannel);
 routes.post('/api/:session/channels/pin', verifyToken, statusConnection,
   ChannelsPanelController.pinChannelUpdate);
+routes.post('/api/:session/channels/reactions', verifyToken, statusConnection,
+  ChannelsPanelController.setChannelReactions);
+routes.post('/api/:session/channels/insights', verifyToken, statusConnection,
+  ChannelsPanelController.channelInsights);
+routes.post('/api/:session/channels/admin-profiles', verifyToken, statusConnection,
+  ChannelsPanelController.setChannelAdminProfiles);
 routes.post('/api/:session/channels/admins', verifyToken, statusConnection,
   ChannelsPanelController.channelAdmins);
 routes.post('/api/:session/channels/admin-invite', verifyToken, statusConnection,

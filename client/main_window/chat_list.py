@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core import channel_invites
 from core.chat_row_text import name_with_unread, unread_position
 from core.conversation_view import ARCHIVED
 from core.listed_chats import channels_listed, is_listed_chat
@@ -42,6 +43,7 @@ from core.locale_format import (
     preview_time_text,
 )
 from main_window.message_rules import is_countable_message
+from main_window.content_panels import hide_side_panels
 
 
 def _start_debounce_timer(delay_ms, callback, on_failure=None):
@@ -140,10 +142,7 @@ class ChatListMixin:
                 # needs to because it only runs while Status is already
                 # hidden, but we can be called from there directly.
                 self.archived_conversations_panel.Hide()
-                if hasattr(self, "status_panel"):
-                    self.status_panel.Hide()
-                if hasattr(self, "calls_panel"):
-                    self.calls_panel.Hide()
+                hide_side_panels(self)
                 self.conversations_panel.conversations_label.Hide()
                 self.conversations_panel.conversations_list.Hide()
                 self.conversations_panel.Show()
@@ -157,10 +156,7 @@ class ChatListMixin:
             self.archived_conversations_panel.Hide()
         if hasattr(self, "locked_conversations_panel"):
             self.locked_conversations_panel.Hide()
-        if hasattr(self, "status_panel"):
-            self.status_panel.Hide()
-        if hasattr(self, "calls_panel"):
-            self.calls_panel.Hide()
+        hide_side_panels(self)
         self.conversations_panel.conversations_label.Show()
         self.conversations_panel.conversations_list.Show()
         self.conversations_panel.Show()
@@ -898,12 +894,15 @@ class ChatListMixin:
         "audioMessage", "documentMessage", "stickerMessage", "contactMessage",
         "locationMessage", "liveLocationMessage",
         "pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3",
+        "eventMessage",
         "pollUpdateMessage",
         "buttonsMessage", "listMessage", "templateMessage", "interactiveMessage",
         "buttonsResponseMessage", "listResponseMessage", "protocolMessage",
         CALL_LOG_MESSAGE_TYPE, LEGACY_CALL_LOG_TYPE,
         VIEW_ONCE_UNAVAILABLE_TYPE,
         ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE,
+        # core/channel_invites.py
+        "newsletterFollowerInviteMessage", "newsletterAdminInviteMessage",
     })
 
     @classmethod
@@ -1121,6 +1120,7 @@ class ChatListMixin:
             return ""
 
         from_me  = last.get("key", {}).get("fromMe", False)
+        from core.business_message_content import TYPES, business_message_text
         msg_type = last.get("messageType", "conversation")
         msg_obj  = last.get("message") or {}
 
@@ -1142,6 +1142,8 @@ class ChatListMixin:
         elif (commerce_text := commerce_message_label(last, i18n)) is not None:
             # Same sentence the conversation row reads (core/commerce.py).
             content = commerce_text
+        elif msg_type in TYPES:
+            content = business_message_text(last, i18n)
         elif msg_type == "conversation":
             content = msg_obj.get("conversation") or ""
             if looks_like_binary_blob(content):
@@ -1262,28 +1264,23 @@ class ChatListMixin:
             content = i18n.t("contacts_count").format(count=len(contacts))
         elif msg_type in ("locationMessage", "liveLocationMessage"):
             content = i18n.t("notif_location")
+        elif msg_type == "eventMessage":
+            name = ((msg_obj.get("eventMessage") or {}).get("name") or "").strip()
+            content = i18n.t("notif_event").format(name=name) if name else i18n.t("event_label")
         elif msg_type in ("pollCreationMessage", "pollCreationMessageV2", "pollCreationMessageV3", "pollUpdateMessage"):
             poll = msg_obj.get("pollCreationMessage") or msg_obj.get("pollCreationMessageV2") or msg_obj.get("pollCreationMessageV3") or {}
             name = poll.get("name") or ""
             content = i18n.t("notif_poll").format(name=name) if name else i18n.t("notif_poll_no_name")
-        elif msg_type == "buttonsMessage":
-            buttons = msg_obj.get("buttonsMessage") or {}
-            content = (buttons.get("contentText") or buttons.get("text") or "").strip() or i18n.t("notif_button")
-        elif msg_type == "listMessage":
-            listing = msg_obj.get("listMessage") or {}
-            content = (listing.get("title") or listing.get("description") or "").strip() or i18n.t("notif_list")
-        elif msg_type == "templateMessage":
-            template = msg_obj.get("templateMessage") or {}
-            content = (template.get("hydratedContentText") or "").strip() or i18n.t("notif_template")
-        elif msg_type == "interactiveMessage":
-            interactive = msg_obj.get("interactiveMessage") or {}
-            content = ((interactive.get("body") or {}).get("text") or "").strip() or i18n.t("interactive_message")
         elif msg_type == "buttonsResponseMessage":
             response = msg_obj.get("buttonsResponseMessage") or {}
             content = (response.get("selectedDisplayText") or "").strip() or i18n.t("interactive_reply")
         elif msg_type == "listResponseMessage":
             response = msg_obj.get("listResponseMessage") or {}
             content = (response.get("title") or "").strip() or i18n.t("list_reply")
+        elif msg_type in channel_invites.INVITE_TYPES:
+            # an invitation to follow a channel or to be its admin: the row
+            # the conversation shows, not "unsupported message"
+            content = channel_invites.row_text(i18n, last)
         elif msg_type == "protocolMessage":
             protocol = msg_obj.get("protocolMessage") or {}
             p_type = protocol.get("type")
@@ -1997,6 +1994,21 @@ class ChatListMixin:
         # NOTE: chats_list was already overwritten by _apply_chat_lists before this
         # function runs, so we track what's truly rendered via _displayed_jids.
         new_jids = [c.get("remoteJid", "") for c in displayed_chats]
+        # One informative row when the filter, list or search leaves nothing
+        # (core/chat_list_placeholder.py); chats_list stays empty under it.
+        from core.chat_list_placeholder import empty_chat_list_key
+        _empty_key = "" if new_jids else empty_chat_list_key(search, conv_filter, wa_list_id)
+        placeholder = self.i18n.t(_empty_key) if _empty_key else ""
+        _shown_placeholder = getattr(self.conversations_panel, "_chat_list_placeholder", "")
+        if (placeholder and placeholder == _shown_placeholder and lst.GetItemCount() == 1
+                and not getattr(self.conversations_panel, "_displayed_jids", None)):
+            # Already showing exactly this row: rewriting it would make a
+            # screen reader read it again on every refresh.
+            self.conversations_panel.chats_list = []
+            self.conversations_panel.chat_names = []
+            if hasattr(self, "archived_conversations_panel"):
+                self._refresh_archived_chats_in_ui(arch_focused_jid)
+            return
 
         # Content fingerprint of exactly what this call would render. Used only
         # to skip the per-row GetItemText comparison loop below when nothing
@@ -2020,6 +2032,7 @@ class ChatListMixin:
         _fast_path_ok = False
         if (
             _displayed_jids is not None
+            and not placeholder
             and _displayed_jids == new_jids
             and lst.GetItemCount() == len(new_jids)
         ):
@@ -2059,6 +2072,7 @@ class ChatListMixin:
         # None and rebuilds as before.
         if (
             _displayed_jids is not None
+            and not placeholder
             and lst.GetItemCount() == len(_displayed_jids)
             and self._apply_chat_rows_incrementally(
                 lst, _displayed_jids, new_jids, new_item_texts, focused_jid
@@ -2104,8 +2118,11 @@ class ChatListMixin:
             lst.DeleteAllItems()
             for item_text in new_item_texts:
                 lst.Append((item_text,))
+            if placeholder:
+                lst.Append((placeholder,))
         finally:
             lst.Thaw()
+        self.conversations_panel._chat_list_placeholder = placeholder
 
         # Keep backing lists in sync with exactly what is displayed.
         self.conversations_panel.chats_list = displayed_chats
@@ -2122,7 +2139,13 @@ class ChatListMixin:
                     target_idx = i
                     break
 
-        if target_idx != -1:
+        if placeholder:
+            # Nothing to open: the row is there to be read where the list is.
+            if _lst_had_focus:
+                lst.Focus(0)
+                lst.Select(0)
+                lst.SetFocus()
+        elif target_idx != -1:
             if panel.conversations_list.GetFocusedItem() != target_idx:
                 panel.conversations_list.Focus(target_idx)
             if _lst_had_focus:

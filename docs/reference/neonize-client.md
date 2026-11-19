@@ -98,6 +98,35 @@ them (looped, through `sound_system.load_sound`, from WAVs cached under
   pack as the `call_ended` Sound Event (`call_ended.ogg`); `play_call_ended_sound`
   plays it once when a call that was ACTIVE ends, on Neonize only.
 
+## Changes made on the phone (app state)
+
+neonize forwards the phone's chat and message changes as events, and the bridge
+mirrors each into its store (`server.py`, registered once per event type):
+`ChatMarkAsReadEv` (read or marked unread; answers `chats-update` with
+`unreadCount`), `ChatArchiveEv` and `ChatPinEv` (`chats-update` with `archive` /
+`pin`, which WinZapp's `on_chats_update` consumes), `ChatMuteEv` and
+`ChatLockEv`, `MessageStarEv`, `MessageDeleteForMeEv` and `ChatDeleteEv`. A
+chat deleted on the phone is deleted in the bridge unless the mutation is a full
+sync's replay or a newer message is stored (`phone_chat_delete.applies`). WinZapp
+has no socket event for a chat that disappears, so the app's list drops it on
+its next `list-chats`.
+
+## Changes made here (app state the bridge sends)
+
+`Session.send_state` names a person's chat by its LID in every mutation index
+(`chat_aliases.mutation_index_jid`), as WhatsApp Web does
+(`WAWebSyncdGetChat.getChatJidMutationIndexForChat`, read 2026-11-09): a phone
+does not find a chat named by its number and keeps the mutation as an orphan.
+A clear or delete carries a message range built as WhatsApp Web builds it
+(`chat_actions.range_plan`): the newest message's time, the newest system
+message's when newer, and our own messages from the newest received one on by
+key. A key the phone's check refuses (a received group message with no
+`participant`) is never listed, since one such key drops the whole mutation.
+The clear's index ends in `"0"`, like WhatsApp Web's and Baileys'. Reported
+2026-11-05: chats cleared in WinZapp stayed full on the phone, because the
+bridge listed only the newest stored item, often a group notification with no
+author.
+
 ## Reading a chat writes no app state
 
 A read goes out as read receipts, the way WhatsApp's own clients do it:
@@ -134,8 +163,12 @@ messages is stored as `Success` and changes nothing.
   only after the click. With WinZapp's build the first read of the lists
   downloads the `regular` collection once and can take longer than the
   client's 15 s budget: the next refresh answers.
-- Events the bridge never emits (announcement-replies, media-*-progress,
-  `call:*:remote`, messages.update, presence.update) are harmless.
+- `messages.update` and `presence.update` are alternative client input shapes;
+  Neonize uses `onack` and `onpresencechanged`. Poll votes now emit
+  `onpollresponse` and trigger a refresh for a poll in the open conversation.
+  Revoke and label-association event contracts are described in
+  `neonize_bridge/COVERAGE.md` (label events serve API consumers; WinZapp has
+  no Business-label interface).
 - `reconnect-socket-stream` answering 400 counts strikes towards
   `_restart_wpp_session` (`connection.py`); the bridge side is F1's.
 - `_start_wpp_update_checker` with no `client/api/` folder is now skipped for

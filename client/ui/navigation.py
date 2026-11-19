@@ -59,7 +59,7 @@ class NavigationPanel(wx.Panel):
             self.main_window, "chat_lock_navigation_visible", lambda: False
         )():
             keys.append("locked")
-        keys.extend(["status", "calls", "communities", "channels", "settings"])
+        keys.extend(["status", "calls", "communities", "channels", "starred", "settings"])
         i18n = self.main_window.i18n
         labels = {
             "conversations": f"{i18n.t('conversations')} alt+1",
@@ -69,6 +69,7 @@ class NavigationPanel(wx.Panel):
             "calls": i18n.t("calls_nav"),
             "communities": i18n.t("communities_nav"),
             "channels": i18n.t("channels_nav"),
+            "starred": i18n.t("starred_nav"),
             "settings": f"{i18n.t('settings')} {i18n.t('settings_shortcut')}",
         }
         labels = {key: navigation_shortcut_label(self.main_window, key, label)
@@ -138,14 +139,19 @@ class NavigationPanel(wx.Panel):
             return
 
         if key == "communities":
-            # A window of its own, like Settings: no panel is switched.
-            from ui.dialogs.communities import show_communities
-            show_communities(mw, mw)
+            # a panel, the same switch as Alt+8 (main_window/content_panels.py)
+            from main_window.content_panels import show_communities
+            show_communities(mw)
             return
 
         if key == "channels":
-            from ui.dialogs.channels import show_channels
-            show_channels(mw, mw)
+            from main_window.content_panels import show_channels
+            show_channels(mw)
+            return
+
+        if key == "starred":
+            from ui.dialogs.starred_messages import show_starred_messages
+            show_starred_messages(mw, mw)
             return
 
         lock_vault = getattr(mw, "lock_chat_vault", None)
@@ -158,14 +164,12 @@ class NavigationPanel(wx.Panel):
 
         # Hide all content panels, show the right one
         mw.conversations_panel.Hide()
-        if hasattr(mw, "status_panel"):
-            mw.status_panel.Hide()
         if hasattr(mw, "archived_conversations_panel"):
             mw.archived_conversations_panel.Hide()
         if hasattr(mw, "locked_conversations_panel"):
             mw.locked_conversations_panel.Hide()
-        if hasattr(mw, "calls_panel"):
-            mw.calls_panel.Hide()
+        from main_window.content_panels import hide_side_panels
+        hide_side_panels(mw)
 
         if key == "conversations":
             # Brings the chat list back (an archived chat's detail pane hid

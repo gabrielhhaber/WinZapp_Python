@@ -234,7 +234,7 @@ def navigation_shortcut_label(window, row, label):
     shortcut_id = {'conversations': 'main.ID_ALT_1', 'archived': 'main.ID_ALT_4',
                    'locked': 'main.ID_ALT_7', 'status': 'main.ID_ALT_5',
                    'calls': 'main.ID_ALT_6', 'communities': 'main.ID_COMMUNITIES',
-                   'channels': 'main.ID_CHANNELS',
+                   'channels': 'main.ID_CHANNELS', 'starred': 'main.ID_STARRED',
                    'settings': 'main.ID_CTRL_COMMA'}[row]
     overrides = getattr(window, 'settings', {}).get(SECTION, {})
     if shortcut_id not in overrides:
@@ -289,6 +289,20 @@ def popup_label_chord(label):
     if not entry.FromString(label):
         return None
     return entry.GetFlags(), normalize_key(entry.GetKeyCode())
+
+
+def popup_item_label(owner, label, shortcut_id):
+    """*label* with the chord *shortcut_id* is bound to now, for one popup
+    item; nothing after the tab when the command has no binding."""
+    from ui.shortcut_names import shortcut_name
+    window = main_window_for(owner)
+    shortcut = next(s for s in SHORTCUTS if s.id == shortcut_id)
+    if window is None:
+        binding = default_binding(shortcut, lambda key: key)
+    else:
+        binding = binding_for(shortcut, window.settings.get(SECTION, {}), window.i18n.t)
+    name = shortcut_name(binding, None)
+    return label + ('\t' + name if name else '')
 
 
 def refresh_popup_shortcuts(owner, scope, menu):

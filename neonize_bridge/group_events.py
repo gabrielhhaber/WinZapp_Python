@@ -8,11 +8,11 @@ which the client reads in core/websocket_client.py (`on_groups_update`):
 {"session", "data": [..]}, each item with `id` (or `remoteJid`) and
 `subject`/`name`.
 
-Today the client only acts on `id` + `subject` (a new name updates the chat
-list). The other fields follow Baileys/WPPConnect's shape (`desc`, `announce`,
-`restrict`, `participants` + `action`) and the client ignores them; an item
-without `subject` is discarded there, so emitting them is harmless and leaves
-the data ready.
+The client handles name, description, announce/restrict settings and participant
+add/remove/promote/demote deltas. These preserve Baileys/WPPConnect's shape
+(`desc`, `announce`, `restrict`, `participants` + `action`) and are accepted
+without a subject. The WPP page observer also sends complete participant
+snapshots with `participantsComplete: true`.
 
 The group notices (`gp2`) that WhatsApp Web shows in the chat are built in
 system_messages.py and go out through `received-message`.
@@ -181,3 +181,11 @@ def register_events(cli, s):
             emit_items(s, items)
         except Exception:
             log.exception("group join")
+        try:
+            me = msgmap.jid_wpp(getattr(s, "me", "") or "")
+            notice = system_messages.own_join_notice(e, me, time.time())
+            if notice is not None:
+                chat = jid_text(getattr(getattr(e, "GroupInfo", None), "JID", None))
+                system_messages.store_and_emit(s, chat, notice, time.time())
+        except Exception:
+            log.exception("own join notice")

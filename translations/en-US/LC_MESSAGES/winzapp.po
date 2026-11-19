@@ -127,6 +127,11 @@ msgctxt "acc_btn_restore"
 msgid "Re&store"
 msgstr "Re&store"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
+msgctxt "acc_chk_connect_all"
+msgid "Connect all accounts &when WinZapp starts"
+msgstr "Connect all accounts &when WinZapp starts"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 #, python-brace-format
@@ -190,6 +195,11 @@ msgstr "Can't archive the account in use. Switch to another account first."
 msgctxt "acc_err_archive_not_paired"
 msgid "Only connected accounts can be archived."
 msgstr "Only connected accounts can be archived."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "acc_err_connect_all_save"
+msgid "Could not save the setting."
+msgstr "Could not save the setting."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_err_delete_current"
@@ -360,6 +370,18 @@ msgstr "&Use SAPI voice when the screen reader is not available"
 msgctxt "accessibility_sapi_fallback_label_macos"
 msgid "&Use the system voice when VoiceOver is not running"
 msgstr "&Use the system voice when VoiceOver is not running"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "accessible_alt_down"
+msgid "Alt+Down Arrow"
+msgstr "Alt+Down Arrow"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "accessible_alt_up"
+msgid "Alt+Up Arrow"
+msgstr "Alt+Up Arrow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_dialogs.py client/ui/media_viewer.py
@@ -556,6 +578,7 @@ msgstr "Ena&ble AI features (transcription and description)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 #, python-brace-format
 msgctxt "ai_answered_by"
 msgid "Answered by {provider}."
@@ -573,6 +596,7 @@ msgstr "Ask"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 #, python-brace-format
 msgctxt "ai_attempt_line"
 msgid "{provider}: {reason}"
@@ -670,6 +694,7 @@ msgstr "Usage and &billing"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_cancel_notice"
 msgid ""
 "Cancelled locally. A request already received by the provider may still be "
@@ -680,6 +705,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_chain_failed"
 msgid "None of the providers could process this media:"
 msgstr "None of the providers could process this media:"
@@ -851,6 +877,15 @@ msgstr ""
 "store, explicitly reset all AI keys first."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_credits"
+msgid ""
+"The provider's account has no credit left for this request. Add credits or "
+"choose a free model, then try again."
+msgstr ""
+"The provider's account has no credit left for this request. Add credits or "
+"choose a free model, then try again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_limit"
 msgid ""
 "This session reached its request or conversation limit. Close it before "
@@ -936,6 +971,7 @@ msgstr ""
 "The provider rejected the request. Check the model identifier and settings."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice_online.py
 msgctxt "ai_error_response"
 msgid "No usable answer was received from the provider."
 msgstr "No usable answer was received from the provider."
@@ -1064,7 +1100,16 @@ msgid "videos"
 msgstr "videos"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_kinds_button"
+msgid "Types of me&dia handled..."
+msgstr "Types of me&dia handled..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
+#: client/ui/dialogs/ai_writing_dialog.py
 msgctxt "ai_locked_consent"
 msgid ""
 "This media is from a locked chat. Sending it outside WhatsApp needs fresh "
@@ -1076,6 +1121,7 @@ msgstr ""
 "window and discards local results."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_metadata_notice"
 msgid ""
@@ -1167,6 +1213,7 @@ msgid "&Provider privacy policy"
 msgstr "&Provider privacy policy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_processing_msg"
 msgid "Processing with AI, please wait..."
 msgstr "Processing with AI, please wait..."
@@ -1251,6 +1298,7 @@ msgstr "Read &new answers aloud using WinZapp speech settings"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_ready"
 msgid "The answer is ready."
 msgstr "The answer is ready."
@@ -1261,7 +1309,6 @@ msgid "Run again (new request)"
 msgstr "Run again (new request)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_remember_consent"
 msgid "Remember this consent &for media outside locked chats"
 msgstr "Remember this consent &for media outside locked chats"
@@ -1282,6 +1329,7 @@ msgstr "Reset all saved AI &keys"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "ai_result"
 msgid "Result and answers"
 msgstr "Result and answers"
@@ -1297,12 +1345,17 @@ msgid "Accessible PDF text"
 msgstr "Accessible PDF text"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_result_summary_title"
+msgid "Message summary"
+msgstr "Message summary"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_result_transcription_title"
 msgid "Voice message transcription (online AI)"
 msgstr "Voice message transcription (online AI)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "Send &media"
@@ -1342,6 +1395,232 @@ msgid "S&tatus"
 msgstr "S&tatus"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
+msgctxt "ai_summary_button"
+msgid "Summarize unread messages"
+msgstr "Summarize unread messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_cancelled"
+msgid "Summary cancelled."
+msgstr "Summary cancelled."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+#, python-brace-format
+msgctxt "ai_summary_consent"
+msgid ""
+"The text of the chosen messages, with the names of the people who wrote them"
+" and, for voice messages, the text transcribed on this computer, and your "
+"questions and the previous answers in this window may be sent to "
+"{providers}, in that order, if the earlier ones fail. This may incur API "
+"charges. Provider data policies apply; the summary can be wrong. Do you want"
+" to continue?"
+msgstr ""
+"The text of the chosen messages, with the names of the people who wrote them"
+" and, for voice messages, the text transcribed on this computer, and your "
+"questions and the previous answers in this window may be sent to "
+"{providers}, in that order, if the earlier ones fail. This may incur API "
+"charges. Provider data policies apply; the summary can be wrong. Do you want"
+" to continue?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_disclaimer"
+msgid "Summary made by AI; it may contain errors."
+msgstr "Summary made by AI; it may contain errors."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_from_here_menu"
+msgid "Summarize with AI from here to the end"
+msgstr "Summarize with AI from here to the end"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_left_out"
+msgid ""
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
+msgstr ""
+"Messages in this summary: {count}, the most recent ones. Older messages left"
+" out: {left_out}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_summary_locked_consent"
+msgid ""
+"These messages are from a locked chat. Sending them outside WhatsApp needs "
+"fresh consent every time, and it is never remembered. Locking the vault "
+"closes this window and discards the summary."
+msgstr ""
+"These messages are from a locked chat. Sending them outside WhatsApp needs "
+"fresh consent every time, and it is never remembered. Locking the vault "
+"closes this window and discards the summary."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_not_available"
+msgid ""
+"No summary available here: there are no messages to summarize, or Online AI "
+"is not on with the key of a provider that takes text."
+msgstr ""
+"No summary available here: there are no messages to summarize, or Online AI "
+"is not on with the key of a provider that takes text."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_nothing"
+msgid "There are no text messages to summarize here."
+msgstr "There are no text messages to summarize here."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_remember_consent"
+msgid "Remember this consent &for summaries outside locked chats"
+msgstr "Remember this consent &for summaries outside locked chats"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_selected_menu"
+msgid "Summarize selected messages with AI"
+msgstr "Summarize selected messages with AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_send"
+msgid "Send te&xt"
+msgstr "Send te&xt"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+msgctxt "ai_summary_unread_menu"
+msgid "Summarize unread messages with AI"
+msgstr "Summarize unread messages with AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+msgctxt "ai_summary_voice_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+msgstr ""
+"Another transcription is running. Wait for it to finish, then summarize "
+"again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_choice_intro"
+msgid ""
+"{count} voice messages in this summary have no saved transcription. Choose "
+"how to transcribe them. Nothing is sent or transcribed until you continue."
+msgstr ""
+"{count} voice messages in this summary have no saved transcription. Choose "
+"how to transcribe them. Nothing is sent or transcribed until you continue."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_choice_title"
+msgid "Voice messages in the summary"
+msgstr "Voice messages in the summary"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_continue"
+msgid "Continue"
+msgstr "Continue"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_failed"
+msgid ""
+"{count} voice messages could not be transcribed and appear only as voice "
+"message markers."
+msgstr ""
+"{count} voice messages could not be transcribed and appear only as voice "
+"message markers."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_missing"
+msgid "Voice messages shown only as a marker, without their words: {count}."
+msgstr "Voice messages shown only as a marker, without their words: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode"
+msgid "Voice message transcription"
+msgstr "Voice message transcription"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_local"
+msgid "Locally, on this computer"
+msgstr "Locally, on this computer"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_none"
+msgid "Do not transcribe voice messages"
+msgstr "Do not transcribe voice messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_mode_online"
+msgid "Online, with an AI provider"
+msgstr "Online, with an AI provider"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_model"
+msgid "Online transcription model"
+msgstr "Online transcription model"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/ai_media/summary_voice_choice.py
+#, python-brace-format
+msgctxt "ai_summary_voice_online_consent"
+msgid ""
+"{count} voice messages will be sent, exactly as they are, to {provider} to "
+"be transcribed for this summary. This may use your quota or incur charges "
+"with this provider. Provider data policies apply, and the transcription can "
+"be wrong. Do you want to continue?"
+msgstr ""
+"{count} voice messages will be sent, exactly as they are, to {provider} to "
+"be transcribed for this summary. This may use your quota or incur charges "
+"with this provider. Provider data policies apply, and the transcription can "
+"be wrong. Do you want to continue?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_voice_over_limit"
+msgid ""
+"{count} older voice messages were over the limit of {limit} per summary and "
+"appear only as voice message markers."
+msgstr ""
+"{count} older voice messages were over the limit of {limit} per summary and "
+"appear only as voice message markers."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_voice.py
+#: client/ui/conversation_panel/summary_voice_online.py
+#, python-brace-format
+msgctxt "ai_summary_voice_progress"
+msgid "Transcribing voice message {index} of {total} for the summary."
+msgstr "Transcribing voice message {index} of {total} for the summary."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/summary_voice_choice.py
+msgctxt "ai_summary_voice_provider"
+msgid "Online transcription provider"
+msgstr "Online transcription provider"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_transcription.py
+msgctxt "ai_summary_voice_running"
+msgid ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+msgstr ""
+"A summary is transcribing voice messages. Wait for it, or cancel it first."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_technical_info"
 msgid "Technical in&formation"
 msgstr "Technical in&formation"
@@ -1373,6 +1652,20 @@ msgid "Transcribe with online AI"
 msgstr "Transcribe with online AI"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_text_result_dialog.py
+msgctxt "ai_translate_consent"
+msgid ""
+"The text will be sent to Google Translate through the same address its web "
+"page uses, without an account or API key. That address is not a published "
+"service and could stop working without notice. Google's terms apply; the "
+"translation can be wrong. Do you want to continue?"
+msgstr ""
+"The text will be sent to Google Translate through the same address its web "
+"page uses, without an account or API key. That address is not a published "
+"service and could stop working without notice. Google's terms apply; the "
+"translation can be wrong. Do you want to continue?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 msgctxt "ai_video_frame_notice"
 msgid ""
@@ -1386,6 +1679,21 @@ msgstr ""
 msgctxt "ai_voice_model"
 msgid "&Voice message model"
 msgstr "&Voice message model"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+#, python-brace-format
+msgctxt "ai_writing_consent"
+msgid ""
+"The text you are writing may be sent to {providers}, in that order, if the "
+"earlier ones fail. This may incur API charges. Chat names are not sent. "
+"Provider data policies apply; the result can be wrong. Do you want to "
+"continue?"
+msgstr ""
+"The text you are writing may be sent to {providers}, in that order, if the "
+"earlier ones fail. This may incur API charges. Chat names are not sent. "
+"Provider data policies apply; the result can be wrong. Do you want to "
+"continue?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -1773,6 +2081,18 @@ msgid "Archive chat"
 msgstr "Archive chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_menu.py
+msgctxt "archive_confirm_button"
+msgid "&Archive chat"
+msgstr "&Archive chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_menu.py
+msgctxt "archive_confirm_msg"
+msgid "Are you sure you want to archive this chat?"
+msgstr "Are you sure you want to archive this chat?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "archive_selected_chats"
 msgid "Archive selected chats"
 msgstr "Archive selected chats"
@@ -1833,6 +2153,12 @@ msgstr "Contact"
 msgctxt "attachment_document"
 msgid "Document"
 msgstr "Document"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/attachments.py
+msgctxt "attachment_event"
+msgid "Event"
+msgstr "Event"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/attachments.py
@@ -2364,6 +2690,26 @@ msgid "Reply sent."
 msgstr "Reply sent."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/business_message_content.py
+msgctxt "business_parts_unavailable"
+msgid ""
+"Some parts or actions of this business message are not supported here. Open "
+"it in WhatsApp on your phone."
+msgstr ""
+"Some parts or actions of this business message are not supported here. Open "
+"it in WhatsApp on your phone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/business_message_content.py
+msgctxt "business_template_unavailable"
+msgid ""
+"This business message is not available here. Open it in WhatsApp on your "
+"phone."
+msgstr ""
+"This business message is not available here. Open it in WhatsApp on your "
+"phone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "button_no"
 msgid "&No"
 msgstr "&No"
@@ -2377,6 +2723,76 @@ msgstr "&Yes"
 msgctxt "call_answer_hotkey_label"
 msgid "Global hotkey to answer an incoming call from any window"
 msgstr "Global hotkey to answer an incoming call from any window"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_failed"
+msgid ""
+"Desktop audio sharing is unavailable or stopped because a source could not "
+"be captured."
+msgstr ""
+"Desktop audio sharing is unavailable or stopped because a source could not "
+"be captured."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_no_app"
+msgid "No application audio"
+msgstr "No application audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_nvda"
+msgid "Include &NVDA audio"
+msgstr "Include &NVDA audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_share"
+msgid "Share &desktop audio…"
+msgstr "Share &desktop audio…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_source"
+msgid "Audio &source"
+msgstr "Audio &source"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_started"
+msgid "Desktop audio sharing started."
+msgstr "Desktop audio sharing started."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_stop"
+msgid "Stop sharing &desktop audio"
+msgstr "Stop sharing &desktop audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py client/main_window/calls.py
+msgctxt "call_desktop_stopped"
+msgid "Desktop audio sharing stopped."
+msgstr "Desktop audio sharing stopped."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_system"
+msgid "Share system audio"
+msgstr "Share system audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_title"
+msgid "Share desktop audio"
+msgstr "Share desktop audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_desktop_audio.py
+msgctxt "call_desktop_volume"
+msgid "Sharing &volume (%)"
+msgstr "Sharing &volume (%)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_end_hotkey_label"
@@ -2571,6 +2987,50 @@ msgid "Voice call"
 msgstr "Voice call"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_declined_row"
+msgid "{name}, declined"
+msgstr "{name}, declined"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_invited_row"
+msgid "{name}, not in the call"
+msgstr "{name}, not in the call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_participants.py
+#, python-brace-format
+msgctxt "call_participant_joined"
+msgid "{name} joined the call"
+msgstr "{name} joined the call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_participants.py
+#, python-brace-format
+msgctxt "call_participant_left"
+msgid "{name} left the call"
+msgstr "{name} left the call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_left_row"
+msgid "{name}, left the call"
+msgstr "{name}, left the call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_missed_row"
+msgid "{name}, did not answer"
+msgstr "{name}, did not answer"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "call_participant_ringing_row"
+msgid "{name}, ringing"
+msgstr "{name}, ringing"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
 msgctxt "call_participants_add"
 msgid "&Add participants"
@@ -2588,6 +3048,13 @@ msgstr "Call participants"
 msgctxt "call_participants_count"
 msgid "Connected participants: {count}"
 msgstr "Connected participants: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/call_participants.py
+#, python-brace-format
+msgctxt "call_participants_count_with_left"
+msgid "Connected participants: {count}. Not connected: {left}"
+msgstr "Connected participants: {count}. Not connected: {left}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
@@ -2616,12 +3083,6 @@ msgstr "Connected participants"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/call_participants.py
-msgctxt "call_participants_refresh"
-msgid "&Refresh"
-msgstr "&Refresh"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/call_participants.py
 #, python-brace-format
 msgctxt "call_participants_title"
 msgid "Call participants: {name}"
@@ -2642,6 +3103,18 @@ msgstr "No camera available."
 msgctxt "calls_alerts_enabled_label"
 msgid "Allow &incoming call alerts"
 msgstr "Allow &incoming call alerts"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "calls_announce_joined_label"
+msgid "Announce when someone &joins a call"
+msgstr "Announce when someone &joins a call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "calls_announce_left_label"
+msgid "A&nnounce when someone leaves a call"
+msgstr "A&nnounce when someone leaves a call"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -2756,6 +3229,7 @@ msgstr "Call &video settings"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/ui/chat_lock.py
 #: client/ui/conversation_panel/bulk_messages.py
+#: client/ui/conversation_panel/chat_menu.py
 #: client/ui/conversation_panel/forwarding.py
 #: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/reactions.py
@@ -2767,7 +3241,8 @@ msgstr "Call &video settings"
 #: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
-#: client/ui/dialogs/status_audience_dialog.py client/updater.py
+#: client/ui/dialogs/status_audience_dialog.py
+#: client/ui/dialogs/summary_voice_choice.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "&Cancel"
@@ -2847,8 +3322,8 @@ msgstr "Version {version}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_demote"
-msgid "Remove admin..."
-msgstr "Remove admin..."
+msgid "Remove &admin..."
+msgstr "Remove &admin..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2870,8 +3345,8 @@ msgstr "{name} is no longer an admin."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_invite"
-msgid "Invite admin..."
-msgstr "Invite admin..."
+msgid "&Invite admin..."
+msgstr "&Invite admin..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_invite_button"
@@ -2916,8 +3391,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_leave"
-msgid "Stop being an admin..."
-msgstr "Stop being an admin..."
+msgid "&Stop being an admin..."
+msgstr "&Stop being an admin..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_leave_confirm"
@@ -2931,13 +3406,13 @@ msgstr "You are no longer an admin of this channel."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_make"
-msgid "Make admin..."
-msgstr "Make admin..."
+msgid "&Make admin..."
+msgstr "&Make admin..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_revoke"
-msgid "Cancel admin invite..."
-msgstr "Cancel admin invite..."
+msgid "Ca&ncel admin invite..."
+msgstr "Ca&ncel admin invite..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -2983,6 +3458,112 @@ msgid "The channel could not be followed."
 msgstr "The channel could not be followed."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_followers"
+msgid "Followers: {count}"
+msgstr "Followers: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_followers_country"
+msgid "Followers by country: {countries}"
+msgstr "Followers by country: {countries}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_follows"
+msgid "New followers: {count}"
+msgstr "New followers: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_insights_missing"
+msgid "WhatsApp has no statistics for this channel yet."
+msgstr "WhatsApp has no statistics for this channel yet."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_net"
+msgid "Net followers: {count}"
+msgstr "Net followers: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_period"
+msgid "Last {days} days:"
+msgstr "Last {days} days:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_reach_country"
+msgid "Reach by country: {countries}"
+msgstr "Reach by country: {countries}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_reached"
+msgid "Accounts reached: {count}"
+msgstr "Accounts reached: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_role_followers"
+msgid "Reached who follow the channel: {count}"
+msgstr "Reached who follow the channel: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_role_others"
+msgid "Reached who do not follow it: {count}"
+msgstr "Reached who do not follow it: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_insights_dialog.py
+msgctxt "channel_insights_text"
+msgid "&Statistics"
+msgstr "&Statistics"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/channel_insights_dialog.py
+#, python-brace-format
+msgctxt "channel_insights_title"
+msgid "Insights of {name}"
+msgstr "Insights of {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_insights_too_small"
+msgid "WhatsApp shows a channel's statistics from 100 followers on."
+msgstr "WhatsApp shows a channel's statistics from 100 followers on."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_insights_unavailable"
+msgid "The channel's statistics could not be read."
+msgstr "The channel's statistics could not be read."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_unfollows"
+msgid "Unfollows: {count}"
+msgstr "Unfollows: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_insights_updated"
+msgid "Updated by WhatsApp on {date}."
+msgstr "Updated by WhatsApp on {date}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_invite_admin_row"
+msgid "Invitation to be an admin of the channel {name}"
+msgstr "Invitation to be an admin of the channel {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "channel_invite_follow_row"
+msgid "Invitation to follow the channel {name}"
+msgstr "Invitation to follow the channel {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_member_you"
 msgid "You"
@@ -3011,8 +3592,8 @@ msgstr "{name} is now the owner of the channel."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_owner_make"
-msgid "Make owner..."
-msgstr "Make owner..."
+msgid "Make &owner..."
+msgstr "Make &owner..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3034,8 +3615,8 @@ msgstr "Admins: {admins}. People listed: {count}."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_people_list"
-msgid "People"
-msgstr "People"
+msgid "&People"
+msgstr "&People"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/channel_admins.py
@@ -3055,6 +3636,15 @@ msgstr "The channel's followers could not be read."
 msgctxt "channel_pin_admins_only"
 msgid "Only the channel's owner and admins can pin updates."
 msgstr "Only the channel's owner and admins can pin updates."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channel_post_kinds"
+msgid ""
+"In a channel WinZapp posts text, photos, videos and polls: no replies, "
+"documents, audio, contacts or voice notes."
+msgstr ""
+"In a channel WinZapp posts text, photos, videos and polls: no replies, "
+"documents, audio, contacts or voice notes."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/conversation_navigation.py
@@ -3087,7 +3677,6 @@ msgid "admin invite pending"
 msgstr "admin invite pending"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/channel_conversation.py
 msgctxt "channel_text_only"
 msgid ""
 "In a channel WinZapp posts text only: no replies, files, polls, contacts or "
@@ -3100,6 +3689,11 @@ msgstr ""
 msgctxt "channel_unfollow_failed"
 msgid "The channel could not be unfollowed."
 msgstr "The channel could not be unfollowed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_admin_profiles"
+msgid "Show &admin profile on updates"
+msgstr "Show &admin profile on updates"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_category"
@@ -3148,8 +3742,8 @@ msgstr "Sports"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_copy_link"
-msgid "Copy link"
-msgstr "Copy link"
+msgid "Co&py link"
+msgstr "Co&py link"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3159,8 +3753,8 @@ msgstr "Channels you follow: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_create"
-msgid "Create channel..."
-msgstr "Create channel..."
+msgid "Cre&ate channel..."
+msgstr "Cre&ate channel..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_create_title"
@@ -3179,9 +3773,18 @@ msgid "Created on {date}"
 msgstr "Created on {date}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_created_settings_not_saved"
+msgid ""
+"Channel created, but who may react or the admin profiles could not be set. "
+"Change them by editing the channel."
+msgstr ""
+"Channel created, but who may react or the admin profiles could not be set. "
+"Change them by editing the channel."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
-msgid "Delete channel"
-msgstr "Delete channel"
+msgid "Delete c&hannel"
+msgstr "Delete c&hannel"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 #, python-brace-format
@@ -3215,8 +3818,8 @@ msgstr "The channel directory could not be loaded."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_edit"
-msgid "Edit channel..."
-msgstr "Edit channel..."
+msgid "Ed&it channel..."
+msgstr "Ed&it channel..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_edit_title"
@@ -3230,18 +3833,18 @@ msgstr "Channel changed."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_find"
-msgid "Find channels"
-msgstr "Find channels"
+msgid "Fi&nd channels"
+msgstr "Fi&nd channels"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow"
-msgid "Follow"
-msgstr "Follow"
+msgid "&Follow"
+msgstr "&Follow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow_by_link"
-msgid "Follow by link..."
-msgstr "Follow by link..."
+msgid "Follow &by link..."
+msgstr "Follow &by link..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_followed"
@@ -3264,6 +3867,11 @@ msgstr "following"
 msgctxt "channels_found"
 msgid "Channels found: {count}"
 msgstr "Channels found: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_insights"
+msgid "Insi&ghts..."
+msgstr "Insi&ghts..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_link_copied"
@@ -3299,13 +3907,13 @@ msgstr "Channe&ls"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_mine"
-msgid "My channels"
-msgstr "My channels"
+msgid "&My channels"
+msgstr "&My channels"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_mute"
-msgid "Mute notifications"
-msgstr "Mute notifications"
+msgid "M&ute notifications"
+msgstr "M&ute notifications"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_muted"
@@ -3332,25 +3940,51 @@ msgctxt "channels_nav"
 msgid "Channels alt+9"
 msgstr "Channels alt+9"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_none"
 msgid "You do not follow any channel."
 msgstr "You do not follow any channel."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_nothing_found"
 msgid "No channel found."
 msgstr "No channel found."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_open"
-msgid "Open channel"
-msgstr "Open channel"
+msgid "&Open channel"
+msgstr "&Open channel"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_people"
-msgid "Admins and followers..."
-msgstr "Admins and followers..."
+msgid "Admins and follo&wers..."
+msgstr "Admins and follo&wers..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+msgctxt "channels_reactions"
+msgid "&Reactions"
+msgstr "&Reactions"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_reactions_all"
+msgid "Any emoji"
+msgstr "Any emoji"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_reactions_basic"
+msgid "Default emojis only"
+msgstr "Default emojis only"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
+#, python-brace-format
+msgctxt "channels_reactions_line"
+msgid "Reactions: {setting}"
+msgstr "Reactions: {setting}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "channels_reactions_none"
+msgid "No reactions"
+msgstr "No reactions"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -3360,8 +3994,8 @@ msgstr "Recommended channels: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_refresh"
-msgid "Refresh"
-msgstr "Refresh"
+msgid "&Refresh"
+msgstr "&Refresh"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_role_admin"
@@ -3380,8 +4014,8 @@ msgstr "&Search channels"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_search_button"
-msgid "Search"
-msgstr "Search"
+msgid "S&earch"
+msgstr "S&earch"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_show"
@@ -3400,8 +4034,8 @@ msgstr "Your channels could not be loaded."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unfollow"
-msgid "Unfollow"
-msgstr "Unfollow"
+msgid "Un&follow"
+msgstr "Un&follow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unfollowed"
@@ -3410,16 +4044,18 @@ msgstr "You no longer follow this channel."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unmute"
-msgid "Unmute notifications"
-msgstr "Unmute notifications"
+msgid "&Unmute notifications"
+msgstr "&Unmute notifications"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_unmuted_done"
 msgid "Channel notifications unmuted."
 msgstr "Channel notifications unmuted."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/channel_admins.py client/ui/dialogs/channels.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/channel_invites.py
+#: client/ui/conversation_panel/message_list.py
+#: client/ui/dialogs/channel_admins.py
+#: client/ui/dialogs/channel_insights_dialog.py client/ui/dialogs/channels.py
 msgctxt "channels_unnamed"
 msgid "Channel with no name"
 msgstr "Channel with no name"
@@ -3569,6 +4205,45 @@ msgstr "Messages and calls are end-to-end encrypted."
 msgctxt "chat_is_empty"
 msgid "This chat is empty."
 msgstr "This chat is empty."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_link_not_connected"
+msgid ""
+"WhatsApp did not connect in time. Open the chat link again once WinZapp is "
+"connected."
+msgstr ""
+"WhatsApp did not connect in time. Open the chat link again once WinZapp is "
+"connected."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_link_waiting"
+msgid "Chat link received. Waiting for WhatsApp to connect."
+msgstr "Chat link received. Waiting for WhatsApp to connect."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_empty_list"
+msgid "No chats in this list."
+msgstr "No chats in this list."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_groups"
+msgid "No groups."
+msgstr "No groups."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_individual"
+msgid "No individual chats."
+msgstr "No individual chats."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_search_results"
+msgid "No chat matches the search."
+msgstr "No chat matches the search."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "chat_list_no_unread"
+msgid "No unread chats."
+msgstr "No unread chats."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chats_store.py
 msgctxt "chat_load_failed"
@@ -4172,6 +4847,7 @@ msgstr "Clear selected chats"
 #: client/ui/conversation_panel/message_data.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/dialogs/call_participants.py
+#: client/ui/dialogs/channel_insights_dialog.py
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
@@ -4179,6 +4855,7 @@ msgstr "Clear selected chats"
 #: client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
+#: client/ui/dialogs/starred_messages.py
 #: client/ui/dialogs/storage_manager_views.py
 #: client/ui/dialogs/transcription_result.py client/ui/media_viewer.py
 msgctxt "close"
@@ -5189,7 +5866,7 @@ msgctxt "communities_row_admin"
 msgid "{name}, you are an admin"
 msgstr "{name}, you are an admin"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_title"
 msgid "Communities"
 msgstr "Communities"
@@ -5396,8 +6073,8 @@ msgstr "Neonize (direct connection, experimental)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"
-msgid "WPPConnect (default, uses the Windows browser)"
-msgstr "WPPConnect (default, uses the Windows browser)"
+msgid "WPPConnect (alternative, uses the Windows browser)"
+msgstr "WPPConnect (alternative, uses the Windows browser)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -5696,8 +6373,8 @@ msgstr "Copy caption"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 msgctxt "copy_error_text"
-msgid "&Copy error text to clipboard"
-msgstr "&Copy error text to clipboard"
+msgid "Copy &error text to clipboard"
+msgstr "Copy &error text to clipboard"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
@@ -5787,13 +6464,14 @@ msgstr "An error occurred while saving the message file:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "date_fmt"
 msgid "%m/%d/%Y"
 msgstr "%m/%d/%Y"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/main_window/whats_new_since.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/main_window/whats_new_since.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -5811,8 +6489,9 @@ msgid "&Disable all"
 msgstr "&Disable all"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
-#: client/core/noise_model_text.py client/core/notification_manager.py
-#: client/main_window/chat_list.py client/main_window/session_lifecycle.py
+#: client/core/cuda_components/text.py client/core/noise_model_text.py
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/main_window/session_lifecycle.py
 #: client/ui/conversation_panel/audio_playback.py
 #: client/ui/conversation_panel/formatting.py
 #: client/ui/dialogs/order_create_dialog.py client/ui/dialogs/order_dialog.py
@@ -6091,6 +6770,26 @@ msgid "Disconnect"
 msgstr "Disconnect"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_archived_from_unread_badge_label"
+msgid ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+msgstr ""
+"Do not count archived chats in the unread count of the tray icon and the "
+"window &title"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "discount_muted_from_unread_badge_label"
+msgid ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+msgstr ""
+"Do not count muted chats in the unread count of the tray icon and the window"
+" t&itle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/status_tab/status_rules.py
 #: client/ui/conversation_panel/message_rendering.py
@@ -6245,8 +6944,8 @@ msgstr "Travel and places"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/emoji_picker.py
 msgctxt "emoji_picker_category"
-msgid "&Category"
-msgstr "&Category"
+msgid "C&ategory"
+msgstr "C&ategory"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/emoji_picker.py
 msgctxt "emoji_picker_emoji"
@@ -6375,6 +7074,281 @@ msgid "Error details"
 msgstr "Error details"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_label"
+msgid "Call t&ype:"
+msgstr "Call t&ype:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_none"
+msgid "No call"
+msgstr "No call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_unsupported"
+msgid ""
+"This connection engine cannot create events with a call yet. Choose no call."
+msgstr ""
+"This connection engine cannot create events with a call yet. Choose no call."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_video"
+msgid "Video call"
+msgstr "Video call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_call_voice"
+msgid "Voice call"
+msgstr "Voice call"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/event_messages.py
+msgctxt "event_cancel_confirm"
+msgid "Cancel this event for everyone in the chat? This cannot be undone."
+msgstr "Cancel this event for everyone in the chat? This cannot be undone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_cancel_failed"
+msgid "The event could not be canceled."
+msgstr "The event could not be canceled."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled"
+msgid "Canceled"
+msgstr "Canceled"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_canceled_done"
+msgid "Event canceled."
+msgstr "Event canceled."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create"
+msgid "C&reate"
+msgstr "C&reate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_create_failed"
+msgid "The event could not be created."
+msgstr "The event could not be created."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_created"
+msgid "Event created."
+msgstr "Event created."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_date_invalid"
+msgid "Type the dates like {date} and the times like {time}."
+msgstr "Type the dates like {date} and the times like {time}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_description_label"
+msgid "&Description:"
+msgstr "&Description:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_details_label"
+msgid "&Details:"
+msgstr "&Details:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_failed"
+msgid "The event could not be changed."
+msgstr "The event could not be changed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edit_title"
+msgid "Edit event"
+msgstr "Edit event"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_edited"
+msgid "Event changed."
+msgstr "Event changed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_before_start"
+msgid "The end comes before the start."
+msgstr "The end comes before the start."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_date_label"
+msgid "&End date (optional):"
+msgstr "&End date (optional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_end_time_label"
+msgid "End t&ime (optional):"
+msgstr "End t&ime (optional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_extra_guests_label"
+msgid "Allow extra &guests"
+msgstr "Allow extra &guests"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_going"
+msgid "Going ({count})"
+msgstr "Going ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_maybe"
+msgid "Maybe ({count})"
+msgstr "Maybe ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_group_not_going"
+msgid "Not going ({count})"
+msgstr "Not going ({count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#: client/ui/conversation_panel/event_messages.py
+#: client/ui/dialogs/event_dialog.py
+msgctxt "event_label"
+msgid "Event"
+msgstr "Event"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_link_label"
+msgid "Call link: {link}"
+msgstr "Call link: {link}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_location"
+msgid "Place: {location}"
+msgstr "Place: {location}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_location_label"
+msgid "&Place (optional):"
+msgstr "&Place (optional):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_cancel"
+msgid "Cancel e&vent"
+msgstr "Cancel e&vent"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_menu_edit"
+msgid "&Edit event"
+msgstr "&Edit event"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_going"
+msgid "You are going"
+msgstr "You are going"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_maybe"
+msgid "You may go"
+msgstr "You may go"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_mine_not_going"
+msgid "You are not going"
+msgstr "You are not going"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_label"
+msgid "&Name:"
+msgstr "&Name:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_name_required"
+msgid "Type the event's name."
+msgstr "Type the event's name."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_new_title"
+msgid "New event"
+msgstr "New event"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_passed"
+msgid "Already happened"
+msgstr "Already happened"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_failed"
+msgid "The answer could not be sent."
+msgstr "The answer could not be sent."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_going"
+msgid "&Going"
+msgstr "&Going"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_maybe"
+msgid "&Maybe"
+msgstr "&Maybe"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_not_going"
+msgid "&Not going"
+msgstr "&Not going"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_response_sent"
+msgid "Answer sent."
+msgstr "Answer sent."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_responses_summary"
+msgid "{going} going, {maybe} maybe, {not_going} not going"
+msgstr "{going} going, {maybe} maybe, {not_going} not going"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_responses_unknown"
+msgid "The answers could not be read yet."
+msgstr "The answers could not be read yet."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_save"
+msgid "Sa&ve"
+msgstr "Sa&ve"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_date_label"
+msgid "&Start date:"
+msgstr "&Start date:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_required"
+msgid "Type when the event starts."
+msgstr "Type when the event starts."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_start_time_label"
+msgid "Start &time:"
+msgstr "Start &time:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#, python-brace-format
+msgctxt "event_time_range"
+msgid "{start} until {end}"
+msgstr "{start} until {end}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "event_unnamed"
+msgid "untitled"
+msgstr "untitled"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "event_with_guests"
+msgid "{name} (+{count})"
+msgstr "{name} (+{count})"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
 #, python-brace-format
 msgctxt "fg_new_msg"
@@ -6411,6 +7385,12 @@ msgctxt "files_selected"
 msgid "{count} file(s) selected"
 msgstr "{count} file(s) selected"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/chat_list_selection.py
+msgctxt "filters_cleared"
+msgid "Filters cleared"
+msgstr "Filters cleared"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
 msgctxt "force_reinstall_confirm_msg"
@@ -6427,6 +7407,28 @@ msgstr ""
 msgctxt "force_reinstall_confirm_title"
 msgid "Force reinstall"
 msgstr "Force reinstall"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_active_label"
+msgid ""
+"Sound for messages in the open chat while WinZapp is in the foreground:"
+msgstr ""
+"Sound for messages in the open chat while WinZapp is in the foreground:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_dedicated"
+msgid "Dedicated foreground sound"
+msgstr "Dedicated foreground sound"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_notification"
+msgid "Same as the background notification sound"
+msgstr "Same as the background notification sound"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "foreground_sound_other_label"
+msgid "Sound for messages in other chats while WinZapp is in the foreground:"
+msgstr "Sound for messages in other chats while WinZapp is in the foreground:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/forwarding.py
@@ -6543,6 +7545,18 @@ msgid ""
 msgstr ""
 "You don't have permission to perform this action. Only group admins can do "
 "this."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_activity_and"
+msgid "{first} and {second}"
+msgstr "{first} and {second}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_activity_comma"
+msgid "{first}, {second}"
+msgstr "{first}, {second}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -6782,7 +7796,6 @@ msgid "Paste a valid HTTPS WhatsApp group invitation link."
 msgstr "Paste a valid HTTPS WhatsApp group invitation link."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/group_invitation_links.py
 msgctxt "group_join_link_not_connected"
 msgid ""
 "WhatsApp did not connect in time. Open the invitation link again once "
@@ -6792,7 +7805,6 @@ msgstr ""
 "WinZapp is connected."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/main_window/group_invitation_links.py
 msgctxt "group_join_link_waiting"
 msgid "Group invitation received. Waiting for WhatsApp to connect."
 msgstr "Group invitation received. Waiting for WhatsApp to connect."
@@ -6983,8 +7995,8 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_group.py
 msgctxt "group_name"
-msgid "&Group name"
-msgstr "&Group name"
+msgid "Group &name"
+msgstr "Group &name"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_name_label"
@@ -7120,6 +8132,20 @@ msgstr "{author} linked this group to a community"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
 #, python-brace-format
+msgctxt "group_notif_number_changed"
+msgid "{author} changed their phone number to a new number."
+msgstr "{author} changed their phone number to a new number."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+#, python-brace-format
+msgctxt "group_notif_number_changed_to"
+msgid "{author} changed to {number}"
+msgstr "{author} changed to {number}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+#, python-brace-format
 msgctxt "group_notif_picture_changed"
 msgid "{author} changed the group picture"
 msgstr "{author} changed the group picture"
@@ -7184,6 +8210,18 @@ msgstr "Participants"
 msgctxt "group_presence_indicator"
 msgid "{name}: {action}"
 msgstr "{name}: {action}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_recording_plural"
+msgid "{names} are recording audio"
+msgstr "{names} are recording audio"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_recording_singular"
+msgid "{names} is recording audio"
+msgstr "{names} is recording audio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_requests_approve"
@@ -7356,6 +8394,18 @@ msgid "Participant name first"
 msgstr "Participant name first"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_typing_plural"
+msgid "{names} are typing"
+msgstr "{names} are typing"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "group_typing_singular"
+msgid "{names} is typing"
+msgstr "{names} is typing"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 msgctxt "help_guide_unavailable"
 msgid "The usage guide could not be opened."
@@ -7524,8 +8574,6 @@ msgstr ""
 "disconnected. Please try pairing again."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "interactive_message"
 msgid "interactive message"
 msgstr "interactive message"
@@ -7754,7 +8802,8 @@ msgstr "list selection"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
 #: client/ui/dialogs/call_invite.py client/ui/dialogs/call_participants.py
 #: client/ui/dialogs/cart_dialog.py client/ui/dialogs/channel_admins.py
-#: client/ui/dialogs/channels.py client/ui/dialogs/community_comments.py
+#: client/ui/dialogs/channel_insights_dialog.py client/ui/dialogs/channels.py
+#: client/ui/dialogs/community_comments.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/order_update_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py client/ui/ongoing_calls.py
@@ -7779,6 +8828,24 @@ msgstr "Locked chats"
 msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
 msgstr "Locked chats alt+7"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+#: client/main_window/manual_reconnect.py
+#, python-brace-format
+msgctxt "low_disk_session_closed"
+msgid ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+msgstr ""
+"Low disk space: only {free} GB free. WhatsApp was closed safely so it does "
+"not lose this session, and WinZapp is offline. Free up space until there are"
+" at least {needed} GB and it connects again by itself."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
+msgctxt "low_disk_session_resumed"
+msgid "There is free disk space again. Connecting to WhatsApp."
+msgstr "There is free disk space again. Connecting to WhatsApp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mac_mic_permission_denied"
@@ -8056,15 +9123,18 @@ msgid "{count} media file(s)"
 msgstr "{count} media file(s)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/audio_playback.py
-#: client/ui/conversation_panel/media_files.py
 msgctxt "media_download_failed"
 msgid ""
-"This media file could not be downloaded. The link may have expired or "
-"WPPConnect is unavailable."
+"This media file could not be downloaded. The link may have expired or the "
+"WhatsApp connection may be unavailable."
 msgstr ""
-"This media file could not be downloaded. The link may have expired or "
-"WPPConnect is unavailable."
+"This media file could not be downloaded. The link may have expired or the "
+"WhatsApp connection may be unavailable."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_gone_from_phone"
+msgid "This file is no longer on WhatsApp's servers or on your phone."
+msgstr "This file is no longer on WhatsApp's servers or on your phone."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
@@ -8076,6 +9146,24 @@ msgid ""
 msgstr ""
 "Media files can't be downloaded while WhatsApp is disconnected or "
 "connecting. Wait for the connection to come back and try again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_phone_no_answer"
+msgid ""
+"Your phone did not answer the request to send this file again. It may be "
+"busy: try again in a moment."
+msgstr ""
+"Your phone did not answer the request to send this file again. It may be "
+"busy: try again in a moment."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "media_download_retried_unreadable"
+msgid ""
+"Your phone sent this file again, but it could not be opened. If it keeps "
+"happening, send WinZapp's logs to the developers."
+msgstr ""
+"Your phone sent this file again, but it could not be opened. If it keeps "
+"happening, send WinZapp's logs to the developers."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 #, python-brace-format
@@ -8203,6 +9291,7 @@ msgid "Volume"
 msgstr "Volume"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py
 #: client/ui/conversation_panel/mentions.py
 msgctxt "mention_all_keyword"
 msgid "all"
@@ -8305,9 +9394,21 @@ msgstr "&Import settings..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
+msgctxt "menu_install_pending_update"
+msgid "&Install downloaded update"
+msgstr "&Install downloaded update"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
 msgctxt "menu_mark_all_read"
 msgid "Mark all chats as read"
 msgstr "Mark all chats as read"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
+msgctxt "menu_reconnect_now"
+msgid "Reco&nnect now"
+msgstr "Reco&nnect now"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -8354,8 +9455,8 @@ msgstr "&Download media"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
 msgctxt "menu_whats_new"
-msgid "&What's New"
-msgstr "&What's New"
+msgid "What's &New"
+msgstr "What's &New"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -8400,6 +9501,12 @@ msgstr "Pinned"
 msgctxt "message_recovered_from_quote_label"
 msgid "(recovered from a reply)"
 msgstr "(recovered from a reply)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_search.py
+msgctxt "message_search_cleared"
+msgid "Message search cleared"
+msgstr "Message search cleared"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 msgctxt "message_send_unconfirmed"
@@ -8513,6 +9620,7 @@ msgstr "Most used reactions"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
+#: client/ui/conversation_panel/translation_actions.py
 msgctxt "msg_copied"
 msgid "Message copied."
 msgstr "Message copied."
@@ -8726,9 +9834,11 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_hint"
 msgid ""
-"This contact is saved in WhatsApp and synced with the phone's address book."
+"Saves the contact in WhatsApp and requests synchronization with the phone's "
+"address book. Completion on the phone cannot be verified here."
 msgstr ""
-"This contact is saved in WhatsApp and synced with the phone's address book."
+"Saves the contact in WhatsApp and requests synchronization with the phone's "
+"address book. Completion on the phone cannot be verified here."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_lid_unknown"
@@ -8752,17 +9862,21 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved"
-msgid "Contact saved and synced with the phone."
-msgstr "Contact saved and synced with the phone."
+msgid ""
+"Contact saved in WhatsApp; synchronization with the phone requested. Check "
+"the phone's address book."
+msgstr ""
+"Contact saved in WhatsApp; synchronization with the phone requested. Check "
+"the phone's address book."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "new_contact_phone_saved_unconfirmed"
 msgid ""
-"Contact saved in WhatsApp, but the sync with the phone could not be "
-"confirmed."
+"Contact saved in WhatsApp, but the phone synchronization request could not "
+"be confirmed."
 msgstr ""
-"Contact saved in WhatsApp, but the sync with the phone could not be "
-"confirmed."
+"Contact saved in WhatsApp, but the phone synchronization request could not "
+"be confirmed."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/new_contact.py
 msgctxt "new_contact_phone_saving"
@@ -8826,6 +9940,24 @@ msgstr "Allow &multiple answers"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_hide_voters"
+msgid "&Hide voter names"
+msgstr "&Hide voter names"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_move_down"
+msgid "Move do&wn"
+msgstr "Move do&wn"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_move_up"
+msgid "Move &up"
+msgstr "Move &up"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_option_label"
 msgid "&Option:"
 msgstr "&Option:"
@@ -8848,6 +9980,12 @@ msgstr "&Question:"
 msgctxt "new_poll_remove_option"
 msgid "&Remove option"
 msgstr "&Remove option"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/new_poll_dialog.py
+msgctxt "new_poll_time_limit"
+msgid "Time &limit:"
+msgstr "Time &limit:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
@@ -8894,7 +10032,6 @@ msgid "No mentions found."
 msgstr "No mentions found."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "no_messages_in_conversation"
 msgid "No messages available in this chat."
 msgstr "No messages available in this chat."
@@ -8938,6 +10075,11 @@ msgstr "No results found."
 msgctxt "no_unread_in_conv"
 msgid "There are no unread messages in this chat."
 msgstr "There are no unread messages in this chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "no_updates_in_channel"
+msgid "No updates in this channel yet."
+msgstr "No updates in this channel yet."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "node_download_cancel"
@@ -9110,6 +10252,210 @@ msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "Downloaded. Noise reduction uses the neural model."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_model_section.py
+msgctxt "noise_reducer_background_busy"
+msgid ""
+"Another download is still going on in the background. Try again once WinZapp"
+" says it is over."
+msgstr ""
+"Another download is still going on in the background. Try again once WinZapp"
+" says it is over."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_button"
+msgid "Noise reducer settin&gs..."
+msgstr "Noise reducer settin&gs..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+#, python-brace-format
+msgctxt "noise_reducer_components_confirm"
+msgid ""
+"Components to download: {count} ({size}). Download them? They are kept for "
+"every account and shared with the local transcription."
+msgstr ""
+"Components to download: {count} ({size}). Download them? They are kept for "
+"every account and shared with the local transcription."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_components_done"
+msgid ""
+"The noise reducer's components are installed. They apply from the next time "
+"WinZapp starts."
+msgstr ""
+"The noise reducer's components are installed. They apply from the next time "
+"WinZapp starts."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_download"
+msgid "Download the &missing components"
+msgstr "Download the &missing components"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_label"
+msgid "&Components:"
+msgstr "&Components:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+#, python-brace-format
+msgctxt "noise_reducer_components_missing"
+msgid "Components missing: {count} ({size} to download):"
+msgstr "Components missing: {count} ({size} to download):"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_components_none_needed"
+msgid "This processor needs nothing downloaded."
+msgstr "This processor needs nothing downloaded."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_progress"
+msgid "Downloading the noise reducer's components"
+msgstr "Downloading the noise reducer's components"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_components_ready"
+msgid "Every component is installed."
+msgstr "Every component is installed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_components_remove"
+msgid "&Remove this processor's components"
+msgstr "&Remove this processor's components"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+#, python-brace-format
+msgctxt "noise_reducer_components_remove_confirm"
+msgid ""
+"Components of this processor to remove: {count}. Remove them? The local "
+"transcription's cuBLAS stays."
+msgstr ""
+"Components of this processor to remove: {count}. Remove them? The local "
+"transcription's cuBLAS stays."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_components_removed"
+msgid "The components were removed."
+msgstr "The components were removed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_components_removed_restart"
+msgid ""
+"The components were removed; the ones in use go once WinZapp is restarted."
+msgstr ""
+"The components were removed; the ones in use go once WinZapp is restarted."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_coreml"
+msgid "Apple graphics and Neural Engine (Core ML)"
+msgstr "Apple graphics and Neural Engine (Core ML)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_cpu"
+msgid "Computer processor (CPU)"
+msgstr "Computer processor (CPU)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_cuda12"
+msgid ""
+"NVIDIA graphics card, CUDA 12 (shares components with local transcription; "
+"older cards too)"
+msgstr ""
+"NVIDIA graphics card, CUDA 12 (shares components with local transcription; "
+"older cards too)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_device_cuda13"
+msgid ""
+"NVIDIA graphics card, CUDA 13 (newer, components of its own, recent driver)"
+msgstr ""
+"NVIDIA graphics card, CUDA 13 (newer, components of its own, recent driver)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_device_label"
+msgid "&Processor the noise reducer runs on:"
+msgstr "&Processor the noise reducer runs on:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_model_remove"
+msgid "Remove &the neural model"
+msgstr "Remove &the neural model"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_model_remove_confirm"
+msgid ""
+"Remove the neural noise reduction model? Noise reduction then uses the "
+"common reducer."
+msgstr ""
+"Remove the neural noise reduction model? Noise reduction then uses the "
+"common reducer."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_model_removed"
+msgid "The neural model was removed."
+msgstr "The neural model was removed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_ready"
+msgid "The noise reducer is ready on the graphics card."
+msgstr "The noise reducer is ready on the graphics card."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restart_failed"
+msgid ""
+"The noise reducer could not use the graphics card; voice messages will be "
+"cleaned on the computer's processor."
+msgstr ""
+"The noise reducer could not use the graphics card; voice messages will be "
+"cleaned on the computer's processor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_restarting"
+msgid "Restarting the noise reducer to use the graphics card."
+msgstr "Restarting the noise reducer to use the graphics card."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/cuda_components/text.py
+msgctxt "noise_reducer_shared_cublas"
+msgid "cuBLAS 12 (the local transcription's own)"
+msgstr "cuBLAS 12 (the local transcription's own)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_title"
+msgid "Noise reducer"
+msgstr "Noise reducer"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
+msgctxt "noise_reducer_use_neural"
+msgid ""
+"Use t&he neural noise reducer (more precise; untick for the common one, "
+"faster)"
+msgstr ""
+"Use t&he neural noise reducer (more precise; untick for the common one, "
+"faster)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "noise_reducer_waiting_restart"
+msgid ""
+"Waiting for the noise reducer to restart before cleaning the voice message."
+msgstr ""
+"Waiting for the noise reducer to restart before cleaning the voice message."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/voice_recording.py
 msgctxt "noise_reduction_failed"
 msgid ""
@@ -9153,7 +10499,7 @@ msgctxt "notif_audio"
 msgid "Audio"
 msgstr "Audio"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notif_button"
 msgid "🔘 Button"
 msgstr "🔘 Button"
@@ -9168,6 +10514,13 @@ msgstr "Contact"
 msgctxt "notif_deleted"
 msgid "This message was deleted"
 msgstr "This message was deleted"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/notification_manager.py client/main_window/chat_list.py
+#, python-brace-format
+msgctxt "notif_event"
+msgid "Event: {name}"
+msgstr "Event: {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -9195,7 +10548,7 @@ msgctxt "notif_in_group_group_first"
 msgid "{group}, {participant}"
 msgstr "{group}, {participant}"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notif_list"
 msgid "📋 List"
 msgstr "📋 List"
@@ -9280,8 +10633,6 @@ msgid "⚙️ System message"
 msgstr "⚙️ System message"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/core/notification_manager.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "notif_template"
 msgid "📝 Template"
 msgstr "📝 Template"
@@ -9298,6 +10649,12 @@ msgstr "Incompatible message"
 msgctxt "notif_voice_message"
 msgid "Voice message"
 msgstr "Voice message"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notification_burst_limit_label"
+msgid "Ma&ximum notifications per second when many messages arrive at once:"
+msgstr "Ma&ximum notifications per second when many messages arrive at once:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notification_content_full"
@@ -9415,7 +10772,7 @@ msgid "Play or open the video"
 msgstr "Play or open the video"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/message_rendering.py
+#: client/core/business_message_content.py
 msgctxt "options"
 msgid "options"
 msgstr "options"
@@ -9478,6 +10835,95 @@ msgid ""
 "WinZapp couldn't finish pairing with WhatsApp. Please try connecting again."
 msgstr ""
 "WinZapp couldn't finish pairing with WhatsApp. Please try connecting again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_1_year"
+msgid "Last year"
+msgstr "Last year"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_30_days"
+msgid "Last 30 days"
+msgstr "Last 30 days"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_6_months"
+msgid "Last 6 months"
+msgstr "Last 6 months"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_all"
+msgid "All the history (can take long and use a lot of space)"
+msgstr "All the history (can take long and use a lot of space)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_days"
+msgid "Number of &days:"
+msgstr "Number of &days:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_months"
+msgid "Number of &months:"
+msgstr "Number of &months:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_not_number"
+msgid "Type a whole number, digits only."
+msgstr "Type a whole number, digits only."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_days"
+msgid "At most {max} days."
+msgstr "At most {max} days."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_months"
+msgid "At most {max} months."
+msgstr "At most {max} months."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "pairing_history_amount_too_big_years"
+msgid "At most {max} years."
+msgstr "At most {max} years."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_years"
+msgid "Number of &years:"
+msgstr "Number of &years:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_amount_zero"
+msgid "The number must be greater than 0."
+msgstr "The number must be greater than 0."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_days"
+msgid "Custom (days)"
+msgstr "Custom (days)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_months"
+msgid "Custom (months)"
+msgstr "Custom (months)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_custom_years"
+msgid "Custom (years)"
+msgstr "Custom (years)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/connect_history.py
+msgctxt "pairing_history_label"
+msgid "Old messages to &bring when connecting:"
+msgstr "Old messages to &bring when connecting:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "pairing_history_recent"
+msgid "Recent ones only (WhatsApp's default)"
+msgstr "Recent ones only (WhatsApp's default)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_instructions"
@@ -9719,6 +11165,36 @@ msgctxt "poll_row_question"
 msgid "Poll: {name}"
 msgstr "Poll: {name}"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "poll_time_limit_1h"
+msgid "1 hour"
+msgstr "1 hour"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "poll_time_limit_24h"
+msgid "24 hours"
+msgstr "24 hours"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "poll_time_limit_3d"
+msgid "3 days"
+msgstr "3 days"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "poll_time_limit_7d"
+msgid "7 days"
+msgstr "7 days"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "poll_time_limit_8h"
+msgid "8 hours"
+msgstr "8 hours"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "poll_time_limit_none"
+msgid "No time limit"
+msgstr "No time limit"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/poll_dialog.py
 msgctxt "poll_vote_button"
 msgid "Vo&te"
@@ -9738,6 +11214,11 @@ msgstr "Sending your vote…"
 msgctxt "poll_vote_sent"
 msgid "Vote sent"
 msgstr "Vote sent"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/polls.py
+msgctxt "poll_voter_hidden"
+msgid "Hidden name"
+msgstr "Hidden name"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/polls.py
 #, python-brace-format
@@ -10391,6 +11872,38 @@ msgctxt "recent_reactions"
 msgid "Recent reactions:"
 msgstr "Recent reactions:"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_done"
+msgid "Connected to WhatsApp."
+msgstr "Connected to WhatsApp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_failed"
+msgid "Could not reconnect now. Try again in a few moments."
+msgstr "Could not reconnect now. Try again in a few moments."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_no_internet"
+msgid ""
+"No internet: this computer cannot reach WhatsApp. Check the network and try "
+"again."
+msgstr ""
+"No internet: this computer cannot reach WhatsApp. Check the network and try "
+"again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "reconnect_restarting"
+msgid ""
+"The connection to WhatsApp is being restarted; this can take a few moments."
+msgstr ""
+"The connection to WhatsApp is being restarted; this can take a few moments."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/manual_reconnect.py
+msgctxt "reconnect_started"
+msgid "Reconnecting to WhatsApp…"
+msgstr "Reconnecting to WhatsApp…"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_composer.py client/ui/conversations.py
 msgctxt "record_voice_message"
@@ -10423,6 +11936,16 @@ msgstr "Recording paused."
 msgctxt "recording_text"
 msgid "{name} is recording audio..."
 msgstr "{name} is recording audio..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_deleted_closed"
+msgid "This chat was deleted on another device, so it was closed."
+msgstr "This chat was deleted on another device, so it was closed."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "remote_chat_locked_closed"
+msgid "This chat was locked on your phone, so it was closed."
+msgstr "This chat was locked on your phone, so it was closed."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
@@ -11150,6 +12673,11 @@ msgid "WinZapp | Settings"
 msgstr "WinZapp | Settings"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_alt0_starred_label"
+msgid "Alt+0: open starred messages"
+msgstr "Alt+0: open starred messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_alt1_label"
 msgid "Alt+1: go to chats"
@@ -11512,6 +13040,11 @@ msgid "Ctrl+V: turn video on or off in a video call"
 msgstr "Ctrl+V: turn video on or off in a video call"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_call_participants_f5_label"
+msgid "F5: read the participants again"
+msgstr "F5: read the participants again"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_calls_alt_l_label"
 msgid "Alt+L: go to the calls list"
@@ -11586,6 +13119,16 @@ msgstr "&Change"
 msgctxt "shortcut_change_title"
 msgid "Change keyboard shortcut"
 msgstr "Change keyboard shortcut"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_channel_people_f5_label"
+msgid "F5: read the admins and followers again"
+msgstr "F5: read the admins and followers again"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_channels_f5_label"
+msgid "F5: read the channels list again"
+msgstr "F5: read the channels list again"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
@@ -11967,8 +13510,8 @@ msgstr "Delete"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_down"
-msgid "Down"
-msgstr "Down"
+msgid "Down Arrow"
+msgstr "Down Arrow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_end"
@@ -12032,8 +13575,8 @@ msgstr "Tab"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_up"
-msgid "Up"
-msgstr "Up"
+msgid "Up Arrow"
+msgstr "Up Arrow"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_tab.py
@@ -12130,6 +13673,16 @@ msgid "Remove &shortcut"
 msgstr "Remove &shortcut"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_reorder_down_label"
+msgid "Move the selected item down"
+msgstr "Move the selected item down"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_reorder_up_label"
+msgid "Move the selected item up"
+msgstr "Move the selected item up"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_resend_message_label"
 msgid ""
 "Ctrl+Shift+Y: on a message whose send failed or was not confirmed, try "
@@ -12178,6 +13731,11 @@ msgstr "Links"
 msgctxt "shortcut_scope_mentions"
 msgid "Mentions"
 msgstr "Mentions"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_scope_reorder"
+msgid "Reorderable lists"
+msgstr "Reorderable lists"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -12361,10 +13919,45 @@ msgstr ""
 "Alt+Shift+T: transcribe the audio or video status locally with Whisper, or "
 "open the transcription already saved"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_summarize_from_here_label"
+msgid "Alt+Shift+I: summarize with AI from this message to the end"
+msgstr "Alt+Shift+I: summarize with AI from this message to the end"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_summarize_selected_label"
+msgid "Ctrl+Alt+Shift+I: summarize the selected messages with AI"
+msgstr "Ctrl+Alt+Shift+I: summarize the selected messages with AI"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_summarize_unread_label"
+msgid "Ctrl+Shift+U: summarize unread messages"
+msgstr "Ctrl+Shift+U: summarize unread messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_translate_from_here_label"
+msgid "Alt+Shift+Y: translate the messages from this one to the end"
+msgstr "Alt+Shift+Y: translate the messages from this one to the end"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_translate_selected_label"
+msgid "Ctrl+Alt+Shift+Y: translate the selected messages"
+msgstr "Ctrl+Alt+Shift+Y: translate the selected messages"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/shortcut_names.py
 msgctxt "shortcut_unassigned"
 msgid "Not assigned"
 msgstr "Not assigned"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_writing_help_label"
+msgid "Alt+Shift+H: writing help on the draft message"
+msgstr "Alt+Shift+H: writing help on the draft message"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_bulk_section"
@@ -12380,6 +13973,11 @@ msgstr "Call window"
 msgctxt "shortcuts_calls_section"
 msgid "Calls panel"
 msgstr "Calls panel"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcuts_channel_people_section"
+msgid "Channel admins and followers"
+msgstr "Channel admins and followers"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_conv_section"
@@ -12704,6 +14302,16 @@ msgstr "Announce &when chats update starts"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_group_multiple_label"
+msgid ""
+"Consider activity from multiple &participants when announcing a group's "
+"status"
+msgstr ""
+"Consider activity from multiple &participants when announcing a group's "
+"status"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_link_previews_label"
 msgid "Announce link preview &loading and adding"
 msgstr "Announce link preview &loading and adding"
@@ -12953,6 +14561,79 @@ msgstr ""
 "before retrying; it may already have been applied."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "starred_count"
+msgid "Starred messages: {count}"
+msgstr "Starred messages: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_list"
+msgid "Starred &messages"
+msgstr "Starred &messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
+msgctxt "starred_nav"
+msgid "Starred messages alt+0"
+msgstr "Starred messages alt+0"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "starred_no_match"
+msgid "No starred message matches the search."
+msgstr "No starred message matches the search."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/starred_list.py
+msgctxt "starred_no_text"
+msgid "(no text)"
+msgstr "(no text)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "starred_none"
+msgid "No starred messages."
+msgstr "No starred messages."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_open"
+msgid "&Open in the conversation"
+msgstr "&Open in the conversation"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "starred_row"
+msgid "{chat}: {text}"
+msgstr "{chat}: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "starred_row_sender"
+msgid "{chat}, {sender}: {text}"
+msgstr "{chat}, {sender}: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_search"
+msgid "&Search starred messages"
+msgstr "&Search starred messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_title"
+msgid "Starred messages"
+msgstr "Starred messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "starred_unavailable"
+msgid "The starred messages could not be read."
+msgstr "The starred messages could not be read."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+msgctxt "starred_unstar"
+msgid "&Remove star"
+msgstr "&Remove star"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/neonize_bridge.py
 msgctxt "starting_api"
 msgid "Starting WinZapp, please wait..."
@@ -13024,6 +14705,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/ui/ai_media_demo.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_text_result_dialog.py
 msgctxt "status"
 msgid "Status"
 msgstr "Status"
@@ -13368,6 +15050,12 @@ msgstr "&Post status"
 msgctxt "status_sent"
 msgid "Sent"
 msgstr "Sent"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_rendering.py
+msgctxt "status_starred"
+msgid "Starred"
+msgstr "Starred"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/status_composer.py
@@ -15101,10 +16789,11 @@ msgctxt "terms_title"
 msgid "WinZapp | Important notice"
 msgstr "WinZapp | Important notice"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/locale_format.py
-#: client/main_window/chat_events.py client/main_window/chat_list.py
-#: client/ui/conversation_panel/formatting.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
+#: client/core/locale_format.py client/main_window/chat_events.py
+#: client/main_window/chat_list.py client/ui/conversation_panel/formatting.py
 #: client/ui/conversation_panel/text_helpers.py
+#: client/ui/dialogs/event_dialog.py
 msgctxt "time_fmt"
 msgid "%I:%M %p"
 msgstr "%I:%M %p"
@@ -15165,6 +16854,18 @@ msgid ""
 msgstr ""
 "Apply the new models folder before downloading, repairing, verifying or "
 "removing a model."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_auto_any_age_check"
+msgid ""
+"Also transcribe the ones that arrive late, however long ago they were sent "
+"(for e&xample, all those received at once when the computer comes back on or"
+" online)"
+msgstr ""
+"Also transcribe the ones that arrive late, however long ago they were sent "
+"(for e&xample, all those received at once when the computer comes back on or"
+" online)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_options.py
@@ -15754,6 +17455,7 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
+#: client/ui/dialogs/noise_reducer_dialog.py
 #: client/ui/dialogs/transcription_queue.py
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_download_confirm_title"
@@ -15781,6 +17483,7 @@ msgid "Transcription cancelled."
 msgstr "Transcription cancelled."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "transcription_error_cuda_runtime_busy"
 msgid ""
 "Another WinZapp window is using the CUDA libraries folder. Wait for it to "
@@ -17083,6 +18786,11 @@ msgid "Transcribing the message..."
 msgstr "Transcribing the message..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_phase_waiting_for_slot"
+msgid "Waiting for another transcription to finish..."
+msgstr "Waiting for another transcription to finish..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_precision_bfloat16"
 msgid "16 bits, bfloat16 format (bfloat16)"
 msgstr "16 bits, bfloat16 format (bfloat16)"
@@ -17767,6 +19475,293 @@ msgid "Verif&y"
 msgstr "Verif&y"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_from_here"
+msgid "Translate from here to the end"
+msgstr "Translate from here to the end"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_de"
+msgid "German"
+msgstr "German"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_en"
+msgid "English"
+msgstr "English"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_es"
+msgid "Spanish"
+msgstr "Spanish"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_fr"
+msgid "French"
+msgstr "French"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_it"
+msgid "Italian"
+msgstr "Italian"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_pt"
+msgid "Portuguese"
+msgstr "Portuguese"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "translate_selected"
+msgid "Translate the selected messages"
+msgstr "Translate the selected messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_api_url"
+msgid "Custom API &address"
+msgstr "Custom API &address"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_age"
+msgid "Translate automatically the messages &received up to:"
+msgstr "Translate automatically the messages &received up to:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_all_confirm"
+msgid ""
+"New text messages in all eligible conversations across all current and "
+"future WinZapp accounts will be sent to {provider} for translation. Enable "
+"automatic translation for all accounts?"
+msgstr ""
+"New text messages in all eligible conversations across all current and "
+"future WinZapp accounts will be sent to {provider} for translation. Enable "
+"automatic translation for all accounts?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_chat_disabled"
+msgid "Automatic translation turned off for this chat."
+msgstr "Automatic translation turned off for this chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_chat_enabled"
+msgid "Automatic translation turned on for this chat."
+msgstr "Automatic translation turned on for this chat."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_confirm"
+msgid ""
+"New text messages received in this chat will be sent to {provider} for "
+"translation. Enable automatic translation?"
+msgstr ""
+"New text messages received in this chat will be sent to {provider} for "
+"translation. Enable automatic translation?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_limit"
+msgid "Daily automatic translation l&imit, 0 for unlimited"
+msgstr "Daily automatic translation l&imit, 0 for unlimited"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_auto_limit_reached"
+msgid ""
+"Automatic translation stopped for today: the limit of {limit} requests was "
+"reached."
+msgstr ""
+"Automatic translation stopped for today: the limit of {limit} requests was "
+"reached."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_off"
+msgid "Disable automatic translation for this chat"
+msgstr "Disable automatic translation for this chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_on"
+msgid "Enable automatic translation for this chat"
+msgstr "Enable automatic translation for this chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused"
+msgid ""
+"Automatic translation paused for one hour: the provider refused the requests"
+" (quota, credit or key)."
+msgstr ""
+"Automatic translation paused for one hour: the provider refused the requests"
+" (quota, credit or key)."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_scope"
+msgid "&Conversations for automatic translation"
+msgstr "&Conversations for automatic translation"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_automatic"
+msgid "A&utomatic translation"
+msgstr "A&utomatic translation"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_bulk_cancel_menu"
+msgid "Cancel translating the messages"
+msgstr "Cancel translating the messages"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_to_end.py
+msgctxt "translation_bulk_cancelled"
+msgid "Translation cancelled."
+msgstr "Translation cancelled."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_bulk_confirm"
+msgid ""
+"Send the text of {count} messages to {provider} to be translated? This may "
+"use quota or incur charges."
+msgstr ""
+"Send the text of {count} messages to {provider} to be translated? This may "
+"use quota or incur charges."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_backlog.py
+#, python-brace-format
+msgctxt "translation_bulk_done"
+msgid "Translation finished: {count} messages translated."
+msgstr "Translation finished: {count} messages translated."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_bulk_none"
+msgid "None of the selected messages has text to translate."
+msgstr "None of the selected messages has text to translate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display"
+msgid "Translation &display"
+msgstr "Translation &display"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display_append"
+msgid "Show the translation after the original"
+msgstr "Show the translation after the original"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display_replace"
+msgid "Replace the message text in the list"
+msgstr "Replace the message text in the list"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_display_separate"
+msgid "Show the translation in a separate window"
+msgstr "Show the translation in a separate window"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_get_models"
+msgid "&Get models"
+msgstr "&Get models"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_key"
+msgid "API &key, blank to use the saved key"
+msgstr "API &key, blank to use the saved key"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_language"
+msgid "Target &language"
+msgstr "Target &language"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_locked_confirm"
+msgid ""
+"This message is from a locked chat. Send its text to {provider} for "
+"translation?"
+msgstr ""
+"This message is from a locked chat. Send its text to {provider} for "
+"translation?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_message"
+msgid "Translate message"
+msgstr "Translate message"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_model"
+msgid "&Model"
+msgstr "&Model"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_model_required"
+msgid "Enter a model, or use Get models to choose one."
+msgstr "Enter a model, or use Get models to choose one."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_not_configured"
+msgid ""
+"Set up translation in Settings > \"Online AI: Transcriptions and "
+"Descriptions\" > \"Message translation\"."
+msgstr ""
+"Set up translation in Settings > \"Online AI: Transcriptions and "
+"Descriptions\" > \"Message translation\"."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_provider"
+msgid "&Provider"
+msgstr "&Provider"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+#, python-brace-format
+msgctxt "translation_result"
+msgid "Translation: {text}"
+msgstr "Translation: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/translation_actions.py
+msgctxt "translation_same_language"
+msgid ""
+"The provider returned the same text. It may already be in the target "
+"language."
+msgstr ""
+"The provider returned the same text. It may already be in the target "
+"language."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "translation_sending"
+msgid "Translating with {provider}…"
+msgstr "Translating with {provider}…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_settings"
+msgid "Message t&ranslation"
+msgstr "Message t&ranslation"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_status"
+msgid "&Status and test result"
+msgstr "&Status and test result"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_test"
+msgid "&Test translation"
+msgstr "&Test translation"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_test_required"
+msgid ""
+"Verify this model with \"Test translation\" in the \"Message translation\" "
+"settings before saving."
+msgstr ""
+"Verify this model with \"Test translation\" in the \"Message translation\" "
+"settings before saving."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_waiting"
+msgid "Translating…"
+msgstr "Translating…"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/api_start_behind_window.py
 #: client/main_window/connection.py
 msgctxt "tray_connecting"
@@ -17939,6 +19934,12 @@ msgstr "C&hats"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_confirm_archive_chat"
+msgid "Ask for confirmation before archi&ving chats"
+msgstr "Ask for confirmation before archi&ving chats"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_confirm_clear_chat"
 msgid "Ask for confirmation &before clearing chats"
 msgstr "Ask for confirmation &before clearing chats"
@@ -17994,6 +19995,18 @@ msgstr ""
 "&Enter and Space on a voice message or video transcribe it into its line in "
 "the list instead of playing it (Alt+Shift+N plays or opens it); turned off, "
 "Enter and Space play or open it and Alt+Shift+N transcribes it into its line"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_filters"
+msgid "Esc clears the search an&d the filters in a list of chats"
+msgstr "Esc clears the search an&d the filters in a list of chats"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_escape_clears_message_search"
+msgid "Esc clears the messa&ge search in the active chat"
+msgstr "Esc clears the messa&ge search in the active chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -18150,6 +20163,31 @@ msgstr ""
 "count)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_message_list_open_position_label"
+msgid "Automatically focused position &in the messages list"
+msgstr "Automatically focused position &in the messages list"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused"
+msgid "Continue where you left off (last focused message)"
+msgstr "Continue where you left off (last focused message)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_last_focused_or_unread"
+msgid ""
+"Where you left off in the middle of the conversation; if you had reached the"
+" last message, the unread separator"
+msgstr ""
+"Where you left off in the middle of the conversation; if you had reached the"
+" last message, the unread separator"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_list_open_position_unread_or_last"
+msgid "Unread separator or last message"
+msgstr "Unread separator or last message"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_button"
 msgid "&Messages"
@@ -18182,6 +20220,18 @@ msgstr "Messages to jump forward/backward with Page Up and Page Down:"
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "Preserve typed message &as caption when attaching"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_bookmarks_after_use"
+msgid "Remo&ve permanent bookmarks automatically after the first use"
+msgstr "Remo&ve permanent bookmarks automatically after the first use"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/reading_position_options.py
+msgctxt "ui_remove_temp_bookmarks_after_use"
+msgid "Remove temporar&y bookmarks automatically after the first use"
+msgstr "Remove temporar&y bookmarks automatically after the first use"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -18263,10 +20313,10 @@ msgstr "Show lin&k previews in the message list"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_listbox_item_count"
 msgid ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
-"&Display item position and count when using List box mode (Only applies when"
+"Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -18288,6 +20338,12 @@ msgstr "Show yesterday's messa&ges with the date omitted (yesterday)"
 msgctxt "ui_space_selects_in_selection_mode"
 msgid "&Use Space to select/deselect whenever a selection already exists"
 msgstr "&Use Space to select/deselect whenever a selection already exists"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_starred_prefix_label"
+msgid "Announce \"Starre&d\" at the start of the message, before the sender"
+msgstr "Announce \"Starre&d\" at the start of the message, before the sender"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -18574,13 +20630,13 @@ msgstr "WinZapp update available"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
-msgctxt "update_background_ready_msg"
+msgctxt "update_background_ready_question"
 msgid ""
-"WinZapp update {version} has been downloaded. WinZapp will close now to "
-"install it and open again right after."
+"WinZapp update {version} has been downloaded. To install it, WinZapp closes "
+"and opens again right after. Install it now?"
 msgstr ""
-"WinZapp update {version} has been downloaded. WinZapp will close now to "
-"install it and open again right after."
+"WinZapp update {version} has been downloaded. To install it, WinZapp closes "
+"and opens again right after. Install it now?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_background.py
 #, python-brace-format
@@ -18674,6 +20730,33 @@ msgstr ""
 "An update installation is already in progress. Wait for it to finish before "
 "trying again."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_later"
+msgid "Install later"
+msgstr "Install later"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "update_install_later_said"
+msgid ""
+"The update stays ready. Install it whenever you want from {menu} > {option}."
+msgstr ""
+"The update stays ready. Install it whenever you want from {menu} > {option}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/pending_install.py
+msgctxt "update_install_not_now"
+msgid ""
+"The update cannot be installed right now: finish the call or the recording, "
+"or wait for the update in progress, and try again."
+msgstr ""
+"The update cannot be installed right now: finish the call or the recording, "
+"or wait for the update in progress, and try again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "update_install_now"
+msgid "Install now"
+msgstr "Install now"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_installing"
 msgid "Installing update..."
@@ -18698,6 +20781,58 @@ msgstr "No updates available. You are already using the latest version."
 msgctxt "update_not_available_title"
 msgid "No updates"
 msgstr "No updates"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_installed"
+msgid ""
+"WinZapp update {version} has been installed. You can open WinZapp again."
+msgstr ""
+"WinZapp update {version} has been installed. You can open WinZapp again."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "update_on_exit_label"
+msgid ""
+"Download updates automatically and install them when I e&xit WinZapp, "
+"without asking (closing the window to the tray does not count, and WinZapp "
+"does not open again afterwards)"
+msgstr ""
+"Download updates automatically and install them when I e&xit WinZapp, "
+"without asking (closing the window to the tray does not count, and WinZapp "
+"does not open again afterwards)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+#, python-brace-format
+msgctxt "update_on_exit_not_installed"
+msgid ""
+"WinZapp update {version} could not be installed. You can open WinZapp again;"
+" it will tell you what happened."
+msgstr ""
+"WinZapp update {version} could not be installed. You can open WinZapp again;"
+" it will tell you what happened."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/update_exit_notice.py
+msgctxt "update_on_exit_notice_title"
+msgid "WinZapp update"
+msgstr "WinZapp update"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
+#, python-brace-format
+msgctxt "update_on_exit_ready"
+msgid ""
+"WinZapp update {version} has been downloaded. It will be installed when you "
+"exit WinZapp."
+msgstr ""
+"WinZapp update {version} has been downloaded. It will be installed when you "
+"exit WinZapp."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/update_on_exit.py
+msgctxt "update_on_exit_started"
+msgid ""
+"Downloading the WinZapp update. It will be installed when you exit WinZapp."
+msgstr ""
+"Downloading the WinZapp update. It will be installed when you exit WinZapp."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 msgctxt "update_other_accounts_running"
@@ -18783,7 +20918,8 @@ msgctxt "updates_label"
 msgid "Automatically check &for updates"
 msgstr "Automatically check &for updates"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/backlog_flood.py client/main_window/sync.py
 msgctxt "updating_conversations"
 msgid "Updating chats"
 msgstr "Updating chats"
@@ -18856,6 +20992,12 @@ msgctxt "voice_call_connected"
 msgid "Call connected."
 msgstr "Call connected."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_connecting"
+msgid "Connecting to {name}."
+msgstr "Connecting to {name}."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_device_switch_failed"
 msgid "Could not open the new call audio device."
@@ -18887,6 +21029,21 @@ msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr "Voice calling is not available in this chat."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted"
+msgid "Microphone muted."
+msgstr "Microphone muted."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_muted_sharing"
+msgid "Microphone muted. Desktop audio is still being shared."
+msgstr "Microphone muted. Desktop audio is still being shared."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "voice_call_microphone_unmuted"
+msgid "Microphone unmuted."
+msgstr "Microphone unmuted."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 msgctxt "voice_call_mute_button"
 msgid "Mute microphone"
@@ -18917,6 +21074,12 @@ msgstr "The call is reconnecting."
 msgctxt "voice_call_recording_devices"
 msgid "Recording devices"
 msgstr "Recording devices"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "voice_call_ringing"
+msgid "Ringing {name}."
+msgstr "Ringing {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/main_window/shortcuts.py
@@ -19697,16 +21860,18 @@ msgstr "What's new in WinZapp"
 msgctxt "whatsapp_links_enabled_message"
 msgid ""
 "WinZapp is now registered for WhatsApp links. When you use the join button "
-"on a group invitation page, Windows may ask which app to use the first time:"
-" choose WinZapp. If another WhatsApp app is installed, you can also choose "
-"WinZapp for the \"whatsapp\" link type in Windows Settings, under Apps, "
-"Default apps."
+"on a group invitation page, or the button that opens a chat from a wa.me or "
+"WhatsApp link, Windows may ask which app to use the first time: choose "
+"WinZapp. If another WhatsApp app is installed, you can also choose WinZapp "
+"for the \"whatsapp\" link type in Windows Settings, under Apps, Default "
+"apps."
 msgstr ""
 "WinZapp is now registered for WhatsApp links. When you use the join button "
-"on a group invitation page, Windows may ask which app to use the first time:"
-" choose WinZapp. If another WhatsApp app is installed, you can also choose "
-"WinZapp for the \"whatsapp\" link type in Windows Settings, under Apps, "
-"Default apps."
+"on a group invitation page, or the button that opens a chat from a wa.me or "
+"WhatsApp link, Windows may ask which app to use the first time: choose "
+"WinZapp. If another WhatsApp app is installed, you can also choose WinZapp "
+"for the \"whatsapp\" link type in Windows Settings, under Apps, Default "
+"apps."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/group_invitation_links.py
@@ -19717,8 +21882,10 @@ msgstr "Could not change the registration for WhatsApp links."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "whatsapp_links_label"
-msgid "Let &Windows open WhatsApp group invitation links with WinZapp"
-msgstr "Let &Windows open WhatsApp group invitation links with WinZapp"
+msgid ""
+"Let &Windows open WhatsApp links (group invitations and chats) with WinZapp"
+msgstr ""
+"Let &Windows open WhatsApp links (group invitations and chats) with WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
@@ -19781,13 +21948,13 @@ msgstr "WPPConnect update available"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/wpp_background_update.py
 #, python-brace-format
-msgctxt "wpp_update_background_ready_msg"
+msgctxt "wpp_update_background_ready_question"
 msgid ""
-"WPPConnect update {version} has been downloaded. WinZapp will go offline for"
-" a moment to install it and restart WPPConnect."
+"WPPConnect update {version} has been downloaded. To install it, WinZapp goes"
+" offline for a moment while WPPConnect restarts. Install it now?"
 msgstr ""
-"WPPConnect update {version} has been downloaded. WinZapp will go offline for"
-" a moment to install it and restart WPPConnect."
+"WPPConnect update {version} has been downloaded. To install it, WinZapp goes"
+" offline for a moment while WPPConnect restarts. Install it now?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/updates.py
 msgctxt "wpp_update_background_running"
@@ -19896,6 +22063,75 @@ msgstr ""
 "Warning: could not pin the WhatsApp Web version. Sending to individual "
 "contacts may fail silently; groups still work. Please update WinZapp's "
 "WhatsApp Web."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_check"
+msgid "Fix spelling and punctuation, keeping my words"
+msgstr "Fix spelling and punctuation, keeping my words"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_encouraging"
+msgid "Make it more encouraging"
+msgstr "Make it more encouraging"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_action_label"
+msgid "What to do with the draft"
+msgstr "What to do with the draft"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_professional"
+msgid "Make it more professional"
+msgstr "Make it more professional"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_rephrase"
+msgid "Say it another way"
+msgstr "Say it another way"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_action_translate"
+msgid "Translate"
+msgstr "Translate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_choose_before_run"
+msgid ""
+"Choose an action, then press \"Run selected action\". Opening or closing "
+"this window does not send the draft."
+msgstr ""
+"Choose an action, then press \"Run selected action\". Opening or closing "
+"this window does not send the draft."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_writing.py client/ui/conversations.py
+msgctxt "writing_menu"
+msgid "Writing help"
+msgstr "Writing help"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_replace"
+msgid "Replace draft"
+msgstr "Replace draft"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_run_selected"
+msgid "Run selected action"
+msgstr "Run selected action"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+msgctxt "writing_target_label"
+msgid "Translate to"
+msgstr "Translate to"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_title"
+msgid "Writing help"
+msgstr "Writing help"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/archived_panel.py

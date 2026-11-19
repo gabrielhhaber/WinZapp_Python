@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Eduardo Ferreira <eduardodeandradeferreira789@gmail.com>
+Date: Tue, 27 Oct 2026 21:52:28 -0400
+Subject: [PATCH] get_linked_group_participants: read the answer
+ GetLinkedGroupsParticipants sends
+
+The Go side answers a ReturnFunctionWithError with a JIDArray; the sync client parsed it as GetGroupRequestParticipantsReturnFunction and failed with 'Wire format was corrupt'. The async client already reads it right.
+---
+ neonize/client.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/neonize/client.py b/neonize/client.py
+index a35a722..950360e 100644
+--- a/neonize/client.py
++++ b/neonize/client.py
+@@ -3589,7 +3589,7 @@ class NewClient:
+ 
+     def get_linked_group_participants(
+         self, community: JID
+-    ) -> RepeatedCompositeFieldContainer[GroupParticipantRequest]:
++    ) -> RepeatedCompositeFieldContainer[JID]:
+         """Fetches the participants of a linked group in a community.
+ 
+         :param community: The community in which the linked group belongs.
+@@ -3600,10 +3600,10 @@ class NewClient:
+         """
+         jidbyte = community.SerializeToString()
+         protobytes = self.__client.GetLinkedGroupsParticipants(self.uuid, jidbyte, len(jidbyte))
+-        model = neonize_proto.GetGroupRequestParticipantsReturnFunction.FromString(protobytes)
++        model = neonize_proto.ReturnFunctionWithError.FromString(protobytes)
+         if model.Error:
+             raise GetLinkedGroupParticipantsError(model.Error)
+-        return model.Participants
++        return model.GetLinkedGroupsParticipants.JIDS
+ 
+     def get_newsletter_info(self, jid: JID) -> neonize_proto.NewsletterMetadata:
+         """

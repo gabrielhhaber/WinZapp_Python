@@ -19,6 +19,7 @@ import pytest
 import wx
 
 import update_background
+from update_on_exit import UpdateOnExitMixin
 import updater
 from core.update_handoff import InstallHandoff
 from app_settings import _DEFAULTS, _GENERAL_GLOBAL
@@ -109,7 +110,7 @@ class _MainWindow:
     def __init__(self, background=True):
         self.settings = {"general": {"background_update_downloads": background}}
         self.i18n = types.SimpleNamespace(
-            t=lambda key: key + " {version}" if key == "update_background_ready_msg" else (
+            t=lambda key: key + " {version}" if key == "update_background_ready_question" else (
                 key + " {error}" if key == "update_error_msg" else key))
         self.spoken, self.exits = [], 0
         self._shutting_down = False
@@ -121,7 +122,7 @@ class _MainWindow:
         self.exits += 1
 
 
-class _Checker(BackgroundDownloadMixin):
+class _Checker(BackgroundDownloadMixin, UpdateOnExitMixin):
     _do_install = UpdateChecker._do_install
     _check_once = UpdateChecker._check_once
 
@@ -184,6 +185,10 @@ def world(monkeypatch):
                         lambda ms, fn, *a, **kw: state.later.append((ms, fn, a)))
     monkeypatch.setattr(update_background, "download_update_package", _download)
     monkeypatch.setattr(update_background, "message_box", _box)
+    # The ready notice is a question now (pending_install.py): these tests take
+    # "Install now"; tests/test_pending_install.py covers "later".
+    monkeypatch.setattr(update_background.pending_install, "ask_install_now",
+                        lambda mw, text, title: _box(mw, text, title, "question") is not None)
     monkeypatch.setattr(update_background, "discard_package", state.discarded.append)
     monkeypatch.setattr(updater, "discard_package", state.discarded.append)
     monkeypatch.setattr(updater, "message_box", _box)
@@ -219,15 +224,15 @@ class TestWithTheOptionOn:
         checker._do_install(*ARGS)
 
         (text, title, style), = world.boxes
-        assert text == "update_background_ready_msg 2.0.0.1"
-        assert style & wx.OK and not style & wx.YES_NO
+        assert text == "update_background_ready_question 2.0.0.1"
+        assert style == "question"                    # "Install now" / "Install later"
         assert world.dialogs == ["X:/pkg"]            # the dialog got the package: no second download
         assert checker._mw.exits == 1
 
     def test_the_notice_comes_before_the_install_never_after(self, world, monkeypatch):
         order = []
-        monkeypatch.setattr(update_background, "message_box",
-                            lambda *a, **kw: order.append("notice") or wx.OK)
+        monkeypatch.setattr(update_background.pending_install, "ask_install_now",
+                            lambda *a, **kw: order.append("notice") or True)
         checker = _Checker()
         real = checker._do_install
 
@@ -348,7 +353,7 @@ class TestWhenItDoesNotGoWell:
         """UAC declined, say: Yes runs the install again from the same package."""
         world.dialog_result = wx.ID_ABORT
         world.install_ok = False
-        answers = [wx.OK, wx.YES, wx.NO]              # the notice, retry, give up
+        answers = [wx.YES, wx.NO]                     # retry, give up (the notice is a question)
         monkeypatch.setattr(update_background, "message_box", lambda *a, **kw: answers.pop(0))
         monkeypatch.setattr(updater, "message_box", lambda *a, **kw: answers.pop(0))
         checker = _Checker()
@@ -426,7 +431,7 @@ class TestTheDialogSkipsWhatIsAlreadyDone:
                             lambda extract_dir, *a, **kw: launched.append(extract_dir) or True)
         monkeypatch.setattr(updater.wx, "CallAfter", lambda fn, *a: fn(*a))
         dialog = types.SimpleNamespace(
-            _extracted_dir="X:/pkg", _cancelled=False, _install_ok=False, _error_msg="",
+            _extracted_dir="X:/pkg", _relaunch_app=True, _cancelled=False, _install_ok=False, _error_msg="",
             _handoff=InstallHandoff(), _request_install_handoff=lambda: True,
             _gauge=types.SimpleNamespace(SetValue=lambda value: None),
             _status_label=types.SimpleNamespace(SetLabel=lambda text: None),

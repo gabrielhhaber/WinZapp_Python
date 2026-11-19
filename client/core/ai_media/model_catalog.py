@@ -124,8 +124,16 @@ def fetch_models(provider, key, token, session_factory=tls_trust.create_session)
         raise DescriptionError("request")
     if not key:
         raise DescriptionError("credentials")
+    found = fetch_catalog(_list_request(provider, key),
+                          lambda body: compatible_models(provider, body), token,
+                          session_factory, pagination="gemini" if provider == "gemini" else "")
+    return tuple(found[identifier] for identifier in COMPATIBLE_MODELS[provider]
+                 if identifier in found)
+
+
+def fetch_catalog(request, parse, token, session_factory=tls_trust.create_session, *, pagination=""):
     token.check()
-    url, headers, extra = _list_request(provider, key)
+    url, headers, extra = request
     timer = threading.Timer(max(0, token.deadline - token.clock()), token.expire)
     timer.daemon = True
     timer.start()
@@ -137,7 +145,7 @@ def fetch_models(provider, key, token, session_factory=tls_trust.create_session)
                 remaining = token.deadline - token.clock()
                 params = dict(extra)
                 if page_token:
-                    params["pageToken"] = page_token
+                    params["pageToken" if pagination == "gemini" else "after_id"] = page_token
                 with session.get(url, headers=headers, params=params, allow_redirects=False, stream=True,
                                  timeout=Timeout(total=remaining, connect=min(5, remaining))) as response:
                     token.attach(response)
@@ -147,13 +155,20 @@ def fetch_models(provider, key, token, session_factory=tls_trust.create_session)
                     data = read_bounded(response, min(MAX_PAGE_BYTES, MAX_TOTAL_BYTES - total), token.check)
                     total += len(data)
                     body = json.loads(data)
-                    for option in compatible_models(provider, body):
+                    for option in parse(body):
                         found[option.id] = option
                 token.response = None
                 token.check()
-                page_token = body.get("nextPageToken") if provider == "gemini" else None
+                if pagination == "gemini":
+                    page_token = body.get("nextPageToken")
+                elif pagination == "anthropic" and body.get("has_more"):
+                    page_token = body.get("last_id")
+                    if not page_token:
+                        raise DescriptionError("response")
+                else:
+                    page_token = None
                 if page_token is None or page_token == "":
-                    return tuple(found[identifier] for identifier in COMPATIBLE_MODELS[provider] if identifier in found)
+                    return found
                 if not isinstance(page_token, str) or len(page_token) > 4096 or page_token in seen:
                     raise DescriptionError("response")
                 seen.add(page_token)

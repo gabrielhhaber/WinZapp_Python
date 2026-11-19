@@ -16,6 +16,8 @@ import time
 import uuid
 import wave
 import wx
+from core.ordered_dispatch import voice_dispatcher
+from core.pending_timestamp import pending_send_timestamp
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from main_window.typing_feedback import stop_typing_for_capture
 from core.message_queue import PendingMessage
@@ -482,6 +484,8 @@ class VoiceRecordingMixin:
                 ]
                 if hasattr(self, "_emoji_btn"):
                     recording_controls_to_hide.append(self._emoji_btn)
+                    if hasattr(self, "_writing_help_btn"):
+                        recording_controls_to_hide.append(self._writing_help_btn)
                 cloak_panel_focus_fallback(
                     self.conversation_panel, *recording_controls_to_hide
                 )
@@ -489,6 +493,8 @@ class VoiceRecordingMixin:
                 self.message_field.Hide()
             if hasattr(self, "_emoji_btn"):
                 self._emoji_btn.Hide()
+                if hasattr(self, "_writing_help_btn"):
+                    self._writing_help_btn.Hide()
             self.send_message_btn.Hide()
             self.record_voice_message_btn.Hide()
             if hasattr(self, "_record_voice_system_btn"):
@@ -796,6 +802,8 @@ class VoiceRecordingMixin:
         self.message_field.Show()
         if hasattr(self, "_emoji_btn"):
             self._emoji_btn.Show()
+            if hasattr(self, "_writing_help_btn"):
+                self._writing_help_btn.Show()
         if self.message_field.GetValue().strip():
             self.send_message_btn.Show()
         else:
@@ -1602,7 +1610,8 @@ class VoiceRecordingMixin:
                        if as_audio_file or stereo_out else {}),
                 }
             },
-            "messageTimestamp": int(time.time()),
+            "messageTimestamp": pending_send_timestamp(
+                time.time(), self._sorted_messages, quoted_msg),
             "pushName":         "",
         }
         if quoted_msg:
@@ -1643,10 +1652,14 @@ class VoiceRecordingMixin:
         mw      = self.main_window
         enc_key = mw.key
 
-        def _write_and_enqueue():
+        # Recordings reach the send queue in recording order, whichever
+        # finishes processing first (core/ordered_dispatch.py).
+        ticket = voice_dispatcher.reserve(remote_jid)
+
+        def _process():
             import time as _time
             _tw0 = _time.perf_counter()
-            logging.info("[VOICE_TIMING] T+%.3fs — _write_and_enqueue thread started",
+            logging.info("[VOICE_TIMING] T+%.3fs — voice processing thread started",
                          _tw0 - _t0)
 
             # 1. Noise reduction. If the incremental session started at
@@ -2394,10 +2407,9 @@ class VoiceRecordingMixin:
 
             if as_audio_file:
                 _forget_incremental()
-                self._enqueue_system_audio_file(
+                return lambda: self._enqueue_system_audio_file(
                     wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg,
                 )
-                return
 
             # 3. Encode: stereo as AAC M4A (core/voice_stereo.py), never quietly
             # downmixed when that fails; mono as OGG Opus via ffmpeg conversion.
@@ -2453,45 +2465,63 @@ class VoiceRecordingMixin:
             pm = PendingMessage(local_id, remote_jid, audio_path=wav_path,
                                 ogg_bytes=ogg_bytes, quoted=quoted_msg,
                                 voice_mimetype=voice_mimetype)
-            if inc_session is not None and controller is not None:
-                def _hand_off():
+            def _enqueue():
+                if inc_session is not None and controller is not None:
+                    def _hand_off():
+                        mw.message_queue.enqueue(pm)
+                        # Cleared HERE — under the controller's lock, right
+                        # after the queue accepted the message, on the same
+                        # thread: the echo can only exist after the queue's
+                        # worker actually sends, which is after this point, and
+                        # the echo matcher additionally re-checks the
+                        # controller's PREPARING state, so no window leaves the
+                        # record skipping its own echo. (The reverse order —
+                        # clearing before enqueue — would let the record steal
+                        # ANOTHER pending audio's echo in between.)
+                        virtual_msg.pop("_incremental_preparing", None)
+
+                    # The hand-off runs UNDER the controller's lock: a user
+                    # delete of the pending row cannot slip between the
+                    # authority check and the real enqueue, so after transfer()
+                    # succeeds the queue's own cancel machinery gives a
+                    # definitive answer.
+                    if not controller.transfer(local_id, _hand_off):
+                        # Revoke won: the row is already gone — send nothing.
+                        # The slot/spool were already released above.
+                        logging.info("[noise_reduction] send revoked before transfer; not enqueuing")
+                        controller.forget(local_id)
+                        try:
+                            os.unlink(wav_path)
+                        except OSError:
+                            pass
+                        # The .msv copy may have been written moments ago, after
+                        # the user's delete already discarded the cache.
+                        from ui.conversation_panel.media_paths import discard_local_media_cache
+                        discard_local_media_cache(
+                            data_path("voice_messages"), data_path("media"), local_id)
+                        return
+                else:
                     mw.message_queue.enqueue(pm)
-                    # Cleared HERE — under the controller's lock, right
-                    # after the queue accepted the message, on the same
-                    # thread: the echo can only exist after the queue's
-                    # worker actually sends, which is after this point, and
-                    # the echo matcher additionally re-checks the
-                    # controller's PREPARING state, so no window leaves the
-                    # record skipping its own echo. (The reverse order —
-                    # clearing before enqueue — would let the record steal
-                    # ANOTHER pending audio's echo in between.)
-                    virtual_msg.pop("_incremental_preparing", None)
+                mw.mark_conversation_as_read(remote_jid)
+            return _enqueue
 
-                # The hand-off runs UNDER the controller's lock: a user
-                # delete of the pending row cannot slip between the
-                # authority check and the real enqueue, so after transfer()
-                # succeeds the queue's own cancel machinery gives a
-                # definitive answer.
-                if not controller.transfer(local_id, _hand_off):
-                    # Revoke won: the row is already gone — send nothing.
-                    # The slot/spool were already released above.
-                    logging.info("[noise_reduction] send revoked before transfer; not enqueuing")
-                    controller.forget(local_id)
-                    try:
-                        os.unlink(wav_path)
-                    except OSError:
-                        pass
-                    # The .msv copy may have been written moments ago, after
-                    # the user's delete already discarded the cache.
-                    from ui.conversation_panel.media_paths import discard_local_media_cache
-                    discard_local_media_cache(
-                        data_path("voice_messages"), data_path("media"), local_id)
-                    return
-            else:
-                mw.message_queue.enqueue(pm)
-            mw.mark_conversation_as_read(remote_jid)
+        def _write_and_enqueue():
+            action = None
+            try:
+                action = _process()
+            except Exception:
+                logging.exception("[voice] Preparing the recording failed")
+            finally:
+                voice_dispatcher.complete(remote_jid, ticket, action)
 
-        threading.Thread(target=_write_and_enqueue, daemon=True).start()
+        # A worker that waits on an earlier recording holds nothing but its own
+        # ticket; later ones are held back by design (order over latency).
+        try:
+            threading.Thread(target=_write_and_enqueue, daemon=True).start()
+        except Exception:
+            # No worker will ever complete this ticket: free it.
+            voice_dispatcher.complete(remote_jid, ticket, None)
+            raise
 
     def _encode_stereo_voice(self, wav_path):
         """The M4A bytes of a stereo voice message, or None if it could not be

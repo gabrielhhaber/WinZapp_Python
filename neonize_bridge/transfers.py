@@ -95,7 +95,14 @@ class ClientWithProgress:
             self._path, media_type or self._kind(binary), self._key)
 
     def __getattr__(self, name):
-        # only what the class does not define gets here
+        # only what the class does not define gets here. What the session put
+        # on the client itself wins over the class, as on the client: rebinding
+        # the class's send_message skipped chat_timers.install's wrapper, and
+        # every file sent with progress (an audio, a photo, a document) went
+        # out without the chat's disappearing-messages timer.
+        own = vars(self._client).get(name) if hasattr(self._client, "__dict__") else None
+        if callable(own):
+            return own
         func = getattr(type(self._client), name, None)
         if inspect.isfunction(func):
             return types.MethodType(func, self)
@@ -197,3 +204,19 @@ async def download_with_progress_async(client, message, body, emit_event, sessio
     except asyncio.CancelledError:
         _cancel(client, key)
         raise
+
+
+def status_for_download_error(error) -> int:
+    """HTTP status the bridge answers a failed media download with.
+
+    410 for media that is gone from WhatsApp's server (404/410) or whose CDN
+    link expired (403 / forbidden), which the client treats as "expired" and
+    remembers instead of retrying. So does media that is still on the CDN but
+    cannot be authenticated or located any more (after a phone re-upload the
+    ciphertext hash or MAC no longer matches, or the message carries no URL;
+    issue #756): retrying cannot fix it. Anything else is a real fault: 500.
+    """
+    text = str(error).lower()
+    gone = ("404", "410", "403", "not found", "forbidden",
+            "ciphertext doesn't match", "invalid media hmac", "no url present")
+    return 410 if any(mark in text for mark in gone) else 500

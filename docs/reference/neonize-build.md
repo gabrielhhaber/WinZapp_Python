@@ -19,37 +19,37 @@ unchanged export is byte for byte the same). Each tree's patches apply in
 order on top of its pin. Generated protobuf code (`Neonize.pb.go`,
 `Neonize_pb2.py/.pyi`) is never in a patch: the build regenerates it from
 `Neonize.proto` with the pinned toolchain, which reproduces upstream's own
-generated files exactly (checked on 0.6.0).
+generated files exactly (checked on 0.6.0; on 0.10.0 only the "protoc v7.36.0" version stamp in the
+header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
-- **neonize 0001**: neonize 0.6.0's `SendSPRMessage` sets two
-  `SendRequestExtra` fields that no released whatsmeow has, so 0.6.0 does not
-  build against its own pin (its GitHub release has no binaries). The call
-  refuses after validating its input; dropping the fields would send the
-  targeted text to the whole group. Remove this patch once the pin has them.
-- **neonize 0002**: app-state events (archive, pin, mute, read, lock, delete
-  chat, delete for me, star: events 46-53), `fetch_app_state` /
-  `request_app_state_recovery`, the `DecodePatchInfo` fix, transfers to and
-  from disk with progress and cancel, `update_group_request_participants`
-  (upstream pull requests krypton-byte/neonize #227-#232, by reffehcsoibaf).
-- **neonize 0003**: voice calls through meowcaller (`calls.go`, exported
+- **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
+  whatsmeow patch) and media transfers to and from disk with progress and
+  cancel (`DownloadAnyToFile`, `UploadFile`, `TransferProgress`,
+  `TransferCancel`; the bridge's `transfers.py`). The rest of what this patch
+  carried on 0.6.0 (app-state events 46-49 and 51-53, `fetch_app_state` /
+  `request_app_state_recovery`, the `DecodePatchInfo` fix and
+  `update_group_request_participants`, upstream pull requests #227-#232) is in
+  neonize since 0.8.0 and is no longer patched. neonize 0.6.0's SPR group-send
+  patch is gone too: since 0.7.0 `SendSPRMessage` fails closed itself.
+- **neonize 0002**: voice calls through meowcaller (`calls.go`, exported
   functions, no protobuf) and the session database in WAL with a 30 s busy
   timeout.
-- **neonize 0004**: `ContactUpdate` (54), `PushNameUpdate` (55) and
+- **neonize 0003**: `ContactUpdate` (54), `PushNameUpdate` (55) and
   `AppStateSyncComplete` (56). A full app-state sync (right after pairing)
   does not emit `ContactUpdate`: whatsmeow stores those names in bulk, and
   `AppStateSyncComplete` for `critical_unblock_low` says when they are there
   (`contact_events.py` reloads them).
-- **neonize 0006**: raw info queries and MEX (GraphQL) queries
+- **neonize 0005**: raw info queries and MEX (GraphQL) queries
   (`goneonize/rawiq.go`: `SendIQ` / `SendMexIQ`, JSON in and out; the
   client's `send_iq` / `send_mex`), `AppStateMutation` (57) for every app
   state mutation, and `MutationInfo.Remove` so `send_app_state` can send a
   REMOVE. The bridge's custom lists, community joins, channel edits, status
   privacy and contact removal use them (`neonize_bridge/COVERAGE.md`).
-- **neonize 0007**: `MediaConn`, the media upload hosts and token, for the
+- **neonize 0006**: `MediaConn`, the media upload hosts and token, for the
   unencrypted upload of a catalog product's picture (`media_upload.py`).
-- **neonize 0011**: the sync client's `get_linked_group_participants` reads
+- **neonize 0010**: the sync client's `get_linked_group_participants` reads
   the `ReturnFunctionWithError` the Go side sends (it parsed another message
   and failed with "Wire format was corrupt"; the async client was right). It
   gives `community-participants` and the community total in `group-info`.
@@ -76,22 +76,45 @@ What the patches carry today:
   store keys a saved name by the JID of the mutation that carried it, and a
   `contact[lid]` mutation put a `<user>@lid` among the numbers of the status
   recipients; from the first one on, the server answered every status with
-  400. A LID whose number is unknown is left out).
+  400. A LID whose number is unknown is left out); a poll posted to a channel
+  goes as `type="poll"` with `<meta polltype="creation" contenttype="text">`,
+  as WhatsApp Web sends it (0012: it went as type text with no meta);
+  every channel notification with no typed event (0013:
+  `events.NewsletterChange`, op name, channel and JSON payload): whatsmeow
+  dispatched only join, leave and mute and dropped admin promote/demote,
+  invite revoke, metadata, owner, state and user-setting updates and the rest
+  WhatsApp Web handles.
 - **meowcaller**: go.mod/go.sum on neonize's whatsmeow pin; accept 2 s after
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
-- **neonize 0015**: `CallAddParticipant` adds a number or LID to the call this
+- **neonize 0014**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
   already on the call's list), WhatsApp's "Add participant"; Python
   `CallClient.add_participant` (`neonize_bridge/call_invites.py`).
-- **neonize 0016**: a channel update (`NewsletterMessage`) carries whatsmeow's
+- **neonize 0015**: a channel update (`NewsletterMessage`) carries whatsmeow's
   `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
   updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
-- **neonize 0017 / whatsmeow 0011**: a channel update carries the server's
+- **neonize 0016 / whatsmeow 0011**: a channel update carries the server's
   `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
   update `fromMe` from: a channel's admin sees their own updates as sent.
-- **neonize 0013 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
+- **neonize 0018**: `SendNewsletterMessage` (Python
+  `send_newsletter_message`), `SendMessage` with
+  `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
+  unencrypted (`upload_newsletter`) and out with the upload's handle, which
+  whatsmeow sends as the node's `media_id` (`channel_media.py`).
+- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
+  whatsmeow event above; the bridge's `channel_events.py` sends the ones the
+  channels windows show as `channels-changed`.
+- **neonize 0020**: `AutomaticMessageRerequestFromPhone`, off by default in
+  whatsmeow: a message this device cannot decrypt (a group message without its
+  sender key) is asked of the account's own phone, as WhatsApp Web does
+  (`PLACEHOLDER_MESSAGE_RESEND`); it used to be lost when the sender's device
+  did not resend it.
+- **neonize 0021**: `send_newsletter_message`'s answer is turned into bytes like
+  `send_message`'s: a channel post went out and the call raised
+  `expected bytes, LP_Bytes found`, so a published post was reported as failed.
+- **neonize 0012 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.
   See [call audio](neonize-call-audio.md) for
@@ -128,6 +151,36 @@ What the patches carry today:
   rosters list the same device without it, and receivers rebuilt only from
   devices carrying a PID dropped everyone but the fallback peer (issue #689:
   neonize callees heard only the creator).
+- **meowcaller 0013**: diagnostics only. Every 5 seconds a call logs "relay
+  traffic by kind": the RTP, RTCP, STUN and other packets the relay delivered in
+  the window and in total, zeros included. The receive summary prints only when
+  a packet arrives, so a relay gone quiet logged nothing. Added for issue #689:
+  a call from an Android caller received 3 RTP packets, then none for 38 s.
+- **meowcaller 0014**: a device in a connected group participant's roster
+  entry with no PID and none learned earlier is registered without one, unless
+  another device of the same person has a PID (that one is the device in the
+  call). The PID only travels in the update where a device joins; the roster
+  an account gets when it rejoins a call going on has none, so every remote
+  device was skipped and the call was digital silence (issue #689, Gustavo's
+  rejoin). Audio is told apart by the SSRC and keys derived from the device id,
+  not by the PID.
+- **neonize 0022**: the "chamadas: meowcaller" log writer counted repeated
+  messages (first 8, then every 200) for the whole process; it now counts per
+  `call_id`, so a later call keeps its roster, key epoch and summary lines.
+- **neonize 0023**: media retry. `SendMediaRetry` / `DecryptMediaRetry`
+  (`goneonize/mediaretry.go`, JSON in and out like `rawiq.go`; Python
+  `send_media_retry` / `decrypt_media_retry`) wrap whatsmeow's
+  `SendMediaRetryReceipt` and `DecryptMediaRetryNotification`, and the phone's
+  answer is `events.MediaRetry` as event 59 (`MediaRetryEv`). When a download
+  fails with an expired link the bridge (`media_retry.py`, called by
+  `get-media-by-message`) asks the phone to upload the file again, waits for
+  the answer and downloads from the new direct path; "not found" answers 410.
+- **neonize 0024**: `DownloadRetriedMedia` (`goneonize/mediaretry_download.go`,
+  Python `download_retried_media`). The retry notification brings only the new
+  direct path, and the phone's new upload can encrypt to other bytes, so
+  whatsmeow's check of the old `fileEncSHA256` refused all 7 hosts (issue #756).
+  The ciphertext is authenticated by the media key's HMAC and the plaintext by
+  `fileSHA256` (`mediaretry_decrypt.go`, tested alone with `go test`).
 
 ## Toolchain (once)
 
@@ -180,6 +233,25 @@ and branch `winzapp` has one commit per patch.
 4. `build_neonize.py export` and commit `neonize_bridge/neonize_patches/`
    with the bridge change that uses it.
 
+A pull that changes `neonize_patches/` leaves an existing workspace behind:
+same pinned version, older commits. `export` then refuses with exit code 5
+instead of writing those older commits over the new patches, and `all`
+prepares the workspace again from the patches (its commits kept in
+`neonize_build/stale-backup/`) instead of building the older code. Measured
+after #732: the version check passed, `export` put the old 0002 back and the
+DLL had no calls. The test is `patches_moved()`, by content: `prepare` and
+`export` note the hash of every patch file they left
+(`neonize_build/<tree>.synced.json`), and a tree has moved when the export
+would change or delete a patch whose repository copy is no longer the one
+noted. Per file: new patches, commits added after exporting some, and
+amending a patch this workspace exported itself all export fine. Commit
+times are not used: `main` is squash-merged, so a patch's commit time is
+the merge's, and they missed a teammate's patch merged before an older
+branch's prepare and refused amending a patch just exported (review,
+2026-11-10). A workspace prepared before the note existed falls back to
+them, against the tree's oldest commit of its own (its newest let a new
+commit on a stale workspace hide it on 2026-11-08).
+
 A bridge handler for an event only WinZapp's build has registers behind
 `if hasattr(nev, "...")`, so an install still on an older build keeps
 starting (`contact_events.register_events`).
@@ -187,7 +259,7 @@ starting (`contact_events.register_events`).
 ## Moving to a new upstream neonize
 
 ```powershell
-neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py check --ref 0.6.1
+neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py check --ref 0.10.1
 ```
 
 `check` rebuilds the workspace on that ref (a tag, branch or commit),
@@ -206,7 +278,7 @@ else depends on it.
 Then approve it, which records the commit the tag resolves to:
 
 ```powershell
-neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py approve --ref 0.6.1 --version 0.6.1
+neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py approve --ref 0.10.1 --version 0.10.1
 ```
 
 Commit the manifest, the patches and the bridge's tests run against the new

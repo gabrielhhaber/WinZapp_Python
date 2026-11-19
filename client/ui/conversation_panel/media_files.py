@@ -14,6 +14,7 @@ import tempfile
 import threading
 import time
 import wx
+from core import media_failure
 from core.utils import (
     MEASURED_SECONDS_KEY,
     decrypt_bytes,
@@ -86,6 +87,8 @@ class MediaFilesMixin:
         # tick, and _sync_pending_document_gauge() restores a pending upload
         # when the conversation is (re)opened. See _transfer_owns_gauge().
         self._buttons_container.Hide()
+        self._business_context = None
+        self._business_shown_msg = None
         self._contact_converse_btn.Hide()
         self._contact_save_btn.Hide()
         self._contact_msg_jid = None
@@ -286,7 +289,7 @@ class MediaFilesMixin:
 
         wx.CallAfter(
             wx.MessageBox,
-            i18n.t("media_download_failed"),
+            i18n.t(media_failure.failure_key(msg)),
             i18n.t("error").format(app_name=self.main_window.app_name),
             wx.OK | wx.ICON_ERROR,
         )
@@ -886,7 +889,7 @@ class MediaFilesMixin:
             # Download silently failed — nothing to save.
             wx.CallAfter(
                 wx.MessageBox,
-                self.main_window.i18n.t("media_download_failed"),
+                self.main_window.i18n.t(media_failure.failure_key(msg)),
                 self.main_window.i18n.t("error").format(
                     app_name=self.main_window.app_name
                 ),
@@ -1153,6 +1156,7 @@ class MediaFilesMixin:
             getattr(self, "_action_open_btn", None),
             getattr(self, "_action_save_as_btn", None),
             getattr(self, "_action_describe_btn", None),
+            getattr(self, "_summary_btn", None),
             getattr(self, "_action_show_in_folder_btn", None),
             getattr(self, "_action_download_btn", None),
         )

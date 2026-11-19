@@ -44,6 +44,13 @@ def preview_group(connection, code):
         name = ""
     size = data.get("size")
     approval = data.get("membershipApprovalMode")
+    community = data.get("isParentGroup") is True
+    if type(approval) is not bool and community:
+        # A community says it as WhatsApp Web shows it: a closed community
+        # asks an admin (isParentGroupClosed), its groups' mode may be absent.
+        approval = data.get("isParentGroupClosed")
+    if community and size == 0:
+        size = None             # a community's own count is not its members
     return GroupPreview(jid, name, data.get("desc") if isinstance(data.get("desc"), str) else "",
                         size if type(size) is int and size >= 0 else None,
                         approval if type(approval) is bool else None)

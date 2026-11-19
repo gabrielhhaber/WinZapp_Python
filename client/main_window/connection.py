@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from core import profile_disk_guard
 import logging
 import os
 import requests
@@ -891,6 +892,10 @@ class ConnectionMixin:
             return
         was = bool(getattr(self, "_wa_connected", False))
         self._wa_connected = connected
+        if was != connected:
+            # Time offline is not a message's age for automatic transcription.
+            from core.transcription import auto_queue
+            auto_queue.listening_gaps.connection_changed(connected)
         if was != connected and hasattr(self, "_sync_online_presence"):
             wx.CallAfter(self._sync_online_presence)
         if was != connected and hasattr(self, "_invalidate_contact_presence"):
@@ -1974,6 +1979,13 @@ class ConnectionMixin:
             # (on_connection_update/session-logged), so skipping it here loses
             # nothing.
             return
+        # A nearly full disk breaks the Chrome profile: closed cleanly before it
+        # does, and kept closed until there is room (core/profile_disk_guard.py).
+        try:
+            if profile_disk_guard.check(self) == profile_disk_guard.HALT:
+                return
+        except Exception:
+            logging.exception("[disk-guard] check failed")
         context = capture_connection_context(self)
         if not connection_context_is_owned(self, context):
             return
@@ -2171,6 +2183,7 @@ class ConnectionMixin:
                         qr_flood_halted=getattr(self, "_qr_flood_halted", False),
                         recovery_restart_active=self._session_restart_owned(),
                         self_inflicted_teardown=self._self_inflicted_teardown_expected(),
+                        low_disk_halted=getattr(self, "_low_disk_halted", False),
                     )
                     # Asked only when nothing else blocks: it probes the network.
                     if not block and self._offline_start_deferral_holds():

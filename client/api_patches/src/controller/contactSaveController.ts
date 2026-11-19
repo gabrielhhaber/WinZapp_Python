@@ -95,10 +95,48 @@ export async function saveContact(req: Request, res: Response) {
           }
           if (!entry?.phoneNumber) return { code: 'contact_lid_without_phone' };
         }
-        const contact = await WPP.contact.save(cmd.id, cmd.name, {
-          lastName: cmd.lastName,
-          syncAddressBook: cmd.syncAddressBook,
-        });
+        const version = String(WPP.whatsapp?.Debug?.VERSION || (window as any).Debug?.VERSION || '');
+        const parts = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
+        if (!parts) return { code: 'contact_not_available' };
+        const [, major, minor, build] = parts.map(Number);
+        const modern = major > 2 || (major === 2 && (minor > 3000 ||
+          (minor === 3000 && build >= 1030209354)));
+        let contact: any;
+        if (modern) {
+          // WA-JS (4.7.2 through 4.8.0) passes bare LID digits to this action. The native UI
+          // passes a Wid: contact sync serializes lid.toString() into lidJid,
+          // so the digits lose @lid and the iPhone does not apply the save.
+          // Use the native argument shape, without changing shared exports.
+          const api = WPP.whatsapp?.ApiContact;
+          const factory = WPP.whatsapp?.WidFactory;
+          const save = WPP.whatsapp?.functions?.saveContactActionV2;
+          if (!api?.getAlternateUserWid || !factory?.createWid ||
+              typeof save !== 'function' || !WPP.contact.get) {
+            return { code: 'contact_not_available' };
+          }
+          const wid = factory.createWid(cmd.id);
+          const alternate = api.getAlternateUserWid(wid);
+          const phone = wid.server === 'c.us' ? wid : alternate;
+          const lid = wid.server === 'lid' ? wid : alternate;
+          if (phone?.server !== 'c.us') return { code: 'contact_lid_without_phone' };
+          await save({
+            phoneNumber: phone.user,
+            prevPhoneNumber: null,
+            lid: lid?.server === 'lid' ? lid : undefined,
+            firstName: cmd.name,
+            lastName: cmd.lastName,
+            syncToAddressbook: cmd.syncAddressBook,
+            username: null,
+          });
+          // Never retry through WPP.contact.save after this write: it would
+          // replace the corrected mutation with the malformed one again.
+          contact = await WPP.contact.get(cmd.id);
+        } else {
+          contact = await WPP.contact.save(cmd.id, cmd.name, {
+            lastName: cmd.lastName,
+            syncAddressBook: cmd.syncAddressBook,
+          });
+        }
         return {
           isMyContact: !!contact?.isMyContact,
           syncToAddressbook: !!contact?.syncToAddressbook,

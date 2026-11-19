@@ -50,12 +50,16 @@
   "autocomplete": "Sugestie wzmianek",
   "media": "Przeglądarka multimediów i odtwarzanie",
   "emoji": "Wybór emoji",
+  "reorder": "Listy z kolejnością do zmiany",
   "ai_result": "Okno wyniku (AI i transkrypcja)",
   "status": "Statusy",
   "status_list": "Lista statusów",
   "status_reply": "Odpowiedź na status",
   "calls": "Karta Połączenia",
   "call": "Podczas połączenia",
-  "incoming": "Połączenie przychodzące"
+  "incoming": "Połączenie przychodzące",
+  "channels": "Okno Kanały",
+  "channel_people": "Administratorzy i obserwujący kanału",
+  "call_participants": "Uczestnicy połączenia"
  }
 }

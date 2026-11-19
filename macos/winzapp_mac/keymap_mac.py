@@ -50,8 +50,9 @@ def _exc(win_mods, keys, mac_mods, mac_key=None):
         EXCEPTIONS[(_c(*win_mods), k)] = (_c(*mac_mods), mac_key or k)
 
 
-# Sections: Alt+1..9 -> Command-1..9, like Mail/Messages sidebars.
-_exc([W_ALT], list("123456789"), [M_CMD])
+# Sections: Alt+1..9 -> Command-1..9, like Mail/Messages sidebars; Alt+0
+# (starred messages) -> Command-0, since Command-Option-0 is Alt+Shift+0.
+_exc([W_ALT], DIGITS, [M_CMD])
 # Bookmarks move to the physical Control key (Command-digit is sections;
 # Command-Shift-3/4/5 are screenshots).
 _exc([W_CTRL], DIGITS, [M_CTRL])

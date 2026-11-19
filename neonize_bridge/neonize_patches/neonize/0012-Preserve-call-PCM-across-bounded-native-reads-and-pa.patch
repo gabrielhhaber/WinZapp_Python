@@ -1,0 +1,388 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Muhammet Enes Senovali <mesenovali@gmail.com>
+Date: Fri, 30 Oct 2026 12:44:04 +0300
+Subject: [PATCH] Preserve call PCM across bounded native reads and pace
+ microphone underruns
+
+---
+ goneonize/calls.go          |  66 +++++-----------
+ goneonize/calls_pcm.go      | 148 ++++++++++++++++++++++++++++++++++++
+ goneonize/calls_pcm_test.go |  97 +++++++++++++++++++++++
+ 3 files changed, 264 insertions(+), 47 deletions(-)
+ create mode 100644 goneonize/calls_pcm.go
+ create mode 100644 goneonize/calls_pcm_test.go
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index c9c898c..748d305 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -37,9 +37,8 @@ import (
+ )
+ 
+ const (
+-	bytesPorQuadro  = meowcaller.FrameSamples * 2
+-	quadrosNaFila   = 50 // 3 s de audio de cada lado
+-	esperaFonteMs   = 150
++	bytesPorQuadro = meowcaller.FrameSamples * 2
++	// Source and sink queues are bounded independently below.
+ 	eventosNaFila   = 256
+ 	erroSemChamada  = -2
+ 	erroSemCliente  = -3
+@@ -122,7 +121,7 @@ type chamadaAtiva struct {
+ 	entrante bool
+ 	atendida atomic.Bool
+ 	// entrada: o que chega do outro lado (rumo ao alto-falante).
+-	entrada chan []byte
++	entrada *callPCMQueue
+ 	// saida: o que o microfone manda (rumo ao outro lado).
+ 	saida chan []byte
+ 	fim   chan struct{}
+@@ -136,50 +135,26 @@ type chamadaAtiva struct {
+ 	videoRecebidos atomic.Int64
+ }
+ 
+-func (c *chamadaAtiva) encerrar() { c.uma.Do(func() { close(c.fim) }) }
++func (c *chamadaAtiva) encerrar() {
++	c.uma.Do(func() {
++		close(c.fim)
++		c.entrada.Close()
++	})
++}
+ 
+ // ReadFrame e chamado pelo meowcaller a cada 60 ms; sem audio do Python a
+ // tempo, entrega silencio para o ritmo do envio nao parar.
+ func (c *chamadaAtiva) ReadFrame() ([]float32, error) {
+-	f := make([]float32, meowcaller.FrameSamples)
+-	select {
+-	case b := <-c.saida:
++	f, err := readCallMicrophone(c.saida, c.fim)
++	if err == nil {
+ 		c.enviados.Add(1)
+-		for i := range f {
+-			f[i] = float32(int16(uint16(b[i*2])|uint16(b[i*2+1])<<8)) / 32768
+-		}
+-	case <-time.After(esperaFonteMs * time.Millisecond):
+-	case <-c.fim:
+-		return nil, fmt.Errorf("chamada encerrada")
+ 	}
+-	return f, nil
++	return f, err
+ }
+ 
+ func (c *chamadaAtiva) WriteFrame(frame []float32) error {
+ 	c.recebidos.Add(1)
+-	b := make([]byte, len(frame)*2)
+-	for i, v := range frame {
+-		if v > 1 {
+-			v = 1
+-		} else if v < -1 {
+-			v = -1
+-		}
+-		s := uint16(int16(v * 32767))
+-		b[i*2] = byte(s)
+-		b[i*2+1] = byte(s >> 8)
+-	}
+-	select {
+-	case c.entrada <- b:
+-	default: // fila cheia: descarta o mais antigo para nao atrasar a voz
+-		select {
+-		case <-c.entrada:
+-		default:
+-		}
+-		select {
+-		case c.entrada <- b:
+-		default:
+-		}
+-	}
++	c.entrada.Push(encodeCallPCM(frame))
+ 	return nil
+ }
+ 
+@@ -214,8 +189,8 @@ func ligarChamada(cliente string, c *meowcaller.Call, entrante bool) *chamadaAti
+ 	a := &chamadaAtiva{
+ 		call:     c,
+ 		entrante: entrante,
+-		entrada:  make(chan []byte, quadrosNaFila),
+-		saida:    make(chan []byte, quadrosNaFila),
++		entrada:  newCallPCMQueue(),
++		saida:    make(chan []byte, 3), // at most 180 ms of stale microphone capture
+ 		fim:      make(chan struct{}),
+ 		video:    make(chan []byte, videoNaFila),
+ 	}
+@@ -497,15 +472,12 @@ func CallReadAudio(id *C.char, call *C.char, buf *C.uchar, cap C.int, timeoutMs
+ 	if int(cap) < bytesPorQuadro {
+ 		return erroTamanho
+ 	}
+-	select {
+-	case b := <-a.entrada:
+-		copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(cap)), b)
+-		return C.int(len(b))
+-	case <-a.fim:
++	b, ended := a.entrada.Read(int(cap), time.Duration(timeoutMs)*time.Millisecond)
++	if ended {
+ 		return erroSemChamada
+-	case <-time.After(time.Duration(timeoutMs) * time.Millisecond):
+-		return erroTempoLimite
+ 	}
++	copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(cap)), b)
++	return C.int(len(b))
+ }
+ 
+ // CallWriteAudio recebe um quadro de 1920 bytes (PCM s16le) do microfone.
+diff --git a/goneonize/calls_pcm.go b/goneonize/calls_pcm.go
+new file mode 100644
+index 0000000..970d41a
+--- /dev/null
++++ b/goneonize/calls_pcm.go
+@@ -0,0 +1,148 @@
++package main
++
++// PCM ownership at the Python boundary. A decoder can return several codec
++// frames in one write; C callers provide only one frame's capacity. Keep the
++// remainder here instead of dequeuing it and silently truncating the copy.
++import (
++	"errors"
++	"math"
++	"sync"
++	"time"
++)
++
++const callPCMFrameBytes = 1920
++const callPCMMaxBytes = 8 * callPCMFrameBytes // bounded even for SplitRed bursts
++
++var errCallPCMClosed = errors.New("call audio closed")
++
++type callPCMQueue struct {
++	mu      sync.Mutex
++	pending []byte
++	ready   chan struct{}
++	done    chan struct{}
++	closed  bool
++	dropped uint64 // samples, never packet/voice content
++}
++
++func newCallPCMQueue() *callPCMQueue {
++	return &callPCMQueue{ready: make(chan struct{}, 1), done: make(chan struct{})}
++}
++
++func (q *callPCMQueue) signal() {
++	select {
++	case q.ready <- struct{}{}:
++	default:
++	}
++}
++
++func (q *callPCMQueue) Push(pcm []byte) {
++	if len(pcm) == 0 || len(pcm)%2 != 0 {
++		return
++	}
++	q.mu.Lock()
++	defer q.mu.Unlock()
++	if q.closed {
++		return
++	}
++	if len(pcm) > callPCMMaxBytes {
++		q.dropped += uint64((len(pcm) - callPCMMaxBytes) / 2)
++		pcm = pcm[len(pcm)-callPCMMaxBytes:]
++	}
++	if excess := len(q.pending) + len(pcm) - callPCMMaxBytes; excess > 0 {
++		q.dropped += uint64(excess / 2)
++		q.pending = q.pending[excess:]
++	}
++	q.pending = append(q.pending, pcm...)
++	q.signal()
++}
++
++func (q *callPCMQueue) Read(capacity int, timeout time.Duration) ([]byte, bool) {
++	if capacity < 2 {
++		return nil, false
++	}
++	capacity -= capacity % 2
++	var timer *time.Timer
++	var expired <-chan time.Time
++	if timeout > 0 {
++		timer = time.NewTimer(timeout)
++		defer timer.Stop()
++		expired = timer.C
++	}
++	for {
++		q.mu.Lock()
++		if q.closed {
++			q.mu.Unlock()
++			return nil, true
++		}
++		if len(q.pending) > 0 {
++			n := min(capacity, len(q.pending))
++			out := append([]byte(nil), q.pending[:n]...)
++			q.pending = q.pending[n:]
++			if len(q.pending) > 0 {
++				q.signal()
++			}
++			q.mu.Unlock()
++			return out, false
++		}
++		q.mu.Unlock()
++		if timeout <= 0 {
++			return nil, false
++		}
++		select {
++		case <-q.done:
++			return nil, true
++		case <-expired:
++			return nil, false
++		case <-q.ready:
++		}
++	}
++}
++
++func (q *callPCMQueue) Close() {
++	q.mu.Lock()
++	defer q.mu.Unlock()
++	if !q.closed {
++		q.closed = true
++		clear(q.pending)
++		q.pending = nil
++		close(q.done)
++	}
++}
++
++func encodeCallPCM(frame []float32) []byte {
++	pcm := make([]byte, 2*len(frame))
++	for i, v := range frame {
++		if math.IsNaN(float64(v)) {
++			v = 0
++		}
++		v = max(-1, min(1, v))
++		s := uint16(int16(v * 32767))
++		pcm[2*i], pcm[2*i+1] = byte(s), byte(s>>8)
++	}
++	return pcm
++}
++
++// The media ticker, not source arrival, owns packet cadence. Waiting 150 ms
++// inside a 60 ms tick dropped tick deadlines and delayed both relay startup and
++// every later microphone underrun. Missing capture is one on-time silent frame.
++func readCallMicrophone(queue <-chan []byte, done <-chan struct{}) ([]float32, error) {
++	select {
++	case <-done:
++		return nil, errCallPCMClosed
++	default:
++	}
++	frame := make([]float32, callPCMFrameBytes/2)
++	select {
++	case pcm := <-queue:
++		if len(pcm) != callPCMFrameBytes {
++			return frame, nil
++		}
++		for i := range frame {
++			frame[i] = float32(int16(uint16(pcm[2*i]) | uint16(pcm[2*i+1])<<8)) / 32768
++		}
++	case <-done:
++		return nil, errCallPCMClosed
++	default:
++	}
++	return frame, nil
++}
+diff --git a/goneonize/calls_pcm_test.go b/goneonize/calls_pcm_test.go
+new file mode 100644
+index 0000000..7f3dd22
+--- /dev/null
++++ b/goneonize/calls_pcm_test.go
+@@ -0,0 +1,97 @@
++package main
++
++import (
++	"bytes"
++	"math"
++	"testing"
++)
++
++func TestCallPCMQueueKeepsEverySampleOfDecoderBursts(t *testing.T) {
++	for frames := 1; frames <= 8; frames++ {
++		queue := newCallPCMQueue()
++		input := make([]byte, callPCMFrameBytes*frames)
++		for i := range input {
++			input[i] = byte(i * 13)
++		}
++		queue.Push(input)
++		var output []byte
++		for i := 0; i < frames; i++ {
++			part, ended := queue.Read(callPCMFrameBytes, 0)
++			if ended || len(part) != callPCMFrameBytes {
++				t.Fatalf("frames=%d read=%d bytes=%d ended=%v", frames, i, len(part), ended)
++			}
++			output = append(output, part...)
++		}
++		if !bytes.Equal(output, input) {
++			t.Fatalf("frames=%d lost or reordered PCM", frames)
++		}
++	}
++}
++
++func TestCallPCMQueueKeepsShortFramesAcrossReads(t *testing.T) {
++	queue := newCallPCMQueue()
++	queue.Push([]byte{1, 2, 3, 4, 5, 6})
++	first, _ := queue.Read(3, 0) // never split a signed-16 sample
++	second, _ := queue.Read(callPCMFrameBytes, 0)
++	if !bytes.Equal(first, []byte{1, 2}) || !bytes.Equal(second, []byte{3, 4, 5, 6}) {
++		t.Fatalf("split PCM = %v %v", first, second)
++	}
++}
++
++func TestCallPCMQueueCapsSamplesAndDropsOnlyOldestBacklog(t *testing.T) {
++	queue := newCallPCMQueue()
++	queue.Push(bytes.Repeat([]byte{1, 0}, callPCMMaxBytes/2))
++	newest := bytes.Repeat([]byte{2, 0}, callPCMFrameBytes/2)
++	queue.Push(newest)
++	out, _ := queue.Read(callPCMMaxBytes, 0)
++	if len(out) != callPCMMaxBytes || !bytes.Equal(out[len(out)-len(newest):], newest) {
++		t.Fatal("sample cap did not retain the freshest PCM")
++	}
++	if queue.dropped != callPCMFrameBytes/2 {
++		t.Fatalf("dropped samples=%d", queue.dropped)
++	}
++}
++
++func TestCallPCMQueueClosedCallNeverLeaksItsBufferedSpeech(t *testing.T) {
++	queue := newCallPCMQueue()
++	queue.Push([]byte{1, 2, 3, 4})
++	queue.Close()
++	queue.Close()
++	queue.Push([]byte{5, 6})
++	out, ended := queue.Read(callPCMFrameBytes, 0)
++	if !ended || len(out) != 0 {
++		t.Fatal("closed call returned stale PCM")
++	}
++}
++
++func TestCallPCMConversionClipsAndRejectsNonFiniteNoise(t *testing.T) {
++	pcm := encodeCallPCM([]float32{0, 1, -1, 2, -2, float32(math.NaN())})
++	if !bytes.Equal(pcm, []byte{0, 0, 255, 127, 1, 128, 255, 127, 1, 128, 0, 0}) {
++		t.Fatalf("s16le conversion = %v", pcm)
++	}
++}
++
++func TestCallMicrophoneUnderrunReturnsOnTimeSilence(t *testing.T) {
++	// Empty channels stay open: the old 150 ms wait cannot complete this
++	// synchronously. No wall-clock sleep or device is involved.
++	frame, err := readCallMicrophone(make(chan []byte), make(chan struct{}))
++	if err != nil || len(frame) != callPCMFrameBytes/2 {
++		t.Fatal("underrun did not produce one frame")
++	}
++	for _, sample := range frame {
++		if sample != 0 {
++			t.Fatal("underrun invented microphone audio")
++		}
++	}
++}
++
++func TestCallMicrophoneClosedSourceStopsInsteadOfReadingBacklog(t *testing.T) {
++	done := make(chan struct{})
++	close(done)
++	queue := make(chan []byte, 1)
++	queue <- make([]byte, callPCMFrameBytes)
++	frame, err := readCallMicrophone(queue, done)
++	if err != errCallPCMClosed || frame != nil {
++		t.Fatal("closed call consumed a stale microphone frame")
++	}
++}

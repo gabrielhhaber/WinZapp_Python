@@ -28,7 +28,7 @@
 <h3>Vincular tu cuenta</h3>
 <p>La pantalla de conexión ofrece dos formas de emparejar:</p>
 <ol class="steps">
-  <li><span class="step-num">1</span><div><strong>Número de teléfono:</strong> Si todavía no has vinculado, la lista "Motor de conexión", antes del país, permite elegir entre WPPConnect y Neonize sin abrir la configuración; al elegir, WinZapp pide confirmación y se reinicia con el motor elegido. elige el país (la lista está en orden alfabético, usa el país y el idioma de Windows y admite escribir varias letras para buscar), escribe el número y continúa. WinZapp muestra un código. En el teléfono, abre WhatsApp, ve a Dispositivos vinculados &gt; Vincular un dispositivo y elige vincular con número de teléfono.</div></li>
+  <li><span class="step-num">1</span><div><strong>Número de teléfono:</strong> Si todavía no has vinculado, la lista "Motor de conexión", antes del país, permite elegir entre Neonize y WPPConnect (alternativa) sin abrir la configuración; al elegir, WinZapp pide confirmación y se reinicia con el motor elegido. elige el país (la lista está en orden alfabético, usa el país y el idioma de Windows y admite escribir varias letras para buscar), escribe el número y continúa. WinZapp muestra un código. En el teléfono, abre WhatsApp, ve a Dispositivos vinculados &gt; Vincular un dispositivo y elige vincular con número de teléfono.</div></li>
   <li><span class="step-num">2</span><div><strong>Código QR:</strong> escanea el código de la pantalla con WhatsApp en el teléfono, en Dispositivos vinculados.</div></li>
 </ol>
 <p>WinZapp anuncia cuándo se está generando el código, cuándo aparece de verdad, cuándo caduca y cuándo no se pudo generar. Si WhatsApp rechaza el código, el mensaje explica el motivo.</p>
@@ -55,3 +55,5 @@
 <p>Cada versión trae un <code>SHA256SUMS.txt</code>. Para comprobarlo en CMD:</p>
 <p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
 <p>El valor debe coincidir con el de la línea del archivo. Si es distinto, borra el archivo y descárgalo de nuevo. El actualizador de WinZapp también comprueba la suma (y, en las versiones más nuevas, la firma) antes de instalar.</p>
+
+<p>En el motor Neonize, la ventana de conexión pregunta cuánto historial traer al conectar: solo los mensajes recientes, 30 días, 6 meses, 1 año, todo el historial o un periodo personalizado (días, meses o años, escrito en el campo que aparece debajo). El teléfono envía el historial una vez, al conectar; los mensajes de hace más de un año solo llegan así. Si cambias la elección con el código QR en pantalla, se genera un nuevo código QR con ella.</p>

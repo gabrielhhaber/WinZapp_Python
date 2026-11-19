@@ -11,6 +11,8 @@ import time
 import wx
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
+from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
+from core.profile_names import apply_profile_name
 from core.phone_variants import brazilian_variant_chat_jid
 from core.message_stars import apply_remote_star, merge_star_state
 from core.conversation_view import (
@@ -33,6 +35,8 @@ from core.message_edit import (
     is_edit_event,
 )
 from core.reply_failure import clear_reply_draft
+from core.notification_burst import log_background_skip, notification_allowed
+from main_window.backlog_flood import defer_list_update, note_incoming_message
 from core.call_log import (
     call_log_supersedes,
     is_call_log,
@@ -622,22 +626,27 @@ class MessageEventsMixin:
     def _resolve_message_chat_jid(self, remote_jid: str, key: dict,
                                   resolve_unknown: bool = True) -> str:
         """File live and historical messages under the same canonical chat."""
+        retire_cross_self_aliases(self, remote_jid, key.get("remoteJidAlt"), key.get("participant"))
         alt_jid = self._normalize_jid(key.get("remoteJidAlt", ""))
         if remote_jid.endswith("@lid"):
-            phone_jid = (
-                alt_jid if alt_jid.endswith("@s.whatsapp.net")
-                else getattr(self, "_lid_to_phone", {}).get(remote_jid, "")
-            )
+            # A refused mapping must not become an accepted routing hint.
+            # Preserve the original peer if neither hint nor cache is safe.
+            phone_jid = ""
+            for candidate in (alt_jid, getattr(self, "_lid_to_phone", {}).get(remote_jid, "")):
+                if lid_phone_pair_allowed(self, remote_jid, candidate):
+                    phone_jid = self._normalize_jid(candidate)
+                    break
             if phone_jid:
                 self._merge_lid_into_phone(remote_jid, phone_jid)
                 return phone_jid
             if resolve_unknown:
                 self._queue_lid_resolutions([remote_jid])
         elif alt_jid.endswith("@lid"):
-            self._merge_lid_into_phone(alt_jid, remote_jid)
+            if lid_phone_pair_allowed(self, alt_jid, remote_jid):
+                self._merge_lid_into_phone(alt_jid, remote_jid)
         elif remote_jid.endswith("@s.whatsapp.net"):
             lid_jid = getattr(self, "_phone_to_lid", {}).get(remote_jid, "")
-            if lid_jid:
+            if lid_jid and lid_phone_pair_allowed(self, lid_jid, remote_jid):
                 self._merge_lid_into_phone(lid_jid, remote_jid)
         return remote_jid
 
@@ -660,6 +669,7 @@ class MessageEventsMixin:
         if not self._live_events_ready():
             return
         key        = msg.get("key", {})
+        retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         from_me    = key.get("fromMe", False)
         remote_jid = self._normalize_jid(key.get("remoteJid", ""))
         msg_id     = key.get("id", "")
@@ -671,6 +681,10 @@ class MessageEventsMixin:
 
         if not remote_jid:
             return
+
+        # A message sent long ago: many of them in a row are a backlog still
+        # arriving, which holds the chat list still (main_window/backlog_flood.py).
+        late = note_incoming_message(self, msg)
 
         # ── Guard against self-chat multi-device-sync artifacts ─────────────
         # See _redirect_self_chat_artifact()'s own docstring for the two
@@ -721,7 +735,7 @@ class MessageEventsMixin:
         remote_jid, from_me = self._redirect_self_chat_artifact(remote_jid, key, from_me)
 
         # Learn/update presence pushName map from incoming message
-        if not from_me and self._learn_sender_name(msg):
+        if not from_me and self._learn_sender_name(msg, live=True):
             self._schedule_save(contacts_dirty=True)
 
         # Extract mapping and mentions from incoming messages
@@ -818,7 +832,8 @@ class MessageEventsMixin:
             # list's last-message preview never picked up
             # chat["_last_reaction"] until some unrelated event happened to
             # trigger a refresh.
-            self._schedule_set_chats()
+            if not (late and defer_list_update(self)):
+                self._schedule_set_chats()
             if not reaction_targets_status(msg):
                 return
 
@@ -1047,6 +1062,16 @@ class MessageEventsMixin:
                     # rather than being compared as an edit (core/quote_recovery.py).
                     if not awaits_real_copy(existing):
                         self._apply_possible_edit(existing, msg, remote_jid)
+                        # A sync running beside the live events (waking from
+                        # sleep) can store the message a moment before its
+                        # event is handled here; the automatic transcription
+                        # and descriptions are still owed to it (report of
+                        # 2026-11-11: one of two voice notes of the same burst
+                        # was never transcribed). The queues run a message
+                        # once and skip one that already has a text.
+                        hand_over = getattr(self, "_auto_process_caught_up", None)
+                        if callable(hand_over) and not from_me:
+                            hand_over(remote_jid, [existing])
                         return  # already stored (edited in place if content changed)
                     # A sync stored WhatsApp Web's placeholder for this id and
                     # this is its decrypted copy (see _resolved_placeholder_is_fresh).
@@ -1185,8 +1210,11 @@ class MessageEventsMixin:
         # display name and rebuilds the row text of EVERY chat, which on an
         # account with several hundred of them is what made a new message take
         # seconds to show up in the list.
-        if not self.move_chat_row_to_top(remote_jid):
-            self._schedule_set_chats()
+        # A late message during a backlog flood leaves the list alone; it is
+        # rebuilt once when the flood ends.
+        if not (late and defer_list_update(self)):
+            if not self.move_chat_row_to_top(remote_jid):
+                self._schedule_set_chats()
 
         # ── Add message to the open conversation panel (if visible) ──────────
         if hasattr(self, "conversations_panel"):
@@ -1210,6 +1238,11 @@ class MessageEventsMixin:
         # see is_countable_message().
         if not is_countable_message(msg):
             return
+
+        panel = getattr(self, "conversations_panel", None)
+        maybe_translate = getattr(panel, "_maybe_auto_translate", None)
+        if callable(maybe_translate) and msg.get("messageType") in ("conversation", "extendedTextMessage"):
+            wx.CallAfter(maybe_translate, remote_jid, msg)
 
         # Guard: do not play sound or show notification for messages older than 60 seconds
         ts = msg.get("messageTimestamp")
@@ -1245,6 +1278,9 @@ class MessageEventsMixin:
         from core.notification_manager import (
             format_notification_title, format_notification_body,
             format_foreground_message, format_locked_notification,
+        )
+        from core.foreground_sound import (
+            SCOPE_ACTIVE, SCOPE_OTHER, play_foreground_message_sound,
         )
 
         body  = format_notification_body(msg, self, self.i18n)
@@ -1287,6 +1323,13 @@ class MessageEventsMixin:
                     is_current_conv, archived_panel_is_shown(self)):
                 return
 
+            # A burst of messages arriving at once sounds and speaks for its
+            # first few only (core/notification_burst.py). The open
+            # conversation is still marked as read below.
+            quiet = not notification_allowed(self)
+            if quiet and not is_current_conv:
+                return
+
             if locked and not is_current_conv:
                 self.message_foreground_sound.play()
                 if speech.get("speak_other_conv_messages", True):
@@ -1302,9 +1345,10 @@ class MessageEventsMixin:
                 # via AO2 only when speak_active_conv_messages is on. Neither of
                 # these is the background toast this function's general.
                 # notifications_enabled setting is meant to gate — see below.
-                self.message_current_sound.play()
-                if speech.get("speak_active_conv_messages", True):
-                    self.output(format_foreground_message(msg, self, self.i18n, body))
+                if not quiet:
+                    play_foreground_message_sound(self, SCOPE_ACTIVE, remote_jid)
+                    if speech.get("speak_active_conv_messages", True):
+                        self.output(format_foreground_message(msg, self, self.i18n, body))
                 # Mark the active conversation as read immediately, but only if the
                 # window has been focused for at least 5 seconds (to prevent marking
                 # startup/offline messages as read automatically).
@@ -1319,7 +1363,7 @@ class MessageEventsMixin:
                 # Scenario 2: message in a DIFFERENT conversation (window active)
                 # Play foreground sound (always), speak "Nova mensagem de X: body"
                 # via AO2 only when speak_other_conv_messages is on.
-                self.message_foreground_sound.play()
+                play_foreground_message_sound(self, SCOPE_OTHER, remote_jid)
                 if speech.get("speak_other_conv_messages", True):
                     title = format_notification_title(msg, self, self.i18n)
                     spoken = self.i18n.t("fg_new_msg").format(name=title) + f": {body}"
@@ -1331,10 +1375,12 @@ class MessageEventsMixin:
         # exempting it — the chat being open only ever matters while the
         # window is active. A reply/mention still gets through, same as above.
         if muted and not priority:
+            log_background_skip("muted chat")
             return
 
         # An archived chat in the background never sends a toast or sound/speech.
         if archived:
+            log_background_skip("archived chat")
             return
 
         # Send system toast notification. general.notifications_enabled is
@@ -1344,6 +1390,11 @@ class MessageEventsMixin:
         # a muted/archived chat before this point, nothing else) whenever the
         # user turned it off.
         if not self.settings.get("general", {}).get("notifications_enabled", True):
+            log_background_skip("background notifications are off in Settings")
+            return
+        # Same burst limit as the foreground: sound, speech and toast alike.
+        if not notification_allowed(self):
+            log_background_skip("burst limit")
             return
         from core.notification_manager import (
             background_notification_content, notification_content_level,
@@ -1417,7 +1468,7 @@ class MessageEventsMixin:
             )
         self.notification_manager.send(title, body, remote_jid, msg_key=msg.get("key"))
 
-    def _learn_sender_name(self, msg: dict) -> bool:
+    def _learn_sender_name(self, msg: dict, live: bool = False) -> bool:
         """Remember the pushName a message carries for its sender JID.
 
         In a group, ``key.participant`` is very often a bare ``@lid`` that maps
@@ -1431,6 +1482,10 @@ class MessageEventsMixin:
         that name available to every later lookup (chat-list previews,
         notifications, the message list), including for messages of types that
         arrive with no pushName of their own.
+
+        A name is filed for every address of the person at once, and never over
+        a newer one (core/profile_names.py): only a *live* message may replace a
+        name already known, a replayed history message only fills a gap.
 
         Returns True when something new was learned, so callers can persist.
         """
@@ -1449,22 +1504,33 @@ class MessageEventsMixin:
             return False
 
         ppm = self._presence_pushname_map
-        changed = False
         targets = [sender_jid]
-        # Index both JID forms when the bridge is known, so a lookup by either
+        # Index every JID form when the bridge is known, so a lookup by any
         # one finds the name.
         if sender_jid.endswith("@lid"):
             phone = getattr(self, "_lid_to_phone", {}).get(sender_jid, "")
             if phone:
-                targets.append(phone)
+                targets += [phone, phone.rsplit("@", 1)[0] + "@c.us"]
         else:
             lid = getattr(self, "_phone_to_lid", {}).get(sender_jid, "")
             if lid:
                 targets.append(lid)
-        for target in targets:
-            if ppm.get(target) != push:
-                ppm[target] = push
-                changed = True
+        stamps = getattr(self, "_pushname_stamps", None)
+        if stamps is None:
+            stamps = self._pushname_stamps = {}
+        now = time.time()
+        try:
+            ts = float(msg.get("messageTimestamp") or msg.get("t") or 0) or now
+        except (TypeError, ValueError):
+            ts = now
+        if ts > 1e11:           # milliseconds
+            ts /= 1000.0
+        ts = min(ts, now + 60)  # a wrong clock must not freeze the name
+        # A "live" message that sat queued while the app was closed is old news.
+        live = live and ts >= now - 600
+        changed = apply_profile_name(
+            self.contacts, ppm, stamps, targets, push, ts, authoritative=live,
+            chats=getattr(self, "chats", None))
         if changed:
             unresolvable = getattr(self, "_unresolvable_names", None)
             for target in targets:
@@ -1527,6 +1593,7 @@ class MessageEventsMixin:
         if not self._live_events_ready():
             return
         key        = msg.get("key", {})
+        retire_cross_self_aliases(self, key.get("remoteJid"), key.get("remoteJidAlt"), key.get("participant"))
         remote_jid = self._normalize_jid(key.get("remoteJid", ""))
         msg_id     = key.get("id", "")
 
@@ -1706,7 +1773,11 @@ class MessageEventsMixin:
 
         # Debounced UI update
         self._schedule_save(dirty_jid=remote_jid)
-        self._schedule_set_chats()
+        # History handed over as events is backlog too: it feeds the flood
+        # detector, and a flood holds the list (main_window/backlog_flood.py).
+        note_incoming_message(self, msg)
+        if not defer_list_update(self):
+            self._schedule_set_chats()
 
         # Add message to the open conversation panel if it's currently selected
         cp = getattr(self, "conversations_panel", None)

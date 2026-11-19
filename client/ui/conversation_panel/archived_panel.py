@@ -48,6 +48,7 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         )
         self._init_ui()
         self.create_accelerator_table()
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_chat_list_char_hook)
 
     def restore_selection(self):
         """Select, focus and give keyboard focus to the first archived
@@ -361,6 +362,8 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
                 lst.SetFocus()
                 lst.Focus(0)
                 lst.Select(0)
+            return
+        if event.GetKeyCode() == wx.WXK_ESCAPE and self._clear_chat_list_filters():
             return
         event.Skip()
 

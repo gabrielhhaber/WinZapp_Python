@@ -7,6 +7,8 @@ ConversationsPanel.__init__/init_UI is available here.
 
 import wx
 
+from core.bookmark_settings import remove_after_use
+
 
 class BookmarksMixin:
     """Message bookmarks and temporary bookmarks.
@@ -25,6 +27,7 @@ class BookmarksMixin:
                 i18n.t("bookmark_not_found").format(digit=digit), interrupt=True
             )
             return
+        self._drop_bookmark_after_use(digit, (jid, msg_id), temporary=False)
         # Only in the same conversation: having just navigated to another one,
         # the user did move, even if the row index happens to coincide with
         # the one the newly opened conversation focused on its own.
@@ -52,6 +55,18 @@ class BookmarksMixin:
                 position=idx + 1, digit=digit, conv_name=conv_name,
             )
         self.main_window.output(text, interrupt=True)
+
+    def _drop_bookmark_after_use(self, digit: int, used, temporary: bool):
+        """Remove the bookmark a jump just used, when Settings > Interface > Chats asks
+        for that kind to go away after its first use, so the same key sets a
+        new one next time (core/bookmark_settings.py). Only if the digit still
+        holds the bookmark that was used: the permanent jump into another
+        conversation lands a moment later, through wx.CallAfter."""
+        if not remove_after_use(self.main_window.settings, temporary):
+            return
+        store = self._msg_temp_bookmarks if temporary else self._msg_bookmarks
+        if store.get(digit) == used:
+            del store[digit]
 
     def _on_bookmark_set_or_jump(self, digit: int):
         """Ctrl+<digit>: bookmark the focused message, or — if <digit> already
@@ -178,6 +193,7 @@ class BookmarksMixin:
                     i18n.t("temp_bookmark_not_found").format(digit=digit), interrupt=True
                 )
                 return
+            self._drop_bookmark_after_use(digit, existing, temporary=True)
             if self._already_on_message_row(idx):
                 self.main_window.output(
                     i18n.t("temp_bookmark_already_there").format(

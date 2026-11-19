@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+import pending_install
 import logging
 import textwrap
 import threading
@@ -21,7 +22,9 @@ from core.utils import (
     search_normalization_mode,
 )
 from window_title import format_window_title
+from main_window.backlog_flood import held_status
 from core.profile_recovery import profile_is_local
+from core.unread_badge import counts_toward_badge
 
 
 class WindowChromeMixin:
@@ -82,12 +85,14 @@ class WindowChromeMixin:
         self._ID_RESYNC_ALL    = wx.NewIdRef()
         self._ID_RESYNC_CONVERSATION = wx.NewIdRef()
         self._ID_SYNC_MEDIA    = wx.NewIdRef()
+        self._ID_RECONNECT_NOW = wx.NewIdRef()
         self._ID_OFFLINE_MENU  = wx.NewIdRef()
         self._ID_HELP_GUIDE    = wx.NewIdRef()
         self._ID_SHORTCUTS     = wx.NewIdRef()
         self._ID_FORCE_UPDATE  = wx.NewIdRef()
         self._ID_FORCE_REINSTALL_ZIP = wx.NewIdRef()
         self._ID_FORCE_REINSTALL_WPP = wx.NewIdRef()
+        self._ID_INSTALL_PENDING = wx.NewIdRef()
         self._ID_WHATS_NEW     = wx.NewIdRef()
         self._ID_WHATS_NEW_SINCE = wx.NewIdRef()
         self._ID_ABOUT         = wx.NewIdRef()
@@ -142,6 +147,9 @@ class WindowChromeMixin:
             self._ID_SYNC_MEDIA,
             f"{self.i18n.t('menu_sync_media')}\tCtrl+Shift+Alt+B",
         )
+        # Issue #765: the connection back by hand, without restarting
+        # (main_window/manual_reconnect.py)
+        sync_menu.Append(self._ID_RECONNECT_NOW, self.i18n.t("menu_reconnect_now"))
         self._sync_offline_menu_item = sync_menu.AppendCheckItem(
             self._ID_OFFLINE_MENU,
             f"{self.i18n.t('tray_offline_mode')}\tCtrl+Alt+Shift+O",
@@ -245,6 +253,9 @@ class WindowChromeMixin:
         help_menu.Append(self._ID_FORCE_REINSTALL_ZIP, self.i18n.t("menu_force_reinstall_zip"))
         if profile_is_local(self):
             help_menu.Append(self._ID_FORCE_REINSTALL_WPP, self.i18n.t("menu_force_reinstall_wpp"))
+        # An update downloaded and left for later (pending_install.py).
+        help_menu.Append(self._ID_INSTALL_PENDING, self.i18n.t("menu_install_pending_update"))
+        help_menu.Enable(self._ID_INSTALL_PENDING, pending_install.has_pending(self))
         help_menu.AppendSeparator()
         help_menu.Append(self._ID_WHATS_NEW, self.i18n.t("menu_whats_new"))
         help_menu.Append(self._ID_WHATS_NEW_SINCE, self.i18n.t("menu_whats_new_since"))
@@ -265,11 +276,14 @@ class WindowChromeMixin:
         self.Bind(wx.EVT_MENU, self._on_menu_resync_conversation,
                   id=self._ID_RESYNC_CONVERSATION)
         self.Bind(wx.EVT_MENU, self._on_menu_sync_media, id=self._ID_SYNC_MEDIA)
+        self.Bind(wx.EVT_MENU, self.reconnect_now, id=self._ID_RECONNECT_NOW)
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_offline, id=self._ID_OFFLINE_MENU)
         self.Bind(wx.EVT_MENU, self.on_f1,             id=self._ID_SHORTCUTS)
         self.Bind(wx.EVT_MENU, self._on_force_update,  id=self._ID_FORCE_UPDATE)
         self.Bind(wx.EVT_MENU, self._on_force_reinstall_zip, id=self._ID_FORCE_REINSTALL_ZIP)
         self.Bind(wx.EVT_MENU, self._on_force_reinstall_wpp, id=self._ID_FORCE_REINSTALL_WPP)
+        self.Bind(wx.EVT_MENU, lambda e: pending_install.install_pending(self),
+                  id=self._ID_INSTALL_PENDING)
         self.Bind(wx.EVT_MENU, self._on_whats_new,     id=self._ID_WHATS_NEW)
         self.Bind(wx.EVT_MENU, self._on_whats_new_since, id=self._ID_WHATS_NEW_SINCE)
         self.Bind(wx.EVT_MENU, self._on_about,         id=self._ID_ABOUT)
@@ -776,7 +790,7 @@ class WindowChromeMixin:
                 gd, acc_id,
                 on_activate=lambda source: wx.CallAfter(self._ipc_activate, source),
                 on_open_link=lambda link: wx.CallAfter(
-                    self.open_group_invitation_link, link),
+                    self.open_whatsapp_link, link),
                 # NOT wx.CallAfter: _ipc_quit() runs the full graceful
                 # teardown (close-session + flush wait + Node stop + the
                 # loser path's bounded wait), tens of seconds' worth, and on
@@ -887,6 +901,12 @@ class WindowChromeMixin:
         always entered on the wx main thread. The window is hidden first so
         quitting still looks instant.
         """
+        # An update downloaded for "install when I exit" goes in now, and the
+        # app is not started again (update_on_exit.py).
+        checker = getattr(self, "_update_checker", None)
+        if checker is not None and checker.install_staged_on_exit():
+            return
+
         gd = getattr(self, "global_dir", None)
         acc_id = getattr(self, "account_id", None)
         if not (gd and acc_id):
@@ -962,6 +982,8 @@ class WindowChromeMixin:
         mb.GetMenu(1).FindItemById(self._ID_SYNC_MEDIA).SetItemLabel(
             f"{self.i18n.t('menu_sync_media')}\tCtrl+Shift+Alt+B"
         )
+        mb.GetMenu(1).FindItemById(self._ID_RECONNECT_NOW).SetItemLabel(
+            self.i18n.t("menu_reconnect_now"))
         mb.GetMenu(1).FindItemById(self._ID_OFFLINE_MENU).SetItemLabel(
             f"{self.i18n.t('tray_offline_mode')}\tCtrl+Alt+Shift+O"
         )
@@ -1232,6 +1254,9 @@ class WindowChromeMixin:
 
     def _set_status(self, status: str):
         """Update window title and tray tooltip to reflect current status."""
+        # Idle is shown as "updating conversations" while a backlog of old
+        # messages is still arriving (main_window/backlog_flood.py).
+        status = held_status(self, status)
         previous = getattr(self, "_tray_status", "")
         self._tray_status = status
         self._tray_status_key = next(
@@ -1270,7 +1295,8 @@ class WindowChromeMixin:
         unread_chats = 0
         if not getattr(self, "_initial_sync_running", False):
             deleted = self._deleted_chats
-            # Archived conversations are intentionally excluded here — they
+            # Archived and muted conversations are left out by default (each
+            # one has its own option, core/unread_badge.py). Archived ones
             # get their own unread indicator on the "Conversas arquivadas"
             # nav item (see NavigationPanel) instead of inflating the count
             # the user sees in the window title, which used to make the
@@ -1279,7 +1305,11 @@ class WindowChromeMixin:
             unread_chats = sum(
                 1 for jid, chat in list(self.chats.items())
                 if jid not in deleted
-                and not self.is_chat_archived(jid)
+                and counts_toward_badge(
+                    self.settings,
+                    archived=self.is_chat_archived(jid),
+                    muted=self.is_chat_muted(jid),
+                )
                 and not self.is_chat_locked(jid)
                 and effective_unread_count(chat) > 0
             )

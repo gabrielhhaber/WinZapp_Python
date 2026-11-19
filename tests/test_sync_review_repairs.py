@@ -242,6 +242,7 @@ class TestOuterPhoneBudget:
         stub.refresh_history_still_landing = lambda **k: False
         stub._start_deferred_media_sync = lambda: None
         stub._background_backfill_work_allowed = lambda *a: False
+        stub._chats_blocking_background_work = backfill.BackfillMixin._chats_blocking_background_work
         stub._resolve_backfill_target = lambda j: (j, {"remoteJid": j})
         stub._local_record_count = lambda j: 1
         stub.history_page_target = lambda: 200

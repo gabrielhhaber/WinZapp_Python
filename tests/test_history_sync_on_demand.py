@@ -192,6 +192,22 @@ class TestRequestOlderMessages:
         assert stub.request_older_messages("5535999999999@s.whatsapp.net") is True
         assert seen["url"].endswith("/request-older-messages/5535999999999@c.us")
 
+    def test_only_the_users_home_says_the_user_asked(self, monkeypatch):
+        """The Neonize bridge asks the phone for a chat whose history ends on
+        the phone (types 2/3) only when the user pressed Home, never for the
+        backfill (older_history.py)."""
+        stub = _Stub()
+        bodies = []
+
+        def _post(url, **kwargs):
+            bodies.append(kwargs.get("json"))
+            return _Response(200, {"status": "success", "response": {"requested": True}})
+
+        monkeypatch.setattr("main.requests.post", _post)
+        stub.request_older_messages("5535999999999@s.whatsapp.net", user_asked=True)
+        stub.request_older_messages("5535999999999@s.whatsapp.net")
+        assert bodies == [{"userAsked": True}, None]
+
     def test_prefers_the_lid_form_when_one_is_mapped(self, monkeypatch):
         """Same addressing rule sync_chat_messages() uses."""
         stub = _Stub()
@@ -609,7 +625,8 @@ class _FetchStub:
         self._request_succeeds = request_succeeds
         self.requested_for = []
 
-    def request_older_messages(self, jid, timeout=60, outcome_out=None, expected_context=None):
+    def request_older_messages(self, jid, timeout=60, outcome_out=None, expected_context=None,
+                               user_asked=False):
         self.requested_for.append(jid)
         return self._request_succeeds
 

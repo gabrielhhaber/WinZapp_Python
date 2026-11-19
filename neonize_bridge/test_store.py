@@ -350,3 +350,11 @@ def test_the_store_keeps_nothing_of_a_channel_whatever_the_path(tmp_path):
     s.chat("5551@s.whatsapp.net", name="Ann")
     assert [c["jid"] for c in s.chats()] == ["5551@s.whatsapp.net"]
     assert s.messages(ch, 10) == []
+
+
+def test_contacts_in_batch_keep_pushname_does_not_replace_a_stored_nickname(tmp_path):
+    a = Store(str(tmp_path / "x.db"))
+    a.contacts_in_batch([("p1", "", "Novo")])
+    a.contacts_in_batch([("p1", "", "Velho"), ("p2", "", "Outro")], keep_pushname=True)
+    assert a.contact_of("p1")["pushname"] == "Novo"
+    assert a.contact_of("p2")["pushname"] == "Outro"

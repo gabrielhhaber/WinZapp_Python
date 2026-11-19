@@ -1,0 +1,220 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Tue, 27 Oct 2026 08:34:16 -0300
+Subject: [PATCH] send: leave the <biz> node to whatsmeow
+
+GenerateWABinary added a <biz> node for buttons, lists and native flow
+messages, and WinZapp's whatsmeow adds the one WhatsApp Web sends: two
+<biz> nodes, refused by the server with 479 (smax-invalid). Only the opt-in
+<bot biz_bot="1"/> stays.
+---
+ goneonize/main.go          | 146 ++-----------------------------------
+ goneonize/wabinary_test.go |  39 ++++++++++
+ 2 files changed, 46 insertions(+), 139 deletions(-)
+ create mode 100644 goneonize/wabinary_test.go
+
+diff --git a/goneonize/main.go b/goneonize/main.go
+index 3fa2034..45a156b 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -170,148 +170,16 @@ func shouldAddBotNode(isPrivate bool) bool {
+ 	}
+ }
+ 
+-// GenerateWABinary for create button
++// GenerateWABinary returns the extra nodes of an outgoing message. The <biz>
++// node of buttons, lists and native flow messages is whatsmeow's to add
++// (WinZapp's whatsmeow patches, as WhatsApp Web sends it): adding it here too
++// put two <biz> nodes in the stanza, which the server refuses with 479
++// (smax-invalid). Only the opt-in <bot biz_bot="1"/> stays here.
+ func GenerateWABinary(ctx context.Context, to types.JID, msg *waE2E.Message) *[]waBinary.Node {
+-	isPrivate := to.Server == types.DefaultUserServer
+ 	nodes := make([]waBinary.Node, 0)
+-
+-	switch getButtonTypeFromMessage(msg) {
+-	case "interactive":
+-		im := msg.InteractiveMessage
+-		if im != nil {
+-			if nfWrap, ok := im.InteractiveMessage.(*waE2E.InteractiveMessage_NativeFlowMessage_); ok {
+-				nf := nfWrap.NativeFlowMessage
+-				if nf != nil && len(nf.Buttons) > 0 {
+-					for _, b := range nf.Buttons {
+-						if b == nil || b.Name == nil {
+-							continue
+-						}
+-
+-						name := *b.Name
+-
+-						switch name {
+-						case "review_and_pay", "payment_info":
+-							nativeFlowName := "order_details"
+-							if name == "payment_info" {
+-								nativeFlowName = "payment_info"
+-							}
+-
+-							bizNode := waBinary.Node{
+-								Tag: "biz",
+-								Attrs: waBinary.Attrs{
+-									"native_flow_name": nativeFlowName,
+-								},
+-							}
+-							nodes = append(nodes, bizNode)
+-
+-						case "mpm",
+-							"cta_catalog",
+-							"send_location",
+-							"call_permission_request",
+-							"wa_payment_transaction_details",
+-							"automated_greeting_message_view_catalog":
+-							bizNode := waBinary.Node{
+-								Tag:   "biz",
+-								Attrs: waBinary.Attrs{},
+-								Content: []waBinary.Node{
+-									{
+-										Tag:   "interactive",
+-										Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"},
+-										Content: []waBinary.Node{
+-											{
+-												Tag:   "native_flow",
+-												Attrs: waBinary.Attrs{"v": "2", "name": name},
+-											},
+-										},
+-									},
+-								},
+-							}
+-							nodes = append(nodes, bizNode)
+-
+-						default:
+-							bizNode := waBinary.Node{
+-								Tag:   "biz",
+-								Attrs: waBinary.Attrs{},
+-								Content: []waBinary.Node{
+-									{
+-										Tag:   "interactive",
+-										Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"},
+-										Content: []waBinary.Node{
+-											{
+-												Tag:   "native_flow",
+-												Attrs: waBinary.Attrs{"v": "9", "name": "mixed"},
+-											},
+-										},
+-									},
+-								},
+-							}
+-							nodes = append(nodes, bizNode)
+-						}
+-
+-						break
+-					}
+-				}
+-			}
+-		}
+-
+-		if shouldAddBotNode(isPrivate) {
+-			botNode := waBinary.Node{
+-				Tag:   "bot",
+-				Attrs: waBinary.Attrs{"biz_bot": "1"},
+-			}
+-			nodes = append(nodes, botNode)
+-		}
+-
+-	case "list":
+-		bizNode := waBinary.Node{
+-			Tag:   "biz",
+-			Attrs: waBinary.Attrs{},
+-			Content: []waBinary.Node{
+-				{
+-					Tag:   "list",
+-					Attrs: waBinary.Attrs{"v": "2", "type": "product_list"},
+-				},
+-			},
+-		}
+-		nodes = append(nodes, bizNode)
+-
+-	case "buttons":
+-		bizNode := waBinary.Node{
+-			Tag:   "biz",
+-			Attrs: waBinary.Attrs{},
+-			Content: []waBinary.Node{
+-				{
+-					Tag:   "interactive",
+-					Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"},
+-					Content: []waBinary.Node{
+-						{
+-							Tag:   "native_flow",
+-							Attrs: waBinary.Attrs{"v": "9", "name": "mixed"},
+-						},
+-					},
+-				},
+-			},
+-		}
+-		nodes = append(nodes, bizNode)
+-
+-		if shouldAddBotNode(isPrivate) {
+-			botNode := waBinary.Node{
+-				Tag:   "bot",
+-				Attrs: waBinary.Attrs{"biz_bot": "1"},
+-			}
+-			nodes = append(nodes, botNode)
+-		}
+-
+-	default:
+-		if shouldAddBotNode(isPrivate) {
+-			botNode := waBinary.Node{
+-				Tag:   "bot",
+-				Attrs: waBinary.Attrs{"biz_bot": "1"},
+-			}
+-			nodes = append(nodes, botNode)
+-		}
++	if getButtonTypeFromMessage(msg) != "list" && shouldAddBotNode(to.Server == types.DefaultUserServer) {
++		nodes = append(nodes, waBinary.Node{Tag: "bot", Attrs: waBinary.Attrs{"biz_bot": "1"}})
+ 	}
+-
+ 	return &nodes
+ }
+ 
+diff --git a/goneonize/wabinary_test.go b/goneonize/wabinary_test.go
+new file mode 100644
+index 0000000..5e82f83
+--- /dev/null
++++ b/goneonize/wabinary_test.go
+@@ -0,0 +1,39 @@
++package main
++
++import (
++	"context"
++	"testing"
++
++	"go.mau.fi/whatsmeow/proto/waE2E"
++	"go.mau.fi/whatsmeow/types"
++	"google.golang.org/protobuf/proto"
++)
++
++func TestGenerateWABinaryLeavesTheBizNodeToWhatsmeow(t *testing.T) {
++	t.Setenv("NEONIZE_BOT_TAG", "")
++	to := types.NewJID("5511", types.DefaultUserServer)
++	for _, msg := range []*waE2E.Message{
++		{ListMessage: &waE2E.ListMessage{Title: proto.String("l")}},
++		{InteractiveMessage: &waE2E.InteractiveMessage{InteractiveMessage: &waE2E.InteractiveMessage_NativeFlowMessage_{
++			NativeFlowMessage: &waE2E.InteractiveMessage_NativeFlowMessage{Buttons: []*waE2E.InteractiveMessage_NativeFlowMessage_NativeFlowButton{
++				{Name: proto.String("payment_info")}}}}}},
++		{ButtonsMessage: &waE2E.ButtonsMessage{}},
++	} {
++		if nodes := *GenerateWABinary(context.Background(), to, msg); len(nodes) != 0 {
++			t.Errorf("extra nodes %v", nodes)
++		}
++	}
++}
++
++func TestTheBotNodeIsOptIn(t *testing.T) {
++	to := types.NewJID("5511", types.DefaultUserServer)
++	msg := &waE2E.Message{Conversation: proto.String("hi")}
++	t.Setenv("NEONIZE_BOT_TAG", "on")
++	if nodes := *GenerateWABinary(context.Background(), to, msg); len(nodes) != 1 || nodes[0].Tag != "bot" {
++		t.Errorf("want the bot node, got %v", nodes)
++	}
++	group := types.NewJID("1203", types.GroupServer)
++	if nodes := *GenerateWABinary(context.Background(), group, msg); len(nodes) != 0 {
++		t.Errorf("no bot node in a group, got %v", nodes)
++	}
++}

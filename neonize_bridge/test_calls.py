@@ -555,3 +555,50 @@ def test_record_finished_leaves_out_a_call_of_this_account_seen_as_received():
 def test_peer_chat_drops_the_device_of_the_peer():
     db = N(chat_exists=lambda jid: False)
     assert calls.peer_chat(db, "5511:12@s.whatsapp.net", None) == "5511@s.whatsapp.net"
+
+
+def test_the_end_of_a_call_placed_here_is_ours_and_names_who_was_called():
+    """WhatsApp's <terminate> names the creator: for a call placed here, this
+    account. Told as a received call, the client wrote it over the call's
+    peer and the record landed in the user's own chat."""
+    mine = {"5599@c.us", "81@lid"}
+    data = {**ended(), "peerJid": "81@lid", "isGroup": False, "outgoing": False}
+    done = calls.with_own_call(data, mine, "5511999990000@s.whatsapp.net")
+    assert done["outgoing"] is True and done["peerJid"] == "5511999990000@c.us"
+    # placed from another device of this account: no peer, never this account
+    assert calls.with_own_call(data, mine, "")["peerJid"] == ""
+    # someone else's call, a group's, one already ours: as it came
+    other = {**data, "peerJid": "69@lid"}
+    assert calls.with_own_call(other, mine, "x@c.us") is other
+    group = {**data, "isGroup": True}
+    assert calls.with_own_call(group, mine, "x@c.us") is group
+
+
+def test_an_offer_created_by_this_account_is_from_another_of_its_devices():
+    own = meta(creator=jid("21", "lid"), alternative=jid("5511888"))
+    assert calls.from_this_account(own, "5511888@s.whatsapp.net", "21@lid")
+    assert calls.from_this_account(meta(creator=jid("21", "lid")), "", "21:3@lid")
+    assert calls.from_this_account(meta(creator=jid("5", "lid"), alternative=jid("5511888")),
+                                   "5511888@s.whatsapp.net", "")
+    assert not calls.from_this_account(meta(), "5511888@s.whatsapp.net", "21@lid")
+    assert not calls.from_this_account(meta(creator=jid("")), "", "")      # not known yet
+
+
+def test_the_offer_of_another_device_only_becomes_a_call_to_join():
+    import ongoing_calls
+
+    class Media:
+        def __init__(self):
+            self.away = []
+
+        def elsewhere(self, call_id):
+            self.away.append(call_id)
+
+    media = Media()
+    s = N(call_media=media)
+    data = {"id": "OWN", "peerJid": "5511888@c.us", "groupJid": "", "isGroup": False,
+            "isMultiparty": True, "isVideo": False}
+    calls.own_device_offer(s, data, jid("21", "lid"))
+    assert media.away == ["OWN"]
+    assert ongoing_calls.known(media).get("OWN")["chat"] == "5511888@c.us"
+    calls.own_device_offer(N(call_media=None), data, jid("21", "lid"))     # no call layer

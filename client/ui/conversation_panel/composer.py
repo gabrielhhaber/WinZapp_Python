@@ -139,29 +139,35 @@ class ComposerMixin:
         return field.GetInsertionPoint()
 
     def _on_message_field_context_menu(self, event):
-        """Offer Windows spelling suggestions from Applications/right-click."""
+        """Offer Windows spelling suggestions from Applications/right-click,
+        and writing help on a non-empty draft."""
         checker = getattr(self, "_spell_checker", None)
-        if checker is None or not self._spell_check_enabled():
-            event.Skip()
-            return
         field = self.message_field
         text = field.GetValue()
         position = self._spelling_menu_position(event)
-        result = checker.suggestions_at(text, _value_index(text, position))
-        if result is None:
+        result = None
+        if checker is not None and self._spell_check_enabled():
+            result = checker.suggestions_at(text, _value_index(text, position))
+        writing_offered = self._writing_help_offered(text)
+        if result is None and not writing_offered:
             event.Skip()
             return
-        start, end, suggestions = result
         t = self.main_window.i18n.t
         menu = wx.Menu()
         suggestion_ids = {}
-        suggestions_menu = wx.Menu()
-        for suggestion in suggestions:
-            item_id = wx.NewIdRef()
-            suggestions_menu.Append(item_id, suggestion.replace("&", "&&"))
-            suggestion_ids[int(item_id)] = suggestion
-        menu.AppendSubMenu(suggestions_menu, t("spell_orthography"))
-        menu.AppendSeparator()
+        if result is not None:
+            start, end, suggestions = result
+            suggestions_menu = wx.Menu()
+            for suggestion in suggestions:
+                item_id = wx.NewIdRef()
+                suggestions_menu.Append(item_id, suggestion.replace("&", "&&"))
+                suggestion_ids[int(item_id)] = suggestion
+            menu.AppendSubMenu(suggestions_menu, t("spell_orthography"))
+            menu.AppendSeparator()
+        if writing_offered:
+            writing_item = menu.Append(wx.ID_ANY, self._writing_menu_label())
+            menu.Bind(wx.EVT_MENU, lambda e: self._on_writing_help(), writing_item)
+            menu.AppendSeparator()
         # Keep the standard edit commands next to the suggestions. The labels
         # come from the locale files: wx stock labels would be English, as the
         # client never creates a wx.Locale.
@@ -187,8 +193,10 @@ class ComposerMixin:
                 self._replace_spelling_word(start, end, replacement)
             elif command_id in edit_actions:
                 edit_actions[command_id]()
+            else:
+                # Item-specific handlers must receive commands unknown here.
+                command_event.Skip()
 
-        suggestions_menu.Bind(wx.EVT_MENU, on_menu)
         menu.Bind(wx.EVT_MENU, on_menu)
         screen = event.GetPosition()
         if screen != wx.DefaultPosition:
@@ -204,6 +212,8 @@ class ComposerMixin:
             menu.Destroy()
 
     def on_change_message_field(self, event):
+        if hasattr(self, "_sync_writing_help_button"):
+            self._sync_writing_help_button()
         # Don't touch button visibility while recording or staging attachments.
         if self._is_recording or self._attachment_panel.IsShown():
             return
@@ -383,18 +393,30 @@ class ComposerMixin:
             event.Skip()
             return
 
-        key_code = event.GetUnicodeKey()
-        # EVT_CHAR_HOOK reports the raw (unshifted-case) key code for letters,
-        # so A-Z always arrives uppercase regardless of Shift/Caps Lock — apply
-        # the correct case ourselves instead of trusting the hook's casing.
-        if ord("A") <= key_code <= ord("Z"):
-            caps_on = wx.GetKeyState(wx.WXK_CAPITAL)
-            upper = event.ShiftDown() != caps_on
-            char = chr(key_code) if upper else chr(key_code).lower()
-        else:
-            char = chr(key_code)
+        char = self._typed_char(event)
+        if not char:
+            event.Skip()
+            return
         self.message_field.SetFocus()
         self.message_field.WriteText(char)
+
+    @staticmethod
+    def _typed_char(event) -> str:
+        """What the key of this EVT_CHAR_HOOK types (core/typed_key.py): the
+        hook's GetUnicodeKey() is a virtual key code for anything but A-Z and
+        0-9, and "/" on an ABNT2 keyboard came out as "Á"."""
+        from core.typed_key import ascii_letter_or_digit, typed_char
+        shift = event.ShiftDown()
+        caps = bool(wx.GetKeyState(wx.WXK_CAPITAL))
+        raw = getattr(event, "GetRawKeyCode", None)
+        flags = getattr(event, "GetRawKeyFlags", None)
+        typed = None
+        if callable(raw):
+            typed = typed_char(raw(), (flags() >> 16) & 0xFF if callable(flags) else 0,
+                               shift, caps)
+        if typed is None:
+            typed = ascii_letter_or_digit(event.GetUnicodeKey(), shift, caps)
+        return typed
 
     def _should_redirect_char_to_message(self, event) -> bool:
         if self.conversation is None or not self.conversation_panel.IsShown():
@@ -416,13 +438,10 @@ class ComposerMixin:
             # below would otherwise wave this straight through — see
             # _is_phantom_nvda_char()'s docstring.
             return False
-        try:
-            # Only redirect alphanumeric characters — this prevents special
-            # keys like Delete (127), Backspace (8), and other control/function
-            # characters from being swallowed and written into the message field.
-            if not chr(key).isalnum():
-                return False
-        except (ValueError, OverflowError):
+        # Only redirect a letter or a digit, as the keyboard layout types it —
+        # never Delete, Backspace, punctuation or a function key.
+        typed = self._typed_char(event)
+        if not typed or not typed.isalnum():
             return False
 
         focus = wx.Window.FindFocus()
@@ -597,10 +616,26 @@ class ComposerMixin:
         veto unconditionally rather than trying to special-case NVDA's own
         modifier state, which wx never sees. Checked at every entry point
         that can put a character into the message field — see
-        _on_conversation_char_hook() for the other one — because this exact
-        code point is never a legitimate keystroke.
+        _on_conversation_char_hook() for the other one.
+
+        The character comes from a key no keyboard has: VK 0xFF, which
+        NVDA (and Windows itself) injects so that releasing the Windows key
+        after a gesture does not open the Start menu. An injected key has no
+        scan code; a real "ÿ" (a dead "¨" then "y", or a layout that has the
+        letter) comes from a physical key with one. So only 0xFF *without* a
+        scan code is vetoed: the old check refused every "ÿ", and nobody
+        could type one in the message field. In the conversation's char hook
+        the phantom never gets as far as this either: the layout types
+        nothing for VK 0xFF (core/typed_key.py), where GetUnicodeKey() was
+        taken for the character. An event with no raw flags (no way to
+        tell) keeps the old veto.
         """
-        return event.GetUnicodeKey() == 0xFF
+        if event.GetUnicodeKey() != 0xFF:
+            return False
+        flags = getattr(event, "GetRawKeyFlags", None)
+        if not callable(flags):
+            return True
+        return (flags() >> 16) & 0xFF == 0
 
     def _on_message_field_char(self, event):
         if self._is_phantom_nvda_char(event):
@@ -712,8 +747,10 @@ class ComposerMixin:
             return False
 
         if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
-            if refuse_in_channel(self):
-                return True       # consumed: a file is never sent to a channel
+            if refuse_in_channel(self, "photo_video"):
+                return True       # consumed: refused, and said why
+            # (a pasted document or audio is refused when the batch is sent:
+            # refuse_attachments_in_channel())
             data = wx.FileDataObject()
             if wx.TheClipboard.GetData(data):
                 paths = [p for p in data.GetFilenames() if os.path.isfile(p)]
@@ -736,8 +773,8 @@ class ComposerMixin:
                     return True
 
         if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
-            if refuse_in_channel(self):
-                return True       # consumed: an image is never sent to a channel
+            if refuse_in_channel(self, "photo_video"):
+                return True       # consumed: refused, and said why
             data = wx.BitmapDataObject()
             if wx.TheClipboard.GetData(data):
                 bitmap = data.GetBitmap()

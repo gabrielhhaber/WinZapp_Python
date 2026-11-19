@@ -1,6 +1,7 @@
 """Standard native controls for storage; no custom-drawn or colour-only state."""
 import wx
 
+from core import connection_engine
 from core.storage_manager.types import CATEGORIES
 from .storage_options import StorageOptionsPanel
 from .storage_protections import StorageProtectionsPanel
@@ -103,7 +104,8 @@ def make_files(panel, owner):
     button(panel, row, owner, "storage_clear_selection", owner.clear_selection)
     button(panel, row, owner, "storage_select_suggested", owner.select_suggested)
     button(panel, row, owner, "storage_open_models", lambda e: owner.open_owner("models"))
-    button(panel, row, owner, "storage_open_backups", lambda e: owner.open_owner("backups"))
+    if connection_engine.uses_profile_backup(connection_engine.loaded_engine(owner.main_window)):
+        button(panel, row, owner, "storage_open_backups", lambda e: owner.open_owner("backups"))
     sizer.Add(row, 0, wx.EXPAND)
     owner.files = wx.ListCtrl(panel, style=wx.LC_REPORT | wx.LC_SINGLE_SEL,
                               name=owner.i18n.t("storage_files_tab"))

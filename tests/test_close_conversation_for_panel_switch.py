@@ -18,6 +18,7 @@ throughout this test suite (see test_sender_names.py).
 """
 
 from ui.conversations import ConversationsPanel
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 
 class _FakeWidget:
@@ -57,7 +58,7 @@ class _FakeTimer:
         self.stopped = True
 
 
-class _Stub:
+class _Stub(ReadingPositionMixin):
     _close_conversation_core = ConversationsPanel._close_conversation_core
 
     def _stash_message_draft(self):

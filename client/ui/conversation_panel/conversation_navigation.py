@@ -11,6 +11,8 @@ import threading
 import wx
 from core.conversation_view import ARCHIVED, LOCKED
 from ui.conversation_panel.typing_row import message_row_count
+from ui.conversation_panel.chat_list_selection import is_inside
+from main_window.typing_feedback import resume_typing_sound
 from core.utils import (
     db_fetch_limit,
     effective_unread_count,
@@ -151,6 +153,9 @@ class ConversationNavigationMixin:
                     self._record_voice_system_btn.Disable()
                 self._add_attachment_btn.Disable()
 
+        if hasattr(self, "_sync_writing_help_button"):
+            self._sync_writing_help_button()
+
     def refresh_composer_permissions(self, jid: str, transition: bool = True):
         if not self.conversation or self.conversation.get("remoteJid") != jid:
             return
@@ -204,6 +209,9 @@ class ConversationNavigationMixin:
         configured_limit = int(self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
         unread_count = int(conversation.get("unreadCount") or 0)
         limit = db_fetch_limit(configured_limit, unread_count)
+        # Far enough back to still hold the message "continue where you left
+        # off" returns to (reading_position.py).
+        limit = self._reading_resume_fetch_limit(limit, unread_count)
         db_msgs = self.main_window.db.get_messages(_conv_jid, limit=limit)
         db_msgs.reverse()
         # The stored copy can be a moment behind a transcription just
@@ -239,7 +247,8 @@ class ConversationNavigationMixin:
         """Apply "focus_on_open" to a conversation that is already on screen:
         the message field, or the messages list on the unread separator when
         there is one and on the last message otherwise — the row a fresh open
-        would have selected."""
+        would have selected. With "continue where you left off"
+        (reading_position.py), the message row the list is already on."""
         if self._open_focus_target() == "message_field":
             self.message_field.SetFocus()
             return
@@ -251,6 +260,10 @@ class ConversationNavigationMixin:
             if getattr(self, "_sep_anchors_read_position", False):
                 sep = -1
             target = sep if 0 <= sep < count else count - 1
+            # "Continue where you left off": the row the user is already on.
+            resume = self._reading_resume_row_for_open_conversation()
+            if 0 <= resume < count:
+                target = resume
             self.messages_list.Focus(target)
             self.messages_list.Select(target)
             self.messages_list.EnsureVisible(target)
@@ -278,6 +291,8 @@ class ConversationNavigationMixin:
             self._begin_pinned_messages_visit(reset_history=False)
             wx.CallAfter(self._load_pinned_messages, announce=take_focus)
             self._start_contact_presence()
+            # someone still typing there starts the sound again
+            wx.CallAfter(resume_typing_sound, self.main_window)
             return
         # Record that the user actually looked at this conversation. It is the
         # gate on asking the *phone* for its older history: every such request
@@ -288,6 +303,11 @@ class ConversationNavigationMixin:
                 conversation.get("remoteJid") or "")
         except Exception:
             logging.exception("[conversations] could not record the open (non-fatal)")
+        # Before anything below resets the list: the row the conversation
+        # being left was on (reading_position.py), and the one this opening
+        # returns to.
+        self._remember_reading_position()
+        self._arm_reading_resume(conversation.get("remoteJid") or "")
         self._stop_typing_for_current_conversation()
         # The field's text stays with the conversation it was typed in
         # (message_drafts.py): kept now, before the mentions and the
@@ -407,6 +427,9 @@ class ConversationNavigationMixin:
         # guarantees FIFO order instead of leaving it to thread-timing luck.
         # Background: fetch profile/last-seen and update button note
         self._start_contact_presence()
+        # someone still typing there (the chat left and opened again) starts
+        # the sound again: no new presence comes for an unchanged state
+        wx.CallAfter(resume_typing_sound, self.main_window)
         if is_group:
             threading.Thread(
                 target=self._fetch_and_update_profile,
@@ -427,7 +450,10 @@ class ConversationNavigationMixin:
                 daemon=True,
             ).start()
         self._clear_chat_search_on_open()
-        self.populate_messages()
+        try:
+            self.populate_messages()
+        finally:
+            self._disarm_reading_resume()
         self._sync_pending_document_gauge()
         self._backfill_reactions_for_open_conversation()
 
@@ -492,6 +518,7 @@ class ConversationNavigationMixin:
                 daemon=True,
             ).start()
         wx.CallAfter(_start_mark_as_read)
+        wx.CallAfter(self._update_summary_button)
         wx.CallAfter(self._load_pinned_messages, announce=take_focus)
 
     def _clear_chat_search_on_open(self):
@@ -557,6 +584,8 @@ class ConversationNavigationMixin:
                 lst.Focus(0)
                 lst.Select(0)
             return
+        if event.GetKeyCode() == wx.WXK_ESCAPE and self._clear_chat_list_filters():
+            return
         event.Skip()
 
     def _on_search_field_enter(self, event):
@@ -586,6 +615,7 @@ class ConversationNavigationMixin:
             self._hide_mention_suggestions()
             self.message_field.SetFocus()
             return False, ""
+        self._remember_reading_position()
         self._stop_contact_presence()
         self._stop_group_call_watch()
         # Before the composer is reset below (message_drafts.py).
@@ -594,6 +624,9 @@ class ConversationNavigationMixin:
             self.close_ai_media()
         self._stop_typing_for_current_conversation()
         self._cancel_active_recording()
+        summary_button = getattr(self, "_summary_btn", None)
+        if summary_button is not None:
+            summary_button.Hide()
         self._hide_audio_controls()
         self._hide_all_media_controls()
         self._hide_media_transfer_gauge()
@@ -627,6 +660,11 @@ class ConversationNavigationMixin:
         self.Layout()
         return True, closed_jid
 
+    def _on_ctrl_w_conversation(self, event=None):
+        """Ctrl+W in the open conversation: the user's own close, so a
+        channel opened from the Channels window goes back to it."""
+        self.close_conversation(event, from_user=True)
+
     def _on_escape_conversation(self, event):
         """First Esc clears an active message selection instead of closing
         (issue #99); the next one closes as it always did.
@@ -655,14 +693,40 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
-        self.close_conversation(event)
+        if not mention_open and self._clear_message_search_on_escape():
+            return
+        self.close_conversation(event, from_user=True)
 
-    def close_conversation(self, event=None):
+    def _focus_in_conversation_area(self) -> bool:
+        return is_inside(wx.Window.FindFocus(), self.conversation_panel)
+
+    def _on_panel_char_hook(self, event):
+        """Esc from any control of the chat-list side of the panel (filter
+        radio buttons, search field, buttons, list) clears the search and the
+        filters. The Esc accelerator lives on conversation_panel, so it never
+        sees those controls; and inside the conversation (whose own hook and
+        accelerator close it or clear the message selection) this stays out."""
+        if self._focus_in_conversation_area():
+            event.Skip()
+            return
+        self._on_chat_list_char_hook(event)
+
+    def close_conversation(self, event=None, from_user=False):
+        """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close
+        menu item); every other caller closes it for WinZapp's own reasons
+        (a full resync, an account switch, the chat archived or deleted)."""
         origin = getattr(self, "_conversation_origin", None)
         closed, closed_jid = self._close_conversation_core()
         if not closed:
             return  # _close_conversation_core() only handled the mention popup
         mw = self.main_window
+        # A channel opened from the Channels panel goes back to it, when the
+        # user closed it: a resync or an archive used to pop the window up.
+        from ui.dialogs.channels import channel_closed, forget_channel_return
+        if not from_user:
+            forget_channel_return(mw)
+        elif channel_closed(mw, closed_jid):
+            return
         # Esc returns to the list the conversation was opened from, whatever
         # the chat is (an archived chat found through the main search box
         # belongs to the main list). The archived and locked lists sit

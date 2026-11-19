@@ -10,6 +10,7 @@ import pyperclip
 import threading
 import wx
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
+from ui.dialogs.archive_chat_confirm import confirm_archive_chat
 from ui.dialogs.delete_chat_confirm import confirm_delete_chat
 from core.utils import format_number
 
@@ -81,6 +82,9 @@ class ChatMenuMixin:
         else:
             unread_item = menu.Append(wx.ID_ANY, f"{i18n.t('mark_as_unread')}\tCtrl+Shift+M")
             self.Bind(wx.EVT_MENU, lambda e, j=jid: self._on_menu_mark_unread(j), unread_item)
+        # Like WhatsApp: summarize the unread messages without opening the chat
+        # (ui/conversation_panel/summary_actions.py).
+        self._append_unread_summary_item(menu, chat)
 
         menu.AppendSeparator()
 
@@ -179,13 +183,14 @@ class ChatMenuMixin:
             close_item = menu.Append(wx.ID_ANY, f"{i18n.t('close_conversation')}\tCtrl+W")
             self.Bind(wx.EVT_MENU, self.on_context_menu_close, close_item)
 
+        self._append_translation_chat_item(menu, jid)
         refresh_popup_shortcuts(self, 'chats', menu)
         self.PopupMenu(menu)
         menu.Destroy()
 
     def on_context_menu_close(self, event):
         if self.conversation_panel.IsShown():
-            self.close_conversation(event)
+            self.close_conversation(event, from_user=True)
             return
         # Ctrl+W with nothing open used to do nothing at all, silently — see
         # _no_conversation_open_announced() (issue #86).
@@ -300,6 +305,16 @@ class ChatMenuMixin:
             pass
 
     def _on_menu_archive(self, jid: str):
+        i18n = self.main_window.i18n
+        if not confirm_archive_chat(
+            self, self.main_window,
+            i18n.t("archive_confirm_msg"),
+            i18n.t("archive_chat"),
+            i18n.t("mark_all_read_dont_show_again"),
+            yes_label=i18n.t("archive_confirm_button"),
+            no_label=i18n.t("cancel"),
+        ):
+            return
         # Close conversation if currently open
         if self.conversation and self.conversation.get("remoteJid") == jid:
             self.close_conversation()

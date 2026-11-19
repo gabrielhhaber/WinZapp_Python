@@ -63,6 +63,36 @@ def test_reaction_from_phone_is_not_suppressed_without_a_local_send():
     assert client._consume_own_reaction_echo(_reaction()) is False
 
 
+@pytest.mark.parametrize("wrapped", [False, True])
+def test_wpp_msgkeys_and_legacy_bridge_strings_deliver_the_same_group_reaction(monkeypatch, wrapped):
+    from core import websocket_client as wc
+    received = []
+    monkeypatch.setattr(wc.wx, "CallAfter", lambda fn, *args: fn(*args))
+    group = "120363000000000001@g.us"
+    def key(own, mid, author):
+        return {"fromMe": own, "remote": group, "id": mid, "participant": author,
+                "_serialized": f"{'true' if own else 'false'}_{group}_{mid}_{author}"}
+    reaction_key, target_key = key(False, "REACTION", ANA_LID), key(True, "TARGET", "901@lid")
+    data = {"id": reaction_key, "msgId": target_key,
+            "reactionText": "", "timestamp": 1_700_000_000}
+    if wrapped:
+        data = {"response": {**data, "id": reaction_key["_serialized"],
+                             "msgId": target_key["_serialized"]}}
+    client = types.SimpleNamespace(
+        _belongs_to_this_session=lambda d: True,
+        _consume_own_reaction_echo=lambda msg: False,
+        main_window=types.SimpleNamespace(on_new_message=received.append))
+    client._clean_jid = types.MethodType(WebSocketClient._clean_jid, client)
+    WebSocketClient.on_wpp_reaction(client, data)
+    assert len(received) == 1
+    result = received[0]
+    assert result["key"] == {"remoteJid": group, "fromMe": False,
+                             "id": "REACTION", "participant": ANA_LID}
+    assert result["message"]["reactionMessage"]["key"]["id"] == "TARGET"
+    assert result["message"]["reactionMessage"]["text"] == ""
+    assert result["messageTimestamp"] == 1_700_000_000
+
+
 def test_matching_local_reaction_echo_is_suppressed_once():
     client = _client((ANA, "message-1", "👍", 0))
 

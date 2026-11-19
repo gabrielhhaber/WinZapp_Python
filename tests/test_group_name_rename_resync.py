@@ -32,6 +32,7 @@ tests/test_get_remote_chats_persistence.py.
 import inspect
 import json
 import types
+import threading
 
 import pytest
 from cryptography.fernet import Fernet
@@ -77,6 +78,7 @@ class _Stub:
         self.key = Fernet.generate_key()
         self._lid_to_phone = {}
         self._phone_to_lid = {}
+        self._lid_mapping_lock = threading.RLock()
         self._group_name_cache = {}
         self._locally_read_at = {}
         self.conversations_panel = None

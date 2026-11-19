@@ -1,6 +1,7 @@
 """Explicit participant views for the active call and the Calls tab."""
 from core.call_matching import is_placeholder_call_id
-from core.call_participants import active_participants_available
+from core.call_participants import active_participants_available, held_here
+from core.call_roster import note_seen, remember, user_of
 
 
 class CallParticipantsMixin:
@@ -24,11 +25,54 @@ class CallParticipantsMixin:
         dialog = CallParticipantsDialog(parent or self, self, call_id,
                                         self.chat_display_name(chat_jid), allowed,
                                         invite_chat=self._call_invite_chat(call_id, chat_jid))
+        self._call_participants_dialog = dialog     # for on_call_participants
         try:
             dialog.ShowModal()
         finally:
+            self._call_participants_dialog = None
             dialog._dispose_participants()
             dialog.Destroy()
+
+    def on_call_participants(self, call_id, connected):
+        """A group call's connected people changed: say who joined or left
+        (Settings > Calls, both on by default) when it is the call held here,
+        and refresh its participants dialog if one is open."""
+        rosters = self.__dict__.setdefault("_call_rosters", {})
+        mine = {user_of(j) for j in (getattr(self, "my_jid", ""), getattr(self, "my_lid", ""))} - {""}
+        joined, left = remember(rosters, call_id, connected, mine)
+        # everyone ever connected, for the "left" rows of the participants list
+        note_seen(self.__dict__.setdefault("_call_seen", {}), call_id,
+                  [(jid, "") for jid in connected], mine)
+        if self._call_held_here(call_id):
+            calls = (getattr(self, "settings", {}) or {}).get("calls", {})
+            name = lambda jid: self.chat_display_name({"remoteJid": jid, "name": ""})
+            if calls.get("announce_participant_joined", True):
+                for jid in joined:
+                    self.output(self.i18n.t("call_participant_joined").format(name=name(jid)))
+            if calls.get("announce_participant_left", True):
+                for jid in left:
+                    self.output(self.i18n.t("call_participant_left").format(name=name(jid)))
+        dialog = getattr(self, "_call_participants_dialog", None)
+        if dialog is not None and getattr(dialog, "_call_id", None) == call_id:
+            dialog._refresh_participants()
+
+    def _call_held_here(self, call_id):
+        """True while *call_id* is the call this device is in, live: its
+        participants window follows the participant events and needs no
+        timed refresh."""
+        return held_here(getattr(self, "_active_voice_call", None), call_id=call_id,
+                         state=getattr(self, "_voice_call_last_announced_state", ""))
+
+    def _participants_dialog_follow_call(self):
+        """The call an open participants window follows on events is no
+        longer held here (it ended, or this device left it): no event will
+        come for it any more, so the window asks once and shows the outcome,
+        and goes back to refreshing on its own if the call goes on."""
+        dialog = getattr(self, "_call_participants_dialog", None)
+        if (dialog is not None and getattr(dialog, "_follows_events", False)
+                and not self._call_held_here(getattr(dialog, "_call_id", None))):
+            dialog._follows_events = False
+            dialog._refresh_participants()
 
     def _call_invite_chat(self, call_id, chat_jid):
         """The chat of *call_id* when people may be added to it: only the call

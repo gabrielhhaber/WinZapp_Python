@@ -7,7 +7,7 @@ An explicit denial is authoritative even before the model becomes ready.
 import re
 from dataclasses import dataclass
 
-from core.contact_presence import response_snapshot
+from core.contact_presence import response_snapshot, without_activity
 
 _PRIVATE_ID = re.compile(r"[0-9]+@(?:s\.whatsapp\.net|lid)\Z")
 
@@ -69,7 +69,10 @@ def read_presence(targets, request, clock):
                            "withheld" if snapshot.get("lastSeen") is None
                            and snapshot.get("isOnline") is not True
                            and snapshot.get("lastKnownPresence") not in ("composing", "recording") else "ready")
-                return PresenceRead(outcome, snapshot)
+                # A read is a snapshot, not a live chatstate event: WPP keeps a
+                # stale "composing" after the message was sent, and merging it
+                # would restart the 10 s typing window (issue #743).
+                return PresenceRead(outcome, without_activity(snapshot))
             if not isinstance(presence, dict):
                 return PresenceRead("malformed")
             if presence.get("status") == "unsupported":

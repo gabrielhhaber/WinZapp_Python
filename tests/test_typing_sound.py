@@ -1,7 +1,6 @@
 """Bundled cue and fallback resolution, without opening an audio device."""
 import json
 from pathlib import Path
-import wave
 from types import SimpleNamespace
 import pytest
 
@@ -12,9 +11,9 @@ from tests.locales import registered_locale_codes, load_strings
 
 def test_bundled_cue_is_registered_short_valid_pcm_and_named_in_every_locale():
     root = Path(__file__).resolve().parents[1]
-    assert ("typing", "typing.wav") in SOUND_EVENTS
+    assert ("typing", "typing.ogg") in SOUND_EVENTS
     manifest = json.loads((root / "client/sounds/default/default.pack.json").read_text(encoding="utf-8"))
-    assert manifest["events"]["typing"] == "typing.wav"
+    assert manifest["events"]["typing"] == "typing.ogg"
     for locale in registered_locale_codes():
         assert load_strings(locale)["sound_event_typing"]
 
@@ -50,17 +49,16 @@ def test_custom_and_pack_failures_fall_back_once_and_remain_stoppable(tmp_path, 
         assert calls[-1][0] == str(expected)
 
 
-@pytest.mark.parametrize("filename", ["typing.wav", "typing_bubble.wav", "typing_pulse.wav"])
-def test_selected_bundled_alternatives_are_short_pcm_and_load_as_user_overrides(filename, monkeypatch):
+@pytest.mark.parametrize("filename", ["typing.ogg", "typing_bubble.ogg", "typing_pulse.ogg"])
+def test_selected_bundled_alternatives_are_short_audio_and_load_as_user_overrides(filename, monkeypatch):
+    from tests.ogg_info import ogg_vorbis_info
     root = Path(__file__).resolve().parents[1] / "client/sounds/default"
     path = root / filename
-    with wave.open(str(path), "rb") as audio:
-        assert audio.getnchannels() in (1, 2)
-        assert audio.getsampwidth() == 2
-        assert 16000 <= audio.getframerate() <= 48000
-        assert 0 < audio.getnframes() / audio.getframerate() <= 1.5
-        assert len(audio.readframes(audio.getnframes())) == audio.getnframes() * audio.getnchannels() * 2
-    pack = {"dir": str(root), "events": {"typing": "typing.wav"}}
+    channels, rate, frames = ogg_vorbis_info(path)
+    assert channels in (1, 2)
+    assert 16000 <= rate <= 48000
+    assert 0 < frames / rate <= 1.5
+    pack = {"dir": str(root), "events": {"typing": "typing.ogg"}}
     loaded = []
     selected = SimpleNamespace()
     def load(system, resolved, **options):

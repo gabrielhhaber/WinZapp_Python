@@ -54,8 +54,74 @@ def phones(body):
 
 
 def clear_index(keep):
-    """Rest of the clearChat notice's index: [delete starred, delete media]."""
-    return ("0" if keep else "1", "1")
+    """Rest of the clearChat notice's index: [delete starred, "0"]. WhatsApp
+    Web (WAWebChatClearBridge.sendClear, read 2026-11-09) always sends "0" in
+    the last place, and so does Baileys."""
+    return ("0" if keep else "1", "0")
+
+
+#: What WhatsApp Web lists in a range, at most (WAWebDBMessageRange).
+RANGE_MESSAGES_LIMIT = 1000
+#: How many of the chat's most recent stored messages the range is built from.
+RANGE_WINDOW = 300
+
+
+def range_plan(rows, index_jid, group, system_types=("gp2", "call_log")):
+    """The message range of a clearChat/deleteChat notice, the way WhatsApp
+    Web builds it (WAWebMessageRangeUtils.constructForwardMovingMessageRange,
+    read 2026-11-09), from the chat's most recent stored messages (`rows`,
+    WPPConnect-format dicts):
+
+    * `last`: the newest message's time (what the phone clears up to);
+    * `last_system`: the newest system message's, when newer than that;
+    * `messages`: our own messages from the newest received one on, and the
+      received ones at that very second, as (from_me, id, participant, t) —
+      the phone clears those by key, not trusting our clock.
+
+    A key the phone's check refuses (WAWebMessageRangeUtils.validateMessageRange)
+    is never listed: one refused key makes the whole notice malformed and the
+    phone drops it. The bridge used to list only the newest stored item, which
+    in a group was often a notification with no author: a received group
+    message without `participant`, exactly such a key. Keys name the chat as
+    the index does (`index_jid`)."""
+    def ts(m):
+        try:
+            return int(m.get("t") or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    timed = [m for m in rows or () if isinstance(m, dict) and ts(m) > 0
+             and (m.get("id") or {}).get("id")]
+    system = [m for m in timed if m.get("type") in system_types]
+    chat = [m for m in timed if m.get("type") not in system_types]
+    received = [m for m in chat if not m.get("fromMe")]
+    last = max((ts(m) for m in chat), default=0)
+    last_received = max((ts(m) for m in received), default=0)
+    last_system = max((ts(m) for m in system), default=0)
+    listed = []
+    for m in chat:
+        own = bool(m.get("fromMe"))
+        if own and ts(m) < last_received:
+            continue
+        if not own and ts(m) != last_received:
+            continue
+        participant = ""
+        if group and not own:
+            # checked before converting: jid_whatsmeow("") is "@s.whatsapp.net"
+            author = str(m.get("author") or "").strip()
+            if "@" not in author or author.startswith("@"):
+                continue
+            participant = msgmap.jid_whatsmeow(author)
+        listed.append((own, m["id"]["id"], participant, ts(m)))
+    listed.sort(key=lambda item: -item[3])
+    plan = {"last": last or (last_system or int(time.time())),
+            "last_system": last_system if last_system > last else 0,
+            "messages": listed[:RANGE_MESSAGES_LIMIT], "chat": index_jid}
+    if not last and last_system:
+        # only system messages: they are the range's end (WhatsApp Web's
+        # firstSystemMessageTimestamp fallback), and not said twice
+        plan["last_system"] = 0
+    return plan
 
 
 def typing_state(value):
@@ -95,22 +161,23 @@ def receipt_participants(rows):
 
 
 def chat_range(s, conversation):
-    """The range of messages of the state notice: up to the most recent stored
-    (WhatsApp only applies clear/delete up to that message)."""
+    """The range of messages of the state notice (`range_plan`), from the
+    chat's stored messages under both its addresses. WhatsApp only applies
+    clear/delete up to that range."""
     from neonize.proto.waCommon.WACommon_pb2 import MessageKey
     from neonize.proto.waSyncAction.WAWebProtobufSyncAction_pb2 import (
         SyncActionMessage, SyncActionMessageRange)
-    last = s.db.raw_last(conversation)
-    range_ = SyncActionMessageRange()
-    if last is None:
-        range_.lastMessageTimestamp = int(time.time())
-        return range_
-    range_.lastMessageTimestamp = int(last["t"])
-    key = MessageKey(remoteJID=conversation, fromMe=bool(last.get("fromMe")),
-                     ID=last["id"]["id"])
-    if conversation.endswith("@g.us") and not last.get("fromMe") and last.get("author"):
-        key.participant = msgmap.jid_whatsmeow(last["author"])
-    range_.messages.append(SyncActionMessage(key=key, timestamp=int(last["t"])))
+    keys = s.chat_keys(conversation) or [conversation]
+    plan = range_plan(s.db.messages(keys, RANGE_WINDOW), s.mutation_jid(conversation),
+                      conversation.endswith("@g.us"))
+    range_ = SyncActionMessageRange(lastMessageTimestamp=plan["last"])
+    if plan["last_system"]:
+        range_.lastSystemMessageTimestamp = plan["last_system"]
+    for own, mid, participant, when in plan["messages"]:
+        key = MessageKey(remoteJID=plan["chat"], fromMe=own, ID=mid)
+        if participant:
+            key.participant = participant
+        range_.messages.append(SyncActionMessage(key=key, timestamp=when))
     return range_
 
 

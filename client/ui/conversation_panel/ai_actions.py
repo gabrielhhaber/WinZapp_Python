@@ -175,8 +175,15 @@ class AIActionsMixin:
         """Close the open AI window (and so drop its media and answers): on
         leaving the chat, locking the vault, hiding or closing the app, or
         deleting its message."""
-        if not locked_only and message_ids is None:
+        if message_ids is None:
+            # A summary's consent window waits for an answer before any voice
+            # is transcribed; with the vault locked, only a locked chat's.
+            self.close_summary_consent(locked_only=locked_only)
+        if locked_only:
+            self.cancel_summary_voice_locked()  # its progress window closes at once
+        elif message_ids is None:
             close_open_dialog()  # one under the Status tab or its media viewer
+            self.cancel_summary_voice()  # a summary's voice step of this chat
         dialog = getattr(self, "_ai_dialog", None)
         if dialog is None:
             return

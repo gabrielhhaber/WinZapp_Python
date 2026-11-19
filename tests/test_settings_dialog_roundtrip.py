@@ -41,6 +41,28 @@ def _write(path):
 # tmp_path when the value depends on it), how to set the controls, and how to
 # tell the reopened dialog shows it. Every function receives (dialog, tmp_path).
 SCENARIOS = {
+    # Settings > General > Notifications (core/notification_burst.py).
+    "notification_burst_limit": dict(
+        saves={("general", "notification_burst_limit"): 7},
+        set=lambda d, t: d._notification_burst_spin.SetValue(7),
+        shows=lambda d, t: d._notification_burst_spin.GetValue() == 7,
+    ),
+    # Settings > Conversations (ui/dialogs/reading_position_options.py).
+    "message_list_open_position": dict(
+        saves={("user_interface", "message_list_open_position"): "last_focused"},
+        set=lambda d, t: d._open_position_radio.SetSelection(1),
+        shows=lambda d, t: d._open_position_radio.GetSelection() == 1,
+    ),
+    "remove_bookmarks_after_use": dict(
+        saves={("user_interface", "remove_bookmarks_after_use"): True},
+        set=lambda d, t: d._remove_bookmarks_after_use_cb.SetValue(True),
+        shows=lambda d, t: d._remove_bookmarks_after_use_cb.GetValue() is True,
+    ),
+    "remove_temp_bookmarks_after_use": dict(
+        saves={("user_interface", "remove_temp_bookmarks_after_use"): True},
+        set=lambda d, t: d._remove_temp_bookmarks_after_use_cb.SetValue(True),
+        shows=lambda d, t: d._remove_temp_bookmarks_after_use_cb.GetValue() is True,
+    ),
     "voice_recording_mode": dict(
         saves={("general", "voice_recording_mode"): "mono"},
         set=lambda d, t: d._voice_recording_mode_radio.SetSelection(1),
@@ -239,6 +261,13 @@ SCENARIOS = {
         and d._selected_alert_key(d._alert_group_combo) == "custom"
         and d._alert_private_custom_field.GetValue().endswith("private.wav")
         and d._alert_group_custom_field.GetValue().endswith("group.wav"),
+    ),
+    "foreground_sounds": dict(
+        saves={("foreground_sounds", "active"): "notification",
+               ("foreground_sounds", "other"): "notification"},
+        set=lambda d, t: [c.SetSelection(1) for c in d._foreground_sound_choice._combos.values()],
+        shows=lambda d, t: all(c.GetSelection() == 1
+                               for c in d._foreground_sound_choice._combos.values()),
     ),
     "profile_backup_intervals": dict(
         saves={("profile_backup", "close_snapshot_min_hours"): 6,

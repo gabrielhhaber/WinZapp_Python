@@ -151,3 +151,16 @@ def test_register_events_does_not_take_the_place_of_the_servers_handler(monkeypa
     cli, s, ev = _bind(monkeypatch)
     assert ev.GroupInfoEv not in cli.handlers
     assert ev.JoinedGroupEv in cli.handlers
+
+
+def test_joining_by_link_stores_and_emits_the_accounts_own_notice(monkeypatch):
+    from store import Store
+    cli, s, ev = _bind(monkeypatch)
+    s.me = "9:3@s.whatsapp.net"
+    s.db = Store(":memory:")
+    info = N(JID=jid("120", "g.us"), ParticipantVersionID="v1")
+    cli.handlers[ev.JoinedGroupEv](cli, N(GroupInfo=info, Reason="invite"))
+    cli.handlers[ev.JoinedGroupEv](cli, N(GroupInfo=info, Reason="invite"))  # repeated
+    notices = [d["response"] for e, d in s.sent if e == "received-message"]
+    assert len(notices) == 1
+    assert (notices[0]["subtype"], notices[0]["recipients"]) == ("invite", ["9@c.us"])

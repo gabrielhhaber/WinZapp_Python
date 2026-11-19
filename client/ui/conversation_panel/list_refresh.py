@@ -390,6 +390,10 @@ class ListRefreshMixin:
         message to the list; otherwise does nothing (the unread badge in the
         conversations list is updated separately via set_chats).
         """
+        # A new message may give the unread summary something to summarize.
+        # Tests bind this method without a wx.App: only schedule then.
+        if wx.GetApp() is not None:
+            wx.CallAfter(getattr(self, "_update_summary_button", lambda: None))
         # Reactions are handled BEFORE the "is this conversation open?" guard
         # below — unlike a normal message, a reaction still has to be recorded
         # for a chat the user is not currently looking at. See
@@ -1142,6 +1146,7 @@ class ListRefreshMixin:
         # nested/synchronous focus event this call produces, and only turns
         # off once control actually returns to the event loop.
         self.refresh_poll_votes()  # throttled; repaints its rows when votes change
+        self.refresh_event_responses()  # the same for the answers to events
         self._apply_pinned_message_flags()
         self._populating_messages = True
         wx.CallAfter(self._clear_populating_messages_flag)
@@ -1311,7 +1316,15 @@ class ListRefreshMixin:
                 return
 
             # Make the unread separator visible, or select and focus the last (newest) message by default
-            if not scrolled:
+            # "Continue where you left off" (reading_position.py): the message
+            # the user was on when they left, when this rebuild is the one
+            # opening the conversation and that message is still here.
+            _resume = -1 if scrolled else self._take_reading_resume_row()
+            if _resume >= 0:
+                self.messages_list.EnsureVisible(_resume)
+                self.messages_list.Focus(_resume)
+                self.messages_list.Select(_resume)
+            elif not scrolled:
                 if self._unread_sep_idx >= 0:
                     last = message_row_count(self) - 1
                     target_visible = min(self._unread_sep_idx + 3, last)

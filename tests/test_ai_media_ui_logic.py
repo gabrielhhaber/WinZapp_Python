@@ -136,9 +136,12 @@ class DialogStub:
     _speak = AIResultDialog._speak
     _chain = AIResultDialog._chain
     _start = AIResultDialog._start
+    _summary_heading = AIResultDialog._summary_heading
+    app = None  # only read when a consent is remembered
 
     def __init__(self, *, locked=False, kind="image"):
         self.kind = kind
+        self.notice = ""
         self.mime = "image/jpeg"
         self._provider = None
         self.session = MediaSession("a", "c", "m", kind, locked=locked)
@@ -154,7 +157,7 @@ class DialogStub:
                                            IsShown=lambda: True, output=self.spoken.append)
         self.i18n = SimpleNamespace(t=lambda key: key)
         self.config = {"read_answers": False, "order": ["gemini", "openai"], "disabled": [],
-                       "consented": [], "models": {p: ai_config.PROVIDERS[p].model for p in ai_config.PROVIDERS},
+                       "consented": [], "consented_text": [], "models": {p: ai_config.PROVIDERS[p].model for p in ai_config.PROVIDERS},
                        "profile": "balanced", "kinds": {k: True for k in ai_config.KINDS}}
         self._latest = ""
         self._consented = False
@@ -743,6 +746,8 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                            profile=NamedControl(selection=2), providers=NamedControl(selection=-1),
                            notice=NamedControl(), status=NamedControl(),
                            auto_dialog=SimpleNamespace(SetTitle=lambda title: setattr(page, "title", title)),
+                           kinds_dialog=SimpleNamespace(
+                               SetTitle=lambda title: setattr(page, "kinds_title", title)),
                            _refresh_list=lambda selection: None)
     # The automatic options live in their own window (ai_auto_options.py).
     panel = SimpleNamespace(_page=page, transcribe=NamedControl(), describe=NamedControl(),
@@ -752,7 +757,15 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                             used_label=NamedControl(), used=NamedControl())
     panel.refresh_labels = lambda: AIAutoOptionsPanel.refresh_labels(panel)
     page.auto_panel = panel
+    # So do the kinds of media (ai_kinds_options.py).
+    from ui.dialogs.ai_kinds_options import AIKindsPanel
+    kinds = SimpleNamespace(_page=page, _keys={"image": "ai_describe_images_label"},
+                            toggles={"image": NamedControl()})
+    kinds.refresh_labels = lambda: AIKindsPanel.refresh_labels(kinds)
+    page.kinds_panel = kinds
     AISettingsPage.refresh_labels(page)
+    assert kinds.toggles["image"].value == "ai_describe_images_label"
+    assert page.kinds_title == "ai_kinds_button"
     assert page.notice.name == "ai_settings_help" and page.notice.value == "ai_settings_notice"
     assert page.status.name == "ai_status_label" and page.profile.selection == 2
     assert page.profile.items == ["quick", "balanced", "detailed"]
@@ -794,6 +807,7 @@ def test_escape_releases_private_state_and_stops_timer(dialog):
 
 class PageStub:
     """AISettingsPage's state-handling methods over plain controls."""
+    _translation = None
     apply = AISettingsPage.apply
     _has_key = AISettingsPage._has_key
     _row = AISettingsPage._row
@@ -860,6 +874,18 @@ def test_apply_saves_order_switches_models_and_kinds_but_never_a_key_in_the_sett
     assert saved["profile"] == "detailed" and saved["enabled"] is True and saved["read_answers"] is False
     assert "secret" not in str(saved) and page.store.get("gemini") == "gemini-secret"
     assert page._drafts == {} and "gemini" in page._saved
+
+
+def test_every_apply_resumes_a_paused_automatic_translation(tmp_path):
+    """A key re-entered in a provider's window, without opening the
+    translation dialog, is the usual fix for what paused it."""
+    page = PageStub(tmp_path)
+    resumed = []
+    page.main_window.conversations_panel = SimpleNamespace(
+        resume_automatic_translation=lambda: resumed.append(True))
+    page._drafts = {"gemini": "new-key"}
+    assert page.apply()
+    assert resumed == [True] and page._translation is None
 
 
 def test_blank_draft_on_apply_preserves_saved_key_and_consent(tmp_path):
@@ -1165,6 +1191,8 @@ def test_close_filter_uses_original_chat_not_current_panel_conversation():
     session = MediaSession("a", "original-locked-chat", "m", "image", locked=True)
     stub = SimpleNamespace(_ai_dialog=SimpleNamespace(session=session, _close=lambda: closed.append(True)),
                            conversation={"remoteJid": "ordinary-chat"},
+                           close_summary_consent=lambda locked_only=False: None,
+                           cancel_summary_voice_locked=lambda: None,
                            main_window=SimpleNamespace(is_chat_locked=lambda jid: jid == "original-locked-chat"))
     AIActionsMixin.close_ai_media(stub, locked_only=True)
     assert closed == [True]
@@ -1175,7 +1203,8 @@ def test_close_filter_uses_original_chat_not_current_panel_conversation():
 
 
 def test_close_does_nothing_when_no_window_is_open():
-    AIActionsMixin.close_ai_media(SimpleNamespace(), locked_only=True)
+    AIActionsMixin.close_ai_media(SimpleNamespace(close_summary_consent=lambda locked_only=False: None,
+                                                  cancel_summary_voice_locked=lambda: None), locked_only=True)
 
 
 def test_shortcut_does_nothing_outside_message_list(monkeypatch):
@@ -1687,3 +1716,4 @@ def test_manual_model_fields_exist_only_while_automatic_is_off(tmp_path, automat
     assert window.model.enabled is True  # never left disabled: that reads as read-only
     if automatic:
         assert window.model.value == ai_config.PROVIDERS["openai"].model
+

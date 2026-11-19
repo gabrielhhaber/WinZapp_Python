@@ -19,6 +19,8 @@ import time
 import wx
 from ui.conversation_panel.call_capabilities import refresh_call_controls
 from core.message_queue import MessageCancelled
+from core.channels import channel_post_kinds
+from core.quote_fallback import quote_fallback
 from core.reply_failure import mark_missing_reply_quote, quote_missing_before_send
 from core.connection_lifecycle import schedule_connection_check
 from core.meta_ai import (
@@ -211,6 +213,7 @@ class SendingMixin:
                 self._neonize_calls = details.get("calls") is True
                 self._neonize_video_calls = details.get("videoCalls") is True
                 self._neonize_group_calls = details.get("groupCalls") is True
+                self._channel_post_kinds = channel_post_kinds(details)
                 wx.CallAfter(refresh_call_controls, self)
                 if details.get("compatible") is True:
                     logging.info("[startup] Send compatibility probe passed: %s", details)
@@ -530,6 +533,9 @@ class SendingMixin:
             # plain send the non-mention path makes for an ordinary chat quote.
             if quoted_id:
                 payload["messageId"] = quoted_id
+                described = quote_fallback(quoted)
+                if described:
+                    payload["quotedMessage"] = described
                 logging.info(
                     "[send_text_message] sending quoted mention via send-mentioned to %s, "
                     "quoted id=%s", phone_net, quoted_id,
@@ -554,6 +560,10 @@ class SendingMixin:
                     "isLid": is_lid_target,
                     "options": link_preview_options
                 }
+                # Neonize may not hold the quoted message (core/quote_fallback.py)
+                described = quote_fallback(quoted)
+                if described:
+                    payload["quotedMessage"] = described
                 # INFO, not DEBUG: log.log runs at INFO, and a "reply sent
                 # without its quote" report is undiagnosable without the id
                 # and type that were actually quoted (Pedro's log had the
@@ -1533,6 +1543,9 @@ class SendingMixin:
                 post_data["isGroup"] = "true"
             if dest.endswith("@lid"):
                 post_data["isLid"] = "true"
+            if dest.endswith("@newsletter"):
+                # contactToArray() suffixes a bare id with @c.us otherwise
+                post_data["isNewsletter"] = "true"
             body = StreamingMultipartBody(
                 file_path=upload_path,
                 filename=filename,

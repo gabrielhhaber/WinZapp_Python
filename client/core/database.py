@@ -33,7 +33,8 @@ from cryptography.fernet import Fernet
 
 from core.phone_contacts import SYNCED_KEY, is_phone_synced
 from core.quote_recovery import is_undecrypted_placeholder, keep_known_content, knows_content
-from core.star_storage import preserve_stars, update_star_state
+from core.star_storage import (
+    preserve_stars, starred_messages, update_star_state, upgrade_starred_column)
 from core.transcription.stored import (
     TRANSCRIPTION_KEY,
     decision_time,
@@ -221,7 +222,7 @@ def _delivery_status(msg: dict) -> int:
 # keys _message_type() produces and WPPConnect's own `type` spellings.
 _TYPES_WITHOUT_LOCAL_FIELDS = (
     "conversation", "extendedTextMessage", "imageMessage", "stickerMessage",
-    "contactMessage", "pollCreationMessage", "buttonsMessage", "listMessage",
+    "contactMessage", "pollCreationMessage", "eventMessage", "buttonsMessage", "listMessage",
     "templateMessage", "protocolMessage", "chat", "image", "sticker",
     "orderMessage", "orderUpdateMessage", "productMessage",
 )
@@ -244,6 +245,7 @@ def _message_type(msg: dict) -> str:
             "stickerMessage",
             "contactMessage",
             "pollCreationMessage",
+            "eventMessage",
             "buttonsMessage",
             "listMessage",
             "templateMessage",
@@ -323,6 +325,7 @@ class DatabaseManager:
                 raise
         await self._upgrade_unresolvable_lids()
         await self._upgrade_contacts_synced_to_phone()
+        await upgrade_starred_column(self._conn)
         await self._conn.commit()
 
     async def _upgrade_unresolvable_lids(self) -> None:
@@ -805,6 +808,10 @@ class DatabaseManager:
     async def update_message_star_state(self, remote_jid: str, message_id: str, state: dict) -> None:
         await update_star_state(self, remote_jid, message_id, state)
 
+    async def update_message_pin_state(self, jid, mid, pinned, timestamp, duration):
+        from core.message_pin_state import update_pin_state
+        await update_pin_state(self, jid, mid, pinned, timestamp, duration)
+
     async def merge_message_star_states(self, remote_jid: str, messages: list[dict]) -> list[dict]:
         async with self._write_lock:
             return await preserve_stars(self, await self._ensure_conn(), remote_jid, messages)
@@ -849,6 +856,11 @@ class DatabaseManager:
                 result.append((row["remote_jid"], msg))
         return result
 
+    async def get_starred_messages(self, limit: int = 2000) -> list[tuple[str, dict]]:
+        """Every starred message of every chat, newest first, as
+        ``(remote_jid, msg)``: the starred messages window (star_storage)."""
+        return await starred_messages(self, limit)
+
     async def get_message_count(self, remote_jid: str) -> int:
         """Return total message count for a chat."""
         conn = await self._ensure_conn()
@@ -862,7 +874,7 @@ class DatabaseManager:
         return row["cnt"] if row else 0
 
     def _build_message_values(self, remote_jid: str, msg: dict) -> tuple | None:
-        """Compute the 8-tuple bound to the messages upsert, shared by every
+        """Compute the 9-tuple bound to the messages upsert, shared by every
         message-import path (insert_message/insert_messages_batch/
         import_from_dict). Returns None for an id-less message — an empty
         message_id is not "no ID yet", it IS a value, and the
@@ -880,8 +892,10 @@ class DatabaseManager:
         mtype = _message_type(msg)
         ts = _timestamp(msg)
         msg_enc = self._encrypt_json(msg)
+        # starred in clear (core/star_storage.py): the starred messages
+        # window lists them without decrypting every row
         return (mid, remote_jid, from_me, participant, mtype, msg_enc, ts,
-                _delivery_status(msg))
+                _delivery_status(msg), 1 if msg.get("starred") else 0)
 
     async def _with_known_local_fields(self, conn, remote_jid: str, msg: dict) -> dict:
         """*msg*, with what WinZapp knows about it that the server never will
@@ -1072,8 +1086,8 @@ class DatabaseManager:
             await conn.execute(
                 """INSERT OR REPLACE INTO messages
                    (message_id, remote_jid, from_me, participant,
-                    message_type, message_json, timestamp, status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    message_type, message_json, timestamp, status, starred)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 values,
             )
             await conn.commit()
@@ -1111,8 +1125,8 @@ class DatabaseManager:
                     await conn.execute(
                         """INSERT OR REPLACE INTO messages
                            (message_id, remote_jid, from_me, participant,
-                            message_type, message_json, timestamp, status)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                            message_type, message_json, timestamp, status, starred)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         values,
                     )
                     stored_rows[values[0]] = values[5]
@@ -1774,8 +1788,8 @@ class DatabaseManager:
                         await conn.execute(
                             """INSERT OR REPLACE INTO messages
                                (message_id, remote_jid, from_me, participant,
-                                message_type, message_json, timestamp, status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                message_type, message_json, timestamp, status, starred)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             values,
                         )
                         stored_rows[values[0]] = values[5]

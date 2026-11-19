@@ -7,7 +7,7 @@ session also has `call_media` (call_media.py, meowcaller): then `call/offer`,
 `call/ensure-ended`, `call/status` and `call/audio/enable` place, answer and
 carry voice and video calls, one-to-one or to a group. Without it (an older
 build) they answer 501, and so do video (without ffmpeg, or a DLL without
-neonize 0008) and group calls (a DLL without 0008), instead of pretending to
+neonize 0007) and group calls (a DLL without 0007), instead of pretending to
 have worked. `call/diagnostics` answers what the
 bridge knows of its call layer (`diagnostics`): WPPConnect's version reads the
 page's VoIP stack, which does not exist here.
@@ -92,6 +92,26 @@ def caller(meta) -> str:
     return creator or alternative
 
 
+def from_this_account(meta, me, lid) -> bool:
+    """True when the call's creator is this account itself: its phone (or
+    another linked device) started the call, and adding someone to it sends
+    this device the group invite too. It is never a call to ring here, nor one
+    to refuse: a refusal from here carries this account as the creator and
+    takes the phone out of its own call (reported 2026-11-13: the call rang
+    here "as if she were calling herself", and 2.5 min later the unanswered
+    ring was refused and she dropped while the others stayed). `me`/`lid`:
+    the session's own JIDs."""
+    mine = {_user(me), _user(lid)} - {""}
+    return bool(mine) and any(
+        _user(getattr(j, "User", "") or "") in mine
+        for j in (getattr(meta, "callCreator", None), getattr(meta, "callCreatorAlt", None))
+        if j is not None)
+
+
+def _user(text) -> str:
+    return str(text or "").split("@")[0].split(":")[0]
+
+
 def offer_event(e, now) -> dict:
     """neonize CallOffer -> the `data` of `incomingcall` (and of `callstate`)."""
     meta = e.basicCallMeta
@@ -140,6 +160,19 @@ def resolve_multiparty_group(s, media, data, creator):
     return group
 
 
+def own_device_offer(s, data, creator):
+    """The invite to a call this account started on another device
+    (`from_this_account`): nothing rings, no timer refuses it, and the call
+    stays one the user can join from here (Calls tab)."""
+    log.info("call from another device of this account: not ringing here (multiparty=%s)",
+             data["isMultiparty"])
+    media = getattr(s, "call_media", None)
+    if media is None:
+        return
+    media.elsewhere(data["id"])
+    ongoing_calls.remember_offer(media, data["id"], creator, data)
+
+
 def ring_left(offer_ts, now, limit=RING_LIMIT) -> float:
     """Seconds until an unanswered incoming call is surely over (0 when it
     already is). A missing offer time counts from now."""
@@ -179,6 +212,21 @@ def with_placed_group(data, placed) -> dict:
     group = placed["groupJid"]
     return {**data, "peerJid": group, "groupJid": group, "isGroup": True, "outgoing": True,
             "isVideo": bool(data["isVideo"] or placed.get("isVideo"))}
+
+
+def with_own_call(data, mine, placed_peer):
+    """The end of a call this account placed, told as one: outgoing, with the
+    person called as its peer. WhatsApp's <terminate> names the call's creator,
+    which for a call placed here (or from another device of this account) is
+    this account itself. Told as a received call, the client wrote the call
+    over its own peer and the record landed in the user's own chat, "as if
+    they had called themselves" (reported 2026-11-09). `mine` holds this
+    account's JIDs (number and LID, WPPConnect format); `placed_peer` is
+    CallMedia.placed_peer for the call ("" when not placed here: then no peer
+    at all, never this account)."""
+    if data.get("isGroup") or data.get("outgoing") or data.get("peerJid") not in mine:
+        return data
+    return {**data, "outgoing": True, "peerJid": msgmap.jid_wpp(placed_peer) if placed_peer else ""}
 
 
 def end_state(reason) -> tuple:
@@ -434,6 +482,9 @@ def register_events(cli, s):
             data = offer_event(e, time.time())
             if not data["id"]:
                 return
+            if from_this_account(e.basicCallMeta, getattr(s, "me", ""), getattr(s, "lid", "")):
+                own_device_offer(s, data, e.basicCallMeta.callCreator)
+                return
             s.ringing_calls.remember(data["id"], e.basicCallMeta.callCreator, time.time(), data)
             media = getattr(s, "call_media", None)
             if media is not None:
@@ -468,8 +519,15 @@ def register_events(cli, s):
         try:
             data = end_event(e, time.time())
             data = with_offer(data, s.ringing_calls.offer_of(data["id"]))
-            data = refine_end(data, s.ringing_calls.accepted(data["id"]))
             placed_media = getattr(s, "call_media", None)
+            mine = {msgmap.jid_wpp(getattr(s, "me", "") or ""),
+                    msgmap.jid_wpp(getattr(s, "lid", "") or "")} - {""}
+            data = with_own_call(data, mine, placed_media.placed_peer(data["id"])
+                                 if placed_media is not None else "")
+            if not data["outgoing"]:
+                # "answered on another device" is about a call received here;
+                # the CallAccept of a call placed here is the person answering
+                data = refine_end(data, s.ringing_calls.accepted(data["id"]))
             if placed_media is not None:
                 data = with_placed_group(data, placed_media.placed_group(data["id"]))
             was_ringing = s.ringing_calls.creator_of(data["id"]) is not None

@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS pinned(
 CREATE TABLE IF NOT EXISTS votes(
     msg TEXT NOT NULL, who TEXT NOT NULL, ids TEXT NOT NULL, ts INTEGER DEFAULT 0,
     PRIMARY KEY(msg, who));
+CREATE TABLE IF NOT EXISTS event_secrets(
+    msg TEXT PRIMARY KEY, chat TEXT NOT NULL, senders TEXT NOT NULL, secret BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS event_responses(
+    msg TEXT NOT NULL, who TEXT NOT NULL, response INTEGER NOT NULL,
+    guests INTEGER DEFAULT 0, ts INTEGER DEFAULT 0, PRIMARY KEY(msg, who));
 CREATE TABLE IF NOT EXISTS reactions(
     msg TEXT NOT NULL, who TEXT NOT NULL, emoji TEXT NOT NULL, ts INTEGER DEFAULT 0,
     PRIMARY KEY(msg, who));
@@ -43,6 +48,13 @@ CREATE TABLE IF NOT EXISTS comments(
     body TEXT DEFAULT '', from_me INTEGER DEFAULT 0, parent_serial TEXT DEFAULT '',
     PRIMARY KEY(chat, id));
 CREATE INDEX IF NOT EXISTS comments_by_parent ON comments(chat, parent_id, ts);
+-- a channel's updates, as a cache of what WhatsApp answered (channel_updates.py):
+-- never chats/msgs, so a channel never becomes a conversation
+CREATE TABLE IF NOT EXISTS channel_posts(
+    channel TEXT NOT NULL, id TEXT NOT NULL, server_id INTEGER NOT NULL,
+    ts INTEGER DEFAULT 0, data TEXT NOT NULL, raw BLOB, upto INTEGER DEFAULT 0,
+    PRIMARY KEY(channel, id));
+CREATE INDEX IF NOT EXISTS channel_posts_by_server_id ON channel_posts(channel, server_id);
 """
 
 # Databases written before the bridge's names were in English use these table and
@@ -147,6 +159,14 @@ class Store:
                 self._conn.execute("ALTER TABLE chats ADD COLUMN history_end INTEGER")
             except sqlite3.OperationalError:
                 pass
+            try:    # the anchor the phone answered with nothing new (older_history.py)
+                self._conn.execute("ALTER TABLE chats ADD COLUMN history_exhausted TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:    # how far up a cached channel update's answer reached (channel_updates.py)
+                self._conn.execute("ALTER TABLE channel_posts ADD COLUMN upto INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
             lower_dates_raised_by_notices(self._conn)
 
     def close(self):
@@ -203,6 +223,21 @@ class Store:
                     "UPDATE chats SET archived=?, pinned=?, muted=? WHERE jid=?",
                     (r["archived"], r["pinned"], r["muted"], destination))
                 self._conn.commit()
+
+    def has_chat(self, jid):
+        with self._lock:
+            return self._conn.execute(
+                "SELECT 1 FROM chats WHERE jid=?", (jid,)).fetchone() is not None
+
+    def revocation(self, chat, wpp):
+        """A 'delete for everyone' notice: the original becomes deleted. Returns
+        False, storing nothing, when neither the original nor the chat is known,
+        so a stray notice never makes up a conversation (issue #762)."""
+        found = self.change_message(wpp["protocolMessageKey"]["id"], type="revoked", body="")
+        if not found and not self.has_chat(chat):
+            return False
+        self.message(chat, wpp)
+        return True
 
     def on_arrival(self, jid, ts, from_me):
         """New message: raises the chat's date and counts an unread."""
@@ -282,10 +317,13 @@ class Store:
             self._conn.execute("UPDATE contacts SET name=? WHERE jid=?", (name or "", jid))
             self._conn.commit()
 
-    def contacts_in_batch(self, rows):
+    def contacts_in_batch(self, rows, keep_pushname=False):
         """Rows (jid, name, pushname), in one transaction. Like `contact`, an empty
         field keeps what is stored; only what differs is written. Returns how many
-        saved names (`name`) are new or changed."""
+        saved names (`name`) are new or changed.
+
+        `keep_pushname`: a nickname already stored is not replaced (a history
+        block's names are a snapshot, older than what live messages stored)."""
         changed = 0
         with self._lock:
             for jid, name, pushname in rows:
@@ -300,7 +338,7 @@ class Store:
                 if name and name != r["name"]:
                     self._conn.execute("UPDATE contacts SET name=? WHERE jid=?", (name, jid))
                     changed += 1
-                if pushname and pushname != r["pushname"]:
+                if pushname and pushname != r["pushname"] and not (keep_pushname and r["pushname"]):
                     self._conn.execute("UPDATE contacts SET pushname=? WHERE jid=?",
                                        (pushname, jid))
             self._conn.commit()
@@ -431,6 +469,37 @@ class Store:
             self._conn.execute("DELETE FROM msgs WHERE id=?", (msg_id,))
             self._conn.commit()
 
+    # ------------------------------------------------------------ events
+    def event_secret(self, msg_id, chat=None, senders=None, secret=None):
+        """Keeps (with *secret*) or reads the message secret of an event and
+        the addresses its creator may be known by (events.py). Reading
+        answers (chat, [senders], secret) or None."""
+        with self._lock:
+            if secret is not None:
+                self._conn.execute(
+                    "INSERT OR REPLACE INTO event_secrets(msg, chat, senders, secret) VALUES (?,?,?,?)",
+                    (msg_id, chat or "", json.dumps(list(senders or ())), bytes(secret)))
+                self._conn.commit()
+                return None
+            r = self._conn.execute("SELECT chat, senders, secret FROM event_secrets WHERE msg=?",
+                                   (msg_id,)).fetchone()
+        return (r["chat"], json.loads(r["senders"]), bytes(r["secret"])) if r else None
+
+    def event_response(self, msg_id, who, response, guests=0, ts=0):
+        """One person's answer to an event (the last one counts)."""
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO event_responses(msg, who, response, guests, ts) "
+                "VALUES (?,?,?,?,?)", (msg_id, who, int(response), int(guests or 0), int(ts or 0)))
+            self._conn.commit()
+
+    def event_responses_of(self, msg_id):
+        """[(who, response, guests)] of an event's answers."""
+        with self._lock:
+            return [(r["who"], r["response"], r["guests"]) for r in self._conn.execute(
+                "SELECT who, response, guests FROM event_responses WHERE msg=? ORDER BY ts, rowid",
+                (msg_id,))]
+
     def wpp_message(self, msg_id):
         """The message (WhatsApp Web format) of an id, in any chat, or None."""
         with self._lock:
@@ -438,11 +507,82 @@ class Store:
         return json.loads(r["data"]) if r else None
 
     def media_record(self, msg_id):
-        """The media record of a message (any chat) or None."""
+        """The media record of a message (any chat, or a cached channel
+        update) or None."""
         with self._lock:
             r = self._conn.execute("SELECT raw FROM msgs WHERE id=? AND raw IS NOT NULL",
                                    (msg_id,)).fetchone()
+            if r is None:
+                r = self._conn.execute(
+                    "SELECT raw FROM channel_posts WHERE id=? AND raw IS NOT NULL",
+                    (msg_id,)).fetchone()
         return bytes(r["raw"]) if r else None
+
+    # ---------------------------------------------------- channel updates
+    def channel_posts_save(self, channel, rows):
+        """Rows (wpp, server id, raw, upto) of *channel*, replacing what was
+        cached. *upto* is the highest server id the WhatsApp answer that brought
+        the row covered with no hole (channel_updates.contiguous); a row seen
+        again keeps the higher of the two, since both answers were whole."""
+        if not rows:
+            return
+        with self._lock:
+            self._conn.executemany(
+                "INSERT INTO channel_posts(channel, id, server_id, ts, data, raw, upto) "
+                "VALUES (?,?,?,?,?,?,?) ON CONFLICT(channel, id) DO UPDATE SET "
+                "server_id=excluded.server_id, ts=excluded.ts, data=excluded.data, "
+                "raw=excluded.raw, upto=max(upto, excluded.upto)",
+                [(channel, w["id"]["id"], int(sid), int(w.get("t") or 0), json.dumps(w), raw,
+                  int(upto or 0))
+                 for w, sid, raw, upto in rows])
+            self._conn.commit()
+
+    def channel_posts_forget(self, channel, ids):
+        """Drops cached updates WhatsApp says were deleted."""
+        ids = [i for i in ids if i]
+        if not ids:
+            return
+        with self._lock:
+            self._conn.executemany("DELETE FROM channel_posts WHERE channel=? AND id=?",
+                                   [(channel, i) for i in ids])
+            self._conn.commit()
+
+    def channel_posts(self, channel, count, before_server_id=0):
+        """[(wpp, server id, upto)] of the *count* newest cached updates (or the
+        ones before *before_server_id*), in chronological order."""
+        with self._lock:
+            if before_server_id:
+                rows = self._conn.execute(
+                    "SELECT data, server_id, upto FROM channel_posts WHERE channel=? "
+                    "AND server_id<? ORDER BY server_id DESC LIMIT ?",
+                    (channel, int(before_server_id), int(count))).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT data, server_id, upto FROM channel_posts WHERE channel=? "
+                    "ORDER BY server_id DESC LIMIT ?", (channel, int(count))).fetchall()
+        return [(json.loads(r["data"]), int(r["server_id"]), int(r["upto"] or 0))
+                for r in reversed(rows)]
+
+    def channel_post(self, msg_id):
+        """(channel, wpp, server id) of a cached update, or None."""
+        with self._lock:
+            r = self._conn.execute(
+                "SELECT channel, data, server_id FROM channel_posts WHERE id=?",
+                (msg_id,)).fetchone()
+        return (r["channel"], json.loads(r["data"]), int(r["server_id"])) if r else None
+
+    def channel_post_change(self, msg_id, **fields):
+        """Changes fields of a cached update's JSON (an edit's new body)."""
+        with self._lock:
+            r = self._conn.execute("SELECT data FROM channel_posts WHERE id=?",
+                                   (msg_id,)).fetchone()
+            if r is None:
+                return
+            data = json.loads(r["data"])
+            data.update(fields)
+            self._conn.execute("UPDATE channel_posts SET data=? WHERE id=?",
+                               (json.dumps(data), msg_id))
+            self._conn.commit()
 
     def messages(self, chat, quantity=20, before=None):
         """The `quantity` most recent (or the ones before `before`, a message
@@ -608,6 +748,29 @@ class Store:
                                    [(int(end), jid) for jid, end in rows])
             self._conn.commit()
 
+    def mark_history_exhausted(self, chats, anchor_id):
+        """The phone's answer to a request anchored on `anchor_id` brought
+        nothing new: that anchor is not asked again (older_history.py)."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats or not anchor_id:
+            return
+        with self._lock:
+            self._conn.executemany("UPDATE chats SET history_exhausted=? WHERE jid=?",
+                                   [(str(anchor_id), c) for c in chats])
+            self._conn.commit()
+
+    def history_exhausted(self, chats):
+        """The anchor ids the phone already answered with nothing new."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats:
+            return set()
+        marks = ",".join("?" * len(chats))
+        with self._lock:
+            rows = self._conn.execute(
+                f"SELECT history_exhausted FROM chats WHERE jid IN ({marks}) "
+                "AND history_exhausted IS NOT NULL", chats).fetchall()
+        return {r["history_exhausted"] for r in rows}
+
     def oldest_real(self, chats):
         """The oldest stored message of the chat (its keys `chats`) that the
         phone also has, as {chat, id, fromMe, ts}, or None: the anchor of an
@@ -680,14 +843,19 @@ class Store:
         return items[0] if items else None
 
     # ------------------------------------------- clear / delete chat
-    def clear_chat(self, jid, keep_starred=True):
+    def clear_chat(self, jid, keep_starred=True, until=0):
         """Deletes the chat's stored messages (only the unstarred ones, if
-        `keep_starred`) and zeroes the unread counter. Returns how many messages
-        went away."""
+        `keep_starred`; only those up to `until` seconds, when given: a clear
+        from another device covers the messages it had) and zeroes the unread
+        counter. Returns how many messages went away."""
         with self._lock:
             filter_ = " AND COALESCE(json_extract(data,'$.star'),0)=0" if keep_starred else ""
+            params = (jid,)
+            if until:
+                filter_ += " AND ts<=?"
+                params = (jid, int(until))
             deleted = self._conn.execute(
-                "DELETE FROM msgs WHERE chat=?" + filter_, (jid,)).rowcount
+                "DELETE FROM msgs WHERE chat=?" + filter_, params).rowcount
             self._conn.execute(
                 "DELETE FROM pinned WHERE chat=? AND msg NOT IN (SELECT id FROM msgs WHERE chat=?)",
                 (jid, jid))

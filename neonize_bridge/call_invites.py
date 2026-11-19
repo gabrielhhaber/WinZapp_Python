@@ -2,7 +2,7 @@
 is in, as WhatsApp Web's "Add participant" does. The WPPConnect side calls
 WhatsApp Web's own WAWebVoipStartCall.inviteToCall once per person
 (client/api_patches/src/util/groupCallRuntime.ts); here meowcaller's
-Call.AddParticipant sends the same group invite offer (neonize patch 0015,
+Call.AddParticipant sends the same group invite offer (neonize patch 0014,
 `CallClient.add_participant`), and someone already on the call's list who has
 not joined is rung again, as the "Ring" button there.
 

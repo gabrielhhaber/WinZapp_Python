@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from core.mention_all import says_everyone
 from ui.shortcut_bindings import command_key_event
 import logging
 import re
@@ -12,6 +13,10 @@ import threading
 import time
 import wx
 import wx.adv
+
+# Waits (seconds) between the reads of an open group's participants while the
+# answer has none yet: about a minute in all, for a group just joined.
+GROUP_PARTICIPANT_RETRY_DELAYS = (3, 5, 10, 15, 30)
 
 
 class MentionsMixin:
@@ -50,6 +55,15 @@ class MentionsMixin:
         if jid.endswith("@lid"):
             jid = getattr(mw, "_lid_to_phone", {}).get(jid, jid)
         return jid.rsplit("@", 1)[0].split(":")[0]
+
+    def _mention_all_keyword(self) -> str:
+        """This locale's word for mentioning everyone, or "" without i18n."""
+        i18n = getattr(self.main_window, "i18n", None)
+        try:
+            word = i18n.t("mention_all_keyword") if i18n is not None else ""
+        except Exception:
+            return ""
+        return word if isinstance(word, str) and word != "mention_all_keyword" else ""
 
     @staticmethod
     def _mention_text(msg: dict) -> str:
@@ -108,6 +122,13 @@ class MentionsMixin:
         mentioned = self._raw_mentioned_jids(msg)
         if not mentioned:
             return []
+
+        # The text says it on its own ("@todos"), even before the group's
+        # participants have been fetched, or when that fetch failed: the
+        # count-based test below needs them and listed every member meanwhile.
+        if len(mentioned) >= 2 and says_everyone(
+                self._mention_text(msg), self._mention_all_keyword()):
+            return self._individually_named_mentions(msg, mentioned)
 
         participants = getattr(self, "_group_participants_cache", None)
         if participants:
@@ -483,9 +504,14 @@ class MentionsMixin:
         self.message_field.SetFocus()
 
     def _fetch_group_participants(self, jid: str):
-        """Background: fetch participants for the group and populate the cache with retries if session is loading."""
-        max_retries = 3
-        delay = 3
+        """Background: fetch participants for the group and populate the cache with retries if session is loading.
+
+        A group just joined can take a while to bring its participants, so
+        the waits between tries grow to about a minute in all
+        (GROUP_PARTICIPANT_RETRY_DELAYS); each answer also refreshes the
+        participant count on the conversation-data button."""
+        delays = GROUP_PARTICIPANT_RETRY_DELAYS
+        max_retries = len(delays) + 1
         for attempt in range(max_retries):
             # Check if this chat is still the active conversation before retrying
             if not self.conversation or self.conversation.get("remoteJid") != jid:
@@ -497,6 +523,8 @@ class MentionsMixin:
                 logging.info(f"[mention] get_group_info({jid}) attempt {attempt+1}/{max_retries} → {len(participants)} participants")
                 if participants:
                     wx.CallAfter(self._set_group_call_limit, jid, len(participants))
+                    wx.CallAfter(self._show_group_size, jid,
+                                 data.get("size") or len(participants))
                     my_jid = getattr(self.main_window, "my_jid", "") or ""
                     # Build initial cache first so UI is populated instantly
                     cache = []
@@ -511,18 +539,42 @@ class MentionsMixin:
                         name = self._get_participant_name(p_jid, p)
                         cache.append((name, p_jid))
                     cache.sort(key=lambda x: x[0].lower())
-                    logging.info(f"[mention] cache built: {[n for n,_ in cache]}")
-                    wx.CallAfter(self._set_group_participants_cache, cache)
+                    logging.info(f"[mention] cache built: {len(cache)} participants")
+                    wx.CallAfter(self._set_group_participants_cache, cache, jid)
                     return
             except Exception as e:
                 logging.error(f"[mention] _fetch_group_participants error on attempt {attempt+1}: {e}", exc_info=True)
             
             if attempt < max_retries - 1:
+                delay = delays[attempt]
                 logging.info(f"[mention] Empty participants response, retrying in {delay}s...")
                 time.sleep(delay)
 
-    def _set_group_participants_cache(self, cache: list):
-        """Main-thread callback: store cache and refresh suggestions if active."""
+    def _set_group_participants_cache(self, cache: list, jid: str = ""):
+        """Main-thread callback: store cache and refresh suggestions if active.
+
+        The fetch runs while the conversation opens, so the selected message's
+        mentions panel was already built without the participants: an @todos
+        then listed every member until the selection moved. Rebuild it now.
+        A late answer for a group no longer open is dropped.
+        """
+        if jid and (not self.conversation or self.conversation.get("remoteJid") != jid):
+            return
         self._group_participants_cache = cache
         if self._mention_active:
             self._update_mention_suggestions(self._mention_query)
+        self._refresh_selected_message_mentions()
+
+    def _refresh_selected_message_mentions(self):
+        """Rebuild the mentions panel of the selected message, if there is one."""
+        messages = getattr(self, "_sorted_messages", None) or []
+        index = self.messages_list.GetFirstSelected()
+        if index < 0 or index >= len(messages) or self._is_separator(messages[index]):
+            return
+        mentions = self._extract_mentions(messages[index])
+        if mentions == getattr(self, "_current_mentions", None):
+            # the same links: rebuilding destroys them, and a focused one
+            # took the screen reader's focus with it (a member joining or
+            # leaving the open group runs this too)
+            return
+        self._update_mentions_panel(mentions)

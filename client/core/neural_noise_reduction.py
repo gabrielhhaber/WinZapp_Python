@@ -56,10 +56,17 @@ def model_path() -> str:
 def _load_session(path: str):
     import onnxruntime as ort
 
+    from core.cuda_components import runtime as noise_runtime
+
     options = ort.SessionOptions()
     options.intra_op_num_threads = 1
     options.inter_op_num_threads = 1
-    session = ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
+    # The graphics card when the user chose one and its build is in place
+    # (CUDA on Windows, Core ML on macOS), else the processor; the session
+    # falls back to the next provider by itself if the first will not start.
+    providers = noise_runtime.providers(ort.get_available_providers())
+    session = ort.InferenceSession(path, sess_options=options, providers=providers)
+    logging.info("[noise_reduction] model on %s", session.get_providers()[0])
     meta = session.get_modelmeta().custom_metadata_map
     erb = np.array(meta["erb_norm_init"].split(","), dtype=np.float32)
     spec = np.array(meta["spec_norm_init"].split(","), dtype=np.float32)
@@ -77,6 +84,10 @@ class NeuralDenoiser:
             session, initial_state = _load_session(path or model_path())
         self._session = session
         self._initial_state = initial_state
+        try:
+            self.provider = session.get_providers()[0]
+        except Exception:
+            self.provider = ""
         inputs, outputs = session.get_inputs(), session.get_outputs()
         self._names = (inputs[0].name, inputs[1].name, outputs[0].name, outputs[1].name)
 
@@ -155,13 +166,23 @@ _denoiser_lock = threading.Lock()
 _inference_lock = threading.Lock()
 
 
-def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, str]:
+def reduce_voice_noise(audio: bytes, rate: int, channels: int,
+                       neural: bool = True) -> tuple[bytes, str]:
     """The recording with its noise reduced, and which engine did it.
 
     The engine is "neural", or "gate" when the model could not be used and the
     old noise gate ran instead; the caller decides what to tell the user.
+    `neural` False is the user's choice of the common reducer (Settings >
+    Audio, general.noise_reduction_neural): faster, the gate at once.
     """
     global _denoiser
+    if not neural:
+        from core.audio_processing import apply_noise_gate
+        return apply_noise_gate(audio, rate, channels, strict=True), "gate"
+    if os.path.isfile(model_path()):
+        cleaned = _on_the_graphics_card(audio, rate, channels)
+        if cleaned is not None:
+            return cleaned, "neural"
     try:
         with _denoiser_lock:
             if _denoiser is None:
@@ -176,3 +197,26 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int) -> tuple[bytes, s
         from core.audio_processing import apply_noise_gate
         # strict: a gate failure must reach the caller, not look like success.
         return apply_noise_gate(audio, rate, channels, strict=True), "gate"
+
+
+def _on_the_graphics_card(audio: bytes, rate: int, channels: int) -> bytes | None:
+    """The recording cleaned by the noise reducer's own process, when a
+    graphics card build is chosen (cuda_components/noise_worker_host.py);
+    None when it is not, or could not: the processor here does it then."""
+    from core.cuda_components import noise_worker_host, runtime
+    if not runtime.uses_worker(noise_worker_host.host.device):
+        return None
+    try:
+        return noise_worker_host.host.denoise(audio, rate, channels)
+    except Exception as exc:
+        logging.warning("[noise_reduction] the graphics card could not clean it (%s); "
+                        "using the processor", exc)
+        return None
+
+
+def forget_denoiser() -> None:
+    """Drop the loaded model (its file was removed): the next recording
+    loads it again, or falls back to the gate when it is gone."""
+    global _denoiser
+    with _denoiser_lock:
+        _denoiser = None

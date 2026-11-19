@@ -73,6 +73,7 @@ class AccountLinkMixin:
                     logging.warning(f"[health_checker] Error checking connection in background: {e}")
                 # Measure the sleep alone: slow HTTP/sync work is not a suspend.
                 slept_at = time.monotonic()
+                slept_wall = time.time()
                 time.sleep(self._HEALTH_CHECK_INTERVAL)
                 # Clock-gap wake detection: if the sleep above overran massively,
                 # the machine was suspended and just came back. Trigger recovery
@@ -88,6 +89,9 @@ class AccountLinkMixin:
                         "— treating as resume from suspend, forcing recovery.",
                         elapsed, self._HEALTH_CHECK_INTERVAL,
                     )
+                    # The sleep is not a message's age for automatic transcription.
+                    from core.transcription import auto_queue
+                    auto_queue.listening_gaps.add(slept_wall, time.time())
                     try:
                         self._reset_connection_state_for_resume()
                         self._recover_from_suspend()

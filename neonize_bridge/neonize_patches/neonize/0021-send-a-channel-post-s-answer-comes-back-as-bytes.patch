@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 9 Nov 2026 23:51:19 -0300
+Subject: [PATCH] send: a channel post's answer comes back as bytes
+
+SendNewsletterMessage returns POINTER(Bytes) like SendMessage, but was missing from the functions whose answer is turned into bytes: the post went out and the call raised 'expected bytes, LP_Bytes found', so the app reported a failure for a post that was published.
+---
+ neonize/_binder.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 5f76693..199ee53 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -797,6 +797,7 @@ if not os.environ.get("SPHINX"):
+         "GetGroupInviteLink",
+         "JoinGroupWithLink",
+         "SendMessage",
++        "SendNewsletterMessage",
+         "SendSPRMessage",
+         "BuildRevoke",
+         "SendPeerMessage",

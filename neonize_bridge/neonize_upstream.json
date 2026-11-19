@@ -7,6 +7,11 @@
         "version": "0.6.0",
         "commit": "ce082701aeb94d3fa2ede0e61f397b755051f556",
         "approved_on": "2026-10-26"
+      },
+      {
+        "version": "0.10.0",
+        "commit": "0a17277637df391ff4af9395bfa09abc236aa597",
+        "approved_on": "2026-11-08"
       }
     ]
   },

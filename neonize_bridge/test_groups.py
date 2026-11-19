@@ -106,3 +106,29 @@ def test_a_definite_group_info_refusal_is_named_and_anything_else_is_not():
     assert groups.info_refusal(Exception("that group does not exist")) == "group_not_found"
     assert groups.info_refusal(Exception("info query timed out")) == ""
     assert groups.info_refusal(Exception("websocket not connected")) == ""
+
+
+# ---- the invitation preview's approval (reported 2026-11-12: always "unknown")
+
+def _answer(*group_children):
+    return {"tag": "iq", "content": [{"tag": "group", "attrs": {"id": "1"},
+                                      "content": list(group_children)}]}
+
+
+def test_the_preview_query_is_whatsmeows_own():
+    q = groups.invite_info_query("ABC")
+    assert (q["namespace"], q["type"], q["to"]) == ("w:g2", "get", "g.us")
+    assert q["content"] == [{"tag": "invite", "attrs": {"code": "ABC"}}]
+
+
+def test_approval_is_read_from_the_answer():
+    on = {"tag": "membership_approval_mode",
+          "content": [{"tag": "group_join", "attrs": {"state": "on"}}]}
+    off = {"tag": "membership_approval_mode",
+           "content": [{"tag": "group_join", "attrs": {"state": "off"}}]}
+    closed = {"tag": "parent", "attrs": {"default_membership_approval_mode": "request_required"}}
+    assert groups.invite_approval(_answer(on)) is True
+    assert groups.invite_approval(_answer(off)) is False
+    assert groups.invite_approval(_answer()) is False          # absent: off
+    assert groups.invite_approval(_answer(closed)) is True     # a closed community
+    assert groups.invite_approval({"tag": "iq"}) is None       # no group: says nothing

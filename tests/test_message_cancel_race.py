@@ -836,6 +836,7 @@ class _EchoMainWindow(_MainWindow):
 
     def __init__(self, records):
         super().__init__()
+        self._lid_mapping_lock = threading.RLock()
         self.chats = {CHAT: {"remoteJid": CHAT, "unreadCount": 0, "t": 0,
                              "messages": {"messages": {"records": records}}}}
         self._lid_to_phone = {}

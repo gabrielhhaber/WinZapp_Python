@@ -61,6 +61,7 @@ from core.utils import MEASURED_SECONDS_KEY
 from main import MainWindow
 from main_window import transcription_store
 from tests.god_modules import patch_main_global
+from ui.conversation_panel.reading_position import ReadingPositionMixin
 from tests.test_deep_sync import _MessagesStub, _Resp
 from tests.test_historical_self_chat_guard import _DedupStub
 from tests.test_lid_merge_keeps_messages import _Stub as _LidMergeStub
@@ -338,7 +339,7 @@ class _OpeningWindow:
         self.db = _OpeningDb(rows)
 
 
-class _OpeningPanel:
+class _OpeningPanel(ReadingPositionMixin):
     _load_conversation_page_from_db = ConversationsPanel._load_conversation_page_from_db
 
     def __init__(self, rows):

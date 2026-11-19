@@ -32,6 +32,9 @@ def voice_nr_engine(settings):
     general = settings.get("general", {}) if isinstance(settings, dict) else {}
     if not isinstance(general, dict):
         return "neural"
+    # The current upstream preference is authoritative, including existing installs.
+    if "noise_reduction_neural" in general:
+        return "neural" if general["noise_reduction_neural"] is not False else "basic"
     return normalize_nr_engine(general.get("voice_nr_engine"))
 
 
@@ -42,6 +45,8 @@ def normalize_nr_moment(value):
 def voice_nr_moment(settings):
     general = settings.get("general", {}) if isinstance(settings, dict) else {}
     if not isinstance(general, dict):
+        return "send"
+    if not recording_nr_available(general.get("noise_reduction_device", "cpu")):
         return "send"
     return normalize_nr_moment(general.get("voice_nr_moment"))
 
@@ -55,3 +60,8 @@ def voice_nr_on_failure(settings):
     if not isinstance(general, dict):
         return "basic"
     return normalize_nr_on_failure(general.get("voice_nr_on_failure"))
+
+
+def recording_nr_available(device):
+    """The streaming worker runs in-process, never in the CUDA subprocess."""
+    return device in (None, "cpu", "coreml")

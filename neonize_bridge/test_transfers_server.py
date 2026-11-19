@@ -244,6 +244,34 @@ async def test_get_media_with_a_download_error_still_answers_410(tmp_path, sessi
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(("error", "status", "code"), [
+    ("no_answer", 504, "media_retry_no_answer"),
+    ("unreadable", 410, "media_retry_unreadable"),
+    ("gone", 410, "media_gone_from_phone"),
+])
+async def test_get_media_says_why_the_phones_copy_failed(tmp_path, sessions, monkeypatch,
+                                                        error, status, code):
+    """Issue #766: a phone that did not answer is worth another try (504, not
+    remembered as expired); each failure carries the code the client words."""
+    import media_retry
+    raised = {"no_answer": media_retry.PhoneDidNotAnswer("the phone did not answer"),
+              "unreadable": media_retry.RetriedUnreadable("invalid media hmac"),
+              "gone": media_retry.MediaGone("404 not found")}[error]
+
+    async def fails(*a, **k):
+        raise raised
+    monkeypatch.setattr(media_retry, "download_async", fails)
+    bridge = await _open(tmp_path, sessions, ClientWithoutFork())
+    try:
+        serial = _store_image(bridge.s)
+        response = await bridge.http.post(
+            bridge.url(f"get-media-by-message/{serial}"), json={"progressId": "M1"})
+        assert response.status == status and (await response.json())["code"] == code
+    finally:
+        await bridge.http.close()
+
+
+@pytest.mark.asyncio
 async def test_get_media_also_answers_a_get_as_upstream_does(tmp_path, sessions):
     client = ClientWithoutFork()
     bridge = await _open(tmp_path, sessions, client)

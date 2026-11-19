@@ -269,6 +269,29 @@ static void remove_registry_entry(void)
      * didn't use (see get_install_dir()). */
     RegDeleteKeyW(HKEY_LOCAL_MACHINE, REGKEY_UNINSTALL);
     RegDeleteKeyW(HKEY_CURRENT_USER, REGKEY_UNINSTALL);
+
+    /* The whatsapp: link registration WinZapp wrote under HKCU on first run
+     * (client/core/whatsapp_link_association.py): nothing may keep pointing at
+     * the deleted program. The scheme key itself only when WinZapp created it. */
+    HKEY scheme;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Classes\\whatsapp", 0,
+                      KEY_READ, &scheme) == ERROR_SUCCESS) {
+        DWORD type, size = 0;
+        BOOL ours = RegQueryValueExW(scheme, L"WinZappOwned", NULL, &type, NULL,
+                                     &size) == ERROR_SUCCESS;
+        RegCloseKey(scheme);
+        if (ours)
+            SHDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Classes\\whatsapp");
+    }
+    SHDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Classes\\WinZapp.WhatsAppLink");
+    SHDeleteKeyW(HKEY_CURRENT_USER, L"Software\\WinZapp\\Capabilities");
+    RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\WinZapp");
+    HKEY apps;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\RegisteredApplications", 0,
+                      KEY_SET_VALUE, &apps) == ERROR_SUCCESS) {
+        RegDeleteValueW(apps, L"WinZapp");
+        RegCloseKey(apps);
+    }
 }
 
 /* ── Schedule self-delete via temp batch file ─────────────────────────── */

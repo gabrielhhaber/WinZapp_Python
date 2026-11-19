@@ -36,11 +36,13 @@ from update_channel_choice import AlphaChannelChoiceMixin
 from config import GITHUB_API_LATEST_RELEASE, GITHUB_API_LATEST_STABLE_RELEASE
 from update_reconfirm import ReconfirmMixin
 from update_background import BackgroundDownloadMixin, background_downloads_enabled
+from update_on_exit import UpdateOnExitMixin, update_on_exit_enabled
 from update_package import discard_package, download_update_package, extraction_root
 from core.update_handoff import InstallHandoff
 from update_progress import UpdateProgressLifecycle, update_control_if_alive
 from ui.modal_utils import end_modal_if_running
-from update_node_kill import node_kill_lines, own_node_pids
+from update_node_kill import bridge_stop_lines, node_kill_lines, own_node_pids
+from core.update_exit_notice import exit_notice
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
@@ -170,7 +172,32 @@ def _safe_extract_zip(zf: zipfile.ZipFile, dest_dir: str) -> None:
     zf.extractall(dest_dir)
 
 
+def _wait_for_peers_to_exit(update_coord, global_dir, claim, cancelled):
+    """Retry a claim refused only because another account is still alive.
+
+    Bounded by _PEER_EXIT_GRACE_SECONDS and abandoned once *cancelled* is set;
+    any other refusal reason, or a peer that really never exits (hung), is
+    returned unchanged so the user gets the same error as before.
+    """
+    if getattr(claim, "reason", "") != "other_accounts":
+        return claim
+    deadline = time.monotonic() + _PEER_EXIT_GRACE_SECONDS
+    logging.info("Auto-updater: another account is still exiting; waiting up to %.0fs "
+                 "before claiming the install slot", _PEER_EXIT_GRACE_SECONDS)
+    while claim.reason == "other_accounts" and time.monotonic() < deadline and not cancelled.is_set():
+        time.sleep(_PEER_EXIT_POLL_SECONDS)
+        claim = update_coord.try_begin_update(global_dir, explain=True)
+    if claim.reason == "other_accounts":
+        logging.warning("Auto-updater: another account was still running after the grace period")
+    return claim
+
+
 # ── Version helpers ───────────────────────────────────────────────────────────
+
+# After every other account has confirmed it released its session, its process
+# still needs a moment to die; the install slot is claimed only once it has.
+_PEER_EXIT_GRACE_SECONDS = 20.0
+_PEER_EXIT_POLL_SECONDS = 0.25
 
 _PRE_ORDER = {"dev": 0, "alpha": 1, "beta": 2, "": 3}
 
@@ -605,7 +632,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
                             bridge_pids: "list[int] | tuple" = (),
                             relaunch_handoff: str = "",
                             cleanup_dir: str = "", install_guard=None,
-                            result_path: str = "", run_id: str = "") -> str:
+                            result_path: str = "", run_id: str = "",
+                            relaunch_app: bool = True, exit_notice=None) -> str:
     """The batch script text. Pure — every path is already console-safe.
 
     Kept apart from _run_batch_installer() so what the script says can be
@@ -633,8 +661,15 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
     a full copy of the release in the user's %TEMP%. A failed copy keeps it
     (like the script itself, it is evidence, and the retry may want it).
     """
+    # An install on exit says how it ended (core/update_exit_notice.py). A
+    # guarded install's waiter says it, outside the guardian's job.
+    notice = exit_notice if (exit_notice and not relaunch_app and not install_guard) else None
     relaunch = relaunch_lines(exe_path, log_path, relaunch_handoff,
-                              waiter_required=bool(install_guard))
+                              waiter_required=bool(install_guard), relaunch=relaunch_app,
+                              notice=notice.installed if notice else "")
+    relaunch_failed = relaunch_lines(exe_path, log_path, relaunch_handoff,
+                                     waiter_required=bool(install_guard), relaunch=relaunch_app,
+                                     notice=notice.not_installed if notice else "")
     source_node = os.path.join(source_dir, "node", "node.exe")
     target_node = os.path.join(install_dir, "node", "node.exe")
     # Keep the held payload beside, not inside, source_dir.  xcopy walks the
@@ -689,8 +724,9 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # Give child processes a moment to exit, then kill stragglers holding file locks.
         "timeout /t 2 /nobreak >NUL\n"
         + node_kill_lines(node_pids, api_port, log_path) +
-        # A bridge still running (its client crashed) holds neonize_bridge.exe open.
-        node_kill_lines(bridge_pids, BRIDGE_PORT, log_path, image=BRIDGE_EXE) +
+        # A bridge still running (shutting down, or its client crashed) holds
+        # neonize_bridge.exe open: wait for it to go, stopping it if needed.
+        bridge_stop_lines(bridge_pids, log_path, image=BRIDGE_EXE) +
         "timeout /t 1 /nobreak >NUL\n"
         # xcopy's exit code was previously never checked, so a failed copy
         # (locked file, disk full, permissions) silently relaunched whatever
@@ -740,7 +776,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         + batch_receipt(result_path, "failed", run_id, "    ")
         + batch_done(install_guard, "failed", "    ")
         + relaunch_lines(exe_path, log_path, relaunch_handoff, indent="    ",
-                         waiter_required=bool(install_guard)) +
+                         waiter_required=bool(install_guard), relaunch=relaunch_app,
+                         notice=notice.not_installed if notice else "") +
         # Deliberately not deleted on failure: the script and its log are the
         # only evidence of what went wrong, and erasing them is what made the
         # original report impossible to diagnose from the user's machine.
@@ -761,7 +798,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
             f'echo update failed: another WinZapp account did not exit > "{marker_path}"\n'
             + batch_receipt(result_path, "failed", run_id)
             + batch_done(install_guard, "unchanged")
-            + relaunch +
+            + relaunch_failed +
             "exit /b 1\n"
             if extra_pids else ""
         )
@@ -781,7 +818,7 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
               + batch_done(install_guard, "unchanged", "    ")
               + ") else (\n" + batch_done(install_guard, "failed", "    ") + ")\n"
               if install_guard else "")
-           + relaunch + "exit /b 1\n"
+           + relaunch_failed + "exit /b 1\n"
            if result_path else "")
     )
 
@@ -841,7 +878,8 @@ def _keep_newer_installed_server(source_dir: str, install_dir: str) -> None:
 
 def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,
                          extra_pids: "list[int] | tuple" = (), install_guard=None,
-                         recovery_text: str = "") -> bool:
+                         recovery_text: str = "", relaunch_app: bool = True,
+                         exit_notice=None) -> bool:
     """
     Write a batch script that:
       1. Waits for PID (and every other account's PID in extra_pids) to exit.
@@ -960,6 +998,8 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         install_guard=guarded_paths,
         result_path=os.path.join(safe_install, RESULT_NAME) if install_guard else "",
         run_id=uuid.uuid4().hex if install_guard else "",
+        relaunch_app=relaunch_app,
+        exit_notice=exit_notice,
     )
     if not _write_installer_script(bat_path, script):
         return False
@@ -970,7 +1010,8 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
             bat_path, install_guard, extraction_root(extracted_dir), relaunch_handoff,
             exe_path, install_log, pid, needs_admin, _write_installer_script,
             run_elevated, subprocess.Popen, start_relaunch_waiter,
-            relaunch_environment(os.environ), recovery_text=recovery_text)
+            relaunch_environment(os.environ), recovery_text=recovery_text,
+            relaunch=relaunch_app, exit_notice=None if relaunch_app else exit_notice)
 
     if sys.platform == "win32":
         if needs_admin:
@@ -987,7 +1028,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
                 try:
                     start_relaunch_waiter(bat_path, installer_pid, exe_path, install_log,
                                           relaunch_handoff, _write_installer_script,
-                                          parent_pid=pid)
+                                          parent_pid=pid, relaunch=relaunch_app)
                 except Exception:
                     # The installer ALREADY exists. An auxiliary waiter failure
                     # must never release its slot or tell the caller to stay open.
@@ -1041,10 +1082,21 @@ class WhatsNewDialog(wx.Dialog):
             title=title or i18n.t("whats_new_title"),
             style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
         )
+        # The only button is wx.ID_CLOSE and wx.Dialog's own Esc handling
+        # looks for a wx.ID_CANCEL one, so without these Esc did nothing —
+        # least of all from the read-only text, where the focus starts.
+        self.SetEscapeId(wx.ID_CLOSE)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
         self._build(parent, changelog, i18n)
         self.SetMinSize((400, 300))
         self.SetSize((520, 400))
         self.Centre()
+
+    def _on_char_hook(self, event):
+        if event.GetKeyCode() == wx.WXK_ESCAPE:
+            self.EndModal(wx.ID_CLOSE)
+        else:
+            event.Skip()
 
     def _build(self, parent, changelog, i18n):
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -1072,7 +1124,8 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
     """
 
     def __init__(self, parent, new_version: str, main_window, zip_url: str, sha256sums_url: str = "",
-                 signature_url: str = "", is_alpha: bool = False, extracted_dir: str = ""):
+                 signature_url: str = "", is_alpha: bool = False, extracted_dir: str = "",
+                 relaunch_app: bool = True):
         i18n = main_window.i18n
         super().__init__(
             parent,
@@ -1088,6 +1141,8 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
         # A package a background download already fetched, verified and
         # extracted (update_background.py): only the install phase is left.
         self._extracted_dir  = extracted_dir
+        # False when installing on exit (update_on_exit.py): stays closed.
+        self._relaunch_app   = relaunch_app
         self._cancelled      = False
         self._install_ok     = False
         self._error_msg      = ""
@@ -1201,7 +1256,10 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
             launched = _run_batch_installer(extract_dir, install_dir, exe_name, pid,
                                             api_port=getattr(self._main_window, "wpp_port", 6300),
                                             extra_pids=other_pids, install_guard=install_guard,
-                                            recovery_text=self._main_window.i18n.t("update_recovery_instructions"))
+                                            recovery_text=self._main_window.i18n.t("update_recovery_instructions"),
+                                            relaunch_app=self._relaunch_app,
+                                            exit_notice=None if self._relaunch_app else exit_notice(
+                                                self._main_window.i18n, self._new_version))
             if not launched:
                 self._error_msg = self._main_window.i18n.t(
                     install_guard.get("error", "update_coordination_failed"))
@@ -1289,6 +1347,12 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
         try:
             import update_coord
             claim = update_coord.try_begin_update(coord[0], explain=True)
+            # A peer that confirmed RELEASED (ipc.request_quit) is still a live
+            # process for a moment: _ipc_quit sleeps 0.3 s, then terminates, and
+            # its runtime lease only stops counting once the process is gone.
+            # Refusing here made the update fail with "another account is
+            # open" and succeed only when the user answered Yes to retry.
+            claim = _wait_for_peers_to_exit(update_coord, coord[0], claim, self._handoff.cancelled)
             i18n = self._main_window.i18n
             if claim.reason == "other_accounts":
                 self._claim_error = i18n.t("update_other_accounts_running")
@@ -1390,7 +1454,8 @@ class UpdateDialog(wx.Dialog):
 
 # ── UpdateChecker ─────────────────────────────────────────────────────────────
 
-class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmMixin):
+class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnExitMixin,
+                    ReconfirmMixin):
     """
     Runs version checks in a background thread.
     Shows UpdateDialog on the main thread when a newer version is found.
@@ -1607,7 +1672,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmM
             # would open a second prompt, and a Yes a second download.
             forced, self._force = self._force, False
             if forced:
-                wx.CallAfter(self._say_background_update_running)
+                wx.CallAfter(self._say_staged_or_background_update)
             self._schedule_retry()
             return
         include_alpha = self._alpha_enabled()
@@ -1719,6 +1784,13 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmM
                 wx.CallAfter(self._show_prompt_open_elsewhere)
             else:
                 self._schedule_retry()
+            return
+
+        if update_on_exit_enabled(getattr(self._mw, "settings", None)):
+            # Settings > General: no question. It downloads now and installs
+            # when the user exits (update_on_exit.py).
+            self._stage_for_exit(remote_version, zip_url, sha256sums_url, signature_url,
+                                 release_is_alpha, announce=was_forced)
             return
 
         wx.CallAfter(
@@ -1867,7 +1939,8 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmM
         return may_run is None or bool(may_run())
 
     def _do_install(self, new_version: str, zip_url: str, sha256sums_url: str = "",
-                    signature_url: str = "", is_alpha: bool = False, extracted_dir: str = ""):
+                    signature_url: str = "", is_alpha: bool = False, extracted_dir: str = "",
+                    relaunch_app: bool = True):
         """Download and install, or — given *extracted_dir*, a package a
         background download already prepared — only install."""
         if getattr(self, "_install_pending", False):
@@ -1886,13 +1959,14 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmM
                                          signature_url, is_alpha)
             return
         self._install_pending = True
+        self._relaunch_app = relaunch_app
         args = (new_version, zip_url, sha256sums_url, signature_url, is_alpha, extracted_dir)
         prog = None
         try:
             prog = UpdateProgressDialog(
                 self._mw, new_version, self._mw, zip_url, sha256sums_url,
                 signature_url=signature_url, is_alpha=is_alpha,
-                extracted_dir=extracted_dir,
+                extracted_dir=extracted_dir, relaunch_app=relaunch_app,
             )
             bring_to_front_if_hidden(self._mw, prog)
             result = prog.run()
@@ -1933,6 +2007,7 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmM
             self._release_prompt()
             if result == wx.ID_CANCEL:
                 self._schedule_retry()
+            UpdateOnExitMixin._continue_exit_without_install(self)
             return
         i18n = self._mw.i18n
         try:
@@ -1948,8 +2023,9 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, ReconfirmM
             discard_package(extracted_dir)
             self._release_prompt()
             self._schedule_retry()
+            UpdateOnExitMixin._continue_exit_without_install(self)
             return
-        wx.CallAfter(self._do_install, *args)
+        wx.CallAfter(self._do_install, *args, relaunch_app=getattr(self, "_relaunch_app", True))
 
     def _schedule_retry(self, interval: float = None):
         if interval is None:

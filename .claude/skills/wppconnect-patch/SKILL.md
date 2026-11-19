@@ -67,13 +67,18 @@ shipped `_V<n>` constant is never edited — add a version and a migration
 `wppconnect_browser_layer_patch.py` is shaped like the wa-js one below instead
 (matched by structure, owns its file handling).
 
-A sixth module patches the other half of the pair, `@wppconnect/wa-js`'s
-bundle — the script injected into the WhatsApp Web page, so a bug in
-`WPP.*` itself is fixed there:
+A sixth and a seventh module patch the other half of the pair,
+`@wppconnect/wa-js`'s bundle — the script injected into the WhatsApp Web
+page, so a bug in `WPP.*` itself is fixed there:
 
 ```
-wppconnect_wa_js_patch.py           wppconnect-wa.js  Meta AI send without a loaded bot profile
+wppconnect_wa_js_patch.py           wppconnect-wa.js  Meta AI send without a loaded bot profile; chat lookup
+wppconnect_newsletter_chat_patch.py wppconnect-wa.js  a channel post finds its chat (NewsletterStore) and send job
 ```
+
+Each has its own test (`tests/test_wa_js_patch.py`,
+`tests/test_newsletter_chat_patch.py`), and `tests/test_wpp_homologated_runtime_pin.py`
+applies them to the installed bundle.
 
 Its bundle is minified, and the minifier renames temporaries between builds,
 so it matches the expression by structure (a regex with a back-reference for
@@ -100,7 +105,7 @@ the build regenerates it from the patched `.ts` sources.
 ## Verify
 
 ```
-uv run pytest tests/test_api_patches_in_sync.py tests/test_reapply_node_modules_patches.py tests/test_pairing_code_patch.py tests/test_status_layer_patch.py tests/test_welcome_layer_patch.py tests/test_wa_js_patch.py tests/test_large_file_patch.py
+uv run pytest tests/test_api_patches_in_sync.py tests/test_reapply_node_modules_patches.py tests/test_pairing_code_patch.py tests/test_status_layer_patch.py tests/test_welcome_layer_patch.py tests/test_wa_js_patch.py tests/test_newsletter_chat_patch.py tests/test_large_file_patch.py
 ```
 
 `test_the_two_copies_of_each_patch_are_identical` fails locally after pulling

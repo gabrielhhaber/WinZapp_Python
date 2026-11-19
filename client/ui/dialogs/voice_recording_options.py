@@ -4,7 +4,7 @@ import wx
 
 from core.voice_nr_options import (
     NR_ENGINES, NR_MOMENTS, NR_ON_FAILURE,
-    voice_nr_engine, voice_nr_moment, voice_nr_on_failure)
+    voice_nr_engine, voice_nr_moment, voice_nr_on_failure, recording_nr_available)
 from core.voice_recording_mode import RECORDING_MODES, voice_recording_mode
 from core.voice_stereo import (
     VOICE_BITRATES_KBPS, stereo_voice_bitrate_kbps, voice_bitrate_kbps)
@@ -56,6 +56,11 @@ class VoiceRecordingOptionsMixin:
             choices=[i18n.t("voice_nr_on_failure_basic"),
                      i18n.t("voice_nr_on_failure_pending")])
         sizer.Add(self._voice_nr_on_failure_combo, 0, wx.EXPAND | wx.ALL, 8)
+        # One visible engine selector: upstream's compatibility checkbox
+        # remains synchronized but is not a second competing choice.
+        upstream_box = getattr(self, "_noise_reducer_neural_check", None)
+        if upstream_box is not None:
+            upstream_box.Hide()
         # The master switch lives just above this section on the same page
         # (created before this builder runs): toggling it re-evaluates the
         # conditional state too.
@@ -97,8 +102,12 @@ class VoiceRecordingOptionsMixin:
         index = self._voice_nr_engine_combo.GetSelection()
         engine = NR_ENGINES[index] if 0 <= index < len(NR_ENGINES) else "neural"
         self.main_window.settings.setdefault("general", {})["voice_nr_engine"] = engine
+        self.main_window.settings["general"]["noise_reduction_neural"] = engine == "neural"
         index = self._voice_nr_moment_combo.GetSelection()
         moment = NR_MOMENTS[index] if 0 <= index < len(NR_MOMENTS) else "send"
+        device = VoiceRecordingOptionsMixin._voice_nr_selected_device(self)
+        if not recording_nr_available(device):
+            moment = "send"
         self.main_window.settings.setdefault("general", {})["voice_nr_moment"] = moment
         index = self._voice_nr_on_failure_combo.GetSelection()
         on_failure = NR_ON_FAILURE[index] if 0 <= index < len(NR_ON_FAILURE) else "basic"
@@ -126,8 +135,22 @@ class VoiceRecordingOptionsMixin:
         engine = NR_ENGINES[index] if 0 <= index < len(NR_ENGINES) else "neural"
         self._voice_nr_engine_combo.Enable(nr_on)
         neural = nr_on and engine == "neural"
-        self._voice_nr_moment_combo.Enable(neural)
+        available = recording_nr_available(VoiceRecordingOptionsMixin._voice_nr_selected_device(self))
+        if not available:
+            self._voice_nr_moment_combo.SetSelection(NR_MOMENTS.index("send"))
+        self._voice_nr_moment_combo.Enable(neural and available)
+        upstream_box = getattr(self, "_noise_reducer_neural_check", None)
+        if upstream_box is not None:
+            upstream_box.SetValue(neural)
+            upstream_box.Hide()
         self._voice_nr_on_failure_combo.Enable(neural)
+
+    def _voice_nr_selected_device(self):
+        device = getattr(self, "_noise_reducer_device", None)
+        if device is None:
+            device = self.main_window.settings.get("general", {}).get(
+                "noise_reduction_device", "cpu")
+        return device
 
     def _on_voice_nr_engine_changed(self, event):
         self._update_voice_nr_options_state()

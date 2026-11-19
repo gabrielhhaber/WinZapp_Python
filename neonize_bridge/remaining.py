@@ -24,6 +24,7 @@ the routes.
 """
 import asyncio
 import logging
+import time
 
 from aiohttp import web
 
@@ -48,26 +49,46 @@ IMPOSSIBLE = (
      "neonize has no browser page to capture"),
 )
 
-# The Meta AI terms notice that WhatsApp Web uses (deviceController.ts,
+# The Meta AI terms notice: WhatsApp Web's master bot notice
+# (WAWebBotGating.getMasterBotNoticeId(), and wppconnect's deviceController.ts
 # META_AI_NOTICE_ID_FALLBACK). Until it is accepted, WhatsApp refuses every
 # message to Meta AI (core/meta_ai.py in the client).
 META_AI_NOTICE = "20250502"
+# The disclosure stages WhatsApp Web sends for it (WAWebPDFNTypes.DISCLOSURE_STAGE):
+# SHOWN_0 when its dialog appears, ACCEPTED when the user agrees (the notice's
+# content, www.whatsapp.com/user-notice/v1/?id=20250502, names the button
+# "ACCEPT"; a button named "OK" would send OK, 155).
+TERMS_STAGE_SHOWN = "105"
+TERMS_STAGE_ACCEPTED = "5"
+# Each tos query waits at most this long for WhatsApp (the raw IQ default is 30 s,
+# longer than the client waits for the accept: 20 s). Five queries and the
+# re-read delay must fit in that.
+TERMS_TIMEOUT_MS = 3000
+# A stanza WhatsApp took is read again after this delay when the first read still
+# says not accepted.
+TERMS_REREAD_DELAY_SECONDS = 1.5
 
 
 def terms_query(notice=META_AI_NOTICE) -> dict:
     """WhatsApp Web's own read of a notice (WAWebTosJob.queryTosState)."""
-    return {"namespace": "tos", "type": "get", "content": [
+    return {"namespace": "tos", "type": "get", "timeout_ms": TERMS_TIMEOUT_MS, "content": [
         rq.node("request", None, [rq.node("notice", {"id": notice})])]}
 
 
-def terms_accept_query(notice=META_AI_NOTICE) -> dict:
-    """What WhatsApp Web sends once its accept button has set the notice
-    (TosManager.maybeUpdateServer -> WAWebTosJob.updateTosState): the stanza the
-    WPPConnect route has used since 2026-09-25, when a send refused with 488
-    went through after it. AcceptTOSNotice is a different query, with a `stage`
-    nothing here confirms for this notice, and is not used."""
-    return {"namespace": "tos", "type": "set", "content": [
-        rq.node("request", {"type": "session_update"}, [rq.node("notice", {"id": notice})])]}
+def terms_stage_query(stage, notice=META_AI_NOTICE) -> dict:
+    """WhatsApp Web's record of a disclosure stage for the notice
+    (WASmaxUserNoticeSetResultRPC, sent by updateUserDisclosureStateAction from
+    the Meta AI terms dialog, WAWebPDFNModal):
+    `<iq xmlns="tos" type="set"><trackable id="20250502" result="5"/></iq>`.
+
+    Read from WhatsApp Web's own code over CDP on 2026-11-13. The Meta AI notice
+    is a privacy disclosure (PDFN), not a legacy ToS notice: the formats tried
+    before (`session_update`, `notice` with `stage` or `state`) are the other
+    system's and got 400, an answer that changed nothing, or no answer at all.
+    On an account that accepted it, the read (terms_query) answers the notice
+    without state="false", so the read confirms this stanza."""
+    return {"namespace": "tos", "type": "set", "timeout_ms": TERMS_TIMEOUT_MS, "content": [
+        rq.node("trackable", {"id": notice, "result": stage})]}
 
 
 def terms_state(response, notice=META_AI_NOTICE) -> str:
@@ -80,6 +101,18 @@ def terms_state(response, notice=META_AI_NOTICE) -> str:
         if attrs.get("id") == notice:
             return "NOT_ACCEPTED" if attrs.get("state") == "false" else "ACCEPTED"
     return "UNKNOWN"
+
+
+def terms_notices(response) -> list:
+    """What the answer to terms_query() names, for the log: the attributes of every
+    notice (ids, state, stage - no personal data), or the tags it holds instead."""
+    tos = rq.child(response, "tos") if isinstance(response, dict) else None
+    if tos is None:
+        content = response.get("content") if isinstance(response, dict) else None
+        return ["no tos node; holds " + ",".join(
+            str(c.get("tag")) for c in content if isinstance(c, dict))
+            if isinstance(content, list) else "no tos node"]
+    return [dict(item.get("attrs") or {}) for item in rq.children(tos, "notice")]
 
 
 def message_platform(serial) -> str:
@@ -129,8 +162,11 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
     def _can_ask(s):
         return s.client is not None and s.status == "CONNECTED" and rq.available(s.client)
 
-    def _ask_state(s):
-        return terms_state(rq.send_iq(s.client, terms_query()))
+    def _ask_state(s, when=""):
+        answer = rq.send_iq(s.client, terms_query())
+        state = terms_state(answer)
+        log.info("meta-ai-terms read%s: %s -> %s", when, terms_notices(answer), state)
+        return state
 
     async def meta_ai_terms(req):
         # "UNKNOWN" when it cannot be read: the client sends anyway, as before.
@@ -154,8 +190,34 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of=N
                          "this neonize build sends no raw queries")
 
         def accept():
-            rq.send_iq(s.client, terms_accept_query())
-            return _ask_state(s)
+            """WhatsApp Web's sequence: the dialog was shown (SHOWN_0, as its
+            dialog sends when it appears; a refusal only logged), then accepted,
+            then read again. A refusal of the accept is raised; a read that fails
+            after it gives UNKNOWN (not a success, but not a refused accept)."""
+            def read_after(when):
+                try:
+                    return _ask_state(s, when)
+                except rq.QueryError as refusal:
+                    log.info("meta-ai-terms read%s failed (%s): %s", when, refusal.code, refusal)
+                    return "UNKNOWN"
+
+            try:
+                if _ask_state(s, " before") == "ACCEPTED":
+                    return "ACCEPTED"
+            except rq.QueryError as refusal:
+                log.info("meta-ai-terms read before refused (%s): %s", refusal.code, refusal)
+            try:
+                rq.send_iq(s.client, terms_stage_query(TERMS_STAGE_SHOWN))
+            except rq.QueryError as refusal:
+                log.info("meta-ai-terms shown refused (%s): %s", refusal.code, refusal)
+            rq.send_iq(s.client, terms_stage_query(TERMS_STAGE_ACCEPTED))
+            log.info("meta-ai-terms accept sent")
+            state = read_after(" after accept")
+            if state != "ACCEPTED":
+                # The server may take a moment to show what it has just taken.
+                time.sleep(TERMS_REREAD_DELAY_SECONDS)
+                state = read_after(" again after accept")
+            return state
 
         try:
             state = await asyncio.get_running_loop().run_in_executor(None, accept)

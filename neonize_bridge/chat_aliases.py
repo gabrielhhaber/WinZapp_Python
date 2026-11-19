@@ -25,6 +25,24 @@ def forms(jid):
     return [base]
 
 
+def mutation_index_jid(jid, other_address):
+    """The chat as an app state mutation names it: a person's chat by its LID.
+
+    WhatsApp Web (WAWebSyncdGetChat.getChatJidMutationIndexForChat, read
+    2026-11-09) puts the chat's accountLid in the index of clearChat, archive,
+    pin and the rest, never the number; a phone resolving a number it does not
+    index its chats by keeps the mutation as an orphan, and nothing happens
+    there. Reported from a user's logs: a chat cleared in WinZapp (Neonize)
+    stayed full on the phone. A group, or a number whose LID is unknown, keeps
+    its own JID."""
+    base = msgmap.jid_whatsmeow(jid)
+    if base.endswith("@s.whatsapp.net"):
+        lid = other_address(base)
+        if lid and lid.endswith("@lid"):
+            return lid
+    return base
+
+
 def chat_keys(exists, jid, other_address):
     """The keys, in the store, of `jid`'s chat: the given one first, then the
     other address (number <-> LID). `exists(key)` says whether the row exists;
@@ -58,6 +76,11 @@ class ChatAlias:
             return msgmap.jid_whatsmeow(found) if found else ""
         except Exception:
             return ""
+
+    def mutation_jid(self, jid):
+        """`mutation_index_jid` through neonize's LID map. Blocks on a neonize
+        call: call it from a thread."""
+        return mutation_index_jid(jid, self._other_address)
 
     def chat_keys(self, jid):
         """All the stored keys of the chat (the given one first); [] if it

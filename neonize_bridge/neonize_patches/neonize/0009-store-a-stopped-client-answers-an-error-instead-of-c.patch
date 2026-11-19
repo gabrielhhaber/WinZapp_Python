@@ -1,0 +1,176 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Tue, 27 Oct 2026 09:58:10 -0300
+Subject: [PATCH] store: a stopped client answers an error instead of crashing
+ the process
+
+Stop removes the client from the map; a contact or chat settings call that
+comes after it (WinZapp's bridge reloading names while the session closes)
+dereferenced the missing entry: "invalid memory address or nil pointer
+dereference" in GetAllContacts took the whole bridge down. These exports
+now answer "client is not running".
+---
+ goneonize/chat_settings_store.go | 13 ++++++--
+ goneonize/contact_store.go       | 54 ++++++++++++++++++++++++++++----
+ goneonize/nostore_test.go        | 14 +++++++++
+ 3 files changed, 73 insertions(+), 8 deletions(-)
+ create mode 100644 goneonize/nostore_test.go
+
+diff --git a/goneonize/chat_settings_store.go b/goneonize/chat_settings_store.go
+index 43f9311..36d50c6 100644
+--- a/goneonize/chat_settings_store.go
++++ b/goneonize/chat_settings_store.go
+@@ -27,7 +27,11 @@ func PutMutedUntil(id *C.char, user *C.uchar, userSize C.int, mutedUntil C.float
+ 	if err := proto.Unmarshal(getByteByAddr(user, userSize), &JID); err != nil {
+ 		return C.CString(err.Error())
+ 	}
+-	err := clientFor(C.GoString(id)).Store.ChatSettings.PutMutedUntil(context.Background(), utils.DecodeJidProto(&JID), time.Unix(int64(mutedUntil), 0))
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		return C.CString(errNoClient)
++	}
++	err := dev.ChatSettings.PutMutedUntil(context.Background(), utils.DecodeJidProto(&JID), time.Unix(int64(mutedUntil), 0))
+ 	if err != nil {
+ 		return C.CString(err.Error())
+ 	}
+@@ -42,7 +46,12 @@ func GetChatSettings(id *C.char, user *C.uchar, userSize C.int) *C.struct_BytesR
+ 		return_.Error = proto.String(err.Error())
+ 		return ProtoReturnV3(&return_)
+ 	}
+-	local_chat_settings, err := clientFor(C.GoString(id)).Store.ChatSettings.GetChatSettings(context.Background(), utils.DecodeJidProto(&JID))
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		return_.Error = proto.String(errNoClient)
++		return ProtoReturnV3(&return_)
++	}
++	local_chat_settings, err := dev.ChatSettings.GetChatSettings(context.Background(), utils.DecodeJidProto(&JID))
+ 	if err != nil {
+ 		return_.Error = proto.String(err.Error())
+ 	}
+diff --git a/goneonize/contact_store.go b/goneonize/contact_store.go
+index dcc393e..324ae9f 100644
+--- a/goneonize/contact_store.go
++++ b/goneonize/contact_store.go
+@@ -14,6 +14,20 @@ import (
+ 	"go.mau.fi/whatsmeow/store"
+ )
+ 
++// errNoClient answers a call for a client Stop already removed: a background
++// thread of the caller (WinZapp's bridge reloading names while the session
++// closes) used to dereference the missing entry and take the process down.
++const errNoClient = "client is not running"
++
++// storeOf is the device store of client `id`, or nil when it is not running.
++func storeOf(id string) *store.Device {
++	client, ok := lookupClient(id)
++	if !ok || client == nil {
++		return nil
++	}
++	return client.Store
++}
++
+ //export PutPushName
+ func PutPushName(id *C.char, user *C.uchar, userSize C.int, pushname *C.char) *C.struct_BytesReturn {
+ 	var userJID defproto.JID
+@@ -23,7 +37,12 @@ func PutPushName(id *C.char, user *C.uchar, userSize C.int, pushname *C.char) *C
+ 		return_.Error = proto.String(err.Error())
+ 		return ProtoReturnV3(&return_)
+ 	}
+-	status, prev_name, err := clientFor(C.GoString(id)).Store.Contacts.PutPushName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(pushname))
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		return_.Error = proto.String(errNoClient)
++		return ProtoReturnV3(&return_)
++	}
++	status, prev_name, err := dev.Contacts.PutPushName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(pushname))
+ 	return_.PreviousName = proto.String(prev_name)
+ 	return_.Status = &status
+ 	if err != nil {
+@@ -41,7 +60,12 @@ func PutBusinessName(id *C.char, user *C.uchar, userSize C.int, businessName *C.
+ 		return_.Error = proto.String(err.Error())
+ 		return ProtoReturnV3(&return_)
+ 	}
+-	status, prev_name, err := clientFor(C.GoString(id)).Store.Contacts.PutBusinessName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(businessName))
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		return_.Error = proto.String(errNoClient)
++		return ProtoReturnV3(&return_)
++	}
++	status, prev_name, err := dev.Contacts.PutBusinessName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(businessName))
+ 	return_.PreviousName = proto.String(prev_name)
+ 	return_.Status = &status
+ 	if err != nil {
+@@ -57,7 +81,11 @@ func PutContactName(id *C.char, user *C.uchar, userSize C.int, fullName, firstNa
+ 	if err != nil {
+ 		return C.CString(err.Error())
+ 	}
+-	err_ := clientFor(C.GoString(id)).Store.Contacts.PutContactName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(fullName), C.GoString(firstName))
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		return C.CString(errNoClient)
++	}
++	err_ := dev.Contacts.PutContactName(context.Background(), utils.DecodeJidProto(&userJID), C.GoString(fullName), C.GoString(firstName))
+ 	if err_ != nil {
+ 		return C.CString(err_.Error())
+ 	}
+@@ -75,7 +103,11 @@ func PutAllContactNames(id *C.char, contacts *C.uchar, contactsSize C.int) *C.ch
+ 	for i, centry := range entry.ContactEntry {
+ 		contactEntry[i] = *utils.DecodeContactEntry(centry)
+ 	}
+-	err_r := clientFor(C.GoString(id)).Store.Contacts.PutAllContactNames(context.Background(), contactEntry)
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		return C.CString(errNoClient)
++	}
++	err_r := dev.Contacts.PutAllContactNames(context.Background(), contactEntry)
+ 	if err_r != nil {
+ 		return C.CString(err_r.Error())
+ 	}
+@@ -91,7 +123,12 @@ func GetContact(id *C.char, user *C.uchar, userSize C.int) *C.struct_BytesReturn
+ 		return_.Error = proto.String(err.Error())
+ 		return ProtoReturnV3(&return_)
+ 	}
+-	contact_info, err_ := clientFor(C.GoString(id)).Store.Contacts.GetContact(context.Background(), utils.DecodeJidProto(&userJID))
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		r := defproto.ContactsGetContactReturnFunction{Error: proto.String(errNoClient)}
++		return ProtoReturnV3(&r)
++	}
++	contact_info, err_ := dev.Contacts.GetContact(context.Background(), utils.DecodeJidProto(&userJID))
+ 	return_ := defproto.ContactsGetContactReturnFunction{
+ 		ContactInfo: utils.EncodeContactInfo(contact_info),
+ 	}
+@@ -103,7 +140,12 @@ func GetContact(id *C.char, user *C.uchar, userSize C.int) *C.struct_BytesReturn
+ 
+ //export GetAllContacts
+ func GetAllContacts(id *C.char) *C.struct_BytesReturn {
+-	contacts, err := clientFor(C.GoString(id)).Store.Contacts.GetAllContacts(context.Background())
++	dev := storeOf(C.GoString(id))
++	if dev == nil {
++		r := defproto.ContactsGetAllContactsReturnFunction{Error: proto.String(errNoClient)}
++		return ProtoReturnV3(&r)
++	}
++	contacts, err := dev.Contacts.GetAllContacts(context.Background())
+ 	return_ := defproto.ContactsGetAllContactsReturnFunction{
+ 		Contact: utils.EncodeContacts(contacts),
+ 	}
+diff --git a/goneonize/nostore_test.go b/goneonize/nostore_test.go
+new file mode 100644
+index 0000000..32fb69b
+--- /dev/null
++++ b/goneonize/nostore_test.go
+@@ -0,0 +1,14 @@
++package main
++
++import "testing"
++
++func TestAStoppedClientHasNoStore(t *testing.T) {
++	if storeOf("not-running") != nil {
++		t.Fatal("a client Stop removed has no store")
++	}
++	setClient("nil-entry", nil)
++	defer deleteClient("nil-entry")
++	if storeOf("nil-entry") != nil {
++		t.Fatal("a nil entry has no store")
++	}
++}

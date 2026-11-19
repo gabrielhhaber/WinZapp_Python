@@ -62,3 +62,31 @@ class TestMessageFieldCharHandler:
         stub._on_message_field_char(event)
 
         assert event.skipped is True
+
+
+class _RawEvent(_FakeEvent):
+    """With the lParam flags wx passes on: bits 16-23 are the scan code."""
+
+    def __init__(self, unicode_key, scan):
+        super().__init__(unicode_key)
+        self.scan = scan
+
+    def GetRawKeyFlags(self):
+        return (self.scan << 16) | 1
+
+
+class TestOnlyTheInjectedKeyIsVetoed:
+    def test_the_injected_vk_0xff_has_no_scan_code_and_is_vetoed(self):
+        assert ConversationsPanel._is_phantom_nvda_char(_RawEvent(0xFF, 0)) is True
+
+    def test_a_real_y_with_diaeresis_from_a_physical_key_can_be_typed(self):
+        # a dead "¨" then "y": the y key's scan code (0x15)
+        assert ConversationsPanel._is_phantom_nvda_char(_RawEvent(0xFF, 0x15)) is False
+        stub = type("Stub", (), {
+            "_on_message_field_char": ConversationsPanel._on_message_field_char,
+            "_is_phantom_nvda_char": staticmethod(ConversationsPanel._is_phantom_nvda_char),
+            "_convert_emoticon_before_caret": lambda self, char: False,
+        })()
+        event = _RawEvent(0xFF, 0x15)
+        stub._on_message_field_char(event)
+        assert event.skipped is True

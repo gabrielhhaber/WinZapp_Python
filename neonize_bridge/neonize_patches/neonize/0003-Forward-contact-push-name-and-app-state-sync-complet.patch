@@ -1,0 +1,196 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Mon, 26 Oct 2026 01:23:01 -0300
+Subject: [PATCH] Forward contact, push name and app state sync complete events
+
+whatsmeow already dispatches them; neonize did not pass them to Python:
+
+- ContactUpdate (54): a contact saved, renamed or removed in the phone's
+  address book (events.Contact, an app state ContactAction);
+- PushNameUpdate (55): a user's push name changed (events.PushName);
+- AppStateSyncComplete (56): a full sync of an app state collection
+  finished (events.AppStateSyncComplete).
+
+A full sync (right after pairing) does not emit ContactUpdate: whatsmeow
+writes those names to the contact store in bulk. AppStateSyncComplete for
+critical_unblock_low is the moment they are there to read.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ goneonize/Neonize.proto          | 23 +++++++++++++++++
+ goneonize/defproto/Neonize.proto | 23 +++++++++++++++++
+ goneonize/main.go                | 43 ++++++++++++++++++++++++++++++++
+ neonize/aioze/events.py          |  6 +++++
+ neonize/events.py                |  6 +++++
+ 5 files changed, 101 insertions(+)
+
+diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
+index d10d2fb..cbdc7df 100644
+--- a/goneonize/Neonize.proto
++++ b/goneonize/Neonize.proto
+@@ -956,6 +956,29 @@ message MessageStar { //53
+     optional WAWebProtobufSyncAction.StarAction Action = 6;
+     required bool FromFullSync = 7;
+ }
++// Contact saved, renamed or removed in the phone's address book (app state
++// sync). Not emitted for the contacts of a full sync: those reach the
++// contact store in bulk, and AppStateSyncComplete says when.
++message ContactUpdate { //54
++    required JID JID = 1;
++    required int64 Timestamp = 2;
++    optional WAWebProtobufSyncAction.ContactAction Action = 3;
++    required bool FromFullSync = 4;
++}
++// A user's push name changed, noticed on one of their messages.
++message PushNameUpdate { //55
++    required JID JID = 1;
++    optional JID JIDAlt = 2;
++    required string OldPushName = 3;
++    required string NewPushName = 4;
++}
++// A full sync of an app state collection finished (Name is the collection,
++// e.g. critical_unblock_low, which carries the address book's names).
++message AppStateSyncComplete { //56
++    required string Name = 1;
++    required uint64 Version = 2;
++    required bool Recovery = 3;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
+index d10d2fb..cbdc7df 100644
+--- a/goneonize/defproto/Neonize.proto
++++ b/goneonize/defproto/Neonize.proto
+@@ -956,6 +956,29 @@ message MessageStar { //53
+     optional WAWebProtobufSyncAction.StarAction Action = 6;
+     required bool FromFullSync = 7;
+ }
++// Contact saved, renamed or removed in the phone's address book (app state
++// sync). Not emitted for the contacts of a full sync: those reach the
++// contact store in bulk, and AppStateSyncComplete says when.
++message ContactUpdate { //54
++    required JID JID = 1;
++    required int64 Timestamp = 2;
++    optional WAWebProtobufSyncAction.ContactAction Action = 3;
++    required bool FromFullSync = 4;
++}
++// A user's push name changed, noticed on one of their messages.
++message PushNameUpdate { //55
++    required JID JID = 1;
++    optional JID JIDAlt = 2;
++    required string OldPushName = 3;
++    required string NewPushName = 4;
++}
++// A full sync of an app state collection finished (Name is the collection,
++// e.g. critical_unblock_low, which carries the address book's names).
++message AppStateSyncComplete { //56
++    required string Name = 1;
++    required uint64 Version = 2;
++    required bool Recovery = 3;
++}
+ message UpdateGroupParticipantsReturnFunction {
+     optional string Error = 1;
+     repeated GroupParticipant participants = 2;
+diff --git a/goneonize/main.go b/goneonize/main.go
+index e705989..917988e 100644
+--- a/goneonize/main.go
++++ b/goneonize/main.go
+@@ -1390,6 +1390,49 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 				}
+ 				eventChan <- &messageEvent
+ 			}
++		case *events.Contact:
++			if _, ok := subscribers[54]; ok {
++				contact := defproto.ContactUpdate{
++					JID:          utils.EncodeJidProto(v.JID),
++					Timestamp:    proto.Int64(v.Timestamp.Unix()),
++					Action:       v.Action,
++					FromFullSync: proto.Bool(v.FromFullSync),
++				}
++				messageEvent := MessageEvent{
++					eventType: 54,
++					message:   &contact,
++				}
++				eventChan <- &messageEvent
++			}
++		case *events.PushName:
++			if _, ok := subscribers[55]; ok {
++				pushName := defproto.PushNameUpdate{
++					JID:         utils.EncodeJidProto(v.JID),
++					OldPushName: proto.String(v.OldPushName),
++					NewPushName: proto.String(v.NewPushName),
++				}
++				if !v.JIDAlt.IsEmpty() {
++					pushName.JIDAlt = utils.EncodeJidProto(v.JIDAlt)
++				}
++				messageEvent := MessageEvent{
++					eventType: 55,
++					message:   &pushName,
++				}
++				eventChan <- &messageEvent
++			}
++		case *events.AppStateSyncComplete:
++			if _, ok := subscribers[56]; ok {
++				complete := defproto.AppStateSyncComplete{
++					Name:     proto.String(string(v.Name)),
++					Version:  proto.Uint64(v.Version),
++					Recovery: proto.Bool(v.Recovery),
++				}
++				messageEvent := MessageEvent{
++					eventType: 56,
++					message:   &complete,
++				}
++				eventChan <- &messageEvent
++			}
+ 		case *events.RotateADVSecret:
+ 			if _, ok := subscribers[45]; ok {
+ 				rot := defproto.RotateADVSecret{
+diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
+index 2ece7f2..6fffb2a 100644
+--- a/neonize/aioze/events.py
++++ b/neonize/aioze/events.py
+@@ -41,6 +41,9 @@ from ..proto.Neonize_pb2 import LoggedOut as LoggedOutEv
+ from ..proto.Neonize_pb2 import Message as MessageEv
+ from ..proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
+ from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
++from ..proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
++from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
++from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+ from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
+@@ -105,6 +108,9 @@ __all__ = [
+     "MessageDeleteForMeEv",
+     "MessageEv",
+     "MessageStarEv",
++    "ContactUpdateEv",
++    "PushNameUpdateEv",
++    "AppStateSyncCompleteEv",
+     "NewsLetterMessageMetaEv",
+     "NewsletterJoinEv",
+     "NewsletterLeaveEv",
+diff --git a/neonize/events.py b/neonize/events.py
+index dc1a03f..1083346 100644
+--- a/neonize/events.py
++++ b/neonize/events.py
+@@ -44,6 +44,9 @@ from .proto.Neonize_pb2 import LoggedOut as LoggedOutEv
+ from .proto.Neonize_pb2 import Message as MessageEv
+ from .proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
+ from .proto.Neonize_pb2 import MessageStar as MessageStarEv
++from .proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
++from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
++from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+ from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
+ from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
+ from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
+@@ -118,6 +121,9 @@ EVENT_TO_INT: dict[type[Message], int] = {
+     ChatDeleteEv: 51,
+     MessageDeleteForMeEv: 52,
+     MessageStarEv: 53,
++    ContactUpdateEv: 54,
++    PushNameUpdateEv: 55,
++    AppStateSyncCompleteEv: 56,
+ }
+ INT_TO_EVENT: dict[int, type[Message]] = {code: ev for ev, code in EVENT_TO_INT.items()}
+ 

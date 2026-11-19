@@ -13,6 +13,7 @@ from core.call_log import (
 )
 from core.incremental_sync import timestamp_seconds as _timestamp_seconds
 from core.remote_deletions import message_timestamp_seconds
+from core.unread_types import unread_after_own_send
 
 
 class MediaExpiredError(Exception):
@@ -121,46 +122,28 @@ def is_countable_message(msg: dict) -> bool:
     return msg.get("messageType") not in _PREVIEW_ONLY_MESSAGE_TYPES
 
 
-def _discount_non_countable_unread(records: list, unread_count: int) -> int:
-    """Discount from a server-reported unread count the tail messages that
-    must never count toward the badge: our own (fromMe) sends — WhatsApp Web
-    sometimes counts those — and system events (groupNotification,
-    protocolMessage, e2e_notification, ...) that is_countable_message()
-    excludes.
+def _discount_non_countable_unread(records: list, unread_count: int,
+                                   activity_t=0) -> int:
+    """The unread count WhatsApp gave, as far as the records can correct it.
 
-    This is the mirror of the app's own counting rule: on_new_message()
-    only ever increments the badge for countable messages, so a server that
-    counts a promote/join/leave (or any other system event) toward unread
-    would otherwise mint a phantom badge on a chat that has no real unread
-    message in it — observed live with a group promote that appeared as "1
-    não lida" while the conversation held nothing new. The tail inspected is
-    the locally-stored record list, which keeps the exact shape the
-    on_new_message() increment logic itself saw.
+    WhatsApp counts what core/unread_types.counted_on_arrival() accepts, and
+    nothing else: an own send, a deletion, a group notification or a call was
+    never in the count, so there is nothing of theirs to take out of it. The
+    old correction took the last N records, whatever they were, and
+    subtracted those WinZapp would not show as a message: every deletion,
+    notice and group event among the unread messages took an unread
+    message's place, and the history notice WhatsApp does count was taken
+    out of it. A group with 141 unread opened with 12 of them above the
+    separator, read (reported 2026-11-12).
 
-    Both halves of the predicate matter and neither can be dropped: a chat
-    whose tail is [groupNotification, our own reply] has no unread message at
-    all, and either rule alone still reports one.
-
-    Reactions are left out of the tail before it is cut, not discounted in it.
-    WinZapp stores each one as a record of its own (`_rxn_...`) to decorate the
-    message it points at, but WhatsApp never counted it as unread -- so it
-    cannot take the place of a message that was. Measured 2026-09-23: a group
-    with 1 unread text received four reactions; the tail of 1 was a reaction,
-    was discounted, and the badge went to 0 with the text still unread.
+    What the records can still say: a message the account sent marks the
+    chat as read on WhatsApp, so a count higher than what arrived after the
+    newest own message is one WhatsApp had not lowered yet (the reply came
+    from the phone: "1 unread" under the user's own audio, reported live).
+    core/unread_types.unread_after_own_send(). *activity_t* is accepted for
+    the callers and no longer needed: nothing is cut from a tail now.
     """
-    if unread_count <= 0 or not records:
-        return unread_count
-    records = [m for m in records
-               if not (isinstance(m, dict) and m.get("messageType") == "reactionMessage")]
-    if not records:
-        return unread_count
-    tail = records[-unread_count:] if unread_count <= len(records) else records
-    discount = sum(
-        1 for m in tail
-        if (isinstance(m, dict) and (m.get("key") or {}).get("fromMe"))
-        or not is_countable_message(m)
-    )
-    return max(0, unread_count - discount)
+    return unread_after_own_send(records, unread_count)
 
 
 
@@ -407,12 +390,12 @@ def apply_history_sync_unread_correction(remote_jid: str, chat: dict) -> bool:
     if not chat.pop(_UNREAD_UNDISCOUNTED, False):
         return False
     before = int(chat.get("unreadCount") or 0)
-    corrected = _discount_non_countable_unread(records, before)
+    corrected = _discount_non_countable_unread(records, before, chat.get("t", 0))
     if corrected == before:
         return False
     logging.info(
-        "[unread] %s: %s -> %s after history sync (own sends / system events "
-        "the chat-list snapshot counted).", remote_jid, before, corrected,
+        "[unread] %s: %s -> %s after history sync (an own reply WhatsApp had "
+        "not counted yet).", remote_jid, before, corrected,
     )
     chat["unreadCount"] = corrected
     return True

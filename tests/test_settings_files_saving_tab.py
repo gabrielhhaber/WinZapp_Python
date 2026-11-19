@@ -197,6 +197,7 @@ class TestRegroupedSettings:
         assert dialog._focus_message_field_rb.GetParent() is dialog._chats_page
         assert dialog._bulk_action_shortcuts_cb.GetParent() is dialog._chats_page
         assert dialog._forwarded_prefix_cb.GetParent() is dialog._messages_page
+        assert dialog._starred_prefix_cb.GetParent() is dialog._messages_page
 
     def test_spoken_content_needs_extended_compatibility(self, make_dialog):
         dialog = make_dialog({"accessibility": {"extended_sr_compat_enabled": False}})
@@ -205,12 +206,14 @@ class TestRegroupedSettings:
         dialog._on_extended_sr_compat_toggle(wx.CommandEvent(wx.EVT_CHECKBOX.typeId))
         assert dialog._spoken_content_btn.IsEnabled()
 
-    def test_the_ai_options_hide_while_the_ai_is_off(self, make_dialog):
+    def test_media_ai_options_hide_while_translation_and_key_reset_stay_available(self, make_dialog):
         dialog = make_dialog()
         page = dialog._ai_page
         page.enabled.SetValue(False)
         page._show_options(False)
-        others = [c for c in page.GetChildren() if c is not page.enabled]
+        independent = (page.enabled, page.translation_button, page.reset_keys_button)
+        others = [c for c in page.GetChildren() if c not in independent]
+        assert all(c.IsShown() for c in independent)
         assert others and not any(c.IsShown() for c in others)
         page._show_options(True)
         assert all(c.IsShown() for c in others)

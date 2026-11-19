@@ -103,6 +103,9 @@ SETTING_AUTO_TRANSCRIBE_RECEIVED = "auto_transcribe_received"
 #: How old (minutes) a received message may be and still go through the
 #: automatic paths; see core/transcription/auto_queue.py.
 SETTING_AUTO_MAX_AGE_MINUTES = "auto_max_age_minutes"
+#: Whether the local automatic transcription ignores that age altogether
+#: (auto_queue.local_max_age_seconds). Off by default.
+SETTING_AUTO_ANY_AGE = "auto_any_age"
 #: Whether results are kept with the message so they are not redone (the
 #: "cache"), on by default; and the per-model overrides of it, {model id: bool}.
 #: See stored.cache_enabled_for().
@@ -134,6 +137,7 @@ DEFAULTS = {
     SETTING_RUN_WITHOUT_DIALOG: False,
     SETTING_AUTO_TRANSCRIBE_RECEIVED: False,
     SETTING_AUTO_MAX_AGE_MINUTES: 5,
+    SETTING_AUTO_ANY_AGE: False,
     SETTING_CACHE_ENABLED: True,
     SETTING_CACHE_BY_MODEL: {},
     SETTING_AUTO_TRANSCRIBE_STATUSES: False,
@@ -626,7 +630,7 @@ def sanitize_section(settings, custom_model_ids=None) -> bool:
     for flag in (SETTING_AUTO_DETECT_LANGUAGE, SETTING_KEEP_MODEL_LOADED,
                  SETTING_AUTO_TRANSCRIBE_RECEIVED, SETTING_CACHE_ENABLED,
                  SETTING_AUTO_TRANSCRIBE_STATUSES, SETTING_STATUS_CACHE_ENABLED,
-                 SETTING_RUN_WITHOUT_DIALOG):
+                 SETTING_RUN_WITHOUT_DIALOG, SETTING_AUTO_ANY_AGE):
         if flag in section and not isinstance(section[flag], bool):
             section[flag] = DEFAULTS[flag]
             changed = True

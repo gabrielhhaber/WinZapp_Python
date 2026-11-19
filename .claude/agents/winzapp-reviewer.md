@@ -218,6 +218,9 @@ release before.
 - **Screen reader.** Plain wx controls; all speech through
   `main_window.speak_output`; multi-row list mutations inside
   `Freeze()`/`try`/`finally: Thaw()`; never a raw JID in a title or list item.
+- **Settings windows in the mnemonic collector.** A new module with a window,
+  page or panel reached from Settings must be listed in `FILES` of
+  `tests/settings_controls.py`; otherwise its Alt letters go unchecked.
 - **Patches.** Node-side edits belong in `client/api_patches/`, never
   `client/api/`. A new patched file needs all three lists. A `node_modules`
   patch needs both call sites.

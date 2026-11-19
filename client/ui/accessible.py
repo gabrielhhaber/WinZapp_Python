@@ -91,6 +91,25 @@ class AccessibleAltShortcutButton(wx.Accessible):
         return (wx.ACC_OK, self._shortcut if self._shortcut is not None else f"Alt+{self._letter}")
 
 
+class AccessibleReorderButton(wx.Accessible):
+    """Reports the key that moves an item of a reorderable list (Alt+Up Arrow /
+    Alt+Down Arrow by default) as the shortcut of its Move up / Move down
+    button, as the user configured it and in the app's language.
+
+    `shortcut` is the announced fallback (i18n "accessible_alt_up" /
+    "accessible_alt_down"), used only when no main window can say: NVDA reads
+    whatever GetKeyboardShortcut() returns verbatim.
+    """
+
+    def __init__(self, shortcut_id, shortcut):
+        super().__init__()
+        self.shortcut_id = shortcut_id
+        self.shortcut = shortcut
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, self.shortcut, (self.shortcut_id,)))
+
+
 class AccessibleSearchInConversation(wx.Accessible):
     """Reports Ctrl+Shift+F as the keyboard shortcut for the search-in-conversation button."""
 
@@ -193,6 +212,22 @@ class AccessibleDescribeButton(wx.Accessible):
 
     def GetKeyboardShortcut(self, childId):
         return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+Shift+I", ('messages.ID_AI_ACTION', 'status.ID_CTRL_SHIFT_I', 'media.ID_CTRL_SHIFT_I')))
+
+
+class AccessibleSummarizeUnread(wx.Accessible):
+    """Reports the shortcut of the summarize-unread button (Ctrl+Shift+U by
+    default, whatever the person set under Shortcuts)."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, "Ctrl+Shift+U", ('messages.ID_SUMMARIZE_UNREAD',)))
+
+
+class AccessibleWritingHelp(wx.Accessible):
+    """Reports the shortcut of the writing-help button (Alt+Shift+H by
+    default, whatever the person set under Shortcuts)."""
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, "Alt+Shift+H", ('messages.ID_WRITING_HELP',)))
 
 
 class AccessibleShowInFolder(wx.Accessible):
@@ -564,6 +599,7 @@ class CompatListBoxMessagesCtrl(wx.ListBox):
         super().__init__(parent, style=wx.LB_SINGLE)
         self._activated_handler = None
         self._key_down_handler = None
+        self._shortcut_handler = None
         # wx.ListBox has no built-in "activate" notification for Enter (only
         # EVT_LISTBOX_DCLICK, which is mouse-double-click only). A plain
         # EVT_KEY_DOWN binding is not reliable for Enter specifically:
@@ -578,8 +614,14 @@ class CompatListBoxMessagesCtrl(wx.ListBox):
     def set_key_down_handler(self, handler):
         self._key_down_handler = handler
 
+    def set_shortcut_handler(self, handler):
+        self._shortcut_handler = handler
+
     def _on_char_hook(self, event):
         if self.HasFocus():
+            shortcut = getattr(self, "_shortcut_handler", None)
+            if shortcut is not None and shortcut(event):
+                return
             if (event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
                     and event.ControlDown()
                     and self._key_down_handler is not None):

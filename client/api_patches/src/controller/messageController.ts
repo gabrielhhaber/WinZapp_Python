@@ -16,8 +16,15 @@
 
 import { Request, Response } from 'express';
 
+import { isValidCarousel } from '../util/carousel';
 import { unlinkAsync } from '../util/functions';
+import {
+  InvalidMixedButtonsError,
+  normalizeMixedButtons,
+} from '../util/mixedButtons';
 import { writePinnedMessage } from '../util/pinnedMessagesRuntime';
+import { sendPollWithSettings } from '../util/pollRuntime';
+import { editChannelUpdate } from './channelsPanelController';
 import {
   missingReplyQuoteResponse,
   replyQuoteIsMissing,
@@ -299,6 +306,25 @@ export async function editMessage(req: Request, res: Response) {
 
   const options = req.body.options || {};
   try {
+    if (/@newsletter_/.test(String(id))) {
+      // A channel update goes through WhatsApp Web's own edit
+      // (editChannelUpdate): wa-js's is a chat's.
+      const page = (req.client as any).page;
+      const sent = page
+        ? await page.evaluate(editChannelUpdate, { id, text: newText })
+        : null;
+      if (!sent || (sent as any).refused) {
+        // Nothing was sent: the client rolls the row back on this message
+        // (MainWindow.edit_message), as on a chat's and on Neonize's refusal.
+        res.status(400).json({ status: 'error',
+          code: sent ? 'channel_edit_refused' : 'channel_edit_unsupported',
+          message: 'Cannot edit this message' });
+        return;
+      }
+      req.io.emit('edited-message', sent);
+      returnSucess(res, sent);
+      return;
+    }
     const edited = await (req.client as any).editMessage(id, newText, options);
 
     req.io.emit('edited-message', edited);
@@ -752,9 +778,10 @@ export async function sendButtons(req: Request, res: Response) {
      }
      #swagger.deprecated=true
    */
-  const { phone, message, options } = req.body;
+  const { phone, message } = req.body;
 
   try {
+    const options = normalizeMixedButtons(req.body.options);
     const results: any = [];
 
     for (const contact of phone) {
@@ -766,7 +793,38 @@ export async function sendButtons(req: Request, res: Response) {
 
     returnSucess(res, phone);
   } catch (error) {
+    if (error instanceof InvalidMixedButtonsError) {
+      return res.status(400).json({ status: 'Error', message: error.message });
+    }
     returnError(req, res, error);
+  }
+}
+
+export async function sendCarousel(req: Request, res: Response) {
+  const { phone, body, cards, footer } = req.body;
+  if (!isValidCarousel(phone, body, cards, footer)) {
+    return res
+      .status(400)
+      .json({ status: 'error', message: 'Invalid carousel' });
+  }
+  try {
+    const results: any[] = [];
+    for (const contact of phone) {
+      results.push(
+        await req.client.page.evaluate(
+          async (args: any) => {
+            return await (window as any).WPP.chat.sendCarouselMessage(
+              args.contact,
+              args.options
+            );
+          },
+          { contact, options: { body, cards, footer } }
+        )
+      );
+    }
+    return returnSucess(res, results);
+  } catch (error) {
+    return returnError(req, res, error);
   }
 }
 
@@ -1002,13 +1060,22 @@ export async function sendPollMessage(req: Request, res: Response) {
     const results: any = [];
 
     for (const contact of phone) {
-      results.push(
-        auditSendResult(
-          req,
-          await req.client.sendPollMessage(contact, name, choices, options),
-          'send-poll-message'
-        )
-      );
+      const hideVoterNames = options?.hideVoterNames === true;
+      const durationSeconds = Number(options?.durationSeconds) || 0;
+      // Only a poll that asks for one of the two goes the long way; the rest
+      // keeps the library's own call.
+      const sent =
+        hideVoterNames || durationSeconds > 0
+          ? await (req.client as any).page.evaluate(sendPollWithSettings, {
+              chatId: contact,
+              name,
+              choices,
+              selectableCount: options?.selectableCount,
+              hideVoterNames,
+              durationSeconds,
+            })
+          : await req.client.sendPollMessage(contact, name, choices, options);
+      results.push(auditSendResult(req, sent, 'send-poll-message'));
     }
 
     if (results.length === 0)

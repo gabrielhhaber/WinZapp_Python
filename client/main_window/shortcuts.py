@@ -8,6 +8,7 @@ available here.
 from ui.shortcut_bindings import make_shortcut_table
 import wx
 from core.conversation_view import ARCHIVED, MAIN
+from main_window.content_panels import hide_side_panels
 
 
 class ShortcutsMixin:
@@ -34,6 +35,7 @@ class ShortcutsMixin:
         self.ID_CTRL_ALT_SHIFT_G = wx.NewIdRef()
         self.ID_COMMUNITIES      = wx.NewIdRef()
         self.ID_CHANNELS         = wx.NewIdRef()
+        self.ID_STARRED          = wx.NewIdRef()
 
         # navigation_panel's "&Navegação principal" label mnemonic is meant
         # to redirect Alt+N to nav_list, but that native StaticText-mnemonic
@@ -75,6 +77,8 @@ class ShortcutsMixin:
             (wx.ACCEL_ALT,    ord('8'),    self.ID_COMMUNITIES),
             # and the channels window, next to it (core/channels.py)
             (wx.ACCEL_ALT,    ord('9'),    self.ID_CHANNELS),
+            # and the starred messages of every chat (issue #708)
+            (wx.ACCEL_ALT,    ord('0'),    self.ID_STARRED),
         ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_alt_1,       id=self.ID_ALT_1)
@@ -94,21 +98,28 @@ class ShortcutsMixin:
         self.Bind(wx.EVT_MENU, self._on_quick_input_devices, id=self.ID_CTRL_ALT_SHIFT_G)
         self.Bind(wx.EVT_MENU, self._on_global_communities, id=self.ID_COMMUNITIES)
         self.Bind(wx.EVT_MENU, self._on_global_channels, id=self.ID_CHANNELS)
+        self.Bind(wx.EVT_MENU, self._on_global_starred, id=self.ID_STARRED)
         from ui.shortcut_bindings import refresh_mnemonics
         refresh_mnemonics(self)
 
     def _on_global_communities(self, event=None):
-        """Alt+8: the communities window, from anywhere in the window
-        (it is also a row of the navigation list, and a button of New
+        """Alt+8: the Communities panel, from anywhere in the window (it is
+        also a row of the navigation list, and a button of New
         conversation)."""
-        from ui.dialogs.communities import show_communities
-        show_communities(self, self)
+        from main_window.content_panels import show_communities
+        show_communities(self)
 
     def _on_global_channels(self, event=None):
-        """Alt+9: the channels window, from anywhere in the window (also a
+        """Alt+9: the Channels panel, from anywhere in the window (also a
         row of the navigation list)."""
-        from ui.dialogs.channels import show_channels
-        show_channels(self, self)
+        from main_window.content_panels import show_channels
+        show_channels(self)
+
+    def _on_global_starred(self, event=None):
+        """Alt+0: the starred messages of every chat, from anywhere in the
+        window (also a row of the navigation list)."""
+        from ui.dialogs.starred_messages import show_starred_messages
+        show_starred_messages(self, self)
 
     def _on_alt_nav(self, event):
         """Alt+N (or the localized equivalent): focus the main navigation list."""
@@ -253,6 +264,10 @@ class ShortcutsMixin:
             self.status_panel.refresh_labels()
         if hasattr(self, "calls_panel"):
             self.calls_panel.refresh_labels()
+        for name in ("communities_panel", "channels_panel"):
+            panel = getattr(self, name, None)
+            if panel is not None:
+                panel.refresh_labels()
 
         self._refresh_call_language_surfaces()
 
@@ -310,8 +325,7 @@ class ShortcutsMixin:
         self.conversations_panel.Hide()
         if hasattr(self, "archived_conversations_panel"):
             self.archived_conversations_panel.Hide()
-        if hasattr(self, "calls_panel"):
-            self.calls_panel.Hide()
+        hide_side_panels(self, keep=getattr(self, "status_panel", None))
         if hasattr(self, "status_panel"):
             self.status_panel.Show()
             self.content_panel.Layout()
@@ -328,8 +342,7 @@ class ShortcutsMixin:
             self.archived_conversations_panel.Hide()
         if hasattr(self, "locked_conversations_panel"):
             self.locked_conversations_panel.Hide()
-        if hasattr(self, "status_panel"):
-            self.status_panel.Hide()
+        hide_side_panels(self, keep=getattr(self, "calls_panel", None))
         if hasattr(self, "calls_panel"):
             self.calls_panel.Show()
             self.content_panel.Layout()

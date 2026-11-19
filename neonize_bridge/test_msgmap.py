@@ -111,6 +111,24 @@ def test_poll_carries_position_and_option_limit():
     assert m["pollOptions"] == [{"name": "Yes", "localId": 0}, {"name": "No", "localId": 1}]
 
 
+def test_poll_v6_carries_hidden_voter_names_and_end_time():
+    msg = Message()
+    msg.pollCreationMessageV6.name = "Lunch?"
+    msg.pollCreationMessageV6.hideParticipantName = True
+    msg.pollCreationMessageV6.endTime = 1893456000000
+    for name in ("Yes", "No"):
+        msg.pollCreationMessageV6.options.add().optionName = name
+    m = msgmap.build(chat="1@g.us", from_me=False, id="P", sender="2@s.whatsapp.net",
+                     ts=5, message=msg)
+    assert m["type"] == "poll_creation"
+    assert m["pollHideVoterNames"] is True and m["pollEndTime"] == 1893456000000
+    plain = Message()
+    plain.pollCreationMessage.name = "x"
+    m = msgmap.build(chat="1@g.us", from_me=False, id="Q", sender="2@s.whatsapp.net",
+                     ts=5, message=plain)
+    assert "pollHideVoterNames" not in m and "pollEndTime" not in m
+
+
 def test_vote_is_recognized_and_the_options_come_from_the_hash():
     import hashlib
     msg = Message()
@@ -338,3 +356,16 @@ def test_a_unified_response_that_is_not_json_is_left_out():
     out = _meta_ai_reply("M3", _rich("Hi", unified=b"\xff not json"))
     assert out["type"] == "rich_response" and "unifiedResponse" not in out
 
+
+
+def test_a_status_add_yours_wrapper_shows_its_text():
+    msg = Message()
+    msg.statusAddYours.message.extendedTextMessage.text = "add yours"
+    m = _build(msg)
+    assert m["type"] == "chat" and m["body"] == "add yours"
+
+
+def test_a_question_status_wrapper_shows_its_text():
+    msg = Message()
+    msg.questionMessage.message.extendedTextMessage.text = "ask me anything"
+    assert _build(msg)["body"] == "ask me anything"

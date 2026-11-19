@@ -74,6 +74,14 @@ def settings_to_wpp(privacy_settings) -> dict:
             for field, setting in PRIVACY_FIELDS.items()}
 
 
+def setting_applied(privacy_settings, setting, value) -> bool:
+    """WhatsApp's settings already show *value* for *setting*. A change that
+    raised can still have reached the server (neonize before patch 0025
+    raised on every change), so the route reads the settings back before
+    telling the user it failed."""
+    return privacy_settings is not None and settings_to_wpp(privacy_settings).get(setting) == value
+
+
 def no_photo(error: Exception) -> bool:
     """The person/group has no photo or hid it from us: a definitive answer from
     the server, not a failure."""
@@ -317,6 +325,13 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
             await execute(s.client.set_privacy_setting,
                           PrivacySettingType[SETTINGS[setting][0]], PrivacySetting(value))
         except Exception as e:
+            try:
+                current = await execute(s.client.get_privacy_settings)
+            except Exception:
+                current = None
+            if setting_applied(current, setting, value):
+                log.info("privacy/set: %s raised but %s is applied", type(e).__name__, setting)
+                return ok(status="success")
             log.warning("privacy/set: %s", type(e).__name__)
             return error_code("privacy_setting_failed", 502, kind=type(e).__name__)
         return ok(status="success")

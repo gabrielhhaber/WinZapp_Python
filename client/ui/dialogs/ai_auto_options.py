@@ -32,22 +32,21 @@ class AIAutoOptionsPanel(wx.Panel):
     def __init__(self, parent, page, config):
         super().__init__(parent)
         self._page = page
-        t = page._t
         settings = page.main_window.settings
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         # On arrival, with no window: the text goes to the message's line.
-        self.transcribe = wx.CheckBox(self, label=t("ai_auto_transcribe"))
+        self.transcribe = wx.CheckBox(self, label=page._t("ai_auto_transcribe"))
         self.transcribe.SetValue(config["auto_transcribe"])
         sizer.Add(self.transcribe, 0, wx.ALL, 8)
-        self.describe = wx.CheckBox(self, label=t("ai_auto_describe"))
+        self.describe = wx.CheckBox(self, label=page._t("ai_auto_describe"))
         self.describe.SetValue(config["auto_describe"])
         sizer.Add(self.describe, 0, wx.ALL, 8)
 
         # Which conversations the two options reach before the user visits
         # each one (core/conversation_auto_ai.py). Saved with the account's
         # settings, beside the per-conversation boxes it is the default of.
-        self.scope_label = wx.StaticText(self, label=t("ai_auto_scope"))
+        self.scope_label = wx.StaticText(self, label=page._t("ai_auto_scope"))
         sizer.Add(self.scope_label, 0, wx.LEFT | wx.TOP, 8)
         self.scope = wx.Choice(self, choices=page._scope_labels(), name=page._plain("ai_auto_scope"))
         self.scope.SetSelection(
@@ -56,7 +55,7 @@ class AIAutoOptionsPanel(wx.Panel):
 
         # How old a message may be to be processed on its own, local or
         # online (core/transcription/auto_queue.max_age_seconds()).
-        self.max_age_label = wx.StaticText(self, label=t("ai_auto_max_age"))
+        self.max_age_label = wx.StaticText(self, label=page._t("ai_auto_max_age"))
         sizer.Add(self.max_age_label, 0, wx.LEFT | wx.TOP, 8)
         self.max_age = wx.Choice(self, choices=page._age_labels(), name=page._plain("ai_auto_max_age"))
         minutes = int(auto_queue.max_age_seconds(settings) // 60)
@@ -64,12 +63,12 @@ class AIAutoOptionsPanel(wx.Panel):
         sizer.Add(self.max_age, 0, wx.EXPAND | wx.ALL, 8)
 
         # The ceiling on requests made on arrival, and what was spent today.
-        self.limit_label = wx.StaticText(self, label=t("ai_auto_daily_limit"))
+        self.limit_label = wx.StaticText(self, label=page._t("ai_auto_daily_limit"))
         sizer.Add(self.limit_label, 0, wx.LEFT | wx.TOP, 8)
         self.limit = wx.SpinCtrl(self, min=0, max=10000, initial=config["auto_daily_limit"],
                                  name=page._plain("ai_auto_daily_limit"))
         sizer.Add(self.limit, 0, wx.ALL, 8)
-        self.used_label = wx.StaticText(self, label=t("ai_auto_used_today"))
+        self.used_label = wx.StaticText(self, label=page._t("ai_auto_used_today"))
         sizer.Add(self.used_label, 0, wx.LEFT | wx.TOP, 8)
         self.used = wx.TextCtrl(self, value=str(ai_auto.spent_today(config)), style=wx.TE_READONLY,
                                 name=page._plain("ai_auto_used_today"))

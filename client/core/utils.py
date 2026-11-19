@@ -276,7 +276,7 @@ _FORWARDABLE_SUB_KEYS = (
     "extendedTextMessage", "audioMessage", "imageMessage",
     "videoMessage", "documentMessage", "stickerMessage",
     "locationMessage", "contactMessage", "buttonsMessage",
-    "listMessage",
+    "listMessage", "templateMessage", "interactiveMessage",
 )
 
 
@@ -1073,6 +1073,11 @@ DEFAULT_SETTINGS = {
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": True,
+        "discount_archived_from_unread_badge": True,
+        "discount_muted_from_unread_badge": True,
+        # Message notifications let through per second when many arrive at
+        # once (core.notification_burst).
+        "notification_burst_limit": 3,
         "updates_enabled": True,
         # Alpha channel (one build per commit on main) - opt-in, see
         # client/updater.py's select_release().
@@ -1081,6 +1086,7 @@ DEFAULT_SETTINGS = {
         # interrupted to install them. Off: the long-standing behaviour, so no
         # migration.
         "background_update_downloads": False,
+        "update_on_exit": False,
         # Offer every WPPConnect Server release, not only the approved ones
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
@@ -1093,6 +1099,10 @@ DEFAULT_SETTINGS = {
         # What a note the neural engine could not process does: send with the
         # basic gate (published), or stay pending for a manual resend.
         "voice_nr_on_failure": "basic",
+        # the neural model when installed (False: the common reducer, faster)
+        "noise_reduction_neural": True,
+        # where the neural model runs: cpu, cuda12, cuda13, coreml (core/cuda_components)
+        "noise_reduction_device": "cpu",
         "voice_recording_mode": "auto",
         "voice_recording_bitrate": 64,
         "voice_recording_bitrate_stereo": 128,
@@ -1146,7 +1156,10 @@ DEFAULT_SETTINGS = {
     },
     "calls": {
         "alerts_enabled": True,
-        "popup_enabled": True
+        "popup_enabled": True,
+        # say who joins or leaves a group call held here (call_participants.py)
+        "announce_participant_joined": True,
+        "announce_participant_left": True
     },
     "profile_backup": {
         # Settings > Cópia de segurança: keep no restore point at all
@@ -1169,6 +1182,9 @@ DEFAULT_SETTINGS = {
         "messages_page_size": 200,
         "page_jump_size": 15,
         "focus_on_open": "message_field",
+        "message_list_open_position": "unread_or_last",
+        "remove_bookmarks_after_use": False,
+        "remove_temp_bookmarks_after_use": False,
         "voice_record_focus": "send",
         "message_list_mode": "classic",
         "show_listbox_item_count": False,
@@ -1191,6 +1207,7 @@ DEFAULT_SETTINGS = {
         "confirm_mark_all_read": True,
         "confirm_clear_chat": True,
         "confirm_delete_chat": True,
+        "confirm_archive_chat": True,
         # Ask before F5 / Shift+F5 (MainWindow._confirm_resync()); the
         # confirmations' own "don't show again" boxes clear these.
         "confirm_resync_all": True,
@@ -1204,6 +1221,8 @@ DEFAULT_SETTINGS = {
         # users who already learned the previous behaviour.
         "space_selects_in_selection_mode": True,
         "escape_clears_selection": True,
+        "escape_clears_filters": True,
+        "escape_clears_message_search": True,
         # Opening a conversation keeps the chat search, so Esc returns to the
         # results. Off: the long-standing behaviour, so no migration.
         "keep_search_after_open": False,
@@ -1225,6 +1244,7 @@ DEFAULT_SETTINGS = {
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
+        "starred_prefix_enabled": False,
         # How the "also delete the media from your phone" box of the delete
         # confirmations starts. On is WhatsApp Web's own default and what
         # WinZapp did before the box existed, so no migration.
@@ -1320,6 +1340,9 @@ DEFAULT_SETTINGS = {
         # transcribed/described on its own, local or online: one of
         # auto_queue.AGE_CHOICES_MINUTES. See auto_queue.max_age_seconds().
         "auto_max_age_minutes": 5,
+        # Settings > Local transcription: the local automatic
+        # transcription takes messages however old (auto_queue).
+        "auto_any_age": False,
         # Keep results with the message so they are not redone (on), and the
         # per-model overrides {model id: bool}. See stored.cache_enabled_for().
         "cache_enabled": True,
@@ -1346,6 +1369,9 @@ DEFAULT_SETTINGS = {
         "typing_sound_interval": 3,
         "typing_sound_silence_capture": True,
         "announce_recording": True,
+        # Groups: name everyone typing/recording at once; off = the old
+        # one-participant preview, speech and Alt+T.
+        "announce_group_multiple_activity": True,
         "announce_conversations_update_start": True,
         "announce_conversations_update_complete": True,
         "announce_sync_progress": True,
@@ -1364,6 +1390,13 @@ DEFAULT_SETTINGS = {
         "private_custom_path": "",
         "group": "default",
         "group_custom_path": ""
+    },
+    # Sound played for a message while the window is in front: "dedicated"
+    # (message_current / message_foreground) or "notification" (the
+    # background notification sound). New key: no migration.
+    "foreground_sounds": {
+        "active": "dedicated",
+        "other": "dedicated"
     },
     "conversation_sounds": {},
     "conversation_auto_ai": {},
@@ -1922,34 +1955,12 @@ def mute_response_accepted(http_ok: bool, body: str, is_unmute: bool) -> bool:
 
 
 def first_unread_index(displayable, unread_count: int) -> int:
-    """Index of the first unread message in *displayable*, or -1.
-
-    WhatsApp's ``unreadCount`` only ever counts messages you *received*. The
-    naive ``len(displayable) - unread_count`` therefore lands in the wrong place
-    whenever any of your own messages sit at the tail of the conversation —
-    typically because you replied from your phone or another linked device. The
-    unread separator was then drawn above your own messages, announcing them as
-    unread, which is what "minhas próprias mensagens contam como não lidas"
-    describes.
-
-    Walk backwards instead, counting only incoming (``key.fromMe`` falsy)
-    messages, and stop on the *unread_count*-th one. Returns -1 when the loaded
-    history doesn't hold that many incoming messages (nothing sensible to
-    anchor the separator to).
-    """
-    if unread_count <= 0:
-        return -1
-    seen = 0
-    for idx in range(len(displayable) - 1, -1, -1):
-        msg = displayable[idx]
-        if not isinstance(msg, dict):
-            continue
-        if (msg.get("key") or {}).get("fromMe"):
-            continue
-        seen += 1
-        if seen == unread_count:
-            return idx
-    return -1
+    """Index of the first unread message in *displayable*, or -1: where
+    WhatsApp Web puts its divider (core/unread_types.py). Your own messages,
+    deletions, notices and calls among the unread ones are not counted, so
+    they never take an unread message's place."""
+    from core.unread_types import first_unread_index as whatsapp_divider
+    return whatsapp_divider(displayable, unread_count)
 
 
 def display_page_fetch_limit(configured_limit: int, cap: int = 2000, buffer: int = 50) -> int:
