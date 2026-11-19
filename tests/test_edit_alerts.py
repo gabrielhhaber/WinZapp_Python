@@ -122,6 +122,15 @@ def test_global_defaults_are_off_in_both_default_files():
         assert shipped["general"][key] is False
 
 
+def test_the_settings_dialog_reads_and_writes_the_same_global_keys():
+    # The dialog spells the keys out so tests/test_settings_checkboxes_wiring.py
+    # can parse them; they must stay the ones edit_alerts reads.
+    source = (Path(__file__).resolve().parents[1] / "client" / "ui" / "dialogs"
+              / "settings_dialog.py").read_text(encoding="utf-8")
+    for key in edit_alerts.GLOBAL_KEYS.values():
+        assert source.count(f'"{key}"') == 2, key  # one load, one save
+
+
 # ── The mixin on a stub ─────────────────────────────────────────────────────
 
 class _EditStub(_StubMainWindow):

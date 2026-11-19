@@ -15,7 +15,6 @@ from core.i18n import LANGUAGE_NAMES
 from core.combo_search import bind_incremental_search
 from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
 from ui.dialogs.foreground_sound_choice import ForegroundSoundChoice
-from core import edit_alerts
 from core.sound_system import (
     SOUND_EVENTS, discover_alert_tone_choices, resolve_alert_tone_path,
     DEFAULT_PACK_ID, import_soundpack, AlertPreviewController, sound_event_enabled,
@@ -2535,12 +2534,17 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         discount_muted = self.main_window.settings.get("general", {}).get(
             "discount_muted_from_unread_badge", True
         )
+        # edit_alerts.GLOBAL_KEYS: the install-wide side of the edit alerts
+        announce_edits = self.main_window.settings.get("general", {}).get(
+            "announce_edited_messages", False
+        )
+        notify_edits = self.main_window.settings.get("general", {}).get(
+            "notify_edited_messages", False
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
-            self._announce_edits_check.SetValue(
-                edit_alerts.global_toggle(self.main_window.settings, edit_alerts.SPEAK_FOREGROUND))
-            self._notify_edits_check.SetValue(
-                edit_alerts.global_toggle(self.main_window.settings, edit_alerts.NOTIFY_BACKGROUND))
+            self._announce_edits_check.SetValue(announce_edits is True)
+            self._notify_edits_check.SetValue(notify_edits is True)
             self._discount_archived_check.SetValue(discount_archived)
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
@@ -4514,12 +4518,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
-            self.main_window.settings.setdefault("general", {})[
-                edit_alerts.GLOBAL_KEYS[edit_alerts.SPEAK_FOREGROUND]] = (
+            self.main_window.settings.setdefault("general", {})["announce_edited_messages"] = (
                 self._announce_edits_check.GetValue()
             )
-            self.main_window.settings.setdefault("general", {})[
-                edit_alerts.GLOBAL_KEYS[edit_alerts.NOTIFY_BACKGROUND]] = (
+            self.main_window.settings.setdefault("general", {})["notify_edited_messages"] = (
                 self._notify_edits_check.GetValue()
             )
             self.main_window.settings.setdefault("general", {})["discount_archived_from_unread_badge"] = (
