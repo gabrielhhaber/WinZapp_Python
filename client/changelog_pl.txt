@@ -14,6 +14,13 @@ NOWOŚCI
 
 - WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
+- Przyciski wiadomości od firmy pojawiają się teraz także wtedy, gdy rozmowa otwiera się z już zaznaczoną wiadomością, na przykład w rozmowie z jedną wiadomością, a nie dopiero po przesunięciu na nią fokusu. Działa z Neonize i WPPConnect.
+
+- Na liście dostawców AI online i w opcjach nowej ankiety Alt+Strzałka w górę i Alt+Strzałka w dół przenoszą zaznaczony element, a przyciski Przenieś w górę i Przenieś w dół zapowiadają te klawisze. Klawisze widać na liście pod F1, a zmienić je można w Ustawienia > Skróty klawiszowe.
+
+- Podczas tworzenia ankiety pole wyboru Ukryj nazwy głosujących i lista Limit czasu (bez limitu, 1 godzina, 8 godzin, 24 godziny, 3 dni lub 7 dni) działają teraz w Neonize i w WPPConnect. W oknie wyświetlania głosów ankieta, która ukrywa nazwy, pokazuje "Ukryta nazwa" zamiast głosującego; Twój własny głos nadal jest podpisany jako "Ty".
+- Podczas tworzenia ankiety przyciski Przenieś w górę i Przenieś w dół zmieniają kolejność opcji przed wysłaniem; ankieta trafia do WhatsApp w ustawionej przez Ciebie kolejności, zarówno w Neonize, jak i w WPPConnect.
+
 - Wiadomości oznaczone gwiazdką kończą się teraz słowami "Oznaczono gwiazdką", tak jak "Edytowano" i "Przekazano", zamiast zaczynać się od symbolu ★. Nowa opcja w Ustawienia > Interfejs użytkownika > Wiadomości ogłasza to słowo na początku wiersza, przed nadawcą.
 
 - Dźwięki pisania, bańki pisania, impulsu pisania i przetwarzania AI w domyślnym pakiecie dźwięków są teraz plikami Ogg, tak jak reszta pakietu. Brzmienie i Twoje własne dźwięki się nie zmieniają.
@@ -70,7 +77,7 @@ NOWOŚCI
 
 - Pomoc w pisaniu: nowy skrót Alt+Shift+H otwiera okno z dowolnego miejsca czatu, gdy pole wiadomości zawiera szkic. Można go zmienić na karcie Skróty klawiszowe w Ustawieniach, a menu kontekstowe pola i przycisk pokazują teraz używany skrót.
 
-- WPPConnect Server zaktualizowany do wersji 2.10.81, z WPPConnect 2.4.0 i WA-JS 4.8.0. Odczyt historii wiadomości nie gromadzi już kopii w pamięci, przeglądarka sterowana przez WinZapp jest zamykana automatycznie tylko wtedy, gdy otworzył ją sam WinZapp, a oczekiwanie na załadowanie WhatsApp Web działa teraz także przy ukrytej stronie.
+- WPPConnect Server zaktualizowany do wersji 2.10.86, z WPPConnect 2.4.6 i WA-JS 4.8.2, co przywraca wysyłanie wiadomości po wewnętrznej zmianie w WhatsApp Web. Odczyt historii wiadomości nie gromadzi już kopii w pamięci, przeglądarka sterowana przez WinZapp jest zamykana automatycznie tylko wtedy, gdy otworzył ją sam WinZapp, a oczekiwanie na załadowanie WhatsApp Web działa teraz także przy ukrytej stronie.
 
 - Podsumowanie wiadomości przez AI, jak w WhatsAppie: otwarty czat zyskuje przycisk "Podsumuj nieprzeczytane" i skrót Ctrl+Shift+U; menu kontekstowe listy czatów zyskuje pozycję "Podsumuj nieprzeczytane wiadomości przez AI", która czyta wiadomości z bazy danych bez otwierania czatu i bez oznaczania go jako przeczytany; a menu kontekstowe wiadomości pozwala podsumować nieprzeczytane, "od tego miejsca do końca" i zaznaczone. Przycisk pojawia się dopiero przy 10 lub więcej nieprzeczytanych wiadomościach; skrót działa przy dowolnej liczbie. Podsumowanie korzysta z dostawców AI skonfigurowanych w Ustawienia > AI online: transkrypcje i opisy (nie z Meta AI), otwiera się w oknie z pytaniami uzupełniającymi i przyciskiem Kopiuj oraz informuje, że zrobiła je AI i może zawierać błędy. Wiadomości głosowe trafiają do podsumowania jako tekst: WinZapp używa zapisanej już transkrypcji albo transkrybuje na bieżąco lokalną transkrypcją 20 najnowszych, w oknie, które pokazuje postęp i ma przycisk Anuluj; bez skonfigurowanej transkrypcji zostają tylko znacznikiem, a wynik o tym informuje. Zgoda jest osobna, pytamy o nią przed jakąkolwiek transkrypcją, a w zwykłych czatach można ją zapamiętać; w zabezpieczonych czatach pytamy zawsze, nigdy jej nie zapamiętujemy, a okno zamyka się po zamknięciu sejfu. Podsumowanie obejmuje do 200 wiadomości i 15 000 znaków i podaje, ile starszych wiadomości się nie zmieściło.
 

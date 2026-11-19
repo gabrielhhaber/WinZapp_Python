@@ -91,6 +91,25 @@ class AccessibleAltShortcutButton(wx.Accessible):
         return (wx.ACC_OK, self._shortcut if self._shortcut is not None else f"Alt+{self._letter}")
 
 
+class AccessibleReorderButton(wx.Accessible):
+    """Reports the key that moves an item of a reorderable list (Alt+Up Arrow /
+    Alt+Down Arrow by default) as the shortcut of its Move up / Move down
+    button, as the user configured it and in the app's language.
+
+    `shortcut` is the announced fallback (i18n "accessible_alt_up" /
+    "accessible_alt_down"), used only when no main window can say: NVDA reads
+    whatever GetKeyboardShortcut() returns verbatim.
+    """
+
+    def __init__(self, shortcut_id, shortcut):
+        super().__init__()
+        self.shortcut_id = shortcut_id
+        self.shortcut = shortcut
+
+    def GetKeyboardShortcut(self, childId):
+        return (wx.ACC_OK, accessible_shortcut(self, self.shortcut, (self.shortcut_id,)))
+
+
 class AccessibleSearchInConversation(wx.Accessible):
     """Reports Ctrl+Shift+F as the keyboard shortcut for the search-in-conversation button."""
 

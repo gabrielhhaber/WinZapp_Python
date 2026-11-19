@@ -23,6 +23,7 @@ class BusinessButtonsMixin:
         buttons = message_business_buttons(msg)
         context = (self.conversation, connection_identity(self.main_window), object())
         self._business_context = context
+        self._business_shown_msg = msg
         self._buttons_container.DestroyChildren()
         sizer = wx.WrapSizer(wx.HORIZONTAL)
         for button in buttons:

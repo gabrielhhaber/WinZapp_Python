@@ -12,6 +12,13 @@ NOVEDADES
 
 - Con el NVDA en ejecución, la grabación del micrófono y del audio del ordenador ya no se interrumpe con "problema con el dispositivo de audio" cuando WinZapp se bloquea uno o dos segundos (ordenador lento u ocupado): se omite el audio de ese instante, la grabación continúa y el resto sigue sincronizado. Antes ya valía sin el audio del NVDA separado; ahora cubre también los lectores del audio del NVDA y de los otros sonidos del ordenador, grabados por separado.
 
+- Los botones de un mensaje de empresa ahora también aparecen cuando la conversación se abre con el mensaje ya enfocado, como en una conversación con un solo mensaje, y no solo después de mover el foco hacia él. Vale para Neonize y WPPConnect.
+
+- En la lista de proveedores de IA en línea y en las opciones de una encuesta nueva, Alt+Flecha arriba y Alt+Flecha abajo mueven el elemento seleccionado, y los botones Subir y Bajar anuncian esas teclas. Las teclas aparecen en la lista de F1 y se pueden cambiar en Configuración > Atajos de teclado.
+
+- Al crear una encuesta, la casilla Ocultar nombres de los votantes y la opción Límite de tiempo (sin límite, 1 hora, 8 horas, 24 horas, 3 días o 7 días) ahora funcionan con Neonize y con WPPConnect. En Ver votos, una encuesta que oculta los nombres muestra "Nombre oculto" en lugar de quién votó; tu propio voto sigue apareciendo como "Yo".
+- Al crear una encuesta, los botones Subir y Bajar reordenan las opciones antes de enviarla; la encuesta llega a WhatsApp en el orden que dejaste, tanto con Neonize como con WPPConnect.
+
 - Los mensajes destacados ahora terminan con la palabra "Destacado", como "Editado" y "Reenviado", en lugar de empezar con el símbolo ★. Una opción nueva en Configuración > Interfaz de usuario > Mensajes anuncia la palabra al principio de la línea, antes del remitente.
 
 - Los sonidos de escritura, burbuja de escritura, pulso de escritura y procesamiento de IA del paquete de sonido predeterminado ahora son archivos Ogg, como el resto del paquete. No cambia cómo suenan ni tus sonidos personalizados.
@@ -68,7 +75,7 @@ NOVEDADES
 
 - Ayuda para escribir: nuevo atajo Alt+Shift+H para abrir la ventana desde cualquier lugar del chat con un borrador escrito. Se puede cambiar en la pestaña Atajos de Configuración, y el menú contextual del campo y el botón ahora muestran el atajo en uso.
 
-- WPPConnect Server actualizado a la 2.10.81, con WPPConnect 2.4.0 y WA-JS 4.8.0. La lectura del historial de mensajes deja de acumular copias en memoria, el navegador que maneja WinZapp solo se cierra automáticamente cuando lo abrió el propio WinZapp, y la espera a que cargue WhatsApp Web también funciona con la página oculta.
+- WPPConnect Server actualizado a la 2.10.86, con WPPConnect 2.4.6 y WA-JS 4.8.2, lo que devuelve el envío de mensajes tras un cambio interno de WhatsApp Web. La lectura del historial de mensajes deja de acumular copias en memoria, el navegador que maneja WinZapp solo se cierra automáticamente cuando lo abrió el propio WinZapp, y la espera a que cargue WhatsApp Web también funciona con la página oculta.
 
 - Resumen de mensajes con IA, como en WhatsApp: el chat abierto gana el botón "Resumir no leídos" y el atajo Ctrl+Shift+U; el menú contextual de la lista de chats gana "Resumir con IA los mensajes no leídos", que lee los mensajes de la base de datos sin abrir el chat ni marcarlo como leído; y el menú contextual de un mensaje ofrece resumir los no leídos, "desde aquí hasta el final" y los seleccionados. El botón solo aparece con 10 o más mensajes sin leer; el atajo funciona con cualquier cantidad. El resumen usa los proveedores de IA ya configurados en Configuración > IA en línea (no Meta AI), se abre en una ventana con preguntas de seguimiento y el botón Copiar, y avisa de que lo ha hecho una IA y puede contener errores. Los mensajes de voz entran con su texto: WinZapp usa la transcripción ya guardada o transcribe en el momento, con la transcripción local, los 20 más recientes, en una ventana que muestra el progreso y tiene el botón Cancelar; sin la transcripción configurada quedan solo como marcador y el resultado lo avisa. El consentimiento es propio, se pide antes de cualquier transcripción, una vez, y se recuerda en los chats normales; en los chats bloqueados se pide siempre, nunca se recuerda, y la ventana se cierra al bloquear la caja fuerte. El resumen cubre hasta 200 mensajes y 15.000 caracteres e indica cuántos mensajes más antiguos han quedado fuera.
 

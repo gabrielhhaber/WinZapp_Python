@@ -34,7 +34,8 @@ SCOPE_LABELS = {
     'call_participants': 'call_participants_list',
     'call': 'shortcuts_call_window_section', 'incoming': 'incoming_call_popup_title',
     'ai_result': 'tab_ai_accessibility',
-    'emoji': 'emoji_picker_title', 'links': 'shortcut_scope_links',
+    'emoji': 'emoji_picker_title', 'reorder': 'shortcut_scope_reorder',
+    'links': 'shortcut_scope_links',
     'mention': 'shortcut_scope_mentions', 'device': 'tab_audio_devices',
     'status_list': 'shortcuts_status_section', 'status_reply': 'status_reply_send',
 }
