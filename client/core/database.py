@@ -856,10 +856,12 @@ class DatabaseManager:
                 result.append((row["remote_jid"], msg))
         return result
 
-    async def get_starred_messages(self, limit: int = 2000) -> list[tuple[str, dict]]:
-        """Every starred message of every chat, newest first, as
+    async def get_starred_messages(self, limit: int = 2000,
+                                   remote_jids=None) -> list[tuple[str, dict]]:
+        """Every starred message of every chat (or of the one chat whose
+        address forms are *remote_jids*), newest first, as
         ``(remote_jid, msg)``: the starred messages window (star_storage)."""
-        return await starred_messages(self, limit)
+        return await starred_messages(self, limit, remote_jids)
 
     async def get_message_count(self, remote_jid: str) -> int:
         """Return total message count for a chat."""

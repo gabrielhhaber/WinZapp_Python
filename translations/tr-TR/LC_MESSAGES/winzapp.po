@@ -6723,6 +6723,12 @@ msgctxt "conversation_sound_preview_stop"
 msgid "Stop sound &preview"
 msgstr "Ses öni&zlemesini durdur"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/conversation_starred.py
+msgctxt "conversation_starred_button"
+msgid "Starred messages &in this chat"
+msgstr "&Bu sohbetteki yıldızlı mesajlar"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/contact_list_picker.py
@@ -15118,6 +15124,13 @@ msgstr ""
 "Shift+F5 ile eşitleyin; değişiklik zaten uygulanmış olabilir."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/starred_messages.py
+#, python-brace-format
+msgctxt "starred_chat_title"
+msgid "Starred messages: {name}"
+msgstr "Yıldızlı mesajlar: {name}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "starred_count"
 msgid "Starred messages: {count}"
@@ -15160,6 +15173,12 @@ msgstr "Sohbette a&ç"
 msgctxt "starred_row"
 msgid "{chat}: {text}"
 msgstr "{chat}: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/starred_list.py
+#, python-brace-format
+msgctxt "starred_row_in_chat_sender"
+msgid "{sender}: {text}"
+msgstr "{sender}: {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
