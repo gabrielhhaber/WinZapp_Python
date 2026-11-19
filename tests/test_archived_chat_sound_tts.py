@@ -212,7 +212,7 @@ class _StubMainWindow:
     def _live_events_ready(self):
         return True
 
-    def _learn_sender_name(self, msg):
+    def _learn_sender_name(self, msg, live=False):
         return False
 
     def _extract_lid_mapping(self, msg):

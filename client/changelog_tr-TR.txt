@@ -12,6 +12,10 @@ YENİLİKLER
 
 - NVDA çalışırken, mikrofonu bilgisayar sesiyle birlikte kaydetmek, WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor. Bu, NVDA sesi ayrı alınmadan önce de böyleydi; artık ayrı kaydedilen NVDA sesinin ve bilgisayarın diğer seslerinin okuyucularını da kapsıyor.
 
+- Bir kişinin artık tek bir adı var: biri profil adını değiştirdiğinde, eski mesajlar ve grup mesajları dahil tüm mesajları eski ve yeni ad arasında gidip gelmek yerine yeni adı gösterir. Neonize ve WPPConnect için geçerlidir.
+
+- Başlangıç: konuşma desteği artık kendi geçici COM önbelleğini kullanır; böylece paylaşılan Windows önbelleği dizinini kaybettiğinde döngüsel içe aktarma hataları önlenir.
+
 - Bir işletme mesajının düğmeleri artık sohbet mesaj zaten odaktayken açıldığında da görünür, örneğin tek mesajlı bir sohbette; yalnızca odak mesaja taşındıktan sonra değil. Neonize ve WPPConnect ile çalışır.
 
 - Çevrimiçi yapay zekâ sağlayıcıları listesinde ve yeni bir anketin seçeneklerinde Alt+Yukarı Ok ve Alt+Aşağı Ok seçili öğeyi taşır; Yukarı taşı ve Aşağı taşı düğmeleri bu tuşları duyurur. Tuşlar F1 listesinde görünür ve Ayarlar > Kısayollar içinde değiştirilebilir.

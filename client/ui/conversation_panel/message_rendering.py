@@ -1409,16 +1409,18 @@ class MessageRenderingMixin:
                 cn = (chat_obj.get("name") or "").strip()
                 if cn and not mw._is_bad_contact_name(cn):
                     return cn
-        if msg is not None:
-            for key_candidate in ("pushName", "pushname", "name", "displayName"):
-                push = msg.get(key_candidate, "")
-                if push and not mw._is_bad_contact_name(push):
-                    return push
         # Fallback: presence-learned pushName map
         for cjid in candidates:
             pname = (ppm.get(cjid) or "").strip()
             if pname and not mw._is_bad_contact_name(pname):
                 return pname
+        # The name the message itself carries is the one its sender had THEN:
+        # only when nothing current is known, never ahead of it.
+        if msg is not None:
+            for key_candidate in ("pushName", "pushname", "name", "displayName"):
+                push = msg.get(key_candidate, "")
+                if push and not mw._is_bad_contact_name(push):
+                    return push
         # Fallback 2: scan sorted messages in the current conversation
         for m in getattr(self, "_sorted_messages", []):
             if not isinstance(m, dict):

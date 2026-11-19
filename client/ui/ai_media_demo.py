@@ -6,7 +6,7 @@ entry point constructs these windows; importing this module shows nothing.
 """
 import wx
 import logging
-from accessible_output2 import outputs
+from core.speech_backend import outputs
 from cryptography.fernet import Fernet
 from pathlib import Path
 

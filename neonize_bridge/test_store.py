@@ -375,3 +375,11 @@ def test_omitted_chat_metadata_and_lid_map_survive_migration(tmp_path):
     assert s.phone_of_lid("111@lid") == "5511999990001@s.whatsapp.net"
     assert s.lid_of_phone("5511999990001@c.us") == "111@lid"
     assert s.phone_of_lid("missing@lid") == ""
+
+
+def test_contacts_in_batch_keep_pushname_does_not_replace_a_stored_nickname(tmp_path):
+    a = Store(str(tmp_path / "x.db"))
+    a.contacts_in_batch([("p1", "", "Novo")])
+    a.contacts_in_batch([("p1", "", "Velho"), ("p2", "", "Outro")], keep_pushname=True)
+    assert a.contact_of("p1")["pushname"] == "Novo"
+    assert a.contact_of("p2")["pushname"] == "Outro"

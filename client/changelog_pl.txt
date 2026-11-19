@@ -14,6 +14,10 @@ NOWOŚCI
 
 - WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
+- Kontakt ma teraz jedną nazwę: gdy ktoś zmieni nazwę profilu, wszystkie jego wiadomości, także stare i grupowe, pokazują nową nazwę zamiast przełączać się między starą a nową. Dotyczy Neonize i WPPConnect.
+
+- Uruchamianie: obsługa mowy korzysta teraz z własnej tymczasowej pamięci podręcznej COM, co zapobiega błędom importu cyklicznego po utracie indeksu współdzielonej pamięci podręcznej Windows.
+
 - Przyciski wiadomości od firmy pojawiają się teraz także wtedy, gdy rozmowa otwiera się z już zaznaczoną wiadomością, na przykład w rozmowie z jedną wiadomością, a nie dopiero po przesunięciu na nią fokusu. Działa z Neonize i WPPConnect.
 
 - Na liście dostawców AI online i w opcjach nowej ankiety Alt+Strzałka w górę i Alt+Strzałka w dół przenoszą zaznaczony element, a przyciski Przenieś w górę i Przenieś w dół zapowiadają te klawisze. Klawisze widać na liście pod F1, a zmienić je można w Ustawienia > Skróty klawiszowe.

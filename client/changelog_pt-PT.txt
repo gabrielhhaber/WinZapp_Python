@@ -12,6 +12,10 @@ NOVIDADES
 
 - Com o NVDA em execução, a gravação do microfone e do áudio do computador já não é interrompida com "problema com o dispositivo de áudio" quando o WinZapp bloqueia durante um ou dois segundos (computador lento ou ocupado): o áudio desse instante é ignorado, a gravação continua e o resto mantém-se sincronizado. Antes, isto já valia sem o áudio do NVDA separado; agora cobre também os leitores do áudio do NVDA e dos outros sons do computador, gravados em separado.
 
+- O nome de um contacto passa a ser único: quando alguém muda o nome do perfil, todas as mensagens dessa pessoa, incluindo as antigas e as de grupos, mostram o nome novo em vez de alternar entre o antigo e o novo. Aplica-se ao Neonize e ao WPPConnect.
+
+- Arranque: o suporte de voz passa a usar o seu próprio cache COM temporário, evitando erros de importação circular quando o cache partilhado do Windows perde o índice.
+
 - Os botões de uma mensagem de empresa passam a aparecer também quando a conversa abre com a mensagem já focada, como numa conversa com uma única mensagem, e não só depois de mover o foco para ela. Vale para Neonize e para WPPConnect.
 
 - Na lista de provedores de IA online e nas opções de uma nova sondagem, Alt+Seta para cima e Alt+Seta para baixo movem o item selecionado, e os botões Mover para cima e Mover para baixo anunciam essas teclas. As teclas aparecem na lista do F1 e podem ser alteradas em Definições > Atalhos.

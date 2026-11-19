@@ -12,6 +12,10 @@ WHAT'S NEW
 
 - While NVDA is running, recording the microphone together with the computer's audio no longer stops with "audio device problem" when WinZapp stalls for a second or two (a busy or slow computer): the audio from that moment is skipped, the recording goes on, and the rest stays in sync. This already held without separate NVDA capture; the separately recorded NVDA and other computer sound readers are covered now too.
 
+- A contact now has a single name: when someone changes their profile name, all their messages, old ones and group ones included, show the new name instead of switching between the old and the new. Applies to Neonize and WPPConnect.
+
+- Startup: speech support now uses its own temporary COM cache, preventing circular-import errors when the shared Windows cache has lost its index.
+
 - The buttons of a business message now also show when the conversation opens with the message already focused, such as a conversation with a single message, not only after moving focus to it. This works with Neonize and WPPConnect.
 
 - In the online AI provider list and in the options of a new poll, Alt+Up Arrow and Alt+Down Arrow move the selected item, and the Move up and Move down buttons announce those keys. The keys appear in the F1 list and can be changed in Settings > Shortcuts.
