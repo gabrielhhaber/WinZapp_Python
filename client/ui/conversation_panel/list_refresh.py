@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from core.page_size import messages_page_size
 import logging
 import time
 import wx
@@ -1247,9 +1248,7 @@ class ListRefreshMixin:
 
             # ── Pagination: show only last N messages ────────────────────────────
             self._all_sorted_messages = displayable
-            limit = int(
-                self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
-            )
+            limit = messages_page_size(self.main_window.settings)
             self._messages_offset, self._unread_sep_idx = (
                 self._history_window_for_rebuild(displayable, limit)
             )

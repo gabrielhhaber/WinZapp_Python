@@ -560,6 +560,8 @@ WHAT'S NEW
 
 - Fixed: with neural voice noise cancellation on, voice messages are now sent in the order they were recorded, even when one finishes processing before another.
 
+- Messages shown when opening a chat: the setting now accepts at most 1,000. Values of tens of thousands froze the window for over a minute when many messages arrived at once or while you were typing; a higher saved value is treated as 1,000 and Settings > Messages asks for a number from 1 to 1,000.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
