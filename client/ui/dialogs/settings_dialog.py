@@ -3,7 +3,7 @@ import os
 import sys
 import wx
 from core.chat_row_text import AFTER as UNREAD_AFTER, BEFORE as UNREAD_BEFORE
-from core.page_size import MAX_MESSAGES_PAGE_SIZE, messages_page_size
+from core.page_size import MAX_MESSAGES_PAGE_SIZE, clamp_messages_page_size
 from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
 from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -2565,7 +2565,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._hotkey_field._vk  = 0
                 self._hotkey_field._mod = 0
 
-        page_size = messages_page_size(self.main_window.settings)
+        page_size = clamp_messages_page_size(
+            self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
         if wanted(unit, "messages"):
             self._messages_page_size_field.SetValue(str(page_size))
 
