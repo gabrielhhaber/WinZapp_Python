@@ -74,6 +74,10 @@ class WindowLifecycleMixin:
         # Read by _window_can_ask() from the poll thread, which cannot ask wx.
         self._main_window_active = active
         self._set_bookmark_zero_hotkey(active)
+        if active:
+            # A key changed in another account answers here from the moment
+            # this window comes forward, not from its next save.
+            self._pull_shared_shortcuts()
         # A language another account chose while this window was the active
         # one waited for this: switching it with focus here would have NVDA
         # read the focused control again (_apply_pending_language_switch()).

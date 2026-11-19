@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+import copy
 import json
 import logging
 import os
@@ -600,6 +601,63 @@ class SettingsMixin:
             }
         except Exception:
             logging.exception("[settings] applying global app.json failed (non-fatal)")
+            return
+        self._share_keyboard_shortcuts()
+
+    def _share_keyboard_shortcuts(self):
+        """The keyboard shortcuts are the install's (core/shared_shortcuts.py):
+        take them from the shared file, handing it this account's own the
+        first time, and reconcile them from then on like the keys above. Its
+        own step, so a failure here leaves the other install-wide keys in
+        step and this account on the shortcuts it had."""
+        try:
+            from core import shared_shortcuts
+            from core.keyboard_shortcuts import SECTION
+            from core.shortcut_catalog import SHORTCUTS
+            general = self.settings.setdefault("general", {})
+            shared = shared_shortcuts.share_account_overrides(
+                self._app_settings, self.settings, SHORTCUTS,
+                lambda: shared_shortcuts.catalog_translate(general.get("language")))
+            self._global_settings_snapshot[SECTION] = copy.deepcopy(shared)
+        except Exception:
+            logging.exception("[settings] sharing the keyboard shortcuts failed (non-fatal)")
+
+    def _pull_shared_shortcuts(self):
+        """Take the shortcuts another account changed, as this window comes
+        forward.
+
+        A pull otherwise waits for this account's next save, and an account
+        hidden in the tray saves little: switching to it with a key just
+        changed in the other account found it still on the old one -- the
+        very report the shared shortcuts fix. Without _save_lock (a sync can
+        hold it for minutes) and without waiting on another process's writer:
+        a change of this account's own not saved yet is left for the save to
+        write (core.shared_shortcuts.shortcuts_to_pull()).
+        """
+        app = getattr(self, "_app_settings", None)
+        snapshot = getattr(self, "_global_settings_snapshot", None)
+        if app is None or not snapshot:
+            return
+        from coord_locks import LockTimeout
+        from core.keyboard_shortcuts import SECTION
+        from core.shared_shortcuts import shortcuts_to_pull
+        if SECTION not in snapshot:
+            return
+        try:
+            pulled = shortcuts_to_pull(self.settings.get(SECTION), snapshot[SECTION],
+                                       app.get_snapshot(SECTION))
+            if pulled is None:
+                return
+            self.settings[SECTION] = pulled
+            snapshot[SECTION] = copy.deepcopy(pulled)
+            from ui.shortcut_bindings import refresh_shortcuts
+            refresh_shortcuts(self)
+        except LockTimeout:
+            # Another account is writing the shared file right now; this
+            # window's next save pulls whatever it wrote.
+            return
+        except Exception:
+            logging.exception("[settings] pulling the shared keyboard shortcuts failed")
 
     def _persist_global_settings(self, explicit=()):
         """Reconcile the global keys of self.settings with global/app.json
@@ -650,15 +708,18 @@ class SettingsMixin:
         if app is None:
             return
         try:
-            from app_settings import _GENERAL_GLOBAL, _CONNECTION_GLOBAL
+            from app_settings import _GENERAL_GLOBAL, _CONNECTION_GLOBAL, _SECTION_GLOBAL
             from coord_locks import app_settings_lock
             # A key the snapshot does not know (startup failed half-way) is
             # never treated as changed: with no baseline, a stale copy and a
             # new choice look the same, and writing would be the old bug.
             snapshot = getattr(self, "_global_settings_snapshot", None) or {}
+            # The whole-section keys (the keyboard shortcuts) sit at the top
+            # of self.settings, so the settings dict itself is their section.
             sections = (
                 (self.settings.setdefault("general", {}), _GENERAL_GLOBAL),
                 (self.settings.setdefault("connection", {}), _CONNECTION_GLOBAL),
+                (self.settings, _SECTION_GLOBAL),
             )
             compared = {}
             with app_settings_lock(app.global_dir):
@@ -716,9 +777,12 @@ class SettingsMixin:
         """
         if not choices:
             return
-        from app_settings import _CONNECTION_GLOBAL
+        from app_settings import _CONNECTION_GLOBAL, _SECTION_GLOBAL
         with self._save_lock:
             for key, value in choices.items():
+                if key in _SECTION_GLOBAL:
+                    self.settings[key] = value
+                    continue
                 section = "connection" if key in _CONNECTION_GLOBAL else "general"
                 self.settings.setdefault(section, {})[key] = value
             self._persist_global_settings(explicit=tuple(choices))
@@ -775,6 +839,9 @@ class SettingsMixin:
           but only while the window is not the active one; see
           _apply_pending_language_switch(). core.i18n makes every helper
           follow the window's language, so nothing switches on its own first.
+        - keyboard_shortcuts: applied (refresh_shortcuts()), the accelerator
+          tables, menus and mnemonic labels; the key handlers read the copy
+          live. The same as the Settings dialog's OK does here.
         - wpp_server / wpp_ws_server / wpp_api_key / wpp_custom_api /
           wpp_engine: NOT applied. They say where this process's session
           lives; moving it mid-session abandons the Node it runs. The
@@ -799,6 +866,12 @@ class SettingsMixin:
                 self._sync_tray_icon_with_setting()
             except Exception:
                 logging.exception("[settings] applying the pulled tray setting failed")
+        if "keyboard_shortcuts" in pulled:
+            try:
+                from ui.shortcut_bindings import refresh_shortcuts
+                refresh_shortcuts(self)
+            except Exception:
+                logging.exception("[settings] applying the pulled keyboard shortcuts failed")
         if "language" in pulled:
             self._pending_language_switch = True
             self._apply_pending_language_switch()
@@ -1289,6 +1362,10 @@ class SettingsMixin:
             for k in keys
             if k in incoming[section] and f"{section}.{k}" not in ignored
         ]
+        from app_settings import _SECTION_GLOBAL
+        imported_global.extend(
+            name for name in _SECTION_GLOBAL
+            if isinstance(incoming.get(name), dict) and name not in ignored)
         if "wpp_custom_api" in imported_global and "wpp_engine" not in imported_global:
             # merge_settings() stored the engine that goes with the server the
             # file describes (an export from before the engine was a setting
