@@ -21,6 +21,7 @@ whose button opens the ``whatsapp://`` form.
 import re
 from urllib.parse import parse_qs, unquote, urlsplit
 
+from core.call_links import parse_call_link
 from core.group_invitation_link import invitation_code
 
 #: Longer than a pre-filled message needs to be; a bound for text that comes
@@ -79,12 +80,14 @@ def chat_target(value):
 
 
 def is_whatsapp_link(value) -> bool:
-    """A link WinZapp knows how to open: a group invitation or a chat."""
-    return bool(invitation_code(value)) or chat_target(value) is not None
+    """A link WinZapp knows how to open: a group invitation, a chat or a call
+    link (core/call_links.py)."""
+    return (bool(invitation_code(value)) or chat_target(value) is not None
+            or bool(parse_call_link(value)[1]))
 
 
 def whatsapp_link_argument(argv):
-    """The first group invitation or chat link on a command line, or ""."""
+    """The first group invitation, chat or call link on a command line, or ""."""
     for arg in list(argv)[1:]:
         if is_whatsapp_link(arg):
             return arg.strip()

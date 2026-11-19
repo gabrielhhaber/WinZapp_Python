@@ -2761,6 +2761,18 @@ msgid ""
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_external_not_connected"
+msgid ""
+"WhatsApp did not connect in time. Open the call link again once WinZapp is "
+"connected."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_external_waiting"
+msgid "Call link received. Waiting for WhatsApp to connect."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_field_label"
 msgid "&Link"
 msgstr ""
@@ -21096,11 +21108,11 @@ msgstr ""
 msgctxt "whatsapp_links_enabled_message"
 msgid ""
 "WinZapp is now registered for WhatsApp links. When you use the join button "
-"on a group invitation page, or the button that opens a chat from a wa.me or "
-"WhatsApp link, Windows may ask which app to use the first time: choose "
-"WinZapp. If another WhatsApp app is installed, you can also choose WinZapp "
-"for the \"whatsapp\" link type in Windows Settings, under Apps, Default "
-"apps."
+"on a group invitation or call link page, or the button that opens a chat "
+"from a wa.me or WhatsApp link, Windows may ask which app to use the first "
+"time: choose WinZapp. If another WhatsApp app is installed, you can also "
+"choose WinZapp for the \"whatsapp\" link type in Windows Settings, under "
+"Apps, Default apps."
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -21113,7 +21125,8 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "whatsapp_links_label"
 msgid ""
-"Let &Windows open WhatsApp links (group invitations and chats) with WinZapp"
+"Let &Windows open WhatsApp links (group invitations, chats and call links) "
+"with WinZapp"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py

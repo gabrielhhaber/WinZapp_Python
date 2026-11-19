@@ -3044,6 +3044,20 @@ msgstr ""
 "sin una cuenta de WhatsApp espera hasta que le dejes entrar."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_external_not_connected"
+msgid ""
+"WhatsApp did not connect in time. Open the call link again once WinZapp is "
+"connected."
+msgstr ""
+"WhatsApp no se conectó a tiempo. Vuelve a abrir el enlace de llamada cuando "
+"WinZapp esté conectado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_link_external_waiting"
+msgid "Call link received. Waiting for WhatsApp to connect."
+msgstr "Enlace de llamada recibido. Esperando a que WhatsApp se conecte."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_field_label"
 msgid "&Link"
 msgstr "&Enlace"
@@ -22756,19 +22770,19 @@ msgstr "Novedades de WinZapp"
 msgctxt "whatsapp_links_enabled_message"
 msgid ""
 "WinZapp is now registered for WhatsApp links. When you use the join button "
-"on a group invitation page, or the button that opens a chat from a wa.me or "
-"WhatsApp link, Windows may ask which app to use the first time: choose "
-"WinZapp. If another WhatsApp app is installed, you can also choose WinZapp "
-"for the \"whatsapp\" link type in Windows Settings, under Apps, Default "
-"apps."
+"on a group invitation or call link page, or the button that opens a chat "
+"from a wa.me or WhatsApp link, Windows may ask which app to use the first "
+"time: choose WinZapp. If another WhatsApp app is installed, you can also "
+"choose WinZapp for the \"whatsapp\" link type in Windows Settings, under "
+"Apps, Default apps."
 msgstr ""
 "WinZapp ya está registrado para los enlaces de WhatsApp. Cuando uses el "
-"botón de unirse en la página de una invitación a un grupo, o el botón que "
-"abre un chat desde un enlace de wa.me o de WhatsApp, Windows puede preguntar"
-" la primera vez qué aplicación usar: elige WinZapp. Si hay otra aplicación "
-"de WhatsApp instalada, también puedes elegir WinZapp para el tipo de enlace "
-"\"whatsapp\" en la Configuración de Windows, en Aplicaciones, Aplicaciones "
-"predeterminadas."
+"botón de unirse en la página de una invitación a un grupo o de un enlace de "
+"llamada, o el botón que abre un chat desde un enlace de wa.me o de WhatsApp,"
+" Windows puede preguntar la primera vez qué aplicación usar: elige WinZapp. "
+"Si hay otra aplicación de WhatsApp instalada, también puedes elegir WinZapp "
+"para el tipo de enlace \"whatsapp\" en la Configuración de Windows, en "
+"Aplicaciones, Aplicaciones predeterminadas."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/group_invitation_links.py
@@ -22780,10 +22794,11 @@ msgstr "No se pudo cambiar el registro para los enlaces de WhatsApp."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "whatsapp_links_label"
 msgid ""
-"Let &Windows open WhatsApp links (group invitations and chats) with WinZapp"
+"Let &Windows open WhatsApp links (group invitations, chats and call links) "
+"with WinZapp"
 msgstr ""
-"&Permitir que Windows abra los enlaces de WhatsApp (invitaciones a grupos y "
-"chats) con WinZapp"
+"&Permitir que Windows abra los enlaces de WhatsApp (invitaciones a grupos, "
+"chats y enlaces de llamada) con WinZapp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format

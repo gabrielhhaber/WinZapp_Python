@@ -54,11 +54,11 @@ Where to look (and where new code goes):
     contacts            local/remote contacts, self reference
     identity            JID normalization, @lid <-> phone, name resolution
     groups              group metadata, permissions, group management
-    group_invitation_links  invitation links handed over by Windows, whatsapp: association
+    group_invitation_links  invitation, chat and call links handed over by Windows, whatsapp: association
     status_transcription    saved transcriptions of statuses, their media and automatic runs
     calls               voice/video calls, call bar, call-log watcher
     call_participants   explicit connected-participant views for active/joinable calls
-    call_links          call links: create, join (also from a message), the link call's waiting room
+    call_links          call links: create, join (also from a message or Windows), the link call's waiting room
     call_hotkeys        answer/decline a ringing call from any window (global keys, only while it rings)
     default_audio_devices  calls and program sounds on "system default" follow Windows' default (headset plugged in)
     chat_lock           locked-chats vault

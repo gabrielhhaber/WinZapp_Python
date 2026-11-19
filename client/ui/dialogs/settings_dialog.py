@@ -557,9 +557,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         gen_sizer.Add(self._autostart_check, 0, wx.ALL, 8)
 
-        # Registers WinZapp for whatsapp: links (group invitations opened from
-        # a browser or another program). Windows only: the association is a
-        # registry entry, see core/whatsapp_link_association.py.
+        # Registers WinZapp for whatsapp: links (group invitations, chats and
+        # call links opened from a browser or another program). One scheme,
+        # so one option: Windows has a single handler for it. Windows only:
+        # the association is a registry entry, see
+        # core/whatsapp_link_association.py.
         self._whatsapp_links_check = wx.CheckBox(
             self._general_page, label=i18n.t("whatsapp_links_label")
         )

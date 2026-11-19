@@ -2,7 +2,9 @@
 and what the waiting room of a link call says.
 
 A call link is WhatsApp's "New call link": https://call.whatsapp.com/voice/<token>
-or .../video/<token>, a group call anyone with the link can join. Both engines
+or .../video/<token>, a group call anyone with the link can join. Opened in a
+browser, its page hands whatsapp://call/<voice|video>/<token> to the program
+registered for whatsapp: links, which can be WinZapp. Both engines
 create and join it the way WhatsApp Web does (client/api_patches
 callLinkRuntime.ts, neonize_bridge/call_links.py); the first person to join
 becomes the call's admin. Someone who opens the link without a WhatsApp
@@ -20,13 +22,26 @@ import re
 _LINK = re.compile(
     r"https://(?:call\.whatsapp\.com|web\.whatsapp\.com/call)/(video|voice)/(\w+)(?:\?[^\s]*)?",
     re.IGNORECASE)
+# What the call link's web page asks the system to open, to hand the call to
+# an installed WhatsApp (WAWebCallLinkDesktopAppDetect builds
+# "whatsapp://call/<voice|video>/<token>"; WAWebApiParse reads it back), and
+# so what WinZapp receives when it is registered for whatsapp: links
+# (core/whatsapp_link_association.py). Never matched inside a message.
+_APP_LINK = re.compile(r"whatsapp://call/(video|voice)/(\w+)/?(?:\?[^\s]*)?",
+                       re.IGNORECASE | re.ASCII)
 TOKEN_LENGTH = 22
+#: Longer than any real link by a wide margin; a bound for text that arrives
+#: from outside the process (command line, IPC).
+MAX_CALL_LINK_LENGTH = 512
 
 
 def parse_call_link(text) -> tuple:
     """(is_video, canonical https://call.whatsapp.com/... URL) when *text* is a
     call link and nothing else, else (None, "")."""
-    found = _LINK.fullmatch(str(text or "").strip())
+    text = str(text or "").strip()
+    if len(text) > MAX_CALL_LINK_LENGTH:
+        return None, ""
+    found = _LINK.fullmatch(text) or _APP_LINK.fullmatch(text)
     return _canonical(found) if found else (None, "")
 
 

@@ -30,6 +30,19 @@ def test_a_call_link_is_read_as_whatsapp_web_reads_it():
         assert cl.parse_call_link(wrong) == (None, "")
 
 
+def test_the_link_the_call_page_hands_to_windows_is_a_call_link():
+    # WAWebCallLinkDesktopAppDetect opens whatsapp://call/<voice|video>/<token>
+    assert cl.parse_call_link("whatsapp://call/voice/" + TOKEN) == (False, VOICE)
+    assert cl.parse_call_link("WhatsApp://call/VIDEO/" + TOKEN + "/?auto_join=1") == (True, VIDEO)
+    for wrong in ("whatsapp://call/voice/short", "whatsapp://call/audio/" + TOKEN,
+                  "whatsapp://chat/voice/" + TOKEN, "whatsapp://call/voice/" + TOKEN + "x",
+                  "whatsapp://call/voice/AbCdEfGhIjKlMnOpQrStÜv",
+                  "whatsapp://call/voice/" + TOKEN + "?" + "a" * 600):
+        assert cl.parse_call_link(wrong) == (None, "")
+    # only ever handed over by Windows, never taken from a message
+    assert cl.call_link_in_text("veja whatsapp://call/voice/" + TOKEN) == ""
+
+
 def test_a_message_carries_its_first_call_link():
     assert cl.call_link_in_text("Entra aí: " + VIDEO + " até já") == VIDEO
     assert cl.call_link_in_text("https://call.whatsapp.com/voice/short " + VOICE) == VOICE
