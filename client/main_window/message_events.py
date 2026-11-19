@@ -1503,10 +1503,16 @@ class MessageEventsMixin:
         stamps = getattr(self, "_pushname_stamps", None)
         if stamps is None:
             stamps = self._pushname_stamps = {}
+        now = time.time()
         try:
-            ts = float(msg.get("messageTimestamp") or msg.get("t") or 0) or time.time()
+            ts = float(msg.get("messageTimestamp") or msg.get("t") or 0) or now
         except (TypeError, ValueError):
-            ts = time.time()
+            ts = now
+        if ts > 1e11:           # milliseconds
+            ts /= 1000.0
+        ts = min(ts, now + 60)  # a wrong clock must not freeze the name
+        # A "live" message that sat queued while the app was closed is old news.
+        live = live and ts >= now - 600
         changed = apply_profile_name(
             self.contacts, ppm, stamps, targets, push, ts, authoritative=live,
             chats=getattr(self, "chats", None))

@@ -202,3 +202,35 @@ class TestNeedsSenderResolution:
         assert mw.needs_resolution("55555@lid") is True
         mw.learn(_group_msg("55555@lid", "Carlos"))
         assert mw.needs_resolution("55555@lid") is False
+
+
+class TestLearnSenderNameStamps:
+    LID = "9@lid"
+
+    def _msg(self, name, ts):
+        m = _group_msg(self.LID, name)
+        m["messageTimestamp"] = ts
+        return m
+
+    def test_live_rename_then_old_replay_keeps_new_name(self):
+        import time
+        stub = _Stub()
+        now = int(time.time())
+        assert stub.learn(self._msg("alex grupos", now), live=True)
+        assert not stub.learn(self._msg("alex", now - 5000))
+        assert stub._presence_pushname_map[self.LID] == "alex grupos"
+
+    def test_millisecond_timestamp_does_not_freeze_the_name(self):
+        import time
+        stub = _Stub()
+        now = int(time.time())
+        stub.learn(self._msg("alex", now * 1000), live=True)
+        assert stub.learn(self._msg("alex grupos", now + 5), live=True)
+        assert stub._presence_pushname_map[self.LID] == "alex grupos"
+
+    def test_stale_queued_live_message_does_not_replace_a_known_name(self):
+        import time
+        stub = _Stub()
+        stub._presence_pushname_map[self.LID] = "alex grupos"
+        assert not stub.learn(self._msg("alex", int(time.time()) - 86400), live=True)
+        assert stub._presence_pushname_map[self.LID] == "alex grupos"
