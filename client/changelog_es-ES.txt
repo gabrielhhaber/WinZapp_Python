@@ -4,7 +4,7 @@ Esta es una versión de mantenimiento de la estable. Solo corrige el envío de m
 
 CORRECCIONES
 
-- El envío de mensajes vuelve a funcionar. La biblioteca de WPPConnect que conecta WinZapp con WhatsApp se actualizó (WPPConnect 2.4.6 y WA-JS 4.8.2) para seguir el cambio de WhatsApp Web que lo impedía. Después de actualizar WinZapp, acepte cuando le pida actualizar WPPConnect.
+- El envío de mensajes vuelve a funcionar. La biblioteca de WPPConnect que conecta WinZapp con WhatsApp se actualizó (WPPConnect 2.4.6 y WA-JS 4.8.2) para seguir el cambio de WhatsApp Web que lo impedía. Después de actualizar WinZapp, acepta cuando te pida actualizar WPPConnect.
 
 V2.1.0.0
 
