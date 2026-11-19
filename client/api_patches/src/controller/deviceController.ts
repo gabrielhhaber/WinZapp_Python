@@ -33,6 +33,7 @@ import {
   SyncMessageListSchema,
 } from '../dto/sync';
 import { contactToArray, unlinkAsync } from '../util/functions';
+import { repairMissingStamps } from '../util/messageStampRepair';
 import { readMyProfile } from '../util/profileRuntime';
 import { buildForwardRuntimeExpression } from '../util/forwardRuntime';
 import {
@@ -2947,7 +2948,12 @@ export async function getMessages(req: Request, res: Response) {
         async ({ chatId, targetCount }) => {
           const keyOf = (m: any) =>
             (m && m.id && (m.id._serialized || m.id)) || null;
-          const stampOf = (m: any) => Number(m?.t ?? m?.timestamp ?? 0) || 0;
+          // A quote stand-in has no t but still its receive time: without it
+          // the sort put it first and the slice could drop it.
+          const stampOf = (m: any) =>
+            Number(m?.t ?? m?.timestamp ?? 0) ||
+            Math.floor(Number(m?.clientReceivedTsMillis ?? 0) / 1000) ||
+            0;
 
           const fetchBatch = async (anchor: string | null) =>
             (window as any).WAPI.getMessages(chatId, {
@@ -3022,6 +3028,8 @@ export async function getMessages(req: Request, res: Response) {
         { chatId: phone, targetCount }
       );
     }
+    // A quote stand-in comes back without a time (util/messageStampRepair.ts).
+    response = await repairMissingStamps(req.client, response, req.logger);
     res.status(200).json({
       status: 'success',
       response: observePayload(SyncMessageListSchema, response, {

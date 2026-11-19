@@ -39,6 +39,7 @@ from core import channel_invites
 from core import events
 from core.sync_contracts import observe_payload
 from core.vcard_payload import contact_message_payload
+from core.wpp_message_time import GUESSED_TIMESTAMP, wpp_message_seconds
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
 from core.utils import looks_like_binary_blob, looks_like_jid, _slim_quoted_message, parse_bool_flag as _parse_bool_flag
 
@@ -2913,9 +2914,12 @@ class WebSocketClient:
                 remote_jid = self._clean_jid(to_jid if from_me else from_jid)
             status_participant = ""
 
-        ts = wpp_msg.get("timestamp") or wpp_msg.get("t", int(time.time()))
-        if ts > 1_000_000_000_000:
-            ts //= 1000
+        # A quote stand-in has no t (core/wpp_message_time.py): "now" is only
+        # the last resort, flagged so a sync keeps the time already stored.
+        ts = wpp_message_seconds(wpp_msg)
+        timestamp_guessed = ts is None
+        if timestamp_guessed:
+            ts = int(time.time())
 
         msg_type = wpp_msg.get("type", "chat")
         # Older Neonize builds stored these proto messages as "unknown" while
@@ -3343,6 +3347,8 @@ class WebSocketClient:
         # through on_new_message(), appending yesterday's rows as new arrivals.
         if "isMdHistoryMsg" in wpp_msg:
             normalized["isMdHistoryMsg"] = wpp_msg["isMdHistoryMsg"]
+        if timestamp_guessed:
+            normalized[GUESSED_TIMESTAMP] = True
 
         # WhatsApp Web's own record that the message was edited — without it the
         # "Editada" marker only ever existed locally and every sync erased it
