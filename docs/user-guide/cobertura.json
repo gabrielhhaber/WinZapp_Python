@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "c4a8e804bb2e": "Inicialização: o suporte de voz agora usa seu próprio cache COM temporário, evit",
     "dd103f9806c5": "Os botões de uma mensagem de empresa agora aparecem também quando a conversa abr",
     "e43b78ac9626": "Na lista de provedores de IA online e nas opções de uma nova enquete, Alt+Seta p",
     "4acd378f56da": "Ao criar uma enquete, a caixa Ocultar nomes de quem votou e a escolha Limite de ",

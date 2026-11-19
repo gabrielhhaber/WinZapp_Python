@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Pornire: suportul vocal folosește acum propriul cache COM temporar, evitând erorile de import circular când cache-ul partajat Windows își pierde indexul.
+
 - Butoanele unui mesaj de la o companie apar acum și atunci când conversația se deschide cu mesajul deja în focus, de exemplu într-o conversație cu un singur mesaj, nu doar după mutarea focusului pe el. Funcționează cu Neonize și WPPConnect.
 
 - În lista furnizorilor de IA online și în opțiunile unui sondaj nou, Alt+Săgeată sus și Alt+Săgeată jos mută elementul selectat, iar butoanele Mutați în sus și Mutați în jos anunță aceste taste. Tastele apar în lista de la F1 și pot fi schimbate în Setări > Comenzi rapide.

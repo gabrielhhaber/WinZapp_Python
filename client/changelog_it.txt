@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Avvio: il supporto vocale ora usa una propria cache COM temporanea, evitando errori di importazione circolare quando la cache condivisa di Windows perde il suo indice.
+
 - I pulsanti di un messaggio aziendale ora compaiono anche quando la conversazione si apre con il messaggio già evidenziato, per esempio in una conversazione con un solo messaggio, e non solo dopo aver spostato il focus su di esso. Funziona con Neonize e WPPConnect.
 
 - Nell'elenco dei provider di IA online e nelle opzioni di un nuovo sondaggio, Alt+Freccia su e Alt+Freccia giù spostano l'elemento selezionato, e i pulsanti Sposta in alto e Sposta in basso annunciano quei tasti. I tasti compaiono nell'elenco di F1 e si possono cambiare in Impostazioni > Scorciatoie da tastiera.
