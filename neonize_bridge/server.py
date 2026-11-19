@@ -912,7 +912,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 except Exception:
                     log.exception("archived chat with a new message")
                 if e.Info.Pushname and not o.IsFromMe:
-                    self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
+                    contact_events.store_nickname(c, self, o.Sender, e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):

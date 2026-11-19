@@ -263,3 +263,29 @@ def register_events(cli, s):
             _in_background(_announce_photo_safely, c, s, e.JID)
         except Exception:
             log.exception("photo changed")
+
+
+def other_form(c, jid) -> str:
+    """The same person's other address ('' when whatsmeow does not know it):
+    the number of a `@lid`, the `@lid` of a number."""
+    try:
+        if getattr(jid, "Server", "") == "lid":
+            return _text(c.get_pn_from_lid(jid))
+        lookup = getattr(c, "get_lid_from_pn", None)
+        return _text(lookup(jid)) if lookup else ""
+    except Exception:
+        return ""
+
+
+def store_nickname(c, s, jid, name) -> None:
+    """Stores the nickname a message carried under BOTH addresses of its sender.
+    Under one only, the other kept the previous nickname, and the contact list
+    (one row per address) brought both back at the next start: the person's old
+    and new names alternated in the client."""
+    name = clean_name(name)
+    if not name or not is_person(jid):
+        return
+    s.db.contact(_text(jid), pushname=name)
+    other = other_form(c, jid)
+    if other:
+        s.db.contact(other, pushname=name)

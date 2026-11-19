@@ -273,3 +273,27 @@ def test_winzapp_build_events_carry_the_fields_the_handlers_read():
     assert {"Name", "Version", "Recovery"} <= fields(events.AppStateSyncCompleteEv)
     assert {events.EVENT_TO_INT[e] for e in (events.ContactUpdateEv, events.PushNameUpdateEv,
                                              events.AppStateSyncCompleteEv)} == {54, 55, 56}
+
+
+def test_store_nickname_files_it_under_both_addresses():
+    stored = {}
+
+    class Db:
+        def contact(self, jid_text, pushname=None):
+            stored[jid_text] = pushname
+
+    class Client:
+        def get_pn_from_lid(self, j):
+            return jid("5511")
+
+    s = N(db=Db())
+    ce.store_nickname(Client(), s, jid("99", "lid"), " Ana grupos ")
+    assert stored == {"99@lid": "Ana grupos", "5511@s.whatsapp.net": "Ana grupos"}
+
+
+def test_store_nickname_ignores_a_group_or_an_empty_name():
+    stored = {}
+    s = N(db=N(contact=lambda *a, **k: stored.update(x=1)))
+    ce.store_nickname(N(), s, jid("120", "g.us"), "Ana")
+    ce.store_nickname(N(), s, jid("5511"), " ")
+    assert stored == {}
