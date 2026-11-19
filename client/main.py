@@ -46,7 +46,7 @@ import ctypes
 import ctypes.wintypes
 import uuid
 from urllib.parse import quote as _url_quote
-from accessible_output2 import outputs
+from core.speech_backend import outputs
 from core.accessible_speech import AccessibleSpeechOutput
 from core.sound_system import (
     SoundSystem, Sound, load_sound, SOUND_EVENTS,

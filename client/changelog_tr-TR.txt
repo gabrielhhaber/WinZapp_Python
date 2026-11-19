@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Başlangıç: konuşma desteği artık kendi geçici COM önbelleğini kullanır; böylece paylaşılan Windows önbelleği dizinini kaybettiğinde döngüsel içe aktarma hataları önlenir.
+
 - Bir işletme mesajının düğmeleri artık sohbet mesaj zaten odaktayken açıldığında da görünür, örneğin tek mesajlı bir sohbette; yalnızca odak mesaja taşındıktan sonra değil. Neonize ve WPPConnect ile çalışır.
 
 - Çevrimiçi yapay zekâ sağlayıcıları listesinde ve yeni bir anketin seçeneklerinde Alt+Yukarı Ok ve Alt+Aşağı Ok seçili öğeyi taşır; Yukarı taşı ve Aşağı taşı düğmeleri bu tuşları duyurur. Tuşlar F1 listesinde görünür ve Ayarlar > Kısayollar içinde değiştirilebilir.
