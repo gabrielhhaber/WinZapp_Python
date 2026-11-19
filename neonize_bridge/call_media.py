@@ -1036,7 +1036,9 @@ class CallMedia(CallIngressMixin):
                                    "video": bool(video), "connected": True, "group": "",
                                    "link": True}
         self._note_answered(joined)
-        self._set_state(joined, "ACTIVE")
+        # someone waiting for an admin is not in the call yet: meowcaller's
+        # phase 4 brings ACTIVE (and the start of its duration) on admission
+        self._set_state(joined, "CONNECTING" if answer.get("waiting") else "ACTIVE")
         self._ensure_audio(joined)
         return joined, answer
 
@@ -1067,7 +1069,8 @@ class CallMedia(CallIngressMixin):
         return False
 
     def answered_here(self, call_id):
-        """{"at", "video"} of a call this client answered, or None."""
+        """{"at", "video", "link"} of a call this client answered, or None
+        ("link": joined through a call link, which no chat records)."""
         with self._lock:
             found = self._answered.get(call_id)
             return dict(found) if found else None
@@ -1088,7 +1091,8 @@ class CallMedia(CallIngressMixin):
     def _note_answered(self, call_id):
         with self._lock:
             call = self._calls.get(call_id) or {}
-            self._answered[call_id] = {"at": time.time(), "video": bool(call.get("video"))}
+            self._answered[call_id] = {"at": time.time(), "video": bool(call.get("video")),
+                                       "link": bool(call.get("link"))}
             while len(self._answered) > ANSWERED_KEPT:
                 self._answered.pop(next(iter(self._answered)))
 

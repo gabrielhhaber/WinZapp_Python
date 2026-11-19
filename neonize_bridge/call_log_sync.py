@@ -43,7 +43,10 @@ def own_user(lid) -> str:
 def record_fields(info, outcome, duration, creator):
     """The CallLogRecord fields of a call that ended here (call_media's
     finished_info, calls.finished_outcome's outcome and duration), or None when
-    the phone gets no record: a call received here, a group call, no own LID."""
+    the phone gets no record: a call received here, a group call, no own LID.
+    A one-to-one call that grew into a group call here still goes as the
+    one-to-one call it was placed as (with whom it was placed): the phone then
+    lists it under that person instead of not at all."""
     if not info.get("outgoing") or info.get("group") or not info.get("id") or not creator:
         return None
     result = RESULTS.get(outcome)

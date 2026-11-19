@@ -464,7 +464,23 @@ def test_joining_a_call_link_makes_a_live_group_call_with_no_chat():
     assert states(sent)[-1] == "ACTIVE" and m.live_call() == "L1"
     event = [e for e in sent if e[0] == "callstate"][-1][1]["data"]
     assert event["isCallLink"] is True and event["isGroup"] is True and event["peerJid"] == ""
-    assert m.answered_here("L1") is not None
+    assert m.answered_here("L1")["link"] is True
+
+
+class WaitingLinkCalls(LinkCalls):
+    """A call link whose admin has to let this account in."""
+
+    def join_link(self, link, video=False):
+        super().join_link(link, video)
+        return {"call": "L1", "waiting": True, "admin": False}
+
+
+def test_waiting_for_the_admin_is_not_active_until_the_call_admits_us():
+    m, sent = media(WaitingLinkCalls(remote=[None]))
+    m.join_link("https://call.whatsapp.com/voice/T", False)
+    assert states(sent)[-1] == "CONNECTING" and "active_at" not in m._calls["L1"]
+    m.handle({"ev": "state", "call": "L1", "phase": 4})        # admitted
+    assert states(sent)[-1] == "ACTIVE" and m._calls["L1"]["active_at"] > 0
 
 
 def test_a_group_call_placed_here_can_be_found_again():

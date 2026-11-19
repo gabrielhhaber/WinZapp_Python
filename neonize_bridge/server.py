@@ -3285,7 +3285,7 @@ def create_app(folder, fixed=""):
             "videoCalls": calls_ready and can["video"],
             "groupCalls": calls_ready and can["groupCalls"],
             # `callLinks`: creates call links and joins them (call_links.py)
-            "callLinks": calls_ready and media.call_links_available(),
+            "callLinks": calls_ready and can["callLinks"],
             "channelMedia": channel, "channelPolls": channel})
 
     async def media_of_socket(sid):

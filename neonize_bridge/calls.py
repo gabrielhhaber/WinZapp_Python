@@ -388,6 +388,8 @@ def record_end(s, e, data, was_ringing, now, answered=None):
     from the event. False if nothing was recorded."""
     if data.get("outgoing"):
         return False                    # the client records the calls it placed
+    if answered and answered.get("link"):
+        return False                    # a call link's call has no chat (call_links.py)
     here = answered_outcome(data, answered)
     if here is not None:
         outcome, duration, video = here
@@ -569,8 +571,10 @@ def diagnostics(media, connected, ringing) -> dict:
 
 def capabilities(media) -> dict:
     """What this session's calls can do (send-capabilities, diagnostics)."""
+    links = getattr(media, "call_links_available", None)
     return {"video": media is not None and getattr(media, "video", None) is not None,
-            "groupCalls": media is not None and bool(getattr(media, "group_calls", False))}
+            "groupCalls": media is not None and bool(getattr(media, "group_calls", False)),
+            "callLinks": callable(links) and bool(links())}
 
 
 def register_routes(r, *, session, ok):

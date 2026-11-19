@@ -192,8 +192,8 @@ def test_the_routes_with_video_and_groups():
     m.handle({"ev": "accepted", "call": "OUT1"})
     (status, body), = run(s, [("/call/upgrade-video", {"callId": "OUT1"})])
     assert status == 200 and body["response"]["call"]["isVideo"] is True
-    assert calls.capabilities(m) == {"video": True, "groupCalls": True}
-    assert calls.capabilities(None) == {"video": False, "groupCalls": False}
+    assert calls.capabilities(m) == {"video": True, "groupCalls": True, "callLinks": False}
+    assert calls.capabilities(None) == {"video": False, "groupCalls": False, "callLinks": False}
 
 
 def test_the_real_video_bindings_answer_without_a_connected_client():

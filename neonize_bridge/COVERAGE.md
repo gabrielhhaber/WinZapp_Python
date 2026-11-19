@@ -81,7 +81,7 @@ Checked against the callbacks and models of a live wa-js 4.7.2 (rechecked on 4.8
 - `send-poll-message` with `options.hideVoterNames` and/or
   `options.durationSeconds` (seconds; turned into WhatsApp's absolute `endTime`
   in milliseconds when sent) sends the poll as `pollCreationMessageV6`
-  (`poll_settings.py`); whatsmeow patch 0016 makes any poll wrapper go as
+  (`poll_settings.py`); whatsmeow patch 0017 makes any poll wrapper go as
   `type="poll"` with `<meta polltype="creation"/>`, which needs the rebuilt DLL.
   Received polls report `pollHideVoterNames` and `pollEndTime`.
 - `onreactionmessage`: a top-level payload with separate MsgKeys for `id` and

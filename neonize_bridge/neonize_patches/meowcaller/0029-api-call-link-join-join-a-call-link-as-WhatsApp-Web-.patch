@@ -29,18 +29,18 @@ the end, waiting-room heartbeat while waiting); go test ./... green. Not yet
 validated on a live call.
 ---
  CHANGELOG.md                      |  18 ++++
- datasheets/voip-call-link-join.md |  90 ++++++++++++++++++++
+ datasheets/voip-call-link-join.md |  90 +++++++++++++++++
  engine.go                         |  11 ++-
- engine_call_link.go               |  63 ++++++++++++++
- engine_call_link_test.go          | 137 ++++++++++++++++++++++++++++++
+ engine_call_link.go               |  63 ++++++++++++
+ engine_call_link_test.go          | 154 ++++++++++++++++++++++++++++++
  engine_group_api.go               |  23 +++--
  engine_group_control.go           |   3 +-
- group_control_types.go            |  13 +--
+ group_control_types.go            |  13 ++-
  livecall.go                       |  11 ++-
  signaling/call_link.go            |  23 ++++-
- signaling/call_link_test.go       |  78 +++++++++++++++++
- signaling/group.go                |  15 ++--
- 12 files changed, 458 insertions(+), 27 deletions(-)
+ signaling/call_link_test.go       |  78 +++++++++++++++
+ signaling/group.go                |  15 ++-
+ 12 files changed, 475 insertions(+), 27 deletions(-)
  create mode 100644 datasheets/voip-call-link-join.md
  create mode 100644 engine_call_link.go
  create mode 100644 engine_call_link_test.go
@@ -270,10 +270,10 @@ index 0000000..28a68e4
 +}
 diff --git a/engine_call_link_test.go b/engine_call_link_test.go
 new file mode 100644
-index 0000000..b6a599b
+index 0000000..792ac74
 --- /dev/null
 +++ b/engine_call_link_test.go
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,154 @@
 +package meowcaller
 +
 +import (
@@ -374,9 +374,8 @@ index 0000000..b6a599b
 +	if !ok || len(state.Participants) != 2 || state.Participants[1].PushName != "Guest" {
 +		t.Fatalf("public roster %+v", state)
 +	}
-+	time.Sleep(90 * time.Millisecond)
-+	tags := sent.tags()
-+	if len(tags) < 2 || tags[0] != "link_join:" {
++	tags := waitForTags(t, sent, 2)
++	if tags[0] != "link_join:" {
 +		t.Fatalf("sent %v", tags)
 +	}
 +	for _, tag := range tags[1:] {
@@ -388,10 +387,29 @@ index 0000000..b6a599b
 +		t.Fatal("a call already held is not joined again")
 +	}
 +	eng.finishCall("LCID", "test")
++	// a heartbeat already on its way when the call ended may still land
++	time.Sleep(callLinkHeartbeatInterval)
 +	count := len(sent.tags())
-+	time.Sleep(70 * time.Millisecond)
++	time.Sleep(4 * callLinkHeartbeatInterval)
 +	if len(sent.tags()) != count {
 +		t.Fatal("the heartbeat stops when the call ends")
++	}
++}
++
++// waitForTags waits (up to a generous deadline, so a loaded machine does not
++// fail the test) until at least n stanzas went out, and returns their tags.
++func waitForTags(t *testing.T, sent *linkTestSent, n int) []string {
++	t.Helper()
++	deadline := time.Now().Add(5 * time.Second)
++	for {
++		tags := sent.tags()
++		if len(tags) >= n {
++			return tags
++		}
++		if time.Now().After(deadline) {
++			t.Fatalf("only %v went out", tags)
++		}
++		time.Sleep(5 * time.Millisecond)
 +	}
 +}
 +
@@ -404,9 +422,8 @@ index 0000000..b6a599b
 +	if err != nil || call == nil || call.State() != CallPhaseWaitingRoom {
 +		t.Fatalf("join: %v %v", err, call)
 +	}
-+	time.Sleep(60 * time.Millisecond)
-+	tags := sent.tags()
-+	if len(tags) < 2 || tags[1] != "heartbeat:waiting_room" {
++	tags := waitForTags(t, sent, 2)
++	if tags[1] != "heartbeat:waiting_room" {
 +		t.Fatalf("sent %v", tags)
 +	}
 +	eng.finishCall("LCID", "test")

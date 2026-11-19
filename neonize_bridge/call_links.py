@@ -123,7 +123,7 @@ def register_routes(r, *, session, ok):
         return ok(status="success", response={
             "id": joined, "isVideo": video, "isCallLink": True, "peerJid": "",
             "waiting": bool(answer.get("waiting")), "admin": bool(answer.get("admin")),
-            "state": "CONNECTING", "outgoing": False})
+            "state": "CONNECTING" if answer.get("waiting") else "ACTIVE", "outgoing": False})
 
     async def waiting_room(req):
         s = session(req)
@@ -159,7 +159,9 @@ def register_routes(r, *, session, ok):
             return refused
         body = await body_of(req)
         call_id, user = call_id_of(body), str(body.get("jid") or "")
-        if not call_id or not user.endswith(("@lid", "@s.whatsapp.net", "@c.us")):
+        if user.endswith("@c.us"):          # meowcaller takes a user by its server name
+            user = user[:-len("@c.us")] + "@s.whatsapp.net"
+        if not call_id or not user.endswith(("@lid", "@s.whatsapp.net")):
             return error("Parameters callId and jid are required!", 400)
         allow = body.get("admit") is not False
         try:

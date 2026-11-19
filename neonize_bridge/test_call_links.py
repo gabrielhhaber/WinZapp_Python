@@ -56,6 +56,24 @@ def test_a_link_call_is_a_group_call_with_no_chat_and_no_record():
     assert calls.record_finished(N(), info, 9) is False
 
 
+def test_the_end_of_a_link_call_files_no_record_in_its_creators_chat(monkeypatch):
+    stored = []
+    monkeypatch.setattr(calls, "call_chat", lambda db, meta, group: "5511@s.whatsapp.net")
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append(w) or True)
+    s = N(me="5599@s.whatsapp.net", lid="", db=None)
+    # a <terminate> for a joined link call names the link's creator as its peer
+    end = {"id": "L1", "peerJid": "5511@c.us", "groupJid": "", "state": "ENDED",
+           "isVideo": False, "observedAt": 1000, "timestamp": 1000}
+    assert calls.record_end(s, N(basicCallMeta=None), end, False, 1000,
+                            {"at": 640.0, "video": False, "link": True}) is False
+    assert stored == []
+    # the same end of an ordinary call answered here is recorded
+    assert calls.record_end(s, N(basicCallMeta=None), end, False, 1000,
+                            {"at": 640.0, "video": False, "link": False})
+    assert stored[0]["callOutcome"] == "Completed"
+
+
 class Media:
     def __init__(self, live=""):
         self.live, self.created, self.joined, self.decided = live, [], [], []
@@ -75,7 +93,8 @@ class Media:
 
     def join_link(self, link, video=False):
         self.joined.append((link, video))
-        return "L1", {"call": "L1", "waiting": False, "admin": True}
+        waits = getattr(self, "waits", False)
+        return "L1", {"call": "L1", "waiting": waits, "admin": not waits}
 
     def waiting_room(self, call_id):
         return self.room if call_id == "L1" else None
@@ -120,11 +139,14 @@ def test_joining_takes_the_kind_from_the_link_and_refuses_a_second_call():
     assert bad == 400
     assert status == 200 and media.joined == [(VOICE, False)]
     assert body["response"] == {"id": "L1", "isVideo": False, "isCallLink": True, "peerJid": "",
-                                "waiting": False, "admin": True, "state": "CONNECTING",
+                                "waiting": False, "admin": True, "state": "ACTIVE",
                                 "outgoing": False}
+    media.waits = True                      # an admin has to let this account in
+    (_, waiting), = post(s, ("call/link/join", {"link": VOICE}))
+    assert waiting["response"]["waiting"] is True and waiting["response"]["state"] == "CONNECTING"
     media.live = "OTHER"
     (busy, _), = post(s, ("call/link/join", {"link": VOICE}))
-    assert busy == 409 and len(media.joined) == 1
+    assert busy == 409 and len(media.joined) == 2
 
 
 def test_the_admin_sees_who_waits_and_lets_them_in():
@@ -135,12 +157,16 @@ def test_the_admin_sees_who_waits_and_lets_them_in():
         ("call/link/admit", {"callId": "L1", "jid": "1@lid"}),
         ("call/link/admit", {"callId": "L1", "jid": "1@lid", "admit": False}),
         ("call/link/admit", {"callId": "L1", "jid": "1203@g.us"}))
+    (by_number, _), = post(s, ("call/link/admit", {"callId": "L1", "jid": "5511@c.us"}))
     assert status == 200 and room["response"] == {
         "id": "L1", "admin": True, "enabled": True, "waiting": False,
         "people": [{"jid": "1@lid", "name": "Pedro", "guest": True}]}
     assert over == 404
     assert (admitted, denied, bad) == (200, 200, 400)
-    assert media.decided == [("L1", "1@lid", True), ("L1", "1@lid", False)]
+    # meowcaller takes a person by number only under @s.whatsapp.net
+    assert by_number == 200
+    assert media.decided == [("L1", "1@lid", True), ("L1", "1@lid", False),
+                             ("L1", "5511@s.whatsapp.net", True)]
 
 
 def test_without_the_build_the_routes_say_501():
