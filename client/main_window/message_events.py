@@ -12,6 +12,7 @@ import wx
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
 from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
+from core.profile_names import apply_profile_name
 from core.phone_variants import brazilian_variant_chat_jid
 from core.message_stars import apply_remote_star, merge_star_state
 from core.conversation_view import (
@@ -734,7 +735,7 @@ class MessageEventsMixin:
         remote_jid, from_me = self._redirect_self_chat_artifact(remote_jid, key, from_me)
 
         # Learn/update presence pushName map from incoming message
-        if not from_me and self._learn_sender_name(msg):
+        if not from_me and self._learn_sender_name(msg, live=True):
             self._schedule_save(contacts_dirty=True)
 
         # Extract mapping and mentions from incoming messages
@@ -1452,7 +1453,7 @@ class MessageEventsMixin:
             )
         self.notification_manager.send(title, body, remote_jid, msg_key=msg.get("key"))
 
-    def _learn_sender_name(self, msg: dict) -> bool:
+    def _learn_sender_name(self, msg: dict, live: bool = False) -> bool:
         """Remember the pushName a message carries for its sender JID.
 
         In a group, ``key.participant`` is very often a bare ``@lid`` that maps
@@ -1466,6 +1467,10 @@ class MessageEventsMixin:
         that name available to every later lookup (chat-list previews,
         notifications, the message list), including for messages of types that
         arrive with no pushName of their own.
+
+        A name is filed for every address of the person at once, and never over
+        a newer one (core/profile_names.py): only a *live* message may replace a
+        name already known, a replayed history message only fills a gap.
 
         Returns True when something new was learned, so callers can persist.
         """
@@ -1484,22 +1489,33 @@ class MessageEventsMixin:
             return False
 
         ppm = self._presence_pushname_map
-        changed = False
         targets = [sender_jid]
-        # Index both JID forms when the bridge is known, so a lookup by either
+        # Index every JID form when the bridge is known, so a lookup by any
         # one finds the name.
         if sender_jid.endswith("@lid"):
             phone = getattr(self, "_lid_to_phone", {}).get(sender_jid, "")
             if phone:
-                targets.append(phone)
+                targets += [phone, phone.rsplit("@", 1)[0] + "@c.us"]
         else:
             lid = getattr(self, "_phone_to_lid", {}).get(sender_jid, "")
             if lid:
                 targets.append(lid)
-        for target in targets:
-            if ppm.get(target) != push:
-                ppm[target] = push
-                changed = True
+        stamps = getattr(self, "_pushname_stamps", None)
+        if stamps is None:
+            stamps = self._pushname_stamps = {}
+        now = time.time()
+        try:
+            ts = float(msg.get("messageTimestamp") or msg.get("t") or 0) or now
+        except (TypeError, ValueError):
+            ts = now
+        if ts > 1e11:           # milliseconds
+            ts /= 1000.0
+        ts = min(ts, now + 60)  # a wrong clock must not freeze the name
+        # A "live" message that sat queued while the app was closed is old news.
+        live = live and ts >= now - 600
+        changed = apply_profile_name(
+            self.contacts, ppm, stamps, targets, push, ts, authoritative=live,
+            chats=getattr(self, "chats", None))
         if changed:
             unresolvable = getattr(self, "_unresolvable_names", None)
             for target in targets:

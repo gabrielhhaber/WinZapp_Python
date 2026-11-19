@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- O nome de um contacto passa a ser único: quando alguém muda o nome do perfil, todas as mensagens dessa pessoa, incluindo as antigas e as de grupos, mostram o nome novo em vez de alternar entre o antigo e o novo. Aplica-se ao Neonize e ao WPPConnect.
+
 - Arranque: o suporte de voz passa a usar o seu próprio cache COM temporário, evitando erros de importação circular quando o cache partilhado do Windows perde o índice.
 
 - Os botões de uma mensagem de empresa passam a aparecer também quando a conversa abre com a mensagem já focada, como numa conversa com uma única mensagem, e não só depois de mover o foco para ela. Vale para Neonize e para WPPConnect.

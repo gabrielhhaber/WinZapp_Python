@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- A contact now has a single name: when someone changes their profile name, all their messages, old ones and group ones included, show the new name instead of switching between the old and the new. Applies to Neonize and WPPConnect.
+
 - Startup: speech support now uses its own temporary COM cache, preventing circular-import errors when the shared Windows cache has lost its index.
 
 - The buttons of a business message now also show when the conversation opens with the message already focused, such as a conversation with a single message, not only after moving focus to it. This works with Neonize and WPPConnect.

@@ -113,7 +113,11 @@ class TestLearnSenderName:
 
     def test_reports_change_when_pushname_was_updated(self):
         mw = _Stub(_presence_pushname_map={"55555@lid": "Carlos"})
-        assert mw.learn(_group_msg("55555@lid", "Carlos Silva")) is True
+        # a replayed (non-live) message only fills a gap: it never renames
+        assert mw.learn(_group_msg("55555@lid", "Carlos Silva")) is False
+        fresh = _group_msg("55555@lid", "Carlos Silva")
+        fresh["messageTimestamp"] = int(__import__("time").time())
+        assert mw.learn(fresh, live=True) is True
         assert mw._presence_pushname_map["55555@lid"] == "Carlos Silva"
 
     def test_learns_from_a_private_chat_sender(self):
@@ -202,3 +206,35 @@ class TestNeedsSenderResolution:
         assert mw.needs_resolution("55555@lid") is True
         mw.learn(_group_msg("55555@lid", "Carlos"))
         assert mw.needs_resolution("55555@lid") is False
+
+
+class TestLearnSenderNameStamps:
+    LID = "9@lid"
+
+    def _msg(self, name, ts):
+        m = _group_msg(self.LID, name)
+        m["messageTimestamp"] = ts
+        return m
+
+    def test_live_rename_then_old_replay_keeps_new_name(self):
+        import time
+        stub = _Stub()
+        now = int(time.time())
+        assert stub.learn(self._msg("alex grupos", now), live=True)
+        assert not stub.learn(self._msg("alex", now - 5000))
+        assert stub._presence_pushname_map[self.LID] == "alex grupos"
+
+    def test_millisecond_timestamp_does_not_freeze_the_name(self):
+        import time
+        stub = _Stub()
+        now = int(time.time())
+        stub.learn(self._msg("alex", now * 1000), live=True)
+        assert stub.learn(self._msg("alex grupos", now + 5), live=True)
+        assert stub._presence_pushname_map[self.LID] == "alex grupos"
+
+    def test_stale_queued_live_message_does_not_replace_a_known_name(self):
+        import time
+        stub = _Stub()
+        stub._presence_pushname_map[self.LID] = "alex grupos"
+        assert not stub.learn(self._msg("alex", int(time.time()) - 86400), live=True)
+        assert stub._presence_pushname_map[self.LID] == "alex grupos"

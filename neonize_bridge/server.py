@@ -912,7 +912,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 except Exception:
                     log.exception("archived chat with a new message")
                 if e.Info.Pushname and not o.IsFromMe:
-                    self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
+                    contact_events.store_nickname(c, self, o.Sender, e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):
@@ -1323,7 +1323,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         the routes waited on it, the client's socket missed its pings and the
         client took the bridge for disconnected."""
         self.db.contacts_in_batch([(x.ID, None, x.pushname) for x in data.pushnames
-                                   if x.ID and x.pushname])
+                                   if x.ID and x.pushname], keep_pushname=True)
         total = 0
         chats, rows = [], []
         # The phone's answer to an older-history request (older_history.py)

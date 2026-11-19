@@ -190,7 +190,7 @@ class _HistoricalStub:
     def _extract_lid_mapping(self, msg):
         pass
 
-    def _learn_sender_name(self, msg):
+    def _learn_sender_name(self, msg, live=False):
         return False
 
     def _apply_group_subject_change(self, remote_jid, chat, msg):
