@@ -167,6 +167,27 @@ def test_rename_keeps_the_other_fields_and_delete_keeps_the_color(tmp_path):
     assert (deleted.name, deleted.color, deleted.deleted) == ("Casa", 3, True)
 
 
+def test_deleting_a_list_unlabels_its_chats_in_the_same_patch(tmp_path):
+    """As WhatsApp Web's labelDeleteAction (captured over CDP, 2026-11-18):
+    the deletion and one labeled=false per chat of the list, one patch."""
+    s = seeded_session(tmp_path)
+    (status, ack), (_, read) = run(s, {"action": "remove", "id": "5"}, None)
+    assert (status, ack["response"]) == (200, {"action": "remove", "id": "5"})
+    (patch,) = s.client.patches
+    edit, unlabel = patch.Mutations
+    assert list(edit.Index) == ["label_edit", "5"] and edit.Value.labelEditAction.deleted
+    assert list(unlabel.Index) == ["label_jid", "5", "120363-1@g.us"]
+    assert unlabel.Version == 3
+    assert unlabel.Value.labelAssociationAction.labeled is False
+    assert read["response"]["lists"] == []
+
+
+def test_the_members_of_a_list_are_its_labeled_entries():
+    links = [("5", "1@g.us", True), ("5", "2@lid", False), ("6", "3@g.us", True),
+             ("5", "1@g.us", True)]
+    assert cl.members_of("5", links) == ["1@g.us"]
+
+
 def test_add_and_remove_chats(tmp_path):
     s = seeded_session(tmp_path)
     (status, ack), (_, read) = run(
