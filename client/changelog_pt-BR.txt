@@ -1,3 +1,11 @@
+V2.1.1.0
+
+Esta é uma versão de manutenção da estável. Ela só corrige o envio de mensagens, que parou de funcionar quando o WhatsApp Web mudou por dentro.
+
+CORREÇÕES
+
+- O envio de mensagens volta a funcionar. A biblioteca do WPPConnect que liga o WinZapp ao WhatsApp foi atualizada (WPPConnect 2.4.6 e WA-JS 4.8.2) para acompanhar a mudança do WhatsApp Web que o impedia. Depois de atualizar o WinZapp, aceite quando ele pedir para atualizar o WPPConnect.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.
