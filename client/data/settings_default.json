@@ -16,6 +16,8 @@
         "group_toast_order": "participant",
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": true,
+        "announce_edited_messages": false,
+        "notify_edited_messages": false,
         "discount_archived_from_unread_badge": true,
         "discount_muted_from_unread_badge": true,
         "notification_burst_limit": 3,

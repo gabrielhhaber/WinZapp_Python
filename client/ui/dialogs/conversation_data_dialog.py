@@ -50,6 +50,7 @@ from ui.conversation_panel.message_list import enter_transcribes
 from ui.conversation_panel.copy_target import copy_method_for_message
 from app_paths import data_path
 from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
+from ui.dialogs.conversation_edit_alerts import show_edit_alerts
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
 )
@@ -340,6 +341,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
 
         self._build_sound_picker(overview_page, ov_sizer)
         self._build_auto_ai_options(overview_page, ov_sizer)
+        self._add_edit_alerts_button(overview_page, ov_sizer)
 
         overview_page.SetSizer(ov_sizer)
         self._notebook.AddPage(overview_page, self._i18n.t("group_overview_tab"))
@@ -363,6 +365,13 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         )
         self._profile_picture_btn.Bind(wx.EVT_BUTTON, self._on_profile_picture)
         sizer.Add(self._profile_picture_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+    def _add_edit_alerts_button(self, page, sizer):
+        """"Edited messages": this conversation's sounds and announcements
+        for edits (ui/dialogs/conversation_edit_alerts.py)."""
+        button = wx.Button(page, label=self._i18n.t("edit_alerts_button"))
+        button.Bind(wx.EVT_BUTTON, lambda _e: show_edit_alerts(self, self._mw, self._jid, self._name))
+        sizer.Add(button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
     def _on_profile_picture(self, event):
         from ui.dialogs.profile_picture_dialog import show_profile_picture
@@ -603,6 +612,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         ov_sizer.Add(self._add_members_btn_overview, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self._build_sound_picker(overview_page, ov_sizer)
         self._build_auto_ai_options(overview_page, ov_sizer)
+        self._add_edit_alerts_button(overview_page, ov_sizer)
         overview_page.SetSizer(ov_sizer)
         self._notebook.AddPage(overview_page, self._i18n.t("group_overview_tab"))
 

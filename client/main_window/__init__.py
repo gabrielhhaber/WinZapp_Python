@@ -29,6 +29,7 @@ Where to look (and where new code goes):
     history             on-demand older history (fetch_older_messages)
     conversation_sync   sync_chat_messages, remote windows, deletion reconcile
     message_events      on_new_message / on_historical_message, edits, revokes
+    edit_alerts         sounds, speech and notifications of edited messages (#824)
     chat_events         acks, presence, unread counters, archive/pin events
     group_activity      group typing/recording sentence: chat-list preview and spoken announcement
     contact_presence    bounded open-contact refresh and connection invalidation

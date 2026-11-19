@@ -290,6 +290,7 @@ from main_window.call_participants import CallParticipantsMixin
 from main_window.call_links import CallLinksMixin
 from main_window.call_hotkeys import CallHotkeysMixin
 from main_window.default_audio_devices import DefaultAudioDevicesMixin
+from main_window.edit_alerts import EditAlertsMixin
 from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
 from main_window.wpp_server import WppServerMixin
@@ -363,6 +364,7 @@ class MainWindow(
     DefaultAudioDevicesMixin,
     IdentityMixin,
     MessageEventsMixin,
+    EditAlertsMixin,
     WppServerMixin,
     NeonizeBridgeMixin,
     ManualReconnectMixin,
@@ -2038,9 +2040,14 @@ if __name__ == "__main__":
                 "WinZapp", 0x40)
             sys.exit(0)
         elif _mode == "first_run":
-            _acc = _registry.add("default", state="pending")
-            _account_id = _acc["id"]
-            _resume_pending = True
+            # A portable copy may start on the installed copy's accounts
+            # instead of linking one more device (installed_account_copy.py).
+            from installed_account_copy import start_portable_on_installed_accounts
+            _account_id = None if background else start_portable_on_installed_accounts(
+                _registry, gd, _startup_i18n())
+            _resume_pending = _account_id is None
+            if _account_id is None:
+                _account_id = _registry.add("default", state="pending")["id"]
         elif _mode == "autostart_boot":
             # Boot launcher: open foreground here, spawn the rest in background.
             from account_launcher import build_launch_command

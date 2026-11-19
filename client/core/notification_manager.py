@@ -508,6 +508,8 @@ def format_locked_notification(unread_count: int, i18n, app_name="WinZapp") -> t
 
 # The SOUND_EVENTS key a reaction to one of your messages queues with.
 REACTION_SOUND_EVENT = "reaction_received"
+# ... and someone else's edit of a message (main_window/edit_alerts.py).
+EDIT_SOUND_EVENT = "message_edited_background"
 
 
 def reaction_silenced_now(main_window, remote_jid: str) -> bool:
@@ -1119,7 +1121,8 @@ class NotificationManager:
             return
 
         main_window = getattr(self, "main_window", None)
-        if sound_event == REACTION_SOUND_EVENT and reaction_silenced_now(main_window, remote_jid):
+        if (sound_event in (REACTION_SOUND_EVENT, EDIT_SOUND_EVENT)
+                and reaction_silenced_now(main_window, remote_jid)):
             # Preferences or the vault can change while the reaction is queued.
             return
         sound_args = (remote_jid,) if sound_event is None else (remote_jid, sound_event)
@@ -1150,7 +1153,7 @@ class NotificationManager:
             # banner for the screen reader to read, so announce it ourselves.
             # A reaction keeps its own sound here: speech alone would not
             # tell it apart from an ordinary message.
-            if sound_event == REACTION_SOUND_EVENT:
+            if sound_event in (REACTION_SOUND_EVENT, EDIT_SOUND_EVENT):
                 wx.CallAfter(self._play_sound, *sound_args)
             self._announce_unshown(title, body)
             return
@@ -1371,6 +1374,11 @@ class NotificationManager:
             return
         if sound_event == REACTION_SOUND_EVENT:
             self.main_window.reaction_received_sound.play()
+            return
+        if sound_event == EDIT_SOUND_EVENT:
+            play = getattr(self.main_window, "play_edited_background_sound", None)
+            if play is not None:
+                play(remote_jid)
             return
         if hasattr(self.main_window, "play_background_notification_sound"):
             self.main_window.play_background_notification_sound(remote_jid)

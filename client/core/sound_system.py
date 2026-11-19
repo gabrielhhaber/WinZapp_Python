@@ -595,9 +595,49 @@ SOUND_EVENTS: list[tuple[str, str]] = [
     ("call_incoming", "call_incoming.ogg"),
     ("call_ended", "call_ended.ogg"),
     ("message_sent", "message_sent.ogg"),
+    ("message_edit_saved", "message_sent.ogg"),
+    ("message_edited_foreground", "message_foreground.ogg"),
+    ("message_edited_background", "message_background.ogg"),
     ("audio_transition_next", "audio_transition_next.ogg"),
     ("audio_transition_end", "audio_transition_end.ogg"),
 ]
+
+# An event a pack may not define sounds like the event it was derived from:
+# the pack's file for that event, and the user's own file for it when the
+# derived event has none (issue #824: an edit you saved sounds like a message
+# sent; someone else's edit like a message received).
+SOUND_EVENT_FALLBACKS: dict[str, str] = {
+    "message_edit_saved": "message_sent",
+    "message_edited_foreground": "message_foreground",
+    "message_edited_background": "message_background",
+}
+
+# Events that stay silent until the user turns them on in Sound Events.
+SOUND_EVENTS_OFF_BY_DEFAULT = frozenset({
+    "message_edited_foreground",
+    "message_edited_background",
+})
+
+
+def sound_event_enabled(event_cfg, event_key: str) -> bool:
+    """Whether a Sound Events entry is on: the stored choice, else its default."""
+    stored = event_cfg.get("enabled") if isinstance(event_cfg, dict) else None
+    if isinstance(stored, bool):
+        return stored
+    return event_key not in SOUND_EVENTS_OFF_BY_DEFAULT
+
+
+def sound_event_override_path(events_cfg, event_key: str) -> str:
+    """The user's own file for an event, inherited from the event it derives
+    from (SOUND_EVENT_FALLBACKS) when it has none of its own."""
+    events_cfg = events_cfg if isinstance(events_cfg, dict) else {}
+    own = (events_cfg.get(event_key) or {}).get("path", "")
+    if own:
+        return own
+    parent = SOUND_EVENT_FALLBACKS.get(event_key)
+    if parent:
+        return (events_cfg.get(parent) or {}).get("path", "") or ""
+    return ""
 
 # ── Soundpacks ───────────────────────────────────────────────────────────────
 # A soundpack is a subfolder of client/sounds/ containing a *.pack.json
@@ -692,14 +732,19 @@ def resolve_sound_event_path(active_pack, default_pack, event_key: str, override
     """
     if override_path and os.path.isfile(override_path):
         return override_path
-    if active_pack:
-        p = _pack_relative_file(active_pack, active_pack.get("events", {}).get(event_key, ""))
-        if p and os.path.isfile(p):
-            return p
-    if default_pack and default_pack is not active_pack:
-        p = _pack_relative_file(default_pack, default_pack.get("events", {}).get(event_key, ""))
-        if p and os.path.isfile(p):
-            return p
+    # A derived event (SOUND_EVENT_FALLBACKS) the pack does not define takes
+    # the pack's file for its parent before the default pack is asked, so a
+    # third-party pack keeps its own voice for edits too.
+    keys = [event_key]
+    if SOUND_EVENT_FALLBACKS.get(event_key):
+        keys.append(SOUND_EVENT_FALLBACKS[event_key])
+    for pack in (active_pack, default_pack if default_pack is not active_pack else None):
+        if not pack:
+            continue
+        for key in keys:
+            p = _pack_relative_file(pack, pack.get("events", {}).get(key, ""))
+            if p and os.path.isfile(p):
+                return p
     return ""
 
 
@@ -860,7 +905,7 @@ class Sound(stream.FileStream):
         if self.event_key is not None and self.pack_id is not None:
             events = self.sound_system.main_window.settings.get("sound_events", {})
             pack_events = events.get(self.pack_id, {})
-            if not pack_events.get(self.event_key, {}).get("enabled", True):
+            if not sound_event_enabled(pack_events.get(self.event_key), self.event_key):
                 return
         try:
             # Route this effect channel to the pinned effects output device

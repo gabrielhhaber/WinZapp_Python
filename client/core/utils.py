@@ -1073,6 +1073,10 @@ DEFAULT_SETTINGS = {
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": True,
+        # Someone else's edit of a message: spoken with the window active,
+        # notified with it in the background (core/edit_alerts.py, #824).
+        "announce_edited_messages": False,
+        "notify_edited_messages": False,
         "discount_archived_from_unread_badge": True,
         "discount_muted_from_unread_badge": True,
         # Message notifications let through per second when many arrive at

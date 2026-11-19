@@ -23,6 +23,8 @@ from core.sound_system import (
     load_sound,
     resolve_alert_tone_path,
     resolve_sound_event_path,
+    sound_event_enabled,
+    sound_event_override_path,
 )
 from core.voice_stereo import migrate_stereo_voice_bitrate
 from core.utils import (
@@ -1490,8 +1492,7 @@ class SettingsMixin:
         pack_id = active_pack.get("id") if active_pack else DEFAULT_PACK_ID
         events_cfg = self.settings.get("sound_events", {}).get(pack_id, {})
         for key, _default_filename in SOUND_EVENTS:
-            cfg = events_cfg.get(key) or {}
-            override_path = cfg.get("path", "")
+            override_path = sound_event_override_path(events_cfg, key)
             if key == "typing":
                 self.typing_sound = load_typing_sound(
                     self.sound_system, active_pack, default_pack, override_path, pack_id)
@@ -1561,7 +1562,7 @@ class SettingsMixin:
         default_pack = self._default_sound_pack
         pack_id = active_pack.get("id") if active_pack else DEFAULT_PACK_ID
         cfg = self.settings.get("sound_events", {}).get(pack_id, {}).get("message_background", {})
-        if not cfg.get("enabled", True):
+        if not sound_event_enabled(cfg, "message_background"):
             return ""
         return resolve_sound_event_path(active_pack, default_pack, "message_background", cfg.get("path", ""))
 

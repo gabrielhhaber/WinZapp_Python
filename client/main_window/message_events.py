@@ -444,6 +444,8 @@ class MessageEventsMixin:
             logging.info("[edit] caption edit %s for %s in %s", caption_result,
                          ((existing.get("key") or {}).get("id") or "")[:22], remote_jid)
             self._persist_and_repaint_edit(existing, remote_jid)
+            if caption_result == "changed":
+                self._maybe_notify_edit(remote_jid, existing)
             return
 
         def _text_of(m):
@@ -497,6 +499,8 @@ class MessageEventsMixin:
         if hasattr(self, "conversations_panel"):
             wx.CallAfter(self.conversations_panel.refresh_active_conversation_messages)
         self._schedule_set_chats()
+        # Someone else's edit: its sound and announcement (main_window/edit_alerts.py).
+        self._maybe_notify_edit(remote_jid, existing)
 
     def _live_events_ready(self) -> bool:
         """True once it is safe to let a live WebSocket event mutate self.chats.
