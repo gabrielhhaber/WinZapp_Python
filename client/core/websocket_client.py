@@ -25,6 +25,7 @@ from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payl
 from core.business_buttons import business_buttons
 from core.channels import server_id_of
 from core.chat_contact_names import find_contact_key
+from core.profile_names import apply_profile_name
 from core.commerce import (
     ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE, order_payload,
     order_update_payload, product_payload,
@@ -1980,9 +1981,27 @@ class WebSocketClient:
                         except Exception:
                             pass
                     continue
-                if contact.get("pushName") and contact["pushName"] != existing.get("pushName"):
-                    existing["pushName"] = contact["pushName"]
-                    updated = True
+                if contact.get("pushName"):
+                    # Every address of the person at once, and `name` with it
+                    # unless an address book names them (core/profile_names.py).
+                    mw = self.main_window
+                    phone = jid if jid.endswith("@s.whatsapp.net") else getattr(mw, "_lid_to_phone", {}).get(jid, "")
+                    lid = jid if jid.endswith("@lid") else getattr(mw, "_phone_to_lid", {}).get(jid, "")
+                    aliases = [jid, phone, phone.rsplit("@", 1)[0] + "@c.us" if phone else "", lid]
+                    stamps = getattr(mw, "_pushname_stamps", None)
+                    if stamps is None:
+                        stamps = mw._pushname_stamps = {}
+                    if apply_profile_name(
+                            mw.contacts, getattr(mw, "_presence_pushname_map", {}), stamps,
+                            aliases, contact["pushName"], time.time(), authoritative=True,
+                            chats=getattr(mw, "chats", None)):
+                        updated = True
+                        for alias in aliases:
+                            if alias in mw.contacts and alias != jid and hasattr(mw, "db"):
+                                try:
+                                    mw.db.upsert_contact(alias, mw.contacts[alias])
+                                except Exception:
+                                    pass
                 if contact.get("profilePicUrl") and contact["profilePicUrl"] != existing.get("profilePicUrl"):
                     existing["profilePicUrl"] = contact["profilePicUrl"]
                     updated = True

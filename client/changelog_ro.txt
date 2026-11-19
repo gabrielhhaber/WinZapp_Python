@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Un contact are acum un singur nume: când cineva schimbă numele profilului, toate mesajele sale, inclusiv cele vechi și cele din grupuri, arată numele nou în loc să alterneze între cel vechi și cel nou. Se aplică pentru Neonize și WPPConnect.
+
 - Pornire: suportul vocal folosește acum propriul cache COM temporar, evitând erorile de import circular când cache-ul partajat Windows își pierde indexul.
 
 - Butoanele unui mesaj de la o companie apar acum și atunci când conversația se deschide cu mesajul deja în focus, de exemplu într-o conversație cu un singur mesaj, nu doar după mutarea focusului pe el. Funcționează cu Neonize și WPPConnect.

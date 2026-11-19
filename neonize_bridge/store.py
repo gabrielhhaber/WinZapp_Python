@@ -317,10 +317,13 @@ class Store:
             self._conn.execute("UPDATE contacts SET name=? WHERE jid=?", (name or "", jid))
             self._conn.commit()
 
-    def contacts_in_batch(self, rows):
+    def contacts_in_batch(self, rows, keep_pushname=False):
         """Rows (jid, name, pushname), in one transaction. Like `contact`, an empty
         field keeps what is stored; only what differs is written. Returns how many
-        saved names (`name`) are new or changed."""
+        saved names (`name`) are new or changed.
+
+        `keep_pushname`: a nickname already stored is not replaced (a history
+        block's names are a snapshot, older than what live messages stored)."""
         changed = 0
         with self._lock:
             for jid, name, pushname in rows:
@@ -335,7 +338,7 @@ class Store:
                 if name and name != r["name"]:
                     self._conn.execute("UPDATE contacts SET name=? WHERE jid=?", (name, jid))
                     changed += 1
-                if pushname and pushname != r["pushname"]:
+                if pushname and pushname != r["pushname"] and not (keep_pushname and r["pushname"]):
                     self._conn.execute("UPDATE contacts SET pushname=? WHERE jid=?",
                                        (pushname, jid))
             self._conn.commit()
