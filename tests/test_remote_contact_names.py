@@ -87,3 +87,18 @@ def test_real_contact_sync_keeps_nickname_separate_from_the_phonebook(monkeypatc
         assert result[PHONE]["name"] == "Nome local"
     else:
         assert not contact_is_saved(result[PHONE])
+
+
+def test_rows_of_one_person_that_disagree_do_not_flip_the_name_at_each_refresh():
+    from core.remote_contact_names import learn_remote_profiles
+    phone, lid = "5511@s.whatsapp.net", "9@lid"
+    contacts = {phone: {"name": "alex", "pushName": "alex grupos"},
+                lid: {"name": "alex", "pushName": "alex grupos"}}
+    rows = [{"remoteJid": phone, "pushname": "alex"},
+            {"remoteJid": lid, "pushname": "alex grupos"}]
+    for _ in range(3):
+        for ordered in (rows, rows[::-1]):
+            learn_remote_profiles(contacts, ordered, lambda j: j, lambda n: False,
+                                  {lid: phone}, {phone: lid})
+            assert contacts[phone]["pushName"] == contacts[lid]["pushName"] == "alex grupos"
+            assert contacts[phone]["name"] == contacts[lid]["name"] == "alex grupos"
