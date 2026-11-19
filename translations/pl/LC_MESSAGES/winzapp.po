@@ -19356,8 +19356,8 @@ msgstr "Połączenie głosowe"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_basic"
-msgid "B&asic (noise gate)"
-msgstr "Pod&stawowa (bramka szumów)"
+msgid "Basic (noise gate)"
+msgstr "Podstawowa (bramka szumów)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19368,8 +19368,8 @@ msgstr "Silnik redukcji szumów"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_neural"
-msgid "N&eural"
-msgstr "&Neuronowy"
+msgid "Neural"
+msgstr "Neuronowy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19380,14 +19380,14 @@ msgstr "Przetwarzanie notatek głosowych"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_record"
-msgid "While re&cording"
-msgstr "Podczas nagrywan&ia"
+msgid "While recording"
+msgstr "Podczas nagrywania"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_send"
-msgid "&When sending"
-msgstr "Podczas &wysyłania"
+msgid "When sending"
+msgstr "Podczas wysyłania"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

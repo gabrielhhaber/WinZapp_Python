@@ -18988,8 +18988,8 @@ msgstr "Sesli arama"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_basic"
-msgid "B&asic (noise gate)"
-msgstr "&Temel (gürültü kapısı)"
+msgid "Basic (noise gate)"
+msgstr "Temel (gürültü kapısı)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19000,8 +19000,8 @@ msgstr "Gürültü azaltma motoru"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_neural"
-msgid "N&eural"
-msgstr "&Sinirsel"
+msgid "Neural"
+msgstr "Sinirsel"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19012,14 +19012,14 @@ msgstr "Sesli notları işle"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_record"
-msgid "While re&cording"
-msgstr "Kay&ıt sırasında"
+msgid "While recording"
+msgstr "Kayıt sırasında"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_send"
-msgid "&When sending"
-msgstr "G&önderirken"
+msgid "When sending"
+msgstr "Gönderirken"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

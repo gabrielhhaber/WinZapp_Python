@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesajele vocale pot folosi reducerea neuronală a zgomotului în fundal în timpul înregistrării, fără a aștepta trimiterea. Setări > Audio permite alegerea reducerii de bază sau neuronale, procesarea în timpul înregistrării sau la trimitere (implicit) și acțiunea la eșecul reducerii neuronale: trimitere cu reducerea de bază sau păstrarea mesajului în așteptare pentru o reîncercare manuală. Opțiunile acestor liste nu mai conțin marcaje pentru taste de acces în interiorul cuvintelor.
+
 - Apeluri: fereastra „Adaugă participanți” funcționează acum cu cititorul de ecran. Persoanele se marchează cu aceleași taste, același sunet și aceleași anunțuri ca în listele de conversații și mesaje (Ctrl+Spațiu, Spațiu cât timp este ceva marcat, Shift+săgeți, Ctrl+Shift+Spațiu, Esc), iar rezultatul este rostit: cine a fost invitat, cine nu a putut fi adăugat sau de ce a eșuat cererea.
 
 - Apeluri: datele media și operațiile întârziate pentru dispozitive sau cameră rămân asociate apelului și fluxului de origine. Neonize procesează datele în cozi limitate, în afara buclei serverului, și păstrează cititorul după o eroare temporară de emitere. Numele WASAPI ambigue nu mai selectează primul dispozitiv găsit. Jurnalele apelurilor Neonize includ și rezumate ale nivelului semnalului, fără a salva conținutul audio, pentru a ajuta la investigarea lipsei sunetului. La redeschiderea ieșirii audio a unui apel, un flux vechi care nu se poate închide nu poate consuma sunetul noului flux; o eroare a referinței de ecou nu mai reduce la tăcere sunetul pregătit pentru redare.

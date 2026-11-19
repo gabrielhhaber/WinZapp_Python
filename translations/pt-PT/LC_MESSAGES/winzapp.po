@@ -19249,8 +19249,8 @@ msgstr "Chamada de voz"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_basic"
-msgid "B&asic (noise gate)"
-msgstr "B&ásica (gate de ruído)"
+msgid "Basic (noise gate)"
+msgstr "Básica (gate de ruído)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19261,8 +19261,8 @@ msgstr "Motor de redução de ruído"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_neural"
-msgid "N&eural"
-msgstr "N&euronal"
+msgid "Neural"
+msgstr "Neuronal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19273,14 +19273,14 @@ msgstr "Processar as notas de voz"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_record"
-msgid "While re&cording"
-msgstr "Durante a &gravação"
+msgid "While recording"
+msgstr "Durante a gravação"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_send"
-msgid "&When sending"
-msgstr "&Ao enviar"
+msgid "When sending"
+msgstr "Ao enviar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

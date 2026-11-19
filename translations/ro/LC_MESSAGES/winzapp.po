@@ -19233,8 +19233,8 @@ msgstr "Apel vocal"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_basic"
-msgid "B&asic (noise gate)"
-msgstr "De ba&ză (poartă de zgomot)"
+msgid "Basic (noise gate)"
+msgstr "De bază (poartă de zgomot)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19245,8 +19245,8 @@ msgstr "Motor de reducere a zgomotului"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_neural"
-msgid "N&eural"
-msgstr "&Neural"
+msgid "Neural"
+msgstr "Neural"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -19257,14 +19257,14 @@ msgstr "Procesați notele vocale"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_record"
-msgid "While re&cording"
-msgstr "În timpul &înregistrării"
+msgid "While recording"
+msgstr "În timpul înregistrării"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_send"
-msgid "&When sending"
-msgstr "La tr&imitere"
+msgid "When sending"
+msgstr "La trimitere"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

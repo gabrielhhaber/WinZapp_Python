@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sesli mesajlar, gönderilmeyi beklemek yerine kayıt sırasında arka planda sinirsel gürültü azaltmayı kullanabilir. Ayarlar > Ses bölümünden temel veya sinirsel azaltma, kayıt sırasında veya gönderirken işleme (varsayılan) ve sinirsel azaltma başarısız olduğunda ne yapılacağı seçilebilir: temel azaltmayla gönderme veya elle yeniden denemek için mesajı beklemede tutma. Bu listelerdeki seçenekler artık sözcüklerin içinde klavye erişim tuşu işaretleri içermez.
+
 - Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
 
 - Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.
