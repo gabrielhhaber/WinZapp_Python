@@ -70,15 +70,3 @@ class NoiseReducerOptionsMixin:
     def _on_voice_nr_engine_changed(self, event):
         self._update_voice_nr_options_state()
         event.Skip()
-
-    def _relabel_voice_nr_options(self):
-        i18n = self.main_window.i18n
-        self._voice_nr_engine_label.SetLabel(i18n.t("voice_nr_engine_label"))
-        self._voice_nr_engine_combo.SetString(0, i18n.t("voice_nr_engine_neural"))
-        self._voice_nr_engine_combo.SetString(1, i18n.t("voice_nr_engine_basic"))
-        self._voice_nr_moment_label.SetLabel(i18n.t("voice_nr_moment_label"))
-        self._voice_nr_moment_combo.SetString(0, i18n.t("voice_nr_moment_send"))
-        self._voice_nr_moment_combo.SetString(1, i18n.t("voice_nr_moment_record"))
-        self._voice_nr_on_failure_label.SetLabel(i18n.t("voice_nr_on_failure_label"))
-        self._voice_nr_on_failure_combo.SetString(0, i18n.t("voice_nr_on_failure_basic"))
-        self._voice_nr_on_failure_combo.SetString(1, i18n.t("voice_nr_on_failure_pending"))
