@@ -81,6 +81,7 @@ class _ReportStub:
     _announce_sync_events_enabled = MainWindow._announce_sync_events_enabled
     _report_sync_progress = MainWindow._report_sync_progress
     _background_work_paused = MainWindow._background_work_paused
+    _audio_capture_in_progress = MainWindow._audio_capture_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0
@@ -175,6 +176,7 @@ class _ChatSweepStub:
 
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
     _background_work_paused = MainWindow._background_work_paused
+    _audio_capture_in_progress = MainWindow._audio_capture_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0
@@ -263,6 +265,7 @@ class _MediaSweepStub:
     _MEDIA_SYNC_WORKERS = 1
     sync_media_for_all_chats = MainWindow.sync_media_for_all_chats
     _background_work_paused = MainWindow._background_work_paused
+    _audio_capture_in_progress = MainWindow._audio_capture_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0

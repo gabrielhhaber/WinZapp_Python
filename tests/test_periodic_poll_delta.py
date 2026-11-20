@@ -82,6 +82,7 @@ class _PollStub:
     # __getattr__ would invent: a truthy answer makes the pause permanent,
     # which is how one guard turned a test file into a multi-hour CI run.
     _background_work_paused = MainWindow._background_work_paused
+    _audio_capture_in_progress = MainWindow._audio_capture_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0
