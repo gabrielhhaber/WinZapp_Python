@@ -34,6 +34,8 @@ import {
 } from '../dto/sync';
 import { contactToArray, unlinkAsync } from '../util/functions';
 import { repairMissingStamps } from '../util/messageStampRepair';
+import { pageNumberOfLid, pageNumbersOfLids } from '../util/lidNumberPage';
+import { pageUnanchoredMessages } from '../util/unanchoredMessagePaging';
 import { readMyProfile } from '../util/profileRuntime';
 import { buildForwardRuntimeExpression } from '../util/forwardRuntime';
 import {
@@ -2945,86 +2947,7 @@ export async function getMessages(req: Request, res: Response) {
         }
       }
       if (!Array.isArray(response)) response = await req.client.page.evaluate(
-        async ({ chatId, targetCount }) => {
-          const keyOf = (m: any) =>
-            (m && m.id && (m.id._serialized || m.id)) || null;
-          // A quote stand-in has no t but still its receive time: without it
-          // the sort put it first and the slice could drop it.
-          const stampOf = (m: any) =>
-            Number(m?.t ?? m?.timestamp ?? 0) ||
-            Math.floor(Number(m?.clientReceivedTsMillis ?? 0) / 1000) ||
-            0;
-
-          const fetchBatch = async (anchor: string | null) =>
-            (window as any).WAPI.getMessages(chatId, {
-              count: targetCount,
-              direction: 'before',
-              id: anchor,
-            });
-
-          // First page: no anchor, so wa-js anchors on the chat's last received
-          // message and hands back the newest window it can.
-          let result = await fetchBatch(null);
-          if (!Array.isArray(result)) return result;
-
-          const seen = new Set<string>();
-          for (const m of result) {
-            const k = keyOf(m);
-            if (k) seen.add(String(k));
-          }
-
-          // Then page backwards from the oldest message we hold. Bounded by
-          // maxPages as well as by targetCount: this runs inside the one
-          // Puppeteer page that also serves live traffic, so an unbounded walk
-          // over a huge chat would stall every other request behind it.
-          let pages = 0;
-          const maxPages = 10;
-          while (result.length < targetCount && pages < maxPages) {
-            let oldest = result[0];
-            for (const m of result) {
-              if (stampOf(m) < stampOf(oldest)) oldest = m;
-            }
-            const anchor = keyOf(oldest);
-            if (!anchor) break;
-
-            let older;
-            try {
-              older = await fetchBatch(String(anchor));
-            } catch (e) {
-              // Surfaced rather than swallowed — a silent break here is exactly
-              // how the previous dead loop hid its own failure for weeks.
-              console.log(
-                `[browser-evaluate] paging failed for ${chatId} at anchor ${anchor}: ${e}`
-              );
-              break;
-            }
-            if (!Array.isArray(older) || older.length === 0) break;
-
-            // Stop on a page that adds nothing new; without this an anchor that
-            // keeps re-returning its own window loops until maxPages for free.
-            let added = 0;
-            for (const m of older) {
-              const k = keyOf(m);
-              if (!k || seen.has(String(k))) continue;
-              seen.add(String(k));
-              result.push(m);
-              added++;
-            }
-            if (added === 0) break;
-            pages++;
-          }
-
-          result.sort((a: any, b: any) => stampOf(a) - stampOf(b));
-          if (result.length > targetCount) {
-            // Keep the newest `targetCount` — the caller asked for a window
-            // ending at "now", and the final page can overshoot.
-            result = result.slice(result.length - targetCount);
-          }
-          console.log(
-            `[browser-evaluate] getMessages ${chatId}: ${result.length} msg(s) after ${pages} extra page(s)`
-          );
-          return result;
-        },
+        pageUnanchoredMessages,
         { chatId: phone, targetCount }
       );
     }
@@ -4306,12 +4229,7 @@ export async function checkNumberStatus(req: Request, res: Response) {
     const answered = response?.id?._serialized || response?.id;
     if (typeof answered === 'string' && answered.endsWith('@lid')) {
       try {
-        const number = await req.client.page.evaluate((lid: string) => {
-          const wpp = (window as any).WPP?.whatsapp;
-          const pn = wpp?.ApiContact?.getPhoneNumber?.(wpp?.WidFactory?.createWid?.(lid));
-          const text = typeof pn === 'string' ? pn : pn?._serialized;
-          return typeof text === 'string' && /^\d+@c\.us$/.test(text) ? text : '';
-        }, answered);
+        const number = await req.client.page.evaluate(pageNumberOfLid, answered);
         if (number) response = { ...response, phoneNumber: number };
       } catch (lookupError: any) {
         req.logger.warn(
@@ -4435,16 +4353,7 @@ export async function getAllContacts(req: Request, res: Response) {
       if (lids.length) {
         try {
           const phones: Record<string, string> = await req.client.page.evaluate(
-            (ids: string[]) => {
-              const store = (window as any).WPP?.whatsapp?.ContactStore;
-              const found: Record<string, string> = {};
-              for (const id of ids) {
-                const pn = store?.get?.(id)?.phoneNumber;
-                const text = typeof pn === 'string' ? pn : pn?._serialized;
-                if (typeof text === 'string' && /^\d+@c\.us$/.test(text)) found[id] = text;
-              }
-              return found;
-            },
+            pageNumbersOfLids,
             lids
           );
           for (const c of response) {

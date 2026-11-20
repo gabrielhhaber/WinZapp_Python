@@ -860,6 +860,10 @@ export async function joinCallLink(req: Request, res: Response) {
 }
 
 export async function callLinkWaitingRoom(req: Request, res: Response) {
+  if (!req.body?.callId) {
+    res.status(400).json({ status: 'error', message: 'Parameter callId is required!' });
+    return;
+  }
   try {
     ok(res, await evaluateCallLink(req, 'waiting-room', { callId: String(req.body?.callId || '') }));
   } catch (error) {

@@ -39,7 +39,8 @@ def contact_rows(contacts, lid_to_phone, name_of, number_of):
     """
     saved = saved_contact_jids(contacts)
     saved_name = saved_name_of(contacts)
-    addresses = person_addresses(saved, lid_to_phone or {}, saved_name)
+    lid_to_phone = lid_to_phone or {}
+    addresses = person_addresses(saved, lid_to_phone, saved_name)
     people = {}
     for jid in saved:
         jid = jid.replace("@c.us", "@s.whatsapp.net")

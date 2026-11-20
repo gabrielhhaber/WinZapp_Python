@@ -98,7 +98,7 @@ export function installCallLinkRuntimeInPage(): void {
     },
     mayStopAudio: (): boolean => {
       const calls = module('WAWebCallCollection');
-      return !!calls && !calls.pendingOutgoingCall && !calls.activeCall;
+      return !!calls && !calls.pendingOutgoingCall && !calls.pendingCallLink && !calls.activeCall;
     },
     join: async (payload: any): Promise<any> => {
       const { token, isVideo, link } = parse(payload?.link);

@@ -8,15 +8,17 @@ def body(serialized, exists=True):
     return {"response": {"numberExists": exists, "id": {"_serialized": serialized}}}
 
 
-def test_canonical_jid_gives_the_registered_form():
-    assert number_lookup.canonical_jid(body("555193050236@c.us")) == "555193050236@s.whatsapp.net"
+def test_typed_number_identity_gives_the_registered_form():
+    assert number_lookup.typed_number_identity(body("555193050236@c.us")) == (
+        "555193050236@s.whatsapp.net", "")
 
 
-def test_canonical_jid_is_empty_for_unknown_lid_or_garbage():
-    assert number_lookup.canonical_jid(body("5551@c.us", exists=False)) == ""
-    assert number_lookup.canonical_jid(body("123456@lid")) == ""
-    assert number_lookup.canonical_jid(None) == ""
-    assert number_lookup.canonical_jid({"response": []}) == ""
+def test_typed_number_identity_is_empty_for_unknown_lid_or_garbage():
+    empty = ("", "")
+    assert number_lookup.typed_number_identity(body("5551@c.us", exists=False)) == empty
+    assert number_lookup.typed_number_identity(body("123456@lid")) == empty
+    assert number_lookup.typed_number_identity(None) == empty
+    assert number_lookup.typed_number_identity({"response": []}) == empty
 
 
 def test_resolve_typed_number_falls_back_to_empty_on_failure(monkeypatch):
@@ -48,7 +50,6 @@ def test_a_lid_answer_gives_the_number_it_belongs_to():
                            "phoneNumber": "555193050236@c.us"}}
     assert number_lookup.typed_number_identity(answer) == (
         "555193050236@s.whatsapp.net", "123456789012345@lid")
-    assert number_lookup.canonical_jid(answer) == "555193050236@s.whatsapp.net"
 
 
 def test_resolve_typed_number_bridges_the_answered_lid(monkeypatch):

@@ -137,6 +137,9 @@ function fresh() {
   assert.equal(api.mayStopAudio(), false);
   active = null;
   assert.equal(api.mayStopAudio(), true);
+  pendingLink = { id: 'PENDING' };
+  assert.equal(api.mayStopAudio(), false);
+  pendingLink = null;
   console.log(JSON.stringify({ passed: true }));
 })().catch((error) => { console.error(error); process.exit(1); });
 '''

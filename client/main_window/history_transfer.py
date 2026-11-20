@@ -91,7 +91,7 @@ def _percent(value):
 
 
 def start_watch(main_window):
-    """Starts the watch on a thread, once per process, on Neonize only."""
+    """Starts the watch on a thread, on Neonize only; one watch at a time."""
     if engines.loaded_engine(main_window) != engines.NEONIZE:
         return False
     if getattr(main_window, "_history_transfer_watching", False):
@@ -108,11 +108,13 @@ def _run(main_window, sleep=time.sleep, clock=time.monotonic):
         while not watch.finished and not getattr(main_window, "_shutting_down", False):
             if getattr(main_window, "_wa_connected", False):
                 status = main_window.fetch_history_sync_status()
-                if isinstance(status, dict):
-                    for key, values in watch.observe(status.get("historyTransfer"), clock()):
-                        logging.info("[history-transfer] %s %s", key, values)
-                        text = main_window.i18n.t(key).format(**values)
-                        wx.CallAfter(main_window.output, text)
+                # A failed read counts as "no transfer reported", or the
+                # give-up limits would never be checked while it keeps failing.
+                transfer = status.get("historyTransfer") if isinstance(status, dict) else None
+                for key, values in watch.observe(transfer, clock()):
+                    logging.info("[history-transfer] %s %s", key, values)
+                    text = main_window.i18n.t(key).format(**values)
+                    wx.CallAfter(main_window.output, text)
             if not watch.finished:
                 sleep(POLL_EVERY)
     except Exception:
