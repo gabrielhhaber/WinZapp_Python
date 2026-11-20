@@ -249,7 +249,11 @@ What the patches carry today:
   `PhoneNumberToLidMappings` and regular/omitted `Conversation` entries
   synchronously before `DownloadHistorySync` dispatches `events.HistorySync`,
   and pass omitted conversations to `storeHistoricalMessageSecrets` for
-  `tcToken` privacy-token storage (`docs/traps/sync-completion.md`).
+  `tcToken` privacy-token storage (`docs/traps/sync-completion.md`). A
+  conversation's LID is read as `lidJID`, then an `@lid` ID, then `accountLid`
+  (the account's, so possibly the user's own); a derived pair never overrides
+  an explicit mapping of the same sync and never gives the own LID to another
+  phone (the bridge's `omitted_history.block_lid_mappings` does the same).
 
 ## Toolchain (once)
 

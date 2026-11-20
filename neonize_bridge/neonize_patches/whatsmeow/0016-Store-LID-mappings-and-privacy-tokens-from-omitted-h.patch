@@ -5,18 +5,18 @@ Subject: [PATCH] Store LID mappings and privacy tokens from omitted history
  metadata
 
 ---
- message.go              |  22 ++++++--
- omitted_history.go      | 113 ++++++++++++++++++++++++++++++++++++++++
- omitted_history_test.go |  64 +++++++++++++++++++++++
- 3 files changed, 194 insertions(+), 5 deletions(-)
+ message.go              |  22 
+ omitted_history.go      | 145 
+ omitted_history_test.go |  93 
+ 3 files changed, 255 insertions(+), 5 deletions(-)
  create mode 100644 omitted_history.go
  create mode 100644 omitted_history_test.go
 
 diff --git a/message.go b/message.go
-index 190866b..ee9bb7a 100644
+index 190866b..ee9bb7a
 --- a/message.go
 +++ b/message.go
-@@ -800,17 +800,29 @@ func (cli *Client) DownloadHistorySync(ctx context.Context, notif *waE2E.History
+@@ -800,17 +800,29 @@
  		return nil, fmt.Errorf("failed to unmarshal: %w", err)
  	}
  	cli.Log.Debugf("Received history sync (type %s, chunk %d, progress %d)", historySync.GetSyncType(), historySync.GetChunkOrder(), historySync.GetProgress())
@@ -32,7 +32,7 @@ index 190866b..ee9bb7a 100644
 +			cli.storeHistoricalPNLIDMappings(ctx, historySync.GetPhoneNumberToLidMappings())
 +		}
 +		if len(allConvs) > 0 {
-+			cli.storeConversationPNLIDMappings(ctx, allConvs)
++			cli.storeConversationPNLIDMappings(ctx, allConvs, historySync.GetPhoneNumberToLidMappings())
 +		}
 +	}
  	doStorage := func(ctx context.Context) {
@@ -56,7 +56,7 @@ new file mode 100644
 index 0000000..41ab3fa
 --- /dev/null
 +++ b/omitted_history.go
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,145 @@
 +// Copyright (c) 2026 WinZapp Contributors
 +//
 +// This Source Code Form is subject to the terms of the Mozilla Public
@@ -119,9 +119,28 @@ index 0000000..41ab3fa
 +	return convs
 +}
 +
-+func extractConversationLIDMappings(conversations []*waHistorySync.Conversation) []store.LIDMapping {
++// extractConversationLIDMappings derives LID-PN pairs from conversations. The
++// explicit mappings of the same history sync win over what a conversation
++// implies (the store replaces by LID), and a pair that gives the account's own
++// LID to a phone other than its own is dropped: accountLid is the account's,
++// so it can be the user's own LID on a chat that is not the user's.
++func extractConversationLIDMappings(conversations []*waHistorySync.Conversation, explicit []*waHistorySync.PhoneNumberToLIDMapping, ownLID, ownPN types.JID) []store.LIDMapping {
 +	type pairKey struct{ lid, pn types.JID }
 +	seen := make(map[pairKey]struct{})
++	explicitLIDs := make(map[types.JID]struct{})
++	explicitPNs := make(map[types.JID]struct{})
++	for _, mapping := range explicit {
++		if lid, err := types.ParseJID(mapping.GetLidJID()); err == nil {
++			explicitLIDs[lid.ToNonAD()] = struct{}{}
++		}
++		if pn, err := types.ParseJID(mapping.GetPnJID()); err == nil {
++			if pn.Server == types.LegacyUserServer {
++				pn.Server = types.DefaultUserServer
++			}
++			explicitPNs[pn.ToNonAD()] = struct{}{}
++		}
++	}
++	ownLID, ownPN = ownLID.ToNonAD(), ownPN.ToNonAD()
 +	var pairs []store.LIDMapping
 +	for _, conv := range conversations {
 +		if conv == nil {
@@ -136,7 +155,7 @@ index 0000000..41ab3fa
 +			pn.Server = types.DefaultUserServer
 +		}
 +		var lid types.JID
-+		for _, candidate := range []string{conv.GetAccountLid(), conv.GetLidJID(), conv.GetID()} {
++		for _, candidate := range []string{conv.GetLidJID(), conv.GetID(), conv.GetAccountLid()} {
 +			if parsed, err := types.ParseJID(candidate); err == nil && parsed.Server == types.HiddenUserServer {
 +				lid = parsed
 +				break
@@ -145,6 +164,15 @@ index 0000000..41ab3fa
 +		lid = lid.ToNonAD()
 +		pn = pn.ToNonAD()
 +		if lid.Server == types.HiddenUserServer && pn.Server == types.DefaultUserServer && !lid.IsEmpty() && !pn.IsEmpty() {
++			if _, ok := explicitLIDs[lid]; ok {
++				continue
++			}
++			if _, ok := explicitPNs[pn]; ok {
++				continue
++			}
++			if !ownLID.IsEmpty() && lid == ownLID && pn != ownPN {
++				continue
++			}
 +			k := pairKey{lid: lid, pn: pn}
 +			if _, ok := seen[k]; !ok {
 +				seen[k] = struct{}{}
@@ -155,11 +183,15 @@ index 0000000..41ab3fa
 +	return pairs
 +}
 +
-+func (cli *Client) storeConversationPNLIDMappings(ctx context.Context, conversations []*waHistorySync.Conversation) {
++func (cli *Client) storeConversationPNLIDMappings(ctx context.Context, conversations []*waHistorySync.Conversation, explicit []*waHistorySync.PhoneNumberToLIDMapping) {
 +	if cli == nil || cli.Store == nil || cli.Store.LIDs == nil {
 +		return
 +	}
-+	lidPairs := extractConversationLIDMappings(conversations)
++	var ownPN types.JID
++	if cli.Store.ID != nil {
++		ownPN = *cli.Store.ID
++	}
++	lidPairs := extractConversationLIDMappings(conversations, explicit, cli.Store.LID, ownPN)
 +	if len(lidPairs) == 0 {
 +		return
 +	}
@@ -175,7 +207,7 @@ new file mode 100644
 index 0000000..1cf4a50
 --- /dev/null
 +++ b/omitted_history_test.go
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,93 @@
 +// Copyright (c) 2026 WinZapp Contributors
 +//
 +// This Source Code Form is subject to the terms of the Mozilla Public
@@ -188,6 +220,7 @@ index 0000000..1cf4a50
 +	"testing"
 +
 +	"go.mau.fi/whatsmeow/proto/waHistorySync"
++	"go.mau.fi/whatsmeow/types"
 +	"google.golang.org/protobuf/encoding/protowire"
 +	"google.golang.org/protobuf/proto"
 +)
@@ -229,7 +262,7 @@ index 0000000..1cf4a50
 +	if len(convs) != 2 {
 +		t.Fatalf("expected 2 conversations, got %d", len(convs))
 +	}
-+	pairs := extractConversationLIDMappings(convs)
++	pairs := extractConversationLIDMappings(convs, nil, types.EmptyJID, types.EmptyJID)
 +	if len(pairs) != 2 {
 +		t.Fatalf("expected 2 LID mappings, got %d: %+v", len(pairs), pairs)
 +	}
@@ -238,5 +271,33 @@ index 0000000..1cf4a50
 +	}
 +	if pairs[1].LID.String() != "222@lid" || pairs[1].PN.String() != "5511999990002@s.whatsapp.net" {
 +		t.Fatalf("unexpected second pair: %+v", pairs[1])
++	}
++}
++
++func TestConversationLIDMappingsPreferLidJIDAndKeepExplicitAndOwn(t *testing.T) {
++	own := types.NewJID("5511999990000", types.DefaultUserServer)
++	ownLID := types.NewJID("999", types.HiddenUserServer)
++	convs := []*waHistorySync.Conversation{
++		// lidJID before accountLid: accountLid can be the user's own LID
++		{ID: proto.String("5511999990003@s.whatsapp.net"), LidJID: proto.String("333@lid"), AccountLid: proto.String("999@lid")},
++		// the explicit mapping of this history sync wins, by LID and by phone
++		{ID: proto.String("5511999990009@s.whatsapp.net"), LidJID: proto.String("111@lid")},
++		{ID: proto.String("5511999990001@s.whatsapp.net"), LidJID: proto.String("777@lid")},
++		// the own LID is not lent to someone else's chat, but is the user's own
++		{ID: proto.String("5511999990002@s.whatsapp.net"), AccountLid: proto.String("999@lid")},
++		{ID: proto.String("5511999990000@s.whatsapp.net"), AccountLid: proto.String("999@lid")},
++	}
++	explicit := []*waHistorySync.PhoneNumberToLIDMapping{
++		{LidJID: proto.String("111@lid"), PnJID: proto.String("5511999990001@s.whatsapp.net")},
++	}
++	pairs := extractConversationLIDMappings(convs, explicit, ownLID, own)
++	if len(pairs) != 2 {
++		t.Fatalf("expected 2 mappings, got %d: %+v", len(pairs), pairs)
++	}
++	if pairs[0].LID.String() != "333@lid" || pairs[0].PN.String() != "5511999990003@s.whatsapp.net" {
++		t.Fatalf("unexpected first pair: %+v", pairs[0])
++	}
++	if pairs[1].LID.String() != "999@lid" || pairs[1].PN.String() != "5511999990000@s.whatsapp.net" {
++		t.Fatalf("unexpected own pair: %+v", pairs[1])
 +	}
 +}
