@@ -616,6 +616,8 @@ WHAT'S NEW
 
 - Messaggi mostrati all'apertura di una chat: l'impostazione ora accetta al massimo 1.000. Valori di decine di migliaia bloccavano la finestra per oltre un minuto quando arrivavano molti messaggi insieme o mentre scrivevi; un valore salvato più alto viene trattato come 1.000 e Impostazioni > Messaggi richiede un numero da 1 a 1.000.
 
+- Chiamate: avviare una chiamata da un account WhatsApp Business (WPPConnect) non resta più bloccato per 75 secondi senza squillare. WinZapp ora risponde da solo all'avviso "Informazioni su questa chiamata" che WhatsApp mostra alla prima chiamata di questi account.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

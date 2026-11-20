@@ -616,6 +616,8 @@ NOUTĂȚI
 
 - Mesajele afișate la deschiderea unei conversații: setarea acceptă acum cel mult 1.000. Valorile de zeci de mii blocau fereastra mai mult de un minut când soseau multe mesaje deodată sau în timp ce scriai; o valoare salvată mai mare este tratată ca 1.000, iar Setări > Mesaje cere un număr de la 1 la 1.000.
 
+- Apeluri: inițierea unui apel dintr-un cont WhatsApp Business (WPPConnect) nu mai rămâne blocată 75 de secunde fără să sune. WinZapp răspunde acum singur la avizul „Despre acest apel” pe care WhatsApp îl afișează la primul apel din astfel de conturi.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
