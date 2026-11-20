@@ -291,6 +291,8 @@ class TestMixedComposer(unittest.TestCase):
             stereo_voice_bitrate_kbps, voice_bitrate_kbps,
         )
         from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
+        from core.voice_nr_send_plan import plan_send_reduction
+        from core.voice_nr_options import effective_nr_on_failure, voice_nr_engine, voice_nr_moment, voice_nr_on_failure
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         from core.pending_timestamp import pending_send_timestamp
         from core.ordered_dispatch import voice_dispatcher
@@ -301,6 +303,11 @@ class TestMixedComposer(unittest.TestCase):
                          encode_as_stereo=encode_as_stereo, bitrate_arg=bitrate_arg,
                          voice_bitrate_kbps=voice_bitrate_kbps,
                          stereo_voice_bitrate_kbps=stereo_voice_bitrate_kbps,
+                         voice_nr_engine=voice_nr_engine,
+                         voice_nr_moment=voice_nr_moment,
+                         voice_nr_on_failure=voice_nr_on_failure,
+                         effective_nr_on_failure=effective_nr_on_failure,
+                         plan_send_reduction=plan_send_reduction,
                          drop_empty_side=drop_empty_side,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),
@@ -308,7 +315,8 @@ class TestMixedComposer(unittest.TestCase):
                          append_message_row=append_message_row,
                          message_row_count=message_row_count)
         # Bind the actual send handler; no wx/App or capture APIs are imported.
-        bind(self.p, ['_send_voice_message', '_encode_stereo_voice'], namespace)
+        bind(self.p, ['_send_voice_message', '_encode_stereo_voice',
+                      '_reduce_for_send'], namespace)
         # New helper is bound when present so RED tests reach old behavior first.
         import ast
         from tests.god_modules import conversations_source_files

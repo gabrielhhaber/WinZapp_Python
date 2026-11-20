@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "db198c5caeb5": "As mensagens de voz podem usar redução de ruído neural em segundo plano durante ",
     "93ba81b4b681": "O nome de um contato agora é único: quando alguém troca o nome do perfil, todas ",
     "c4a8e804bb2e": "Inicialização: o suporte de voz agora usa seu próprio cache COM temporário, evit",
     "dd103f9806c5": "Os botões de uma mensagem de empresa agora aparecem também quando a conversa abr",

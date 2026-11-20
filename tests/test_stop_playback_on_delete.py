@@ -22,6 +22,25 @@ against a small stub — same approach as tests/test_message_bookmarks.py.
 import pytest
 
 from ui.conversations import ConversationsPanel
+import app_paths
+
+@pytest.fixture(autouse=True)
+def _account_scope(tmp_path, monkeypatch):
+    """Deleting messages now also cleans up kept noise-reduction originals,
+    which goes through app_paths.data_path() - and that refuses to answer
+    without an active account (the guard that keeps one account's files out
+    of another's folder). The real flows under test always run with an
+    account open, so the tests set one - but scoped: the data root is a
+    per-test tmp dir so cleanup writes/deletes (e.g. voice_messages/
+    <id>.resend.wav) can never reach the repo's real data/ tree, and the
+    previously active account is restored afterwards so this fixture is
+    transparent to any surrounding account state."""
+    previous_account = app_paths.active_account_id()
+    monkeypatch.setattr(app_paths, "_data_root", lambda: str(tmp_path))
+    app_paths.set_active_account("acct-under-test")
+    yield tmp_path
+    app_paths.set_active_account(previous_account)
+
 
 
 class _FakeMessagesList:

@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sesli mesajlar, gönderilmeyi beklemek yerine kayıt sırasında arka planda sinirsel gürültü azaltmayı kullanabilir. Ayarlar > Ses bölümündeki gürültü azaltıcı ayarları penceresinden temel veya sinirsel azaltma, kayıt sırasında veya gönderirken işleme (varsayılan) ve sinirsel azaltma başarısız olduğunda ne yapılacağı seçilebilir: temel azaltmayla gönderme veya elle yeniden denemek için mesajı beklemede tutma. Kayıt sırasında işleme, CPU veya CoreML kullanır; CUDA seçildiğinde bu seçenek devre dışı bırakılır ve işlem gönderirken yapılır. Kayıt sırasında CUDA işleme yoktur. Kayıt sırasındaki CoreML yolu gerçek kullanımda doğrulanmamıştır.
+
 - Bir kişinin artık tek bir adı var: biri profil adını değiştirdiğinde, eski mesajlar ve grup mesajları dahil tüm mesajları eski ve yeni ad arasında gidip gelmek yerine yeni adı gösterir. Neonize ve WPPConnect için geçerlidir.
 
 - Başlangıç: konuşma desteği artık kendi geçici COM önbelleğini kullanır; böylece paylaşılan Windows önbelleği dizinini kaybettiğinde döngüsel içe aktarma hataları önlenir.

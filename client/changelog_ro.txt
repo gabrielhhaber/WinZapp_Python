@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesajele vocale pot folosi reducerea neuronală a zgomotului în fundal în timpul înregistrării, fără a aștepta trimiterea. Fereastra de setări a reductorului de zgomot, din Setări > Audio, permite alegerea reducerii de bază sau neuronale, procesarea în timpul înregistrării sau la trimitere (implicit) și acțiunea la eșecul reducerii neuronale: trimitere cu reducerea de bază sau păstrarea mesajului în așteptare pentru o reîncercare manuală. Procesarea în timpul înregistrării folosește CPU sau CoreML; selectarea CUDA o dezactivează și procesarea are loc la trimitere. Nu există procesare CUDA în timpul înregistrării. Calea CoreML în timpul înregistrării nu a fost validată în utilizare reală.
+
 - Un contact are acum un singur nume: când cineva schimbă numele profilului, toate mesajele sale, inclusiv cele vechi și cele din grupuri, arată numele nou în loc să alterneze între cel vechi și cel nou. Se aplică pentru Neonize și WPPConnect.
 
 - Pornire: suportul vocal folosește acum propriul cache COM temporar, evitând erorile de import circular când cache-ul partajat Windows își pierde indexul.

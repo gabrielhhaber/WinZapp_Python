@@ -1091,6 +1091,14 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
+        # Neural engine at send time reproduces the published behavior; the
+        # basic engine and processing while recording are opt-in
+        # (core/voice_nr_options.py).
+        "voice_nr_engine": "neural",
+        "voice_nr_moment": "send",
+        # What a note the neural engine could not process does: send with the
+        # basic gate (published), or stay pending for a manual resend.
+        "voice_nr_on_failure": "basic",
         # the neural model when installed (False: the common reducer, faster)
         "noise_reduction_neural": True,
         # where the neural model runs: cpu, cuda12, cuda13, coreml (core/cuda_components)

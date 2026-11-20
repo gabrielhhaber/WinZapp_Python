@@ -446,6 +446,12 @@ class MainWindow(
         self.resume_pending = resume_pending
         self.registry = registry
         self.global_dir = global_dir
+        # One incremental controller per account/window, before any UI can
+        # record. init_UI() enters MainLoop inside this constructor, so
+        # initializing it after MainWindow(...) returns is too late.
+        # Construction only creates locks/state, not a model or audio device.
+        from core.incremental_denoise import IncrementalDenoiseController
+        self._incremental_controller = IncrementalDenoiseController()
         # Locks and saving state (initialized early to prevent AttributeErrors on early saves/migrations)
         self._save_lock = threading.Lock()
         self._save_timer = None

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- I messaggi vocali possono usare la riduzione neurale del rumore in background durante la registrazione, anziché attendere l’invio. La finestra delle impostazioni del riduttore di rumore, in Impostazioni > Audio, permette di scegliere la riduzione di base o neurale, elaborare durante la registrazione o all’invio (predefinito) e decidere cosa fare se la riduzione neurale non riesce: inviare con la riduzione di base o lasciare il messaggio in sospeso per riprovare manualmente. L’elaborazione durante la registrazione usa la CPU o CoreML; scegliendo CUDA viene disattivata e l’elaborazione avviene all’invio. Non è disponibile l’elaborazione CUDA durante la registrazione. Il percorso CoreML durante la registrazione non è stato verificato nell’uso reale.
+
 - Un contatto ora ha un solo nome: quando qualcuno cambia il nome del profilo, tutti i suoi messaggi, anche quelli vecchi e quelli dei gruppi, mostrano il nome nuovo invece di alternare tra il vecchio e il nuovo. Vale per Neonize e WPPConnect.
 
 - Avvio: il supporto vocale ora usa una propria cache COM temporanea, evitando errori di importazione circolare quando la cache condivisa di Windows perde il suo indice.

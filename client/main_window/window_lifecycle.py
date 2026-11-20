@@ -521,6 +521,12 @@ class WindowLifecycleMixin:
         cp = getattr(self, "conversations_panel", None)
         if cp is not None and hasattr(cp, "close_ai_media"):
             cp.close_ai_media()
+        # Let any live incremental noise-reduction session cancel itself and
+        # clean its own spool while the teardown runs; the drain threads are
+        # daemonic and end with the process regardless.
+        controller = getattr(self, "_incremental_controller", None)
+        if controller is not None:
+            controller.shutdown()
         try:
             self.Hide()
         except Exception:

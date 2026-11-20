@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- As mensagens de voz podem usar redução de ruído neuronal em segundo plano durante a gravação, em vez de esperar pelo envio. A janela de definições do redutor de ruído, em Definições > Áudio, permite escolher redução básica ou neuronal, processar durante a gravação ou ao enviar (predefinição), e o que fazer se a redução neuronal falhar: enviar com redução básica ou deixar a mensagem pendente para uma nova tentativa manual. O processamento durante a gravação usa a CPU ou o CoreML; ao escolher CUDA, é desativado e o processamento ocorre ao enviar. Não há processamento CUDA durante a gravação. A via CoreML durante a gravação não foi validada em uso real.
+
 - O nome de um contacto passa a ser único: quando alguém muda o nome do perfil, todas as mensagens dessa pessoa, incluindo as antigas e as de grupos, mostram o nome novo em vez de alternar entre o antigo e o novo. Aplica-se ao Neonize e ao WPPConnect.
 
 - Arranque: o suporte de voz passa a usar o seu próprio cache COM temporário, evitando erros de importação circular quando o cache partilhado do Windows perde o índice.

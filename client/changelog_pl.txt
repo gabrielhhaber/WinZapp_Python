@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wiadomości głosowe mogą korzystać z neuronowej redukcji szumów w tle podczas nagrywania, zamiast czekać do wysłania. Okno ustawień reduktora szumów w Ustawienia > Dźwięk pozwala wybrać redukcję podstawową lub neuronową, przetwarzanie podczas nagrywania lub przy wysyłaniu (domyślnie) oraz działanie po niepowodzeniu redukcji neuronowej: wysłanie z redukcją podstawową lub pozostawienie wiadomości jako oczekującej na ręczne ponowienie. Przetwarzanie podczas nagrywania korzysta z CPU lub CoreML; wybranie CUDA wyłącza tę opcję i przetwarzanie następuje przy wysyłaniu. CUDA nie jest używana podczas nagrywania. Ścieżka CoreML podczas nagrywania nie została sprawdzona w rzeczywistym użyciu.
+
 - Kontakt ma teraz jedną nazwę: gdy ktoś zmieni nazwę profilu, wszystkie jego wiadomości, także stare i grupowe, pokazują nową nazwę zamiast przełączać się między starą a nową. Dotyczy Neonize i WPPConnect.
 
 - Uruchamianie: obsługa mowy korzysta teraz z własnej tymczasowej pamięci podręcznej COM, co zapobiega błędom importu cyklicznego po utracie indeksu współdzielonej pamięci podręcznej Windows.
