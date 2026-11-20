@@ -108,9 +108,15 @@ def test_large_group_note_requires_group_call_support(supported):
 def test_join_button_requires_the_existing_calls_capabilities(flags, video):
     panel = Panel(GROUP, flags=flags)
     panel._show_ongoing_group_call({"id": "C1", "groupJid": GROUP, "isVideo": video})
-    assert panel._group_call_join_btn.shown == (
-        flags[0] and flags[2] and (not video or flags[1]))
-    assert not panel._voice_call_btn.shown and not panel._video_call_btn.shown
+    joinable = flags[0] and flags[2] and (not video or flags[1])
+    assert panel._group_call_join_btn.shown == joinable
+    if joinable:
+        assert not panel._voice_call_btn.shown and not panel._video_call_btn.shown
+    else:
+        # A call this device cannot join (a video call without video support)
+        # does not take the start buttons' place: they follow the capabilities.
+        assert panel._voice_call_btn.shown == (flags[0] and flags[2])
+        assert panel._video_call_btn.shown == (flags[0] and flags[1] and flags[2])
 
 
 def test_unknown_capabilities_hide_calls_until_a_real_verdict_arrives():
