@@ -171,8 +171,18 @@ class TestEmptyConversationHomeAction:
         monkeypatch.setattr("ui.conversation_panel.history_loading.wx.CallAfter",
                             lambda fn, *a: fn(*a))
 
+        # The fetch thread runs inline: no real thread, no timed wait.
+        class InlineThread:
+            def __init__(self, target, **kwargs):
+                self._target = target
+
+            def start(self):
+                self._target()
+
+        monkeypatch.setattr("ui.conversation_panel.history_loading.threading.Thread", InlineThread)
+
         ConversationsPanel._load_older_messages(panel)
-        assert done.wait(timeout=3.0)
+        assert done.is_set()
         assert fetched_args == [(PHONE, None)]
 
         # And when older messages arrive into an initially empty list, focus stays in bounds.

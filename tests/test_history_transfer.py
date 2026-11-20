@@ -103,3 +103,15 @@ def test_run_speaks_through_output_and_ends(monkeypatch):
                                      ("history_transfer_done",)]
     assert all(fn is window.output for fn, _ in calls)
     assert window._history_transfer_watching is False
+
+
+def test_run_gives_up_when_the_status_keeps_failing(monkeypatch):
+    monkeypatch.setattr(ht.wx, "CallAfter", lambda fn, *a: None)
+    clock = iter([0, 1, ht.NO_TRANSFER_WAIT + 1])
+    reads = []
+    window = N(_wa_connected=True, _history_transfer_watching=True,
+               fetch_history_sync_status=lambda: reads.append(1),
+               i18n=N(t=lambda key: key), output=object())
+    ht._run(window, sleep=lambda _s: None, clock=lambda: next(clock))
+    assert len(reads) == 2
+    assert window._history_transfer_watching is False
