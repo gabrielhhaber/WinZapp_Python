@@ -68,21 +68,6 @@ SCENARIOS = {
         set=lambda d, t: d._voice_recording_mode_radio.SetSelection(1),
         shows=lambda d, t: d._voice_recording_mode_radio.GetSelection() == 1,
     ),
-    "voice_nr_engine": dict(
-        saves={("general", "voice_nr_engine"): "basic"},
-        set=lambda d, t: d._voice_nr_engine_combo.SetSelection(1),
-        shows=lambda d, t: d._voice_nr_engine_combo.GetSelection() == 1,
-    ),
-    "voice_nr_moment": dict(
-        saves={("general", "voice_nr_moment"): "record"},
-        set=lambda d, t: d._voice_nr_moment_combo.SetSelection(1),
-        shows=lambda d, t: d._voice_nr_moment_combo.GetSelection() == 1,
-    ),
-    "voice_nr_on_failure": dict(
-        saves={("general", "voice_nr_on_failure"): "keep_pending"},
-        set=lambda d, t: d._voice_nr_on_failure_combo.SetSelection(1),
-        shows=lambda d, t: d._voice_nr_on_failure_combo.GetSelection() == 1,
-    ),
     "voice_recording_bitrate": dict(
         saves={("general", "voice_recording_bitrate"): 128},
         set=lambda d, t: d._voice_bitrate_choice.SetSelection(4),

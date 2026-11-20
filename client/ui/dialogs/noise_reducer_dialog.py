@@ -19,12 +19,16 @@ from core.cuda_components import store
 from core.cuda_components import text as ctext
 from core.cuda_components.job import ComponentsInstallJob
 from core.cuda_components.model import device_of, offered_devices
+from core.voice_nr_options import voice_nr_engine
 from ui.dialogs.noise_model_section import NoiseModelSectionMixin
+from core.voice_nr_options import NR_ENGINES, NR_MOMENTS, NR_ON_FAILURE
+from ui.dialogs.noise_reducer_options import (
+    NoiseReducerOptionsMixin, nr_options_from_settings)
 from ui.dialogs.transcription_progress import TranscriptionProgressDialog
 
 
-class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
-    def __init__(self, parent, main_window, device=None):
+class NoiseReducerDialog(NoiseReducerOptionsMixin, NoiseModelSectionMixin, wx.Dialog):
+    def __init__(self, parent, main_window, device=None, options=None):
         i18n = main_window.i18n
         super().__init__(parent, title=i18n.t("noise_reducer_title"),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -42,6 +46,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
             self._devices.index(chosen) if chosen in self._devices else 0)
         self._device_choice.Bind(wx.EVT_CHOICE, lambda e: self._refresh_components())
         sizer.Add(self._device_choice, 0, wx.EXPAND | wx.ALL, 8)
+        self._build_voice_nr_options(
+            sizer, options or nr_options_from_settings(main_window.settings))
         self._components_label = wx.StaticText(
             self, label=i18n.t("noise_reducer_components_label"))
         sizer.Add(self._components_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
@@ -64,6 +70,41 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         self.SetSizerAndFit(sizer)
         self._refresh_components()
 
+    def _build_voice_nr_options(self, sizer, options):
+        i18n = self.main_window.i18n
+        self._voice_nr_engine_label = wx.StaticText(
+            self, label=i18n.t("voice_nr_engine_label"))
+        sizer.Add(self._voice_nr_engine_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._voice_nr_engine_combo = wx.ComboBox(
+            self, style=wx.CB_READONLY,
+            choices=[i18n.t("voice_nr_engine_neural"), i18n.t("voice_nr_engine_basic")])
+        sizer.Add(self._voice_nr_engine_combo, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_engine_combo.Bind(wx.EVT_COMBOBOX, self._on_voice_nr_engine_changed)
+        self._voice_nr_moment_label = wx.StaticText(
+            self, label=i18n.t("voice_nr_moment_label"))
+        sizer.Add(self._voice_nr_moment_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._voice_nr_moment_combo = wx.ComboBox(
+            self, style=wx.CB_READONLY,
+            choices=[i18n.t("voice_nr_moment_send"), i18n.t("voice_nr_moment_record")])
+        sizer.Add(self._voice_nr_moment_combo, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_on_failure_label = wx.StaticText(
+            self, label=i18n.t("voice_nr_on_failure_label"))
+        sizer.Add(self._voice_nr_on_failure_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._voice_nr_on_failure_combo = wx.ComboBox(
+            self, style=wx.CB_READONLY,
+            choices=[i18n.t("voice_nr_on_failure_basic"),
+                     i18n.t("voice_nr_on_failure_pending")])
+        sizer.Add(self._voice_nr_on_failure_combo, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_engine_combo.SetSelection(NR_ENGINES.index(options["engine"]))
+        self._voice_nr_moment_combo.SetSelection(NR_MOMENTS.index(options["moment"]))
+        self._voice_nr_on_failure_combo.SetSelection(NR_ON_FAILURE.index(options["on_failure"]))
+        self._update_voice_nr_options_state()
+
+    def _refresh_noise_model_section(self):
+        super()._refresh_noise_model_section()
+        # the model may have just been downloaded or removed
+        self._update_voice_nr_options_state()
+
     @property
     def device(self) -> str:
         index = self._device_choice.GetSelection()
@@ -76,6 +117,7 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
             return []
 
     def _refresh_components(self):
+        self._update_voice_nr_options_state()  # the processor may have changed
         missing = self._missing()
         self._components_field.SetValue(ctext.components_text(
             self.main_window.i18n, self.device, missing,
@@ -231,6 +273,7 @@ class NoiseReducerButtonMixin:
     def _build_noise_reducer_button(self, parent, sizer):
         i18n = self.main_window.i18n
         self._noise_reducer_device = None
+        self._noise_reducer_options = None  # set when the window's OK is pressed
         self._noise_reducer_page = parent
         self._noise_reducer_btn = wx.Button(parent, label=i18n.t("noise_reducer_button"))
         self._noise_reducer_btn.Bind(wx.EVT_BUTTON, self._on_noise_reducer_button)
@@ -260,21 +303,28 @@ class NoiseReducerButtonMixin:
         self._noise_reducer_btn.SetLabel(i18n.t("noise_reducer_button"))
 
     def _on_noise_reducer_button(self, _event):
-        dialog = NoiseReducerDialog(self, self.main_window, self._noise_reducer_device)
+        dialog = NoiseReducerDialog(self, self.main_window, self._noise_reducer_device,
+                                    self._noise_reducer_options)
         try:
             if dialog.ShowModal() == wx.ID_OK:
                 self._noise_reducer_device = dialog.device
+                self._noise_reducer_options = dialog.options
         finally:
             dialog.Destroy()
         # The model or selected device may have changed in the dialog.
         self._sync_noise_reducer_button()
-        update = getattr(self, "_update_voice_nr_options_state", None)
-        if update is not None:
-            update()
         self._noise_reducer_btn.SetFocus()
 
     def _save_noise_reducer_device(self):
+        """Keep what the noise reducer's window chose, the only writer of the
+        engine, the processing moment, the failure action and the processor."""
         general = self.main_window.settings.setdefault("general", {})
+        options = self._noise_reducer_options
+        if options is not None:
+            general["voice_nr_engine"] = options["engine"]
+            general["noise_reduction_neural"] = options["engine"] == "neural"
+            general["voice_nr_moment"] = options["moment"]
+            general["voice_nr_on_failure"] = options["on_failure"]
         if self._noise_reducer_device is None:
             return
         changed = general.get("noise_reduction_device") != self._noise_reducer_device
@@ -289,9 +339,8 @@ class NoiseReducerButtonMixin:
                 installed = noise_model.is_installed()
             except Exception:
                 installed = False
-            engine_combo = getattr(self, "_voice_nr_engine_combo", None)
-            neural = engine_combo.GetSelection() == 0 if engine_combo is not None else True
+            engine = (options or {}).get("engine") or voice_nr_engine(self.main_window.settings)
             noise_worker_host.host.apply(
                 self._noise_reducer_device,
                 start=reducer_start_wanted(
-                    general.get("noise_reduction_enabled"), neural, installed))
+                    general.get("noise_reduction_enabled"), engine == "neural", installed))

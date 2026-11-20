@@ -22,57 +22,73 @@ def test_old_trial_settings_still_choose_basic_without_upstream_key():
     assert voice_nr_engine({'general': {'voice_nr_engine':'basic'}}) == 'basic'
 
 
-def _options_mixin():
-    from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
-    return VoiceRecordingOptionsMixin
-
-
 class _Control:
-    def __init__(self, selection=0, value=True):
-        self.selection, self.value = selection, value
+    def __init__(self, selection=0):
+        self.selection = selection
         self.enabled = True
-        self.shown = True
 
     def GetSelection(self): return self.selection
     def SetSelection(self, value): self.selection = value
-    def GetValue(self): return self.value
-    def SetValue(self, value): self.value = value
     def Enable(self, value): self.enabled = value
-    def Hide(self): self.shown = False
 
 
-def _panel(device, monkeypatch, installed=True, selection=0):
+def _dialog(device, monkeypatch, installed=True, engine=0, moment=1):
     from core import noise_model
+    from ui.dialogs.noise_reducer_options import NoiseReducerOptionsMixin
     monkeypatch.setattr(noise_model, "is_installed", lambda: installed)
-    panel = _options_mixin()()
-    panel.main_window = SimpleNamespace(settings={'general': {'noise_reduction_device': device}})
-    panel._noise_reduction_check = _Control()
-    panel._voice_nr_engine_combo = _Control(selection=selection)
-    panel._voice_nr_moment_combo = _Control(selection=1)
-    panel._voice_nr_on_failure_combo = _Control()
-    panel._update_voice_nr_options_state()
-    return panel
+    dialog = NoiseReducerOptionsMixin()
+    dialog.device = device
+    dialog._voice_nr_engine_combo = _Control(engine)
+    dialog._voice_nr_moment_combo = _Control(moment)
+    dialog._voice_nr_on_failure_combo = _Control(0)
+    dialog._update_voice_nr_options_state()
+    return dialog
 
 
 @pytest.mark.parametrize('device,enabled', [('cpu',True), ('coreml',True), ('cuda12',False), ('cuda13',False)])
-def test_actual_settings_helper_disables_recording_for_cuda(device, enabled, monkeypatch):
-    panel = _panel(device, monkeypatch)
-    assert panel._voice_nr_moment_combo.enabled is enabled
-    assert panel._voice_nr_moment_combo.selection == (1 if enabled else 0)
-    assert panel._voice_nr_on_failure_combo.enabled
+def test_moment_is_disabled_for_the_cuda_process(device, enabled, monkeypatch):
+    dialog = _dialog(device, monkeypatch)
+    assert dialog._voice_nr_moment_combo.enabled is enabled
+    assert dialog._voice_nr_moment_combo.selection == (1 if enabled else 0)
+    assert dialog._voice_nr_on_failure_combo.enabled
+    assert dialog.options["moment"] == ("record" if enabled else "send")
 
 
 def test_moment_and_failure_combos_are_unavailable_without_the_model(monkeypatch):
-    panel = _panel('cpu', monkeypatch, installed=False)
-    assert not panel._voice_nr_moment_combo.enabled
-    assert not panel._voice_nr_on_failure_combo.enabled
-    assert panel._voice_nr_engine_combo.enabled
+    dialog = _dialog('cpu', monkeypatch, installed=False)
+    assert not dialog._voice_nr_moment_combo.enabled
+    assert not dialog._voice_nr_on_failure_combo.enabled
+    assert dialog._voice_nr_engine_combo.enabled
 
 
 def test_basic_engine_disables_the_neural_only_combos(monkeypatch):
-    panel = _panel('cpu', monkeypatch, selection=1)
-    assert not panel._voice_nr_moment_combo.enabled
-    assert not panel._voice_nr_on_failure_combo.enabled
+    dialog = _dialog('cpu', monkeypatch, engine=1)
+    assert not dialog._voice_nr_moment_combo.enabled
+    assert not dialog._voice_nr_on_failure_combo.enabled
+    assert dialog.options["engine"] == "basic"
+
+
+def test_options_from_settings_follow_the_upstream_engine():
+    from ui.dialogs.noise_reducer_options import nr_options_from_settings
+    assert nr_options_from_settings({'general': {'noise_reduction_neural': False}})["engine"] == "basic"
+    assert nr_options_from_settings({})["engine"] == "neural"
+
+
+def test_the_window_choices_are_saved_by_the_settings_page_only(monkeypatch):
+    from types import SimpleNamespace
+    from ui.dialogs.noise_reducer_dialog import NoiseReducerButtonMixin
+    page = SimpleNamespace(
+        main_window=SimpleNamespace(settings={'general': {}}),
+        _noise_reducer_device=None,
+        _noise_reducer_options={'engine': 'basic', 'moment': 'record', 'on_failure': 'keep_pending'})
+    NoiseReducerButtonMixin._save_noise_reducer_device(page)
+    assert page.main_window.settings['general'] == {
+        'voice_nr_engine': 'basic', 'noise_reduction_neural': False,
+        'voice_nr_moment': 'record', 'voice_nr_on_failure': 'keep_pending'}
+    page._noise_reducer_options = None
+    page.main_window.settings['general'].clear()
+    NoiseReducerButtonMixin._save_noise_reducer_device(page)
+    assert page.main_window.settings['general'] == {}
 
 
 def test_a_missing_model_never_keeps_notes_pending():
@@ -87,10 +103,3 @@ def test_nr_local_id_prefers_the_local_id():
     assert nr_local_id({'_local_id': 'a', 'key': {'id': 'b'}}) == 'a'
     assert nr_local_id({'key': {'id': 'b'}}) == 'b'
     assert nr_local_id({}) == '' and nr_local_id(None) == ''
-
-
-def test_newly_selected_device_is_used_before_settings_are_saved():
-    panel = _options_mixin()()
-    panel.main_window = SimpleNamespace(settings={'general':{'noise_reduction_device':'cpu'}})
-    panel._noise_reducer_device = 'cuda13'
-    assert panel._voice_nr_selected_device() == 'cuda13'

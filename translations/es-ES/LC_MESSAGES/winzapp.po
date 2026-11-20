@@ -2285,8 +2285,8 @@ msgstr "Salida de mensaje de voz (reproducción):"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "audio_effects_output_device_label"
-msgid "Effects output dev&ice (alerts / sounds)"
-msgstr "Dispositivo de &salida de efectos (alertas / sonidos)"
+msgid "E&ffects output device (alerts / sounds)"
+msgstr "D&ispositivo de salida de efectos (alertas / sonidos)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -2307,7 +2307,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "audio_input_device_label"
-msgid "&Recording device (microphone)"
+msgid "Recording &device (microphone)"
 msgstr "Dispositivo de &grabación (micrófono)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -2321,8 +2321,8 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "audio_output_device_label"
-msgid "P&layback device (speaker)"
-msgstr "&Dispositivo de reproducción (altavoz)"
+msgid "Pla&yback device (speaker)"
+msgstr "Dispositivo de &reproducción (altavoz)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
@@ -10372,7 +10372,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_button"
-msgid "Noise reducer settin&gs..."
+msgid "&Noise reducer settings..."
 msgstr "A&justes del reductor de ruido..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -10405,7 +10405,7 @@ msgstr "Descargar los componentes que &faltan"
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_components_label"
 msgid "&Components:"
-msgstr "&Componentes:"
+msgstr "C&omponentes:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/cuda_components/text.py
@@ -10435,8 +10435,8 @@ msgstr "Todos los componentes están instalados."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_components_remove"
-msgid "&Remove this processor's components"
-msgstr "&Quitar los componentes de este procesador"
+msgid "Remove this processor'&s components"
+msgstr "Quitar &los componentes de este procesador"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -10492,14 +10492,14 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_device_label"
-msgid "&Processor the noise reducer runs on:"
-msgstr "&Procesador en el que funciona el reductor de ruido:"
+msgid "Processor &the noise reducer runs on:"
+msgstr "Procesador &en el que funciona el reductor de ruido:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_model_remove"
-msgid "Remove &the neural model"
-msgstr "Quitar &el modelo neural"
+msgid "&Remove the neural model"
+msgstr "&Quitar el modelo neural"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -10585,8 +10585,8 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "noise_reduction_label"
-msgid "Enable microphone &noise reduction"
-msgstr "Act&ivar reducción de ruido del micrófono"
+msgid "Enab&le microphone noise reduction"
+msgstr "Activar reducción de ruido del &micrófono"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reduction_pending_save_failed"
@@ -11060,7 +11060,7 @@ msgstr "Enviar como documento"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "pasted_audio_label"
-msgid "Audio &files pasted into the message field (Ctrl+V)"
+msgid "Audio files &pasted into the message field (Ctrl+V)"
 msgstr "Arc&hivos de audio pegados en el campo de mensaje (Ctrl+V)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
@@ -14503,10 +14503,10 @@ msgstr "Anunciar cuando un contacto &está escribiendo en un chat"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_silence_while_recording_label"
 msgid ""
-"Mute spoken content announcements and &the Send button while recording a "
+"Mute spo&ken content announcements and the Send button while recording a "
 "voice message"
 msgstr ""
-"Silenciar &los anuncios de contenido hablado y el botón de enviar mientras "
+"&Silenciar los anuncios de contenido hablado y el botón de enviar mientras "
 "se graba un mensaje de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -16827,8 +16827,8 @@ msgstr "Dispositivos de audio"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_audio_playback"
-msgid "Audio &playback"
-msgstr "&Reproducción de audio"
+msgid "A&udio playback"
+msgstr "Re&producción de audio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_audio_options.py
 #: client/ui/dialogs/settings_dialog.py
@@ -20218,7 +20218,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_enter_transcribes_voice"
 msgid ""
-"&Enter and Space on a voice message or video transcribe it into its line in "
+"Enter and Space on a voice message or video &transcribe it into its line in "
 "the list instead of playing it (Alt+Shift+N plays or opens it); turned off, "
 "Enter and Space play or open it and Alt+Shift+N transcribes it into its line"
 msgstr ""
@@ -20279,10 +20279,10 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forward_voice_as_voice"
 msgid ""
-"Forward &voice messages as voice messages instead of audio (they are still "
+"For&ward voice messages as voice messages instead of audio (they are still "
 "marked as forwarded)"
 msgstr ""
-"Reenviar los &mensajes de voz como mensajes de voz, en lugar de audio "
+"Reenviar &los mensajes de voz como mensajes de voz, en lugar de audio "
 "(siguen marcados como reenviados)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20611,8 +20611,8 @@ msgstr "Número de mensajes nuevos en la lista de chats:"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_audio"
-msgid "A&udio (read all as audio)"
-msgstr "Audio (leer &todas como audio)"
+msgid "Aud&io (read all as audio)"
+msgstr "A&udio (leer todas como audio)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20623,13 +20623,13 @@ msgstr "Lectura de mensajes de voz en chats y estados:"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_voice_message"
-msgid "Voice &message (distinguish voice messages from audio files)"
+msgid "Voice messa&ge (distinguish voice messages from audio files)"
 msgstr "M&ensaje de voz (distinguir mensajes de voz de archivos de audio)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_record_focus_discard"
-msgid "&Discard button"
+msgid "Discard &button"
 msgstr "Botó&n descartar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20641,8 +20641,8 @@ msgstr "Al grabar un mensaje de voz, enfocar en"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_record_focus_send"
-msgid "Send &button (default)"
-msgstr "Botón enviar (&predeterminado)"
+msgid "S&end button (default)"
+msgstr "Bot&ón enviar (predeterminado)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21406,55 +21406,64 @@ msgid "Voice call"
 msgstr "Llamada de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_basic"
 msgid "Basic (noise gate)"
 msgstr "Básica (compuerta de ruido)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_label"
-msgid "Noise reduction engine"
-msgstr "Motor de reducción de ruido"
+msgid "&Noise reduction engine"
+msgstr "&Motor de reducción de ruido"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_neural"
 msgid "Neural"
 msgstr "Neuronal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_label"
-msgid "Process voice messages"
-msgstr "Procesar las notas de voz"
+msgid "&Process voice messages"
+msgstr "&Procesar las notas de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_record"
 msgid "While recording"
 msgstr "Mientras se graba"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_send"
 msgid "When sending"
 msgstr "Al enviar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_basic"
 msgid "Send with basic noise reduction (default)"
 msgstr "Enviar con reducción de ruido básica (predeterminado)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_label"
-msgid "When noise reduction fails"
-msgstr "Cuando la reducción de ruido falla"
+msgid "&When noise reduction fails"
+msgstr "&Cuando la reducción de ruido falla"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/voice_recording_options.py
+#: client/ui/dialogs/noise_reducer_dialog.py
+#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_pending"
 msgid "Keep the voice message pending to try sending it again"
 msgstr "Dejar la nota de voz pendiente para intentar enviarla de nuevo"
@@ -21467,14 +21476,14 @@ msgstr "Grabando audio"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_recording_bitrate_label"
-msgid "Voice message bitrate (kbps)"
-msgstr "Tasa de bits de los mensajes de voz (kbps)"
+msgid "Voice &message bitrate (kbps)"
+msgstr "Tasa &de bits de los mensajes de voz (kbps)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_recording_bitrate_stereo_label"
-msgid "Stereo voice message bitrate (kbps)"
-msgstr "Tasa de bits de los mensajes de voz en estéreo (kbps)"
+msgid "Stereo &voice message bitrate (kbps)"
+msgstr "&Tasa de bits de los mensajes de voz en estéreo (kbps)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -21485,8 +21494,8 @@ msgstr "Automático (usar los canales del dispositivo)"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_recording_channels_label"
-msgid "Voice message recording channels"
-msgstr "Canales de grabación de mensajes de voz"
+msgid "Voice message &recording channels"
+msgstr "Canales de grabación de mensajes de &voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

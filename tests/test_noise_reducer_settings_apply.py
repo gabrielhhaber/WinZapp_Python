@@ -68,7 +68,7 @@ def test_saving_a_new_device_does_not_start_without_the_model(monkeypatch):
         main_window=SimpleNamespace(settings={"general": {
             "noise_reduction_enabled": True, "noise_reduction_device": "cpu"}}),
         _noise_reducer_device="cuda12",
-        _voice_nr_engine_combo=SimpleNamespace(GetSelection=lambda: 0))
+        _noise_reducer_options={'engine': 'neural', 'moment': 'send', 'on_failure': 'basic'})
     NoiseReducerButtonMixin._save_noise_reducer_device(panel)
     assert calls == [("cuda12", False)]
     assert panel.main_window.settings["general"]["noise_reduction_device"] == "cuda12"
