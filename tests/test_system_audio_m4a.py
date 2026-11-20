@@ -298,6 +298,7 @@ class TestMixedComposer(unittest.TestCase):
         import hashlib
         from core.incremental_send import consume_incremental_session
         from core.message_resend import RESEND_PATH_KEY
+        from core.voice_nr_send_plan import plan_after_reservation, plan_send_reduction
         namespace = dict(voice_dispatcher=voice_dispatcher, logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          pending_send_timestamp=pending_send_timestamp, wave=wave, threading=self.threads, wx=fake_wx,
                          recording_output_channels=recording_output_channels,
@@ -315,7 +316,11 @@ class TestMixedComposer(unittest.TestCase):
                          append_message_row=append_message_row,
                          message_row_count=message_row_count,
                          consume_incremental_session=consume_incremental_session,
-                         hashlib=hashlib, RESEND_PATH_KEY=RESEND_PATH_KEY)
+                         hashlib=hashlib, RESEND_PATH_KEY=RESEND_PATH_KEY,
+                         plan_send_reduction=plan_send_reduction,
+                         plan_after_reservation=plan_after_reservation,
+                         # No model file here: the gate, as on a fresh install.
+                         _neural_model_installed=lambda: False)
         # Bind the actual send handler; no wx/App or capture APIs are imported.
         bind(self.p, ['_send_voice_message', '_encode_stereo_voice',
                       '_reduce_for_send', '_reduce_or_keep_pending',
