@@ -323,6 +323,14 @@ def test_the_waiting_room_opens_once_and_decisions_are_spoken_by_name(monkeypatc
     assert stub.spoken[-1] == "call_link_decision_failed" and done[-1] is False
 
 
+def test_a_link_join_with_no_call_id_is_a_failure():
+    import pytest
+    assert cl.joined_call_id({"id": "L1", "waiting": True}) == "L1"
+    for body in ({}, {"id": ""}, None, "x"):
+        with pytest.raises(ValueError):
+            cl.joined_call_id(body)
+
+
 def test_a_link_is_not_asked_about_while_a_call_is_active():
     stub = Stub()
     stub._active_voice_call = {"call_id": "G1"}

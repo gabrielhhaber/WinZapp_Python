@@ -64,6 +64,15 @@ def waiting_people(response) -> list:
     return rows
 
 
+def joined_call_id(body) -> str:
+    """The call id a call/link/join answer carries. Raises ValueError when
+    there is none: the join did not happen, whatever the status said."""
+    call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
+    if not call_id:
+        raise ValueError("The call link join answered no call id")
+    return call_id
+
+
 def waiting_room_admin(response) -> bool:
     """Whether a call/link/waiting-room answer says this user is the call's
     admin: only the admin may see or decide who waits."""
