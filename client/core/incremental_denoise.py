@@ -347,7 +347,10 @@ class IncrementalDenoiseController:
         self._sessions = {}   # local_id -> drain IPC session dict
         self._states = {}     # local_id -> PREPARING | CANCELLED
         self._slot_owner = None
-        self._offline_owner = None
+        # local_id -> number of live offline reservations. Offline passes
+        # share the singleton model (serialized by its own inference lock),
+        # so they exclude captures, never each other.
+        self._offline_owners = {}
 
     def register(self, local_id, session) -> None:
         """Send authority + capture identity for EVERY note that enters the
@@ -365,7 +368,7 @@ class IncrementalDenoiseController:
         and the offline singleton is effective in BOTH directions under
         this same lock (review 18:47, contract 1)."""
         with self._lock:
-            if self._slot_owner is not None or self._offline_owner is not None:
+            if self._slot_owner is not None or self._offline_owners:
                 return False
             self._slot_owner = local_id
             self._sessions[local_id] = session
@@ -444,8 +447,11 @@ class IncrementalDenoiseController:
         boolean probe. A kept-pending retry holds this from BEFORE it
         waits on the singleton's inference lock until the reduction
         returns, so no capture can start a private model next to the
-        offline one in between, and no second offline reservation runs
-        concurrently (review 18:47, contract 1).
+        offline one in between (review 18:47, contract 1). Offline
+        reservations do NOT exclude each other: every offline pass runs
+        on the one shared singleton, so two notes reduced at send time
+        never load a second ONNX instance — both get the neural model, as
+        before this controller existed.
 
         STRICT: any occupied slot refuses, whatever its owner — ID
         equality is NOT cleanup (review 19:07). A native timeout leaves
@@ -456,16 +462,19 @@ class IncrementalDenoiseController:
         reclaim/drain released it, or the caller released it after
         positively confirming the session never started a model."""
         with self._lock:
-            if self._slot_owner is not None or self._offline_owner is not None:
+            if self._slot_owner is not None:
                 return False
-            self._offline_owner = local_id
+            self._offline_owners[local_id] = self._offline_owners.get(local_id, 0) + 1
             return True
 
     def release_offline(self, local_id) -> None:
         """Free the offline reservation — only the reserving owner can."""
         with self._lock:
-            if self._offline_owner == local_id:
-                self._offline_owner = None
+            count = self._offline_owners.get(local_id, 0)
+            if count > 1:
+                self._offline_owners[local_id] = count - 1
+            elif count:
+                del self._offline_owners[local_id]
 
     def release_slot(self, local_id) -> None:
         """Free the SLOT — nothing else. Only called by the party that

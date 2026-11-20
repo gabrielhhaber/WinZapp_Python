@@ -2187,6 +2187,50 @@ def test_send_neural_at_send_moment_uses_the_offline_model(send_env, monkeypatch
     assert _wav_payload(pm.audio_path) == bytes(reversed(raw))
 
 
+def test_two_notes_reduced_at_send_at_once_both_get_the_neural_model(
+        send_env, monkeypatch):
+    # Default settings (neural, at send): a long note is still being
+    # reduced when a short one is sent. Offline passes share the singleton,
+    # so the second must NOT be downgraded to the basic gate because the
+    # first holds an offline reservation (reviewer 1, PR #834).
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(ap, "apply_noise_gate", _no_gate)
+    first_entered = threading.Event()
+    release_first = threading.Event()
+    second_called = threading.Event()
+
+    def _reduce(data, rate, ch):
+        if not first_entered.is_set():
+            first_entered.set()
+            assert release_first.wait(10)
+        else:
+            second_called.set()
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _reduce)
+    controller = IncrementalDenoiseController()
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["voice_nr_moment"] = "send"
+    long_raw = bytes([0x11, 0x12]) * 960
+    short_raw = bytes([0x21, 0x22]) * 480
+    vr.VoiceRecordingMixin._send_voice_message(
+        _SendPanel(mw, [long_raw], None), None)
+    assert first_entered.wait(10)
+    vr.VoiceRecordingMixin._send_voice_message(
+        _SendPanel(mw, [short_raw], None), None)
+    try:
+        assert second_called.wait(10), "second note never reached the model"
+    finally:
+        release_first.set()
+    deadline = time.time() + 10
+    while time.time() < deadline and len(mw.message_queue.enqueued) < 2:
+        time.sleep(0.02)
+    payloads = [_wav_payload(pm.audio_path) for pm in mw.message_queue.enqueued]
+    assert payloads == [bytes(reversed(long_raw)), bytes(reversed(short_raw))]
+    assert not controller._offline_owners
+
+
 def test_send_after_switching_to_send_moment_goes_offline(send_env, monkeypatch):
     # Recorded with neural-while-recording, but the preference changed to
     # at-send before the note was sent: the published offline path applies
@@ -2939,7 +2983,7 @@ def test_retry_waits_for_cleanup_when_the_same_note_retains_its_slot(send_env, m
     assert called == []
     assert mw.message_queue.enqueued == []
     assert announced == ["noise_reduction_kept_pending"]
-    assert controller._offline_owner is None
+    assert not controller._offline_owners
     assert not getattr(panel, "_nr_attempts", {})
     # Cleanup confirmed (the slot is really released): the SAME row's
     # retry now runs the reduction and hands off.
@@ -3231,9 +3275,10 @@ def test_raw_send_ignored_while_retry_attempt_in_flight(send_env, monkeypatch):
 def test_retry_reservation_blocks_capture_and_second_offline(send_env, monkeypatch):
     # Contract 1 (18:47): the offline side is RESERVED under the
     # controller's lock from before the inference-lock wait — a capture
-    # cannot take the slot between a probe and the model use, and a
-    # second offline reservation defers. Released when the reduction
-    # ends, before staging/handoff.
+    # cannot take the slot between a probe and the model use. A second
+    # OFFLINE reservation is granted: it shares the singleton, so it is
+    # no second ONNX. Released when the reduction ends, before
+    # staging/handoff.
     import core.neural_noise_reduction as nnr
     gate = threading.Event()
     entered = threading.Event()
@@ -3254,7 +3299,9 @@ def test_retry_reservation_blocks_capture_and_second_offline(send_env, monkeypat
         panel, msg, "peer@s.whatsapp.net", kept)
     assert entered.wait(10)
     assert controller.acquire_slot("other-note", {"cancel": False}) is False
-    assert controller.try_reserve_offline("other-offline") is False
+    assert controller.try_reserve_offline("other-offline") is True
+    controller.release_offline("other-offline")
+    assert controller.acquire_slot("other-note", {"cancel": False}) is False
     gate.set()
     _wait_wx_calls()
     _drive_wx_calls()

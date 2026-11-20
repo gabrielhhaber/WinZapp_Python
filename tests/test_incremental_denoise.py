@@ -377,6 +377,30 @@ def test_slot_is_single_and_releases():
     assert c.is_preparing("m2")
 
 
+def test_offline_reservations_exclude_captures_but_not_each_other():
+    c = IncrementalDenoiseController()
+    assert c.try_reserve_offline("a")
+    assert c.try_reserve_offline("b")
+    assert not c.acquire_slot("rec", _drain_session([], "x", None))
+    c.release_offline("a")
+    assert not c.acquire_slot("rec", _drain_session([], "x", None))
+    c.release_offline("b")
+    assert c.acquire_slot("rec", _drain_session([], "x", None))
+    # A held capture slot still refuses every offline reservation.
+    assert not c.try_reserve_offline("c")
+
+
+def test_offline_reservation_of_one_note_is_counted():
+    c = IncrementalDenoiseController()
+    assert c.try_reserve_offline("a")
+    assert c.try_reserve_offline("a")
+    c.release_offline("a")
+    assert not c.acquire_slot("rec", _drain_session([], "x", None))
+    c.release_offline("a")
+    c.release_offline("a")   # extra release is harmless
+    assert c.acquire_slot("rec", _drain_session([], "x", None))
+
+
 def test_revoke_pre_transfer_wins_and_flags_the_session():
     c = IncrementalDenoiseController()
     session = _registered_session(c)
