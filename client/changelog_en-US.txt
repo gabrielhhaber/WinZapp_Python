@@ -4,7 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
-- Voice messages can use neural noise reduction in the background while recording, instead of waiting until send time. Settings > Audio lets you choose basic or neural reduction, processing while recording or when sending (the default), and what to do if neural reduction fails: send with basic reduction or keep the note pending for a manual retry. These list options no longer include keyboard mnemonic markers inside words. Recording-time processing uses the in-process CPU or CoreML path; selecting CUDA disables it and uses processing at send time. There is no CUDA processing while recording. The CoreML recording path has not been validated in real use.
+- Voice messages can use neural noise reduction in the background while recording, instead of waiting until send time. Settings > Audio lets you choose basic or neural reduction, processing while recording or when sending (the default), and what to do if neural reduction fails: send with basic reduction or keep the message pending for a manual retry. Recording-time processing uses the CPU or CoreML; selecting CUDA disables it and uses processing at send time. There is no CUDA processing while recording. The CoreML recording path has not been validated in real use.
 
 - A contact now has a single name: when someone changes their profile name, all their messages, old ones and group ones included, show the new name instead of switching between the old and the new. Applies to Neonize and WPPConnect.
 

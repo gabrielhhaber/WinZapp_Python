@@ -10537,16 +10537,6 @@ msgid "Noise reducer"
 msgstr "Reducerea zgomotului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_use_neural"
-msgid ""
-"Use t&he neural noise reducer (more precise; untick for the common one, "
-"faster)"
-msgstr ""
-"Folos&iți reducerea neurală a zgomotului (mai precisă; debifați pentru cea "
-"obișnuită, mai rapidă)"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_waiting_restart"
 msgid ""
 "Waiting for the noise reducer to restart before cleaning the voice message."
@@ -21428,8 +21418,8 @@ msgstr "Neural"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_label"
-msgid "Process voice notes"
-msgstr "Procesați notele vocale"
+msgid "Process voice messages"
+msgstr "Procesați mesajele vocale"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -21460,7 +21450,7 @@ msgstr "Când reducerea zgomotului eșuează"
 msgctxt "voice_nr_on_failure_pending"
 msgid "Keep the voice message pending to try sending it again"
 msgstr ""
-"Păstrează mesajul vocal în așteptare pentru a încerca să-l trimiteți din nou"
+"Păstrați mesajul vocal în așteptare pentru a încerca să-l trimiteți din nou"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"

@@ -37,23 +37,41 @@ class _Ctrl:
         self.shown = on
 
 
-def _panel(reduction_on, monkeypatch, installed=True):
-    from core import noise_model
-    monkeypatch.setattr(noise_model, "is_installed", lambda: installed)
+def _panel(reduction_on):
     panel = SimpleNamespace(_noise_reduction_check=_Ctrl(reduction_on),
-                            _noise_reducer_neural_check=_Ctrl(), _noise_reducer_btn=_Ctrl(),
+                            _noise_reducer_btn=_Ctrl(),
                             _noise_reducer_page=SimpleNamespace(Layout=lambda: None))
-    NoiseReducerButtonMixin._sync_noise_reducer_neural_box(panel)
+    NoiseReducerButtonMixin._sync_noise_reducer_button(panel)
     return panel
 
 
-def test_the_settings_button_follows_the_noise_reduction_box(monkeypatch):
-    off = _panel(False, monkeypatch)
-    assert not off._noise_reducer_btn.shown and not off._noise_reducer_neural_check.shown
-    on = _panel(True, monkeypatch)
-    assert on._noise_reducer_btn.shown and on._noise_reducer_neural_check.shown
-    no_model = _panel(True, monkeypatch, installed=False)
-    assert no_model._noise_reducer_btn.shown and not no_model._noise_reducer_neural_check.shown
+def test_the_settings_button_follows_the_noise_reduction_box():
+    assert not _panel(False)._noise_reducer_btn.shown
+    assert _panel(True)._noise_reducer_btn.shown
+
+
+@pytest.mark.parametrize("enabled,neural,installed,expected", [
+    (True, True, True, True), (True, True, False, False),
+    (True, False, True, False), (False, True, True, False)])
+def test_the_reducer_starts_only_with_the_model_there(enabled, neural, installed, expected):
+    from ui.dialogs.noise_reducer_dialog import reducer_start_wanted
+    assert reducer_start_wanted(enabled, neural, installed) is expected
+
+
+def test_saving_a_new_device_does_not_start_without_the_model(monkeypatch):
+    from core import noise_model
+    calls = []
+    monkeypatch.setattr(noise_model, "is_installed", lambda: False)
+    monkeypatch.setattr(noise_worker_host.host, "apply",
+                        lambda device, start=False: calls.append((device, start)))
+    panel = SimpleNamespace(
+        main_window=SimpleNamespace(settings={"general": {
+            "noise_reduction_enabled": True, "noise_reduction_device": "cpu"}}),
+        _noise_reducer_device="cuda12",
+        _voice_nr_engine_combo=SimpleNamespace(GetSelection=lambda: 0))
+    NoiseReducerButtonMixin._save_noise_reducer_device(panel)
+    assert calls == [("cuda12", False)]
+    assert panel.main_window.settings["general"]["noise_reduction_device"] == "cuda12"
 
 
 # ------------------------------------------------------------ runtime

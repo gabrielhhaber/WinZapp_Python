@@ -10536,16 +10536,6 @@ msgid "Noise reducer"
 msgstr "Redutor de ruído"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_use_neural"
-msgid ""
-"Use t&he neural noise reducer (more precise; untick for the common one, "
-"faster)"
-msgstr ""
-"Usar o redutor de ru&ído neural (mais preciso; desmarque para o comum, mais "
-"rápido)"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_waiting_restart"
 msgid ""
 "Waiting for the noise reducer to restart before cleaning the voice message."
@@ -21384,8 +21374,8 @@ msgstr "Neural"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_label"
-msgid "Process voice notes"
-msgstr "Processar as notas de voz"
+msgid "Process voice messages"
+msgstr "Processar as mensagens de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

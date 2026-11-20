@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHOICE_KEYS = (
     "voice_nr_engine_basic", "voice_nr_engine_neural",
     "voice_nr_moment_record", "voice_nr_moment_send",
+    "voice_nr_on_failure_basic", "voice_nr_on_failure_pending",
 )
 CATALOGS = sorted((ROOT / "translations").glob("*/LC_MESSAGES/winzapp.po"))
 

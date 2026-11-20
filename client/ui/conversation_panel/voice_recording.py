@@ -30,7 +30,8 @@ from core.voice_stereo import (
 from core.voice_recording_mode import (
     voice_recording_mode, recording_output_channels, prepare_voice_pcm,
 )
-from core.voice_nr_options import voice_nr_engine, voice_nr_moment, voice_nr_on_failure
+from core.voice_nr_options import (
+    effective_nr_on_failure, nr_local_id, voice_nr_engine, voice_nr_moment)
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import encrypt
@@ -705,11 +706,16 @@ class VoiceRecordingMixin:
     def _close_stream_handle(stream):
         # PyAudio streams use stop_stream(); sounddevice/sound_lib streams
         # use stop(). Both have close().
-        if hasattr(stream, "stop_stream"):
-            stream.stop_stream()
-        else:
-            stream.stop()
-        stream.close()
+        # close() always runs: a stop() that raises (unplugged USB/BT
+        # headset) must not leak the handle. The stop error still
+        # propagates so the caller reports the close as unconfirmed.
+        try:
+            if hasattr(stream, "stop_stream"):
+                stream.stop_stream()
+            else:
+                stream.stop()
+        finally:
+            stream.close()
 
     def _stop_recording_stream(self, session=None):
         """Stop and close the stream that belongs to *session*.
@@ -996,12 +1002,58 @@ class VoiceRecordingMixin:
             return audio_data, None
 
     def _nr_pending_row_alive(self, local_id):
-        """UI-thread liveness of the kept-pending row (delete wins races)."""
+        """UI-thread liveness of the kept-pending row (delete wins races).
+
+        Only meaningful for the OPEN conversation: ``_sorted_messages`` holds
+        that chat alone. A row of another chat is judged by
+        :meth:`_nr_pending_record_alive`.
+        """
         if not local_id:
             return True
         return any(
             isinstance(m, dict) and m.get("key", {}).get("id") == local_id
             for m in self._sorted_messages)
+
+    def _nr_pending_record_alive(self, local_id, remote_jid):
+        """Whether the pending row still exists in its OWN chat's records.
+
+        Unlike :meth:`_nr_pending_row_alive` this survives a chat switch: the
+        send thread can finish while another conversation is open, and a row
+        that is merely off screen is not a deleted row.
+        """
+        if not local_id:
+            return True
+        chat = self.main_window.get_chat(remote_jid)
+        return self._record_position(chat, local_id) >= 0
+
+    def _nr_finish_kept_pending(self, local_id, remote_jid, virtual_msg, key):
+        """UI thread: end of the keep-pending write for ONE row.
+
+        Deleted row (gone from its chat's records): the kept file dies with
+        it and nothing is announced. Row on screen: the normal failed-row
+        path. Row off screen (the user switched chat): the same state is
+        written on the record itself so the later "Try sending again" works.
+        """
+        mw = self.main_window
+        path = virtual_msg.get(RESEND_PATH_KEY)
+        if not self._nr_pending_record_alive(local_id, remote_jid):
+            if path:
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+            return False
+        if self._nr_pending_row_alive(local_id):
+            self._mark_message_failed(local_id)
+        else:
+            virtual_msg["_local_pending"] = False
+            virtual_msg["_send_failed"] = True
+            self._outgoing_virtual_messages.pop(local_id, None)
+            mw._schedule_save(dirty_jid=remote_jid)
+        announce = getattr(mw, "output", None)
+        if announce is not None:
+            announce(mw.i18n.t(key))
+        return True
 
     # --- Fourth-option attempt authority (review 18:47, contract 2) ---
     # An attempt is registered per NOTE (local_id) on the PANEL, never as
@@ -1027,6 +1079,21 @@ class VoiceRecordingMixin:
         registry[local_id] = (token, remote_jid)
         return token
 
+    def _nr_begin_action(self, msg, remote_jid):
+        """(local_id, token) for a user action on a kept-pending note.
+
+        A second press while one is live gets no token; it is SPOKEN (the
+        action is already running) instead of silently dropped.
+        """
+        local_id = nr_local_id(msg)
+        token = self._nr_attempt_begin(local_id, remote_jid)
+        if token is None:
+            logging.info("[noise_reduction] an action on this pending note "
+                         "is already in flight; ignoring the extra request")
+            mw = self.main_window
+            mw.output(mw.i18n.t("resend_started"), interrupt=True)
+        return local_id, token
+
     def _nr_attempt_end(self, local_id, token):
         registry = getattr(self, "_nr_attempts", None)
         if registry is not None and registry.get(local_id, (None,))[0] == token:
@@ -1042,9 +1109,28 @@ class VoiceRecordingMixin:
         if registry is None or registry.get(local_id, (None,))[0] != token:
             return False
         conversation = getattr(self, "conversation", None) or {}
-        if conversation.get("remoteJid") and                 conversation.get("remoteJid") != remote_jid:
+        if (conversation.get("remoteJid")
+                and not self.main_window._chat_jids_equivalent(
+                    conversation.get("remoteJid"), remote_jid)):
             return False
         return self._nr_pending_row_alive(local_id)
+
+    def _nr_attempt_may_speak(self, local_id, token, remote_jid):
+        """Whether the outcome of an attempt is still worth announcing.
+
+        True when the context is fully alive, and also when the user only
+        switched chat while the note was processing: the outcome is spoken
+        rather than lost. False for a dead panel, a superseded attempt or a
+        row deleted from its own chat (nothing left to tell about).
+        """
+        if self._nr_attempt_context_alive(local_id, token, remote_jid):
+            return True
+        if getattr(self, "_nr_panel_dead", False):
+            return False
+        registry = getattr(self, "_nr_attempts", None)
+        if registry is None or registry.get(local_id, (None,))[0] != token:
+            return False
+        return self._nr_pending_record_alive(local_id, remote_jid)
 
     def _nr_invalidate_attempts(self):
         """Panel destroy / teardown: every live attempt loses its
@@ -1062,9 +1148,9 @@ class VoiceRecordingMixin:
         mw = self.main_window
 
         def _do():
-            alive = self._nr_attempt_context_alive(local_id, token, remote_jid)
+            speak = self._nr_attempt_may_speak(local_id, token, remote_jid)
             self._nr_attempt_end(local_id, token)
-            if alive:
+            if speak:
                 mw.output(mw.i18n.t(key), interrupt=True)
         wx.CallAfter(_do)
 
@@ -1126,7 +1212,7 @@ class VoiceRecordingMixin:
         the valid kept original.
         """
         mw = self.main_window
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+        local_id = nr_local_id(msg)
         # Encode off the UI thread exactly like the recording path.
         ogg_bytes = None
         voice_mimetype = ""
@@ -1236,8 +1322,13 @@ class VoiceRecordingMixin:
             # deleted row, a destroyed panel or a switched conversation
             # ends the attempt quietly and the staged artifacts die here.
             if not self._nr_attempt_context_alive(local_id, token, remote_jid):
+                speak = self._nr_attempt_may_speak(local_id, token, remote_jid)
                 self._nr_attempt_end(local_id, token)
                 _cleanup_artifacts()
+                if speak:
+                    # Chat switched while processing: the note stays kept
+                    # pending, and the user is told instead of left guessing.
+                    mw.output(mw.i18n.t(fail_key), interrupt=True)
                 return
             new_msg = {
                 "_local_pending": True,
@@ -1257,7 +1348,8 @@ class VoiceRecordingMixin:
                     **({"mimetype": "audio/mp4",
                         "fileName": new_local_id + ".m4a"}
                        if channels >= 2 else {})}},
-                "messageTimestamp": int(time.time()),
+                "messageTimestamp": pending_send_timestamp(
+                    time.time(), self._sorted_messages),
                 "pushName": "",
                 RESEND_PATH_KEY: persisted,
             }
@@ -1354,11 +1446,8 @@ class VoiceRecordingMixin:
           session); no new destination surface.
         """
         mw = self.main_window
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
-        token = self._nr_attempt_begin(local_id, remote_jid)
+        local_id, token = self._nr_begin_action(msg, remote_jid)
         if token is None:
-            logging.info("[noise_reduction] an action on this pending note "
-                         "is already in flight; ignoring the extra request")
             return
 
         def _work():
@@ -1478,11 +1567,8 @@ class VoiceRecordingMixin:
         reprocessing retry. No model is touched, so the incremental slot
         does not gate this path.
         """
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
-        token = self._nr_attempt_begin(local_id, remote_jid)
+        local_id, token = self._nr_begin_action(msg, remote_jid)
         if token is None:
-            logging.info("[noise_reduction] an action on this pending note "
-                         "is already in flight; ignoring the extra request")
             return
         self._stage_pending_and_handoff(msg, remote_jid, path, local_id,
                                         token, "noise_reduction_kept_pending")
@@ -1494,11 +1580,8 @@ class VoiceRecordingMixin:
         re-reduced and never through the generic attachment path (review
         18:47, contract 4). Same per-note attempt authority and handoff
         as every other fourth-option action."""
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
-        token = self._nr_attempt_begin(local_id, remote_jid)
+        local_id, token = self._nr_begin_action(msg, remote_jid)
         if token is None:
-            logging.info("[noise_reduction] an action on this note is "
-                         "already in flight; ignoring the extra request")
             return
         self._stage_pending_and_handoff(msg, remote_jid, path, local_id,
                                         token, "resend_not_available")
@@ -1729,15 +1812,17 @@ class VoiceRecordingMixin:
                         return
                     if inc_session.get("device_failed"):
                         # Close NOT confirmed: capture state unknown, frames
-                        # may still grow. Occupied until the user cancels or
-                        # the process ends; the drain is cancelled so it
-                        # cleans its own spool and releases the slot.
+                        # may still grow, so nothing is built from them. The
+                        # drain is cancelled (it cleans its own spool and
+                        # frees the slot) and the note FAILS audibly: the
+                        # ticket is released by the return below, so later
+                        # notes of this chat are never held behind it.
                         logging.error("[noise_reduction] capture device close was not "
-                                      "confirmed; note stays pending until cancelled")
+                                      "confirmed; failing the note")
                         inc_session["cancel"] = True
-                        while not inc_session.get("revoked"):
-                            time.sleep(0.1)
                         _forget_incremental()
+                        wx.CallAfter(mw._on_message_failed, local_id,
+                                     mw.i18n.t("voice_recording_device_failed"), True)
                         return
                 # Stage 2 — ask the drain for its end state: stop → it
                 # finishes the audio it has and hands worker+spool to this
@@ -2220,7 +2305,12 @@ class VoiceRecordingMixin:
                     or inc_session.get("model_unavailable", False)
                     or inc_session.get("fallback_chosen", False))
                 basic_only = chosen_basic or session_blocked
-                on_failure = voice_nr_on_failure(mw.settings)
+                from core import noise_model
+                try:
+                    _model_installed = noise_model.is_installed()
+                except Exception:
+                    _model_installed = False
+                on_failure = effective_nr_on_failure(mw.settings, _model_installed)
                 want_pending = on_failure == "keep_pending" and not chosen_basic
                 # No second ONNX next to a live native session: with
                 # keep_pending, when the incremental side could not clean
@@ -2347,12 +2437,13 @@ class VoiceRecordingMixin:
                         # mandatory (review 18:47).
                         try:
                             with open(pending_path, "rb") as fh:
-                                virtual_msg["_nr_pending_sha256"] =                                     hashlib.sha256(fh.read()).hexdigest()
-                            virtual_msg["_nr_pending_size"] =                                 os.path.getsize(pending_path)
+                                virtual_msg["_nr_pending_sha256"] = (
+                                    hashlib.sha256(fh.read()).hexdigest())
+                            virtual_msg["_nr_pending_size"] = (
+                                os.path.getsize(pending_path))
                         except OSError:
                             pass
                     virtual_msg.pop("_incremental_preparing", None)
-                    _forget_incremental()
                     if pending_path is not None:
                         announce_key = "noise_reduction_kept_pending"
                     else:
@@ -2360,21 +2451,17 @@ class VoiceRecordingMixin:
                         # announce a retry that cannot happen.
                         announce_key = "noise_reduction_pending_save_failed"
 
-                    def _mark_kept_pending(path=pending_path, key=announce_key):
-                        # UI thread — the same one deletions run on: if the
-                        # row went away after the write, the kept file dies
-                        # here and nothing is announced on a dead row.
-                        if not self._nr_pending_row_alive(local_id):
-                            if path is not None:
-                                try:
-                                    os.unlink(path)
-                                except OSError:
-                                    pass
-                            return
-                        self._mark_message_failed(local_id)
-                        announce = getattr(mw, "output", None)
-                        if announce is not None:
-                            announce(mw.i18n.t(key))
+                    def _mark_kept_pending(key=announce_key):
+                        # UI thread — the same one deletions run on. The
+                        # controller's send authority is released HERE, not
+                        # before, so a revoke() racing this callback still
+                        # wins; a row gone from its own chat's records takes
+                        # the kept file with it and announces nothing.
+                        try:
+                            self._nr_finish_kept_pending(
+                                local_id, remote_jid, virtual_msg, key)
+                        finally:
+                            _forget_incremental()
 
                     wx.CallAfter(_mark_kept_pending)
                     return

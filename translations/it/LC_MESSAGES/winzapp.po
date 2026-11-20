@@ -10589,16 +10589,6 @@ msgid "Noise reducer"
 msgstr "Riduttore di rumore"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_use_neural"
-msgid ""
-"Use t&he neural noise reducer (more precise; untick for the common one, "
-"faster)"
-msgstr ""
-"Usa il riduttore di rumore neurale (più preciso; deseleziona per &quello "
-"comune, più veloce)"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_waiting_restart"
 msgid ""
 "Waiting for the noise reducer to restart before cleaning the voice message."
@@ -21563,7 +21553,7 @@ msgstr "Chiamata vocale"
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_engine_basic"
 msgid "Basic (noise gate)"
-msgstr "Basilare (noise gate)"
+msgstr "Di base (noise gate)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -21580,8 +21570,8 @@ msgstr "Neurale"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_label"
-msgid "Process voice notes"
-msgstr "Elabora le note vocali"
+msgid "Process voice messages"
+msgstr "Elabora i messaggi vocali"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -21599,7 +21589,7 @@ msgstr "All'invio"
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_on_failure_basic"
 msgid "Send with basic noise reduction (default)"
-msgstr "Invia con riduzione del rumore basilare (predefinito)"
+msgstr "Invia con riduzione del rumore di base (predefinito)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py

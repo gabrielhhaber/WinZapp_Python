@@ -908,6 +908,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         adev_sizer.Add(self._noise_reduction_check, 0, wx.ALL, 8)
         # the model and the processor it runs on: in its own window
         self._build_noise_reducer_button(self._audio_devices_page, adev_sizer)
+        self._build_voice_nr_options(self._audio_devices_page, adev_sizer)
         self._build_voice_recording_options(self._audio_devices_page, adev_sizer)
 
         # What an audio file pasted into the message field (Ctrl+V) is sent

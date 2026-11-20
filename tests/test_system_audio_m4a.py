@@ -291,7 +291,7 @@ class TestMixedComposer(unittest.TestCase):
             stereo_voice_bitrate_kbps, voice_bitrate_kbps,
         )
         from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
-        from core.voice_nr_options import voice_nr_engine, voice_nr_moment, voice_nr_on_failure
+        from core.voice_nr_options import effective_nr_on_failure, voice_nr_engine, voice_nr_moment, voice_nr_on_failure
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         from core.pending_timestamp import pending_send_timestamp
         from core.ordered_dispatch import voice_dispatcher
@@ -305,6 +305,7 @@ class TestMixedComposer(unittest.TestCase):
                          voice_nr_engine=voice_nr_engine,
                          voice_nr_moment=voice_nr_moment,
                          voice_nr_on_failure=voice_nr_on_failure,
+                         effective_nr_on_failure=effective_nr_on_failure,
                          drop_empty_side=drop_empty_side,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),

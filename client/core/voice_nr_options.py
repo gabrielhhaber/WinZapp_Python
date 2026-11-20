@@ -62,6 +62,27 @@ def voice_nr_on_failure(settings):
     return normalize_nr_on_failure(general.get("voice_nr_on_failure"))
 
 
+def effective_nr_on_failure(settings, model_installed):
+    """The failure action actually applied to a note.
+
+    Without the neural model every note "fails" the neural engine by
+    construction, so honouring keep_pending would hold each note pending
+    forever: a missing model behaves as the basic engine instead.
+    """
+    if not model_installed:
+        return "basic"
+    return voice_nr_on_failure(settings)
+
+
 def recording_nr_available(device):
     """The streaming worker runs in-process, never in the CUDA subprocess."""
     return device in (None, "cpu", "coreml")
+
+
+def nr_local_id(msg):
+    """The pending row's id: ``_local_id``, else ``key.id``, else ""."""
+    if not isinstance(msg, dict):
+        return ""
+    key = msg.get("key")
+    key_id = key.get("id") if isinstance(key, dict) else None
+    return str(msg.get("_local_id") or key_id or "")

@@ -10561,16 +10561,6 @@ msgid "Noise reducer"
 msgstr "Redukcja szumów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/noise_reducer_dialog.py
-msgctxt "noise_reducer_use_neural"
-msgid ""
-"Use t&he neural noise reducer (more precise; untick for the common one, "
-"faster)"
-msgstr ""
-"U&żywaj neuronowej redukcji szumów (dokładniejsza; odznacz dla zwykłej, "
-"szybszej)"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "noise_reducer_waiting_restart"
 msgid ""
 "Waiting for the noise reducer to restart before cleaning the voice message."
@@ -10601,8 +10591,8 @@ msgid ""
 "Could not apply neural noise reduction; the voice message stayed pending so "
 "you can try sending it again."
 msgstr ""
-"Nie można zastosować neuronowej redukcji szumów; notatka głosowa pozostała "
-"oczekująca, aby można było spróbować wysłać ją ponownie."
+"Nie można zastosować neuronowej redukcji szumów; wiadomość głosowa pozostała"
+" oczekująca, aby można było spróbować wysłać ją ponownie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -10616,7 +10606,7 @@ msgid ""
 "Could not apply neural noise reduction, and the voice message could not be "
 "kept for another attempt; it was not sent."
 msgstr ""
-"Nie można zastosować neuronowej redukcji szumów, a notatki głosowej nie "
+"Nie można zastosować neuronowej redukcji szumów, a wiadomości głosowej nie "
 "udało się zachować do kolejnej próby; nie została wysłana."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -21592,8 +21582,8 @@ msgstr "Neuronowy"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_nr_moment_label"
-msgid "Process voice notes"
-msgstr "Przetwarzanie notatek głosowych"
+msgid "Process voice messages"
+msgstr "Przetwarzanie wiadomości głosowych"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -21624,7 +21614,7 @@ msgstr "Gdy redukcja szumów się nie powiedzie"
 msgctxt "voice_nr_on_failure_pending"
 msgid "Keep the voice message pending to try sending it again"
 msgstr ""
-"Pozostaw notatkę głosową jako oczekującą, aby spróbować wysłać ją ponownie"
+"Pozostaw wiadomość głosową jako oczekującą, aby spróbować wysłać ją ponownie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_recording"

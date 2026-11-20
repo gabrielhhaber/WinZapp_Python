@@ -51,6 +51,13 @@ from ui.conversation_panel import voice_recording as vr  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
+def _model_installed(monkeypatch):
+    """The neural model is there unless a test says otherwise."""
+    from core import noise_model
+    monkeypatch.setattr(noise_model, "is_installed", lambda: True)
+
+
+@pytest.fixture(autouse=True)
 def _record_wx_calls(monkeypatch):
     """Route the module under test's wx dispatch into WX_CALLS and restore it.
 
@@ -488,6 +495,17 @@ class _FakeSendMW:
         self.output = lambda *a, **k: None
         self.voicemsg_send_sound = types.SimpleNamespace(play=lambda: None)
         self.failed_calls = []
+        # The chat's own records (what a row's liveness is judged against).
+        self.records = []
+
+    def _chat_jids_equivalent(self, left, right):
+        return left == right
+
+    def get_chat(self, remote_jid):
+        return {"messages": {"messages": {"records": self.records}}}
+
+    def _schedule_save(self, **k):
+        pass
 
     def send_recording_status(self, *a):
         pass
@@ -506,6 +524,8 @@ class _FakeSendMW:
 
 
 class _SendPanel:
+    _record_position = staticmethod(ma.MessageActionsMixin._record_position)
+
     """Fake conversation panel exposing the REAL mixin methods the send
     path calls on self."""
 
@@ -529,6 +549,12 @@ class _SendPanel:
         self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
         self._nr_pending_row_alive = (
             lambda local_id: vr.VoiceRecordingMixin._nr_pending_row_alive(self, local_id))
+        self._outgoing_virtual_messages = {}
+        for _name in ("_nr_pending_record_alive", "_nr_finish_kept_pending"):
+            setattr(self, _name,
+                    (lambda n: (lambda *a, **k:
+                                getattr(vr.VoiceRecordingMixin, n)(self, *a, **k))
+                     )(_name))
 
     def _stop_recording_stream(self, session=None):
         return vr.VoiceRecordingMixin._stop_recording_stream(self, session)
@@ -544,6 +570,7 @@ class _SendPanel:
 
     def _register_virtual_msg(self, msg):
         self.registered = msg
+        self.main_window.records.append(msg)
 
     def _on_cancel_reply(self):
         pass
@@ -2440,6 +2467,7 @@ def test_keep_pending_row_deleted_before_mark_deletes_file(send_env, monkeypatch
     path = _wait_kept_pending(panel)
     assert os.path.exists(path)
     panel._sorted_messages.clear()  # the delete lands first
+    mw.records.clear()
     _drive_wx_calls()
     assert panel.failed == []
     assert announced == []
@@ -2539,6 +2567,8 @@ def _kept_note(send_env, raw, local_id="m9"):
 
 
 class _RetryPanel:
+    _record_position = staticmethod(ma.MessageActionsMixin._record_position)
+
     """Fake panel for the REAL _retry_nr_pending (voice-note handoff)."""
 
     def __init__(self, mw, row=None):
@@ -2547,7 +2577,10 @@ class _RetryPanel:
         self.registered = []
         self._outgoing_virtual_messages = {}
         self._sorted_messages = [row] if row is not None else []
+        mw.records = [row] if row is not None else []
         for _name in ("_nr_pending_row_alive", "_nr_attempt_begin",
+                      "_nr_begin_action", "_nr_attempt_may_speak",
+                      "_nr_pending_record_alive",
                       "_nr_attempt_end", "_nr_attempt_context_alive",
                       "_nr_invalidate_attempts", "_nr_pending_announce",
                       "_read_nr_pending", "_nr_pending_handoff",
@@ -2726,7 +2759,9 @@ def test_double_retry_runs_a_single_attempt(send_env, monkeypatch):
     _wait_wx_calls()
     _drive_wx_calls()
     assert len(mw.message_queue.enqueued) == 1
-    assert announced == ["resend_started"]
+    # The ignored second press is SPOKEN (the action is already running),
+    # then the one real handoff announces its own start.
+    assert announced == ["resend_started", "resend_started"]
     assert not getattr(panel, "_nr_attempts", {})
     os.unlink(mw.message_queue.enqueued[0].audio_path)
 
@@ -3091,6 +3126,7 @@ def test_retry_sends_nothing_when_row_deleted_mid_processing(send_env, monkeypat
         panel, msg, "peer@s.whatsapp.net", kept)
     # The user deletes the pending row while the model is still running.
     panel._sorted_messages.clear()
+    mw.records.clear()
     gate.set()
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3751,3 +3787,108 @@ def test_ordered_send_checks_revoke_when_delayed_action_is_released(send_env, mo
     original_complete(jid, previous, None)
     assert not mw.message_queue.enqueued
     assert not controller.is_preparing(session['local_id'])
+
+
+# --- Review fixes: off-screen kept-pending row, unconfirmed device close ---
+
+def test_keep_pending_off_screen_row_is_marked_failed_not_dropped(send_env, monkeypatch):
+    # The user switched chat while the slow neural pass ran: the row is not
+    # in the open list (_sorted_messages) but still in ITS chat's records.
+    # It is a live row, not a deleted one: failed in place, announced, file kept.
+    import core.neural_noise_reduction as nnr
+
+    def _boom(*a, **k):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _boom)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x51\x52" * 480]
+    mw, announced = _keep_pending_mw(controller)
+    panel = _SendPanel(mw, frames, None)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    path = _wait_kept_pending(panel)
+    panel._sorted_messages.clear()  # another conversation is open now
+    _drive_wx_calls()
+    row = panel.registered
+    assert panel.failed == []  # no widget to repaint
+    assert row["_send_failed"] is True and row["_local_pending"] is False
+    assert row["_local_id"] not in panel._outgoing_virtual_messages
+    assert announced == ["noise_reduction_kept_pending"]
+    assert os.path.exists(path)
+
+
+def test_unconfirmed_device_close_fails_the_note_and_frees_the_chat(send_env):
+    # A headset unplugged mid-recording: the close is not confirmed. The
+    # note fails audibly instead of holding every later note of the chat.
+    controller = IncrementalDenoiseController()
+    frames = [b"\x61\x62" * 480]
+    class _GoneStream:
+        def stop(self):
+            raise OSError("device gone")
+
+        def close(self):
+            pass
+
+    session = _send_session(controller, frames, stream=_GoneStream())
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    deadline = time.time() + 10
+    while time.time() < deadline and not any(
+            fn == mw._on_message_failed for fn, _a, _k in WX_CALLS):
+        time.sleep(0.01)
+    _drive_wx_calls()
+    assert len(mw.failed_calls) == 1
+    assert mw.failed_calls[0][0][1] == "voice_recording_device_failed"
+    assert mw.message_queue.enqueued == []
+    assert session["cancel"] is True
+    # The send thread ended (it no longer waits for a cancel that never
+    # comes), so the chat's ticket was released and later notes are not held.
+    from core.ordered_dispatch import voice_dispatcher
+    ticket = voice_dispatcher.reserve("peer@s.whatsapp.net")
+    released = []
+    voice_dispatcher.complete("peer@s.whatsapp.net", ticket,
+                              lambda: released.append(True))
+    assert released == [True]
+
+
+def test_close_stream_handle_closes_even_when_stop_raises():
+    class _Stream:
+        closed = False
+
+        def stop(self):
+            raise OSError("device gone")
+
+        def close(self):
+            self.closed = True
+
+    stream = _Stream()
+    with pytest.raises(OSError):
+        vr.VoiceRecordingMixin._close_stream_handle(stream)
+    assert stream.closed
+
+
+def test_chat_switch_during_retry_still_speaks_the_outcome(send_env):
+    mw, announced = _retry_mw(IncrementalDenoiseController())
+    row = {"_local_id": "m9", "key": {"id": "m9"}}
+    panel = _RetryPanel(mw, row=row)
+    panel.conversation = {"remoteJid": "someone-else@s.whatsapp.net"}
+    panel._sorted_messages = []  # the open list belongs to another chat
+    token = panel._nr_attempt_begin("m9", "peer@s.whatsapp.net")
+    WX_CALLS.clear()
+    panel._nr_pending_announce("m9", token, "peer@s.whatsapp.net",
+                               "noise_reduction_kept_pending")
+    _drive_wx_calls()
+    assert announced == ["noise_reduction_kept_pending"]
+    # A row deleted from its own chat stays silent.
+    mw.records.clear()
+    token = panel._nr_attempt_begin("m9", "peer@s.whatsapp.net")
+    WX_CALLS.clear()
+    panel._nr_pending_announce("m9", token, "peer@s.whatsapp.net",
+                               "noise_reduction_kept_pending")
+    _drive_wx_calls()
+    assert announced == ["noise_reduction_kept_pending"]

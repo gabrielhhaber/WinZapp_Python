@@ -111,6 +111,8 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
     monkeypatch.setattr(options.wx, 'StaticText', Radio)
     monkeypatch.setattr(options.wx, 'Choice', Radio)
     monkeypatch.setattr(options.wx, 'ComboBox', Radio)
+    from core import noise_model
+    monkeypatch.setattr(noise_model, 'is_installed', lambda: True)
     dialog = SimpleNamespace(main_window=SimpleNamespace(
         settings={'general': {'voice_recording_mode': mode}},
         i18n=SimpleNamespace(t=lambda key: 'first:' + key)),
@@ -122,6 +124,7 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
     dialog._update_voice_nr_options_state = MethodType(
         VoiceRecordingOptionsMixin._update_voice_nr_options_state, dialog)
     sizer = SimpleNamespace(Add=Mock())
+    VoiceRecordingOptionsMixin._build_voice_nr_options(dialog, object(), sizer)
     VoiceRecordingOptionsMixin._build_voice_recording_options(dialog, object(), sizer)
     VoiceRecordingOptionsMixin._load_voice_recording_options(dialog)
     radio = dialog._voice_recording_mode_radio

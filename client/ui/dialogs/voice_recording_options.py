@@ -11,18 +11,10 @@ from core.voice_stereo import (
 
 
 class VoiceRecordingOptionsMixin:
-    def _build_voice_recording_options(self, parent, sizer):
+    def _build_voice_nr_options(self, parent, sizer):
+        """Engine, moment and failure combos, built right after the noise
+        reducer button so Tab walks the noise-reduction controls together."""
         i18n = self.main_window.i18n
-        self._voice_recording_mode_radio = wx.RadioBox(
-            parent,
-            label=i18n.t("voice_recording_channels_label"),
-            choices=[i18n.t("voice_recording_channels_auto"),
-                     i18n.t("voice_recording_channels_mono"),
-                     i18n.t("voice_recording_channels_stereo")],
-            majorDimension=1,
-            style=wx.RA_SPECIFY_COLS,
-        )
-        sizer.Add(self._voice_recording_mode_radio, 0, wx.EXPAND | wx.ALL, 8)
         # Read-only combos with their own StaticText labels — the control
         # the design asked for, and the same pattern as the bitrate and
         # audio-effects selectors on this page. The moment and on-failure
@@ -56,17 +48,25 @@ class VoiceRecordingOptionsMixin:
             choices=[i18n.t("voice_nr_on_failure_basic"),
                      i18n.t("voice_nr_on_failure_pending")])
         sizer.Add(self._voice_nr_on_failure_combo, 0, wx.EXPAND | wx.ALL, 8)
-        # One visible engine selector: upstream's compatibility checkbox
-        # remains synchronized but is not a second competing choice.
-        upstream_box = getattr(self, "_noise_reducer_neural_check", None)
-        if upstream_box is not None:
-            upstream_box.Hide()
         # The master switch lives just above this section on the same page
         # (created before this builder runs): toggling it re-evaluates the
         # conditional state too.
         nr_check = getattr(self, "_noise_reduction_check", None)
         if nr_check is not None:
             nr_check.Bind(wx.EVT_CHECKBOX, self._on_voice_nr_master_toggled)
+
+    def _build_voice_recording_options(self, parent, sizer):
+        i18n = self.main_window.i18n
+        self._voice_recording_mode_radio = wx.RadioBox(
+            parent,
+            label=i18n.t("voice_recording_channels_label"),
+            choices=[i18n.t("voice_recording_channels_auto"),
+                     i18n.t("voice_recording_channels_mono"),
+                     i18n.t("voice_recording_channels_stereo")],
+            majorDimension=1,
+            style=wx.RA_SPECIFY_COLS,
+        )
+        sizer.Add(self._voice_recording_mode_radio, 0, wx.EXPAND | wx.ALL, 8)
         self._voice_bitrate_label = wx.StaticText(
             parent, label=i18n.t("voice_recording_bitrate_label"))
         sizer.Add(self._voice_bitrate_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
@@ -125,9 +125,9 @@ class VoiceRecordingOptionsMixin:
         The engine combo tracks the page's master noise-reduction switch;
         the moment and on-failure combos only mean something for the NEURAL
         engine (the basic one always gates at send time), so they stay
-        disabled — visible but announced as unavailable — with a basic
-        engine or the switch off, instead of offering a choice that does
-        nothing.
+        disabled (a disabled control is skipped by Tab) with a basic engine,
+        the switch off or the neural model not installed, instead of
+        offering a choice that does nothing.
         """
         nr_check = getattr(self, "_noise_reduction_check", None)
         nr_on = bool(nr_check.GetValue()) if nr_check is not None else True
@@ -135,15 +135,19 @@ class VoiceRecordingOptionsMixin:
         engine = NR_ENGINES[index] if 0 <= index < len(NR_ENGINES) else "neural"
         self._voice_nr_engine_combo.Enable(nr_on)
         neural = nr_on and engine == "neural"
+        try:
+            from core import noise_model
+            model_ready = noise_model.is_installed()
+        except Exception:
+            model_ready = False
         available = recording_nr_available(VoiceRecordingOptionsMixin._voice_nr_selected_device(self))
         if not available:
             self._voice_nr_moment_combo.SetSelection(NR_MOMENTS.index("send"))
-        self._voice_nr_moment_combo.Enable(neural and available)
-        upstream_box = getattr(self, "_noise_reducer_neural_check", None)
-        if upstream_box is not None:
-            upstream_box.SetValue(neural)
-            upstream_box.Hide()
-        self._voice_nr_on_failure_combo.Enable(neural)
+        self._voice_nr_moment_combo.Enable(neural and available and model_ready)
+        # Without the neural model there is nothing to process while
+        # recording and nothing to "fail" over: the failure action would only
+        # hold every note pending, so it is unavailable until it is installed.
+        self._voice_nr_on_failure_combo.Enable(neural and model_ready)
 
     def _voice_nr_selected_device(self):
         device = getattr(self, "_noise_reducer_device", None)

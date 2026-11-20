@@ -4,7 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
-- As mensagens de voz podem usar redução de ruído neural em segundo plano durante a gravação, em vez de esperar pelo envio. Configurações > Áudio permite escolher redução básica ou neural, processar durante a gravação ou ao enviar (padrão), e o que fazer se a redução neural falhar: enviar com redução básica ou deixar a mensagem pendente para uma nova tentativa manual. As opções dessas listas não incluem mais marcadores de atalhos de teclado dentro das palavras. O processamento durante a gravação usa CPU ou a via CoreML dentro do programa; ao escolher CUDA, ele é desativado e o processamento ocorre ao enviar. Não há processamento CUDA durante a gravação. A via CoreML durante a gravação não foi validada em uso real.
+- As mensagens de voz podem usar redução de ruído neural em segundo plano durante a gravação, em vez de esperar pelo envio. Configurações > Áudio permite escolher redução básica ou neural, processar durante a gravação ou ao enviar (padrão), e o que fazer se a redução neural falhar: enviar com redução básica ou deixar a mensagem pendente para uma nova tentativa manual. O processamento durante a gravação usa a CPU ou o CoreML; ao escolher CUDA, ele é desativado e o processamento ocorre ao enviar. Não há processamento CUDA durante a gravação. A via CoreML durante a gravação não foi validada em uso real.
 
 - O nome de um contato agora é único: quando alguém troca o nome do perfil, todas as mensagens dele, inclusive as antigas e as de grupos, passam a mostrar o nome novo em vez de alternar entre o antigo e o novo. Vale para Neonize e para WPPConnect.
 
