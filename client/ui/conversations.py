@@ -168,7 +168,6 @@ from ui.conversation_panel.community_comments import CommunityCommentsPanelMixin
 from ui.conversation_panel.commerce import CommercePanelMixin
 from ui.conversation_panel.business_buttons import BusinessButtonsMixin
 from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
-from ui.conversation_panel.conversation_starred import ConversationStarredMixin
 from ui.conversation_panel.channel_conversation import ChannelConversationMixin
 from ui.conversation_panel.reactions import ReactionsMixin
 from ui.conversation_panel.attachments import AttachmentsMixin
@@ -232,7 +231,6 @@ class ConversationsPanel(
     CommercePanelMixin,
     BusinessButtonsMixin,
     PinnedMessagesMixin,
-    ConversationStarredMixin,
     ChannelConversationMixin,
     ReactionsMixin,
     AttachmentsMixin,
@@ -681,7 +679,6 @@ class ConversationsPanel(
         self._init_group_call_join_button(conv_sizer)
 
         self._init_pinned_messages_button(conv_sizer)
-        self._init_conversation_starred_button(conv_sizer)
 
         # ── Search in conversation button ───────────────────────────────────
         self._search_open_btn = wx.Button(
@@ -1293,7 +1290,6 @@ class ConversationsPanel(
         self._new_conv_btn.SetLabel(i18n.t("new_conversation"))
         self._search_open_btn.SetLabel(i18n.t("search_in_conv"))
         self._update_pinned_messages_button()
-        self._refresh_conversation_starred_label()
         self._voice_call_btn.SetLabel(i18n.t("voice_call_button"))
         call = getattr(self, "_ongoing_group_call", None)
         self._group_call_join_btn.SetLabel(i18n.t(

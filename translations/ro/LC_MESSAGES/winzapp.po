@@ -6773,12 +6773,6 @@ msgctxt "conversation_sound_preview_stop"
 msgid "Stop sound &preview"
 msgstr "Op&riți previzualizarea sunetului"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/conversation_starred.py
-msgctxt "conversation_starred_button"
-msgid "Starred messages &in this chat"
-msgstr "Mesaje marcate cu stea din această c&onversație"
-
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/contact_list_picker.py
@@ -15308,19 +15302,13 @@ msgstr ""
 "posibil să fi fost deja aplicată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/starred_messages.py
-#, python-brace-format
-msgctxt "starred_chat_title"
-msgid "Starred messages: {name}"
-msgstr "Mesaje marcate cu stea: {name}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "starred_count"
 msgid "Starred messages: {count}"
 msgstr "Mesaje marcate cu stea: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_list"
 msgid "Starred &messages"
@@ -15347,6 +15335,7 @@ msgid "No starred messages."
 msgstr "Nu există mesaje marcate cu stea."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_open"
 msgid "&Open in the conversation"
@@ -15371,12 +15360,14 @@ msgid "{chat}, {sender}: {text}"
 msgstr "{chat}, {sender}: {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_search"
 msgid "&Search starred messages"
 msgstr "&Căutați în mesajele marcate cu stea"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_title"
 msgid "Starred messages"
@@ -15388,6 +15379,7 @@ msgid "The starred messages could not be read."
 msgstr "Mesajele marcate cu stea nu au putut fi citite."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_unstar"
 msgid "&Remove star"

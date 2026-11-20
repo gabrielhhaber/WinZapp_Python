@@ -6808,12 +6808,6 @@ msgctxt "conversation_sound_preview_stop"
 msgid "Stop sound &preview"
 msgstr "Zatrzymaj &odsłuch dźwięku"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/conversation_starred.py
-msgctxt "conversation_starred_button"
-msgid "Starred messages &in this chat"
-msgstr "Wiadomości oznaczone &gwiazdką w tym czacie"
-
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/contact_list_picker.py
@@ -15331,23 +15325,17 @@ msgstr ""
 "zastosowana."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/starred_messages.py
-#, python-brace-format
-msgctxt "starred_chat_title"
-msgid "Starred messages: {name}"
-msgstr "Wiadomości oznaczone gwiazdką: {name}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "starred_count"
 msgid "Starred messages: {count}"
 msgstr "Wiadomości oznaczone gwiazdką: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_list"
 msgid "Starred &messages"
-msgstr "&Wiadomości oznaczone gwiazdką"
+msgstr "Wiado&mości oznaczone gwiazdką"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "starred_nav"
@@ -15370,6 +15358,7 @@ msgid "No starred messages."
 msgstr "Brak wiadomości oznaczonych gwiazdką."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_open"
 msgid "&Open in the conversation"
@@ -15394,12 +15383,14 @@ msgid "{chat}, {sender}: {text}"
 msgstr "{chat}, {sender}: {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_search"
 msgid "&Search starred messages"
 msgstr "&Szukaj w oznaczonych gwiazdką"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_title"
 msgid "Starred messages"
@@ -15411,6 +15402,7 @@ msgid "The starred messages could not be read."
 msgstr "Nie udało się wczytać wiadomości oznaczonych gwiazdką."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_unstar"
 msgid "&Remove star"

@@ -6662,12 +6662,6 @@ msgctxt "conversation_sound_preview_stop"
 msgid "Stop sound &preview"
 msgstr "إ&يقاف صوت المعاينة"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/conversation_starred.py
-msgctxt "conversation_starred_button"
-msgid "Starred messages &in this chat"
-msgstr "الرسائل المميزة في &هذه الدردشة"
-
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/contact_list_picker.py
@@ -15006,19 +15000,13 @@ msgstr ""
 "Shift+F5 قبل إعادة المحاولة؛ قد يكون قد تم تطبيقه بالفعل."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/starred_messages.py
-#, python-brace-format
-msgctxt "starred_chat_title"
-msgid "Starred messages: {name}"
-msgstr "الرسائل المميزة: {name}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "starred_count"
 msgid "Starred messages: {count}"
 msgstr "الرسائل المميزة: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_list"
 msgid "Starred &messages"
@@ -15045,6 +15033,7 @@ msgid "No starred messages."
 msgstr "لا توجد رسائل مميزة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_open"
 msgid "&Open in the conversation"
@@ -15069,12 +15058,14 @@ msgid "{chat}, {sender}: {text}"
 msgstr "{chat}، {sender}: {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_search"
 msgid "&Search starred messages"
 msgstr "&بحث في الرسائل المميزة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_title"
 msgid "Starred messages"
@@ -15086,6 +15077,7 @@ msgid "The starred messages could not be read."
 msgstr "تعذرت قراءة الرسائل المميزة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_unstar"
 msgid "&Remove star"

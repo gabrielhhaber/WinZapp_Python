@@ -6781,12 +6781,6 @@ msgctxt "conversation_sound_preview_stop"
 msgid "Stop sound &preview"
 msgstr "Pa&rar prévia do som"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/conversation_starred.py
-msgctxt "conversation_starred_button"
-msgid "Starred messages &in this chat"
-msgstr "Mensagens fav&oritas da conversa"
-
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
 #: client/ui/dialogs/contact_list_picker.py
@@ -15283,19 +15277,13 @@ msgstr ""
 "aplicada."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/starred_messages.py
-#, python-brace-format
-msgctxt "starred_chat_title"
-msgid "Starred messages: {name}"
-msgstr "Mensagens favoritas: {name}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "starred_count"
 msgid "Starred messages: {count}"
 msgstr "Mensagens favoritas: {count}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_list"
 msgid "Starred &messages"
@@ -15322,6 +15310,7 @@ msgid "No starred messages."
 msgstr "Nenhuma mensagem favorita."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_open"
 msgid "&Open in the conversation"
@@ -15346,12 +15335,14 @@ msgid "{chat}, {sender}: {text}"
 msgstr "{chat}, {sender}: {text}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_search"
 msgid "&Search starred messages"
 msgstr "&Pesquisar nas favoritas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_title"
 msgid "Starred messages"
@@ -15363,6 +15354,7 @@ msgid "The starred messages could not be read."
 msgstr "Não foi possível ler as mensagens favoritas."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/conversation_starred_tab.py
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_unstar"
 msgid "&Remove star"

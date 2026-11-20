@@ -8,7 +8,7 @@ NOWOŚCI
 
 - Kontakty: lista nawigacji zyskuje pozycję „Kontakty” po Kanałach, bez skrótu Alt+cyfra. Pokazuje zapisane kontakty, jeden wiersz na osobę, z nazwą i numerem; kontakt zapisany pod dwoma adresami (numerem i powiązanym identyfikatorem urządzenia albo brazylijskim numerem z dziewiątą cyfrą i bez niej) to jeden wiersz. „Szukaj kontaktów” filtruje według nazwy lub numeru. Przyciski i menu kontekstowe (klawisz Aplikacji lub Shift+F10) otwierają czat, rozpoczynają połączenie głosowe lub wideo, pokazują „Dane kontaktu”, usuwają kontakt albo go blokują i odblokowują; „Nowy kontakt” dodaje kontakt. „Enter na kontakcie” wybiera, co robi Enter: otwiera czat, dzwoni, dzwoni przez wideo albo pokazuje dane.
 
-- Czat: obok „Przypiętych wiadomości” nowy przycisk „Wiadomości oznaczone gwiazdką w tym czacie” otwiera okno wiadomości oznaczonych gwiazdką (Alt+0) tylko z wiadomościami tego czatu, z jego nazwą w tytule; wybranie jednej ustawia fokus na niej w już otwartym czacie, bez ponownego otwierania.
+- Czat: okna „Informacje o czacie” i „Informacje o grupie” mają nową kartę „Wiadomości oznaczone gwiazdką” po „Media”, z wiadomościami oznaczonymi gwiazdką w tym czacie i polem wyszukiwania; „Otwórz w czacie” (lub Enter) ustawia fokus na wiadomości w czacie, a „Usuń gwiazdkę” (lub Delete) zdejmuje jej gwiazdkę.
 
 - Połączenia: czat, który uczestniczy w trwającym połączeniu (grupowym lub prywatnym, w którym połączenie objęło kilka osób), pokazuje teraz „Dołącz do trwającego połączenia głosowego” albo „Dołącz do trwającego połączenia wideo (kamera wyłączona)” zamiast przycisków połączenia; gdy to urządzenie jest w połączeniu z tym czatem, przycisk brzmi „Powrót do połączenia” i przywraca okno połączenia.
 
