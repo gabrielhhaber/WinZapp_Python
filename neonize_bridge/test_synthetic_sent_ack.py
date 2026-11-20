@@ -54,3 +54,20 @@ def test_unrecorded_ids_are_unaffected_by_the_bound(tmp_path):
     for i in range(600):
         s._record_ack(f"ID{i}", 2)
     assert s._real_ack_emitted("never-seen") is False
+
+
+def test_sent_ack_payload_is_the_wppconnect_sent_ack(tmp_path):
+    import synthetic_ack
+    s = _session(tmp_path)
+    assert synthetic_ack.sent_ack_payload(s, "ID1", "5511@c.us", "true_5511@c.us_ID1") == {
+        "session": "account1", "ack": 1, "to": "5511@c.us", "from": "5511@c.us",
+        "id": {"fromMe": True, "remote": "5511@c.us", "id": "ID1",
+               "_serialized": "true_5511@c.us_ID1"}}
+
+
+def test_sent_ack_payload_is_none_once_a_real_ack_went_out(tmp_path):
+    import synthetic_ack
+    s = _session(tmp_path)
+    s._record_ack("ID1", 2)
+    assert synthetic_ack.sent_ack_payload(s, "ID1", "5511@c.us", "serial") is None
+    assert synthetic_ack.sent_ack_payload(s, "ID2", "5511@c.us", "serial") is not None

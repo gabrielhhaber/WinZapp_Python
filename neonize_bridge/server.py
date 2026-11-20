@@ -39,6 +39,7 @@ import loop_watch
 import ongoing_calls
 import quote_fallback
 import receipt_ids
+import synthetic_ack
 import undecryptable
 import group_events
 import events
@@ -2629,13 +2630,11 @@ def create_app(folder, fixed=""):
         # a delivered/read that already went out wins over the synthetic "sent".
         sent_id = resp.ID
         def _emit_ack1():
-            if sent_id in getattr(s, "_acked_ids", ()):
+            payload = synthetic_ack.sent_ack_payload(s, sent_id, chat_w, serial)
+            if payload is None:
                 log.info("skipping synthetic onack ack=1 for %s: a real ack already went out", sent_id)
                 return
-            asyncio.ensure_future(
-                sio.emit("onack", {"session": s.name, "ack": 1, "to": chat_w, "from": chat_w,
-                                   "id": {"fromMe": True, "remote": chat_w, "id": sent_id,
-                                          "_serialized": serial}}, room=s.name))
+            asyncio.ensure_future(sio.emit("onack", payload, room=s.name))
         asyncio.get_running_loop().call_later(0.6, _emit_ack1)
         return ok(status="success", response=[{"id": serial, "ack": 1}])
 
