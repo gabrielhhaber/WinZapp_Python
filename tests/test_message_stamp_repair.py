@@ -83,8 +83,11 @@ const logger = {info: m => logs.push(m), warn: m => logs.push('WARN ' + m)};
   // The stored row is the truth: its time and its ack.
   assert.equal(messages[1].t, 1795095053); assert.equal(messages[1].timestamp, 1795095053);
   assert.equal(messages[1].ack, 3);
+  assert.equal(messages[1].timestampSource, undefined);
   // No stored row: the stand-in's receive time, and no invented ack.
   assert.equal(messages[2].t, 1795095060); assert.equal(messages[2].ack, undefined);
+  // ... marked as the receive time, which the client never trusts over a real one.
+  assert.equal(messages[2].timestampSource, 'received');
   // Nothing to go by: left without a time for the client to handle.
   assert.equal(messages[3].t, undefined);
   // A message that had its time is untouched.
@@ -118,7 +121,8 @@ const logger = {info: m => logs.push(m), warn: m => logs.push('WARN ' + m)};
 @pytest.mark.skipif(node() is None, reason="Node is not available")
 def test_stand_ins_take_the_stored_time_or_their_receive_time():
     done = subprocess.run([node(), "-e", HARNESS, str(RUNTIME)],
-                          capture_output=True, text=True, encoding="utf-8", timeout=20)
+                          capture_output=True, text=True, encoding="utf-8", timeout=20,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     assert done.returncode == 0, done.stderr
     assert "stamp repair OK" in done.stdout
 
@@ -135,9 +139,58 @@ def test_get_messages_repairs_before_answering():
     assert repair < route.index("res.status(200).json(")
 
 
+PAGING = ROOT / "client/api_patches/src/util/unanchoredMessagePaging.ts"
+
+PAGING_HARNESS = r"""
+const fs = require('fs'), vm = require('vm'), assert = require('assert');
+const source = fs.readFileSync(process.argv[1], 'utf8').replace(/^export /gm, '');
+const calls = [];
+function world(pages) {
+  const sandbox = {console: {log() {}}, Set, Number, Math, String, Array, Promise};
+  sandbox.window = {WAPI: {getMessages: async (chat, options) => {
+    calls.push(options.id);
+    return pages(options.id);
+  }}};
+  const context = vm.createContext(sandbox);
+  vm.runInContext(source, context);
+  return context.pageUnanchoredMessages;
+}
+const m = (id, extra) => ({id: {_serialized: id}, ...extra});
+
+(async () => {
+  // A stand-in with no t sorts by its receive time, not first, and the slice
+  // keeps it: the newest page is [real 200, stand-in received 150], then an
+  // older page holds real 100.
+  const page = world(anchor => anchor === null
+    ? [m('real200', {t: 200}), m('standin', {clientReceivedTsMillis: 150000})]
+    : anchor === 'standin' ? [m('real100', {t: 100})] : []);
+  const out = await page({chatId: 'c@g.us', targetCount: 3});
+  assert.deepEqual(out.map(x => x.id._serialized), ['real100', 'standin', 'real200']);
+  // Paging anchored on the oldest by that time (the stand-in), not on a 0.
+  assert.deepEqual(calls, [null, 'standin']);
+
+  // The slice keeps the newest targetCount, and a page that adds nothing stops it.
+  const dup = world(() => [m('a', {t: 1}), m('b', {t: 2}), m('c', {t: 3})]);
+  const kept = await dup({chatId: 'c@g.us', targetCount: 2});
+  assert.deepEqual(kept.map(x => x.id._serialized), ['b', 'c']);
+  // A non-array answer is handed back untouched.
+  assert.equal(await world(() => null)({chatId: 'c', targetCount: 5}), null);
+  console.log('paging OK');
+})().catch(e => { console.error(e); process.exitCode = 1; });
+"""
+
+
+@pytest.mark.skipif(node() is None, reason="Node is not available")
 def test_unanchored_paging_orders_a_stand_in_by_its_receive_time():
     # The page-side sort and slice run before the repair: a stand-in stamped 0
     # sorted first and the slice could drop it.
+    done = subprocess.run([node(), "-e", PAGING_HARNESS, str(PAGING)],
+                          capture_output=True, text=True, encoding="utf-8", timeout=20,
+                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    assert done.returncode == 0, done.stderr
+    assert "paging OK" in done.stdout
+
+
+def test_get_messages_pages_through_the_util():
     route = _get_messages_route()
-    stamp = route[route.index("const stampOf"):route.index("const fetchBatch")]
-    assert "clientReceivedTsMillis" in stamp
+    assert "page.evaluate(\n        pageUnanchoredMessages," in route

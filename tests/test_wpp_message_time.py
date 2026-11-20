@@ -13,7 +13,9 @@ from core.websocket_client import WebSocketClient
 from core.wpp_message_time import (
     GUESSED_TIMESTAMP,
     carry_over_known_timestamps,
+    keep_known_timestamp,
     wpp_message_seconds,
+    wpp_time_is_real,
 )
 
 GROUP = "120363000000000001@g.us"
@@ -56,9 +58,20 @@ def test_no_time_at_all_is_unknown_not_now():
 
 
 def test_normalizer_dates_the_stand_in_by_its_receive_time():
+    # Used for the order, but flagged: a stored real time must win over it.
     normalized = _Normalizer()._normalize_wpp_message(_stand_in())
     assert normalized["messageTimestamp"] == RECEIVED_MS // 1000
-    assert GUESSED_TIMESTAMP not in normalized
+    assert normalized[GUESSED_TIMESTAMP] is True
+
+
+def test_the_servers_receive_time_stand_in_is_flagged_too():
+    # messageStampRepair.ts writes t from clientReceivedTsMillis and says so.
+    payload = _stand_in(t=RECEIVED_MS // 1000, timestamp=RECEIVED_MS // 1000,
+                        timestampSource="received")
+    normalized = _Normalizer()._normalize_wpp_message(payload)
+    assert normalized["messageTimestamp"] == RECEIVED_MS // 1000
+    assert normalized[GUESSED_TIMESTAMP] is True
+    assert wpp_time_is_real({"t": 5}) and not wpp_time_is_real({"t": 5, "timestampSource": "received"})
 
 
 def test_normalizer_flags_a_guessed_time():
@@ -89,12 +102,25 @@ def test_a_guess_takes_the_stored_time():
     assert fetched[1]["messageTimestamp"] == 1795096249
 
 
-def test_a_stored_guess_is_not_a_real_time():
+def test_a_stored_guess_is_kept_when_the_fetched_time_is_one_too():
+    # No time source at all: "now" must not be re-stamped on every sync.
     fetched = [_record("A", 1795099000, **{GUESSED_TIMESTAMP: True})]
     stored = [_record("A", 1795098191, **{GUESSED_TIMESTAMP: True})]
-    assert carry_over_known_timestamps(fetched, stored) == 0
-    assert fetched[0]["messageTimestamp"] == 1795099000
+    assert carry_over_known_timestamps(fetched, stored) == 1
+    assert fetched[0]["messageTimestamp"] == 1795098191
     assert fetched[0][GUESSED_TIMESTAMP] is True
+
+
+def test_the_earlier_of_two_guesses_wins():
+    fetched = [_record("A", 1795095053, **{GUESSED_TIMESTAMP: True})]
+    stored = [_record("A", 1795098191, **{GUESSED_TIMESTAMP: True})]
+    carry_over_known_timestamps(fetched, stored)
+    assert fetched[0]["messageTimestamp"] == 1795095053
+
+
+def test_keep_known_timestamp_leaves_a_real_time_alone():
+    real = _record("A", 5)
+    assert keep_known_timestamp(real, _record("A", 1)) is real
 
 
 def test_a_guess_with_no_stored_copy_stays_a_guess():
@@ -102,3 +128,28 @@ def test_a_guess_with_no_stored_copy_stays_a_guess():
     assert carry_over_known_timestamps(fetched, [_record("B", 1)]) == 0
     assert carry_over_known_timestamps(fetched, None) == 0
     assert fetched[0][GUESSED_TIMESTAMP] is True
+
+
+async def test_a_page_written_by_history_paging_keeps_the_stored_real_time(in_memory_db):
+    """fetch_older_messages writes pages with insert_messages_batch, not through
+    the sync's carry-over: the database applies the rule itself."""
+    jid = "5511999990000@s.whatsapp.net"
+
+    def record(ts, **extra):
+        return {"key": {"remoteJid": jid, "id": "A"}, "messageTimestamp": ts,
+                "message": {"conversation": "quoted"}, "messageType": "conversation", **extra}
+
+    await in_memory_db.insert_messages_batch(jid, [record(1795095053)])
+    await in_memory_db.insert_messages_batch(jid, [record(1795099000, **{GUESSED_TIMESTAMP: True})])
+    stored = (await in_memory_db.get_messages_asc(jid))[0]
+    assert stored["messageTimestamp"] == 1795095053
+    assert GUESSED_TIMESTAMP not in stored
+
+    # A guess over a guess keeps the earlier time and the flag.
+    await in_memory_db.insert_messages_batch(jid, [record(1795099000, **{GUESSED_TIMESTAMP: True})])
+    await in_memory_db.delete_message(jid, "A")
+    await in_memory_db.insert_messages_batch(jid, [record(1795099000, **{GUESSED_TIMESTAMP: True})])
+    await in_memory_db.insert_messages_batch(jid, [record(1795100000, **{GUESSED_TIMESTAMP: True})])
+    stored = (await in_memory_db.get_messages_asc(jid))[0]
+    assert stored["messageTimestamp"] == 1795099000
+    assert stored[GUESSED_TIMESTAMP] is True

@@ -187,6 +187,7 @@ CUSTOM_SRC_FILES = [
     "src/util/statusReactionRuntime.ts",
     "src/util/quotedMessagePreflight.ts",
     "src/util/messageStampRepair.ts",
+    "src/util/unanchoredMessagePaging.ts",
     "src/util/contactPresenceRuntime.ts",
     "src/util/contactPresenceBridge.ts",
     "src/util/groupPresenceBridge.ts",

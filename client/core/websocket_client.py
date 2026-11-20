@@ -40,7 +40,7 @@ from core import channel_invites
 from core import events
 from core.sync_contracts import observe_payload
 from core.vcard_payload import contact_message_payload
-from core.wpp_message_time import GUESSED_TIMESTAMP, wpp_message_seconds
+from core.wpp_message_time import GUESSED_TIMESTAMP, wpp_message_seconds, wpp_time_is_real
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
 from core.utils import looks_like_binary_blob, looks_like_jid, _slim_quoted_message, parse_bool_flag as _parse_bool_flag
 
@@ -2936,8 +2936,8 @@ class WebSocketClient:
         # A quote stand-in has no t (core/wpp_message_time.py): "now" is only
         # the last resort, flagged so a sync keeps the time already stored.
         ts = wpp_message_seconds(wpp_msg)
-        timestamp_guessed = ts is None
-        if timestamp_guessed:
+        timestamp_guessed = not wpp_time_is_real(wpp_msg)
+        if ts is None:
             ts = int(time.time())
 
         msg_type = wpp_msg.get("type", "chat")

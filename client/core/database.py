@@ -32,6 +32,7 @@ import aiosqlite
 from cryptography.fernet import Fernet
 
 from core.phone_contacts import SYNCED_KEY, is_phone_synced
+from core.wpp_message_time import GUESSED_TIMESTAMP, keep_known_timestamp
 from core.quote_recovery import is_undecrypted_placeholder, keep_known_content, knows_content
 from core.star_storage import (
     preserve_stars, starred_messages, update_star_state, upgrade_starred_column)
@@ -925,12 +926,15 @@ class DatabaseManager:
     def _needs_stored_row(self, msg: dict) -> bool:
         """Whether writing *msg* has to read its stored row first."""
         return (self._video_wants_stored_duration(msg) or may_hold_transcription(msg)
-                or is_undecrypted_placeholder(msg))
+                or is_undecrypted_placeholder(msg) or bool(msg.get(GUESSED_TIMESTAMP)))
 
     def _apply_known_local_fields(self, msg: dict, stored: dict | None) -> dict:
         """_with_known_local_fields()'s rules over a row already read."""
         if stored is None:
             return with_known_transcription(msg, None)
+        # A time the sync guessed never rewrites a stored one (history paging
+        # writes straight through here, not through carry_over_known_timestamps).
+        msg = keep_known_timestamp(msg, stored)
         if is_undecrypted_placeholder(msg) and knows_content(stored):
             # A ciphertext never overwrites a message already decrypted here
             # (core/quote_recovery.keep_known_content).

@@ -77,6 +77,7 @@ export function applyStoredStamps(messages, stored) {
     if (!(t > 0)) continue;
     message.t = t;
     message.timestamp = t;
+    if (!row) message.timestampSource = 'received';
     if (row && typeof row.ack === 'number' && message.ack == null) message.ack = row.ack;
     repaired++;
   }
