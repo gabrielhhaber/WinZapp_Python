@@ -129,12 +129,6 @@ class GroupInvitationLinksMixin:
             panel._put_in_message_field(f"{current} {text}" if current.strip() else text)
         field.SetFocus()
 
-    def _call_link_engine_ready(self) -> bool:
-        """WPPConnect can always be asked; the Neonize bridge only says whether
-        its build joins call links once its send-capabilities probe answered
-        (main_window/sending.py), and asking before would say "unavailable"."""
-        return not self._uses_neonize() or hasattr(self, "_neonize_call_links")
-
     def open_external_call_link(self, link: str, _deadline: float = None):
         """Ask to join the call of a call link handed over from outside, once
         WhatsApp is connected, and join it on yes. Main thread only."""
