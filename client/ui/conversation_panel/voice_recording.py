@@ -922,12 +922,7 @@ class VoiceRecordingMixin:
             # microphone + computer audio path had this guard; keep it for
             # every voice message.) This runs on the worker: the panel is
             # released on the main thread.
-            if virtual_msg.get("_cancelled_awaiting_id") or self._is_cancelled_pending(local_id):
-                try:
-                    os.unlink(wav_path)
-                except OSError:
-                    pass
-                wx.CallAfter(mw._on_cancelled_message_dropped, local_id)
+            if _drop_if_cancelled(wav_path):
                 return None
             # 5. Encrypt OGG (or raw PCM fallback) and save as .msv for offline playback.
             _t_msv = _time.perf_counter()
@@ -952,9 +947,24 @@ class VoiceRecordingMixin:
                                 voice_mimetype=voice_mimetype)
 
             def _enqueue():
+                # The ticket may wait on earlier recordings to this chat, and
+                # the queue cannot cancel what it does not hold yet: look again.
+                if _drop_if_cancelled(wav_path):
+                    return
                 mw.message_queue.enqueue(pm)
                 mw.mark_conversation_as_read(remote_jid)
             return _enqueue
+
+        def _drop_if_cancelled(wav_path):
+            if not (virtual_msg.get("_cancelled_awaiting_id")
+                    or self._is_cancelled_pending(local_id)):
+                return False
+            try:
+                os.unlink(wav_path)
+            except OSError:
+                pass
+            wx.CallAfter(mw._on_cancelled_message_dropped, local_id)
+            return True
 
         def _write_and_enqueue():
             action = None

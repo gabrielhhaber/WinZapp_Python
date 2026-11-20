@@ -410,6 +410,28 @@ class TestMixedComposer(unittest.TestCase):
         self.assertFalse(self.m4a_paths[0].exists())
         self.assertFalse((self.folder / 'voice_messages' / (local_id + '.msv')).exists())
 
+    def test_cancel_while_the_ticket_waits_to_enqueue_cannot_resurrect_send(self):
+        # The recording is encoded, but an earlier one to the same chat still
+        # holds the dispatcher: the cancel lands between _process and _enqueue,
+        # when the queue has nothing to cancel yet.
+        from unittest.mock import patch
+        from core.ordered_dispatch import voice_dispatcher
+        held = []
+        with patch.object(voice_dispatcher, 'complete',
+                          side_effect=lambda jid, ticket, action: held.append(action)):
+            self.p._send_voice_message(None)
+            self.threads.drain()
+        self.assertEqual(len(held), 1)
+        self.assertTrue(callable(held[0]))
+        msg = self.p._sorted_messages[0]
+        local_id = msg['_local_id']
+        self.p._cancelled_pending_messages[local_id] = msg
+        msg['_cancelled_awaiting_id'] = True
+        held[0]()
+        self.drain_ui()
+        self.p.main_window.message_queue.enqueue.assert_not_called()
+        self.p.main_window._on_cancelled_message_dropped.assert_called_once_with(local_id)
+
     def _enqueued_after_send(self):
         self.p._send_voice_message(None)
         self.threads.drain()
