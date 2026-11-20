@@ -119,3 +119,21 @@ def test_a_received_comment_is_opened_by_neonize_before_the_local_cipher():
     s.client = Client(decrypt_comment=lambda e: 1 / 0)
     assert comments._open(s, GROUP, enc, "5511@s.whatsapp.net", False, object()) == (
         comments.KIND_UNREADABLE, "")
+
+
+def test_an_own_message_is_tried_under_the_lid_then_the_number(session):
+    import time
+    seen = []
+
+    def encrypt(info, reaction):
+        seen.append(info.MessageSource.Sender.User)
+        if len(seen) == 1:
+            raise RuntimeError("no secret under this sender")
+        return Message().encReactionMessage.__class__(encPayload=b"c")
+    plain = Message(reactionMessage=ReactionMessage(text="x"))
+    session.client = Client(build_reaction=lambda *a: plain, send_message=lambda to, m: None,
+                            encrypt_reaction=encrypt)
+    session.__dict__["_community_announcements"] = {GROUP: (True, time.monotonic() + 60)}
+    sealed = session.encrypted_reaction(plain, GROUP, session.me, True, "TARGET")
+    assert sealed.HasField("encReactionMessage") and len(seen) == 2
+    assert seen[0] == MY_LID.partition("@")[0] and seen[0] != seen[1]

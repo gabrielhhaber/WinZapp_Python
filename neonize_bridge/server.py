@@ -627,8 +627,16 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         """`msg` (a plain reaction) as an encrypted one, or None to send it plain."""
         if not hasattr(self.client, "encrypt_reaction") or not msg.HasField("reactionMessage"):
             return None
-        info = enc_secrets.root_info(conversation, author, from_me, mid)
-        return enc_secrets.seal_reaction(self.client, info, msg.reactionMessage)
+        # whatsmeow looks the secret up under the sender as it stored it: an own
+        # message may be stored under the account's LID or its number
+        senders = [x for x in (getattr(self, "lid", ""), self.me) if x] if from_me else [author]
+        for sender in senders:
+            info = enc_secrets.root_info(conversation, sender, from_me, mid)
+            sealed = enc_secrets.seal_reaction(self.client, info, msg.reactionMessage.__class__.FromString(
+                msg.reactionMessage.SerializeToString()))
+            if sealed is not None:
+                return sealed
+        return None
 
     def reactions_wpp(self, serial):
         """Response of GET /reactions/<id>: grouped by emoji, in WPPConnect's
