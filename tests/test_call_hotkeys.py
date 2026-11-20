@@ -592,6 +592,9 @@ def test_shutdown_releases_the_call_keys_before_stopping_anything():
         def _stop_wpp_server(self):
             order.append("stop server")
 
+        def _stop_default_output_follow(self):
+            order.append("stop default-output watcher")
+
         def _flush_pending_debounced_saves(self):
             pass
 

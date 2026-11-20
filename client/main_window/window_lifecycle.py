@@ -616,6 +616,7 @@ class WindowLifecycleMixin:
             release_call_keys = getattr(self, "_release_call_hotkeys", None)
             if release_call_keys is not None:
                 release_call_keys()
+            self._stop_default_output_follow()
             for identity in list(getattr(self, "_incoming_call_watchdogs", {})):
                 self._cancel_incoming_call_watchdog(identity)
             for identity in list(getattr(self, "_incoming_call_dialogs", {})):

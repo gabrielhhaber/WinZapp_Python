@@ -306,3 +306,47 @@ def test_the_status_voice_preview_defers_the_move_too():
         is_playing = True
     window = _PlaybackWindow(status_panel=type("S", (), {"_recorded_audio_sound": Sound()})())
     assert window._voice_playback_active() is True
+
+
+def test_nothing_is_read_while_both_devices_are_chosen_by_name():
+    reads = []
+
+    def reader():
+        reads.append(True)
+        return (SPEAKERS, MIC)
+    follows = [False, False]
+    watcher = DefaultEndpointWatcher(lambda: True, lambda: tuple(follows), reader=reader)
+    assert watcher.poll() is False and watcher.poll() is False
+    assert reads == []
+
+
+def test_following_again_takes_a_new_baseline_instead_of_moving():
+    follows = [False, False]
+    watcher = DefaultEndpointWatcher(lambda: True, lambda: tuple(follows),
+                                     reader=_Readings((HEADSET, MIC)))
+    watcher.poll()
+    follows[0] = True
+    assert watcher.poll() is False      # the headset is the baseline, not news
+
+
+def test_the_sounds_watcher_has_its_own_thread_name_and_log_tag():
+    watcher = DefaultEndpointWatcher(lambda: True, lambda: (True, False),
+                                     reader=_Readings((SPEAKERS, MIC)),
+                                     name="WinZappSoundsDefaultDevice", tag="sound_system")
+    watcher.start()
+    try:
+        assert watcher._thread.name == "WinZappSoundsDefaultDevice"
+    finally:
+        watcher.stop()
+
+
+def test_stopping_the_sounds_follow_stops_the_watcher():
+    stopped = []
+
+    class W:
+        stop = staticmethod(lambda: stopped.append(True))
+    window = _PlaybackWindow()
+    window._stop_default_output_follow = DefaultAudioDevicesMixin._stop_default_output_follow.__get__(window)
+    window._default_output_watcher = W()
+    window._stop_default_output_follow()
+    assert stopped == [True] and window._default_output_watcher is None

@@ -40,6 +40,7 @@ class DefaultAudioDevicesMixin:
             self._on_default_output_changed,
             lambda: (self.sound_system.follows_default_output(), False),
             interval=_PROGRAM_SOUNDS_POLL_SECONDS,
+            name="WinZappSoundsDefaultDevice", tag="sound_system",
         )
         self._default_output_watcher = watcher
         try:
@@ -62,6 +63,13 @@ class DefaultAudioDevicesMixin:
                 return True
         sound = getattr(getattr(self, "status_panel", None), "_recorded_audio_sound", None)
         return bool(sound is not None and getattr(sound, "is_playing", False))
+
+    def _stop_default_output_follow(self) -> None:
+        """Stop the program-sounds watcher (shutdown)."""
+        watcher = getattr(self, "_default_output_watcher", None)
+        self._default_output_watcher = None
+        if watcher is not None:
+            watcher.stop()
 
     def _on_default_output_changed(self) -> bool:
         """The watcher's callback (its own thread): BASS is moved on the UI
