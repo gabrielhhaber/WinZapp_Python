@@ -48,11 +48,29 @@ class DefaultAudioDevicesMixin:
             logging.exception("[sound_system] could not follow the default output device")
             self._default_output_watcher = None
 
+    def _voice_playback_active(self) -> bool:
+        """Is a voice message, or the status voice preview, playing on BASS?
+
+        Reinitialising the output invalidates every stream: the playing one
+        goes silent with its slider frozen and a restart begins at zero.
+        """
+        for attr in ("conversations_panel", "archived_conversations_panel",
+                     "locked_conversations_panel"):
+            panel = getattr(self, attr, None)
+            if (panel is not None and getattr(panel, "_is_audio_playing", False)
+                    and getattr(panel, "_audio_stream", None) is not None):
+                return True
+        sound = getattr(getattr(self, "status_panel", None), "_recorded_audio_sound", None)
+        return bool(sound is not None and getattr(sound, "is_playing", False))
+
     def _on_default_output_changed(self) -> bool:
         """The watcher's callback (its own thread): BASS is moved on the UI
-        thread, where every sound is played."""
+        thread, where every sound is played. Not while a voice message plays:
+        False offers the change again at the next reading, after it ended."""
         if getattr(self, "_shutting_down", False):
             return True
+        if self._voice_playback_active():
+            return False
         wx.CallAfter(self._follow_default_output)
         return True
 

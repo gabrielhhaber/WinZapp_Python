@@ -228,6 +228,7 @@ def test_stopping_the_follow_stops_the_watcher():
 class _SoundsWindow:
     _on_default_output_changed = DefaultAudioDevicesMixin._on_default_output_changed
     _follow_default_output = DefaultAudioDevicesMixin._follow_default_output
+    _voice_playback_active = DefaultAudioDevicesMixin._voice_playback_active
 
     def __init__(self, shutting_down=False):
         self._shutting_down = shutting_down
@@ -262,3 +263,46 @@ def test_nothing_is_moved_while_shutting_down(monkeypatch):
     window._on_default_output_changed()
     window._follow_default_output()
     assert queued == [] and window.moves == 0
+
+
+class _Panel:
+    def __init__(self, playing=False, stream=object()):
+        self._is_audio_playing = playing
+        self._audio_stream = stream
+
+
+class _PlaybackWindow:
+    _voice_playback_active = DefaultAudioDevicesMixin._voice_playback_active
+    _on_default_output_changed = DefaultAudioDevicesMixin._on_default_output_changed
+
+    def __init__(self, **panels):
+        self._shutting_down = False
+        for name, panel in panels.items():
+            setattr(self, name, panel)
+        self.followed = []
+
+    def _follow_default_output(self):
+        self.followed.append(True)
+
+
+def test_the_sounds_move_when_no_voice_message_plays(monkeypatch):
+    monkeypatch.setattr("main_window.default_audio_devices.wx.CallAfter",
+                        lambda fn, *a: fn(*a))
+    window = _PlaybackWindow(conversations_panel=_Panel())
+    assert window._on_default_output_changed() is True
+    assert window.followed == [True]
+
+
+def test_a_playing_voice_message_defers_the_move_to_the_next_reading(monkeypatch):
+    monkeypatch.setattr("main_window.default_audio_devices.wx.CallAfter",
+                        lambda fn, *a: fn(*a))
+    window = _PlaybackWindow(archived_conversations_panel=_Panel(playing=True))
+    assert window._on_default_output_changed() is False
+    assert window.followed == []
+
+
+def test_the_status_voice_preview_defers_the_move_too():
+    class Sound:
+        is_playing = True
+    window = _PlaybackWindow(status_panel=type("S", (), {"_recorded_audio_sound": Sound()})())
+    assert window._voice_playback_active() is True
