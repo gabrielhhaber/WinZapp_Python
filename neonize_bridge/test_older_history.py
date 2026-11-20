@@ -53,13 +53,6 @@ def test_only_the_clients_flag_says_the_user_asked():
         assert older_history.user_asked_of(body) is False
 
 
-def test_an_answer_with_only_stored_messages_brings_nothing_new():
-    rows = [("c", {"id": {"id": "A"}}), ("c", {"id": {"id": "B"}})]
-    assert older_history.brought_nothing_new(rows, lambda mid: True) is True
-    assert older_history.brought_nothing_new(rows, lambda mid: mid == "A") is False
-    assert older_history.brought_nothing_new([], lambda mid: False) is True
-
-
 @pytest.mark.parametrize("end", [None, 0])
 def test_a_chat_with_more_on_the_phone_may_be_asked(end):
     assert older_history.verdict(end, True) is None

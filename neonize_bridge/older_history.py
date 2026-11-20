@@ -102,12 +102,6 @@ def user_asked_of(body) -> bool:
     return isinstance(body, dict) and body.get("userAsked") is True
 
 
-def brought_nothing_new(rows, already_stored) -> bool:
-    """Whether an on-demand answer's rows (chat, message, ...) hold no message
-    that `already_stored(id)` says is missing."""
-    return not any(not already_stored(row[1]["id"]["id"]) for row in rows)
-
-
 class AnchorGate:
     """Remembers the anchors just asked, so a client that asks again while the
     phone's answer is on its way does not send a second request."""
