@@ -227,7 +227,6 @@ class VoiceRecordingMixin:
                 self._recording_actual_rate = 48000
                 self._recording_actual_ch = 1
                 self._is_recording = True
-                self._start_incremental_denoise(recording_frames, 48000, 1)
                 
                 # UI updates INSTANTLY (0.01s)
                 self.main_window.voicemsg_startrecording_sound.play()
@@ -622,7 +621,11 @@ class VoiceRecordingMixin:
             self._stop_system_audio_recording()
         self.main_window.voicemsg_discard_sound.play()
         if not mixed:
-            threading.Thread(target=self._stop_recording_stream, daemon=True).start()
+            # This recording's own session, captured now: by the time the
+            # thread runs, a new recording may own self._incremental_session.
+            threading.Thread(target=self._stop_recording_stream,
+                             args=(getattr(self, "_incremental_session", None),),
+                             daemon=True).start()
         self._is_recording     = False
         self._recording_paused = False
         self._recording_frames = []
@@ -1027,6 +1030,10 @@ class VoiceRecordingMixin:
                     except OSError:
                         pass
                     _forget_incremental()
+                    if inc_session is not None and inc_session.get("revoked"):
+                        # The row was deleted while it was encoded: no
+                        # error sound and dialog for a note already gone.
+                        return
                     wx.CallAfter(mw._on_message_failed, local_id,
                                  mw.i18n.t("media_audio_convert_failed"), True)
                     return

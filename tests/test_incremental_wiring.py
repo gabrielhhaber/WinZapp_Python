@@ -793,6 +793,64 @@ def test_send_with_failed_device_close_fails_the_note_and_frees_the_chat(
     assert "_incremental_preparing" not in panel.registered
 
 
+def test_stereo_encode_failure_after_a_delete_is_silent(send_env, monkeypatch):
+    # The row was deleted while the M4A was being encoded: the failure is
+    # not announced with an error sound and dialog for a note already gone.
+    import core.audio_processing as ap
+    monkeypatch.setattr(ap, "apply_noise_gate", lambda data, rate, ch, **kw: data)
+    controller = IncrementalDenoiseController()
+    frames = [b"" * 480]
+    session = _send_session(controller, frames, basic_only=True,
+                            stream=_FakeStream())
+    forgotten = _forget_signal(controller)
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["noise_reduction_neural"] = False
+    panel = _SendPanel(mw, frames, session)
+    panel._recording_channel_mode = "stereo"
+    panel._recording_actual_ch = 2
+
+    def _encode_while_deleted(_wav_path):
+        controller.revoke(session["local_id"])
+        return None
+
+    panel._encode_stereo_voice = _encode_while_deleted
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert forgotten.wait(10)
+    time.sleep(0.1)   # let a stray CallAfter land (none may)
+    assert not [a for fn, a, k in WX_CALLS if fn == mw._on_message_failed]
+    assert mw.message_queue.enqueued == []
+
+
+def test_discard_stops_the_stream_of_its_own_session(monkeypatch):
+    # The stop runs on a thread; by then a new recording may own
+    # _incremental_session, so the discarded one is passed explicitly.
+    started = []
+
+    class _Thread:
+        def __init__(self, target, args=(), daemon=None):
+            self.target, self.args = target, args
+
+        def start(self):
+            started.append((self.target, self.args))
+
+    monkeypatch.setattr(vr, "threading", types.SimpleNamespace(Thread=_Thread))
+    session = {"local_id": "d1"}
+    panel = types.SimpleNamespace(
+        _recording_system_audio=False, _is_recording=True,
+        _recording_starting=False, _incremental_session=session,
+        _recording_paused=False, _recording_frames=[b"x"], conversation=None,
+        main_window=types.SimpleNamespace(
+            voicemsg_discard_sound=types.SimpleNamespace(play=lambda: None)),
+        _stop_recording_stream=lambda s=None: None,
+        _hide_voice_panel=lambda: None,
+        message_field=types.SimpleNamespace(SetFocus=lambda: None))
+    panel._cancel_incremental_denoise = (
+        lambda: setattr(panel, "_incremental_session", None))
+    vr.VoiceRecordingMixin._discard_voice_message(panel, None)
+    assert started == [(panel._stop_recording_stream, (session,))]
+
+
 def test_send_basic_only_note_goes_straight_to_gate(send_env, monkeypatch):
     import core.audio_processing as ap
     import core.neural_noise_reduction as nnr
