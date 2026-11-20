@@ -11,7 +11,6 @@ TEXTS = {
     "starred_no_text": "(no text)",
     "starred_row_in_chat_sender": "{sender}: {text}",
     "starred_title": "Starred messages",
-    "starred_chat_title": "Starred messages: {name}",
 }
 I18N = types.SimpleNamespace(t=lambda key: TEXTS.get(key, key))
 GROUP, PERSON = "120363000000000001@g.us", "5511999990000@s.whatsapp.net"
@@ -156,12 +155,6 @@ def test_the_window_of_one_chat_names_the_sender_but_not_the_chat():
             (PERSON, msg("3", "Oi"))]
     assert [e.text for e in starred.entries_for(mw, rows, in_chat=True)] == [
         "Ana: Hello, today", "You: Sent, today", "Oi, today"]
-
-
-def test_the_title_names_the_chat_of_a_window_of_one_chat():
-    mw = MainWindow()
-    assert starred.window_title(mw, None) == "Starred messages"
-    assert starred.window_title(mw, GROUP) == "Starred messages: Family"
 
 
 def test_one_chat_is_read_under_both_its_addresses():

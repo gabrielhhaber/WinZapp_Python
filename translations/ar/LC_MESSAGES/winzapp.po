@@ -15000,13 +15000,6 @@ msgstr ""
 "Shift+F5 قبل إعادة المحاولة؛ قد يكون قد تم تطبيقه بالفعل."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/starred_messages.py
-#, python-brace-format
-msgctxt "starred_chat_title"
-msgid "Starred messages: {name}"
-msgstr "الرسائل المميزة: {name}"
-
-#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "starred_count"
 msgid "Starred messages: {count}"
