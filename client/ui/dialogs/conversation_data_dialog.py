@@ -8,6 +8,7 @@ Opens a modal dialog showing WhatsApp-style information about a chat.
     – Overview        (name, description, creation date, size)
     – Participants    (wx.ListCtrl with name / phone / admin flag)
     – Media           (the group's media messages, filtered by type)
+    – Starred         (its starred messages; ui/dialogs/conversation_starred_tab.py)
 
 Profile / group data is fetched from the WPPConnect Server in a background
 thread after the dialog opens; the controls are updated via wx.CallAfter.
@@ -31,6 +32,7 @@ from core.chat_settings import chat_settings_lines
 from core.contact_identity import contact_identity_lines
 from core.group_operations import group_permissions
 from ui.dialogs.common_groups_tab import CommonGroupsTabMixin
+from ui.dialogs.conversation_starred_tab import ConversationStarredTabMixin
 from ui.dialogs.personal_presence import presence_line, stop_personal_presence, track_personal_presence
 from ui.dialogs.personal_presence_reader import capture_personal_reader_visit
 from main_window.profile_presence import refresh_dialog_presence
@@ -136,7 +138,7 @@ def _fmt_ts(ts, i18n):
         return str(ts)
 
 
-class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
+class ConversationDataDialog(ConversationStarredTabMixin, CommonGroupsTabMixin, wx.Dialog):
     """
     Shows conversation or group metadata in an accessible modal dialog.
 
@@ -237,6 +239,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         # through here (the parent being destroyed first).
         self._closed.set()
         stop_personal_presence(self)
+        self._hand_over_starred_choice()
         return super().Destroy()
 
     def _on_window_destroy(self, event):
@@ -352,8 +355,9 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         # ("Visão geral", "Mídia"), and a second key with the same text would
         # be one more thing for the locales to drift on.
         self._build_media_tab()
+        self._build_starred_tab()
 
-        # Last, so Overview and Media keep the positions people already know.
+        # Last, so Overview, Media and Starred keep the positions people already know.
         self._build_common_groups_tab()
 
         outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -638,6 +642,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         self._notebook.AddPage(part_page, self._i18n.t("group_participants_tab"))
 
         self._build_media_tab()
+        self._build_starred_tab()
 
         outer.Add(self._notebook, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 

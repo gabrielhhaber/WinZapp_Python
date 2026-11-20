@@ -45,6 +45,18 @@ DATA_DIALOG_KEYS = (
     "group_media_save_as_btn",
     "group_media_types_label",
 )
+#: The Starred messages tab, with the button every tab shares. A tab's
+#: controls are only reachable while it is the visible page (Windows skips the
+#: mnemonics of a hidden page), and the dialog has no free letter left for
+#: four more controls in most locales, so the tab is a page of its own: unique
+#: within itself and against what stays on screen around it.
+STARRED_TAB_KEYS = (
+    "back_btn",
+    "starred_search",
+    "starred_list",
+    "starred_open",
+    "starred_unstar",
+)
 #: GroupInvitationDialog.
 INVITATION_KEYS = (
     "group_invitation_link",
@@ -68,13 +80,13 @@ def strings(request):
     return load_strings(request.param)
 
 
-@pytest.mark.parametrize("keys", [DATA_DIALOG_KEYS, INVITATION_KEYS, JOIN_KEYS])
+@pytest.mark.parametrize("keys", [DATA_DIALOG_KEYS, STARRED_TAB_KEYS, INVITATION_KEYS, JOIN_KEYS])
 def test_every_control_has_a_mnemonic(strings, keys):
     missing = [k for k in keys if mnemonic(strings[k]) is None]
     assert not missing
 
 
-@pytest.mark.parametrize("keys", [DATA_DIALOG_KEYS, INVITATION_KEYS, JOIN_KEYS])
+@pytest.mark.parametrize("keys", [DATA_DIALOG_KEYS, STARRED_TAB_KEYS, INVITATION_KEYS, JOIN_KEYS])
 def test_no_two_controls_of_a_window_share_a_letter(strings, keys):
     letters = {}
     for key in keys:
