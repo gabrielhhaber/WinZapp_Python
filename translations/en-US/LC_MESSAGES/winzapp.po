@@ -21148,63 +21148,54 @@ msgstr "Voice call"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_basic"
 msgid "Basic (noise gate)"
 msgstr "Basic (noise gate)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_label"
 msgid "&Noise reduction engine"
 msgstr "&Noise reduction engine"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_neural"
 msgid "Neural"
 msgstr "Neural"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_label"
 msgid "&Process voice messages"
 msgstr "&Process voice messages"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_record"
 msgid "While recording"
 msgstr "While recording"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_send"
 msgid "When sending"
 msgstr "When sending"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_basic"
 msgid "Send with basic noise reduction (default)"
 msgstr "Send with basic noise reduction (default)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_label"
 msgid "&When noise reduction fails"
 msgstr "&When noise reduction fails"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_pending"
 msgid "Keep the voice message pending to try sending it again"
 msgstr "Keep the voice message pending to try sending it again"

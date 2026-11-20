@@ -20876,63 +20876,54 @@ msgstr "مكالمة صوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_basic"
 msgid "Basic (noise gate)"
 msgstr "أساسي (بوابة الضوضاء)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_label"
 msgid "&Noise reduction engine"
 msgstr "محرك &تقليل الضوضاء"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_engine_neural"
 msgid "Neural"
 msgstr "عصبي"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_label"
 msgid "&Process voice messages"
 msgstr "&معالجة الرسائل الصوتية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_record"
 msgid "While recording"
 msgstr "أثناء التسجيل"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_moment_send"
 msgid "When sending"
 msgstr "عند الإرسال"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_basic"
 msgid "Send with basic noise reduction (default)"
 msgstr "الإرسال مع تقليل الضوضاء الأساسي (الافتراضي)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_label"
 msgid "&When noise reduction fails"
 msgstr "&عند فشل تقليل الضوضاء"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
-#: client/ui/dialogs/noise_reducer_options.py
 msgctxt "voice_nr_on_failure_pending"
 msgid "Keep the voice message pending to try sending it again"
 msgstr "الاحتفاظ بالرسالة الصوتية قيد الانتظار لمحاولة إرسالها مرة أخرى"
