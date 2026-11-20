@@ -20383,6 +20383,11 @@ msgstr ""
 "cererile (cotă, credit sau cheie)."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused_local"
+msgid "Automatic translation paused for one hour."
+msgstr "Traducerea automată este oprită timp de o oră."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
 msgid "&Conversations for automatic translation"
 msgstr "C&onversații cu traducere automată"

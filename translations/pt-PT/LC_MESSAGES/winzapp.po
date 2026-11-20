@@ -20408,6 +20408,11 @@ msgstr ""
 "pedidos (quota, crédito ou chave)."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused_local"
+msgid "Automatic translation paused for one hour."
+msgstr "Tradução automática em pausa durante uma hora."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
 msgid "&Conversations for automatic translation"
 msgstr "&Conversas com tradução automática"

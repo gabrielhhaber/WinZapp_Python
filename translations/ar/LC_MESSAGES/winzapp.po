@@ -19918,6 +19918,11 @@ msgstr ""
 "الرصيد أو المفتاح)."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused_local"
+msgid "Automatic translation paused for one hour."
+msgstr "تم إيقاف الترجمة التلقائية مؤقتًا لمدة ساعة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
 msgid "&Conversations for automatic translation"
 msgstr "ال&دردشات المشمولة بالترجمة التلقائية"

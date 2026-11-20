@@ -181,7 +181,7 @@ def test_a_repeating_refusal_pauses_automatic_translation_and_says_so(wx, submit
     submitted[0](None, error)
     local = error in ("ai_error_translation_local_load", "ai_error_translation_engine_missing")
     # the offline model's faults also say their own cause, not only "provider refused"
-    assert panel.spoken == (["translation_auto_paused", error] if local else ["translation_auto_paused"])
+    assert panel.spoken == (["translation_auto_paused_local", error] if local else ["translation_auto_paused"])
     assert not panel._translation_queue
     panel._maybe_auto_translate(JID, message(3))
     assert len(submitted) == 1

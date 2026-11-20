@@ -382,10 +382,13 @@ class TranslationActionsMixin:
         elif pauses_automatic(error):
             self._translation_paused_until = time.monotonic() + PAUSE_SECONDS
             self._translation_queue.clear()
-            mw.output(t("translation_auto_paused"))
             if str(error) in _LOCAL_FAULTS:
-                # the offline model, not the provider: say the real cause too
+                # the offline model, not the provider: never blame the
+                # provider; say that it paused, then the real cause
+                mw.output(t("translation_auto_paused_local"))
                 mw.output(t(str(error)))
+            else:
+                mw.output(t("translation_auto_paused"))
 
     def _next_translation_entry(self):
         """The next queued message still worth translating, or None. Stale

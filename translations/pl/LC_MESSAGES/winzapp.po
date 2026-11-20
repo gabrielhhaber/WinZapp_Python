@@ -20558,6 +20558,11 @@ msgstr ""
 "powodu limitu, braku środków lub problemu z kluczem API."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translation_auto_paused_local"
+msgid "Automatic translation paused for one hour."
+msgstr "Automatyczne tłumaczenie wstrzymane na godzinę."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
 msgid "&Conversations for automatic translation"
 msgstr "&Czaty objęte automatycznym tłumaczeniem"
