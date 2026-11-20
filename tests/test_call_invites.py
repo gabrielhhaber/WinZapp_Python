@@ -99,9 +99,9 @@ def test_people_are_offered_only_for_the_call_this_device_is_in(active, state, a
 
 
 def test_a_contact_kept_under_both_addresses_is_offered_once():
-    from core.call_invites import one_per_person
+    from core.call_invites import offered_lists
     jids = ["55@s.whatsapp.net", "1@lid", "77@s.whatsapp.net", "55@c.us"]
-    assert one_per_person(jids, {"1@lid": "55@s.whatsapp.net"}) == ["1@lid", "77@s.whatsapp.net"]
+    assert offered_lists([jids], {"1@lid": "55@s.whatsapp.net"})[0] == ["1@lid", "77@s.whatsapp.net"]
 
 
 def test_the_account_is_never_offered_even_when_the_session_does_not_know_its_lid():
@@ -135,14 +135,14 @@ def test_the_same_person_in_every_form_is_offered_once_and_by_one_address():
 
 
 def test_an_lid_whose_number_is_not_known_yet_joins_the_one_contact_saved_by_that_name():
-    from core.call_invites import one_per_person, saved_name_of
+    from core.call_invites import offered_lists, saved_name_of
     contacts = {"5511999990000@s.whatsapp.net": {"name": "Ana Souza", "isMyContact": True},
                 "7@lid": {"name": " ana  souza", "isMyContact": True},
                 "5522988880000@s.whatsapp.net": {"name": "Bia", "isSaved": True},
                 "5533977770000@s.whatsapp.net": {"name": "Bia", "isSaved": True},
                 "8@lid": {"name": "Bia", "isSaved": True},          # two Bias: no guess
                 "9@lid": {"name": "Ana Souza"}}                      # not saved: a nickname
-    rows = one_per_person(list(contacts), {}, saved_name_of(contacts))
+    rows = offered_lists([list(contacts)], {}, saved_name_of(contacts))[0]
     assert rows == ["5511999990000@s.whatsapp.net", "5522988880000@s.whatsapp.net",
                     "5533977770000@s.whatsapp.net", "8@lid", "9@lid"]
 
@@ -152,6 +152,8 @@ def test_conversations_are_the_one_to_one_chats_saved_or_not():
     chats = ["5511@s.whatsapp.net", "1203-4@g.us", "status@broadcast", "1@newsletter",
              "7@lid", "5522@c.us"]
     assert conversation_jids(chats) == ["5511@s.whatsapp.net", "7@lid", "5522@c.us"]
+    # a locked or deleted chat is not named in the list
+    assert conversation_jids(chats, lambda jid: jid == "7@lid") == ["5511@s.whatsapp.net", "5522@c.us"]
 
 
 @pytest.mark.parametrize("text, jid", [

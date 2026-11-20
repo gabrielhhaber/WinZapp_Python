@@ -105,11 +105,6 @@ def offered_lists(sources, phone_of_lid, saved_name=None):
     return out
 
 
-def one_per_person(jids, phone_of_lid, saved_name=None):
-    """One address per person of *jids*, in the order given (person_addresses)."""
-    return offered_lists([jids], phone_of_lid, saved_name)[0]
-
-
 def saved_name_of(contacts):
     """jid -> the name the address book gives (MainWindow.contacts), '' for
     anyone not saved: a nickname never makes two people one."""
@@ -122,10 +117,13 @@ def saved_name_of(contacts):
     return name
 
 
-def conversation_jids(chats):
+def conversation_jids(chats, hidden=None):
     """The people of the one-to-one conversations of *chats* (MainWindow.chats,
-    jid -> chat), saved contacts or not: the second list of the dialog."""
-    return [jid for jid in chats or () if _PERSON.fullmatch(_canonical(jid))]
+    jid -> chat), saved contacts or not: the second list of the dialog.
+    *hidden(jid)* is True for a chat that must not be named here: a locked one
+    (its name is the vault's to show) or one the user deleted."""
+    return [jid for jid in chats or ()
+            if _PERSON.fullmatch(_canonical(jid)) and not (hidden and hidden(jid))]
 
 
 def typed_number_jid(text) -> str:

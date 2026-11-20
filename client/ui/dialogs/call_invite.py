@@ -101,7 +101,9 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
                 members = [p.get("id") for p in info.get("participants") or () if isinstance(p, dict)]
             else:
                 members = saved_contact_jids(contacts)
-            chats = conversation_jids(list(getattr(mw, "chats", None) or {}))
+            chats = conversation_jids(
+                list(getattr(mw, "chats", None) or {}),
+                lambda jid: mw.is_chat_locked(jid) or mw.is_chat_deleted(jid))
             response = mw._raise_for_call_response(mw._post_call_control(
                 "participants", {"callId": self._call_id}, timeout=20), "participants")
             listed = parse_participants(response.json(), self._call_id) or []
