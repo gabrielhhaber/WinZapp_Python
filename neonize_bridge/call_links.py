@@ -24,7 +24,7 @@ from aiohttp import web
 log = logging.getLogger("bridge")
 
 # WhatsApp Web's WAWebParseCallLinkType (call.whatsapp.com, and web.whatsapp.com/call/)
-_LINK = re.compile(r"^https://(?:call\.whatsapp\.com|web\.whatsapp\.com/call)/(video|voice)/(\w+)(?:\?.*)?$",
+_LINK = re.compile(r"^https://(?:call\.whatsapp\.com|web\.whatsapp\.com/call)/(video|voice|audio)/(\w+)(?:\?.*)?$",
                    re.IGNORECASE)
 # WAWebVoipLinkPreviewCallLink: a token of any other length is "Invalid call link"
 TOKEN_LENGTH = 22
@@ -39,6 +39,8 @@ def parse_link(text) -> tuple:
     if not found or len(found.group(2)) != TOKEN_LENGTH:
         return None, ""
     kind = found.group(1).lower()
+    if kind == "audio":     # meowcaller names a voice link's media "audio"; WhatsApp's own URL says "voice"
+        kind = "voice"
     return kind == "video", f"https://call.whatsapp.com/{kind}/{found.group(2)}"
 
 
