@@ -319,8 +319,9 @@ class TestMixedComposer(unittest.TestCase):
                          hashlib=hashlib, RESEND_PATH_KEY=RESEND_PATH_KEY,
                          plan_send_reduction=plan_send_reduction,
                          plan_after_reservation=plan_after_reservation,
-                         # No model file here: the gate, as on a fresh install.
-                         _neural_model_installed=lambda: False)
+                         # reduce_voice_noise decides (stubbed by some tests;
+                         # the real one falls back to the stubbed gate).
+                         _neural_model_installed=lambda: True)
         # Bind the actual send handler; no wx/App or capture APIs are imported.
         bind(self.p, ['_send_voice_message', '_encode_stereo_voice',
                       '_reduce_for_send', '_reduce_or_keep_pending',

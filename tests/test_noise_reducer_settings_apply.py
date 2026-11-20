@@ -37,23 +37,59 @@ class _Ctrl:
         self.shown = on
 
 
-def _panel(reduction_on, monkeypatch, installed=True):
-    from core import noise_model
-    monkeypatch.setattr(noise_model, "is_installed", lambda: installed)
+def _panel(reduction_on):
     panel = SimpleNamespace(_noise_reduction_check=_Ctrl(reduction_on),
-                            _noise_reducer_neural_check=_Ctrl(), _noise_reducer_btn=_Ctrl(),
+                            _noise_reducer_btn=_Ctrl(),
                             _noise_reducer_page=SimpleNamespace(Layout=lambda: None))
-    NoiseReducerButtonMixin._sync_noise_reducer_neural_box(panel)
+    panel._noise_reduction_on = lambda: NoiseReducerButtonMixin._noise_reduction_on(panel)
+    NoiseReducerButtonMixin._sync_noise_reducer_button(panel)
     return panel
 
 
-def test_the_settings_button_follows_the_noise_reduction_box(monkeypatch):
-    off = _panel(False, monkeypatch)
-    assert not off._noise_reducer_btn.shown and not off._noise_reducer_neural_check.shown
-    on = _panel(True, monkeypatch)
-    assert on._noise_reducer_btn.shown and on._noise_reducer_neural_check.shown
-    no_model = _panel(True, monkeypatch, installed=False)
-    assert no_model._noise_reducer_btn.shown and not no_model._noise_reducer_neural_check.shown
+def test_the_settings_button_follows_the_noise_reduction_box():
+    assert not _panel(False)._noise_reducer_btn.shown
+    assert _panel(True)._noise_reducer_btn.shown
+
+
+def test_a_new_processor_starts_only_when_a_recording_would_use_it():
+    from ui.dialogs.noise_reducer_dialog import worker_start_wanted
+    assert worker_start_wanted(True, True, True) is True
+    assert worker_start_wanted(True, True, False) is False   # no model: never
+    assert worker_start_wanted(True, False, True) is False   # basic engine
+    assert worker_start_wanted(False, True, True) is False   # reducer off
+
+
+class _Combo:
+    def __init__(self, selection):
+        self.selection = selection
+
+    def GetSelection(self):
+        return self.selection
+
+
+@pytest.mark.parametrize("installed,engine_index,started", [
+    (True, 0, True), (False, 0, False), (True, 1, False)])
+def test_saving_a_new_card_without_the_model_does_not_start_it(
+        monkeypatch, installed, engine_index, started):
+    # A CUDA build chosen before the model was downloaded: starting it would
+    # fail and leave the processor in use until WinZapp restarts.
+    from core import noise_model
+    applied = []
+    monkeypatch.setattr(noise_model, "is_installed", lambda: installed)
+    monkeypatch.setattr(noise_worker_host.host, "apply",
+                        lambda device, start=True, **kw: applied.append((device, start)))
+    settings = {"general": {"noise_reduction_device": "cpu",
+                            "noise_reduction_enabled": True}}
+    panel = SimpleNamespace(main_window=SimpleNamespace(settings=settings),
+                            _noise_reducer_device="cuda12",
+                            _noise_reduction_check=_Ctrl(True),
+                            _voice_nr_engine_combo=_Combo(engine_index))
+    panel._noise_reduction_on = lambda: NoiseReducerButtonMixin._noise_reduction_on(panel)
+    NoiseReducerButtonMixin._save_noise_reducer_device(panel)
+    assert settings["general"]["noise_reduction_device"] == "cuda12"
+    assert applied == [("cuda12", started)]
+    # The engine is the engine combo's to save, never this mixin's.
+    assert "noise_reduction_neural" not in settings["general"]
 
 
 # ------------------------------------------------------------ runtime

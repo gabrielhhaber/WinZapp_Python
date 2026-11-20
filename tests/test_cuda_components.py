@@ -205,13 +205,6 @@ def test_only_this_processors_own_components_may_be_removed(tmp_path, monkeypatc
     assert not (tmp_path / "cudart_cu12").exists()
 
 
-def test_the_neural_box_only_with_the_reducer_on_and_the_model_there():
-    from ui.dialogs.noise_reducer_dialog import neural_box_shown
-    assert neural_box_shown(True, True) is True
-    assert neural_box_shown(True, False) is False
-    assert neural_box_shown(False, True) is False
-
-
 def test_the_common_reducer_is_used_when_chosen(monkeypatch):
     from core import neural_noise_reduction as nnr
     import core.audio_processing as ap

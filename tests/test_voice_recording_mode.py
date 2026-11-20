@@ -116,6 +116,7 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
         i18n=SimpleNamespace(t=lambda key: 'first:' + key)),
         # Bound by the real builder to the combos (Bind is a no-op double).
         _on_voice_nr_engine_changed=Mock(),
+        _on_voice_nr_moment_changed=Mock(),
         _on_voice_nr_master_toggled=Mock())
     # The real conditional-enabling helper, bound as it is on the dialog:
     # _load calls it and the combos' Enable/GetSelection doubles support it.
