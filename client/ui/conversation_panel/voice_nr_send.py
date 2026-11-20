@@ -128,9 +128,9 @@ class VoiceNrSendMixin:
             # The NORMAL offline pass takes the same reservation as
             # the retry (review 18:59, residual 1): while it loads /
             # runs the singleton, no capture starts a private model
-            # next to it (acquire_slot refuses), and a capture or
-            # another offline pass already holding the exclusion
-            # makes THIS note take the occupied policy — published
+            # next to it (acquire_slot refuses), and a capture
+            # already holding the slot makes THIS note take the
+            # occupied policy — published
             # gate, or pending when the user chose keep_pending.
             if controller.try_reserve_offline(local_id):
                 offline_reserved = True
