@@ -314,12 +314,6 @@ def test_a_change_of_the_windows_default_lists_the_devices_again_between_close_a
     the headset that became Windows' default is reached only after a refresh,
     and the refresh closes every PortAudio stream, so it must come after the
     old session closed and before the new one opens."""
-    import sys
-    import types
-
-    # core.call_audio imports sounddevice, which raises OSError where the
-    # PortAudio library is missing; the test replaces it with an object anyway.
-    monkeypatch.setitem(sys.modules, "sounddevice", types.SimpleNamespace())
     import core.call_audio
     import core.default_audio_endpoints as endpoints
 
