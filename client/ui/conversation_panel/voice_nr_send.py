@@ -9,6 +9,7 @@ neural failure — writing the original audio aside for a manual retry
 """
 
 import hashlib
+import io
 import logging
 import os
 import wave
@@ -16,6 +17,7 @@ import wx
 
 from app_paths import data_path
 from core.message_resend import RESEND_PATH_KEY
+from core.utils import encrypt
 from core.voice_nr_options import voice_nr_engine, voice_nr_on_failure
 
 
@@ -186,11 +188,17 @@ class VoiceNrSendMixin:
             os.makedirs(data_path("voice_messages"), exist_ok=True)
             pending_path = os.path.join(
                 data_path("voice_messages"), local_id + ".resend.wav")
-            with wave.open(pending_path, "wb") as wf:
+            # Encrypted at rest with the account key, like the .msv copy
+            # of every recorded note: a kept note can sit on disk for days.
+            # _read_nr_pending decrypts it.
+            buffer = io.BytesIO()
+            with wave.open(buffer, "wb") as wf:
                 wf.setnchannels(channels)
                 wf.setsampwidth(2)
                 wf.setframerate(actual_rate)
                 wf.writeframes(raw_unprocessed)
+            with open(pending_path, "wb") as fh:
+                fh.write(encrypt(buffer.getvalue(), mw.key))
         except Exception as exc:
             logging.error("[_send_voice_message] could not keep the "
                           "pending WAV: %s", exc)

@@ -677,6 +677,18 @@ def _wav_payload(path):
         return wf.readframes(wf.getnframes())
 
 
+def _kept_payload(mw, path):
+    """PCM of a kept-pending original, which is encrypted at rest with the
+    account key — never a readable WAV on disk."""
+    import io
+    from core.utils import decrypt_bytes
+    with open(path, "rb") as fh:
+        stored = fh.read()
+    assert not stored.startswith(b"RIFF"), "kept note stored unencrypted"
+    with wave.open(io.BytesIO(decrypt_bytes(stored, mw.key)), "rb") as wf:
+        return wf.readframes(wf.getnframes())
+
+
 def _no_neural(*a, **k):
     raise AssertionError("reduce_voice_noise must not run for this note")
 
@@ -2409,7 +2421,7 @@ def test_send_kept_pending_when_both_neural_paths_fail(send_env, monkeypatch):
     # Nothing was sent.
     assert mw.message_queue.enqueued == []
     # The pending row keeps the ORIGINAL audio for the manual resend.
-    assert _wav_payload(path) == raw
+    assert _kept_payload(mw, path) == raw
     # ...and the existing "Try sending again" affordance accepts the row.
     panel.registered["_send_failed"] = True  # what the real marker sets
     assert resend_request(panel.registered) == ("media", path, "audio", "")
@@ -2484,7 +2496,7 @@ def test_send_slot_busy_session_keeps_pending_without_second_onnx(send_env, monk
     path = _wait_kept_pending(panel)
     assert mw.message_queue.enqueued == []
     assert called == []                      # no second ONNX
-    assert _wav_payload(path) == raw         # the ORIGINAL is what is kept
+    assert _kept_payload(mw, path) == raw         # the ORIGINAL is what is kept
     _drive_wx_calls()
     assert announced == ["noise_reduction_kept_pending"]
     controller.release_slot("other-note")
@@ -2533,7 +2545,7 @@ def test_model_unavailable_session_keeps_pending_without_posterior(send_env, mon
     path = _wait_kept_pending(panel)
     assert mw.message_queue.enqueued == []
     assert called == []
-    assert _wav_payload(path) == raw
+    assert _kept_payload(mw, path) == raw
     controller.release_slot("m1")
 
 
@@ -3162,8 +3174,8 @@ def test_retry_processes_a_kept_note_without_fingerprint(send_env, monkeypatch):
 
 
 def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_env, monkeypatch):
-    # E2E with a REAL hanging drain thread and the REAL 2 s final wait
-    # (Milo 19:11: the m9 guard was synthetic). A moment=send switch with
+    # E2E with a REAL hanging drain thread and the real final wait,
+    # shortened (Milo 19:11: the m9 guard was synthetic). A moment=send switch with
     # a drain that hangs past the wait: skip_posterior keeps the note
     # pending with its RAW audio, the slot stays RETAINED (forget() never
     # frees it), and a retry of that same row defers — no model call —
@@ -3183,11 +3195,14 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
 
     session = _send_session(controller, frames, worker=types.SimpleNamespace(abort=lambda: None),
                             spool=spool, stream=_FakeStream())
+    monkeypatch.setattr(isend, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
+    drain_may_end = threading.Event()
 
     def _hanging_drain():
-        # Ignores stop/cancel past the 2 s wait, then self-cleans like the
-        # real drain does (drain_cleaned + slot release).
-        time.sleep(3.0)
+        # Ignores stop/cancel past the final wait (until the test lets it
+        # go), then self-cleans like the real drain does (drain_cleaned +
+        # slot release).
+        drain_may_end.wait(10)
         session["drain_cleaned"] = True
         controller.release_slot("m1")
 
@@ -3201,7 +3216,7 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
     WX_CALLS.clear()
     vr.VoiceRecordingMixin._send_voice_message(panel, None)  # async worker
-    _wait_wx_calls()  # the keep-pending mark lands after the real ~2 s wait
+    _wait_wx_calls()  # the keep-pending mark lands after the final wait
     _drive_wx_calls()
     # Timeout -> skip_posterior -> pending with the ORIGINAL audio, model
     # never called, slot RETAINED by the still-hanging drain.
@@ -3211,9 +3226,10 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     assert controller._slot_owner == "m1"
     msg = panel.registered
     pending_path = msg[RESEND_PATH_KEY]
-    assert _wav_payload(pending_path) == raw
+    assert _kept_payload(mw, pending_path) == raw
     # Retry while the native side is still alive: defers, no model call.
     mw2, announced2 = _retry_mw(controller)
+    mw2.key = mw.key   # the same account key the note was kept with
     retry_panel = _RetryPanel(mw2, row=msg)
     WX_CALLS.clear()
     vnp.VoiceNrPendingMixin._retry_nr_pending(
@@ -3225,9 +3241,11 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     assert controller._slot_owner == "m1"
     # The drain really finishes and releases: the retry now processes the
     # SAME original bytes and hands off.
+    drain_may_end.set()
     drain.join(10)
     assert controller._slot_owner is None
     mw3, announced3 = _retry_mw(controller)
+    mw3.key = mw.key
     retry_panel2 = _RetryPanel(mw3, row=msg)
     WX_CALLS.clear()
     vnp.VoiceNrPendingMixin._retry_nr_pending(

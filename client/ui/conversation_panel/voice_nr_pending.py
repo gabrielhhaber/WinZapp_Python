@@ -24,7 +24,7 @@ from app_paths import data_path
 from core.message_queue import PendingMessage
 from core.message_resend import RESEND_PATH_KEY
 from core.pending_timestamp import pending_send_timestamp
-from core.utils import encrypt
+from core.utils import decrypt_bytes, encrypt
 from core.voice_stereo import STEREO_MIMETYPE
 from ui.conversation_panel.typing_row import append_message_row
 
@@ -177,6 +177,11 @@ class VoiceNrPendingMixin:
         if expected_hash is not None and \
                 hashlib.sha256(raw).hexdigest() != expected_hash:
             raise ValueError("kept note content changed on disk")
+        if not raw.startswith(b"RIFF"):
+            # A kept original is encrypted at rest (voice_nr_send.py); the
+            # processed copy a handoff queues stays a plain WAV, since the
+            # send queue reads it as one.
+            raw = decrypt_bytes(raw, self.main_window.key)
         with wave.open(io.BytesIO(raw), "rb") as wf:
             channels = wf.getnchannels()
             rate = wf.getframerate()
