@@ -193,6 +193,16 @@ def test_background_edit_notifies_only_when_asked():
     assert kwargs["sound_event"] == EDIT_SOUND_EVENT
 
 
+def test_background_edit_without_a_tray_icon_still_plays_its_sound():
+    window = _EditStub(window_active=False)
+    window.notification_manager = MagicMock()
+    window.settings["general"]["show_tray_icon"] = False
+    edit_alerts.set_toggle_choice(window.settings, JID, edit_alerts.NOTIFY_BACKGROUND, "on")
+    window._maybe_notify_edit(JID, edited())
+    window.notification_manager.send.assert_not_called()
+    assert window.played == [edit_alerts.BACKGROUND]
+
+
 @pytest.mark.parametrize("muted,archived,locked", [(True, False, False),
                                                    (False, True, False),
                                                    (False, False, True)])
