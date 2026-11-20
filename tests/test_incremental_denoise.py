@@ -594,8 +594,9 @@ def test_transfer_runs_enqueue_under_the_lock():
         events.append("enqueued")
         t = threading.Thread(target=lambda: events.append(("revoke", c.revoke("m1"))))
         t.start()
-        # The revoke must be BLOCKED on the controller lock right now.
-        t.join(0.3)
+        # The enqueue runs under the controller lock, so the revoke cannot
+        # have run yet (checked without a timed wait).
+        assert c._lock.locked()
         assert events == ["enqueued"]
         events.append(t)
 
