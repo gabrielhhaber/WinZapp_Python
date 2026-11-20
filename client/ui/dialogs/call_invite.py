@@ -89,6 +89,10 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
                                     style=wx.CB_READONLY)
         self._country.SetSelection(get_default_country_index(self._countries, i18n.language))
         sizer.Add(self._country, 0, wx.EXPAND | wx.ALL, 8)
+        # The StaticText right before a field is its name for NVDA, so the
+        # field gets its own label after the combo, as in the add-member dialog.
+        sizer.Add(wx.StaticText(panel, label=i18n.t("add_member_phone_number_label")),
+                  0, wx.LEFT | wx.RIGHT, 8)
         # Enter in the field adds, as the Add button does.
         self._number = wx.TextCtrl(panel, style=wx.TE_PROCESS_ENTER)
         self._number.Bind(wx.EVT_TEXT_ENTER, self._on_add)

@@ -26,6 +26,9 @@ from ui.shortcut_bindings import popup_item_label
 _OPT_IN = "automatic_text_translation_chats"
 _RESULT_LIMIT = 128
 _QUEUE_LIMIT = 50
+# Pausing faults of the offline model: not a provider refusal, so the
+# generic paused message would name a false cause.
+_LOCAL_FAULTS = ("ai_error_translation_local_load", "ai_error_translation_engine_missing")
 _BUSY_RETRY_MS = 1000
 
 
@@ -380,6 +383,9 @@ class TranslationActionsMixin:
             self._translation_paused_until = time.monotonic() + PAUSE_SECONDS
             self._translation_queue.clear()
             mw.output(t("translation_auto_paused"))
+            if str(error) in _LOCAL_FAULTS:
+                # the offline model, not the provider: say the real cause too
+                mw.output(t(str(error)))
 
     def _next_translation_entry(self):
         """The next queued message still worth translating, or None. Stale
