@@ -614,6 +614,8 @@ WHAT'S NEW
 
 - Corretto: con la cancellazione del rumore vocale neurale attiva, i messaggi vocali ora vengono inviati nell'ordine in cui sono stati registrati, anche quando uno finisce l'elaborazione prima di un altro.
 
+- Messaggi mostrati all'apertura di una chat: l'impostazione ora accetta al massimo 1.000. Valori di decine di migliaia bloccavano la finestra per oltre un minuto quando arrivavano molti messaggi insieme o mentre scrivevi; un valore salvato più alto viene trattato come 1.000 e Impostazioni > Messaggi richiede un numero da 1 a 1.000.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

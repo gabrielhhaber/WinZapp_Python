@@ -9124,9 +9124,10 @@ msgstr "The media download size limit must be a whole number (0 or greater)."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+#, python-brace-format
 msgctxt "invalid_messages_page_size"
-msgid "The messages per page value must be a positive integer."
-msgstr "The messages per page value must be a positive integer."
+msgid "The messages per page value must be a whole number from 1 to {max}."
+msgstr "The messages per page value must be a whole number from 1 to {max}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

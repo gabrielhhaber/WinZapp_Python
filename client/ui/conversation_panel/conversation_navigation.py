@@ -5,6 +5,7 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from core.page_size import messages_page_size
 from ui.shortcut_bindings import set_shortcut_label
 import logging
 import threading
@@ -206,7 +207,7 @@ class ConversationNavigationMixin:
         _conv_jid = conversation.get("remoteJid", "")
         if not _conv_jid:
             return
-        configured_limit = int(self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
+        configured_limit = messages_page_size(self.main_window.settings)
         unread_count = int(conversation.get("unreadCount") or 0)
         limit = db_fetch_limit(configured_limit, unread_count)
         # Far enough back to still hold the message "continue where you left

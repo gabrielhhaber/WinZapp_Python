@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from core.page_size import messages_page_size
 import logging
 import time
 import wx
@@ -401,7 +402,7 @@ class HistoryMixin:
             phone = self._resolve_jid_for_msg_key(remote_jid).replace("@s.whatsapp.net", "@c.us")
         resolved_phone = phone
 
-        limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
+        limit = messages_page_size(self.settings)
         if oldest_msg is not None:
             _key = oldest_msg.get("key", {})
             serialized_key = _key.get("_serialized", "") or oldest_msg.get("_serialized", "")

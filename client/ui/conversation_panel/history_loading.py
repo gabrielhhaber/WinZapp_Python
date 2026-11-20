@@ -8,6 +8,7 @@ ConversationsPanel.__init__/init_UI is available here.
 import logging
 import threading
 import wx
+from core.page_size import messages_page_size
 from core.utils import history_window
 from main_window import history_boundary
 
@@ -263,9 +264,7 @@ class HistoryLoadingMixin:
         self._is_loading_more = True
         try:
             remote_jid = self.conversation.get("remoteJid", "")
-            limit = int(
-                self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
-            )
+            limit = messages_page_size(self.main_window.settings)
             # Count separator objects to get the actual database message count currently in memory.
             extra_pins = getattr(self, "_pinned_extra_history_ids", set())
             loaded_db_count = sum(
@@ -509,9 +508,7 @@ class HistoryLoadingMixin:
         self._is_loading_more = True
         self.messages_list.Freeze()
         try:
-            limit = int(
-                self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
-            )
+            limit = messages_page_size(self.main_window.settings)
             new_start = max(0, self._messages_offset - limit)
             new_msgs  = self._all_sorted_messages[new_start:self._messages_offset]
             if not new_msgs:

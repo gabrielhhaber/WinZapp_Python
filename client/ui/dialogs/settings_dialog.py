@@ -3,6 +3,7 @@ import os
 import sys
 import wx
 from core.chat_row_text import AFTER as UNREAD_AFTER, BEFORE as UNREAD_BEFORE
+from core.page_size import MAX_MESSAGES_PAGE_SIZE, clamp_messages_page_size
 from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
 from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -2587,7 +2588,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._hotkey_field._vk  = 0
                 self._hotkey_field._mod = 0
 
-        page_size = self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
+        page_size = clamp_messages_page_size(
+            self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
         if wanted(unit, "messages"):
             self._messages_page_size_field.SetValue(str(page_size))
 
@@ -3779,11 +3781,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             page_size_str = self._messages_page_size_field.GetValue().strip()
             try:
                 page_size = int(page_size_str)
-                if page_size < 1:
+                if not 1 <= page_size <= MAX_MESSAGES_PAGE_SIZE:
                     raise ValueError
             except ValueError:
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_messages_page_size"),
+                    self.main_window.i18n.t("invalid_messages_page_size").format(
+                        max=MAX_MESSAGES_PAGE_SIZE),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,

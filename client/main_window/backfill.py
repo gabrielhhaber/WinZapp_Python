@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from core.page_size import messages_page_size
 import logging
 import threading
 import time
@@ -182,12 +183,7 @@ class BackfillMixin:
         means "opening the conversation shows a full page without going back to
         the network".
         """
-        try:
-            return max(1, int(getattr(self, "settings", {})
-                              .get("user_interface", {})
-                              .get("messages_page_size", 200)))
-        except (AttributeError, TypeError, ValueError):
-            return 200
+        return messages_page_size(getattr(self, "settings", {}))
 
     def _history_session_is_gone(self) -> bool:
         """Whether an unreadable /history-sync-status means "stop", not "retry".
