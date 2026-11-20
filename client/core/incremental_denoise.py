@@ -77,6 +77,10 @@ class _ChannelStream:
         self.delay_out, self.skip_out = _delay_skip(MODEL_RATE, rate)
         self.fed48 = 0           # 48 kHz samples poured into the hop stream
         self.passed48 = 0        # enhanced 48 kHz samples emitted downstream
+        # Set by finish(): the recording's length at 48 kHz. The offline
+        # path crops the enhanced stream to exactly that many samples before
+        # its output resampler sees zeros, so nothing past it may be emitted.
+        self.limit48 = None
         self.out_pending = np.empty(0, np.float32)
 
     def _hop(self) -> None:
@@ -114,6 +118,8 @@ class _ChannelStream:
             self._hop()
 
     def _emit48(self, e: np.ndarray) -> None:
+        if self.limit48 is not None:
+            e = e[:max(0, self.limit48 - self.passed48)]
         self.passed48 += e.size
         if self.r_out is not None:
             o = self.r_out.process(e, MODEL_RATE, self.rate)
@@ -128,6 +134,7 @@ class _ChannelStream:
 
     def finish(self, frames_in: int) -> None:
         wanted48 = frames_in * MODEL_RATE // self.rate
+        self.limit48 = wanted48
         # 1. Input resampler tail: the same zeros nn._convert appends.
         if self.r_in is not None:
             self.feed(np.zeros(self.delay_in + 1, np.float32), wanted48)

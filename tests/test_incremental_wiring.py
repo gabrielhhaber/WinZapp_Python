@@ -2,8 +2,10 @@
 with wx and sound_lib stubbed (no wx, no audio device, no model file).
 
 The functions under test are the UNMODIFIED module-level code of
-ui/conversation_panel/voice_recording.py — _start_incremental_denoise and
-_cancel_incremental_denoise — called with a minimal fake ``self`` (the
+ui/conversation_panel/voice_recording.py and the modules split out of it
+(voice_incremental_session.py, voice_nr_send.py, voice_nr_pending.py,
+core/incremental_send.py) — _start_incremental_denoise and
+_cancel_incremental_denoise among them — called with a minimal fake ``self`` (the
 mixin's methods are plain functions; self only needs the attributes each
 function touches). wx.CallAfter is recorded, not executed. The model file
 is absent in this environment, so the real drain thread deterministically

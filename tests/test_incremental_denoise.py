@@ -150,6 +150,36 @@ def test_incremental_matches_offline_bit_for_bit(rate, frames, channels, style):
     assert _incremental(data, rate, channels, style, _stand_in()) == expected
 
 
+class _HummingSession(_LateSession):
+    """Late spectrum plus a constant in one bin: unlike the pure delay, its
+    output is NOT zero on the silent tail, so samples emitted past the
+    recording's end would show up in the result (reviewer 1, PR #834)."""
+
+    def run(self, _outputs, feeds):
+        late, state = super().run(_outputs, feeds)
+        late[0, 0, 5, 0] += 0.5
+        return [late, state]
+
+
+def _humming_stand_in():
+    state = np.zeros(LATE_FRAMES * BINS * 2, dtype=np.float32)
+    return nnr.NeuralDenoiser(session=_HummingSession(), initial_state=state)
+
+
+@pytest.mark.parametrize("rate,frames,channels,style", [
+    (44100, 132377, 1, "pyaudio4096"),   # wanted48 not a multiple of the hop
+    (44100, 3 * 44100 + 7, 2, "irregular"),
+    (16000, 48005, 1, "100ms"),
+    (8000, 16001, 1, "irregular"),
+    (48000, 9973, 1, "pyaudio4096"),
+])
+def test_incremental_matches_offline_when_the_model_hums_on_silence(
+        rate, frames, channels, style):
+    data = _signal(frames, rate, channels, seed=frames ^ rate)
+    expected = nnr.denoise_pcm16(data, rate, channels, _humming_stand_in())
+    assert _incremental(data, rate, channels, style, _humming_stand_in()) == expected
+
+
 def test_spool_mode_returns_identical_bytes(tmp_path):
     rate, frames, channels = 48000, 5 * 48000, 1
     data = _signal(frames, rate, channels, seed=7)
