@@ -460,7 +460,8 @@ def test_joining_a_call_link_makes_a_live_group_call_with_no_chat():
     assert not media(FakeCalls())[0].call_links_available() and m.call_links_available()
     joined, answer = m.join_link("https://call.whatsapp.com/voice/T", False)
     assert (joined, answer["admin"]) == ("L1", True)
-    assert fake.links == [("https://call.whatsapp.com/voice/T", False)]
+    # meowcaller refuses WhatsApp's /voice/ URL (it reads /audio/), so only the token goes down
+    assert fake.links == [("T", False)]
     assert states(sent)[-1] == "ACTIVE" and m.live_call() == "L1"
     event = [e for e in sent if e[0] == "callstate"][-1][1]["data"]
     assert event["isCallLink"] is True and event["isGroup"] is True and event["peerJid"] == ""

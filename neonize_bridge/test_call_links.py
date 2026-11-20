@@ -18,6 +18,8 @@ def test_a_call_link_is_read_as_whatsapp_web_reads_it():
     assert cl.parse_link(VOICE) == (False, VOICE)
     assert cl.parse_link(" https://call.whatsapp.com/VIDEO/" + TOKEN + "?x=1 ") == (
         True, "https://call.whatsapp.com/video/" + TOKEN)
+    # meowcaller's CreateCallLink builds a voice link as /audio/<token>
+    assert cl.parse_link("https://call.whatsapp.com/audio/" + TOKEN) == (False, VOICE)
     assert cl.parse_link("https://web.whatsapp.com/call/voice/" + TOKEN) == (False, VOICE)
     for wrong in ("", None, "https://call.whatsapp.com/voice/short",
                   "https://evil.example/voice/" + TOKEN, "http://call.whatsapp.com/voice/" + TOKEN,
@@ -88,7 +90,7 @@ class Media:
 
     def create_link(self, video=False):
         self.created.append(video)
-        return {"link": ("https://call.whatsapp.com/video/" if video else "https://call.whatsapp.com/voice/")
+        return {"link": ("https://call.whatsapp.com/video/" if video else "https://call.whatsapp.com/audio/")   # as meowcaller builds it
                 + TOKEN, "video": video}
 
     def join_link(self, link, video=False):
