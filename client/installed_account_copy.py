@@ -46,9 +46,9 @@ _TOKEN_DIRS = ("tokens", "wppconnect_tokens")
 # Windows MessageBox flags and answers.
 MB_YESNO = 0x04
 MB_RETRYCANCEL = 0x05
+MB_ICONERROR = 0x10
 MB_ICONQUESTION = 0x20
 MB_ICONWARNING = 0x30
-MB_ICONERROR = 0x10
 IDYES = 6
 IDRETRY = 4
 
@@ -162,7 +162,9 @@ def active_session_names(account_dir) -> list:
     data = _read_json(os.path.join(account_dir, "sessions.json"))
     names = []
     for entry in (data or {}).get("sessions", []) if isinstance(data, dict) else []:
-        name = entry.get("name") if isinstance(entry, dict) else None
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
         if (entry.get("status") == "active" and isinstance(name, str) and name
                 and os.path.basename(name) == name and name not in (".", "..")
                 and name not in names):

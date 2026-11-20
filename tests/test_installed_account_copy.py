@@ -156,6 +156,12 @@ def test_a_failed_copy_leaves_nothing_behind(tmp_path, monkeypatch):
     assert not (portable / "global" / "api" / "userDataDir" / SESSION).exists()
 
 
+def test_a_malformed_sessions_json_entry_is_skipped(tmp_path):
+    (tmp_path / "sessions.json").write_text(json.dumps(
+        {"sessions": ["junk", None, 3, {"name": SESSION, "status": "active"}]}))
+    assert copy.active_session_names(str(tmp_path)) == [SESSION]
+
+
 def test_only_a_compiled_copy_without_the_installer_marker_is_portable(tmp_path):
     assert copy.is_portable_build(str(tmp_path), frozen=True)
     assert not copy.is_portable_build(str(tmp_path), frozen=False)
