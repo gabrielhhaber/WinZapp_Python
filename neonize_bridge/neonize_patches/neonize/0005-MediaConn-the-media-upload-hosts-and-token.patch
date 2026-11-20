@@ -6,15 +6,33 @@ Subject: [PATCH] MediaConn: the media upload hosts and token
 For uploads whatsmeow has no function for, such as a catalog product's
 picture, which goes unencrypted to /product/image.
 ---
- goneonize/rawiq.go | 23 +++++++++++++++++++++++
+ goneonize/rawiq.go | 27 +++++++++++++++++++++++++--
  neonize/_binder.py |  3 +++
  neonize/client.py  |  9 +++++++++
- 3 files changed, 35 insertions(+)
+ 3 files changed, 37 insertions(+), 2 deletions(-)
 
 diff --git a/goneonize/rawiq.go b/goneonize/rawiq.go
-index 282275a..a76896a 100644
+index 282275a..bcf1d34 100644
 --- a/goneonize/rawiq.go
 +++ b/goneonize/rawiq.go
+@@ -172,7 +172,7 @@ func rawContext(timeoutMs int) (context.Context, context.CancelFunc) {
+ //
+ //export SendIQ
+ func SendIQ(id *C.char, query *C.char) *C.char {
+-	cli := clients[C.GoString(id)]
++	cli := clientFor(C.GoString(id))
+ 	if cli == nil {
+ 		return rawError(fmt.Errorf("client not found"))
+ 	}
+@@ -226,7 +226,7 @@ func SendIQ(id *C.char, query *C.char) *C.char {
+ //
+ //export SendMexIQ
+ func SendMexIQ(id *C.char, queryID *C.char, variables *C.char, timeoutMs C.int) *C.char {
+-	cli := clients[C.GoString(id)]
++	cli := clientFor(C.GoString(id))
+ 	if cli == nil {
+ 		return rawError(fmt.Errorf("client not found"))
+ 	}
 @@ -246,3 +246,26 @@ func SendMexIQ(id *C.char, queryID *C.char, variables *C.char, timeoutMs C.int)
  	}
  	return rawAnswer(answer)
@@ -26,7 +44,7 @@ index 282275a..a76896a 100644
 +//
 +//export MediaConn
 +func MediaConn(id *C.char, force C.int) *C.char {
-+	cli := clients[C.GoString(id)]
++	cli := clientFor(C.GoString(id))
 +	if cli == nil {
 +		return rawError(fmt.Errorf("client not found"))
 +	}

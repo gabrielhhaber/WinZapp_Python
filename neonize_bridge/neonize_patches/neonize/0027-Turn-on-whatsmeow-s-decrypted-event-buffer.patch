@@ -4,14 +4,22 @@ Date: Fri, 13 Nov 2026 21:54:37 -0300
 Subject: [PATCH] Turn on whatsmeow's decrypted event buffer
 
 ---
- goneonize/main.go | 5 +++++
- 1 file changed, 5 insertions(+)
+ goneonize/main.go | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 30a256e..474e956 100644
+index 30a256e..0c4dd51 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -705,6 +705,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -516,7 +516,6 @@ func SendNewsletterMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageB
+ }
+ 
+ func sendMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uchar, messageSize C.int, mediaHandle string) *C.struct_BytesReturn {
+-	// fmt.Println("SendMessage: Getting client from ID")
+ 	client := getClient(id)
+ 	if client == nil {
+ 		return_ := defproto.SendMessageReturnFunction{}
+@@ -705,6 +704,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  	// not resend it within RequestFromPhoneDelay. Off by default in whatsmeow:
  	// the message was lost for good whenever the sender's device stayed silent.
  	client.AutomaticMessageRerequestFromPhone = true
