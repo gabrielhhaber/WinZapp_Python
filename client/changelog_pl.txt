@@ -58,6 +58,8 @@ NOWOŚCI
 
 - Gdy NVDA działa, nagrywanie mikrofonu wraz z dźwiękiem komputera nie przerywa się już z komunikatem o problemie z urządzeniem audio, gdy WinZapp zawiesza się na sekundę lub dwie (wolny lub obciążony komputer): dźwięk z tej chwili jest pomijany, nagrywanie trwa dalej, a reszta pozostaje zsynchronizowana. Wcześniej działało to już bez oddzielnie nagrywanego dźwięku NVDA; teraz obejmuje także czytniki oddzielnie nagrywanego dźwięku NVDA i innych dźwięków komputera.
 
+- Wiadomości głosowe mogą korzystać z neuronowej redukcji szumów w tle podczas nagrywania, zamiast czekać do wysłania. Okno ustawień reduktora szumów w Ustawienia > Dźwięk pozwala wybrać redukcję podstawową lub neuronową, przetwarzanie podczas nagrywania lub przy wysyłaniu (domyślnie) oraz działanie po niepowodzeniu redukcji neuronowej: wysłanie z redukcją podstawową lub pozostawienie wiadomości jako oczekującej na ręczne ponowienie. Przetwarzanie podczas nagrywania korzysta z CPU lub CoreML; wybranie CUDA wyłącza tę opcję i przetwarzanie następuje przy wysyłaniu. CUDA nie jest używana podczas nagrywania. Ścieżka CoreML podczas nagrywania nie została sprawdzona w rzeczywistym użyciu.
+
 - Kontakt ma teraz jedną nazwę: gdy ktoś zmieni nazwę profilu, wszystkie jego wiadomości, także stare i grupowe, pokazują nową nazwę zamiast przełączać się między starą a nową. Dotyczy Neonize i WPPConnect.
 
 - Uruchamianie: obsługa mowy korzysta teraz z własnej tymczasowej pamięci podręcznej COM, co zapobiega błędom importu cyklicznego po utracie indeksu współdzielonej pamięci podręcznej Windows.

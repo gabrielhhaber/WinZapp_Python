@@ -19,12 +19,16 @@ from core.cuda_components import store
 from core.cuda_components import text as ctext
 from core.cuda_components.job import ComponentsInstallJob
 from core.cuda_components.model import device_of, offered_devices
+from core.voice_nr_options import voice_nr_engine
 from ui.dialogs.noise_model_section import NoiseModelSectionMixin
+from core.voice_nr_options import NR_ENGINES, NR_MOMENTS, NR_ON_FAILURE
+from ui.dialogs.noise_reducer_options import (
+    NoiseReducerOptionsMixin, nr_options_from_settings)
 from ui.dialogs.transcription_progress import TranscriptionProgressDialog
 
 
-class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
-    def __init__(self, parent, main_window, device=None):
+class NoiseReducerDialog(NoiseReducerOptionsMixin, NoiseModelSectionMixin, wx.Dialog):
+    def __init__(self, parent, main_window, device=None, options=None):
         i18n = main_window.i18n
         super().__init__(parent, title=i18n.t("noise_reducer_title"),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -42,6 +46,8 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
             self._devices.index(chosen) if chosen in self._devices else 0)
         self._device_choice.Bind(wx.EVT_CHOICE, lambda e: self._refresh_components())
         sizer.Add(self._device_choice, 0, wx.EXPAND | wx.ALL, 8)
+        self._build_voice_nr_options(
+            sizer, options or nr_options_from_settings(main_window.settings))
         self._components_label = wx.StaticText(
             self, label=i18n.t("noise_reducer_components_label"))
         sizer.Add(self._components_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
@@ -64,6 +70,41 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
         self.SetSizerAndFit(sizer)
         self._refresh_components()
 
+    def _build_voice_nr_options(self, sizer, options):
+        i18n = self.main_window.i18n
+        self._voice_nr_engine_label = wx.StaticText(
+            self, label=i18n.t("voice_nr_engine_label"))
+        sizer.Add(self._voice_nr_engine_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._voice_nr_engine_combo = wx.ComboBox(
+            self, style=wx.CB_READONLY,
+            choices=[i18n.t("voice_nr_engine_neural"), i18n.t("voice_nr_engine_basic")])
+        sizer.Add(self._voice_nr_engine_combo, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_engine_combo.Bind(wx.EVT_COMBOBOX, self._on_voice_nr_engine_changed)
+        self._voice_nr_moment_label = wx.StaticText(
+            self, label=i18n.t("voice_nr_moment_label"))
+        sizer.Add(self._voice_nr_moment_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._voice_nr_moment_combo = wx.ComboBox(
+            self, style=wx.CB_READONLY,
+            choices=[i18n.t("voice_nr_moment_send"), i18n.t("voice_nr_moment_record")])
+        sizer.Add(self._voice_nr_moment_combo, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_on_failure_label = wx.StaticText(
+            self, label=i18n.t("voice_nr_on_failure_label"))
+        sizer.Add(self._voice_nr_on_failure_label, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+        self._voice_nr_on_failure_combo = wx.ComboBox(
+            self, style=wx.CB_READONLY,
+            choices=[i18n.t("voice_nr_on_failure_basic"),
+                     i18n.t("voice_nr_on_failure_pending")])
+        sizer.Add(self._voice_nr_on_failure_combo, 0, wx.EXPAND | wx.ALL, 8)
+        self._voice_nr_engine_combo.SetSelection(NR_ENGINES.index(options["engine"]))
+        self._voice_nr_moment_combo.SetSelection(NR_MOMENTS.index(options["moment"]))
+        self._voice_nr_on_failure_combo.SetSelection(NR_ON_FAILURE.index(options["on_failure"]))
+        self._update_voice_nr_options_state()
+
+    def _refresh_noise_model_section(self):
+        super()._refresh_noise_model_section()
+        # the model may have just been downloaded or removed
+        self._update_voice_nr_options_state()
+
     @property
     def device(self) -> str:
         index = self._device_choice.GetSelection()
@@ -76,6 +117,7 @@ class NoiseReducerDialog(NoiseModelSectionMixin, wx.Dialog):
             return []
 
     def _refresh_components(self):
+        self._update_voice_nr_options_state()  # the processor may have changed
         missing = self._missing()
         self._components_field.SetValue(ctext.components_text(
             self.main_window.i18n, self.device, missing,
@@ -214,25 +256,25 @@ def remove_components(ids, stop, remove):
         return None
 
 
-def neural_box_shown(reduction_on, model_installed) -> bool:
-    """The "neural or common" box only means something with the reducer on
-    and the neural model there to choose."""
-    return bool(reduction_on) and bool(model_installed)
+def reducer_start_wanted(enabled, neural, model_installed) -> bool:
+    """Whether the noise reducer's process is worth starting right now:
+    the reducer on, the neural engine chosen AND its model there. Without
+    the model a start would fail and leave the device in "failed", so a
+    model downloaded later in the same window would never retry."""
+    return bool(enabled) and bool(neural) and bool(model_installed)
 
 
 class NoiseReducerButtonMixin:
-    """The Audio tab's part of the noise reducer: the "use the neural model"
-    box (general.noise_reduction_neural), shown only with the reducer on and
-    the model installed, and the button opening the reducer's window, whose
-    OK keeps the processor (general.noise_reduction_device)."""
+    """The Audio tab's button opening the noise reducer's window, whose OK
+    keeps the processor (general.noise_reduction_device). The engine itself
+    (general.noise_reduction_neural) is chosen by the engine combo of
+    ui/dialogs/voice_recording_options.py, its only writer."""
 
     def _build_noise_reducer_button(self, parent, sizer):
         i18n = self.main_window.i18n
         self._noise_reducer_device = None
+        self._noise_reducer_options = None  # set when the window's OK is pressed
         self._noise_reducer_page = parent
-        self._noise_reducer_neural_check = wx.CheckBox(
-            parent, label=i18n.t("noise_reducer_use_neural"))
-        sizer.Add(self._noise_reducer_neural_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self._noise_reducer_btn = wx.Button(parent, label=i18n.t("noise_reducer_button"))
         self._noise_reducer_btn.Bind(wx.EVT_BUTTON, self._on_noise_reducer_button)
         sizer.Add(self._noise_reducer_btn, 0, wx.LEFT | wx.BOTTOM, 8)
@@ -241,65 +283,64 @@ class NoiseReducerButtonMixin:
             check.Bind(wx.EVT_CHECKBOX, self._on_noise_reduction_toggled)
 
     def _on_noise_reduction_toggled(self, event):
-        self._sync_noise_reducer_neural_box()
+        self._sync_noise_reducer_button()
         event.Skip()
 
-    def _sync_noise_reducer_neural_box(self):
-        from core import noise_model
-        try:
-            installed = noise_model.is_installed()
-        except Exception:
-            installed = False
+    def _sync_noise_reducer_button(self):
         check = getattr(self, "_noise_reduction_check", None)
         reduction_on = check is not None and check.GetValue()
-        shown = neural_box_shown(reduction_on, installed)
-        changed = False
-        box = self._noise_reducer_neural_check
-        if box.IsShown() != shown:
-            box.Show(shown)
-            changed = True
         # the reducer's own window only means something with the reducer on
         button = self._noise_reducer_btn
         if button.IsShown() != bool(reduction_on):
             button.Show(bool(reduction_on))
-            changed = True
-        if changed:
             self._noise_reducer_page.Layout()
 
     def _load_noise_reducer_options(self):
-        general = self.main_window.settings.get("general", {})
-        self._noise_reducer_neural_check.SetValue(
-            general.get("noise_reduction_neural", True) is not False)
-        self._sync_noise_reducer_neural_box()
+        self._sync_noise_reducer_button()
 
     def _relabel_noise_reducer_button(self):
         i18n = self.main_window.i18n
         self._noise_reducer_btn.SetLabel(i18n.t("noise_reducer_button"))
-        self._noise_reducer_neural_check.SetLabel(i18n.t("noise_reducer_use_neural"))
 
     def _on_noise_reducer_button(self, _event):
-        dialog = NoiseReducerDialog(self, self.main_window, self._noise_reducer_device)
+        dialog = NoiseReducerDialog(self, self.main_window, self._noise_reducer_device,
+                                    self._noise_reducer_options)
         try:
             if dialog.ShowModal() == wx.ID_OK:
                 self._noise_reducer_device = dialog.device
+                self._noise_reducer_options = dialog.options
         finally:
             dialog.Destroy()
-        # the model may have been downloaded or removed in there
-        self._sync_noise_reducer_neural_box()
+        # The model or selected device may have changed in the dialog.
+        self._sync_noise_reducer_button()
         self._noise_reducer_btn.SetFocus()
 
     def _save_noise_reducer_device(self):
+        """Keep what the noise reducer's window chose, the only writer of the
+        engine, the processing moment, the failure action and the processor."""
         general = self.main_window.settings.setdefault("general", {})
-        general["noise_reduction_neural"] = self._noise_reducer_neural_check.GetValue()
-        if self._noise_reducer_device is not None:
-            changed = general.get("noise_reduction_device") != self._noise_reducer_device
-            general["noise_reduction_device"] = self._noise_reducer_device
-            # applied at once: a graphics card build's process restarts, said
-            # aloud (core/cuda_components/noise_worker_host.py); started now
-            # only when a recording would use it (the box is shown with the
-            # reducer on and its model there)
-            if changed:
-                from core.cuda_components import noise_worker_host
-                box = self._noise_reducer_neural_check
-                noise_worker_host.host.apply(self._noise_reducer_device,
-                                             start=box.IsShown() and box.GetValue())
+        options = self._noise_reducer_options
+        if options is not None:
+            general["voice_nr_engine"] = options["engine"]
+            general["noise_reduction_neural"] = options["engine"] == "neural"
+            general["voice_nr_moment"] = options["moment"]
+            general["voice_nr_on_failure"] = options["on_failure"]
+        if self._noise_reducer_device is None:
+            return
+        changed = general.get("noise_reduction_device") != self._noise_reducer_device
+        general["noise_reduction_device"] = self._noise_reducer_device
+        # applied at once: a graphics card build's process restarts, said
+        # aloud (core/cuda_components/noise_worker_host.py); started now
+        # only when a recording would use it (see reducer_start_wanted)
+        if changed:
+            from core import noise_model
+            from core.cuda_components import noise_worker_host
+            try:
+                installed = noise_model.is_installed()
+            except Exception:
+                installed = False
+            engine = (options or {}).get("engine") or voice_nr_engine(self.main_window.settings)
+            noise_worker_host.host.apply(
+                self._noise_reducer_device,
+                start=reducer_start_wanted(
+                    general.get("noise_reduction_enabled"), engine == "neural", installed))

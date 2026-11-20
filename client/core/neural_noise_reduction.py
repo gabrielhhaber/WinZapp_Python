@@ -156,6 +156,14 @@ def denoise_pcm16(audio: bytes, rate: int, channels: int, denoiser: NeuralDenois
 
 _denoiser: NeuralDenoiser | None = None
 _denoiser_lock = threading.Lock()
+# _denoiser_lock covers CONSTRUCTION only. Inference on the shared singleton
+# is serialized separately: concurrent run() calls on one InferenceSession
+# are a property of the pinned onnxruntime this codebase does NOT claim
+# (the incremental drain carries a private instance for the same reason —
+# see voice_recording._incremental_drain). Two at-send reductions (two
+# notes sent at once, or a kept-pending retry next to another note's send)
+# must wait for each other instead of racing one native session.
+_inference_lock = threading.Lock()
 
 
 def reduce_voice_noise(audio: bytes, rate: int, channels: int,
@@ -182,7 +190,8 @@ def reduce_voice_noise(audio: bytes, rate: int, channels: int,
                     raise FileNotFoundError(model_path())
                 _denoiser = NeuralDenoiser()
             denoiser = _denoiser
-        return denoise_pcm16(audio, rate, channels, denoiser), "neural"
+        with _inference_lock:
+            return denoise_pcm16(audio, rate, channels, denoiser), "neural"
     except Exception:
         logging.warning("[noise_reduction] neural model unavailable, using the noise gate", exc_info=True)
         from core.audio_processing import apply_noise_gate

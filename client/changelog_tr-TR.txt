@@ -58,6 +58,8 @@ YENİLİKLER
 
 - NVDA çalışırken, mikrofonu bilgisayar sesiyle birlikte kaydetmek, WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor. Bu, NVDA sesi ayrı alınmadan önce de böyleydi; artık ayrı kaydedilen NVDA sesinin ve bilgisayarın diğer seslerinin okuyucularını da kapsıyor.
 
+- Sesli mesajlar, gönderilmeyi beklemek yerine kayıt sırasında arka planda sinirsel gürültü azaltmayı kullanabilir. Ayarlar > Ses bölümündeki gürültü azaltıcı ayarları penceresinden temel veya sinirsel azaltma, kayıt sırasında veya gönderirken işleme (varsayılan) ve sinirsel azaltma başarısız olduğunda ne yapılacağı seçilebilir: temel azaltmayla gönderme veya elle yeniden denemek için mesajı beklemede tutma. Kayıt sırasında işleme, CPU veya CoreML kullanır; CUDA seçildiğinde bu seçenek devre dışı bırakılır ve işlem gönderirken yapılır. Kayıt sırasında CUDA işleme yoktur. Kayıt sırasındaki CoreML yolu gerçek kullanımda doğrulanmamıştır.
+
 - Bir kişinin artık tek bir adı var: biri profil adını değiştirdiğinde, eski mesajlar ve grup mesajları dahil tüm mesajları eski ve yeni ad arasında gidip gelmek yerine yeni adı gösterir. Neonize ve WPPConnect için geçerlidir.
 
 - Başlangıç: konuşma desteği artık kendi geçici COM önbelleğini kullanır; böylece paylaşılan Windows önbelleği dizinini kaybettiğinde döngüsel içe aktarma hataları önlenir.

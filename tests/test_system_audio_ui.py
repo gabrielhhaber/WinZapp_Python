@@ -145,8 +145,12 @@ class QueuedThreads:
         self.Event, self.Lock = threading.Event, threading.Lock
         self.jobs = []
 
-    def Thread(self, target, daemon=True):
-        return SimpleNamespace(start=lambda: self.jobs.append(target))
+    def Thread(self, target, args=(), kwargs=None, daemon=True, name=None):
+        # Same call shape as threading.Thread: the production code passes
+        # args=(session,) for the incremental drain thread.
+        kwargs = {} if kwargs is None else kwargs
+        return SimpleNamespace(
+            start=lambda: self.jobs.append(lambda: target(*args, **kwargs)))
 
     def drain(self):
         while self.jobs:
@@ -216,6 +220,14 @@ class CaptureHarness:
                 voicemsg_discard_sound=SimpleNamespace(play=Mock()),
                 voicemsg_pauserecording_sound=SimpleNamespace(play=Mock())),
             _stop_recorded_audio_preview=Mock(),
+            # Noise reduction is not under test in these harnesses: the real
+            # stop/discard paths call these, so they exist as no-op Mocks.
+            # Real start/cancel behavior is covered by the incremental suites
+            # (tests/test_incremental_denoise.py, tests/test_incremental_wiring.py).
+            _start_incremental_denoise=Mock(),
+            _cancel_incremental_denoise=Mock(),
+            # Same reason: _on_destroy invalidates fourth-option attempts.
+            _nr_invalidate_attempts=Mock(),
         )
         for name in ['_record_voice_system_btn', 'record_voice_message_btn',
                      '_voice_panel', '_pause_resume_btn', '_send_voice_btn', '_discard_voice_btn',

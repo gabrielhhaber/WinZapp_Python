@@ -121,6 +121,11 @@ class _Stub:
         self._recording_open_token = 0
         self._is_recording = False
         self._recording_stream = None
+        # Noise reduction is not under test here: the real open path calls
+        # _start_incremental_denoise once the capture is up. No-op doubles;
+        # the incremental suites cover the real start/cancel behavior.
+        self._start_incremental_denoise = lambda *args, **kwargs: None
+        self._cancel_incremental_denoise = lambda *args, **kwargs: None
         self.settings = {"user_interface": {"voice_record_focus": "send"}}
         for name in ("message_field", "send_message_btn", "record_voice_message_btn",
                      "_add_attachment_btn", "_voice_panel", "conversation_panel",

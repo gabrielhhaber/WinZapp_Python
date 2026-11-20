@@ -1230,6 +1230,10 @@ class SendingMixin:
                 os.unlink(audio_path)
             except Exception:
                 pass
+            # A note re-sent from the kept-pending state also keeps an
+            # encrypted copy for a later manual retry; delivered, it is done.
+            from ui.conversation_panel.media_paths import discard_nr_pending_resend
+            discard_nr_pending_resend(data_path("voice_messages"), local_id)
 
         # For audio messages, play the sent sound HERE — not only inside
         # _mark_message_sent — because the upload can take several seconds.
