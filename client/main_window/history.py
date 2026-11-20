@@ -104,7 +104,7 @@ class HistoryMixin:
             # The outer backfill loop checks before starting a chat, but without
             # this inner gate an in-flight visit could still fetch several more
             # 200-message pages after audio became active.
-            if self._voice_call_in_progress():
+            if self._background_work_paused():
                 logging.info(
                     "[deep-backfill] Pausing %s during voice call or audio recording.",
                     remote_jid,

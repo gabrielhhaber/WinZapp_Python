@@ -144,7 +144,7 @@ class _SweepLoadStub:
     # Bound from the real class rather than left to a default: the loop stands
     # down while a voice call is up, and the predicate carries the time bound
     # that keeps a call nobody ended from pausing the backfill forever.
-    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _background_work_paused = MainWindow._background_work_paused
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0

@@ -884,7 +884,7 @@ class BackfillMixin:
 
                 if not sync_context_is_current(self, context):
                     return
-                if self._voice_call_in_progress():
+                if self._background_work_paused():
                     # Logged once per call, not once per second: this loop
                     # re-checks every second and the line was filling the log
                     # file users are asked to send.
@@ -994,7 +994,7 @@ class BackfillMixin:
                         "[deep-backfill] Pass %d: walking %d of %d chat(s) further back.",
                         attempt, len(window), len(deep_pending))
                     for jid in window:
-                        if self._voice_call_in_progress():
+                        if self._background_work_paused():
                             break
                         if getattr(self, "_sync_run_id", 0) != my_run:
                             return
@@ -1604,7 +1604,7 @@ class BackfillMixin:
         by _media_sync_candidate() before counting, so Y is what can still be
         downloaded, not every media message in memory.
         """
-        if self._voice_call_in_progress():
+        if self._background_work_paused():
             logging.info("[sync_media_for_all_chats] paused during voice call or audio recording")
             return 0
 
@@ -1629,7 +1629,7 @@ class BackfillMixin:
         downloaded = 0
         timeout = self._MEDIA_SYNC_TIMEOUT
         def _download(msg):
-            if self._voice_call_in_progress():
+            if self._background_work_paused():
                 return False
             if should_stop is not None and should_stop():
                 return False

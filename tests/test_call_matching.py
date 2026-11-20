@@ -99,7 +99,7 @@ class TestMatchingByCallId:
 class _PauseStub:
     """Just enough of MainWindow for the background-work pause predicate."""
 
-    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _background_work_paused = MainWindow._background_work_paused
     _audio_capture_in_progress = MainWindow._audio_capture_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
 
@@ -110,32 +110,32 @@ class _PauseStub:
 
 class TestBackgroundWorkPause:
     def test_no_call_means_no_pause(self):
-        assert _PauseStub()._voice_call_in_progress() is False
+        assert _PauseStub()._background_work_paused() is False
 
     def test_an_active_call_pauses(self):
-        assert _PauseStub({"call_id": "x"})._voice_call_in_progress() is True
+        assert _PauseStub({"call_id": "x"})._background_work_paused() is True
 
     def test_the_pause_is_bounded(self):
         """A call the phone tore down without a terminal event must not pause
         the periodic sync and the backfill for the rest of the session — that
         failure is invisible, the user simply stops receiving messages."""
         stub = _PauseStub({"call_id": "x"})
-        assert stub._voice_call_in_progress() is True
+        assert stub._background_work_paused() is True
         stub._voice_call_pause_since = (
             time.monotonic() - stub._VOICE_CALL_PAUSE_MAX_SECONDS - 1
         )
-        assert stub._voice_call_in_progress() is False
+        assert stub._background_work_paused() is False
 
     def test_the_clock_resets_when_the_call_ends(self):
         stub = _PauseStub({"call_id": "x"})
-        stub._voice_call_in_progress()
+        stub._background_work_paused()
         assert stub._voice_call_pause_since > 0
         stub._active_voice_call = None
-        assert stub._voice_call_in_progress() is False
+        assert stub._background_work_paused() is False
         assert stub._voice_call_pause_since == 0.0
         # A later call gets its own full budget, not the previous one's clock.
         stub._active_voice_call = {"call_id": "y"}
-        assert stub._voice_call_in_progress() is True
+        assert stub._background_work_paused() is True
 
 
 class TestSyncIsNeverGatedOnACall:
@@ -168,12 +168,12 @@ class TestSyncIsNeverGatedOnACall:
                 line for line in body.splitlines()
                 if not line.lstrip().startswith("#")
             )
-            assert "_voice_call_in_progress" not in code, name
+            assert "_background_work_paused" not in code, name
             assert "_active_voice_call" not in code, name
 
     def test_the_periodic_poll_is_where_the_pause_lives(self):
         body = self._body("start_periodic_contacts_sync", "def _phone_digits_equivalent")
-        gate = body.index("self._voice_call_in_progress()")
+        gate = body.index("self._background_work_paused()")
         first_fetch = body.index("self.get_remote_chats(")
         assert gate < first_fetch
 

@@ -421,7 +421,7 @@ class ContactsMixin:
                     if getattr(self, "_initial_sync_running", False):
                         # Don't fight the initial sync for the same dict.
                         continue
-                    if self._voice_call_in_progress():
+                    if self._background_work_paused():
                         # The only safe place to stand the message sync down
                         # during a call: nothing has been attempted yet, so
                         # skipping this cycle cannot be mistaken for a round

@@ -7,7 +7,7 @@ Two defects, reported by an outside contributor and both real:
   lock, so while an offer stalled the "end call" button did nothing at all.
 * Its ``except`` branch never cleared ``_active_voice_call``. The report says
   background sync then stops "for the remainder of the application session";
-  it does not -- ``_voice_call_in_progress()`` is bounded by
+  it does not -- ``_background_work_paused()`` is bounded by
   ``_VOICE_CALL_PAUSE_MAX_SECONDS`` (2h), added for exactly this shape of
   failure, and that safety net held. What the orphaned record really costs is
   an up-to-two-hour stand-down of the recurring background work, a call window
@@ -65,9 +65,9 @@ class _MainStub:
     # Bound from the real class on purpose: a stub that invents a truthy
     # answer here makes the background stand-down permanent (see
     # docs/traps/voice-calls.md).
-    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _background_work_paused = MainWindow._background_work_paused
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
-    # _voice_call_in_progress() also asks about a recording or a mixed
+    # _background_work_paused() also asks about a recording or a mixed
     # capture (background sync paused during audio capture); none here.
     _audio_capture_in_progress = lambda self: False
 
@@ -241,7 +241,7 @@ def test_join_failure_releases_audio_and_never_sends_an_offer():
 
     assert stub.posted == ["group/join"]
     assert stub._active_voice_call is None
-    assert stub._voice_call_in_progress() is False
+    assert stub._background_work_paused() is False
 
 
 def test_a_failed_join_ends_that_call_on_the_page_if_it_connected_late():
@@ -319,7 +319,7 @@ def test_a_failed_offer_clears_the_active_call_and_resyncs_the_bar():
     # The call window is told to hide, and the background work stands back up
     # instead of waiting out the two-hour bound.
     assert stub.sync_bar_calls == 2
-    assert stub._voice_call_in_progress() is False
+    assert stub._background_work_paused() is False
     assert stub._outgoing_call_attempt is None
     assert "Falha ao iniciar a ligação: HTTP 500" in stub.announcements
 
@@ -376,7 +376,7 @@ def test_a_cancel_during_a_successful_offer_ends_the_call_and_skips_the_camera()
     # The camera must never come up for a call the user already cancelled.
     assert stub.camera_starts == 0
     assert stub._active_voice_call is None
-    assert stub._voice_call_in_progress() is False
+    assert stub._background_work_paused() is False
     assert stub._outgoing_call_attempt is None
 
 
