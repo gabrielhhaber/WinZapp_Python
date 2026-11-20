@@ -4,6 +4,52 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Linki do połączeń: w Połączeniach (Alt+6) „Utwórz link do połączenia” otwiera okno, w którym wybierasz połączenie głosowe lub wideo, tworzysz link, kopiujesz go, wysyłasz do czatu albo dołączasz do jego połączenia. Link call.whatsapp.com otrzymany w wiadomości dołącza do połączenia po naciśnięciu Enter lub po wybraniu „Dołącz do połączenia” w menu kontekstowym, po potwierdzeniu; link otwarty w przeglądarce też dołącza w WinZapp, gdy jest to program otwierający linki WhatsApp (Ustawienia > Ogólne). Kto pierwszy dołączy przez link, jest administratorem połączenia: osoby bez konta WhatsApp czekają w poczekalni, WinZapp mówi imię każdej z nich, a przycisk „Poczekalnia” w oknie połączenia wpuszcza je lub odrzuca. Działa z Neonize i WPPConnect.
+
+- Kontakty: lista nawigacji zyskuje pozycję „Kontakty” po Kanałach, bez skrótu Alt+cyfra. Pokazuje zapisane kontakty, jeden wiersz na osobę, z nazwą i numerem; kontakt zapisany pod dwoma adresami (numerem i powiązanym identyfikatorem urządzenia albo brazylijskim numerem z dziewiątą cyfrą i bez niej) to jeden wiersz. „Szukaj kontaktów” filtruje według nazwy lub numeru. Przyciski i menu kontekstowe (klawisz Aplikacji lub Shift+F10) otwierają czat, rozpoczynają połączenie głosowe lub wideo, pokazują „Dane kontaktu”, usuwają kontakt albo go blokują i odblokowują; „Nowy kontakt” dodaje kontakt. „Enter na kontakcie” wybiera, co robi Enter: otwiera czat, dzwoni, dzwoni przez wideo albo pokazuje dane.
+
+- Czat: obok „Przypiętych wiadomości” nowy przycisk „Wiadomości oznaczone gwiazdką w tym czacie” otwiera okno wiadomości oznaczonych gwiazdką (Alt+0) tylko z wiadomościami tego czatu, z jego nazwą w tytule; wybranie jednej ustawia fokus na niej w już otwartym czacie, bez ponownego otwierania.
+
+- Połączenia: czat, który uczestniczy w trwającym połączeniu (grupowym lub prywatnym, w którym połączenie objęło kilka osób), pokazuje teraz „Dołącz do trwającego połączenia głosowego” albo „Dołącz do trwającego połączenia wideo (kamera wyłączona)” zamiast przycisków połączenia; gdy to urządzenie jest w połączeniu z tym czatem, przycisk brzmi „Powrót do połączenia” i przywraca okno połączenia.
+
+- Połączenia: połączenie indywidualne, które stało się grupowym, jest opisywane osobami, jak w telefonie („A, B i C” albo „A i N innych osób”), w czacie, w podglądzie listy czatów i na karcie Połączenia. Połączenie grupowe, które trwało bez Ciebie, a Twoje urządzenie tylko dzwoniło, nie jest już pokazywane jako odebrane.
+
+- Połączenia, „Dodaj uczestników”: każda osoba pojawia się raz, więc kontakt zapisany z dziewiątą cyfrą i bez niej albo pod numerem i powiązanym identyfikatorem urządzenia to jeden wiersz; druga lista oferuje każdy czat indywidualny, z zapisanego kontaktu lub nie; a pole przyjmuje numer telefonu wpisany ręcznie.
+
+- Połączenia: przy dodawaniu osób WinZapp mówi „Dzwonię do: <nazwy>...”, dopóki zaproszenie jest w drodze, a „Zaproszono do połączenia” dopiero po potwierdzeniu przez serwer WhatsApp, zamiast ogłaszać osoby, do których nic nie zadzwoniło. Neonize: dodanie kogoś do połączenia indywidualnego lub do połączenia, które jest już grupowe, dzwoni teraz do tej osoby, nie wyciszając osoby już będącej w połączeniu; a ktoś, kogo lista podaje raz po numerze, a raz po powiązanym identyfikatorze, nie jest już ogłaszany jako wychodzący i wchodzący.
+
+- Połączenia: gdy proces NVDA, który śledzi udostępnianie dźwięku pulpitu, zamyka się w trakcie połączenia, udostępnianie samo wznawia się jeden raz, tak jakbyś ponownie nacisnął „Udostępnij dźwięk pulpitu”; nieudane wznowienie jest ogłaszane jak dotąd.
+
+- Neonize: połączenie indywidualne wykonane z WinZapp pojawia się teraz także w historii połączeń Twojego telefonu.
+
+- Tłumaczenie wiadomości: oprócz Twoich dostawców AI online „Dostawca” w ustawieniach tłumaczenia oferuje „Model lokalny na tym komputerze” (dwanaście modeli: SMaLL-100, M2M-100, mBART-50, NLLB-200 i MADLAD-400 w kilku rozmiarach, pobieranych przyciskiem „Pobierz model” i uruchamianych na procesorze lub karcie graficznej; tekst nigdy nie opuszcza komputera, więc nie ma pytania o zgodę ani dziennego limitu), usługi tłumaczeniowe LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (z regionem zasobu) i Google Translate oraz Ollama i LM Studio jako dostawców lokalnych. W modelu lokalnym język źródłowy jest wykrywany lub wybierany.
+
+- Instalator: nowa grupa „Dźwięki do zainstalowania” pozwala wybrać między „Wszystkie dźwięki WinZapp” (domyślnie) a „Tylko oryginalne dźwięki WhatsApp”. Przy drugiej opcji pozostałe dźwięki nie zostają w instalacji, a aktualizacje nadal je pomijają.
+
+- Wersja przenośna: przy pierwszym uruchomieniu, gdy zainstalowany na komputerze WinZapp ma połączone konta, WinZapp pyta, czy użyć ich kopii zamiast łączyć jeszcze jedno urządzenie. Instalacja jest tylko odczytywana; jeśli jest uruchomiona, WinZapp prosi o jej zamknięcie i wybranie Ponów próbę, a gdy kopiowanie się nie uda, nic się nie zmienia i łączone jest nowe urządzenie.
+
+- Ustawienia > Skróty klawiszowe: zmienione klawisze obowiązują teraz we wszystkich kontach instalacji, a nie tylko w tym, w którym je zmieniono; klawisz ustawiony dla przełącz na konto 2 działa w każdym koncie. Przy pierwszym uruchomieniu tej wersji zmienione klawisze każdego konta dołączają do klawiszy instalacji: gdy oba zmieniły to samo polecenie, obowiązuje klawisz instalacji, a klawisz używany już przez inne polecenie jest pomijany.
+
+- Edytowane wiadomości: Zdarzenia dźwiękowe zyskują „Edycja Twojej wiadomości zapisana” (włączone) oraz „Wiadomość edytowana przez kogoś innego” dla programu na pierwszym planie i w tle (wyłączone); Ustawienia > Ogólne > Powiadomienia zyskują „Czytaj edycje, gdy okno jest aktywne” i „Powiadamiaj o edycjach w tle” (wyłączone); a okno danych każdego czatu ma okno „Edytowane wiadomości”, w którym wybierasz inne dźwięki i ogłoszenia dla tego czatu. Edycja wykonana przez kogoś innego jest ogłaszana tylko dopóki WhatsApp pozwala jeszcze edytować tę wiadomość, więc edycje odtworzone po ponownym połączeniu pozostają ciche.
+
+- Dźwięki i połączenia ustawione na „domyślne systemowe” podążają teraz za domyślnym urządzeniem odtwarzania Windows: po podłączeniu słuchawek, które Windows ustawia jako domyślne, dźwięki WinZapp i dźwięk połączenia przechodzą na nie, tak jak w innych programach.
+
+- Gdy nagrywasz dźwięk (wiadomość głosową albo mikrofon z dźwiękiem komputera), cykliczna synchronizacja w tle, odczyt historii i pobieranie multimediów są wstrzymane, tak jak już podczas połączenia, aby zajęty komputer nie poszatkował nagrania.
+
+- Usunięty czat wraca na listę, gdy zostanie użyty ponownie, przez nową wiadomość lub przez ponowne otwarcie w Nowym czacie, nawet jeśli został usunięty pod inną postacią tej osoby, na przykład powiązanym identyfikatorem albo numerem z dziewiątą cyfrą lub bez niej.
+
+- WPPConnect: wiadomość cytowana w odpowiedzi nie przeskakuje już na koniec czatu po ponownym uruchomieniu WinZapp; zachowuje swój prawdziwy czas.
+
+- WPPConnect, Nowy czat: brazylijski numer wpisany z dziewiątą cyfrą, której WhatsApp nie używa, otwiera teraz prawdziwy czat, a nie drugi, pusty.
+
+- Neonize: gdy telefon wysyła historię wiadomości, WinZapp o tym mówi i prosi o pozostawienie WhatsAppa otwartego na ekranie telefonu, a także ostrzega, gdy telefon przestaje wysyłać (z procentem), gdy znów wysyła i gdy kończy; w czasie przerwy WinZapp prosi telefon o resztę co 90 sekund.
+
+- Neonize: czaty, które WhatsApp na iPhone pomija w pierwszej paczce historii (wysyła teraz tylko 400), są teraz także żądane i importowane.
+
+- Neonize: usunięcie listy usuwa ją także z jej czatów, więc nie wskazują już na nieistniejącą listę.
+
+- Ustawienia redukcji szumów: pole modelu ma teraz literę skrótu Alt we wszystkich językach.
+
 - Nagranie mikrofonu i dźwięku komputera trafia teraz jako wiadomość głosowa (Ctrl+Shift+H), a nie jako załącznik audio; zachowuje stereo (AAC), gdy oba kanały niosą dźwięk, jak inne nagrania stereo. Wcześniej wychodziło jako zwykły plik audio na czacie.
 
 - Neonize: wiadomości odebrane przy otwartym WinZapp są teraz pokazywane nadawcy jako dostarczone, nawet gdy okno nie ma fokusu albo jest w tle. Wcześniej nadawca widział tylko „wysłane”, gdy WinZapp nie miał fokusu; a przy wyłączonych potwierdzeniach odczytu otwarcie rozmowy niczego nie zmieniało. Obecność online pozostaje powiązana z oknem.
@@ -11,8 +57,6 @@ NOWOŚCI
 - Neonize: wysłane przez Ciebie wiadomości mogły wracać do statusu „wysłane” po tym, jak WhatsApp potwierdził je już jako dostarczone — na liście wiadomości i w wierszu statusu. Aplikacja nie nadpisuje już prawdziwego potwierdzenia dostarczenia, odczytania lub odtworzenia własnym potwierdzeniem „wysłane”, a żaden status wiadomości nie cofa się po potwierdzeniu.
 
 - Gdy NVDA działa, nagrywanie mikrofonu wraz z dźwiękiem komputera nie przerywa się już z komunikatem o problemie z urządzeniem audio, gdy WinZapp zawiesza się na sekundę lub dwie (wolny lub obciążony komputer): dźwięk z tej chwili jest pomijany, nagrywanie trwa dalej, a reszta pozostaje zsynchronizowana. Wcześniej działało to już bez oddzielnie nagrywanego dźwięku NVDA; teraz obejmuje także czytniki oddzielnie nagrywanego dźwięku NVDA i innych dźwięków komputera.
-
-- WPPConnect: gdy na dysku jest mało miejsca (mniej niż 4 GB wolnego), WinZapp bezpiecznie zamyka WhatsAppa, zanim utraci on sesję, przechodzi w tryb offline i podaje powód. Gdy będzie co najmniej 5 GB wolnego, sam połączy się ponownie. Wcześniej przy około 3 GB wolnego sesja mogła wrócić wylogowana, jakby została wyczyszczona.
 
 - Kontakt ma teraz jedną nazwę: gdy ktoś zmieni nazwę profilu, wszystkie jego wiadomości, także stare i grupowe, pokazują nową nazwę zamiast przełączać się między starą a nową. Dotyczy Neonize i WPPConnect.
 
