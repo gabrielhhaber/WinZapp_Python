@@ -293,8 +293,11 @@ class TestMixedComposer(unittest.TestCase):
         from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         from core.pending_timestamp import pending_send_timestamp
-        from core.ordered_dispatch import voice_dispatcher
-        namespace = dict(voice_dispatcher=voice_dispatcher, logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
+        from core.ordered_dispatch import OrderedDispatcher
+        # Not the process-wide dispatcher: a ticket this file leaves held would
+        # block every later send to the same chat in other test files.
+        self.voice_dispatcher = OrderedDispatcher()
+        namespace = dict(voice_dispatcher=self.voice_dispatcher, logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          pending_send_timestamp=pending_send_timestamp, wave=wave, threading=self.threads, wx=fake_wx,
                          recording_output_channels=recording_output_channels,
                          prepare_voice_pcm=prepare_voice_pcm,
@@ -415,9 +418,8 @@ class TestMixedComposer(unittest.TestCase):
         # holds the dispatcher: the cancel lands between _process and _enqueue,
         # when the queue has nothing to cancel yet.
         from unittest.mock import patch
-        from core.ordered_dispatch import voice_dispatcher
         held = []
-        with patch.object(voice_dispatcher, 'complete',
+        with patch.object(self.voice_dispatcher, 'complete',
                           side_effect=lambda jid, ticket, action: held.append(action)):
             self.p._send_voice_message(None)
             self.threads.drain()

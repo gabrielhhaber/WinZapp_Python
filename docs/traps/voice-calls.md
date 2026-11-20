@@ -498,7 +498,7 @@ only F5 repairs that (see the sync-completion trap above — this is the same
 trap from the other side). The gate therefore lives in the 60-second poll, the
 backfill loop, the deep-history walk and the media sweep, all four of which
 simply skip a cycle or do fewer chats in this one, and it is
-`_voice_call_in_progress()` — **bounded**, because `_active_voice_call` is
+`_background_work_paused()` — **bounded**, because `_active_voice_call` is
 cleared only by a terminal `callstate` event or by hanging up in WinZapp, and a
 call torn down on the phone producing neither would otherwise pause every
 background pass for the rest of the session. A paused sync is invisible: the
@@ -522,7 +522,7 @@ USER-object exhaustion).
 again minutes later) hammered the machine straight through the take. A
 microphone that arrives later than the 500 ms playout delay is clipped as
 late, so the voice is simply absent; no error is raised and the recorder ends
-"cleanly". `_voice_call_in_progress()` therefore also returns True while any
+"cleanly". `_background_work_paused()` therefore also returns True while any
 conversation panel (live, archived, locked) holds `_is_recording`,
 `_recording_starting` or `_recording_system_audio`, under the same 2 h bound
 as a call — a panel that forgets to clear its flag fails the same visible way,
