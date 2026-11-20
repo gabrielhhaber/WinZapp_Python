@@ -22,6 +22,9 @@ Where to look (and where new code goes):
     emoticon_conversion      ":)" -> emoji while typing and at send, Backspace undo
     text_sending             sending/editing text, pending rows, cancelled sends
     voice_recording          recording and sending voice messages
+    voice_incremental_session  neural noise reduction while recording (the drain, its spool)
+    voice_nr_send            send-time noise reduction; keeping a note pending when neural fails
+    voice_nr_pending         a kept-pending voice note: retry, send without reduction, resend
     system_audio_recording   mixed microphone + system-audio (WASAPI loopback) recording
     list_refresh             populate_messages, repaints, incoming messages
     message_list             moving in the message list: select, activate, jump

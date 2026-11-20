@@ -48,6 +48,10 @@ from core.incremental_denoise import (  # noqa: E402
     CANCELLED, IncrementalDenoiseController,
 )
 from ui.conversation_panel import voice_recording as vr  # noqa: E402
+from ui.conversation_panel import voice_incremental_session as vis  # noqa: E402
+from ui.conversation_panel import voice_nr_send as vns  # noqa: E402
+from ui.conversation_panel import voice_nr_pending as vnp  # noqa: E402
+from core import incremental_send as isend  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -84,12 +88,12 @@ class _FakePanel:
         self._recording_channel_mode = "auto"
         # The real drain method, bound as it would be on the mixin instance.
         self._incremental_drain = (
-            lambda session: vr.VoiceRecordingMixin._incremental_drain(self, session))
+            lambda session: vis.VoiceIncrementalSessionMixin._incremental_drain(self, session))
         self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
 
 
 def _start(panel, frames=None):
-    vr.VoiceRecordingMixin._start_incremental_denoise(
+    vis.VoiceIncrementalSessionMixin._start_incremental_denoise(
         panel, frames if frames is not None else [], 48000, 1)
 
 
@@ -196,7 +200,7 @@ def test_discard_basic_only_session_forgets_entry():
     assert controller.acquire_slot("someone-else", {"cancel": False})
     _start(panel)
     session = panel._incremental_session
-    vr.VoiceRecordingMixin._cancel_incremental_denoise(panel)
+    vis.VoiceIncrementalSessionMixin._cancel_incremental_denoise(panel)
     # No drain will ever run for a basic-only session: the entry is
     # forgotten by discard itself, not left for a nonexistent thread.
     assert session["cancel"] is True
@@ -229,7 +233,7 @@ class _FakeMwForReduce:
 
 def _run_reduce(mw, basic_only, data=b"\x01\x02" * 4800):
     panel = _FakePanel()
-    return vr.VoiceRecordingMixin._reduce_for_send(
+    return vns.VoiceNrSendMixin._reduce_for_send(
         panel, mw, data, 48000, 1, basic_only)
 
 
@@ -310,7 +314,7 @@ def test_cancel_marks_session_and_controller():
     session = {"local_id": "m1", "cancel": False}
     assert controller.acquire_slot("m1", session)
     panel._incremental_session = session
-    vr.VoiceRecordingMixin._cancel_incremental_denoise(panel)
+    vis.VoiceIncrementalSessionMixin._cancel_incremental_denoise(panel)
     assert session["cancel"] is True
     assert panel._incremental_session is None
     assert not controller.is_preparing("m1")
@@ -428,9 +432,9 @@ def test_on_destroy_cancels_incremental_for_normal_mic_recording():
     panel._recording_pa = None
     panel._video_player = None
     panel._cancel_incremental_denoise = (
-        lambda: vr.VoiceRecordingMixin._cancel_incremental_denoise(panel))
+        lambda: vis.VoiceIncrementalSessionMixin._cancel_incremental_denoise(panel))
     panel._nr_invalidate_attempts = (
-        lambda: vr.VoiceRecordingMixin._nr_invalidate_attempts(panel))
+        lambda: vnp.VoiceNrPendingMixin._nr_invalidate_attempts(panel))
     controller = panel.main_window._incremental_controller
     session = {"local_id": "m1", "cancel": False}
     assert controller.acquire_slot("m1", session)
@@ -528,13 +532,19 @@ class _SendPanel:
         self.message_field = types.SimpleNamespace(SetFocus=lambda: None)
         self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
         self._nr_pending_row_alive = (
-            lambda local_id: vr.VoiceRecordingMixin._nr_pending_row_alive(self, local_id))
+            lambda local_id: vnp.VoiceNrPendingMixin._nr_pending_row_alive(self, local_id))
 
     def _stop_recording_stream(self, session=None):
         return vr.VoiceRecordingMixin._stop_recording_stream(self, session)
 
     def _reduce_for_send(self, *a, **k):
-        return vr.VoiceRecordingMixin._reduce_for_send(self, *a, **k)
+        return vns.VoiceNrSendMixin._reduce_for_send(self, *a, **k)
+
+    def _reduce_or_keep_pending(self, *a, **k):
+        return vns.VoiceNrSendMixin._reduce_or_keep_pending(self, *a, **k)
+
+    def _keep_note_pending(self, *a, **k):
+        return vns.VoiceNrSendMixin._keep_note_pending(self, *a, **k)
 
     def _clear_empty_placeholder(self):
         pass
@@ -554,9 +564,11 @@ class _SendPanel:
 
 @pytest.fixture
 def send_env(monkeypatch, tmp_path):
-    monkeypatch.setattr(vr, "append_message_row", lambda panel, row: None)
+    for _module in (vr, vnp):
+        monkeypatch.setattr(_module, "append_message_row", lambda panel, row: None)
     monkeypatch.setattr(vr, "message_row_count", lambda panel: 1)
-    monkeypatch.setattr(vr, "data_path", lambda name: str(tmp_path / name))
+    for _module in (vr, vns, vnp):
+        monkeypatch.setattr(_module, "data_path", lambda name: str(tmp_path / name))
     os.makedirs(tmp_path / "voice_messages", exist_ok=True)
     return tmp_path
 
@@ -625,7 +637,7 @@ def _no_neural(*a, **k):
 def test_send_blocked_drain_falls_back_to_basic_with_all_bytes(send_env, monkeypatch):
     import core.audio_processing as ap
     import core.neural_noise_reduction as nnr
-    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
+    monkeypatch.setattr(isend, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
     monkeypatch.setattr(ap, "apply_noise_gate",
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
@@ -827,7 +839,7 @@ def test_send_revoked_during_finish_helper_cleans_up_on_return(send_env, monkeyp
 def test_send_finish_timeout_falls_back_and_late_result_is_discarded(send_env, monkeypatch):
     import core.audio_processing as ap
     import core.neural_noise_reduction as nnr
-    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
+    monkeypatch.setattr(isend, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
     monkeypatch.setattr(ap, "apply_noise_gate",
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
@@ -1301,10 +1313,10 @@ class _RecPanel:
         self._send_voice_btn = object()
         self._discard_voice_btn = object()
         self._incremental_drain = (
-            lambda session: vr.VoiceRecordingMixin._incremental_drain(self, session))
+            lambda session: vis.VoiceIncrementalSessionMixin._incremental_drain(self, session))
         self._close_stream_handle = vr.VoiceRecordingMixin._close_stream_handle
         self._start_incremental_denoise = (
-            lambda frames, rate, ch: vr.VoiceRecordingMixin._start_incremental_denoise(
+            lambda frames, rate, ch: vis.VoiceIncrementalSessionMixin._start_incremental_denoise(
                 self, frames, rate, ch))
 
 
@@ -1426,10 +1438,10 @@ def test_send_during_model_load_goes_basic_without_second_engine(send_env, monke
     raw = b"".join(frames)
     panel = _SendPanel(mw, frames, None)
     panel._incremental_drain = (
-        lambda session: vr.VoiceRecordingMixin._incremental_drain(panel, session))
+        lambda session: vis.VoiceIncrementalSessionMixin._incremental_drain(panel, session))
     # Real start: takes the slot, spawns the REAL drain — whose model
     # constructor is now held at the barrier.
-    vr.VoiceRecordingMixin._start_incremental_denoise(panel, frames, 48000, 1)
+    vis.VoiceIncrementalSessionMixin._start_incremental_denoise(panel, frames, 48000, 1)
     session = panel._incremental_session
     assert session is not None and not session["basic_only"]
     deadline = time.time() + 5
@@ -1532,14 +1544,14 @@ def test_start_temp_file_failure_releases_slot_for_next_capture(send_env, monkey
     frames = [b"\x01\x02" * 480]
     panel = _SendPanel(mw, frames, None)
     panel._incremental_drain = (
-        lambda session: vr.VoiceRecordingMixin._incremental_drain(panel, session))
+        lambda session: vis.VoiceIncrementalSessionMixin._incremental_drain(panel, session))
     real_ntf = vr.tempfile.NamedTemporaryFile
 
     def _raise_temp(*args, **kwargs):
         raise OSError("simulated disk/permission failure")
 
     monkeypatch.setattr(vr.tempfile, "NamedTemporaryFile", _raise_temp)
-    vr.VoiceRecordingMixin._start_incremental_denoise(panel, frames, 48000, 1)
+    vis.VoiceIncrementalSessionMixin._start_incremental_denoise(panel, frames, 48000, 1)
     # Failure logged and contained: no session published...
     assert panel._incremental_session is None
     # ...the slot is free...
@@ -1547,7 +1559,7 @@ def test_start_temp_file_failure_releases_slot_for_next_capture(send_env, monkey
     controller.release_slot("probe")
     # ...and the NEXT capture takes a full (non-basic) session.
     monkeypatch.setattr(vr.tempfile, "NamedTemporaryFile", real_ntf)
-    vr.VoiceRecordingMixin._start_incremental_denoise(panel, frames, 48000, 1)
+    vis.VoiceIncrementalSessionMixin._start_incremental_denoise(panel, frames, 48000, 1)
     session = panel._incremental_session
     assert session is not None and not session["basic_only"]
     # Cleanup: stop the real drain (no model file here -> it fails and
@@ -1725,7 +1737,7 @@ def test_send_finish_timeout_drain_normal_exit_reclaims_remnant_once(send_env, m
     and the basic audio the send already enqueued stands."""
     import core.audio_processing as ap
     from core import neural_noise_reduction as nnr
-    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
+    monkeypatch.setattr(isend, "_INCREMENTAL_SEND_FINAL_WAIT", 0.3)
     monkeypatch.setattr(ap, "apply_noise_gate",
                         lambda data, rate, ch, **kw: bytes(reversed(data)))
     monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
@@ -2043,7 +2055,7 @@ def test_send_revoke_after_finisher_ready_send_claims_once(send_env, monkeypatch
         def __getattr__(self, name):
             return getattr(threading, name)
 
-    monkeypatch.setattr(vr, "threading", _ThreadShim())
+    monkeypatch.setattr(isend, "threading", _ThreadShim())
 
     class _RevokeOnCancelRead(dict):
         # The consume path's first "cancel" item-read is the send's check
@@ -2461,7 +2473,7 @@ def test_keep_pending_save_failure_never_announces_a_retry(send_env, monkeypatch
         def open(*a, **k):
             raise OSError("disk full")
 
-    monkeypatch.setattr(vr, "wave", _BrokenWave)
+    monkeypatch.setattr(vns, "wave", _BrokenWave)
     controller = IncrementalDenoiseController()
     frames = [b"\x43\x44" * 480]
     mw, announced = _keep_pending_mw(controller)
@@ -2554,7 +2566,7 @@ class _RetryPanel:
                       "_stage_pending_and_handoff"):
             setattr(self, _name,
                     (lambda n: (lambda *a, **k:
-                                getattr(vr.VoiceRecordingMixin, n)(self, *a, **k))
+                                getattr(vnp.VoiceNrPendingMixin, n)(self, *a, **k))
                      )(_name))
 
     def _clear_empty_placeholder(self):
@@ -2609,7 +2621,7 @@ def test_retry_nr_pending_reduces_and_sends_processed(send_env, monkeypatch):
                           "_quotedFromMe": False}
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -2652,7 +2664,7 @@ def test_retry_nr_pending_failure_keeps_the_row(send_env, monkeypatch):
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -2680,7 +2692,7 @@ def test_retry_nr_pending_refused_queue_keeps_the_row(send_env, monkeypatch):
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -2718,9 +2730,9 @@ def test_double_retry_runs_a_single_attempt(send_env, monkeypatch):
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)  # ignored: attempt in flight
     gate.set()
     _wait_wx_calls()
@@ -2887,7 +2899,7 @@ def test_retry_deferred_while_incremental_slot_busy(send_env, monkeypatch):
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -2919,7 +2931,7 @@ def test_retry_waits_for_cleanup_when_the_same_note_retains_its_slot(send_env, m
     msg, kept = _kept_note(send_env, raw, local_id="m9")
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -2933,7 +2945,7 @@ def test_retry_waits_for_cleanup_when_the_same_note_retains_its_slot(send_env, m
     # retry now runs the reduction and hands off.
     controller.release_slot("m9")
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -2958,7 +2970,7 @@ def test_retry_processes_a_kept_note_without_fingerprint(send_env, monkeypatch):
     msg.pop("_nr_pending_size", None)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3022,7 +3034,7 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     mw2, announced2 = _retry_mw(controller)
     retry_panel = _RetryPanel(mw2, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         retry_panel, msg, "peer@s.whatsapp.net", pending_path)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3036,7 +3048,7 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     mw3, announced3 = _retry_mw(controller)
     retry_panel2 = _RetryPanel(mw3, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         retry_panel2, msg, "peer@s.whatsapp.net", pending_path)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3058,7 +3070,7 @@ def test_retry_refuses_a_changed_kept_file(send_env, monkeypatch):
     _write_wav(kept, b"\x99\x99" * 480)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3087,7 +3099,7 @@ def test_retry_sends_nothing_when_row_deleted_mid_processing(send_env, monkeypat
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     # The user deletes the pending row while the model is still running.
     panel._sorted_messages.clear()
@@ -3114,7 +3126,7 @@ def test_retry_unreadable_file_stays_silent_when_row_already_gone(send_env, monk
     os.unlink(kept)  # row deleted (file gone with it) before the retry click
     panel = _RetryPanel(mw)  # no row: already removed from the list
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     deadline = time.time() + 10
     while time.time() < deadline and not WX_CALLS \
@@ -3146,7 +3158,7 @@ def test_send_nr_pending_raw_sends_original_as_voice_note(send_env, monkeypatch)
                           "_quotedFromMe": False}
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._send_nr_pending_raw(
+    vnp.VoiceNrPendingMixin._send_nr_pending_raw(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3171,7 +3183,7 @@ def test_send_nr_pending_raw_refuses_a_changed_file(send_env, monkeypatch):
     _write_wav(kept, b"\x99\x99" * 480)  # no longer what was kept
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._send_nr_pending_raw(
+    vnp.VoiceNrPendingMixin._send_nr_pending_raw(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3198,9 +3210,9 @@ def test_raw_send_ignored_while_retry_attempt_in_flight(send_env, monkeypatch):
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
-    vr.VoiceRecordingMixin._send_nr_pending_raw(
+    vnp.VoiceNrPendingMixin._send_nr_pending_raw(
         panel, msg, "peer@s.whatsapp.net", kept)  # ignored: attempt in flight
     gate.set()
     _wait_wx_calls()
@@ -3238,7 +3250,7 @@ def test_retry_reservation_blocks_capture_and_second_offline(send_env, monkeypat
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     assert entered.wait(10)
     assert controller.acquire_slot("other-note", {"cancel": False}) is False
@@ -3272,14 +3284,14 @@ def test_second_attempt_blocked_for_rehydrated_same_id_row(send_env, monkeypatch
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     # Same id, NEW dict — as a rehydration from records/DB would build
     # it, WITHOUT any per-dict attempt state.
     rehydrated = {k: v for k, v in msg.items() if k != "_nr_retry_active"}
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, rehydrated, "peer@s.whatsapp.net", kept)
-    vr.VoiceRecordingMixin._send_nr_pending_raw(
+    vnp.VoiceNrPendingMixin._send_nr_pending_raw(
         panel, rehydrated, "peer@s.whatsapp.net", kept)
     gate.set()
     _wait_wx_calls()
@@ -3308,9 +3320,9 @@ def test_destroy_without_emptying_list_invalidates_the_attempt(send_env, monkeyp
     msg, kept = _kept_note(send_env, raw)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
-    vr.VoiceRecordingMixin._nr_invalidate_attempts(panel)
+    vnp.VoiceNrPendingMixin._nr_invalidate_attempts(panel)
     gate.set()
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3344,7 +3356,7 @@ def test_representation_registered_before_queue_activation(send_env, monkeypatch
 
     mw.message_queue.enqueue = _enqueue
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3390,7 +3402,7 @@ def test_resend_processed_voice_resends_voice_bytes(send_env, monkeypatch):
     row, path = _processed_voice_row(send_env, raw)
     panel = _RetryPanel(mw, row=row)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._resend_processed_voice(
+    vnp.VoiceNrPendingMixin._resend_processed_voice(
         panel, row, "peer@s.whatsapp.net", path)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3448,7 +3460,7 @@ def test_retry_processes_the_same_bytes_it_validated(send_env, monkeypatch):
     monkeypatch.setattr("builtins.open", _swapping_open)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3644,7 +3656,7 @@ def test_handoff_cleans_ogg_temp_when_read_fails(send_env, monkeypatch):
     monkeypatch.setattr("builtins.open", _failing_open)
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3672,7 +3684,7 @@ def test_second_handoff_drops_the_first_rows_media_cache(send_env, monkeypatch):
     panel = _RetryPanel(mw, row=msg)
     WX_CALLS.clear()
     # First handoff: kept pending -> processed row.
-    vr.VoiceRecordingMixin._retry_nr_pending(
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)
     _wait_wx_calls()
     _drive_wx_calls()
@@ -3689,7 +3701,7 @@ def test_second_handoff_drops_the_first_rows_media_cache(send_env, monkeypatch):
     first_row["_local_pending"] = False
     # Second handoff: resend of the processed voice note.
     WX_CALLS.clear()
-    vr.VoiceRecordingMixin._resend_processed_voice(
+    vnp.VoiceNrPendingMixin._resend_processed_voice(
         panel, first_row, "peer@s.whatsapp.net", first_resend)
     _wait_wx_calls()
     _drive_wx_calls()

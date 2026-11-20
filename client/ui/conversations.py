@@ -138,6 +138,9 @@ from ui.conversation_panel.group_calls import GroupCallJoinPanelMixin
 from ui.conversation_panel.message_drafts import MessageDraftsMixin
 from ui.conversation_panel.emoticon_conversion import EmoticonConversionMixin
 from ui.conversation_panel.voice_recording import VoiceRecordingMixin
+from ui.conversation_panel.voice_incremental_session import VoiceIncrementalSessionMixin
+from ui.conversation_panel.voice_nr_send import VoiceNrSendMixin
+from ui.conversation_panel.voice_nr_pending import VoiceNrPendingMixin
 from ui.conversation_panel.system_audio_recording import SystemAudioRecordingMixin
 from ui.conversation_panel.text_sending import TextSendingMixin
 from ui.conversation_panel.list_refresh import ListRefreshMixin
@@ -201,6 +204,9 @@ class ConversationsPanel(
     MessageDraftsMixin,
     EmoticonConversionMixin,
     VoiceRecordingMixin,
+    VoiceIncrementalSessionMixin,
+    VoiceNrSendMixin,
+    VoiceNrPendingMixin,
     SystemAudioRecordingMixin,
     TextSendingMixin,
     ListRefreshMixin,

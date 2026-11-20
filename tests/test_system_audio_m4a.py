@@ -295,6 +295,9 @@ class TestMixedComposer(unittest.TestCase):
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         from core.pending_timestamp import pending_send_timestamp
         from core.ordered_dispatch import voice_dispatcher
+        import hashlib
+        from core.incremental_send import consume_incremental_session
+        from core.message_resend import RESEND_PATH_KEY
         namespace = dict(voice_dispatcher=voice_dispatcher, logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          pending_send_timestamp=pending_send_timestamp, wave=wave, threading=self.threads, wx=fake_wx,
                          recording_output_channels=recording_output_channels,
@@ -310,10 +313,13 @@ class TestMixedComposer(unittest.TestCase):
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),
                          PendingMessage=queue_module.PendingMessage,
                          append_message_row=append_message_row,
-                         message_row_count=message_row_count)
+                         message_row_count=message_row_count,
+                         consume_incremental_session=consume_incremental_session,
+                         hashlib=hashlib, RESEND_PATH_KEY=RESEND_PATH_KEY)
         # Bind the actual send handler; no wx/App or capture APIs are imported.
         bind(self.p, ['_send_voice_message', '_encode_stereo_voice',
-                      '_reduce_for_send'], namespace)
+                      '_reduce_for_send', '_reduce_or_keep_pending',
+                      '_keep_note_pending'], namespace)
         # New helper is bound when present so RED tests reach old behavior first.
         import ast
         from tests.god_modules import conversations_source_files
