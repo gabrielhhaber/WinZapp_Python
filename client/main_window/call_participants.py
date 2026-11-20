@@ -8,6 +8,7 @@ from core.call_log_participants import (
 )
 from core.call_matching import is_placeholder_call_id
 from core.call_participants import active_participants_available, held_here
+from core.jid_device import strip_device_suffix
 from core.call_roster import note_seen, remember, user_of
 from core.unsaved_contact_marker import is_unsaved_contact
 
@@ -91,7 +92,8 @@ class CallParticipantsMixin:
         """The one address a call's participant is compared by: the number of
         an @lid this account has a mapping for, the address itself otherwise
         (core.call_roster.person_key)."""
-        jid = str(jid or "")
+        # the mapping is keyed without the companion-device part ("7:4@lid")
+        jid = strip_device_suffix(str(jid or ""))
         return getattr(self, "_lid_to_phone", {}).get(jid) or jid
 
     def _call_held_here(self, call_id):

@@ -334,6 +334,22 @@ def test_a_contact_with_no_call_keeps_the_call_buttons(runtime):
     assert panel._voice_call_btn.shown and panel._video_call_btn.shown
 
 
+def test_the_one_to_one_call_buttons_come_back_when_the_call_ends():
+    """composer.py hides them during this device's call and relies on the end
+    of the call (MainWindow._sync_voice_call_bar -> refresh_call_controls)."""
+    from ui.conversation_panel.call_capabilities import refresh_call_controls
+    panel = person_panel()
+    panel.main_window.conversations_panel = panel
+    panel.main_window._active_voice_call = {"call_id": "outgoing:x", "peer_jid": PERSON}
+    refresh_call_controls(panel.main_window)
+    assert panel._group_call_join_btn.shown and not panel._voice_call_btn.shown
+    assert not panel._video_call_btn.shown
+    panel.main_window._active_voice_call = None
+    refresh_call_controls(panel.main_window)
+    assert panel._voice_call_btn.shown and panel._video_call_btn.shown
+    assert not panel._group_call_join_btn.shown
+
+
 def test_a_private_chat_is_not_polled_when_the_engine_has_no_group_calls(runtime):
     queued, timers = runtime
     panel = person_panel()

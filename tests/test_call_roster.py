@@ -125,5 +125,7 @@ def test_a_person_seen_under_both_addresses_leaves_once():
 def test_the_window_compares_people_through_the_lid_mapping():
     win = types.SimpleNamespace(_lid_to_phone={"7@lid": "5511@s.whatsapp.net"})
     assert MainWindow._call_person(win, "7@lid") == "5511@s.whatsapp.net"
+    # a companion device of the person is the same person
+    assert MainWindow._call_person(win, "7:4@lid") == "5511@s.whatsapp.net"
     assert MainWindow._call_person(win, "9@lid") == "9@lid"
     assert MainWindow._call_person(types.SimpleNamespace(), "9@lid") == "9@lid"
