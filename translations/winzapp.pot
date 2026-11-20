@@ -10165,7 +10165,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_model_label"
-msgid "&Noise reduction model"
+msgid "N&oise reduction model"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

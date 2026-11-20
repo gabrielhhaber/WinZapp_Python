@@ -10804,7 +10804,7 @@ msgstr "Se verifică integritatea descărcării..."
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_model_download_btn"
 msgid "&Download noise reduction model"
-msgstr "&Descarcă modelul de reducere a zgomotului"
+msgstr "Descarcă modelul de &reducere a zgomotului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
 #, python-brace-format
@@ -10830,7 +10830,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_model_label"
-msgid "&Noise reduction model"
+msgid "N&oise reduction model"
 msgstr "Model de reducere a &zgomotului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
