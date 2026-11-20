@@ -166,7 +166,8 @@ def resolve_source(model, text, source, target, classify=None):
     if not model.needs_source:
         return None, False
     found = detect(text, classify)
-    if found is not None and _base(found) == _base(target):
+    if found is not None and (found == target or (
+            _base(found) == _base(target) and _base(found) != "zh")):
         return found, True
     if found is None or not supports(model, found):
         found = "en"
@@ -273,14 +274,21 @@ def _load(model, device, root):
     return translator, tokenizer
 
 
-def unload():
-    """Drop the loaded model, if any."""
+def unload(should_cancel=None):
+    """Drop the loaded model, if any. While a translation holds the model this
+    waits for it, unless *should_cancel* says to stop waiting: then False."""
     global _loaded, _idle_timer
-    with _lock:
+    while not _lock.acquire(timeout=0.2):
+        if should_cancel is not None and should_cancel():
+            return False
+    try:
         if _idle_timer is not None:
             _idle_timer.cancel()
             _idle_timer = None
         _loaded = None
+    finally:
+        _lock.release()
+    return True
 
 
 def _schedule_unload():

@@ -69,6 +69,12 @@ class TranslationModelJob(management.ManagementJob):
     def _perform(self):
         self._check_cancel()
         if self.action == ACTION_REMOVE:
+            # A bulk translation holds the model for minutes: Cancel must be
+            # able to leave this wait.
+            from core.text_translation import local_engine
+
+            if not local_engine.unload(self._should_cancel):
+                self._check_cancel()
             return remove(self._model, self._root)
         return download(self._model, self._root, progress=self._report_progress,
                         should_cancel=self._should_cancel, session=self._session)

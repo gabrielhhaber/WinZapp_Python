@@ -485,3 +485,29 @@ def test_the_model_picker_is_refreshed_inside_freeze_and_thaw(monkeypatch):
     # The dialog speaks through the window's speak_output: it is not optional.
     parameter = inspect.signature(TranslationSettingsDialog.__init__).parameters["speak_output"]
     assert parameter.default is inspect.Parameter.empty
+
+
+def test_simplified_and_traditional_chinese_are_not_the_same_language():
+    nllb = local_catalog.get_model("nllb-200-distilled-600m-int8")
+    chinese = lambda text: ("zh", -5.0)  # noqa: E731
+    assert local_engine.resolve_source(nllb, "你好", None, "zh-TW", chinese) == ("zh", False)
+    assert local_engine.resolve_source(nllb, "你好", None, "zh", chinese) == ("zh", True)
+
+
+def test_removing_a_model_can_stop_waiting_for_a_running_translation():
+    import threading
+    taken, release = threading.Event(), threading.Event()
+
+    def hold():
+        with local_engine._lock:
+            taken.set()
+            release.wait(5)
+    worker = threading.Thread(target=hold)
+    worker.start()
+    taken.wait(5)
+    try:
+        assert local_engine.unload(lambda: True) is False
+    finally:
+        release.set()
+        worker.join()
+    assert local_engine.unload() is True
