@@ -49,3 +49,14 @@ def resend_request(msg, file_exists=os.path.isfile):
     inner = body.get(msg_type) if isinstance(body.get(msg_type), dict) else {}
     caption = inner.get("caption") if isinstance(inner.get("caption"), str) else ""
     return ("media", path, media_type, caption)
+
+
+def offers_raw_send(msg, file_exists=os.path.isfile) -> bool:
+    """Whether *msg* gets "Send without noise reduction": a voice note kept
+    pending after its neural noise reduction failed
+    (ui/conversation_panel/voice_nr_send.py) whose kept original is still
+    there to send."""
+    if not isinstance(msg, dict) or not msg.get("_nr_pending_retry"):
+        return False
+    request = resend_request(msg, file_exists)
+    return request is not None and request[0] == "media"

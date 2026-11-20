@@ -2991,13 +2991,33 @@ def test_resend_routes_nr_pending_note_to_processing_retry(send_env, monkeypatch
     assert retried == [(msg, "peer@s.whatsapp.net", kept)]
 
 
-def test_remove_messages_by_id_discards_kept_pending_files():
-    # The artifact cleanup is wired into the REAL row-removal point, not
-    # assumed: the kept original dies with its row (delete, successful
-    # resend), never outliving it silently.
-    import inspect
-    src = inspect.getsource(ma.MessageActionsMixin.remove_messages_by_id)
-    assert "discard_nr_pending_resend" in src
+def test_remove_messages_by_id_discards_kept_pending_files(tmp_path, monkeypatch):
+    # The real row-removal point: the kept original dies with its row
+    # (delete, successful resend), never outliving it silently; another
+    # row's kept file stays.
+    from tests.test_phone_side_sync import _RemovalStub, _msg as _removal_msg
+    voice_dir = tmp_path / "voice_messages"
+    voice_dir.mkdir()
+    for name in ("A1", "A2"):
+        (voice_dir / (name + ".resend.wav")).write_bytes(b"kept")
+    monkeypatch.setattr(ma, "data_path", lambda name: str(tmp_path / name))
+    panel = _RemovalStub([_removal_msg("A1"), _removal_msg("A2")])
+    panel.remove_messages_by_id({"A1"})
+    assert sorted(os.listdir(voice_dir)) == ["A2.resend.wav"]
+
+
+def test_remove_messages_by_id_without_an_open_account_still_removes(monkeypatch):
+    # No account folder (data_path raises): nothing to discard, but the
+    # rows still go — test modules no longer need an account fixture.
+    from tests.test_phone_side_sync import _RemovalStub, _msg as _removal_msg
+
+    def _no_account(*_a):
+        raise RuntimeError("app_paths: no active account set")
+
+    monkeypatch.setattr(ma, "data_path", _no_account)
+    panel = _RemovalStub([_removal_msg("A1"), _removal_msg("A2")])
+    panel.remove_messages_by_id({"A1"})
+    assert [m["key"]["id"] for m in panel._sorted_messages] == ["A2"]
 
 
 def test_discard_nr_pending_resend_removes_only_the_kept_file(tmp_path):
@@ -3998,18 +4018,41 @@ def test_second_handoff_drops_the_first_rows_media_cache(send_env, monkeypatch):
     os.unlink(str(send_env / "voice_messages" / (second_id + ".msv")))
 
 
-def test_menu_offers_send_raw_only_on_nr_pending_notes():
-    # The second manual action lives in the message menu, gated on the
-    # keep-pending marker — not on ordinary failed attachments. (Source
-    # check: the menu module imports pyperclip, unavailable in this
-    # sandbox — the same wx-free constraint as the rest of the UI.)
-    import io as _io
-    import os.path as _osp
-    src = _io.open(_osp.join(_osp.dirname(vr.__file__), "message_menu.py"),
-                   encoding="utf-8").read()
-    assert 'msg.get("_nr_pending_retry")' in src
-    assert "nr_pending_send_raw" in src
+def test_menu_offers_send_raw_through_the_kept_pending_gate():
+    # Which notes get the item is core.message_resend.offers_raw_send
+    # (tests/test_message_resend.py); the menu only asks it. Same structural
+    # style as tests/test_unconfirmed_send_recovery.py's resend gate: the
+    # whole wx.Menu tree is not practical to build here.
+    import inspect
+    from ui.conversations import ConversationsPanel
+    src = inspect.getsource(ConversationsPanel.on_messages_context_menu)
+    assert "if offers_raw_send(msg):" in src
     assert "_on_menu_send_nr_pending_raw" in src
+
+
+def test_menu_send_raw_hands_the_kept_file_to_the_raw_send(send_env):
+    msg, kept = _kept_note(send_env, b"" * 100)
+    sent, said = [], []
+    panel = types.SimpleNamespace(
+        main_window=types.SimpleNamespace(
+            i18n=_FakeI18n(), output=lambda m, **k: said.append(m)),
+        _send_nr_pending_raw=lambda m, jid, path: sent.append((m, jid, path)))
+    ma.MessageActionsMixin._on_menu_send_nr_pending_raw(panel, msg)
+    assert sent == [(msg, "peer@s.whatsapp.net", kept)]
+    assert said == []
+
+
+def test_menu_send_raw_without_the_kept_file_says_so(send_env):
+    msg, kept = _kept_note(send_env, b"" * 100)
+    os.unlink(kept)
+    sent, said = [], []
+    panel = types.SimpleNamespace(
+        main_window=types.SimpleNamespace(
+            i18n=_FakeI18n(), output=lambda m, **k: said.append(m)),
+        _send_nr_pending_raw=lambda *a: sent.append(a))
+    ma.MessageActionsMixin._on_menu_send_nr_pending_raw(panel, msg)
+    assert sent == []
+    assert said == ["resend_not_available"]
 
 
 def test_ordered_send_checks_revoke_when_delayed_action_is_released(send_env, monkeypatch):

@@ -15,7 +15,7 @@ import threading
 import wx
 from ui.conversation_panel.channel_conversation import refuse_in_channel
 from core.quote_recovery import RECOVERED_FROM_QUOTE
-from core.message_resend import resend_request
+from core.message_resend import offers_raw_send, resend_request
 from core.message_translation import message_text
 from core.reply_failure import is_missing_quote_failure
 from ui.conversation_panel.media_paths import (
@@ -532,7 +532,7 @@ class MessageMenuMixin:
                 lambda e, m=msg: self._on_menu_resend_message(m),
                 resend_item,
             )
-        if msg.get("_nr_pending_retry"):
+        if offers_raw_send(msg):
             # Fourth-option note: besides "Try sending again" (which retries
             # the neural PROCESSING), the user may explicitly send the note
             # as recorded — their choice, action by action (Fran 18:35);

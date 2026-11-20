@@ -644,8 +644,15 @@ class MessageActionsMixin:
         # A fourth-option note (neural reduction failed, user chose to keep
         # it pending) leaves voice_messages/<id>.resend.wav behind; every
         # row-removal path (delete, successful resend) ends its need for it.
-        for _removed_id in msg_ids:
-            discard_nr_pending_resend(data_path("voice_messages"), _removed_id)
+        # With no account open there is no data folder, so no kept file to
+        # discard — and the removal itself must still happen.
+        try:
+            voice_dir = data_path("voice_messages")
+        except RuntimeError:
+            voice_dir = None
+        if voice_dir:
+            for _removed_id in msg_ids:
+                discard_nr_pending_resend(voice_dir, _removed_id)
         if hasattr(self, "close_ai_media"):
             self.close_ai_media(message_ids=msg_ids)
         # Stop playback before touching the list — a currently-playing audio

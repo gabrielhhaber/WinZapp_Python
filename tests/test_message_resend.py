@@ -165,3 +165,18 @@ def test_a_delivered_attachment_forgets_its_local_path():
     record = _video("C:/Users/ana/Desktop/clip.mp4")
     clear_reply_draft(record)
     assert RESEND_PATH_KEY not in record
+
+
+def test_raw_send_is_offered_only_on_a_kept_pending_voice_note():
+    from core.message_resend import offers_raw_send
+    kept = {"key": {"fromMe": True}, "_send_failed": True,
+            "_nr_pending_retry": True, "messageType": "audioMessage",
+            "message": {"audioMessage": {}}, RESEND_PATH_KEY: "k.resend.wav"}
+    assert offers_raw_send(kept, file_exists=lambda p: True)
+    # Its kept original is gone: nothing to send as recorded.
+    assert not offers_raw_send(kept, file_exists=lambda p: False)
+    # An ordinary failed audio attachment is not a kept-pending note.
+    plain = dict(kept)
+    plain.pop("_nr_pending_retry")
+    assert not offers_raw_send(plain, file_exists=lambda p: True)
+    assert not offers_raw_send(None)
