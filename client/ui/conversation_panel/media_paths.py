@@ -58,10 +58,21 @@ def local_media_cache_paths(voice_dir: str, media_dir: str, msg_id: str) -> list
     ]
 
 
+RESEND_SUFFIX = ".resend.enc"
+#: Plaintext name written by builds before the copy was encrypted.
+LEGACY_RESEND_SUFFIX = ".resend.wav"
+
+
+def nr_pending_resend_path(voice_dir: str, local_id: str) -> str:
+    """Where a fourth-option note's kept audio lives: the WAV, Fernet-encrypted
+    with the account key like the .msv playback copy, never plaintext."""
+    return os.path.join(voice_dir, f"{local_id}{RESEND_SUFFIX}")
+
+
 def discard_nr_pending_resend(voice_dir: str, local_id: str) -> None:
     """Delete a fourth-option note's kept original audio when its row goes.
 
-    voice_messages/<id>.resend.wav is created by the keep-pending branch of
+    voice_messages/<id>.resend.enc is created by the keep-pending branch of
     the voice send path (the user chose not to send a note whose neural
     noise reduction failed). Unlike the .msv copy it is NOT deleted by
     discard_local_media_cache — the failed row takes the plain
@@ -72,12 +83,13 @@ def discard_nr_pending_resend(voice_dir: str, local_id: str) -> None:
     """
     if not local_id:
         return
-    path = os.path.join(voice_dir, f"{local_id}.resend.wav")
-    try:
-        if os.path.isfile(path):
-            os.unlink(path)
-    except Exception as exc:
-        logging.warning("[conversations] could not discard %s: %s", path, exc)
+    for suffix in (RESEND_SUFFIX, LEGACY_RESEND_SUFFIX):
+        path = os.path.join(voice_dir, f"{local_id}{suffix}")
+        try:
+            if os.path.isfile(path):
+                os.unlink(path)
+        except Exception as exc:
+            logging.warning("[conversations] could not discard %s: %s", path, exc)
 
 
 def media_cache_id(msg_id: str) -> str:

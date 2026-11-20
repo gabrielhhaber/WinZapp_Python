@@ -642,7 +642,7 @@ class MessageActionsMixin:
         if not msg_ids:
             return
         # A fourth-option note (neural reduction failed, user chose to keep
-        # it pending) leaves voice_messages/<id>.resend.wav behind; every
+        # it pending) leaves voice_messages/<id>.resend.enc behind; every
         # row-removal path (delete, successful resend) ends its need for it.
         for _removed_id in msg_ids:
             discard_nr_pending_resend(data_path("voice_messages"), _removed_id)

@@ -34,7 +34,8 @@ from core.voice_nr_options import (
     effective_nr_on_failure, nr_local_id, voice_nr_engine, voice_nr_moment)
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
-from core.utils import encrypt
+from core.utils import decrypt_bytes, encrypt
+from ui.conversation_panel.media_paths import nr_pending_resend_path
 from core.audio_devices import (
     fallback_input_device_indices,
     find_input_device_index,
@@ -1176,12 +1177,15 @@ class VoiceRecordingMixin:
         expected_size = msg.get("_nr_pending_size")
         expected_hash = msg.get("_nr_pending_sha256")
         with open(path, "rb") as fh:
-            raw = fh.read()
-        if expected_size is not None and len(raw) != expected_size:
+            stored = fh.read()
+        if expected_size is not None and len(stored) != expected_size:
             raise ValueError("kept note size changed on disk")
         if expected_hash is not None and \
-                hashlib.sha256(raw).hexdigest() != expected_hash:
+                hashlib.sha256(stored).hexdigest() != expected_hash:
             raise ValueError("kept note content changed on disk")
+        # The kept file is Fernet-encrypted with the account key; the
+        # fingerprint above covers the stored bytes, the parse the plaintext.
+        raw = decrypt_bytes(stored, self.main_window.key)
         with wave.open(io.BytesIO(raw), "rb") as wf:
             channels = wf.getnchannels()
             rate = wf.getframerate()
@@ -1256,18 +1260,29 @@ class VoiceRecordingMixin:
         new_local_id = str(uuid.uuid4())
         persisted = None
         msv_path = None
+        pcm_bytes = b""
         try:
             os.makedirs(data_path("voice_messages"), exist_ok=True)
-            persisted = os.path.join(
-                data_path("voice_messages"), new_local_id + ".resend.wav")
-            os.replace(wav_path, persisted)
-        except OSError as exc:
+            persisted = nr_pending_resend_path(
+                data_path("voice_messages"), new_local_id)
+            with wave.open(wav_path, "rb") as wf:
+                pcm_bytes = wf.readframes(wf.getnframes())
+            with open(wav_path, "rb") as fh:
+                wav_raw = fh.read()
+            # Never plaintext on disk: the same account key as the .msv copy.
+            with open(persisted, "wb") as f_out:
+                f_out.write(encrypt(wav_raw, mw.key))
+            # wav_path itself stays: it is the queue's own temporary copy
+            # (audio_path), deleted once the send is over.
+        except Exception as exc:
             logging.error("[noise_reduction] could not persist the pending "
                           "handoff: %s", exc)
-            try:
-                os.unlink(wav_path)
-            except OSError:
-                pass
+            for leftover in (wav_path, persisted):
+                if leftover:
+                    try:
+                        os.unlink(leftover)
+                    except OSError:
+                        pass
             self._nr_pending_announce(local_id, token, remote_jid, fail_key)
             return
         # Local playback copy, same encryption as any recorded note — and
@@ -1275,8 +1290,6 @@ class VoiceRecordingMixin:
         # pre-encode was unavailable (never the WAV container). A partial
         # write dies here, not as an orphan (review 18:47, contract 5).
         try:
-            with wave.open(persisted, "rb") as wf:
-                pcm_bytes = wf.readframes(wf.getnframes())
             msv_path = os.path.join(
                 data_path("voice_messages"), new_local_id + ".msv")
             with open(msv_path, "wb") as f_out:
@@ -1309,14 +1322,14 @@ class VoiceRecordingMixin:
                               "remoteJid": remote_jid},
                       "message": ctx.get("quotedMessage") or {}}
         pm = PendingMessage(new_local_id, remote_jid,
-                            audio_path=persisted,
+                            audio_path=wav_path,
                             ogg_bytes=ogg_bytes, quoted=quoted,
                             voice_mimetype=voice_mimetype)
 
         def _cleanup_artifacts():
             # Every artifact THIS handoff created — never the valid kept
             # original, which the old row still owns.
-            for artifact in (persisted, msv_path):
+            for artifact in (persisted, msv_path, wav_path):
                 if artifact:
                     try:
                         os.unlink(artifact)
@@ -2399,13 +2412,18 @@ class VoiceRecordingMixin:
                     pending_path = None
                     try:
                         os.makedirs(data_path("voice_messages"), exist_ok=True)
-                        pending_path = os.path.join(
-                            data_path("voice_messages"), local_id + ".resend.wav")
-                        with wave.open(pending_path, "wb") as wf:
+                        pending_path = nr_pending_resend_path(
+                            data_path("voice_messages"), local_id)
+                        buffer = io.BytesIO()
+                        with wave.open(buffer, "wb") as wf:
                             wf.setnchannels(channels)
                             wf.setsampwidth(2)
                             wf.setframerate(actual_rate)
                             wf.writeframes(raw_unprocessed)
+                        # Encrypted like the .msv copy: a kept recording is
+                        # never plaintext on disk.
+                        with open(pending_path, "wb") as fh:
+                            fh.write(encrypt(buffer.getvalue(), mw.key))
                     except Exception as exc:
                         logging.error("[_send_voice_message] could not keep the "
                                       "pending WAV: %s", exc)

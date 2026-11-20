@@ -480,6 +480,12 @@ class _FakeQueue:
         return False
 
 
+from cryptography.fernet import Fernet  # noqa: E402
+
+#: One account key for every fake window: kept notes are written with it.
+_TEST_KEY = Fernet.generate_key()
+
+
 class _FakeSendMW:
     def __init__(self, controller):
         self.settings = {"general": {"noise_reduction_enabled": True,
@@ -487,8 +493,7 @@ class _FakeSendMW:
                                      "voice_nr_moment": "record"}}
         self._incremental_controller = controller
         self.message_queue = _FakeQueue()
-        from cryptography.fernet import Fernet
-        self.key = Fernet.generate_key()
+        self.key = _TEST_KEY
         self.i18n = _FakeI18n()
         # A real announce target so the fallback notice path runs and is
         # observable through the recorded wx.CallAfter calls.
@@ -641,7 +646,15 @@ def _forget_signal(controller):
 
 
 def _wav_payload(path):
-    with wave.open(path, "rb") as wf:
+    """The PCM of a WAV on disk; a kept (.resend.enc) note is decrypted first."""
+    if path.endswith(".resend.enc"):
+        import io
+        from core.utils import decrypt_bytes
+        with open(path, "rb") as fh:
+            source = io.BytesIO(decrypt_bytes(fh.read(), _TEST_KEY))
+    else:
+        source = path
+    with wave.open(source, "rb") as wf:
         return wf.readframes(wf.getnframes())
 
 
@@ -2287,8 +2300,11 @@ def test_send_kept_pending_when_both_neural_paths_fail(send_env, monkeypatch):
     path = _wait_kept_pending(panel)
     # Nothing was sent.
     assert mw.message_queue.enqueued == []
-    # The pending row keeps the ORIGINAL audio for the manual resend.
+    # The pending row keeps the ORIGINAL audio for the manual resend —
+    # encrypted at rest, never a readable WAV on disk.
     assert _wav_payload(path) == raw
+    with open(path, "rb") as fh:
+        assert b"RIFF" not in fh.read()
     # ...and the existing "Try sending again" affordance accepts the row.
     panel.registered["_send_failed"] = True  # what the real marker sets
     assert resend_request(panel.registered) == ("media", path, "audio", "")
@@ -2440,7 +2456,7 @@ def test_keep_pending_revoked_during_posterior_leaves_nothing(send_env, monkeypa
     assert forgotten.wait(10), "the session was never forgotten"
     time.sleep(0.2)  # let any stray write/callback land (none may)
     assert mw.message_queue.enqueued == []
-    assert not list((send_env / "voice_messages").glob("*.resend.wav"))
+    assert not list((send_env / "voice_messages").glob("*.resend.enc"))
     _drive_wx_calls()
     assert announced == []
     assert panel.failed == []
@@ -2504,7 +2520,7 @@ def test_keep_pending_save_failure_never_announces_a_retry(send_env, monkeypatch
     assert WX_CALLS, "the failed keep was never reported"
     from core.message_resend import RESEND_PATH_KEY
     assert RESEND_PATH_KEY not in (panel.registered or {})
-    assert not list((send_env / "voice_messages").glob("*.resend.wav"))
+    assert not list((send_env / "voice_messages").glob("*.resend.enc"))
     _drive_wx_calls()
     assert panel.failed == [panel.registered["_local_id"]]
     assert announced == ["noise_reduction_pending_save_failed"]
@@ -2548,12 +2564,22 @@ def _write_wav(path, raw, rate=48000, ch=1):
         wf.writeframes(raw)
 
 
+def _write_kept(path, raw):
+    """A kept note as the send path stores it: the WAV, Fernet-encrypted."""
+    import io
+    from core.utils import encrypt
+    buffer = io.BytesIO()
+    _write_wav(buffer, raw)
+    with open(path, "wb") as fh:
+        fh.write(encrypt(buffer.getvalue(), _TEST_KEY))
+
+
 def _kept_note(send_env, raw, local_id="m9"):
     import hashlib
     from core.message_resend import RESEND_PATH_KEY
     os.makedirs(send_env / "voice_messages", exist_ok=True)
-    kept = str(send_env / "voice_messages" / (local_id + ".resend.wav"))
-    _write_wav(kept, raw)
+    kept = str(send_env / "voice_messages" / (local_id + ".resend.enc"))
+    _write_kept(kept, raw)
     with open(kept, "rb") as fh:
         digest = hashlib.sha256(fh.read()).hexdigest()
     msg = {"_local_id": local_id, "_local_pending": False, "_send_failed": True,
@@ -2657,12 +2683,17 @@ def test_retry_nr_pending_reduces_and_sends_processed(send_env, monkeypatch):
     # The processed copy persists as the new row's resend source, so a
     # LATER transport failure stays resendable (recoverable handoff).
     from core.message_resend import RESEND_PATH_KEY
-    assert pm.audio_path.endswith(".resend.wav")
-    assert os.path.basename(pm.audio_path) != os.path.basename(kept)
     assert len(panel.registered) == 1
     new_row = panel.registered[0]
+    # The queue sends its own temporary plaintext copy; the row's resend
+    # source is a DIFFERENT, encrypted file (never plaintext at rest).
+    resend = new_row[RESEND_PATH_KEY]
+    assert resend.endswith(".resend.enc") and resend != kept
+    assert resend != pm.audio_path
+    assert _wav_payload(resend) == bytes(reversed(raw))
+    with open(resend, "rb") as fh:
+        assert b"RIFF" not in fh.read()
     assert new_row["message"]["audioMessage"]["ptt"] is True
-    assert new_row[RESEND_PATH_KEY] == pm.audio_path
     assert new_row["contextInfo"]["stanzaId"] == "q1"
     # Only once queued: the old failed row is dropped and the start announced.
     assert panel.removed == [{"m9"}]
@@ -2670,6 +2701,7 @@ def test_retry_nr_pending_reduces_and_sends_processed(send_env, monkeypatch):
     assert announced == ["resend_started"]
     assert not getattr(panel, "_nr_attempts", {})
     os.unlink(pm.audio_path)
+    os.unlink(resend)
 
 
 def test_retry_nr_pending_failure_keeps_the_row(send_env, monkeypatch):
@@ -2832,7 +2864,7 @@ def test_remove_messages_by_id_discards_kept_pending_files():
 def test_discard_nr_pending_resend_removes_only_the_kept_file(tmp_path):
     from ui.conversation_panel.media_paths import discard_nr_pending_resend
     voice_dir = str(tmp_path)
-    kept = os.path.join(voice_dir, "m9.resend.wav")
+    kept = os.path.join(voice_dir, "m9.resend.enc")
     other = os.path.join(voice_dir, "m9.msv")
     _write_wav(kept, b"\x01\x02" * 100)
     open(other, "wb").write(b"msv")
@@ -3393,8 +3425,8 @@ def _processed_voice_row(send_env, raw, local_id="n1"):
     import hashlib
     from core.message_resend import RESEND_PATH_KEY
     os.makedirs(send_env / "voice_messages", exist_ok=True)
-    path = str(send_env / "voice_messages" / (local_id + ".resend.wav"))
-    _write_wav(path, raw)
+    path = str(send_env / "voice_messages" / (local_id + ".resend.enc"))
+    _write_kept(path, raw)
     with open(path, "rb") as fh:
         digest = hashlib.sha256(fh.read()).hexdigest()
     row = {"_local_id": local_id, "_local_pending": False, "_send_failed": True,
@@ -3735,7 +3767,7 @@ def test_second_handoff_drops_the_first_rows_media_cache(send_env, monkeypatch):
     second_row = panel.registered[1]
     second_id = second_row["_local_id"]
     assert sorted(os.listdir(send_env / "voice_messages")) == \
-        sorted([second_id + ".resend.wav", second_id + ".msv"])
+        sorted([second_id + ".resend.enc", second_id + ".msv"])
     os.unlink(second_row[RESEND_PATH_KEY])
     os.unlink(str(send_env / "voice_messages" / (second_id + ".msv")))
 
@@ -3917,3 +3949,17 @@ def test_keep_pending_row_on_screen_without_a_chat_record_stays_alive(send_env, 
     assert panel.failed == [panel.registered["_local_id"]]
     assert announced == ["noise_reduction_kept_pending"]
     assert os.path.exists(path)
+
+
+def test_discard_removes_the_encrypted_and_the_legacy_plaintext_copy(tmp_path):
+    from ui.conversation_panel.media_paths import (
+        discard_nr_pending_resend, nr_pending_resend_path)
+    voice_dir = str(tmp_path)
+    enc = nr_pending_resend_path(voice_dir, "z1")
+    legacy = os.path.join(voice_dir, "z1.resend.wav")
+    other = os.path.join(voice_dir, "z1.msv")
+    for path in (enc, legacy, other):
+        open(path, "wb").write(b"x")
+    discard_nr_pending_resend(voice_dir, "z1")
+    assert not os.path.exists(enc) and not os.path.exists(legacy)
+    assert os.path.exists(other)
