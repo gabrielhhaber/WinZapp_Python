@@ -74,13 +74,20 @@ def service_code(service, code, *, target=True):
 
 
 def _local_host(host):
-    if host in ("localhost",) or "." not in host or host.endswith(".local"):
-        return True
+    # An address literal is judged as one first: "2001:4860::8888" has no dot
+    # and would pass for a machine name.
     try:
         address = ipaddress.ip_address(host)
     except ValueError:
-        return False
-    return address.is_loopback or address.is_private or address.is_link_local
+        pass
+    else:
+        return address.is_loopback or address.is_private or address.is_link_local
+    if host == "localhost" or host.endswith(".local"):
+        return True
+    # A single label is a machine on the LAN, unless it is a number in a form
+    # the system resolver reads as an internet address ("134744072", "0x08080808").
+    return "." not in host and ":" not in host and not (
+        host.isdigit() or host.lower().startswith("0x"))
 
 
 def service_base(value):

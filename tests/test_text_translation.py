@@ -221,14 +221,18 @@ def test_libretranslate_takes_an_optional_key_and_a_local_address():
 
 
 @pytest.mark.parametrize("address", ["http://lt.example.org", "ftp://x", "https://u:p@x.org",
-                                     "http://8.8.8.8:5000", ""])
+                                     "http://8.8.8.8:5000", "http://[2001:4860:4860::8888]:5000",
+                                     "http://[2606:4700::1111]:5000", "http://134744072",
+                                     "http://0x08080808", ""])
 def test_a_key_never_crosses_the_internet_in_clear(address):
     with pytest.raises(DescriptionError):
         services.service_base(address)
 
 
 @pytest.mark.parametrize("address", ["http://localhost:5000", "http://servidor:5000",
-                                     "http://nas.local", "https://lt.example.org/api/"])
+                                     "http://nas.local", "https://lt.example.org/api/",
+                                     "http://[::1]:5000", "http://[fd00::5]:5000",
+                                     "http://192.168.0.7:5000"])
 def test_a_local_or_https_address_is_accepted(address):
     assert services.service_base(address).startswith(("http://", "https://"))
 
