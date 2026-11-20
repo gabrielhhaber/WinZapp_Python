@@ -203,12 +203,81 @@ Web state is lost; its cost is a pause of the page's JavaScript.
 
 ## `INITIAL_BOOTSTRAP` 399-chat cap and `OmittedConversationMetadata` (`odhs-v2`, 2026-11-18)
 
-- **Measured cutoff (iPhone primary, Neonize logs `2026-10-28` vs `2026-11-17`)**: On `2026-10-28`, `INITIAL_BOOTSTRAP` (`syncType = 0`) delivered `699` chats (`700 - 1` excluding `status@broadcast`). By `2026-11-17`, WhatsApp for iOS lowered that cap to `400` (`399` chats across three consecutive pairings: `296` unarchived + `103` archived on a ~1,014-chat account), cutting off all main and archived conversations older than the 296th unarchived chat (`2026-06-30`). Even when a `FULL` sync (`days = 3650`) delivered all 63 chunks to `100%`, none of the ~600 older conversations arrived because primary devices only send `RECENT` and `FULL` message chunks for conversations present in `INITIAL_BOOTSTRAP`.
-- **Why undated empty rows appeared right after the cutoff**: `Session._load_names` (`get_joined_groups()` in `neonize_bridge/server.py`) inserted every joined `@g.us` row into `chats` with `ts = 0` and 0 messages — including **community parent containers** (`GroupParent.IsParent == True`, which are never conversations in WhatsApp) and older joined groups omitted from `INITIAL_BOOTSTRAP`. `client/main_window/chats_store.py` drops activityless 1:1 chats (`t == 0`), but keeps named `@g.us` rows, leaving undated empty groups and community parents immediately below the 296th main chat. `Session._load_names`, `Session._group`, and `Session._store_history_block` now skip `isParentGroup` / `GroupParent.IsParent` entries cleanly.
-- **Exact `odhs-v2` wire protocol (verified over CDP against WhatsApp Web `2.3000.1052669929`: `WAWebProtobufsCompanionReg.pb`, `WAWebProtobufsHistorySync.pb`, `WAWebProtobufsE2E.pb`, `WAWebOmittedConversationMetadataCapabilities`, `WAWebOmittedConversationMetadataReceiver`, `WAWebHandleWorkerCompatibleRecentSyncChunk`, `WAWebSendNonMessageDataRequest`)**:
-  - **Capability advertisement (pairing-only)**: `WACompanionReg.DeviceProps.HistorySyncConfig.supportOmittedConversationMetadata = 28` (`bool`). Whatsmeow sends `DeviceProps` only inside `getRegistrationPayload` at pairing time, never in `getLoginPayload` on reconnect — so sessions paired without field 28 must unlink and re-pair once to receive older conversations. Also beware the singleton merge trap: `goneonize/main.go` merged into the process-global `store.DeviceProps`, leaking `FullSyncDaysLimit` and accumulating unknown field bytes across sessions until `applyDeviceProps` (`goneonize/device_props.go`, `neonize 0033`) reset `store.DeviceProps` from `baseDeviceProps` on each `Neonize()` call.
-  - **Incoming metadata batches**: `INITIAL_BOOTSTRAP` carries `HistorySync.omittedConversationMetadataSnapshotId = 26` (`string`). Before ordinary `RECENT` message chunks, the phone sends `HistorySync` chunks with `syncType = RECENT (3)`, `conversations = []`, `phoneNumberToLidMappings`, and `HistorySync.omittedConversationMetadata = 25` (`OmittedConversationMetadata`: `snapshotId = 1`, `snapshotTimestampMs = 2`, `batchIndex = 3`, `batchCount = 4`, `complete = 5`, `repeated Conversation conversations = 6`, alongside `HistorySyncType.RECENT_CONVERSATIONS_ON_DEMAND = 9`).
-  - **Progress/resume trap**: The final omitted-metadata batch arrives with `syncType = RECENT (3)` and `progress = 100` (`complete = true`). Leaving `percent = None` and skipping `history_resume.note_block` when `omitted_history.is_omitted_batch(data)` is true keeps `history_progress` and `history_resume` from falsely reporting `RECENT` completion at `100%` before real message chunks start arriving.
-  - **PN↔LID mappings and `tcToken` privacy tokens**: Many omitted 1:1 conversations are keyed by `@lid` with 0 messages. `whatsmeow 0016` (`omitted_history.go`) decodes omitted conversations via `protowire`, persists PN↔LID mappings synchronously before `DownloadHistorySync` dispatches `events.HistorySync`, and passes omitted conversations to `storeHistoricalMessageSecrets` for `tcToken` storage; `neonize_bridge/store.py` also maintains `lid_map` so address-book names and unsaved phone numbers resolve immediately in `list-chats` and `contact/pn-lid`.
-  - **Anchorless `INITIAL_REVERSE_HISTORY` requests**: Omitted chats hold 0 local messages (`oldestMsgID` is absent). `neonize_bridge/older_history.py` tracks them via `chats.omitted = 1` and `chats.account_lid`, requesting the first 50-message page via `send_peer_message` with `PeerDataOperationRequestMessage` (`peerDataOperationRequestType = 3`, `HistorySyncOnDemandRequest`: `chatJID = 1`, `onDemandMsgCount = 4`, `accountLid = 6`, `supportInlineResponse = 7` = `true`, `mode = 8` = `INITIAL_REVERSE_HISTORY = 1`, wired in `neonize_bridge/omitted_history.py`). The phone answers asynchronously with `syncType = ON_DEMAND (6)` (`received-message` with `isMdHistoryMsg: True`); once any message lands, `oldest_real` takes over with normal message-anchored `request_history_sync`, while an empty reply marks `OMITTED_ANCHOR` (`__omitted__`) exhausted.
-  - **Client gating and empty-conversation focus trap**: Unopened 0-message omitted chats remain unrequested on Pass 1 of `_backfill_empty_chats` (`client/main_window/backfill.py`) so hundreds of older chats never spam phone lock-screen notifications; `_wake_backfill_for_opened_chat` re-queues a short non-exhausted chat and calls `schedule_backfill` whenever `_note_conversation_opened` runs. Interactive `Home`/`Up` inside an empty open conversation (`client/ui/conversation_panel/history_loading.py`, `client/main_window/history.py`) supports `oldest_msg = None` (calling `/get-messages/:phone?count=N` without `direction=before` and escalating to `request_older_messages(..., user_asked=True)`), and focuses `max(0, len(sorted_messages) - 1)` when `old_count == 0` instead of `n_new` (which equals `len(sorted_messages)` and would be out of bounds).
+- **Measured cutoff (iPhone primary, Neonize logs `2026-10-28` vs `2026-11-17`)**: On
+  `2026-10-28`, `INITIAL_BOOTSTRAP` (`syncType = 0`) delivered `699` chats (`700 - 1`
+  excluding `status@broadcast`). By `2026-11-17`, WhatsApp for iOS lowered that cap to
+  `400` (`399` chats across three consecutive pairings: `296` unarchived + `103`
+  archived on a ~1,014-chat account), cutting off all main and archived conversations
+  older than the 296th unarchived chat (`2026-06-30`). Even when a `FULL` sync (`days =
+  3650`) delivered all 63 chunks to `100%`, none of the ~600 older conversations arrived
+  because primary devices only send `RECENT` and `FULL` message chunks for conversations
+  present in `INITIAL_BOOTSTRAP`.
+- **Why undated empty rows appeared right after the cutoff**: `Session._load_names`
+  (`get_joined_groups()` in `neonize_bridge/server.py`) inserted every joined `@g.us`
+  row into `chats` with `ts = 0` and 0 messages — including **community parent
+  containers** (`GroupParent.IsParent == True`, which are never conversations in
+  WhatsApp) and older joined groups omitted from `INITIAL_BOOTSTRAP`.
+  `client/main_window/chats_store.py` drops activityless 1:1 chats (`t == 0`), but keeps
+  named `@g.us` rows, leaving undated empty groups and community parents immediately
+  below the 296th main chat. `Session._load_names`, `Session._group`, and
+  `Session._store_history_block` now skip `isParentGroup` / `GroupParent.IsParent`
+  entries cleanly.
+- **Exact `odhs-v2` wire protocol (verified over CDP against WhatsApp Web
+  `2.3000.1052669929`: `WAWebProtobufsCompanionReg.pb`, `WAWebProtobufsHistorySync.pb`,
+  `WAWebProtobufsE2E.pb`, `WAWebOmittedConversationMetadataCapabilities`,
+  `WAWebOmittedConversationMetadataReceiver`,
+  `WAWebHandleWorkerCompatibleRecentSyncChunk`, `WAWebSendNonMessageDataRequest`)**:
+  - **Capability advertisement (pairing-only)**:
+    `WACompanionReg.DeviceProps.HistorySyncConfig.supportOmittedConversationMetadata =
+    28` (`bool`). Whatsmeow sends `DeviceProps` only inside `getRegistrationPayload` at
+    pairing time, never in `getLoginPayload` on reconnect — so sessions paired without
+    field 28 must unlink and re-pair once to receive older conversations. Also beware
+    the singleton merge trap: `goneonize/main.go` merged into the process-global
+    `store.DeviceProps`, leaking `FullSyncDaysLimit` and accumulating unknown field
+    bytes across sessions until `applyDeviceProps` (`goneonize/device_props.go`,
+    `neonize 0033`) reset `store.DeviceProps` from `baseDeviceProps` on each `Neonize()`
+    call.
+  - **Incoming metadata batches**: `INITIAL_BOOTSTRAP` carries
+    `HistorySync.omittedConversationMetadataSnapshotId = 26` (`string`). Before ordinary
+    `RECENT` message chunks, the phone sends `HistorySync` chunks with `syncType =
+    RECENT (3)`, `conversations = []`, `phoneNumberToLidMappings`, and
+    `HistorySync.omittedConversationMetadata = 25` (`OmittedConversationMetadata`:
+    `snapshotId = 1`, `snapshotTimestampMs = 2`, `batchIndex = 3`, `batchCount = 4`,
+    `complete = 5`, `repeated Conversation conversations = 6`, alongside
+    `HistorySyncType.RECENT_CONVERSATIONS_ON_DEMAND = 9`).
+  - **Progress/resume trap**: The final omitted-metadata batch arrives with `syncType =
+    RECENT (3)` and `progress = 100` (`complete = true`). Leaving `percent = None` and
+    skipping `history_resume.note_block` when `omitted_history.is_omitted_batch(data)`
+    is true keeps `history_progress` and `history_resume` from falsely reporting
+    `RECENT` completion at `100%` before real message chunks start arriving.
+  - **PN↔LID mappings and `tcToken` privacy tokens**: Many omitted 1:1 conversations are
+    keyed by `@lid` with 0 messages. `whatsmeow 0016` (`omitted_history.go`) decodes
+    omitted conversations via `protowire`, persists PN↔LID mappings synchronously before
+    `DownloadHistorySync` dispatches `events.HistorySync`, and passes omitted
+    conversations to `storeHistoricalMessageSecrets` for `tcToken` storage;
+    `neonize_bridge/store.py` also maintains `lid_map` so address-book names and unsaved
+    phone numbers resolve immediately in `list-chats` and `contact/pn-lid`.
+  - **Anchorless `INITIAL_REVERSE_HISTORY` requests**: Omitted chats hold 0 local
+    messages (`oldestMsgID` is absent). `neonize_bridge/older_history.py` tracks them
+    via `chats.omitted = 1` and `chats.account_lid`, requesting the first 50-message
+    page via `send_peer_message` with `PeerDataOperationRequestMessage`
+    (`peerDataOperationRequestType = 3`, `HistorySyncOnDemandRequest`: `chatJID = 1`,
+    `onDemandMsgCount = 4`, `accountLid = 6`, `supportInlineResponse = 7` = `true`,
+    `mode = 8` = `INITIAL_REVERSE_HISTORY = 1`, wired in
+    `neonize_bridge/omitted_history.py`). The phone answers asynchronously with
+    `syncType = ON_DEMAND (6)` (`received-message` with `isMdHistoryMsg: True`); once
+    any message lands, `oldest_real` takes over with normal message-anchored
+    `request_history_sync`, while an empty reply marks `OMITTED_ANCHOR` (`__omitted__`)
+    exhausted.
+  - **Client gating and empty-conversation focus trap**: Unopened 0-message omitted
+    chats remain unrequested on Pass 1 of `_backfill_empty_chats`
+    (`client/main_window/backfill.py`) so hundreds of older chats never spam phone
+    lock-screen notifications; `_wake_backfill_for_opened_chat` re-queues a short
+    non-exhausted chat and calls `schedule_backfill` whenever
+    `_note_conversation_opened` runs. Interactive `Home`/`Up` inside an empty open
+    conversation (`client/ui/conversation_panel/history_loading.py`,
+    `client/main_window/history.py`) supports `oldest_msg = None` (calling
+    `/get-messages/:phone?count=N` without `direction=before` and escalating to
+    `request_older_messages(..., user_asked=True)`), and focuses `max(0,
+    len(sorted_messages) - 1)` when `old_count == 0` instead of `n_new` (which equals
+    `len(sorted_messages)` and would be out of bounds).

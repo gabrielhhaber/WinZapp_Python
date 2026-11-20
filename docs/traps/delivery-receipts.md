@@ -17,8 +17,10 @@ or hidden state, and again every 20 s while none of that resolves, writes
 got an inactive receipt, so the sender never saw delivered — and with read
 receipts disabled there is no later event that would fix the rendering.
 
-The fix (2026-11-15, `neonize_bridge/server.py`): client creation now calls
-`SetForceActiveDeliveryReceipts(true)`, which stores 2 in the same atomic;
+The fix (2026-11-15, `neonize_bridge/server.py`): `Session._on_connect` calls
+`SetForceActiveDeliveryReceipts(true)` once connected, which stores 2 in the same atomic
+(the call made at client creation in `_run` is a no-op: the Go client only exists after
+`connect()`, so only the one in `_on_connect` takes effect);
 both `SendPresence` directions only `CompareAndSwap(0,1)` and `CompareAndSwap(1,0)`,
 so the forced value survives every window flap — receipts are active whatever
 the window does, while presence stays bound to it. Both approved neonize

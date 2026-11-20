@@ -14,6 +14,7 @@ paths:
   - "client/ui/conversation_panel/history_loading.py"
   - "neonize_bridge/omitted_history.py"
   - "neonize_bridge/older_history.py"
+  - "neonize_bridge/history_resume.py"
 ---
 
 # Sync completion
