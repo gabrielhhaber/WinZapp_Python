@@ -334,6 +334,35 @@ def test_a_contact_with_no_call_keeps_the_call_buttons(runtime):
     assert panel._voice_call_btn.shown and panel._video_call_btn.shown
 
 
+def test_a_private_chat_is_not_polled_when_the_engine_has_no_group_calls(runtime):
+    queued, timers = runtime
+    panel = person_panel()
+    panel.main_window._uses_neonize = lambda: True
+    panel.main_window._neonize_calls = True
+    panel.main_window._neonize_group_calls = False
+    panel._sync_voice_call_button(PERSON)
+    assert panel.requests == [] and not queued
+    assert len(timers) == 1                      # still watching, in case the capabilities arrive
+    panel.main_window._neonize_group_calls = True
+    timers[-1].fn()
+    assert queued                                # now it asks
+
+
+def test_a_failing_ongoing_check_is_logged_once_per_watch(runtime, caplog):
+    queued, timers = runtime
+    panel = person_panel()
+
+    def refuse(endpoint, payload, **kwargs):
+        raise RuntimeError("HTTP 501")
+    panel.main_window._post_call_control = refuse
+    panel._sync_voice_call_button(PERSON)
+    for _ in range(3):
+        queued.pop(0)()
+        timers[-1].fn()
+    warnings = [r for r in caplog.records if "ongoing call check unavailable" in r.getMessage()]
+    assert len(warnings) == 1
+
+
 def test_the_self_chat_is_never_watched(runtime):
     queued, _ = runtime
     panel = person_panel()

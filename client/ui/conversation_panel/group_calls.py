@@ -92,6 +92,14 @@ class GroupCallJoinPanelMixin:
             return
         watch = (conversation, object())
         self._group_call_watch = watch
+        # one warning per watch: a poll every 10 s that keeps failing would
+        # fill the log (a bridge without group calls answers 501 each time)
+        warned = []
+
+        def warn(text):
+            if not warned:
+                warned.append(True)
+                logging.warning(text)
 
         def current():
             return (getattr(self, "_group_call_watch", None) is watch
@@ -112,6 +120,13 @@ class GroupCallJoinPanelMixin:
                 return
             if (getattr(main, "_active_voice_call", None) is not None
                     or getattr(main, "_active_incoming_calls", {})):
+                self._show_ongoing_group_call(None)
+                schedule()
+                return
+            if not jid.endswith("@g.us") and not can_place_call(main, is_group=True):
+                # an engine without group calls has no call/ongoing to ask for
+                # a private chat (it answers 501); the capabilities may still
+                # arrive, so the watch goes on
                 self._show_ongoing_group_call(None)
                 schedule()
                 return
@@ -139,7 +154,7 @@ class GroupCallJoinPanelMixin:
                                                 self._same_call_chat)
                     except Exception:
                         call = None
-                        logging.warning("[call] ongoing call check unavailable")
+                        warn("[call] ongoing call check unavailable")
                     wx.CallAfter(finish, call)
                     return
                 try:
@@ -159,7 +174,7 @@ class GroupCallJoinPanelMixin:
                         raise ValueError("Invalid ongoing call response")
                 except Exception:
                     call = None
-                    logging.warning("[call] ongoing group call check unavailable")
+                    warn("[call] ongoing group call check unavailable")
                 wx.CallAfter(finish, call)
 
             threading.Thread(target=worker, daemon=True, name="group-ongoing-call").start()
