@@ -1036,7 +1036,10 @@ class VoiceRecordingMixin:
         """
         mw = self.main_window
         path = virtual_msg.get(RESEND_PATH_KEY)
-        if not self._nr_pending_record_alive(local_id, remote_jid):
+        # A row on screen is alive even when no chat record backs it (no chat
+        # entry, or a record filed under another JID form, e.g. self-chat).
+        if not (self._nr_pending_row_alive(local_id)
+                or self._nr_pending_record_alive(local_id, remote_jid)):
             if path:
                 try:
                     os.unlink(path)
@@ -1102,7 +1105,9 @@ class VoiceRecordingMixin:
     def _nr_attempt_context_alive(self, local_id, token, remote_jid):
         """UI-thread re-validation before touching widgets: the panel is
         alive, THIS attempt is still the current one for the note, the
-        conversation did not switch, and the row is still there."""
+        conversation did not switch, and the row is still there. Only the
+        on-screen row counts here (widgets are touched); announcing an outcome
+        after a chat switch is :meth:`_nr_attempt_may_speak`."""
         if getattr(self, "_nr_panel_dead", False):
             return False
         registry = getattr(self, "_nr_attempts", None)
@@ -1130,7 +1135,8 @@ class VoiceRecordingMixin:
         registry = getattr(self, "_nr_attempts", None)
         if registry is None or registry.get(local_id, (None,))[0] != token:
             return False
-        return self._nr_pending_record_alive(local_id, remote_jid)
+        return (self._nr_pending_row_alive(local_id)
+                or self._nr_pending_record_alive(local_id, remote_jid))
 
     def _nr_invalidate_attempts(self):
         """Panel destroy / teardown: every live attempt loses its

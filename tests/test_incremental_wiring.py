@@ -3892,3 +3892,28 @@ def test_chat_switch_during_retry_still_speaks_the_outcome(send_env):
                                "noise_reduction_kept_pending")
     _drive_wx_calls()
     assert announced == ["noise_reduction_kept_pending"]
+
+
+def test_keep_pending_row_on_screen_without_a_chat_record_stays_alive(send_env, monkeypatch):
+    # No chat entry backs the row (get_chat finds nothing): it is visible, so
+    # it is a live row — failed on screen, announced, file kept.
+    import core.neural_noise_reduction as nnr
+
+    def _boom(*a, **k):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _boom)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x71\x72" * 480]
+    mw, announced = _keep_pending_mw(controller)
+    mw.get_chat = lambda jid: None
+    panel = _SendPanel(mw, frames, None)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    path = _wait_kept_pending(panel)
+    _drive_wx_calls()
+    assert panel.failed == [panel.registered["_local_id"]]
+    assert announced == ["noise_reduction_kept_pending"]
+    assert os.path.exists(path)
