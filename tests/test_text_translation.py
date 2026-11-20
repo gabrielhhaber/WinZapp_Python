@@ -459,3 +459,29 @@ def test_the_pinned_url_serves_exactly_the_catalogued_size(model, name, size):
     assert response.status_code == 200
     length = response.headers.get("x-linked-size") or response.headers.get("Content-Length")
     assert int(length) == size
+
+
+def test_the_model_picker_is_refreshed_inside_freeze_and_thaw(monkeypatch):
+    import inspect
+    from ui.dialogs import translation_local_models as module
+    from ui.dialogs.translation_settings import TranslationSettingsDialog
+
+    events = []
+
+    class Choice:
+        Freeze = lambda self: events.append("freeze")  # noqa: E731
+        Thaw = lambda self: events.append("thaw")  # noqa: E731
+
+        def SetString(self, index, label):
+            events.append(("set", index))
+
+    button = SimpleNamespace(Enable=lambda state: None)
+    stub = SimpleNamespace(
+        local_model=Choice(), local_download=button, local_remove=button,
+        _local_labels=lambda: ["a", "b"], _local_model=lambda: None)
+    monkeypatch.setattr(module, "_state", lambda model: local_store.STATE_ABSENT)
+    module.TranslationLocalModelsMixin._refresh_local(stub)
+    assert events == ["freeze", ("set", 0), ("set", 1), "thaw"]
+    # The dialog speaks through the window's speak_output: it is not optional.
+    parameter = inspect.signature(TranslationSettingsDialog.__init__).parameters["speak_output"]
+    assert parameter.default is inspect.Parameter.empty
