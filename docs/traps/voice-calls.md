@@ -444,6 +444,18 @@ dialog text, which can hold a contact or business name. The watcher stops after
 60 s. If a new notice still stalls an offer, look at its DOM over CDP: the link
 test is a guess at how WhatsApp marks "informational", not a guarantee.
 
+**The guess failed once: calling *from* a WhatsApp Business account**
+(2026-11-19, #831, build 2.3000.1055357543). The page opens "About this call —
+Your business uses a secure service from Meta to manage this call." with
+*Learn more* and *Continue*, but here *Learn more* is a plain `<button>`: no
+`a[href]`, no `role="link"`. The watcher skipped it, so every outgoing call
+from that account aborted at 75 s, on every attempt (the dialog was never
+answered, so it never stopped being "the first time"). It is now answered by
+its `data-testid="coex-calling-first-time-modal"`, the one exception to the
+link rule. A second attempt cancelled by the user after a failed one ends in
+`WhatsApp did not create an outgoing call model` (HTTP 500), which is a
+consequence, not a separate cause.
+
 **A call event names the peer in whichever address form its source happened to
 hold, and the two sources disagree.** The offer arrives through
 `call.incoming_call` carrying whatever WhatsApp signalled with; the page's own

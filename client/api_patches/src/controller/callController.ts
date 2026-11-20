@@ -900,6 +900,13 @@ export async function admitCallLinkPerson(req: Request, res: Response) {
  * permission prompt -- has no link and is left alone, since its last button
  * can be a destructive one. What was answered is logged without the dialog
  * text (it can hold a contact or business name; see docs/traps/log-pii.md).
+ *
+ * One notice has no link and is answered by name: calling *from* a WhatsApp
+ * Business account opens "About this call. Your business uses a secure service
+ * from Meta to manage this call." where "Learn more" is a plain button beside
+ * "Continue" (seen 2026-11-19, issue #831). WhatsApp marks it with
+ * data-testid="coex-calling-first-time-modal", which does not depend on the UI
+ * language; without it every call from such an account hung at 75 s.
  */
 function watchOutgoingCallNotices(req: Request): () => void {
   const page = getWhatsappPage(req);
@@ -917,8 +924,11 @@ function watchOutgoingCallNotices(req: Request): () => void {
           const buttons = Array.from(dialog.querySelectorAll('button,[role="button"]')) as HTMLElement[];
           if (!buttons.length || buttons.length > 3) continue;
           // An informational notice carries a "Learn more" link; a decision
-          // dialog does not, and is not ours to answer.
-          if (!dialog.querySelector('a[href],[role="link"]')) continue;
+          // dialog does not, and is not ours to answer. The Business
+          // account's own first-call notice has a button instead of a link,
+          // so it is recognised by the test id WhatsApp gives it.
+          const knownNotice = !!dialog.querySelector('[data-testid="coex-calling-first-time-modal"]');
+          if (!knownNotice && !dialog.querySelector('a[href],[role="link"]')) continue;
           seen.add(dialog);
           buttons[buttons.length - 1].click();
           out.push(buttons.length);
