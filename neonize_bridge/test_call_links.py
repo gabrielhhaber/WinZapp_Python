@@ -90,7 +90,7 @@ class Media:
 
     def create_link(self, video=False):
         self.created.append(video)
-        return {"link": ("https://call.whatsapp.com/video/" if video else "https://call.whatsapp.com/voice/")
+        return {"link": ("https://call.whatsapp.com/video/" if video else "https://call.whatsapp.com/audio/")   # as meowcaller builds it
                 + TOKEN, "video": video}
 
     def join_link(self, link, video=False):
