@@ -20385,7 +20385,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_paused_local"
 msgid "Automatic translation paused for one hour."
-msgstr "Traducerea automată este oprită timp de o oră."
+msgstr "Traducerea automată a fost întreruptă pentru o oră."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_scope"
