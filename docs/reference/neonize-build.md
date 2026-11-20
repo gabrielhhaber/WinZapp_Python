@@ -88,6 +88,7 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
+- **neonize 0034 / meowcaller 0029**: call links. `CallLinkCreate`, `CallLinkJoin`, `CallWaitingRoom` and `CallWaitingRoomDecide` (Python `create_link`, `join_link`, `waiting_room`, `decide_waiting`; `neonize_bridge/call_links.py`). meowcaller's link join follows a WhatsApp Web capture (`datasheets/voip-call-link-join.md`): incoming with the camera off, the codec of the join ACK, a 10 s `<heartbeat>` for the whole call; rosters and waiting rooms keep each person's push name and guest flag.
 - **neonize 0014**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
   already on the call's list), WhatsApp's "Add participant"; Python
@@ -136,6 +137,58 @@ What the patches carry today:
   its device number; an `<accept>` with a bare `from` while the call's peer is
   still bare counts as the phone (device 0). Before a release, call a contact
   with a phone and a companion device and answer on each in turn.
+- **meowcaller 0026**: adding someone to a one-to-one call. The roster the
+  inviter sends names the peer's device that answered: every device that rings
+  sends a `<preaccept>` with its capability and the last one (usually the
+  phone) was kept, because meowcaller's own `<accept>` carries none. With the
+  phone named, the server took the companion really in the call for a device
+  that had not answered: it got the group invite as a new offer, no PIDs and
+  no group key, so it rang again and went silent (user logs, 2026-11-14).
+  WhatsApp Web's `<accept>` carries none either, and the inviter loses too:
+  its group receiver is keyed by the device the roster names, so every packet
+  of the companion fails to unprotect (`unprotect_failed` climbs while
+  `frames` stops; logs of both sides, 2026-11-16). A `<preaccept>` that
+  arrives after the answer (a phone woken by a push) does not replace the
+  device that answered. And
+  the device in the call no longer rings again when that invite arrives:
+  `onGroupOffer` replaced the live `Call` with a ringing one; it now applies
+  the invite as a group update. **Not yet validated on a live call**: call a
+  contact on Neonize, let them answer on the computer, add a third person and
+  check that the second one keeps hearing and is not rung.
+- **meowcaller 0027**: adding someone to a call that is already a group call.
+  Every invite went out as the first one does: an offer to the invited person
+  with a `<destination>` and the whole roster in `<group_info>`. That offer is
+  what turns a one-to-one call into a group call; once the server holds the
+  group call it answers nothing to it, so the bridge logged "participante
+  convidado" and nobody rang (user logs, 2026-11-16: the first person added
+  joined, the next six invites got no ack and no group update). WhatsApp Web
+  (2.3000.1052669929, captured over CDP on 2026-11-17 with
+  `diagnostico_cdp/callstanza_out.js`) sends
+  `<call to="<call-id>@call"><offer call-id call-creator><audio enc="opus" rate="16000"/><net medium="2"/><invite><user jid user_pn><device jid/>…</user></invite></offer></call>`:
+  to the call, only the invited user and their devices, no roster, no
+  capability. The server acks it with the roster, the user in state
+  `outgoing`, then `receipt` when a device rings. `participantInviteNode`
+  (`engine_group_invite.go`) picks the form: the group one as soon as a group
+  update arrived for the call (the ack of the first invite is one). Ringing
+  someone already on the list takes the same stanza. What Web puts in its
+  first invite (one-to-one to group) was not captured: only that it goes to
+  the call too, so that form is left as it was, since it works. **Not yet
+  validated on a live call**: on Neonize, call someone, add a third person,
+  wait for them to join and add a fourth.
+- **meowcaller 0028**: an invite is confirmed by the server before it is
+  reported. `AddParticipant` / `RingParticipant` returned as soon as the stanza
+  left, so the invites the server dropped answered `invited` and WinZapp said
+  so. `sendParticipantInvite` sends the invite as a request and waits up to
+  15 s for the ack with its id; it succeeds only when the ack's roster lists
+  the person (what WhatsApp Web got: the user in state `outgoing`). No ack, an
+  error ack, no roster or a roster without the person fail, and none of them
+  ends the call. whatsmeow gives an awaited ack to the waiter, not to the
+  node handlers, so `onCallAck` no longer sees it: the roster is applied
+  there. `call/add-participants` therefore answers only after the server did,
+  one person at a time, and the client waits `request_timeout(people)`
+  (`client/core/call_invites.py`), saying "Calling <names>..." meanwhile.
+  WPPConnect is unchanged: WhatsApp Web's own `inviteToCall` resolves before
+  its offer is acked.
 - **meowcaller 0010**: diagnostics only, no behaviour change. For every call it
   logs the relay endpoints (name, `is_fna`, token ids; never an address), the
   one media runs on (`*`), the first STUN packets the relay sends back, and
@@ -181,6 +234,26 @@ What the patches carry today:
   whatsmeow's check of the old `fileEncSHA256` refused all 7 hosts (issue #756).
   The ciphertext is authenticated by the media key's HMAC and the plaintext by
   `fileSHA256` (`mediaretry_decrypt.go`, tested alone with `go test`).
+- **neonize 0033**: `applyDeviceProps` (`goneonize/device_props.go`, tested in
+  `device_props_test.go`) resets `store.DeviceProps` from a clean clone of
+  `baseDeviceProps` before merging each session's `DeviceProps` in `Neonize()`
+  (`goneonize/main.go`), so one session's `FullSyncDaysLimit` and unknown protobuf
+  fields (`supportOmittedConversationMetadata`) do not accumulate across
+  `Neonize()` calls. `store.DeviceProps` stays process-global: the reset
+  is per call, not per session, so sessions that pair concurrently in one
+  process still share it.
+- **whatsmeow 0016**: `omittedHistoryConversations` and
+  `storeConversationPNLIDMappings` (`omitted_history.go`, tested in
+  `omitted_history_test.go`) decode `HistorySync.omittedConversationMetadata`
+  (field 25) via `protowire`, store PN↔LID mappings from
+  `PhoneNumberToLidMappings` and regular/omitted `Conversation` entries
+  synchronously before `DownloadHistorySync` dispatches `events.HistorySync`,
+  and pass omitted conversations to `storeHistoricalMessageSecrets` for
+  `tcToken` privacy-token storage (`docs/traps/sync-completion.md`). A
+  conversation's LID is read as `lidJID`, then an `@lid` ID, then `accountLid`
+  (the account's, so possibly the user's own); a derived pair never overrides
+  an explicit mapping of the same sync and never gives the own LID to another
+  phone (the bridge's `omitted_history.block_lid_mappings` does the same).
 
 ## Toolchain (once)
 

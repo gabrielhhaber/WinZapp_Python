@@ -9,6 +9,7 @@
 import { Request, Response } from 'express';
 import { installVoipInitPolicyInPage } from '../util/voipInitPolicy';
 import { installGroupCallRuntimeInPage } from '../util/groupCallRuntime';
+import { installCallLinkRuntimeInPage } from '../util/callLinkRuntime';
 
 import {
   ensureCallMediaBridge,
@@ -804,6 +805,83 @@ export async function joinGroupCall(req: Request, res: Response) {
     } catch (_) { /* A lost page cannot prove it is safe to stop another call. */ }
     if (mayStop) await stopAudioBridge(req);
     fail(req, res, 'joinGroupCall', error);
+  }
+}
+
+/**
+ * Call links (callLinkRuntime.ts): create one, join its call, and for the
+ * call's admin the people in its waiting room. Only the join needs VoIP warm
+ * and the media bridge; the rest never acquires a device.
+ */
+async function evaluateCallLink(req: Request, action: string, payload: any = {}) {
+  const page = getWhatsappPage(req);
+  if (action === 'join') {
+    await warmCallVoipRuntime(req.client, (req as any).logger);
+    await page.evaluate(installVoipInitPolicyInPage);
+  }
+  await page.evaluate(installCallLinkRuntimeInPage);
+  return page.evaluate(({ action, payload }) => {
+    const runtime = (window as any).__winzappCallLinkRuntime;
+    if (action === 'create') return runtime.create(payload.isVideo === true);
+    if (action === 'check') return runtime.check(payload);
+    if (action === 'join') return runtime.join(payload);
+    if (action === 'waiting-room') return runtime.waitingRoom(payload.callId);
+    if (action === 'admit') return runtime.admit(payload);
+    if (action === 'may-stop') return runtime.mayStopAudio();
+    throw new Error(`Unsupported call link action: ${action}`);
+  }, { action, payload });
+}
+
+export async function createCallLink(req: Request, res: Response) {
+  try {
+    ok(res, await evaluateCallLink(req, 'create', { isVideo: req.body?.isVideo === true }));
+  } catch (error) {
+    fail(req, res, 'createCallLink', error);
+  }
+}
+
+export async function joinCallLink(req: Request, res: Response) {
+  const body = req.body || {};
+  if (typeof body.link !== 'string' || !body.link) {
+    res.status(400).json({ status: 'error', message: 'Parameter link is required!' });
+    return;
+  }
+  try {
+    await evaluateCallLink(req, 'check', { link: body.link });
+    await prepareAudioBridge(req);
+    ok(res, await evaluateCallLink(req, 'join', { link: body.link }));
+  } catch (error) {
+    // As joinGroupCall: the bridge may belong to a call that replaced this one.
+    let mayStop = false;
+    try { mayStop = (await evaluateCallLink(req, 'may-stop')) === true; } catch (_) { /* unknown page */ }
+    if (mayStop) await stopAudioBridge(req);
+    fail(req, res, 'joinCallLink', error);
+  }
+}
+
+export async function callLinkWaitingRoom(req: Request, res: Response) {
+  if (!req.body?.callId) {
+    res.status(400).json({ status: 'error', message: 'Parameter callId is required!' });
+    return;
+  }
+  try {
+    ok(res, await evaluateCallLink(req, 'waiting-room', { callId: String(req.body?.callId || '') }));
+  } catch (error) {
+    fail(req, res, 'callLinkWaitingRoom', error);
+  }
+}
+
+export async function admitCallLinkPerson(req: Request, res: Response) {
+  const body = req.body || {};
+  if (!body.callId || typeof body.jid !== 'string' || !body.jid) {
+    res.status(400).json({ status: 'error', message: 'Parameters callId and jid are required!' });
+    return;
+  }
+  try {
+    ok(res, await evaluateCallLink(req, 'admit',
+      { callId: String(body.callId), jid: body.jid, admit: body.admit !== false }));
+  } catch (error) {
+    fail(req, res, 'admitCallLinkPerson', error);
   }
 }
 

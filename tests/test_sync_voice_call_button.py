@@ -39,6 +39,8 @@ class _FakeMainWindow:
 class _Stub:
     _sync_voice_call_button = ConversationsPanel._sync_voice_call_button
     _update_call_start_buttons = ConversationsPanel._update_call_start_buttons
+    _chat_call_kind = ConversationsPanel._chat_call_kind
+    _same_call_chat = ConversationsPanel._same_call_chat
 
     def _watch_group_calls(self, jid):
         self.watched_group_jid = jid

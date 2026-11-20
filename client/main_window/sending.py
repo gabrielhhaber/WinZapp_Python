@@ -213,6 +213,7 @@ class SendingMixin:
                 self._neonize_calls = details.get("calls") is True
                 self._neonize_video_calls = details.get("videoCalls") is True
                 self._neonize_group_calls = details.get("groupCalls") is True
+                self._neonize_call_links = details.get("callLinks") is True
                 self._channel_post_kinds = channel_post_kinds(details)
                 wx.CallAfter(refresh_call_controls, self)
                 if details.get("compatible") is True:

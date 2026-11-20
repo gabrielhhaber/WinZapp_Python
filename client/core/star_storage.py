@@ -1,5 +1,6 @@
 """Star metadata preservation at the encrypted SQLite write boundary, and
-the starred messages of every chat (the starred messages window, issue #708).
+the starred messages of every chat or of one chat (the starred messages
+window, issue #708).
 
 message_json is encrypted, so whether a message is starred is also kept in
 clear in messages.starred, written with the row (Database._build_message_values)
@@ -119,14 +120,29 @@ async def fill_starred_column(manager):
     log.info("[stars] messages.starred filled: %d starred message(s)", marked)
 
 
-async def starred_messages(manager, limit=2000):
-    """[(remote_jid, msg)] of every starred message, newest first. A row
-    whose decrypted star says otherwise is left out."""
+def chat_filter(manager, remote_jids):
+    """The SQL condition and its parameters that keep the rows of one chat,
+    every address form of it (*remote_jids*: phone and @lid, each with its
+    @c.us twin); an empty condition for every chat (None)."""
+    if remote_jids is None:
+        return "", ()
+    jids = list(dict.fromkeys(v for jid in remote_jids if jid for v in manager._jid_variants(jid)))
+    if not jids:
+        return " AND 0", ()
+    return f" AND remote_jid IN ({','.join('?' for _ in jids)})", tuple(jids)
+
+
+async def starred_messages(manager, limit=2000, remote_jids=None):
+    """[(remote_jid, msg)] of every starred message, newest first; only those
+    of one chat when *remote_jids* names its address forms (the starred
+    button of an open conversation). A row whose decrypted star says
+    otherwise is left out."""
     await fill_starred_column(manager)
     conn = await manager._ensure_conn()
+    condition, params = chat_filter(manager, remote_jids)
     cursor = await conn.execute(
-        "SELECT remote_jid, message_json FROM messages WHERE starred=1 "
-        "ORDER BY timestamp DESC LIMIT ?", (int(limit),))
+        f"SELECT remote_jid, message_json FROM messages WHERE starred=1{condition} "
+        "ORDER BY timestamp DESC LIMIT ?", (*params, int(limit)))
     result = []
     for row in await cursor.fetchall():
         msg = manager._decrypt_json(row["message_json"])

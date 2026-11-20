@@ -89,3 +89,43 @@ def test_who_was_seen_and_is_gone_stays_listed():
     note_seen(seen, "C1", [("2@lid", "Bia")])
     assert left_of(seen, "C1", ["1:4@lid"]) == [("2@lid", "Bia")]
     assert left_of(seen, "OTHER", []) == []
+
+
+# -- the same person by number and by @lid (user report, 2026-11-14) ----------
+_PERSON = {"7@lid": "5511@s.whatsapp.net"}.get
+
+
+def _person(jid):
+    return _PERSON(jid) or jid
+
+
+def test_someone_reported_under_their_other_address_neither_left_nor_joined():
+    assert roster_changes(["7@lid", "2@lid"], ["5511@s.whatsapp.net", "2@lid"],
+                          person=_person) == ([], [])
+    # without the mapping the two addresses are two people, as before
+    assert roster_changes(["7@lid"], ["5511@s.whatsapp.net"]) == (
+        ["5511@s.whatsapp.net"], ["7@lid"])
+
+
+def test_a_person_seen_by_lid_and_still_listed_by_number_has_not_left():
+    from core.call_roster import left_of, note_seen
+    seen = {}
+    note_seen(seen, "C1", [("7@lid", "Ana"), ("2@lid", "Bia")])
+    assert left_of(seen, "C1", ["5511@s.whatsapp.net"], _person) == [("2@lid", "Bia")]
+    assert left_of(seen, "C1", ["5511@s.whatsapp.net"]) == [("7@lid", "Ana"), ("2@lid", "Bia")]
+
+
+def test_a_person_seen_under_both_addresses_leaves_once():
+    from core.call_roster import left_of, note_seen
+    seen = {}
+    note_seen(seen, "C1", [("7@lid", "Ana"), ("5511@s.whatsapp.net", "Ana")])
+    assert left_of(seen, "C1", [], _person) == [("7@lid", "Ana")]
+
+
+def test_the_window_compares_people_through_the_lid_mapping():
+    win = types.SimpleNamespace(_lid_to_phone={"7@lid": "5511@s.whatsapp.net"})
+    assert MainWindow._call_person(win, "7@lid") == "5511@s.whatsapp.net"
+    # a companion device of the person is the same person
+    assert MainWindow._call_person(win, "7:4@lid") == "5511@s.whatsapp.net"
+    assert MainWindow._call_person(win, "9@lid") == "9@lid"
+    assert MainWindow._call_person(types.SimpleNamespace(), "9@lid") == "9@lid"

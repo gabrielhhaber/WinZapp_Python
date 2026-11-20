@@ -146,6 +146,9 @@ class ShortcutsTabMixin:
         i18n = self.main_window.i18n
         self._shortcut_overrides = sanitize_overrides(
             copy.deepcopy(self.main_window.settings.get(SECTION, {})), SHORTCUTS)
+        # What the page opened on: OK writes the shortcuts only when they
+        # differ, so an untouched page never undoes another account's change.
+        self._shortcut_overrides_loaded = copy.deepcopy(self._shortcut_overrides)
         general = self.main_window.settings.get('general', {})
         self._call_hotkeys = {key: call_hotkey_setting(general, key) for key in CALL_HOTKEY_DEFAULTS}
         # What the rows started from: a key left alone is not saved, so one
@@ -496,7 +499,17 @@ class ShortcutsTabMixin:
         self._shortcut_list.SetFocus()
 
     def _apply_shortcut_values(self):
-        self.main_window.settings[SECTION] = copy.deepcopy(self._shortcut_overrides)
+        overrides = copy.deepcopy(self._shortcut_overrides)
+        if overrides != getattr(self, '_shortcut_overrides_loaded', None):
+            # The shortcuts are the install's (core/shared_shortcuts.py): an
+            # explicit choice, written to the shared file even when it equals
+            # what this account last pulled, as the language is.
+            choose = getattr(self.main_window, 'choose_global_settings', None)
+            if choose is not None:
+                choose({SECTION: overrides})
+            else:  # the dialog on a plain frame (its tests), without the mixin
+                self.main_window.settings[SECTION] = overrides
+            self._shortcut_overrides_loaded = copy.deepcopy(overrides)
         general = self.main_window.settings.setdefault('general', {})
         loaded = getattr(self, '_call_hotkeys_loaded', None) or {}
         for key, pair in self._call_hotkeys.items():

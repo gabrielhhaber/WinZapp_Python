@@ -4,24 +4,19 @@ Recording the microphone together with computer/system audio (WASAPI
 loopback) for one message, started with Ctrl+Shift+H / the "Gravar
 microfone e áudio do computador" button. Kept separate from
 voice_recording.py (microphone-only capture) per CLAUDE.md's ~150-line rule
-for a new feature: this mixed-capture path has its own session object, its
-own two volume sliders (other system sounds, and NVDA specifically when
-detected) and its own M4A encode, none of which the plain voice-message path
-needs to know about.
+for a new feature: this mixed-capture path has its own session object and
+its own two volume sliders (other system sounds, and NVDA specifically when
+detected), none of which the plain voice-message path needs to know about;
+the finished recording goes out through the same voice-message path.
 
 Methods run with ``self`` bound to the ConversationsPanel instance, so every
 attribute set in ConversationsPanel.__init__/init_UI is available here.
 """
 
-import logging
-import os
 import threading
 import wx
 from main_window.typing_feedback import stop_typing_for_capture
-from app_paths import data_path
-from core.message_queue import PendingMessage
 from core.system_audio_capture import SystemAudioRecorder
-from core.utils import encrypt
 from ui.accessible import AccessibleRecordingVolumeSlider
 from ui.dialogs.system_audio_warning import (
     ask_system_audio,
@@ -446,56 +441,3 @@ class SystemAudioRecordingMixin:
         # Confirm only an acknowledged transition; failed or stale callbacks
         # must not sound like a successful pause/resume.
         self.main_window.voicemsg_pauserecording_sound.play()
-
-    def _enqueue_system_audio_file(self, wav_path, local_id, remote_jid, quoted_msg, enc_key, virtual_msg):
-        """Worker-side M4A encoder for microphone + computer audio; a voice
-        message never enters this path."""
-        from core.audio_transcode import encode_system_audio_to_m4a
-        mw = self.main_window
-        m4a_path = cache_path = None
-        try:
-            m4a_path = encode_system_audio_to_m4a(mw._find_api_ffmpeg(), wav_path)
-            if not m4a_path:
-                raise RuntimeError("Mixed recording AAC encoding failed")
-            voice_dir = data_path("voice_messages")
-            os.makedirs(voice_dir, exist_ok=True)
-            cache_path = os.path.join(voice_dir, f"{local_id}.msv")
-            with open(m4a_path, "rb") as source:
-                encrypted = encrypt(source.read(), enc_key)
-            with open(cache_path, "wb") as cache:
-                cache.write(encrypted)
-            pm = PendingMessage(local_id, remote_jid, media_path=m4a_path,
-                                media_type="audio", quoted=quoted_msg, owns_media_path=True,
-                                custom_filename=f"{mw.i18n.t('default_filename_audio')}.m4a")
-        except Exception:
-            logging.exception("[mixed_audio] could not prepare recorded attachment")
-            for path in (m4a_path, cache_path):
-                if path:
-                    try:
-                        os.unlink(path)
-                    except OSError:
-                        pass
-            wx.CallAfter(mw._on_message_failed, local_id,
-                         mw.i18n.t("media_audio_convert_failed"), True)
-            return
-        finally:
-            try:
-                os.unlink(wav_path)
-            except OSError:
-                pass
-
-        def enqueue_ready():
-            # Queue ownership starts only now. A delete while ffmpeg/cache was
-            # running must not resurrect the row or transmit the recording.
-            if virtual_msg.get("_cancelled_awaiting_id") or self._is_cancelled_pending(local_id):
-                for path in (m4a_path, cache_path):
-                    try:
-                        os.unlink(path)
-                    except OSError:
-                        pass
-                mw._on_cancelled_message_dropped(local_id)
-                return
-            mw.message_queue.enqueue(pm)
-            mw.mark_conversation_as_read(remote_jid)
-
-        wx.CallAfter(enqueue_ready)

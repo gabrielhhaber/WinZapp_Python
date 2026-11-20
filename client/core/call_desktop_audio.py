@@ -21,6 +21,26 @@ PROCESS_ACCESS_DENIED = 0x80070005
 # picker's 200% default plays the shared audio at its original level.
 DEFAULT_VOLUME = 200
 
+# Exact WasapiError message raised by a pinned process reader when the process
+# it is bound to is gone — the desktop share's one interesting failure.
+NVDA_EXITED_REASON = "The pinned NVDA process exited"
+
+
+def should_auto_retry_desktop_audio(*, ok, reason, call_running, already_retried):
+    """Whether to re-share desktop audio once, quietly, after a share died
+    because the pinned NVDA process exited.
+
+    The pin cannot retarget an arbitrary process (by design and by test), so
+    the share stops when NVDA goes down; NVDA's own watchdog restarts it, and
+    sharing again is then one fresh activation over whatever process answers
+    to nvda.exe — exactly what the user's next press of the Share button
+    would create, so this changes the remedy, never the boundary. Bounded to
+    one retry per manual share start; the call must still be live.
+    """
+    if ok or already_retried or not call_running:
+        return False
+    return isinstance(reason, str) and NVDA_EXITED_REASON in reason
+
 
 def desktop_audio_supported():
     return sys.platform == "win32" and sys.getwindowsversion().build >= 20348
@@ -64,6 +84,7 @@ class CallDesktopAudio:
         self._stop = threading.Event()
         self._frames = queue.Queue(maxsize=4)
         self._remainder = b""
+        self.failure_reason = None
 
     @property
     def settings(self):
@@ -144,9 +165,12 @@ class CallDesktopAudio:
                     start += FRAME_TICKS
                     self._offer(mixer.render_until(start))
                 self._stop.wait(.008)
-        except Exception:
+        except Exception as exc:
             if not self._stop.is_set():
                 logging.exception("[call_audio] desktop capture stopped")
+                # Give the caller the specific reason instead of a generic
+                # failure — the pinned NVDA exiting is actionable.
+                self.failure_reason = f"{type(exc).__name__}: {exc}"
                 failed = True
         finally:
             self.stop()

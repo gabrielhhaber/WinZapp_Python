@@ -937,6 +937,14 @@ routes.post('/api/:session/call/group/join', verifyToken, statusConnection,
   CallController.joinGroupCall);
 routes.post('/api/:session/call/add-participants', verifyToken, statusConnection,
   CallController.addCallParticipants);
+routes.post('/api/:session/call/link/create', verifyToken, statusConnection,
+  CallController.createCallLink);
+routes.post('/api/:session/call/link/join', verifyToken, statusConnection,
+  CallController.joinCallLink);
+routes.post('/api/:session/call/link/waiting-room', verifyToken, statusConnection,
+  CallController.callLinkWaitingRoom);
+routes.post('/api/:session/call/link/admit', verifyToken, statusConnection,
+  CallController.admitCallLinkPerson);
 
 // Catalog
 routes.get(

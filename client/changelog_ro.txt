@@ -4,6 +4,60 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Linkuri de apel: în Apeluri (Alt+6), „Creați link de apel” deschide o fereastră în care alegeți apel vocal sau video, creați linkul, îl copiați, îl trimiteți într-o conversație sau vă alăturați apelului lui. Un link call.whatsapp.com primit într-un mesaj vă alătură apelului cu Enter sau cu „Alăturați-vă apelului” din meniul contextual, după o confirmare; un link deschis în browser vă alătură tot din WinZapp când acesta este programul care deschide linkurile WhatsApp (Setări > General). Cine intră primul printr-un link este administratorul apelului: persoanele fără cont WhatsApp așteaptă într-o sală de așteptare, WinZapp spune numele fiecăreia care sosește, iar butonul „Sala de așteptare” din fereastra apelului le admite sau le respinge. Funcționează cu Neonize și WPPConnect.
+
+- Contacte: lista de navigare primește „Contacte” după Canale, fără comandă rapidă Alt+cifră. Arată contactele salvate, un rând pe persoană, cu nume și număr; un contact păstrat sub două adrese (numărul și ID-ul de dispozitiv asociat, sau un număr brazilian cu și fără a 9-a cifră) este un singur rând. „Căutați contacte” filtrează după nume sau număr. Butoanele și meniul contextual (tasta Aplicații sau Shift+F10) deschid conversația, fac un apel vocal sau video, arată „Detaliile contactului”, șterg contactul sau îl blochează și deblochează; „Contact nou” adaugă unul. „Enter pe un contact” alege ce face Enter: deschide conversația, apelează, apelează video sau arată detaliile.
+
+- Conversație: lângă „Mesaje fixate”, noul buton „Mesaje marcate cu stea din această conversație” deschide fereastra mesajelor marcate cu stea (Alt+0) doar cu mesajele acelei conversații, cu numele ei în titlu; alegerea unuia mută focalizarea pe mesaj în conversația deja deschisă, fără a o redeschide.
+
+- Apeluri: o conversație care se află într-un apel în desfășurare, de grup sau privată al cărei apel a ajuns să aibă mai multe persoane, arată acum „Alăturați-vă apelului vocal în desfășurare” sau „Alăturați-vă apelului video în desfășurare (camera oprită)” în locul butoanelor de apelare; cât timp acest dispozitiv este în apel cu acea conversație, butonul spune „Reveniți la apel” și readuce fereastra apelului.
+
+- Apeluri: un apel individual devenit apel de grup apare cu numele persoanelor, ca pe telefon („A, B și C” sau „A și încă N persoane”), în conversație, în previzualizarea listei de conversații și în fila Apeluri. Un apel de grup care a continuat fără dvs., în care dispozitivul a sunat doar, nu mai apare ca răspuns.
+
+- Apeluri, „Adăugare participanți”: fiecare persoană apare o singură dată, deci un contact salvat cu și fără a 9-a cifră, sau cu numărul și cu ID-ul de dispozitiv asociat, este un singur rând; o a doua listă oferă toate conversațiile individuale, ale unui contact salvat sau nu; iar un câmp primește un număr de telefon scris de mână.
+
+- Apeluri: când adăugați persoane, WinZapp spune „Se apelează <nume>...” cât timp invitația este pe drum și „Invitați la apel” abia după ce serverul WhatsApp a confirmat-o, în loc să anunțe persoane la care nu a sunat nimic. Neonize: adăugarea cuiva la un apel individual sau la un apel care este deja de grup îi face acum telefonul să sune, fără a reduce la tăcere persoana deja aflată în apel; iar cineva pe care lista îl numește după număr într-un răspuns și după ID-ul asociat în următorul nu mai este anunțat că iese și intră.
+
+- Apeluri: când procesul NVDA pe care îl urmărește partajarea sunetului desktopului se închide în timp ce apelul continuă, partajarea reîncepe o dată singură, ca și cum ați apăsa din nou „Partajați sunetul desktopului”; o reluare eșuată este anunțată ca înainte.
+
+- Neonize: un apel individual făcut din WinZapp apare acum și în istoricul apelurilor de pe telefonul dvs.
+
+- Traducerea mesajelor: pe lângă furnizorii dvs. de IA online, „Furnizor” din setările de traducere oferă „Model offline pe acest computer” (douăsprezece modele, SMaLL-100, M2M-100, mBART-50, NLLB-200 și MADLAD-400 în mai multe dimensiuni, descărcate cu „Descarcă modelul” și rulate pe procesor sau pe placa grafică; textul nu părăsește niciodată computerul, deci nu există întrebare de consimțământ și nici limită zilnică), serviciile de traducere LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (cu regiunea resursei) și Google Translate, precum și Ollama și LM Studio ca furnizori locali. La modelul offline, limba sursă este detectată sau aleasă.
+
+- Instalator: un grup nou „Sunete de instalat” alege între „Toate sunetele WinZapp” (implicit) și „Doar sunetele originale WhatsApp”. Cu a doua opțiune, celelalte sunete nu rămân în instalare, iar actualizările continuă să le lase deoparte.
+
+- Versiunea portabilă: la prima pornire, când WinZapp instalat pe computer are conturi asociate, WinZapp întreabă dacă doriți să folosiți o copie a lor în loc să asociați încă un dispozitiv. Instalarea este doar citită; dacă rulează, WinZapp vă cere să o închideți și să alegeți Reîncercare, iar dacă copierea eșuează nu se schimbă nimic și se asociază un dispozitiv nou.
+
+- Setări > Comenzi rapide: tastele pe care le schimbați se aplică acum tuturor conturilor instalării, nu doar celui în care le-ați schimbat; o tastă setată pentru treceți la contul 2 răspunde din orice cont. La prima pornire cu această versiune, tastele schimbate în fiecare cont se alătură celor ale instalării: dacă ambele au schimbat aceeași comandă, rămâne tasta instalării, iar o tastă pe care o folosește deja altă comandă este lăsată deoparte.
+
+- Mesaje editate: Evenimente sonore primește „Editarea mesajului dvs. a fost salvată” (activat) și „Mesaj editat de altcineva” pentru programul în prim-plan și în fundal (dezactivate); Setări > General > Notificări primește „Citește editările când fereastra este activă” și „Notifică editările în fundal” (dezactivate); iar fereastra de date a fiecărei conversații are o fereastră „Mesaje editate” pentru a alege sunete și anunțuri diferite în acea conversație. Editarea altcuiva este anunțată doar cât timp WhatsApp mai acceptă editarea acelui mesaj, deci editările reluate după o reconectare rămân tăcute.
+
+- Sunetele și apelurile setate pe „implicit de sistem” urmează acum dispozitivul de redare implicit din Windows: când conectați căștile pe care Windows le face implicite, sunetele WinZapp și sunetul apelului trec pe ele, ca la celelalte programe.
+
+- Cât timp înregistrați sunet (un mesaj vocal sau microfonul cu sunetul computerului), sincronizarea periodică în fundal, parcurgerea istoricului și descărcările de fișiere media sunt suspendate, ca și în timpul unui apel, pentru ca un computer ocupat să nu taie înregistrarea în bucăți.
+
+- O conversație ștearsă revine în listă când este folosită din nou, printr-un mesaj nou sau redeschizând-o din Conversație nouă, chiar dacă a fost ștearsă sub altă formă a persoanei, precum ID-ul asociat sau numărul cu sau fără a 9-a cifră.
+
+- WPPConnect: un mesaj citat de un răspuns nu mai sare la sfârșitul conversației după repornirea WinZapp; își păstrează ora reală.
+
+- WPPConnect, Conversație nouă: un număr brazilian scris cu a 9-a cifră pe care WhatsApp nu o folosește deschide acum conversația reală, nu una a doua, goală.
+
+- Neonize: cât timp telefonul trimite istoricul mesajelor, WinZapp anunță și vă cere să țineți WhatsApp deschis pe ecranul telefonului, avertizează când telefonul se oprește (cu procentul), când trimite din nou și când termină; cât timp este oprit, WinZapp cere restul de la telefon la fiecare 90 de secunde.
+
+- Neonize: conversațiile pe care WhatsApp pentru iPhone le lasă în afara primului lot de istoric (acum trimite doar 400) sunt acum cerute și importate și ele.
+
+- Neonize: ștergerea unei liste o scoate și din conversațiile ei, care nu mai arată spre o listă ce nu mai există.
+
+- Setările reducerii zgomotului: câmpul modelului are acum o literă de comandă rapidă Alt în toate limbile.
+
+- Înregistrarea microfonului și a sunetului computerului pleacă acum ca mesaj vocal (Ctrl+Shift+H), nu ca atașament audio; păstrează stereo (AAC) când ambele canale poartă sunet, ca celelalte înregistrări stereo. Înainte pleca ca fișier audio obișnuit din chat.
+
+- Neonize: mesajele primite cu WinZapp deschis apar acum ca livrate pentru expeditor, chiar și cu fereastra fără focus sau în fundal. Înainte, expeditorul vedea doar „trimis” când WinZapp nu avea focusul; iar cu confirmările de citire dezactivate, deschiderea conversației nu schimba nimic. Prezența online rămâne legată de fereastră.
+
+- Neonize: un mesaj trimis de dumneavoastră putea reveni la „trimis” după ce WhatsApp îl confirmase deja ca livrat — în lista de mesaje și pe linia de stare. Aplicația nu mai suprascrie o confirmare reală de livrare, citire sau redare cu propriul ei ack de „trimis”, iar nicio stare a mesajului nu dă înapoi după ce a fost confirmată.
+
+- Când NVDA rulează, înregistrarea microfonului împreună cu sunetul computerului nu se mai oprește cu „problemă la dispozitivul audio” când WinZapp se blochează o secundă sau două (computer lent sau ocupat): sunetul din acel moment este omis, înregistrarea continuă, iar restul rămâne sincronizat. Mai înainte asta era valabil fără sunetul NVDA separat; acum acoperă și cititoarele pentru sunetul NVDA și celelalte sunete ale computerului, înregistrate separat.
+
 - Mesajele vocale pot folosi reducerea neuronală a zgomotului în fundal în timpul înregistrării, fără a aștepta trimiterea. Fereastra de setări a reductorului de zgomot, din Setări > Audio, permite alegerea reducerii de bază sau neuronale, procesarea în timpul înregistrării sau la trimitere (implicit) și acțiunea la eșecul reducerii neuronale: trimitere cu reducerea de bază sau păstrarea mesajului în așteptare pentru o reîncercare manuală. Procesarea în timpul înregistrării folosește CPU sau CoreML; selectarea CUDA o dezactivează și procesarea are loc la trimitere. Nu există procesare CUDA în timpul înregistrării. Calea CoreML în timpul înregistrării nu a fost validată în utilizare reală.
 
 - Un contact are acum un singur nume: când cineva schimbă numele profilului, toate mesajele sale, inclusiv cele vechi și cele din grupuri, arată numele nou în loc să alterneze între cel vechi și cel nou. Se aplică pentru Neonize și WPPConnect.

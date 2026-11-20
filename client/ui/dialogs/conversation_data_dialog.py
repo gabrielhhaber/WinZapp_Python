@@ -15,6 +15,7 @@ Screen-reader accessibility is achieved through standard wxPython controls
 and proper label association — no visual-only information is presented.
 """
 
+from ui.dialogs.contact_removal import delete_contact_with_confirmation
 from ui.shortcut_bindings import command_key_event
 from ui.shortcut_bindings import refresh_popup_shortcuts
 import logging
@@ -49,6 +50,7 @@ from ui.conversation_panel.message_list import enter_transcribes
 from ui.conversation_panel.copy_target import copy_method_for_message
 from app_paths import data_path
 from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
+from ui.dialogs.conversation_edit_alerts import show_edit_alerts
 from core.sound_system import (
     discover_alert_tone_choices, resolve_alert_tone_path, AlertPreviewController,
 )
@@ -339,6 +341,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
 
         self._build_sound_picker(overview_page, ov_sizer)
         self._build_auto_ai_options(overview_page, ov_sizer)
+        self._add_edit_alerts_button(overview_page, ov_sizer)
 
         overview_page.SetSizer(ov_sizer)
         self._notebook.AddPage(overview_page, self._i18n.t("group_overview_tab"))
@@ -362,6 +365,13 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         )
         self._profile_picture_btn.Bind(wx.EVT_BUTTON, self._on_profile_picture)
         sizer.Add(self._profile_picture_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+    def _add_edit_alerts_button(self, page, sizer):
+        """"Edited messages": this conversation's sounds and announcements
+        for edits (ui/dialogs/conversation_edit_alerts.py)."""
+        button = wx.Button(page, label=self._i18n.t("edit_alerts_button"))
+        button.Bind(wx.EVT_BUTTON, lambda _e: show_edit_alerts(self, self._mw, self._jid, self._name))
+        sizer.Add(button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
     def _on_profile_picture(self, event):
         from ui.dialogs.profile_picture_dialog import show_profile_picture
@@ -602,6 +612,7 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
         ov_sizer.Add(self._add_members_btn_overview, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         self._build_sound_picker(overview_page, ov_sizer)
         self._build_auto_ai_options(overview_page, ov_sizer)
+        self._add_edit_alerts_button(overview_page, ov_sizer)
         overview_page.SetSizer(ov_sizer)
         self._notebook.AddPage(overview_page, self._i18n.t("group_overview_tab"))
 
@@ -1862,41 +1873,18 @@ class ConversationDataDialog(CommonGroupsTabMixin, wx.Dialog):
     def _on_delete_contact(self, event):
         """Remove the contact entry for this number (confirmation first — this
         can't be undone from here). A contact saved to the phone is removed
-        from WhatsApp and the phone too, and kept here if that fails."""
+        from WhatsApp and the phone too, and kept here if that fails
+        (ui/dialogs/contact_removal.py, shared with the Contacts panel)."""
         if getattr(self, "_deleting_contact", False):
             return      # the request of an earlier press is still running
-        i18n = self._i18n
         entry = self._contact_entry()
         # The key the record is really stored under: the tolerant lookup finds
         # it under the other 8/9-digit form of this chat's JID too, and
         # deleting "this chat's JID" would then leave the record behind.
         jid = phone_contacts.key_of(self._mw, entry, self._resolve_contact_phone_jid())
-        synced = phone_contacts.is_phone_synced(entry)
-        message_key = "delete_contact_phone_confirm_msg" if synced else "delete_contact_local_confirm_msg"
-        if wx.MessageBox(
-            i18n.t(message_key).format(name=self._name),
-            i18n.t("delete_contact_local").replace("&", ""),
-            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
-            self,
-        ) != wx.YES:
-            return
-        if not synced:
-            self._finish_delete_contact(jid)
-            return
-
-        def _removed(ok):
-            self._deleting_contact = False
-            if not ok:
-                text = i18n.t("delete_contact_phone_failed")
-                self._mw.output(text)
-                if self:
-                    wx.MessageBox(text, i18n.t("app_name"), wx.OK | wx.ICON_WARNING, self)
-                return
-            self._finish_delete_contact(jid)
-
-        self._deleting_contact = True
-        self._mw.output(i18n.t("delete_contact_phone_removing"))
-        self._mw.remove_phone_synced_contact(jid, _removed)
+        delete_contact_with_confirmation(
+            self._mw, self, self._i18n, entry, jid, self._name, self._finish_delete_contact,
+            lambda busy: setattr(self, "_deleting_contact", busy))
 
     def _finish_delete_contact(self, jid: str):
         self._mw.remove_local_contact(jid)

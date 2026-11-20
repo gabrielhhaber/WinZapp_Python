@@ -365,6 +365,7 @@ API_CUSTOM_SRC_FILES = [
     "src/util/forwardRuntime.ts",
     "src/util/statusReactionRuntime.ts",
     "src/util/quotedMessagePreflight.ts",
+    "src/util/messageStampRepair.ts",
     "src/util/contactPresenceRuntime.ts",
     "src/util/contactPresenceBridge.ts",
     "src/util/groupPresenceBridge.ts",
@@ -827,6 +828,14 @@ def pyinstaller_compile():
         "av",
         "tokenizers",
         "huggingface_hub",
+        # Offline message translation (core/text_translation, issue #798) runs
+        # on the ctranslate2 and tokenizers above; these two are imported only
+        # inside local_engine's functions, which static analysis cannot see.
+        # sentencepiece tokenises M2M-100, SMaLL-100 and mBART-50 (a ~2 MB
+        # extension); py3langid detects the source language and its model is a
+        # *data* file of the package, which only --collect-all ships.
+        "sentencepiece",
+        "py3langid",
         # HTTPS that verifies through the Windows certificate store — see
         # client/core/tls_trust.py. Pure Python, and small.
         "truststore",

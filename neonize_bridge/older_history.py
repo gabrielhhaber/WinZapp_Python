@@ -43,11 +43,16 @@ import logging
 import threading
 import time
 
+import omitted_history
+
 log = logging.getLogger("bridge")
 
 #: Conversation.EndOfHistoryTransferType
 NO_MORE_ON_PRIMARY = 1
 PHONE_ONLY_TYPES = (2, 3)
+
+#: synthetic exhausted/gate anchor id for OmittedConversationMetadata chats with 0 messages
+OMITTED_ANCHOR = "__omitted__"
 
 #: messages asked for per request (WhatsApp Web asks for 50)
 PAGE = 50
@@ -68,13 +73,15 @@ def is_on_demand(data) -> bool:
         return False
 
 
-def verdict(history_end, has_anchor, exhausted=False, user_asked=False):
+def verdict(history_end, has_anchor, exhausted=False, user_asked=False, omitted=False):
     """What to answer without sending anything, or None when the phone may be
     asked. `history_end` is the chat's stored endOfHistoryTransferType (None
     when the history never said); `exhausted`, that the current anchor was
     already asked and brought nothing new (or, for types 2/3, was asked at
-    all); `user_asked`, that the user pressed Home (types 2/3 only then)."""
-    if not has_anchor:
+    all); `user_asked`, that the user pressed Home (types 2/3 only then);
+    `omitted`, that the chat came from OmittedConversationMetadata with no
+    stored messages yet."""
+    if not has_anchor and not omitted:
         return {"requested": False, "primaryHasMore": True, "phoneOnly": True}
     phone_only = history_end in PHONE_ONLY_TYPES
     if phone_only and (exhausted or not user_asked):
@@ -93,12 +100,6 @@ def marks_on_send(history_end) -> bool:
 def user_asked_of(body) -> bool:
     """The client's {"userAsked": true}: Home pressed, not the backfill."""
     return isinstance(body, dict) and body.get("userAsked") is True
-
-
-def brought_nothing_new(rows, already_stored) -> bool:
-    """Whether an on-demand answer's rows (chat, message, ...) hold no message
-    that `already_stored(id)` says is missing."""
-    return not any(not already_stored(row[1]["id"]["id"]) for row in rows)
 
 
 class AnchorGate:
@@ -135,11 +136,25 @@ def register_routes(r, *, session, ok, in_thread):
     def state_of(s, jid, user_asked=False):
         keys = s.chat_keys(jid) or []
         anchor = s.db.oldest_real(keys) if keys else None
-        exhausted = anchor is not None and anchor["id"] in s.db.history_exhausted(keys)
         history_end = s.db.history_end(keys) if keys else None
         if anchor is not None:
-            anchor = dict(anchor, keys=keys, history_end=history_end)
-        return anchor, verdict(history_end, anchor is not None, exhausted, user_asked)
+            exhausted = anchor["id"] in s.db.history_exhausted(keys)
+            anchor = dict(anchor, keys=keys, history_end=history_end, omitted=False)
+            return anchor, verdict(history_end, True, exhausted, user_asked)
+        omitted_info = (s.db.chat_omitted_info(keys)
+                        if keys and hasattr(s.db, "chat_omitted_info") else None)
+        if omitted_info is None:
+            return None, verdict(history_end, False, False, user_asked, omitted=False)
+        exhausted = OMITTED_ANCHOR in s.db.history_exhausted(keys)
+        anchor = {
+            "chat": omitted_info["chat"],
+            "id": OMITTED_ANCHOR,
+            "omitted": True,
+            "account_lid": omitted_info["account_lid"],
+            "keys": keys,
+            "history_end": history_end,
+        }
+        return anchor, verdict(history_end, False, exhausted, user_asked, omitted=True)
 
     async def request_older(req):
         s = session(req)
@@ -154,13 +169,19 @@ def register_routes(r, *, session, ok, in_thread):
         anchor, answer = await in_thread(state_of, s, req.match_info["jid"], user_asked_of(body))
         if answer is not None:
             return ok(status="success", response=answer)
-        ask = getattr(s.client, "request_history_sync", None)
-        if not callable(ask):
+        is_omitted = bool(anchor.get("omitted"))
+        if is_omitted:
+            send_fn = getattr(s.client, "send_peer_message", None)
+            missing_name = "send_peer_message"
+        else:
+            send_fn = getattr(s.client, "request_history_sync", None)
+            missing_name = "request_history_sync"
+        if not callable(send_fn):
             # Refused before any send: "missing from" is one of the words
             # backfill.py reads as a definite refusal, not an ambiguous one.
             return ok(status="error", response={
                 "requested": False, "primaryHasMore": True, "phoneOnly": False,
-                "error": "request_history_sync missing from this neonize build"})
+                "error": f"{missing_name} missing from this neonize build"})
         # Per account: two accounts of one bridge can hold the same message of
         # the same group, and each one's phone has to be asked.
         key = (s.name, anchor["chat"], anchor["id"])
@@ -173,7 +194,14 @@ def register_routes(r, *, session, ok, in_thread):
                 # before the send: a send that fails waiting for the server
                 # may still have lit up the phone
                 s.db.mark_history_exhausted(anchor["keys"], anchor["id"])
-            ask(anchor_jid(anchor["chat"]), anchor["id"], anchor["fromMe"], anchor["ts"], PAGE)
+            if is_omitted:
+                lid = anchor.get("account_lid") or (
+                    anchor["chat"] if anchor["chat"].endswith("@lid")
+                    else getattr(s, "_lid_of_phone", lambda _p: "")(anchor["chat"])
+                )
+                send_fn(omitted_history.build_initial_reverse_request(anchor["chat"], PAGE, lid))
+            else:
+                send_fn(anchor_jid(anchor["chat"]), anchor["id"], anchor["fromMe"], anchor["ts"], PAGE)
         try:
             await in_thread(send)
         except Exception as error:

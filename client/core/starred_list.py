@@ -2,7 +2,8 @@
 
 The starred messages of every chat, newest first (Database.get_starred_messages),
 each read as "chat, sender: text, date" (the sender only in a group or for
-the account's own message: in a one-to-one chat it is the chat). The search
+the account's own message: in a one-to-one chat it is the chat). The window
+of one conversation (its starred button) reads "sender: text, date". The search
 field narrows them by any part of the row, accents and case folded as the
 contact search does.
 
@@ -29,10 +30,16 @@ def one_line(text) -> str:
 
 
 def row_text(i18n, chat, sender, text, when) -> str:
-    """The row a screen reader reads; empty parts are left out."""
+    """The row a screen reader reads; empty parts are left out. No *chat* in
+    the window of one conversation: every row is of that chat, so a row
+    starts with its sender, or with its text when there is none."""
     body = one_line(text) or i18n.t("starred_no_text")
-    key = "starred_row_sender" if sender else "starred_row"
-    row = i18n.t(key).format(chat=one_line(chat), sender=one_line(sender), text=body)
+    if not one_line(chat):
+        row = (i18n.t("starred_row_in_chat_sender").format(sender=one_line(sender), text=body)
+               if one_line(sender) else body)
+    else:
+        key = "starred_row_sender" if sender else "starred_row"
+        row = i18n.t(key).format(chat=one_line(chat), sender=one_line(sender), text=body)
     return f"{row}, {when}" if when else row
 
 

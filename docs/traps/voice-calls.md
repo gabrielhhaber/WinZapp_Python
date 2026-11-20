@@ -510,7 +510,7 @@ only F5 repairs that (see the sync-completion trap above — this is the same
 trap from the other side). The gate therefore lives in the 60-second poll, the
 backfill loop, the deep-history walk and the media sweep, all four of which
 simply skip a cycle or do fewer chats in this one, and it is
-`_voice_call_in_progress()` — **bounded**, because `_active_voice_call` is
+`_background_work_paused()` — **bounded**, because `_active_voice_call` is
 cleared only by a terminal `callstate` event or by hanging up in WinZapp, and a
 call torn down on the phone producing neither would otherwise pause every
 background pass for the rest of the session. A paused sync is invisible: the
@@ -525,6 +525,47 @@ to a default turned `tests/test_deep_history_backfill.py` into a 2h20m CI run
 reporting 184 failures, most of them unrelated collateral from hours in one
 process (dialog creation failing, `TextCtrl` returning `''`: the signature of
 USER-object exhaustion).
+
+**The same predicate now stands background work down during an audio capture
+(2026-11-17).** Log of a 26 s mixed (NVDA-separated) system-audio take
+2026-11-17 15:40: microphone 163 late packets / 82 925 frames (~1.6 s lost),
+3 discontinuities, process EXCLUDE/INCLUDE queue peaks 28 800/43 200 frames
+(0.6–0.9 s backlog) — while the periodic full sync (33 chats per round, then
+again minutes later) hammered the machine straight through the take. A
+microphone that arrives later than the 500 ms playout delay is clipped as
+late, so the voice is simply absent; no error is raised and the recorder ends
+"cleanly". `_background_work_paused()` therefore also returns True while any
+conversation panel (live, archived, locked) holds `_is_recording`,
+`_recording_starting` or `_recording_system_audio`, under the same 2 h bound
+as a call — a panel that forgets to clear its flag fails the same visible way,
+never silently for the rest of the session. This is the call gate's own
+mechanism, extended to the other thing WinZapp does that wants the CPU to
+itself, not a relaxation of audio-device behaviour.
+
+**A capture pinned to a process is gone when that process is gone, by design.**
+The desktop share dies with `WasapiError: The pinned NVDA process exited`
+(log 2026-11-17 16:54:57 / 16:55:46, mic kept sending throughout): the reader
+loop checks `_PinnedProcess.check()` under its lock and any `WaitForSingleObject
+== 0` (or a changed identity) kills the reader, whose failure then surfaces in
+the desktop worker as a logged exception and `on_state(False)` — the share
+stops, the call continues. The default policy pins by name+session, image name
+and creation identity precisely so a *restarted* NVDA can never be silently
+retargeted; "it was just NVDA, grab the new one" would be capture of whatever
+process happens to hold that name on this machine. Retargeting inside a stream
+is forbidden (`test_exit_and_restart_does_not_retarget_new_pid`).
+
+Since 2026-11-17 the call window papers over the death with **one** quiet
+re-share: `should_auto_retry_desktop_audio` re-activates the share once when
+`failure_reason` carries `The pinned NVDA process exited`, the call is
+still ACTIVE and this share has not already had its one retry (a manual
+Share press resets the budget). A successful re-share is silent, like a
+device-switch resumption; a failed one announces the usual
+`call_desktop_failed`. This activates a *fresh* process pin, it does not
+retarget the old one, and the re-pin is the same name+session/image/identity
+policy as the first share — the machine can change *who* NVDA is between
+death and retry, never *what kind of process* gets captured. If the share
+dies on NVDA exit every time, the fix is still NVDA (its watchdog restarts
+it under heavy load), not the capture code.
 
 **The call controls live in exactly one place**, the modeless
 `voice_call_window`. An in-frame bar was tried alongside it and removed: two

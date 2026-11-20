@@ -138,3 +138,22 @@ def test_a_failed_request_is_spoken_with_its_reason_and_keeps_the_dialog():
 def test_nobody_invited_keeps_the_dialog_open_and_speaks_who_failed():
     d = finish("Could not add: Ana.", None, False)
     assert d._mw.spoken == ["Could not add: Ana."] and d.closed == 0
+
+
+def test_one_set_of_marks_serves_both_lists():
+    """The contacts and the conversations: a person in both reads as selected
+    in both, and the keys act on the list they came from."""
+    s = Stub(ROWS)
+    other = FakeList(2)
+    s._panes = [{"list": s._list, "rows": ROWS, "labels": s._labels},
+                {"list": other, "rows": [("2@lid", "Bia"), ("4@lid", "Davi")], "labels": ["Bia", "Davi"]}]
+    s._use_invite_pane(other)
+    assert s._rows[1] == ("4@lid", "Davi")
+    s._handle_invite_mark_key(wx.WXK_SPACE, True, False)        # Bia, in the second list
+    assert s._marks == {"2@lid"}
+    assert other.strings[0] == "Bia selected"
+    assert s._panes[0]["list"].strings[1] == "Bia selected"     # and in the first
+    s._handle_invite_mark_key(wx.WXK_SPACE, True, True)         # everyone of this list
+    assert s._marks == {"2@lid", "4@lid"}
+    s._use_invite_pane(s._panes[0]["list"])
+    assert s._rows is ROWS

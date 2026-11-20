@@ -1,10 +1,41 @@
 """Explicit participant views for the active call and the Calls tab."""
+from core.call_log import call_log_participants
+from core.call_log_participants import (
+    is_upgraded_call,
+    order_call_participants,
+    other_call_participants,
+    participants_title,
+)
 from core.call_matching import is_placeholder_call_id
 from core.call_participants import active_participants_available, held_here
+from core.jid_device import strip_device_suffix
 from core.call_roster import note_seen, remember, user_of
+from core.unsaved_contact_marker import is_unsaved_contact
 
 
 class CallParticipantsMixin:
+    def call_log_participants_text(self, msg, chat_jid="") -> str:
+        """"A, B e mais 3 pessoas" for a call record of a one-to-one chat that
+        became a group call, as the phone names it; "" for any other call
+        (core/call_log_participants.py)."""
+        jids = call_log_participants(msg)
+        if not jids:
+            return ""
+        key = (msg.get("key") or {}) if isinstance(msg, dict) else {}
+        chat_jid = str(chat_jid or key.get("remoteJid") or "")
+        mine = {user_of(j) for j in (getattr(self, "my_jid", ""), getattr(self, "my_lid", ""))} - {""}
+        person = lambda jid: CallParticipantsMixin._call_person(self, jid)
+        others = other_call_participants(jids, mine, person)
+        if not is_upgraded_call(chat_jid, others):
+            return ""
+        # whoever called this account: the chat's other end, unless it was
+        # this account calling (WhatsApp sorts that person first)
+        caller = "" if key.get("fromMe") else chat_jid
+        ordered = order_call_participants(
+            others, caller, lambda jid: not is_unsaved_contact(self, jid), person)
+        names = [self.chat_display_name({"remoteJid": jid, "name": ""}) for jid in ordered]
+        return participants_title(names, self.i18n.t)
+
     def _show_active_call_participants(self, _event=None):
         active = getattr(self, "_active_voice_call", None) or {}
         if not active_participants_available(active, getattr(self, "_voice_call_last_announced_state", "")):
@@ -39,7 +70,8 @@ class CallParticipantsMixin:
         and refresh its participants dialog if one is open."""
         rosters = self.__dict__.setdefault("_call_rosters", {})
         mine = {user_of(j) for j in (getattr(self, "my_jid", ""), getattr(self, "my_lid", ""))} - {""}
-        joined, left = remember(rosters, call_id, connected, mine)
+        joined, left = remember(rosters, call_id, connected, mine,
+                                lambda jid: CallParticipantsMixin._call_person(self, jid))
         # everyone ever connected, for the "left" rows of the participants list
         note_seen(self.__dict__.setdefault("_call_seen", {}), call_id,
                   [(jid, "") for jid in connected], mine)
@@ -55,6 +87,14 @@ class CallParticipantsMixin:
         dialog = getattr(self, "_call_participants_dialog", None)
         if dialog is not None and getattr(dialog, "_call_id", None) == call_id:
             dialog._refresh_participants()
+
+    def _call_person(self, jid):
+        """The one address a call's participant is compared by: the number of
+        an @lid this account has a mapping for, the address itself otherwise
+        (core.call_roster.person_key)."""
+        # the mapping is keyed without the companion-device part ("7:4@lid")
+        jid = strip_device_suffix(str(jid or ""))
+        return getattr(self, "_lid_to_phone", {}).get(jid) or jid
 
     def _call_held_here(self, call_id):
         """True while *call_id* is the call this device is in, live: its

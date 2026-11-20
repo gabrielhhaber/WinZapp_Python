@@ -4,6 +4,60 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Links de ligação: em Ligações (Alt+6), "Criar link de ligação" abre uma janela onde você escolhe ligação de voz ou de vídeo, cria o link, copia, envia para uma conversa ou entra na ligação dele. Um link call.whatsapp.com recebido numa mensagem entra na ligação com Enter, ou com "Entrar na ligação" no menu de contexto, depois de uma confirmação; um link aberto no navegador também entra pelo WinZapp quando ele é o programa que abre os links do WhatsApp (Configurações > Geral). Quem entra primeiro por um link é o administrador da ligação: as pessoas sem conta no WhatsApp esperam numa sala de espera, o WinZapp diz o nome de cada uma que chega, e o botão "Sala de espera" da janela da ligação as admite ou as recusa. Funciona com Neonize e WPPConnect.
+
+- Contatos: a lista de navegação ganha "Contatos" depois de Canais, sem atalho Alt+número. Ela mostra os contatos salvos, uma linha por pessoa, com nome e número; um contato guardado com dois endereços (o número e o ID de dispositivo vinculado, ou um número brasileiro com e sem o 9º dígito) é uma linha só. "Pesquisar contatos" filtra por nome ou número. Os botões e o menu de contexto (tecla Aplicativos ou Shift+F10) abrem a conversa, fazem uma ligação de voz ou de vídeo, mostram os "Dados do contato", apagam o contato ou o bloqueiam e desbloqueiam; "Novo contato" adiciona um. "Enter em um contato" escolhe o que o Enter faz: abrir a conversa, ligar, ligar por vídeo ou mostrar os dados.
+
+- Conversa: ao lado de "Mensagens fixadas", o novo botão "Mensagens favoritas da conversa" abre a janela de mensagens favoritadas (Alt+0) só com as mensagens dessa conversa, com o nome dela no título; escolher uma foca a mensagem na conversa já aberta, sem reabri-la.
+
+- Ligações: uma conversa que está numa ligação em andamento, de grupo ou privada cuja ligação passou a ter várias pessoas, agora mostra "Entrar na ligação de voz em andamento" ou "Entrar na ligação de vídeo em andamento (câmera desligada)" no lugar dos botões de ligar; enquanto este dispositivo está na ligação com essa conversa, o botão diz "Voltar à ligação" e traz a janela da ligação de volta.
+
+- Ligações: uma ligação individual que virou ligação em grupo aparece com o nome das pessoas, como no celular ("A, B e C", ou "A e mais N pessoas"), na conversa, na prévia da lista de conversas e na aba Ligações. Uma ligação em grupo que continuou sem você, em que seu dispositivo só tocou, não aparece mais como atendida.
+
+- Ligações, "Adicionar participantes": cada pessoa aparece uma só vez, então um contato salvo com e sem o 9º dígito, ou com o número e com o ID de dispositivo vinculado, é uma linha só; uma segunda lista oferece todas as conversas individuais, de contato salvo ou não; e um campo aceita um número de telefone digitado.
+
+- Ligações: ao adicionar pessoas, o WinZapp diz "Ligando para <nomes>..." enquanto o convite está a caminho e "Convidados para a chamada" só depois de o servidor do WhatsApp confirmá-lo, em vez de anunciar pessoas que nunca receberam a chamada. Neonize: adicionar alguém a uma ligação individual, ou a uma ligação que já é em grupo, agora faz a pessoa tocar sem silenciar quem já está na ligação; e alguém que a lista cita pelo número numa resposta e pelo ID vinculado na seguinte não é mais anunciado como saindo e entrando.
+
+- Ligações: quando o processo do NVDA que o compartilhamento do áudio da área de trabalho acompanha é fechado enquanto a ligação continua, o compartilhamento recomeça uma vez sozinho, como se você apertasse "Compartilhar áudio da área de trabalho" de novo; se o reinício falhar, o aviso é o mesmo de antes.
+
+- Neonize: uma ligação individual feita pelo WinZapp agora aparece também no histórico de ligações do seu celular.
+
+- Tradução de mensagens: além dos seus provedores de IA online, "Provedor", nas configurações de tradução, oferece "Modelo offline neste computador" (doze modelos, SMaLL-100, M2M-100, mBART-50, NLLB-200 e MADLAD-400 em vários tamanhos, baixados com "Baixar modelo" e executados no processador ou na placa de vídeo; o texto nunca sai do computador, então não há pergunta de consentimento nem limite diário), os serviços de tradução LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (com a região do recurso) e Google Translate, e Ollama e LM Studio como provedores locais. No modelo offline, o idioma de origem é detectado ou escolhido.
+
+- Instalador: um novo grupo "Sons a instalar" escolhe entre "Todos os sons do WinZapp" (o padrão) e "Apenas os sons originais do WhatsApp". Com a segunda opção, os outros sons não ficam na instalação, e as atualizações continuam deixando-os de fora.
+
+- Versão portátil: no primeiro início, quando o WinZapp instalado no computador tem contas vinculadas, o WinZapp pergunta se você quer usar uma cópia delas em vez de vincular mais um dispositivo. A instalação só é lida; se ela estiver aberta, o WinZapp pede que você a feche e escolha Repetir, e, se a cópia falhar, nada é alterado e um novo dispositivo é vinculado.
+
+- Configurações > Atalhos: as teclas que você troca agora valem para todas as contas da instalação, e não só para aquela em que você as trocou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro início com esta versão, as teclas trocadas em cada conta entram nas da instalação: se as duas trocaram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora.
+
+- Mensagens editadas: Eventos de som ganha "Edição da sua mensagem salva" (ativado) e "Mensagem editada por outra pessoa" com o programa em primeiro e em segundo plano (desativados); Configurações > Geral > Notificações ganha "Ler edições com a janela ativa" e "Notificar edições em segundo plano" (desativados); e a janela de dados de cada conversa tem uma janela "Mensagens editadas" para escolher sons e avisos diferentes naquela conversa. A edição de outra pessoa só é anunciada enquanto o WhatsApp ainda aceita editar aquela mensagem, então edições repetidas na reconexão ficam em silêncio.
+
+- Os sons e as ligações configurados como "padrão do sistema" agora seguem o dispositivo de reprodução padrão do Windows: ao conectar um fone que o Windows torna o padrão, os sons do WinZapp e o áudio da ligação passam para ele, como os outros programas.
+
+- Enquanto você grava áudio (uma mensagem de voz ou o microfone com o áudio do computador), a sincronização periódica em segundo plano, a leitura do histórico e os downloads de mídia ficam em pausa, como já ficavam durante uma ligação, para que um computador ocupado não corte a gravação em pedaços.
+
+- Uma conversa apagada volta para a lista quando é usada de novo, por uma mensagem nova ou ao reabri-la em Nova conversa, mesmo que tenha sido apagada sob outra forma da pessoa, como o ID vinculado ou o número com ou sem o 9º dígito.
+
+- WPPConnect: uma mensagem citada por uma resposta não pula mais para o fim da conversa depois que o WinZapp reinicia; ela mantém o horário real.
+
+- WPPConnect, Nova conversa: um número brasileiro digitado com o 9º dígito que o WhatsApp não usa agora abre a conversa de verdade, e não uma segunda conversa vazia.
+
+- Neonize: enquanto o celular envia o histórico de mensagens, o WinZapp avisa e pede que você mantenha o WhatsApp aberto na tela do celular, avisa quando o celular para (com a porcentagem), quando volta a enviar e quando termina; enquanto ele está parado, o WinZapp pede o resto ao celular a cada 90 segundos.
+
+- Neonize: as conversas que o WhatsApp do iPhone deixa de fora do primeiro lote de histórico (ele agora envia só 400) agora também são pedidas e importadas.
+
+- Neonize: apagar uma lista também a tira de suas conversas, que não ficam mais apontando para uma lista que não existe.
+
+- Configurações do redutor de ruído: o campo do modelo agora tem uma letra de atalho Alt em todos os idiomas.
+
+- A gravação do microfone junto com o áudio do computador agora vai como mensagem de voz (Ctrl+Shift+H), e não como anexo de áudio; mantém o estéreo (AAC) quando os dois canais têm som, como as outras gravações em estéreo. Antes era enviada como arquivo de áudio comum no chat.
+
+- Neonize: as mensagens recebidas com o WinZapp aberto aparecem como entregues para quem as enviou, mesmo com a janela em fundo ou sem foco. Antes, o remetente via apenas "enviada" quando o WinZapp não estava em foco; e, com as confirmações de leitura desativadas, abrir a conversa não mudava nada. A presença online continua amarrada à janela.
+
+- Neonize: uma mensagem enviada por você podia voltar para "Enviada" depois que o WhatsApp já a tinha confirmado como entregue — na lista de mensagens e na linha de status. O aplicativo não sobrescreve mais uma confirmação real de entrega, leitura ou reprodução com o próprio ack de "enviada", e nenhum status de mensagem anda para trás depois de confirmado.
+
+- Com o NVDA em execução, a gravação do microfone e do áudio do computador não é mais interrompida com "problema com o dispositivo de áudio" quando o WinZapp trava por um ou dois segundos (computador lento ou ocupado): o áudio desse instante é pulado, a gravação continua e o resto permanece sincronizado. Antes, isso já valia sem o áudio do NVDA separado; agora cobre também os leitores do áudio do NVDA e dos outros sons do computador, gravados separadamente.
+
 - As mensagens de voz podem usar redução de ruído neural em segundo plano durante a gravação, em vez de esperar pelo envio. A janela de configurações do redutor de ruído, em Configurações > Áudio, permite escolher redução básica ou neural, processar durante a gravação ou ao enviar (padrão), e o que fazer se a redução neural falhar: enviar com redução básica ou deixar a mensagem pendente para uma nova tentativa manual. O processamento durante a gravação usa a CPU ou o CoreML; ao escolher CUDA, ele é desativado e o processamento ocorre ao enviar. Não há processamento CUDA durante a gravação. A via CoreML durante a gravação não foi validada em uso real.
 
 - O nome de um contato agora é único: quando alguém troca o nome do perfil, todas as mensagens dele, inclusive as antigas e as de grupos, passam a mostrar o nome novo em vez de alternar entre o antigo e o novo. Vale para Neonize e para WPPConnect.

@@ -58,8 +58,8 @@ def may_interrupt_now(main_window) -> bool:
     may_run = getattr(main_window, "wpp_update_may_run_now", None)
     if callable(may_run) and not may_run():
         return False
-    in_call = getattr(main_window, "_voice_call_in_progress", None)
-    if callable(in_call) and in_call():
+    paused = getattr(main_window, "_background_work_paused", None)
+    if callable(paused) and paused():
         return False
     # Ringing: the popup may have been dismissed while the call still rings
     # in the call bar, so the calls themselves are asked, not only the dialogs.

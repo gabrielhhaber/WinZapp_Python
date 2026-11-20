@@ -11,6 +11,7 @@ import threading
 import time
 import wx
 from main_window.typing_feedback import stop_typing_for_capture
+from ui.conversation_panel.call_capabilities import refresh_call_controls
 from main_window.call_desktop_audio import call_desktop_share_settings, stop_call_desktop_audio
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
@@ -22,6 +23,7 @@ from core.api_client import (
     api_get,
     api_post,
 )
+from core.call_links import joined_call_id
 from core.call_matching import call_event_matches_active
 from core.call_tone_player import play_call_ended_sound, stop_call_tone, update_call_tone
 from core.call_participants import active_participants_available
@@ -137,23 +139,55 @@ class CallsMixin:
 
     # A voice call is the one thing in WinZapp that wants the network and the
     # CPU to itself, so the *recurring* background work stands down while one
-    # is up. Bounded on purpose, for the reason in _voice_call_in_progress().
+    # is up. Bounded on purpose, for the reason in _background_work_paused().
     _VOICE_CALL_PAUSE_MAX_SECONDS = 2 * 60 * 60
 
-    def _voice_call_in_progress(self) -> bool:
-        """Is a voice call up, for the purpose of standing background work down?
+    def _audio_capture_in_progress(self) -> bool:
+        """Voice message or mixed system-audio recording open? Unbounded check.
+
+        Recording is explicit state: ``_is_recording`` / ``_recording_starting`` /
+        ``_recording_system_audio`` on any conversation panel, cleared on every
+        stop/cancel/error exit. Checked across the same three panels the rest of
+        the window walks (live, archived, locked), plus the status panel's
+        voice post.
+        """
+        for attr in ("conversations_panel", "archived_conversations_panel",
+                     "locked_conversations_panel", "status_panel"):
+            panel = getattr(self, attr, None)
+            if panel is None:
+                continue
+            if (getattr(panel, "_is_recording", False)
+                    or getattr(panel, "_recording_starting", False)
+                    or getattr(panel, "_recording_system_audio", False)):
+                return True
+        return False
+
+    def _background_work_paused(self) -> bool:
+        """Is a voice call or an audio capture up, for the purpose of standing
+        background work down?
+
+        Recording wants the machine to itself for the same reason a call does:
+        a full chat-sync pass landing mid-take starves the audio thread and the
+        take loses seconds of voice (log 2026-11-17 15:40: mic 163 late packets /
+        1.6 s lost, 3 discontinuities — the sync ran straight through the
+        recording). Standing every recurring background pass down while a take
+        is open costs a few minutes of delay to work that is already incremental.
 
         Bounded deliberately. ``_active_voice_call`` is cleared by a terminal
         ``callstate`` event or by hanging up inside WinZapp; a call torn down on
         the phone in a way that produces neither would otherwise pause the
         periodic poll and the history backfill for the rest of the session —
         and a paused sync is invisible, the user simply stops receiving
-        messages. The clock starts the first time this is asked rather than
-        where the call is registered, because that flag is assigned from four
-        separate places and one of them forgetting to stamp it is exactly the
-        silent failure this bound exists to prevent.
+        messages. A panel that forgets to clear its recording flag fails the
+        same way, which is why the same clock bounds both. The clock starts the
+        first time this is asked rather than where the call is registered,
+        because that flag is assigned from four separate places and one of them
+        forgetting to stamp it is exactly the silent failure this bound exists
+        to prevent.
         """
-        if not getattr(self, "_active_voice_call", None):
+        capturing = bool(getattr(self, "_active_voice_call", None)) \
+            or self._audio_capture_in_progress()
+        if not capturing:
             self._voice_call_pause_since = 0.0
             return False
         since = getattr(self, "_voice_call_pause_since", 0.0) or 0.0
@@ -464,6 +498,11 @@ class CallsMixin:
         self._call_ring_audio_session = None
         logging.info("[call_audio] streams started session=%s", session_name)
         self._call_audio_session = audio
+        # A device on "system default" follows Windows' default during the
+        # call (main_window/default_audio_devices.py); idempotent on a switch.
+        follow = getattr(self, "_start_call_default_device_follow", None)
+        if callable(follow):
+            follow()
         if keep_active_call:
             wx.CallAfter(self._sync_voice_call_bar)
             return True
@@ -515,6 +554,9 @@ class CallsMixin:
         if not keep_call:
             retire_media_epoch(self, (getattr(self, '_active_voice_call', None) or {}).get('media_epoch'))
             stop_call_tone(self)
+            unfollow = getattr(self, "_stop_call_default_device_follow", None)
+            if callable(unfollow):
+                unfollow()
         stop_call_desktop_audio(self)
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -559,15 +601,21 @@ class CallsMixin:
         if hasattr(self, "voice_call_window"):
             wx.CallAfter(self._sync_voice_call_bar)
 
-    def _restart_active_voice_call_audio(self):
-        """Apply changed call devices without ending the WhatsApp call."""
+    def _restart_active_voice_call_audio(self, *, refresh_device_list: bool = False):
+        """Apply changed call devices without ending the WhatsApp call.
+
+        ``refresh_device_list`` makes PortAudio enumerate again between the
+        close and the reopen, for a change of Windows' default device
+        (main_window/default_audio_devices.py). Returns whether a switch was
+        started.
+        """
         active = getattr(self, "_active_voice_call", None)
         if (
             not active
             or getattr(self, "_call_audio_session", None) is None
             or getattr(self, "_call_audio_restart_pending", False)
         ):
-            return
+            return False
         self._call_audio_restart_pending = True
 
         def _worker():
@@ -583,6 +631,11 @@ class CallsMixin:
                     # session shares the same sources again (UI thread).
                     share = call_desktop_share_settings(self)
                     self._stop_voice_call_audio(keep_call=True)
+                    if refresh_device_list:
+                        # Only now: the refresh closes every PortAudio stream.
+                        from core.call_audio import sd as portaudio
+                        from core.default_audio_endpoints import refresh_portaudio_devices
+                        refresh_portaudio_devices(portaudio)
                     last_error = None
                     for attempt in range(3):
                         try:
@@ -625,6 +678,7 @@ class CallsMixin:
                     self._call_audio_restart_pending = False
 
         threading.Thread(target=_worker, daemon=True).start()
+        return True
 
     def _stop_active_voice_call_if_matches(self, identity: str, peer_jid: str):
         active = getattr(self, "_active_voice_call", None)
@@ -1475,8 +1529,11 @@ class CallsMixin:
         self._start_call(peer_jid, name, is_video=is_video, is_group=True)
 
     def _start_call(self, peer_jid: str, name: str, *, is_video: bool,
-                    is_group: bool, join_call_id: str = ""):
-        """Start or join a call and keep Python's audio attached to it."""
+                    is_group: bool, join_call_id: str = "", call_link: str = ""):
+        """Start or join a call and keep Python's audio attached to it.
+
+        ``call_link``: join the call of a WhatsApp call link instead
+        (main_window/call_links.py); such a call has no chat."""
         peer_jid = self._normalize_jid(str(peer_jid or ""))
         # The self-chat belongs on this list with the other unreachable kinds.
         # Hiding the call buttons for it (#268) covers the mouse and the Tab
@@ -1496,6 +1553,9 @@ class CallsMixin:
             unreachable = unreachable or peer_jid.endswith("@g.us")
         if join_call_id and not is_group:
             unreachable = True
+        if call_link:
+            # the link is the call's only address (core/call_links.py)
+            unreachable = not is_group
         if unreachable:
             self.output(self.i18n.t("voice_call_individual_only"), interrupt=True)
             return
@@ -1504,6 +1564,11 @@ class CallsMixin:
             or bool(getattr(self, "_active_incoming_calls", {}))
         ):
             self.output(self.i18n.t("voice_call_already_active"), interrupt=True)
+            return
+        if call_link and not self._call_links_supported():
+            t = self.i18n.t
+            self.output(t("group_call_join_failed").format(
+                error=t("call_log_action_unavailable")), interrupt=True)
             return
         if engine_refuses_call(self._uses_neonize(), getattr(self, "_neonize_calls", False),
                                placing=True, is_video=is_video, is_group=is_group,
@@ -1517,7 +1582,8 @@ class CallsMixin:
             self.output(t("voice_call_start_failed").format(
                 error=t("call_log_action_unavailable")), interrupt=True)
             return
-        identity = join_call_id or f"outgoing:{peer_jid}"
+        joining = bool(join_call_id or call_link)
+        identity = join_call_id or f"outgoing:{call_link or peer_jid}"
         details = {
             "call_id": identity,
             "peer_jid": peer_jid,
@@ -1528,12 +1594,14 @@ class CallsMixin:
                 if peer_jid.endswith("@g.us")
                 else self._preview_sender_from_jid(peer_jid) or peer_jid
             ),
-            "outgoing": not bool(join_call_id),
+            "outgoing": not joining,
             "is_video": is_video,
-            "phase": "" if join_call_id else "CALLING",
+            "phase": "" if joining else "CALLING",
+            "call_link": call_link,
         }
         self.output(
-            (self.i18n.t("group_call_joining") if join_call_id
+            (self.i18n.t("call_link_joining") if call_link
+             else self.i18n.t("group_call_joining") if join_call_id
              else self.i18n.t("voice_call_starting")).format(name=details["name"]),
             interrupt=True,
         )
@@ -1586,18 +1654,24 @@ class CallsMixin:
                     if not peer_jid.endswith("@g.us"):
                         call_payload = {"chatJid": peer_jid, "isVideo": is_video}
                     call_payload["callId"] = join_call_id
+                if call_link:
+                    endpoint, call_payload = "link/join", {"link": call_link}
                 response = self._raise_for_call_response(
                     self._post_call_control(
                         endpoint, call_payload,
                         timeout=75,
                     ),
-                    "join" if join_call_id else "offer",
+                    "join" if joining else "offer",
                 )
                 try:
                     body = response.json().get("response") or {}
                 except Exception:
                     body = {}
                 call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
+                if call_link:
+                    # without its id the record would keep "outgoing:<link>"
+                    # and the window and microphone stay up for good
+                    call_id = joined_call_id(body)
                 with self._call_action_lock:
                     # Everything this decision needs is re-read HERE, under the
                     # lock, never carried in from before the POST: a hang-up, a
@@ -1615,6 +1689,8 @@ class CallsMixin:
                     # cannot match a call nobody holds any more.
                     if offered and call_id:
                         call_record["call_id"] = call_id
+                    if offered and call_link:
+                        wx.CallAfter(self._on_call_link_joined, call_record, body)
                     if cancelled and (
                         # A newer attempt owns the page now; its call is not
                         # ours to hang up.
@@ -1648,7 +1724,7 @@ class CallsMixin:
                 logging.exception("[call] outgoing call failed")
                 wx.CallAfter(
                     self.output,
-                    (self.i18n.t("group_call_join_failed") if join_call_id
+                    (self.i18n.t("group_call_join_failed") if joining
                      else self.i18n.t("voice_call_start_failed")).format(
                         error=self._call_error_text(exc)
                     ),
@@ -1683,7 +1759,7 @@ class CallsMixin:
             # transmit.
             if offered and is_video:
                 try:
-                    if join_call_id:
+                    if joining:
                         # Joining someone else's video call must not put the
                         # user on camera unasked (as Answer without video):
                         # the probe only lets them turn the camera on.
@@ -1735,6 +1811,13 @@ class CallsMixin:
         follow = getattr(self, "_participants_dialog_follow_call", None)
         if follow is not None:
             follow()
+        # The open chat's call buttons and its "Return to call" follow the
+        # call; a one-to-one chat has nothing else that brings them back.
+        refresh_call_controls(self)
+        # a call-link call's waiting room and its button (call_links.py)
+        sync_link = getattr(self, "_sync_call_link_controls", None)
+        if sync_link is not None:
+            sync_link()
         window = getattr(self, "voice_call_window", None)
         if window is None:
             return

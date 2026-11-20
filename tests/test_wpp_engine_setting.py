@@ -55,6 +55,7 @@ class _Window:
         self.global_dir = str(global_dir)
 
     _apply_global_settings = MainWindow._apply_global_settings
+    _share_keyboard_shortcuts = MainWindow._share_keyboard_shortcuts
 
 
 class TestTheMigration:

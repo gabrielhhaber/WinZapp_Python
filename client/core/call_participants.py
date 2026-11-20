@@ -58,6 +58,20 @@ def connected_only(participants):
     return [p for p in participants or () if p.get("state", CONNECTED) == CONNECTED]
 
 
+def describe_rows(participants, left=()) -> str:
+    """What a participants answer held, for log.log, naming nobody: how many
+    people in each state, how many of them came by @lid and by number, and how
+    many rows this device added for people the server no longer lists. A
+    doubled row could not be explained from a user's logs (2026-11-14)."""
+    states, forms = {}, {"lid": 0, "pn": 0}
+    for person in participants or ():
+        state = person.get("state", CONNECTED)
+        states[state] = states.get(state, 0) + 1
+        forms["lid" if str(person.get("jid") or "").endswith("@lid") else "pn"] += 1
+    listed = " ".join(f"{state}={states[state]}" for state in STATES if state in states) or "none"
+    return f"{listed} by_lid={forms['lid']} by_number={forms['pn']} left_rows={len(left or ())}"
+
+
 def _shown_name(name, i18n):
     if not isinstance(name, str) or not name.strip() or _PERSON.fullmatch(name.strip()):
         return i18n.t("unknown_contact")

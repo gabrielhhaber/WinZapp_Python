@@ -117,6 +117,9 @@ class _MainWindow:
     def output(self, text, interrupt=False):
         self.spoken.append(text)
 
+    def play_edit_saved_sound(self, remote_jid):
+        pass
+
     def edit_message(self, remote_jid, message_id, new_text, mentioned_jids=None):
         self.edit_calls.append((message_id, new_text))
         self.mention_calls.append(mentioned_jids)

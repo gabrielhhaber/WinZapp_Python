@@ -126,6 +126,8 @@ def test_call_bar_state_sync_honors_preference_even_if_the_call_window_does_not_
     rig.presence("composing")
     old = w._typing_sound_cadence.timer
     w._active_voice_call = {"call_id": "synthetic"}
+    # The bar sync also refreshes the open chat's call buttons (a real panel).
+    w.conversations_panel._show_ongoing_group_call = lambda call: None
     CallsMixin._sync_voice_call_bar(w)
     assert old.stopped is silence
 

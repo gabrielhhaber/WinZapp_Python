@@ -1,0 +1,734 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Wed, 18 Nov 2026 09:14:28 -0300
+Subject: [PATCH] api/call-link-join: join a call link as WhatsApp Web does
+
+A WhatsApp Web capture of a call link (2026-11-18: create, query, join alone,
+a guest admitted from the waiting room) shows that the link_create,
+link_query and link_join stanzas meowcaller builds are the ones WhatsApp Web
+sends, and what the joined call needs besides:
+
+- the call entry is incoming (WhatsApp Web's call info says isCaller false),
+  with the camera off, like the ongoing-group join; it was outgoing, which
+  picks the other relay endpoint, with the camera on for a video link;
+- the join ACK carries voip_settings; requestCallNode consumes the ACK before
+  onCallAck, so the codec was never selected from it;
+- a <heartbeat call-id call-creator/> to <id>@call every 10 s for the whole
+  call (waiting-room heartbeat only while waiting); admission used to stop
+  the only heartbeat there was;
+- roster participants and waiting-room users keep push_name and the guest
+  flag: a guest has no user_pn, and its name is all a client can show.
+
+Source of truth: datasheets/voip-call-link-join.md (capture SHA-256
+a243f198af1b7729e0cb656238f2317cdb6c13892d6273d8ce02ed2e12280b07)
+
+Validated: signaling/call_link_test.go (heartbeat stanza, captured join ACK,
+guest waiting-room user), engine_call_link_test.go (one link_join then only
+heartbeats, entry incoming with camera off, roster names, heartbeat stops at
+the end, waiting-room heartbeat while waiting); go test ./... green. Not yet
+validated on a live call.
+---
+ CHANGELOG.md                      |  18 ++++
+ datasheets/voip-call-link-join.md |  90 +++++++++++++++++
+ engine.go                         |  11 ++-
+ engine_call_link.go               |  63 ++++++++++++
+ engine_call_link_test.go          | 154 ++++++++++++++++++++++++++++++
+ engine_group_api.go               |  23 +++--
+ engine_group_control.go           |   3 +-
+ group_control_types.go            |  13 ++-
+ livecall.go                       |  11 ++-
+ signaling/call_link.go            |  23 ++++-
+ signaling/call_link_test.go       |  78 +++++++++++++++
+ signaling/group.go                |  15 ++-
+ 12 files changed, 475 insertions(+), 27 deletions(-)
+ create mode 100644 datasheets/voip-call-link-join.md
+ create mode 100644 engine_call_link.go
+ create mode 100644 engine_call_link_test.go
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f331abb..6fb061d 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,24 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ## [Unreleased]
+ 
++### api/call-link-join — `implemented`
++
++- Joining a call link builds the call entry as WhatsApp Web holds it after the
++  join (capture of 2026-11-18, `datasheets/voip-call-link-join.md`): direction
++  incoming (`isCaller` false), camera off, the codec from the join ACK's
++  `voip_settings` (which `requestCallNode` takes before `onCallAck`). It used
++  to be outgoing, with the camera on for a video link, and stayed on MLow.
++- A call-link call sends `<heartbeat call-id call-creator/>` to `<id>@call`
++  every 10 s for its whole life, as WhatsApp Web does, admitted or alone; the
++  upstream `type=waiting_room` heartbeat stays while it waits. Admission no
++  longer stops it; the end of the call does.
++- A roster participant and a waiting-room user carry `push_name` and whether
++  they are a guest (`account_kind=guest`): a guest has no phone number, so
++  the name is all a client can show.
++- Joining a link whose call is already held here is refused.
++- KAT-verified on the captured stanzas (`signaling/call_link_test.go`,
++  `engine_call_link_test.go`); not yet validated on a live call.
++
+ ### engine/group-call-invite — `implemented`
+ 
+ - Adding or ringing someone in a call the server already holds as a group
+diff --git a/datasheets/voip-call-link-join.md b/datasheets/voip-call-link-join.md
+new file mode 100644
+index 0000000..84ead43
+--- /dev/null
++++ b/datasheets/voip-call-link-join.md
+@@ -0,0 +1,90 @@
++# Datasheet: `api/call-link-join`
++
++Creating a call link, previewing it and joining its call the way WhatsApp
++Web does, and what the call then needs that a group call reached by an offer
++does not: the 10-second `<heartbeat>` and the codec of the join ACK.
++
++**Validation vectors:** focused Go KATs in `signaling/call_link_test.go`
++(the heartbeat stanza, field for field against the capture; the captured join
++ACK, roster and waiting room together) and `engine_call_link_test.go` (the
++join sequence: one `link_join`, no `<accept>`, call entry incoming with the
++camera off, codec from the ACK's `voip_settings`, heartbeat until the call
++ends).
++
++**Reference pinned at:** UNMAPPED — upstream whatsmeow's `call_link.go`
++covers the create/query/join stanzas but not what follows the join. The
++ground truth is a WhatsApp Web capture (2026-11-18, WinZapp's WPPConnect
++engine, stanza recorder on `WAWebDeprecatedSendIqWorkerCompatible`'s
++`deprecatedSendStanzaAndReturnAck`, `WAComms.sendSmaxStanza` and
++`WAWebHandleVoipCall.handleCall`; tags and attributes only, every JID, call
++id and token replaced by a stable alias), capture SHA-256
++`a243f198af1b7729e0cb656238f2317cdb6c13892d6273d8ce02ed2e12280b07`.
++
++## Reference source (verbatim — authoritative)
++
++The account created a voice link, joined it alone, and admitted a guest who
++opened the link in a browser:
++
++```text
++out <call id to="call"><link_create media="audio"/></call>
++ack <ack from="call" class="call" type="link_create" id><link_create media="audio" token="t1"/></ack>
++out <call to="call" id><link_query token="t1" media="audio"/></call>
++ack <ack from="call" class="call" type="link_query" id>
++      <link_query link_creator="j2@lid" link_creator_pn="j3@s.whatsapp.net" media="audio" token="t1">
++        <guest is_guest_eligible="1"/><waiting_room is_admin="1" enabled="0"/>
++      </link_query></ack>
++out <call to="call" id><link_join token="t1" media="audio">
++      <audio enc="opus" rate="16000"/><net medium="2"/><capability ver="1">7 bytes</capability>
++    </link_join></call>
++ack <ack from="call" class="call" type="link_join" id>
++      <group_info call-creator="j2:27@lid" call-id="c4" transaction-id="2" media="audio" connected-limit="32" link-token="t1">
++        <user jid="j2@lid" state="connected" type="admin" user_pn="j3@s.whatsapp.net">
++          <device jid="j2:27@lid" platform="web"><capability ver="1">7 bytes</capability></device></user>
++      </group_info>
++      <waiting_room is_admin="1" link-token="t1" media="audio" call-id="c4" call-creator="j2:27@lid" enabled="0"/>
++      <guest is_guest_eligible="1"/><uploadfieldstat/><voip_settings uncompressed="1">13637 bytes</voip_settings>
++    </ack>
++in  <call from="c4@call" id t><group_update call-creator="j2:27@lid" call-id="c4"><group_info …same roster, device pid="0"…/></group_update></call>
++out <call to="c4@call" id><heartbeat call-id="c4" call-creator="j2:27@lid"/></call>     (every 10 s, the whole call)
++ack <ack from="c4@call" class="call" type="heartbeat" id/>
++in  <call from="c4@call" id t><waiting_room_update call-id="c4" call-creator="j2:27@lid">
++      <waiting_room filter="guests_only" is_admin="1" link-token="t1" media="audio" call-id="c4" call-creator="j2:27@lid" enabled="1" transaction-id="1">
++        <user account_kind="guest" push_name="…" jid="j9@lid" state="waiting_room_joined"/>
++      </waiting_room></waiting_room_update></call>
++out <call to="c4@call" id><waiting_room_admit call-id="c4" call-creator="j2:27@lid"><user jid="j9@lid"/></waiting_room_admit></call>
++ack <ack from="c4@call" class="call" type="waiting_room_admit" id><waiting_room_admit call-id="c4" call-creator="j2:27@lid"/></ack>
++in  <group_update …><group_info … transaction-id="18" link-token="t1" rekey="1">
++      <user j2 connected admin><device j2:27 pid="0"/></user>
++      <user account_kind="guest" push_name="…" jid="j9@lid" state="connected"><device jid="j9@lid" platform="web" pid="1"/></user>
++    </group_info><rte/><relay self_pid="0" …>tokens, auth tokens, key, te2 endpoints, hbh_key</relay><voip_settings/></group_update>
++out <call to="c4@call"><mute_v2 call-id call-creator mute-state="0"/></call>
++out <call to="j9@lid"><transport call-id call-creator transport-message-type="4"><net medium="2" protocol="0"/></transport></call>
++out <call to="j9@lid"><enc_rekey call-id call-creator transaction-id="18"><encopt keygen="2"/><enc v="2" type="pkmsg" count="0"/><device-identity/></enc_rekey></call>
++out <call to="c4@call"><relaylatency …/></call> and <transport transport-message-type="3"><net medium="2"/></transport>
++in  the guest's transport, relaylatency and mute_v2
++```
++
++Call info after the join: `isCaller` false, `isGroupCall` true,
++`callState` CONNECTED_LONELY until someone else connects.
++
++## Go target
++
++```go
++func BuildCallLinkHeartbeat(callID string, callCreator types.JID, requestID string) (waBinary.Node, error)
++func (e *engine) startCallLinkHeartbeat(callID string)
++```
++
++## Implementation notes
++
++- The `link_join` stanza is the one meowcaller already builds: no
++  `<encopt>`, and no `<accept>` follows it.
++- The first account to join a link is the call's creator (`call-creator` is
++  its own device). The server asks it for the group key with `rekey="1"` once
++  someone else connects; the existing fan-out answers that.
++- The call entry is built like the ongoing-group join: direction incoming
++  (`isCaller` false), camera off; the codec comes from the join ACK's
++  `voip_settings`, which `requestCallNode` takes before `onCallAck` sees it.
++- The heartbeat goes to `<call-id>@call` as a JID, every 10 s, admitted or
++  not; while still in the waiting room the upstream `type="waiting_room"`
++  heartbeat is sent instead. It stops when the call ends, not on admission.
++- A guest has no `user_pn` and a device JID without a device number.
+diff --git a/engine.go b/engine.go
+index d569823..68da225 100644
+--- a/engine.go
++++ b/engine.go
+@@ -71,8 +71,11 @@ type engineCall struct {
+ 	started           bool
+ 	cancel            context.CancelFunc // tears down this call's media goroutine
+ 	waitingRoomCancel context.CancelFunc
+-	inviteSelfDevice  groupCallDevice
+-	invitePeerDevice  groupCallDevice
++	// linkHeartbeatCancel stops the 10 s <heartbeat> a call-link call sends
++	// for its whole life (engine_call_link.go); admission does not stop it.
++	linkHeartbeatCancel context.CancelFunc
++	inviteSelfDevice    groupCallDevice
++	invitePeerDevice    groupCallDevice
+ 	// invitePeerDevices: what each of the peer's devices announced, by device
+ 	// number (engine_invite_device.go).
+ 	invitePeerDevices map[uint16]groupCallDevice
+@@ -1338,6 +1341,10 @@ func (e *engine) finishCall(callID, reason string) {
+ 		m.cancel = nil
+ 		waitingRoomCancel = m.waitingRoomCancel
+ 		m.waitingRoomCancel = nil
++		if m.linkHeartbeatCancel != nil {
++			m.linkHeartbeatCancel()
++			m.linkHeartbeatCancel = nil
++		}
+ 		clear(m.groupRawEpoch)
+ 		m.groupRawEpoch = nil
+ 		receivers = m.groupReceivers
+diff --git a/engine_call_link.go b/engine_call_link.go
+new file mode 100644
+index 0000000..28a68e4
+--- /dev/null
++++ b/engine_call_link.go
+@@ -0,0 +1,63 @@
++package meowcaller
++
++import (
++	"context"
++	"time"
++
++	"github.com/purpshell/meowcaller/signaling"
++)
++
++var callLinkHeartbeatInterval = 10 * time.Second
++
++func (e *engine) startCallLinkHeartbeat(callID string) {
++	// Source of truth: datasheets/voip-call-link-join.md (heartbeat every 10 s, the whole call)
++	e.mu.Lock()
++	m := e.calls[callID]
++	if m == nil || m.call == nil || m.linkHeartbeatCancel != nil {
++		e.mu.Unlock()
++		return
++	}
++	ctx, cancel := context.WithCancel(context.Background())
++	m.linkHeartbeatCancel = cancel
++	e.mu.Unlock()
++	go func() {
++		ticker := time.NewTicker(callLinkHeartbeatInterval)
++		defer ticker.Stop()
++		for {
++			select {
++			case <-ctx.Done():
++				return
++			case <-ticker.C:
++				e.sendCallLinkHeartbeat(ctx, callID)
++			}
++		}
++	}()
++}
++
++func (e *engine) sendCallLinkHeartbeat(ctx context.Context, callID string) {
++	// Source of truth: datasheets/voip-call-link-join.md (heartbeat every 10 s, the whole call)
++	e.mu.Lock()
++	m := e.calls[callID]
++	if m == nil || m.call == nil {
++		e.mu.Unlock()
++		return
++	}
++	creator, call := m.creator, m.call
++	e.mu.Unlock()
++	if call.State() == CallPhaseEnded {
++		return
++	}
++	requestID := e.nextCallNodeID()
++	var node = signaling.BuildWaitingRoomHeartbeat(callID, creator, requestID)
++	if call.State() != CallPhaseWaitingRoom {
++		built, err := signaling.BuildCallLinkHeartbeat(callID, creator, requestID)
++		if err != nil {
++			e.c.log.Debug().Err(err).Str("call_id", callID).Msg("call-link heartbeat skipped")
++			return
++		}
++		node = built
++	}
++	if err := e.transmitCallNode(ctx, node); err != nil && ctx.Err() == nil {
++		e.c.log.Debug().Err(err).Str("call_id", callID).Msg("call-link heartbeat failed")
++	}
++}
+diff --git a/engine_call_link_test.go b/engine_call_link_test.go
+new file mode 100644
+index 0000000..792ac74
+--- /dev/null
++++ b/engine_call_link_test.go
+@@ -0,0 +1,154 @@
++package meowcaller
++
++import (
++	"context"
++	"sync"
++	"testing"
++	"time"
++
++	"github.com/rs/zerolog"
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++)
++
++func linkJoinAck(waiting bool) *waBinary.Node {
++	creator := creatorJID()
++	room := waBinary.Node{Tag: "waiting_room", Attrs: waBinary.Attrs{
++		"is_admin": "1", "link-token": "TOKEN", "media": "audio", "call-id": "LCID",
++		"call-creator": creator, "enabled": "0",
++	}}
++	if waiting {
++		room.Attrs["enabled"] = "1"
++		room.Attrs["is_admin"] = "0"
++		return &waBinary.Node{Tag: "ack", Attrs: waBinary.Attrs{"class": "call", "type": "link_join"},
++			Content: []waBinary.Node{room}}
++	}
++	guest := types.NewJID("300003", types.HiddenUserServer)
++	return &waBinary.Node{Tag: "ack", Attrs: waBinary.Attrs{"class": "call", "type": "link_join"}, Content: []waBinary.Node{
++		{Tag: "group_info", Attrs: waBinary.Attrs{
++			"call-creator": creator, "call-id": "LCID", "transaction-id": "2", "media": "audio",
++			"connected-limit": "32", "link-token": "TOKEN",
++		}, Content: []waBinary.Node{
++			{Tag: "user", Attrs: waBinary.Attrs{"jid": creator.ToNonAD(), "state": "connected", "type": "admin"},
++				Content: []waBinary.Node{{Tag: "device", Attrs: waBinary.Attrs{"jid": creator, "platform": "web"}}}},
++			{Tag: "user", Attrs: waBinary.Attrs{"jid": guest, "state": "connected", "account_kind": "guest", "push_name": "Guest"},
++				Content: []waBinary.Node{{Tag: "device", Attrs: waBinary.Attrs{"jid": guest, "platform": "web"}}}},
++		}},
++		room,
++	}}
++}
++
++type linkTestSent struct {
++	mu    sync.Mutex
++	nodes []waBinary.Node
++}
++
++func (s *linkTestSent) add(node waBinary.Node) {
++	s.mu.Lock()
++	s.nodes = append(s.nodes, node)
++	s.mu.Unlock()
++}
++
++func (s *linkTestSent) tags() []string {
++	s.mu.Lock()
++	defer s.mu.Unlock()
++	var tags []string
++	for _, node := range s.nodes {
++		if kids := node.GetChildren(); len(kids) > 0 {
++			tags = append(tags, kids[0].Tag+":"+kids[0].AttrGetter().OptionalString("type"))
++		}
++	}
++	return tags
++}
++
++func linkTestEngine(ack *waBinary.Node) (*engine, *linkTestSent) {
++	c := &Client{log: zerolog.Nop()}
++	c.eng = newEngine(c)
++	sent := &linkTestSent{}
++	c.eng.requestCallNode = func(_ context.Context, node waBinary.Node, _ string) (*waBinary.Node, error) {
++		sent.add(node)
++		return ack, nil
++	}
++	c.eng.sendCallNode = func(_ context.Context, node waBinary.Node) error {
++		sent.add(node)
++		return nil
++	}
++	return c.eng, sent
++}
++
++func TestJoiningACallLinkSendsOneJoinAndNoAccept(t *testing.T) {
++	// datasheets/voip-call-link-join.md: link_join, then nothing but heartbeats.
++	previous := callLinkHeartbeatInterval
++	callLinkHeartbeatInterval = 20 * time.Millisecond
++	defer func() { callLinkHeartbeatInterval = previous }()
++	eng, sent := linkTestEngine(linkJoinAck(false))
++	call, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{Video: true})
++	if err != nil || call == nil {
++		t.Fatalf("join: %v", err)
++	}
++	m := eng.lookup("LCID")
++	if m == nil || !m.group || m.direction != CallDirectionIncoming || m.localVideo || m.remoteVideo {
++		t.Fatalf("call entry %+v", m)
++	}
++	if m.groupUpdate == nil || len(m.groupUpdate.Participants) != 2 ||
++		m.groupUpdate.Participants[1].PushName != "Guest" || !m.groupUpdate.Participants[1].Guest {
++		t.Fatalf("roster %+v", m.groupUpdate)
++	}
++	state, ok := call.GroupState()
++	if !ok || len(state.Participants) != 2 || state.Participants[1].PushName != "Guest" {
++		t.Fatalf("public roster %+v", state)
++	}
++	tags := waitForTags(t, sent, 2)
++	if tags[0] != "link_join:" {
++		t.Fatalf("sent %v", tags)
++	}
++	for _, tag := range tags[1:] {
++		if tag != "heartbeat:" {
++			t.Fatalf("after the join only heartbeats go out: %v", tags)
++		}
++	}
++	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{}); err == nil {
++		t.Fatal("a call already held is not joined again")
++	}
++	eng.finishCall("LCID", "test")
++	// a heartbeat already on its way when the call ended may still land
++	time.Sleep(callLinkHeartbeatInterval)
++	count := len(sent.tags())
++	time.Sleep(4 * callLinkHeartbeatInterval)
++	if len(sent.tags()) != count {
++		t.Fatal("the heartbeat stops when the call ends")
++	}
++}
++
++// waitForTags waits (up to a generous deadline, so a loaded machine does not
++// fail the test) until at least n stanzas went out, and returns their tags.
++func waitForTags(t *testing.T, sent *linkTestSent, n int) []string {
++	t.Helper()
++	deadline := time.Now().Add(5 * time.Second)
++	for {
++		tags := sent.tags()
++		if len(tags) >= n {
++			return tags
++		}
++		if time.Now().After(deadline) {
++			t.Fatalf("only %v went out", tags)
++		}
++		time.Sleep(5 * time.Millisecond)
++	}
++}
++
++func TestAJoinThatWaitsSendsTheWaitingRoomHeartbeat(t *testing.T) {
++	previous := callLinkHeartbeatInterval
++	callLinkHeartbeatInterval = 20 * time.Millisecond
++	defer func() { callLinkHeartbeatInterval = previous }()
++	eng, sent := linkTestEngine(linkJoinAck(true))
++	call, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{})
++	if err != nil || call == nil || call.State() != CallPhaseWaitingRoom {
++		t.Fatalf("join: %v %v", err, call)
++	}
++	tags := waitForTags(t, sent, 2)
++	if tags[1] != "heartbeat:waiting_room" {
++		t.Fatalf("sent %v", tags)
++	}
++	eng.finishCall("LCID", "test")
++}
+diff --git a/engine_group_api.go b/engine_group_api.go
+index 1fed32a..cfb6e78 100644
+--- a/engine_group_api.go
++++ b/engine_group_api.go
+@@ -399,6 +399,9 @@ func (e *engine) joinPublicCallLink(
+ 	if joined.CallID == "" {
+ 		return nil, errors.New("meowcaller: call-link join returned no call ID")
+ 	}
++	if existing := e.lookup(joined.CallID); existing != nil && existing.call != nil {
++		return nil, errors.New("meowcaller: already in this call")
++	}
+ 	result := callLinkJoinResult{
+ 		Token: joined.Token, Media: callLinkMedia(joined.Media),
+ 		CallID: joined.CallID, CallCreator: joined.CallCreator,
+@@ -416,29 +419,33 @@ func (e *engine) joinPublicCallLink(
+ 	call := &Call{eng: e, id: result.CallID, peer: result.CallCreator, phase: phase}
+ 	call.setWaitingRoomState(waitingRoomStateFromJoin(&result))
+ 
++	// Source of truth: datasheets/voip-call-link-join.md (call entry: incoming, camera off, ACK codec, heartbeat)
++	self := e.ownLID()
+ 	e.mu.Lock()
+ 	m := e.entry(result.CallID)
+ 	m.call = call
+ 	m.group = true
+-	m.selfLID = e.c.wa.Store.GetLID().String()
++	m.selfLID = self.String()
+ 	m.peerLID = result.CallCreator.String()
+ 	m.creator = result.CallCreator
+ 	m.from = types.NewJID(result.CallID, "call")
+-	m.direction = CallDirectionOutgoing
+-	m.localVideo = opts.Video
+-	m.remoteVideo = opts.Video
+-	self := e.c.wa.Store.GetLID()
++	m.direction = CallDirectionIncoming
++	m.localVideo = false
++	m.remoteVideo = result.Media == callLinkMediaVideo
+ 	m.inviteSelfDevice = groupCallDevice{
+ 		JID: self, CapabilityVersion: 1,
+ 		Capability: append([]byte(nil), signaling.CapabilityOffer...),
+ 	}
++	e.applyVoipSettingsCodec(m, response, result.CallID)
++	video := m.remoteVideo
+ 	e.mu.Unlock()
++	e.c.log.Info().Str("call_id", result.CallID).Bool("video", video).
++		Bool("waiting_room", result.InWaitingRoom).Bool("has_roster", result.Group != nil).
++		Msg("joined a call link")
+ 	if result.Group != nil {
+ 		e.applyGroupUpdate(*result.Group)
+ 	}
+-	if result.InWaitingRoom {
+-		e.startWaitingRoomHeartbeat(result.CallID)
+-	}
++	e.startCallLinkHeartbeat(result.CallID)
+ 	return call, nil
+ }
+ 
+diff --git a/engine_group_control.go b/engine_group_control.go
+index 234c0a7..da75267 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -85,7 +85,8 @@ func (e *engine) applyWaitingRoomUpdate(room signaling.WaitingRoom) {
+ 		Users:         make([]WaitingRoomUser, len(room.Users)),
+ 	}
+ 	for i, user := range room.Users {
+-		state.Users[i] = WaitingRoomUser{JID: user.JID, PN: user.PN, State: user.State}
++		state.Users[i] = WaitingRoomUser{JID: user.JID, PN: user.PN, State: user.State,
++			PushName: user.PushName, Guest: user.Guest}
+ 	}
+ 	e.mu.Lock()
+ 	m := e.calls[room.CallID]
+diff --git a/group_control_types.go b/group_control_types.go
+index 5c41b61..92ea59b 100644
+--- a/group_control_types.go
++++ b/group_control_types.go
+@@ -24,11 +24,13 @@ type groupCallUpdate struct {
+ }
+ 
+ type groupCallParticipant struct {
+-	JID     types.JID
+-	PN      types.JID
+-	State   string
+-	Type    string
+-	Devices []groupCallDevice
++	JID      types.JID
++	PN       types.JID
++	State    string
++	Type     string
++	PushName string
++	Guest    bool
++	Devices  []groupCallDevice
+ }
+ 
+ type groupCallDevice struct {
+@@ -122,6 +124,7 @@ func groupCallUpdateFromSignaling(update signaling.GroupCallUpdate) groupCallUpd
+ 		out.Participants[i] = groupCallParticipant{
+ 			JID: participant.JID, PN: participant.PN,
+ 			State: participant.State, Type: participant.Type,
++			PushName: participant.PushName, Guest: participant.Guest,
+ 			Devices: make([]groupCallDevice, len(participant.Devices)),
+ 		}
+ 		for j, device := range participant.Devices {
+diff --git a/livecall.go b/livecall.go
+index 67c10dd..07bbcbe 100644
+--- a/livecall.go
++++ b/livecall.go
+@@ -61,6 +61,8 @@ type GroupCallParticipant struct {
+ 	JID        types.JID
+ 	PN         types.JID
+ 	State      string
++	PushName   string
++	Guest      bool
+ 	HandRaised bool
+ 	Devices    []GroupCallDevice
+ }
+@@ -96,9 +98,11 @@ type WaitingRoomState struct {
+ 
+ // WaitingRoomUser is one user in the authoritative pending roster.
+ type WaitingRoomUser struct {
+-	JID   types.JID
+-	PN    types.JID
+-	State string
++	JID      types.JID
++	PN       types.JID
++	State    string
++	PushName string
++	Guest    bool
+ }
+ 
+ // HandRaiseState is one participant's persistent raised/lowered state.
+@@ -220,6 +224,7 @@ func groupCallStateFromUpdate(update groupCallUpdate) GroupCallState {
+ 		}
+ 		state.Participants[participantIndex] = GroupCallParticipant{
+ 			JID: participant.JID, PN: participant.PN, State: participant.State,
++			PushName: participant.PushName, Guest: participant.Guest,
+ 			Devices: devices,
+ 		}
+ 	}
+diff --git a/signaling/call_link.go b/signaling/call_link.go
+index 7d5d5ad..8ed30cc 100644
+--- a/signaling/call_link.go
++++ b/signaling/call_link.go
+@@ -61,9 +61,11 @@ type WaitingRoom struct {
+ 
+ // WaitingRoomUser is one user in a waiting-room snapshot.
+ type WaitingRoomUser struct {
+-	JID   types.JID
+-	PN    types.JID
+-	State string
++	JID      types.JID
++	PN       types.JID
++	State    string
++	PushName string
++	Guest    bool
+ }
+ 
+ // BuildCallLinkCreate builds the service request that creates a call link.
+@@ -142,6 +144,18 @@ func BuildWaitingRoomToggle(callID string, creator types.JID, enabled bool, requ
+ 	return buildWaitingRoomRequest("waiting_room_toggle", callID, creator, requestID, waBinary.Attrs{"enabled": value}, nil)
+ }
+ 
++// BuildCallLinkHeartbeat keeps a joined call-link call alive.
++func BuildCallLinkHeartbeat(callID string, callCreator types.JID, requestID string) (waBinary.Node, error) {
++	// Source of truth: datasheets/voip-call-link-join.md (WhatsApp Web capture, heartbeat every 10 s)
++	if callID == "" || callCreator.IsEmpty() || requestID == "" {
++		return waBinary.Node{}, fmt.Errorf("signaling: build call-link heartbeat: incomplete identity")
++	}
++	return callWrap(types.NewJID(callID, "call"), &requestID, waBinary.Node{
++		Tag:   "heartbeat",
++		Attrs: waBinary.Attrs{"call-id": callID, "call-creator": callCreator},
++	}), nil
++}
++
+ // BuildWaitingRoomHeartbeat keeps a pending link join alive.
+ func BuildWaitingRoomHeartbeat(callID string, creator types.JID, requestID string) waBinary.Node {
+ 	// Source of truth: https://github.com/tulir/whatsmeow/blob/3775fbadf88fdf44ada62ae5c5db5d7cc6f26259/voip/call_link.go#L145-L155
+@@ -350,6 +364,9 @@ func parseWaitingRoomNode(node *waBinary.Node) (*WaitingRoom, error) {
+ 		if err = userAttrs.Error(); err != nil {
+ 			return nil, fmt.Errorf("signaling: parse waiting room user: %w", err)
+ 		}
++		// Source of truth: datasheets/voip-call-link-join.md (waiting_room_update user: account_kind, push_name)
++		user.PushName = userAttrs.OptionalString("push_name")
++		user.Guest = userAttrs.OptionalString("account_kind") == "guest"
+ 		room.Users = append(room.Users, user)
+ 	}
+ 	return room, nil
+diff --git a/signaling/call_link_test.go b/signaling/call_link_test.go
+index dacd5a1..eb988c7 100644
+--- a/signaling/call_link_test.go
++++ b/signaling/call_link_test.go
+@@ -118,3 +118,81 @@ func TestWaitingRoomUpdateAndAck(t *testing.T) {
+ 		t.Fatalf("ACK = %+v", ack)
+ 	}
+ }
++
++func TestCallLinkHeartbeatMatchesTheCapture(t *testing.T) {
++	// datasheets/voip-call-link-join.md: <call to="c4@call" id><heartbeat call-id call-creator/></call>
++	creator := types.JID{User: "100001", Server: types.HiddenUserServer, Device: 27}
++	node, err := BuildCallLinkHeartbeat("CID", creator, "REQ")
++	if err != nil {
++		t.Fatalf("BuildCallLinkHeartbeat: %v", err)
++	}
++	if to, _ := node.Attrs["to"].(types.JID); to != types.NewJID("CID", "call") || node.Attrs["id"] != "REQ" {
++		t.Fatalf("envelope = %+v", node.Attrs)
++	}
++	action := contentNodes(t, node)[0]
++	if action.Tag != "heartbeat" || len(action.Attrs) != 2 || action.Attrs["call-id"] != "CID" ||
++		action.Attrs["call-creator"] != creator || action.Content != nil {
++		t.Fatalf("action = %+v", action)
++	}
++	if _, err := BuildCallLinkHeartbeat("CID", types.EmptyJID, "REQ"); err == nil {
++		t.Fatal("a heartbeat without the call's creator is refused")
++	}
++}
++
++func TestTheCapturedLinkJoinAckIsAdmittedWithItsRoster(t *testing.T) {
++	// The link_join ACK of the capture: the roster, a waiting room that is off,
++	// and the guest, uploadfieldstat and voip_settings children.
++	creator := types.JID{User: "100001", Server: types.HiddenUserServer, Device: 27}
++	user := types.NewJID("100001", types.HiddenUserServer)
++	ack := waBinary.Node{
++		Tag: "ack", Attrs: waBinary.Attrs{"from": types.NewJID("", "call"), "class": "call", "type": "link_join", "id": "REQ"},
++		Content: []waBinary.Node{
++			{Tag: "group_info", Attrs: waBinary.Attrs{
++				"call-creator": creator, "call-id": "CID", "transaction-id": "2", "media": "audio",
++				"connected-limit": "32", "link-token": "TOKEN",
++			}, Content: []waBinary.Node{{Tag: "user", Attrs: waBinary.Attrs{
++				"jid": user, "state": "connected", "type": "admin",
++				"user_pn": types.NewJID("5500000000000", types.DefaultUserServer),
++			}, Content: []waBinary.Node{{Tag: "device", Attrs: waBinary.Attrs{"jid": creator, "platform": "web"},
++				Content: []waBinary.Node{{Tag: "capability", Attrs: waBinary.Attrs{"ver": "1"}, Content: []byte{1, 2, 3, 4, 5, 6, 7}}}}}}}},
++			{Tag: "waiting_room", Attrs: waBinary.Attrs{
++				"is_admin": "1", "link-token": "TOKEN", "media": "audio", "call-id": "CID",
++				"call-creator": creator, "enabled": "0",
++			}},
++			{Tag: "guest", Attrs: waBinary.Attrs{"is_guest_eligible": "1"}},
++			{Tag: "uploadfieldstat"},
++			{Tag: "voip_settings", Attrs: waBinary.Attrs{"uncompressed": "1"}, Content: []byte("{}")},
++		},
++	}
++	result, err := ParseCallLinkJoinAck(&ack)
++	if err != nil {
++		t.Fatalf("ParseCallLinkJoinAck: %v", err)
++	}
++	if result.InWaitingRoom || !result.IsAdmin || result.WaitingRoomEnabled || result.CallID != "CID" ||
++		result.CallCreator != creator || result.Group == nil || len(result.Group.Participants) != 1 {
++		t.Fatalf("result = %+v", result)
++	}
++}
++
++func TestAGuestInTheWaitingRoomHasNoPhoneNumber(t *testing.T) {
++	// A guest arrives as account_kind="guest" with a push name and no user_pn.
++	creator := types.JID{User: "100001", Server: types.HiddenUserServer, Device: 27}
++	guest := types.NewJID("300003", types.HiddenUserServer)
++	action := waBinary.Node{
++		Tag: "waiting_room_update", Attrs: waBinary.Attrs{"call-id": "CID", "call-creator": creator},
++		Content: []waBinary.Node{{Tag: "waiting_room", Attrs: waBinary.Attrs{
++			"filter": "guests_only", "is_admin": "1", "link-token": "TOKEN", "media": "audio",
++			"call-id": "CID", "call-creator": creator, "enabled": "1", "transaction-id": "1",
++		}, Content: []waBinary.Node{{Tag: "user", Attrs: waBinary.Attrs{
++			"account_kind": "guest", "push_name": "Guest", "jid": guest, "state": "waiting_room_joined",
++		}}}}},
++	}
++	room, err := ParseWaitingRoomUpdate(&action)
++	if err != nil {
++		t.Fatalf("ParseWaitingRoomUpdate: %v", err)
++	}
++	if len(room.Users) != 1 || room.Users[0].JID != guest || !room.Users[0].PN.IsEmpty() ||
++		room.Users[0].State != "waiting_room_joined" || room.Users[0].PushName != "Guest" || !room.Users[0].Guest {
++		t.Fatalf("room = %+v", room)
++	}
++}
+diff --git a/signaling/group.go b/signaling/group.go
+index 68ba12c..040d096 100644
+--- a/signaling/group.go
++++ b/signaling/group.go
+@@ -71,11 +71,13 @@ type GroupCallUpdate struct {
+ 
+ // GroupCallParticipant is one user in a group-call roster.
+ type GroupCallParticipant struct {
+-	JID     types.JID
+-	PN      types.JID
+-	State   string
+-	Type    string
+-	Devices []GroupCallDevice
++	JID      types.JID
++	PN       types.JID
++	State    string
++	Type     string
++	PushName string
++	Guest    bool
++	Devices  []GroupCallDevice
+ }
+ 
+ // GroupCallDevice is one participant device in a group-call roster.
+@@ -453,6 +455,9 @@ func parseGroupParticipant(node *waBinary.Node) (GroupCallParticipant, error) {
+ 	if err := attrs.Error(); err != nil {
+ 		return participant, fmt.Errorf("signaling: parse group participant: %w", err)
+ 	}
++	// Source of truth: datasheets/voip-call-link-join.md (a guest: account_kind="guest", push_name, no user_pn)
++	participant.PushName = attrs.OptionalString("push_name")
++	participant.Guest = attrs.OptionalString("account_kind") == "guest"
+ 	for _, child := range node.GetChildren() {
+ 		if child.Tag != "device" {
+ 			continue

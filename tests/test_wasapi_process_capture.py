@@ -186,6 +186,50 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(stream.read_packets(), [])
         stream.stop()
 
+    def test_continuous_drain_stall_never_kills_the_reader(self):
+        """Log evidence 2026-11-15: a scheduling stall stretched the running
+        drain past its 1 s wall budget (process_drain_timeout) and killed the
+        reader, ending the recording with an audio-device error. The
+        forgiving running path must overrun its iteration cap without
+        failing, keep the stream alive and keep streaming; the bounded
+        deadline itself stays for stop/reset."""
+        m = module()
+        stream = self.make_stream()
+        native = self.natives[0]
+        packets = [packet(100000 + i * 100000, frames=200) for i in range(300)]
+        for p in packets:
+            native.packets.put(p)
+        # A clock that jumps past any wall budget on every call: the bounded
+        # stop/reset drain must still refuse to complete (kept guard — the
+        # empty native never reaches read(), so no ownership violation),
+        # while the forgiving running drain ignores the clock entirely.
+        original_time = m.time
+
+        class StalledClock:
+            count = 0
+
+            @classmethod
+            def monotonic(cls):
+                cls.count += 1
+                return cls.count * 2.0  # every call jumps past any budget
+
+        m.time = StalledClock
+        try:
+            with self.assertRaisesRegex(RuntimeError, 'drain timeout'):
+                stream._drain(native)
+        finally:
+            m.time = original_time
+        stream.start()
+        deadline = time.monotonic() + 2
+        while (stream.diagnostic_snapshot()['packets'] < len(packets)
+               and time.monotonic() < deadline):
+            time.sleep(.001)
+        self.assertEqual(stream.read_packets(), packets)
+        self.assertIsNone(stream._failure)
+        self.assertTrue(stream._thread.is_alive())
+        self.assertGreaterEqual(stream.diagnostic_snapshot()['drain_overruns'], 1)
+        stream.stop()
+
     def test_start_failure_is_returned_synchronously_and_cleanup_is_owned(self):
         stream = self.make_stream()
         def fail():
@@ -198,19 +242,28 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(self.log[-1], 'close')
         self.assertFalse(stream.running)
 
-    def test_queue_is_bounded_and_failure_preserves_copied_prefix(self):
+    def test_queue_is_bounded_and_overflow_drops_newest_without_failing(self):
         stream = self.make_stream()
         native = self.natives[0]
-        native.packets.put(packet(frames=48000))
-        native.packets.put(packet(200000, frames=48000))
+        first = packet(frames=48000)
+        second = packet(200000, frames=48000)
+        native.packets.put(first)
+        native.packets.put(second)
         native.packets.put(packet(300000))
         stream.start()
-        stream._thread.join(1)
-        self.assertFalse(stream._thread.is_alive())
-        self.assertEqual(len(stream.read_packets()), 2)
-        with self.assertRaisesRegex(RuntimeError, 'overflow'):
-            stream.read_packets()
+        deadline = time.monotonic() + 1
+        while (stream.diagnostic_snapshot()['dropped_packets'] < 1
+               and time.monotonic() < deadline):
+            time.sleep(.001)
+        # The 2 s queue cap is the stall tolerance: overflowing it drops the
+        # newest packet instead of killing the reader, so a stalled consumer
+        # only loses that span instead of the whole recording.
+        self.assertEqual(stream.diagnostic_snapshot()['dropped_packets'], 1)
         self.assertEqual(stream.diagnostic_snapshot()['queue_peak_frames'], 96000)
+        self.assertEqual(stream.read_packets(), [first, second])
+        self.assertIsNone(stream._failure)
+        self.assertTrue(stream._thread.is_alive())
+        stream.stop()
 
     def test_target_exit_stops_reader_and_cannot_resume(self):
         stream = self.make_stream()

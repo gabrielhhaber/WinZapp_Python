@@ -109,3 +109,42 @@ def test_locked_chat_is_excluded_from_tray_total_and_name_list():
 
     assert total == 2
     assert names == ["visible"]
+
+
+def test_a_chat_rekeyed_while_the_tooltip_is_built_does_not_raise():
+    """Reported on a Neonize account downloading media: the chat list was
+    rewritten (a chat moved under another address) while the tray tooltip
+    walked it, and "dictionary keys changed during iteration" escaped from
+    _update_title. The walk now reads a snapshot, like the title's own count."""
+
+    class Rekeying(_MainWindowStub):
+        def _resolve_contact_name(self, chat):
+            # What a sync on another thread does between two steps of the
+            # walk: the chat already counted moves to its phone address.
+            if "old@lid" in self.chats:
+                self.chats["new@s.whatsapp.net"] = self.chats.pop("old@lid")
+            return "Ana"
+
+    mw = Rekeying(chats={"old@lid": _chat(2), "a@s.whatsapp.net": _chat(1)})
+    total, names = _TrayStub(mw)._get_unread_info()
+    assert total == 3 and names == ["Ana", "Ana"]
+
+
+def test_no_code_walks_the_live_chat_dictionary():
+    """The window's chats dict is rewritten by sync threads; every walk of it
+    goes over a snapshot (list(...)), or a re-keyed chat raises mid-walk."""
+    import re
+    from pathlib import Path
+
+    client = Path(__file__).resolve().parents[1] / "client"
+    pattern = re.compile(r"\b(?:self|mw|self\._mw|self\.main_window|main_window)\.chats\.items\(\)")
+    live = []
+    for path in client.rglob("*.py"):
+        if "api" in path.relative_to(client).parts[:1] or "venv" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in pattern.finditer(text):
+            if not text[:match.start()].endswith(("list(", "dict(", "tuple(")):
+                line = text.count("\n", 0, match.start()) + 1
+                live.append(f"{path.relative_to(client)}:{line}")
+    assert live == []

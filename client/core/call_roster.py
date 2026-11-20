@@ -11,24 +11,35 @@ def user_of(jid) -> str:
     return str(jid or "").partition("@")[0].split(":")[0]
 
 
-def roster_changes(previous, connected, mine=frozenset()):
+def person_key(jid, person=None) -> str:
+    """What two addresses of the same person share. *person* turns a jid into
+    the one form the app knows that person by (the number of an @lid it has a
+    mapping for: MainWindow._call_person); without it, or for an @lid nobody
+    mapped yet, the address's own user. The roster names a person by number
+    in one report and by @lid in another (seen in the offers of one call,
+    2026-11-14), and their digits have nothing in common."""
+    return user_of(person(jid) if person else jid)
+
+
+def roster_changes(previous, connected, mine=frozenset(), person=None):
     """(joined, left) jids between *previous* (None: the first report, which
     says nothing: the people already there did not just join) and
     *connected*. *mine* are this account's own users (number and LID
-    digits): the account itself never joins or leaves its own call here."""
+    digits): the account itself never joins or leaves its own call here.
+    Someone reported under their other address neither left nor joined."""
     now = [jid for jid in dict.fromkeys(connected or ()) if user_of(jid) not in mine]
     if previous is None:
         return [], []
-    before = set(previous)
-    current = set(now)
-    return ([jid for jid in now if jid not in before],
-            [jid for jid in previous if jid not in current])
+    before = {person_key(jid, person) for jid in previous}
+    current = {person_key(jid, person) for jid in now}
+    return ([jid for jid in now if person_key(jid, person) not in before],
+            [jid for jid in previous if person_key(jid, person) not in current])
 
 
-def remember(rosters, call_id, connected, mine=frozenset()):
+def remember(rosters, call_id, connected, mine=frozenset(), person=None):
     """Store *call_id*'s list (without the account) and keep only the last
     KEPT calls. Returns roster_changes() against what was stored."""
-    changes = roster_changes(rosters.get(call_id), connected, mine)
+    changes = roster_changes(rosters.get(call_id), connected, mine, person)
     rosters.pop(call_id, None)
     rosters[call_id] = [jid for jid in dict.fromkeys(connected or ()) if user_of(jid) not in mine]
     while len(rosters) > KEPT:
@@ -50,10 +61,16 @@ def note_seen(seen_by_call, call_id, people, mine=frozenset()):
         seen_by_call.pop(next(iter(seen_by_call)))
 
 
-def left_of(seen_by_call, call_id, connected):
-    """[(jid, name)] of who was seen in *call_id* and is no longer connected,
-    in the order they were first seen. Compared by user, so the same person
-    reported once by number and once by LID is not "gone"."""
-    now = {user_of(jid) for jid in connected or ()}
-    return [(jid, name) for jid, name in (seen_by_call.get(call_id) or {}).items()
-            if user_of(jid) not in now]
+def left_of(seen_by_call, call_id, listed, person=None):
+    """[(jid, name)] of who was seen in *call_id* and is no longer *listed*,
+    in the order they were first seen, each person once. Compared by
+    person_key(), so the same person reported once by number and once by LID
+    is not "gone" (it took *person* to be true: a LID's digits are not the
+    number's)."""
+    now = {person_key(jid, person) for jid in listed or ()}
+    gone = {}
+    for jid, name in (seen_by_call.get(call_id) or {}).items():
+        key = person_key(jid, person)
+        if key not in now and key not in gone:
+            gone[key] = (jid, name)
+    return list(gone.values())

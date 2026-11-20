@@ -141,6 +141,9 @@ export const SyncContactSchema = z
     pushname: z.string().nullable().optional(),
     shortName: z.string().nullable().optional(),
     isMyContact: z.boolean().optional(),
+    // On an @lid row: the person's number ('<digits>@c.us'), so the client
+    // learns that the two addresses are one person (getAllContacts).
+    phoneNumber: z.string().optional(),
   })
   .passthrough();
 

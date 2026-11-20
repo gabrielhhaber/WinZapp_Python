@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core import deleted_chats
 from core.jid_device import strip_device_suffix
 from core.pinned_chat_order import sync_pinned_order
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
@@ -549,6 +550,13 @@ class ChatActionsMixin:
 
     def is_chat_deleted(self, jid: str) -> bool:
         return jid in self._deleted_chats
+
+    def restore_deleted_chat(self, jid: str) -> bool:
+        """Lift the "deleted" mark of every form of *jid*'s person: a new
+        message, or the user opening the conversation again, brings it back
+        whichever form it was deleted under (core/deleted_chats.py). True when
+        a mark was lifted."""
+        return deleted_chats.restore(self, jid)
 
     def delete_chat_local(self, jid: str):
         self._forget_chat_lock(jid)

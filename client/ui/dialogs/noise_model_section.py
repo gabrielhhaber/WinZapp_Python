@@ -113,7 +113,7 @@ class NoiseModelSectionMixin:
         dialog = TranscriptionProgressDialog(
             self, i18n, self.main_window.speak_output, make_job,
             i18n.t("noise_model_progress"),
-            title=i18n.t("noise_model_label"),
+            title=i18n.t("noise_model_label").replace("&", ""),
         )
         self._noise_model_running = True
         try:

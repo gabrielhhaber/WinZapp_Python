@@ -1,4 +1,6 @@
-"""The starred messages window: every starred message of every chat (#708).
+"""The starred messages window: every starred message of every chat (#708),
+or only those of the open conversation (its "Starred messages in this chat"
+button, which passes the chat's JID).
 
 Alt+0, or the "Starred messages" row of the navigation list. The list is
 read from the local database (Database.get_starred_messages, off the main
@@ -13,6 +15,7 @@ import logging
 
 import wx
 
+from core.conversation_view import conversation_in_view
 from core.starred_list import StarredEntry, matching, row_text, without
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.labelled_control import add_labelled
@@ -21,8 +24,9 @@ from ui.dialogs.labelled_control import add_labelled
 LIMIT = 2000
 
 
-def entry_for(mw, jid, msg) -> StarredEntry:
-    """The row of one starred message, in the words the conversation uses."""
+def entry_for(mw, jid, msg, in_chat=False) -> StarredEntry:
+    """The row of one starred message, in the words the conversation uses;
+    without the chat's name in the window of that one chat (*in_chat*)."""
     panel = getattr(mw, "conversations_panel", None)
     key = msg.get("key") or {}
     sender = ""
@@ -37,25 +41,42 @@ def entry_for(mw, jid, msg) -> StarredEntry:
         logging.exception("[starred] message text")
         text = ""
     when = panel._format_date(msg.get("messageTimestamp")) if panel is not None else ""
-    return StarredEntry(jid, msg, row_text(mw.i18n, mw.chat_display_name(jid), sender, text, when))
+    chat = "" if in_chat else mw.chat_display_name(jid)
+    return StarredEntry(jid, msg, row_text(mw.i18n, chat, sender, text, when))
 
 
-def entries_for(mw, rows):
+def entries_for(mw, rows, in_chat=False):
     """The rows of (jid, message) the window lists: a chat the vault hides
     while it is closed is left out (its name and text, and that the vault
     exists, would be read with no PIN asked)."""
     hidden = getattr(mw, "is_chat_hidden_by_vault", lambda _jid: False)
-    return [entry_for(mw, jid, msg) for jid, msg in rows if not hidden(jid)]
+    return [entry_for(mw, jid, msg, in_chat) for jid, msg in rows if not hidden(jid)]
+
+
+def window_title(mw, jid) -> str:
+    """"Starred messages", or "Starred messages: <chat name>" for one chat."""
+    if not jid:
+        return mw.i18n.t("starred_title")
+    return mw.i18n.t("starred_chat_title").format(name=mw.chat_display_name(jid))
+
+
+def chat_forms(mw, jid):
+    """Every address of the chat whose starred messages are listed (phone and
+    @lid); None for every chat."""
+    if not jid:
+        return None
+    return list(getattr(mw, "_jid_address_forms", lambda value: (value,))(jid)) or [jid]
 
 
 class StarredMessagesDialog(BackgroundWork, wx.Dialog):
-    def __init__(self, parent, main_window):
+    def __init__(self, parent, main_window, jid=None):
         self._init_background(main_window)
         i18n = self._i18n
         self._entries, self._shown = [], []
         self._loaded = False
+        self._jid = jid or None
         self.result = None
-        super().__init__(parent, title=i18n.t("starred_title"), size=(640, 560),
+        super().__init__(parent, title=window_title(main_window, self._jid), size=(640, 560),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._search = add_labelled(self, sizer, i18n.t("starred_search"),
@@ -92,8 +113,12 @@ class StarredMessagesDialog(BackgroundWork, wx.Dialog):
         if not self._current():
             return
         self._status.SetLabel(self._i18n.t("loading"))
-        db = self._mw.db
-        self._run_async(lambda: db.get_starred_messages(LIMIT), self._finish_load)
+        db, forms = self._mw.db, chat_forms(self._mw, self._jid)
+        if forms is None:
+            self._run_async(lambda: db.get_starred_messages(LIMIT), self._finish_load)
+        else:
+            self._run_async(lambda: db.get_starred_messages(LIMIT, remote_jids=forms),
+                            self._finish_load)
 
     def _finish_load(self, rows):
         if not self._current():
@@ -104,7 +129,7 @@ class StarredMessagesDialog(BackgroundWork, wx.Dialog):
             self._list.Set([self._i18n.t("starred_unavailable")])
             self._announce(self._i18n.t("starred_unavailable"))
             return
-        self._entries = entries_for(self._mw, rows)
+        self._entries = entries_for(self._mw, rows, in_chat=self._jid is not None)
         self._loaded = True
         self._show()
         count = len(self._entries)
@@ -181,17 +206,28 @@ class StarredMessagesDialog(BackgroundWork, wx.Dialog):
         self._show(keep=shown[min(index, len(shown) - 1)] if shown else None)
 
 
-def show_starred_messages(mw, parent):
-    """Show the window; open the chosen message in its conversation."""
-    dialog = StarredMessagesDialog(parent, mw)
+def show_starred_messages(mw, parent, jid=None):
+    """Show the window (of every chat, or of the chat *jid* only); open the
+    chosen message in its conversation."""
+    dialog = StarredMessagesDialog(parent, mw, jid)
     try:
         if dialog.ShowModal() != wx.ID_OK or dialog.result is None:
             return False
         entry = dialog.result
     finally:
         dialog.Destroy()
+    if jid and jump_in_view(mw, entry):
+        return True
     open_starred_message(mw, entry)
     return True
+
+
+def jump_in_view(mw, entry):
+    """From the window of the conversation on screen: the message, with no
+    navigation (reopening the chat it is already reading would move the
+    focus away first). Not when the conversation was closed meanwhile."""
+    panel = getattr(mw, "conversations_panel", None)
+    return conversation_in_view(panel) and jump_when_open(mw, entry)
 
 
 def open_starred_message(mw, entry):

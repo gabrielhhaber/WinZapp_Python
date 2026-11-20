@@ -278,14 +278,32 @@ def test_address_book_records_give_an_lid_the_name_saved_under_its_number():
     assert by_id["5511999990000@s.whatsapp.net"]["name"] == "Paulo"
 
 
-def test_address_book_records_ask_the_number_only_for_an_unnamed_lid():
+def test_address_book_records_ask_the_number_only_of_an_lid():
     asked = []
     rows = [{"jid": "1@lid", "name": "Ana", "pushname": ""},
             {"jid": "5511@s.whatsapp.net", "name": "", "pushname": "x"}]
     contacts.address_book_records(rows, lambda j: {"_serialized": j}, set(),
                                   lambda lid: asked.append(lid) or "",
                                   lambda phone: asked.append(phone) or "")
-    assert asked == []
+    assert asked == ["1@lid"]
+
+
+def test_an_lid_row_carries_the_number_it_belongs_to():
+    """The client learns from it that the LID and the number are one person;
+    without it a contact saved under both showed twice (2026-11-17)."""
+    rows = [{"jid": "1@lid", "name": "Ana", "pushname": ""},
+            {"jid": "2@lid", "name": "Bia", "pushname": ""},
+            {"jid": "5511999990000@s.whatsapp.net", "name": "Caio", "pushname": ""}]
+    phones = {"1@lid": "5511888880000@s.whatsapp.net"}
+    lids = {"5511999990000@s.whatsapp.net": "3@lid"}
+    records = contacts.address_book_records(rows, lambda j: {"_serialized": j}, set(),
+                                            lambda lid: phones.get(lid, ""),
+                                            lambda phone: lids.get(phone, ""))
+    by_id = {r["id"]["_serialized"]: r for r in records}
+    assert by_id["1@lid"]["phoneNumber"] == "5511888880000@c.us"
+    assert "phoneNumber" not in by_id["2@lid"]
+    assert by_id["3@lid"]["phoneNumber"] == "5511999990000@c.us"
+    assert "phoneNumber" not in by_id["5511999990000@s.whatsapp.net"]
 
 
 def test_address_book_records_add_the_lid_of_a_saved_number_that_has_no_row():

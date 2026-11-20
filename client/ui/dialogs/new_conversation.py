@@ -156,7 +156,7 @@ class NewConversationDialog(wx.Dialog):
             )
 
         # ── Search existing chats ─────────────────────────────────────────────
-        for jid, chat in mw.chats.items():
+        for jid, chat in list(mw.chats.items()):
             if not jid or jid.endswith(("@g.us", "@broadcast", "@newsletter")):
                 continue
             name = _name_for_chat(chat)
@@ -249,12 +249,18 @@ class NewConversationDialog(wx.Dialog):
         mw = self._mw
         chat["remoteJid"] = jid
         norm_jid, existing = self._find_existing_chat(mw, jid)
+        # A conversation deleted earlier is wanted again: without lifting its
+        # mark it stayed out of the list even after a message was sent to it.
+        restore = getattr(mw, "restore_deleted_chat", None)
+        restored = bool(restore(norm_jid)) if restore is not None else False
         if existing is None:
             chat["remoteJid"] = norm_jid
             mw.chats[norm_jid] = chat
             mw._schedule_set_chats()
         else:
             chat = existing
+            if restored:
+                mw._schedule_set_chats()
         # Navigate after the dialog is gone
         wx.CallAfter(mw.conversations_panel.navigate_to_conversation, chat)
         wx.CallAfter(mw.conversations_panel.message_field.SetFocus)
@@ -284,7 +290,7 @@ class NewConversationDialog(wx.Dialog):
             existing = mw.chats.get(norm_jid) or mw.chats.get(jid)
         if existing is None:
             target_key = contact_dedup_key(mw, norm_jid)
-            for existing_jid, existing_chat in mw.chats.items():
+            for existing_jid, existing_chat in list(mw.chats.items()):
                 if existing_jid.endswith("@g.us"):
                     continue
                 if contact_dedup_key(mw, existing_jid) == target_key:

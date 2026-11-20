@@ -69,6 +69,10 @@ platformdirs==4.5.0
 pluggy==1.6.0
 polib==1.2.0
 protobuf==7.36.1
+# Detects a message's language for the offline translation models that need
+# the source language (NLLB-200, M2M-100, mBART-50) -- core/text_translation.
+# Pure Python plus numpy.
+py3langid==0.4.0
 PyAudio==0.2.14; python_version < "3.14"
 pycparser==2.23
 pydantic==2.12.5
@@ -88,6 +92,10 @@ pywin32==311
 pywin32-ctypes==0.2.3
 PyYAML==6.0.3
 requests==2.32.5
+# The SentencePiece tokenizer of the offline translation models M2M-100,
+# SMaLL-100 and mBART-50 (core/text_translation/local_engine.py). No cp313
+# wheel for Intel Macs, where those models are then unavailable.
+sentencepiece==0.2.3; sys_platform != "darwin" or platform_machine != "x86_64"
 setuptools==80.9.0
 simple-websocket==1.1.0
 sound-lib==0.83
