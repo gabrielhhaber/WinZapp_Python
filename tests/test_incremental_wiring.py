@@ -516,6 +516,14 @@ class _FakeSendMW:
         self.output = lambda *a, **k: None
         self.voicemsg_send_sound = types.SimpleNamespace(play=lambda: None)
         self.failed_calls = []
+        self.chats = {}
+        self.saved = []
+
+    def get_chat(self, jid):
+        return self.chats.get(jid)
+
+    def _schedule_save(self, dirty_jid=None):
+        self.saved.append(dirty_jid)
 
     def send_recording_status(self, *a):
         pass
@@ -551,6 +559,7 @@ class _SendPanel:
         self._quoted_message = None
         self._recording_paused = False
         self._sorted_messages = []
+        self._outgoing_virtual_messages = {}
         self.registered = None
         self.messages_list = types.SimpleNamespace(EnsureVisible=lambda i: None)
         self.message_field = types.SimpleNamespace(SetFocus=lambda: None)
@@ -569,6 +578,11 @@ class _SendPanel:
 
     def _keep_note_pending(self, *a, **k):
         return vns.VoiceNrSendMixin._keep_note_pending(self, *a, **k)
+
+    def _kept_pending_record(self, *a, **k):
+        return vns.VoiceNrSendMixin._kept_pending_record(self, *a, **k)
+
+    _record_position = staticmethod(ma.MessageActionsMixin._record_position)
 
     def _clear_empty_placeholder(self):
         pass
@@ -2339,12 +2353,12 @@ def _drive_wx_calls():
 
 def _wait_kept_pending(panel, timeout=10.0):
     """The send thread keeps the note pending off the caller thread: wait
-    until the resend file is recorded (the last step before the UI call)."""
+    until the resend file is recorded and the UI call is queued."""
     from core.message_resend import RESEND_PATH_KEY
     deadline = time.time() + timeout
     while time.time() < deadline:
         registered = panel.registered
-        if registered is not None and RESEND_PATH_KEY in registered:
+        if registered is not None and RESEND_PATH_KEY in registered and WX_CALLS:
             return registered[RESEND_PATH_KEY]
         time.sleep(0.05)
     raise AssertionError("the note was never kept pending")
@@ -2554,6 +2568,44 @@ def test_keep_pending_row_deleted_before_mark_deletes_file(send_env, monkeypatch
     assert panel.failed == []
     assert announced == []
     assert not os.path.exists(path)
+
+
+def test_keep_pending_after_a_chat_switch_marks_the_stored_record(send_env, monkeypatch):
+    # The neural failure is slow and the user opened another chat meanwhile:
+    # the row is not on screen, but its record still lives in its own chat.
+    # It must be marked failed there and keep its file — not be taken for a
+    # deleted row, which left it "sending" forever with no retry.
+    import core.neural_noise_reduction as nnr
+
+    def _boom(*a, **k):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _boom)
+    from core.message_resend import RESEND_PATH_KEY
+    controller = IncrementalDenoiseController()
+    frames = [b"\x45\x46" * 480]
+    mw, announced = _keep_pending_mw(controller)
+    panel = _SendPanel(mw, frames, None)
+    panel.failed = []
+    panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    path = _wait_kept_pending(panel)
+    record = panel.registered
+    local_id = record["_local_id"]
+    mw.chats["peer@s.whatsapp.net"] = {
+        "messages": {"messages": {"records": [record]}}}
+    panel._outgoing_virtual_messages[local_id] = record
+    panel._sorted_messages = [{"key": {"id": "x"}}]   # another chat is open
+    _drive_wx_calls()
+    assert os.path.exists(path)
+    assert panel.failed == []                       # not on screen
+    assert record["_send_failed"] is True and record["_local_pending"] is False
+    assert record[RESEND_PATH_KEY] == path
+    assert local_id not in panel._outgoing_virtual_messages
+    assert mw.saved == ["peer@s.whatsapp.net"]
+    assert announced == ["noise_reduction_kept_pending"]
+    assert not controller.is_preparing(local_id)
 
 
 def test_keep_pending_save_failure_never_announces_a_retry(send_env, monkeypatch):

@@ -203,23 +203,14 @@ class VoiceNrSendMixin:
                 except OSError:
                     pass
                 pending_path = None
-        if inc_session is not None and inc_session.get("revoked"):
-            # Deleted while the file was being written: it dies
-            # with its row and nothing is announced.
-            if pending_path is not None:
-                try:
-                    os.unlink(pending_path)
-                except OSError:
-                    pass
-            forget()
-            return
+        kept = {}
         if pending_path is not None:
-            virtual_msg[RESEND_PATH_KEY] = pending_path
+            kept[RESEND_PATH_KEY] = pending_path
             # Marks this row for the media-resend hook in
             # message_actions: "Try sending again" must RETRY
             # THE PROCESSING (_retry_nr_pending), not resend the
             # original audio unprocessed.
-            virtual_msg["_nr_pending_retry"] = True
+            kept["_nr_pending_retry"] = True
             # Fingerprint of what was kept: when it can be
             # recorded, the retry validates these exact bytes
             # (single stable read) before processing. An
@@ -228,33 +219,73 @@ class VoiceNrSendMixin:
             # mandatory (review 18:47).
             try:
                 with open(pending_path, "rb") as fh:
-                    virtual_msg["_nr_pending_sha256"] =                                     hashlib.sha256(fh.read()).hexdigest()
-                virtual_msg["_nr_pending_size"] =                                 os.path.getsize(pending_path)
+                    kept["_nr_pending_sha256"] = hashlib.sha256(fh.read()).hexdigest()
+                kept["_nr_pending_size"] = os.path.getsize(pending_path)
             except OSError:
                 pass
-        virtual_msg.pop("_incremental_preparing", None)
-        forget()
+        virtual_msg.update(kept)
         if pending_path is not None:
             announce_key = "noise_reduction_kept_pending"
         else:
             # The note stays FAILED but nothing was kept: never
             # announce a retry that cannot happen.
             announce_key = "noise_reduction_pending_save_failed"
+        remote_jid = (virtual_msg.get("key") or {}).get("remoteJid", "")
 
-        def _mark_kept_pending(path=pending_path, key=announce_key):
-            # UI thread — the same one deletions run on: if the
-            # row went away after the write, the kept file dies
-            # here and nothing is announced on a dead row.
-            if not self._nr_pending_row_alive(local_id):
-                if path is not None:
-                    try:
-                        os.unlink(path)
-                    except OSError:
-                        pass
+        def _discard_kept(path=pending_path):
+            if path is not None:
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+
+        def _mark_kept_pending(key=announce_key):
+            # UI thread — the same one deletions run on. The send
+            # authority is dropped HERE, not on the send thread, so a
+            # delete that reached revoke() before this point still wins:
+            # the kept file dies and nothing is announced.
+            if inc_session is not None and inc_session.get("revoked"):
+                forget()
+                _discard_kept()
                 return
-            self._mark_message_failed(local_id)
+            forget()
+            row = self._kept_pending_record(local_id, remote_jid)
+            if row is None:
+                # The row is gone, from the open chat and from its own.
+                _discard_kept()
+                return
+            # A chat reloaded meanwhile may hold its own copy of the record.
+            row.update(kept)
+            for target in (virtual_msg, row):
+                target.pop("_incremental_preparing", None)
+            if self._nr_pending_row_alive(local_id):
+                self._mark_message_failed(local_id)
+            else:
+                # The user moved to another chat meanwhile: the row is not
+                # on screen, so _mark_message_failed() cannot see it. Mark
+                # the stored record itself, or it stays "sending" forever
+                # and the echo matcher may hand it another note's echo.
+                row["_local_pending"] = False
+                row["_send_failed"] = True
+                self._outgoing_virtual_messages.pop(local_id, None)
+                if remote_jid:
+                    mw._schedule_save(dirty_jid=remote_jid)
+                mw._schedule_set_chats()
             announce = getattr(mw, "output", None)
             if announce is not None:
                 announce(mw.i18n.t(key))
 
         wx.CallAfter(_mark_kept_pending)
+
+    def _kept_pending_record(self, local_id, remote_jid):
+        """UI thread: the dict of the kept-pending note — the open chat's
+        row, else the record in its own chat (the user may have switched
+        chats while the reduction ran) — or None when it was deleted."""
+        for m in self._sorted_messages:
+            if isinstance(m, dict) and (m.get("key") or {}).get("id") == local_id:
+                return m
+        chat = self.main_window.get_chat(remote_jid) if remote_jid else None
+        position = self._record_position(chat, local_id)
+        if position < 0:
+            return None
+        return chat["messages"]["messages"]["records"][position]
