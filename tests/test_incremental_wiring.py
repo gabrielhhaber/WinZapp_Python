@@ -351,8 +351,9 @@ def test_orphaned_previous_session_is_discarded_on_new_start():
 
 
 class _FakeStream:
-    def __init__(self, fail=False):
+    def __init__(self, fail=False, close_fail=False):
         self.fail = fail
+        self.close_fail = close_fail
         self.closed = False
 
     def stop(self):
@@ -360,6 +361,8 @@ class _FakeStream:
             raise RuntimeError("device wedged")
 
     def close(self):
+        if self.close_fail:
+            raise RuntimeError("device gone")
         self.closed = True
 
     def stop_stream(self):
@@ -412,10 +415,23 @@ def test_stop_recording_stream_without_session_uses_panel_handles():
     assert panel._recording_stream is None
 
 
+def test_stop_recording_stream_failed_stop_still_closes_and_confirms():
+    # An unplugged device can fail stop(); close() still runs, and only
+    # close() succeeding is the confirmation.
+    panel = _FakePanel()
+    session = _session_with_close()
+    stream = _FakeStream(fail=True)
+    session["stream"] = stream
+    vr.VoiceRecordingMixin._stop_recording_stream(panel, session)
+    assert stream.closed
+    assert session["stopped_event"].is_set()
+    assert session["device_failed"] is False
+
+
 def test_stop_recording_stream_failed_close_is_not_reported_confirmed():
     panel = _FakePanel()
     session = _session_with_close()
-    session["stream"] = _FakeStream(fail=True)
+    session["stream"] = _FakeStream(fail=True, close_fail=True)
     vr.VoiceRecordingMixin._stop_recording_stream(panel, session)
     # The send thread wakes, but sees the failure marker — never a snapshot.
     assert session["stopped_event"].is_set()
@@ -707,6 +723,36 @@ def test_send_blocked_drain_falls_back_to_basic_with_all_bytes(send_env, monkeyp
     assert any(args and args[0] == "noise_reduction_fallback"
                for fn, args, k in WX_CALLS for _ in [0]
                if fn == (mw.output or fn))
+
+
+def test_send_with_failed_device_close_fails_the_note_and_frees_the_chat(
+        send_env, monkeypatch):
+    # Headset unplugged: close() raises, so the close is not confirmed.
+    # Nothing is sent, the note fails audibly (dialog + sound through
+    # _on_message_failed) and the send thread ends without waiting for a
+    # delete, so the chat's next voice note is not held behind it.
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"\x07\x08" * 480]
+    session = _send_session(controller, frames, basic_only=True,
+                            stream=_FakeStream(close_fail=True))
+    forgotten = _forget_signal(controller)
+    mw = _FakeSendMW(controller)
+    panel = _SendPanel(mw, frames, session)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert forgotten.wait(10), "send thread never gave the note up"
+    deadline = time.time() + 5
+    failed = []
+    while time.time() < deadline and not failed:
+        failed = [args for fn, args, k in list(WX_CALLS)
+                  if fn == mw._on_message_failed]
+        time.sleep(0.02)
+    assert failed == [("m1", "voice_recording_close_failed", True)]
+    assert mw.message_queue.enqueued == []
+    assert session["device_failed"] is True and session["cancel"] is True
+    assert "_incremental_preparing" not in panel.registered
 
 
 def test_send_basic_only_note_goes_straight_to_gate(send_env, monkeypatch):

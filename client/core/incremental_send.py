@@ -30,12 +30,17 @@ from core.voice_stereo import drop_empty_side
 #: microbenchmarks on the Linux development box, and earlier Windows
 #: runs measured the TOTAL send path under different conditions, so no
 #: headroom factor is claimed. The target-machine run may adjust it.
-#: The device
-#: close wait is deliberately NOT bounded: neither cleaned nor basic
-#: audio may come from a frames list a callback can still append to.
 #: Module-level so headless adapter tests can patch it without a real
 #: panel class.
 _INCREMENTAL_SEND_FINAL_WAIT = 2.0
+
+#: How long the send waits for the capture device to confirm its close.
+#: Neither cleaned nor basic audio may come from a frames list a callback
+#: can still append to, so a close that fails or never confirms sends
+#: nothing: the note FAILS audibly and the chat's later notes are released
+#: (a USB or Bluetooth headset unplugged mid-recording used to hold every
+#: later note of the chat until the user deleted this one).
+_INCREMENTAL_DEVICE_CLOSE_WAIT = 10.0
 
 
 def _reclaim_drain_remnant(session, controller, local_id):
@@ -88,21 +93,29 @@ class IncrementalSendOutcome:
     ``audio_data`` is the cleaned PCM (with ``channels``) when ``cleaned``;
     otherwise None, and the send joins the raw frames for the offline path.
     ``drain_thread`` is the session's drain snapshot, which the offline
-    reduction's slot decision still reads.
+    reduction's slot decision still reads. ``device_failed`` means the
+    capture device never confirmed its close: nothing may be sent and the
+    caller fails the note.
     """
     audio_data: bytes = None
     channels: int = None
     cleaned: bool = False
     drain_thread: object = None
+    device_failed: bool = False
 
 
 def consume_incremental_session(inc_session, *, settings, controller, local_id,
-                                frames, actual_ch, channel_mode, mixed_audio, t0):
+                                frames, actual_ch, channel_mode, mixed_audio, t0,
+                                sleep=time.sleep):
     """Run the send side of *inc_session* on the send thread.
 
     Returns an :class:`IncrementalSendOutcome`, or None when the send must
-    stop here (revoked, cancelled, or the device close was never confirmed);
-    the controller's send-authority entry is already forgotten then.
+    stop here (revoked or cancelled); an outcome with ``device_failed``
+    when the device close was never confirmed. The controller's
+    send-authority entry is already forgotten in both cases.
+
+    *sleep* paces every wait (0.1 s slices, counted rather than timed),
+    so a test passes a no-op and the bounded waits end at once.
     """
     audio_data = None
     channels = None
@@ -137,15 +150,15 @@ def consume_incremental_session(inc_session, *, settings, controller, local_id,
         a "timeout" result means the send FALLS BACK to the
         basic gate on the complete raw audio and the late
         worker result is discarded — it can never kill the
-        thread. Device close (stage 1) has NO timeout: neither
-        cleaned nor basic audio may be built from a frames
-        list a callback can still append to. Returns "done" /
-        "revoked" / "timeout"."""
+        thread. A device close (stage 1) that times out sends
+        nothing at all: neither cleaned nor basic audio may be
+        built from a frames list a callback can still append
+        to. Returns "done" / "revoked" / "timeout"."""
         waited = 0.0
         while not is_done():
             if inc_session.get("revoked"):
                 return "revoked"
-            time.sleep(0.1)
+            sleep(0.1)
             waited += 0.1
             if timeout is not None and waited >= timeout:
                 return "timeout"
@@ -153,28 +166,29 @@ def consume_incremental_session(inc_session, *, settings, controller, local_id,
 
     # Stage 1 — confirmed device close BEFORE anything else: the
     # frames list is only stable once no capture callback can
-    # append. There is no timeout that turns an unconfirmed close
-    # into a send: a snapshot of a list that may still be growing
-    # is not the recording, so this becomes the occupied path.
+    # append. No timeout turns an unconfirmed close into a send: a
+    # snapshot of a list that may still be growing is not the
+    # recording, so a failed or unconfirmed close FAILS the note.
     stopped_ev = inc_session.get("stopped_event")
     if stopped_ev is not None:
-        if _wait_or_revoked(stopped_ev.is_set) == "revoked":
+        closed = _wait_or_revoked(stopped_ev.is_set,
+                                  timeout=_INCREMENTAL_DEVICE_CLOSE_WAIT)
+        if closed == "revoked":
             logging.info("[noise_reduction] send revoked while waiting "
                          "for the device close")
             _forget()
             return None
-        if inc_session.get("device_failed"):
-            # Close NOT confirmed: capture state unknown, frames
-            # may still grow. Occupied until the user cancels or
-            # the process ends; the drain is cancelled so it
-            # cleans its own spool and releases the slot.
+        if closed == "timeout" or inc_session.get("device_failed"):
+            # Close NOT confirmed: capture state unknown, frames may
+            # still grow. Nothing is sent; the drain is cancelled so it
+            # cleans its own spool and releases the slot, and the
+            # caller fails the note so the chat's later notes go on.
             logging.error("[noise_reduction] capture device close was not "
-                          "confirmed; note stays pending until cancelled")
+                          "confirmed (%s); the note fails",
+                          "timed out" if closed == "timeout" else "close failed")
             inc_session["cancel"] = True
-            while not inc_session.get("revoked"):
-                time.sleep(0.1)
             _forget()
-            return None
+            return IncrementalSendOutcome(device_failed=True)
     # Stage 2 — ask the drain for its end state: stop → it
     # finishes the audio it has and hands worker+spool to this
     # send; cancel → it aborts and cleans up itself. The cancel

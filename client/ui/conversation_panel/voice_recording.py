@@ -498,11 +498,17 @@ class VoiceRecordingMixin:
     @staticmethod
     def _close_stream_handle(stream):
         # PyAudio streams use stop_stream(); sounddevice/sound_lib streams
-        # use stop(). Both have close().
-        if hasattr(stream, "stop_stream"):
-            stream.stop_stream()
-        else:
-            stream.stop()
+        # use stop(). Both have close(), and close() always runs: a stop
+        # that fails (device unplugged) must not leave the handle open.
+        # Only close() raising leaves the close unconfirmed.
+        try:
+            if hasattr(stream, "stop_stream"):
+                stream.stop_stream()
+            else:
+                stream.stop()
+        except Exception:
+            logging.warning("[voice] capture stream did not stop; closing it anyway",
+                            exc_info=True)
         stream.close()
 
     def _stop_recording_stream(self, session=None):
@@ -922,6 +928,14 @@ class VoiceRecordingMixin:
                     local_id=local_id, frames=frames, actual_ch=actual_ch,
                     channel_mode=channel_mode, mixed_audio=mixed_audio, t0=_t0)
                 if outcome is None:
+                    return
+                if outcome.device_failed:
+                    # The microphone never confirmed its close: nothing is
+                    # sent, the note fails audibly, and returning releases
+                    # the chat's later notes.
+                    virtual_msg.pop("_incremental_preparing", None)
+                    wx.CallAfter(mw._on_message_failed, local_id,
+                                 mw.i18n.t("voice_recording_close_failed"), True)
                     return
                 audio_data = outcome.audio_data
                 channels = outcome.channels

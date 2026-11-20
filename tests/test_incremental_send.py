@@ -93,6 +93,41 @@ def test_revoke_while_waiting_for_the_device_close_stops_the_send():
     assert controller.forgotten == ["n1"]
 
 
+def test_failed_device_close_fails_the_note_instead_of_holding_the_chat():
+    # Unplugged headset: the close did not confirm. Nothing is sent, but
+    # the send ends at once (no wait for a revoke) so the chat's later
+    # notes are released and the caller can fail this one audibly.
+    controller = _Controller()
+    session = _session(device_failed=True)
+    session["stopped_event"].set()
+
+    outcome = isend.consume_incremental_session(
+        session, settings={}, controller=controller, local_id="n1",
+        frames=[b"\0\0"], actual_ch=1, channel_mode="auto",
+        mixed_audio=False, t0=0.0, sleep=lambda _s: None)
+
+    assert outcome is not None and outcome.device_failed is True
+    assert outcome.audio_data is None
+    assert session["cancel"] is True
+    assert controller.forgotten == ["n1"]
+
+
+def test_device_close_that_never_confirms_fails_after_the_bounded_wait():
+    controller = _Controller()
+    session = _session()   # stopped_event never set, not revoked
+    slices = []
+
+    outcome = isend.consume_incremental_session(
+        session, settings={}, controller=controller, local_id="n1",
+        frames=[b"\0\0"], actual_ch=1, channel_mode="auto",
+        mixed_audio=False, t0=0.0, sleep=slices.append)
+
+    assert outcome.device_failed is True
+    assert controller.forgotten == ["n1"]
+    # Bounded: about WAIT / 0.1 slices (one more for float rounding).
+    assert abs(len(slices) - isend._INCREMENTAL_DEVICE_CLOSE_WAIT / 0.1) <= 1
+
+
 def test_basic_only_session_leaves_the_audio_to_the_offline_path():
     controller = _Controller()
     session = _session(basic_only=True)
@@ -103,6 +138,6 @@ def test_basic_only_session_leaves_the_audio_to_the_offline_path():
         controller=controller, local_id="n1", frames=[b"\0\0"], actual_ch=1,
         channel_mode="auto", mixed_audio=False, t0=0.0)
 
-    assert outcome == isend.IncrementalSendOutcome(None, None, False, None)
+    assert outcome == isend.IncrementalSendOutcome(None, None, False, None, False)
     assert session["cancel"] is True
     assert controller.forgotten == []
