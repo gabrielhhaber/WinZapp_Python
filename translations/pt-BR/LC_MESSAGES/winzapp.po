@@ -474,7 +474,7 @@ msgid "Type a valid phone number."
 msgstr "Digite um número de telefone válido."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/add_member_dialog.py
+#: client/ui/dialogs/add_member_dialog.py client/ui/dialogs/call_invite.py
 msgctxt "add_member_phone_number_label"
 msgid "Type a phone number"
 msgstr "Digite um número de telefone"

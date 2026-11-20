@@ -473,7 +473,7 @@ msgid "Type a valid phone number."
 msgstr "Introduceți un număr de telefon valid."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/add_member_dialog.py
+#: client/ui/dialogs/add_member_dialog.py client/ui/dialogs/call_invite.py
 msgctxt "add_member_phone_number_label"
 msgid "Type a phone number"
 msgstr "Introdu un număr de telefon"

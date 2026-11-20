@@ -479,7 +479,7 @@ msgstr ""
 "Non è un numero di telefono valido. Digita un numero di telefono valido."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/add_member_dialog.py
+#: client/ui/dialogs/add_member_dialog.py client/ui/dialogs/call_invite.py
 msgctxt "add_member_phone_number_label"
 msgid "Type a phone number"
 msgstr "Un numero di telefono"
