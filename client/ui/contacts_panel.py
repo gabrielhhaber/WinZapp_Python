@@ -195,6 +195,12 @@ class ContactsPanel(TranslatedLabels, wx.Panel):
         from ui.dialogs.new_conversation import NewConversationDialog
         from ui.dialogs.conversation_data_dialog import ConversationDataDialog
         _norm, chat = NewConversationDialog._find_existing_chat(self._mw, jid)
+        # The dialog's Media tab reads the chat's history: a chat hidden in
+        # the lock vault needs the PIN first, as navigate_to_conversation_jid.
+        stored = (chat or {}).get("remoteJid") or jid
+        if self._mw.is_chat_hidden_by_vault(stored):
+            if not self._mw.unlock_chat_lock_vault(show_panel=False):
+                return
         dialog = ConversationDataDialog(self._mw, chat or {"remoteJid": jid, "pushName": name})
         try:
             dialog.ShowModal()

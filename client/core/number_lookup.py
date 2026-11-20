@@ -41,12 +41,6 @@ def typed_number_identity(body):
     return _phone_form(serialized), ""
 
 
-def canonical_jid(body) -> str:
-    """`check-number-status` body -> 'digits@s.whatsapp.net' for a number
-    WhatsApp knows, '' when it does not or cannot say which number it is."""
-    return typed_number_identity(body)[0]
-
-
 def resolve_typed_number(mw, digits: str) -> str:
     """The canonical phone JID of `digits`, or '' when the engine cannot say
     (offline, unknown number, error): the caller keeps the typed one. An @lid

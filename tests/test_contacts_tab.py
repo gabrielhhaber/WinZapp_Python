@@ -93,6 +93,59 @@ def test_enter_on_a_contact_does_the_chosen_action(action, done):
 def test_the_panel_is_one_of_the_main_windows_side_panels():
     from main_window.content_panels import SIDE_PANELS
     assert "contacts_panel" in SIDE_PANELS
-    import inspect
+
+
+def test_the_navigation_list_offers_contacts(monkeypatch):
     from ui import navigation
-    assert '"contacts"' in inspect.getsource(navigation.NavigationPanel.rebuild_items)
+    monkeypatch.setattr(navigation, "navigation_shortcut_label", lambda mw, key, label: label)
+    rows = []
+    nav_list = SimpleNamespace(
+        GetFocusedItem=lambda: -1, Freeze=lambda: None, Thaw=lambda: None,
+        DeleteAllItems=lambda: rows.clear(), Append=lambda row: rows.append(row[0]),
+        Focus=lambda i: None, Select=lambda i: None)
+    panel = SimpleNamespace(
+        nav_list=nav_list, refresh_archived_label=lambda: None,
+        main_window=SimpleNamespace(i18n=SimpleNamespace(t=lambda key: key)))
+    navigation.NavigationPanel.rebuild_items(panel)
+    assert "contacts" in panel._nav_keys
+    assert "contacts_nav" in rows
+
+
+class InfoPanel:
+    _on_info = ContactsPanel._on_info
+    _selected = ContactsPanel._selected
+
+    def __init__(self, hidden, pin_ok, stored):
+        self.opened = []
+        self.unlocks = []
+        self._shown = [(PHONE, "Bia", "+55")]
+        self._list = SimpleNamespace(GetSelection=lambda: 0)
+        self._mw = SimpleNamespace(
+            is_chat_hidden_by_vault=lambda jid: hidden and jid == stored,
+            unlock_chat_lock_vault=lambda show_panel=True: self.unlocks.append(show_panel) or pin_ok)
+        self.stored = stored
+
+    def reload(self):
+        pass
+
+    def __bool__(self):
+        return True
+
+
+@pytest.mark.parametrize("pin_ok, opened", [(False, 0), (True, 1)])
+def test_info_on_a_hidden_chats_contact_asks_for_the_pin(monkeypatch, pin_ok, opened):
+    from ui.dialogs import conversation_data_dialog, new_conversation
+    stored = "5511999990000@lid"
+    monkeypatch.setattr(new_conversation.NewConversationDialog, "_find_existing_chat",
+                        staticmethod(lambda mw, jid: (jid, {"remoteJid": stored})))
+    shown = []
+
+    class Dialog:
+        def __init__(self, mw, chat):
+            shown.append(chat["remoteJid"])
+        ShowModal = Destroy = lambda self: None
+    monkeypatch.setattr(conversation_data_dialog, "ConversationDataDialog", Dialog)
+    panel = InfoPanel(True, pin_ok, stored)
+    panel._on_info()
+    assert panel.unlocks == [False]
+    assert len(shown) == opened
