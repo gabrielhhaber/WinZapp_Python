@@ -181,14 +181,22 @@ class DesktopCallAudioMixin:
         settings = worker.settings
         logging.info("[call] desktop share stopped on the pinned NVDA process exiting; re-sharing once")
 
-        def _retry():
-            if self._call_desktop_audio_allowed(call, audio):
-                self._start_call_desktop_audio(audio, settings, announce=False)
-            else:
-                self.output(self.i18n.t("call_desktop_failed"), interrupt=True)
-
-        wx.CallLater(1200, _retry)
+        wx.CallLater(1200, self._retry_desktop_share, call, audio, settings)
         return True
+
+    def _retry_desktop_share(self, call, audio, settings):
+        """The delayed re-share. Says "failed" only for a call still ours with
+        nothing shared: after a hang-up or shutdown, or while a manual share
+        from the picker already works, it stays silent."""
+        if (getattr(self, "_shutting_down", False)
+                or getattr(self, "_active_voice_call", None) is not call
+                or getattr(self, "_call_audio_session", None) is not audio
+                or audio.desktop_audio is not None):
+            return
+        if self._call_desktop_audio_allowed(call, audio):
+            self._start_call_desktop_audio(audio, settings, announce=False)
+        else:
+            self.output(self.i18n.t("call_desktop_failed"), interrupt=True)
 
     def _on_call_desktop_audio(self, audio, worker, ok, announce=True):
         if (getattr(self, "_call_audio_session", None) is not audio or audio.desktop_audio is not worker
