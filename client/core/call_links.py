@@ -21,7 +21,7 @@ import re
 # any other length as "Invalid call link").
 _LINK = re.compile(
     r"https://(?:call\.whatsapp\.com|web\.whatsapp\.com/call)/(video|voice)/(\w+)(?:\?[^\s]*)?",
-    re.IGNORECASE)
+    re.IGNORECASE | re.ASCII)
 # What the call link's web page asks the system to open, to hand the call to
 # an installed WhatsApp (WAWebCallLinkDesktopAppDetect builds
 # "whatsapp://call/<voice|video>/<token>"; WAWebApiParse reads it back), and
@@ -45,15 +45,6 @@ def parse_call_link(text) -> tuple:
     return _canonical(found) if found else (None, "")
 
 
-def call_link_in_text(text) -> str:
-    """The first call link a message carries (canonical), or ""."""
-    for found in _LINK.finditer(str(text or "")):
-        _, link = _canonical(found)
-        if link:
-            return link
-    return ""
-
-
 def _canonical(found) -> tuple:
     if len(found.group(2)) != TOKEN_LENGTH:
         return None, ""
@@ -71,6 +62,21 @@ def waiting_people(response) -> list:
             rows.append({"jid": person["jid"], "name": str(person.get("name") or ""),
                          "guest": bool(person.get("guest"))})
     return rows
+
+
+def joined_call_id(body) -> str:
+    """The call id a call/link/join answer carries. Raises ValueError when
+    there is none: the join did not happen, whatever the status said."""
+    call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
+    if not call_id:
+        raise ValueError("The call link join answered no call id")
+    return call_id
+
+
+def waiting_room_admin(response) -> bool:
+    """Whether a call/link/waiting-room answer says this user is the call's
+    admin: only the admin may see or decide who waits."""
+    return isinstance(response, dict) and response.get("admin") is True
 
 
 def newly_waiting(announced, people) -> list:

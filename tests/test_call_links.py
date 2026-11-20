@@ -39,14 +39,10 @@ def test_the_link_the_call_page_hands_to_windows_is_a_call_link():
                   "whatsapp://call/voice/AbCdEfGhIjKlMnOpQrStÜv",
                   "whatsapp://call/voice/" + TOKEN + "?" + "a" * 600):
         assert cl.parse_call_link(wrong) == (None, "")
-    # only ever handed over by Windows, never taken from a message
-    assert cl.call_link_in_text("veja whatsapp://call/voice/" + TOKEN) == ""
 
 
-def test_a_message_carries_its_first_call_link():
-    assert cl.call_link_in_text("Entra aí: " + VIDEO + " até já") == VIDEO
-    assert cl.call_link_in_text("https://call.whatsapp.com/voice/short " + VOICE) == VOICE
-    assert cl.call_link_in_text("sem link") == ""
+def test_a_link_with_non_ascii_word_characters_is_not_a_call_link():
+    assert cl.parse_call_link("https://call.whatsapp.com/voice/AbCdEfGhIjKlMnOpQrStÜv") == (None, "")
 
 
 def test_people_waiting_are_named_never_by_number_and_announced_once():
@@ -145,16 +141,17 @@ def test_the_admin_hears_each_arrival_once_and_the_button_counts_them():
     stub._call_link_announced = set()
     pedro = {"jid": "1@lid", "name": "Pedro", "guest": True}
     ana = {"jid": "2@lid", "name": "Ana", "guest": False}
-    stub._apply_call_link_room("L1", [pedro])
-    stub._apply_call_link_room("L1", [pedro])
-    stub._apply_call_link_room("L1", [pedro, ana])
+    stub._active_voice_call = {"call_id": "L1", "call_link": VOICE, "call_link_admin": True}
+    stub._apply_call_link_room("L1", [pedro], True)
+    stub._apply_call_link_room("L1", [pedro], True)
+    stub._apply_call_link_room("L1", [pedro, ana], True)
     assert stub.spoken == ["Pedro quer entrar.", "Ana quer entrar."]
     assert stub.voice_call_window_waiting_room_button.label == "Sala de &espera (2)"
-    stub._apply_call_link_room("L1", [])
+    stub._apply_call_link_room("L1", [], True)
     assert stub.voice_call_window_waiting_room_button.label == "Sala de &espera"
     # a late answer for another call, or a failed read, changes nothing
-    stub._apply_call_link_room("OLD", [pedro])
-    stub._apply_call_link_room("L1", None)
+    stub._apply_call_link_room("OLD", [pedro], True)
+    stub._apply_call_link_room("L1", None, True)
     assert stub._call_link_waiting == [] and len(stub.spoken) == 2
 
 
@@ -167,3 +164,178 @@ def test_only_a_joined_link_call_has_a_waiting_room():
     assert stub._active_call_link() is None
     stub._active_voice_call = {"call_id": "L1", "call_link": VOICE}
     assert stub._active_call_link() is stub._active_voice_call
+
+
+def test_a_member_who_is_not_the_admin_hears_no_arrivals_and_sees_no_room():
+    stub = Stub()
+    stub._call_link_room_call = "L1"
+    stub._call_link_announced = set()
+    record = stub._active_voice_call = {"call_id": "L1", "call_link": VOICE, "call_link_admin": True}
+    pedro = {"jid": "1@lid", "name": "Pedro", "guest": True}
+    stub._apply_call_link_room("L1", [pedro], False)
+    assert stub.spoken == [] and stub._call_link_waiting == []
+    assert record["call_link_admin"] is False and stub.synced == 1
+    # the answer is read each time: becoming admin brings the room back
+    stub._apply_call_link_room("L1", [pedro], True)
+    assert record["call_link_admin"] is True and stub.spoken == ["Pedro quer entrar."]
+
+
+def test_the_waiting_room_answer_says_whether_this_user_is_the_admin():
+    assert cl.waiting_room_admin({"admin": True, "people": []}) is True
+    assert cl.waiting_room_admin({"people": []}) is False
+    assert cl.waiting_room_admin({"admin": "yes"}) is False
+    assert cl.waiting_room_admin(None) is False
+
+
+class Control:
+    def __init__(self, shown=False):
+        self.shown, self.layouts = shown, 0
+
+    def IsShown(self):
+        return self.shown
+
+    def Show(self, shown):
+        self.shown = shown
+
+    def GetParent(self):
+        return self
+
+    def Layout(self):
+        self.layouts += 1
+
+
+class Timer(Control):
+    def __init__(self):
+        super().__init__()
+        self.running = False
+
+    def IsRunning(self):
+        return self.running
+
+    def Start(self, ms):
+        self.running = True
+
+    def Stop(self):
+        self.running = False
+
+
+def test_the_waiting_room_button_is_only_the_admins_and_the_room_is_read_for_every_link_call():
+    stub = Stub()
+    stub.voice_call_window_waiting_room_button = button = Control()
+    stub._call_link_room_timer = timer = Timer()
+    stub._active_voice_call = {"call_id": "L1", "call_link": VOICE, "call_link_admin": False}
+    CallLinksMixin._sync_call_link_controls(stub)
+    assert button.shown is False and timer.running and stub._call_link_room_call == "L1"
+    stub._active_voice_call["call_link_admin"] = True
+    CallLinksMixin._sync_call_link_controls(stub)
+    assert button.shown is True
+    stub._active_voice_call = None
+    CallLinksMixin._sync_call_link_controls(stub)
+    assert button.shown is False and not timer.running and stub._call_link_room_call == ""
+
+
+class Response:
+    def __init__(self, body, status=200):
+        self._body, self.status_code = body, status
+
+    def json(self):
+        return self._body
+
+
+class Inline:
+    """threading.Thread that runs its target at once."""
+    def __init__(self, target, **_kw):
+        self._target = target
+
+    def start(self):
+        self._target()
+
+
+def run_inline(monkeypatch):
+    from main_window import call_links
+    monkeypatch.setattr(call_links.threading, "Thread", Inline)
+    monkeypatch.setattr(call_links.wx, "CallAfter", lambda fn, *a: fn(*a))
+
+
+def test_polling_the_room_reads_the_people_and_whether_this_user_is_admin(monkeypatch):
+    run_inline(monkeypatch)
+    stub = Stub()
+    stub._active_voice_call = {"call_id": "L1", "call_link": VOICE, "call_link_admin": True}
+    stub._call_link_room_call = "L1"
+    stub._call_link_announced = set()
+    posts = []
+    answer = {"response": {"id": "L1", "admin": True,
+                           "people": [{"jid": "1@lid", "name": "Pedro", "guest": True}]}}
+    stub._post_call_control = lambda action, body: posts.append((action, body)) or Response(answer)
+    stub._poll_call_link_room()
+    assert posts == [("link/waiting-room", {"callId": "L1"})]
+    assert stub.spoken == ["Pedro quer entrar."] and stub._call_link_room_busy is False
+    # a failed read keeps the last state and frees the poll
+    stub._post_call_control = lambda action, body: Response({}, 500)
+    stub._poll_call_link_room()
+    assert stub.spoken == ["Pedro quer entrar."] and stub._call_link_room_busy is False
+    # nothing is read once the window is closing
+    stub._shutting_down = True
+    stub._post_call_control = lambda *a: posts.append("late")
+    stub._poll_call_link_room()
+    assert "late" not in posts
+
+
+def test_creating_a_link_hands_back_the_canonical_link_or_a_speakable_error(monkeypatch):
+    run_inline(monkeypatch)
+    stub = Stub()
+    stub._raise_for_call_response = lambda response, _what: response
+    stub._call_error_text = lambda exc: "HTTP 500"
+    done = []
+    stub._post_call_control = lambda action, body, timeout=0: Response(
+        {"response": {"link": VIDEO + "?x=1"}})
+    stub.create_call_link(True, lambda link, error: done.append((link, error)))
+    assert done == [(VIDEO, "")]
+    stub._post_call_control = lambda action, body, timeout=0: Response({"response": {"link": "nope"}})
+    stub.create_call_link(True, lambda link, error: done.append((link, error)))
+    assert done[-1] == ("", "call_link_create_failed_generic")
+    stub._post_call_control = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x"))
+    stub.create_call_link(False, lambda link, error: done.append((link, error)))
+    assert done[-1] == ("", "HTTP 500")
+    unsupported = Stub(neonize=True)
+    unsupported.create_call_link(False, lambda link, error: done.append((link, error)))
+    assert done[-1] == ("", "call_log_action_unavailable")
+
+
+def test_the_waiting_room_opens_once_and_decisions_are_spoken_by_name(monkeypatch):
+    run_inline(monkeypatch)
+    stub = Stub()
+    stub.show_call_waiting_room()
+    assert stub.spoken == ["call_link_no_waiting_room"]
+    posts, polled, done = [], [], []
+    stub._raise_for_call_response = lambda response, _what: response
+    stub._post_call_control = lambda action, body: posts.append((action, body)) or Response({})
+    stub._poll_call_link_room = lambda: polled.append(1)
+    person = {"jid": "1@lid", "name": "Pedro", "guest": True}
+    stub.decide_call_link_person("L1", person, True, done.append)
+    stub.decide_call_link_person("L1", person, False, done.append)
+    assert posts == [("link/admit", {"callId": "L1", "jid": "1@lid", "admit": True}),
+                     ("link/admit", {"callId": "L1", "jid": "1@lid", "admit": False})]
+    assert stub.spoken[1:] == ["call_link_admitted", "call_link_denied"]
+    assert done == [True, True] and len(polled) == 2
+    stub._raise_for_call_response = lambda *a: (_ for _ in ()).throw(RuntimeError("no"))
+    stub.decide_call_link_person("L1", person, True, done.append)
+    assert stub.spoken[-1] == "call_link_decision_failed" and done[-1] is False
+
+
+def test_a_link_join_with_no_call_id_is_a_failure():
+    import pytest
+    assert cl.joined_call_id({"id": "L1", "waiting": True}) == "L1"
+    for body in ({}, {"id": ""}, None, "x"):
+        with pytest.raises(ValueError):
+            cl.joined_call_id(body)
+
+
+def test_a_link_is_not_asked_about_while_a_call_is_active():
+    stub = Stub()
+    stub._active_voice_call = {"call_id": "G1"}
+    assert stub.join_call_link(VOICE, confirm_parent=object()) is False
+    assert stub.spoken == ["voice_call_already_active"] and stub.started == []
+    stub._active_voice_call = None
+    stub._active_incoming_calls = {"X": {}}
+    assert stub.join_call_link(VOICE) is False and stub.started == []

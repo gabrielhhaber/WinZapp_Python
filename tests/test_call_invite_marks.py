@@ -157,9 +157,3 @@ def test_one_set_of_marks_serves_both_lists():
     assert s._marks == {"2@lid", "4@lid"}
     s._use_invite_pane(s._panes[0]["list"])
     assert s._rows is ROWS
-
-
-def test_the_dialog_reads_both_lists_and_the_typed_number():
-    source = inspect.getsource(call_invite.CallInviteDialog)
-    assert "call_invite_list_conversations" in source and "typed_number_jid" in source
-    assert '"add-participants"' in source       # the one route both engines answer

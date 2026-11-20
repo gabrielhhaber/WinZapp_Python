@@ -23,6 +23,7 @@ from core.api_client import (
     api_get,
     api_post,
 )
+from core.call_links import joined_call_id
 from core.call_matching import call_event_matches_active
 from core.call_tone_player import play_call_ended_sound, stop_call_tone, update_call_tone
 from core.call_participants import active_participants_available
@@ -1666,6 +1667,10 @@ class CallsMixin:
                 except Exception:
                     body = {}
                 call_id = str(body.get("id") or "") if isinstance(body, dict) else ""
+                if call_link:
+                    # without its id the record would keep "outgoing:<link>"
+                    # and the window and microphone stay up for good
+                    call_id = joined_call_id(body)
                 with self._call_action_lock:
                     # Everything this decision needs is re-read HERE, under the
                     # lock, never carried in from before the POST: a hang-up, a

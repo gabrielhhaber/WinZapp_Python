@@ -14,6 +14,7 @@ from core import whatsapp_link_association as association
 from core.whatsapp_chat_link import (
     MAX_CHAT_LINK_LENGTH, chat_target, is_whatsapp_link, whatsapp_link_argument)
 from main_window import group_invitation_links
+from main_window.call_links import CallLinksMixin
 from main_window.group_invitation_links import GroupInvitationLinksMixin
 
 AIRLINE = ("https://api.whatsapp.com/send/?phone=5491131260531&type=phone_number"
@@ -286,7 +287,7 @@ def test_a_call_link_is_a_whatsapp_link_on_the_command_line_and_over_ipc():
 
 class _CallWindow(_Window):
     open_external_call_link = GroupInvitationLinksMixin.open_external_call_link
-    _call_link_engine_ready = GroupInvitationLinksMixin._call_link_engine_ready
+    _call_link_engine_ready = CallLinksMixin._call_link_engine_ready
 
     def __init__(self, connected=True, neonize=False, **kwargs):
         super().__init__(connected=connected, **kwargs)

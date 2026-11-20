@@ -27,6 +27,7 @@ from core.call_links import (
     parse_call_link,
     waiting_jids,
     waiting_people,
+    waiting_room_admin,
 )
 
 # How often the waiting room of the link call is read while it lasts.
@@ -43,6 +44,12 @@ class CallLinksMixin:
             return True
         return bool(getattr(self, "_neonize_calls", False)) and bool(
             getattr(self, "_neonize_call_links", False))
+
+    def _call_link_engine_ready(self) -> bool:
+        """WPPConnect can always be asked; the Neonize bridge only says whether
+        its build joins call links once its send-capabilities probe answered
+        (main_window/sending.py), and asking before would say "unavailable"."""
+        return not self._uses_neonize() or hasattr(self, "_neonize_call_links")
 
     # ── Creating ─────────────────────────────────────────────────────────────
 
@@ -79,6 +86,11 @@ class CallLinksMixin:
         if not canonical:
             self.output(self.i18n.t("call_link_invalid"), interrupt=True)
             return False
+        if (getattr(self, "_active_voice_call", None) is not None
+                or getattr(self, "_active_incoming_calls", None)):
+            # said before asking "Join?": the question would end in a refusal
+            self.output(self.i18n.t("voice_call_already_active"), interrupt=True)
+            return False
         if confirm_parent is not None:
             question = self.i18n.t(
                 "call_link_join_video_confirm" if is_video else "call_link_join_voice_confirm")
@@ -102,7 +114,6 @@ class CallLinksMixin:
             return
         if body.get("waiting") is True:
             # not "connected" yet: the call's admin has to let this user in
-            call_record["call_link_waiting"] = True
             self.output(self.i18n.t("call_link_waiting_for_admin"), interrupt=True)
             self._sync_call_link_controls()
             return
@@ -130,12 +141,14 @@ class CallLinksMixin:
         return button
 
     def _sync_call_link_controls(self):
-        """Show the waiting-room button and keep the room read while the
-        active call is a link call; stop both when it is not."""
+        """Keep the room read while the active call is a link call, and show
+        the waiting-room button while this user is its admin (only the admin
+        sees or decides who waits); stop both when it is not a link call."""
         record = self._active_call_link()
+        is_admin = record is not None and bool(record.get("call_link_admin"))
         button = getattr(self, "voice_call_window_waiting_room_button", None)
-        if button is not None and bool(button.IsShown()) != (record is not None):
-            button.Show(record is not None)
+        if button is not None and bool(button.IsShown()) != is_admin:
+            button.Show(is_admin)
             button.GetParent().Layout()
         timer = getattr(self, "_call_link_room_timer", None)
         if record is None:
@@ -159,6 +172,8 @@ class CallLinksMixin:
             timer.Start(WAITING_ROOM_POLL_MS)
 
     def _poll_call_link_room(self):
+        if getattr(self, "_shutting_down", False):
+            return
         record = self._active_call_link()
         if record is None:
             self._sync_call_link_controls()
@@ -169,21 +184,31 @@ class CallLinksMixin:
         call_id = record["call_id"]
 
         def work():
-            people = None
+            people, admin = None, False
             try:
                 response = self._post_call_control("link/waiting-room", {"callId": call_id})
                 if response.status_code < 400:
-                    people = waiting_people(response.json().get("response"))
+                    answer = response.json().get("response")
+                    people, admin = waiting_people(answer), waiting_room_admin(answer)
             except Exception:
                 logging.debug("[call_link] waiting room not read", exc_info=True)
-            wx.CallAfter(self._apply_call_link_room, call_id, people)
+            wx.CallAfter(self._apply_call_link_room, call_id, people, admin)
 
         threading.Thread(target=work, daemon=True, name="call-link-room").start()
 
-    def _apply_call_link_room(self, call_id, people):
+    def _apply_call_link_room(self, call_id, people, admin):
         self._call_link_room_busy = False
         if people is None or getattr(self, "_call_link_room_call", "") != call_id:
             return
+        # Each answer says whether this user is the admin now (it can change:
+        # the join answer may come before the engine knows); a guest or a
+        # member sees no room, hears no arrivals and cannot decide.
+        record = self._active_call_link()
+        if record is not None and bool(record.get("call_link_admin")) != bool(admin):
+            record["call_link_admin"] = bool(admin)
+            self._sync_call_link_controls()
+        if not admin:
+            people = []
         arrivals = newly_waiting(getattr(self, "_call_link_announced", set()), people)
         self._call_link_waiting = people
         self._call_link_announced = waiting_jids(people)

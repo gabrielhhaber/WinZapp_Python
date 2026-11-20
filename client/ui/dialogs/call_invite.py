@@ -10,16 +10,18 @@ the plain-controls window around it. Every request runs off the wx thread and
 a late answer never touches a closed dialog.
 """
 import logging
+import re
 import threading
 
 import wx
 
 from core.call_invites import (calling_line, candidates, conversation_jids, offered_lists,
                                 parse_results, picked_people, request_timeout, room_left,
-                                saved_contact_jids, saved_name_of, summary, typed_number_jid)
+                                saved_contact_jids, saved_name_of, summary)
 from core.call_participants import CONNECTED, parse_participants
+from countries import get_countries, get_default_country_index
 from core.number_lookup import resolve_typed_number
-from core.utils import format_number
+from ui.dialogs.add_member_dialog import typed_number_to_jid
 from ui.dialogs.call_invite_marks import CallInviteMarksMixin
 
 
@@ -33,6 +35,20 @@ def self_test(mw, own_in_call):
     def is_self(jid):
         return mw._is_self_jid(jid) or any(mw._chat_jids_equivalent(jid, o) for o in own)
     return is_self
+
+
+def typed_number_jid(text, dial_code="") -> str:
+    """'digits@s.whatsapp.net' of a number typed in the field, '' when it is
+    not one. A number without a leading + or 00 is local to the country picked:
+    its code is added, or "51 99999-0000" was invited at once as a Peruvian
+    number. One with + or 00 already carries its country code."""
+    text = str(text or "").strip()
+    if not text or re.search(r"[^\d\s()+.\-]", text):
+        return ""
+    if text.startswith("+") or text.startswith("00"):
+        dial_code = ""
+        text = text[1:] if text.startswith("+") else text[2:]
+    return typed_number_to_jid(text, dial_code).replace("@c.us", "@s.whatsapp.net")
 
 
 def failure_line(i18n, reason) -> str:
@@ -64,6 +80,15 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
         self._list, self._rows = self._panes[0]["list"], self._panes[0]["rows"]
         sizer.Add(wx.StaticText(panel, label=i18n.t("add_member_custom_number_label")),
                   0, wx.LEFT | wx.RIGHT, 8)
+        # The country of a number typed without its code, as in the add-member
+        # dialog; a number typed with + or 00 ignores it.
+        sizer.Add(wx.StaticText(panel, label=i18n.t("add_member_country_label")),
+                  0, wx.LEFT | wx.RIGHT, 8)
+        self._countries = get_countries(i18n.language)
+        self._country = wx.ComboBox(panel, choices=[c[0] for c in self._countries],
+                                    style=wx.CB_READONLY)
+        self._country.SetSelection(get_default_country_index(self._countries, i18n.language))
+        sizer.Add(self._country, 0, wx.EXPAND | wx.ALL, 8)
         # Enter in the field adds, as the Add button does.
         self._number = wx.TextCtrl(panel, style=wx.TE_PROCESS_ENTER)
         self._number.Bind(wx.EVT_TEXT_ENTER, self._on_add)
@@ -101,7 +126,9 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
                 members = [p.get("id") for p in info.get("participants") or () if isinstance(p, dict)]
             else:
                 members = saved_contact_jids(contacts)
-            chats = conversation_jids(list(getattr(mw, "chats", None) or {}))
+            chats = conversation_jids(
+                list(getattr(mw, "chats", None) or {}),
+                lambda jid: mw.is_chat_locked(jid) or mw.is_chat_deleted(jid))
             response = mw._raise_for_call_response(mw._post_call_control(
                 "participants", {"callId": self._call_id}, timeout=20), "participants")
             listed = parse_participants(response.json(), self._call_id) or []
@@ -162,15 +189,16 @@ class CallInviteDialog(CallInviteMarksMixin, wx.Dialog):
             return
         picked = picked_people([row for pane in self._panes for row in pane["rows"]], self._marks)
         typed = self._number.GetValue().strip()
-        number = typed_number_jid(typed)
+        index = self._country.GetSelection()
+        number = typed_number_jid(
+            typed, self._countries[index][1] if 0 <= index < len(self._countries) else "")
         if typed and not number:
             self._mw.output(i18n.t("add_member_invalid_number"), interrupt=True)
             self._number.SetFocus()
             return
         if number and not any(self._mw._chat_jids_equivalent(number, jid) for jid, _ in picked):
             # a known person is named; anyone else is read as the number
-            picked.append((number, self._mw.chat_display_name({"remoteJid": number})
-                           or format_number(number)))
+            picked.append((number, self._mw.chat_display_name({"remoteJid": number})))
         else:
             number = ""
         if not picked:
