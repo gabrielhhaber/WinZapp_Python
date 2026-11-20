@@ -562,6 +562,8 @@ NOVIDADES
 
 - Mensagens mostradas ao abrir uma conversa: a configuração agora aceita no máximo 1.000. Valores de dezenas de milhares congelavam a janela por mais de um minuto quando chegavam muitas mensagens de uma vez ou enquanto você digitava; um valor salvo maior é tratado como 1.000 e Configurações > Mensagens pede um número de 1 a 1.000.
 
+- Ligações: ligar a partir de uma conta do WhatsApp Business (WPPConnect) não fica mais travado por 75 segundos sem tocar. O WinZapp agora responde sozinho ao aviso "Sobre esta ligação" que o WhatsApp mostra na primeira ligação dessas contas.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.

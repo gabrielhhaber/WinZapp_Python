@@ -562,6 +562,8 @@ NOVIDADES
 
 - Mensagens mostradas ao abrir uma conversa: a definição passa a aceitar no máximo 1.000. Valores de dezenas de milhares bloqueavam a janela durante mais de um minuto quando chegavam muitas mensagens de uma vez ou enquanto escrevia; um valor guardado superior é tratado como 1.000 e Definições > Mensagens pede um número de 1 a 1.000.
 
+- Chamadas: ligar a partir de uma conta do WhatsApp Business (WPPConnect) já não fica bloqueado durante 75 segundos sem tocar. O WinZapp passa a responder sozinho ao aviso "Sobre esta chamada" que o WhatsApp mostra na primeira chamada dessas contas.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.

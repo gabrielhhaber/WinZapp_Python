@@ -562,6 +562,8 @@ WHAT'S NEW
 
 - Messages shown when opening a chat: the setting now accepts at most 1,000. Values of tens of thousands froze the window for over a minute when many messages arrived at once or while you were typing; a higher saved value is treated as 1,000 and Settings > Messages asks for a number from 1 to 1,000.
 
+- Calls: placing a call from a WhatsApp Business account (WPPConnect) no longer hangs for 75 seconds without ringing. WinZapp now answers by itself the "About this call" notice that WhatsApp shows on the first call from such accounts.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
