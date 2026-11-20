@@ -8,7 +8,7 @@ YENİLİKLER
 
 - Kişiler: gezinme listesine Kanallar'dan sonra "Kişiler" eklendi; Alt+rakam kısayolu yoktur. Kayıtlı kişileri, her kişi için ad ve numarayla tek satır olarak gösterir; iki adresle (numarası ve bağlı cihaz kimliği ya da 9. rakamlı ve rakamsız Brezilya numarası) tutulan kişi tek satırdır. "Kişilerde ara" ada veya numaraya göre süzer. Düğmeler ve bağlam menüsü (Uygulama tuşu veya Shift+F10) sohbeti açar, sesli veya görüntülü arama başlatır, "Kişi bilgileri"ni gösterir, kişiyi siler ya da engeller ve engelini kaldırır; "Yeni kişi" bir kişi ekler. "Bir kişide Enter" Enter'ın ne yapacağını seçer: sohbeti açmak, aramak, görüntülü aramak veya bilgileri göstermek.
 
-- Sohbet: "Sabitlenen mesajlar"ın yanındaki yeni "Bu sohbetteki yıldızlı mesajlar" düğmesi, yıldızlı mesajlar penceresini (Alt+0) yalnızca o sohbetin mesajlarıyla ve başlığında sohbetin adıyla açar; birini seçmek, sohbeti yeniden açmadan zaten açık olan sohbette mesaja odaklanır.
+- Sohbet: "Sohbet bilgisi" ve "Grup bilgisi" pencereleri, "Medya"dan sonra yeni bir "Yıldızlı mesajlar" sekmesi kazandı; sekmede o sohbetin yıldızlı mesajları ve bir arama alanı bulunur; "Sohbette aç" (veya Enter) mesaja sohbette odaklanır, "Yıldızı kaldır" (veya Delete) yıldızını kaldırır.
 
 - Aramalar: devam eden bir aramada olan sohbet (grup ya da araması birkaç kişiye ulaşmış özel sohbet), arama düğmeleri yerine artık "Devam eden sesli aramaya katıl" veya "Devam eden görüntülü aramaya katıl (kamera kapalı)" gösterir; bu cihaz o sohbetle aramadayken düğme "Aramaya dön" der ve arama penceresini geri getirir.
 

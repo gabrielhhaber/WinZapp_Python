@@ -8,7 +8,7 @@ WHAT'S NEW
 
 - Contacts: the navigation list gains "Contacts" after Channels, with no Alt+number shortcut. It shows the saved contacts, one row per person by name and number; a contact kept under two addresses (its number and its linked ID, or a Brazilian number with and without the 9th digit) is a single row. "Search contacts" filters by name or number. Buttons and the context menu (Applications key or Shift+F10) open the conversation, start a voice or video call, show "Contact details", delete the contact, or block or unblock it; "New contact" adds one. "Enter on a contact" chooses what Enter does: open the conversation, call, video call or show the details.
 
-- Conversation: next to "Pinned messages", the new "Starred messages in this chat" button opens the starred messages window (Alt+0) with only the messages of that chat, titled with its name; choosing one focuses it in the conversation already open, without reopening it.
+- Conversation: the Chat info and Group info windows get a new "Starred messages" tab after "Media", listing the starred messages of that chat with a search field; "Open in the conversation" (or Enter) focuses the message in the conversation, and "Remove star" (or Delete) removes its star.
 
 - Calls: a chat that is in an ongoing call, a group or a private chat whose call grew to several people, now shows "Join ongoing voice call" or "Join ongoing video call (camera off)" instead of the call buttons; while this device is in the call with that chat, the button reads "Return to call" and brings the call window back.
 

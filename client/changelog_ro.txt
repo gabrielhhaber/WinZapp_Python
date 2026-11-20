@@ -8,7 +8,7 @@ NOUTĂȚI
 
 - Contacte: lista de navigare primește „Contacte” după Canale, fără comandă rapidă Alt+cifră. Arată contactele salvate, un rând pe persoană, cu nume și număr; un contact păstrat sub două adrese (numărul și ID-ul de dispozitiv asociat, sau un număr brazilian cu și fără a 9-a cifră) este un singur rând. „Căutați contacte” filtrează după nume sau număr. Butoanele și meniul contextual (tasta Aplicații sau Shift+F10) deschid conversația, fac un apel vocal sau video, arată „Detaliile contactului”, șterg contactul sau îl blochează și deblochează; „Contact nou” adaugă unul. „Enter pe un contact” alege ce face Enter: deschide conversația, apelează, apelează video sau arată detaliile.
 
-- Conversație: lângă „Mesaje fixate”, noul buton „Mesaje marcate cu stea din această conversație” deschide fereastra mesajelor marcate cu stea (Alt+0) doar cu mesajele acelei conversații, cu numele ei în titlu; alegerea unuia mută focalizarea pe mesaj în conversația deja deschisă, fără a o redeschide.
+- Conversație: ferestrele „Informații despre conversație” și „Informații despre grup” au o filă nouă „Mesaje marcate cu stea” după „Media”, cu mesajele marcate cu stea ale acelei conversații și un câmp de căutare; „Deschideți în conversație” (sau Enter) mută focalizarea pe mesaj în conversație, iar „Eliminați marcajul cu stea” (sau Delete) îi scoate steaua.
 
 - Apeluri: o conversație care se află într-un apel în desfășurare, de grup sau privată al cărei apel a ajuns să aibă mai multe persoane, arată acum „Alăturați-vă apelului vocal în desfășurare” sau „Alăturați-vă apelului video în desfășurare (camera oprită)” în locul butoanelor de apelare; cât timp acest dispozitiv este în apel cu acea conversație, butonul spune „Reveniți la apel” și readuce fereastra apelului.
 

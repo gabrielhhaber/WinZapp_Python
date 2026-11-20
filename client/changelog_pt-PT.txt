@@ -8,7 +8,7 @@ NOVIDADES
 
 - Contactos: a lista de navegação ganha "Contactos" depois de Canais, sem atalho Alt+número. Mostra os contactos guardados, uma linha por pessoa, com nome e número; um contacto guardado com dois endereços (o número e o ID de dispositivo associado, ou um número brasileiro com e sem o 9.º dígito) é uma linha só. "Pesquisar contactos" filtra por nome ou número. Os botões e o menu de contexto (tecla Aplicações ou Shift+F10) abrem a conversa, fazem uma chamada de voz ou videochamada, mostram os "Dados do contacto", apagam o contacto ou bloqueiam-no e desbloqueiam-no; "Novo contacto" adiciona um. "Enter num contacto" escolhe o que o Enter faz: abrir a conversa, ligar, fazer videochamada ou mostrar os dados.
 
-- Conversa: ao lado de "Mensagens afixadas", o novo botão "Mensagens marcadas com estrela nesta conversa" abre a janela de mensagens com estrela (Alt+0) só com as mensagens dessa conversa, com o nome dela no título; escolher uma foca a mensagem na conversa já aberta, sem a reabrir.
+- Conversa: as janelas "Detalhes da conversa" e "Detalhes do grupo" ganham o separador "Mensagens marcadas com estrela" depois de "Ficheiros multimédia", com as mensagens marcadas com estrela dessa conversa e um campo de pesquisa; "Abrir na conversa" (ou Enter) foca a mensagem na conversa, e "Desmarcar estrela" (ou Delete) tira-lhe a estrela.
 
 - Chamadas: uma conversa que está numa chamada em curso, de grupo ou privada cuja chamada passou a ter várias pessoas, mostra agora "Entrar na chamada de voz em curso" ou "Entrar na chamada de vídeo em curso (câmara desligada)" no lugar dos botões de chamar; enquanto este dispositivo está na chamada com essa conversa, o botão diz "Voltar à chamada" e traz a janela da chamada de volta.
 

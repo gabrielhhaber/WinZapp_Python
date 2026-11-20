@@ -8,7 +8,7 @@ WHAT'S NEW
 
 - Contatti: l'elenco di navigazione ottiene "Contatti" dopo Canali, senza scorciatoia Alt+numero. Mostra i contatti salvati, una riga per persona con nome e numero; un contatto conservato con due indirizzi (il numero e l'ID del dispositivo collegato, oppure un numero brasiliano con e senza la nona cifra) è una sola riga. "Cerca contatti" filtra per nome o numero. I pulsanti e il menu contestuale (tasto Applicazione o Shift+F10) aprono la conversazione, avviano una chiamata vocale o una videochiamata, mostrano i "Dettagli del contatto", eliminano il contatto o lo bloccano e sbloccano; "Nuovo contatto" ne aggiunge uno. "Invio su un contatto" sceglie cosa fa Invio: aprire la conversazione, chiamare, videochiamare o mostrare i dettagli.
 
-- Chat: accanto a "Messaggi fissati", il nuovo pulsante "Messaggi con stella in questa chat" apre la finestra dei messaggi con stella (Alt+0) solo con i messaggi di quella chat, con il suo nome nel titolo; sceglierne uno sposta il focus sul messaggio nella chat già aperta, senza riaprirla.
+- Chat: le finestre "Informazioni chat" e "Info sul gruppo" hanno una nuova scheda "Messaggi con stella" dopo "Media", con i messaggi con stella di quella chat e un campo di ricerca; "Apri nella chat" (o Invio) sposta il focus sul messaggio nella chat, e "Rimuovi stella" (o Canc) gli toglie la stella.
 
 - Chiamate: una chat che è in una chiamata in corso, di gruppo o privata la cui chiamata è arrivata ad avere più persone, mostra ora "Unisciti alla chiamata vocale in corso" o "Unisciti alla chiamata in corso, fotocamera disattiva." al posto dei pulsanti di chiamata; finché questo dispositivo è nella chiamata con quella chat, il pulsante dice "Ritorna alla chiamata" e riporta la finestra della chiamata.
 

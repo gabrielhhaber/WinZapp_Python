@@ -8,7 +8,7 @@ NOVEDADES
 
 - Contactos: la lista de navegación incorpora "Contactos" después de Canales, sin atajo Alt+número. Muestra los contactos guardados, una fila por persona con nombre y número; un contacto guardado con dos direcciones (su número y su ID de dispositivo vinculado, o un número brasileño con y sin el noveno dígito) es una sola fila. "Buscar contactos" filtra por nombre o número. Los botones y el menú contextual (tecla Aplicaciones o Shift+F10) abren el chat, hacen una llamada de voz o una videollamada, muestran los "Datos del contacto", eliminan el contacto o lo bloquean y desbloquean; "Nuevo contacto" añade uno. "Enter en un contacto" elige lo que hace Enter: abrir el chat, llamar, videollamada o mostrar los datos.
 
-- Chat: junto a "Mensajes fijados", el nuevo botón "Mensajes destacados de este chat" abre la ventana de mensajes destacados (Alt+0) solo con los mensajes de ese chat, con su nombre en el título; elegir uno enfoca el mensaje en el chat ya abierto, sin reabrirlo.
+- Chat: las ventanas "Datos del chat" y "Datos del grupo" tienen una nueva pestaña "Mensajes destacados" después de "Multimedia", con los mensajes destacados de ese chat y un campo de búsqueda; "Abrir en el chat" (o Enter) enfoca el mensaje en el chat, y "Quitar destacado" (o Supr) le quita la estrella.
 
 - Llamadas: un chat que está en una llamada en curso, de grupo o privado cuya llamada pasó a tener varias personas, muestra ahora "Unirse a la llamada de voz en curso" o "Unirse a la videollamada en curso (cámara apagada)" en lugar de los botones de llamar; mientras este dispositivo está en la llamada con ese chat, el botón dice "Volver a la llamada" y trae de vuelta la ventana de la llamada.
 

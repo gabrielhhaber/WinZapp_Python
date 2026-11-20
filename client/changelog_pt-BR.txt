@@ -8,7 +8,7 @@ NOVIDADES
 
 - Contatos: a lista de navegação ganha "Contatos" depois de Canais, sem atalho Alt+número. Ela mostra os contatos salvos, uma linha por pessoa, com nome e número; um contato guardado com dois endereços (o número e o ID de dispositivo vinculado, ou um número brasileiro com e sem o 9º dígito) é uma linha só. "Pesquisar contatos" filtra por nome ou número. Os botões e o menu de contexto (tecla Aplicativos ou Shift+F10) abrem a conversa, fazem uma ligação de voz ou de vídeo, mostram os "Dados do contato", apagam o contato ou o bloqueiam e desbloqueiam; "Novo contato" adiciona um. "Enter em um contato" escolhe o que o Enter faz: abrir a conversa, ligar, ligar por vídeo ou mostrar os dados.
 
-- Conversa: ao lado de "Mensagens fixadas", o novo botão "Mensagens favoritas da conversa" abre a janela de mensagens favoritadas (Alt+0) só com as mensagens dessa conversa, com o nome dela no título; escolher uma foca a mensagem na conversa já aberta, sem reabri-la.
+- Conversa: as janelas "Dados da conversa" e "Dados do grupo" ganham a aba "Mensagens favoritas" depois de "Mídia", com as mensagens favoritadas dessa conversa e um campo de pesquisa; "Abrir na conversa" (ou Enter) foca a mensagem na conversa, e "Remover dos favoritos" (ou Delete) tira a estrela dela.
 
 - Ligações: uma conversa que está numa ligação em andamento, de grupo ou privada cuja ligação passou a ter várias pessoas, agora mostra "Entrar na ligação de voz em andamento" ou "Entrar na ligação de vídeo em andamento (câmera desligada)" no lugar dos botões de ligar; enquanto este dispositivo está na ligação com essa conversa, o botão diz "Voltar à ligação" e traz a janela da ligação de volta.
 
