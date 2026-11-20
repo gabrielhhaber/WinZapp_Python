@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_whatsapp_keeps_its_own_sounds_the_alerts_and_every_non_sound():
     for name in ("call_incoming.ogg", "MESSAGE_CURRENT.OGG", "alerts/Alert-01.ogg",
-                 "alerts\Alert-10.ogg", "default.pack.json", "typing.SOURCE.md"):
+                 r"alerts\Alert-10.ogg", "default.pack.json", "typing.SOURCE.md"):
         assert sel.is_whatsapp_original(name), name
     for name in ("message_sent.ogg", "startup.ogg", "typing.wav", "other/Alert-01.ogg"):
         assert not sel.is_whatsapp_original(name), name
@@ -53,9 +53,31 @@ def test_an_update_leaves_out_the_sounds_the_install_left_out(tmp_path):
     assert left == ["alerts/Alert-02.ogg", "call_ended.ogg", "default.pack.json"]
 
 
-def test_the_updater_prunes_only_for_a_whatsapp_only_install():
-    import inspect
+def _a_new_pack(source_dir):
+    default = source_dir / "sounds" / "default"
+    default.mkdir(parents=True)
+    for name in ("call_ended.ogg", "startup.ogg"):
+        (default / name).write_bytes(b"x")
+    return default
+
+
+def test_the_updater_prunes_the_new_pack_for_a_whatsapp_only_install(tmp_path):
     import updater
-    source = inspect.getsource(updater._run_batch_installer)
-    assert "keeps_only_whatsapp(install_dir)" in source
-    assert 'prune_to_whatsapp(os.path.join(source_dir, "sounds"))' in source
+    source, install = tmp_path / "new", tmp_path / "installed"
+    default = _a_new_pack(source)
+    (install / "sounds").mkdir(parents=True)
+    (install / sel.INSTALLED_SOUNDS_MARKER).write_text("whatsapp", encoding="utf-8")
+    kept_installed = install / "sounds" / "startup.ogg"
+    kept_installed.write_bytes(b"x")
+    assert updater._leave_out_unselected_sounds(str(source), str(install)) == 1
+    assert sorted(p.name for p in default.iterdir()) == ["call_ended.ogg"]
+    assert kept_installed.exists()
+
+
+def test_the_updater_deletes_nothing_without_the_marker(tmp_path):
+    import updater
+    source, install = tmp_path / "new", tmp_path / "installed"
+    default = _a_new_pack(source)
+    install.mkdir()
+    assert updater._leave_out_unselected_sounds(str(source), str(install)) == 0
+    assert len(list(default.iterdir())) == 2
