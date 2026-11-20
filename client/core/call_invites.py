@@ -126,17 +126,6 @@ def conversation_jids(chats, hidden=None):
             if _PERSON.fullmatch(_canonical(jid)) and not (hidden and hidden(jid))]
 
 
-def typed_number_jid(text) -> str:
-    """'digits@s.whatsapp.net' of a typed phone number (spaces, dashes,
-    parentheses and a leading + allowed), '' when it is not one: under 8 or
-    over 15 digits, or with letters."""
-    text = str(text or "").strip()
-    if not text or re.search(r"[^\d\s()+.\-]", text):
-        return ""
-    digits = re.sub(r"\D", "", text)
-    return f"{digits}@s.whatsapp.net" if 8 <= len(digits) <= 15 else ""
-
-
 def picked_people(rows, marks):
     """[(jid, name)] of the marked rows of every list, each person once."""
     out, seen = [], set()

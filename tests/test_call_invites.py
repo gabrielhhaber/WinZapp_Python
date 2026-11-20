@@ -156,14 +156,16 @@ def test_conversations_are_the_one_to_one_chats_saved_or_not():
     assert conversation_jids(chats, lambda jid: jid == "7@lid") == ["5511@s.whatsapp.net", "5522@c.us"]
 
 
-@pytest.mark.parametrize("text, jid", [
-    ("+55 (11) 99999-0000", "5511999990000@s.whatsapp.net"),
-    ("5511999990000", "5511999990000@s.whatsapp.net"),
-    ("1234567", ""), ("1234567890123456", ""), ("ana 5511999990000", ""), ("", ""),
+@pytest.mark.parametrize("text, dial, jid", [
+    ("+55 (11) 99999-0000", "51", "5511999990000@s.whatsapp.net"),
+    ("0055 11 99999-0000", "51", "5511999990000@s.whatsapp.net"),
+    ("999990000", "51", "51999990000@s.whatsapp.net"),       # the country picked is added
+    ("51 99999-0000", "55", "5551999990000@s.whatsapp.net"),  # Brazil's area code 51, not Peru
+    ("123", "", ""), ("ana 5511999990000", "55", ""), ("", "55", ""),
 ])
-def test_a_typed_phone_number_becomes_an_address(text, jid):
-    from core.call_invites import typed_number_jid
-    assert typed_number_jid(text) == jid
+def test_a_typed_phone_number_becomes_an_address(text, dial, jid):
+    from ui.dialogs.call_invite import typed_number_jid
+    assert typed_number_jid(text, dial) == jid
 
 
 def test_the_people_marked_in_both_lists_are_asked_once():
