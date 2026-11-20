@@ -23,6 +23,7 @@ import wx
 from app_paths import data_path
 from core.message_queue import PendingMessage
 from core.message_resend import RESEND_PATH_KEY
+from core.pending_timestamp import pending_send_timestamp
 from core.utils import encrypt
 from core.voice_stereo import STEREO_MIMETYPE
 from ui.conversation_panel.typing_row import append_message_row
@@ -49,15 +50,20 @@ class VoiceNrPendingMixin:
     def _nr_attempt_begin(self, local_id, remote_jid):
         """Take attempt authority for a kept-pending/handoff-produced
         note. Returns the attempt token, or None when the panel is dead
-        or an attempt is already live for this note. The token pins the
-        attempt's context (this panel, this conversation); both are
-        re-validated on the UI thread before any handoff."""
+        or an attempt is already live for this note — said aloud then, so
+        a second press is never a key that silently does nothing. The
+        token pins the attempt's context (this panel, this conversation);
+        both are re-validated on the UI thread before any handoff."""
         if getattr(self, "_nr_panel_dead", False):
             return None
         registry = getattr(self, "_nr_attempts", None)
         if registry is None:
             registry = self._nr_attempts = {}
         if local_id in registry:
+            logging.info("[noise_reduction] an action on this pending note "
+                         "is already in flight; ignoring the extra request")
+            mw = self.main_window
+            mw.output(mw.i18n.t("noise_reduction_retry_busy"), interrupt=True)
             return None
         token = uuid.uuid4().hex
         registry[local_id] = (token, remote_jid)
@@ -68,19 +74,32 @@ class VoiceNrPendingMixin:
         if registry is not None and registry.get(local_id, (None,))[0] == token:
             registry.pop(local_id, None)
 
-    def _nr_attempt_context_alive(self, local_id, token, remote_jid):
-        """UI-thread re-validation before touching widgets: the panel is
-        alive, THIS attempt is still the current one for the note, the
-        conversation did not switch, and the row is still there."""
+    def _nr_attempt_state(self, local_id, token, remote_jid):
+        """UI-thread re-validation before touching widgets.
+
+        "alive": the panel is alive, THIS attempt is still the current one
+        for the note, its conversation is open and the row is there.
+        "elsewhere": the same, except the user opened another conversation
+        meanwhile and the note's record still lives in its own chat — the
+        outcome is still worth saying, but no row may be touched.
+        "dead": panel destroyed, attempt superseded, or the note deleted.
+        """
         if getattr(self, "_nr_panel_dead", False):
-            return False
+            return "dead"
         registry = getattr(self, "_nr_attempts", None)
         if registry is None or registry.get(local_id, (None,))[0] != token:
-            return False
-        conversation = getattr(self, "conversation", None) or {}
-        if conversation.get("remoteJid") and                 conversation.get("remoteJid") != remote_jid:
-            return False
-        return self._nr_pending_row_alive(local_id)
+            return "dead"
+        mw = self.main_window
+        open_jid = (getattr(self, "conversation", None) or {}).get("remoteJid")
+        # An @lid row in a chat stored under its phone JID is the same
+        # conversation: a raw string compare took it for a switch.
+        if open_jid and not mw._chat_jids_equivalent(open_jid, remote_jid):
+            chat = mw.get_chat(remote_jid)
+            return "elsewhere" if self._record_position(chat, local_id) >= 0 else "dead"
+        return "alive" if self._nr_pending_row_alive(local_id) else "dead"
+
+    def _nr_attempt_context_alive(self, local_id, token, remote_jid):
+        return self._nr_attempt_state(local_id, token, remote_jid) == "alive"
 
     def _nr_invalidate_attempts(self):
         """Panel destroy / teardown: every live attempt loses its
@@ -93,16 +112,48 @@ class VoiceNrPendingMixin:
             registry.clear()
 
     def _nr_pending_announce(self, local_id, token, remote_jid, key):
-        """End the attempt and announce — only when the attempt's
-        context is still alive on the UI thread (where deletions run)."""
+        """End the attempt and announce — unless the note was deleted or
+        the panel died meanwhile (checked on the UI thread, where
+        deletions run). A note whose chat is no longer open is still
+        announced: the outcome is about a note the user acted on."""
         mw = self.main_window
 
         def _do():
-            alive = self._nr_attempt_context_alive(local_id, token, remote_jid)
+            state = self._nr_attempt_state(local_id, token, remote_jid)
             self._nr_attempt_end(local_id, token)
-            if alive:
+            if state != "dead":
                 mw.output(mw.i18n.t(key), interrupt=True)
         wx.CallAfter(_do)
+
+    @staticmethod
+    def _nr_note_id(msg):
+        """The id a kept-pending or handoff-produced row is tracked under."""
+        return str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+
+    @staticmethod
+    def _stage_temp_wav(data, rate, channels):
+        """Worker: write *data* to a new temp WAV. Returns its path, or None
+        when it could not be written — no partial file is left behind."""
+        tmp_name = None
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            tmp_name = tmp.name
+            tmp.close()
+            with wave.open(tmp_name, "wb") as wf:
+                wf.setnchannels(channels)
+                wf.setsampwidth(2)
+                wf.setframerate(rate)
+                wf.writeframes(data)
+            return tmp_name
+        except Exception as exc:
+            logging.error("[noise_reduction] could not stage the pending "
+                          "voice note: %s", exc)
+            if tmp_name is not None:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+            return None
 
     def _read_nr_pending(self, msg, path):
         """Fingerprint-checked read of a kept-pending WAV.
@@ -162,7 +213,7 @@ class VoiceNrPendingMixin:
         the valid kept original.
         """
         mw = self.main_window
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+        local_id = self._nr_note_id(msg)
         # Encode off the UI thread exactly like the recording path.
         ogg_bytes = None
         voice_mimetype = ""
@@ -269,11 +320,17 @@ class VoiceNrPendingMixin:
 
         def _dispatch():
             # UI thread. The attempt's context must still be alive: a
-            # deleted row, a destroyed panel or a switched conversation
-            # ends the attempt quietly and the staged artifacts die here.
-            if not self._nr_attempt_context_alive(local_id, token, remote_jid):
+            # deleted row or a destroyed panel ends the attempt quietly and
+            # the staged artifacts die here. A switched conversation ends
+            # it too (the new row would land in the wrong chat), but the
+            # user is told the note stayed pending in its own chat.
+            state = self._nr_attempt_state(local_id, token, remote_jid)
+            if state != "alive":
                 self._nr_attempt_end(local_id, token)
                 _cleanup_artifacts()
+                if state == "elsewhere":
+                    mw.output(mw.i18n.t("noise_reduction_retry_chat_changed"),
+                              interrupt=True)
                 return
             new_msg = {
                 "_local_pending": True,
@@ -293,7 +350,8 @@ class VoiceNrPendingMixin:
                     **({"mimetype": "audio/mp4",
                         "fileName": new_local_id + ".m4a"}
                        if channels >= 2 else {})}},
-                "messageTimestamp": int(time.time()),
+                "messageTimestamp": pending_send_timestamp(
+                    time.time(), self._sorted_messages, quoted),
                 "pushName": "",
                 RESEND_PATH_KEY: persisted,
             }
@@ -390,12 +448,12 @@ class VoiceNrPendingMixin:
           session); no new destination surface.
         """
         mw = self.main_window
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+        local_id = self._nr_note_id(msg)
         token = self._nr_attempt_begin(local_id, remote_jid)
         if token is None:
-            logging.info("[noise_reduction] an action on this pending note "
-                         "is already in flight; ignoring the extra request")
             return
+        # The reduction can take a while: say it started.
+        mw.output(mw.i18n.t("noise_reduction_retry_started"), interrupt=True)
 
         def _work():
             controller = getattr(mw, "_incremental_controller", None)
@@ -434,26 +492,8 @@ class VoiceNrPendingMixin:
                 # reservation ends here, before staging/handoff.
                 if reserved:
                     controller.release_offline(local_id)
-            tmp_name = None
-            try:
-                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-                tmp_name = tmp.name
-                tmp.close()
-                with wave.open(tmp_name, "wb") as wf:
-                    wf.setnchannels(channels)
-                    wf.setsampwidth(2)
-                    wf.setframerate(rate)
-                    wf.writeframes(data)
-            except Exception as exc:
-                logging.error("[noise_reduction] could not write the processed "
-                              "retry: %s", exc)
-                # No partial staging artifact left behind (review 18:47,
-                # contract 5).
-                if tmp_name is not None:
-                    try:
-                        os.unlink(tmp_name)
-                    except OSError:
-                        pass
+            tmp_name = self._stage_temp_wav(data, rate, channels)
+            if tmp_name is None:
                 self._nr_pending_announce(local_id, token, remote_jid,
                                           "noise_reduction_kept_pending")
                 return
@@ -478,24 +518,8 @@ class VoiceNrPendingMixin:
                 self._nr_pending_announce(local_id, token, remote_jid,
                                           "resend_not_available")
                 return
-            tmp_name = None
-            try:
-                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-                tmp_name = tmp.name
-                tmp.close()
-                with wave.open(tmp_name, "wb") as wf:
-                    wf.setnchannels(channels)
-                    wf.setsampwidth(2)
-                    wf.setframerate(rate)
-                    wf.writeframes(data)
-            except Exception as exc:
-                logging.error("[noise_reduction] could not stage the pending "
-                              "voice send: %s", exc)
-                if tmp_name is not None:
-                    try:
-                        os.unlink(tmp_name)
-                    except OSError:
-                        pass
+            tmp_name = self._stage_temp_wav(data, rate, channels)
+            if tmp_name is None:
                 self._nr_pending_announce(local_id, token, remote_jid, fail_key)
                 return
             self._nr_pending_handoff(msg, remote_jid, tmp_name,
@@ -514,11 +538,9 @@ class VoiceNrPendingMixin:
         reprocessing retry. No model is touched, so the incremental slot
         does not gate this path.
         """
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+        local_id = self._nr_note_id(msg)
         token = self._nr_attempt_begin(local_id, remote_jid)
         if token is None:
-            logging.info("[noise_reduction] an action on this pending note "
-                         "is already in flight; ignoring the extra request")
             return
         self._stage_pending_and_handoff(msg, remote_jid, path, local_id,
                                         token, "noise_reduction_kept_pending")
@@ -530,11 +552,9 @@ class VoiceNrPendingMixin:
         re-reduced and never through the generic attachment path (review
         18:47, contract 4). Same per-note attempt authority and handoff
         as every other fourth-option action."""
-        local_id = str(msg.get("_local_id") or (msg.get("key") or {}).get("id") or "")
+        local_id = self._nr_note_id(msg)
         token = self._nr_attempt_begin(local_id, remote_jid)
         if token is None:
-            logging.info("[noise_reduction] an action on this note is "
-                         "already in flight; ignoring the extra request")
             return
         self._stage_pending_and_handoff(msg, remote_jid, path, local_id,
                                         token, "resend_not_available")

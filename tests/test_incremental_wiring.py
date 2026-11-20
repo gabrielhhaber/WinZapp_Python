@@ -501,6 +501,9 @@ class _FakeQueue:
         return False
 
 
+_JID_ALIASES = [{"peer@s.whatsapp.net", "123@lid"}]
+
+
 class _FakeSendMW:
     def __init__(self, controller):
         self.settings = {"general": {"noise_reduction_enabled": True,
@@ -521,6 +524,12 @@ class _FakeSendMW:
 
     def get_chat(self, jid):
         return self.chats.get(jid)
+
+    @staticmethod
+    def _chat_jids_equivalent(left, right):
+        # The real one also bridges @lid and phone forms; tests that need
+        # that set an explicit alias pair here.
+        return left == right or {left, right} in _JID_ALIASES
 
     def _schedule_save(self, dirty_jid=None):
         self.saved.append(dirty_jid)
@@ -2338,12 +2347,27 @@ def test_send_after_switching_to_send_moment_goes_offline(send_env, monkeypatch)
 # sending it gated or unprocessed. Never retried automatically. ---
 
 
+def _announcer(mw):
+    """mw.output recording what is said. "Processing again" (said when a
+    retry starts) goes to mw.retry_started, so each test's list holds the
+    outcome alone; test_double_retry_runs_a_single_attempt
+    checks the start itself."""
+    announced = []
+    mw.retry_started = []
+
+    def _output(msg, **k):
+        if msg == "noise_reduction_retry_started":
+            mw.retry_started.append(msg)
+        else:
+            announced.append(msg)
+    mw.output = _output
+    return announced
+
+
 def _keep_pending_mw(controller):
     mw = _FakeSendMW(controller)
     mw.settings["general"]["voice_nr_on_failure"] = "keep_pending"
-    announced = []
-    mw.output = lambda msg, **k: announced.append(msg)
-    return mw, announced
+    return mw, _announcer(mw)
 
 
 def _drive_wx_calls():
@@ -2703,6 +2727,10 @@ def _kept_note(send_env, raw, local_id="m9"):
 class _RetryPanel:
     """Fake panel for the REAL _retry_nr_pending (voice-note handoff)."""
 
+    _nr_note_id = staticmethod(vnp.VoiceNrPendingMixin._nr_note_id)
+    _stage_temp_wav = staticmethod(vnp.VoiceNrPendingMixin._stage_temp_wav)
+    _record_position = staticmethod(ma.MessageActionsMixin._record_position)
+
     def __init__(self, mw, row=None):
         self.main_window = mw
         self.removed = []
@@ -2711,6 +2739,7 @@ class _RetryPanel:
         self._sorted_messages = [row] if row is not None else []
         for _name in ("_nr_pending_row_alive", "_nr_attempt_begin",
                       "_nr_attempt_end", "_nr_attempt_context_alive",
+                      "_nr_attempt_state",
                       "_nr_invalidate_attempts", "_nr_pending_announce",
                       "_read_nr_pending", "_nr_pending_handoff",
                       "_stage_pending_and_handoff"):
@@ -2745,8 +2774,7 @@ class _RetryPanel:
 
 def _retry_mw(controller):
     mw = _FakeSendMW(controller)
-    announced = []
-    mw.output = lambda msg, **k: announced.append(msg)
+    announced = _announcer(mw)
     mw._schedule_set_chats = lambda: None
     return mw, announced
 
@@ -2884,11 +2912,15 @@ def test_double_retry_runs_a_single_attempt(send_env, monkeypatch):
         panel, msg, "peer@s.whatsapp.net", kept)
     vnp.VoiceNrPendingMixin._retry_nr_pending(
         panel, msg, "peer@s.whatsapp.net", kept)  # ignored: attempt in flight
+    # The ignored press is said at once, not a key that does nothing; only
+    # the first press said it started processing.
+    assert announced == ["noise_reduction_retry_busy"]
+    assert mw.retry_started == ["noise_reduction_retry_started"]
     gate.set()
     _wait_wx_calls()
     _drive_wx_calls()
     assert len(mw.message_queue.enqueued) == 1
-    assert announced == ["resend_started"]
+    assert announced == ["noise_reduction_retry_busy", "resend_started"]
     assert not getattr(panel, "_nr_attempts", {})
     os.unlink(mw.message_queue.enqueued[0].audio_path)
 
@@ -3266,6 +3298,85 @@ def test_retry_sends_nothing_when_row_deleted_mid_processing(send_env, monkeypat
     assert sorted(os.listdir(send_env / "voice_messages")) == \
         [os.path.basename(kept)]
     assert not getattr(panel, "_nr_attempts", {})
+
+
+def test_retry_finishing_after_a_chat_switch_says_the_note_stayed_pending(
+        send_env, monkeypatch):
+    # The retry's result arrives after the user opened another chat: the new
+    # row would land in the wrong list, so nothing is sent — but the user is
+    # told, instead of the result vanishing in silence.
+    import core.neural_noise_reduction as nnr
+    gate = threading.Event()
+
+    def _slow(data, rate, ch):
+        gate.wait(10)
+        return bytes(reversed(data)), "neural"
+
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _slow)
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    msg, kept = _kept_note(send_env, b"78" * 480)
+    mw.chats["peer@s.whatsapp.net"] = {
+        "messages": {"messages": {"records": [msg]}}}
+    panel = _RetryPanel(mw, row=msg)
+    panel.conversation = {"remoteJid": "peer@s.whatsapp.net"}
+    WX_CALLS.clear()
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    panel.conversation = {"remoteJid": "other@s.whatsapp.net"}
+    panel._sorted_messages = []
+    gate.set()
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert mw.message_queue.enqueued == []
+    assert announced == ["noise_reduction_retry_chat_changed"]
+    assert sorted(os.listdir(send_env / "voice_messages")) ==         [os.path.basename(kept)]
+    assert not getattr(panel, "_nr_attempts", {})
+
+
+def test_retry_of_an_lid_row_in_its_phone_chat_is_not_a_chat_switch(
+        send_env, monkeypatch):
+    # The chat is stored under the phone JID while the row's key carries the
+    # @lid: the same conversation, so the processed note is sent.
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    mw, announced = _retry_mw(controller)
+    msg, kept = _kept_note(send_env, b"9:" * 480)
+    msg["key"]["remoteJid"] = "123@lid"
+    panel = _RetryPanel(mw, row=msg)
+    panel.conversation = {"remoteJid": "peer@s.whatsapp.net"}
+    WX_CALLS.clear()
+    vnp.VoiceNrPendingMixin._retry_nr_pending(panel, msg, "123@lid", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert len(mw.message_queue.enqueued) == 1
+    assert announced == ["resend_started"]
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
+
+
+def test_handoff_row_is_stamped_no_older_than_the_rows_on_screen(
+        send_env, monkeypatch):
+    # The PC clock may run behind the server: the new row takes the newest
+    # server stamp on screen, as every other pending send does.
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(nnr, "reduce_voice_noise",
+                        lambda data, rate, ch: (bytes(reversed(data)), "neural"))
+    controller = IncrementalDenoiseController()
+    mw, _announced = _retry_mw(controller)
+    msg, kept = _kept_note(send_env, b";<" * 480)
+    panel = _RetryPanel(mw, row=msg)
+    future = int(time.time()) + 3600
+    panel._sorted_messages.insert(0, {"key": {"id": "srv"},
+                                      "messageTimestamp": future})
+    WX_CALLS.clear()
+    vnp.VoiceNrPendingMixin._retry_nr_pending(
+        panel, msg, "peer@s.whatsapp.net", kept)
+    _wait_wx_calls()
+    _drive_wx_calls()
+    assert panel.registered[0]["messageTimestamp"] == future
+    os.unlink(mw.message_queue.enqueued[0].audio_path)
 
 
 def test_retry_unreadable_file_stays_silent_when_row_already_gone(send_env, monkeypatch):
