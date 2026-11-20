@@ -19,24 +19,36 @@ from app_paths import data_path
 from core.message_resend import RESEND_PATH_KEY
 from core.utils import encrypt
 from core.voice_nr_options import voice_nr_engine, voice_nr_on_failure
+from core.voice_nr_send_plan import plan_after_reservation, plan_send_reduction
+
+
+def _neural_model_installed():
+    """The file reduce_voice_noise loads; without it the neural engine can
+    only fall back to the gate."""
+    from core.neural_noise_reduction import model_path
+    return os.path.isfile(model_path())
 
 
 class VoiceNrSendMixin:
     """Send-time noise reduction of a recorded voice note."""
 
     def _reduce_for_send(self, mw, audio_data, rate, channels, basic_only,
-                         on_failure="basic"):
+                         on_failure="basic", announce_fallback=True):
         """Noise-reduction step of the send path.
 
-        basic_only=True means the incremental slot was occupied (the model
-        busy with the previous note) when this note was recorded: go
-        STRAIGHT to the existing basic gate — no waiting and no second
-        ONNX engine while the slot is occupied. basic_only=False is the
-        published path unchanged: the neural model with the existing gate
-        fallback inside reduce_voice_noise. If the chosen engine fails the
-        note goes out unprocessed with the published announcement — there
-        is no further escalation step. Returns (audio_data, engine) with
-        engine None when both failed.
+        basic_only=True goes STRAIGHT to the existing basic gate — the
+        engine the user chose, a missing model, or the incremental slot
+        occupied when this note was recorded (no waiting and no second
+        ONNX engine). basic_only=False is the published path unchanged:
+        the neural model with the existing gate fallback inside
+        reduce_voice_noise. If the chosen engine fails the note goes out
+        unprocessed with the published announcement — there is no further
+        escalation step. Returns (audio_data, engine) with engine None
+        when both failed.
+
+        announce_fallback=False (the basic engine chosen on purpose) keeps
+        the gate result quiet, as published: "neural could not be used" is
+        only true for a user who wanted the neural model.
 
         on_failure="keep_pending" (the user's choice, only meaningful with
         basic_only=False) changes none of the processing — only the
@@ -47,8 +59,7 @@ class VoiceNrSendMixin:
         keep_pending = on_failure == "keep_pending" and not basic_only
         try:
             if basic_only:
-                logging.info("[VOICE_TIMING] Applying the basic noise gate "
-                             "(incremental slot was occupied)...")
+                logging.info("[VOICE_TIMING] Applying the basic noise gate...")
                 from core.audio_processing import apply_noise_gate
                 audio_data = apply_noise_gate(audio_data, rate, channels, strict=True)
                 engine = "gate"
@@ -57,7 +68,7 @@ class VoiceNrSendMixin:
                 from core.neural_noise_reduction import reduce_voice_noise
                 audio_data, engine = reduce_voice_noise(audio_data, rate, channels)
             logging.info("[VOICE_TIMING] Noise reduction engine: %s", engine)
-            if engine != "neural" and not keep_pending:
+            if engine != "neural" and not keep_pending and announce_fallback:
                 # Never let the plain gate pass for the neural model.
                 announce = getattr(mw, "output", None)
                 if announce is not None:
@@ -80,67 +91,37 @@ class VoiceNrSendMixin:
         pending. Returns ``(True, audio)`` to go on with the send, or
         ``(False, None)`` when the note stays pending (or was revoked
         meanwhile) and the send stops here; *forget* drops the note's
-        send-authority entry on the way out."""
+        send-authority entry on the way out. What may run is decided by
+        core/voice_nr_send_plan.py."""
         mw = self.main_window
-        # Chosen-basic and temporarily-impossible-neural are NOT
-        # the same state (review 18:28, contract 1): the gate is
-        # the published fallback for both, but keep_pending only
-        # exists for a user who chose NEURAL — a basic engine chosen
-        # on purpose sends gated exactly as published.
-        chosen_basic = voice_nr_engine(mw.settings) == "basic"
-        session_blocked = inc_session is not None and (
-            inc_session.get("basic_only", False)
-            or inc_session.get("model_unavailable", False)
-            or inc_session.get("fallback_chosen", False))
-        on_failure = voice_nr_on_failure(mw.settings)
-        want_pending = on_failure == "keep_pending" and not chosen_basic
-        # No second ONNX next to a live native session: with
-        # keep_pending, when the incremental side could not clean
-        # this note and its model may still be loaded (load failed,
-        # finish timed out, or the slot busy at record is STILL
-        # busy), the send does NOT run the offline reduction — the
-        # raw note goes straight to pending. A slot freed meanwhile
-        # makes the posterior pass possible; if even that is not
-        # neural, the note stays pending.
-        skip_posterior = want_pending and inc_session is not None and (
-            inc_session.get("model_unavailable", False)
-            or inc_session.get("fallback_chosen", False)
-            or (inc_session.get("basic_only", False)
-                and controller is not None and controller.slot_busy()))
-        raw_unprocessed = audio_data if want_pending else None
-        reduce_basic_only = chosen_basic or (session_blocked and not want_pending)
-        offline_reserved = False
-        if (inc_session is not None and controller is not None
-                and inc_session.get("worker") is None
-                and drain_thread is None
-                and not inc_session.get("basic_only", False)
-                and not inc_session.get("model_unavailable", False)
-                and not inc_session.get("fallback_chosen", False)):
+        engine = voice_nr_engine(mw.settings)
+        plan = plan_send_reduction(
+            engine=engine,
+            on_failure=voice_nr_on_failure(mw.settings),
+            model_installed=engine == "basic" or _neural_model_installed(),
+            session=inc_session,
+            drain_started=drain_thread is not None,
+            has_controller=controller is not None,
+            slot_busy=controller is not None and controller.slot_busy())
+        raw_unprocessed = audio_data if plan.want_pending else None
+        if plan.release_own_slot:
             # moment=send from the start: this session NEVER started
-            # incremental work, so no private model can be loaded and
-            # the slot it holds is only send-side authority. The
-            # caller confirms the cleanup HERE and releases its own
-            # slot, so the reservation below stays a pure exclusion
-            # (review 19:07: caller + confirmed cleanup, NEVER ID
-            # equality alone — a retained slot after a native timeout
-            # means the private model may still be alive).
+            # incremental work, so no private model can be loaded and the
+            # slot it holds is only send-side authority. The caller
+            # confirms the cleanup HERE and releases its own slot, so the
+            # reservation below stays a pure exclusion (review 19:07:
+            # caller + confirmed cleanup, NEVER ID equality alone — a
+            # retained slot after a native timeout means the private model
+            # may still be alive).
             controller.release_slot(local_id)
-        if not skip_posterior and not reduce_basic_only \
-                and controller is not None:
-            # The NORMAL offline pass takes the same reservation as
-            # the retry (review 18:59, residual 1): while it loads /
-            # runs the singleton, no capture starts a private model
-            # next to it (acquire_slot refuses), and a capture
-            # already holding the slot makes THIS note take the
-            # occupied policy — published
-            # gate, or pending when the user chose keep_pending.
-            if controller.try_reserve_offline(local_id):
-                offline_reserved = True
-            elif want_pending:
-                skip_posterior = True
-            else:
-                reduce_basic_only = True
-        if skip_posterior:
+        offline_reserved = False
+        if plan.reserve_offline:
+            # The NORMAL offline pass takes the same reservation as the
+            # retry (review 18:59, residual 1): while it loads / runs the
+            # singleton, no capture starts a private model next to it.
+            offline_reserved = controller.try_reserve_offline(local_id)
+            plan = plan_after_reservation(plan, offline_reserved)
+        if plan.skip_posterior:
             _nr_engine = None
             logging.info("[noise_reduction] exclusion busy (native "
                          "session may still hold its model or another "
@@ -148,9 +129,9 @@ class VoiceNrSendMixin:
         else:
             try:
                 audio_data, _nr_engine = self._reduce_for_send(
-                    mw, audio_data, actual_rate, channels,
-                    reduce_basic_only,
-                    on_failure=on_failure)
+                    mw, audio_data, actual_rate, channels, plan.basic_only,
+                    on_failure="keep_pending" if plan.want_pending else "basic",
+                    announce_fallback=plan.announce_fallback)
             finally:
                 if offline_reserved:
                     controller.release_offline(local_id)

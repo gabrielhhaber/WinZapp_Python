@@ -616,6 +616,9 @@ def send_env(monkeypatch, tmp_path):
     monkeypatch.setattr(vr, "message_row_count", lambda panel: 1)
     for _module in (vr, vns, vnp):
         monkeypatch.setattr(_module, "data_path", lambda name: str(tmp_path / name))
+    # reduce_voice_noise is stubbed per test; the model "is there" unless a
+    # test says otherwise.
+    monkeypatch.setattr(vns, "_neural_model_installed", lambda: True)
     os.makedirs(tmp_path / "voice_messages", exist_ok=True)
     return tmp_path
 
@@ -2451,6 +2454,49 @@ def test_send_kept_pending_when_neural_returns_gate_result(send_env, monkeypatch
     _drive_wx_calls()
     assert panel.failed == [panel.registered["_local_id"]]
     assert announced == ["noise_reduction_kept_pending"]
+
+
+def test_send_without_the_model_takes_the_announced_gate_not_pending(
+        send_env, monkeypatch):
+    # Neural chosen, keep-pending on, but the model was never downloaded:
+    # the published fallback (gate, announced) — never every note pending
+    # until a download nobody started.
+    import core.audio_processing as ap
+    import core.neural_noise_reduction as nnr
+    monkeypatch.setattr(vns, "_neural_model_installed", lambda: False)
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: bytes(reversed(data)))
+    monkeypatch.setattr(nnr, "reduce_voice_noise", _no_neural)
+    controller = IncrementalDenoiseController()
+    frames = [b"GH" * 480]
+    raw = b"".join(frames)
+    mw, _ = _keep_pending_mw(controller)
+    said = []
+    mw.output = said.append
+    panel = _SendPanel(mw, frames, None)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    assert _wav_payload(mw.message_queue.enqueued[0].audio_path) == bytes(reversed(raw))
+    assert [a for fn, a, k in WX_CALLS if fn == mw.output] == [("noise_reduction_fallback",)]
+
+
+def test_send_with_the_basic_engine_chosen_says_nothing_about_neural(
+        send_env, monkeypatch):
+    # The published path only said "neural could not be used" to a user who
+    # wanted the neural model.
+    import core.audio_processing as ap
+    monkeypatch.setattr(ap, "apply_noise_gate",
+                        lambda data, rate, ch, **kw: data)
+    controller = IncrementalDenoiseController()
+    frames = [b"IJ" * 480]
+    mw = _FakeSendMW(controller)
+    mw.settings["general"]["noise_reduction_neural"] = False
+    panel = _SendPanel(mw, frames, None)
+    WX_CALLS.clear()
+    vr.VoiceRecordingMixin._send_voice_message(panel, None)
+    assert mw.message_queue.event.wait(10)
+    assert not [a for fn, a, k in WX_CALLS if fn == mw.output]
 
 
 def test_send_basic_engine_still_sends_with_keep_pending_option(send_env, monkeypatch):
