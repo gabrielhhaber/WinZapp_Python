@@ -15,10 +15,10 @@ entries whatsmeow has no event for (labels and lists, status privacy).
  3 files changed, 33 insertions(+), 2 deletions(-)
 
 diff --git a/appstate.go b/appstate.go
-index 3cb31ba..9a4011d 100644
+index a10a4ac..f932861 100644
 --- a/appstate.go
 +++ b/appstate.go
-@@ -190,6 +190,20 @@ func (cli *Client) collectEventsToDispatch(
+@@ -201,6 +201,20 @@ func (cli *Client) collectEventsToDispatch(
  		if eventsToDispatch != nil && mutation.Operation == waServerSync.SyncdMutation_SET {
  			*eventsToDispatch = append(*eventsToDispatch, &events.AppState{Index: mutation.Index, SyncActionValue: mutation.Action})
  		}
@@ -40,7 +40,7 @@ index 3cb31ba..9a4011d 100644
  		if eventsToDispatch != nil && evt != nil {
  			*eventsToDispatch = append(*eventsToDispatch, evt)
 diff --git a/appstate/encode.go b/appstate/encode.go
-index c101a55..a09d4b2 100644
+index 88a4110..24fe4fc 100644
 --- a/appstate/encode.go
 +++ b/appstate/encode.go
 @@ -24,6 +24,9 @@ type MutationInfo struct {
@@ -69,7 +69,7 @@ index c101a55..a09d4b2 100644
  				Index: &waServerSync.SyncdIndex{Blob: indexMac},
  				Value: &waServerSync.SyncdValue{Blob: append(encryptedContent, valueMac...)},
 diff --git a/types/events/appstate.go b/types/events/appstate.go
-index 2b58517..3c0b83b 100644
+index e78067b..94193e7 100644
 --- a/types/events/appstate.go
 +++ b/types/events/appstate.go
 @@ -191,6 +191,19 @@ type AppState struct {

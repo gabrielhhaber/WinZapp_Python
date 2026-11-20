@@ -13,10 +13,10 @@ type="product_list"/></biz>; WhatsApp Web puts native_flow_name on each
  2 files changed, 40 insertions(+), 4 deletions(-)
 
 diff --git a/send.go b/send.go
-index 8526bbc..5791c69 100644
+index d76976d..eaafaf7 100644
 --- a/send.go
 +++ b/send.go
-@@ -1026,10 +1026,10 @@ func getButtonAttributes(msg *waE2E.Message) waBinary.Attrs {
+@@ -1043,10 +1043,10 @@ func getButtonAttributes(msg *waE2E.Message) waBinary.Attrs {
  	case msg.TemplateMessage != nil:
  		return waBinary.Attrs{}
  	case msg.ListMessage != nil:
@@ -31,7 +31,7 @@ index 8526bbc..5791c69 100644
  	default:
  		return waBinary.Attrs{}
  	}
-@@ -1238,6 +1238,13 @@ func getNativeFlowBizNode(msg *waE2E.Message) *waBinary.Node {
+@@ -1255,6 +1255,13 @@ func getNativeFlowBizNode(msg *waE2E.Message) *waBinary.Node {
  	}
  }
  
@@ -45,7 +45,7 @@ index 8526bbc..5791c69 100644
  // nativeFlowAttrs are the attributes of <native_flow>: payment info keeps its
  // name; every other flow, reply and action buttons included, goes as
  // v="9" name="mixed", which is what wa-js (WPPConnect) sends and phones show
-@@ -1294,6 +1301,9 @@ func (cli *Client) prepareMessageNode(
+@@ -1311,6 +1318,9 @@ func (cli *Client) prepareMessageNode(
  		attrs["edit"] = string(editAttr)
  		encAttrs["decrypt-fail"] = string(events.DecryptFailHide)
  	}

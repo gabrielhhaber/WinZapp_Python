@@ -312,7 +312,8 @@ NOVEDADES
 
 - Llamadas: ahora puedes añadir personas a la llamada en curso, con el botón "Añadir participantes" de la lista de participantes de la llamada. En una llamada de grupo aparecen los miembros del grupo que aún no están en ella; en una llamada privada, tus contactos, y la llamada pasa a tener varias personas, como en WhatsApp. A quien ya se llamó y aún no entró se le vuelve a llamar. Funciona con WPPConnect y con Neonize.
 
-- El motor experimental Neonize se actualizó de la versión 0.6.0 a la 0.10.0. Un chat eliminado en el teléfono ahora también desaparece de WinZapp, y marcar un chat como leído o no leído en el teléfono vuelve a actualizar el contador de no leídos.
+- El motor experimental Neonize se actualizó de la versión 0.6.0 a la 0.12.4. Un chat eliminado en el teléfono ahora también desaparece de WinZapp, y marcar un chat como leído o no leído en el teléfono vuelve a actualizar el contador de no leídos. La información (estado) de un contacto ahora se actualiza en cuanto la persona la cambia.
+- Neonize: las reacciones en los grupos de avisos de comunidades, que llegan cifradas, ahora aparecen, y las tuyas se envían cifradas en esos grupos. Los comentarios de los avisos ahora los abre y los envía el propio motor, con el método anterior como respaldo.
 
 - WPPConnect Server actualizado a la 2.10.78, que deja de servir por HTTP la caché privada de multimedia.
 

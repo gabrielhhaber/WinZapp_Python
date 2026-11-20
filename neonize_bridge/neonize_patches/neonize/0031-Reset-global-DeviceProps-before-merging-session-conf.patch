@@ -123,10 +123,10 @@ index 0000000..d1b2f19
 +	}
 +}
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 649c89d..655a5e2 100644
+index 0c4dd51..3faa3f9 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -688,7 +688,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -696,7 +696,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  	if err_device != nil {
  		return C.CString(err_device.Error())
  	}

@@ -32,6 +32,7 @@ import calls
 import session_lifecycle
 import video_message
 import comments
+import enc_secrets
 import comment_routes
 import inputs
 import legacy_layout
@@ -285,8 +286,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
     def _reaction_received(self, chat, o, e):
         """True if the message was a reaction (stores it and tells the app)."""
         data = msgmap.reaction(e.Message)
+        reaction_timestamp = 0
         if data is None:
-            return False
+            # a reaction in a community's announcements group is encrypted
+            opened = enc_secrets.open_reaction(self.client, e)
+            if opened is None:
+                return False
+            data, reaction_timestamp = opened[:4], opened[4]
+        else:
+            reaction_timestamp = msgmap.unwrap(e.Message).reactionMessage.senderTimestampMS
         target_id, emoji, key_from_me, participant = data
         chat_w = msgmap.jid_wpp(chat)
         group = chat_w.endswith("@g.us")
@@ -297,7 +305,6 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self.db.react(target_id, who, emoji, ts)
         target_serial = self.target_serial(chat_w, group, target_id, i_reacted,
                                            key_from_me, participant)
-        reaction_timestamp = msgmap.unwrap(e.Message).reactionMessage.senderTimestampMS
         self.emit("onreactionmessage", socket_events.reaction_message(
             self.name, chat_w, e.Info.ID, i_reacted, sender_w, target_serial,
             emoji, reaction_timestamp or e.Info.Timestamp,
@@ -618,12 +625,36 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         try:
             msg = self.client.build_reaction(
                 build_jid(cu, csrv), build_jid(au.split(":")[0], asrv), mid, emoji)
+            if self.is_known_announcement(conversation):
+                # in a community's announcements group the reaction goes encrypted
+                msg = self.encrypted_reaction(msg, conversation, author_jid, from_me, mid) or msg
             self.client.send_message(build_jid(cu, csrv), msg)
         except Exception:
             log.exception("react")
             return False
         self.db.react(mid, "me", emoji, int(time.time()))
         return True
+
+    def is_known_announcement(self, group):
+        """True when WhatsApp said, within the last minutes, that `group` is a
+        community's announcements group (comment_routes keeps the answer)."""
+        stored = self.__dict__.get("_community_announcements", {}).get(group)
+        return bool(stored and stored[0] and stored[1] > time.monotonic())
+
+    def encrypted_reaction(self, msg, conversation, author, from_me, mid):
+        """`msg` (a plain reaction) as an encrypted one, or None to send it plain."""
+        if not hasattr(self.client, "encrypt_reaction") or not msg.HasField("reactionMessage"):
+            return None
+        # whatsmeow looks the secret up under the sender as it stored it: an own
+        # message may be stored under the account's LID or its number
+        senders = [x for x in (getattr(self, "lid", ""), self.me) if x] if from_me else [author]
+        for sender in senders:
+            info = enc_secrets.root_info(conversation, sender, from_me, mid)
+            sealed = enc_secrets.seal_reaction(self.client, info, msg.reactionMessage.__class__.FromString(
+                msg.reactionMessage.SerializeToString()))
+            if sealed is not None:
+                return sealed
+        return None
 
     def reactions_wpp(self, serial):
         """Response of GET /reactions/<id>: grouped by emoji, in WPPConnect's

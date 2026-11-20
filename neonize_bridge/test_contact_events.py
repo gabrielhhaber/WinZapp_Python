@@ -199,7 +199,7 @@ class _AddressBookSession(_Session):
 def _bind_winzapp_build(monkeypatch, tmp_path):
     from store import Store
     events = types.ModuleType("neonize.events")
-    for name in ("PictureEv", "ContactUpdateEv", "PushNameUpdateEv", "AppStateSyncCompleteEv"):
+    for name in ("PictureEv", "ContactSyncEv", "PushNameEv", "AppStateSyncCompleteEv", "UserAboutEv"):
         setattr(events, name, type(name, (), {}))
     package = types.ModuleType("neonize")
     package.events = events
@@ -217,7 +217,7 @@ def _action(**fields):
 
 def test_a_contact_saved_renamed_and_removed_on_the_phone(monkeypatch, tmp_path):
     cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
-    handle = cli.handlers[ev.ContactUpdateEv]
+    handle = cli.handlers[ev.ContactSyncEv]
     s.db.contact("5511@s.whatsapp.net", pushname="ana")
     handle(cli, N(JID=jid("5511"), Action=_action(fullName="Ana Souza", firstName="Ana"), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"name": "Ana Souza", "pushname": "ana"}
@@ -248,7 +248,7 @@ def test_a_full_sync_completes_the_app_state_mirror_of_that_collection(monkeypat
 
 def test_a_new_nickname_is_kept_under_the_other_form_of_the_jid(monkeypatch, tmp_path):
     cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
-    handle = cli.handlers[ev.PushNameUpdateEv]
+    handle = cli.handlers[ev.PushNameEv]
     handle(cli, N(JID=jid("99", "lid"), JIDAlt=jid("5511"), OldPushName="", NewPushName=" Ana ",
                   HasField=lambda field: field == "JIDAlt"))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"pushname": "Ana"}
@@ -260,19 +260,32 @@ def test_a_new_nickname_is_kept_under_the_other_form_of_the_jid(monkeypatch, tmp
         "kind": "profile", "name": "Bob"})
 
 
+def test_a_changed_about_replaces_the_cached_one(monkeypatch, tmp_path):
+    from about_cache import cache_of
+    cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
+    cache_of(s).remember("5511@s.whatsapp.net", "old about")
+    handle = cli.handlers[ev.UserAboutEv]
+    handle(cli, N(JID=jid("5511"), Status="new about", Timestamp=1))
+    assert cache_of(s).lookup("5511@s.whatsapp.net") == ("new about", "")
+    handle(cli, N(JID=jid("120", "g.us"), Status="x", Timestamp=1))        # not a person
+    assert cache_of(s).lookup("120@g.us") is None
+
+
 def test_winzapp_build_events_carry_the_fields_the_handlers_read():
     import pytest
     events = pytest.importorskip("neonize.events")
-    if not hasattr(events, "ContactUpdateEv"):
-        pytest.skip("neonize without WinZapp's events (build_neonize.py builds them)")
+    if not hasattr(events, "ContactSyncEv"):
+        pytest.skip("neonize older than 0.12 (no ContactSyncEv)")
     fields = lambda ev: set(ev.DESCRIPTOR.fields_by_name)
-    assert {"JID", "Action", "FromFullSync"} <= fields(events.ContactUpdateEv)
-    assert {"fullName", "firstName"} <= set(events.ContactUpdateEv.DESCRIPTOR
+    assert {"JID", "Action", "FromFullSync"} <= fields(events.ContactSyncEv)
+    assert {"fullName", "firstName"} <= set(events.ContactSyncEv.DESCRIPTOR
                                             .fields_by_name["Action"].message_type.fields_by_name)
-    assert {"JID", "JIDAlt", "NewPushName"} <= fields(events.PushNameUpdateEv)
+    assert {"JID", "JIDAlt", "NewPushName"} <= fields(events.PushNameEv)
     assert {"Name", "Version", "Recovery"} <= fields(events.AppStateSyncCompleteEv)
-    assert {events.EVENT_TO_INT[e] for e in (events.ContactUpdateEv, events.PushNameUpdateEv,
-                                             events.AppStateSyncCompleteEv)} == {54, 55, 56}
+    assert {"JID", "Status"} <= fields(events.UserAboutEv)
+    assert events.EVENT_TO_INT[events.UserAboutEv] == 62
+    assert {events.EVENT_TO_INT[e] for e in (events.ContactSyncEv, events.PushNameEv,
+                                             events.AppStateSyncCompleteEv)} == {58, 59, 56}
 
 
 def test_store_nickname_files_it_under_both_addresses():

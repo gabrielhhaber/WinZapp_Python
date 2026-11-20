@@ -2,6 +2,7 @@
 fake neonize client. Without WhatsApp and without the DLL's retry calls."""
 import asyncio
 import base64
+import types
 import threading
 from types import SimpleNamespace as N
 
@@ -24,11 +25,11 @@ class Event:
 
     def __init__(self, msg_id="M1", error_code=None):
         self.MessageID, self.Ciphertext, self.IV = msg_id, b"cc", b"iv"
-        self.ErrorCode = error_code or 0
+        self.Error = types.SimpleNamespace(Code=error_code or 0)   # MediaRetryError
         self._error = error_code is not None
 
     def HasField(self, name):
-        assert name == "ErrorCode"
+        assert name == "Error"
         return self._error
 
 

@@ -223,6 +223,14 @@ def register_events(cli, s):
     mirror = mirror_of(s)
     s.app_state_synced = mirror.full_sync_completed
 
+    if hasattr(nev, "AppStateSyncErrorEv"):          # neonize 0.12
+        @cli.event(nev.AppStateSyncErrorEv)
+        def _sync_error(c, e):
+            # whatsmeow could not sync a collection: the log says which, so a
+            # report of stale labels, lists or settings can be traced to it
+            log.warning("app state sync error in collection %s (full sync: %s)",
+                        e.Name, bool(e.FullSync))
+
     @cli.event(nev.AppStateMutationEv)
     def _mutation(c, e):
         try:

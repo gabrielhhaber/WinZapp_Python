@@ -23,9 +23,9 @@ Sources in neonize 0.5.2 (what the proto descriptor confirms):
   history package.
 - The address book's names come from WinZapp's neonize build and are now
   forwarded through `contact-state-changed` after storage:
-  `ContactUpdateEv` for a contact saved, renamed or removed on the phone, and
+  `ContactSyncEv` for a contact saved, renamed or removed on the phone, and
   `AppStateSyncCompleteEv` for the bulk of them right after pairing, which
-  reloads neonize's contact store. `PushNameUpdateEv` keeps a nickname under
+  reloads neonize's contact store. `PushNameEv` keeps a nickname under
   both forms of the JID and emits a separate profile observation, without
   marking it as a saved contact.
 
@@ -37,6 +37,7 @@ Nothing here was proven against a real account. No JID or name goes to the log.
 import logging
 import threading
 
+import about_cache
 import msgmap
 import contact_state_events
 import profile_picture_events
@@ -204,15 +205,16 @@ def register_events(cli, s):
     `s.name`, `s.emit`, `s.db` and `s.reload_names`) and creates
     `s.announced_contacts`, which `announce_name` uses. Called on neonize's thread.
 
-    ContactUpdateEv, PushNameUpdateEv and AppStateSyncCompleteEv come from
-    WinZapp's neonize build (neonize_patches/): an older build lacks them, and
-    the bridge then relies on Session.reload_names() alone."""
+    ContactSyncEv, PushNameEv and AppStateSyncCompleteEv are neonize's own events
+    since 0.12 (WinZapp's earlier build added them as ContactUpdateEv and
+    PushNameUpdateEv): a build without them leaves the bridge relying on
+    Session.reload_names() alone."""
     import neonize.events as nev
 
     s.announced_contacts = Announced()
 
-    if hasattr(nev, "ContactUpdateEv"):
-        @cli.event(nev.ContactUpdateEv)
+    if hasattr(nev, "ContactSyncEv"):
+        @cli.event(nev.ContactSyncEv)
         def _address_book(c, e):
             # saved, renamed or removed on the phone; a full sync's contacts do not
             # come this way (AppStateSyncCompleteEv below)
@@ -229,7 +231,7 @@ def register_events(cli, s):
         @cli.event(nev.AppStateSyncCompleteEv)
         def _state_synced(c, e):
             # right after pairing the names land in neonize's store in bulk, with
-            # no ContactUpdateEv: this is when they are there to read
+            # no ContactSyncEv: this is when they are there to read
             try:
                 if address_book_synced(e.Name):
                     _in_background(_reload_names_safely, s)
@@ -240,8 +242,8 @@ def register_events(cli, s):
             except Exception:
                 log.exception("app state synced")
 
-    if hasattr(nev, "PushNameUpdateEv"):
-        @cli.event(nev.PushNameUpdateEv)
+    if hasattr(nev, "PushNameEv"):
+        @cli.event(nev.PushNameEv)
         def _nickname(c, e):
             # MessageEv already stores and announces the nickname under the sender;
             # this keeps it under the other form of the JID too (number <-> LID)
@@ -253,6 +255,17 @@ def register_events(cli, s):
                     s.db.contact(_text(e.JIDAlt), pushname=name)
             except Exception:
                 log.exception("nickname changed")
+
+    if hasattr(nev, "UserAboutEv"):
+        @cli.event(nev.UserAboutEv)
+        def _about(c, e):
+            # neonize 0.12: someone's about changed. The cached one (kept for
+            # hours so that naming people does not query the server) is now old.
+            try:
+                if is_person(e.JID):
+                    about_cache.cache_of(s).remember(_text(e.JID), e.Status)
+            except Exception:
+                log.exception("about changed")
 
     @cli.event(nev.PictureEv)
     def _photo(c, e):

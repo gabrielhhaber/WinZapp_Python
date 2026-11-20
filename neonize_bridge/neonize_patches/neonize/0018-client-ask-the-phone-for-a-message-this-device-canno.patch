@@ -10,10 +10,10 @@ AutomaticMessageRerequestFromPhone, off by default in whatsmeow: a group message
  1 file changed, 5 insertions(+)
 
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 25985aa..0c0e237 100644
+index f62e799..c782dc7 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -691,6 +691,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -700,6 +700,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  	proto.Merge(store.DeviceProps, &deviceProps)
  	clientLog := utils.NewLogger("Client", C.GoString(logLevel), utils.Callback(logCb))
  	client := whatsmeow.NewClient(deviceStore, clientLog)
@@ -24,4 +24,4 @@ index 25985aa..0c0e237 100644
 +	client.AutomaticMessageRerequestFromPhone = true
  	setClient(uuid, client)
  	instalarChamadas(uuid)
- 	sprStore := newSPRRetryStore(C.GoString(db))
+ 	if sprSupported {

@@ -12,10 +12,10 @@ error text raised SetPrivacySettingError on every change WhatsApp applied.
  2 files changed, 23 insertions(+), 11 deletions(-)
 
 diff --git a/neonize/aioze/client.py b/neonize/aioze/client.py
-index 15516ef..16d0441 100644
+index f8be864..81b973d 100644
 --- a/neonize/aioze/client.py
 +++ b/neonize/aioze/client.py
-@@ -3003,14 +3003,19 @@ class NewAClient:
+@@ -3105,14 +3105,19 @@ class NewAClient:
          :param value: The new value for the privacy setting.
          :type value: PrivacySetting
          :raises SetPrivacySettingError: If there is an error while setting the privacy setting.
@@ -43,10 +43,10 @@ index 15516ef..16d0441 100644
      async def set_passive(self, passive: bool):
          """
 diff --git a/neonize/client.py b/neonize/client.py
-index 1346ab1..5c598ab 100644
+index 075becd..90a77e7 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
-@@ -3157,12 +3157,19 @@ class NewClient:
+@@ -3187,12 +3187,19 @@ class NewClient:
          :param value: The new value for the privacy setting.
          :type value: PrivacySetting
          :raises SetPrivacySettingError: If there is an error while setting the privacy setting.

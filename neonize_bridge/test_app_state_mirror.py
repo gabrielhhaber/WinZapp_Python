@@ -228,6 +228,22 @@ def test_every_mutation_event_reaches_the_mirror(monkeypatch, tmp_path):
     assert asm.mirror_of(s).seeded("regular")
 
 
+def test_a_collection_that_fails_to_sync_is_logged(monkeypatch, tmp_path, caplog):
+    import logging
+    events = types.ModuleType("neonize.events")
+    events.AppStateMutationEv = type("AppStateMutationEv", (), {})
+    events.AppStateSyncErrorEv = type("AppStateSyncErrorEv", (), {})
+    package = types.ModuleType("neonize")
+    package.events = events
+    monkeypatch.setitem(sys.modules, "neonize", package)
+    monkeypatch.setitem(sys.modules, "neonize.events", events)
+    cli, s = _Cli(), N(folder=str(tmp_path), name="session")
+    asm.register_events(cli, s)
+    with caplog.at_level(logging.WARNING, logger="bridge"):
+        cli.handlers[events.AppStateSyncErrorEv](cli, N(Name="regular_low", FullSync=True, Error="x"))
+    assert "regular_low" in caplog.text and "full sync: True" in caplog.text
+
+
 def test_an_older_build_registers_nothing(monkeypatch, tmp_path):
     events = types.ModuleType("neonize.events")
     package = types.ModuleType("neonize")
@@ -245,4 +261,4 @@ def test_winzapp_build_event_carries_the_fields_the_handler_reads():
         pytest.skip("neonize without WinZapp's events (build_neonize.py builds them)")
     fields = set(events.AppStateMutationEv.DESCRIPTOR.fields_by_name)
     assert {"Name", "Index", "Version", "Remove", "Action", "FromFullSync"} <= fields
-    assert events.EVENT_TO_INT[events.AppStateMutationEv] == 57
+    assert events.EVENT_TO_INT[events.AppStateMutationEv] == 100

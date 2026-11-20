@@ -13,10 +13,10 @@ show; payment info keeps its name.
  create mode 100644 send_nativeflow_test.go
 
 diff --git a/send.go b/send.go
-index 95078d9..8526bbc 100644
+index 9903364..d76976d 100644
 --- a/send.go
 +++ b/send.go
-@@ -1232,12 +1232,23 @@ func getNativeFlowBizNode(msg *waE2E.Message) *waBinary.Node {
+@@ -1249,12 +1249,23 @@ func getNativeFlowBizNode(msg *waE2E.Message) *waBinary.Node {
  			Attrs: waBinary.Attrs{"type": "native_flow", "v": "1"},
  			Content: []waBinary.Node{{
  				Tag:   "native_flow",

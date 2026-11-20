@@ -2,7 +2,7 @@
 is in, as WhatsApp Web's "Add participant" does. The WPPConnect side calls
 WhatsApp Web's own WAWebVoipStartCall.inviteToCall once per person
 (client/api_patches/src/util/groupCallRuntime.ts); here meowcaller's
-Call.AddParticipant sends the same group invite offer (neonize patch 0014,
+Call.AddParticipant sends the same group invite offer (neonize patch 0012,
 `CallClient.add_participant`), and someone already on the call's list who has
 not joined is rung again, as the "Ring" button there.
 
@@ -10,7 +10,7 @@ Body `{"callId", "participants": [jid, ...]}`; answer `{"id", "results":
 [{"jid", "status": "invited" | "rang" | "failed", "error"?}]}`, one per person
 in the order asked. Only into a call this device is in, at most 31 people (a
 WhatsApp group call holds 32). "invited" and "rang" mean WhatsApp's server
-acked the invite with the person on the call's roster (meowcaller patch 0028,
+acked the invite with the person on the call's roster (meowcaller patch 0029,
 up to 15 s each): an invite it does not answer is "failed", never a success
 because the stanza left.
 

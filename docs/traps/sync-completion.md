@@ -235,7 +235,7 @@ Web state is lost; its cost is a pause of the page's JavaScript.
     the singleton merge trap: `goneonize/main.go` merged into the process-global
     `store.DeviceProps`, leaking `FullSyncDaysLimit` and accumulating unknown field
     bytes across sessions until `applyDeviceProps` (`goneonize/device_props.go`,
-    `neonize 0033`) reset `store.DeviceProps` from `baseDeviceProps` on each `Neonize()`
+    `neonize 0031`) reset `store.DeviceProps` from `baseDeviceProps` on each `Neonize()`
     call.
   - **Incoming metadata batches**: `INITIAL_BOOTSTRAP` carries
     `HistorySync.omittedConversationMetadataSnapshotId = 26` (`string`). Before ordinary
@@ -251,7 +251,7 @@ Web state is lost; its cost is a pause of the page's JavaScript.
     is true keeps `history_progress` and `history_resume` from falsely reporting
     `RECENT` completion at `100%` before real message chunks start arriving.
   - **PN↔LID mappings and `tcToken` privacy tokens**: Many omitted 1:1 conversations are
-    keyed by `@lid` with 0 messages. `whatsmeow 0016` (`omitted_history.go`) decodes
+    keyed by `@lid` with 0 messages. `whatsmeow 0017` (`omitted_history.go`) decodes
     omitted conversations via `protowire`, persists PN↔LID mappings synchronously before
     `DownloadHistorySync` dispatches `events.HistorySync`, and passes omitted
     conversations to `storeHistoricalMessageSecrets` for `tcToken` storage;

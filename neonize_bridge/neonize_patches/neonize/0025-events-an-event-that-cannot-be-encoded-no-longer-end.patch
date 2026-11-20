@@ -15,20 +15,20 @@ was sent as SERVER_ERROR) and reports any other type as not encodable, so
 it is skipped. CallbackFunction drops an event it cannot marshal, with a
 line on stderr, and goes on.
 ---
- goneonize/main.go                       | 18 +++++++----
+ goneonize/main.go                       | 24 +++++++++------
  goneonize/utils/encoder.go              | 12 ++++++--
  goneonize/utils/encoder_receipt_test.go | 40 +++++++++++++++++++++++++
- 3 files changed, 62 insertions(+), 8 deletions(-)
+ 3 files changed, 65 insertions(+), 11 deletions(-)
  create mode 100644 goneonize/utils/encoder_receipt_test.go
 
 diff --git a/goneonize/main.go b/goneonize/main.go
-index e92a8c4..8e2f2af 100644
+index c782dc7..30a256e 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -877,12 +877,13 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -888,12 +888,13 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  			}
  		case *events.Receipt:
- 			if _, ok := subscribers[18]; ok {
+ 			if subscribers[18] {
 -				receipt := utils.EncodeReceipts(v)
 -				messageEvent := MessageEvent{
 -					eventType: 18,
@@ -38,31 +38,59 @@ index e92a8c4..8e2f2af 100644
 +						eventType: 18,
 +						message:   &receipt,
 +					}
-+					eventChan <- &messageEvent
++					eventChan <- messageEvent
  				}
--				eventChan <- &messageEvent
+-				eventChan <- messageEvent
  			}
  		case *events.ChatPresence:
- 			if _, ok := subscribers[19]; ok {
-@@ -3002,7 +3003,12 @@ func CallbackFunction(ctx context.Context, callback C.ptr_to_python_function_byt
- 		case message := <-channel:
- 			buff, err := proto.Marshal(message.message)
+ 			if subscribers[19] {
+@@ -1237,7 +1238,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 					eventType: 50,
+ 					message:   &chatState,
+ 				}
+-				eventChan <- &messageEvent
++				eventChan <- messageEvent
+ 			}
+ 		case *events.DeleteChat:
+ 			if subscribers[51] {
+@@ -1422,7 +1423,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 					eventType: 101,
+ 					message:   &change,
+ 				}
+-				eventChan <- &messageEvent
++				eventChan <- messageEvent
+ 			}
+ 		case *events.AppStateMutation:
+ 			if subscribers[100] {
+@@ -1438,7 +1439,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 					eventType: 100,
+ 					message:   &mutation,
+ 				}
+-				eventChan <- &messageEvent
++				eventChan <- messageEvent
+ 			}
+ 		case *events.UserAbout:
+ 			if subscribers[62] {
+@@ -3623,8 +3624,13 @@ func CallbackFunction(ctx context.Context, callback C.ptr_to_python_function_byt
+ 			bufPtr := getBuf()
+ 			buff, err := proto.MarshalOptions{}.MarshalAppend((*bufPtr)[:0], message.message)
  			if err != nil {
--				return err
 +				// One event that cannot be encoded is dropped, never the
 +				// client: returning here ended the event loop, Python saw the
 +				// session closed and connected again over the live one, and
 +				// WhatsApp replaced the stream in the middle of a call.
 +				fmt.Fprintf(os.Stderr, "neonize: dropped event %d that could not be encoded: %v\n", message.eventType, err)
+ 				putBuf(bufPtr)
+-				return err
 +				continue
  			}
  			uchars, size := getBytesAndSize(buff)
  			C.call_c_func_callback_bytes(callback, uuid, uchars, size, C.int(message.eventType))
 diff --git a/goneonize/utils/encoder.go b/goneonize/utils/encoder.go
-index 84dc721..90bc11a 100644
+index df42310..4b3616c 100644
 --- a/goneonize/utils/encoder.go
 +++ b/goneonize/utils/encoder.go
-@@ -725,7 +725,10 @@ func EncodeConnectFailure(connect *events.ConnectFailure) *defproto.ConnectFailu
+@@ -741,7 +741,10 @@ func EncodeConnectFailure(connect *events.ConnectFailure) *defproto.ConnectFailu
  	}
  }
  
@@ -74,7 +102,7 @@ index 84dc721..90bc11a 100644
  	var Type *defproto.Receipt_ReceiptType
  	switch receipt.Type {
  	case types.ReceiptTypeDelivered:
-@@ -741,6 +744,8 @@ func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
+@@ -757,6 +760,8 @@ func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
  	case types.ReceiptTypePlayed:
  		Type = defproto.Receipt_PLAYED.Enum()
  	case types.ReceiptTypePlayedSelf:
@@ -83,7 +111,7 @@ index 84dc721..90bc11a 100644
  		Type = defproto.Receipt_SERVER_ERROR.Enum()
  	case types.ReceiptTypeInactive:
  		Type = defproto.Receipt_INACTIVE.Enum()
-@@ -749,12 +754,15 @@ func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
+@@ -765,12 +770,15 @@ func EncodeReceipts(receipt *events.Receipt) defproto.Receipt {
  	case types.ReceiptTypeHistorySync:
  		Type = defproto.Receipt_HISTORY_SYNC.Enum()
  	}

@@ -6,7 +6,7 @@ and the post goes out with that handle as the message node's media_id
 (whatsmeow sendNewsletter). The message carries the plain file's SHA-256 and
 length, but no media key and no encrypted hash: a channel follower reads the
 file as it was uploaded. WinZapp's neonize build passes the handle on
-(`send_newsletter_message`, neonize patch 0018); without it the channel
+(`send_newsletter_message`, neonize patch 0016); without it the channel
 refuses the media.
 
 The message itself is built by the same code as for a chat (neonize's

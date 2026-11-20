@@ -32,6 +32,7 @@ import pathlib
 import sqlite3
 import time
 
+import enc_secrets
 import msgmap
 import group_receipts
 
@@ -278,9 +279,14 @@ def record_sent_comment(s, chat, parent_id, parent_serial, comment_id, text):
     announce(s, chat, parent_id, parent_serial)
 
 
-def _open(s, chat, enc, sender, from_me):
-    """(kind, text) of the comment: opens with the commented message's secret,
-    or 'ciphertext' if it cannot."""
+def _open(s, chat, enc, sender, from_me, event=None):
+    """(kind, text) of the comment: neonize opens it (whatsmeow knows the secret
+    under every form of the JIDs); otherwise it is opened here with the commented
+    message's secret, or 'ciphertext' if it cannot."""
+    if event is not None:
+        native = enc_secrets.open_comment(getattr(s, "client", None), event)
+        if native is not None:
+            return KIND_COMMENT, comment_text(native)
     key = enc.targetMessageKey
     original = original_sender_from_key(bool(key.fromMe), key.participant, sender)
     if not original:
@@ -324,7 +330,7 @@ def _comment_received(s, chat, o, e, enc) -> bool:
         return True      # a comment only exists in a group; it is not a message to show
     sender = jid_text(o.Sender)
     from_me = bool(o.IsFromMe)
-    kind, text = _open(s, chat, enc, sender, from_me)
+    kind, text = _open(s, chat, enc, sender, from_me, e)
     author = msgmap.jid_wpp(sender) or (msgmap.jid_wpp(s.me) if from_me else "")
     parent_author = msgmap.jid_wpp(key.participant)
     parent_is_mine = (parent_author.partition("@")[0] in _own_users(s)) \

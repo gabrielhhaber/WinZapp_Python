@@ -2,106 +2,18 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Gabriel Haberkamp <noreply@example.com>
 Date: Wed, 11 Nov 2026 12:10:37 -0300
 Subject: [PATCH] media retry: ask the phone to upload an expired media again
- (SendMediaRetry, DecryptMediaRetry, MediaRetry event 59)
+ (SendMediaRetry, DecryptMediaRetry,)
 
 whatsmeow already has SendMediaRetryReceipt and DecryptMediaRetryNotification;
 neonize exported neither nor the events.MediaRetry answer. JSON in and out like
-rawiq.go; the event is 59.
+rawiq.go; the answer arrives as upstream's MediaRetryEv.
 ---
- goneonize/Neonize.proto          |  13 +++
- goneonize/defproto/Neonize.proto |  13 +++
- goneonize/main.go                |  24 ++++++
- goneonize/mediaretry.go          | 131 +++++++++++++++++++++++++++++++
- neonize/_binder.py               |   8 ++
- neonize/aioze/events.py          |   2 +
- neonize/client.py                |  24 ++++++
- neonize/events.py                |   2 +
- 8 files changed, 217 insertions(+)
+ goneonize/mediaretry.go | 131 ++++++++++++++++++++++++++++++++++++++++
+ neonize/_binder.py      |   8 +++
+ neonize/client.py       |  24 ++++++++
+ 3 files changed, 163 insertions(+)
  create mode 100644 goneonize/mediaretry.go
 
-diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index 95327db..3849e01 100644
---- a/goneonize/Neonize.proto
-+++ b/goneonize/Neonize.proto
-@@ -1006,6 +1006,19 @@ message NewsletterChange { //58
-     required string Op = 2;
-     optional string Payload = 3;
- }
-+// The phone's answer to a media retry request (whatsmeow's events.MediaRetry):
-+// the notification is encrypted with the media key, so Ciphertext and IV are
-+// opened by DecryptMediaRetry; an unencrypted failure carries ErrorCode instead.
-+message MediaRetry { //59
-+    required string MessageID = 1;
-+    optional JID ChatID = 2;
-+    optional JID SenderID = 3;
-+    required bool FromMe = 4;
-+    optional bytes Ciphertext = 5;
-+    optional bytes IV = 6;
-+    optional int32 ErrorCode = 7;
-+    required int64 Timestamp = 8;
-+}
- message UpdateGroupParticipantsReturnFunction {
-     optional string Error = 1;
-     repeated GroupParticipant participants = 2;
-diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index 95327db..3849e01 100644
---- a/goneonize/defproto/Neonize.proto
-+++ b/goneonize/defproto/Neonize.proto
-@@ -1006,6 +1006,19 @@ message NewsletterChange { //58
-     required string Op = 2;
-     optional string Payload = 3;
- }
-+// The phone's answer to a media retry request (whatsmeow's events.MediaRetry):
-+// the notification is encrypted with the media key, so Ciphertext and IV are
-+// opened by DecryptMediaRetry; an unencrypted failure carries ErrorCode instead.
-+message MediaRetry { //59
-+    required string MessageID = 1;
-+    optional JID ChatID = 2;
-+    optional JID SenderID = 3;
-+    required bool FromMe = 4;
-+    optional bytes Ciphertext = 5;
-+    optional bytes IV = 6;
-+    optional int32 ErrorCode = 7;
-+    required int64 Timestamp = 8;
-+}
- message UpdateGroupParticipantsReturnFunction {
-     optional string Error = 1;
-     repeated GroupParticipant participants = 2;
-diff --git a/goneonize/main.go b/goneonize/main.go
-index 0c0e237..e92a8c4 100644
---- a/goneonize/main.go
-+++ b/goneonize/main.go
-@@ -1335,6 +1335,30 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
- 				}
- 				eventChan <- &messageEvent
- 			}
-+		case *events.MediaRetry:
-+			if _, ok := subscribers[59]; ok {
-+				retry := defproto.MediaRetry{
-+					MessageID:  proto.String(string(v.MessageID)),
-+					FromMe:     proto.Bool(v.FromMe),
-+					Ciphertext: v.Ciphertext,
-+					IV:         v.IV,
-+					Timestamp:  proto.Int64(v.Timestamp.Unix()),
-+				}
-+				if !v.ChatID.IsEmpty() {
-+					retry.ChatID = utils.EncodeJidProto(v.ChatID)
-+				}
-+				if !v.SenderID.IsEmpty() {
-+					retry.SenderID = utils.EncodeJidProto(v.SenderID)
-+				}
-+				if v.Error != nil {
-+					retry.ErrorCode = proto.Int32(int32(v.Error.Code))
-+				}
-+				messageEvent := MessageEvent{
-+					eventType: 59,
-+					message:   &retry,
-+				}
-+				eventChan <- &messageEvent
-+			}
- 		case *events.AppStateMutation:
- 			if _, ok := subscribers[57]; ok {
- 				mutation := defproto.AppStateMutation{
 diff --git a/goneonize/mediaretry.go b/goneonize/mediaretry.go
 new file mode 100644
 index 0000000..ba4e48e
@@ -240,10 +152,10 @@ index 0000000..ba4e48e
 +	})
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 199ee53..d0fef1c 100644
+index 6e0b2e9..4660f7f 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -886,6 +886,14 @@ if not os.environ.get("SPHINX"):
+@@ -995,6 +995,14 @@ if not os.environ.get("SPHINX"):
          gocode.MediaConn.argtypes = [ctypes.c_char_p, ctypes.c_int]
          gocode.MediaConn.restype = ctypes.c_void_p
          gocode.MediaConn.errcheck = consume_cstring
@@ -258,31 +170,11 @@ index 199ee53..d0fef1c 100644
      if hasattr(gocode, "CallsConfigure"):
          # The call layer (goneonize/calls.go): plain C types, no protobuf; the
          # wrapper is neonize/calls.py.
-diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
-index 2f4955f..d822902 100644
---- a/neonize/aioze/events.py
-+++ b/neonize/aioze/events.py
-@@ -46,6 +46,7 @@ from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
- from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
- from ..proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
- from ..proto.Neonize_pb2 import NewsletterChange as NewsletterChangeEv
-+from ..proto.Neonize_pb2 import MediaRetry as MediaRetryEv
- from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
- from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
- from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
-@@ -115,6 +116,7 @@ __all__ = [
-     "AppStateSyncCompleteEv",
-     "AppStateMutationEv",
-     "NewsletterChangeEv",
-+    "MediaRetryEv",
-     "NewsLetterMessageMetaEv",
-     "NewsletterJoinEv",
-     "NewsletterLeaveEv",
 diff --git a/neonize/client.py b/neonize/client.py
-index 84e0db2..2fca0e3 100644
+index 79615bd..58ec214 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
-@@ -2911,6 +2911,30 @@ class NewClient:
+@@ -2941,6 +2941,30 @@ class NewClient:
          raw = self.__client.MediaConn(self.uuid, 1 if force else 0)
          return json.loads(raw.decode() or "{}")
  
@@ -313,23 +205,3 @@ index 84e0db2..2fca0e3 100644
      def request_app_state_recovery(self, name: str):
          """Asks the primary device for a recovery snapshot of an app state
          collection that keeps failing with ``mismatching LTHash`` even after a
-diff --git a/neonize/events.py b/neonize/events.py
-index 59077da..fefd58e 100644
---- a/neonize/events.py
-+++ b/neonize/events.py
-@@ -49,6 +49,7 @@ from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
- from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
- from .proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
- from .proto.Neonize_pb2 import NewsletterChange as NewsletterChangeEv
-+from .proto.Neonize_pb2 import MediaRetry as MediaRetryEv
- from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
- from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
- from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
-@@ -128,6 +129,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
-     AppStateSyncCompleteEv: 56,
-     AppStateMutationEv: 57,
-     NewsletterChangeEv: 58,
-+    MediaRetryEv: 59,
- }
- INT_TO_EVENT: dict[int, type[Message]] = {code: ev for ev, code in EVENT_TO_INT.items()}
- 

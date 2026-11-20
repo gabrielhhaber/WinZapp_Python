@@ -12,16 +12,34 @@ it (the plaintext hash still has to match), and a failure answers what
 each host served (size, old hash, text or not, first bytes). The
 decrypted notification also says whether it carried a message secret.
 ---
- goneonize/mediaretry.go              |   3 +
+ goneonize/mediaretry.go              |   7 +-
  goneonize/mediaretry_decrypt.go      |  41 +++++
  goneonize/mediaretry_decrypt_test.go |  24 +++
  goneonize/mediaretry_download.go     | 262 +++++++++++++++------------
- 4 files changed, 213 insertions(+), 117 deletions(-)
+ 4 files changed, 215 insertions(+), 119 deletions(-)
 
 diff --git a/goneonize/mediaretry.go b/goneonize/mediaretry.go
-index ba4e48e..391f462 100644
+index ba4e48e..acad9f8 100644
 --- a/goneonize/mediaretry.go
 +++ b/goneonize/mediaretry.go
+@@ -8,7 +8,7 @@ import "C"
+ // Media retry: when a media's CDN link has expired (403/404/410) the phone
+ // that holds the file can upload it again. Two calls, JSON in and out like
+ // rawiq.go (the Python wrapper is Client.send_media_retry /
+-// Client.decrypt_media_retry), and the events.MediaRetry event (59):
++// Client.decrypt_media_retry), and the events.MediaRetry event (neonize's own, 29):
+ //
+ //   - SendMediaRetry(id, request) asks the account's own phone to upload the
+ //     media of one message again;
+@@ -51,7 +51,7 @@ type mediaRetryDecrypt struct {
+ //
+ //export SendMediaRetry
+ func SendMediaRetry(id *C.char, request *C.char) *C.char {
+-	cli := clients[C.GoString(id)]
++	cli := clientFor(C.GoString(id))
+ 	if cli == nil {
+ 		return rawError(fmt.Errorf("client not found"))
+ 	}
 @@ -127,5 +127,8 @@ func DecryptMediaRetry(request *C.char) *C.char {
  	return rawAnswer(map[string]any{
  		"result":      result,
@@ -122,7 +140,7 @@ index 02d986b..786b970 100644
 +	}
 +}
 diff --git a/goneonize/mediaretry_download.go b/goneonize/mediaretry_download.go
-index ef102ac..3a10b24 100644
+index ef102ac..674be1e 100644
 --- a/goneonize/mediaretry_download.go
 +++ b/goneonize/mediaretry_download.go
 @@ -1,117 +1,145 @@
@@ -309,7 +327,7 @@ index ef102ac..3a10b24 100644
 +//
 +//export DownloadRetriedMedia
 +func DownloadRetriedMedia(id *C.char, request *C.char) *C.char {
-+	cli := clients[C.GoString(id)]
++	cli := clientFor(C.GoString(id))
 +	if cli == nil {
 +		return rawError(fmt.Errorf("client not found"))
 +	}

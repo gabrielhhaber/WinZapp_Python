@@ -8,17 +8,17 @@ messages, and WinZapp's whatsmeow adds the one WhatsApp Web sends: two
 <biz> nodes, refused by the server with 479 (smax-invalid). Only the opt-in
 <bot biz_bot="1"/> stays.
 ---
- goneonize/main.go          | 146 ++-----------------------------------
- goneonize/wabinary_test.go |  39 ++++++++++
- 2 files changed, 46 insertions(+), 139 deletions(-)
+ goneonize/main.go          | 148 ++-----------------------------------
+ goneonize/wabinary_test.go |  48 ++++++++++++
+ 2 files changed, 55 insertions(+), 141 deletions(-)
  create mode 100644 goneonize/wabinary_test.go
 
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 3fa2034..45a156b 100644
+index eb9d276..bac4399 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -170,148 +170,16 @@ func shouldAddBotNode(isPrivate bool) bool {
- 	}
+@@ -172,151 +172,17 @@ func shouldAddBotNode(isPrivate bool) bool {
+ 	return botTagEnabled && isPrivate
  }
  
 -// GenerateWABinary for create button
@@ -169,16 +169,19 @@ index 3fa2034..45a156b 100644
 +	if getButtonTypeFromMessage(msg) != "list" && shouldAddBotNode(to.Server == types.DefaultUserServer) {
 +		nodes = append(nodes, waBinary.Node{Tag: "bot", Attrs: waBinary.Attrs{"biz_bot": "1"}})
  	}
--
+ 
+-	if len(nodes) == 0 {
+-		return nil
+-	}
  	return &nodes
  }
  
 diff --git a/goneonize/wabinary_test.go b/goneonize/wabinary_test.go
 new file mode 100644
-index 0000000..5e82f83
+index 0000000..050eebe
 --- /dev/null
 +++ b/goneonize/wabinary_test.go
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,48 @@
 +package main
 +
 +import (
@@ -191,7 +194,7 @@ index 0000000..5e82f83
 +)
 +
 +func TestGenerateWABinaryLeavesTheBizNodeToWhatsmeow(t *testing.T) {
-+	t.Setenv("NEONIZE_BOT_TAG", "")
++	setBotTag(t, false)
 +	to := types.NewJID("5511", types.DefaultUserServer)
 +	for _, msg := range []*waE2E.Message{
 +		{ListMessage: &waE2E.ListMessage{Title: proto.String("l")}},
@@ -209,7 +212,7 @@ index 0000000..5e82f83
 +func TestTheBotNodeIsOptIn(t *testing.T) {
 +	to := types.NewJID("5511", types.DefaultUserServer)
 +	msg := &waE2E.Message{Conversation: proto.String("hi")}
-+	t.Setenv("NEONIZE_BOT_TAG", "on")
++	setBotTag(t, true)
 +	if nodes := *GenerateWABinary(context.Background(), to, msg); len(nodes) != 1 || nodes[0].Tag != "bot" {
 +		t.Errorf("want the bot node, got %v", nodes)
 +	}
@@ -217,4 +220,13 @@ index 0000000..5e82f83
 +	if nodes := *GenerateWABinary(context.Background(), group, msg); len(nodes) != 0 {
 +		t.Errorf("no bot node in a group, got %v", nodes)
 +	}
++}
++
++// setBotTag sets the opt-in the way the process reads it: botTagEnabled is
++// computed once, at start, from NEONIZE_BOT_TAG.
++func setBotTag(t *testing.T, on bool) {
++	t.Helper()
++	old := botTagEnabled
++	botTagEnabled = on
++	t.Cleanup(func() { botTagEnabled = old })
 +}

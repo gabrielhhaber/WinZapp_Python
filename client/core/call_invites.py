@@ -174,7 +174,7 @@ def parse_results(body, call_id, asked):
 def request_timeout(people) -> int:
     """Seconds to wait for `call/add-participants`. The Neonize bridge answers
     only after WhatsApp's server confirmed each person, one at a time, and
-    gives up on one after 15 s (meowcaller patch 0028): a fixed 60 s ran out
+    gives up on one after 15 s (meowcaller patch 0029): a fixed 60 s ran out
     with four people the server did not answer for."""
     return 30 + 20 * max(1, int(people or 0))
 

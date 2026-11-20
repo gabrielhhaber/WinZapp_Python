@@ -96,7 +96,7 @@ def test_a_build_without_the_handle_cannot_post_media():
 
 
 def test_winzapps_neonize_build_posts_media():
-    # the build this bridge ships (neonize patch 0018), asked without a client
+    # the build this bridge ships (neonize patch 0016), asked without a client
     assert channel_media.can_post_media()
 
 

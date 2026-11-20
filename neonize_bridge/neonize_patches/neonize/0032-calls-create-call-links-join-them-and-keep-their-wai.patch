@@ -187,10 +187,10 @@ index e538a42..15666a6 100644
  			item.PN = p.PN.ToNonAD().String()
  		}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 8abe07f..39a485c 100644
+index 63af96a..af0c243 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -957,6 +957,19 @@ if not os.environ.get("SPHINX"):
+@@ -1066,6 +1066,19 @@ if not os.environ.get("SPHINX"):
          gocode.CallJoinOngoing.restype = ctypes.c_int
          gocode.CallRoster.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
          gocode.CallRoster.restype = ctypes.c_int

@@ -8,8 +8,8 @@ Neonize Python package's descriptors, without reading session data.
 
 - Contact address-book and profile nickname changes already use
   `contact-state-changed`. WPP observes `ContactStore` name, saved/contact,
-  sync-to-address-book and pushname fields; Neonize handles `ContactUpdateEv`
-  and `PushNameUpdateEv`. The client applies them to contact records and
+  sync-to-address-book and pushname fields; Neonize handles `ContactSyncEv`
+  and `PushNameEv`. The client applies them to contact records and
   existing contact views. See `contact-state-events.md`,
   `client/api_patches/src/util/contactStateBridge.ts:3-46`,
   `neonize_bridge/contact_events.py:202-255`, and
@@ -56,7 +56,7 @@ Neonize Python package's descriptors, without reading session data.
 The Profile settings panel reads the account's own name, About and photo via
 `my-profile` (`profileRuntime.ts:13-42`) but does not subscribe to remote
 changes (`whatsapp_profile_panel.py:118-139`). `SyncActionValue.pushNameSetting`
-contains a name, and the existing `PushNameUpdateEv` carries a JID and new
+contains a name, and the existing `PushNameEv` carries a JID and new
 pushname. However, the current WPP contact observer watches `ContactStore`
 contact `pushname`, not an explicitly identified own-profile model; Neonize's
 current handler records a contact nickname and does not establish that the
