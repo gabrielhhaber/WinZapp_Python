@@ -101,8 +101,7 @@ class VoiceRecordingOptionsMixin:
         self.main_window.settings.setdefault("general", {})["voice_recording_mode"] = mode
         index = self._voice_nr_engine_combo.GetSelection()
         engine = NR_ENGINES[index] if 0 <= index < len(NR_ENGINES) else "neural"
-        self.main_window.settings.setdefault("general", {})["voice_nr_engine"] = engine
-        self.main_window.settings["general"]["noise_reduction_neural"] = engine == "neural"
+        self.main_window.settings.setdefault("general", {})["noise_reduction_neural"] = engine == "neural"
         index = self._voice_nr_moment_combo.GetSelection()
         moment = NR_MOMENTS[index] if 0 <= index < len(NR_MOMENTS) else "send"
         device = VoiceRecordingOptionsMixin._voice_nr_selected_device(self)

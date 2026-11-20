@@ -3,8 +3,9 @@
 These keys live in the existing "general" settings cluster, next to
 noise_reduction_enabled, and apply only while that flag is on:
 
-- voice_nr_engine: "neural" (the deep-filter model, default) or "basic"
-  (the noise gate, core.dsp.dsp_noisereduce.apply_noise_gate).
+- noise_reduction_neural (the published key, no new one): True for the
+  deep-filter model (default), False for the basic noise gate;
+  voice_nr_engine() reads it as "neural" / "basic".
 - voice_nr_moment: "send" (offline pass when the recording is sent, the
   published behavior) or "record" (incremental pass while recording, so the
   note leaves already processed). The basic engine ignores the moment: it
@@ -24,18 +25,12 @@ NR_MOMENTS = ("send", "record")
 NR_ON_FAILURE = ("basic", "keep_pending")
 
 
-def normalize_nr_engine(value):
-    return value if isinstance(value, str) and value in NR_ENGINES else "neural"
-
-
 def voice_nr_engine(settings):
     general = settings.get("general", {}) if isinstance(settings, dict) else {}
     if not isinstance(general, dict):
         return "neural"
-    # The current upstream preference is authoritative, including existing installs.
-    if "noise_reduction_neural" in general:
-        return "neural" if general["noise_reduction_neural"] is not False else "basic"
-    return normalize_nr_engine(general.get("voice_nr_engine"))
+    # The one source of truth is the published preference.
+    return "neural" if general.get("noise_reduction_neural", True) is not False else "basic"
 
 
 def normalize_nr_moment(value):

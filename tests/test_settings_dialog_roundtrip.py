@@ -69,7 +69,7 @@ SCENARIOS = {
         shows=lambda d, t: d._voice_recording_mode_radio.GetSelection() == 1,
     ),
     "voice_nr_engine": dict(
-        saves={("general", "voice_nr_engine"): "basic"},
+        saves={("general", "noise_reduction_neural"): False},
         set=lambda d, t: d._voice_nr_engine_combo.SetSelection(1),
         shows=lambda d, t: d._voice_nr_engine_combo.GetSelection() == 1,
     ),

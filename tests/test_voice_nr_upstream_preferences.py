@@ -5,10 +5,15 @@ import pytest
 from core.voice_nr_options import recording_nr_available, voice_nr_engine, voice_nr_moment
 
 
-@pytest.mark.parametrize('neural,legacy,expected', [(False,'neural','basic'), (True,'basic','neural')])
-def test_upstream_engine_is_authoritative(neural, legacy, expected):
-    assert voice_nr_engine({'general': {'noise_reduction_neural': neural,
-                                       'voice_nr_engine': legacy}}) == expected
+@pytest.mark.parametrize('general,expected', [
+    ({'noise_reduction_neural': False}, 'basic'),
+    ({'noise_reduction_neural': True}, 'neural'),
+    ({}, 'neural'),
+    # A trial build's own key decides nothing: the published one is the only source.
+    ({'noise_reduction_neural': True, 'voice_nr_engine': 'basic'}, 'neural'),
+])
+def test_the_published_key_is_the_only_engine_source(general, expected):
+    assert voice_nr_engine({'general': general}) == expected
 
 
 @pytest.mark.parametrize('device,available', [('cpu',True), ('coreml',True), ('cuda12',False), ('cuda13',False)])
@@ -18,17 +23,13 @@ def test_recording_moment_falls_back_to_send_for_subprocess_devices(device, avai
                                        'voice_nr_moment': 'record'}}) == ('record' if available else 'send')
 
 
-def test_old_trial_settings_still_choose_basic_without_upstream_key():
-    assert voice_nr_engine({'general': {'voice_nr_engine':'basic'}}) == 'basic'
-
-
 def _options_mixin():
     # Execute the actual class without importing wx or creating a window.
     import ast
     from pathlib import Path
     import core.voice_nr_options as options
     path = Path(__file__).parents[1] / 'client/ui/dialogs/voice_recording_options.py'
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding='utf-8'))
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef))
     namespace = {name: getattr(options, name) for name in (
         'recording_nr_available', 'NR_MOMENTS', 'NR_ENGINES', 'NR_ON_FAILURE',

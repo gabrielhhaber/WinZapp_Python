@@ -75,7 +75,7 @@ def _record_wx_calls(monkeypatch):
 class _FakeMainWindow:
     def __init__(self, nr_enabled=True, with_controller=True):
         self.settings = {"general": {"noise_reduction_enabled": nr_enabled,
-                                     "voice_nr_engine": "neural",
+                                     "noise_reduction_neural": True,
                                      "voice_nr_moment": "record"}}
         if with_controller:
             self._incremental_controller = IncrementalDenoiseController()
@@ -482,7 +482,7 @@ class _FakeQueue:
 class _FakeSendMW:
     def __init__(self, controller):
         self.settings = {"general": {"noise_reduction_enabled": True,
-                                     "voice_nr_engine": "neural",
+                                     "noise_reduction_neural": True,
                                      "voice_nr_moment": "record"}}
         self._incremental_controller = controller
         self.message_queue = _FakeQueue()
@@ -1284,7 +1284,7 @@ class _RecPanel:
     def __init__(self, controller):
         self.main_window = types.SimpleNamespace(
             settings={"general": {"noise_reduction_enabled": True,
-                                  "voice_nr_engine": "neural",
+                                  "noise_reduction_neural": True,
                                   "voice_nr_moment": "record"}},
             _incremental_controller=controller,
             i18n=_FakeI18n(),
@@ -2116,7 +2116,7 @@ def test_send_revoke_after_finisher_ready_send_claims_once(send_env, monkeypatch
 
 def test_start_skipped_when_engine_is_basic():
     panel = _FakePanel()
-    panel.main_window.settings["general"]["voice_nr_engine"] = "basic"
+    panel.main_window.settings["general"]["noise_reduction_neural"] = False
     _start(panel)
     assert panel._incremental_session is None
 
@@ -2133,7 +2133,7 @@ def test_start_skipped_with_default_settings():
     # published behavior, so no incremental session is created.
     panel = _FakePanel()
     general = panel.main_window.settings["general"]
-    del general["voice_nr_engine"], general["voice_nr_moment"]
+    del general["noise_reduction_neural"], general["voice_nr_moment"]
     _start(panel)
     assert panel._incremental_session is None
 
@@ -2163,7 +2163,7 @@ def test_send_basic_engine_goes_straight_to_gate_without_session(send_env, monke
     frames = [b"\x05\x06" * 480]
     raw = b"".join(frames)
     mw = _FakeSendMW(controller)
-    mw.settings["general"]["voice_nr_engine"] = "basic"
+    mw.settings["general"]["noise_reduction_neural"] = False
     panel = _SendPanel(mw, frames, None)
     vr.VoiceRecordingMixin._send_voice_message(panel, None)
     assert mw.message_queue.event.wait(10)
@@ -2362,7 +2362,7 @@ def test_send_basic_engine_still_sends_with_keep_pending_option(send_env, monkey
     frames = [b"\x11\x12" * 480]
     raw = b"".join(frames)
     mw, _ = _keep_pending_mw(controller)
-    mw.settings["general"]["voice_nr_engine"] = "basic"
+    mw.settings["general"]["noise_reduction_neural"] = False
     panel = _SendPanel(mw, frames, None)
     vr.VoiceRecordingMixin._send_voice_message(panel, None)
     assert mw.message_queue.event.wait(10)

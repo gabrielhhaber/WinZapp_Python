@@ -46,7 +46,7 @@ READ_ELSEWHERE = {
     ("general", "voice_recording_bitrate"): "normalized by voice_bitrate_kbps(settings) in _load_voice_recording_options(); behavior covered by test_stereo_voice_messages.py",
     ("general", "voice_recording_bitrate_stereo"): "normalized by stereo_voice_bitrate_kbps(settings) in _load_voice_recording_options(); behavior covered by test_stereo_voice_messages.py",
     ("general", "voice_recording_mode"): "normalized by voice_recording_mode(settings) in _load_voice_recording_options(); behavior covered by test_voice_recording_mode.py",
-    ("general", "voice_nr_engine"): "normalized by voice_nr_engine(settings) in _load_voice_recording_options(); behavior covered by test_incremental_wiring.py",
+    ("general", "noise_reduction_neural"): "the engine combo, loaded through voice_nr_engine(settings) in _load_voice_recording_options(); behavior covered by test_voice_nr_upstream_preferences.py",
     ("general", "voice_nr_moment"): "normalized by voice_nr_moment(settings) in _load_voice_recording_options(); behavior covered by test_incremental_wiring.py",
     ("general", "voice_nr_on_failure"): "normalized by voice_nr_on_failure(settings) in _load_voice_recording_options(); behavior covered by test_incremental_wiring.py",
     ("general", "spell_check_mode"): "loaded through spell_check_mode(general) in _apply_spell_check_mode()",
