@@ -156,13 +156,14 @@ def denoise_pcm16(audio: bytes, rate: int, channels: int, denoiser: NeuralDenois
 
 _denoiser: NeuralDenoiser | None = None
 _denoiser_lock = threading.Lock()
-# _denoiser_lock covers CONSTRUCTION only. Inference on the shared singleton
-# is serialized separately: concurrent run() calls on one InferenceSession
-# are a property of the pinned onnxruntime this codebase does NOT claim
-# (the incremental drain carries a private instance for the same reason —
-# see voice_recording._incremental_drain). Two at-send reductions (two
-# notes sent at once, or a kept-pending retry next to another note's send)
-# must wait for each other instead of racing one native session.
+# _denoiser_lock covers CONSTRUCTION only. Whole reductions on the shared
+# singleton run one at a time under _inference_lock. That is not for thread
+# safety (onnxruntime documents run() as thread-safe, and process() already
+# runs a stereo note's two channels concurrently on this same session) but
+# for the machine: two notes reduced at once (sent back to back, or a
+# kept-pending retry next to another note's send) would each take every
+# core and double the peak memory. The second waits for the first, and
+# ordered_dispatch keeps the notes in recording order either way.
 _inference_lock = threading.Lock()
 
 

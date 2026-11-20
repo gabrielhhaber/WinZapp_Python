@@ -275,6 +275,45 @@ def test_gate_failure_does_not_pass_for_basic_reduction(monkeypatch):
         nnr.reduce_voice_noise(audio, 48_000, 1)
 
 
+def test_two_reductions_on_the_singleton_run_one_at_a_time(monkeypatch):
+    import threading
+    monkeypatch.setattr(nnr, "_denoiser", object())
+    monkeypatch.setattr(nnr, "model_path", lambda: "missing-model.onnx")
+    active, peak = [0], [0]
+    first_in, release_first, second_in = (threading.Event() for _ in range(3))
+    count_lock = threading.Lock()
+
+    def _denoise(audio, rate, channels, denoiser):
+        with count_lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        if not first_in.is_set():
+            first_in.set()
+            assert release_first.wait(10)
+        else:
+            second_in.set()
+        with count_lock:
+            active[0] -= 1
+        return audio
+
+    monkeypatch.setattr(nnr, "denoise_pcm16", _denoise)
+    results = []
+    run = lambda: results.append(nnr.reduce_voice_noise(b"ab", 48000, 1))
+    first = threading.Thread(target=run)
+    first.start()
+    assert first_in.wait(10)
+    second = threading.Thread(target=run)
+    second.start()
+    # Held by the first: the second may not enter the model meanwhile.
+    assert not second_in.wait(0.1)
+    release_first.set()
+    first.join(10)
+    second.join(10)
+    assert second_in.is_set()
+    assert peak[0] == 1
+    assert results == [(b"ab", "neural"), (b"ab", "neural")]
+
+
 def test_double_failure_notice_exists_and_is_spoken_on_total_failure():
     for loc in LOCALES:
         text = _PoI18n(loc).t("noise_reduction_failed")
