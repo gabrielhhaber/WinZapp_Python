@@ -102,3 +102,15 @@ def test_a_typed_number_stays_as_typed_when_the_lookup_says_nothing(monkeypatch)
     mw = Mw({})
     on_add(mw, "(11) 99999-0000", monkeypatch)
     assert mw.posts[-1][1]["participants"] == ["5511999990000@s.whatsapp.net"]
+
+
+def test_every_field_of_the_dialog_has_its_own_label_right_before_it():
+    """NVDA names a field by the StaticText just before it: the country combo
+    sits between the custom-number label and the number field, so the field
+    needs a label of its own."""
+    import inspect
+    src = inspect.getsource(call_invite.CallInviteDialog.__init__)
+    country_field = src.index("self._country = wx.ComboBox")
+    phone_label = src.index('i18n.t("add_member_phone_number_label")')
+    number_field = src.index("self._number = wx.TextCtrl")
+    assert country_field < phone_label < number_field
