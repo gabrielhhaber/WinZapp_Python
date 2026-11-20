@@ -1,6 +1,7 @@
 """Message translation without an online AI (issue #798): the languages, the
 offline model catalogue and engine, the translation services and how the
 settings and the conversation reach them. No network, no model, no window."""
+import os
 import re
 from dataclasses import replace
 from types import SimpleNamespace
@@ -148,6 +149,46 @@ def test_translate_batches_the_lines_and_puts_the_text_back_together(tmp_path, m
         local_engine.unload()
     assert answer == "BOM DIA\n\n  ATÉ LOGO"
     assert seen == [([["__en__", "bom", "dia", "</s>"], ["__en__", "até", "logo", "</s>"]], None)]
+
+
+def test_a_model_that_will_not_load_is_its_own_pausing_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(local_store, "is_installed", lambda entry, root=None: True)
+    monkeypatch.setattr(local_engine, "missing_components", lambda *a, **k: ())
+    attempts = []
+
+    def refuse(*args):
+        attempts.append(1)
+        raise MemoryError
+    monkeypatch.setattr(local_engine, "_open", refuse)
+    with pytest.raises(DescriptionError) as raised:
+        local_engine.translate("small100-int8", "oi", "en", root=str(tmp_path))
+    assert raised.value.key == "ai_error_translation_local_load"
+    assert mt.pauses_automatic(raised.value.key)
+    assert mt.pauses_automatic("ai_error_translation_engine_missing")
+    assert not mt.pauses_automatic("ai_error_translation_local_failed")
+
+
+def test_a_missing_detector_is_an_engine_error_not_english():
+    def absent(text):
+        raise ImportError("py3langid")
+    with pytest.raises(DescriptionError) as raised:
+        local_engine.detect("Oi", absent)
+    assert raised.value.key == "ai_error_translation_engine_missing"
+
+    def odd(text):
+        raise ValueError("bad")
+    assert local_engine.detect("Oi", odd) is None
+
+
+def test_an_idle_timer_that_was_replaced_does_not_drop_the_model(monkeypatch):
+    sentinel = object()
+    monkeypatch.setattr(local_engine, "_loaded", sentinel)
+    monkeypatch.setattr(local_engine, "_idle_timer", SimpleNamespace(cancel=lambda: None))
+    local_engine._unload_if_idle(object())          # a stale timer
+    assert local_engine._loaded is sentinel
+    current = local_engine._idle_timer
+    local_engine._unload_if_idle(current)
+    assert local_engine._loaded is None
 
 
 def test_a_cancel_between_batches_stops_the_run(tmp_path, monkeypatch):
@@ -402,7 +443,7 @@ _FILES = [(model, name, size) for model in local_catalog.MODELS for name, size i
 
 @pytest.mark.network
 @pytest.mark.skipif(
-    __import__("os").environ.get(_NETWORK_OPT_IN_ENV, "").strip() in ("", "0", "false", "False"),
+    os.environ.get(_NETWORK_OPT_IN_ENV, "").strip() in ("", "0", "false", "False"),
     reason=f"reaches huggingface.co - set {_NETWORK_OPT_IN_ENV}=1 to run it")
 @pytest.mark.parametrize("model, name, size", _FILES,
                          ids=[f"{m.id}/{n}" for m, n, _s in _FILES])

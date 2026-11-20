@@ -6,8 +6,8 @@ the engines that are not a language model:
 * ``languages`` — the languages offered, by endonym, and each engine's code
   for them;
 * ``local_catalog`` — the offline models (CTranslate2 conversions of NLLB-200,
-  M2M-100, SMaLL-100 and MADLAD-400), pinned like the Whisper catalogue;
-* ``local_store`` / ``local_job`` / ``local_text`` — their folder, download
+  M2M-100, mBART-50, SMaLL-100 and MADLAD-400), pinned like the Whisper catalogue;
+* ``local_store`` / ``local_text`` — their folder, download
   and removal (through the transcription model store) and what the settings
   say about them;
 * ``local_engine`` — loading a model and translating with it, in-process;

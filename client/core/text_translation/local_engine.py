@@ -145,6 +145,10 @@ def detect(text, classify=None):
 
             classify = py3langid.classify
         code, _score = classify(text)
+    except (ImportError, OSError):
+        # No detector is not "no answer": reading the text as English would
+        # translate it as if it were.
+        raise DescriptionError("translation_engine_missing") from None
     except Exception as exc:
         logging.info("[translation] language detection failed: %s", type(exc).__name__)
         return None
@@ -260,7 +264,10 @@ def _load(model, device, root):
         raise DescriptionError("translation_engine_missing") from None
     except Exception as exc:
         logging.warning("[translation] could not load %s: %s", model.id, type(exc).__name__)
-        raise DescriptionError("translation_local_failed") from None
+        # Its own category, apart from a text that failed: loading fails again
+        # for every message (a model too large for the memory), so automatic
+        # translation pauses on it instead of trying at each arrival.
+        raise DescriptionError("translation_local_load") from None
     logging.info("[translation] loaded %s on %s", model.id, used)
     _loaded = (key, translator, tokenizer)
     return translator, tokenizer
@@ -280,9 +287,18 @@ def _schedule_unload():
     global _idle_timer
     if _idle_timer is not None:
         _idle_timer.cancel()
-    _idle_timer = threading.Timer(IDLE_UNLOAD_SECONDS, unload)
-    _idle_timer.daemon = True
-    _idle_timer.start()
+    timer = threading.Timer(IDLE_UNLOAD_SECONDS, lambda: _unload_if_idle(timer))
+    timer.daemon = True
+    _idle_timer = timer
+    timer.start()
+
+
+def _unload_if_idle(timer):
+    # The callback waits for the lock while a translation runs; by then it is
+    # no longer the current timer, and the model it would drop was just used.
+    with _lock:
+        if _idle_timer is timer:
+            unload()
 
 
 def translate(model_id, text, target, source=None, device=DEVICE_CPU, should_cancel=None,
