@@ -39,16 +39,6 @@ class FakeEvents(types.ModuleType):
         return kind
 
 
-class FakeDeviceProps:
-    DESKTOP = 7
-
-    def __init__(self, **kw):
-        for key, value in kw.items():
-            setattr(self, key, value)
-        # the real proto creates the HistorySyncConfig submessage on access
-        self.historySyncConfig = type("HistorySyncConfig", (), {})()
-
-
 class FakeNewClient:
     """What `_run` asks of neonize at client creation, recorded."""
 
@@ -75,21 +65,16 @@ class FakeNewClient:
 
 
 def _install_neonize_fakes(monkeypatch, client_class):
-    neonize = types.ModuleType("neonize")
+    """Fakes only the client and the events: `device_props` builds a real
+    DeviceProps, whose historySyncConfig `omitted_history` serializes."""
+    import neonize
     events = FakeEvents("neonize.events")
     client = types.ModuleType("neonize.client")
     client.NewClient = client_class
-    proto = types.ModuleType("neonize.proto")
-    companion = types.ModuleType("neonize.proto.waCompanionReg")
-    pb2 = types.ModuleType(
-        "neonize.proto.waCompanionReg.WAWebProtobufsCompanionReg_pb2")
-    pb2.DeviceProps = FakeDeviceProps
-    for module in (neonize, events, client, proto, companion, pb2):
+    for module in (events, client):
         monkeypatch.setitem(sys.modules, module.__name__, module)
-    neonize.events, neonize.client = events, client
-    proto.waCompanionReg = companion
-    companion.WAWebProtobufsCompanionReg_pb2 = pb2
-    monkeypatch.setitem(sys.modules, "neonize", neonize)
+    monkeypatch.setattr(neonize, "events", events, raising=False)
+    monkeypatch.setattr(neonize, "client", client, raising=False)
 
 
 class FailingForceReceiptsClient(FakeNewClient):
