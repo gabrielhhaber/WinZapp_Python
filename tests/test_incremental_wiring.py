@@ -2604,6 +2604,7 @@ class _RetryPanel:
         self._outgoing_virtual_messages = {}
         self._sorted_messages = [row] if row is not None else []
         mw.records = [row] if row is not None else []
+        self._stage_wav_temp = vr.VoiceRecordingMixin._stage_wav_temp
         for _name in ("_nr_pending_row_alive", "_nr_attempt_begin",
                       "_nr_begin_action", "_nr_attempt_may_speak",
                       "_nr_pending_record_alive",
@@ -3052,15 +3053,16 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     frames = [b"\x59\x5a" * 480]
     raw = b"".join(frames)
     spool = str(send_env / "spool.pcm")
+    monkeypatch.setattr(vr, "_INCREMENTAL_SEND_FINAL_WAIT", 0.2)
     open(spool, "wb").write(b"work")
 
     session = _send_session(controller, frames, worker=types.SimpleNamespace(abort=lambda: None),
                             spool=spool, stream=_FakeStream())
 
     def _hanging_drain():
-        # Ignores stop/cancel past the 2 s wait, then self-cleans like the
-        # real drain does (drain_cleaned + slot release).
-        time.sleep(3.0)
+        # Ignores stop/cancel past the (shortened) wait, then self-cleans like
+        # the real drain does (drain_cleaned + slot release).
+        time.sleep(0.8)
         session["drain_cleaned"] = True
         controller.release_slot("m1")
 
@@ -3074,7 +3076,7 @@ def test_real_native_timeout_keeps_pending_and_blocks_retry_until_cleanup(send_e
     panel._mark_message_failed = lambda local_id: panel.failed.append(local_id)
     WX_CALLS.clear()
     vr.VoiceRecordingMixin._send_voice_message(panel, None)  # async worker
-    _wait_wx_calls()  # the keep-pending mark lands after the real ~2 s wait
+    _wait_wx_calls()  # the keep-pending mark lands after the shortened wait
     _drive_wx_calls()
     # Timeout -> skip_posterior -> pending with the ORIGINAL audio, model
     # never called, slot RETAINED by the still-hanging drain.
@@ -3963,3 +3965,20 @@ def test_discard_removes_the_encrypted_and_the_legacy_plaintext_copy(tmp_path):
     discard_nr_pending_resend(voice_dir, "z1")
     assert not os.path.exists(enc) and not os.path.exists(legacy)
     assert os.path.exists(other)
+
+
+def test_menu_send_raw_routes_a_kept_note_to_the_raw_send(send_env):
+    from ui.conversation_panel import message_actions as ma_
+    row, path = _processed_voice_row(send_env, b"\x01\x02" * 480, local_id="r1")
+    row.pop("_nr_processed_voice")
+    row["_nr_pending_retry"] = True
+    routed, spoken = [], []
+    panel = types.SimpleNamespace(
+        main_window=types.SimpleNamespace(
+            output=lambda msg, **k: spoken.append(msg), i18n=_FakeI18n()),
+        _send_nr_pending_raw=lambda m, jid, p: routed.append((m, jid, p)))
+    ma_.MessageActionsMixin._on_menu_send_nr_pending_raw(panel, row)
+    assert routed == [(row, "peer@s.whatsapp.net", path)] and spoken == []
+    # A row with nothing to resend says so and sends nothing.
+    ma_.MessageActionsMixin._on_menu_send_nr_pending_raw(panel, {"key": {}})
+    assert len(routed) == 1 and spoken == ["resend_not_available"]

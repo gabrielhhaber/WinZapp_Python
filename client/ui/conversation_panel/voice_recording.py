@@ -30,6 +30,7 @@ from core.voice_stereo import (
 from core.voice_recording_mode import (
     voice_recording_mode, recording_output_channels, prepare_voice_pcm,
 )
+from core.voice_nr_send_plan import plan_send_reduction
 from core.voice_nr_options import (
     effective_nr_on_failure, nr_local_id, voice_nr_engine, voice_nr_moment)
 from core.focus_cloak import cloak_panel_focus_fallback
@@ -1506,26 +1507,8 @@ class VoiceRecordingMixin:
                 # reservation ends here, before staging/handoff.
                 if reserved:
                     controller.release_offline(local_id)
-            tmp_name = None
-            try:
-                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-                tmp_name = tmp.name
-                tmp.close()
-                with wave.open(tmp_name, "wb") as wf:
-                    wf.setnchannels(channels)
-                    wf.setsampwidth(2)
-                    wf.setframerate(rate)
-                    wf.writeframes(data)
-            except Exception as exc:
-                logging.error("[noise_reduction] could not write the processed "
-                              "retry: %s", exc)
-                # No partial staging artifact left behind (review 18:47,
-                # contract 5).
-                if tmp_name is not None:
-                    try:
-                        os.unlink(tmp_name)
-                    except OSError:
-                        pass
+            tmp_name = self._stage_wav_temp(data, rate, channels)
+            if tmp_name is None:
                 self._nr_pending_announce(local_id, token, remote_jid,
                                           "noise_reduction_kept_pending")
                 return
@@ -1533,6 +1516,31 @@ class VoiceRecordingMixin:
                                      channels, rate, seconds, token)
 
         threading.Thread(target=_work, daemon=True).start()
+
+    @staticmethod
+    def _stage_wav_temp(data, rate, channels):
+        """Write PCM *data* to a temporary WAV and return its path, or None
+        when that failed (no partial file is left behind)."""
+        tmp_name = None
+        try:
+            tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            tmp_name = tmp.name
+            tmp.close()
+            with wave.open(tmp_name, "wb") as wf:
+                wf.setnchannels(channels)
+                wf.setsampwidth(2)
+                wf.setframerate(rate)
+                wf.writeframes(data)
+            return tmp_name
+        except Exception as exc:
+            logging.error("[noise_reduction] could not stage the processed "
+                          "audio: %s", exc)
+            if tmp_name is not None:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+            return None
 
     def _stage_pending_and_handoff(self, msg, remote_jid, path, local_id,
                                    token, fail_key):
@@ -1550,25 +1558,10 @@ class VoiceRecordingMixin:
                 self._nr_pending_announce(local_id, token, remote_jid,
                                           "resend_not_available")
                 return
-            tmp_name = None
-            try:
-                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-                tmp_name = tmp.name
-                tmp.close()
-                with wave.open(tmp_name, "wb") as wf:
-                    wf.setnchannels(channels)
-                    wf.setsampwidth(2)
-                    wf.setframerate(rate)
-                    wf.writeframes(data)
-            except Exception as exc:
-                logging.error("[noise_reduction] could not stage the pending "
-                              "voice send: %s", exc)
-                if tmp_name is not None:
-                    try:
-                        os.unlink(tmp_name)
-                    except OSError:
-                        pass
-                self._nr_pending_announce(local_id, token, remote_jid, fail_key)
+            tmp_name = self._stage_wav_temp(data, rate, channels)
+            if tmp_name is None:
+                self._nr_pending_announce(local_id, token, remote_jid,
+                                          fail_key)
                 return
             self._nr_pending_handoff(msg, remote_jid, tmp_name,
                                      channels, rate, seconds, token,
@@ -2319,33 +2312,20 @@ class VoiceRecordingMixin:
                 # exists for a user who chose NEURAL — a basic engine chosen
                 # on purpose sends gated exactly as published.
                 chosen_basic = voice_nr_engine(mw.settings) == "basic"
-                session_blocked = inc_session is not None and (
-                    inc_session.get("basic_only", False)
-                    or inc_session.get("model_unavailable", False)
-                    or inc_session.get("fallback_chosen", False))
-                basic_only = chosen_basic or session_blocked
                 from core import noise_model
                 try:
                     _model_installed = noise_model.is_installed()
                 except Exception:
                     _model_installed = False
                 on_failure = effective_nr_on_failure(mw.settings, _model_installed)
-                want_pending = on_failure == "keep_pending" and not chosen_basic
-                # No second ONNX next to a live native session: with
-                # keep_pending, when the incremental side could not clean
-                # this note and its model may still be loaded (load failed,
-                # finish timed out, or the slot busy at record is STILL
-                # busy), the send does NOT run the offline reduction — the
-                # raw note goes straight to pending. A slot freed meanwhile
-                # makes the posterior pass possible; if even that is not
-                # neural, the note stays pending.
-                skip_posterior = want_pending and inc_session is not None and (
-                    inc_session.get("model_unavailable", False)
-                    or inc_session.get("fallback_chosen", False)
-                    or (inc_session.get("basic_only", False)
-                        and controller is not None and controller.slot_busy()))
+                plan = plan_send_reduction(
+                    chosen_basic, on_failure, inc_session,
+                    slot_busy=lambda: controller is not None and controller.slot_busy())
+                basic_only = plan.basic_only
+                want_pending = plan.want_pending
+                skip_posterior = plan.skip_posterior
                 raw_unprocessed = audio_data if want_pending else None
-                reduce_basic_only = chosen_basic or (session_blocked and not want_pending)
+                reduce_basic_only = plan.reduce_basic_only
                 offline_reserved = False
                 if (inc_session is not None and controller is not None
                         and inc_session.get("worker") is None
