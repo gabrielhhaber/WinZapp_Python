@@ -34,6 +34,7 @@ import {
 } from '../dto/sync';
 import { contactToArray, unlinkAsync } from '../util/functions';
 import { repairMissingStamps } from '../util/messageStampRepair';
+import { pageNumberOfLid, pageNumbersOfLids } from '../util/lidNumberPage';
 import { pageUnanchoredMessages } from '../util/unanchoredMessagePaging';
 import { readMyProfile } from '../util/profileRuntime';
 import { buildForwardRuntimeExpression } from '../util/forwardRuntime';
@@ -4228,12 +4229,7 @@ export async function checkNumberStatus(req: Request, res: Response) {
     const answered = response?.id?._serialized || response?.id;
     if (typeof answered === 'string' && answered.endsWith('@lid')) {
       try {
-        const number = await req.client.page.evaluate((lid: string) => {
-          const wpp = (window as any).WPP?.whatsapp;
-          const pn = wpp?.ApiContact?.getPhoneNumber?.(wpp?.WidFactory?.createWid?.(lid));
-          const text = typeof pn === 'string' ? pn : pn?._serialized;
-          return typeof text === 'string' && /^\d+@c\.us$/.test(text) ? text : '';
-        }, answered);
+        const number = await req.client.page.evaluate(pageNumberOfLid, answered);
         if (number) response = { ...response, phoneNumber: number };
       } catch (lookupError: any) {
         req.logger.warn(
@@ -4357,16 +4353,7 @@ export async function getAllContacts(req: Request, res: Response) {
       if (lids.length) {
         try {
           const phones: Record<string, string> = await req.client.page.evaluate(
-            (ids: string[]) => {
-              const store = (window as any).WPP?.whatsapp?.ContactStore;
-              const found: Record<string, string> = {};
-              for (const id of ids) {
-                const pn = store?.get?.(id)?.phoneNumber;
-                const text = typeof pn === 'string' ? pn : pn?._serialized;
-                if (typeof text === 'string' && /^\d+@c\.us$/.test(text)) found[id] = text;
-              }
-              return found;
-            },
+            pageNumbersOfLids,
             lids
           );
           for (const c of response) {
