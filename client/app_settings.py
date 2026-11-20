@@ -111,6 +111,12 @@ _DEFAULTS: dict[str, Any] = {
     # WHISPER_CPP_SETTING mirror these names (pinned by a test).
     "transcription_cuda_extra_dir": "",
     "transcription_whisper_cpp_extra_dir": "",
+    # The keyboard shortcut overrides ({shortcut id: [modifiers, key] or
+    # None}), a whole section of settings.json mirrored into every account
+    # (core/shared_shortcuts.py): the same person types in every account, and
+    # "switch to account N" only means something if every account answers to
+    # the same key. Name pinned to core.keyboard_shortcuts.SECTION by a test.
+    "keyboard_shortcuts": {},
 }
 
 # Which legacy general.* keys are global (the rest stay per-account).
@@ -122,6 +128,10 @@ _GENERAL_GLOBAL = ("language", "updates_enabled", "alpha_updates_enabled",
                    "switch_behavior")
 _CONNECTION_GLOBAL = ("wpp_server", "wpp_ws_server", "wpp_api_key", "wpp_custom_api",
                       "wpp_engine")
+# Whole top-level sections of settings.json that are install-wide; reconciled
+# with the shared file by MainWindow._persist_global_settings() like the keys
+# above, at self.settings[name].
+_SECTION_GLOBAL = ("keyboard_shortcuts",)
 
 
 def _default(key: str) -> Any:

@@ -207,6 +207,31 @@ def test_cancelled_staged_edit_does_not_mutate_saved_preferences(monkeypatch):
     assert dialog.main_window.settings[SECTION] == {'main.ID_ALT_1': [2, ord('J')]}
 
 
+def test_ok_hands_changed_shortcuts_to_the_install_as_an_explicit_choice(monkeypatch):
+    """The shortcuts are install-wide (core/shared_shortcuts.py): written to
+    the shared file even when equal to what this account last pulled."""
+    monkeypatch.setattr('ui.dialogs.shortcuts_tab.refresh_shortcuts', lambda _: None)
+    dialog = settings_stub({'main.account[1]': None})
+    dialog._shortcut_overrides_loaded = {}
+    chosen = []
+    dialog.main_window.choose_global_settings = chosen.append
+    dialog._apply_shortcut_values()
+    assert chosen == [{SECTION: {'main.account[1]': None}}]
+    dialog._apply_shortcut_values()  # Apply, then OK: the same values once
+    assert len(chosen) == 1
+
+
+def test_ok_on_an_untouched_shortcuts_page_writes_nothing(monkeypatch):
+    """Writing it would undo a change another account made since."""
+    monkeypatch.setattr('ui.dialogs.shortcuts_tab.refresh_shortcuts', lambda _: None)
+    dialog = settings_stub({'main.account[1]': None})
+    dialog._shortcut_overrides_loaded = {'main.account[1]': None}
+    chosen = []
+    dialog.main_window.choose_global_settings = chosen.append
+    dialog._apply_shortcut_values()
+    assert chosen == []
+
+
 def test_disabled_shortcut_and_unset_global_are_not_a_conflict():
     dialog = settings_stub({'main.ID_ALT_1': None})
     assert dialog._accept_shortcut(spec('main.ID_ALT_1'), None)

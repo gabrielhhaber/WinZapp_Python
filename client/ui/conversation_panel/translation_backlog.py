@@ -18,9 +18,10 @@ import wx
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken
 from core.message_translation import (
-    DISPLAY_SEPARATE, MAX_TEXT_CHARS, backlog_messages, message_identity, message_text, translation_model_ready,
+    DISPLAY_SEPARATE, MAX_TEXT_CHARS, backlog_messages, message_identity, message_text,
+    not_ready_key, sends_text_out, translation_model_ready,
 )
-from ui.dialogs.translation_settings import LABELS
+from ui.dialogs.translation_settings import provider_label
 
 _MAX_SELECTED = 50
 _REMEMBERED_KEYS = 500
@@ -72,7 +73,7 @@ class TranslationBacklogMixin:
             mw.output(t("translation_not_configured"), interrupt=True)
             return
         if not translation_model_ready(config):
-            mw.output(t("translation_test_required"), interrupt=True)
+            mw.output(t(not_ready_key(config)), interrupt=True)
             return
         jid = (self.conversation or {}).get("remoteJid", "")
         if not jid or self._translation_chat_hidden(jid):
@@ -84,8 +85,11 @@ class TranslationBacklogMixin:
         if not rows:
             mw.output(t("translation_bulk_none"), interrupt=True)
             return
-        provider = LABELS.get(config.provider, config.provider)
-        prompt = t("translation_bulk_confirm").format(count=len(rows), provider=provider)
+        provider = provider_label(t, config.provider)
+        # The offline model sends nothing anywhere: the question is only
+        # whether to start a run that may take a while.
+        prompt = t("translation_bulk_confirm" if sends_text_out(config.provider)
+                   else "translation_bulk_confirm_local").format(count=len(rows), provider=provider)
         if wx.MessageBox(prompt, t("translation_message"), wx.YES_NO | wx.NO_DEFAULT, self) != wx.YES:
             return
         # The vault's timer fires inside the box's modal loop too.

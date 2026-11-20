@@ -210,9 +210,11 @@ def test_mixed_capture_ignores_the_previous_microphone_channel_preference(compos
     h.threads.drain()
     h.drain_ui()
     queued = h.p.main_window.message_queue.enqueue.call_args.args[0]
-    assert queued.media_type == 'audio'
-    assert h.encoder.call_args.kwargs.get('bitrate', '192k') == '192k'
-    assert h.p._sorted_messages[0]['message']['audioMessage']['ptt'] is False
+    # Still stereo, so a voice message in AAC M4A at the stereo voice rate:
+    # the format WhatsApp on iPhone plays (core/voice_stereo.py).
+    assert queued.voice_mimetype == 'audio/mp4'
+    assert h.encoder.call_args.kwargs.get('bitrate') == '128k'
+    assert h.p._sorted_messages[0]['message']['audioMessage']['ptt'] is True
 
 
 def test_conversion_failure_is_visible_and_never_queues_wrong_channels(composer, monkeypatch):

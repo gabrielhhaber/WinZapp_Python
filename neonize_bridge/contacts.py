@@ -167,16 +167,22 @@ def address_book_rows(entries, jid_text):
     return rows
 
 
-def address_book_record(contact: dict, wpp_id: dict, my_jids) -> dict:
+def address_book_record(contact: dict, wpp_id: dict, my_jids, phone="") -> dict:
     """A row of `all-contacts`. The client ignores rows without `isMyContact` and
     `syncToAddressbook` (core/phone_contacts.py): a name in the address book is
     what says the contact is still saved on the phone. `my_jids`: the account's
-    own ids (number and LID) in WhatsApp Web's format."""
+    own ids (number and LID) in WhatsApp Web's format. `phone`: an @lid row's
+    number, sent as `phoneNumber` ('<digits>@c.us', as WinZapp's WPPConnect
+    side sends it) so the client knows the two addresses are one person."""
     name = contact["name"] or None
-    return {"id": wpp_id, "name": name, "pushname": contact["pushname"] or None,
-            "shortName": name, "isMyContact": bool(name),
-            "syncToAddressbook": bool(name),
-            "isMe": wpp_id["_serialized"] in my_jids}
+    record = {"id": wpp_id, "name": name, "pushname": contact["pushname"] or None,
+              "shortName": name, "isMyContact": bool(name),
+              "syncToAddressbook": bool(name),
+              "isMe": wpp_id["_serialized"] in my_jids}
+    phone = msgmap.jid_wpp(phone or "")
+    if wpp_id["_serialized"].endswith("@lid") and phone.endswith("@c.us"):
+        record["phoneNumber"] = phone
+    return record
 
 
 def address_book_records(contact_rows, wpp_id, my_jids, phone_of, lid_of) -> list:
@@ -188,11 +194,12 @@ def address_book_records(contact_rows, wpp_id, my_jids, phone_of, lid_of) -> lis
     rows = {c["jid"]: c for c in contact_rows}
     records = []
     for c in contact_rows:
+        phone = phone_of(c["jid"]) if c["jid"].endswith("@lid") else ""
         if c["jid"].endswith("@lid") and not c["name"]:
-            name, _ = book_identity(rows, c["jid"], phone_of(c["jid"]))
+            name, _ = book_identity(rows, c["jid"], phone)
             if name:
                 c = {**c, "name": name}
-        records.append(address_book_record(c, wpp_id(c["jid"]), my_jids))
+        records.append(address_book_record(c, wpp_id(c["jid"]), my_jids, phone))
     for c in contact_rows:
         if not (c["jid"].endswith("@s.whatsapp.net") and c["name"]):
             continue
@@ -200,7 +207,7 @@ def address_book_records(contact_rows, wpp_id, my_jids, phone_of, lid_of) -> lis
         if lid.endswith("@lid") and lid not in rows:
             rows[lid] = c
             records.append(address_book_record(
-                {"name": c["name"], "pushname": c["pushname"]}, wpp_id(lid), my_jids))
+                {"name": c["name"], "pushname": c["pushname"]}, wpp_id(lid), my_jids, c["jid"]))
     return records
 
 

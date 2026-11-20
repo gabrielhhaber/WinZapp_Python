@@ -1136,9 +1136,11 @@ class ChatListMixin:
         if is_call_log(last):
             # Same sentence the conversation row reads (core/call_log.py).
             panel = getattr(self, "conversations_panel", None)
+            people = getattr(self, "call_log_participants_text", None)
             content = call_log_label(
                 last, i18n,
-                panel._format_duration if panel is not None else (lambda _s: ""))
+                panel._format_duration if panel is not None else (lambda _s: ""),
+                people(last, chat.get("remoteJid", "")) if people is not None else "")
         elif (commerce_text := commerce_message_label(last, i18n)) is not None:
             # Same sentence the conversation row reads (core/commerce.py).
             content = commerce_text

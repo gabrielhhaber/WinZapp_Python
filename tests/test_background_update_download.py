@@ -62,7 +62,7 @@ class TestWhenTheInstallMayStart:
         return types.SimpleNamespace(
             _ui_ready_event=event,
             wpp_update_may_run_now=lambda: may_run,
-            _voice_call_in_progress=lambda: in_call,
+            _background_work_paused=lambda: in_call,
         )
 
     def test_normally_yes(self):
@@ -248,7 +248,7 @@ class TestWithTheOptionOn:
 
     def test_it_waits_while_the_user_is_on_a_call(self, world):
         checker = _Checker()
-        checker._mw._voice_call_in_progress = lambda: True
+        checker._mw._background_work_paused = lambda: True
 
         checker._do_install(*ARGS)
 
@@ -256,7 +256,7 @@ class TestWithTheOptionOn:
         (ms, fn, args), = world.later
         assert ms == BackgroundDownloadMixin._READY_RETRY_MS
 
-        checker._mw._voice_call_in_progress = lambda: False
+        checker._mw._background_work_paused = lambda: False
         fn(*args)                                      # the retry, once the call is over
         assert len(world.boxes) == 1 and checker._mw.exits == 1
 

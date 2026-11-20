@@ -804,3 +804,11 @@ def test_voip_backend_is_initialised_once_per_page():
         # test_voip_init_policy.py; these assertions only guard the wiring.
         assert "installVoipInitPolicyInPage" in source
         assert "await win.__winzappInitializeVoip(initModule," in source
+
+
+def test_waiting_room_without_a_call_id_answers_400_like_admit():
+    controller = _source("client/api_patches/src/controller/callController.ts")
+    start = controller.index("export async function callLinkWaitingRoom(")
+    route = controller[start:controller.index("\nexport ", start + 1)]
+    assert "if (!req.body?.callId)" in route
+    assert route.index("status(400)") < route.index("evaluateCallLink")

@@ -564,6 +564,9 @@ class _SendPanel:
     def _stop_recording_stream(self, session=None):
         return vr.VoiceRecordingMixin._stop_recording_stream(self, session)
 
+    def _is_cancelled_pending(self, local_id):
+        return False
+
     def _reduce_for_send(self, *a, **k):
         return vr.VoiceRecordingMixin._reduce_for_send(self, *a, **k)
 

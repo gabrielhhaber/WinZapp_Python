@@ -105,9 +105,9 @@ class HistoryMixin:
             # The outer backfill loop checks before starting a chat, but without
             # this inner gate an in-flight visit could still fetch several more
             # 200-message pages after audio became active.
-            if self._voice_call_in_progress():
+            if self._background_work_paused():
                 logging.info(
-                    "[deep-backfill] Pausing %s during active voice call.",
+                    "[deep-backfill] Pausing %s during voice call or audio recording.",
                     remote_jid,
                 )
                 break
@@ -402,26 +402,30 @@ class HistoryMixin:
             phone = self._resolve_jid_for_msg_key(remote_jid).replace("@s.whatsapp.net", "@c.us")
         resolved_phone = phone
 
-        _key = oldest_msg.get("key", {})
-        serialized_key = _key.get("_serialized", "") or oldest_msg.get("_serialized", "")
-        if serialized_key:
-            serialized_id = serialized_key
-        else:
-            serialized_id = self._serialize_msg_id(remote_jid, _key if _key else oldest_msg)
-
-        # The serialized anchor identifies the Store chat that owns the
-        # message. Current multi-device sessions commonly keep private chats
-        # only under @lid; querying @c.us with an @lid anchor always returns
-        # Chat not found before the fallback can do useful work.
-        serialized_parts = serialized_id.split("_", 2)
-        if len(serialized_parts) == 3:
-            anchor_jid = serialized_parts[1]
-            if anchor_jid.endswith(("@lid", "@c.us", "@g.us")):
-                phone = anchor_jid
-
         limit = messages_page_size(self.settings)
-        extra = channel_history.older_page_query(remote_jid, oldest_msg)
-        url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}{extra}"
+        if oldest_msg is not None:
+            _key = oldest_msg.get("key", {})
+            serialized_key = _key.get("_serialized", "") or oldest_msg.get("_serialized", "")
+            if serialized_key:
+                serialized_id = serialized_key
+            else:
+                serialized_id = self._serialize_msg_id(remote_jid, _key if _key else oldest_msg)
+
+            # The serialized anchor identifies the Store chat that owns the
+            # message. Current multi-device sessions commonly keep private chats
+            # only under @lid; querying @c.us with an @lid anchor always returns
+            # Chat not found before the fallback can do useful work.
+            serialized_parts = serialized_id.split("_", 2)
+            if len(serialized_parts) == 3:
+                anchor_jid = serialized_parts[1]
+                if anchor_jid.endswith(("@lid", "@c.us", "@g.us")):
+                    phone = anchor_jid
+
+            extra = channel_history.older_page_query(remote_jid, oldest_msg)
+            url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}&direction=before&id={serialized_id}{extra}"
+        else:
+            serialized_id = ""
+            url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{phone}?count={limit}"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
@@ -444,13 +448,16 @@ class HistoryMixin:
                         alternate_jid = alt_lid
 
                 if alternate_jid and alternate_jid != phone:
-                    alt_serialized_id = serialized_id
-                    if "_" in serialized_id:
-                        parts = serialized_id.split("_")
-                        if len(parts) >= 3:
-                            parts[1] = alternate_jid
-                            alt_serialized_id = "_".join(parts)
-                    alt_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{alternate_jid}?count={limit}&direction=before&id={alt_serialized_id}"
+                    if oldest_msg is not None:
+                        alt_serialized_id = serialized_id
+                        if "_" in serialized_id:
+                            parts = serialized_id.split("_")
+                            if len(parts) >= 3:
+                                parts[1] = alternate_jid
+                                alt_serialized_id = "_".join(parts)
+                        alt_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{alternate_jid}?count={limit}&direction=before&id={alt_serialized_id}"
+                    else:
+                        alt_url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/{alternate_jid}?count={limit}"
                     logging.info(f"[fetch_older_messages] Primary query failed. Retrying with alternate JID {alternate_jid}...")
                     try:
                         alt_response = api_get(alt_url, headers=headers, timeout=30)

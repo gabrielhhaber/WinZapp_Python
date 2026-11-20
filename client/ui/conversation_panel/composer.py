@@ -471,13 +471,11 @@ class ComposerMixin:
         is_group = jid.endswith("@g.us")
         voice_supported = can_place_call(self.main_window, is_group=is_group)
         video_supported = can_place_call(self.main_window, is_video=True, is_group=is_group)
-        ongoing = getattr(self, "_ongoing_group_call", None) or {}
-        active = getattr(self.main_window, "_active_voice_call", None) or {}
-        # Only a group's buttons give way to an existing call: the group watch
-        # brings them back when it ends. Nothing re-syncs a one-to-one chat
-        # after hang-up, so hiding its buttons there would lose them for good.
-        existing = jid.endswith("@g.us") and (
-            ongoing.get("groupJid") == jid or active.get("peer_jid") == jid)
+        # The buttons give way to "Join" / "Return to call" while a call of
+        # this chat goes on (group_calls.py). They come back when it ends:
+        # the chat's watch asks again, and the end of this device's call
+        # re-syncs them (MainWindow._sync_voice_call_bar).
+        existing = bool(self._chat_call_kind(jid))
         hidden_focus = changed = False
         for button, shown in (
             (self._voice_call_btn, callable_chat and voice_supported and not too_large and not existing),
@@ -520,7 +518,7 @@ class ComposerMixin:
         if not self.conversation:
             return
         jid = str(self.conversation.get("remoteJid") or "")
-        if (getattr(self, "_ongoing_group_call", None) or {}).get("groupJid") == jid:
+        if self._chat_call_kind(jid):
             self._on_join_ongoing_group_call()
             return
         if self._group_call_refused(jid):
@@ -532,7 +530,7 @@ class ComposerMixin:
         if not self.conversation:
             return
         jid = str(self.conversation.get("remoteJid") or "")
-        if (getattr(self, "_ongoing_group_call", None) or {}).get("groupJid") == jid:
+        if self._chat_call_kind(jid):
             self._on_join_ongoing_group_call()
             return
         if self._group_call_refused(jid):

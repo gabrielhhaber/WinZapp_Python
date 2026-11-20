@@ -9,7 +9,10 @@ not joined is rung again, as the "Ring" button there.
 Body `{"callId", "participants": [jid, ...]}`; answer `{"id", "results":
 [{"jid", "status": "invited" | "rang" | "failed", "error"?}]}`, one per person
 in the order asked. Only into a call this device is in, at most 31 people (a
-WhatsApp group call holds 32).
+WhatsApp group call holds 32). "invited" and "rang" mean WhatsApp's server
+acked the invite with the person on the call's roster (meowcaller patch 0029,
+up to 15 s each): an invite it does not answer is "failed", never a success
+because the stanza left.
 
 The pure functions are at the top (tested in test_call_invites.py).
 """

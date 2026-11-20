@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core import deleted_chats
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
 from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
@@ -444,6 +445,8 @@ class MessageEventsMixin:
             logging.info("[edit] caption edit %s for %s in %s", caption_result,
                          ((existing.get("key") or {}).get("id") or "")[:22], remote_jid)
             self._persist_and_repaint_edit(existing, remote_jid)
+            if caption_result == "changed":
+                self._maybe_notify_edit(remote_jid, existing)
             return
 
         def _text_of(m):
@@ -497,6 +500,8 @@ class MessageEventsMixin:
         if hasattr(self, "conversations_panel"):
             wx.CallAfter(self.conversations_panel.refresh_active_conversation_messages)
         self._schedule_set_chats()
+        # Someone else's edit: its sound and announcement (main_window/edit_alerts.py).
+        self._maybe_notify_edit(remote_jid, existing)
 
     def _live_events_ready(self) -> bool:
         """True once it is safe to let a live WebSocket event mutate self.chats.
@@ -849,16 +854,10 @@ class MessageEventsMixin:
         # new message — that is what WhatsApp itself does.  Without lifting the
         # deleted flag here the chat would be re-created in self.chats but
         # filtered out of every list, so the message would arrive invisibly.
-        if remote_jid in self._deleted_chats:
-            self._deleted_chats.discard(remote_jid)
-            alt = (getattr(self, "_phone_to_lid", {}).get(remote_jid)
-                   or getattr(self, "_lid_to_phone", {}).get(remote_jid))
-            if alt:
-                self._deleted_chats.discard(alt)
-            if hasattr(self, "db") and self.db is not None:
-                self.db.set_metadata_json("deleted_chats", list(self._deleted_chats))
-            logging.info("[on_new_message] %s was deleted locally — restored by a new message.",
-                         remote_jid)
+        # Every form of the person: a chat deleted under the number and
+        # written to again under its @lid or the other 8/9-digit form stayed
+        # hidden (core/deleted_chats.py).
+        deleted_chats.restore(self, remote_jid)
 
         # A chat "Nova conversa" created under one Brazilian 8/9-digit form of
         # the number, while the chat WhatsApp generates for the first message
@@ -1879,7 +1878,7 @@ class MessageEventsMixin:
         ConversationsPanel can rebuild the in-conversation reaction display
         on reopen), so replaying it here needs no extra DB round-trip.
         """
-        for jid, chat in self.chats.items():
+        for jid, chat in list(self.chats.items()):
             if not isinstance(chat, dict):
                 continue
             records = (

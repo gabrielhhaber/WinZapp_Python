@@ -33,11 +33,46 @@ from core.locale_format import (
     get_time_format,
 )
 
+_STATUS_RANKS = {"0": 0, "2": 2, "3": 3, "4": 4, "5": 5,
+                 "SERVER_ACK": 2, "SENT": 2, "ACK": 2,
+                 "DELIVERED": 3, "DELIVERY_ACK": 3,
+                 "READ": 4,
+                 "PLAYED": 5}
+
+
+def _status_rank(value):
+    """Delivery-status rank on the app's scale (pending 0 < sent 2 < delivered 3
+    < read 4 < played 5); -1 when the value is a failure verdict. Unrecognised
+    values rank as pending, never above a reached stage."""
+    s = str(value if value is not None else "").strip().upper()
+    if s.startswith("-"):
+        return -1
+    return _STATUS_RANKS.get(s, 0)
+
 
 class ChatEventsMixin:
     """Chat-level server events: message status (acks), presence, unread counters,
     archive and pin updates.
     """
+
+    @staticmethod
+    def _is_status_stale(msg, status):
+        """True when a positive incoming ack would move the message backwards.
+
+        Delivery/read/played acks for an own message are monotonic: pending
+        -> sent -> delivered -> read -> played, never back. A negative ack
+        (a failure verdict) is always allowed through. Seen live 2026-11-15:
+        the bridge's synthetic ack=1, emitted 0.6 s after every send, landed
+        on top of an already-received DELIVERED and the row read "enviada"
+        forever again."""
+        rank = _status_rank(status)
+        if rank < 0:
+            return False
+        best = _status_rank(msg.get("status"))
+        for u in msg.get("MessageUpdate") or []:
+            if isinstance(u, dict):
+                best = max(best, _status_rank(u.get("status")))
+        return rank < best
 
     def on_message_status_update(self, update: dict, skip_panel_refresh: bool = False):
         """
@@ -73,6 +108,7 @@ class ChatEventsMixin:
         chat_jid = next((j for j in candidates if j in self.chats), None)
         found_msg = None
         found_chat_jid = None
+        stale = False
 
         if chat_jid:
             records = (
@@ -83,12 +119,15 @@ class ChatEventsMixin:
             )
             for msg in records:
                 if msg.get("key", {}).get("id") == msg_id:
-                    msg.setdefault("MessageUpdate", []).append({"status": status, "ts": time.time()})
-                    found_msg = msg
-                    found_chat_jid = chat_jid
-                    logging.info(f"[on_message_status_update] Updated status to {status} for msg_id={msg_id} in records of chat={chat_jid}")
+                    if self._is_status_stale(msg, status):
+                        stale = True
+                    else:
+                        msg.setdefault("MessageUpdate", []).append({"status": status, "ts": time.time()})
+                        found_msg = msg
+                        found_chat_jid = chat_jid
+                        logging.info(f"[on_message_status_update] Updated status to {status} for msg_id={msg_id} in records of chat={chat_jid}")
                     break
-            if not found_msg:
+            if not found_msg and not stale:
                 logging.warning(f"[on_message_status_update] Message {msg_id} not found in records of chat {chat_jid}")
         else:
             logging.warning(f"[on_message_status_update] Chat not found in self.chats for candidates: {candidates}")
@@ -97,8 +136,8 @@ class ChatEventsMixin:
         # This happens when a status event arrives with remote_jid equal to our own
         # LID (the account LID), not the recipient's JID, so none of the candidates
         # matched. The message is actually stored in the recipient's chat.
-        if not found_msg:
-            for jid, chat_data in self.chats.items():
+        if not found_msg and not stale:
+            for jid, chat_data in list(self.chats.items()):
                 if jid in candidates:
                     continue
                 recs = (
@@ -108,16 +147,26 @@ class ChatEventsMixin:
                 )
                 for msg in recs:
                     if msg.get("key", {}).get("id") == msg_id:
-                        msg.setdefault("MessageUpdate", []).append({"status": status, "ts": time.time()})
-                        found_msg = msg
-                        found_chat_jid = jid
-                        logging.info(
-                            f"[on_message_status_update] Fallback: updated status to {status} "
-                            f"for msg_id={msg_id} in chat={jid}"
-                        )
+                        if self._is_status_stale(msg, status):
+                            stale = True
+                        else:
+                            msg.setdefault("MessageUpdate", []).append({"status": status, "ts": time.time()})
+                            found_msg = msg
+                            found_chat_jid = jid
+                            logging.info(
+                                f"[on_message_status_update] Fallback: updated status to {status} "
+                                f"for msg_id={msg_id} in chat={jid}"
+                            )
                         break
-                if found_msg:
+                if found_msg or stale:
                     break
+        if stale:
+            # A positive ack for a stage the message already reached (e.g. a
+            # synthetic "sent" landing on top of a delivered verdict) must not
+            # be recorded, persisted or repainted.
+            logging.info(f"[on_message_status_update] ignored stale downgrade {status} "
+                         f"for msg_id={msg_id} (a later stage is already recorded)")
+            return
 
         # ── Persist updated message record to DB ─────────────────────────────────
         # insert_message rewrites message_json (which carries MessageUpdate, what

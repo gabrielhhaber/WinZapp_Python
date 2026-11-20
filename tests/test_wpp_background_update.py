@@ -325,14 +325,14 @@ class TestOnlyThenItInstalls:
 
     def test_it_waits_while_the_user_is_on_a_call(self, env):
         window = _Window()
-        window._voice_call_in_progress = lambda: True
+        window._background_work_paused = lambda: True
         _started(env, window)
 
         env.builds[0].on_done(True, "", False)
 
         assert env.boxes == [] and window.events == []
         (fn, args), = env.later
-        window._voice_call_in_progress = lambda: False
+        window._background_work_paused = lambda: False
         fn(*args)
         env.run_threads()
         assert window.events[:3] == ["notice", "stop", "start"]

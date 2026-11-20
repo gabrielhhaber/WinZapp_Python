@@ -72,3 +72,24 @@ def learn_remote_profiles(contacts, rows, normalize, invalid, lid_to_phone, phon
                 if before[target] != record.get("pushName"):
                     learned[key] = record
     return learned
+
+
+def lid_phone_pairs(rows, normalize):
+    """[(lid, phone)] of the `all-contacts` rows that say an @lid is a number:
+    `phoneNumber` on an @lid row ('<digits>@c.us'; both engines send it). Without
+    it a contact saved on the phone under both addresses stayed two people in
+    WinZapp (2026-11-17: 144 of 189 saved @lid contacts of a real account)."""
+    pairs = []
+    for row in rows or ():
+        if not isinstance(row, dict):
+            continue
+        wid, number = row.get("id"), row.get("phoneNumber")
+        raw = wid.get("_serialized") if isinstance(wid, dict) else wid
+        number = number.get("_serialized") if isinstance(number, dict) else number
+        if not isinstance(raw, str) or not isinstance(number, str):
+            continue
+        lid, phone = normalize(raw), normalize(number)
+        if (lid.endswith("@lid") and phone.endswith("@s.whatsapp.net")
+                and phone.split("@", 1)[0].isdigit()):
+            pairs.append((lid, phone))
+    return pairs

@@ -323,7 +323,7 @@ class SelectGroupDialog(wx.Dialog):
         """Fill the list with all group chats."""
         self._group_jids = []
         deleted = set(self._mw.settings.get("deleted_chats", []))
-        for jid, chat in self._mw.chats.items():
+        for jid, chat in list(self._mw.chats.items()):
             if not jid.endswith("@g.us") or jid in deleted:
                 continue
             # _resolve_contact_name() always returns None for a group (it's

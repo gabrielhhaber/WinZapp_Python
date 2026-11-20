@@ -1,0 +1,276 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Wed, 18 Nov 2026 09:17:32 -0300
+Subject: [PATCH] calls: create call links, join them and keep their waiting
+ room
+
+CallLinkCreate, CallLinkJoin, CallWaitingRoom and CallWaitingRoomDecide
+expose meowcaller's call links (api/call-link-join): a new voice or video
+link, the call behind a link (audio wired like an ongoing group join), and
+for the call's admin the people waiting to enter, admitted or denied one by
+one. A guest who opens the link in a browser always waits there.
+
+The roster and the waiting room carry each person's push name and whether
+they are a guest: a guest has no phone number. Python: CallClient
+create_link, join_link, waiting_room, decide_waiting and
+call_links_available().
+---
+ goneonize/calls_links.go   | 132 +++++++++++++++++++++++++++++++++++++
+ goneonize/calls_ongoing.go |  10 +--
+ neonize/_binder.py         |  13 ++++
+ neonize/calls.py           |  46 +++++++++++++
+ 4 files changed, 197 insertions(+), 4 deletions(-)
+ create mode 100644 goneonize/calls_links.go
+
+diff --git a/goneonize/calls_links.go b/goneonize/calls_links.go
+new file mode 100644
+index 0000000..1fbd92f
+--- /dev/null
++++ b/goneonize/calls_links.go
+@@ -0,0 +1,132 @@
++package main
++
++/*
++   #include <stdlib.h>
++   #include <stdint.h>
++*/
++import "C"
++
++// Links de chamada, como o "Novo link de chamada" do WhatsApp Web: criar o
++// link, entrar na chamada dele e, para quem organiza, a sala de espera
++// (quem pediu para entrar, admitir ou recusar). O meowcaller faz a
++// sinalizacao (api/call-link-join); aqui so o JSON.
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"time"
++
++	"github.com/purpshell/meowcaller"
++)
++
++// CallLinkCreate cria um link de chamada de voz ou de video: {"link",
++// "video"} ou {"error"}. O token so sai dentro do link.
++//
++//export CallLinkCreate
++func CallLinkCreate(id *C.char, video C.int, buf *C.char, cap C.int) C.int {
++	cliente := C.GoString(id)
++	mc := clienteDeChamadas(cliente)
++	if mc == nil {
++		return erroJSON(fmt.Errorf("chamadas desligadas neste cliente"), buf, cap)
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 15*time.Second)
++	defer cancelar()
++	link, err := mc.CreateCallLink(ctx, meowcaller.CallLinkOptions{Video: video != 0})
++	if err != nil {
++		registrar(cliente, "criar link de chamada falhou: %v", err)
++		return erroJSON(err, buf, cap)
++	}
++	registrar(cliente, "link de chamada criado (video=%v)", link.Video)
++	b, _ := json.Marshal(map[string]any{"link": link.URL, "video": link.Video})
++	return escreverTexto(string(b), buf, cap)
++}
++
++// CallLinkJoin entra na chamada do link (a URL ou so o token): {"call",
++// "video", "waiting", "admin"} ou {"error"}. "waiting": a chamada pede
++// aprovacao e esta conta espera na sala de espera. O audio e ligado como numa
++// chamada em grupo em andamento.
++//
++//export CallLinkJoin
++func CallLinkJoin(id *C.char, link *C.char, video C.int, buf *C.char, cap C.int) C.int {
++	cliente := C.GoString(id)
++	mc := clienteDeChamadas(cliente)
++	if mc == nil {
++		return erroJSON(fmt.Errorf("chamadas desligadas neste cliente"), buf, cap)
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 30*time.Second)
++	defer cancelar()
++	registrar(cliente, "entrando numa chamada por link (video=%v)", video != 0)
++	c, err := mc.JoinCallLink(ctx, C.GoString(link), meowcaller.CallLinkOptions{Video: video != 0})
++	if err != nil {
++		registrar(cliente, "a entrada pelo link falhou: %v", err)
++		return erroJSON(err, buf, cap)
++	}
++	ligarChamada(cliente, c, false)
++	sala, _ := c.WaitingRoomState()
++	b, _ := json.Marshal(map[string]any{
++		"call": c.ID(), "video": video != 0,
++		"waiting": c.State() == meowcaller.CallPhaseWaitingRoom || sala.InWaitingRoom,
++		"admin":   sala.IsAdmin})
++	return escreverTexto(string(b), buf, cap)
++}
++
++type esperandoJSON struct {
++	JID      string `json:"jid"`
++	PN       string `json:"pn,omitempty"`
++	PushName string `json:"pushName,omitempty"`
++	Guest    bool   `json:"guest,omitempty"`
++	State    string `json:"state"`
++}
++
++// CallWaitingRoom: a sala de espera da chamada por link `call`: {"enabled",
++// "admin", "waiting", "users": [{"jid", "pn", "pushName", "guest",
++// "state"}]}. Devolve o tamanho, ou -2 sem chamada.
++//
++//export CallWaitingRoom
++func CallWaitingRoom(id *C.char, call *C.char, buf *C.char, cap C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	sala, _ := a.call.WaitingRoomState()
++	usuarios := make([]esperandoJSON, 0, len(sala.Users))
++	for _, u := range sala.Users {
++		item := esperandoJSON{JID: u.JID.ToNonAD().String(), PushName: u.PushName, Guest: u.Guest, State: u.State}
++		if !u.PN.IsEmpty() {
++			item.PN = u.PN.ToNonAD().String()
++		}
++		usuarios = append(usuarios, item)
++	}
++	b, _ := json.Marshal(map[string]any{
++		"enabled": sala.Enabled, "admin": sala.IsAdmin,
++		"waiting": a.call.State() == meowcaller.CallPhaseWaitingRoom || sala.InWaitingRoom,
++		"users":   usuarios})
++	return escreverTexto(string(b), buf, cap)
++}
++
++// CallWaitingRoomDecide admite (admit != 0) ou recusa `user` na sala de
++// espera da chamada `call`: {"ok": true} ou {"error"}.
++//
++//export CallWaitingRoomDecide
++func CallWaitingRoomDecide(id *C.char, call *C.char, user *C.char, admit C.int, buf *C.char, cap C.int) C.int {
++	cliente := C.GoString(id)
++	a := buscarChamada(cliente, C.GoString(call))
++	if a == nil {
++		return erroJSON(fmt.Errorf("call not found"), buf, cap)
++	}
++	ctx, cancelar := context.WithTimeout(context.Background(), 15*time.Second)
++	defer cancelar()
++	var err error
++	if admit != 0 {
++		err = a.call.AdmitParticipant(ctx, C.GoString(user))
++	} else {
++		err = a.call.DenyParticipant(ctx, C.GoString(user))
++	}
++	if err != nil {
++		registrar(cliente, "sala de espera (admitir=%v) falhou: %v", admit != 0, err)
++		return erroJSON(err, buf, cap)
++	}
++	registrar(cliente, "sala de espera: pessoa %s", map[bool]string{true: "admitida", false: "recusada"}[admit != 0])
++	return escreverTexto(`{"ok":true}`, buf, cap)
++}
+diff --git a/goneonize/calls_ongoing.go b/goneonize/calls_ongoing.go
+index e538a42..15666a6 100644
+--- a/goneonize/calls_ongoing.go
++++ b/goneonize/calls_ongoing.go
+@@ -23,15 +23,17 @@ import (
+ )
+ 
+ type participanteJSON struct {
+-	JID   string `json:"jid"`
+-	PN    string `json:"pn,omitempty"`
+-	State string `json:"state"`
++	JID      string `json:"jid"`
++	PN       string `json:"pn,omitempty"`
++	PushName string `json:"pushName,omitempty"`
++	Guest    bool   `json:"guest,omitempty"`
++	State    string `json:"state"`
+ }
+ 
+ func participantesJSON(g meowcaller.GroupCallState) []participanteJSON {
+ 	lista := make([]participanteJSON, 0, len(g.Participants))
+ 	for _, p := range g.Participants {
+-		item := participanteJSON{JID: p.JID.ToNonAD().String(), State: p.State}
++		item := participanteJSON{JID: p.JID.ToNonAD().String(), State: p.State, PushName: p.PushName, Guest: p.Guest}
+ 		if !p.PN.IsEmpty() {
+ 			item.PN = p.PN.ToNonAD().String()
+ 		}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 63af96a..af0c243 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -1066,6 +1066,19 @@ if not os.environ.get("SPHINX"):
+         gocode.CallJoinOngoing.restype = ctypes.c_int
+         gocode.CallRoster.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
+         gocode.CallRoster.restype = ctypes.c_int
++    if hasattr(gocode, "CallLinkCreate"):
++        # Call links and their waiting room (goneonize/calls_links.go).
++        gocode.CallLinkCreate.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallLinkCreate.restype = ctypes.c_int
++        gocode.CallLinkJoin.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallLinkJoin.restype = ctypes.c_int
++        gocode.CallWaitingRoom.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallWaitingRoom.restype = ctypes.c_int
++        gocode.CallWaitingRoomDecide.argtypes = [
++            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p,
++            ctypes.c_int]
++        gocode.CallWaitingRoomDecide.restype = ctypes.c_int
+     if hasattr(gocode, "CallAddParticipant"):
+         # Adding someone to a group call already going on (calls_ongoing.go).
+         gocode.CallAddParticipant.argtypes = [
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 1a7085d..984e3c3 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -49,6 +49,12 @@ def add_participant_available() -> bool:
+     return hasattr(gocode, "CallAddParticipant")
+ 
+ 
++def call_links_available() -> bool:
++    """Whether this build creates call links, joins them and keeps their
++    waiting room."""
++    return hasattr(gocode, "CallLinkCreate")
++
++
+ def video_available() -> bool:
+     """Whether this build carries video and group calls."""
+     return hasattr(gocode, "CallVideo")
+@@ -209,6 +215,46 @@ class Calls:
+                                          buf, _RESULT_BUFFER)
+         return _result(buf, size)
+ 
++    def create_link(self, video: bool = False) -> dict:
++        """A new call link: {"link", "video"}; CallError on failure."""
++        if not call_links_available():
++            raise CallError("this neonize build does not create call links")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallLinkCreate(self.uuid, 1 if video else 0, buf, _RESULT_BUFFER)
++        return _result(buf, size)
++
++    def join_link(self, link: str, video: bool = False) -> dict:
++        """Joins the call of a call link (its URL or token): {"call", "video",
++        "waiting", "admin"}; CallError on failure."""
++        if not call_links_available():
++            raise CallError("this neonize build does not join call links")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallLinkJoin(self.uuid, link.encode(), 1 if video else 0, buf,
++                                   _RESULT_BUFFER)
++        return _result(buf, size)
++
++    def waiting_room(self, call_id: str):
++        """{"enabled", "admin", "waiting", "users": [{"jid", "pn", "pushName",
++        "guest", "state"}]} of a call-link call this client is in, or None once
++        it is over."""
++        if not call_links_available():
++            return None
++        buf = ctypes.create_string_buffer(_ROSTER_BUFFER)
++        size = gocode.CallWaitingRoom(self.uuid, call_id.encode(), buf, _ROSTER_BUFFER)
++        if size <= 0:
++            return None
++        return json.loads(buf.raw[:size].decode("utf-8"))
++
++    def decide_waiting(self, call_id: str, user: str, admit: bool) -> dict:
++        """Admits or denies `user` waiting to enter the call-link call
++        `call_id`: {"ok": True}; CallError on failure."""
++        if not call_links_available():
++            raise CallError("this neonize build has no call-link waiting room")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallWaitingRoomDecide(self.uuid, call_id.encode(), user.encode(),
++                                            1 if admit else 0, buf, _RESULT_BUFFER)
++        return _result(buf, size)
++
+     def roster(self, call_id: str):
+         """{"group", "participants": [{"jid", "pn", "state"}]} of a call this
+         client is in, or None once it is over."""

@@ -1,0 +1,533 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Tue, 17 Nov 2026 00:04:38 -0300
+Subject: [PATCH] engine: adding someone to a call that is already a group call
+ sends the invite to the call, naming only the invited user
+
+inviteParticipant and ringParticipant always sent the offer of the first invite: to the invited person, with a <destination> and the whole roster in <group_info>. That is what turns a one-to-one call into a group call. Once the server holds the group call it answers nothing to that offer, so nobody rang while the caller was told the person had been invited (user logs, 2026-11-16: the first person added joined, the next six invites got no ack and no group update).
+
+WhatsApp Web 2.3000.1052669929, captured on 2026-11-17 adding a person to a group call of two connected participants, sends <call to="<call-id>@call"><offer call-id call-creator><audio enc="opus" rate="16000"/><net medium="2"/><invite><user jid user_pn><device jid/>...</user></invite></offer></call>, and the server acks it with the roster, the user in state "outgoing".
+
+A call is taken for a group call the server holds once a group update arrived for it (the ack of the first invite is one). The phone number comes from the roster when ringing someone on the list, else from the LID store; without one the user goes without user_pn.
+
+Validated: engine_group_invite_test.go (five tests), go test . ./signaling green. Not yet validated on a live call.
+---
+ CHANGELOG.md                 |   9 ++
+ engine_group_api.go          |  64 +++++--------
+ engine_group_control_test.go |   6 +-
+ engine_group_invite.go       |  89 ++++++++++++++++++
+ engine_group_invite_test.go  | 172 +++++++++++++++++++++++++++++++++++
+ signaling/group.go           |  48 ++++++++++
+ 6 files changed, 346 insertions(+), 42 deletions(-)
+ create mode 100644 engine_group_invite.go
+ create mode 100644 engine_group_invite_test.go
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c371167..18a5ab4 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,15 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ## [Unreleased]
+ 
++### engine/group-call-invite — `implemented`
++
++- Adding or ringing someone in a call the server already holds as a group
++  call sends the offer to the call with an `<invite>` naming only that user
++  (`user_pn` when known) and their devices, as WhatsApp Web does. The offer to
++  the person with the whole roster stays for the first person added to a
++  one-to-one call; in a group call the server dropped it without an answer.
++  Unit-tested on the stanzas; not yet validated on a live call.
++
+ ### engine/ring-dismiss — `implemented`
+ 
+ - After one callee device accepts or declines an outgoing call, the caller
+diff --git a/engine_group_api.go b/engine_group_api.go
+index a8ea811..4e71a8e 100644
+--- a/engine_group_api.go
++++ b/engine_group_api.go
+@@ -92,11 +92,11 @@ func (e *engine) inviteParticipant(ctx context.Context, callID, target string) e
+ 	if targetLID == self.ToNonAD() {
+ 		return errors.New("meowcaller: cannot add this client to its own call")
+ 	}
+-	creator, participants, video, err := e.groupInviteRoster(callID)
++	roster, err := e.groupInviteRoster(callID)
+ 	if err != nil {
+ 		return err
+ 	}
+-	for _, participant := range participants {
++	for _, participant := range roster.participants {
+ 		if participant.JID.ToNonAD() == targetLID {
+ 			return errors.New("meowcaller: participant is already in the call roster")
+ 		}
+@@ -105,10 +105,7 @@ func (e *engine) inviteParticipant(ctx context.Context, callID, target string) e
+ 	if err != nil {
+ 		return err
+ 	}
+-	node, err := signaling.BuildGroupInviteOffer(signaling.GroupInviteOfferParams{
+-		CallID: callID, To: targetLID, CallCreator: creator,
+-		TargetDevices: targetDevices, Participants: participants, Video: video,
+-	})
++	node, err := participantInviteNode(roster, callID, targetLID, e.phoneNumberOf(ctx, targetLID), targetDevices)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -129,38 +126,22 @@ func (e *engine) ringParticipant(ctx context.Context, callID, target string) err
+ 		return err
+ 	}
+ 	targetLID = targetLID.ToNonAD()
+-	creator, participants, video, err := e.groupInviteRoster(callID)
++	roster, err := e.groupInviteRoster(callID)
+ 	if err != nil {
+ 		return err
+ 	}
+-	found := false
+-	connected := make([]signaling.GroupCallParticipant, 0, len(participants))
+-	for _, participant := range participants {
+-		if participant.JID.ToNonAD() != targetLID {
+-			if participant.State == "connected" {
+-				connected = append(connected, participant)
+-			}
+-			continue
+-		}
+-		if participant.State == "connected" {
+-			return errors.New("meowcaller: participant is already connected")
+-		}
+-		found = true
+-	}
+-	if !found {
+-		return errors.New("meowcaller: participant is not in the call roster")
++	ringable, targetPN, err := ringRoster(roster, targetLID)
++	if err != nil {
++		return err
+ 	}
+-	if len(connected) == 0 {
+-		return errors.New("meowcaller: group call has no connected participant roster")
++	if targetPN.IsEmpty() {
++		targetPN = e.phoneNumberOf(ctx, targetLID)
+ 	}
+ 	targetDevices, err := e.discoverTargetDevices(ctx, targetLID)
+ 	if err != nil {
+ 		return err
+ 	}
+-	node, err := signaling.BuildGroupInviteOffer(signaling.GroupInviteOfferParams{
+-		CallID: callID, To: targetLID, CallCreator: creator,
+-		TargetDevices: targetDevices, Participants: connected, Video: video,
+-	})
++	node, err := participantInviteNode(ringable, callID, targetLID, targetPN, targetDevices)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -171,39 +152,40 @@ func (e *engine) ringParticipant(ctx context.Context, callID, target string) err
+ 	return nil
+ }
+ 
+-func (e *engine) groupInviteRoster(
+-	callID string,
+-) (types.JID, []signaling.GroupCallParticipant, bool, error) {
++func (e *engine) groupInviteRoster(callID string) (inviteRoster, error) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/1ebd064663ac336ff3d1fc65d9baa974148fe73e/datasheets/voip-group-participant-invite.md#L36-L72
+ 	e.mu.Lock()
+ 	defer e.mu.Unlock()
+ 	m := e.calls[callID]
+ 	if m == nil || m.call == nil || m.call.State() == CallPhaseEnded {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: call is not active")
++		return inviteRoster{}, errors.New("meowcaller: call is not active")
+ 	}
+ 	if m.call.State() != CallPhaseActive {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: call is not connected")
++		return inviteRoster{}, errors.New("meowcaller: call is not connected")
+ 	}
+ 	if m.creator.IsEmpty() {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: call creator is unavailable")
++		return inviteRoster{}, errors.New("meowcaller: call creator is unavailable")
+ 	}
+ 	video := m.localVideo || m.remoteVideo
+ 	if m.groupUpdate != nil {
+-		return m.creator, signalingParticipantsFromUpdate(*m.groupUpdate), video, nil
++		return inviteRoster{
++			creator: m.creator, participants: signalingParticipantsFromUpdate(*m.groupUpdate),
++			video: video, onServer: true,
++		}, nil
+ 	}
+ 	if m.inviteSelfDevice.JID.IsEmpty() || len(m.inviteSelfDevice.Capability) == 0 {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: local active device capability is unavailable")
++		return inviteRoster{}, errors.New("meowcaller: local active device capability is unavailable")
+ 	}
+ 	if m.invitePeerDevice.JID.IsEmpty() || len(m.invitePeerDevice.Capability) == 0 {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: peer active device capability is unavailable")
++		return inviteRoster{}, errors.New("meowcaller: peer active device capability is unavailable")
+ 	}
+ 	self, err := types.ParseJID(m.selfLID)
+ 	if err != nil || self.IsEmpty() {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: local call identity is unavailable")
++		return inviteRoster{}, errors.New("meowcaller: local call identity is unavailable")
+ 	}
+ 	peer, err := types.ParseJID(m.peerLID)
+ 	if err != nil || peer.IsEmpty() {
+-		return types.EmptyJID, nil, false, errors.New("meowcaller: peer call identity is unavailable")
++		return inviteRoster{}, errors.New("meowcaller: peer call identity is unavailable")
+ 	}
+ 	participants := []signaling.GroupCallParticipant{
+ 		{
+@@ -215,7 +197,7 @@ func (e *engine) groupInviteRoster(
+ 			Devices: []signaling.GroupCallDevice{signalingDeviceFromInternal(m.invitePeerDevice)},
+ 		},
+ 	}
+-	return m.creator, participants, video, nil
++	return inviteRoster{creator: m.creator, participants: participants, video: video}, nil
+ }
+ 
+ func signalingParticipantsFromUpdate(update groupCallUpdate) []signaling.GroupCallParticipant {
+diff --git a/engine_group_control_test.go b/engine_group_control_test.go
+index 6e95880..a0d5046 100644
+--- a/engine_group_control_test.go
++++ b/engine_group_control_test.go
+@@ -250,10 +250,14 @@ func TestDirectCallInviteRosterUsesNegotiatedActiveDevices(t *testing.T) {
+ 		JID: peer, CapabilityVersion: 1, Capability: []byte{4, 5, 6},
+ 	}
+ 
+-	gotCreator, participants, video, err := eng.groupInviteRoster("DIRECT")
++	roster, err := eng.groupInviteRoster("DIRECT")
+ 	if err != nil {
+ 		t.Fatalf("groupInviteRoster: %v", err)
+ 	}
++	if roster.onServer {
++		t.Fatal("a one-to-one call was taken for a group call the server holds")
++	}
++	gotCreator, participants, video := roster.creator, roster.participants, roster.video
+ 	if gotCreator != creator || !video || len(participants) != 2 {
+ 		t.Fatalf("roster header = (%s, %v, %d)", gotCreator, video, len(participants))
+ 	}
+diff --git a/engine_group_invite.go b/engine_group_invite.go
+new file mode 100644
+index 0000000..1b1d468
+--- /dev/null
++++ b/engine_group_invite.go
+@@ -0,0 +1,89 @@
++package meowcaller
++
++import (
++	"context"
++	"errors"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++
++	"github.com/purpshell/meowcaller/signaling"
++)
++
++// inviteRoster is what this client knows of a call when it invites someone.
++// onServer says the server already holds the call as a group call (a group
++// update arrived): the two cases take different invite stanzas.
++type inviteRoster struct {
++	creator      types.JID
++	participants []signaling.GroupCallParticipant
++	video        bool
++	onServer     bool
++}
++
++// participantInviteNode builds the offer that brings one person into the call.
++// A one-to-one call is turned into a group call by an offer to the person, with
++// the roster of who is in it. Once the server holds a group call it only takes
++// an offer to the call naming the invited user; it drops the other one without
++// an answer.
++func participantInviteNode(
++	roster inviteRoster,
++	callID string,
++	target, targetPN types.JID,
++	targetDevices []types.JID,
++) (waBinary.Node, error) {
++	// Source of truth: WhatsApp Web 2.3000.1052669929, the stanza it sent on 2026-11-17 to add a person to a group call of two connected participants (docs/reference/neonize-build.md, meowcaller 0027)
++	if roster.onServer {
++		return signaling.BuildGroupCallInvite(signaling.GroupCallInviteParams{
++			CallID: callID, CallCreator: roster.creator,
++			Target: target, TargetPN: targetPN,
++			TargetDevices: targetDevices, Video: roster.video,
++		})
++	}
++	return signaling.BuildGroupInviteOffer(signaling.GroupInviteOfferParams{
++		CallID: callID, To: target, CallCreator: roster.creator,
++		TargetDevices: targetDevices, Participants: roster.participants, Video: roster.video,
++	})
++}
++
++// ringRoster checks that target is on the call's list and not connected, and
++// returns the roster a ring is sent with (the connected participants) and the
++// phone number the list has for the target.
++func ringRoster(roster inviteRoster, target types.JID) (inviteRoster, types.JID, error) {
++	// Source of truth: https://github.com/purpshell/meowcaller/blob/25eda415afb0f926112ca375c5892b95b4bd6f60/datasheets/voip-group-invite-offer.md#L81-L106
++	var targetPN types.JID
++	found := false
++	connected := make([]signaling.GroupCallParticipant, 0, len(roster.participants))
++	for _, participant := range roster.participants {
++		if participant.JID.ToNonAD() != target {
++			if participant.State == "connected" {
++				connected = append(connected, participant)
++			}
++			continue
++		}
++		if participant.State == "connected" {
++			return inviteRoster{}, types.EmptyJID, errors.New("meowcaller: participant is already connected")
++		}
++		found = true
++		targetPN = participant.PN
++	}
++	if !found {
++		return inviteRoster{}, types.EmptyJID, errors.New("meowcaller: participant is not in the call roster")
++	}
++	if len(connected) == 0 {
++		return inviteRoster{}, types.EmptyJID, errors.New("meowcaller: group call has no connected participant roster")
++	}
++	roster.participants = connected
++	return roster, targetPN, nil
++}
++
++// phoneNumberOf is the phone number JID stored for a LID, empty when unknown:
++// the invite then goes without user_pn.
++func (e *engine) phoneNumberOf(ctx context.Context, lid types.JID) types.JID {
++	// Source of truth: WhatsApp Web 2.3000.1052669929, the user_pn attribute of the invited <user> (docs/reference/neonize-build.md, meowcaller 0027)
++	pn, err := e.c.wa.Store.LIDs.GetPNForLID(ctx, lid)
++	if err != nil {
++		e.c.log.Debug().Err(err).Msg("phone number of the invited participant unavailable")
++		return types.EmptyJID
++	}
++	return pn
++}
+diff --git a/engine_group_invite_test.go b/engine_group_invite_test.go
+new file mode 100644
+index 0000000..5d98fa6
+--- /dev/null
++++ b/engine_group_invite_test.go
+@@ -0,0 +1,172 @@
++package meowcaller
++
++import (
++	"testing"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++
++	"github.com/purpshell/meowcaller/signaling"
++)
++
++func inviteChildren(t *testing.T, node waBinary.Node) (waBinary.Node, map[string]waBinary.Node) {
++	t.Helper()
++	actions, ok := node.Content.([]waBinary.Node)
++	if !ok || len(actions) != 1 || actions[0].Tag != "offer" {
++		t.Fatalf("stanza content = %#v, want one <offer>", node.Content)
++	}
++	children := make(map[string]waBinary.Node)
++	for _, child := range actions[0].Content.([]waBinary.Node) {
++		children[child.Tag] = child
++	}
++	return actions[0], children
++}
++
++func groupRoster(creator types.JID) inviteRoster {
++	connected := func(user string, device uint16) signaling.GroupCallParticipant {
++		jid := types.NewJID(user, types.HiddenUserServer)
++		return signaling.GroupCallParticipant{JID: jid, State: "connected", Devices: []signaling.GroupCallDevice{{
++			JID: types.JID{User: user, Server: types.HiddenUserServer, Device: device},
++			PID: 1, HasPID: true, CapabilityVersion: 1, Capability: []byte{1, 5, 0xf7},
++		}}}
++	}
++	return inviteRoster{
++		creator: creator, onServer: true,
++		participants: []signaling.GroupCallParticipant{
++			connected("100", 14), connected("200", 3), connected("300", 0),
++		},
++	}
++}
++
++// What WhatsApp Web sends to add a person to a call that is already a group
++// call: to the call, with the invited user alone. The server answered nothing
++// to the one-to-one form here (user logs, 2026-11-16: six invites, none rang).
++func TestAGroupCallInvitesThroughTheCallNamingOnlyTheInvitedUser(t *testing.T) {
++	creator := types.JID{User: "100", Server: types.HiddenUserServer, Device: 14}
++	target := types.NewJID("400", types.HiddenUserServer)
++	pn := types.NewJID("5500000000", types.DefaultUserServer)
++	devices := []types.JID{target, {User: "400", Server: types.HiddenUserServer, Device: 51}}
++
++	node, err := participantInviteNode(groupRoster(creator), "CID", target, pn, devices)
++	if err != nil {
++		t.Fatalf("participantInviteNode: %v", err)
++	}
++
++	if to, _ := node.Attrs["to"].(types.JID); to != types.NewJID("CID", "call") {
++		t.Fatalf("to = %v, want the call", node.Attrs["to"])
++	}
++	offer, children := inviteChildren(t, node)
++	if offer.Attrs["call-id"] != "CID" || offer.Attrs["call-creator"] != creator {
++		t.Fatalf("offer attrs = %v", offer.Attrs)
++	}
++	if _, has := children["group_info"]; has {
++		t.Fatal("the invite carries the roster of the call")
++	}
++	if _, has := children["destination"]; has {
++		t.Fatal("the invite carries a <destination>")
++	}
++	if children["net"].Attrs["medium"] != "2" || children["audio"].Attrs["rate"] != "16000" {
++		t.Fatalf("media children = %v %v", children["net"].Attrs, children["audio"].Attrs)
++	}
++	users, _ := children["invite"].Content.([]waBinary.Node)
++	if len(users) != 1 || users[0].Tag != "user" {
++		t.Fatalf("invite = %#v, want one <user>", children["invite"])
++	}
++	if users[0].Attrs["jid"] != target || users[0].Attrs["user_pn"] != pn {
++		t.Fatalf("invited user attrs = %v", users[0].Attrs)
++	}
++	got, _ := users[0].Content.([]waBinary.Node)
++	if len(got) != 2 || got[0].Attrs["jid"] != devices[0] || got[1].Attrs["jid"] != devices[1] {
++		t.Fatalf("invited devices = %#v", got)
++	}
++	for _, device := range got {
++		if device.Content != nil {
++			t.Fatalf("an invited device carries content: %#v", device)
++		}
++	}
++}
++
++func TestAnInviteWithoutAKnownPhoneNumberLeavesUserPNOut(t *testing.T) {
++	creator := types.JID{User: "100", Server: types.HiddenUserServer, Device: 14}
++	target := types.NewJID("400", types.HiddenUserServer)
++
++	node, err := participantInviteNode(groupRoster(creator), "CID", target, types.EmptyJID, []types.JID{target})
++	if err != nil {
++		t.Fatalf("participantInviteNode: %v", err)
++	}
++
++	_, children := inviteChildren(t, node)
++	user := children["invite"].Content.([]waBinary.Node)[0]
++	if _, has := user.Attrs["user_pn"]; has {
++		t.Fatalf("user attrs = %v, want no user_pn", user.Attrs)
++	}
++}
++
++// The first person added to a one-to-one call: the server has no group call
++// yet, and the offer to the person with the roster is what creates it.
++func TestAOneToOneCallStillInvitesThePersonWithTheRoster(t *testing.T) {
++	creator := types.JID{User: "100", Server: types.HiddenUserServer, Device: 14}
++	target := types.NewJID("400", types.HiddenUserServer)
++	roster := groupRoster(creator)
++	roster.onServer = false
++	roster.participants = roster.participants[:2]
++
++	node, err := participantInviteNode(roster, "CID", target, types.EmptyJID, []types.JID{target})
++	if err != nil {
++		t.Fatalf("participantInviteNode: %v", err)
++	}
++
++	if to, _ := node.Attrs["to"].(types.JID); to != target {
++		t.Fatalf("to = %v, want the invited person", node.Attrs["to"])
++	}
++	_, children := inviteChildren(t, node)
++	if users, _ := children["group_info"].Content.([]waBinary.Node); len(users) != 2 {
++		t.Fatalf("group_info = %#v, want the two people in the call", children["group_info"])
++	}
++	if _, has := children["invite"]; has {
++		t.Fatal("a one-to-one call was invited with the group call form")
++	}
++}
++
++func TestACallWithAGroupUpdateIsHeldByTheServer(t *testing.T) {
++	eng, call, creator := testGroupEngine("GROUP")
++	call.setPhase(CallPhaseActive)
++	m := eng.calls["GROUP"]
++	m.creator = creator
++	if m.groupUpdate == nil {
++		m.groupUpdate = &groupCallUpdate{CallID: "GROUP"}
++	}
++
++	roster, err := eng.groupInviteRoster("GROUP")
++	if err != nil {
++		t.Fatalf("groupInviteRoster: %v", err)
++	}
++	if !roster.onServer {
++		t.Fatal("a call with a group update is not taken for a group call the server holds")
++	}
++}
++
++func TestRingingSomeoneOnTheListKeepsTheirPhoneNumber(t *testing.T) {
++	creator := types.JID{User: "100", Server: types.HiddenUserServer, Device: 14}
++	target := types.NewJID("400", types.HiddenUserServer)
++	pn := types.NewJID("5500000000", types.DefaultUserServer)
++	roster := groupRoster(creator)
++	roster.participants = append(roster.participants, signaling.GroupCallParticipant{
++		JID: target, PN: pn, State: "invited", Devices: []signaling.GroupCallDevice{{JID: target}},
++	})
++
++	ringable, gotPN, err := ringRoster(roster, target)
++	if err != nil {
++		t.Fatalf("ringRoster: %v", err)
++	}
++	if gotPN != pn || !ringable.onServer || len(ringable.participants) != 3 {
++		t.Fatalf("ring roster = (pn %v, onServer %v, %d connected)", gotPN, ringable.onServer, len(ringable.participants))
++	}
++
++	if _, _, err = ringRoster(roster, types.NewJID("200", types.HiddenUserServer)); err == nil {
++		t.Fatal("someone connected was rung")
++	}
++	if _, _, err = ringRoster(roster, types.NewJID("999", types.HiddenUserServer)); err == nil {
++		t.Fatal("someone off the list was rung")
++	}
++}
+diff --git a/signaling/group.go b/signaling/group.go
+index e6bf130..68ba12c 100644
+--- a/signaling/group.go
++++ b/signaling/group.go
+@@ -242,6 +242,54 @@ func BuildGroupInviteOffer(params GroupInviteOfferParams) (waBinary.Node, error)
+ 	return callWrap(params.To, nil, offerAction("offer", params.CallID, params.CallCreator, children)), nil
+ }
+ 
++// GroupCallInviteParams contains the wire inputs for inviting or ringing one
++// person in a call the server already holds as a group call.
++type GroupCallInviteParams struct {
++	CallID        string
++	CallCreator   types.JID
++	Target        types.JID
++	TargetPN      types.JID
++	TargetDevices []types.JID
++	Video         bool
++}
++
++// BuildGroupCallInvite builds the offer that adds one person to a group call:
++// addressed to the call, naming only the invited user and their devices.
++func BuildGroupCallInvite(params GroupCallInviteParams) (waBinary.Node, error) {
++	// Source of truth: WhatsApp Web 2.3000.1052669929, the stanza it sent on 2026-11-17 to add a person to a group call of two connected participants (docs/reference/neonize-build.md, meowcaller 0027)
++	if params.CallID == "" || params.CallCreator.IsEmpty() || params.Target.IsEmpty() {
++		return waBinary.Node{}, fmt.Errorf("signaling: build group call invite: call identity and target are required")
++	}
++	if len(params.TargetDevices) == 0 {
++		return waBinary.Node{}, fmt.Errorf("signaling: build group call invite: target devices are required")
++	}
++	devices := make([]waBinary.Node, len(params.TargetDevices))
++	for i, device := range params.TargetDevices {
++		if device.IsEmpty() {
++			return waBinary.Node{}, fmt.Errorf("signaling: build group call invite: device %d JID is required", i)
++		}
++		devices[i] = waBinary.Node{Tag: "device", Attrs: waBinary.Attrs{"jid": device}}
++	}
++	userAttrs := waBinary.Attrs{"jid": params.Target.ToNonAD()}
++	if !params.TargetPN.IsEmpty() {
++		userAttrs["user_pn"] = params.TargetPN.ToNonAD()
++	}
++	children := []waBinary.Node{audioOpus("16000")}
++	if params.Video {
++		children = append(children, videoOfferNode())
++	}
++	children = append(children,
++		waBinary.Node{Tag: "net", Attrs: waBinary.Attrs{"medium": "2"}},
++		waBinary.Node{Tag: "invite", Content: []waBinary.Node{
++			{Tag: "user", Attrs: userAttrs, Content: devices},
++		}},
++	)
++	return callWrap(
++		types.NewJID(params.CallID, "call"), nil,
++		offerAction("offer", params.CallID, params.CallCreator, children),
++	), nil
++}
++
+ func buildGroupUsers(participants []GroupCallParticipant, creator types.JID, video bool) ([]waBinary.Node, error) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/7cb6045001dafd2514f53e85cd8c3e419c13adbe/datasheets/voip-initial-group-call.md#L63-L101
+ 	users := make([]waBinary.Node, len(participants))

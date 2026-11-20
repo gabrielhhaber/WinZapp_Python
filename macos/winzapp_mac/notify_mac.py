@@ -113,8 +113,8 @@ def _dispatch(self, title, body, remote_jid, msg_key=None, *, sound_event=None):
     """Mirror of NotificationManager._dispatch for the Mac notifier."""
     from core.quiet_hours import is_quiet_hours_active
     from core.notification_manager import (
-        REACTION_SOUND_EVENT, format_locked_notification, format_toast_unread_suffix,
-        reaction_silenced_now,
+        EDIT_SOUND_EVENT, REACTION_SOUND_EVENT, format_locked_notification,
+        format_toast_unread_suffix, reaction_silenced_now,
     )
     from core.utils import effective_unread_count
     # A Focus silences WinZapp's own sound, but the notification is still
@@ -122,7 +122,8 @@ def _dispatch(self, title, body, remote_jid, msg_key=None, *, sound_event=None):
     # WinZapp or this person (Windows' Do Not Disturb drops it instead).
     quiet = is_quiet_hours_active()
     mw = getattr(self, "main_window", None)
-    if sound_event == REACTION_SOUND_EVENT and reaction_silenced_now(mw, remote_jid):
+    if (sound_event in (REACTION_SOUND_EVENT, EDIT_SOUND_EVENT)
+            and reaction_silenced_now(mw, remote_jid)):
         return
     sound_args = (remote_jid,) if sound_event is None else (remote_jid, sound_event)
     if title is None:

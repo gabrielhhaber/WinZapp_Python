@@ -5,9 +5,11 @@ once on its first launch (``is_installed_build``), so WinZapp is listed under
 Windows' "Default apps" without the user having to find the option. Either way
 the Settings check box shows and changes the registration.
 
-Two kinds of ``whatsapp:`` link end in WinZapp: a group invitation
-(``whatsapp://chat?code=...``) and a chat with a number, possibly with a text
-to send (``whatsapp://send?phone=...&text=...``, core/whatsapp_chat_link.py).
+Three kinds of ``whatsapp:`` link end in WinZapp: a group invitation
+(``whatsapp://chat?code=...``), a chat with a number, possibly with a text
+to send (``whatsapp://send?phone=...&text=...``, core/whatsapp_chat_link.py),
+and a call link (``whatsapp://call/<voice|video>/<token>``, core/call_links.py),
+which the page of a https://call.whatsapp.com/... link opens.
 
 The page behind an invitation link (https://chat.whatsapp.com/...) has one
 button, "Join chat", which asks the system to open ``whatsapp://chat?code=...``.

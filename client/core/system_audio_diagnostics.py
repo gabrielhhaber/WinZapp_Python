@@ -77,7 +77,6 @@ _REASONS = {
     'Process WASAPI packet timestamp is nonmonotonic': 'process_timestamp_backwards',
     'Process WASAPI returned a null audio buffer': 'process_null_audio_buffer',
     'Process loopback initialization timeout': 'process_initialization_timeout',
-    'Process loopback queue overflow': 'process_queue_overflow',
     'Process loopback drain timeout': 'process_drain_timeout',
     'Process loopback bounded drain exceeded': 'process_drain_overflow',
     'Process loopback command cancelled': 'process_command_cancelled',
@@ -104,6 +103,7 @@ _NUMBERS.update(source + suffix for source in _CAPTURE_SOURCES for suffix in
 _NATIVE_NUMBERS = {'state', 'available', 'flags', 'packet_frames', 'total_frames',
                    'stamp_delta_100ns', 'running', 'loopback', 'seen_packet',
                    'discontinuities', 'queue_peak_frames', 'packets', 'frames',
+                   'drain_overruns', 'dropped_packets',
                    'process_loopback', 'failed', 'queued_frames', 'cleanup_failed',
                    'reader_alive'}
 

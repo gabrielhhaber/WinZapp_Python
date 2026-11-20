@@ -42,11 +42,15 @@ def test_a_choice_made_while_the_session_starts_reaches_its_qr():
 
 
 def test_the_device_asks_for_the_chosen_history():
+    import omitted_history
     full = server.device_props(3650)
     assert full.requireFullSync and full.historySyncConfig.fullSyncDaysLimit == 3650
+    assert omitted_history.has_omitted_metadata_support(full) is True
     # "recent only" says so outright: neonize merges these into one value per process
     recent = server.device_props(0)
     assert recent.HasField("requireFullSync") and recent.requireFullSync is False
+    assert not recent.historySyncConfig.HasField("fullSyncDaysLimit")
+    assert omitted_history.has_omitted_metadata_support(recent) is True
 
 
 def test_a_restart_never_touches_a_paired_session():

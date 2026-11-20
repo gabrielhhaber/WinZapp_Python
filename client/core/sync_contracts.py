@@ -88,6 +88,8 @@ _CONTACT_OPTIONAL = {
     "pushname": (str,),
     "shortName": (str,),
     "isMyContact": (bool,),
+    # an @lid row's number, '<digits>@c.us' (getAllContacts)
+    "phoneNumber": (str,),
 }
 
 _STATUS_REQUIRED = {"status": (str,)}

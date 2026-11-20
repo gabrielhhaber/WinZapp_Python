@@ -111,6 +111,10 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         sizer.Add(self._return_call_btn, 0, wx.LEFT | wx.BOTTOM, 5)
         self._return_call_btn.Hide()
         self._init_ongoing_calls(sizer)
+        # WhatsApp's "New call link" (ui/call_link_dialog.py); always there.
+        self._call_link_btn = wx.Button(self, label=i18n.t("calls_create_call_link_button"))
+        self._call_link_btn.Bind(wx.EVT_BUTTON, self._on_create_call_link)
+        sizer.Add(self._call_link_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
         self.SetSizer(sizer)
 
@@ -143,8 +147,14 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
             col.SetText(i18n.t("calls_list_label").replace("&", ""))
             self._lists[tab].SetColumn(0, col)
         self._return_call_btn.SetLabel(i18n.t("return_call_button"))
+        self._call_link_btn.SetLabel(i18n.t("calls_create_call_link_button"))
         if self._loaded:
             self._populate_all()
+
+    def _on_create_call_link(self, _event=None):
+        from ui.call_link_dialog import CallLinkDialog
+        with CallLinkDialog(self, self.main_window) as dialog:
+            dialog.ShowModal()
 
     # ── State ────────────────────────────────────────────────────────────────
 
@@ -227,7 +237,13 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         if panel is not None:
             ts = panel._extract_timestamp(msg)
             when = panel._format_date(ts) if ts else ""
-        return call_row_text(entry, mw.chat_display_name(entry["jid"]), label, when)
+        # A one-to-one call that became a group call is named after its people,
+        # as on the phone ("A, B e mais 3 pessoas"), not after the chat it was
+        # filed under (for one placed here, the account's own chat).
+        people = getattr(mw, "call_log_participants_text", None)
+        name = (people(msg, entry["jid"]) if people is not None else "") \
+            or mw.chat_display_name(entry["jid"])
+        return call_row_text(entry, name, label, when)
 
     def _show_placeholder(self, text):
         for tab in CALL_TABS:

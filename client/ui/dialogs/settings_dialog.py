@@ -18,7 +18,7 @@ from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
 from ui.dialogs.foreground_sound_choice import ForegroundSoundChoice
 from core.sound_system import (
     SOUND_EVENTS, discover_alert_tone_choices, resolve_alert_tone_path,
-    DEFAULT_PACK_ID, import_soundpack, AlertPreviewController,
+    DEFAULT_PACK_ID, import_soundpack, AlertPreviewController, sound_event_enabled,
 )
 from core.audio_devices import (
     enumerate_output_devices, enumerate_input_devices, test_input_device,
@@ -558,9 +558,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         gen_sizer.Add(self._autostart_check, 0, wx.ALL, 8)
 
-        # Registers WinZapp for whatsapp: links (group invitations opened from
-        # a browser or another program). Windows only: the association is a
-        # registry entry, see core/whatsapp_link_association.py.
+        # Registers WinZapp for whatsapp: links (group invitations, chats and
+        # call links opened from a browser or another program). One scheme,
+        # so one option: Windows has a single handler for it. Windows only:
+        # the association is a registry entry, see
+        # core/whatsapp_link_association.py.
         self._whatsapp_links_check = wx.CheckBox(
             self._general_page, label=i18n.t("whatsapp_links_label")
         )
@@ -675,6 +677,18 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._notifications_page, label=i18n.t("keep_muted_chats_silent_when_open_label")
         )
         notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
+
+        # Someone else's edit of a message (core/edit_alerts.py): spoken with
+        # the window active, notified with it in the background. Each
+        # conversation can depart from both in its data window.
+        self._announce_edits_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("announce_edited_messages_label")
+        )
+        notif_sizer.Add(self._announce_edits_check, 0, wx.ALL, 8)
+        self._notify_edits_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("notify_edited_messages_label")
+        )
+        notif_sizer.Add(self._notify_edits_check, 0, wx.ALL, 8)
 
         # Which conversations the unread count in the tray icon and the
         # window title includes (core/unread_badge.py).
@@ -2523,8 +2537,17 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         discount_muted = self.main_window.settings.get("general", {}).get(
             "discount_muted_from_unread_badge", True
         )
+        # edit_alerts.GLOBAL_KEYS: the install-wide side of the edit alerts
+        announce_edits = self.main_window.settings.get("general", {}).get(
+            "announce_edited_messages", False
+        )
+        notify_edits = self.main_window.settings.get("general", {}).get(
+            "notify_edited_messages", False
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
+            self._announce_edits_check.SetValue(announce_edits is True)
+            self._notify_edits_check.SetValue(notify_edits is True)
             self._discount_archived_check.SetValue(discount_archived)
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
@@ -3166,7 +3189,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             for key, _default_filename in SOUND_EVENTS:
                 cfg = pack_stored.get(key) or {}
                 self._pack_event_settings[pid][key] = {
-                    "enabled": cfg.get("enabled", True),
+                    "enabled": sound_event_enabled(cfg, key),
                     "path": cfg.get("path", ""),
                 }
 
@@ -3188,7 +3211,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         settings for `pack_id`, and select/display the first event's path."""
         settings_for_pack = self._pack_event_settings.get(pack_id, {})
         labels = [
-            self._sound_event_label(key, (settings_for_pack.get(key) or {}).get("enabled", True))
+            self._sound_event_label(key, sound_event_enabled(settings_for_pack.get(key), key))
             for key, _default_filename in SOUND_EVENTS
         ]
         self._sound_events_list.Set(labels)
@@ -3452,8 +3475,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             return
         key = SOUND_EVENTS[idx][0]
         settings_for_pack = self._pack_event_settings.setdefault(self._current_pack_id, {})
-        entry = settings_for_pack.setdefault(key, {"enabled": True, "path": ""})
-        entry["enabled"] = not entry.get("enabled", True)
+        entry = settings_for_pack.setdefault(
+            key, {"enabled": sound_event_enabled(None, key), "path": ""})
+        entry["enabled"] = not sound_event_enabled(entry, key)
         self._sound_events_list.SetString(idx, self._sound_event_label(key, entry["enabled"]))
         self._sound_events_list.SetSelection(idx)
         # SetString()/SetSelection() on a ListBox fire no change event of
@@ -3908,7 +3932,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             pack_settings = self._pack_event_settings.get(self._current_pack_id, {})
             for idx, (key, _) in enumerate(SOUND_EVENTS):
                 cfg = pack_settings.get(key) or {}
-                if not cfg.get("enabled", True):
+                if not sound_event_enabled(cfg, key):
                     continue
                 override = (cfg.get("path") or "").strip()
                 if override and not os.path.isfile(override):
@@ -4499,6 +4523,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
+            self.main_window.settings.setdefault("general", {})["announce_edited_messages"] = (
+                self._announce_edits_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["notify_edited_messages"] = (
+                self._notify_edits_check.GetValue()
+            )
             self.main_window.settings.setdefault("general", {})["discount_archived_from_unread_badge"] = (
                 self._discount_archived_check.GetValue()
             )
@@ -4936,6 +4966,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
         if ready(self, "notifications"):
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
+            self._announce_edits_check.SetLabel(i18n.t("announce_edited_messages_label"))
+            self._notify_edits_check.SetLabel(i18n.t("notify_edited_messages_label"))
             self._discount_archived_check.SetLabel(i18n.t("discount_archived_from_unread_badge_label"))
             self._discount_muted_check.SetLabel(i18n.t("discount_muted_from_unread_badge_label"))
             self._notification_burst_label.SetLabel(i18n.t("notification_burst_limit_label"))
@@ -5169,7 +5201,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             cur_event_sel = self._sound_events_list.GetSelection()
             settings_for_pack = self._pack_event_settings.get(self._current_pack_id, {})
             self._sound_events_list.Set([
-                self._sound_event_label(key, (settings_for_pack.get(key) or {}).get("enabled", True))
+                self._sound_event_label(key, sound_event_enabled(settings_for_pack.get(key), key))
                 for key, _default_filename in SOUND_EVENTS
             ])
             if cur_event_sel != wx.NOT_FOUND:

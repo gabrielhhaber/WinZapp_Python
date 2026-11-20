@@ -64,18 +64,27 @@ class ChatAlias:
     """`Session` methods that resolve the addresses of a chat."""
 
     def _other_address(self, jid):
-        """The LID of a number or the number of an LID, through neonize; '' if unknown."""
-        if self.client is None or self.status != "CONNECTED":
-            return ""
-        from neonize.utils import build_jid
-        user, _, server = jid.partition("@")
-        try:
-            target = build_jid(user, server)
-            found = _text(self.client.get_pn_from_lid(target) if server == "lid"
-                          else self.client.get_lid_from_pn(target))
-            return msgmap.jid_whatsmeow(found) if found else ""
-        except Exception:
-            return ""
+        """The LID of a number or the number of an LID, through neonize with
+        store `lid_map` fallback; '' if unknown."""
+        db = getattr(self, "db", None)
+        found = ""
+        if self.client is not None and self.status == "CONNECTED":
+            from neonize.utils import build_jid
+            user, _, server = jid.partition("@")
+            try:
+                target = build_jid(user, server)
+                found = _text(self.client.get_pn_from_lid(target) if server == "lid"
+                              else self.client.get_lid_from_pn(target))
+            except Exception:
+                found = ""
+        if found:
+            return msgmap.jid_whatsmeow(found)
+        if db is not None:
+            if jid.endswith("@lid") and hasattr(db, "phone_of_lid"):
+                return db.phone_of_lid(jid)
+            if jid.endswith("@s.whatsapp.net") and hasattr(db, "lid_of_phone"):
+                return db.lid_of_phone(jid)
+        return ""
 
     def mutation_jid(self, jid):
         """`mutation_index_jid` through neonize's LID map. Blocks on a neonize

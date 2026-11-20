@@ -41,6 +41,9 @@ class _Stub:
     def _stop_voice_call_audio(self, grace_seconds: float = 0.0):
         self.call_audio_stopped = True
 
+    def _stop_default_output_follow(self):
+        pass
+
     def __init__(self, raise_in_stop_wpp_server=False):
         self._teardown_started_lock = threading.Lock()
         self._teardown_complete_event = threading.Event()

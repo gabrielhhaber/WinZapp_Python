@@ -285,6 +285,9 @@ class _Editor:
     def _schedule_set_chats(self):
         pass
 
+    def _maybe_notify_edit(self, remote_jid, record):
+        pass
+
     def _apply_remote_revoke(self, existing, incoming, remote_jid):
         return False
 

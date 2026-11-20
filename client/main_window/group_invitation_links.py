@@ -11,6 +11,9 @@ passed on by a second launch over IPC.
   api.whatsapp.com pages open) opens the chat with that number, even when it is
   not a contact, puts the text in the message field and focuses it. Nothing is
   sent: the user reviews the text and sends it.
+* A call link (``whatsapp://call/<voice|video>/<token>``, what the page of a
+  call.whatsapp.com link opens) asks, as a call link in a message does, and
+  joins the call through main_window/call_links.py.
 
 Also the Settings switch that turns that registration on and off.
 
@@ -25,6 +28,7 @@ import time
 import wx
 
 from core import whatsapp_link_association
+from core.call_links import parse_call_link
 from core.group_invitation_link import invitation_code
 from core.whatsapp_chat_link import chat_target
 
@@ -38,20 +42,23 @@ class GroupInvitationLinksMixin:
     _INVITATION_LINK_POLL_MS = 1000
 
     def open_whatsapp_link(self, link: str):
-        """Open a link handed over from outside: a group invitation or a chat.
+        """Open a link handed over from outside: a group invitation, a chat or
+        a call link.
 
         Main thread only. Anything else is ignored."""
         if invitation_code(link):
             self.open_group_invitation_link(link)
         elif chat_target(link) is not None:
             self.open_chat_link(link)
+        elif parse_call_link(link)[1]:
+            self.open_external_call_link(link)
 
     def _wait_for_whatsapp(self, retry, link: str, deadline, waiting_key: str,
-                           timeout_key: str):
-        """True when WhatsApp is connected. Otherwise schedules *retry* (and
-        says so once) and returns False; gives up with *timeout_key* after the
-        wait."""
-        if getattr(self, "_wa_connected", False):
+                           timeout_key: str, ready=None):
+        """True when WhatsApp is connected (and *ready()*, when given).
+        Otherwise schedules *retry* (and says so once) and returns False; gives
+        up with *timeout_key* after the wait."""
+        if getattr(self, "_wa_connected", False) and (ready is None or ready()):
             return True
         now = time.monotonic()
         if deadline is None:
@@ -121,6 +128,28 @@ class GroupInvitationLinksMixin:
             # Without telling the contact "typing..." for text nobody typed.
             panel._put_in_message_field(f"{current} {text}" if current.strip() else text)
         field.SetFocus()
+
+    def open_external_call_link(self, link: str, _deadline: float = None):
+        """Ask to join the call of a call link handed over from outside, once
+        WhatsApp is connected, and join it on yes. Main thread only."""
+        if not parse_call_link(link)[1] or getattr(self, "_shutting_down", False):
+            return
+        if getattr(self, "_external_call_link_open", False):
+            return  # one question at a time; a second link would stack on it
+        if not self._wait_for_whatsapp(self.open_external_call_link, link, _deadline,
+                                       "call_link_external_waiting",
+                                       "call_link_external_not_connected",
+                                       ready=self._call_link_engine_ready):
+            return
+        self._external_call_link_open = True
+        try:
+            # The window may be in the tray: the question needs a visible parent.
+            self.restore_window()
+            self.join_call_link(link, confirm_parent=self)
+        except Exception:
+            logging.exception("[call-link] could not open a call link from outside")
+        finally:
+            self._external_call_link_open = False
 
     def open_group_invitation_link(self, link: str, _deadline: float = None):
         """Show the join dialog for *link*, once WhatsApp is connected.
