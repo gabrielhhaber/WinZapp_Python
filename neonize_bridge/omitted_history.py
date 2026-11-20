@@ -280,8 +280,10 @@ def _norm_jid(jid: str) -> str:
 
 
 def account_lid_of(conv) -> str:
-    """Best `@lid` address carried by a `Conversation` proto, or ''."""
-    for attr in ("accountLid", "lidJID", "ID"):
+    """Best `@lid` address carried by a `Conversation` proto, or ''.
+    `accountLid` comes last: it is the account's LID, so it can be the user's
+    own and never the chat peer's, where `lidJID` and an `@lid` ID are the peer's."""
+    for attr in ("lidJID", "ID", "accountLid"):
         jid = _norm_jid(getattr(conv, attr, ""))
         if jid.endswith("@lid"):
             return jid
@@ -304,9 +306,14 @@ def conversation_lid_mappings(conversations) -> list[tuple[str, str]]:
     return pairs
 
 
-def block_lid_mappings(data, extra_conversations=()) -> list[tuple[str, str]]:
+def block_lid_mappings(data, extra_conversations=(), own_lid="",
+                       own_pn="") -> list[tuple[str, str]]:
     """Extracts unique `(lid_jid, pn_jid)` pairs from `HistorySync.phoneNumberToLidMappings`
-    and its conversation entries (plus any omitted-batch conversations)."""
+    and its conversation entries (plus any omitted-batch conversations).
+    The explicit mappings win over the ones derived from a conversation (the
+    store replaces by LID), and a derived pair that gives the account's own
+    LID to a phone other than its own is dropped."""
+    own_lid, own_pn = _norm_jid(own_lid), _norm_jid(own_pn)
     pairs = []
     seen = set()
     for m in getattr(data, "phoneNumberToLidMappings", None) or ():
@@ -316,10 +323,16 @@ def block_lid_mappings(data, extra_conversations=()) -> list[tuple[str, str]]:
             seen.add((lid, pn))
             pairs.append((lid, pn))
     convs = list(getattr(data, "conversations", None) or ()) + list(extra_conversations or ())
+    explicit_lids = {lid for lid, _pn in pairs}
+    explicit_pns = {pn for _lid, pn in pairs}
     for pair in conversation_lid_mappings(convs):
-        if pair not in seen:
-            seen.add(pair)
-            pairs.append(pair)
+        lid, pn = pair
+        if pair in seen or lid in explicit_lids or pn in explicit_pns:
+            continue
+        if own_lid and lid == own_lid and pn != own_pn:
+            continue
+        seen.add(pair)
+        pairs.append(pair)
     return pairs
 
 

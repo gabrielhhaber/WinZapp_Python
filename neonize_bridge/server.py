@@ -1422,7 +1422,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             log.info("history omitted snapshot advertised (%d chars)", len(snap_id))
         batch = omitted_history.omitted_batch_of(data)
         lid_pairs = omitted_history.block_lid_mappings(
-            data, batch["conversations"] if batch is not None else ())
+            data, batch["conversations"] if batch is not None else (),
+            own_lid=getattr(self, "lid", ""), own_pn=getattr(self, "me", ""))
         if lid_pairs and hasattr(self.db, "put_lid_mappings"):
             self.db.put_lid_mappings(lid_pairs)
 

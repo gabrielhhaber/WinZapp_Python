@@ -80,9 +80,32 @@ def test_conversation_lid_mappings_and_account_lid():
     assert oh.account_lid_of(c_lid) == "111@lid"
     assert oh.account_lid_of(c_pn) == "222@lid"
     assert oh.account_lid_of(c_group) == ""
+    # the peer's lidJID beats accountLid, which can be the user's own LID
+    c_both = Conversation(ID="5511999990003@s.whatsapp.net", lidJID="333@lid",
+                          accountLid="999@lid")
+    assert oh.account_lid_of(c_both) == "333@lid"
     assert oh.conversation_lid_mappings([c_lid, c_pn, c_group, c_lid]) == [
         ("111@lid", "5511999990001@s.whatsapp.net"),
         ("222@lid", "5511999990002@s.whatsapp.net"),
+    ]
+
+
+def test_block_lid_mappings_explicit_wins_and_own_lid_is_not_lent():
+    explicit = HistorySync(phoneNumberToLidMappings=[
+        {"lidJID": "111@lid", "pnJID": "5511999990001@s.whatsapp.net"}])
+    convs = [
+        Conversation(ID="5511999990009@s.whatsapp.net", lidJID="111@lid"),
+        Conversation(ID="5511999990001@s.whatsapp.net", lidJID="777@lid"),
+        Conversation(ID="5511999990002@s.whatsapp.net", accountLid="999@lid"),
+        Conversation(ID="5511999990003@s.whatsapp.net", lidJID="333@lid"),
+        Conversation(ID="5511999990000@s.whatsapp.net", accountLid="999@lid"),
+    ]
+    explicit.conversations.extend(convs)
+    assert oh.block_lid_mappings(explicit, own_lid="999:3@lid",
+                                 own_pn="5511999990000:3@c.us") == [
+        ("111@lid", "5511999990001@s.whatsapp.net"),
+        ("333@lid", "5511999990003@s.whatsapp.net"),
+        ("999@lid", "5511999990000@s.whatsapp.net"),
     ]
 
 
