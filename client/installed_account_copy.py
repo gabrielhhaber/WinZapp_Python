@@ -17,7 +17,7 @@ copied, per account:
   caches left behind), its token files, and the Neonize session
   ``data/global/neonize_bridge/data/<session>/``;
 * ``data/global/app.json`` (the engine and the API key the token was minted
-  with, the language).
+  with, the language), only when the portable has none of its own.
 
 Both copies are the same linked device. They must never run at the same
 time, and the copy is only consistent when the installed WinZapp is closed
@@ -226,20 +226,22 @@ def _remove(paths) -> None:
                 pass
 
 
-def copy_accounts(install_dir, data_root, accounts) -> None:
+def copy_accounts(install_dir, data_root, accounts, written=None) -> None:
     """Copy *accounts* and the installed app.json; all or nothing. Refuses to
-    overwrite anything the portable already has."""
+    overwrite anything the portable already has (its own app.json included).
+    A caller that must undo a later step passes *written* to get the paths."""
     for account in accounts:
         if os.path.exists(os.path.join(data_root, "accounts", account["id"])):
             raise FileExistsError(account["id"])
-    written = []
+    written = [] if written is None else written
     try:
         for account in accounts:
             copy_account(install_dir, data_root, account["id"], written)
         app_source = os.path.join(install_dir, "data", "global", "app.json")
-        if os.path.isfile(app_source):
-            app_target = os.path.join(data_root, "global", "app.json")
+        app_target = os.path.join(data_root, "global", "app.json")
+        if os.path.isfile(app_source) and not os.path.exists(app_target):
             os.makedirs(os.path.dirname(app_target), exist_ok=True)
+            written.append(app_target)
             shutil.copy2(app_source, app_target)
     except Exception:
         _remove(written)
@@ -286,14 +288,23 @@ def offer_installed_accounts(registry, data_root, i18n, *, own_dir, candidates,
     while installed_running(install_dir, is_alive):
         if ask(i18n.t("portable_close_installed"), MB_RETRYCANCEL | MB_ICONWARNING) != IDRETRY:
             return None
+    written, adopted = [], []
     try:
-        copy_accounts(install_dir, data_root, accounts)
+        copy_accounts(install_dir, data_root, accounts, written)
         for account in accounts:
             registry.adopt(account["id"], account["name"])
+            adopted.append(account["id"])
         first = foreground_account(install_dir, accounts)
         registry.set_last_foreground(first)
     except Exception:
         logging.exception("[portable] copying the installed accounts failed")
+        # Leftovers would make the next offer fail on FileExistsError forever.
+        _remove(written)
+        for account_id in adopted:
+            try:
+                registry.remove(account_id)
+            except Exception:
+                logging.exception("[portable] could not unregister a copied account")
         ask(i18n.t("portable_copy_installed_failed"), MB_ICONERROR)
         return None
     logging.info("[portable] %d account(s) copied from the installed WinZapp", len(accounts))
