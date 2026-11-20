@@ -259,6 +259,7 @@ WHAT'S NEW
 - Calls: you can now add people to the call in progress, with the "Add participants" button in the call's participant list. A group call offers the group's members who are not in it yet; a private call offers your contacts, and the call then has several people, as on WhatsApp. Someone already called who has not joined is rung again. Works with WPPConnect and Neonize.
 
 - Il motore sperimentale Neonize è stato aggiornato dalla versione 0.6.0 alla 0.12.4. Una chat eliminata sul telefono ora scompare anche da WinZapp, e segnare una chat come letta o non letta sul telefono aggiorna di nuovo il contatore dei non letti. Le informazioni (stato) di un contatto ora si aggiornano non appena la persona le modifica.
+- Neonize: le reazioni date nei gruppi di annunci delle community, che arrivano cifrate, ora compaiono, e le tue partono cifrate in quei gruppi. I commenti agli annunci ora vengono aperti e inviati dal motore stesso, con il metodo precedente come riserva.
 
 - WPPConnect Server updated to 2.10.78, which stops serving the private media cache over HTTP.
 
