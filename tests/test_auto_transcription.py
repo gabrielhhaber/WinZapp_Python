@@ -571,6 +571,9 @@ class TestShutdownCallsIt:
             def _stop_voice_call_audio(self, grace_seconds=0.0):
                 pass
 
+            def _stop_default_output_follow(self):
+                pass
+
             def stop_transcription_runs(self):
                 order.append("transcriptions")
 
