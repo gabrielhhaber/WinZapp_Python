@@ -279,9 +279,10 @@ def test_double_failure_notice_exists_and_is_spoken_on_total_failure():
     for loc in LOCALES:
         text = _PoI18n(loc).t("noise_reduction_failed")
         assert text
-    source = open(os.path.join(os.path.dirname(__file__), "..", "client", "ui",
-                               "conversation_panel", "voice_recording.py"),
-                  encoding="utf-8").read()
+    from tests.god_modules import conversations_source_files
+    # Wherever the send path's reduction step lives in ConversationsPanel.
+    source = "".join(path.read_text(encoding="utf-8")
+                     for path in conversations_source_files())
     # If both engines fail, the note goes out unprocessed and the user hears it.
     assert 't("noise_reduction_failed")' in source
 
