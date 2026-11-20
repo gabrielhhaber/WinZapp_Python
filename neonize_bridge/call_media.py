@@ -1028,7 +1028,10 @@ class CallMedia(CallIngressMixin):
         "waiting" and "admin"). Like joining an ongoing group call: the call
         counts as answered here and its audio starts at once. It has no peer
         and no group (call_links.py), and no chat records it."""
-        answer = self.calls.join_link(link, video=video)
+        # meowcaller reads a link URL only as /audio/<token> or /video/<token>:
+        # WhatsApp's own /voice/<token> would be refused, so it gets the token
+        token = str(link).split("?")[0].rstrip("/").rsplit("/", 1)[-1]
+        answer = self.calls.join_link(token, video=video)
         joined = str(answer["call"])
         with self._lock:
             self._elsewhere.discard(joined)
