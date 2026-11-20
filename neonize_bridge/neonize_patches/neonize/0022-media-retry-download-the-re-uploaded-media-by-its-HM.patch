@@ -267,10 +267,10 @@ index 0000000..ef102ac
 +	return rawError(fmt.Errorf("failed to download media from last host: %w", lastErr))
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index d0fef1c..8abe07f 100644
+index 4660f7f..63af96a 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -894,6 +894,10 @@ if not os.environ.get("SPHINX"):
+@@ -1003,6 +1003,10 @@ if not os.environ.get("SPHINX"):
          gocode.DecryptMediaRetry.argtypes = [ctypes.c_char_p]
          gocode.DecryptMediaRetry.restype = ctypes.c_void_p
          gocode.DecryptMediaRetry.errcheck = consume_cstring
@@ -282,10 +282,10 @@ index d0fef1c..8abe07f 100644
          # The call layer (goneonize/calls.go): plain C types, no protobuf; the
          # wrapper is neonize/calls.py.
 diff --git a/neonize/client.py b/neonize/client.py
-index 2fca0e3..1346ab1 100644
+index 58ec214..075becd 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
-@@ -2935,6 +2935,21 @@ class NewClient:
+@@ -2965,6 +2965,21 @@ class NewClient:
          raw = self.__client.DecryptMediaRetry(json.dumps(request).encode())
          return json.loads(raw.decode() or "{}")
  

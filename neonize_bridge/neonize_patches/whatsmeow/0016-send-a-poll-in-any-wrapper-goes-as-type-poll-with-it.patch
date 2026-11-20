@@ -51,10 +51,10 @@ index 0000000..c9dc866
 +	}
 +}
 diff --git a/send.go b/send.go
-index 1489e08..85cc26c 100644
+index 0a2efb5..bab756b 100644
 --- a/send.go
 +++ b/send.go
-@@ -966,7 +966,8 @@ func getTypeFromMessage(msg *waE2E.Message) string {
+@@ -983,7 +983,8 @@ func getTypeFromMessage(msg *waE2E.Message) string {
  		return getTypeFromMessage(msg.DocumentWithCaptionMessage.Message)
  	case msg.ReactionMessage != nil, msg.EncReactionMessage != nil:
  		return "reaction"

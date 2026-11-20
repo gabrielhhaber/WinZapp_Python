@@ -500,10 +500,10 @@ index 970d41a..6718737 100644
  	case <-done:
  		return nil, errCallPCMClosed
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 958e9aa..fbb4a75 100644
+index f645843..e6a9cf7 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -897,6 +897,15 @@ if not os.environ.get("SPHINX"):
+@@ -1006,6 +1006,15 @@ if not os.environ.get("SPHINX"):
          gocode.CallWriteAudio.argtypes = [
              ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
          gocode.CallWriteAudio.restype = ctypes.c_int

@@ -21,8 +21,8 @@ build_neonize.py prepares next to this checkout.
  goneonize/calls.go | 527 +++++++++++++++++++++++++++++++++++++++++++++
  goneonize/go.mod   |  18 +-
  goneonize/go.sum   |  22 +-
- goneonize/main.go  |   4 +-
- 4 files changed, 567 insertions(+), 4 deletions(-)
+ goneonize/main.go  |   8 +-
+ 4 files changed, 569 insertions(+), 6 deletions(-)
  create mode 100644 goneonize/calls.go
 
 diff --git a/goneonize/calls.go b/goneonize/calls.go
@@ -559,7 +559,7 @@ index 0000000..3c6309e
 +	return 0
 +}
 diff --git a/goneonize/go.mod b/goneonize/go.mod
-index 2e51b32..aa814ca 100644
+index c10c5b6..c98d975 100644
 --- a/goneonize/go.mod
 +++ b/goneonize/go.mod
 @@ -10,6 +10,17 @@ require (
@@ -581,25 +581,25 @@ index 2e51b32..aa814ca 100644
  	filippo.io/edwards25519 v1.2.0 // indirect
  	github.com/beeper/argo-go v1.1.2 // indirect
 @@ -19,7 +30,8 @@ require (
- 	github.com/mattn/go-colorable v0.1.15 // indirect
+ 	github.com/mattn/go-colorable v0.1.16 // indirect
  	github.com/mattn/go-isatty v0.0.24 // indirect
- 	github.com/petermattis/goid v0.0.0-20260820044319-269ab09b5261 // indirect
+ 	github.com/petermattis/goid v0.0.0-20261109124353-7cfa343ad0ab // indirect
 -	github.com/rs/zerolog v1.35.1 // indirect
 +	github.com/purpshell/meowcaller v0.0.0
 +	github.com/rs/zerolog v1.35.1
- 	github.com/vektah/gqlparser/v2 v2.5.37 // indirect
- 	go.mau.fi/libsignal v0.2.2 // indirect
- 	golang.org/x/crypto v0.57.0 // indirect
+ 	github.com/vektah/gqlparser/v2 v2.5.64 // indirect
+ 	go.mau.fi/libsignal v0.2.3 // indirect
+ 	golang.org/x/crypto v0.59.0 // indirect
 @@ -29,3 +41,7 @@ require (
- 	golang.org/x/sys v0.48.0 // indirect
- 	golang.org/x/text v0.42.0 // indirect
+ 	golang.org/x/sys v0.50.0 // indirect
+ 	golang.org/x/text v0.44.0 // indirect
  )
 +
 +replace go.mau.fi/whatsmeow => ../../whatsmeow
 +
 +replace github.com/purpshell/meowcaller => ../../meowcaller
 diff --git a/goneonize/go.sum b/goneonize/go.sum
-index 99e87e9..4b24028 100644
+index cbdb341..2b2f7c0 100644
 --- a/goneonize/go.sum
 +++ b/goneonize/go.sum
 @@ -14,6 +14,9 @@ github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -611,11 +611,11 @@ index 99e87e9..4b24028 100644
 +github.com/hajimehoshi/oto/v2 v2.3.1/go.mod h1:seWLbgHH7AyUMYKfKYT9pg7PhUu9/SisyJvNTT+ASQo=
  github.com/lib/pq v1.12.3 h1:tTWxr2YLKwIvK90ZXEw8GP7UFHtcbTtty8zsI+YjrfQ=
  github.com/lib/pq v1.12.3/go.mod h1:/p+8NSbOcwzAEI7wiMXFlgydTwcgTr3OSKMsD2BitpA=
- github.com/mattn/go-colorable v0.1.15 h1:+u9SLTRGnXv73cEsnsmoZBom+dMU88B2M0aDcWy0/jY=
-@@ -24,6 +27,20 @@ github.com/mattn/go-sqlite3 v1.14.52 h1:wVbm2Qnf4OXkqhBTSPuCRZDRnxfbVrrmiCEroVdo
- github.com/mattn/go-sqlite3 v1.14.52/go.mod h1:6JTjA44L93a0QCyJef5YvlPoKXntQPjzWv5gtm9sB6w=
- github.com/petermattis/goid v0.0.0-20260820044319-269ab09b5261 h1:lcWAnrqr2nNfDiArwFNHCE4787Mw2tCdVSOXCru0/0E=
- github.com/petermattis/goid v0.0.0-20260820044319-269ab09b5261/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
+ github.com/mattn/go-colorable v0.1.16 h1:+2YjeAe7xP1OQbZW1jERPWWCDLlNqFNCvjiqGiAt84A=
+@@ -24,6 +27,20 @@ github.com/mattn/go-sqlite3 v1.14.53 h1:mnTM0owzUMrKuLo+0w51NUiB0ir2Fo7kFXlPt/l3
+ github.com/mattn/go-sqlite3 v1.14.53/go.mod h1:6JTjA44L93a0QCyJef5YvlPoKXntQPjzWv5gtm9sB6w=
+ github.com/petermattis/goid v0.0.0-20261109124353-7cfa343ad0ab h1:Hn5vlRa0Br9/K866ZafCFIHz6M+xTnbV3sqMrPsT6pE=
+ github.com/petermattis/goid v0.0.0-20261109124353-7cfa343ad0ab/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 +github.com/pion/datachannel v1.6.0 h1:XecBlj+cvsxhAMZWFfFcPyUaDZtd7IJvrXqlXD/53i0=
 +github.com/pion/datachannel v1.6.0/go.mod h1:ur+wzYF8mWdC+Mkis5Thosk+u/VOL287apDNEbFpsIk=
 +github.com/pion/dtls/v3 v3.1.2 h1:gqEdOUXLtCGW+afsBLO0LtDD8GnuBBjEy6HRtyofZTc=
@@ -633,42 +633,51 @@ index 99e87e9..4b24028 100644
  github.com/rs/zerolog v1.35.1 h1:m7xQeoiLIiV0BCEY4Hs+j2NG4Gp2o2KPKmhnnLiazKI=
  github.com/rs/zerolog v1.35.1/go.mod h1:EjML9kdfa/RMA7h/6z6pYmq1ykOuA8/mjWaEvGI+jcw=
  github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
-@@ -34,8 +51,6 @@ go.mau.fi/libsignal v0.2.2 h1:QV+XdzQkm3x3aSG7FcqfGSZuFXz83pRZPBFaPygHbOU=
- go.mau.fi/libsignal v0.2.2/go.mod h1:CRlIQg2J8uYTfDFvNoO8/KcZjs5cey0vbc6oj/bssY0=
- go.mau.fi/util v0.10.1 h1:1oSqb4TwzLA0cUDY0aomyBPFKkZ3J5fqCmrXV3VH3GQ=
- go.mau.fi/util v0.10.1/go.mod h1:40TDo7/ekSeOjgr8KAmX31Yf4zrOF94j83WQB+u5ZPc=
--go.mau.fi/whatsmeow v0.0.0-20260921121126-35ae40906e74 h1:z3cItqSX0u+rsM6/81MB1I4bBa92jPAf6QZAvmGc0L0=
--go.mau.fi/whatsmeow v0.0.0-20260921121126-35ae40906e74/go.mod h1:7G7AeRACrC8Se+01+SQbdOp2J/Ce0DUMGxTKFKfRHW4=
+@@ -34,8 +51,6 @@ go.mau.fi/libsignal v0.2.3 h1:kSN5CEcW0DhKWqAo/bsBcQvlv0+MRz/x1tYbA+kuA8w=
+ go.mau.fi/libsignal v0.2.3/go.mod h1:FyLu6+l3LSljimq16QFkLnC6PHsPYtn+B80R6JkTH70=
+ go.mau.fi/util v0.11.1 h1:TOxiPZ0XLkpp3CBItIocTnW6rBsGv4fVLa70iBMTXh0=
+ go.mau.fi/util v0.11.1/go.mod h1:663DkAQb9DjC+SBu+IPK73RgFg0QwLy/R9dN3IAvSI8=
+-go.mau.fi/whatsmeow v0.0.0-20261116172437-19d61352436f h1:35MsRpG44DDnw7c9SPlkpNrGzyWRz9oJqCIs1T+Vdaw=
+-go.mau.fi/whatsmeow v0.0.0-20261116172437-19d61352436f/go.mod h1:UKPKm+xfnWFYwiLWl+P23/D7gJhTdhmu4JxN21nV9vA=
  go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
  go.yaml.in/yaml/v3 v3.0.5/go.mod h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=
- golang.org/x/crypto v0.57.0 h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=
-@@ -46,9 +61,12 @@ golang.org/x/net v0.59.0 h1:5zfYln+w5XCxwrnMMJPufRgNoXEaGxl0wo5GqPXyues=
- golang.org/x/net v0.59.0/go.mod h1:2DA/G1UfVbCpQPeWTmMPGY7Cs2PkBkwu743bVX5PIVg=
- golang.org/x/sync v0.23.0 h1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=
- golang.org/x/sync v0.23.0/go.mod h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0=
+ golang.org/x/crypto v0.59.0 h1:xS2jhqYbzNrpvkWP2YTDf4TJwBy3ykR03i8vFDxEc7c=
+@@ -46,9 +61,12 @@ golang.org/x/net v0.63.0 h1:HCoTmNh9EpD1PpK8gBNFY4gcTY4N+KQEO8ylfIKqFJ0=
+ golang.org/x/net v0.63.0/go.mod h1:15JLg3IX1bLjHK264EZQEbIpTiR/KVLuo9CTRWd0pig=
+ golang.org/x/sync v0.25.0 h1:dJnifr0nMV8/SBnBvdo4eSGGnrc3O4FFx6IqvtLcmRs=
+ golang.org/x/sync v0.25.0/go.mod h1:sUUOizhqBxiL6pEWpqNLUiaJn1ShEbZ6BBqskPbjZm0=
 +golang.org/x/sys v0.0.0-20220712014510-0a85c31ab51e/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
- golang.org/x/sys v0.48.0 h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
- golang.org/x/sys v0.48.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
- golang.org/x/text v0.42.0 h1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI=
- golang.org/x/text v0.42.0/go.mod h1:ojzP1Z+2QtioaF8DTtO8K5q7JWVVYwZKenzujK0Zd0E=
+ golang.org/x/sys v0.50.0 h1:dkKZEFTEKaLr1sjhs0WiKqoi8Jj5nHbS3Njmx1UoMJs=
+ golang.org/x/sys v0.50.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
+ golang.org/x/text v0.44.0 h1:YItdp/mQNGnsmrgpcdA5yQ3bnRxCfo/Tj/iByGW9GGo=
+ golang.org/x/text v0.44.0/go.mod h1:S4FR1waQ9LbjQTls97SyRjDaUUVkaM+cXwwuG/G+MwY=
 +golang.org/x/time v0.10.0 h1:3usCWA8tQn0L8+hFJQNgzpWbd89begxN66o1Ojdn5L4=
 +golang.org/x/time v0.10.0/go.mod h1:3BpzKBy/shNhVucY/MWOyx10tF3SFh9QdLuxbVysPQM=
  google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
  google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 diff --git a/goneonize/main.go b/goneonize/main.go
-index d2759e9..e705989 100644
+index d4d2c60..02718d3 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -61,7 +61,7 @@ var (
+@@ -55,7 +55,7 @@ type MessageEvent struct {
+ }
  
- // Defaults to sqlite otherwise use postgres database url
- func getDB(db *C.char, dbLog utils.Logger) (*sqlstore.Container, error) {
--	container, err := sqlstore.New(context.TODO(), "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", C.GoString(db)), dbLog)
-+	container, err := sqlstore.New(context.TODO(), "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on&_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate", C.GoString(db)), dbLog)
- 	if strings.HasPrefix(C.GoString(db), "postgres") {
- 		container, err = sqlstore.New(context.TODO(), "postgres", C.GoString(db), dbLog)
+ var (
+-	eventChannel map[string]chan MessageEvent    = make(map[string]chan MessageEvent)
++	eventChannel map[string]chan MessageEvent  = make(map[string]chan MessageEvent)
+ 	StopSignal   map[string]context.CancelFunc = make(map[string]context.CancelFunc)
+ )
+ 
+@@ -65,7 +65,7 @@ func getDB(db *C.char, dbLog utils.Logger) (*sqlstore.Container, error) {
+ 	if strings.HasPrefix(dbStr, "postgres") {
+ 		return sqlstore.New(context.TODO(), "postgres", dbStr, dbLog)
  	}
-@@ -746,6 +746,7 @@ func Stop(id *C.char) {
+-	return sqlstore.New(context.TODO(), "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", dbStr), dbLog)
++	return sqlstore.New(context.TODO(), "sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on&_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate", dbStr), dbLog)
+ }
+ 
+ // getByteByAddr returns a zero-copy read-only Go slice view over C/Python memory.
+@@ -754,6 +754,7 @@ func Stop(id *C.char) {
  	if client, exists := lookupClient(C.GoString(id)); exists {
  		client.Disconnect()
  		deleteClient(C.GoString(id))
@@ -676,11 +685,20 @@ index d2759e9..e705989 100644
  	}
  	if cancelFunc, exists := lookupStopSignal(C.GoString(id)); exists {
  		cancelFunc()
-@@ -809,6 +810,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -819,6 +820,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  	clientLog := utils.NewLogger("Client", C.GoString(logLevel), utils.Callback(logCb))
  	client := whatsmeow.NewClient(deviceStore, clientLog)
  	setClient(uuid, client)
 +	instalarChamadas(uuid)
- 	sprStore := newSPRRetryStore(C.GoString(db))
- 	sprRetryStores.Store(uuid, sprStore)
- 	installSPRRetryHooks(client, sprStore)
+ 	if sprSupported {
+ 		sprStore := newSPRRetryStore(C.GoString(db))
+ 		sprRetryStores.Store(uuid, sprStore)
+@@ -1338,7 +1340,7 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+ 				eventChan <- messageEvent
+ 			}
+ 		case *events.Lock:
+-			if _, ok := subscribers[50]; ok {
++			if subscribers[50] {
+ 				chatState := defproto.ChatLock{
+ 					JID:          utils.EncodeJidProto(v.JID),
+ 					Timestamp:    proto.Int64(v.Timestamp.Unix()),

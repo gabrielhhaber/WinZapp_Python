@@ -60,3 +60,11 @@ class AboutCache:
             if len(self._entries) >= MAX_ENTRIES:
                 self._entries.pop(next(iter(self._entries)))
         self._entries[jid] = entry
+
+
+def cache_of(session) -> AboutCache:
+    """The session's AboutCache, created on first use."""
+    cache = getattr(session, "about_cache", None)
+    if cache is None:
+        cache = session.about_cache = AboutCache()
+    return cache

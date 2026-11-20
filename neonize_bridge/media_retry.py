@@ -5,7 +5,7 @@ A media's link expires after a few weeks (the download fails with 403, 404 or
 WhatsApp Web sends a *media retry receipt* and the phone answers with a
 notification, encrypted with the media key, carrying the new `directPath`.
 whatsmeow has both halves; WinZapp's neonize build exports them
-(`send_media_retry`, `decrypt_media_retry`, `MediaRetryEv`; patch neonize 0023).
+(`send_media_retry`, `decrypt_media_retry`, `MediaRetryEv`; patch neonize 0021).
 
 `download_async` is what `GET /message/get-media` (server.py) calls: it tries the
 download as before and, only when it failed with an expired-link answer,
@@ -116,14 +116,14 @@ def retry_request(parsed, media_key: bytes) -> dict:
 
 def decrypt_request(event, media_key: bytes) -> dict:
     """The body of `decrypt_media_retry` for a `MediaRetryEv`."""
-    has_error = event.HasField("ErrorCode")
+    has_error = event.HasField("Error")        # neonize's own MediaRetryError
     return {
         "media_key": base64.b64encode(media_key).decode(),
         "message_id": event.MessageID,
         "ciphertext": base64.b64encode(bytes(event.Ciphertext)).decode(),
         "iv": base64.b64encode(bytes(event.IV)).decode(),
         "has_error": has_error,
-        "error_code": event.ErrorCode if has_error else 0,
+        "error_code": event.Error.Code if has_error else 0,
     }
 
 
@@ -357,7 +357,7 @@ async def download_async(s, message, msgid, download):
 
 
 def register_events(cli, s):
-    """Wires the phone's answer (`MediaRetryEv`, WinZapp's neonize build) to the
+    """Wires the phone's answer (`MediaRetryEv`, neonize's own event) to the
     session `s` and creates `s.media_retries`. Called on neonize's thread."""
     import neonize.events as nev
 

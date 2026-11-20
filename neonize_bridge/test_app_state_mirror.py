@@ -245,4 +245,4 @@ def test_winzapp_build_event_carries_the_fields_the_handler_reads():
         pytest.skip("neonize without WinZapp's events (build_neonize.py builds them)")
     fields = set(events.AppStateMutationEv.DESCRIPTOR.fields_by_name)
     assert {"Name", "Index", "Version", "Remove", "Action", "FromFullSync"} <= fields
-    assert events.EVENT_TO_INT[events.AppStateMutationEv] == 57
+    assert events.EVENT_TO_INT[events.AppStateMutationEv] == 100

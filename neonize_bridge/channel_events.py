@@ -8,7 +8,7 @@ channelsWatchBridge.ts).
 
 The events are neonize's own (NewsletterJoin 32, NewsletterLeave 33,
 NewsletterMuteChange 34) and WinZapp's NewsletterChange (58: whatsmeow patch
-0013, neonize patch 0019), every other channel notification WhatsApp Web
+0013, neonize patch 0017), every other channel notification WhatsApp Web
 handles; an older build without one simply never sends it.
 """
 import logging

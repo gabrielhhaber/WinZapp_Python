@@ -19,15 +19,16 @@ unchanged export is byte for byte the same). Each tree's patches apply in
 order on top of its pin. Generated protobuf code (`Neonize.pb.go`,
 `Neonize_pb2.py/.pyi`) is never in a patch: the build regenerates it from
 `Neonize.proto` with the pinned toolchain, which reproduces upstream's own
-generated files exactly (checked on 0.6.0; on 0.10.0 only the "protoc v7.36.0" version stamp in the
-header comments differs, upstream generated with a newer protoc).
+generated files exactly (checked on 0.6.0; on 0.10.0 and 0.12.4 only the "protoc v7.36.0" version
+stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
 - **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
   whatsmeow patch) and media transfers to and from disk with progress and
-  cancel (`DownloadAnyToFile`, `UploadFile`, `TransferProgress`,
-  `TransferCancel`; the bridge's `transfers.py`). The rest of what this patch
+  cancel (`DownloadAnyToFileTracked`, `UploadFile`, `TransferProgress`,
+  `TransferCancel`; the bridge's `transfers.py`). The tracked download has its own
+  name because neonize 0.12 took `DownloadAnyToFile` for a plain download to a path. The rest of what this patch
   carried on 0.6.0 (app-state events 46-49 and 51-53, `fetch_app_state` /
   `request_app_state_recovery`, the `DecodePatchInfo` fix and
   `update_group_request_participants`, upstream pull requests #227-#232) is in
@@ -36,20 +37,27 @@ What the patches carry today:
 - **neonize 0002**: voice calls through meowcaller (`calls.go`, exported
   functions, no protobuf) and the session database in WAL with a 30 s busy
   timeout.
-- **neonize 0003**: `ContactUpdate` (54), `PushNameUpdate` (55) and
-  `AppStateSyncComplete` (56). A full app-state sync (right after pairing)
-  does not emit `ContactUpdate`: whatsmeow stores those names in bulk, and
-  `AppStateSyncComplete` for `critical_unblock_low` says when they are there
-  (`contact_events.py` reloads them).
-- **neonize 0005**: raw info queries and MEX (GraphQL) queries
+- **Event numbers.** neonize 0.12 took 54-76 for its own events and made
+  `subscribers` a `[128]` array, so the events only WinZapp has start at 100:
+  `AppStateMutation` (100), `NewsletterChange` (101); `ChatLock` stays 50.
+  What WinZapp's old patch for the contact events added is neonize's own now:
+  `ContactSyncEv` (58, was `ContactUpdateEv`), `PushNameEv` (59, was
+  `PushNameUpdateEv`) and `AppStateSyncCompleteEv` (56). A full app-state sync
+  (right after pairing) does not emit `ContactSyncEv`: whatsmeow stores those
+  names in bulk, and `AppStateSyncComplete` for `critical_unblock_low` says
+  when they are there (`contact_events.py` reloads them). The media retry
+  answer is upstream's `MediaRetryEv` (29, with `Error.Code`), no longer
+  patched; neither is the stopped-client crash of the contact and chat-settings
+  stores (upstream answers "client not found" itself).
+- **neonize 0004**: raw info queries and MEX (GraphQL) queries
   (`goneonize/rawiq.go`: `SendIQ` / `SendMexIQ`, JSON in and out; the
-  client's `send_iq` / `send_mex`), `AppStateMutation` (57) for every app
+  client's `send_iq` / `send_mex`), `AppStateMutation` (100) for every app
   state mutation, and `MutationInfo.Remove` so `send_app_state` can send a
   REMOVE. The bridge's custom lists, community joins, channel edits, status
   privacy and contact removal use them (`neonize_bridge/COVERAGE.md`).
-- **neonize 0006**: `MediaConn`, the media upload hosts and token, for the
+- **neonize 0005**: `MediaConn`, the media upload hosts and token, for the
   unencrypted upload of a catalog product's picture (`media_upload.py`).
-- **neonize 0010**: the sync client's `get_linked_group_participants` reads
+- **neonize 0008**: the sync client's `get_linked_group_participants` reads
   the `ReturnFunctionWithError` the Go side sends (it parsed another message
   and failed with "Wire format was corrupt"; the async client was right). It
   gives `community-participants` and the community total in `group-info`.
@@ -88,33 +96,33 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
-- **neonize 0014**: `CallAddParticipant` adds a number or LID to the call this
+- **neonize 0012**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
   already on the call's list), WhatsApp's "Add participant"; Python
   `CallClient.add_participant` (`neonize_bridge/call_invites.py`).
-- **neonize 0015**: a channel update (`NewsletterMessage`) carries whatsmeow's
+- **neonize 0013**: a channel update (`NewsletterMessage`) carries whatsmeow's
   `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
   updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
-- **neonize 0016 / whatsmeow 0011**: a channel update carries the server's
+- **neonize 0014 / whatsmeow 0011**: a channel update carries the server's
   `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
   update `fromMe` from: a channel's admin sees their own updates as sent.
-- **neonize 0018**: `SendNewsletterMessage` (Python
+- **neonize 0016**: `SendNewsletterMessage` (Python
   `send_newsletter_message`), `SendMessage` with
   `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
   unencrypted (`upload_newsletter`) and out with the upload's handle, which
   whatsmeow sends as the node's `media_id` (`channel_media.py`).
-- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
+- **neonize 0017**: `NewsletterChange` (101, `NewsletterChangeEv`), the
   whatsmeow event above; the bridge's `channel_events.py` sends the ones the
   channels windows show as `channels-changed`.
-- **neonize 0020**: `AutomaticMessageRerequestFromPhone`, off by default in
+- **neonize 0018**: `AutomaticMessageRerequestFromPhone`, off by default in
   whatsmeow: a message this device cannot decrypt (a group message without its
   sender key) is asked of the account's own phone, as WhatsApp Web does
   (`PLACEHOLDER_MESSAGE_RESEND`); it used to be lost when the sender's device
   did not resend it.
-- **neonize 0021**: `send_newsletter_message`'s answer is turned into bytes like
+- **neonize 0019**: `send_newsletter_message`'s answer is turned into bytes like
   `send_message`'s: a channel post went out and the call raised
   `expected bytes, LP_Bytes found`, so a published post was reported as failed.
-- **neonize 0012 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
+- **neonize 0010 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.
   See [call audio](neonize-call-audio.md) for
@@ -164,23 +172,28 @@ What the patches carry today:
   device was skipped and the call was digital silence (issue #689, Gustavo's
   rejoin). Audio is told apart by the SSRC and keys derived from the device id,
   not by the PID.
-- **neonize 0022**: the "chamadas: meowcaller" log writer counted repeated
+- **neonize 0020**: the "chamadas: meowcaller" log writer counted repeated
   messages (first 8, then every 200) for the whole process; it now counts per
   `call_id`, so a later call keeps its roster, key epoch and summary lines.
-- **neonize 0023**: media retry. `SendMediaRetry` / `DecryptMediaRetry`
+- **neonize 0021**: media retry. `SendMediaRetry` / `DecryptMediaRetry`
   (`goneonize/mediaretry.go`, JSON in and out like `rawiq.go`; Python
   `send_media_retry` / `decrypt_media_retry`) wrap whatsmeow's
   `SendMediaRetryReceipt` and `DecryptMediaRetryNotification`, and the phone's
-  answer is `events.MediaRetry` as event 59 (`MediaRetryEv`). When a download
+  answer is neonize's own `MediaRetryEv` (29). When a download
   fails with an expired link the bridge (`media_retry.py`, called by
   `get-media-by-message`) asks the phone to upload the file again, waits for
   the answer and downloads from the new direct path; "not found" answers 410.
-- **neonize 0024**: `DownloadRetriedMedia` (`goneonize/mediaretry_download.go`,
+- **neonize 0022**: `DownloadRetriedMedia` (`goneonize/mediaretry_download.go`,
   Python `download_retried_media`). The retry notification brings only the new
   direct path, and the phone's new upload can encrypt to other bytes, so
   whatsmeow's check of the old `fileEncSHA256` refused all 7 hosts (issue #756).
   The ciphertext is authenticated by the media key's HMAC and the plaintext by
   `fileSHA256` (`mediaretry_decrypt.go`, tested alone with `go test`).
+
+- **meowcaller 0026**: `go.mod` / `go.sum` follow neonize's whatsmeow pin
+  (`neonize_upstream.json` `whatsmeow.version`), as meowcaller 0001 did for the
+  previous one. A new whatsmeow pin needs this patch redone: `go get
+  go.mau.fi/whatsmeow@<pin>` and `go mod tidy` in the meowcaller tree.
 
 ## Toolchain (once)
 

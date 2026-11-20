@@ -67,7 +67,7 @@ WPPConnect typed in at `127.0.0.1:6300` read as Neonize.
 | Abandoned-session cleanup | asks the bridge to `delete-session` each stale name |
 | Removing an account | asks the bridge to `delete-session` each session name; the account stays `deleting` until it confirms (`account_removal.purge_account(bridge_delete=...)`) |
 | Node lease | registered when the bridge is started or joined (`_register_node_lease`), so "Quit all accounts" and the updater see the account |
-| Calls | placed and answered when `send-capabilities` says `calls: true` (WinZapp's neonize build with the call layer, `neonize_bridge/call_media.py`); video calls, upgrading to video and the camera when it also says `videoCalls: true` (neonize 0008 and an ffmpeg on the bridge's PATH, `neonize_bridge/call_video.py`), group calls with `groupCalls: true`; the others are refused up front (`core/call_logic.engine_refuses_call`); rejecting always works |
+| Calls | placed and answered when `send-capabilities` says `calls: true` (WinZapp's neonize build with the call layer, `neonize_bridge/call_media.py`); video calls, upgrading to video and the camera when it also says `videoCalls: true` (neonize 0007 and an ffmpeg on the bridge's PATH, `neonize_bridge/call_video.py`), group calls with `groupCalls: true`; the others are refused up front (`core/call_logic.engine_refuses_call`); rejecting always works |
 
 ## Call tones
 

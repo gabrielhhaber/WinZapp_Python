@@ -313,10 +313,10 @@ index 0000000..2ccff90
 +	return escreverTexto(string(b), buf, cap)
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index ab6639a..3b91fcd 100644
+index 9dd593c..fff0183 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -897,6 +897,24 @@ if not os.environ.get("SPHINX"):
+@@ -1006,6 +1006,24 @@ if not os.environ.get("SPHINX"):
          gocode.CallWriteAudio.argtypes = [
              ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
          gocode.CallWriteAudio.restype = ctypes.c_int

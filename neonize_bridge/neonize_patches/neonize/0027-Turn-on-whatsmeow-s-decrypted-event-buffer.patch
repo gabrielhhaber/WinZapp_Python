@@ -8,10 +8,10 @@ Subject: [PATCH] Turn on whatsmeow's decrypted event buffer
  1 file changed, 5 insertions(+)
 
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 8e2f2af..649c89d 100644
+index 30a256e..474e956 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -696,6 +696,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -705,6 +705,11 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  	// not resend it within RequestFromPhoneDelay. Off by default in whatsmeow:
  	// the message was lost for good whenever the sender's device stayed silent.
  	client.AutomaticMessageRerequestFromPhone = true
@@ -22,4 +22,4 @@ index 8e2f2af..649c89d 100644
 +	client.EnableDecryptedEventBuffer = true
  	setClient(uuid, client)
  	instalarChamadas(uuid)
- 	sprStore := newSPRRetryStore(C.GoString(db))
+ 	if sprSupported {

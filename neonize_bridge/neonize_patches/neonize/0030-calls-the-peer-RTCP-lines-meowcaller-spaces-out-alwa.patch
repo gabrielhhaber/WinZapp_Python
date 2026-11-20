@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Fri, 13 Nov 2026 23:08:36 -0300
+Subject: [PATCH] calls: the peer RTCP lines meowcaller spaces out always pass
+
+---
+ goneonize/calls.go          | 2 +-
+ goneonize/calls_log_test.go | 3 +++
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 80f13c8..7d0ce44 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -130,7 +130,7 @@ var resumosPeriodicos = []string{"|relay traffic by kind|", "|audio receive summ
+ // linhasJaEspacadas sao as que o proprio meowcaller ja espaca (os relatorios
+ // RTCP: os primeiros depois que a midia vira de grupo, depois a cada 30 s);
+ // passam sempre.
+-var linhasJaEspacadas = []string{"|sent RTCP reception reports|"}
++var linhasJaEspacadas = []string{"|sent RTCP reception reports|", "|peer RTCP received|"}
+ 
+ // mostrarLinhaChamadas: as 8 primeiras vezes de uma mensagem e depois a cada
+ // 200; um resumo periodico, depois das 8 primeiras, a cada 6 (30 s).
+diff --git a/goneonize/calls_log_test.go b/goneonize/calls_log_test.go
+index 5c8a75c..e22718e 100644
+--- a/goneonize/calls_log_test.go
++++ b/goneonize/calls_log_test.go
+@@ -90,5 +90,8 @@ func TestRelatoriosRTCPJaEspacadosPassamSempre(t *testing.T) {
+ 		if !mostrarLinhaChamadas(`info|sent RTCP reception reports|AAA`, n) {
+ 			t.Fatalf("relatorio RTCP %d cortado", n)
+ 		}
++		if !mostrarLinhaChamadas(`info|peer RTCP received|`, n) {
++			t.Fatalf("RTCP recebido %d cortado", n)
++		}
+ 	}
+ }

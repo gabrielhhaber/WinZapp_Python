@@ -58,7 +58,7 @@ index 0000000..3463364
 +	}
 +}
 diff --git a/notification.go b/notification.go
-index aa01551..0e807bd 100644
+index 3ba3a96..8f5fa56 100644
 --- a/notification.go
 +++ b/notification.go
 @@ -11,6 +11,7 @@ import (
@@ -69,7 +69,7 @@ index aa01551..0e807bd 100644
  	"time"
  
  	"google.golang.org/protobuf/proto"
-@@ -434,8 +435,49 @@ func (cli *Client) handleMexNotification(ctx context.Context, node *waBinary.Nod
+@@ -475,8 +476,49 @@ func (cli *Client) handleMexNotification(ctx context.Context, node *waBinary.Nod
  		} else if wrapper.Data.NotifyAccountReachoutTimelock != nil {
  			wrapper.Data.NotifyAccountReachoutTimelock.Mex = mnd
  			cli.dispatchEvent(wrapper.Data.NotifyAccountReachoutTimelock)
@@ -120,11 +120,11 @@ index aa01551..0e807bd 100644
  
  func (cli *Client) handleStatusNotification(ctx context.Context, node *waBinary.Node) {
 diff --git a/types/events/events.go b/types/events/events.go
-index 98bd242..f463e95 100644
+index a273127..4f5010c 100644
 --- a/types/events/events.go
 +++ b/types/events/events.go
-@@ -656,6 +656,20 @@ type NewsletterMuteChange struct {
- 	Mute types.NewsletterMuteState `json:"mute"`
+@@ -665,6 +665,20 @@ type NewsletterMilestone struct {
+ 	ReactionCode    string                `json:"reaction_code"`
  }
  
 +// NewsletterChange is a channel notification with no typed event of its own:

@@ -13,10 +13,10 @@ when it is there. The enc media type still says what they are.
  1 file changed, 4 insertions(+), 6 deletions(-)
 
 diff --git a/send.go b/send.go
-index 33f2174..4f94142 100644
+index 9bfd84b..6e879a5 100644
 --- a/send.go
 +++ b/send.go
-@@ -1004,14 +1004,12 @@ func getButtonTypeFromMessage(msg *waE2E.Message) string {
+@@ -1021,14 +1021,12 @@ func getButtonTypeFromMessage(msg *waE2E.Message) string {
  		return getButtonTypeFromMessage(msg.EphemeralMessage.Message)
  	case msg.ButtonsMessage != nil:
  		return "buttons"

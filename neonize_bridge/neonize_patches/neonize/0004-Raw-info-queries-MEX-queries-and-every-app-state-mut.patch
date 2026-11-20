@@ -5,7 +5,7 @@ Subject: [PATCH] Raw info queries, MEX queries and every app state mutation
 
 - SendIQ / SendMexIQ (goneonize/rawiq.go, JSON in and out) and the
   client's send_iq / send_mex, for what whatsmeow has no function for;
-- AppStateMutation (57): every app state mutation with its collection,
+- AppStateMutation (100): every app state mutation with its collection,
   version and operation, also during a full sync;
 - MutationInfo.Remove: send_app_state can send a REMOVE.
 ---
@@ -22,10 +22,10 @@ Subject: [PATCH] Raw info queries, MEX queries and every app state mutation
  create mode 100644 goneonize/rawiq.go
 
 diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index cbdc7df..c79a8f8 100644
+index 2313337..d5f2c13 100644
 --- a/goneonize/Neonize.proto
 +++ b/goneonize/Neonize.proto
-@@ -549,6 +549,8 @@ message MutationInfo {
+@@ -558,6 +558,8 @@ message MutationInfo {
      repeated string Index = 1;
      required int32 Version = 2;
      required WAWebProtobufSyncAction.SyncActionValue Value = 3;
@@ -34,15 +34,15 @@ index cbdc7df..c79a8f8 100644
  }
  message PatchInfo {
      enum WAPatchName {
-@@ -979,6 +981,18 @@ message AppStateSyncComplete { //56
-     required uint64 Version = 2;
-     required bool Recovery = 3;
+@@ -984,6 +986,18 @@ message ChatClear { //54
+     required bool FromFullSync = 4;
+     required bool DeleteMedia = 5;
  }
 +// Every app state mutation, set or remove (Remove), with its collection
 +// (Name) and Version, also during a full sync (but not the contacts a full sync
 +// stores in bulk). For the entries no other event carries: labels and lists,
 +// status privacy...
-+message AppStateMutation { //57
++message AppStateMutation { //100
 +    required string Name = 1;
 +    repeated string Index = 2;
 +    required int32 Version = 3;
@@ -54,10 +54,10 @@ index cbdc7df..c79a8f8 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index cbdc7df..c79a8f8 100644
+index 2313337..d5f2c13 100644
 --- a/goneonize/defproto/Neonize.proto
 +++ b/goneonize/defproto/Neonize.proto
-@@ -549,6 +549,8 @@ message MutationInfo {
+@@ -558,6 +558,8 @@ message MutationInfo {
      repeated string Index = 1;
      required int32 Version = 2;
      required WAWebProtobufSyncAction.SyncActionValue Value = 3;
@@ -66,15 +66,15 @@ index cbdc7df..c79a8f8 100644
  }
  message PatchInfo {
      enum WAPatchName {
-@@ -979,6 +981,18 @@ message AppStateSyncComplete { //56
-     required uint64 Version = 2;
-     required bool Recovery = 3;
+@@ -984,6 +986,18 @@ message ChatClear { //54
+     required bool FromFullSync = 4;
+     required bool DeleteMedia = 5;
  }
 +// Every app state mutation, set or remove (Remove), with its collection
 +// (Name) and Version, also during a full sync (but not the contacts a full sync
 +// stores in bulk). For the entries no other event carries: labels and lists,
 +// status privacy...
-+message AppStateMutation { //57
++message AppStateMutation { //100
 +    required string Name = 1;
 +    repeated string Index = 2;
 +    required int32 Version = 3;
@@ -86,15 +86,15 @@ index cbdc7df..c79a8f8 100644
      optional string Error = 1;
      repeated GroupParticipant participants = 2;
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 917988e..3fa2034 100644
+index 02718d3..eb9d276 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
-@@ -1433,6 +1433,22 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -1523,6 +1523,22 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  				}
- 				eventChan <- &messageEvent
+ 				eventChan <- MessageEvent{eventType: 61, message: &ev}
  			}
 +		case *events.AppStateMutation:
-+			if _, ok := subscribers[57]; ok {
++			if subscribers[100] {
 +				mutation := defproto.AppStateMutation{
 +					Name:         proto.String(string(v.Name)),
 +					Index:        v.Index,
@@ -104,14 +104,14 @@ index 917988e..3fa2034 100644
 +					FromFullSync: proto.Bool(v.FromFullSync),
 +				}
 +				messageEvent := MessageEvent{
-+					eventType: 57,
++					eventType: 100,
 +					message:   &mutation,
 +				}
 +				eventChan <- &messageEvent
 +			}
- 		case *events.RotateADVSecret:
- 			if _, ok := subscribers[45]; ok {
- 				rot := defproto.RotateADVSecret{
+ 		case *events.UserAbout:
+ 			if subscribers[62] {
+ 				ev := defproto.UserAbout{
 diff --git a/goneonize/rawiq.go b/goneonize/rawiq.go
 new file mode 100644
 index 0000000..282275a
@@ -367,7 +367,7 @@ index 0000000..282275a
 +	return rawAnswer(answer)
 +}
 diff --git a/goneonize/utils/decoder.go b/goneonize/utils/decoder.go
-index a758473..20e185b 100644
+index 218703a..f7a5175 100644
 --- a/goneonize/utils/decoder.go
 +++ b/goneonize/utils/decoder.go
 @@ -7,6 +7,7 @@ import (
@@ -396,10 +396,10 @@ index a758473..20e185b 100644
  
  func DecodePatchInfo(patchInfo *defproto.PatchInfo) *appstate.PatchInfo {
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index b8e0756..aae2f15 100644
+index c57ac4f..938a902 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -865,6 +865,14 @@ if not os.environ.get("SPHINX"):
+@@ -974,6 +974,14 @@ if not os.environ.get("SPHINX"):
          ]
          gocode.UploadFile.restype = ctypes.POINTER(Bytes)
          gocode.UploadFile.errcheck = consume_bytes_struct
@@ -415,27 +415,27 @@ index b8e0756..aae2f15 100644
          # The call layer (goneonize/calls.go): plain C types, no protobuf; the
          # wrapper is neonize/calls.py.
 diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
-index 6fffb2a..f4150d4 100644
+index bf23c02..b55dd4c 100644
 --- a/neonize/aioze/events.py
 +++ b/neonize/aioze/events.py
-@@ -44,6 +44,7 @@ from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
- from ..proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
- from ..proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
- from ..proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+@@ -55,6 +55,7 @@ from ..proto.Neonize_pb2 import MediaRetry as MediaRetryEv
+ from ..proto.Neonize_pb2 import Message as MessageEv
+ from ..proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
+ from ..proto.Neonize_pb2 import MessageStar as MessageStarEv
 +from ..proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
  from ..proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
  from ..proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
  from ..proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEv
-@@ -111,6 +112,7 @@ __all__ = [
-     "ContactUpdateEv",
-     "PushNameUpdateEv",
-     "AppStateSyncCompleteEv",
+@@ -143,6 +144,7 @@ __all__ = [
+     "MessageDeleteForMeEv",
+     "MessageEv",
+     "MessageStarEv",
 +    "AppStateMutationEv",
      "NewsLetterMessageMetaEv",
      "NewsletterJoinEv",
      "NewsletterLeaveEv",
 diff --git a/neonize/client.py b/neonize/client.py
-index 9f87754..52958bb 100644
+index 7f81746..dc8000f 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
 @@ -2,6 +2,7 @@ from __future__ import annotations
@@ -446,7 +446,7 @@ index 9f87754..52958bb 100644
  import logging
  import re
  import struct
-@@ -2853,6 +2854,31 @@ class NewClient:
+@@ -2883,6 +2884,31 @@ class NewClient:
          if err:
              raise SendAppStateError(err)
  
@@ -479,22 +479,22 @@ index 9f87754..52958bb 100644
          """Asks the primary device for a recovery snapshot of an app state
          collection that keeps failing with ``mismatching LTHash`` even after a
 diff --git a/neonize/events.py b/neonize/events.py
-index 1083346..0ce8dd8 100644
+index df094e5..81f97e1 100644
 --- a/neonize/events.py
 +++ b/neonize/events.py
-@@ -47,6 +47,7 @@ from .proto.Neonize_pb2 import MessageStar as MessageStarEv
- from .proto.Neonize_pb2 import ContactUpdate as ContactUpdateEv
- from .proto.Neonize_pb2 import PushNameUpdate as PushNameUpdateEv
- from .proto.Neonize_pb2 import AppStateSyncComplete as AppStateSyncCompleteEv
+@@ -58,6 +58,7 @@ from .proto.Neonize_pb2 import MediaRetry as MediaRetryEv
+ from .proto.Neonize_pb2 import Message as MessageEv
+ from .proto.Neonize_pb2 import MessageDeleteForMe as MessageDeleteForMeEv
+ from .proto.Neonize_pb2 import MessageStar as MessageStarEv
 +from .proto.Neonize_pb2 import AppStateMutation as AppStateMutationEv
  from .proto.Neonize_pb2 import NewsletterJoin as NewsletterJoinEv
  from .proto.Neonize_pb2 import NewsletterLeave as NewsletterLeaveEv
  from .proto.Neonize_pb2 import NewsletterLiveUpdate as NewsletterLiveUpdateEV
-@@ -124,6 +125,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
-     ContactUpdateEv: 54,
-     PushNameUpdateEv: 55,
-     AppStateSyncCompleteEv: 56,
-+    AppStateMutationEv: 57,
+@@ -166,6 +167,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
+     NotifyAccountReachoutTimelockEv: 74,
+     PairPasskeyConfirmationEv: 75,
+     PairPasskeyErrorEv: 76,
++    AppStateMutationEv: 100,
  }
  INT_TO_EVENT: dict[int, type[Message]] = {code: ev for ev, code in EVENT_TO_INT.items()}
  

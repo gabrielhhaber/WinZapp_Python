@@ -9,10 +9,10 @@ SendNewsletterMessage returns POINTER(Bytes) like SendMessage, but was missing f
  1 file changed, 1 insertion(+)
 
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index 5f76693..199ee53 100644
+index ecf7596..6e0b2e9 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -797,6 +797,7 @@ if not os.environ.get("SPHINX"):
+@@ -894,6 +894,7 @@ if not os.environ.get("SPHINX"):
          "GetGroupInviteLink",
          "JoinGroupWithLink",
          "SendMessage",

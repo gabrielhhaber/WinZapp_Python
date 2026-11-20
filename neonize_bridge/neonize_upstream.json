@@ -12,12 +12,17 @@
         "version": "0.10.0",
         "commit": "0a17277637df391ff4af9395bfa09abc236aa597",
         "approved_on": "2026-11-08"
+      },
+      {
+        "version": "0.12.4",
+        "commit": "a8c9a68d1b3d3d7e8023119ca4115bfc9a53686f",
+        "approved_on": "2026-11-20"
       }
     ]
   },
   "whatsmeow": {
     "module": "go.mau.fi/whatsmeow",
-    "version": "v0.0.0-20260921121126-35ae40906e74"
+    "version": "v0.0.0-20261116172437-19d61352436f"
   },
   "meowcaller": {
     "repository": "https://github.com/purpshell/meowcaller.git",

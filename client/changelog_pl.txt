@@ -258,7 +258,7 @@ NOWOŚCI
 
 - Połączenia: do trwającego połączenia można teraz dodawać osoby przyciskiem "Dodaj uczestników" na liście uczestników połączenia. W połączeniu grupowym widać członków grupy, których jeszcze w nim nie ma; w połączeniu indywidualnym — Twoje kontakty, a po dodaniu kolejnych osób połączenie staje się wieloosobowe, jak w WhatsAppie. Ponowne wybranie osoby, która była już zaproszona, ale jeszcze nie dołączyła, ponawia wywołanie połączenia. Działa z WPPConnect i z Neonize.
 
-- Eksperymentalny silnik Neonize został zaktualizowany z wersji 0.6.0 do 0.10.0. Czat usunięty na telefonie znika teraz także z WinZapp, a oznaczenie czatu jako przeczytanego lub nieprzeczytanego na telefonie znów aktualizuje licznik nieprzeczytanych.
+- Eksperymentalny silnik Neonize został zaktualizowany z wersji 0.6.0 do 0.12.4. Czat usunięty na telefonie znika teraz także z WinZapp, a oznaczenie czatu jako przeczytanego lub nieprzeczytanego na telefonie znów aktualizuje licznik nieprzeczytanych. Opis (Informacje) kontaktu aktualizuje się teraz od razu, gdy osoba go zmieni.
 
 - WPPConnect Server zaktualizowany do wersji 2.10.78, która przestaje udostępniać prywatną pamięć podręczną multimediów przez HTTP.
 
