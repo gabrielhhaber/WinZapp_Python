@@ -249,7 +249,7 @@ class ConversationSyncMixin:
         # and committed the list-chats snapshot for chats nothing had read.
         # An account could be marked fully synced having fetched nothing, which
         # only F5 repairs. The call stands background work down where a *new*
-        # round is decided instead — see _voice_call_in_progress().
+        # round is decided instead — see _background_work_paused().
         if (expected_run_id is not None
                 and getattr(self, "_sync_run_id", 0) != expected_run_id):
             logging.info(

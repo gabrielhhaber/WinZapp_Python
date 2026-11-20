@@ -1,6 +1,7 @@
 """Message translation without an online AI (issue #798): the languages, the
 offline model catalogue and engine, the translation services and how the
 settings and the conversation reach them. No network, no model, no window."""
+import os
 import re
 from dataclasses import replace
 from types import SimpleNamespace
@@ -150,6 +151,46 @@ def test_translate_batches_the_lines_and_puts_the_text_back_together(tmp_path, m
     assert seen == [([["__en__", "bom", "dia", "</s>"], ["__en__", "até", "logo", "</s>"]], None)]
 
 
+def test_a_model_that_will_not_load_is_its_own_pausing_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(local_store, "is_installed", lambda entry, root=None: True)
+    monkeypatch.setattr(local_engine, "missing_components", lambda *a, **k: ())
+    attempts = []
+
+    def refuse(*args):
+        attempts.append(1)
+        raise MemoryError
+    monkeypatch.setattr(local_engine, "_open", refuse)
+    with pytest.raises(DescriptionError) as raised:
+        local_engine.translate("small100-int8", "oi", "en", root=str(tmp_path))
+    assert raised.value.key == "ai_error_translation_local_load"
+    assert mt.pauses_automatic(raised.value.key)
+    assert mt.pauses_automatic("ai_error_translation_engine_missing")
+    assert not mt.pauses_automatic("ai_error_translation_local_failed")
+
+
+def test_a_missing_detector_is_an_engine_error_not_english():
+    def absent(text):
+        raise ImportError("py3langid")
+    with pytest.raises(DescriptionError) as raised:
+        local_engine.detect("Oi", absent)
+    assert raised.value.key == "ai_error_translation_engine_missing"
+
+    def odd(text):
+        raise ValueError("bad")
+    assert local_engine.detect("Oi", odd) is None
+
+
+def test_an_idle_timer_that_was_replaced_does_not_drop_the_model(monkeypatch):
+    sentinel = object()
+    monkeypatch.setattr(local_engine, "_loaded", sentinel)
+    monkeypatch.setattr(local_engine, "_idle_timer", SimpleNamespace(cancel=lambda: None))
+    local_engine._unload_if_idle(object())          # a stale timer
+    assert local_engine._loaded is sentinel
+    current = local_engine._idle_timer
+    local_engine._unload_if_idle(current)
+    assert local_engine._loaded is None
+
+
 def test_a_cancel_between_batches_stops_the_run(tmp_path, monkeypatch):
     monkeypatch.setattr(local_store, "is_installed", lambda entry, root=None: True)
     monkeypatch.setattr(local_engine, "missing_components", lambda *a, **k: ())
@@ -221,14 +262,18 @@ def test_libretranslate_takes_an_optional_key_and_a_local_address():
 
 
 @pytest.mark.parametrize("address", ["http://lt.example.org", "ftp://x", "https://u:p@x.org",
-                                     "http://8.8.8.8:5000", ""])
+                                     "http://8.8.8.8:5000", "http://[2001:4860:4860::8888]:5000",
+                                     "http://[2606:4700::1111]:5000", "http://134744072",
+                                     "http://0x08080808", ""])
 def test_a_key_never_crosses_the_internet_in_clear(address):
     with pytest.raises(DescriptionError):
         services.service_base(address)
 
 
 @pytest.mark.parametrize("address", ["http://localhost:5000", "http://servidor:5000",
-                                     "http://nas.local", "https://lt.example.org/api/"])
+                                     "http://nas.local", "https://lt.example.org/api/",
+                                     "http://[::1]:5000", "http://[fd00::5]:5000",
+                                     "http://192.168.0.7:5000"])
 def test_a_local_or_https_address_is_accepted(address):
     assert services.service_base(address).startswith(("http://", "https://"))
 
@@ -398,7 +443,7 @@ _FILES = [(model, name, size) for model in local_catalog.MODELS for name, size i
 
 @pytest.mark.network
 @pytest.mark.skipif(
-    __import__("os").environ.get(_NETWORK_OPT_IN_ENV, "").strip() in ("", "0", "false", "False"),
+    os.environ.get(_NETWORK_OPT_IN_ENV, "").strip() in ("", "0", "false", "False"),
     reason=f"reaches huggingface.co - set {_NETWORK_OPT_IN_ENV}=1 to run it")
 @pytest.mark.parametrize("model, name, size", _FILES,
                          ids=[f"{m.id}/{n}" for m, n, _s in _FILES])
@@ -414,3 +459,55 @@ def test_the_pinned_url_serves_exactly_the_catalogued_size(model, name, size):
     assert response.status_code == 200
     length = response.headers.get("x-linked-size") or response.headers.get("Content-Length")
     assert int(length) == size
+
+
+def test_the_model_picker_is_refreshed_inside_freeze_and_thaw(monkeypatch):
+    import inspect
+    from ui.dialogs import translation_local_models as module
+    from ui.dialogs.translation_settings import TranslationSettingsDialog
+
+    events = []
+
+    class Choice:
+        Freeze = lambda self: events.append("freeze")  # noqa: E731
+        Thaw = lambda self: events.append("thaw")  # noqa: E731
+
+        def SetString(self, index, label):
+            events.append(("set", index))
+
+    button = SimpleNamespace(Enable=lambda state: None)
+    stub = SimpleNamespace(
+        local_model=Choice(), local_download=button, local_remove=button,
+        _local_labels=lambda: ["a", "b"], _local_model=lambda: None)
+    monkeypatch.setattr(module, "_state", lambda model: local_store.STATE_ABSENT)
+    module.TranslationLocalModelsMixin._refresh_local(stub)
+    assert events == ["freeze", ("set", 0), ("set", 1), "thaw"]
+    # The dialog speaks through the window's speak_output: it is not optional.
+    parameter = inspect.signature(TranslationSettingsDialog.__init__).parameters["speak_output"]
+    assert parameter.default is inspect.Parameter.empty
+
+
+def test_simplified_and_traditional_chinese_are_not_the_same_language():
+    nllb = local_catalog.get_model("nllb-200-distilled-600m-int8")
+    chinese = lambda text: ("zh", -5.0)  # noqa: E731
+    assert local_engine.resolve_source(nllb, "你好", None, "zh-TW", chinese) == ("zh", False)
+    assert local_engine.resolve_source(nllb, "你好", None, "zh", chinese) == ("zh", True)
+
+
+def test_removing_a_model_can_stop_waiting_for_a_running_translation():
+    import threading
+    taken, release = threading.Event(), threading.Event()
+
+    def hold():
+        with local_engine._lock:
+            taken.set()
+            release.wait(5)
+    worker = threading.Thread(target=hold)
+    worker.start()
+    taken.wait(5)
+    try:
+        assert local_engine.unload(lambda: True) is False
+    finally:
+        release.set()
+        worker.join()
+    assert local_engine.unload() is True

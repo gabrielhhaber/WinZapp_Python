@@ -54,6 +54,9 @@ NON_TEXT_MODELS = (
 #: How long automatic translation stops after the provider refused for a
 #: reason that repeats (key, quota, credit): the AI media rule.
 PAUSE_SECONDS = 3600.0
+#: The offline model that cannot be loaded, or lacks a component, fails the
+#: same way for every message: it pauses like a refused key.
+_PAUSING = PAUSING_CATEGORIES | {"translation_local_load", "translation_engine_missing"}
 
 
 def default_model(provider):
@@ -63,7 +66,7 @@ def default_model(provider):
 def pauses_automatic(error_key):
     """Whether a failed automatic request means "stop for a while": the next
     message would fail for the same reason (key, quota, credit)."""
-    return str(error_key or "").removeprefix("ai_error_") in PAUSING_CATEGORIES
+    return str(error_key or "").removeprefix("ai_error_") in _PAUSING
 
 
 @dataclass(frozen=True)

@@ -55,7 +55,7 @@ def language_items(provider, supported, ui_language):
 
 
 class TranslationSettingsDialog(TranslationLocalModelsMixin, wx.Dialog):
-    def __init__(self, parent, i18n, config, get_key, title, speak_output=None):
+    def __init__(self, parent, i18n, config, get_key, title, speak_output):
         super().__init__(parent, title=title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self._body = ScrolledPanel(self)
         self._i18n, self._t, self._get_key = i18n, i18n.t, get_key

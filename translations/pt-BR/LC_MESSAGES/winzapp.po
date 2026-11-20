@@ -1036,6 +1036,17 @@ msgstr ""
 " um modelo menor ou execute-o no processador."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_translation_local_load"
+msgid ""
+"The offline model could not be loaded, most likely for lack of memory. "
+"Choose a smaller model, run it on the processor, or choose another "
+"translation provider."
+msgstr ""
+"Não foi possível carregar o modelo offline, provavelmente por falta de "
+"memória. Escolha um modelo menor, execute-o no processador ou escolha outro "
+"provedor de tradução."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_translation_model_missing"
 msgid ""
 "The offline model is not on this computer. Download it with \"Download "

@@ -134,11 +134,14 @@ class DefaultEndpointWatcher:
     """
 
     def __init__(self, on_change: Callable[[], bool], follows: Callable[[], tuple],
-                 *, reader=default_endpoint_ids, interval: float = POLL_SECONDS):
+                 *, reader=default_endpoint_ids, interval: float = POLL_SECONDS,
+                 name: str = "WinZappCallDefaultDevices", tag: str = "call_audio"):
         self._on_change = on_change
         self._follows = follows
         self._reader = reader
         self._interval = interval
+        self._name = name
+        self._tag = tag
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._acted_on = None
@@ -148,7 +151,7 @@ class DefaultEndpointWatcher:
         if self._thread is not None:
             return
         self._acted_on = self._last = self._reader()
-        self._thread = threading.Thread(target=self._run, name="WinZappCallDefaultDevices",
+        self._thread = threading.Thread(target=self._run, name=self._name,
                                         daemon=True)
         self._thread.start()
 
@@ -161,12 +164,20 @@ class DefaultEndpointWatcher:
 
     def poll(self) -> bool:
         """One reading; True when *on_change* was called and accepted it."""
+        follow_output, follow_input = self._follows()
+        if not (follow_output or follow_input):
+            # Both devices chosen by name: nothing to follow, so no COM reading
+            # either. The baseline is taken again when following resumes.
+            self._acted_on = self._last = None
+            return False
         current = self._reader()
+        if self._acted_on is None:
+            self._acted_on = self._last = current
+            return False
         stable = current == self._last
         self._last = current
         if not stable or current == self._acted_on:
             return False
-        follow_output, follow_input = self._follows()
         if not followed_change(self._acted_on, current, follow_output=follow_output,
                                follow_input=follow_input):
             # Not ours to follow (a chosen device, or a default that vanished):
@@ -183,7 +194,7 @@ class DefaultEndpointWatcher:
             try:
                 self.poll()
             except Exception:
-                logging.exception("[call_audio] reading the default audio devices failed")
+                logging.exception("[%s] reading the default audio devices failed", self._tag)
 
 
 def refresh_portaudio_devices(sd) -> bool:

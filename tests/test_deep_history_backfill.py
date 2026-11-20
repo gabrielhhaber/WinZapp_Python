@@ -119,7 +119,7 @@ def _make(pages, oldest=None, advances=True):
     for name in ("deep_backfill_chat", "_oldest_stored_message",
                  "_chats_needing_deep_history", "history_page_target",
                  "_persist_exhausted_chats", "_anchor_identity",
-                 "_voice_call_in_progress"):
+                 "_background_work_paused"):
         raw = inspect.getattr_static(MainWindow, name)
         if isinstance(raw, (staticmethod, classmethod)):
             setattr(stub, name, getattr(MainWindow, name))
@@ -352,7 +352,7 @@ def _loop(deep_pending, pending=(), names=()):
                  # sleeps a second per iteration until its whole deadline
                  # elapses, which is how one guard turned this file into a
                  # multi-hour CI run.
-                 "_voice_call_in_progress"):
+                 "_background_work_paused"):
         setattr(stub, name, types.MethodType(inspect.getattr_static(MainWindow, name), stub))
     for name in ("_initial_backfill_delay", "_background_backfill_work_allowed",
                  "_chats_blocking_background_work", "_backfill_short_queue_delays"):

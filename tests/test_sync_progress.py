@@ -80,7 +80,7 @@ class TestProgressThrottle:
 class _ReportStub:
     _announce_sync_events_enabled = MainWindow._announce_sync_events_enabled
     _report_sync_progress = MainWindow._report_sync_progress
-    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _background_work_paused = MainWindow._background_work_paused
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0
@@ -174,7 +174,7 @@ class _ChatSweepStub:
     """Just what the real sync_remote_chats() reads."""
 
     _normalize_jid = staticmethod(MainWindow._normalize_jid)
-    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _background_work_paused = MainWindow._background_work_paused
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0
@@ -262,7 +262,7 @@ class _MediaSweepStub:
     _MEDIA_SYNC_TIMEOUT = 60
     _MEDIA_SYNC_WORKERS = 1
     sync_media_for_all_chats = MainWindow.sync_media_for_all_chats
-    _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _background_work_paused = MainWindow._background_work_paused
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
     _active_voice_call = None
     _voice_call_pause_since = 0.0

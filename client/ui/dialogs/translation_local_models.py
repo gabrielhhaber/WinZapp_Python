@@ -63,8 +63,12 @@ class TranslationLocalModelsMixin:
         return [model_label(self._i18n, model, _state(model)) for model in local_catalog.MODELS]
 
     def _refresh_local(self):
-        for index, label in enumerate(self._local_labels()):
-            self.local_model.SetString(index, label)
+        self.local_model.Freeze()
+        try:
+            for index, label in enumerate(self._local_labels()):
+                self.local_model.SetString(index, label)
+        finally:
+            self.local_model.Thaw()
         state = _state(self._local_model())
         self.local_download.Enable(state != local_store.STATE_INSTALLED)
         self.local_remove.Enable(state != local_store.STATE_ABSENT)

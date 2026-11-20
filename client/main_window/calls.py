@@ -139,7 +139,7 @@ class CallsMixin:
 
     # A voice call is the one thing in WinZapp that wants the network and the
     # CPU to itself, so the *recurring* background work stands down while one
-    # is up. Bounded on purpose, for the reason in _voice_call_in_progress().
+    # is up. Bounded on purpose, for the reason in _background_work_paused().
     _VOICE_CALL_PAUSE_MAX_SECONDS = 2 * 60 * 60
 
     def _audio_capture_in_progress(self) -> bool:
@@ -148,10 +148,11 @@ class CallsMixin:
         Recording is explicit state: ``_is_recording`` / ``_recording_starting`` /
         ``_recording_system_audio`` on any conversation panel, cleared on every
         stop/cancel/error exit. Checked across the same three panels the rest of
-        the window walks (live, archived, locked).
+        the window walks (live, archived, locked), plus the status panel's
+        voice post.
         """
         for attr in ("conversations_panel", "archived_conversations_panel",
-                     "locked_conversations_panel"):
+                     "locked_conversations_panel", "status_panel"):
             panel = getattr(self, attr, None)
             if panel is None:
                 continue
@@ -161,7 +162,7 @@ class CallsMixin:
                 return True
         return False
 
-    def _voice_call_in_progress(self) -> bool:
+    def _background_work_paused(self) -> bool:
         """Is a voice call or an audio capture up, for the purpose of standing
         background work down?
 

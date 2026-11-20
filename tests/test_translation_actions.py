@@ -171,7 +171,9 @@ def test_the_same_message_is_queued_once(wx, submitted):
 
 
 @pytest.mark.parametrize("error", ["ai_error_authentication", "ai_error_quota",
-                                   "ai_error_credits", "ai_error_credentials"])
+                                   "ai_error_credits", "ai_error_credentials",
+                                   "ai_error_translation_local_load",
+                                   "ai_error_translation_engine_missing"])
 def test_a_repeating_refusal_pauses_automatic_translation_and_says_so(wx, submitted, error):
     panel = Panel()
     panel._maybe_auto_translate(JID, message(1))
@@ -184,6 +186,14 @@ def test_a_repeating_refusal_pauses_automatic_translation_and_says_so(wx, submit
     panel.resume_automatic_translation()
     panel._maybe_auto_translate(JID, message(4))
     assert len(submitted) == 2
+
+
+def test_a_failed_text_of_the_offline_model_does_not_pause(wx, submitted):
+    panel = Panel()
+    panel._maybe_auto_translate(JID, message(1))
+    submitted[0](None, "ai_error_translation_local_failed")
+    panel._maybe_auto_translate(JID, message(2))
+    assert len(submitted) == 2 and panel.spoken == []
 
 
 def test_a_one_off_failure_neither_pauses_nor_speaks(wx, submitted):
