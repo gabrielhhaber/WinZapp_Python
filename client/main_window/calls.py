@@ -147,10 +147,11 @@ class CallsMixin:
         Recording is explicit state: ``_is_recording`` / ``_recording_starting`` /
         ``_recording_system_audio`` on any conversation panel, cleared on every
         stop/cancel/error exit. Checked across the same three panels the rest of
-        the window walks (live, archived, locked).
+        the window walks (live, archived, locked), plus the status panel's
+        voice post.
         """
         for attr in ("conversations_panel", "archived_conversations_panel",
-                     "locked_conversations_panel"):
+                     "locked_conversations_panel", "status_panel"):
             panel = getattr(self, attr, None)
             if panel is None:
                 continue

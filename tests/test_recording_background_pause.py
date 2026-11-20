@@ -28,7 +28,6 @@ class Panel:
 
 
 class Stub:
-    _VOICE_CALL_PAUSE_MAX_SECONDS = 2 * 3600
     _voice_call_pause_since = 0.0
     _active_voice_call = None
 
@@ -43,6 +42,7 @@ class Stub:
         self._active_voice_call = None
         self.archived_conversations_panel = None
         self.locked_conversations_panel = None
+        self.status_panel = None
 
 
 def test_no_capture_and_no_call_allows_background_work():
@@ -95,4 +95,14 @@ def test_recording_ending_restores_the_clock_zero():
 def test_an_active_call_still_stands_work_down_with_no_panel_recording():
     stub = Stub(Panel())
     stub._active_voice_call = {"callId": "x"}
+    assert stub._voice_call_in_progress() is True
+
+
+def test_a_status_voice_recording_stands_background_work_down():
+    # The status tab records through its own panel, not a conversation panel.
+    stub = Stub(Panel())
+    stub.status_panel = Panel(is_recording=True)
+    assert stub._voice_call_in_progress() is True
+    stub = Stub(Panel())
+    stub.status_panel = Panel(starting=True)
     assert stub._voice_call_in_progress() is True

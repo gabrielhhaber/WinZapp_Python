@@ -100,6 +100,7 @@ class _PauseStub:
     """Just enough of MainWindow for the background-work pause predicate."""
 
     _voice_call_in_progress = MainWindow._voice_call_in_progress
+    _audio_capture_in_progress = MainWindow._audio_capture_in_progress
     _VOICE_CALL_PAUSE_MAX_SECONDS = MainWindow._VOICE_CALL_PAUSE_MAX_SECONDS
 
     def __init__(self, active=None):
