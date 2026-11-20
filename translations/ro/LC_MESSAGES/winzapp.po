@@ -443,7 +443,7 @@ msgid "{names} could not be added to the group."
 msgstr "{names} nu a putut fi adăugat la grup."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/add_member_dialog.py
+#: client/ui/dialogs/add_member_dialog.py client/ui/dialogs/call_invite.py
 msgctxt "add_member_country_label"
 msgid "Select the country to add by number"
 msgstr "Selectați țara de adăugat după număr"
@@ -21921,7 +21921,8 @@ msgctxt "voice_call_active_label"
 msgid "Voice call with {name}."
 msgstr "Apel vocal cu {name}."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
+#: client/main_window/calls.py
 msgctxt "voice_call_already_active"
 msgid "A voice call is already in progress."
 msgstr "Un apel vocal este deja în desfășurare."
