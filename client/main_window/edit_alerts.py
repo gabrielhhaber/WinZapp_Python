@@ -149,6 +149,9 @@ class EditAlertsMixin:
                                       respect_quiet_hours=True)
                 return
             if not general.get("show_tray_icon", True) or not hasattr(self, "notification_manager"):
+                # No toast can be shown: the sound alone, as when no notification is asked for.
+                self._play_edit_sound(remote_jid, edit_alerts.BACKGROUND,
+                                      respect_quiet_hours=True)
                 return
             from core.notification_manager import (
                 EDIT_SOUND_EVENT, background_notification_content, notification_content_level,
