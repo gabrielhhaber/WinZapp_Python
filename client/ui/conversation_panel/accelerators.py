@@ -198,6 +198,8 @@ class AcceleratorsMixin:
         # Review the Nth newest message (issue #462): 1 is the newest, 0 the tenth.
         # Unassigned by default; the Shortcuts tab gives them keys.
         self.ID_REVIEW          = [wx.NewIdRef() for _ in range(10)]
+        # React with row N of Settings > Reactions (issue #852); unassigned too.
+        self.ID_QUICK_REACTION  = [wx.NewIdRef() for _ in range(10)]
         self.ID_BOOKMARK_REMOVE = [wx.NewIdRef() for _ in range(10)]  # remove   (Ctrl+Shift+0..9)
         # ── Temporary (this-conversation-only) bookmarks ─────────────────────
         self.ID_TEMP_BOOKMARK        = [wx.NewIdRef() for _ in range(10)]  # set/jump (Alt+Shift+0..9)
@@ -364,6 +366,8 @@ class AcceleratorsMixin:
             # its catalogue row; the user's own binding is what registers.
             (0, 0, self.ID_REVIEW[d]) for d in range(10)
         ] + [
+            (0, 0, self.ID_QUICK_REACTION[d]) for d in range(10)
+        ] + [
             (wx.ACCEL_CTRL, ord(str(d)), self.ID_BOOKMARK[d]) for d in range(10)
         ] + [
             (CS,            ord(str(d)), self.ID_BOOKMARK_REMOVE[d]) for d in range(10)
@@ -450,6 +454,7 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete,          id=self.ID_BULK_DELETE)
         for _d in range(10):
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_review_message(d), id=self.ID_REVIEW[_d])
+            self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_quick_reaction(d), id=self.ID_QUICK_REACTION[_d])
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_bookmark_set_or_jump(d), id=self.ID_BOOKMARK[_d])
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_bookmark_remove(d),      id=self.ID_BOOKMARK_REMOVE[_d])
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_temp_bookmark_set_or_jump(d), id=self.ID_TEMP_BOOKMARK[_d])

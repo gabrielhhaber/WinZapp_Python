@@ -14514,6 +14514,14 @@ msgstr ""
 "el 0"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_quick_reaction_label"
+msgid ""
+"React to the selected message with the reaction in this position of Settings"
+" > Reactions (1 is the first, 0 is the tenth); pressing the reaction already"
+" sent removes it, position"
+msgstr "Reaccionar al mensaje seleccionado con la reacción de esta posición de Configuración > Reacciones (1 es la primera, 0 es la décima); pulsar la reacción ya enviada la quita, posición"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
 msgid "Remove &shortcut"
 msgstr "&Quitar atajo"

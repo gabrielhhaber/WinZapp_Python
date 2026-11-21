@@ -14502,6 +14502,14 @@ msgstr ""
 " și 0"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_quick_reaction_label"
+msgid ""
+"React to the selected message with the reaction in this position of Settings"
+" > Reactions (1 is the first, 0 is the tenth); pressing the reaction already"
+" sent removes it, position"
+msgstr "Reacționați la mesajul selectat cu reacția din această poziție din Setări > Reacții (1 este prima, 0 este a zecea); apăsarea reacției deja trimise o elimină, poziția"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
 msgid "Remove &shortcut"
 msgstr "&Elimină comanda rapidă"

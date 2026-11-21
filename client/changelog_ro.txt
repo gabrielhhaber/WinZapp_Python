@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Reacții: o reacție personalizată, aleasă cu „Adăugați mai multe reacții”, intră acum în lista reacțiilor rapide chiar la prima utilizare, în locul ultimei reacții implicite pe care nu ați folosit-o niciodată. Există și zece comenzi noi în Setări > Comenzi rapide (Mesaje), „Reacționați la mesajul selectat cu reacția din această poziție”, de la 1 la 9 și 0 pentru a zecea: fiecare reacționează la mesajul în focus cu reacția din acea poziție din Setări > Interfață > Reacții, pe care o alegeți dumneavoastră și care nu se schimbă odată cu utilizarea; apăsarea reacției deja trimise o elimină. Vin fără tastă, pentru că Ctrl+Alt+1 la 9 schimbă deja conturile; tasta fiecăreia o alegeți dumneavoastră.
+
 - Actualizare: fereastra de actualizare primește butonul "Setări suplimentare" (Alt+S), după Da, Nu și Ce este nou?. Deschide o fereastră în care alegi, pentru instalare, între "Toate sunetele WinZapp" și "Doar sunetele originale WhatsApp", cu alegerea curentă indicată, plus OK și Anulează. Alegerea se aplică la instalarea actualizării, inclusiv când se instalează în fundal sau la ieșire: alegerea doar a sunetelor originale WhatsApp elimină sunetele suplimentare WinZapp, iar alegerea din nou a tuturor le restaurează din actualizare. Pachetele de sunete importate, fișierele tale de sunet și preferințele tale de sunete sunt păstrate.
 
 - Traducere în timp real cu Gemini în apeluri individuale, într-un sens sau în ambele, cu reducerea opțională a volumului vocii originale și reconectare automată.

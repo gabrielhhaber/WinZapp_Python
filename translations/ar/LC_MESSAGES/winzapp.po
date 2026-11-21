@@ -14235,6 +14235,14 @@ msgid "Ctrl+Shift+F1 to Ctrl+Shift+F10: open quick chat 1 to 9 and 0"
 msgstr "Ctrl+Shift+F1 إلى Ctrl+Shift+F10: فتح الدردشة السريعة من 1 إلى 9 و0"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_quick_reaction_label"
+msgid ""
+"React to the selected message with the reaction in this position of Settings"
+" > Reactions (1 is the first, 0 is the tenth); pressing the reaction already"
+" sent removes it, position"
+msgstr "تفاعل مع الرسالة المحددة بالتفاعل الموجود في هذا الموضع من الإعدادات > ردود الفعل (1 هو الأول، 0 هو العاشر); الضغط على التفاعل المرسل سابقًا يزيله، الموضع"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
 msgid "Remove &shortcut"
 msgstr "إزالة اخت&صار"
