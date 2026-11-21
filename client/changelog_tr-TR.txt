@@ -634,7 +634,7 @@ YENİLİKLER
 
 - UTF-16 olarak kaydedilmiş bir metin dosyasını (msinfo32 ile alınan Windows Sistem Bilgileri raporu gibi) mesaj alanına yapıştırmak artık onu ses olarak göndermiyor: belge olarak kalıyor. UlisesMilani tarafından bildirildi (#838).
 
-- Düzeltildi: bir sohbet açıkken ve WinZapp ön plandayken gelen mesaj artık "1 okunmamış mesaj" işaretini göstermiyor; zaten okunmuş olarak geliyor.
+- Ayarlar, Mesajlar: yeni seçenek "Açık sohbette gelen yeni mesajları okunmamış mesajlar ayırıcısına ekleme; geldiklerinde okundu olarak işaretle", varsayılan olarak kapalı. Kapalıyken, açık sohbeti okurken gelen mesajlar okunmamış ayırıcısına eklenmeye devam eder; böylece sonradan geleni takip edersiniz. Açıkken geldiklerinde okunur, ayırıcı olmaz.
 
 V2.1.0.0
 

@@ -635,7 +635,7 @@ NOWOŚCI
 
 - Wklejenie do pola wiadomości pliku tekstowego zapisanego w UTF-16 (na przykład raportu Informacje o systemie z Windows, z msinfo32) nie wysyła go już jako dźwięku: pozostaje dokumentem. Zgłosił UlisesMilani (#838).
 
-- Naprawiono: gdy rozmowa jest otwarta, a WinZapp jest na pierwszym planie, nowa wiadomość nie pokazuje już znacznika „1 nieprzeczytana wiadomość”; od razu jest oznaczona jako przeczytana.
+- Ustawienia, Wiadomości: nowa opcja "Nie dodawaj nowych wiadomości z otwartego czatu do separatora nieprzeczytanych; oznaczaj je jako przeczytane od razu", domyślnie wyłączona. Wyłączona: wiadomości, które przychodzą, gdy czytasz otwarty czat, nadal zwiększają licznik separatora nieprzeczytanych, więc łatwo śledzić to, co przyszło później. Włączona: są czytane od razu, bez separatora.
 
 V2.1.0.0
 

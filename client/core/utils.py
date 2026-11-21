@@ -1193,6 +1193,10 @@ DEFAULT_SETTINGS = {
         "message_list_mode": "classic",
         "show_listbox_item_count": False,
         "show_typing_row": False,
+        # On: a message that arrives in the open, focused conversation is
+        # read as it lands and adds nothing to the unread separator
+        # (ConversationsPanel._is_read_on_arrival). Off: it accumulates there.
+        "read_on_arrival_when_focused": False,
         "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",

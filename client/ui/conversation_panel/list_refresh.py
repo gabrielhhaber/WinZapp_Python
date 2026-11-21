@@ -385,18 +385,24 @@ class ListRefreshMixin:
         return False
 
     def _is_read_on_arrival(self) -> bool:
-        """True when the user is looking at this conversation right now.
+        """True when the user opted in and is looking at this conversation now.
 
-        The window is active and has been for at least 5 seconds (the same
-        gate main_window/message_events.py uses to mark the active chat read,
-        which is what makes skipping the separator safe), and the conversation
-        is on screen, not hidden behind another panel. An incoming message is
-        then read as it lands: no unread separator.
+        Settings > User Interface "read_on_arrival_when_focused", off by
+        default: messages arriving in the open chat then pile up in the unread
+        separator, which helps follow what came in while reading older ones.
+        With it on, the window must be active for at least 5 seconds (the
+        same gate main_window/message_events.py uses to mark the active chat
+        read, which is what makes skipping the separator safe) and the
+        conversation on screen, not hidden behind another panel. The message
+        is then read as it lands: no unread separator.
         """
         from core.conversation_view import conversation_in_view
+        mw = self.main_window
+        ui = (getattr(mw, "settings", None) or {}).get("user_interface", {})
+        if not ui.get("read_on_arrival_when_focused", False):
+            return False
         if not conversation_in_view(self):
             return False
-        mw = self.main_window
         if not getattr(mw, "_allow_ui_focus_changes", lambda: False)():
             return False
         last_act = getattr(mw, "_last_activation_time", 0)

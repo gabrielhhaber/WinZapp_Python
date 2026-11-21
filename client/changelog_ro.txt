@@ -634,7 +634,7 @@ NOUTĂȚI
 
 - Lipirea în câmpul mesajului a unui fișier text salvat în UTF-16 (cum este un raport Informații despre sistem din Windows, de la msinfo32) nu îl mai trimite ca audio: rămâne document. Raportat de UlisesMilani (#838).
 
-- Remediat: cu o conversație deschisă și WinZapp în prim-plan, un mesaj primit nu mai afișează marcajul „1 mesaj necitit”; sosește deja citit.
+- Setări, Mesaje: opțiune nouă "Nu adăuga mesajele noi din conversația deschisă la separatorul de mesaje necitite; marchează-le ca citite la sosire", dezactivată implicit. Dezactivată, mesajele care sosesc cât timp citești conversația deschisă continuă să se adune în separatorul de mesaje necitite, ca să urmărești ce a sosit după. Activată, sunt citite la sosire, fără separator.
 
 V2.1.0.0
 
