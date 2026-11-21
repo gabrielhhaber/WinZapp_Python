@@ -34,6 +34,20 @@ export function installCallLinkRuntimeInPage(): void {
   const stateOf = (call: any): any => call?.getState?.() ?? call?.state;
   const TERMINAL = [0, 7, 13, 'NONE', 'ENDED', 'HANDLED_REMOTELY', 'REJECTED', 'FAILED', 'NOT_ANSWERED'];
   const CONNECTED = [4, 5, 6, 9, 11, 'ACCEPT_SENT', 'ACCEPT_RECEIVED', 'ACTIVE', 'REJOINING', 'CONNECTED_LONELY'];
+  // WhatsApp Web loads some modules on demand: window.require only knows them once their
+  // code has been fetched. WAWebVoipCreateCallLink is one (read over CDP on 2026-11-21,
+  // WhatsApp Web 2.3000.1055733463): it comes with the "New call link" popup, which the
+  // Bootloader fetches without acting on the account. Asked for before that, the module
+  // was "unknown" and creating a link failed with "unavailable".
+  const loadable = async (name: string, loader: string, fallback: string): Promise<any> => {
+    let found = module(name);
+    for (const wanted of [loader, fallback]) {
+      if (found) break;
+      try { await module('Bootloader')?.loadModules?.([wanted]); } catch (_) { /* not loadable */ }
+      found = module(name);
+    }
+    return found;
+  };
   const collection = (): any => {
     const calls = module('WAWebCallCollection');
     if (!calls) throw new Error('Calls are unavailable in this WhatsApp version');
@@ -86,7 +100,8 @@ export function installCallLinkRuntimeInPage(): void {
   win.__winzappCallLinkRuntime = {
     parse: (text: any): any => parse(text),
     create: async (isVideo: boolean): Promise<any> => {
-      const create = module('WAWebVoipCreateCallLink')?.createCallLink;
+      const create = (await loadable('WAWebVoipCreateCallLink',
+        'WAWebVoipCreateCallLinksPopup.react', 'WAWebVoipCreateCallLink'))?.createCallLink;
       if (typeof create !== 'function') throw new Error('Call links are unavailable in this WhatsApp version');
       const made = parse(await create({ callType: isVideo === true ? 'video' : 'audio' }));
       return { link: made.link, isVideo: made.isVideo };
