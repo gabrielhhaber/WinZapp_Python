@@ -16,10 +16,10 @@ a successful send takes it itself, as before.
  1 file changed, 27 insertions(+), 11 deletions(-)
 
 diff --git a/appstate.go b/appstate.go
-index 9a4011d..0a41969 100644
+index f932861..5242de4 100644
 --- a/appstate.go
 +++ b/appstate.go
-@@ -555,6 +555,32 @@ func (cli *Client) sendAppState(ctx context.Context, patch appstate.PatchInfo, a
+@@ -579,6 +579,32 @@ func (cli *Client) sendAppState(ctx context.Context, patch appstate.PatchInfo, a
  	if cli == nil {
  		return ErrClientIsNil
  	}
@@ -52,7 +52,7 @@ index 9a4011d..0a41969 100644
  	version, hash, err := cli.Store.AppState.GetAppStateVersion(ctx, string(patch.Type))
  	if err != nil {
  		return err
-@@ -625,21 +651,11 @@ func (cli *Client) sendAppState(ctx context.Context, patch appstate.PatchInfo, a
+@@ -649,21 +675,11 @@ func (cli *Client) sendAppState(ctx context.Context, patch appstate.PatchInfo, a
  						cli.dispatchEvent(evt)
  					}
  				}()

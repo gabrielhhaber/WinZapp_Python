@@ -1,5 +1,6 @@
 <!--nav: 💬 Lista de chats-->
 <p class="lead">La lista de chats (Alt+1) muestra los nombres de personas y grupos, nunca códigos internos. Cada fila lee el nombre, el último mensaje y el estado (no leído, fijado, silenciado...).</p>
+<p>Los cambios hechos en el teléfono o en otro dispositivo llegan a WinZapp en cuanto WhatsApp los comunica, con WPPConnect y Neonize: silenciar, archivar y fijar chats, añadirlos a listas o quitarlos, el plazo de los mensajes temporales, contactos guardados, renombrados o eliminados, nombres públicos, fotos de perfil y contactos bloqueados. Un chat eliminado en otro dispositivo también desaparece de WinZapp, salvo que tenga mensajes posteriores a la eliminación; si está abierto, WinZapp lo cierra e indica el motivo.</p>
 <p>Con Neonize, un chat solo se marca como leído cuando lo abres o lo marcas como leído, y aparece como leído también en el teléfono y en WhatsApp Web.</p>
 <p>Con Neonize, cuando llegas al principio de lo que WinZapp tiene de un chat, pide al teléfono los mensajes más antiguos, como hace WhatsApp Web; llegan en unos instantes, con el teléfono conectado.</p>
 
@@ -11,7 +12,7 @@
 </ul>
 
 <h3>Abrir un chat</h3>
-<p>Intro abre el chat seleccionado. El foco va donde lo hayas definido en Configuración &gt; Interfaz &gt; Chats (campo de mensaje, o la marca de no leídos / último mensaje). Esc o Ctrl+W cierra el chat. El mensaje en el que queda la lista depende de "Posición enfocada automáticamente en la lista de mensajes", en la misma página: "Separador de no leídos o último mensaje" o "Continuar donde lo dejaste (último mensaje enfocado)", que vuelve al mensaje en el que estabas al salir del chat, también al cambiar de un chat a otro y aunque haya mensajes nuevos sin leer (el separador de no leídos no cuenta como posición).</p>
+<p>Intro abre el chat seleccionado. Dónde va el foco se define en Configuración &gt; Interfaz &gt; Chats: el campo de mensaje, o la lista de mensajes en el separador de no leídos o en el último mensaje. Esc o Ctrl+W cierra el chat. En qué mensaje se sitúa la lista lo elige "Posición enfocada automáticamente en la lista de mensajes", en la misma página: "Separador de no leídos o último mensaje" va a los mensajes nuevos, o al final del chat cuando no hay ninguno; "Continuar donde lo dejaste (último mensaje enfocado)" vuelve al mensaje en el que estabas, incluso después de cambiar de chat y de que lleguen mensajes nuevos; "Donde lo dejaste a mitad de la conversación; si habías llegado al último mensaje, el separador de no leídos" conserva tu sitio cuando dejaste de leer a mitad del chat y, si habías llegado al final, va al separador de no leídos cuando llegaron mensajes nuevos. El separador de no leídos en sí nunca es una posición recordada.</p>
 
 <h3>El menú contextual del chat</h3>
 <p>Ábrelo con la tecla Aplicaciones o con Shift+F10. Los elementos varían según el chat:</p>
@@ -42,6 +43,7 @@
   <li>Las confirmaciones de vaciar y eliminar tienen una casilla "No volver a mostrar", que solo cuenta junto con Sí. Para que vuelva a preguntar, usa las opciones correspondientes en Configuración &gt; Interfaz &gt; Confirmaciones. Con la pregunta desactivada, vaciar conserva los mensajes destacados.</li>
   <li><strong>Marcar todos los chats como leídos</strong> (menú archivo, o Ctrl+Alt+Shift+M) pregunta antes, con No como opción predeterminada. También tiene "No volver a mostrar"; la opción "Pedir confirmación al marcar todos los chats como leídos" devuelve la pregunta.</li>
   <li><strong>Confirmación hablada:</strong> marcar como leído o no leído, silenciar, archivar y fijar un chat ahora dicen lo que se hizo, y marcar varios como leídos dice cuántos fueron.</li>
+  <li>Confirmación al archivar: la pregunta aparece al archivar desde el menú contextual o con Ctrl+Shift+Q, con los botones "Archivar chat" (Alt+A) y "Cancelar" (Alt+C) y la casilla "No volver a mostrar", que solo vale junto con la confirmación. Para que vuelva a preguntar, usa "Pedir confirmación antes de archivar chats" en Configuración &gt; Interfaz &gt; Confirmaciones.</li>
 </ul>
 
 <h3>Nuevo chat, grupo y contacto</h3>
@@ -51,7 +53,7 @@
 <h3>Contactos: locales o sincronizados con el teléfono</h3>
 <p>Al añadir un contacto (en Datos del chat, en Nuevo chat o desde un mensaje de contacto), hay dos pestañas:</p>
 <ul>
-  <li><strong>Contacto sincronizado con el teléfono:</strong> guarda el nombre en WhatsApp y en la agenda del teléfono. Se abre por defecto; si el número ya está en la agenda del teléfono, solo aparece esta pestaña. Eliminar un contacto sincronizado también lo quita de WhatsApp y del teléfono.</li>
+  <li><strong>Contacto sincronizado con el teléfono:</strong> guarda el contacto en WhatsApp y solicita la sincronización con la agenda del teléfono. Aquí no se puede verificar si el teléfono ha terminado de guardarlo. Se abre por defecto; si el número ya está en la agenda del teléfono, solo aparece esta pestaña. Eliminar un contacto sincronizado también lo quita de WhatsApp y del teléfono.</li>
   <li><strong>Contacto local de WinZapp:</strong> el nombre existe solo en WinZapp.</li>
 </ul>
 <p>Las empresas verificadas que no has guardado (bancos, aplicaciones de pago...) aparecen con el nombre verificado de la empresa. Un nombre guardado en tus contactos siempre tiene prioridad.</p>
@@ -73,6 +75,7 @@
   <tr><td>Desbloquear (en los bloqueados)</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
 </table>
 <p>Las opciones "Usar Espacio para marcar/desmarcar cuando ya haya algo marcado" y "Esc desmarca los mensajes marcados antes de cerrar el chat" se pueden desactivar en Configuración &gt; Interfaz &gt; Chats.</p>
+<p>En las listas de chats (normal, archivados y bloqueados), Esc borra la búsqueda y los filtros, y el lector de pantalla dice "Filtros borrados". Con chats seleccionados, la primera pulsación de Esc solo anula la selección y la segunda borra la búsqueda y los filtros. La opción "Esc limpia la búsqueda y los filtros en una lista de chats" se puede desactivar en Configuración &gt; Interfaz &gt; Chats. Esc también borra la búsqueda y los filtros desde los filtros, la búsqueda y los demás controles del panel de chats; dentro de un chat abierto, Esc sigue cerrando el chat o anulando la selección de mensajes primero.</p>
 
 <h3>Chats archivados</h3>
 <p>Alt+4 abre los chats archivados. Tienen su propia búsqueda (Ctrl+F), la misma selección y las mismas acciones. Un chat archivado no se anuncia en voz alta cuando llega un mensaje nuevo mientras la lista de archivados no está en pantalla. Con Neonize, si la opción de WhatsApp "Mantener chats archivados" está desactivada, un chat archivado vuelve a la lista de chats cuando llega un mensaje nuevo, como en el teléfono.</p>

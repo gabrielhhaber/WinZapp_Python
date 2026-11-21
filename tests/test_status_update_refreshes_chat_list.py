@@ -37,6 +37,7 @@ class _FakeDB:
 
 class _Win:
     on_message_status_update = MainWindow.on_message_status_update
+    _is_status_stale = staticmethod(MainWindow._is_status_stale)
 
     def __init__(self, show_status=True, row_refresh_works=True):
         self.chats = {}

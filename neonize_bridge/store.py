@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS channel_posts(
     ts INTEGER DEFAULT 0, data TEXT NOT NULL, raw BLOB, upto INTEGER DEFAULT 0,
     PRIMARY KEY(channel, id));
 CREATE INDEX IF NOT EXISTS channel_posts_by_server_id ON channel_posts(channel, server_id);
+CREATE TABLE IF NOT EXISTS lid_map(
+    lid TEXT PRIMARY KEY, pn TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS lid_map_by_pn ON lid_map(pn);
 """
 
 # Databases written before the bridge's names were in English use these table and
@@ -91,8 +94,15 @@ def migrate_legacy_schema(conn):
 # nobody's to read nor to mark as read.
 SYSTEM_TYPES = ("gp2", "call_log")
 
+def _phone_key(jid):
+    text = str(jid or "").strip()
+    if text.endswith("@c.us"):
+        return text[:-len("@c.us")] + "@s.whatsapp.net"
+    return text
+
+
 CHAT_FIELDS = {"name", "ts", "unread", "marked_unread", "archived", "pinned", "muted", "locked",
-               "ephemeral", "ephemeral_ts", "history_end"}
+               "ephemeral", "ephemeral_ts", "history_end", "omitted", "account_lid"}
 
 
 #: receipt stage -> WhatsApp Web ack
@@ -161,6 +171,14 @@ class Store:
                 pass
             try:    # the anchor the phone answered with nothing new (older_history.py)
                 self._conn.execute("ALTER TABLE chats ADD COLUMN history_exhausted TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:    # omitted metadata history flag + account LID (omitted_history.py)
+                self._conn.execute("ALTER TABLE chats ADD COLUMN omitted INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                self._conn.execute("ALTER TABLE chats ADD COLUMN account_lid TEXT DEFAULT ''")
             except sqlite3.OperationalError:
                 pass
             try:    # how far up a cached channel update's answer reached (channel_updates.py)
@@ -317,10 +335,13 @@ class Store:
             self._conn.execute("UPDATE contacts SET name=? WHERE jid=?", (name or "", jid))
             self._conn.commit()
 
-    def contacts_in_batch(self, rows):
+    def contacts_in_batch(self, rows, keep_pushname=False):
         """Rows (jid, name, pushname), in one transaction. Like `contact`, an empty
         field keeps what is stored; only what differs is written. Returns how many
-        saved names (`name`) are new or changed."""
+        saved names (`name`) are new or changed.
+
+        `keep_pushname`: a nickname already stored is not replaced (a history
+        block's names are a snapshot, older than what live messages stored)."""
         changed = 0
         with self._lock:
             for jid, name, pushname in rows:
@@ -335,7 +356,7 @@ class Store:
                 if name and name != r["name"]:
                     self._conn.execute("UPDATE contacts SET name=? WHERE jid=?", (name, jid))
                     changed += 1
-                if pushname and pushname != r["pushname"]:
+                if pushname and pushname != r["pushname"] and not (keep_pushname and r["pushname"]):
                     self._conn.execute("UPDATE contacts SET pushname=? WHERE jid=?",
                                        (pushname, jid))
             self._conn.commit()
@@ -801,6 +822,56 @@ class Store:
                 "AND history_end IS NOT NULL", chats).fetchall()
         values = [int(r["history_end"]) for r in rows]
         return max(values) if values else None
+
+    def chat_omitted_info(self, chats):
+        """Returns {'chat': jid, 'account_lid': lid} when any key in `chats`
+        represents a chat known only from OmittedConversationMetadata."""
+        chats = [c for c in (chats or ()) if c]
+        if not chats:
+            return None
+        marks = ",".join("?" * len(chats))
+        with self._lock:
+            r = self._conn.execute(
+                f"SELECT jid, IFNULL(account_lid, '') AS account_lid FROM chats "
+                f"WHERE jid IN ({marks}) AND IFNULL(omitted, 0) != 0 "
+                "ORDER BY rowid ASC LIMIT 1", chats).fetchone()
+        if r is None:
+            return None
+        return {"chat": r["jid"], "account_lid": r["account_lid"] or ""}
+
+    def put_lid_mappings(self, pairs):
+        """Persists (lid, pn) mappings learned from history sync metadata."""
+        cleaned = []
+        for lid, pn in pairs or ():
+            l = str(lid or "").strip()
+            p = _phone_key(pn)
+            if l.endswith("@lid") and p.endswith("@s.whatsapp.net"):
+                cleaned.append((l, p))
+        if not cleaned:
+            return
+        with self._lock:
+            self._conn.executemany(
+                "INSERT OR REPLACE INTO lid_map(lid, pn) VALUES (?, ?)", cleaned)
+            self._conn.commit()
+
+    def phone_of_lid(self, lid):
+        """Returns mapped phone JID for `lid`, or '' if unknown."""
+        l = str(lid or "").strip()
+        if not l:
+            return ""
+        with self._lock:
+            r = self._conn.execute("SELECT pn FROM lid_map WHERE lid=?", (l,)).fetchone()
+        return str(r["pn"]) if r and r["pn"] else ""
+
+    def lid_of_phone(self, pn):
+        """Returns mapped LID JID for `pn`, or '' if unknown."""
+        p = _phone_key(pn)
+        if not p:
+            return ""
+        with self._lock:
+            r = self._conn.execute(
+                "SELECT lid FROM lid_map WHERE pn=? LIMIT 1", (p,)).fetchone()
+        return str(r["lid"]) if r and r["lid"] else ""
 
     def chat_exists(self, jid):
         with self._lock:

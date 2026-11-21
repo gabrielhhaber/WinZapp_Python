@@ -21,15 +21,18 @@ from aiohttp import web
 
 import audio_message
 import media_probe
+import poll_settings
 import send_log
 import channels
 import administration
 import authentication
+import call_links
 import call_media
 import calls
 import session_lifecycle
 import video_message
 import comments
+import enc_secrets
 import comment_routes
 import inputs
 import legacy_layout
@@ -37,10 +40,13 @@ import loop_watch
 import ongoing_calls
 import quote_fallback
 import receipt_ids
+import synthetic_ack
 import undecryptable
 import group_events
 import events
 import contact_events
+import block_events
+import privacy_events
 import media_retry
 import offline_sync
 import app_state_mirror
@@ -59,7 +65,9 @@ import chat_remaining
 import groups
 import groups_extra
 import history_progress
+import history_resume
 import older_history
+import omitted_history
 import call_invites
 import channels_panel
 import channel_events
@@ -67,6 +75,7 @@ import channel_media
 import channel_updates
 import cleanup
 import msgmap
+import socket_events
 import unread_rule
 import pairing
 import commerce_routes
@@ -76,6 +85,8 @@ import pairing_history
 import pairing_repair
 import group_receipts
 import message_rules
+import message_state_events
+import chat_settings_events
 import responses
 import remaining
 import redaction
@@ -115,10 +126,8 @@ def device_props(days):
         props.historySyncConfig.fullSyncSizeMbLimit = 102400
         props.historySyncConfig.storageQuotaMb = 102400
     else:
-        # said outright: neonize merges these into one DeviceProps for the
-        # whole process, and an earlier session's full sync would stay on
         props.requireFullSync = False
-    return props
+    return omitted_history.advertise_omitted_metadata(props)
 
 
 def fix_poll_vote_decryption(client):
@@ -222,6 +231,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         self._pending_reads = app_state_recovery.PendingReads()
         self._flushing_reads = threading.Lock()
         self.on_unlink = None       # called when the phone removes the device
+        # the raw ids the bridge already emitted a delivered/read/played onack
+        # for (id -> ack); bounded. store_sent's deferred synthetic ack=1 is
+        # skipped for these, or it lands on top of a real ack and flips the UI
+        # back to "enviada" after WhatsApp already confirmed delivery.
+        self._acked_ids = {}
         self.pairing_repairs = pairing_repair.Budget()
         self.urlcode = None
         self.me = ""                # own JID (user@s.whatsapp.net)
@@ -243,6 +257,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
     def status(self, value):
         self.lifecycle.status = value
 
+    # ---------------------------------------------- synthetic sent ack gate
+    def _record_ack(self, message_id, ack):
+        """Remember that a real ack was emitted for this id (bounded)."""
+        self._acked_ids[message_id] = ack
+        if len(self._acked_ids) > 512:
+            for stale in list(self._acked_ids)[:256]:
+                self._acked_ids.pop(stale, None)
+
+    def _real_ack_emitted(self, message_id):
+        return message_id in self._acked_ids
+
     # ------------------------------------------------------------- reactions
     def target_serial(self, chat_w, group, target_id, i_reacted, key_from_me, participant):
         """Serialized id (WPPConnect format) of the target message of a reaction.
@@ -261,8 +286,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
     def _reaction_received(self, chat, o, e):
         """True if the message was a reaction (stores it and tells the app)."""
         data = msgmap.reaction(e.Message)
+        reaction_timestamp = 0
         if data is None:
-            return False
+            # a reaction in a community's announcements group is encrypted
+            opened = enc_secrets.open_reaction(self.client, e)
+            if opened is None:
+                return False
+            data, reaction_timestamp = opened[:4], opened[4]
+        else:
+            reaction_timestamp = msgmap.unwrap(e.Message).reactionMessage.senderTimestampMS
         target_id, emoji, key_from_me, participant = data
         chat_w = msgmap.jid_wpp(chat)
         group = chat_w.endswith("@g.us")
@@ -271,14 +303,12 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         who = "me" if i_reacted else sender_w
         ts = msgmap.seconds(e.Info.Timestamp)
         self.db.react(target_id, who, emoji, ts)
-        reaction_serial = f"{'true' if i_reacted else 'false'}_{chat_w}_{e.Info.ID}"
-        if group:
-            reaction_serial += f"_{sender_w}"
-        self.emit("onreactionmessage", {"session": self.name, "response": {
-            "id": reaction_serial,
-            "msgId": self.target_serial(chat_w, group, target_id, i_reacted,
-                                        key_from_me, participant),
-            "reactionText": emoji, "text": emoji, "timestamp": ts}})
+        target_serial = self.target_serial(chat_w, group, target_id, i_reacted,
+                                           key_from_me, participant)
+        self.emit("onreactionmessage", socket_events.reaction_message(
+            self.name, chat_w, e.Info.ID, i_reacted, sender_w, target_serial,
+            emoji, reaction_timestamp or e.Info.Timestamp,
+            known_target=self.db.wpp_message(target_id) is not None))
         return True
 
     # --------------------------------------------------------------- status
@@ -322,9 +352,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         """True if the message was the notice of pinning or unpinning a message."""
         data = msgmap.pin(e.Message)
         if data is None:
-            return False
+            # A pin notice of another type (UNKNOWN_TYPE) is no unpin, but it is
+            # still a notice: consumed here, it never becomes an "unsupported" row.
+            return msgmap.unwrap(e.Message).HasField("pinInChatMessage")
         target, pin, duration = data
         self.db.pin_message(target, chat, pin, msgmap.seconds(e.Info.Timestamp), duration)
+        stamp = msgmap.unwrap(e.Message).pinInChatMessage.senderTimestampMS
+        stamp = int(stamp) if stamp else int(msgmap.seconds(e.Info.Timestamp) * 1000)
+        self.emit("message-pin-changed", {"session": self.name, "chatId": msgmap.jid_wpp(chat),
+            "messageId": target, "pinned": pin, "timestamp": stamp, "duration": duration})
         return True
 
     def pin_message(self, serial, pin, duration=7 * 86400):
@@ -357,13 +393,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return True
 
     # -------------------------------------------------------------- edit
-    def mark_edited(self, target, chat_w, edit_id, from_me, **fields):
+    def mark_edited(self, target, chat_w, edit_id, from_me, *,
+                    edit_timestamp=None, edit_participant="", **fields):
         """Puts the new text in the stored message, with the edited mark
         (latestEditMsgKey, which the app reads), and returns the message."""
+        original = self.db.wpp_message(target) or {}
+        original_key = original.get("id") or {}
+        participant = ""
+        if chat_w.endswith("@g.us"):
+            participant = (edit_participant or original_key.get("participant")
+                           or original.get("author", ""))
+            if not participant:
+                parts = str(original_key.get("_serialized") or "").split("_", 3)
+                participant = parts[3] if len(parts) > 3 else ""
         self.db.change_message(
             target, **fields,
-            latestEditMsgKey={"id": edit_id, "remote": chat_w, "fromMe": bool(from_me)},
-            latestEditSenderTimestampMs=int(time.time() * 1000))
+            latestEditMsgKey=msgmap.message_key(chat_w, from_me, edit_id, participant),
+            latestEditSenderTimestampMs=msgmap.seconds(edit_timestamp or time.time()))
         return self.db.wpp_message(target)
 
     def _edit_received(self, chat, o, e):
@@ -383,8 +429,10 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             return True
         fields = {"body": w.get("body", "")} if w.get("type") == "chat" \
             else {"caption": w.get("caption", "")}
+        timestamp = msgmap.unwrap(e.Message).protocolMessage.timestampMS or e.Info.Timestamp
         edited = self.mark_edited(target, msgmap.jid_wpp(chat), e.Info.ID,
-                                  o.IsFromMe, **fields)
+                                  o.IsFromMe, edit_timestamp=timestamp,
+                                  edit_participant=jid_text(o.Sender), **fields)
         self.emit("received-message", {"session": self.name, "response": edited})
         return True
 
@@ -417,11 +465,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 new = Message(conversation=text)
             fields = {"body": text}
         try:
-            self.client.edit_message(build_jid(u, srv), mid, new)
+            response = self.client.edit_message(build_jid(u, srv), mid, new)
         except Exception:
             log.exception("edit message")
             return False
-        self.mark_edited(mid, msgmap.jid_wpp(conversation), mid, True, **fields)
+        self.mark_edited(mid, msgmap.jid_wpp(conversation),
+                         getattr(response, "ID", "") or mid, True,
+                         edit_timestamp=getattr(response, "Timestamp", None), **fields)
         return True
 
     def message_to_forward(self, serial, keep_voice=False, keep_preview=False):
@@ -463,12 +513,20 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             fix_poll_vote_decryption(self.client)
             datum = self.client.decrypt_poll_vote(e)
         except Exception as error:
-            log.info("vote I could not decrypt (%s: %s)", type(error).__name__,
-                     str(error)[:100])
+            log.info("vote I could not decrypt (%s); no vote event emitted",
+                     type(error).__name__)
             return True
         who = "me" if o.IsFromMe else msgmap.jid_wpp(jid_text(o.Sender))
-        self.db.vote(target, who, msgmap.vote_indexes(names, datum.selectedOptions),
-                     msgmap.seconds(e.Info.Timestamp))
+        indexes = msgmap.vote_indexes(names, datum.selectedOptions)
+        if len(indexes) != len(datum.selectedOptions):
+            log.info("vote with unknown poll options ignored")
+            return True
+        self.db.vote(target, who, indexes, msgmap.seconds(e.Info.Timestamp))
+        if original.get("id"):
+            vote_timestamp = msgmap.unwrap(e.Message).pollUpdateMessage.senderTimestampMS
+            self.emit("onpollresponse", socket_events.poll_response(
+                self.name, original, indexes, jid_text(o.Sender),
+                vote_timestamp or e.Info.Timestamp))
         return True
 
     def poll_wpp(self, serial):
@@ -518,7 +576,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             voters.append({"sender": sender, "mine": who == "me",
                            "name": name.get("name") or name.get("pushname") or "",
                            "localIds": ids})
-        return {"ok": True, "options": options, "voters": voters}
+        original = self.db.wpp_message(self.id_parts(serial)[2]) or {}
+        return {"ok": True, "options": options, "voters": voters,
+                "hideVoterNames": original.get("pollHideVoterNames") is True}
 
     def vote_in_poll(self, serial, local_ids):
         """Votes (or, with no ids, removes the vote) in a poll."""
@@ -565,12 +625,36 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         try:
             msg = self.client.build_reaction(
                 build_jid(cu, csrv), build_jid(au.split(":")[0], asrv), mid, emoji)
+            if self.is_known_announcement(conversation):
+                # in a community's announcements group the reaction goes encrypted
+                msg = self.encrypted_reaction(msg, conversation, author_jid, from_me, mid) or msg
             self.client.send_message(build_jid(cu, csrv), msg)
         except Exception:
             log.exception("react")
             return False
         self.db.react(mid, "me", emoji, int(time.time()))
         return True
+
+    def is_known_announcement(self, group):
+        """True when WhatsApp said, within the last minutes, that `group` is a
+        community's announcements group (comment_routes keeps the answer)."""
+        stored = self.__dict__.get("_community_announcements", {}).get(group)
+        return bool(stored and stored[0] and stored[1] > time.monotonic())
+
+    def encrypted_reaction(self, msg, conversation, author, from_me, mid):
+        """`msg` (a plain reaction) as an encrypted one, or None to send it plain."""
+        if not hasattr(self.client, "encrypt_reaction") or not msg.HasField("reactionMessage"):
+            return None
+        # whatsmeow looks the secret up under the sender as it stored it: an own
+        # message may be stored under the account's LID or its number
+        senders = [x for x in (getattr(self, "lid", ""), self.me) if x] if from_me else [author]
+        for sender in senders:
+            info = enc_secrets.root_info(conversation, sender, from_me, mid)
+            sealed = enc_secrets.seal_reaction(self.client, info, msg.reactionMessage.__class__.FromString(
+                msg.reactionMessage.SerializeToString()))
+            if sealed is not None:
+                return sealed
+        return None
 
     def reactions_wpp(self, serial):
         """Response of GET /reactions/<id>: grouped by emoji, in WPPConnect's
@@ -644,6 +728,17 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
     def _on_connect(self, generation, c, phone_number):
         if not self.lifecycle.current(generation):
             return
+        # The Go client only registers itself in its clients map inside
+        # the FFI entry (called from connect()), so set_force_active_delivery_receipts
+        # is a silent no-op if called before connect(). Re-apply the force
+        # here, once the client exists, so the delivery receipts are always
+        # sent as typeless (active) regardless of presence.
+        try:
+            c.set_force_activate_delivery_receipts(True)
+            log.info("[Session %s] delivery receipts forced active on connect (uuid=%r)",
+                     self.name, getattr(c, 'uuid', None))
+        except Exception:
+            log.exception("delivery receipts could not be forced active on connect")
         try:
             me = c.get_me()
             self.me = jid_text(me.JID)
@@ -666,6 +761,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             media.start_pump(lambda: self.client is client and self.lifecycle.current(generation))
         threading.Thread(target=self._check_always, daemon=True).start()
         threading.Thread(target=self._copy_always, daemon=True).start()
+        threading.Thread(target=history_resume.watch, args=(self,), daemon=True).start()
         self.flush_pending_reads()      # read notices kept while disconnected
 
     def _on_unlinked(self, generation, c):
@@ -737,6 +833,24 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         cli = self.client = NewClient(
             os.path.join(self.folder, "session.db"),
             props=device_props(self.pairing_days))
+        # Delivery receipts must render for the sender whatever the window is
+        # doing: whatsmeow answers every received message with a receipt, but
+        # marks it type="inactive" while the client is not online, and the
+        # sender's app does not render an inactive receipt (2026-11-15: with
+        # the window out of focus the sender only ever saw "sent"). Presence
+        # stays bound to the window through set-online-presence.
+        #
+        # This early call happens BEFORE the FFI entry runs, so clientFor()
+        # returns nil and the call is a silent no-op on the Go side; the real
+        # fix is the re-application inside _on_connect, once the client exists.
+        try:
+            cli.set_force_activate_delivery_receipts(True)
+        except Exception:
+            # Degraded on purpose, never fatal: an install whose neonize build
+            # lacks the export (both approved releases carry it) keeps receipts
+            # inactive — the pre-fix behaviour — instead of the bridge thread
+            # dying here and the app hanging on "connecting" forever.
+            log.exception("delivery receipts could not be forced active")
         if calls_on and getattr(cli, "uuid", None):
             self.call_media = new_call_media(self.name, cli.uuid, self.emit, self._phone_of_lid)
             # the creator a group call placed here carries, for the lobby query
@@ -757,6 +871,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         presence.register_events(cli, self)
         group_events.register_events(cli, self)
         contact_events.register_events(cli, self)
+        block_events.register_events(cli, self)
+        privacy_events.register_events(cli, self)
         media_retry.register_events(cli, self)
         offline_sync.register_events(cli, self)
         channel_events.register_events(cli, self)
@@ -831,6 +947,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 log.exception("undecryptable summary")
             try:
                 o = e.Info.MessageSource
+                if history_resume.received(self, e.Message, bool(o.IsFromMe)):
+                    return      # the phone's answer to a history block request
                 chat = jid_text(o.Chat)
                 if message_rules.is_channel_chat(chat):
                     return      # channel posts are not conversations
@@ -857,6 +975,9 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 if w is None:
                     return
                 if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    original = self.db.wpp_message(w["protocolMessageKey"]["id"])
+                    if original and original.get("id"):
+                        w["protocolMessageKey"] = dict(original["id"])
                     # deleted for everyone by whoever sent it: the original becomes deleted too
                     if not self.db.revocation(chat, w):
                         return      # unknown original and chat: not a conversation (#762)
@@ -872,20 +993,25 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 except Exception:
                     log.exception("archived chat with a new message")
                 if e.Info.Pushname and not o.IsFromMe:
-                    self.db.contact(jid_text(o.Sender), pushname=e.Info.Pushname)
+                    contact_events.store_nickname(c, self, o.Sender, e.Info.Pushname)
                     contact_events.announce_name(c, self, o.Sender, e.Info.Pushname)
                 self.emit("received-message", {"session": self.name, "response": w})
+                if w.get("type") == "revoked" and w.get("protocolMessageKey"):
+                    self.emit("onrevokedmessage", socket_events.revoked_message(
+                        self.name, w, self.me))
             except Exception:
                 log.exception("received message")
 
         @cli.event(nev.GroupInfoEv)
         def _group(c, e):
             try:
-                if e.Name and e.Name.Name:
-                    self.db.chat(jid_text(e.JID), name=e.Name.Name)
+                gid = jid_text(e.JID)
+                if e.Name and e.Name.Name and gid not in getattr(self, "_community_ids", ()):
+                    self.db.chat(gid, name=e.Name.Name)
                 if e.HasField("Ephemeral"):
-                    self.record_timer(jid_text(e.JID), int(e.Ephemeral.DisappearingTimer)
-                                      if e.Ephemeral.IsEphemeral else 0)
+                    duration = int(e.Ephemeral.DisappearingTimer) if e.Ephemeral.IsEphemeral else 0
+                    self.record_timer(gid, duration)
+                    chat_settings_events.timer_changed(self, gid, duration)
             except Exception:
                 log.exception("group changed")
             group_events.group_changed(c, self, e)    # groups.update (see group_events)
@@ -969,7 +1095,11 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             try:
                 jid = local_chat(c, e.JID)
                 arch = bool(e.Action.archived)
-                self.db.chat(jid, archived=int(arch))
+                fields = {"archived": int(arch)}
+                msg_range = getattr(e.Action, "messageRange", None)
+                if not self.db.chat_exists(jid) and getattr(msg_range, "lastMessageTimestamp", 0):
+                    fields["ts"] = msgmap.seconds(msg_range.lastMessageTimestamp)
+                self.db.chat(jid, **fields)
                 chat_w = msgmap.jid_wpp(jid)
                 log.info("chat %s on the phone -> app", "archived" if arch else "unarchived")
                 self.emit("chats-update", {"session": self.name, "data": [{
@@ -994,7 +1124,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageStarEv)
         def _starred_on_phone(c, e):
             try:
-                self.db.change_message(e.MessageID, star=bool(e.Action.starred))
+                message_state_events.star_changed(self, e, jid_text)
                 log.info("message %s on the phone", "starred" if e.Action.starred else "unstarred")
             except Exception:
                 log.exception("star on the phone")
@@ -1002,9 +1132,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         @cli.event(nev.MessageDeleteForMeEv)
         def _deleted_on_phone(c, e):
             try:
-                if e.FromFullSync:
-                    return
-                self.db.delete_message(e.MessageID)
+                message_state_events.deleted_for_me(self, e, jid_text)
                 log.info("message deleted on the phone")
             except Exception:
                 log.exception("delete on the phone")
@@ -1016,11 +1144,21 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             try:
                 jid = local_chat(c, e.JID)
                 last = self.db.raw_last(jid)
+                covered = msgmap.seconds(e.Action.messageRange.lastMessageTimestamp) if e.Action.HasField("messageRange") else 0
+                until = int(covered or msgmap.seconds(e.Timestamp))
                 if not phone_chat_delete.applies(
-                        e.FromFullSync, msgmap.seconds(e.Timestamp),
+                        e.FromFullSync, until,
                         last["t"] if last is not None else None):
                     return
+                if covered and last is not None and last["t"] > covered:
+                    return
                 self.db.delete_chat(jid)
+                chat_id = msgmap.jid_wpp(jid)
+                # Like the WPPConnect observer: only a deletion that states the
+                # range it covers is announced; the client rejects other ids.
+                if covered and chat_id.endswith(("@c.us", "@lid", "@g.us")):
+                    self.emit("chat-deleted", {"session": self.name,
+                        "chatId": chat_id, "until": int(covered)})
                 log.info("chat deleted on the phone -> app")
             except Exception:
                 log.exception("chat delete on the phone")
@@ -1029,7 +1167,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _locked_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                self.db.chat(jid, locked=int(bool(e.Action.locked)))
+                chat_settings_events.lock_changed(self, e, jid)
                 log.info("chat %s on the phone", "locked" if e.Action.locked else "unlocked")
             except Exception:
                 log.exception("lock on the phone")
@@ -1038,10 +1176,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         def _muted_on_phone(c, e):
             try:
                 jid = local_chat(c, e.JID)
-                end = 0
-                if e.Action.muted:
-                    end = msgmap.seconds(e.Action.muteEndTimestamp)                         if e.Action.muteEndTimestamp > 0 else 2**31 - 1
-                self.db.chat(jid, muted=int(end))
+                chat_settings_events.mute_changed(self, e, jid)
                 log.info("chat %s on the phone", "muted" if e.Action.muted else "with sound again")
             except Exception:
                 log.exception("mute on the phone")
@@ -1092,12 +1227,14 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                     for mid in ids:
                         in_group = self.group_ack_to_emit(chat, mid)
                         if in_group:
+                            self._record_ack(mid, in_group)
                             self.emit("onack", {
                                 "session": self.name, "ack": in_group, "to": chat, "from": chat,
                                 "id": {"fromMe": True, "remote": chat, "id": mid,
                                        "_serialized": f"true_{chat}_{mid}"}})
                     return
                 for mid in ids:
+                    self._record_ack(mid, ack)
                     self.emit("onack", {
                         "session": self.name, "ack": ack, "to": chat, "from": chat,
                         "id": {"fromMe": True, "remote": chat, "id": mid,
@@ -1259,13 +1396,50 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             # history: history-sync-status must not go back to "landing"
             self._store_history_block(data)
             return
+        omitted_batch = omitted_history.is_omitted_batch(data)
         progress = history_progress.progress_of(self, time.monotonic())
         progress.started(time.monotonic())
         percent = None
         try:
             percent = self._store_history_block(data)
+            if omitted_batch:
+                percent = None
+            elif omitted_history.tracks_transfer_progress(data):
+                history_resume.note_block(self, data, time.monotonic())
         finally:
             progress.finished(time.monotonic(), percent)
+
+    @staticmethod
+    def _conversation_fields(c, history_end, *, omitted=False):
+        """Extracts Store.chats columns from a HistorySync Conversation proto."""
+        fields = {
+            "name": getattr(c, "name", "") or getattr(c, "displayName", "") or None,
+            "history_end": history_end,
+            "ts": msgmap.seconds(getattr(c, "conversationTimestamp", 0)
+                                 or getattr(c, "lastMsgTimestamp", 0)),
+        }
+        if c.HasField("unreadCount"):
+            fields["unread"] = int(c.unreadCount)
+        if c.HasField("archived"):
+            fields["archived"] = int(bool(c.archived))
+        if c.HasField("pinned"):
+            # I cannot tell the unit (order or pinning time); the app only looks
+            # at whether it is greater than zero. The bridge does not enforce the
+            # limit of 3 pinned chats either: WhatsApp refuses the fourth
+            fields["pinned"] = int(c.pinned)
+        if c.HasField("muteEndTime"):
+            fields["muted"] = int(c.muteEndTime)
+        if c.HasField("locked"):
+            fields["locked"] = int(bool(c.locked))
+        if c.HasField("ephemeralExpiration"):
+            fields["ephemeral"] = int(c.ephemeralExpiration)
+            fields["ephemeral_ts"] = int(getattr(c, "ephemeralSettingTimestamp", 0) or 0)
+        account_lid = omitted_history.account_lid_of(c)
+        if account_lid:
+            fields["account_lid"] = account_lid
+        if omitted:
+            fields["omitted"] = 1
+        return {k: v for k, v in fields.items() if v is not None}
 
     def _store_history_block(self, data):
         """Stores a block of the history; returns the progress (0-100) it brings.
@@ -1274,7 +1448,45 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         the routes waited on it, the client's socket missed its pings and the
         client took the bridge for disconnected."""
         self.db.contacts_in_batch([(x.ID, None, x.pushname) for x in data.pushnames
-                                   if x.ID and x.pushname])
+                                   if x.ID and x.pushname], keep_pushname=True)
+        snap_id = omitted_history.snapshot_id_of(data)
+        if snap_id:
+            log.info("history omitted snapshot advertised (%d chars)", len(snap_id))
+        batch = omitted_history.omitted_batch_of(data)
+        lid_pairs = omitted_history.block_lid_mappings(
+            data, batch["conversations"] if batch is not None else (),
+            own_lid=getattr(self, "lid", ""), own_pn=getattr(self, "me", ""))
+        if lid_pairs and hasattr(self.db, "put_lid_mappings"):
+            self.db.put_lid_mappings(lid_pairs)
+
+        existing_fn = getattr(self, "existing_chat", None)
+        keys_fn = getattr(self, "chat_keys", None)
+        emit_fn = getattr(self, "emit", None)
+        community_ids = self.__dict__.setdefault("_community_ids", set())
+
+        if batch is not None:
+            omitted_chats = []
+            for c in batch["conversations"]:
+                jid = getattr(c, "ID", "")
+                if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
+                    continue
+                if getattr(c, "isParentGroup", False):
+                    community_ids.add(jid)
+                    continue
+                target = (existing_fn(jid) if callable(existing_fn) else "") or jid
+                if (hasattr(self.db, "has_chat") and hasattr(self.db, "last")
+                        and self.db.has_chat(target) and self.db.last(target) is not None):
+                    continue
+                history_end = (int(c.endOfHistoryTransferType)
+                               if c.HasField("endOfHistoryTransferType") else None)
+                omitted_chats.append((target, Session._conversation_fields(
+                    c, history_end, omitted=True)))
+            self.db.chats_in_batch(omitted_chats)
+            log.info("history omitted metadata: %d chats (batch %d/%d, complete=%s)",
+                     len(omitted_chats), batch["batch_index"] + 1, batch["batch_count"],
+                     batch["complete"])
+            return data.progress
+
         total = 0
         chats, rows = [], []
         # The phone's answer to an older-history request (older_history.py)
@@ -1282,9 +1494,13 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         # count or archiving would only undo what the live events set since.
         on_demand = older_history.is_on_demand(data)
         ends = []
+        on_demand_new = []
         for c in data.conversations:
             jid = c.ID
             if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
+                continue
+            if getattr(c, "isParentGroup", False):
+                community_ids.add(jid)
                 continue
             history_end = (int(c.endOfHistoryTransferType)
                            if c.HasField("endOfHistoryTransferType") else None)
@@ -1292,51 +1508,46 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 # under the key the chat is stored with: the phone may answer
                 # by its other address (number vs LID), which get-messages,
                 # joining only stored keys, would never read
-                target = self.existing_chat(jid) or jid
+                target = (existing_fn(jid) if callable(existing_fn) else "") or jid
                 if history_end is not None:
                     ends.append((target, history_end))
-                count = len(rows)
                 answer = Session._history_rows(target, c)
                 rows.extend(answer)
-                total += len(rows) - count
-                if older_history.brought_nothing_new(
-                        answer, lambda mid: self.db.wpp_message(mid) is not None):
+                total += len(answer)
+                if hasattr(self.db, "wpp_message"):
+                    new_rows = [row for row in answer
+                                if self.db.wpp_message(row[1]["id"]["id"]) is None]
+                else:
+                    new_rows = list(answer)
+                on_demand_new.extend(new_rows)
+                if not new_rows:
                     # Home asked and the phone has nothing more before this
                     # anchor: it is not asked again (older_history.py)
-                    keys = self.chat_keys(target) or [target]
+                    keys = (keys_fn(target) if callable(keys_fn) else None) or [target]
                     anchor = self.db.oldest_real(keys)
                     if anchor is not None:
                         self.db.mark_history_exhausted(keys, anchor["id"])
+                    elif (hasattr(self.db, "chat_omitted_info")
+                          and self.db.chat_omitted_info(keys) is not None):
+                        self.db.mark_history_exhausted(keys, older_history.OMITTED_ANCHOR)
                 continue
-            fields = {"name": c.name or c.displayName or None,
-                      "history_end": history_end,
-                      "ts": msgmap.seconds(c.conversationTimestamp or c.lastMsgTimestamp)}
-            if c.HasField("unreadCount"):
-                fields["unread"] = int(c.unreadCount)
-            if c.HasField("archived"):
-                fields["archived"] = int(bool(c.archived))
-            if c.HasField("pinned"):
-                # I cannot tell the unit (order or pinning time); the app only looks
-                # at whether it is greater than zero. The bridge does not enforce the
-                # limit of 3 pinned chats either: WhatsApp refuses the fourth
-                fields["pinned"] = int(c.pinned)
-            if c.HasField("muteEndTime"):
-                fields["muted"] = int(c.muteEndTime)
-            if c.HasField("locked"):
-                fields["locked"] = int(bool(c.locked))
-            if c.HasField("ephemeralExpiration"):
-                fields["ephemeral"] = int(c.ephemeralExpiration)
-                fields["ephemeral_ts"] = int(c.ephemeralSettingTimestamp or 0)
-            chats.append((jid, {k: v for k, v in fields.items() if v is not None}))
-            count = len(rows)
-            rows.extend(Session._history_rows(jid, c))
-            total += len(rows) - count
+            chats.append((jid, Session._conversation_fields(c, history_end)))
+            answer = Session._history_rows(jid, c)
+            rows.extend(answer)
+            total += len(answer)
         self.db.chats_in_batch(chats)
         if ends:
             self.db.history_ends_of_existing(ends)
         self.db.messages_in_batch(rows)
-        log.info("history%s: %d chats, %d messages (%s%%)", " on demand" if on_demand else "",
-                 len(data.conversations), total, data.progress)
+        if on_demand and on_demand_new and callable(emit_fn):
+            session_name = getattr(self, "name", "")
+            for _chat, w, _raw in on_demand_new:
+                emit_fn("received-message", {
+                    "session": session_name, "response": {**w, "isMdHistoryMsg": True}})
+        log.info("history%s: %d chats, %d messages (%s%%) [%s block %s]",
+                 " on demand" if on_demand else "", len(data.conversations), total,
+                 data.progress, history_resume.type_name(getattr(data, "syncType", -1)),
+                 getattr(data, "chunkOrder", 0))
         return data.progress
 
     @staticmethod
@@ -1571,26 +1782,46 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         return learned
 
     def _phone_of_lid(self, lid):
-        """'123@lid' -> the number's JID text, or '' when whatsmeow does not know it."""
+        """'123@lid' -> the number's JID text, using store `lid_map` when whatsmeow
+        does not yet know it."""
         from neonize.utils import build_jid
-        try:
-            return jid_text(self.client.get_pn_from_lid(build_jid(lid.split("@")[0], "lid")))
-        except Exception:
-            return ""
+        found = ""
+        client = getattr(self, "client", None)
+        if client is not None:
+            try:
+                found = jid_text(client.get_pn_from_lid(build_jid(lid.split("@")[0], "lid")))
+            except Exception:
+                found = ""
+        if found:
+            return found
+        db = getattr(self, "db", None)
+        return db.phone_of_lid(lid) if db is not None and hasattr(db, "phone_of_lid") else ""
 
     def _lid_of_phone(self, phone):
-        """'5511@s.whatsapp.net' -> the LID's JID text, or '' when whatsmeow does not know it."""
+        """'5511@s.whatsapp.net' -> the LID's JID text, using store `lid_map` fallback."""
         from neonize.utils import build_jid
-        try:
-            return jid_text(self.client.get_lid_from_pn(build_jid(phone.split("@")[0], "s.whatsapp.net")))
-        except Exception:
-            return ""
+        found = ""
+        client = getattr(self, "client", None)
+        if client is not None:
+            try:
+                found = jid_text(client.get_lid_from_pn(build_jid(phone.split("@")[0], "s.whatsapp.net")))
+            except Exception:
+                found = ""
+        if found:
+            return found
+        db = getattr(self, "db", None)
+        return db.lid_of_phone(phone) if db is not None and hasattr(db, "lid_of_phone") else ""
 
     def _load_names(self):
         self.reload_names()
+        community_ids = self.__dict__.setdefault("_community_ids", set())
         try:
             for g in self.client.get_joined_groups():
-                self.db.chat(jid_text(g.JID), name=g.GroupName.Name)
+                gid = jid_text(g.JID)
+                if bool(getattr(getattr(g, "GroupParent", None), "IsParent", False)):
+                    community_ids.add(gid)
+                elif gid:
+                    self.db.chat(gid, name=g.GroupName.Name)
                 self.roster_register(g)    # members, for the group ack (group_receipts)
         except Exception:
             log.exception("groups")
@@ -1677,14 +1908,20 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         The chat goes in the index the way WhatsApp Web names it (a person's
         chat by its LID, chat_aliases.mutation_index_jid), or the phone does
         not find it."""
+        return self.send_mutation([index, self.mutation_jid(conversation), *extra],
+                                  version, kind, value)
+
+    def send_mutation(self, index, version, kind, value):
+        """One state notice with its whole index (send_state names a chat in
+        it; the call_log record names this account): True if WhatsApp accepted."""
         from neonize.proto.Neonize_pb2 import MutationInfo, PatchInfo
         if self.client is None or self.status != "CONNECTED":
             return False
         patch = PatchInfo(Timestamp=time.time_ns(), Type=kind, Mutations=[
-            MutationInfo(Index=[index, self.mutation_jid(conversation), *extra],
-                         Version=version, Value=value)])
+            MutationInfo(Index=list(index), Version=version, Value=value)])
         collection = {PatchInfo.REGULAR_LOW: "regular_low",
-                      PatchInfo.REGULAR_HIGH: "regular_high"}.get(kind, "regular_low")
+                      PatchInfo.REGULAR_HIGH: "regular_high",
+                      PatchInfo.REGULAR: "regular"}.get(kind, "regular_low")
         try:
             try:
                 self.client.send_app_state(patch)
@@ -1696,7 +1933,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 self.client.send_app_state(patch)
             return True
         except Exception:
-            log.exception("state notice %s not accepted", index)
+            log.exception("state notice %s not accepted", index[0] if index else "")
             return False
 
     def archive(self, conversation, archive):
@@ -2292,7 +2529,8 @@ def create_app(folder, fixed=""):
         return ok(status="success", response={
             "backendWorkerBridgeReady": True, **state,
             "unprocessed": state["unprocessedChunks"], "restarted": False, "removed": [],
-            "onDemandEnabled": False, "chunkStatus": {}, "storeCounts": counts})
+            "onDemandEnabled": False, "chunkStatus": {}, "storeCounts": counts,
+            **history_resume.status_of(s, time.monotonic())})
 
     async def send_seen(req):
         s = session(req)
@@ -2418,11 +2656,17 @@ def create_app(folder, fixed=""):
         serial = w["id"]["_serialized"] if w else f"true_{msgmap.jid_wpp(chat)}_{resp.ID}"
         chat_w = msgmap.jid_wpp(chat)
         # WPPConnect says "sent" (ack 1) right after the send; the app only
-        # registers the message after the HTTP response, hence the small delay
-        asyncio.get_running_loop().call_later(0.6, lambda: asyncio.ensure_future(
-            sio.emit("onack", {"session": s.name, "ack": 1, "to": chat_w, "from": chat_w,
-                               "id": {"fromMe": True, "remote": chat_w, "id": resp.ID,
-                                      "_serialized": serial}}, room=s.name)))
+        # registers the message after the HTTP response, hence the small delay.
+        # Only emit it if no real ack for this id reached us in the meantime —
+        # a delivered/read that already went out wins over the synthetic "sent".
+        sent_id = resp.ID
+        def _emit_ack1():
+            payload = synthetic_ack.sent_ack_payload(s, sent_id, chat_w, serial)
+            if payload is None:
+                log.info("skipping synthetic onack ack=1 for %s: a real ack already went out", sent_id)
+                return
+            asyncio.ensure_future(sio.emit("onack", payload, room=s.name))
+        asyncio.get_running_loop().call_later(0.6, _emit_ack1)
         return ok(status="success", response=[{"id": serial, "ack": 1}])
 
     def quoted_context(s, quoted, ctx=None, fallback=None):
@@ -2758,6 +3002,7 @@ def create_app(folder, fixed=""):
     cleanup.register_routes(r, ok=ok, state=state, folder=folder, mark_active=mark_active)
     calls.register_routes(r, session=session, ok=ok)
     ongoing_calls.register_routes(r, session=session, ok=ok)
+    call_links.register_routes(r, session=session, ok=ok)
     call_invites.register_routes(r, session=session, ok=ok)
     presence.register_routes(r, session=session, ok=ok)
     labels.register_routes(r, session=session, ok=ok, jid_from_text=jid_from_text,
@@ -2923,6 +3168,7 @@ def create_app(folder, fixed=""):
             phone += "@g.us"
         destination = destination_of(phone)
         multiple = int((body.get("options") or {}).get("selectableCount", 1)) != 1
+        hide_voters, duration = poll_settings.wanted(body.get("options"))
 
         def send():
             if channel_media.is_channel(destination):
@@ -2931,6 +3177,7 @@ def create_app(folder, fixed=""):
             created = s.client.build_poll_vote_creation(
                 body["name"], list(body["choices"]),
                 VoteType.MULTIPLE if multiple else VoteType.SINGLE)
+            created = poll_settings.apply(created, hide_voters, duration, int(time.time() * 1000))
             return s.client.send_message(destination, created)
         try:
             resp = await in_thread(send)
@@ -3068,6 +3315,8 @@ def create_app(folder, fixed=""):
             "compatible": True, "calls": calls_ready,
             "videoCalls": calls_ready and can["video"],
             "groupCalls": calls_ready and can["groupCalls"],
+            # `callLinks`: creates call links and joins them (call_links.py)
+            "callLinks": calls_ready and can["callLinks"],
             "channelMedia": channel, "channelPolls": channel})
 
     async def media_of_socket(sid):

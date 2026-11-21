@@ -1,5 +1,6 @@
 <!--nav: 💬 Lista de conversas-->
 <p class="lead">A lista de conversas (Alt+1) mostra os nomes das pessoas e grupos, nunca códigos internos. Cada linha lê o nome, a última mensagem e o estado (não lidas, fixada, silenciada...).</p>
+<p>Mudanças feitas no celular ou em outro dispositivo chegam ao WinZapp assim que o WhatsApp avisa, com WPPConnect e Neonize: silenciar, arquivar e fixar conversas, incluí-las em listas ou tirá-las, o prazo das mensagens temporárias, contatos salvos, renomeados ou removidos, nomes públicos, fotos de perfil e contatos bloqueados. Uma conversa apagada em outro dispositivo também sai do WinZapp, a não ser que tenha mensagens posteriores à exclusão; se ela estiver aberta, o WinZapp a fecha e diz o motivo.</p>
 <p>Com o Neonize, uma conversa só é marcada como lida quando você a abre ou a marca como lida, e ela aparece como lida também no celular e no WhatsApp Web.</p>
 <p>Com o Neonize, quando você chega ao começo do que o WinZapp tem de uma conversa, ele pede ao celular as mensagens mais antigas, como o WhatsApp Web faz; elas chegam em alguns instantes, com o celular conectado.</p>
 
@@ -11,7 +12,7 @@
 </ul>
 
 <h3>Abrir uma conversa</h3>
-<p>Enter abre a conversa selecionada. O foco vai para onde você definiu em Configurações &gt; Interface &gt; Conversas (campo de mensagem, ou o separador de não lidas / a última mensagem). Esc ou Ctrl+W fecham a conversa. A mensagem em que a lista fica depende de "Posição focada automaticamente na lista de mensagens", na mesma página: "Separador de não lidas ou última mensagem" ou "Continuar de onde você parou (última mensagem focada)", que volta para a mensagem em que você estava quando saiu da conversa, mesmo trocando de uma conversa para outra e mesmo com mensagens novas não lidas (o separador de não lidas não conta como posição).</p>
+<p>Enter abre a conversa selecionada. Para onde vai o foco é definido em Configurações &gt; Interface &gt; Conversas: o campo de mensagem, ou a lista de mensagens no separador de não lidas ou na última mensagem. Esc ou Ctrl+W fecha a conversa. Em qual mensagem a lista para é escolhido em "Posição focada automaticamente na lista de mensagens", na mesma página: "Separador de não lidas ou última mensagem" vai para as mensagens novas, ou para o fim da conversa quando não há nenhuma; "Continuar de onde você parou (última mensagem focada)" volta à mensagem em que você estava, mesmo depois de trocar de conversa e de chegarem mensagens novas; "Onde você parou no meio da conversa; se tinha chegado à última mensagem, o separador de não lidas" mantém o seu lugar quando você parou de ler no meio da conversa e, se você tinha chegado ao fim dela, vai para o separador de não lidas quando chegaram mensagens novas. O separador de não lidas em si nunca é uma posição lembrada.</p>
 
 <h3>O menu de contexto da conversa</h3>
 <p>Abra com a tecla Aplicativos ou Shift+F10. Os itens variam com a conversa:</p>
@@ -42,6 +43,7 @@
   <li>As confirmações de limpar e de apagar têm a caixa "Não mostrar novamente", que só vale junto com Sim. Para voltar a ser perguntado, use as opções correspondentes em Configurações &gt; Interface &gt; Confirmações. Com a pergunta desligada, limpar mantém as favoritas.</li>
   <li><strong>Marcar todas as conversas como lidas</strong> (menu Arquivo, ou Ctrl+Alt+Shift+M) pergunta antes, com Não como padrão. Também tem "Não mostrar novamente"; a opção "Pedir confirmação ao marcar todas as conversas como lidas" volta a perguntar.</li>
   <li><strong>Confirmação falada:</strong> marcar como lida ou não lida, silenciar, arquivar e fixar uma conversa agora dizem o que foi feito, e marcar várias como lidas diz quantas foram.</li>
+  <li>Confirmação ao arquivar: a pergunta aparece ao arquivar pelo menu de contexto ou pelo Ctrl+Shift+Q, com os botões "Arquivar conversa" (Alt+A) e "Cancelar" (Alt+C) e a caixa "Não mostrar novamente", que só vale junto com a confirmação. Para voltar a ser perguntado, use "Pedir confirmação antes de arquivar conversas" em Configurações &gt; Interface &gt; Confirmações.</li>
 </ul>
 
 <h3>Nova conversa, grupo e contato</h3>
@@ -51,7 +53,7 @@
 <h3>Contatos: locais ou sincronizados com o celular</h3>
 <p>Ao adicionar um contato (em Dados da conversa, em Nova conversa ou a partir de uma mensagem de contato), há duas abas:</p>
 <ul>
-  <li><strong>Contato sincronizado com o celular:</strong> salva o nome no WhatsApp e na agenda do celular. Abre por padrão; se o número já está na agenda do celular, só essa aba aparece. Apagar um contato sincronizado também o remove do WhatsApp e do celular.</li>
+  <li><strong>Contato sincronizado com o celular:</strong> salva o contato no WhatsApp e solicita a sincronização com a agenda do celular. Não é possível verificar aqui se o celular concluiu a gravação. Abre por padrão; se o número já está na agenda do celular, só essa aba aparece. Apagar um contato sincronizado também o remove do WhatsApp e do celular.</li>
   <li><strong>Contato local do WinZapp:</strong> o nome existe só no WinZapp.</li>
 </ul>
 <p>Empresas verificadas que você não salvou (bancos, aplicativos de pagamento...) aparecem com o nome verificado da empresa. Um nome salvo nos seus contatos sempre tem preferência.</p>
@@ -73,6 +75,7 @@
   <tr><td>Destrancar (nas trancadas)</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
 </table>
 <p>As opções "Usar Espaço para marcar/desmarcar enquanto houver algo marcado" e "Esc desmarca as mensagens marcadas antes de fechar a conversa" podem ser desligadas em Configurações &gt; Interface &gt; Conversas.</p>
+<p>Nas listas de conversas (normal, arquivadas e trancadas), o Esc limpa a pesquisa e os filtros, e o leitor de tela diz "Filtros limpos". Com conversas marcadas, o primeiro Esc só desmarca e o segundo limpa a pesquisa e os filtros. A opção "Esc limpa a pesquisa e os filtros em uma lista de conversas" pode ser desligada em Configurações &gt; Interface &gt; Conversas. Esc também limpa a pesquisa e os filtros a partir dos filtros, da pesquisa e dos demais controles do painel de conversas; dentro de uma conversa aberta, o Esc continua fechando a conversa ou desmarcando as mensagens primeiro.</p>
 
 <h3>Conversas arquivadas</h3>
 <p>Alt+4 abre as arquivadas. Elas têm pesquisa própria (Ctrl+F), a mesma seleção e as mesmas ações. Uma conversa arquivada não é anunciada em voz alta quando chega mensagem nova com a lista de arquivadas fora da tela. Com o Neonize, se a opção do WhatsApp "Manter conversas arquivadas" estiver desligada, uma conversa arquivada volta para a lista de conversas quando chega mensagem nova, como no celular.</p>

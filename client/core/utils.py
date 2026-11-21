@@ -1073,6 +1073,12 @@ DEFAULT_SETTINGS = {
         # "document" (core.attachment_types.PASTED_AUDIO_MODES).
         "pasted_audio_as": "audio",
         "keep_muted_chats_silent_when_open": True,
+        # Someone else's edit of a message: spoken with the window active,
+        # notified with it in the background (core/edit_alerts.py, #824).
+        "announce_edited_messages": False,
+        "notify_edited_messages": False,
+        "discount_archived_from_unread_badge": True,
+        "discount_muted_from_unread_badge": True,
         # Message notifications let through per second when many arrive at
         # once (core.notification_burst).
         "notification_burst_limit": 3,
@@ -1089,6 +1095,14 @@ DEFAULT_SETTINGS = {
         # (core/wpp_upstream.py). Off: the approved list, as since it existed.
         "wpp_all_updates": False,
         "noise_reduction_enabled": False,
+        # Neural engine at send time reproduces the published behavior; the
+        # basic engine and processing while recording are opt-in
+        # (core/voice_nr_options.py).
+        "voice_nr_engine": "neural",
+        "voice_nr_moment": "send",
+        # What a note the neural engine could not process does: send with the
+        # basic gate (published), or stay pending for a manual resend.
+        "voice_nr_on_failure": "basic",
         # the neural model when installed (False: the common reducer, faster)
         "noise_reduction_neural": True,
         # where the neural model runs: cpu, cuda12, cuda13, coreml (core/cuda_components)
@@ -1197,6 +1211,7 @@ DEFAULT_SETTINGS = {
         "confirm_mark_all_read": True,
         "confirm_clear_chat": True,
         "confirm_delete_chat": True,
+        "confirm_archive_chat": True,
         # Ask before F5 / Shift+F5 (MainWindow._confirm_resync()); the
         # confirmations' own "don't show again" boxes clear these.
         "confirm_resync_all": True,
@@ -1210,6 +1225,8 @@ DEFAULT_SETTINGS = {
         # users who already learned the previous behaviour.
         "space_selects_in_selection_mode": True,
         "escape_clears_selection": True,
+        "escape_clears_filters": True,
+        "escape_clears_message_search": True,
         # Opening a conversation keeps the chat search, so Esc returns to the
         # results. Off: the long-standing behaviour, so no migration.
         "keep_search_after_open": False,
@@ -1231,6 +1248,7 @@ DEFAULT_SETTINGS = {
         "show_yesterday_label": True,
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
+        "starred_prefix_enabled": False,
         # How the "also delete the media from your phone" box of the delete
         # confirmations starts. On is WhatsApp Web's own default and what
         # WinZapp did before the box existed, so no migration.
@@ -1295,7 +1313,8 @@ DEFAULT_SETTINGS = {
     },
     "accessibility": {
         "extended_sr_compat_enabled": True,
-        "sapi_fallback_enabled": True
+        "sapi_fallback_enabled": True,
+        "speak_in_background": False
     },
     # Local (offline) transcription of voice messages. Every value is a stored
     # "automatic" rather than a blank — see core/transcription/preferences.py,
@@ -1854,14 +1873,21 @@ def contact_dedup_key(main_window, jid: str) -> str:
     """
     normalize_jid = getattr(main_window, "_normalize_jid", None)
     norm = normalize_jid(jid) if normalize_jid else jid
+    return person_dedup_key(norm, getattr(main_window, "_lid_to_phone", {}) or {})
+
+
+def person_dedup_key(jid: str, lid_to_phone) -> str:
+    """contact_dedup_key() without a window: *jid* already normalized, the
+    @lid bridged through *lid_to_phone*. An @lid with no known number keys by
+    its own digits; a group by its whole JID."""
+    norm = str(jid or "")
     if norm.endswith("@g.us"):
         return norm
     if norm.endswith("@lid"):
-        lid_map = getattr(main_window, "_lid_to_phone", {}) or {}
-        phone = lid_map.get(norm, "")
+        phone = (lid_to_phone or {}).get(norm, "")
         if phone:
             norm = phone
-    local = norm.split("@", 1)[0]
+    local = norm.split("@", 1)[0].split(":", 1)[0]
     # Brazilian mobile 8/9-digit interchangeability: 5511999999999 ↔ 551199999999
     if local.startswith("55") and len(local) == 13 and local[4] == "9":
         local = local[:4] + local[5:]

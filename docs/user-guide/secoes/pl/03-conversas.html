@@ -1,5 +1,6 @@
 <!--nav: 💬 Lista czatów-->
 <p class="lead">Lista czatów (Alt+1) pokazuje nazwy osób i grup, nigdy kody wewnętrzne. Każdy wiersz odczytuje nazwę, ostatnią wiadomość i stan (nieprzeczytany, przypięty, wyciszony...).</p>
+<p>Zmiany wprowadzone w telefonie lub na innym urządzeniu docierają do WinZapp, gdy tylko WhatsApp je zgłosi, w WPPConnect i Neonize: wyciszenie, archiwizacja i przypięcie czatów, dodanie ich do list lub usunięcie z nich, czas znikających wiadomości, kontakty zapisane, przemianowane lub usunięte, nazwy publiczne, zdjęcia profilowe i zablokowane kontakty. Czat usunięty na innym urządzeniu znika także z WinZapp, chyba że ma wiadomości nowsze niż usunięcie; jeśli jest otwarty, WinZapp go zamyka i podaje powód.</p>
 <p>W Neonize czat jest oznaczany jako przeczytany po jego otwarciu lub ręcznym wybraniu tej czynności. Ten sam stan jest widoczny także na telefonie i w WhatsApp Web.</p>
 <p>W Neonize po dotarciu do najstarszych lokalnie dostępnych wiadomości WinZapp prosi telefon o wcześniejszą historię czatu, tak jak WhatsApp Web. Wiadomości docierają po chwili, jeśli telefon jest połączony.</p>
 
@@ -11,7 +12,7 @@
 </ul>
 
 <h3>Otwieranie czatu</h3>
-<p>Enter otwiera wybrany czat. Fokus trafia tam, gdzie ustawisz w Ustawienia &gt; Interfejs &gt; Czaty (pole wiadomości albo znacznik nieprzeczytanych / ostatnia wiadomość). Esc lub Ctrl+W zamyka czat. To, na której wiadomości ustawi się lista, zależy od opcji "Automatycznie ustawiana pozycja na liście wiadomości" na tej samej stronie: "Separator nieprzeczytanych lub ostatnia wiadomość" albo "Kontynuuj od miejsca, w którym przerwano (ostatnia wiadomość z fokusem)", która wraca do wiadomości, na której byłeś przy wyjściu z czatu, także przy przechodzeniu z jednego czatu do innego i nawet gdy przyszły nowe nieprzeczytane wiadomości (separator nieprzeczytanych nie liczy się jako pozycja).</p>
+<p>Enter otwiera wybrany czat. Miejsce ustawienia fokusu wybierasz w Ustawienia &gt; Interfejs &gt; Czaty: pole wiadomości albo lista wiadomości przy separatorze nieprzeczytanych lub ostatniej wiadomości. Esc lub Ctrl+W zamyka czat. Opcja „Pozycja automatycznego ustawiania fokusu na liście wiadomości” na tej samej stronie określa, którą wiadomość wybrać na liście. „Separator nieprzeczytanych lub ostatnia wiadomość” kieruje do nowych wiadomości, a przy ich braku — do końca czatu. „Kontynuuj od miejsca, w którym przerwano (ostatnia wiadomość z fokusem)” wraca do ostatnio przeglądanej wiadomości, także po przejściu do innego czatu i po nadejściu nowych wiadomości. Sam separator nieprzeczytanych nie jest zapamiętywaną pozycją. Trzeci wariant zachowuje miejsce po przerwaniu przeglądania w środku czatu, a po dotarciu do końca kieruje do separatora nieprzeczytanych lub ostatniej wiadomości.</p>
 
 <h3>Menu kontekstowe czatu</h3>
 <p>Otwórz je klawiszem Aplikacji lub Shift+F10. Pozycje zależą od czatu:</p>
@@ -42,6 +43,7 @@
   <li>W potwierdzeniach czyszczenia i usuwania możesz zaznaczyć „Nie pokazuj ponownie”. Ustawienie zostanie zapamiętane tylko wtedy, gdy potwierdzisz operację przyciskiem „Tak”. Aby pytanie wróciło, użyj odpowiednich opcji w Ustawienia &gt; Interfejs &gt; Potwierdzenia. Przy wyłączonym pytaniu czyszczenie zachowuje wiadomości z gwiazdką.</li>
   <li><strong>Oznacz wszystkie czaty jako przeczytane</strong> (menu Plik lub Ctrl+Alt+Shift+M) najpierw pyta, z domyślną odpowiedzią Nie. Ma także "Nie pokazuj ponownie"; opcja "Pytaj o potwierdzenie przed oznaczeniem wszystkich czatów jako przeczytane" przywraca pytanie.</li>
   <li><strong>Potwierdzenie głosowe:</strong> oznaczenie czatu jako przeczytanego lub nieprzeczytanego, wyciszenie, archiwizacja i przypięcie teraz informują o wykonanej czynności, a oznaczenie wielu czatów podaje ich liczbę.</li>
+  <li>Potwierdzenie przy archiwizowaniu: pytanie pojawia się przy archiwizowaniu z menu kontekstowego lub skrótem Ctrl+Shift+Q, z przyciskami "Zarchiwizuj czat" (Alt+Z) i "Anuluj" (Alt+A) oraz polem "Nie pokazuj ponownie", które działa tylko razem z potwierdzeniem. Aby znów być pytanym, użyj opcji "Pytaj o potwierdzenie przed archiwizowaniem czatów" w Ustawieniach.</li>
 </ul>
 
 <h3>Nowy czat, grupa i kontakt</h3>
@@ -51,7 +53,7 @@
 <h3>Kontakty: lokalne lub zsynchronizowane z telefonem</h3>
 <p>Gdy dodajesz kontakt (w Informacje o czacie, w Nowy czat lub z wiadomości z kontaktem), są dwie karty:</p>
 <ul>
-  <li><strong>Kontakt zsynchronizowany z telefonem:</strong> zapisuje nazwę w WhatsApp i w książce adresowej telefonu. Otwiera się domyślnie; jeśli numer jest już w książce adresowej telefonu, pojawia się tylko ta karta. Usunięcie zsynchronizowanego kontaktu usuwa go także z WhatsApp i z telefonu.</li>
+  <li><strong>Kontakt zsynchronizowany z telefonem:</strong> zapisuje kontakt w WhatsAppie i wysyła prośbę o synchronizację z książką adresową telefonu. Nie można tu sprawdzić, czy telefon zakończył zapisywanie. Otwiera się domyślnie; jeśli numer jest już w książce adresowej telefonu, pojawia się tylko ta karta. Usunięcie zsynchronizowanego kontaktu usuwa go także z WhatsApp i z telefonu.</li>
   <li><strong>Kontakt lokalny WinZappa:</strong> nazwa jest zapisana tylko w WinZappie.</li>
 </ul>
 <p>Zweryfikowane firmy, których nie zapisałeś (banki, aplikacje płatnicze...), pojawiają się ze zweryfikowaną nazwą firmy. Nazwa zapisana w twoich kontaktach zawsze ma pierwszeństwo.</p>
@@ -73,6 +75,7 @@
   <tr><td>Wyłącz zabezpieczenie dostępu do zaznaczonych czatów</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
 </table>
 <p>Opcje "Używaj Spacji do zaznaczania/odznaczania, gdy coś jest już zaznaczone" i "Esc odznacza zaznaczone wiadomości przed zamknięciem czatu" można wyłączyć w Ustawienia &gt; Interfejs &gt; Czaty.</p>
+<p>Na listach czatów (zwykłej, zarchiwizowanych i zabezpieczonych) klawisz Esc czyści wyszukiwanie i filtry, a czytnik ekranu mówi „Filtry wyczyszczone”. Gdy zaznaczono czaty, pierwszy Esc tylko odznacza, a drugi czyści wyszukiwanie i filtry. Opcję „Esc czyści wyszukiwanie i filtry na liście czatów” można wyłączyć w Ustawienia &gt; Interfejs &gt; Czaty. Esc czyści wyszukiwanie i filtry także z filtrów, wyszukiwania i pozostałych kontrolek panelu czatów; wewnątrz otwartego czatu Esc nadal najpierw zamyka czat lub odznacza wiadomości.</p>
 
 <h3>Zarchiwizowane czaty</h3>
 <p>Alt+4 otwiera zarchiwizowane czaty. Mają własne wyszukiwanie (Ctrl+F), takie samo zaznaczanie i te same akcje. Zarchiwizowany czat nie jest ogłaszany głosem, gdy przychodzi nowa wiadomość, a lista zarchiwizowanych nie jest na ekranie. W Neonize, gdy opcja WhatsApp "Pozostaw czaty zarchiwizowane" jest wyłączona, zarchiwizowany czat wraca na listę czatów po nadejściu nowej wiadomości, tak jak na telefonie.</p>

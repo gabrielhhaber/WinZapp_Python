@@ -67,7 +67,42 @@ WPPConnect typed in at `127.0.0.1:6300` read as Neonize.
 | Abandoned-session cleanup | asks the bridge to `delete-session` each stale name |
 | Removing an account | asks the bridge to `delete-session` each session name; the account stays `deleting` until it confirms (`account_removal.purge_account(bridge_delete=...)`) |
 | Node lease | registered when the bridge is started or joined (`_register_node_lease`), so "Quit all accounts" and the updater see the account |
-| Calls | placed and answered when `send-capabilities` says `calls: true` (WinZapp's neonize build with the call layer, `neonize_bridge/call_media.py`); video calls, upgrading to video and the camera when it also says `videoCalls: true` (neonize 0008 and an ffmpeg on the bridge's PATH, `neonize_bridge/call_video.py`), group calls with `groupCalls: true`; the others are refused up front (`core/call_logic.engine_refuses_call`); rejecting always works |
+| Calls | placed and answered when `send-capabilities` says `calls: true` (WinZapp's neonize build with the call layer, `neonize_bridge/call_media.py`); video calls, upgrading to video and the camera when it also says `videoCalls: true` (neonize 0007 and an ffmpeg on the bridge's PATH, `neonize_bridge/call_video.py`), group calls with `groupCalls: true`; the others are refused up front (`core/call_logic.engine_refuses_call`); rejecting always works |
+
+## The phone's call history
+
+A call reaches only the devices of the person called, so the account's own
+phone does not see a call placed from a linked device. It learns of it when
+that device, at the end of the call, writes a `call_log` record to the
+`regular` app-state collection. WhatsApp Web does this for every call it
+placed (`fromMe`, not a call link), from its call-ending handler. WinZapp's
+bridge sent nothing, so its calls worked and were missing from the iPhone's
+history (user report, 2026-11-16).
+
+`neonize_bridge/call_log_sync.py` writes the record that WhatsApp Web
+2.3000.1052669929 wrote, captured over CDP on 2026-11-17 by hooking
+`WAWebCallLogSync.getCallLogMutation` (`diagnostico_cdp/calllog_out.js`).
+`calls.record_finished` sends it after the chat's own record. The record is:
+
+- index `["call_log", <own LID without the device>, <call id>, "1"]`,
+  version 1;
+- `callLogAction.callLogRecord` with `callResult`, `duration` (seconds
+  connected), `startTime` (Unix seconds of the offer), `isIncoming: true`
+  (WhatsApp Web copies `fromMe` into it; the phone takes the direction from
+  `callCreatorJID`), `isVideo`, `callID`, `callCreatorJID`,
+  `participants: []` and `callType: REGULAR`.
+
+Only one-to-one calls get this record. A group call's record also carries
+`groupJID` and each participant's outcome, and has not been captured yet.
+
+Two other things WhatsApp Web sends when it hangs up, which meowcaller does
+not:
+
+- `duration` and `audio_duration` on the `<terminate>`;
+- a `<call to="call"><duration type="1x1" peer=… audio_duration=…/>` report.
+
+WhatsApp Web builds a call placed on another device from the `call_log`
+record alone (`WAWebVoipActionWriteCallLogSync`), so neither is sent yet.
 
 ## Call tones
 
@@ -144,6 +179,24 @@ The order matters twice: a notice applied first keeps an active range that cover
 the messages arriving after it, and one applied to a chat already holding newer
 messages is stored as `Success` and changes nothing.
 
+## Pairing history cap and omitted conversations
+
+WhatsApp's iPhone client caps `INITIAL_BOOTSTRAP` (`syncType = 0`) at 399 chats
+and delivers older conversations only as `OmittedConversationMetadata` (field
+25) batches when the companion advertises
+`DeviceProps.HistorySyncConfig.supportOmittedConversationMetadata = true` (field
+28) during registration (`neonize_bridge/omitted_history.py`,
+`neonize_bridge/server.py`). Because `DeviceProps` capabilities are sent only
+in `getRegistrationPayload`, an account paired on an older build must re-pair
+once to receive omitted conversations. Unopened omitted chats hold zero local
+messages and trigger no phone requests in the background; opening one or
+pressing Home requests its initial 50-message page via
+`PeerDataOperationRequestMessage` in `INITIAL_REVERSE_HISTORY` mode (`mode = 1`,
+`neonize_bridge/older_history.py`), while community parent containers
+(`isParentGroup` / `GroupParent.IsParent`) are skipped from `chats`. See
+[the sync completion traps](docs/traps/sync-completion.md) for wire fields and
+protocol details.
+
 ## Known leftovers (not fixed)
 
 - Video and group call buttons are still shown when the bridge cannot take
@@ -163,8 +216,12 @@ messages is stored as `Success` and changes nothing.
   only after the click. With WinZapp's build the first read of the lists
   downloads the `regular` collection once and can take longer than the
   client's 15 s budget: the next refresh answers.
-- Events the bridge never emits (announcement-replies, media-*-progress,
-  `call:*:remote`, messages.update, presence.update) are harmless.
+- `messages.update` and `presence.update` are alternative client input shapes;
+  Neonize uses `onack` and `onpresencechanged`. Poll votes now emit
+  `onpollresponse` and trigger a refresh for a poll in the open conversation.
+  Revoke and label-association event contracts are described in
+  `neonize_bridge/COVERAGE.md` (label events serve API consumers; WinZapp has
+  no Business-label interface).
 - `reconnect-socket-stream` answering 400 counts strikes towards
   `_restart_wpp_session` (`connection.py`); the bridge side is F1's.
 - `_start_wpp_update_checker` with no `client/api/` folder is now skipped for

@@ -5,12 +5,14 @@ the ConversationsPanel instance, so every attribute set in
 ConversationsPanel.__init__/init_UI is available here.
 """
 
+from core.page_size import messages_page_size
 from ui.shortcut_bindings import set_shortcut_label
 import logging
 import threading
 import wx
 from core.conversation_view import ARCHIVED, LOCKED
 from ui.conversation_panel.typing_row import message_row_count
+from ui.conversation_panel.chat_list_selection import is_inside
 from main_window.typing_feedback import resume_typing_sound
 from core.utils import (
     db_fetch_limit,
@@ -205,7 +207,7 @@ class ConversationNavigationMixin:
         _conv_jid = conversation.get("remoteJid", "")
         if not _conv_jid:
             return
-        configured_limit = int(self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
+        configured_limit = messages_page_size(self.main_window.settings)
         unread_count = int(conversation.get("unreadCount") or 0)
         limit = db_fetch_limit(configured_limit, unread_count)
         # Far enough back to still hold the message "continue where you left
@@ -583,6 +585,8 @@ class ConversationNavigationMixin:
                 lst.Focus(0)
                 lst.Select(0)
             return
+        if event.GetKeyCode() == wx.WXK_ESCAPE and self._clear_chat_list_filters():
+            return
         event.Skip()
 
     def _on_search_field_enter(self, event):
@@ -690,7 +694,23 @@ class ConversationNavigationMixin:
                     self.main_window.i18n.t("all_unselected"), True, False),
                 interrupt=True)
             return
+        if not mention_open and self._clear_message_search_on_escape():
+            return
         self.close_conversation(event, from_user=True)
+
+    def _focus_in_conversation_area(self) -> bool:
+        return is_inside(wx.Window.FindFocus(), self.conversation_panel)
+
+    def _on_panel_char_hook(self, event):
+        """Esc from any control of the chat-list side of the panel (filter
+        radio buttons, search field, buttons, list) clears the search and the
+        filters. The Esc accelerator lives on conversation_panel, so it never
+        sees those controls; and inside the conversation (whose own hook and
+        accelerator close it or clear the message selection) this stays out."""
+        if self._focus_in_conversation_area():
+            event.Skip()
+            return
+        self._on_chat_list_char_hook(event)
 
     def close_conversation(self, event=None, from_user=False):
         """Closes the open conversation. *from_user*: Esc or Ctrl+W (the close

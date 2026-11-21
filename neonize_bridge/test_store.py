@@ -350,3 +350,36 @@ def test_the_store_keeps_nothing_of_a_channel_whatever_the_path(tmp_path):
     s.chat("5551@s.whatsapp.net", name="Ann")
     assert [c["jid"] for c in s.chats()] == ["5551@s.whatsapp.net"]
     assert s.messages(ch, 10) == []
+
+
+def test_omitted_chat_metadata_and_lid_map_survive_migration(tmp_path):
+    import sqlite3
+    path = str(tmp_path / "legacy.db")
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE chats(jid TEXT PRIMARY KEY, name TEXT DEFAULT '', ts INTEGER DEFAULT 0, unread INTEGER DEFAULT 0, archived INTEGER DEFAULT 0, pinned INTEGER DEFAULT 0, muted INTEGER DEFAULT 0)")
+    conn.execute("INSERT INTO chats(jid, ts) VALUES ('old@s.whatsapp.net', 100)")
+    conn.commit()
+    conn.close()
+
+    s = Store(path)
+    assert s.chat_omitted_info(["old@s.whatsapp.net"]) is None
+    s.chats_in_batch([("111@lid", {"ts": 200, "omitted": 1, "account_lid": "111@lid"})])
+    assert s.chat_omitted_info(["5511999990001@s.whatsapp.net", "111@lid"]) == {
+        "chat": "111@lid",
+        "account_lid": "111@lid",
+    }
+    s.put_lid_mappings([
+        ("111@lid", "5511999990001@c.us"),
+        ("bad", "5511999990001@s.whatsapp.net"),
+    ])
+    assert s.phone_of_lid("111@lid") == "5511999990001@s.whatsapp.net"
+    assert s.lid_of_phone("5511999990001@c.us") == "111@lid"
+    assert s.phone_of_lid("missing@lid") == ""
+
+
+def test_contacts_in_batch_keep_pushname_does_not_replace_a_stored_nickname(tmp_path):
+    a = Store(str(tmp_path / "x.db"))
+    a.contacts_in_batch([("p1", "", "Novo")])
+    a.contacts_in_batch([("p1", "", "Velho"), ("p2", "", "Outro")], keep_pushname=True)
+    assert a.contact_of("p1")["pushname"] == "Novo"
+    assert a.contact_of("p2")["pushname"] == "Outro"

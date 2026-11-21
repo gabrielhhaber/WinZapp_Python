@@ -5,7 +5,8 @@ import threading
 import wx
 
 from core.call_log import list_update_plan
-from core.call_participants import connected_only, parse_participants, participant_rows
+from core.call_participants import (
+    connected_only, describe_rows, parse_participants, participant_rows)
 from core.call_roster import left_of, note_seen, user_of
 from ui.shortcut_bindings import make_shortcut_table
 
@@ -64,9 +65,14 @@ class ParticipantListMixin:
             seen = self._mw.__dict__.setdefault("_call_seen", {})
             mine = {user_of(j) for j in (getattr(self._mw, "my_jid", ""),
                                          getattr(self._mw, "my_lid", ""))} - {""}
+            # only who is connected: someone merely rung who drops off the
+            # list did not "leave the call"
             note_seen(seen, self._call_id,
-                      [(p["jid"], p["name"]) for p in data if not p["isSelf"]], mine)
-            left = left_of(seen, self._call_id, [p["jid"] for p in connected_only(data)])
+                      [(p["jid"], p["name"]) for p in connected_only(data) if not p["isSelf"]], mine)
+            # whoever the server still lists, in any state, has their own row
+            left = left_of(seen, self._call_id, [p["jid"] for p in data],
+                           getattr(self._mw, "_call_person", None))
+            logging.info("[call] participants: %s", describe_rows(data, left))
         rows = [] if data is None or failed else participant_rows(data, self._mw.i18n,
             lambda jid, hint: self._mw.chat_display_name({"remoteJid": jid, "name": hint}), left)
         self._apply_participant_rows(rows)

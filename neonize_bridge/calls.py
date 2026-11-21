@@ -7,7 +7,7 @@ session also has `call_media` (call_media.py, meowcaller): then `call/offer`,
 `call/ensure-ended`, `call/status` and `call/audio/enable` place, answer and
 carry voice and video calls, one-to-one or to a group. Without it (an older
 build) they answer 501, and so do video (without ffmpeg, or a DLL without
-neonize 0007) and group calls (a DLL without 0007), instead of pretending to
+neonize 0006) and group calls (a DLL without 0007), instead of pretending to
 have worked. `call/diagnostics` answers what the
 bridge knows of its call layer (`diagnostics`): WPPConnect's version reads the
 page's VoIP stack, which does not exist here.
@@ -29,6 +29,7 @@ from aiohttp import web
 
 import system_messages
 import msgmap
+import call_log_sync
 import ongoing_calls
 from redaction import redact
 from call_placement_errors import placement_failure
@@ -346,9 +347,19 @@ def record_finished(s, info, now):
     answered and hung up itself. record_end writes the ones that rang; a call
     already stored (same id) is left as it is. False if nothing was recorded."""
     outcome = finished_outcome(info)
-    if outcome is None or not info.get("id"):
+    if outcome is None or not info.get("id") or info.get("link"):
+        # a call-link call has no chat to file it in (call_links.py)
         return False
     outcome, duration = outcome
+    recorded = _file_finished(s, info, outcome, duration, now)
+    # after the local record: the phone's call history (call_log_sync) waits
+    # for WhatsApp's answer, the chat's record does not
+    call_log_sync.publish(s, info, outcome, duration)
+    return recorded
+
+
+def _file_finished(s, info, outcome, duration, now):
+    """record_finished's record in the chat: False if nothing was stored."""
     chat = msgmap.jid_whatsmeow(info["group"]) if info.get("group") else peer_chat(
         s.db, info.get("peer") or "", getattr(s, "_phone_of_lid", None))
     if not chat or chat.endswith("@broadcast"):
@@ -366,7 +377,7 @@ def record_finished(s, info, now):
     w = system_messages.call_record(
         call_id=info["id"], chat_w=msgmap.jid_wpp(chat), creator_w=creator,
         outcome=outcome, video=info.get("video"), ts=int(info["endedAt"] - duration),
-        duration=duration, from_me=outgoing)
+        duration=duration, from_me=outgoing, participants=info.get("participants") or ())
     return system_messages.store_and_emit(s, chat, w, now)
 
 
@@ -379,6 +390,8 @@ def record_end(s, e, data, was_ringing, now, answered=None):
     from the event. False if nothing was recorded."""
     if data.get("outgoing"):
         return False                    # the client records the calls it placed
+    if answered and answered.get("link"):
+        return False                    # a call link's call has no chat (call_links.py)
     here = answered_outcome(data, answered)
     if here is not None:
         outcome, duration, video = here
@@ -392,10 +405,12 @@ def record_end(s, e, data, was_ringing, now, answered=None):
     chat = call_chat(s.db, e.basicCallMeta, data["groupJid"])
     if not chat:
         return False
+    media = getattr(s, "call_media", None)
     w = system_messages.call_record(
         call_id=data["id"], chat_w=msgmap.jid_wpp(chat), creator_w=creator,
         outcome=outcome, video=data["isVideo"],
-        ts=data["timestamp"] or int(now), duration=data.get("callDuration", 0))
+        ts=data["timestamp"] or int(now), duration=data.get("callDuration", 0),
+        participants=media.participants_of(data["id"]) if media is not None else ())
     return system_messages.store_and_emit(s, chat, w, now)
 
 
@@ -601,8 +616,10 @@ def diagnostics(media, connected, ringing) -> dict:
 
 def capabilities(media) -> dict:
     """What this session's calls can do (send-capabilities, diagnostics)."""
+    links = getattr(media, "call_links_available", None)
     return {"video": media is not None and getattr(media, "video", None) is not None,
-            "groupCalls": media is not None and bool(getattr(media, "group_calls", False))}
+            "groupCalls": media is not None and bool(getattr(media, "group_calls", False)),
+            "callLinks": callable(links) and bool(links())}
 
 
 def register_routes(r, *, session, ok):

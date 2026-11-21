@@ -9,6 +9,7 @@ import logging
 import threading
 import time
 import wx
+from core import deleted_chats
 from core.jid_device import strip_device_suffix
 from core.pinned_chat_order import sync_pinned_order
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
@@ -43,6 +44,8 @@ class ChatActionsMixin:
         return local.split(":", 1)[0]
 
     def is_contact_blocked(self, jid: str) -> bool:
+        if isinstance(jid, str) and jid.endswith("@lid"):
+            jid = getattr(self, "_lid_to_phone", {}).get(jid, "")
         # getattr, not a bare attribute access: add_chats_to_ui() can render
         # a cached/offline chat list before prepare_sync() has reached the
         # point where it restores _blocked_contacts from the database (e.g.
@@ -75,6 +78,7 @@ class ChatActionsMixin:
         context = expected_context if expected_context is not None else capture_sync_context(self)
         if not sync_context_is_current(self, context):
             return
+        block_revision = getattr(self, "_block_state_revision", 0)
         url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/blocklist"
         headers = {
             "Authorization": f"Bearer {self.token}",
@@ -101,6 +105,8 @@ class ChatActionsMixin:
                     phone = ""
                 if phone:
                     digits_set.add(phone)
+            if block_revision != getattr(self, "_block_state_revision", 0):
+                return  # A live/optimistic block change superseded this request.
             if digits_set != self._blocked_contacts:
                 self._blocked_contacts = digits_set
                 if hasattr(self, "db") and self.db is not None:
@@ -121,6 +127,7 @@ class ChatActionsMixin:
         digits = self._bare_phone_digits(jid)
         if not digits:
             return
+        self._block_state_revision = getattr(self, "_block_state_revision", 0) + 1
         if blocked:
             self._blocked_contacts.add(digits)
         else:
@@ -543,6 +550,13 @@ class ChatActionsMixin:
 
     def is_chat_deleted(self, jid: str) -> bool:
         return jid in self._deleted_chats
+
+    def restore_deleted_chat(self, jid: str) -> bool:
+        """Lift the "deleted" mark of every form of *jid*'s person: a new
+        message, or the user opening the conversation again, brings it back
+        whichever form it was deleted under (core/deleted_chats.py). True when
+        a mark was lifted."""
+        return deleted_chats.restore(self, jid)
 
     def delete_chat_local(self, jid: str):
         self._forget_chat_lock(jid)

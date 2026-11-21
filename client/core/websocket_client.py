@@ -4,6 +4,17 @@ import logging
 import threading
 import time
 import socketio
+from core.poll_events import on_poll_response
+from core.remote_message_star import on_star_changed
+from core.remote_message_delete import on_message_deleted
+from core.remote_chat_settings import on_chat_settings
+from core.remote_chat_timer import on_chat_timer
+from core.remote_message_pin import on_message_pin
+from core.remote_chat_delete import on_chat_deleted
+from core.remote_contact_state import on_contact_state
+from core.remote_profile_picture import on_picture_changed
+from core.remote_block_state import on_block_state
+from core.remote_privacy_events import on_privacy_event
 from core.remote_chat_clear import apply_remote_clear, chat_cleared_payload
 import wx
 import requests
@@ -14,6 +25,7 @@ from core.call_log import CALL_LOG_MESSAGE_TYPE, call_log_creator, call_log_payl
 from core.business_buttons import business_buttons
 from core.channels import server_id_of
 from core.chat_contact_names import find_contact_key
+from core.profile_names import apply_profile_name
 from core.commerce import (
     ORDER_MESSAGE_TYPE, ORDER_UPDATE_MESSAGE_TYPE, PRODUCT_MESSAGE_TYPE, order_payload,
     order_update_payload, product_payload,
@@ -28,6 +40,7 @@ from core import channel_invites
 from core import events
 from core.sync_contracts import observe_payload
 from core.vcard_payload import contact_message_payload
+from core.wpp_message_time import GUESSED_TIMESTAMP, wpp_message_seconds, wpp_time_is_real
 from core.view_once import VIEW_ONCE_UNAVAILABLE_TYPE, is_view_once_unavailable
 from core.utils import looks_like_binary_blob, looks_like_jid, _slim_quoted_message, parse_bool_flag as _parse_bool_flag
 
@@ -358,6 +371,17 @@ class WebSocketClient:
         self.sio.on("chats-update", self.on_chats_update)
         self.sio.on("messages.update", self.on_messages_update)
         self.sio.on("onreactionmessage", self.on_wpp_reaction)
+        self.sio.on("onpollresponse", lambda data: on_poll_response(self, data))
+        self.sio.on("message-star-changed", lambda data: on_star_changed(self, data))
+        self.sio.on("message-deleted-for-me", lambda data: on_message_deleted(self, data))
+        self.sio.on("chat-settings-changed", lambda data: on_chat_settings(self, data))
+        self.sio.on("chat-timer-changed", lambda data: on_chat_timer(self, data))
+        self.sio.on("message-pin-changed", lambda data: on_message_pin(self, data))
+        self.sio.on("chat-deleted", lambda data: on_chat_deleted(self, data))
+        self.sio.on("contact-state-changed", lambda data: on_contact_state(self, data))
+        self.sio.on("profile-picture-changed", lambda data: on_picture_changed(self, data))
+        self.sio.on("block-state-changed", lambda data: on_block_state(self, data))
+        self.sio.on("privacy-settings-changed", lambda data: on_privacy_event(self, data))
         self.sio.on("media-upload-progress", self.on_media_upload_progress)
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)
@@ -380,6 +404,7 @@ class WebSocketClient:
         self.sio.on("chat-cleared", self.on_chat_cleared)
         self.sio.on("event-changed", self.on_event_changed)
         self.sio.on("call-participants", self.on_call_participants)
+        self.sio.on("onupdatelabel", self.on_wpp_label_update)
 
         # threading.Event used by on_continue() to wait for the phoneCode that
         # WPPConnect emits asynchronously via Socket.IO after /start-session.
@@ -1620,31 +1645,8 @@ class WebSocketClient:
             logging.exception("[WebSocketClient] on_messages_upsert error")
 
     def on_groups_update(self, info):
-        """
-        Handle group metadata updates from WPPConnect.
-        """
-        try:
-            if not isinstance(info, dict) or not self._belongs_to_this_session(info):
-                return
-            updates = info.get("data", [])
-            if not isinstance(updates, list):
-                updates = [updates]
-
-            for update in updates:
-                if not isinstance(update, dict):
-                    continue
-                jid = self._clean_jid(update.get("id") or update.get("remoteJid") or "")
-                subject = update.get("subject") or update.get("name") or ""
-
-                if jid.endswith("@g.us") and isinstance(subject, str) and subject.strip():
-                    remote_jid = self.main_window._normalize_jid(jid)
-                    wx.CallAfter(
-                        self.main_window.on_group_subject_updated,
-                        remote_jid,
-                        subject.strip(),
-                    )
-        except Exception:
-            logging.exception("[WebSocketClient] on_groups_update error")
+        from core.remote_group_events import on_groups_event
+        on_groups_event(self, info)
 
     def on_messages_update(self, info):
         """
@@ -1980,9 +1982,30 @@ class WebSocketClient:
                         except Exception:
                             pass
                     continue
-                if contact.get("pushName") and contact["pushName"] != existing.get("pushName"):
-                    existing["pushName"] = contact["pushName"]
-                    updated = True
+                if contact.get("pushName"):
+                    # Every address of the person at once, and `name` with it
+                    # unless an address book names them (core/profile_names.py).
+                    mw = self.main_window
+                    phone = jid if jid.endswith("@s.whatsapp.net") else getattr(mw, "_lid_to_phone", {}).get(jid, "")
+                    lid = jid if jid.endswith("@lid") else getattr(mw, "_phone_to_lid", {}).get(jid, "")
+                    aliases = [jid, phone, phone.rsplit("@", 1)[0] + "@c.us" if phone else "", lid]
+                    stamps = getattr(mw, "_pushname_stamps", None)
+                    if stamps is None:
+                        stamps = mw._pushname_stamps = {}
+                    if apply_profile_name(
+                            mw.contacts, getattr(mw, "_presence_pushname_map", {}), stamps,
+                            aliases, contact["pushName"], time.time(), authoritative=True,
+                            chats=getattr(mw, "chats", None)):
+                        updated = True
+                        repaint = getattr(mw, "_repaint_rows_for_name_change", None)
+                        if repaint is not None:
+                            repaint(aliases)
+                        for alias in aliases:
+                            if alias in mw.contacts and alias != jid and hasattr(mw, "db"):
+                                try:
+                                    mw.db.upsert_contact(alias, mw.contacts[alias])
+                                except Exception:
+                                    pass
                 if contact.get("profilePicUrl") and contact["profilePicUrl"] != existing.get("profilePicUrl"):
                     existing["profilePicUrl"] = contact["profilePicUrl"]
                     updated = True
@@ -2522,6 +2545,10 @@ class WebSocketClient:
         if people is not None:
             people.on_channels_changed(channel_id)
 
+    def on_wpp_label_update(self, data):
+        from core.remote_label_updates import on_label_update
+        on_label_update(self, data)
+
     def on_wpp_reaction(self, data):
         try:
             if not isinstance(data, dict) or not self._belongs_to_this_session(data):
@@ -2911,9 +2938,12 @@ class WebSocketClient:
                 remote_jid = self._clean_jid(to_jid if from_me else from_jid)
             status_participant = ""
 
-        ts = wpp_msg.get("timestamp") or wpp_msg.get("t", int(time.time()))
-        if ts > 1_000_000_000_000:
-            ts //= 1000
+        # A quote stand-in has no t (core/wpp_message_time.py): "now" is only
+        # the last resort, flagged so a sync keeps the time already stored.
+        ts = wpp_message_seconds(wpp_msg)
+        timestamp_guessed = not wpp_time_is_real(wpp_msg)
+        if ts is None:
+            ts = int(time.time())
 
         msg_type = wpp_msg.get("type", "chat")
         # Older Neonize builds stored these proto messages as "unknown" while
@@ -3341,6 +3371,8 @@ class WebSocketClient:
         # through on_new_message(), appending yesterday's rows as new arrivals.
         if "isMdHistoryMsg" in wpp_msg:
             normalized["isMdHistoryMsg"] = wpp_msg["isMdHistoryMsg"]
+        if timestamp_guessed:
+            normalized[GUESSED_TIMESTAMP] = True
 
         # WhatsApp Web's own record that the message was edited — without it the
         # "Editada" marker only ever existed locally and every sync erased it

@@ -1,0 +1,291 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: WinZapp <gabarrios2006@gmail.com>
+Date: Mon, 16 Nov 2026 11:16:52 -0300
+Subject: [PATCH] engine: adding someone to a one-to-one call names the device
+ that answered, and the device in the call does not ring again
+
+When a companion answered with an <accept> that carries no capability (meowcaller's own, and WhatsApp Web's), the invite roster kept the device of the last <preaccept>, usually the phone. The server then treated the companion really in the call as a device that had not answered: it received the group invite as a new offer, no PIDs and no group key, and this client keyed its group receiver to the phone, so every packet of the companion failed to unprotect.
+
+A <preaccept> that arrives after the answer (a phone woken by a push) no longer replaces the device that answered.
+
+onGroupOffer also replaced the live Call with a ringing one when that invite arrived for a call this device was already in, which rang it again and ended its audio. It now applies the invite as a group update.
+
+Validated: engine_invite_device_test.go (seven tests), go test . green.
+---
+ engine.go                    |  24 ++++++-
+ engine_invite_device.go      |  60 ++++++++++++++++
+ engine_invite_device_test.go | 136 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 218 insertions(+), 2 deletions(-)
+ create mode 100644 engine_invite_device.go
+ create mode 100644 engine_invite_device_test.go
+
+diff --git a/engine.go b/engine.go
+index a684888..d569823 100644
+--- a/engine.go
++++ b/engine.go
+@@ -73,6 +73,11 @@ type engineCall struct {
+ 	waitingRoomCancel context.CancelFunc
+ 	inviteSelfDevice  groupCallDevice
+ 	invitePeerDevice  groupCallDevice
++	// invitePeerDevices: what each of the peer's devices announced, by device
++	// number (engine_invite_device.go).
++	invitePeerDevices map[uint16]groupCallDevice
++	// invitePeerElected: a device answered, so invitePeerDevice is that one.
++	invitePeerElected bool
+ 
+ 	// The callee <accept> is deferred until the caller's <mute_v2> arrives.
+ 	acceptPending bool
+@@ -603,6 +608,20 @@ func (e *engine) onOffer(ev *events.CallOffer) {
+ 
+ func (e *engine) onGroupOffer(ev *events.CallOffer, update groupCallUpdate) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/33854919e64bdd4b053054ac9764d8fc63027b57/datasheets/voip-group-invite-accept.md#L28-L40
++	if e.heldHere(ev.CallID) {
++		// WinZapp: a one-to-one call somebody was added to reaches the device
++		// already in it as an offer-shaped group invite. It is this call's
++		// roster, not a new call: ringing it again replaced the live Call and
++		// cut its audio.
++		e.c.log.Info().
++			Str("call_id", ev.CallID).
++			Uint32("transaction_id", update.TransactionID).
++			Str("roster", describeGroupRoster(update)).
++			Str("relay", describeGroupRelay(update)).
++			Msg("group invite for the call this device is in; applied as a group update")
++		e.applyGroupUpdate(update)
++		return
++	}
+ 	peer := ev.CallCreator
+ 	if peer.IsEmpty() {
+ 		peer = ev.From
+@@ -890,7 +909,7 @@ func (e *engine) onPreAccept(ev *events.CallPreAccept) {
+ 	if device, ok := inviteDeviceCapability(ev.From, ev.Data); ok {
+ 		e.mu.Lock()
+ 		if current := e.calls[ev.CallID]; current != nil {
+-			current.invitePeerDevice = device
++			current.notePeerInviteDevice(device)
+ 		}
+ 		e.mu.Unlock()
+ 	}
+@@ -932,13 +951,14 @@ func (e *engine) onAccept(ev *events.CallAccept) {
+ 	answeringPeer := ev.From.String()
+ 	if current := e.calls[ev.CallID]; current != nil {
+ 		if device, ok := inviteDeviceCapability(ev.From, ev.Data); ok {
+-			current.invitePeerDevice = device
++			current.notePeerInviteDevice(device)
+ 		}
+ 		e.applyVoipSettingsCodec(current, ev.Data, ev.CallID)
+ 		if !ev.From.IsEmpty() {
+ 			current.from = ev.From
+ 			answeringPeer = preferQualifiedPeer(current.peerLID, ev.From)
+ 		}
++		current.electPeerInviteDevice(answeringPeer)
+ 		if answeringPeer != "" && answeringPeer != current.peerLID {
+ 			current.peerLID = answeringPeer
+ 			rekeyPeer = current.rekeyPeer
+diff --git a/engine_invite_device.go b/engine_invite_device.go
+new file mode 100644
+index 0000000..db2641f
+--- /dev/null
++++ b/engine_invite_device.go
+@@ -0,0 +1,60 @@
++package meowcaller
++
++import "go.mau.fi/whatsmeow/types"
++
++// WinZapp: which of the peer's devices a one-to-one call is with, for the
++// roster this client sends when it adds someone to the call
++// (groupInviteRoster). Every device that rings sends a <preaccept> with its
++// capability, the phone among them, and the last one used to be kept: when a
++// companion answered with an <accept> that carries no capability (meowcaller's
++// own does not), the roster named the phone as the connected device. The
++// server then treated the companion really in the call as a device that had
++// not answered: it was rung again and received neither PIDs nor the group key.
++
++// heldHere reports whether callID is a call this device is connecting to or in.
++func (e *engine) heldHere(callID string) bool {
++	e.mu.Lock()
++	defer e.mu.Unlock()
++	m := e.calls[callID]
++	if m == nil || m.call == nil {
++		return false
++	}
++	phase := m.call.State()
++	return phase == CallPhaseConnecting || phase == CallPhaseActive
++}
++
++// notePeerInviteDevice remembers the capability one of the peer's devices
++// announced. Until a device answers, the latest one stands for the peer; after
++// that only the device that answered does: a phone woken by a push preaccepts
++// seconds after a companion answered.
++func (m *engineCall) notePeerInviteDevice(device groupCallDevice) {
++	if m.invitePeerDevices == nil {
++		m.invitePeerDevices = make(map[uint16]groupCallDevice)
++	}
++	m.invitePeerDevices[device.JID.Device] = device
++	if m.invitePeerElected && device.JID.Device != m.invitePeerDevice.JID.Device {
++		return
++	}
++	m.invitePeerDevice = device
++}
++
++// electPeerInviteDevice makes the device that answered the peer's device in
++// the invite roster. The device number identifies it across addresses (number
++// or LID), as in dismissRungDevices. A device that announced nothing keeps the
++// capability known for the peer under its own number.
++func (m *engineCall) electPeerInviteDevice(answering string) {
++	answerer, err := types.ParseJID(answering)
++	if err != nil || (answerer.Server != types.HiddenUserServer && answerer.Server != types.DefaultUserServer) {
++		return
++	}
++	if known, ok := m.invitePeerDevices[answerer.Device]; ok {
++		m.invitePeerDevice = known
++		m.invitePeerElected = true
++		return
++	}
++	if m.invitePeerDevice.JID.IsEmpty() {
++		return
++	}
++	m.invitePeerDevice.JID.Device = answerer.Device
++	m.invitePeerElected = true
++}
+diff --git a/engine_invite_device_test.go b/engine_invite_device_test.go
+new file mode 100644
+index 0000000..b3f94ea
+--- /dev/null
++++ b/engine_invite_device_test.go
+@@ -0,0 +1,136 @@
++package meowcaller
++
++import (
++	"testing"
++
++	"github.com/rs/zerolog"
++	waBinary "go.mau.fi/whatsmeow/binary"
++	"go.mau.fi/whatsmeow/types"
++	"go.mau.fi/whatsmeow/types/events"
++)
++
++func capabilityNode(tag string) *waBinary.Node {
++	return &waBinary.Node{Tag: tag, Content: []waBinary.Node{{
++		Tag: "capability", Attrs: waBinary.Attrs{"ver": "1"}, Content: []byte{1, 5, 0xf7},
++	}}}
++}
++
++func preacceptFrom(eng *engine, from types.JID) {
++	eng.onPreAccept(&events.CallPreAccept{
++		BasicCallMeta: types.BasicCallMeta{CallID: "CID", From: from},
++		Data:          capabilityNode("preaccept"),
++	})
++}
++
++// The companion (7) rings and preaccepts first, the phone (0) after it; the
++// companion answers with an <accept> that has no capability.
++func TestTheInviteRosterNamesTheDeviceThatAnswered(t *testing.T) {
++	eng, _ := rungEngine(t)
++	preacceptFrom(eng, onDevice(7))
++	preacceptFrom(eng, onDevice(0))
++
++	acceptFrom(eng, onDevice(7))
++
++	got := eng.calls["CID"].invitePeerDevice
++	if got.JID != onDevice(7) || len(got.Capability) == 0 {
++		t.Fatalf("invite peer device = %v, want device 7 with its capability", got.JID)
++	}
++}
++
++func TestThePhoneThatAnswersIsNamedEvenAfterACompanionPreaccept(t *testing.T) {
++	eng, _ := rungEngine(t)
++	preacceptFrom(eng, onDevice(0))
++	preacceptFrom(eng, onDevice(7))
++
++	acceptFrom(eng, onDevice(0))
++
++	if got := eng.calls["CID"].invitePeerDevice.JID; got != onDevice(0) {
++		t.Fatalf("invite peer device = %v, want the phone", got)
++	}
++}
++
++func TestAnAnswererThatAnnouncedNothingKeepsThePeerCapability(t *testing.T) {
++	eng, _ := rungEngine(t)
++	preacceptFrom(eng, onDevice(0))
++
++	acceptFrom(eng, onDevice(7))
++
++	got := eng.calls["CID"].invitePeerDevice
++	if got.JID.Device != 7 || len(got.Capability) == 0 {
++		t.Fatalf("invite peer device = %v (capability %d bytes), want device 7 with a capability",
++			got.JID, len(got.Capability))
++	}
++}
++
++// The companion (7) answers and the phone (0), woken late, preaccepts after it.
++func TestAPreacceptAfterTheAnswerDoesNotReplaceTheDeviceThatAnswered(t *testing.T) {
++	eng, _ := rungEngine(t)
++	preacceptFrom(eng, onDevice(7))
++	acceptFrom(eng, onDevice(7))
++
++	preacceptFrom(eng, onDevice(0))
++
++	if got := eng.calls["CID"].invitePeerDevice.JID; got != onDevice(7) {
++		t.Fatalf("invite peer device = %v, want the device that answered (7)", got)
++	}
++}
++
++// The same, when the device that answered had announced nothing itself.
++func TestALatePreacceptDoesNotReplaceAnAnswererThatAnnouncedNothing(t *testing.T) {
++	eng, _ := rungEngine(t)
++	preacceptFrom(eng, onDevice(0))
++	acceptFrom(eng, onDevice(7))
++
++	preacceptFrom(eng, onDevice(2))
++
++	if got := eng.calls["CID"].invitePeerDevice.JID; got != onDevice(7) {
++		t.Fatalf("invite peer device = %v, want the device that answered (7)", got)
++	}
++}
++
++func TestAnAcceptWithItsOwnCapabilityIsStillUsed(t *testing.T) {
++	eng, _ := rungEngine(t)
++	preacceptFrom(eng, onDevice(0))
++
++	eng.onAccept(&events.CallAccept{
++		BasicCallMeta: types.BasicCallMeta{CallID: "CID", From: onDevice(2)},
++		Data:          capabilityNode("accept"),
++	})
++
++	if got := eng.calls["CID"].invitePeerDevice.JID; got != onDevice(2) {
++		t.Fatalf("invite peer device = %v, want device 2", got)
++	}
++}
++
++// Somebody is added to a one-to-one call: the device already in it receives an
++// offer-shaped group invite with the same call id.
++func TestAGroupInviteForTheCallHeldHereDoesNotRingAgain(t *testing.T) {
++	eng, call := testEngineWithOutgoingCall()
++	eng.c.log = zerolog.Nop()
++	call.setPhase(CallPhaseActive)
++	rang := 0
++	eng.c.onIncomingCall = func(*Call) { rang++ }
++
++	eng.onGroupOffer(&events.CallOffer{
++		BasicCallMeta: types.BasicCallMeta{CallID: "CID", From: peerJID(), CallCreator: creatorJID()},
++		Data:          &waBinary.Node{Tag: "offer"},
++	}, groupCallUpdate{CallID: "CID", TransactionID: 12, Participants: []groupCallParticipant{
++		{JID: creatorJID().ToNonAD(), State: "connected"},
++		{JID: peerJID().ToNonAD(), State: "connected"},
++		{JID: types.NewJID("777", types.HiddenUserServer), State: "outgoing"},
++	}})
++
++	m := eng.calls["CID"]
++	if rang != 0 {
++		t.Fatal("the call this device is in rang again")
++	}
++	if m.call != call || call.State() != CallPhaseActive {
++		t.Fatalf("the live call was replaced (phase %v)", m.call.State())
++	}
++	if !m.group || m.groupUpdate == nil || len(m.groupUpdate.Participants) != 3 {
++		t.Fatal("the invite's roster was not applied to the call")
++	}
++	if state, ok := call.GroupState(); !ok || len(state.Participants) != 3 {
++		t.Fatal("the call does not report the group roster")
++	}
++}

@@ -4,16 +4,10 @@ talks to the bridge as if it were WPPConnect Server.
 
 What neonize allows: WRITING to the app state (`send_app_state` with a
 PatchInfo, the same one whatsmeow builds in BuildLabelEdit / BuildLabelChat).
-What it does NOT allow: READING. neonize does not forward whatsmeow's
-LabelEdit / LabelAssociationChat events, so the bridge does not know which
-labels already exist on the account nor on which chats they are. Therefore:
-
-- `get-all-labels` lists only the labels created by this bridge (kept in
-  `labels.json` in the session folder); the ones created on the phone do not
-  show up;
-- the bridge's labels use ids from 1000 up, so they never overwrite a label of
-  the phone (the phone numbers 1, 2, 3...);
-- `delete-all-labels` deletes only the labels the bridge knows.
+WinZapp's build also exposes app state mutations. label_events.registry reads
+their existing mirror; labels.json remains the fallback on older builds and
+before the first complete regular sync. Phone edits and associations therefore
+reach both the label routes and onupdatelabel with the same state.
 
 The pure functions are at the top (tested in test_labels.py); `register_routes`
 wires the routes to the server.
@@ -170,7 +164,20 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
         return int(time.time() * 1000)
 
     async def send(s, mutations):
-        await execute(s.client.send_app_state, build_patch(mutations))
+        import app_state_mirror
+        patch = build_patch(mutations)
+        await execute(app_state_mirror.send, s, "regular", [
+            (list(m.Index), m.Version, m.Value, False) for m in patch.Mutations])
+
+    def current(s):
+        from label_events import registry
+        return registry(s)
+
+    def visible(s):
+        # Writes keep the full registry (a new id must not reuse a list's id);
+        # reads and deletions never reach the account's chat lists.
+        from label_events import business_labels
+        return business_labels(current(s))
 
     async def add_new_label(req):
         s = session(req)
@@ -181,7 +188,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
         if not name:
             return error("name is required", 400)
         async with lock:
-            labels = load(s.folder)
+            labels = current(s)
             fresh = create(labels, name, body.get("options"))
             try:
                 await send(s, [edit_mutation(
@@ -210,7 +217,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
             except Exception as e:
                 log.exception("add-or-remove-label")
                 return error(e)
-            labels = load(s.folder)
+            labels = current(s)
             for j in jids:
                 for i, attach in requests:
                     apply(labels, i, j, attach)
@@ -220,11 +227,11 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
 
     async def get_all_labels(req):
         s = session(req)
-        return ok(status="success", response=list_to_wpp(load(s.folder)))
+        return ok(status="success", response=list_to_wpp(visible(s)))
 
     async def delete(s, ids):
         async with lock:
-            labels = load(s.folder)
+            labels = current(s)
             now = now_ms()
             await send(s, [edit_mutation(
                 i, labels.get(i, {}).get("name", ""),
@@ -238,6 +245,8 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
         if not connected(s):
             return error("Disconnected", 400)
         label_id = req.match_info["id"]
+        if label_id not in visible(s):
+            return error("label not found", 404)
         try:
             await delete(s, [label_id])
         except Exception as e:
@@ -251,7 +260,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text):
             return error("Disconnected", 400)
         try:
             async with lock:
-                ids = list(load(s.folder))
+                ids = list(visible(s))
             if ids:
                 await delete(s, ids)
         except Exception as e:

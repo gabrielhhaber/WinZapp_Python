@@ -521,6 +521,23 @@ def test_record_finished_files_the_call_placed_here_as_mine(monkeypatch):
     assert (w["callOutcome"], w["callDuration"], w["isVideoCall"]) == ("Completed", 100, True)
 
 
+def test_record_finished_tells_the_phone_after_filing_the_call(monkeypatch):
+    order = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: order.append("chat") or True)
+    monkeypatch.setattr(calls.call_log_sync, "publish",
+                        lambda s, info, outcome, duration: order.append(
+                            ("phone", outcome, duration)) or False)
+    s = N(me="5599@s.whatsapp.net", lid="7@lid", db=N(chat_exists=lambda jid: True))
+    assert calls.record_finished(s, finished(outgoing=True, activeAt=900.0), 1000)
+    assert order == ["chat", ("phone", "Completed", 100)]
+    # nothing filed in a chat (a broadcast peer): the phone still gets its record
+    order.clear()
+    assert not calls.record_finished(
+        s, finished(outgoing=True, activeAt=900.0, peer="status@broadcast"), 1000)
+    assert order == [("phone", "Completed", 100)]
+
+
 def test_record_finished_files_a_group_call_in_the_group(monkeypatch):
     stored = []
     monkeypatch.setattr(calls.system_messages, "store_and_emit",
@@ -643,3 +660,30 @@ def test_a_duplicate_offer_does_not_shorten_a_confirmed_remote_call():
     pending.remember_remote_call("phone", 1000)
     pending.remember_remote_call("phone", 1001, calls.RING_LIMIT)
     assert pending.is_busy_elsewhere("second", 1001 + calls.RING_LIMIT)
+def test_a_call_that_became_a_group_call_is_filed_with_its_people(monkeypatch):
+    """Both layers that file a call record name the people a group roster of
+    the call listed, as WhatsApp Web's callParticipants ([{participant}])."""
+    stored = []
+    monkeypatch.setattr(calls.system_messages, "store_and_emit",
+                        lambda s, chat, w, now: stored.append(w) or True)
+    monkeypatch.setattr(calls.call_log_sync, "publish", lambda *a: False)
+    s = N(me="5599@s.whatsapp.net", lid="", db=N(chat_exists=lambda jid: True))
+    people = ["5599@s.whatsapp.net", "5511@s.whatsapp.net", "7@lid"]
+    assert calls.record_finished(
+        s, finished(outgoing=True, activeAt=900.0, participants=people), 1000)
+    assert stored[0]["callParticipants"] == [
+        {"participant": "5599@c.us"}, {"participant": "5511@c.us"}, {"participant": "7@lid"}]
+
+    monkeypatch.setattr(calls, "call_chat", lambda db, meta, group: "5511@s.whatsapp.net")
+    s.call_media = N(participants_of=lambda call_id: people if call_id == "C1" else [])
+    assert calls.record_end(s, N(basicCallMeta=None), ended(), True, 1000,
+                            {"at": 640.0, "video": False})
+    assert [p["participant"] for p in stored[1]["callParticipants"]] == [
+        "5599@c.us", "5511@c.us", "7@lid"]
+
+
+def test_a_plain_call_record_lists_no_participants():
+    w = calls.system_messages.call_record(
+        call_id="C1", chat_w="5511@c.us", creator_w="5511@c.us", outcome="Missed",
+        video=False, ts=1)
+    assert "callParticipants" not in w

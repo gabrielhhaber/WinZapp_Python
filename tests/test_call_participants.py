@@ -363,3 +363,13 @@ def test_someone_out_of_the_call_is_not_shown_as_ringing():
         {"jid": "1@lid", "name": "Ana", "isSelf": False}), "C1")
     rows = participant_rows(data, _Words(), lambda jid, hint: hint)
     assert [text for _key, text in rows] == ["Ana", "Caio, chamando", "Dom, fora da chamada"]
+
+
+def test_the_logged_summary_of_an_answer_names_nobody():
+    from core.call_participants import describe_rows
+    data = [{"jid": "1@lid", "name": "Ana", "isSelf": True, "state": "connected"},
+            {"jid": "5511@s.whatsapp.net", "name": "Bia", "isSelf": False, "state": "connected"},
+            {"jid": "3@lid", "name": "Caio", "isSelf": False, "state": "invited"}]
+    text = describe_rows(data, left=[("4@lid", "Duda")])
+    assert text == "connected=2 invited=1 by_lid=2 by_number=1 left_rows=1"
+    assert describe_rows([]) == "none by_lid=0 by_number=0 left_rows=0"

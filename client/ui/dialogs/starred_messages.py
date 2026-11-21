@@ -13,6 +13,7 @@ import logging
 
 import wx
 
+from core.conversation_view import conversation_in_view
 from core.starred_list import StarredEntry, matching, row_text, without
 from ui.dialogs.background_work import BackgroundWork
 from ui.dialogs.labelled_control import add_labelled
@@ -21,8 +22,9 @@ from ui.dialogs.labelled_control import add_labelled
 LIMIT = 2000
 
 
-def entry_for(mw, jid, msg) -> StarredEntry:
-    """The row of one starred message, in the words the conversation uses."""
+def entry_for(mw, jid, msg, in_chat=False) -> StarredEntry:
+    """The row of one starred message, in the words the conversation uses;
+    without the chat's name in the window of that one chat (*in_chat*)."""
     panel = getattr(mw, "conversations_panel", None)
     key = msg.get("key") or {}
     sender = ""
@@ -37,15 +39,24 @@ def entry_for(mw, jid, msg) -> StarredEntry:
         logging.exception("[starred] message text")
         text = ""
     when = panel._format_date(msg.get("messageTimestamp")) if panel is not None else ""
-    return StarredEntry(jid, msg, row_text(mw.i18n, mw.chat_display_name(jid), sender, text, when))
+    chat = "" if in_chat else mw.chat_display_name(jid)
+    return StarredEntry(jid, msg, row_text(mw.i18n, chat, sender, text, when))
 
 
-def entries_for(mw, rows):
+def entries_for(mw, rows, in_chat=False):
     """The rows of (jid, message) the window lists: a chat the vault hides
     while it is closed is left out (its name and text, and that the vault
     exists, would be read with no PIN asked)."""
     hidden = getattr(mw, "is_chat_hidden_by_vault", lambda _jid: False)
-    return [entry_for(mw, jid, msg) for jid, msg in rows if not hidden(jid)]
+    return [entry_for(mw, jid, msg, in_chat) for jid, msg in rows if not hidden(jid)]
+
+
+def chat_forms(mw, jid):
+    """Every address of the chat whose starred messages are listed (phone and
+    @lid); None for every chat."""
+    if not jid:
+        return None
+    return list(getattr(mw, "_jid_address_forms", lambda value: (value,))(jid)) or [jid]
 
 
 class StarredMessagesDialog(BackgroundWork, wx.Dialog):
@@ -55,7 +66,7 @@ class StarredMessagesDialog(BackgroundWork, wx.Dialog):
         self._entries, self._shown = [], []
         self._loaded = False
         self.result = None
-        super().__init__(parent, title=i18n.t("starred_title"), size=(640, 560),
+        super().__init__(parent, title=main_window.i18n.t("starred_title"), size=(640, 560),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self._search = add_labelled(self, sizer, i18n.t("starred_search"),
@@ -192,6 +203,14 @@ def show_starred_messages(mw, parent):
         dialog.Destroy()
     open_starred_message(mw, entry)
     return True
+
+
+def jump_in_view(mw, entry):
+    """From the window of the conversation on screen: the message, with no
+    navigation (reopening the chat it is already reading would move the
+    focus away first). Not when the conversation was closed meanwhile."""
+    panel = getattr(mw, "conversations_panel", None)
+    return conversation_in_view(panel) and jump_when_open(mw, entry)
 
 
 def open_starred_message(mw, entry):

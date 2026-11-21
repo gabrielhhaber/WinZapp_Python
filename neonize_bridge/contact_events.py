@@ -14,18 +14,20 @@ key), and the photo only goes with the URL.
 Sources in neonize 0.5.2 (what the proto descriptor confirms):
 - `PictureEv` (JID, Author, Timestamp, Remove) only says the photo changed, it
   does not bring the URL; that comes from `get_profile_picture` on a thread,
-  outside the handler (it is a network call). A removed photo is not emitted:
-  the client ignores an empty URL.
+  outside the handler (it is a network call). Every valid person/group picture
+  notice also emits `profile-picture-changed`, including removal, so an old URL
+  is invalidated without guessing a new one or fetching an image in the handler.
 - The name comes from the `Info.Pushname` of each received message
   (`announce_name`, which server.py's `MessageEv` handler calls: neonize keeps a
   single handler per event, so another cannot be registered here) and from the
   history package.
-- The address book's names (stored, not emitted: the client reads them from
-  `all-contacts` on its next sync) come from WinZapp's neonize build:
-  `ContactUpdateEv` for a contact saved, renamed or removed on the phone, and
+- The address book's names come from WinZapp's neonize build and are now
+  forwarded through `contact-state-changed` after storage:
+  `ContactSyncEv` for a contact saved, renamed or removed on the phone, and
   `AppStateSyncCompleteEv` for the bulk of them right after pairing, which
-  reloads neonize's contact store. `PushNameUpdateEv` keeps a nickname under
-  both forms of the JID.
+  reloads neonize's contact store. `PushNameEv` keeps a nickname under
+  both forms of the JID and emits a separate profile observation, without
+  marking it as a saved contact.
 
 Each fact is only emitted when it changes from the last one emitted
 (`Announced`, in RAM): the bridge's store already keeps the names and is not
@@ -35,7 +37,10 @@ Nothing here was proven against a real account. No JID or name goes to the log.
 import logging
 import threading
 
+import about_cache
 import msgmap
+import contact_state_events
+import profile_picture_events
 from profile_privacy import photo_to_wpp, no_photo
 
 log = logging.getLogger("bridge")
@@ -200,15 +205,16 @@ def register_events(cli, s):
     `s.name`, `s.emit`, `s.db` and `s.reload_names`) and creates
     `s.announced_contacts`, which `announce_name` uses. Called on neonize's thread.
 
-    ContactUpdateEv, PushNameUpdateEv and AppStateSyncCompleteEv come from
-    WinZapp's neonize build (neonize_patches/): an older build lacks them, and
-    the bridge then relies on Session.reload_names() alone."""
+    ContactSyncEv, PushNameEv and AppStateSyncCompleteEv are neonize's own events
+    since 0.12 (WinZapp's earlier build added them as ContactUpdateEv and
+    PushNameUpdateEv): a build without them leaves the bridge relying on
+    Session.reload_names() alone."""
     import neonize.events as nev
 
     s.announced_contacts = Announced()
 
-    if hasattr(nev, "ContactUpdateEv"):
-        @cli.event(nev.ContactUpdateEv)
+    if hasattr(nev, "ContactSyncEv"):
+        @cli.event(nev.ContactSyncEv)
         def _address_book(c, e):
             # saved, renamed or removed on the phone; a full sync's contacts do not
             # come this way (AppStateSyncCompleteEv below)
@@ -216,8 +222,8 @@ def register_events(cli, s):
                 if not is_person(e.JID):
                     return
                 name = saved_name(e.Action)
-                s.db.set_contact_name(_text(e.JID), name)
-                log.info("contact: address book entry %s", "saved" if name else "removed")
+                if contact_state_events.address_book(s, e, name, _text(e.JID)):
+                    log.info("contact: address book entry %s", "saved" if name else "removed")
             except Exception:
                 log.exception("address book changed")
 
@@ -225,7 +231,7 @@ def register_events(cli, s):
         @cli.event(nev.AppStateSyncCompleteEv)
         def _state_synced(c, e):
             # right after pairing the names land in neonize's store in bulk, with
-            # no ContactUpdateEv: this is when they are there to read
+            # no ContactSyncEv: this is when they are there to read
             try:
                 if address_book_synced(e.Name):
                     _in_background(_reload_names_safely, s)
@@ -236,23 +242,63 @@ def register_events(cli, s):
             except Exception:
                 log.exception("app state synced")
 
-    if hasattr(nev, "PushNameUpdateEv"):
-        @cli.event(nev.PushNameUpdateEv)
+    if hasattr(nev, "PushNameEv"):
+        @cli.event(nev.PushNameEv)
         def _nickname(c, e):
             # MessageEv already stores and announces the nickname under the sender;
             # this keeps it under the other form of the JID too (number <-> LID)
             try:
                 name = clean_name(e.NewPushName)
+                if name and is_person(getattr(e, "JID", None)):
+                    contact_state_events.profile(s, _text(e.JID), name)
                 if name and e.HasField("JIDAlt") and is_person(e.JIDAlt):
                     s.db.contact(_text(e.JIDAlt), pushname=name)
             except Exception:
                 log.exception("nickname changed")
 
+    if hasattr(nev, "UserAboutEv"):
+        @cli.event(nev.UserAboutEv)
+        def _about(c, e):
+            # neonize 0.12: someone's about changed. The cached one (kept for
+            # hours so that naming people does not query the server) is now old.
+            try:
+                if is_person(e.JID):
+                    about_cache.cache_of(s).remember(_text(e.JID), e.Status)
+            except Exception:
+                log.exception("about changed")
+
     @cli.event(nev.PictureEv)
     def _photo(c, e):
         try:
+            profile_picture_events.changed(s, _text(e.JID))
             if e.Remove or not is_person(e.JID):
                 return
             _in_background(_announce_photo_safely, c, s, e.JID)
         except Exception:
             log.exception("photo changed")
+
+
+def other_form(c, jid) -> str:
+    """The same person's other address ('' when whatsmeow does not know it):
+    the number of a `@lid`, the `@lid` of a number."""
+    try:
+        if getattr(jid, "Server", "") == "lid":
+            return _text(c.get_pn_from_lid(jid))
+        lookup = getattr(c, "get_lid_from_pn", None)
+        return _text(lookup(jid)) if lookup else ""
+    except Exception:
+        return ""
+
+
+def store_nickname(c, s, jid, name) -> None:
+    """Stores the nickname a message carried under BOTH addresses of its sender.
+    Under one only, the other kept the previous nickname, and the contact list
+    (one row per address) brought both back at the next start: the person's old
+    and new names alternated in the client."""
+    name = clean_name(name)
+    if not name or not is_person(jid):
+        return
+    s.db.contact(_text(jid), pushname=name)
+    other = other_form(c, jid)
+    if other:
+        s.db.contact(other, pushname=name)

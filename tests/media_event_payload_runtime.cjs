@@ -9,8 +9,10 @@ const read = path => stripTypeScriptTypes(fs.readFileSync(path, 'utf8'),
   .replace(/^export default /gm, '').replace(/^export /gm, '');
 const listeners = {}, emitted = [], posts = [];
 let downloads = 0;
+const via = [];
 const client = {session: 'synthetic', config: {},
-  decryptFile: async () => { downloads++; return Buffer.from('synthetic media'); },
+  decryptFile: async () => { downloads++; via.push('decryptFile'); return Buffer.from('synthetic media'); },
+  downloadMedia: async () => { downloads++; via.push('downloadMedia'); return 'data:application/pdf;base64,' + Buffer.from('synthetic media').toString('base64'); },
   onMessage: async fn => {listeners.message = fn;},
   onAnyMessage: async fn => {listeners.any = fn;},
   onMessageEdit: async () => {}, onIncomingCall: async () => {}};
@@ -34,9 +36,10 @@ vm.runInContext(read(process.argv[2]) + '\n' + read(process.argv[3]) +
   const message = {id: 'synthetic', type: 'document', mimetype: 'application/pdf',
     size: 24 * 1024 * 1024, fromMe: !!input.fromMe, from: 'synthetic@lid',
     body: '', caption: 'synthetic document'};
+  if (input.clientUrl) message.clientUrl = 'https://media.invalid/file';
   await listeners.any(message);
   if (!message.fromMe) await listeners.message(message);
   // callWebHook is deliberately fire-and-forget in the listener.
   await new Promise(resolve => setImmediate(resolve));
-  console.log(JSON.stringify({downloads, posts, emitted}));
+  console.log(JSON.stringify({downloads, via, posts, emitted}));
 })().catch(error => {console.error(error); process.exitCode = 1;});

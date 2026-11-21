@@ -71,6 +71,8 @@ SHORTCUTS = (
     Shortcut('messages.ID_SUMMARIZE_UNREAD', 'messages', 'ID_SUMMARIZE_UNREAD', 'shortcut_summarize_unread_label', 6, 85, 0),
     Shortcut('messages.ID_SUMMARIZE_FROM_HERE', 'messages', 'ID_SUMMARIZE_FROM_HERE', 'shortcut_summarize_from_here_label', 5, 73, 0),
     Shortcut('messages.ID_SUMMARIZE_SELECTED', 'messages', 'ID_SUMMARIZE_SELECTED', 'shortcut_summarize_selected_label', 7, 73, 0),
+    Shortcut('messages.ID_TRANSLATE_FROM_HERE', 'messages', 'ID_TRANSLATE_FROM_HERE', 'shortcut_translate_from_here_label', 5, 89, 0),
+    Shortcut('messages.ID_TRANSLATE_SELECTED', 'messages', 'ID_TRANSLATE_SELECTED', 'shortcut_translate_selected_label', 7, 89, 0),
     Shortcut('messages.ID_CTRL_R', 'messages', 'ID_CTRL_R', 'shortcut_ctrl_r_label', 2, 82, 0),
     Shortcut('main.ID_ALT_2', 'messages', 'ID_ALT_2', 'shortcut_alt2_label', 1, 50, 0),
     Shortcut('messages.ID_ESC', 'messages', 'ID_ESC', 'shortcut_esc_ctrl_w_label', 0, 27, 0),
@@ -283,6 +285,10 @@ SHORTCUTS = (
     Shortcut('emoji.queue', 'emoji', 'queue', 'emoji_picker_insert', 2, 13, 0),
     Shortcut('emoji.previous_tone', 'emoji', 'previous_tone', 'shortcut_previous_tone', 0, 314, 0),
     Shortcut('emoji.next_tone', 'emoji', 'next_tone', 'shortcut_next_tone', 0, 316, 0),
+    # The lists whose order the user sets (AI providers, the options of a new
+    # poll): one preference for both, next to their Move up / Move down buttons.
+    Shortcut('reorder.move_up', 'reorder', 'move_up', 'shortcut_reorder_up_label', 1, 315, 0),
+    Shortcut('reorder.move_down', 'reorder', 'move_down', 'shortcut_reorder_down_label', 1, 317, 0),
     Shortcut('links.open', 'links', 'open', 'open', 0, 13, 0),
     Shortcut('links.open_space', 'links', 'open_space', 'open', 0, 32, 0),
     Shortcut('links.copy', 'links', 'copy', 'copy_link', 2, 67, 0),

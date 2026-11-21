@@ -87,6 +87,8 @@ class MediaFilesMixin:
         # tick, and _sync_pending_document_gauge() restores a pending upload
         # when the conversation is (re)opened. See _transfer_owns_gauge().
         self._buttons_container.Hide()
+        self._business_context = None
+        self._business_shown_msg = None
         self._contact_converse_btn.Hide()
         self._contact_save_btn.Hide()
         self._contact_msg_jid = None

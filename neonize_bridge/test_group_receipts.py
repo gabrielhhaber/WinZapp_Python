@@ -349,6 +349,9 @@ def session(tmp_path, monkeypatch):
         def __init__(self, *args, **kw):
             self.event = registry
 
+        def set_force_activate_delivery_receipts(self, active):
+            pass
+
         def connect(self):
             pass
     monkeypatch.setattr(neonize.client, "NewClient", FakeNewClient)

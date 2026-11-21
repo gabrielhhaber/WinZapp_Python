@@ -136,17 +136,38 @@ def state_event(call, *, state, event="state", now=None) -> dict:
     return {"id": call["id"], "peerJid": call["peer"], "state": state, "event": event,
             "mediaEpoch": epoch,
             "outgoing": call["outgoing"], "isVideo": bool(call.get("video")),
-            "isGroup": bool(group), "groupJid": group,
+            # a call-link call is a group call with no group and no peer
+            "isGroup": bool(group) or bool(call.get("link")), "groupJid": group,
+            "isCallLink": bool(call.get("link")),
             "observedAt": int(now if now is not None else time.time())}
 
 
-def finished_info(call, state, now) -> dict:
+def finished_info(call, state, now, participants=()) -> dict:
     """What the session needs to write the record of a call that ended: who and
     which way it went, the state it ended in, and when it became active (the
-    answer), so its duration is known."""
+    answer), so its duration is known, and when a call placed here was placed
+    (the start the phone's call history shows). `participants` are the people
+    its group roster ever listed (CallMedia.participants_of): a one-to-one call
+    that became a group call is named after them, as on the phone."""
     return {"id": call["id"], "peer": call.get("peer", ""), "outgoing": bool(call.get("outgoing")),
             "video": bool(call.get("video")), "group": call.get("group") or "",
-            "state": state, "activeAt": call.get("active_at"), "endedAt": now}
+            "state": state, "activeAt": call.get("active_at"), "endedAt": now,
+            "placedAt": call.get("placed_at"), "participants": list(participants or ()),
+            "link": bool(call.get("link"))}
+
+
+def roster_people(participants, known=()) -> list:
+    """`known` plus every person on a roster ([{jid, pn, state}]) it did not
+    have yet, in the order they appeared: everyone who was on the call's list,
+    whatever their state, as WhatsApp's own record keeps them."""
+    out = list(known or ())
+    for p in participants or ():
+        if not isinstance(p, dict):
+            continue
+        jid = ongoing_calls.person_jid(p)
+        if jid and jid not in out:
+            out.append(jid)
+    return out
 
 
 def roster_connected(participants, mine) -> tuple:
@@ -229,6 +250,10 @@ class CallMedia(CallIngressMixin):
         self.own_users = lambda: set()
         # call id -> the connected people last reported (report_rosters)
         self._reported_rosters = {}
+        # call id -> everyone a group roster of the call ever listed: outlives
+        # the call, so its call_log names them (calls.record_end and
+        # record_finished) whatever order the end reaches the two layers
+        self._participants = {}
         # called with the facts of each call that ended (finished_info), for
         # the session to write its call_log: WhatsApp Web writes no record of
         # a call this engine placed or hung up itself
@@ -387,7 +412,8 @@ class CallMedia(CallIngressMixin):
                 self._unowned_audio.report(force=True)
                 self.emit("callstate", {"session": self.name, "data": data})
                 try:
-                    self.on_finished(finished_info(call, state, time.time()))
+                    self.on_finished(finished_info(call, state, time.time(),
+                                                   self.participants_of(call_id)))
                 except Exception:
                     log.exception("call finished")
 
@@ -452,6 +478,7 @@ class CallMedia(CallIngressMixin):
             if not roster.get("group"):
                 continue                    # a private call: no roster to follow
             participants = roster.get("participants")
+            self._note_participants(call_id, participants)
             connected = roster_connected(participants, mine)
             seen = (connected, roster_states(participants))
             with self._lock:
@@ -897,7 +924,7 @@ class CallMedia(CallIngressMixin):
         with self._lock:
             self._audio_readers.pop(call_id, None)
             call = {"id": call_id, "peer": peer, "outgoing": True, "state": "",
-                    "video": bool(video), "group": group}
+                    "video": bool(video), "group": group, "placed_at": time.time()}
             if generation is not None:
                 call["native_generation"] = generation
             self._calls[call_id] = call
@@ -983,6 +1010,54 @@ class CallMedia(CallIngressMixin):
         self._ensure_audio(joined)
         return joined
 
+    # ------------------------------------------------------------ call links
+    def call_links_available(self):
+        """Whether this build creates call links and joins them (call_links.py)."""
+        if not callable(getattr(self.calls, "join_link", None)):
+            return False
+        built = getattr(sys.modules.get(type(self.calls).__module__), "call_links_available", None)
+        return built() if callable(built) else True
+
+    def create_link(self, video=False):
+        """{"link", "video"} of a new call link."""
+        return self.calls.create_link(video=video)
+
+    @_serialized
+    def join_link(self, link, video=False):
+        """Joins the call behind a call link: (its id, the layer's answer with
+        "waiting" and "admin"). Like joining an ongoing group call: the call
+        counts as answered here and its audio starts at once. It has no peer
+        and no group (call_links.py), and no chat records it."""
+        # meowcaller reads a link URL only as /audio/<token> or /video/<token>:
+        # WhatsApp's own /voice/<token> would be refused, so it gets the token
+        token = str(link).split("?")[0].rstrip("/").rsplit("/", 1)[-1]
+        answer = self.calls.join_link(token, video=video)
+        joined = str(answer["call"])
+        # The client binds its microphone and speaker to this epoch. The
+        # callstate event below can reach it before the join answer has
+        # given the call its id, and is then dropped as another call's, so the
+        # answer carries the epoch too (a call link joined that way heard
+        # nothing and was heard by no one).
+        epoch = uuid.uuid4().hex
+        answer = dict(answer, mediaEpoch=epoch)
+        with self._lock:
+            self._elsewhere.discard(joined)
+            self._calls[joined] = {"id": joined, "peer": "", "outgoing": False, "state": "",
+                                   "video": bool(video), "connected": True, "group": "",
+                                   "link": True, "media_epoch": epoch}
+        self._note_answered(joined)
+        # someone waiting for an admin is not in the call yet: meowcaller's
+        # phase 4 brings ACTIVE (and the start of its duration) on admission
+        self._set_state(joined, "CONNECTING" if answer.get("waiting") else "ACTIVE")
+        self._ensure_audio(joined)
+        return joined, answer
+
+    def waiting_room(self, call_id):
+        return self.calls.waiting_room(call_id)
+
+    def decide_waiting(self, call_id, user, admit):
+        return self.calls.decide_waiting(call_id, user, admit)
+
     def _answer_held_invite(self, call_id, chat, video):
         """A call another device of this account started is still held by
         meowcaller as the invite it received (calls.own_device_offer): a fresh
@@ -1004,15 +1079,30 @@ class CallMedia(CallIngressMixin):
         return False
 
     def answered_here(self, call_id):
-        """{"at", "video"} of a call this client answered, or None."""
+        """{"at", "video", "link"} of a call this client answered, or None
+        ("link": joined through a call link, which no chat records)."""
         with self._lock:
             found = self._answered.get(call_id)
             return dict(found) if found else None
 
+    def participants_of(self, call_id):
+        """Everyone the call's group roster listed while it ran (this account
+        included), or [] for a call that never had one."""
+        with self._lock:
+            return list(self._participants.get(call_id) or ())
+
+    def _note_participants(self, call_id, participants):
+        with self._lock:
+            known = self._participants.pop(call_id, ())
+            self._participants[call_id] = roster_people(participants, known)
+            while len(self._participants) > ANSWERED_KEPT:
+                self._participants.pop(next(iter(self._participants)))
+
     def _note_answered(self, call_id):
         with self._lock:
             call = self._calls.get(call_id) or {}
-            self._answered[call_id] = {"at": time.time(), "video": bool(call.get("video"))}
+            self._answered[call_id] = {"at": time.time(), "video": bool(call.get("video")),
+                                       "link": bool(call.get("link"))}
             while len(self._answered) > ANSWERED_KEPT:
                 self._answered.pop(next(iter(self._answered)))
 

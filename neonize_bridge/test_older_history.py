@@ -53,13 +53,6 @@ def test_only_the_clients_flag_says_the_user_asked():
         assert older_history.user_asked_of(body) is False
 
 
-def test_an_answer_with_only_stored_messages_brings_nothing_new():
-    rows = [("c", {"id": {"id": "A"}}), ("c", {"id": {"id": "B"}})]
-    assert older_history.brought_nothing_new(rows, lambda mid: True) is True
-    assert older_history.brought_nothing_new(rows, lambda mid: mid == "A") is False
-    assert older_history.brought_nothing_new([], lambda mid: False) is True
-
-
 @pytest.mark.parametrize("end", [None, 0])
 def test_a_chat_with_more_on_the_phone_may_be_asked(end):
     assert older_history.verdict(end, True) is None
@@ -103,11 +96,16 @@ class PhoneFake(Fake):
     def __init__(self):
         super().__init__()
         self.history_requests = []
+        self.peer_messages = []
 
     def request_history_sync(self, chat, message_id, from_me, timestamp, count):
         self.history_requests.append((f"{chat.User}@{chat.Server}", message_id, from_me,
                                       timestamp, count))
         return N(ID="PEER1")
+
+    def send_peer_message(self, message):
+        self.peer_messages.append(message)
+        return "PEER_OMIT"
 
 
 async def _open(tmp_path, sessions):
@@ -341,5 +339,67 @@ async def test_home_goes_on_until_the_phone_sends_nothing_new(tmp_path, sessions
         s.db.message(LID, _msg("M1", 100, LID))
         await http.post(f"/api/{token}/request-older-messages/{LID}")
         assert len(s.client.history_requests) == 2
+    finally:
+        await http.close()
+
+
+@pytest.mark.asyncio
+async def test_omitted_empty_chat_requests_initial_reverse_and_transitions_to_anchor(
+        tmp_path, sessions):
+    import omitted_history as oh
+    http, token, s = await _open(tmp_path, sessions)
+    try:
+        s.db.chat(LID, ts=500, omitted=1, account_lid=LID)
+        s.db.put_lid_mappings([(LID, PN)])
+        url = f"/api/{token}/request-older-messages/{PN}"
+        first = (await (await http.post(url)).json())["response"]
+        again = (await (await http.post(url)).json())["response"]
+        assert first == {"requested": True, "primaryHasMore": True, "phoneOnly": False}
+        assert again["requested"] is True
+        assert s.client.history_requests == []
+        assert len(s.client.peer_messages) == 1
+        req = s.client.peer_messages[0].protocolMessage.peerDataOperationRequestMessage
+        assert req.peerDataOperationRequestType == oh.PEER_OP_HISTORY_SYNC_ON_DEMAND
+        raw_req = req.historySyncOnDemandRequest.SerializeToString()
+        wire = {num: (wt, val) for num, wt, _raw, val in oh._iter_fields(raw_req)}
+        assert wire[oh.FIELD_ONDEMAND_MODE] == (0, 1)
+        assert wire[oh.FIELD_ONDEMAND_SUPPORT_INLINE] == (0, 1)
+        assert wire[oh.FIELD_ONDEMAND_ACCOUNT_LID] == (2, LID.encode("utf-8"))
+
+        emitted = []
+        s.emit = lambda ev, data: emitted.append((ev, data))
+        old = HistorySyncMsg()
+        old.message.key.ID, old.message.key.remoteJID = "M0", PN
+        old.message.messageTimestamp = 500
+        old.message.message.conversation = "Recovered older text"
+        s._store_history(HistorySync(syncType=HistorySync.ON_DEMAND, conversations=[
+            Conversation(ID=PN, messages=[old])]))
+        assert any(ev == "received-message" and d["response"]["id"]["id"] == "M0"
+                   and d["response"].get("isMdHistoryMsg") is True for ev, d in emitted)
+
+        # Now that M0 is stored, next ask uses normal message-anchored request_history_sync
+        await http.post(f"/api/{token}/request-older-messages/{LID}")
+        assert s.client.history_requests == [(LID, "M0", False, 500, older_history.PAGE)]
+    finally:
+        await http.close()
+
+
+@pytest.mark.asyncio
+async def test_omitted_empty_chat_marks_exhausted_when_empty_on_demand_arrives(
+        tmp_path, sessions):
+    http, token, s = await _open(tmp_path, sessions)
+    try:
+        s.db.chat(LID, ts=500, omitted=1, account_lid=LID)
+        s._store_history(HistorySync(syncType=HistorySync.ON_DEMAND, conversations=[
+            Conversation(ID=LID)]))
+        body = await (await http.post(f"/api/{token}/request-older-messages/{LID}")).json()
+        assert body["response"] == {"requested": False, "primaryHasMore": False, "phoneOnly": False}
+        assert s.client.peer_messages == []
+
+        s.db.chat("other@lid", ts=400, omitted=1, account_lid="other@lid")
+        s.client = Fake()
+        missing = await (await http.post(f"/api/{token}/request-older-messages/other@lid")).json()
+        assert missing["response"]["requested"] is False
+        assert "send_peer_message missing" in missing["response"]["error"]
     finally:
         await http.close()

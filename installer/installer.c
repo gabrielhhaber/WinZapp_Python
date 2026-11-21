@@ -15,8 +15,8 @@
 
 /* ── Localised UI strings ─────────────────────────────────────────────────
    The installer language follows the Windows display language, through the
-   one rule in lang.h: the app's seven languages, en-US for anything else.
-   Every table has the same 14 fields in the same order, and every "%s" sits
+   one rule in lang.h: the app's languages, en-US for anything else.
+   Every table has the same 17 fields in the same order, and every "%s" sits
    in the same field in all of them.                                       */
 
 typedef struct {
@@ -34,6 +34,9 @@ typedef struct {
     const wchar_t *done_title;     /* success message-box title       */
     const wchar_t *err_fmt;        /* error format string (%s)        */
     const wchar_t *err_title;      /* error message-box title         */
+    const wchar_t *sounds_group;   /* "Sounds to install" group box   */
+    const wchar_t *sounds_full;    /* the whole sound pack            */
+    const wchar_t *sounds_whatsapp;/* only WhatsApp's own sounds      */
 } UiStrings;
 
 static const UiStrings STR_PT_BR = {
@@ -51,6 +54,9 @@ static const UiStrings STR_PT_BR = {
     L"Instalação concluída",
     L"Ocorreu um erro durante a instalação:\n%s",
     L"Erro de instalação",
+    L"Sons a instalar",
+    L"Todos os sons do WinZapp",
+    L"Apenas os sons originais do WhatsApp",
 };
 
 static const UiStrings STR_PT_PT = {
@@ -68,6 +74,9 @@ static const UiStrings STR_PT_PT = {
     L"Instalação concluída",
     L"Ocorreu um erro durante a instalação:\n%s",
     L"Erro de instalação",
+    L"Sons a instalar",
+    L"Todos os sons do WinZapp",
+    L"Apenas os sons originais do WhatsApp",
 };
 
 static const UiStrings STR_PL = {
@@ -85,6 +94,9 @@ static const UiStrings STR_PL = {
     L"Instalacja ukończona",
     L"Podczas instalacji wystąpił błąd:\n%s",
     L"Błąd instalacji",
+    L"Dźwięki do zainstalowania",
+    L"Wszystkie dźwięki WinZapp",
+    L"Tylko oryginalne dźwięki WhatsApp",
 };
 
 static const UiStrings STR_RO = {
@@ -102,6 +114,9 @@ static const UiStrings STR_RO = {
     L"Instalare finalizată",
     L"A apărut o eroare în timpul instalării:\n%s",
     L"Eroare de instalare",
+    L"Sunete de instalat",
+    L"Toate sunetele WinZapp",
+    L"Doar sunetele originale WhatsApp",
 };
 
 static const UiStrings STR_TR = {
@@ -119,6 +134,9 @@ static const UiStrings STR_TR = {
     L"Kurulum tamamlandı",
     L"Kurulum sırasında bir hata oluştu:\n%s",
     L"Kurulum hatası",
+    L"Kurulacak sesler",
+    L"WinZapp'ın tüm sesleri",
+    L"Yalnızca WhatsApp'ın orijinal sesleri",
 };
 
 static const UiStrings STR_ES = {
@@ -136,6 +154,9 @@ static const UiStrings STR_ES = {
     L"Instalación completada",
     L"Se produjo un error durante la instalación:\n%s",
     L"Error de instalación",
+    L"Sonidos que se instalarán",
+    L"Todos los sonidos de WinZapp",
+    L"Solo los sonidos originales de WhatsApp",
 };
 
 static const UiStrings STR_AR = {
@@ -153,6 +174,9 @@ static const UiStrings STR_AR = {
     L"اكتمل التثبيت",
     L"حدث خطأ أثناء التثبيت:\n%s",
     L"خطأ في التثبيت",
+    L"الأصوات المراد تثبيتها",
+    L"جميع أصوات WinZapp",
+    L"أصوات WhatsApp الأصلية فقط",
 };
 
 static const UiStrings STR_EN = {
@@ -170,6 +194,9 @@ static const UiStrings STR_EN = {
     L"Installation complete",
     L"An error occurred during installation:\n%s",
     L"Installation error",
+    L"Sounds to install",
+    L"All of WinZapp's sounds",
+    L"Only the original WhatsApp sounds",
 };
 
 static const UiStrings STR_IT = {
@@ -187,6 +214,9 @@ static const UiStrings STR_IT = {
     L"Installazione completata",
     L"Si è verificato un errore durante l'installazione:\n%s",
     L"Errore di installazione",
+    L"Suoni da installare",
+    L"Tutti i suoni di WinZapp",
+    L"Solo i suoni originali di WhatsApp",
 };
 
 static const UiStrings *g_str = &STR_EN;
@@ -222,7 +252,87 @@ typedef struct {
     wchar_t  install_dir[MAX_PATH];
     BOOL     desktop_sc;
     BOOL     startmenu_sc;
+    BOOL     whatsapp_sounds;   /* only WhatsApp's own sounds (issue #769) */
 } InstallParams;
+
+/* ── Sounds to install ────────────────────────────────────────────────────
+   "Only the original WhatsApp sounds" keeps these files of sounds\default
+   and everything in its alerts folder; the other sounds are deleted once
+   extracted (whatever an earlier install left too, as the payload has them
+   all). INSTALLED_SOUNDS_MARKER says so to the app's updater, which leaves
+   the same sounds out of every update (client/core/sound_selection.py; its
+   test holds this list equal to that one). Files that are not sounds stay. */
+
+#define INSTALLED_SOUNDS_MARKER L"installed_sounds.txt"
+
+static const wchar_t *const WHATSAPP_SOUNDS[] = {
+    L"audio_transition_end.ogg",
+    L"audio_transition_next.ogg",
+    L"call_ended.ogg",
+    L"call_incoming.ogg",
+    L"message_background.ogg",
+    L"message_current.ogg",
+    NULL
+};
+
+static const wchar_t *const SOUND_EXTENSIONS[] = {
+    L".ogg", L".wav", L".mp3", L".flac", L".opus", L".m4a", NULL
+};
+
+/* relative: a path below sounds\default\, backslash-separated. */
+static BOOL keeps_whatsapp_sound(const wchar_t *relative)
+{
+    const wchar_t *dot = wcsrchr(relative, L'.');
+    BOOL audio = FALSE;
+    for (int i = 0; dot && SOUND_EXTENSIONS[i]; i++)
+        if (_wcsicmp(dot, SOUND_EXTENSIONS[i]) == 0) audio = TRUE;
+    if (!audio) return TRUE;
+    const wchar_t *slash = wcschr(relative, L'\\');
+    if (slash)
+        return slash - relative == 6 && _wcsnicmp(relative, L"alerts", 6) == 0;
+    for (int i = 0; WHATSAPP_SOUNDS[i]; i++)
+        if (_wcsicmp(relative, WHATSAPP_SOUNDS[i]) == 0) return TRUE;
+    return FALSE;
+}
+
+/* Deletes the extracted sounds the choice leaves out and drops them from the
+ * file list; writes the marker, or removes an earlier install's one. */
+static void apply_sound_choice(const wchar_t *install_dir, BOOL whatsapp_only,
+                               wchar_t ***files, int *count)
+{
+    wchar_t marker[MAX_PATH], prefix[MAX_PATH];
+    swprintf(marker, MAX_PATH, L"%s\\%s", install_dir, INSTALLED_SOUNDS_MARKER);
+    if (!whatsapp_only) {
+        DeleteFileW(marker);
+        return;
+    }
+    swprintf(prefix, MAX_PATH, L"%s\\sounds\\default\\", install_dir);
+    size_t plen = wcslen(prefix);
+    int kept = 0;
+    for (int i = 0; i < *count; i++) {
+        wchar_t *path = (*files)[i];
+        if (_wcsnicmp(path, prefix, plen) == 0 && !keeps_whatsapp_sound(path + plen)) {
+            DeleteFileW(path);
+            free(path);
+            continue;
+        }
+        (*files)[kept++] = path;
+    }
+    *count = kept;
+
+    HANDLE hf = CreateFileW(marker, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                            FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hf == INVALID_HANDLE_VALUE) return;
+    DWORD written;
+    WriteFile(hf, "whatsapp", 8, &written, NULL);
+    CloseHandle(hf);
+    /* listed, so the uninstaller removes it */
+    wchar_t **grown = (wchar_t **)realloc(*files, (size_t)(*count + 1) * sizeof(wchar_t *));
+    if (!grown) return;
+    *files = grown;
+    (*files)[*count] = _wcsdup(marker);
+    if ((*files)[*count]) (*count)++;
+}
 
 /* ── Extract all files from the ZIP payload ───────────────────────────────
    The ZIP parsing, inflating and path checks live in zipextract.c (shared
@@ -438,6 +548,8 @@ static DWORD WINAPI install_thread(LPVOID param)
         return 0;
     }
 
+    apply_sound_choice(p->install_dir, p->whatsapp_sounds, &files, &file_count);
+
     /* WinZapp.exe is at install_dir root (single onefile exe) */
     wchar_t exe_path[MAX_PATH];
     swprintf(exe_path, MAX_PATH, L"%s\\WinZapp.exe", p->install_dir);
@@ -509,6 +621,9 @@ static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPara
         SetDlgItemTextW(hDlg, IDC_BROWSE,       g_str->browse);
         SetDlgItemTextW(hDlg, IDC_DESKTOP_SC,   g_str->desktop_sc);
         SetDlgItemTextW(hDlg, IDC_STARTMENU_SC, g_str->startmenu_sc);
+        SetDlgItemTextW(hDlg, IDC_SOUNDS_GROUP,    g_str->sounds_group);
+        SetDlgItemTextW(hDlg, IDC_SOUNDS_FULL,     g_str->sounds_full);
+        SetDlgItemTextW(hDlg, IDC_SOUNDS_WHATSAPP, g_str->sounds_whatsapp);
         SetDlgItemTextW(hDlg, IDC_INSTALL,      g_str->install);
         SetDlgItemTextW(hDlg, IDC_CANCEL,       g_str->cancel);
 
@@ -521,6 +636,7 @@ static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPara
 
         CheckDlgButton(hDlg, IDC_DESKTOP_SC,   BST_CHECKED);
         CheckDlgButton(hDlg, IDC_STARTMENU_SC, BST_CHECKED);
+        CheckRadioButton(hDlg, IDC_SOUNDS_FULL, IDC_SOUNDS_WHATSAPP, IDC_SOUNDS_FULL);
 
         SendDlgItemMessage(hDlg, IDC_PROGRESS, PBM_SETRANGE32, 0, 100);
         return TRUE;
@@ -555,12 +671,16 @@ static INT_PTR CALLBACK DlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lPara
             EnableWindow(GetDlgItem(hDlg, IDC_INSTALL), FALSE);
             EnableWindow(GetDlgItem(hDlg, IDC_CANCEL),  FALSE);
             EnableWindow(GetDlgItem(hDlg, IDC_BROWSE),  FALSE);
+            EnableWindow(GetDlgItem(hDlg, IDC_SOUNDS_FULL),     FALSE);
+            EnableWindow(GetDlgItem(hDlg, IDC_SOUNDS_WHATSAPP), FALSE);
 
             InstallParams *params = (InstallParams *)malloc(sizeof(InstallParams));
             wcsncpy(params->install_dir, install_dir, MAX_PATH - 1);
             params->install_dir[MAX_PATH - 1] = L'\0';
             params->desktop_sc   = IsDlgButtonChecked(hDlg, IDC_DESKTOP_SC)   == BST_CHECKED;
             params->startmenu_sc = IsDlgButtonChecked(hDlg, IDC_STARTMENU_SC) == BST_CHECKED;
+            params->whatsapp_sounds =
+                IsDlgButtonChecked(hDlg, IDC_SOUNDS_WHATSAPP) == BST_CHECKED;
 
             g_hThread = CreateThread(NULL, 0, install_thread, params, 0, NULL);
             return TRUE;

@@ -104,6 +104,7 @@ def _key(code, ctrl=False, shift=False, alt=False):
 
 class _ArchivedStub:
     _handle_chat_selection_key = ArchivedConversationsPanel._handle_chat_selection_key
+    _clear_chat_list_filters = lambda self: False  # Esc-clears-filters has its own tests
     _toggle_chat_selection = ArchivedConversationsPanel._toggle_chat_selection
     _select_chat_at = ArchivedConversationsPanel._select_chat_at
     _all_chat_jids = ArchivedConversationsPanel._all_chat_jids

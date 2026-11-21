@@ -33,9 +33,13 @@ class _Stub:
     _on_links_list_activated = ConversationsPanel._on_links_list_activated
     _on_links_list_key_down = ConversationsPanel._on_links_list_key_down
     _link_url_for = ConversationsPanel._link_url_for
+    _join_call_from_link = ConversationsPanel._join_call_from_link
 
     def __init__(self, links=()):
-        self.main_window = SimpleNamespace(settings={})
+        self.call_joins = []
+        self.main_window = SimpleNamespace(
+            settings={}, join_call_link=lambda url, confirm_parent=None: self.call_joins.append(
+                (url, confirm_parent)))
         self._current_links = list(links)
         self._links_list = SimpleNamespace(GetFirstSelected=lambda: 0)
         self.opened = []
@@ -78,6 +82,14 @@ def test_an_invitation_link_opens_the_join_dialog_not_the_browser():
     stub._activate_link(INVITE)
     assert stub.joined == [INVITE]
     assert stub.opened == []
+
+
+def test_a_call_link_asks_to_join_the_call_not_the_browser():
+    link = "https://call.whatsapp.com/voice/" + CODE
+    stub = _Stub()
+    stub._activate_link(link)
+    assert stub.call_joins == [(link, stub)]
+    assert stub.opened == [] and stub.joined == []
 
 
 def test_any_other_link_still_opens_in_the_default_application():

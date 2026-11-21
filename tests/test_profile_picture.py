@@ -111,6 +111,8 @@ class TestFetch:
             raise AssertionError("nothing to download")
 
         assert pp.fetch_profile_picture("http://h:1", "t", "a", api, http_get) is None
+        assert pp.fetch_profile_picture("http://h:1", "t", "a", api, http_get,
+                                        fallback_url="https://cdn/stale") is None
 
     def test_server_error_falls_back_to_the_stored_url(self):
         api = self._api(_Resp(500, {}))

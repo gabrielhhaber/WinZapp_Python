@@ -116,7 +116,8 @@ def test_photo_changed_emits_the_url_by_number(monkeypatch):
         photos={"99@lid": _photo("https://pps.whatsapp.net/a.jpg")})
     cli.handlers[ev.PictureEv](
         cli, N(JID=jid("99", "lid"), Author=jid("99", "lid"), Timestamp=1, Remove=False))
-    assert s.sent == [("contacts.update", {"session": "s1", "data": [{
+    assert s.sent[0] == ("profile-picture-changed", {"session":"s1", "chatId":"99@lid"})
+    assert s.sent[1:] == [("contacts.update", {"session": "s1", "data": [{
         "remoteJid": "5511@c.us", "profilePicUrl": "https://pps.whatsapp.net/a.jpg"}]})]
 
 
@@ -125,14 +126,15 @@ def test_repeated_photo_is_not_emitted_again(monkeypatch):
     event = N(JID=jid("5511"), Author=jid("5511"), Timestamp=1, Remove=False)
     cli.handlers[ev.PictureEv](cli, event)
     cli.handlers[ev.PictureEv](cli, event)
-    assert len(s.sent) == 1
+    assert len([e for e in s.sent if e[0] == "contacts.update"]) == 1
     cli.photos["5511@s.whatsapp.net"] = _photo("https://x/b.jpg", "F2")
     cli.handlers[ev.PictureEv](cli, event)
-    assert len(s.sent) == 2
-    assert s.sent[1][1]["data"][0]["profilePicUrl"] == "https://x/b.jpg"
+    updates = [e for e in s.sent if e[0] == "contacts.update"]
+    assert len(updates) == 2
+    assert updates[1][1]["data"][0]["profilePicUrl"] == "https://x/b.jpg"
 
 
-def test_photo_removed_from_a_group_or_without_a_url_does_not_emit(monkeypatch):
+def test_photo_removal_and_group_changes_invalidate_without_guessing_a_url(monkeypatch):
     cli, s, ev = _bind(monkeypatch, photos={
         "5511@s.whatsapp.net": _photo(""),
         "5522@s.whatsapp.net": RuntimeError("profile picture not found"),
@@ -143,7 +145,7 @@ def test_photo_removed_from_a_group_or_without_a_url_does_not_emit(monkeypatch):
     handle(cli, N(JID=jid("5511"), Remove=False))                   # without a URL
     handle(cli, N(JID=jid("5522"), Remove=False))                   # without a photo
     handle(cli, N(JID=jid("5533"), Remove=False))                   # network failure
-    assert s.sent == []
+    assert len(s.sent) == 5 and all(e[0] == "profile-picture-changed" for e in s.sent)
 
 
 def test_new_nickname_emits_once(monkeypatch):
@@ -197,7 +199,7 @@ class _AddressBookSession(_Session):
 def _bind_winzapp_build(monkeypatch, tmp_path):
     from store import Store
     events = types.ModuleType("neonize.events")
-    for name in ("PictureEv", "ContactUpdateEv", "PushNameUpdateEv", "AppStateSyncCompleteEv"):
+    for name in ("PictureEv", "ContactSyncEv", "PushNameEv", "AppStateSyncCompleteEv", "UserAboutEv"):
         setattr(events, name, type(name, (), {}))
     package = types.ModuleType("neonize")
     package.events = events
@@ -209,17 +211,21 @@ def _bind_winzapp_build(monkeypatch, tmp_path):
     return cli, s, events
 
 
+def _action(**fields):
+    return N(**fields, HasField=lambda name: name in fields)
+
+
 def test_a_contact_saved_renamed_and_removed_on_the_phone(monkeypatch, tmp_path):
     cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
-    handle = cli.handlers[ev.ContactUpdateEv]
+    handle = cli.handlers[ev.ContactSyncEv]
     s.db.contact("5511@s.whatsapp.net", pushname="ana")
-    handle(cli, N(JID=jid("5511"), Action=N(fullName="Ana Souza", firstName="Ana"), FromFullSync=False))
+    handle(cli, N(JID=jid("5511"), Action=_action(fullName="Ana Souza", firstName="Ana"), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"name": "Ana Souza", "pushname": "ana"}
-    handle(cli, N(JID=jid("5511"), Action=N(fullName="Ana S.", firstName=""), FromFullSync=False))
+    handle(cli, N(JID=jid("5511"), Action=_action(fullName="Ana S.", firstName=""), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net")["name"] == "Ana S."
-    handle(cli, N(JID=jid("5511"), Action=N(fullName="", firstName=""), FromFullSync=False))
+    handle(cli, N(JID=jid("5511"), Action=_action(fullName="", firstName=""), FromFullSync=False))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"pushname": "ana"}    # removed
-    handle(cli, N(JID=jid("120", "g.us"), Action=N(fullName="Group", firstName=""), FromFullSync=False))
+    handle(cli, N(JID=jid("120", "g.us"), Action=_action(fullName="Group", firstName=""), FromFullSync=False))
     assert s.db.contact_of("120@g.us") == {}
 
 
@@ -242,25 +248,65 @@ def test_a_full_sync_completes_the_app_state_mirror_of_that_collection(monkeypat
 
 def test_a_new_nickname_is_kept_under_the_other_form_of_the_jid(monkeypatch, tmp_path):
     cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
-    handle = cli.handlers[ev.PushNameUpdateEv]
+    handle = cli.handlers[ev.PushNameEv]
     handle(cli, N(JID=jid("99", "lid"), JIDAlt=jid("5511"), OldPushName="", NewPushName=" Ana ",
                   HasField=lambda field: field == "JIDAlt"))
     assert s.db.contact_of("5511@s.whatsapp.net") == {"pushname": "Ana"}
     handle(cli, N(JID=jid("77", "lid"), OldPushName="", NewPushName="Bob",
                   HasField=lambda field: False))
-    assert s.db.contacts() == [{"jid": "5511@s.whatsapp.net", "name": "", "pushname": "Ana"}]
+    assert {row["jid"]: (row["name"], row["pushname"]) for row in s.db.contacts()} == {
+        "5511@s.whatsapp.net": ("", "Ana"), "99@lid": ("", "Ana"), "77@lid": ("", "Bob")}
+    assert s.sent[-1] == ("contact-state-changed", {"session": "s1", "contactId": "77@lid",
+        "kind": "profile", "name": "Bob"})
+
+
+def test_a_changed_about_replaces_the_cached_one(monkeypatch, tmp_path):
+    from about_cache import cache_of
+    cli, s, ev = _bind_winzapp_build(monkeypatch, tmp_path)
+    cache_of(s).remember("5511@s.whatsapp.net", "old about")
+    handle = cli.handlers[ev.UserAboutEv]
+    handle(cli, N(JID=jid("5511"), Status="new about", Timestamp=1))
+    assert cache_of(s).lookup("5511@s.whatsapp.net") == ("new about", "")
+    handle(cli, N(JID=jid("120", "g.us"), Status="x", Timestamp=1))        # not a person
+    assert cache_of(s).lookup("120@g.us") is None
 
 
 def test_winzapp_build_events_carry_the_fields_the_handlers_read():
     import pytest
     events = pytest.importorskip("neonize.events")
-    if not hasattr(events, "ContactUpdateEv"):
-        pytest.skip("neonize without WinZapp's events (build_neonize.py builds them)")
+    if not hasattr(events, "ContactSyncEv"):
+        pytest.skip("neonize older than 0.12 (no ContactSyncEv)")
     fields = lambda ev: set(ev.DESCRIPTOR.fields_by_name)
-    assert {"JID", "Action", "FromFullSync"} <= fields(events.ContactUpdateEv)
-    assert {"fullName", "firstName"} <= set(events.ContactUpdateEv.DESCRIPTOR
+    assert {"JID", "Action", "FromFullSync"} <= fields(events.ContactSyncEv)
+    assert {"fullName", "firstName"} <= set(events.ContactSyncEv.DESCRIPTOR
                                             .fields_by_name["Action"].message_type.fields_by_name)
-    assert {"JID", "JIDAlt", "NewPushName"} <= fields(events.PushNameUpdateEv)
+    assert {"JID", "JIDAlt", "NewPushName"} <= fields(events.PushNameEv)
     assert {"Name", "Version", "Recovery"} <= fields(events.AppStateSyncCompleteEv)
-    assert {events.EVENT_TO_INT[e] for e in (events.ContactUpdateEv, events.PushNameUpdateEv,
-                                             events.AppStateSyncCompleteEv)} == {54, 55, 56}
+    assert {"JID", "Status"} <= fields(events.UserAboutEv)
+    assert events.EVENT_TO_INT[events.UserAboutEv] == 62
+    assert {events.EVENT_TO_INT[e] for e in (events.ContactSyncEv, events.PushNameEv,
+                                             events.AppStateSyncCompleteEv)} == {58, 59, 56}
+
+
+def test_store_nickname_files_it_under_both_addresses():
+    stored = {}
+
+    class Db:
+        def contact(self, jid_text, pushname=None):
+            stored[jid_text] = pushname
+
+    class Client:
+        def get_pn_from_lid(self, j):
+            return jid("5511")
+
+    s = N(db=Db())
+    ce.store_nickname(Client(), s, jid("99", "lid"), " Ana grupos ")
+    assert stored == {"99@lid": "Ana grupos", "5511@s.whatsapp.net": "Ana grupos"}
+
+
+def test_store_nickname_ignores_a_group_or_an_empty_name():
+    stored = {}
+    s = N(db=N(contact=lambda *a, **k: stored.update(x=1)))
+    ce.store_nickname(N(), s, jid("120", "g.us"), "Ana")
+    ce.store_nickname(N(), s, jid("5511"), " ")
+    assert stored == {}

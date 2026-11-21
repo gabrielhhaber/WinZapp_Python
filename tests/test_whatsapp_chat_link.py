@@ -14,6 +14,7 @@ from core import whatsapp_link_association as association
 from core.whatsapp_chat_link import (
     MAX_CHAT_LINK_LENGTH, chat_target, is_whatsapp_link, whatsapp_link_argument)
 from main_window import group_invitation_links
+from main_window.call_links import CallLinksMixin
 from main_window.group_invitation_links import GroupInvitationLinksMixin
 
 AIRLINE = ("https://api.whatsapp.com/send/?phone=5491131260531&type=phone_number"
@@ -265,3 +266,79 @@ def test_non_links_are_ignored(calls):
     window = _Window()
     window.open_whatsapp_link("https://example.com")
     assert not calls.after and not calls.later and not window.spoken
+
+
+# ── Call links (whatsapp://call/<voice|video>/<token>) ───────────────────────
+
+CALL_APP_LINK = "whatsapp://call/voice/" + CODE
+CALL_LINK = "https://call.whatsapp.com/voice/" + CODE
+
+
+def test_a_call_link_is_a_whatsapp_link_on_the_command_line_and_over_ipc():
+    assert is_whatsapp_link(CALL_APP_LINK) and is_whatsapp_link(CALL_LINK)
+    assert whatsapp_link_argument(["WinZapp.exe", "--background", CALL_APP_LINK]) == CALL_APP_LINK
+    opened = []
+    listener = ipc.IpcListener("gd", "acc", on_activate=lambda s: None,
+                               on_quit=lambda: None, on_open_link=opened.append)
+    listener._handle_message(json.dumps({"cmd": "open_link", "request_id": "1",
+                                         "link": CALL_APP_LINK}))
+    assert opened == [CALL_APP_LINK]
+
+
+class _CallWindow(_Window):
+    open_external_call_link = GroupInvitationLinksMixin.open_external_call_link
+    _call_link_engine_ready = CallLinksMixin._call_link_engine_ready
+
+    def __init__(self, connected=True, neonize=False, **kwargs):
+        super().__init__(connected=connected, **kwargs)
+        self.neonize = neonize
+        self.joined = []
+        self.fail = False
+
+    def _uses_neonize(self):
+        return self.neonize
+
+    def join_call_link(self, link, *, confirm_parent=None):
+        # the question is asked while the guard against a second link is up
+        self.joined.append((link, confirm_parent, self._external_call_link_open))
+        if self.fail:
+            raise RuntimeError("boom")
+        return True
+
+
+def test_a_call_link_from_windows_asks_like_a_link_in_a_message(calls):
+    window = _CallWindow()
+    window.open_whatsapp_link(CALL_APP_LINK)
+    assert window.joined == [(CALL_APP_LINK, window, True)]
+    assert window.restored == 1 and not window.spoken and not calls.later
+    assert window._external_call_link_open is False
+
+
+def test_a_call_link_while_offline_waits_then_gives_up(calls):
+    window = _CallWindow(connected=False)
+    window.open_whatsapp_link(CALL_APP_LINK)
+    assert window.spoken == ["call_link_external_waiting"] and len(calls.later) == 1
+    window.open_external_call_link(CALL_APP_LINK, 0.0)
+    assert window.spoken[-1] == "call_link_external_not_connected"
+    assert not window.joined
+
+
+def test_neonize_waits_for_its_capabilities_before_joining(calls):
+    window = _CallWindow(neonize=True)
+    window.open_external_call_link(CALL_APP_LINK)
+    assert not window.joined and window.spoken == ["call_link_external_waiting"]
+    window._neonize_call_links = False  # the probe answered (even "no")
+    retry, args = calls.later[-1]
+    retry(*args)
+    assert [j[0] for j in window.joined] == [CALL_APP_LINK]
+
+
+def test_one_call_link_question_at_a_time_and_a_failure_releases_it(calls):
+    window = _CallWindow()
+    window._external_call_link_open = True
+    window.open_external_call_link(CALL_APP_LINK)
+    assert not window.joined
+    window._external_call_link_open = False
+    window.fail = True
+    window.open_external_call_link(CALL_APP_LINK)
+    assert len(window.joined) == 1 and window._external_call_link_open is False

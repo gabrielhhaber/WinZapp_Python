@@ -10,6 +10,7 @@ import pyperclip
 import threading
 import wx
 from ui.dialogs.clear_chat_confirm import confirm_clear_chat
+from ui.dialogs.archive_chat_confirm import confirm_archive_chat
 from ui.dialogs.delete_chat_confirm import confirm_delete_chat
 from core.utils import format_number
 
@@ -304,6 +305,16 @@ class ChatMenuMixin:
             pass
 
     def _on_menu_archive(self, jid: str):
+        i18n = self.main_window.i18n
+        if not confirm_archive_chat(
+            self, self.main_window,
+            i18n.t("archive_confirm_msg"),
+            i18n.t("archive_chat"),
+            i18n.t("mark_all_read_dont_show_again"),
+            yes_label=i18n.t("archive_confirm_button"),
+            no_label=i18n.t("cancel"),
+        ):
+            return
         # Close conversation if currently open
         if self.conversation and self.conversation.get("remoteJid") == jid:
             self.close_conversation()

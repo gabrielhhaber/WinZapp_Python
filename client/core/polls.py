@@ -39,6 +39,14 @@ def poll_message_from_wpp(wpp_msg: dict) -> dict:
             poll["selectableOptionsCount"] = int(wpp_msg["pollSelectableOptionsCount"])
         except (TypeError, ValueError):
             pass
+    # WhatsApp Web's names (WAWebPollsParsePollCreationMessageProto): the
+    # author asked for the voters' names to be hidden, and an end time in
+    # absolute milliseconds.
+    if wpp_msg.get("pollHideVoterNames") is True:
+        poll["hideVoterNames"] = True
+    end_time = wpp_msg.get("pollEndTime")
+    if isinstance(end_time, (int, float)) and not isinstance(end_time, bool) and end_time > 0:
+        poll["endTime"] = int(end_time)
     return poll
 
 
@@ -65,6 +73,41 @@ def poll_input_error(question: str, options) -> str | None:
     if len({opt.casefold() for opt in options}) != len(options):
         return "poll_error_duplicate_option"
     return None
+
+
+#: The time limits a new poll offers: (i18n key, seconds); 0 = no limit.
+#: Same list WhatsApp Web's own poll window uses.
+TIME_LIMITS = (
+    ("poll_time_limit_none", 0),
+    ("poll_time_limit_1h", 3600),
+    ("poll_time_limit_8h", 8 * 3600),
+    ("poll_time_limit_24h", 24 * 3600),
+    ("poll_time_limit_3d", 3 * 24 * 3600),
+    ("poll_time_limit_7d", 7 * 24 * 3600),
+)
+
+
+def time_limit_seconds(index: int) -> int:
+    """Seconds of the time limit chosen at *index* of TIME_LIMITS; 0 (no
+    limit) for a missing or out-of-range choice."""
+    if isinstance(index, int) and 0 <= index < len(TIME_LIMITS):
+        return TIME_LIMITS[index][1]
+    return 0
+
+
+def move_option(options, index: int, direction: int) -> tuple[list, int]:
+    """*options* with the one at *index* swapped with its neighbour
+    (*direction* -1 = up, +1 = down), and where that option now is.
+
+    At either end, or for an index out of range, nothing moves: the list is
+    returned as a copy and the index as it was.
+    """
+    options = list(options)
+    target = index + direction
+    if not 0 <= index < len(options) or not 0 <= target < len(options):
+        return options, index
+    options[index], options[target] = options[target], options[index]
+    return options, target
 
 
 def selectable_count(multiple: bool) -> int:
@@ -176,6 +219,14 @@ def poll_send_payload(phone: str, poll: dict, *, is_group: bool, is_lid: bool) -
         "choices": list(poll["options"]),
         "options": {"selectableCount": poll.get("selectableCount", 1)},
     }
+    # Only what was asked for goes in, so a plain poll's body is the one the
+    # engines have always had. The time limit travels as a length, not as a
+    # date: the engine turns it into WhatsApp's absolute end time when it sends,
+    # so a poll that waited in the queue still gets its full time.
+    if poll.get("hideVoterNames"):
+        payload["options"]["hideVoterNames"] = True
+    if poll.get("durationSeconds"):
+        payload["options"]["durationSeconds"] = int(poll["durationSeconds"])
     if str(phone).endswith("@newsletter"):
         payload["isNewsletter"] = True      # a channel (contactToArray)
     return payload
@@ -220,14 +271,21 @@ def vote_poll_ids(options: list[dict], checked_names: list[str]) -> list[int]:
     return [opt["localId"] for opt in options if opt["name"] in chosen]
 
 
-def voter_rows(i18n, voters: list, options: list, name_of) -> list[str]:
+def hides_voter_names(poll: dict) -> bool:
+    """True when the author of *poll* asked for the voters' names to be hidden."""
+    return (poll or {}).get("hideVoterNames") is True
+
+
+def voter_rows(i18n, voters: list, options: list, name_of, hide_names: bool = False) -> list[str]:
     """The "View votes" lines, ``"<person>: <option>[, <option>]"``, one per
     person who has a vote, ordered by name.
 
     *voters* is ``[{"sender", "mine", "localIds"}]`` as ``/poll-voters``
     returns it, *options* ``[{"name", "localId"}]``, and *name_of(sender)* gives
     the name a person is shown under (never a raw JID). The user's own vote
-    reads as "You".
+    reads as "You". With *hide_names* (a poll whose author hid them) nobody else
+    is named: each row reads "Hidden name", so the list says what was voted
+    without saying who.
     """
     names = {o.get("localId"): str(o.get("name") or "") for o in options or []}
     rows = []
@@ -235,9 +293,13 @@ def voter_rows(i18n, voters: list, options: list, name_of) -> list[str]:
         chosen = [names[i] for i in voter.get("localIds") or [] if names.get(i)]
         if not chosen:
             continue
-        who = i18n.t("sender_you") if voter.get("mine") else (
-            name_of(voter.get("sender", "")) or str(voter.get("name") or "").strip()
-            or i18n.t("unknown_contact"))
+        if voter.get("mine"):
+            who = i18n.t("sender_you")
+        elif hide_names:
+            who = i18n.t("poll_voter_hidden")
+        else:
+            who = (name_of(voter.get("sender", "")) or str(voter.get("name") or "").strip()
+                   or i18n.t("unknown_contact"))
         rows.append((who, i18n.t("poll_voter_row").format(name=who, options=", ".join(chosen))))
     rows.sort(key=lambda pair: pair[0].casefold())
     return [text for _who, text in rows]

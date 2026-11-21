@@ -44,6 +44,7 @@ from core.conversation_resync import (
 )
 from main_window.message_rules import is_countable_message
 from main_window.api_start_behind_window import wait_for_api_start
+from main_window import history_transfer
 from core.utils import auto_download_enabled, prune_chats_messages
 
 
@@ -1087,6 +1088,8 @@ class SyncMixin:
             return
         # Give WPPConnect/WA-JS internal stores 1s to settle if needed
         logging.info("[start_sync] WhatsApp connected. Proceeding to sync...")
+        # the phone's history transfer after a pairing: keep its WhatsApp open
+        history_transfer.start_watch(self)
         time.sleep(1)
         # Before anything this round says or latches. A wipe landing during the
         # connection wait above would otherwise find self.chats empty, latch
@@ -2107,7 +2110,7 @@ class SyncMixin:
                     list(self.chats.values())
                     if media_scope_jids is None
                     else [
-                        chat for key, chat in self.chats.items()
+                        chat for key, chat in list(self.chats.items())
                         if self._normalize_jid(chat.get("remoteJid") or key) in media_scope_jids
                     ]
                 )

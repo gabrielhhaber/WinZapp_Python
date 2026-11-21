@@ -379,6 +379,9 @@ class _FocusStub(_Stub):
     def _update_return_call_button(self, idx):
         pass
 
+    def _update_business_buttons(self, idx):
+        pass
+
 
 class TestFocusOnlyArmsTheResetWhenItStepsPast:
     """Bloqueante do review: sob a semântica nova o flag é a ÚNICA coisa que

@@ -52,6 +52,7 @@ JID = "5511999999999@s.whatsapp.net"
 class _Stub:
     _on_conv_list_key_down = ConversationsPanel._on_conv_list_key_down
     _handle_chat_selection_key = ConversationsPanel._handle_chat_selection_key
+    _clear_chat_list_filters = lambda self: False  # Esc-clears-filters has its own tests
 
     def __init__(self, archived=False):
         self.conversations_list = _FakeConversationsList(0)

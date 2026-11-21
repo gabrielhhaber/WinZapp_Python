@@ -22,6 +22,7 @@ class WhatsAppListsMixin:
 
     def _invalidate_wa_lists(self):
         self._wa_lists_generation = getattr(self, "_wa_lists_generation", 0) + 1
+        self._wa_lists_remote_refresh_pending = False
         self._wa_lists_snapshot = ListSnapshot()
         self._wa_lists_snapshot_context = None
         panel = getattr(self, "conversations_panel", None)
@@ -30,6 +31,23 @@ class WhatsAppListsMixin:
         dialog = getattr(self, "_wa_lists_dialog", None)
         if dialog is not None:
             wx.CallAfter(dialog.invalidate_list_manager)
+
+    def _refresh_wa_lists_after_label_event(self, expected_context=None):
+        """Reload list state after a chat-label association; never infer membership."""
+        if getattr(self, "_shutting_down", False) or getattr(self, "offline_mode", False):
+            return
+        context = self._wa_lists_context()
+        if expected_context is not None and expected_context != context:
+            return
+        snapshot = self._wa_lists_state()
+        # Keep the visible filter while making writes wait for the readback.
+        self._wa_lists_snapshot = ListSnapshot(snapshot.lists, False)
+        self._wa_lists_snapshot_context = context
+        self._wa_lists_remote_refresh_pending = True
+        if getattr(self, "_wa_lists_job", None) is not None:
+            return
+        self._wa_lists_remote_refresh_pending = False
+        self._request_wa_lists(lambda _result: None)
 
     def _wa_list_filter_identities(self):
         list_id = getattr(self.conversations_panel, "_wa_list_id", None)
@@ -108,16 +126,22 @@ class WhatsAppListsMixin:
             if context != self._wa_lists_context():
                 done(ListResult(None, "cancelled"))
                 return
-            if result.snapshot is not None:
+            if result.snapshot is not None and not getattr(self, "_wa_lists_remote_refresh_pending", False):
                 self._wa_lists_snapshot = result.snapshot
                 self._wa_lists_snapshot_context = context
                 self.conversations_panel._refresh_wa_list_choices()
+                dialog = getattr(self, "_wa_lists_dialog", None)
+                if dialog is not None and not getattr(dialog, "_closed", True):
+                    dialog._refresh_list_manager()
             elif result.outcome not in ("busy", "cancelled"):
                 # Keep the selected cached filter, but require a successful
                 # read before another write after a failed/unconfirmed read.
                 self._wa_lists_snapshot = ListSnapshot(self._wa_lists_state().lists, False)
                 self._wa_lists_snapshot_context = context
             done(result)
+            if getattr(self, "_wa_lists_remote_refresh_pending", False):
+                self._wa_lists_remote_refresh_pending = False
+                wx.CallAfter(self._refresh_wa_lists_after_label_event, context)
 
         def worker():
             try:

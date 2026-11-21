@@ -125,6 +125,7 @@ class TestThePrivateDialogIsANotebook:
         assert _tab_labels(dialog) == [
             i18n.t("group_overview_tab"),
             i18n.t("group_media_tab"),
+            i18n.t("starred_title"),
             i18n.t("common_groups_tab"),
         ]
 
@@ -139,7 +140,7 @@ class TestTheCommonGroupsTab:
     def test_the_list_lives_on_its_own_page(self, make_dialog):
         dialog = make_dialog(PRIVATE_JID)
         page = dialog._common_groups_list.GetParent()
-        assert dialog._notebook.FindPage(page) == 2
+        assert dialog._notebook.FindPage(page) == 3
 
     def test_it_opens_on_a_loading_row_that_does_nothing(self, make_dialog):
         dialog = make_dialog(PRIVATE_JID)
@@ -168,16 +169,17 @@ class TestTheCommonGroupsTab:
 
 
 class TestTheGroupDialogIsUnchanged:
-    def test_it_still_has_three_tabs_in_the_same_order(self, make_dialog):
+    def test_it_has_the_same_tabs_in_the_same_order_plus_starred(self, make_dialog):
         dialog = make_dialog(GROUP_JID)
         i18n = dialog._i18n
         assert _tab_labels(dialog) == [
             i18n.t("group_overview_tab"),
             i18n.t("group_participants_tab"),
             i18n.t("group_media_tab"),
+            i18n.t("starred_title"),
         ]
 
-    def test_media_is_still_the_last_tab(self, make_dialog):
+    def test_media_keeps_its_position(self, make_dialog):
         """Its index is what a returning user's muscle memory holds."""
         dialog = make_dialog(GROUP_JID)
         assert dialog._notebook.GetPageText(2) == dialog._i18n.t("group_media_tab")

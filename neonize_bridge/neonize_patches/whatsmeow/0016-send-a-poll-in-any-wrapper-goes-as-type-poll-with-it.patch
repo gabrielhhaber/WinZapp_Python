@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 18 Nov 2026 14:14:13 +0000
+Subject: [PATCH] send: a poll in any wrapper goes as type poll with its meta
+
+getTypeFromMessage only knew pollCreationMessage, so a poll held in
+pollCreationMessageV6 (what WhatsApp Web sends when the voters' names are hidden
+or the poll has an end time) went out as <message type="text"> without
+<meta polltype="creation"/>. V2, V3 and V5 are named too, as the channel poll
+patch does.
+---
+ pollwrapper_test.go | 30 ++++++++++++++++++++++++++++++
+ send.go             |  3 ++-
+ 2 files changed, 32 insertions(+), 1 deletion(-)
+ create mode 100644 pollwrapper_test.go
+
+diff --git a/pollwrapper_test.go b/pollwrapper_test.go
+new file mode 100644
+index 0000000..c9dc866
+--- /dev/null
++++ b/pollwrapper_test.go
+@@ -0,0 +1,30 @@
++package whatsmeow
++
++import (
++	"testing"
++
++	"go.mau.fi/whatsmeow/proto/waE2E"
++	"google.golang.org/protobuf/proto"
++)
++
++// A poll sent with its voters' names hidden or with an end time travels as
++// pollCreationMessageV6 (WhatsApp Web, WAWebPollsGeneratePollCreationMessage
++// Proto, 2026-11-18): a chat message that holds it is a "poll" like the others,
++// so the stanza carries type="poll" and <meta polltype="creation"/>.
++func TestPollInEveryWrapperIsTypePoll(t *testing.T) {
++	poll := &waE2E.PollCreationMessage{Name: proto.String("Q")}
++	for name, msg := range map[string]*waE2E.Message{
++		"V1": {PollCreationMessage: poll},
++		"V2": {PollCreationMessageV2: poll},
++		"V3": {PollCreationMessageV3: poll},
++		"V5": {PollCreationMessageV5: poll},
++		"V6": {PollCreationMessageV6: poll},
++	} {
++		if got := getTypeFromMessage(msg); got != "poll" {
++			t.Errorf("%s: type = %q, want poll", name, got)
++		}
++	}
++	if got := getTypeFromMessage(&waE2E.Message{Conversation: proto.String("hi")}); got != "text" {
++		t.Errorf("a text message: type = %q, want text", got)
++	}
++}
+diff --git a/send.go b/send.go
+index 0a2efb5..bab756b 100644
+--- a/send.go
++++ b/send.go
+@@ -983,7 +983,8 @@ func getTypeFromMessage(msg *waE2E.Message) string {
+ 		return getTypeFromMessage(msg.DocumentWithCaptionMessage.Message)
+ 	case msg.ReactionMessage != nil, msg.EncReactionMessage != nil:
+ 		return "reaction"
+-	case msg.PollCreationMessage != nil, msg.PollUpdateMessage != nil:
++	case msg.PollCreationMessage != nil, msg.PollCreationMessageV2 != nil, msg.PollCreationMessageV3 != nil,
++		msg.PollCreationMessageV5 != nil, msg.PollCreationMessageV6 != nil, msg.PollUpdateMessage != nil:
+ 		return "poll"
+ 	case getMediaTypeFromMessage(msg) != "":
+ 		return "media"

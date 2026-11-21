@@ -10,7 +10,8 @@ Channels: the same as Alt+6 makes to Calls.
 """
 
 #: attribute names on the main window, in the content sizer's order
-SIDE_PANELS = ("status_panel", "calls_panel", "communities_panel", "channels_panel")
+SIDE_PANELS = ("status_panel", "calls_panel", "communities_panel", "channels_panel",
+               "contacts_panel")
 #: the chat lists, which show_chat_panel() switches between
 CHAT_LIST_PANELS = ("archived_conversations_panel", "locked_conversations_panel")
 
@@ -52,6 +53,14 @@ def show_side_panel(mw, name):
     hide_side_panels(mw, keep=panel)
     panel.Show()
     mw.content_panel.Layout()
+    return panel
+
+
+def show_contacts(mw):
+    """The navigation list's Contacts (issue #770)."""
+    panel = show_side_panel(mw, "contacts_panel")
+    if panel is not None:
+        panel.on_show()
     return panel
 
 

@@ -37,6 +37,26 @@ from ui.conversations import (
     visible_jid_selected,
 )
 from tests.god_modules import conversations_method_source
+import pytest
+import app_paths
+
+@pytest.fixture(autouse=True)
+def _account_scope(tmp_path, monkeypatch):
+    """Deleting messages now also cleans up kept noise-reduction originals,
+    which goes through app_paths.data_path() - and that refuses to answer
+    without an active account (the guard that keeps one account's files out
+    of another's folder). The real flows under test always run with an
+    account open, so the tests set one - but scoped: the data root is a
+    per-test tmp dir so cleanup writes/deletes (e.g. voice_messages/
+    <id>.resend.wav) can never reach the repo's real data/ tree, and the
+    previously active account is restored afterwards so this fixture is
+    transparent to any surrounding account state."""
+    previous_account = app_paths.active_account_id()
+    monkeypatch.setattr(app_paths, "_data_root", lambda: str(tmp_path))
+    app_paths.set_active_account("acct-under-test")
+    yield tmp_path
+    app_paths.set_active_account(previous_account)
+
 from ui.conversation_panel.reading_position import ReadingPositionMixin
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,10 +150,12 @@ class _Stub(ReadingPositionMixin):
     _on_messages_list_key_down = ConversationsPanel._on_messages_list_key_down
     _on_conv_list_key_down = ConversationsPanel._on_conv_list_key_down
     _handle_chat_selection_key = ConversationsPanel._handle_chat_selection_key
+    _clear_chat_list_filters = lambda self: False  # Esc-clears-filters has its own tests
     _repaint_chat_selection = ConversationsPanel._repaint_chat_selection
     _announce_chat_selected = ConversationsPanel._announce_chat_selected
     _reset_after_chat_cleared = ConversationsPanel._reset_after_chat_cleared
     _on_escape_conversation = ConversationsPanel._on_escape_conversation
+    _clear_message_search_on_escape = lambda self: False  # has its own tests
 
     def __init__(self, sorted_messages=None, chats_list=None, ui_settings=None,
                  focused=0, video_viewer_dialog=False):

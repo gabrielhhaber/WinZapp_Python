@@ -5,11 +5,12 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from core.page_size import messages_page_size
 import logging
 import threading
 import time
 import wx
-from core.sync_lifecycle import capture_sync_context, sync_context_is_current, record_phone_request_attempt
+from core.sync_lifecycle import capture_sync_context, sync_context_is_current, record_phone_request_attempt, schedule_backfill
 from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
@@ -28,6 +29,35 @@ from core import short_chat_rest
 from main_window import history_boundary
 from main_window.message_rules import describe_history_sync_health
 from main_window.history import HistoryMixin
+
+
+def _wake_backfill_for_opened_chat(window, jid: str) -> None:
+    """Queue a short non-exhausted opened chat and wake the backfill loop."""
+    if history_ends_on_server(jid):
+        return
+    canonical = window._canonical_backfill_jid(jid)
+    forms = set(window._jid_address_forms(jid))
+    forms.add(canonical)
+    if forms & getattr(window, "_exhausted_chats", set()):
+        return
+    local_count_fn = getattr(window, "_local_record_count", None)
+    page_target_fn = getattr(window, "history_page_target", None)
+    if not callable(local_count_fn) or not callable(page_target_fn):
+        return
+    count = local_count_fn(canonical)
+    if count >= page_target_fn():
+        return
+    already_pending = (
+        callable(getattr(window, "_is_backfill_pending", None))
+        and window._is_backfill_pending(canonical)
+    )
+    if not already_pending and callable(getattr(window, "_keep_backfill_pending", None)):
+        window._keep_backfill_pending(canonical, count)
+        persist_pending = getattr(window, "_persist_backfill_pending_state", None)
+        if callable(persist_pending):
+            persist_pending()
+    if getattr(window, "_wa_connected", False) and not getattr(window, "offline_mode", False):
+        schedule_backfill(window)
 
 
 class BackfillMixin:
@@ -153,12 +183,7 @@ class BackfillMixin:
         means "opening the conversation shows a full page without going back to
         the network".
         """
-        try:
-            return max(1, int(getattr(self, "settings", {})
-                              .get("user_interface", {})
-                              .get("messages_page_size", 200)))
-        except (AttributeError, TypeError, ValueError):
-            return 200
+        return messages_page_size(getattr(self, "settings", {}))
 
     def _history_session_is_gone(self) -> bool:
         """Whether an unreadable /history-sync-status means "stop", not "retry".
@@ -636,6 +661,7 @@ class BackfillMixin:
         except Exception:
             pass
         if forms <= opened:
+            _wake_backfill_for_opened_chat(self, jid)
             return
         opened.update(forms)
         try:
@@ -644,6 +670,7 @@ class BackfillMixin:
                     "opened_conversations_v1", sorted(opened))
         except Exception as exc:
             logging.warning("[history-sync] could not persist opened conversations: %s", exc)
+        _wake_backfill_for_opened_chat(self, jid)
 
     def _user_has_opened(self, jid: str) -> bool:
         """Whether the phone may be asked about this chat's older history."""
@@ -853,13 +880,13 @@ class BackfillMixin:
 
                 if not sync_context_is_current(self, context):
                     return
-                if self._voice_call_in_progress():
+                if self._background_work_paused():
                     # Logged once per call, not once per second: this loop
                     # re-checks every second and the line was filling the log
                     # file users are asked to send.
                     if not getattr(self, "_backfill_call_pause_logged", False):
                         self._backfill_call_pause_logged = True
-                        logging.info("[backfill] paused during active voice call")
+                        logging.info("[backfill] paused during voice call or audio recording")
                     delay = 1
                     continue
                 self._backfill_call_pause_logged = False
@@ -963,7 +990,7 @@ class BackfillMixin:
                         "[deep-backfill] Pass %d: walking %d of %d chat(s) further back.",
                         attempt, len(window), len(deep_pending))
                     for jid in window:
-                        if self._voice_call_in_progress():
+                        if self._background_work_paused():
                             break
                         if getattr(self, "_sync_run_id", 0) != my_run:
                             return
@@ -1573,8 +1600,8 @@ class BackfillMixin:
         by _media_sync_candidate() before counting, so Y is what can still be
         downloaded, not every media message in memory.
         """
-        if self._voice_call_in_progress():
-            logging.info("[sync_media_for_all_chats] paused during active voice call")
+        if self._background_work_paused():
+            logging.info("[sync_media_for_all_chats] paused during voice call or audio recording")
             return 0
 
         _MEDIA_TYPES = {"audioMessage", "documentMessage", "imageMessage",
@@ -1583,7 +1610,7 @@ class BackfillMixin:
         allowed = None if jids is None else {self._normalize_jid(j) for j in jids if j}
         tasks = [
             msg
-            for key, chat in self.chats.items()
+            for key, chat in list(self.chats.items())
             if (allowed is None or self._normalize_jid(chat.get("remoteJid") or key) in allowed)
             for msg in chat.get("messages", {}).get("messages", {}).get("records", [])
             if (msg.get("messageType") in _MEDIA_TYPES or msg.get("type") in _MEDIA_TYPES)
@@ -1598,7 +1625,7 @@ class BackfillMixin:
         downloaded = 0
         timeout = self._MEDIA_SYNC_TIMEOUT
         def _download(msg):
-            if self._voice_call_in_progress():
+            if self._background_work_paused():
                 return False
             if should_stop is not None and should_stop():
                 return False
@@ -1679,6 +1706,18 @@ class BackfillMixin:
                 if cp.conversation is not None else ""
             )
             if self._chat_jids_equivalent(current_jid, expected_jid):
+                def _count(c):
+                    try:
+                        return len(c["messages"]["messages"]["records"])
+                    except (KeyError, TypeError):
+                        return -1
+                # Sizes only, no JID: a window that shrinks from thousands of
+                # rows to hundreds and back (issue #812) is explained by what
+                # the swapped-in dict holds.
+                logging.info(
+                    "[_refresh_open_conversation_after_sync] records %d -> %d "
+                    "(window %d row(s))", _count(cp.conversation), _count(new_chat),
+                    len(getattr(cp, "_sorted_messages", ()) or ()))
                 cp.conversation = new_chat
                 cp.refresh_messages_if_changed()
         wx.CallAfter(_apply)

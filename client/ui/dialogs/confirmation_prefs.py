@@ -7,6 +7,7 @@ Interface mirrors the same key and is the way back.
 
 CONFIRM_CLEAR_CHAT = "confirm_clear_chat"
 CONFIRM_DELETE_CHAT = "confirm_delete_chat"
+CONFIRM_ARCHIVE_CHAT = "confirm_archive_chat"
 
 
 def confirmation_enabled(main_window, key: str) -> bool:

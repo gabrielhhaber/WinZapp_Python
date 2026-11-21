@@ -442,6 +442,50 @@ def test_joining_an_ongoing_call_makes_it_live_and_answered_here():
     assert m.status("G1")["live"] is True
 
 
+class LinkCalls(FakeCalls):
+    """A call layer that also joins call links."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.links = []
+
+    def join_link(self, link, video=False):
+        self.links.append((link, video))
+        return {"call": "L1", "waiting": False, "admin": True}
+
+
+def test_joining_a_call_link_makes_a_live_group_call_with_no_chat():
+    fake = LinkCalls(remote=[None])
+    m, sent = media(fake)
+    assert not media(FakeCalls())[0].call_links_available() and m.call_links_available()
+    joined, answer = m.join_link("https://call.whatsapp.com/voice/T", False)
+    assert (joined, answer["admin"]) == ("L1", True)
+    # meowcaller refuses WhatsApp's /voice/ URL (it reads /audio/), so only the token goes down
+    assert fake.links == [("T", False)]
+    assert states(sent)[-1] == "ACTIVE" and m.live_call() == "L1"
+    event = [e for e in sent if e[0] == "callstate"][-1][1]["data"]
+    assert event["isCallLink"] is True and event["isGroup"] is True and event["peerJid"] == ""
+    assert m.answered_here("L1")["link"] is True
+    # the answer hands the client the epoch its media binds to: the event's own
+    assert answer["mediaEpoch"] == event["mediaEpoch"] == m._calls["L1"]["media_epoch"]
+
+
+class WaitingLinkCalls(LinkCalls):
+    """A call link whose admin has to let this account in."""
+
+    def join_link(self, link, video=False):
+        super().join_link(link, video)
+        return {"call": "L1", "waiting": True, "admin": False}
+
+
+def test_waiting_for_the_admin_is_not_active_until_the_call_admits_us():
+    m, sent = media(WaitingLinkCalls(remote=[None]))
+    m.join_link("https://call.whatsapp.com/voice/T", False)
+    assert states(sent)[-1] == "CONNECTING" and "active_at" not in m._calls["L1"]
+    m.handle({"ev": "state", "call": "L1", "phase": 4})        # admitted
+    assert states(sent)[-1] == "ACTIVE" and m._calls["L1"]["active_at"] > 0
+
+
 def test_a_group_call_placed_here_can_be_found_again():
     import ongoing_calls
     fake = OngoingCalls()
@@ -752,3 +796,30 @@ def test_an_invite_no_longer_held_falls_back_to_a_fresh_join():
     m.elsewhere("OWN")
     assert m.join_ongoing("OWN", "21@lid", "1203@g.us") == "OWN"
     assert fake.joined == [("OWN", "21@lid", False)] and m.in_call("OWN")
+
+
+def test_everyone_a_call_that_became_a_group_call_listed_is_kept_for_its_record():
+    """A private call someone was added to: its record names the people its
+    roster listed (whatever their state), as WhatsApp's own call_log keeps
+    them, and that list outlives the call, for whichever layer files it."""
+    fake = RosterCalls()
+    m, _sent = media(fake)
+    m._calls["P1"] = {"id": "P1", "group": "", "state": "ACTIVE"}
+    fake.people = [{"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+                   {"jid": "2@lid", "state": "ringing"}]
+    m.report_rosters()
+    fake.people = [{"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+                   {"jid": "3@lid", "state": "connected"}]
+    m.report_rosters()
+    m._calls.pop("P1")
+    assert m.participants_of("P1") == ["5511@s.whatsapp.net", "2@lid", "3@lid"]
+    assert m.participants_of("other") == []
+
+
+def test_the_facts_of_a_finished_call_carry_its_people():
+    call = {"id": "C1", "peer": "1@lid", "outgoing": True, "state": "ACTIVE"}
+    assert cm.finished_info(call, "ENDED", 10.0)["participants"] == []
+    assert cm.finished_info(call, "ENDED", 10.0, ["1@lid", "2@lid"])["participants"] == [
+        "1@lid", "2@lid"]
+    assert cm.roster_people([{"jid": "9:3@lid"}, {"state": "connected"}, "x"], ["1@lid"]) == [
+        "1@lid", "9@lid"]

@@ -8,7 +8,9 @@ all in the `regular` collection, version 3:
 - create: ["label_edit", <next id>] {name, deleted: false, isActive: true,
   type: CUSTOM}; the id is one more than the highest the account has;
 - rename: the same entry with the new name and its other fields kept;
-- delete: {name, color, deleted: true};
+- delete: {name, color, deleted: true}, and in the same patch
+  ["label_jid", <id>, <chat>] {labeled: false} for every chat of the list
+  (checked again by creating and deleting a list over CDP on 2026-11-18);
 - add / remove chats: ["label_jid", <id>, <chat>] {labeled}, one per chat,
   where <chat> is a person's LID when known (else the number,
   @s.whatsapp.net) or the group.
@@ -126,6 +128,12 @@ def chats_to_change(command, links, chat_index):
     return [chat_index(key) for key in targets if key not in held]
 
 
+def members_of(list_id, links):
+    """The exact chat arguments of the entries that hold a chat in the list."""
+    return list(dict.fromkeys(chat for label_id, chat, labeled in links
+                              if label_id == list_id and labeled))
+
+
 def register_routes(r, *, session, jid_from_text, jid_text):
     """Wire the routes to the aiohttp router `r`."""
 
@@ -228,8 +236,17 @@ def register_routes(r, *, session, jid_from_text, jid_text):
                 edit = pb.LabelEditAction(name=current.name, deleted=True)
                 if current.HasField("color"):
                     edit.color = current.color
-        app_state_mirror.send(s, COLLECTION, [([LABEL_INDEX, list_id], VERSION,
-                                               pb.SyncActionValue(labelEditAction=edit), False)])
+        mutations = [([LABEL_INDEX, list_id], VERSION,
+                      pb.SyncActionValue(labelEditAction=edit), False)]
+        if action == "remove":
+            # WhatsApp Web unlabels every chat of the list in the same patch
+            # (WAWebBizLabelEditingAction.labelDeleteAction, captured over CDP
+            # on 2026-11-18); without it the chats kept a list that no longer
+            # exists.
+            mutations += [([CHAT_INDEX, list_id, chat], VERSION, pb.SyncActionValue(
+                labelAssociationAction=pb.LabelAssociationAction(labeled=False)), False)
+                for chat in members_of(list_id, links)]
+        app_state_mirror.send(s, COLLECTION, mutations)
         if action == "create":
             return {"action": action, "createdId": list_id}
         return {"action": action, "id": list_id}

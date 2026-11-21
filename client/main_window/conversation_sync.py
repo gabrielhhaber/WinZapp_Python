@@ -5,6 +5,7 @@ MainWindow instance, so every attribute set in MainWindow.__init__ is
 available here.
 """
 
+from core.page_size import messages_page_size
 import logging
 import os
 import threading
@@ -14,6 +15,7 @@ from core.message_sync_diagnostics import fetched_page_summary, newest_message_s
 from core.sync_lifecycle import (capture_sync_context, sync_context_is_current,
                                  message_response, chat_content_identity)
 from core.message_stars import apply_star_fields, carry_over_stars, stamp_star_snapshot
+from core.wpp_message_time import carry_over_known_timestamps
 from main_window.message_rules import (
     _MAX_ABSENT_CHAT_RETRIES,
     _MAX_EMPTY_DELTA_RETRIES,
@@ -248,7 +250,7 @@ class ConversationSyncMixin:
         # and committed the list-chats snapshot for chats nothing had read.
         # An account could be marked fully synced having fetched nothing, which
         # only F5 repairs. The call stands background work down where a *new*
-        # round is decided instead — see _voice_call_in_progress().
+        # round is decided instead — see _background_work_paused().
         if (expected_run_id is not None
                 and getattr(self, "_sync_run_id", 0) != expected_run_id):
             logging.info(
@@ -281,7 +283,7 @@ class ConversationSyncMixin:
         else:
             phone = remote_jid
 
-        page_size = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
+        page_size = messages_page_size(self.settings)
         local_chat_before = self.chats.get(remote_jid)
         if local_chat_before is None:
             try:
@@ -770,6 +772,13 @@ class ConversationSyncMixin:
 
         if local_records:
             carry_over_stars(all_messages, local_records)
+            # A server copy with no time of its own (a quote stand-in,
+            # core/wpp_message_time.py) was stamped "now"; the stored time is
+            # the real one, and the sort below depends on it.
+            carried_times = carry_over_known_timestamps(all_messages, local_records)
+            if carried_times:
+                logging.info("[sync_chat_messages] %s: kept %d stored time(s) over a guess",
+                             remote_jid, carried_times)
             # A duration WinZapp measured from the file itself is not
             # something the server knows, so the API copy of that same video
             # arrives stating none — carry it across before the API copy
@@ -862,6 +871,7 @@ class ConversationSyncMixin:
                         .get("records", []))
         if live_records:
             carry_over_stars(all_messages, live_records)
+            carried_live_times = carry_over_known_timestamps(all_messages, live_records)
             # A transcription saved or deleted while the fetch was in flight
             # landed on the live records, after the carry-over above read the
             # snapshot — and it is the more recent decision, which is the one
@@ -876,6 +886,7 @@ class ConversationSyncMixin:
                               and not self._is_cleared_message(remote_jid, r)]
             if late_extra:
                 all_messages = all_messages + late_extra
+            if late_extra or carried_live_times:
                 # Re-sort to keep chronological order
                 all_messages.sort(
                     key=lambda m: int(
@@ -1207,7 +1218,7 @@ class ConversationSyncMixin:
             phone = remote_jid.split("@")[0] + "@c.us"
         else:
             phone = remote_jid
-        limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
+        limit = messages_page_size(self.settings)
         url = (f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/get-messages/"
                f"{phone}?count={limit}{extra_query}")
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
@@ -1501,7 +1512,7 @@ class ConversationSyncMixin:
         # the last `limit` local records — measured 2026-09-16, one removal per
         # round — and an answer can shrink to a couple of messages, which is
         # what deleted 199 messages at once from an open group on 2026-09-15.
-        limit = int(self.settings.get("user_interface", {}).get("messages_page_size", 200))
+        limit = messages_page_size(self.settings)
 
         # Also exclude anything sent/received in roughly the last two
         # minutes: WhatsApp Web's own /get-messages can lag behind a message

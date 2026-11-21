@@ -364,7 +364,7 @@ class SummaryActionsMixin:
         if getattr(voice, "over_limit", 0):
             notices.append(t("ai_summary_voice_over_limit").format(
                 count=voice.over_limit, limit=MAX_VOICE_TRANSCRIPTIONS))
-        data = built.text.encode("utf-8")
+        data = ai_config.utf8_bytes(built.text)
         identity = (active_account_id(), jid, "summary")
         locked = mw.is_chat_locked(jid)
         from ui.dialogs.ai_result_dialog import AIResultDialog

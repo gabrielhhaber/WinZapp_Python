@@ -13,10 +13,10 @@ first button (WAWebSendMsgCreateFanoutStanza).
  1 file changed, 73 insertions(+)
 
 diff --git a/send.go b/send.go
-index 4f94142..95078d9 100644
+index 6e879a5..9903364 100644
 --- a/send.go
 +++ b/send.go
-@@ -1161,10 +1161,83 @@ func (cli *Client) getMessageContent(
+@@ -1178,10 +1178,83 @@ func (cli *Client) getMessageContent(
  				Attrs: getButtonAttributes(message),
  			}},
  		})

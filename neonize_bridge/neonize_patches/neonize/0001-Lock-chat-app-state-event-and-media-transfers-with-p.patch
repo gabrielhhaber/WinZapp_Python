@@ -35,10 +35,10 @@ patch: build_neonize.py regenerates it from Neonize.proto.
  7 files changed, 261 insertions(+)
 
 diff --git a/goneonize/Neonize.proto b/goneonize/Neonize.proto
-index a48849d..d10d2fb 100644
+index 637a39d..2313337 100644
 --- a/goneonize/Neonize.proto
 +++ b/goneonize/Neonize.proto
-@@ -923,6 +923,12 @@ message ChatMarkAsRead { //49
+@@ -943,6 +943,12 @@ message ChatMarkAsRead { //49
      required bool FromFullSync = 4;
  }
  // Chat deleted on the phone (app state sync).
@@ -52,10 +52,10 @@ index a48849d..d10d2fb 100644
      required JID JID = 1;
      required int64 Timestamp = 2;
 diff --git a/goneonize/defproto/Neonize.proto b/goneonize/defproto/Neonize.proto
-index a48849d..d10d2fb 100644
+index 637a39d..2313337 100644
 --- a/goneonize/defproto/Neonize.proto
 +++ b/goneonize/defproto/Neonize.proto
-@@ -923,6 +923,12 @@ message ChatMarkAsRead { //49
+@@ -943,6 +943,12 @@ message ChatMarkAsRead { //49
      required bool FromFullSync = 4;
  }
  // Chat deleted on the phone (app state sync).
@@ -69,7 +69,7 @@ index a48849d..d10d2fb 100644
      required JID JID = 1;
      required int64 Timestamp = 2;
 diff --git a/goneonize/main.go b/goneonize/main.go
-index 37c910a..d2759e9 100644
+index 3e40e4d..d4d2c60 100644
 --- a/goneonize/main.go
 +++ b/goneonize/main.go
 @@ -18,8 +18,10 @@ import (
@@ -83,9 +83,9 @@ index 37c910a..d2759e9 100644
  	"time"
  	"unsafe"
  
-@@ -1323,6 +1325,20 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
+@@ -1335,6 +1337,20 @@ func Neonize(db *C.char, id *C.char, JIDByte *C.uchar, JIDSize C.int, newDevice
  				}
- 				eventChan <- &messageEvent
+ 				eventChan <- messageEvent
  			}
 +		case *events.Lock:
 +			if _, ok := subscribers[50]; ok {
@@ -102,9 +102,9 @@ index 37c910a..d2759e9 100644
 +				eventChan <- &messageEvent
 +			}
  		case *events.DeleteChat:
- 			if _, ok := subscribers[51]; ok {
+ 			if subscribers[51] {
  				chatState := defproto.ChatDelete{
-@@ -3192,3 +3208,168 @@ func deleteEventChannel(id string) {
+@@ -4220,3 +4236,168 @@ func deleteEventChannel(id string) {
  	defer sessionsLock.Unlock()
  	delete(eventChannel, id)
  }
@@ -145,8 +145,8 @@ index 37c910a..d2759e9 100644
 +	}
 +}
 +
-+//export DownloadAnyToFile
-+func DownloadAnyToFile(id *C.char, messageProto *C.uchar, size C.int, path *C.char, key *C.char) *C.char {
++//export DownloadAnyToFileTracked
++func DownloadAnyToFileTracked(id *C.char, messageProto *C.uchar, size C.int, path *C.char, key *C.char) *C.char {
 +	var message waE2E.Message
 +	if err := proto.Unmarshal(getByteByAddr(messageProto, size), &message); err != nil {
 +		return C.CString(err.Error())
@@ -274,25 +274,25 @@ index 37c910a..d2759e9 100644
 +	return ProtoReturnV3(&return_)
 +}
 diff --git a/neonize/_binder.py b/neonize/_binder.py
-index d399259..b9944f6 100644
+index ac04d25..6fc68a7 100644
 --- a/neonize/_binder.py
 +++ b/neonize/_binder.py
-@@ -841,6 +841,31 @@ if not os.environ.get("SPHINX"):
+@@ -950,6 +950,31 @@ if not os.environ.get("SPHINX"):
          except AttributeError:
              pass
  
 +    # Transferencias de midia com progresso e cancelamento (WinZapp): so
 +    # existem na DLL de teste; sem elas o cliente cai nas funcoes antigas.
-+    if hasattr(gocode, "DownloadAnyToFile"):
-+        gocode.DownloadAnyToFile.argtypes = [
++    if hasattr(gocode, "DownloadAnyToFileTracked"):
++        gocode.DownloadAnyToFileTracked.argtypes = [
 +            ctypes.c_char_p,
 +            ctypes.c_char_p,
 +            ctypes.c_int,
 +            ctypes.c_char_p,
 +            ctypes.c_char_p,
 +        ]
-+        gocode.DownloadAnyToFile.restype = ctypes.c_void_p
-+        gocode.DownloadAnyToFile.errcheck = consume_cstring
++        gocode.DownloadAnyToFileTracked.restype = ctypes.c_void_p
++        gocode.DownloadAnyToFileTracked.errcheck = consume_cstring
 +        gocode.TransferProgress.argtypes = [ctypes.c_char_p]
 +        gocode.TransferProgress.restype = ctypes.c_int
 +        gocode.TransferCancel.argtypes = [ctypes.c_char_p]
@@ -310,19 +310,19 @@ index d399259..b9944f6 100644
      gocode: Any = object()
  
 diff --git a/neonize/aioze/events.py b/neonize/aioze/events.py
-index b315079..2ece7f2 100644
+index 525c46e..bf23c02 100644
 --- a/neonize/aioze/events.py
 +++ b/neonize/aioze/events.py
-@@ -22,6 +22,7 @@ from ..proto.Neonize_pb2 import CallTerminate as CallTerminateEv
- from ..proto.Neonize_pb2 import CallTransport as CallTransportEv
+@@ -29,6 +29,7 @@ from ..proto.Neonize_pb2 import CATRefreshError as CATRefreshErrorEv
  from ..proto.Neonize_pb2 import ChatArchive as ChatArchiveEv
+ from ..proto.Neonize_pb2 import ChatClear as ChatClearEv
  from ..proto.Neonize_pb2 import ChatDelete as ChatDeleteEv
 +from ..proto.Neonize_pb2 import ChatLock as ChatLockEv
  from ..proto.Neonize_pb2 import ChatMarkAsRead as ChatMarkAsReadEv
  from ..proto.Neonize_pb2 import ChatMute as ChatMuteEv
  from ..proto.Neonize_pb2 import ChatPin as ChatPinEv
-@@ -82,6 +83,7 @@ __all__ = [
-     "CallPreAcceptEv",
+@@ -112,6 +113,7 @@ __all__ = [
+     "CallRejectEv",
      "CallRelayLatencyEv",
      "ChatArchiveEv",
 +    "ChatLockEv",
@@ -330,16 +330,16 @@ index b315079..2ece7f2 100644
      "ChatMuteEv",
      "ChatPinEv",
 diff --git a/neonize/client.py b/neonize/client.py
-index 46b85e0..9f87754 100644
+index 9e588c6..7f81746 100644
 --- a/neonize/client.py
 +++ b/neonize/client.py
-@@ -2204,6 +2204,45 @@ class NewClient:
-             return media.Binary
-         return None
+@@ -2234,6 +2234,45 @@ class NewClient:
+             raise DownloadError(media.Error)
+         return media.Binary
  
 +    def tem_transferencias(self) -> bool:
 +        """True se a DLL tem download e upload por arquivo com progresso."""
-+        return hasattr(self.__client, "DownloadAnyToFile")
++        return hasattr(self.__client, "DownloadAnyToFileTracked")
 +
 +    def download_any_to_file(self, message: Message, path: str, key: str) -> None:
 +        """Baixa direto para *path* (sem carregar a midia na memoria).
@@ -348,7 +348,7 @@ index 46b85e0..9f87754 100644
 +        :raises DownloadError: Se o download falhar ou for cancelado.
 +        """
 +        msg_protobuf = message.SerializeToString()
-+        erro = self.__client.DownloadAnyToFile(
++        erro = self.__client.DownloadAnyToFileTracked(
 +            self.uuid, msg_protobuf, len(msg_protobuf), path.encode(), key.encode()
 +        )
 +        if erro:
@@ -380,18 +380,18 @@ index 46b85e0..9f87754 100644
          self,
          direct_path: str,
 diff --git a/neonize/events.py b/neonize/events.py
-index 66581e5..dc1a03f 100644
+index e753856..df094e5 100644
 --- a/neonize/events.py
 +++ b/neonize/events.py
-@@ -24,6 +24,7 @@ from .proto.Neonize_pb2 import CallTerminate as CallTerminateEv
- from .proto.Neonize_pb2 import CallTransport as CallTransportEv
+@@ -31,6 +31,7 @@ from .proto.Neonize_pb2 import CATRefreshError as CATRefreshErrorEv
  from .proto.Neonize_pb2 import ChatArchive as ChatArchiveEv
+ from .proto.Neonize_pb2 import ChatClear as ChatClearEv
  from .proto.Neonize_pb2 import ChatDelete as ChatDeleteEv
 +from .proto.Neonize_pb2 import ChatLock as ChatLockEv
  from .proto.Neonize_pb2 import ChatMarkAsRead as ChatMarkAsReadEv
  from .proto.Neonize_pb2 import ChatMute as ChatMuteEv
  from .proto.Neonize_pb2 import ChatPin as ChatPinEv
-@@ -113,6 +114,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
+@@ -138,6 +139,7 @@ EVENT_TO_INT: dict[type[Message], int] = {
      ChatPinEv: 47,
      ChatMuteEv: 48,
      ChatMarkAsReadEv: 49,

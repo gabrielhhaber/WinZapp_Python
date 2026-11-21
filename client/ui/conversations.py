@@ -182,6 +182,8 @@ from ui.conversation_panel.message_data import MessageDataMixin
 from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMixin
 from ui.conversation_panel.ai_actions import AIActionsMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
+from ui.conversation_panel.translation_backlog import TranslationBacklogMixin
+from ui.conversation_panel.translation_to_end import TranslationToEndMixin
 from ui.conversation_panel.summary_actions import SummaryActionsMixin
 from ui.conversation_panel.summary_voice import SummaryVoiceMixin
 from ui.conversation_panel.summary_voice_choice import SummaryVoiceChoiceMixin
@@ -241,6 +243,8 @@ class ConversationsPanel(
     TranscriptionDeleteMixin,
     AIActionsMixin,
     TranslationActionsMixin,
+    TranslationBacklogMixin,
+    TranslationToEndMixin,
     SummaryActionsMixin,
     SummaryVoiceMixin,
     SummaryVoiceChoiceMixin,
@@ -1163,6 +1167,7 @@ class ConversationsPanel(
 
         self.conversation_panel.SetSizer(conv_sizer)
         self.conversation_panel.Bind(wx.EVT_CHAR_HOOK, self._on_conversation_char_hook)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_panel_char_hook)
         self.conversation_panel.Hide()
         outer_sizer.Add(self.conversation_panel, 1, wx.EXPAND | wx.ALL, 5)
 

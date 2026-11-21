@@ -233,6 +233,9 @@ class TextSendingMixin:
         if ok is False:
             wx.CallAfter(self._rollback_message_edit, remote_jid, msg_id,
                          snapshot, applied_message)
+        elif ok is True:
+            # Only a confirmed edit: None (outcome unknown) stays silent.
+            wx.CallAfter(self.main_window.play_edit_saved_sound, remote_jid)
 
     def _rollback_message_edit(self, remote_jid, msg_id, snapshot, applied_message):
         """Main thread: restore a refused edit's row and say it failed."""

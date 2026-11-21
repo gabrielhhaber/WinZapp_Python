@@ -10,6 +10,7 @@ import os
 import pyperclip
 import wx
 import wx.adv
+from core.call_links import parse_call_link
 from core.group_invitation_link import invitation_code
 from ui.conversation_panel.text_helpers import _URL_RE
 
@@ -201,6 +202,10 @@ class LinksMixin:
             join_item = menu.Append(wx.ID_ANY, i18n.t("group_join_title"))
             self.Bind(wx.EVT_MENU, lambda e, u=url: self._join_group_from_link(u),
                       join_item)
+        if parse_call_link(url)[1]:
+            # also what Enter does on a call link (_activate_link)
+            call_item = menu.Append(wx.ID_ANY, i18n.t("call_link_join_menu"))
+            self.Bind(wx.EVT_MENU, lambda e, u=url: self._join_call_from_link(u), call_item)
         open_item = menu.Append(wx.ID_ANY, i18n.t("open_link"))
         self.Bind(wx.EVT_MENU, lambda e, u=url: self._open_link(u), open_item)
         copy_item = menu.Append(wx.ID_ANY, f"{i18n.t('copy_link')}\tCtrl+C")
@@ -223,14 +228,22 @@ class LinksMixin:
         from ui.dialogs.group_join_dialog import join_group_by_link
         join_group_by_link(self.main_window, self.main_window, url)
 
+    def _join_call_from_link(self, url: str):
+        """Join the call of a WhatsApp call link, after asking (it starts the
+        microphone, and someone else's call is joined at once)."""
+        self.main_window.join_call_link(url, confirm_parent=self)
+
     def _activate_link(self, url: str):
         """Enter, Space or a click on a link.
 
-        A WhatsApp group invitation is answered here, in WinZapp: the browser
-        would only show a page whose one button asks for a WhatsApp app. Every
-        other link goes to the system's default application."""
+        A WhatsApp group invitation and a WhatsApp call link are answered
+        here, in WinZapp: the browser would only show a page whose one button
+        asks for a WhatsApp app. Every other link goes to the system's default
+        application."""
         if invitation_code(url):
             self._join_group_from_link(url)
+        elif parse_call_link(url)[1]:
+            self._join_call_from_link(url)
         else:
             self._open_link(url)
 

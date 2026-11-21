@@ -9,6 +9,7 @@
 import { Request, Response } from 'express';
 import { installVoipInitPolicyInPage } from '../util/voipInitPolicy';
 import { installGroupCallRuntimeInPage } from '../util/groupCallRuntime';
+import { installCallLinkRuntimeInPage } from '../util/callLinkRuntime';
 
 import {
   ensureCallMediaBridge,
@@ -808,6 +809,83 @@ export async function joinGroupCall(req: Request, res: Response) {
 }
 
 /**
+ * Call links (callLinkRuntime.ts): create one, join its call, and for the
+ * call's admin the people in its waiting room. Only the join needs VoIP warm
+ * and the media bridge; the rest never acquires a device.
+ */
+async function evaluateCallLink(req: Request, action: string, payload: any = {}) {
+  const page = getWhatsappPage(req);
+  if (action === 'join') {
+    await warmCallVoipRuntime(req.client, (req as any).logger);
+    await page.evaluate(installVoipInitPolicyInPage);
+  }
+  await page.evaluate(installCallLinkRuntimeInPage);
+  return page.evaluate(({ action, payload }) => {
+    const runtime = (window as any).__winzappCallLinkRuntime;
+    if (action === 'create') return runtime.create(payload.isVideo === true);
+    if (action === 'check') return runtime.check(payload);
+    if (action === 'join') return runtime.join(payload);
+    if (action === 'waiting-room') return runtime.waitingRoom(payload.callId);
+    if (action === 'admit') return runtime.admit(payload);
+    if (action === 'may-stop') return runtime.mayStopAudio();
+    throw new Error(`Unsupported call link action: ${action}`);
+  }, { action, payload });
+}
+
+export async function createCallLink(req: Request, res: Response) {
+  try {
+    ok(res, await evaluateCallLink(req, 'create', { isVideo: req.body?.isVideo === true }));
+  } catch (error) {
+    fail(req, res, 'createCallLink', error);
+  }
+}
+
+export async function joinCallLink(req: Request, res: Response) {
+  const body = req.body || {};
+  if (typeof body.link !== 'string' || !body.link) {
+    res.status(400).json({ status: 'error', message: 'Parameter link is required!' });
+    return;
+  }
+  try {
+    await evaluateCallLink(req, 'check', { link: body.link });
+    await prepareAudioBridge(req);
+    ok(res, await evaluateCallLink(req, 'join', { link: body.link }));
+  } catch (error) {
+    // As joinGroupCall: the bridge may belong to a call that replaced this one.
+    let mayStop = false;
+    try { mayStop = (await evaluateCallLink(req, 'may-stop')) === true; } catch (_) { /* unknown page */ }
+    if (mayStop) await stopAudioBridge(req);
+    fail(req, res, 'joinCallLink', error);
+  }
+}
+
+export async function callLinkWaitingRoom(req: Request, res: Response) {
+  if (!req.body?.callId) {
+    res.status(400).json({ status: 'error', message: 'Parameter callId is required!' });
+    return;
+  }
+  try {
+    ok(res, await evaluateCallLink(req, 'waiting-room', { callId: String(req.body?.callId || '') }));
+  } catch (error) {
+    fail(req, res, 'callLinkWaitingRoom', error);
+  }
+}
+
+export async function admitCallLinkPerson(req: Request, res: Response) {
+  const body = req.body || {};
+  if (!body.callId || typeof body.jid !== 'string' || !body.jid) {
+    res.status(400).json({ status: 'error', message: 'Parameters callId and jid are required!' });
+    return;
+  }
+  try {
+    ok(res, await evaluateCallLink(req, 'admit',
+      { callId: String(body.callId), jid: body.jid, admit: body.admit !== false }));
+  } catch (error) {
+    fail(req, res, 'admitCallLinkPerson', error);
+  }
+}
+
+/**
  * While an outgoing call is being placed, WhatsApp Web can open a notice the
  * hidden page has no one to answer -- seen live calling a WhatsApp Business
  * account: "About this call. This business uses a secure service from Meta to
@@ -822,6 +900,13 @@ export async function joinGroupCall(req: Request, res: Response) {
  * permission prompt -- has no link and is left alone, since its last button
  * can be a destructive one. What was answered is logged without the dialog
  * text (it can hold a contact or business name; see docs/traps/log-pii.md).
+ *
+ * One notice has no link and is answered by name: calling *from* a WhatsApp
+ * Business account opens "About this call. Your business uses a secure service
+ * from Meta to manage this call." where "Learn more" is a plain button beside
+ * "Continue" (seen 2026-11-19, issue #831). WhatsApp marks it with
+ * data-testid="coex-calling-first-time-modal", which does not depend on the UI
+ * language; without it every call from such an account hung at 75 s.
  */
 function watchOutgoingCallNotices(req: Request): () => void {
   const page = getWhatsappPage(req);
@@ -839,8 +924,11 @@ function watchOutgoingCallNotices(req: Request): () => void {
           const buttons = Array.from(dialog.querySelectorAll('button,[role="button"]')) as HTMLElement[];
           if (!buttons.length || buttons.length > 3) continue;
           // An informational notice carries a "Learn more" link; a decision
-          // dialog does not, and is not ours to answer.
-          if (!dialog.querySelector('a[href],[role="link"]')) continue;
+          // dialog does not, and is not ours to answer. The Business
+          // account's own first-call notice has a button instead of a link,
+          // so it is recognised by the test id WhatsApp gives it.
+          const knownNotice = !!dialog.querySelector('[data-testid="coex-calling-first-time-modal"]');
+          if (!knownNotice && !dialog.querySelector('a[href],[role="link"]')) continue;
           seen.add(dialog);
           buttons[buttons.length - 1].click();
           out.push(buttons.length);

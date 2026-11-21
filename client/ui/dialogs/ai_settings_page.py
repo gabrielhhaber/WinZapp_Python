@@ -38,6 +38,8 @@ from .ai_provider_models import ModelSelectionMixin
 from .ai_auto_options import AIAutoOptionsPanel, window_title
 from .ai_kinds_options import AIKindsPanel
 from .settings_pages import SubPageDialog
+from ui.accessible import AccessibleReorderButton
+from ui.reorder_keys import MOVE_DOWN, MOVE_UP, bind_reorder_keys
 
 #: i18n key naming each kind, for the "handles" line of the provider window.
 KIND_NAMES = (("image", "ai_kind_image"), ("sticker", "ai_kind_sticker"), ("video", "ai_kind_video"),
@@ -352,6 +354,11 @@ class AISettingsPage(ScrolledPanel):
         self.configure_button = self._button("ai_provider_configure_button", self._configure)
         self.up_button = self._button("ai_provider_move_up_button", lambda e: self._move(-1))
         self.down_button = self._button("ai_provider_move_down_button", lambda e: self._move(1))
+        # Alt+Up / Alt+Down move the selected provider too, and the buttons
+        # announce those keys (the same pair serves every reorderable list).
+        self.up_button.SetAccessible(AccessibleReorderButton(MOVE_UP, self._t("accessible_alt_up")))
+        self.down_button.SetAccessible(AccessibleReorderButton(MOVE_DOWN, self._t("accessible_alt_down")))
+        bind_reorder_keys(self.providers, self._move)
         # The kinds of media, in a window of their own (ai_kinds_options.py):
         # on the page they left no letter for the translation button.
         self.kinds_button = self._button("ai_kinds_button", lambda event: self.open_kinds())
@@ -574,7 +581,7 @@ class AISettingsPage(ScrolledPanel):
             lambda provider: key_for_dialog(
                 store_for_translation(self.store, provider), provider,
                 self._drafts, self._deleted, self._reset),
-            window_title(self._t("translation_settings")))
+            window_title(self._t("translation_settings")), self.main_window.speak_output)
         try:
             if dialog.ShowModal() == wx.ID_OK:
                 self._translation, key = dialog.result

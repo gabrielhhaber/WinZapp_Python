@@ -15,6 +15,7 @@ A row that did not change — the focused one above all — is not touched.
 """
 
 import logging
+import time
 
 from core.list_row_diff import plan_row_diff
 from ui.conversation_panel.typing_row import message_row_count, typing_row_shown
@@ -78,7 +79,15 @@ class MessageRowsMixin:
         an inconsistency, not a way to refresh, and it is logged.
         """
         lst = self.messages_list
-        texts = [self._render_message_line(m) for m in new_rows]
+        started = time.monotonic()
+        # Index and total are handed over: left to itself, _render_message_line()
+        # finds a row's position with _sorted_messages.index(msg), a linear scan
+        # per row — quadratic over the window. In an 11,000-row chat that was
+        # tens of seconds on the main thread (issue #812).
+        total = len(new_rows)
+        texts = [self._render_message_line(m, index=i, total=total)
+                 for i, m in enumerate(new_rows)]
+        rendered = time.monotonic()
         # The typing row, when showing, is one row past old_rows and stays
         # there: every delete/insert index below is within the message rows.
         control_rows = message_row_count(self)
@@ -110,8 +119,12 @@ class MessageRowsMixin:
             if not row_text_unchanged(lst.GetItemText(index), text):
                 lst.SetItemText(index, text)
                 rewritten += 1
-        if deletes or inserts or rewritten:
+        # A pass that changed nothing is logged too when rendering alone was slow:
+        # that is the worst case of issue #812 and would otherwise leave no trace.
+        if deletes or inserts or rewritten or rendered - started > 0.5:
+            done = time.monotonic()
             logging.info(
                 "[_sync_message_rows] %d row(s) deleted, %d inserted, %d rewritten, "
-                "%d row(s) total — no rebuild.",
-                len(deletes), len(inserts), rewritten, len(new_rows))
+                "%d row(s) total (was %d) — no rebuild. render=%dms apply=%dms",
+                len(deletes), len(inserts), rewritten, len(new_rows), len(old_rows),
+                (rendered - started) * 1000, (done - rendered) * 1000)

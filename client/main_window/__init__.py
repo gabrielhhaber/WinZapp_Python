@@ -29,6 +29,7 @@ Where to look (and where new code goes):
     history             on-demand older history (fetch_older_messages)
     conversation_sync   sync_chat_messages, remote windows, deletion reconcile
     message_events      on_new_message / on_historical_message, edits, revokes
+    edit_alerts         sounds, speech and notifications of edited messages (#824)
     chat_events         acks, presence, unread counters, archive/pin events
     group_activity      group typing/recording sentence: chat-list preview and spoken announcement
     contact_presence    bounded open-contact refresh and connection invalidation
@@ -53,11 +54,13 @@ Where to look (and where new code goes):
     contacts            local/remote contacts, self reference
     identity            JID normalization, @lid <-> phone, name resolution
     groups              group metadata, permissions, group management
-    group_invitation_links  invitation links handed over by Windows, whatsapp: association
+    group_invitation_links  invitation, chat and call links handed over by Windows, whatsapp: association
     status_transcription    saved transcriptions of statuses, their media and automatic runs
     calls               voice/video calls, call bar, call-log watcher
     call_participants   explicit connected-participant views for active/joinable calls
+    call_links          call links: create, join (also from a message or Windows), the link call's waiting room
     call_hotkeys        answer/decline a ringing call from any window (global keys, only while it rings)
+    default_audio_devices  calls and program sounds on "system default" follow Windows' default (headset plugged in)
     chat_lock           locked-chats vault
     phone_chat_lock     chats locked with WhatsApp Chat Lock on the phone
     quick_audio_devices Ctrl+Alt+Shift+H/G quick output/recording device switch
@@ -71,6 +74,7 @@ Where to look (and where new code goes):
     message_rules       unread/history-gap/countable-message rules
     backlog_flood       old messages still arriving after the sync: status, chat list held still
     history_boundary    older history that is only on the phone (API verdict, probe)
+    history_transfer    spoken progress of the phone's history transfer (Neonize)
     identity_rules      linked phone number, group participant identity
     runtime_setup       legacy API state, npm health marker, restore choice
     wpp_update_validation  HTTP validation and recovery of the previous API after an update

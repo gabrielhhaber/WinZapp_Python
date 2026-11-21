@@ -181,21 +181,67 @@ class _Cli:
 
 
 def test_every_mutation_event_reaches_the_mirror(monkeypatch, tmp_path):
+    from neonize.proto.waSyncAction.WAWebProtobufSyncAction_pb2 import SyncActionValue, StatusPrivacyAction
     events = types.ModuleType("neonize.events")
     events.AppStateMutationEv = type("AppStateMutationEv", (), {})
     package = types.ModuleType("neonize")
     package.events = events
     monkeypatch.setitem(sys.modules, "neonize", package)
     monkeypatch.setitem(sys.modules, "neonize.events", events)
-    cli, s = _Cli(), N(folder=str(tmp_path))
+    cli, s = _Cli(), N(folder=str(tmp_path), name="session", emitted=[],
+                       emit=lambda *args: s.emitted.append(args))
     asm.register_events(cli, s)
     handle = cli.handlers[events.AppStateMutationEv]
     action = N(SerializeToString=lambda: b"value")
     handle(cli, N(Name="regular", Index=["label_edit", "5"], Version=3, Remove=False,
                   Action=action, FromFullSync=True, HasField=lambda f: f == "Action"))
     assert asm.mirror_of(s).entries("label_edit") == [(["label_edit", "5"], 3, b"value")]
+    archive = SyncActionValue()
+    archive.unarchiveChatsSetting.unarchiveChats = True
+    handle(cli, N(Name="regular_low", Index=["setting_unarchiveChats"], Version=4,
+                  Remove=False, Action=archive, FromFullSync=False,
+                  HasField=lambda f: f == "Action"))
+    status = SyncActionValue()
+    status.statusPrivacy.mode = StatusPrivacyAction.StatusDistributionMode.Value("DENY_LIST")
+    status.statusPrivacy.userJID.append("123456@s.whatsapp.net")
+    handle(cli, N(Name="regular_high", Index=["status_privacy"], Version=7,
+                  Remove=False, Action=status, FromFullSync=False,
+                  HasField=lambda f: f == "Action"))
+    handle(cli, N(Name="regular_high", Index=["status_privacy"], Version=8,
+                  Remove=True, Action=SyncActionValue(), FromFullSync=False,
+                  HasField=lambda f: f == "Action"))
+    # Replayed hydration and malformed partial actions never publish defaults.
+    handle(cli, N(Name="regular_high", Index=["status_privacy"], Version=7,
+                  Remove=False, Action=status, FromFullSync=True,
+                  HasField=lambda f: f == "Action"))
+    handle(cli, N(Name="regular_low", Index=["setting_unarchiveChats"], Version=4,
+                  Remove=False, Action=SyncActionValue(), FromFullSync=False,
+                  HasField=lambda f: f == "Action"))
+    assert s.emitted == [
+        ("privacy-settings-changed", {"session": "session", "keepArchived": False}),
+        ("privacy-settings-changed", {"session": "session", "status": {
+            "setting": "deny-list", "list": ["123456@c.us"]}}),
+        ("privacy-settings-changed", {"session": "session", "status": {
+            "setting": "contact", "list": []}}),
+    ]
     s.app_state_synced("regular")
     assert asm.mirror_of(s).seeded("regular")
+
+
+def test_a_collection_that_fails_to_sync_is_logged(monkeypatch, tmp_path, caplog):
+    import logging
+    events = types.ModuleType("neonize.events")
+    events.AppStateMutationEv = type("AppStateMutationEv", (), {})
+    events.AppStateSyncErrorEv = type("AppStateSyncErrorEv", (), {})
+    package = types.ModuleType("neonize")
+    package.events = events
+    monkeypatch.setitem(sys.modules, "neonize", package)
+    monkeypatch.setitem(sys.modules, "neonize.events", events)
+    cli, s = _Cli(), N(folder=str(tmp_path), name="session")
+    asm.register_events(cli, s)
+    with caplog.at_level(logging.WARNING, logger="bridge"):
+        cli.handlers[events.AppStateSyncErrorEv](cli, N(Name="regular_low", FullSync=True, Error="x"))
+    assert "regular_low" in caplog.text and "full sync: True" in caplog.text
 
 
 def test_an_older_build_registers_nothing(monkeypatch, tmp_path):
@@ -215,4 +261,4 @@ def test_winzapp_build_event_carries_the_fields_the_handler_reads():
         pytest.skip("neonize without WinZapp's events (build_neonize.py builds them)")
     fields = set(events.AppStateMutationEv.DESCRIPTOR.fields_by_name)
     assert {"Name", "Index", "Version", "Remove", "Action", "FromFullSync"} <= fields
-    assert events.EVENT_TO_INT[events.AppStateMutationEv] == 57
+    assert events.EVENT_TO_INT[events.AppStateMutationEv] == 100

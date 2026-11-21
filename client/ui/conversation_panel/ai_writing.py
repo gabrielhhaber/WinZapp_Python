@@ -6,7 +6,7 @@ TranslationActionsMixin rather than adding another menu entry.
 """
 from app_paths import global_dir
 from app_settings import AppSettings
-from core.ai_media.config import MAX_SOURCE_BYTES, preferences
+from core.ai_media.config import MAX_SOURCE_BYTES, preferences, utf8_bytes
 from ui.accessible import AccessibleWritingHelp
 from ui.shortcut_bindings import popup_item_label
 
@@ -49,7 +49,7 @@ class AIWritingMixin:
             if not getattr(field, "IsEditable", lambda: True)():
                 return False
         text = text.strip()
-        return bool(text) and len(text.encode("utf-8")) <= MAX_SOURCE_BYTES["writing"]
+        return bool(text) and len(utf8_bytes(text)) <= MAX_SOURCE_BYTES["writing"]
 
     def _writing_menu_label(self):
         """The menu item's text with the chord the person has set for it."""

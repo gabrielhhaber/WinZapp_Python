@@ -1,0 +1,243 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 00:36:25 +0000
+Subject: [PATCH] api/call-link-join: keep the group update that follows the
+ join ACK
+
+A call link's link_join ACK and the group_update right after it carry the
+same transaction-id: the ACK has no relay and no device PID, the update has
+both and, for the account that joined second, rekey=1. applyGroupUpdate
+dropped it as an already held transaction, so that account never installed
+the relay or PIDs and never fanned the group key out; maybeStartMedia waited
+for the key forever (no "starting media", 0 frames each way in the logs).
+A same-transaction update is now kept when it adds the relay or PIDs the held
+one lacks.
+
+Validated: group_update_carry_test.go (the decision table) and
+engine_call_link_test.go (ACK then the full update: applied; again: stale;
+fails without the change). Not yet on a live call.
+---
+ CHANGELOG.md               |  9 ++++++
+ engine_call_link_test.go   | 58 ++++++++++++++++++++++++++++++++++++++
+ engine_group_control.go    | 16 +++++++++--
+ group_update_carry.go      | 32 +++++++++++++++++++++
+ group_update_carry_test.go | 35 +++++++++++++++++++++++
+ 5 files changed, 147 insertions(+), 3 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 6fb061d..d7a44d5 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -22,6 +22,15 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+   they are a guest (`account_kind=guest`): a guest has no phone number, so
+   the name is all a client can show.
+ - Joining a link whose call is already held here is refused.
++- A link's join ACK and the `group_update` right after it carry the same
++  transaction-id: the ACK has no relay and no device PID, the update has both
++  and asks the account that joined second for the group key (`rekey="1"`).
++  The update was dropped as already held, so that account never got the relay
++  or sent the key and the call stayed silent. A same-transaction update is
++  now kept when it adds the relay or PIDs the held one lacks
++  (`groupUpdateIsStale`; `engine_call_link_test.go`, `group_update_carry_test.go`).
++  Such an update does not make this device draw a second key for a
++  transaction it already holds one for (`groupEpochHeldFor`).
+ - KAT-verified on the captured stanzas (`signaling/call_link_test.go`,
+   `engine_call_link_test.go`); not yet validated on a live call.
+ 
+diff --git a/engine_call_link_test.go b/engine_call_link_test.go
+index 792ac74..eb539a9 100644
+--- a/engine_call_link_test.go
++++ b/engine_call_link_test.go
+@@ -152,3 +152,61 @@ func TestAJoinThatWaitsSendsTheWaitingRoomHeartbeat(t *testing.T) {
+ 	}
+ 	eng.finishCall("LCID", "test")
+ }
++
++func TestTheGroupUpdateAfterTheJoinAckWithTheSameTransactionIsApplied(t *testing.T) {
++	// The join ACK and the group_update right after it share a transaction-id;
++	// the ACK has no relay or PIDs, the update has them and asks for the key.
++	previous := callLinkHeartbeatInterval
++	callLinkHeartbeatInterval = time.Hour
++	defer func() { callLinkHeartbeatInterval = previous }()
++	eng, _ := linkTestEngine(linkJoinAck(false))
++	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{}); err != nil {
++		t.Fatalf("join: %v", err)
++	}
++	held := eng.lookup("LCID").groupUpdate
++	if held == nil || held.Relay != nil || groupPIDCount(*held) != 0 {
++		t.Fatalf("the ACK's roster %+v", held)
++	}
++	full := cloneGroupCallUpdate(*held)
++	full.Relay = &groupCallRelay{}
++	full.RekeyRequested = true
++	for i := range full.Participants {
++		for j := range full.Participants[i].Devices {
++			full.Participants[i].Devices[j].PID, full.Participants[i].Devices[j].HasPID = uint32(i), true
++		}
++	}
++	if !eng.applyGroupUpdate(full) {
++		t.Fatal("the update with the relay and the PIDs was dropped as stale")
++	}
++	if got := eng.lookup("LCID").groupUpdate; got.Relay == nil || groupPIDCount(*got) != 2 {
++		t.Fatalf("installed %+v", got)
++	}
++	if eng.applyGroupUpdate(full) {
++		t.Fatal("the same update twice is stale")
++	}
++	eng.finishCall("LCID", "test")
++}
++
++func TestAKeyAlreadyHeldForTheTransactionIsNotDrawnAgain(t *testing.T) {
++	previous := callLinkHeartbeatInterval
++	callLinkHeartbeatInterval = time.Hour
++	defer func() { callLinkHeartbeatInterval = previous }()
++	eng, _ := linkTestEngine(linkJoinAck(false))
++	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{}); err != nil {
++		t.Fatalf("join: %v", err)
++	}
++	update := groupCallUpdate{CallID: "LCID", TransactionID: 6}
++	if eng.groupEpochHeldFor(update) {
++		t.Fatal("no key is held yet")
++	}
++	if err := eng.installGroupEpoch("LCID", 6, make([]byte, 32)); err != nil {
++		t.Fatalf("install: %v", err)
++	}
++	if !eng.groupEpochHeldFor(update) || !eng.groupEpochHeldFor(groupCallUpdate{CallID: "LCID", TransactionID: 5}) {
++		t.Fatal("a key held for transaction 6 covers 6 and earlier")
++	}
++	if eng.groupEpochHeldFor(groupCallUpdate{CallID: "LCID", TransactionID: 7}) {
++		t.Fatal("a later transaction may ask for a new key")
++	}
++	eng.finishCall("LCID", "test")
++}
+diff --git a/engine_group_control.go b/engine_group_control.go
+index da75267..8ac4663 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -36,7 +36,7 @@ func (e *engine) onUnknownCallEvent(node *waBinary.Node) {
+ 			Str("roster", describeGroupRoster(update)).
+ 			Str("relay", describeGroupRelay(update)).
+ 			Msg("group update received")
+-		if e.applyGroupUpdate(update) && update.RekeyRequested {
++		if e.applyGroupUpdate(update) && update.RekeyRequested && !e.groupEpochHeldFor(update) {
+ 			if fanoutErr := e.distributeRequestedGroupEpoch(context.Background(), update); fanoutErr != nil {
+ 				e.c.log.Warn().Err(fanoutErr).Str("call_id", update.CallID).Msg("group rekey fanout failed")
+ 			}
+@@ -174,7 +174,7 @@ func (e *engine) applyGroupUpdate(update groupCallUpdate) bool {
+ 			Msg("dropping group update for unknown or ended call")
+ 		return false
+ 	}
+-	if m.groupUpdate != nil && update.TransactionID <= m.groupUpdate.TransactionID {
++	if groupUpdateIsStale(m.groupUpdate, update) {
+ 		e.mu.Unlock()
+ 		return false
+ 	}
+@@ -207,7 +207,7 @@ func (e *engine) applyGroupUpdate(update groupCallUpdate) bool {
+ 		}
+ 		return false
+ 	}
+-	if m.groupUpdate != nil && update.TransactionID <= m.groupUpdate.TransactionID {
++	if groupUpdateIsStale(m.groupUpdate, update) {
+ 		e.mu.Unlock()
+ 		return false
+ 	}
+@@ -350,6 +350,16 @@ func (e *engine) installGroupEpoch(callID string, transactionID uint32, rawKey [
+ 	return nil
+ }
+ 
++// groupEpochHeldFor reports whether the call already holds a key epoch for this
++// update's transaction or a later one: an update of the same transaction that
++// only adds PIDs must not make this device draw a second, different key.
++func (e *engine) groupEpochHeldFor(update groupCallUpdate) bool {
++	e.mu.Lock()
++	defer e.mu.Unlock()
++	m := e.calls[update.CallID]
++	return m != nil && m.hasGroupEpoch && m.groupEpochTxID >= update.TransactionID
++}
++
+ func (e *engine) distributeRequestedGroupEpoch(ctx context.Context, update groupCallUpdate) error {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/d9df3eb9d96ea5260ffcd4036b6669499a1c1bc2/datasheets/voip-group-key-epoch-fanout.md#L99-L162
+ 	self := e.c.wa.Store.GetLID()
+diff --git a/group_update_carry.go b/group_update_carry.go
+index b8afa33..ad4d036 100644
+--- a/group_update_carry.go
++++ b/group_update_carry.go
+@@ -46,3 +46,35 @@ func carryGroupSnapshot(previous, next *groupCallUpdate) (relayCarried bool, pid
+ 	}
+ 	return relayCarried, pidsCarried
+ }
++
++// groupUpdateIsStale reports whether update must be dropped for an update the
++// call already holds. An older transaction always is. The same transaction is
++// too, unless it brings what the held one lacks: a call link's join ACK and
++// the group_update that follows carry the same transaction-id, the ACK without
++// the relay or any device PID and the update with them (and with the rekey
++// request), so dropping the second left the call with no relay, no PIDs and no
++// key fan-out.
++func groupUpdateIsStale(held *groupCallUpdate, update groupCallUpdate) bool {
++	if held == nil || update.TransactionID > held.TransactionID {
++		return false
++	}
++	if update.TransactionID < held.TransactionID {
++		return true
++	}
++	if update.Relay != nil && held.Relay == nil {
++		return false
++	}
++	return groupPIDCount(update) <= groupPIDCount(*held)
++}
++
++func groupPIDCount(update groupCallUpdate) int {
++	count := 0
++	for _, participant := range update.Participants {
++		for _, device := range participant.Devices {
++			if device.HasPID {
++				count++
++			}
++		}
++	}
++	return count
++}
+diff --git a/group_update_carry_test.go b/group_update_carry_test.go
+index b5bdaba..dde5433 100644
+--- a/group_update_carry_test.go
++++ b/group_update_carry_test.go
+@@ -103,3 +103,38 @@ func TestTheEngineStoresThePartialUpdateWithTheCarriedSnapshot(t *testing.T) {
+ 		t.Fatalf("stored = tx %d relay %v", stored.TransactionID, stored.Relay != nil)
+ 	}
+ }
++
++func TestAGroupUpdateOfTheHeldTransactionIsKeptOnlyWhenItAddsTheRelayOrPIDs(t *testing.T) {
++	device := func(pid bool) groupCallDevice {
++		return groupCallDevice{JID: types.NewJID("1", types.HiddenUserServer), HasPID: pid}
++	}
++	update := func(tx uint32, relay bool, pid bool) groupCallUpdate {
++		u := groupCallUpdate{CallID: "C", TransactionID: tx, Participants: []groupCallParticipant{
++			{State: "connected", Devices: []groupCallDevice{device(pid)}}}}
++		if relay {
++			u.Relay = &groupCallRelay{}
++		}
++		return u
++	}
++	ack := update(11, false, false)
++	for _, tc := range []struct {
++		name  string
++		held  *groupCallUpdate
++		next  groupCallUpdate
++		stale bool
++	}{
++		{"nothing held", nil, update(1, false, false), false},
++		{"a newer transaction", &ack, update(12, false, false), false},
++		{"an older transaction", &ack, update(10, true, true), true},
++		{"the same transaction with the relay the ACK lacked", &ack, update(11, true, true), false},
++		{"the same transaction with only PIDs added", &ack, update(11, false, true), false},
++		{"the same transaction again", &ack, update(11, false, false), true},
++		{"the same full update delivered twice", ptr(update(11, true, true)), update(11, true, true), true},
++	} {
++		if got := groupUpdateIsStale(tc.held, tc.next); got != tc.stale {
++			t.Errorf("%s: stale=%v, want %v", tc.name, got, tc.stale)
++		}
++	}
++}
++
++func ptr[T any](v T) *T { return &v }

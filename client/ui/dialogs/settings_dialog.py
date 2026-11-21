@@ -3,6 +3,7 @@ import os
 import sys
 import wx
 from core.chat_row_text import AFTER as UNREAD_AFTER, BEFORE as UNREAD_BEFORE
+from core.page_size import MAX_MESSAGES_PAGE_SIZE, clamp_messages_page_size
 from ui.dialogs.typing_feedback_controls import TypingFeedbackControls
 from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -17,7 +18,7 @@ from core.alert_tones import CUSTOM_PATH_CHECK_DELAY_MS, alert_tone_previewable
 from ui.dialogs.foreground_sound_choice import ForegroundSoundChoice
 from core.sound_system import (
     SOUND_EVENTS, discover_alert_tone_choices, resolve_alert_tone_path,
-    DEFAULT_PACK_ID, import_soundpack, AlertPreviewController,
+    DEFAULT_PACK_ID, import_soundpack, AlertPreviewController, sound_event_enabled,
 )
 from core.audio_devices import (
     enumerate_output_devices, enumerate_input_devices, test_input_device,
@@ -557,9 +558,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         gen_sizer.Add(self._autostart_check, 0, wx.ALL, 8)
 
-        # Registers WinZapp for whatsapp: links (group invitations opened from
-        # a browser or another program). Windows only: the association is a
-        # registry entry, see core/whatsapp_link_association.py.
+        # Registers WinZapp for whatsapp: links (group invitations, chats and
+        # call links opened from a browser or another program). One scheme,
+        # so one option: Windows has a single handler for it. Windows only:
+        # the association is a registry entry, see
+        # core/whatsapp_link_association.py.
         self._whatsapp_links_check = wx.CheckBox(
             self._general_page, label=i18n.t("whatsapp_links_label")
         )
@@ -675,6 +678,29 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         notif_sizer.Add(self._keep_muted_silent_check, 0, wx.ALL, 8)
 
+        # Someone else's edit of a message (core/edit_alerts.py): spoken with
+        # the window active, notified with it in the background. Each
+        # conversation can depart from both in its data window.
+        self._announce_edits_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("announce_edited_messages_label")
+        )
+        notif_sizer.Add(self._announce_edits_check, 0, wx.ALL, 8)
+        self._notify_edits_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("notify_edited_messages_label")
+        )
+        notif_sizer.Add(self._notify_edits_check, 0, wx.ALL, 8)
+
+        # Which conversations the unread count in the tray icon and the
+        # window title includes (core/unread_badge.py).
+        self._discount_archived_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("discount_archived_from_unread_badge_label")
+        )
+        notif_sizer.Add(self._discount_archived_check, 0, wx.ALL, 8)
+        self._discount_muted_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("discount_muted_from_unread_badge_label")
+        )
+        notif_sizer.Add(self._discount_muted_check, 0, wx.ALL, 8)
+
         # How many message notifications a burst may play per second
         # (core/notification_burst.py).
         self._notification_burst_label = wx.StaticText(
@@ -745,6 +771,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._accessibility_page, label=i18n.t("accessibility_sapi_fallback_label")
         )
         accessibility_sizer.Add(self._sapi_fallback_check, 0, wx.ALL, 8)
+
+        self._speak_in_background_check = wx.CheckBox(
+            self._accessibility_page, label=i18n.t("accessibility_speak_in_background_label")
+        )
+        accessibility_sizer.Add(self._speak_in_background_check, 0, wx.ALL, 8)
 
         self._accessibility_page.SetSizer(accessibility_sizer)
 
@@ -1709,6 +1740,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._forwarded_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._starred_prefix_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_starred_prefix_label")
+        )
+        messages_sizer.Add(
+            self._starred_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         # How the box of the delete confirmations starts; the confirmation
         # itself still lets each delete decide.
         self._delete_media_default_cb = wx.CheckBox(
@@ -1874,6 +1912,21 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._escape_clears_selection_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
+        self._escape_clears_filters_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_escape_clears_filters")
+        )
+        chats_sizer.Add(
+            self._escape_clears_filters_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._escape_clears_message_search_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_escape_clears_message_search")
+        )
+        chats_sizer.Add(
+            self._escape_clears_message_search_cb, 0,
+            wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
         self._keep_search_after_open_cb = wx.CheckBox(
             self._chats_page, label=i18n.t("ui_keep_search_after_open")
         )
@@ -1959,6 +2012,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         confirm_sizer.Add(
             self._confirm_delete_chat_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
+        )
+
+        self._confirm_archive_chat_cb = wx.CheckBox(
+            self._confirmations_page, label=i18n.t("ui_confirm_archive_chat")
+        )
+        confirm_sizer.Add(
+            self._confirm_archive_chat_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
 
         # Same arrangement for F5 and Shift+F5: each mirrors the key its
@@ -2480,8 +2540,25 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         keep_muted_silent = self.main_window.settings.get("general", {}).get(
             "keep_muted_chats_silent_when_open", True
         )
+        discount_archived = self.main_window.settings.get("general", {}).get(
+            "discount_archived_from_unread_badge", True
+        )
+        discount_muted = self.main_window.settings.get("general", {}).get(
+            "discount_muted_from_unread_badge", True
+        )
+        # edit_alerts.GLOBAL_KEYS: the install-wide side of the edit alerts
+        announce_edits = self.main_window.settings.get("general", {}).get(
+            "announce_edited_messages", False
+        )
+        notify_edits = self.main_window.settings.get("general", {}).get(
+            "notify_edited_messages", False
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
+            self._announce_edits_check.SetValue(announce_edits is True)
+            self._notify_edits_check.SetValue(notify_edits is True)
+            self._discount_archived_check.SetValue(discount_archived)
+            self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
 
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
@@ -2520,7 +2597,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._hotkey_field._vk  = 0
                 self._hotkey_field._mod = 0
 
-        page_size = self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
+        page_size = clamp_messages_page_size(
+            self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200))
         if wanted(unit, "messages"):
             self._messages_page_size_field.SetValue(str(page_size))
 
@@ -2617,6 +2695,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "confirmations"):
             self._confirm_delete_chat_cb.SetValue(bool(confirm_delete_chat))
 
+        confirm_archive_chat = self.main_window.settings.get("user_interface", {}).get(
+            "confirm_archive_chat", True
+        )
+        if wanted(unit, "confirmations"):
+            self._confirm_archive_chat_cb.SetValue(bool(confirm_archive_chat))
+
         confirm_resync_all = self.main_window.settings.get("user_interface", {}).get(
             "confirm_resync_all", True
         )
@@ -2644,6 +2728,20 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "chats"):
             self._escape_clears_selection_cb.SetValue(bool(escape_clears_selection))
+
+        escape_clears_filters = self.main_window.settings.get("user_interface", {}).get(
+            "escape_clears_filters", True
+        )
+        if wanted(unit, "chats"):
+            self._escape_clears_filters_cb.SetValue(bool(escape_clears_filters))
+
+        escape_clears_message_search = self.main_window.settings.get(
+            "user_interface", {}
+        ).get("escape_clears_message_search", True)
+        if wanted(unit, "chats"):
+            self._escape_clears_message_search_cb.SetValue(
+                bool(escape_clears_message_search)
+            )
 
         keep_search_after_open = self.main_window.settings.get("user_interface", {}).get(
             "keep_search_after_open", False
@@ -2694,6 +2792,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "messages"):
             self._forwarded_prefix_cb.SetValue(bool(forwarded_prefix_enabled))
+
+        starred_prefix_enabled = self.main_window.settings.get("user_interface", {}).get(
+            "starred_prefix_enabled", False
+        )
+        if wanted(unit, "messages"):
+            self._starred_prefix_cb.SetValue(bool(starred_prefix_enabled))
 
         delete_media_from_phone = self.main_window.settings.get("user_interface", {}).get(
             "delete_media_from_phone", True
@@ -2791,6 +2895,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "accessibility"):
             self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
             self._sapi_fallback_check.SetValue(accessibility.get("sapi_fallback_enabled", True))
+            self._speak_in_background_check.SetValue(accessibility.get("speak_in_background", False))
             self._sync_spoken_content_button()
 
         speech = self.main_window.settings.get("speech_content", {})
@@ -3094,7 +3199,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             for key, _default_filename in SOUND_EVENTS:
                 cfg = pack_stored.get(key) or {}
                 self._pack_event_settings[pid][key] = {
-                    "enabled": cfg.get("enabled", True),
+                    "enabled": sound_event_enabled(cfg, key),
                     "path": cfg.get("path", ""),
                 }
 
@@ -3116,7 +3221,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         settings for `pack_id`, and select/display the first event's path."""
         settings_for_pack = self._pack_event_settings.get(pack_id, {})
         labels = [
-            self._sound_event_label(key, (settings_for_pack.get(key) or {}).get("enabled", True))
+            self._sound_event_label(key, sound_event_enabled(settings_for_pack.get(key), key))
             for key, _default_filename in SOUND_EVENTS
         ]
         self._sound_events_list.Set(labels)
@@ -3380,8 +3485,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             return
         key = SOUND_EVENTS[idx][0]
         settings_for_pack = self._pack_event_settings.setdefault(self._current_pack_id, {})
-        entry = settings_for_pack.setdefault(key, {"enabled": True, "path": ""})
-        entry["enabled"] = not entry.get("enabled", True)
+        entry = settings_for_pack.setdefault(
+            key, {"enabled": sound_event_enabled(None, key), "path": ""})
+        entry["enabled"] = not sound_event_enabled(entry, key)
         self._sound_events_list.SetString(idx, self._sound_event_label(key, entry["enabled"]))
         self._sound_events_list.SetSelection(idx)
         # SetString()/SetSelection() on a ListBox fire no change event of
@@ -3690,11 +3796,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             page_size_str = self._messages_page_size_field.GetValue().strip()
             try:
                 page_size = int(page_size_str)
-                if page_size < 1:
+                if not 1 <= page_size <= MAX_MESSAGES_PAGE_SIZE:
                     raise ValueError
             except ValueError:
                 wx.MessageBox(
-                    self.main_window.i18n.t("invalid_messages_page_size"),
+                    self.main_window.i18n.t("invalid_messages_page_size").format(
+                        max=MAX_MESSAGES_PAGE_SIZE),
                     self.main_window.i18n.t("error").format(app_name=self.main_window.app_name),
                     wx.OK | wx.ICON_ERROR,
                     self,
@@ -3840,7 +3947,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             pack_settings = self._pack_event_settings.get(self._current_pack_id, {})
             for idx, (key, _) in enumerate(SOUND_EVENTS):
                 cfg = pack_settings.get(key) or {}
-                if not cfg.get("enabled", True):
+                if not sound_event_enabled(cfg, key):
                     continue
                 override = (cfg.get("path") or "").strip()
                 if override and not os.path.isfile(override):
@@ -4180,6 +4287,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "confirm_delete_chat"
             ] = self._confirm_delete_chat_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
+                "confirm_archive_chat"
+            ] = self._confirm_archive_chat_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
                 "confirm_resync_all"
             ] = self._confirm_resync_all_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
@@ -4195,6 +4305,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "escape_clears_selection"
             ] = self._escape_clears_selection_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "escape_clears_filters"
+            ] = self._escape_clears_filters_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "escape_clears_message_search"
+            ] = self._escape_clears_message_search_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
                 "keep_search_after_open"
             ] = self._keep_search_after_open_cb.GetValue()
@@ -4227,6 +4343,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "forwarded_prefix_enabled"
             ] = self._forwarded_prefix_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "starred_prefix_enabled"
+            ] = self._starred_prefix_cb.GetValue()
             self.main_window.settings.setdefault("user_interface", {})[
                 "delete_media_from_phone"
             ] = self._delete_media_default_cb.GetValue()
@@ -4322,6 +4441,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("accessibility", {})[
                 "sapi_fallback_enabled"
             ] = self._sapi_fallback_check.GetValue()
+            self.main_window.settings.setdefault("accessibility", {})[
+                "speak_in_background"
+            ] = self._speak_in_background_check.GetValue()
 
         if ready(self, "sounds"):
             self._sound_event_files.preview.stop()
@@ -4419,9 +4541,25 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["keep_muted_chats_silent_when_open"] = (
                 self._keep_muted_silent_check.GetValue()
             )
+            self.main_window.settings.setdefault("general", {})["announce_edited_messages"] = (
+                self._announce_edits_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["notify_edited_messages"] = (
+                self._notify_edits_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["discount_archived_from_unread_badge"] = (
+                self._discount_archived_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["discount_muted_from_unread_badge"] = (
+                self._discount_muted_check.GetValue()
+            )
             self.main_window.settings.setdefault("general", {})["notification_burst_limit"] = (
                 self._notification_burst_spin.GetValue()
             )
+            # The title and the tray icon follow the two options right away.
+            refresh_title = getattr(self.main_window, "_update_title", None)
+            if refresh_title is not None:
+                refresh_title()
 
         # Incoming calls live in their own settings namespace so future call
         # options do not overload the unrelated General/notification settings.
@@ -4847,6 +4985,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._call_translation_settings_button.SetLabel(i18n.t("call_translation_options"))
         if ready(self, "notifications"):
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
+            self._announce_edits_check.SetLabel(i18n.t("announce_edited_messages_label"))
+            self._notify_edits_check.SetLabel(i18n.t("notify_edited_messages_label"))
+            self._discount_archived_check.SetLabel(i18n.t("discount_archived_from_unread_badge_label"))
+            self._discount_muted_check.SetLabel(i18n.t("discount_muted_from_unread_badge_label"))
             self._notification_burst_label.SetLabel(i18n.t("notification_burst_limit_label"))
         if ready(self, "speech"):
             self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
@@ -4902,6 +5044,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "accessibility"):
             self._extended_sr_compat_check.SetLabel(i18n.t("accessibility_extended_sr_compat_label"))
             self._sapi_fallback_check.SetLabel(i18n.t("accessibility_sapi_fallback_label"))
+            self._speak_in_background_check.SetLabel(i18n.t("accessibility_speak_in_background_label"))
         if ready(self, "storage"):
             self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
             self._media_cleanup_btn.SetLabel(i18n.t("cleanup_open_button"))
@@ -4947,6 +5090,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
             self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
             self._forwarded_prefix_cb.SetLabel(i18n.t("ui_forwarded_prefix_label"))
+            self._starred_prefix_cb.SetLabel(i18n.t("ui_starred_prefix_label"))
             self._delete_media_default_cb.SetLabel(i18n.t("ui_delete_media_default_label"))
             self._forward_keep_link_preview_cb.SetLabel(
                 i18n.t("ui_forward_keep_link_preview_label"))
@@ -4997,10 +5141,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._confirm_resync_conversation_cb.SetLabel(i18n.t("ui_confirm_resync_conversation"))
             self._confirm_clear_chat_cb.SetLabel(i18n.t("ui_confirm_clear_chat"))
             self._confirm_delete_chat_cb.SetLabel(i18n.t("ui_confirm_delete_chat"))
+            self._confirm_archive_chat_cb.SetLabel(i18n.t("ui_confirm_archive_chat"))
             self._warn_system_audio_cb.SetLabel(i18n.t("ui_warn_system_audio_recording"))
         if ready(self, "chats"):
             self._space_selects_cb.SetLabel(i18n.t("ui_space_selects_in_selection_mode"))
             self._escape_clears_selection_cb.SetLabel(i18n.t("ui_escape_clears_selection"))
+            self._escape_clears_filters_cb.SetLabel(i18n.t("ui_escape_clears_filters"))
+            self._escape_clears_message_search_cb.SetLabel(
+                i18n.t("ui_escape_clears_message_search"))
             self._keep_search_after_open_cb.SetLabel(i18n.t("ui_keep_search_after_open"))
         if ready(self, "audio_playback"):
             self._auto_play_voice_in_sequence_cb.SetLabel(i18n.t("ui_auto_play_voice_in_sequence"))
@@ -5073,7 +5221,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             cur_event_sel = self._sound_events_list.GetSelection()
             settings_for_pack = self._pack_event_settings.get(self._current_pack_id, {})
             self._sound_events_list.Set([
-                self._sound_event_label(key, (settings_for_pack.get(key) or {}).get("enabled", True))
+                self._sound_event_label(key, sound_event_enabled(settings_for_pack.get(key), key))
                 for key, _default_filename in SOUND_EVENTS
             ])
             if cur_event_sel != wx.NOT_FOUND:

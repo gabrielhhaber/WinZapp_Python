@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import struct
 import sys
-from types import SimpleNamespace
+from types import MethodType, SimpleNamespace
 from unittest.mock import Mock
 import wave
 
@@ -93,6 +93,16 @@ class Radio:
     def SetItemLabel(self, index, label):
         self.choices[index] = label
 
+    # ComboBox-shaped extras: the noise-reduction controls are combos now.
+    def SetString(self, index, label):
+        self.choices[index] = label
+
+    def Bind(self, *args, **kwargs):
+        pass
+
+    def Enable(self, enable=True):
+        self.enabled = enable
+
 
 @pytest.mark.parametrize('mode', RECORDING_MODES)
 def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch):
@@ -100,6 +110,7 @@ def test_native_selector_load_save_and_relabel_preserve_choice(mode, monkeypatch
     monkeypatch.setattr(options.wx, 'RadioBox', Radio)
     monkeypatch.setattr(options.wx, 'StaticText', Radio)
     monkeypatch.setattr(options.wx, 'Choice', Radio)
+    monkeypatch.setattr(options.wx, 'ComboBox', Radio)
     dialog = SimpleNamespace(main_window=SimpleNamespace(
         settings={'general': {'voice_recording_mode': mode}},
         i18n=SimpleNamespace(t=lambda key: 'first:' + key)))
@@ -187,7 +198,7 @@ def test_send_snapshots_mode_and_queues_matching_pcm_and_mimetype(
         panel._encode_stereo_voice.assert_called_once()
         panel.main_window._convert_wav_to_ogg.assert_not_called()
     if noise_enabled:
-        reduce_noise.assert_called_once_with(wanted, 48000, expected, neural=True)
+        reduce_noise.assert_called_once_with(wanted, 48000, expected)
     else:
         reduce_noise.assert_not_called()
 
@@ -199,9 +210,11 @@ def test_mixed_capture_ignores_the_previous_microphone_channel_preference(compos
     h.threads.drain()
     h.drain_ui()
     queued = h.p.main_window.message_queue.enqueue.call_args.args[0]
-    assert queued.media_type == 'audio'
-    assert h.encoder.call_args.kwargs.get('bitrate', '192k') == '192k'
-    assert h.p._sorted_messages[0]['message']['audioMessage']['ptt'] is False
+    # Still stereo, so a voice message in AAC M4A at the stereo voice rate:
+    # the format WhatsApp on iPhone plays (core/voice_stereo.py).
+    assert queued.voice_mimetype == 'audio/mp4'
+    assert h.encoder.call_args.kwargs.get('bitrate') == '128k'
+    assert h.p._sorted_messages[0]['message']['audioMessage']['ptt'] is True
 
 
 def test_conversion_failure_is_visible_and_never_queues_wrong_channels(composer, monkeypatch):

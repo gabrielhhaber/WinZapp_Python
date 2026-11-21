@@ -32,6 +32,17 @@ import {
 import { installAnnouncementReplyBridge } from './announcementReplyBridge';
 import { installChannelsWatchBridge } from './channelsWatchBridge';
 import { installChatClearedBridge } from './chatClearedBridge';
+import { installMessageStarBridge } from './messageStarBridge';
+import { installMessageDeleteBridge } from './messageDeleteBridge';
+import { installChatSettingsBridge } from './chatSettingsBridge';
+import { installChatTimerBridge } from './chatTimerBridge';
+import { installMessagePinBridge } from './messagePinBridge';
+import { installChatDeletedBridge } from './chatDeletedBridge';
+import { installGroupMetadataBridge } from './groupMetadataBridge';
+import { installContactStateBridge } from './contactStateBridge';
+import { installProfilePictureBridge } from './profilePictureBridge';
+import { installBlockStateBridge } from './blockStateBridge';
+import { installPrivacyEventsBridge } from './privacyEventsBridge';
 import { installEventsWatchBridge } from './eventsWatchBridge';
 import { installCallParticipantsBridge } from './callParticipantsBridge';
 import {
@@ -1651,6 +1662,17 @@ export default class CreateSessionUtil {
     await installAnnouncementReplyBridge(client, req.io, req.logger);
     await installChannelsWatchBridge(client, req.io, req.logger);
     await installChatClearedBridge(client, req.io, req.logger);
+    await installMessageStarBridge(client, req.io, req.logger);
+    await installMessageDeleteBridge(client, req.io, req.logger);
+    await installChatSettingsBridge(client, req.io, req.logger);
+    await installChatTimerBridge(client, req.io, req.logger);
+    await installMessagePinBridge(client, req.io, req.logger);
+    await installChatDeletedBridge(client, req.io, req.logger);
+    await installGroupMetadataBridge(client, req.io, req.logger);
+    await installContactStateBridge(client, req.io, req.logger);
+    await installProfilePictureBridge(client, req.io, req.logger);
+    await installBlockStateBridge(client, req.io, req.logger);
+    await installPrivacyEventsBridge(client, req.io, req.logger);
     await installEventsWatchBridge(client, req.io, req.logger);
     await installCallParticipantsBridge(client, req.io, req.logger);
   }

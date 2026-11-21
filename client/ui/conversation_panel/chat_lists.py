@@ -27,6 +27,15 @@ def list_result_text(i18n, outcome):
     return messages.get(outcome, messages["failed"])
 
 
+def list_completion_text(i18n, outcome, snapshot, refresh_pending=False):
+    """What a finished list read/write says. A read superseded by a pending
+    label-event refresh is not read-only: editing returns one readback later."""
+    text = list_result_text(i18n, outcome)
+    if outcome == "loaded" and not snapshot.can_edit and not refresh_pending:
+        text += " " + list_editing_unavailable_text(i18n, snapshot)
+    return text
+
+
 class WhatsAppListFilterMixin:
     def _build_wa_list_controls(self, outer_sizer):
         i18n = self.main_window.i18n

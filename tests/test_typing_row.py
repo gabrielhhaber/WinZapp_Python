@@ -439,6 +439,7 @@ def test_focusing_the_row_does_not_mark_the_conversation_read(monkeypatch):
         def _update_read_more_button(self, idx): pass
         def _update_inline_poll(self, idx): pass
         def _update_reactions_button(self, idx): pass
+        def _update_business_buttons(self, idx): pass
 
     panel = _Stub()
     panel.selected_messages = set()

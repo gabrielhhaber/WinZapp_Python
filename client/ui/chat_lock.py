@@ -257,6 +257,7 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         )
         self._init_ui()
         self._create_accelerator_table()
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_chat_list_char_hook)
 
     def _init_ui(self):
         i18n = self.main_window.i18n
@@ -398,9 +399,14 @@ class LockedConversationsPanel(ChatListSelectionMixin, wx.Panel):
     def _on_search(self, event):
         self.refresh()
 
+    def _rebuild_chat_list_after_filters_cleared(self) -> None:
+        self.refresh()
+
     def _on_search_key(self, event):
         if event.GetKeyCode() == wx.WXK_DOWN and self.chats_list:
             self.restore_selection()
+            return
+        if event.GetKeyCode() == wx.WXK_ESCAPE and self._clear_chat_list_filters():
             return
         event.Skip()
 

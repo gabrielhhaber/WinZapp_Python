@@ -9,9 +9,11 @@ import logging
 import threading
 import time
 import wx
+from core import deleted_chats
 from main_window.typing_feedback import dismiss_typing_message
 from core.jid_device import strip_device_suffix
 from core.jid_alias_guard import lid_phone_pair_allowed, retire_cross_self_aliases
+from core.profile_names import apply_profile_name
 from core.phone_variants import brazilian_variant_chat_jid
 from core.message_stars import apply_remote_star, merge_star_state
 from core.conversation_view import (
@@ -34,7 +36,7 @@ from core.message_edit import (
     is_edit_event,
 )
 from core.reply_failure import clear_reply_draft
-from core.notification_burst import notification_allowed
+from core.notification_burst import log_background_skip, notification_allowed
 from main_window.backlog_flood import defer_list_update, note_incoming_message
 from core.call_log import (
     call_log_supersedes,
@@ -443,6 +445,8 @@ class MessageEventsMixin:
             logging.info("[edit] caption edit %s for %s in %s", caption_result,
                          ((existing.get("key") or {}).get("id") or "")[:22], remote_jid)
             self._persist_and_repaint_edit(existing, remote_jid)
+            if caption_result == "changed":
+                self._maybe_notify_edit(remote_jid, existing)
             return
 
         def _text_of(m):
@@ -496,6 +500,8 @@ class MessageEventsMixin:
         if hasattr(self, "conversations_panel"):
             wx.CallAfter(self.conversations_panel.refresh_active_conversation_messages)
         self._schedule_set_chats()
+        # Someone else's edit: its sound and announcement (main_window/edit_alerts.py).
+        self._maybe_notify_edit(remote_jid, existing)
 
     def _live_events_ready(self) -> bool:
         """True once it is safe to let a live WebSocket event mutate self.chats.
@@ -734,7 +740,7 @@ class MessageEventsMixin:
         remote_jid, from_me = self._redirect_self_chat_artifact(remote_jid, key, from_me)
 
         # Learn/update presence pushName map from incoming message
-        if not from_me and self._learn_sender_name(msg):
+        if not from_me and self._learn_sender_name(msg, live=True):
             self._schedule_save(contacts_dirty=True)
 
         # Extract mapping and mentions from incoming messages
@@ -848,16 +854,10 @@ class MessageEventsMixin:
         # new message — that is what WhatsApp itself does.  Without lifting the
         # deleted flag here the chat would be re-created in self.chats but
         # filtered out of every list, so the message would arrive invisibly.
-        if remote_jid in self._deleted_chats:
-            self._deleted_chats.discard(remote_jid)
-            alt = (getattr(self, "_phone_to_lid", {}).get(remote_jid)
-                   or getattr(self, "_lid_to_phone", {}).get(remote_jid))
-            if alt:
-                self._deleted_chats.discard(alt)
-            if hasattr(self, "db") and self.db is not None:
-                self.db.set_metadata_json("deleted_chats", list(self._deleted_chats))
-            logging.info("[on_new_message] %s was deleted locally — restored by a new message.",
-                         remote_jid)
+        # Every form of the person: a chat deleted under the number and
+        # written to again under its @lid or the other 8/9-digit form stayed
+        # hidden (core/deleted_chats.py).
+        deleted_chats.restore(self, remote_jid)
 
         # A chat "Nova conversa" created under one Brazilian 8/9-digit form of
         # the number, while the chat WhatsApp generates for the first message
@@ -972,6 +972,21 @@ class MessageEventsMixin:
                 for r in records:
                     if not r.get("_local_pending"):
                         continue
+                    if r.get("_incremental_preparing"):
+                        # A recorded voice note the incremental
+                        # noise-reduction machinery still holds pre-enqueue:
+                        # it has no send in flight, so no echo can belong to
+                        # it — and with a natively blocked cleaner this
+                        # window can stretch indefinitely, in which time it
+                        # would steal the echo of any other pending audio of
+                        # the same type (matched in order). The flag is
+                        # cleared at the real hand-off to the MessageQueue,
+                        # but the controller's state is the authority: a
+                        # record whose transfer already completed is NEVER
+                        # skipped on a stale flag.
+                        controller = getattr(self, "_incremental_controller", None)
+                        if controller is None or controller.is_preparing(r.get("_local_id")):
+                            continue
                     r_type = r.get("messageType", "")
                     if incoming_type in _text_types:
                         if r_type not in _text_types:
@@ -1359,10 +1374,12 @@ class MessageEventsMixin:
         # exempting it — the chat being open only ever matters while the
         # window is active. A reply/mention still gets through, same as above.
         if muted and not priority:
+            log_background_skip("muted chat")
             return
 
         # An archived chat in the background never sends a toast or sound/speech.
         if archived:
+            log_background_skip("archived chat")
             return
 
         # Send system toast notification. general.notifications_enabled is
@@ -1372,9 +1389,11 @@ class MessageEventsMixin:
         # a muted/archived chat before this point, nothing else) whenever the
         # user turned it off.
         if not self.settings.get("general", {}).get("notifications_enabled", True):
+            log_background_skip("background notifications are off in Settings")
             return
         # Same burst limit as the foreground: sound, speech and toast alike.
         if not notification_allowed(self):
+            log_background_skip("burst limit")
             return
         from core.notification_manager import (
             background_notification_content, notification_content_level,
@@ -1448,7 +1467,7 @@ class MessageEventsMixin:
             )
         self.notification_manager.send(title, body, remote_jid, msg_key=msg.get("key"))
 
-    def _learn_sender_name(self, msg: dict) -> bool:
+    def _learn_sender_name(self, msg: dict, live: bool = False) -> bool:
         """Remember the pushName a message carries for its sender JID.
 
         In a group, ``key.participant`` is very often a bare ``@lid`` that maps
@@ -1462,6 +1481,10 @@ class MessageEventsMixin:
         that name available to every later lookup (chat-list previews,
         notifications, the message list), including for messages of types that
         arrive with no pushName of their own.
+
+        A name is filed for every address of the person at once, and never over
+        a newer one (core/profile_names.py): only a *live* message may replace a
+        name already known, a replayed history message only fills a gap.
 
         Returns True when something new was learned, so callers can persist.
         """
@@ -1480,23 +1503,40 @@ class MessageEventsMixin:
             return False
 
         ppm = self._presence_pushname_map
-        changed = False
         targets = [sender_jid]
-        # Index both JID forms when the bridge is known, so a lookup by either
+        # Index every JID form when the bridge is known, so a lookup by any
         # one finds the name.
         if sender_jid.endswith("@lid"):
             phone = getattr(self, "_lid_to_phone", {}).get(sender_jid, "")
             if phone:
-                targets.append(phone)
+                targets += [phone, phone.rsplit("@", 1)[0] + "@c.us"]
         else:
             lid = getattr(self, "_phone_to_lid", {}).get(sender_jid, "")
             if lid:
                 targets.append(lid)
-        for target in targets:
-            if ppm.get(target) != push:
-                ppm[target] = push
-                changed = True
+        stamps = getattr(self, "_pushname_stamps", None)
+        if stamps is None:
+            stamps = self._pushname_stamps = {}
+        now = time.time()
+        try:
+            ts = float(msg.get("messageTimestamp") or msg.get("t") or 0) or now
+        except (TypeError, ValueError):
+            ts = now
+        if ts > 1e11:           # milliseconds
+            ts /= 1000.0
+        ts = min(ts, now + 60)  # a wrong clock must not freeze the name
+        # A "live" message that sat queued while the app was closed is old news.
+        live = live and ts >= now - 600
+        changed = apply_profile_name(
+            self.contacts, ppm, stamps, targets, push, ts, authoritative=live,
+            chats=getattr(self, "chats", None))
         if changed:
+            # Rows already on screen keep the label they were drawn with, so
+            # the sender's older messages kept the previous name until the
+            # window was rebuilt (restart). Repaint those rows.
+            repaint = getattr(self, "_repaint_rows_for_name_change", None)
+            if repaint is not None:
+                repaint(targets)
             unresolvable = getattr(self, "_unresolvable_names", None)
             for target in targets:
                 if not unresolvable or target not in unresolvable:
@@ -1508,6 +1548,17 @@ class MessageEventsMixin:
                     logging.warning("[_learn_sender_name] Failed to clear unresolvable name %s: %s",
                                     target, exc)
         return changed
+
+    def _repaint_rows_for_name_change(self, jids) -> None:
+        """Ask for the open conversation's rows of *jids* to be redrawn with the
+        name now known for them (debounced, scoped to those JIDs)."""
+        refresh = getattr(self, "_schedule_refresh_active_messages", None)
+        if refresh is None:
+            return
+        try:
+            wx.CallAfter(refresh, {j for j in jids if j})
+        except Exception:
+            logging.debug("[_repaint_rows_for_name_change] could not schedule", exc_info=True)
 
     def _needs_sender_resolution(self, jid: str) -> bool:
         """True when `jid` is an @lid we still have no display name for.
@@ -1844,7 +1895,7 @@ class MessageEventsMixin:
         ConversationsPanel can rebuild the in-conversation reaction display
         on reopen), so replaying it here needs no extra DB round-trip.
         """
-        for jid, chat in self.chats.items():
+        for jid, chat in list(self.chats.items()):
             if not isinstance(chat, dict):
                 continue
             records = (

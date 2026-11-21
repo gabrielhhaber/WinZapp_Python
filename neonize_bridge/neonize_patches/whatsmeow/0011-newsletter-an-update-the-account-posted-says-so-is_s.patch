@@ -39,10 +39,10 @@ index 0000000..2c2a6c9
 +	}
 +}
 diff --git a/notification.go b/notification.go
-index 22b6d10..aa01551 100644
+index df50070..3ba3a96 100644
 --- a/notification.go
 +++ b/notification.go
-@@ -348,6 +348,7 @@ func (cli *Client) parseNewsletterMessages(node *waBinary.Node) []*types.Newslet
+@@ -379,6 +379,7 @@ func (cli *Client) parseNewsletterMessages(node *waBinary.Node) []*types.Newslet
  			MessageID:       ag.String("id"),
  			Type:            ag.String("type"),
  			Timestamp:       ag.UnixTime("t"),
@@ -51,12 +51,12 @@ index 22b6d10..aa01551 100644
  			ReactionCounts:  nil,
  		}
 diff --git a/types/newsletter.go b/types/newsletter.go
-index 6f63ecf..d85748f 100644
+index 847c1c2..f9309af 100644
 --- a/types/newsletter.go
 +++ b/types/newsletter.go
-@@ -154,6 +154,9 @@ type NewsletterMessage struct {
- 	Timestamp       time.Time
+@@ -155,6 +155,9 @@ type NewsletterMessage struct {
  	ViewsCount      int
+ 	ForwardsCount   int
  	ReactionCounts  map[string]int
 +	// IsSender is the server's is_sender="true": this account posted the
 +	// update (WhatsApp Web keys it fromMe from the same attribute).

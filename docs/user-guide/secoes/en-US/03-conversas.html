@@ -1,5 +1,6 @@
 <!--nav: 💬 Chat list-->
 <p class="lead">The chat list (Alt+1) shows the names of people and groups, never internal codes. Each row reads the name, the last message and the state (unread, pinned, muted...).</p>
+<p>Changes made on the phone or on another device reach WinZapp as soon as WhatsApp reports them, with WPPConnect and Neonize: muting, archiving and pinning chats, adding chats to lists or removing them, the disappearing-messages timer, contacts saved, renamed or removed, public profile names, profile pictures and blocked contacts. A chat deleted on another device is removed from WinZapp too, unless it has messages newer than the deletion; if it is open, WinZapp closes it and says why.</p>
 <p>With Neonize, a chat is marked as read only when you open it or mark it as read, and it shows as read on the phone and on WhatsApp Web too.</p>
 <p>With Neonize, when you reach the start of what WinZapp holds of a chat, it asks the phone for the older messages, as WhatsApp Web does; they arrive in a few moments, with the phone connected.</p>
 
@@ -11,7 +12,7 @@
 </ul>
 
 <h3>Open a chat</h3>
-<p>Enter opens the selected chat. Focus goes where you set it in Settings &gt; Interface &gt; Chats (message field, or the unread marker / last message). Esc or Ctrl+W closes the chat. Which message the list lands on depends on "Automatically focused position in the messages list", on the same page: "Unread separator or last message" or "Continue where you left off (last focused message)", which goes back to the message you were on when you left the chat, even when switching from one chat to another and even with new unread messages (the unread separator never counts as a position).</p>
+<p>Enter opens the selected chat. Where the focus goes is set in Settings &gt; Interface &gt; Chats: the message field, or the messages list at the unread separator or the last message. Esc or Ctrl+W closes the chat. Which message the list lands on is chosen by "Automatically focused position in the messages list", on the same page: "Unread separator or last message" goes to the new messages, or to the end of the chat when there are none; "Continue where you left off (last focused message)" goes back to the message you were on, even after switching to another chat and after new messages arrive; "Where you left off in the middle of the conversation; if you had reached the last message, the unread separator" keeps your place when you stopped reading in the middle of the chat and, if you had reached its end, goes to the unread separator when new messages arrived. The unread separator itself is never a remembered position.</p>
 
 <h3>The chat context menu</h3>
 <p>Open it with the Applications key or Shift+F10. The items vary with the chat:</p>
@@ -42,6 +43,7 @@
   <li>The clear and delete confirmations have a "Don't show again" box, which only counts together with Yes. To be asked again, use the matching options in Settings &gt; Interface &gt; Confirmations. With the question turned off, clearing keeps starred messages.</li>
   <li><strong>Mark all chats as read</strong> (File menu, or Ctrl+Alt+Shift+M) asks first, with No as the default. It also has "Don't show again"; the option "Ask for confirmation before marking all chats as read" brings the question back.</li>
   <li><strong>Spoken confirmation:</strong> marking a chat read or unread, muting, archiving and pinning now say what was done, and marking several chats as read says how many.</li>
+  <li>Confirmation when archiving: the question appears when archiving from the context menu or with Ctrl+Shift+Q, with the buttons "Archive chat" (Alt+A) and "Cancel" (Alt+C) and a "Don't show again" box that only counts together with the confirmation. To be asked again, use "Ask for confirmation before archiving chats" in Settings &gt; Interface &gt; Confirmations.</li>
 </ul>
 
 <h3>New chat, group and contact</h3>
@@ -51,7 +53,7 @@
 <h3>Contacts: local or synced with the phone</h3>
 <p>When you add a contact (in Chat info, in New chat or from a contact message), there are two tabs:</p>
 <ul>
-  <li><strong>Contact synced with the phone:</strong> saves the name on WhatsApp and in the phone's address book. It opens by default; if the number is already in the phone's address book, only this tab appears. Deleting a synced contact also removes it from WhatsApp and from the phone.</li>
+  <li><strong>Contact synced with the phone:</strong> saves the contact in WhatsApp and requests synchronization with the phone's address book. Completion on the phone cannot be verified here. It opens by default; if the number is already in the phone's address book, only this tab appears. Deleting a synced contact also removes it from WhatsApp and from the phone.</li>
   <li><strong>Local WinZapp contact:</strong> the name exists only in WinZapp.</li>
 </ul>
 <p>Verified businesses you have not saved (banks, payment apps...) appear with the business's verified name. A name saved in your contacts always takes precedence.</p>
@@ -73,6 +75,7 @@
   <tr><td>Unlock (in locked chats)</td><td class="field-name">Ctrl+Alt+Shift+T</td></tr>
 </table>
 <p>The options "Use Space to select/deselect whenever a selection already exists" and "Esc deselects the selected messages before closing the chat" can be turned off in Settings &gt; Interface &gt; Chats.</p>
+<p>In the chat lists (regular, archived and locked), Esc clears the search and the filters, and the screen reader says "Filters cleared". With chats selected, the first Esc only deselects and the second clears the search and the filters. The option "Esc clears the search and the filters in a list of chats" can be turned off in Settings &gt; Interface &gt; Chats. Esc also clears the search and the filters from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.</p>
 
 <h3>Archived chats</h3>
 <p>Alt+4 opens the archived chats. They have their own search (Ctrl+F), the same selection and the same actions. An archived chat is not announced aloud when a new message arrives while the archived list is off screen. With Neonize, if WhatsApp's "Keep chats archived" option is off, an archived chat goes back to the chat list when a new message arrives, as on the phone.</p>

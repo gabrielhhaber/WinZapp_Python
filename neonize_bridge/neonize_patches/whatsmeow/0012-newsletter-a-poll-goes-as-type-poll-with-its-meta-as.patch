@@ -49,10 +49,10 @@ index 0000000..4fc74b6
 +	}
 +}
 diff --git a/send.go b/send.go
-index 1151380..1489e08 100644
+index f41ac69..0a2efb5 100644
 --- a/send.go
 +++ b/send.go
-@@ -744,10 +744,15 @@ func (cli *Client) sendNewsletter(
+@@ -754,10 +754,15 @@ func (cli *Client) sendNewsletter(
  			plaintextNode.Attrs["mediatype"] = mediaType
  		}
  	}
@@ -69,7 +69,7 @@ index 1151380..1489e08 100644
  	}
  	start = time.Now()
  	data, err := cli.sendNodeAndGetData(ctx, node)
-@@ -923,6 +928,28 @@ func (cli *Client) sendDM(
+@@ -940,6 +945,28 @@ func (cli *Client) sendDM(
  	return phash, data, nil
  }
  

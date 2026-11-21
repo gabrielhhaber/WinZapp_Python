@@ -79,6 +79,8 @@ class _Window:
         self.background_mode = False
 
     _apply_global_settings = MainWindow._apply_global_settings
+    _share_keyboard_shortcuts = MainWindow._share_keyboard_shortcuts
+    _pull_shared_shortcuts = MainWindow._pull_shared_shortcuts
     _persist_global_settings = MainWindow._persist_global_settings
     choose_global_settings = MainWindow.choose_global_settings
     install_wide_values = MainWindow.install_wide_values

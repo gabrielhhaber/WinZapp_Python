@@ -139,6 +139,9 @@ class _Stub:
     _revoke_stored_copies = MainWindow._revoke_stored_copies
     _persist_and_repaint_edit = MainWindow._persist_and_repaint_edit
 
+    def _maybe_notify_edit(self, remote_jid, record):
+        pass
+
     def __init__(self):
         self.db = _Db()
         self._msg_bg_executor = _Executor()

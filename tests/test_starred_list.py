@@ -9,6 +9,8 @@ TEXTS = {
     "starred_row": "{chat}: {text}",
     "starred_row_sender": "{chat}, {sender}: {text}",
     "starred_no_text": "(no text)",
+    "starred_row_in_chat_sender": "{sender}: {text}",
+    "starred_title": "Starred messages",
 }
 I18N = types.SimpleNamespace(t=lambda key: TEXTS.get(key, key))
 GROUP, PERSON = "120363000000000001@g.us", "5511999990000@s.whatsapp.net"
@@ -139,3 +141,43 @@ def test_a_conversation_that_did_not_open_is_left_alone():
 
 def test_one_line_flattens_whitespace():
     assert one_line(" a\r\n b\tc ") == "a b c"
+
+
+def test_a_row_of_the_window_of_one_chat_leaves_the_chat_out():
+    assert row_text(I18N, "", "Ana", "See you", "yesterday") == "Ana: See you, yesterday"
+    assert row_text(I18N, "", "", "Ok", "10:00") == "Ok, 10:00"
+    assert row_text(I18N, " ", "", "", "") == "(no text)"
+
+
+def test_the_window_of_one_chat_names_the_sender_but_not_the_chat():
+    mw = MainWindow()
+    rows = [(GROUP, msg("1", "Hello", participant="ana@lid")), (PERSON, msg("2", "Sent", from_me=True)),
+            (PERSON, msg("3", "Oi"))]
+    assert [e.text for e in starred.entries_for(mw, rows, in_chat=True)] == [
+        "Ana: Hello, today", "You: Sent, today", "Oi, today"]
+
+
+def test_one_chat_is_read_under_both_its_addresses():
+    mw = MainWindow()
+    assert starred.chat_forms(mw, None) is None
+    assert starred.chat_forms(mw, PERSON) == [PERSON, PERSON.replace("@s.whatsapp.net", "@lid")]
+    del mw._jid_address_forms
+    assert starred.chat_forms(mw, GROUP) == [GROUP]
+
+
+def test_from_the_chat_on_screen_the_message_is_focused_with_no_navigation():
+    """Reopening the chat being read would move the focus away first."""
+    mw = MainWindow()
+    mw.conversations_panel.conversation = {"remoteJid": PERSON}
+    entry = starred.entry_for(mw, PERSON, msg("M1"), in_chat=True)
+    assert starred.jump_in_view(mw, entry) is True
+    assert mw.jumped == ["M1"] and mw.navigated == []
+
+
+def test_a_conversation_closed_or_hidden_meanwhile_is_not_jumped_into():
+    mw = MainWindow()
+    entry = starred.entry_for(mw, PERSON, msg("M1"), in_chat=True)
+    assert starred.jump_in_view(mw, entry) is False         # closed
+    mw.conversations_panel.conversation = {"remoteJid": PERSON}
+    mw.conversations_panel.IsShown = lambda: False           # Alt+1 hid it
+    assert starred.jump_in_view(mw, entry) is False and mw.jumped == []

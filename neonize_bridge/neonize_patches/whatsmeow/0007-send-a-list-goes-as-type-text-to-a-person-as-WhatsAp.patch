@@ -14,10 +14,10 @@ v="2" type="product_list"/></biz>. To a group it stays type "media"
  2 files changed, 117 insertions(+), 88 deletions(-)
 
 diff --git a/send.go b/send.go
-index 5791c69..c75efa2 100644
+index eaafaf7..4a29ded 100644
 --- a/send.go
 +++ b/send.go
-@@ -939,6 +939,17 @@ func getTypeFromMessage(msg *waE2E.Message) string {
+@@ -956,6 +956,17 @@ func getTypeFromMessage(msg *waE2E.Message) string {
  	}
  }
  
@@ -35,7 +35,7 @@ index 5791c69..c75efa2 100644
  func getMediaTypeFromMessage(msg *waE2E.Message) string {
  	switch {
  	case msg.ViewOnceMessage != nil:
-@@ -1279,7 +1290,7 @@ func (cli *Client) prepareMessageNode(
+@@ -1296,7 +1307,7 @@ func (cli *Client) prepareMessageNode(
  		})
  	}
  

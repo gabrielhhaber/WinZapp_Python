@@ -12,6 +12,8 @@ from coord_locks import LockTimeout
 from core.ai_media.errors import DescriptionError
 from core.message_translation import TranslationSettings, credential_id, message_identity
 from ui.conversation_panel import translation_actions as actions
+from ui.conversation_panel import translation_backlog as backlog
+from ui.conversation_panel import translation_to_end as to_end
 
 JID = "5511999990000@s.whatsapp.net"
 LID = "777@lid"
@@ -78,13 +80,13 @@ class List:
         return 0
 
 
-class Panel(actions.TranslationActionsMixin):
+class Panel(actions.TranslationActionsMixin, backlog.TranslationBacklogMixin, to_end.TranslationToEndMixin):
     def __init__(self, raw=AUTOMATIC):
         self.spoken = []
         self.locked = set()
         self.main_window = SimpleNamespace(
             _app_settings=App(raw), i18n=SimpleNamespace(t=lambda key: TEXTS.get(key, key)),
-            output=self.spoken.append, is_chat_locked=lambda jid: jid in self.locked,
+            output=lambda text, **kwargs: self.spoken.append(text), is_chat_locked=lambda jid: jid in self.locked,
             _chat_lock_unlocked=False, _normalize_jid=lambda jid: jid,
             _lid_to_phone={LID: JID}, _phone_to_lid={JID: LID}, settings={},
             db=SimpleNamespace(get_metadata_json=lambda key, default: {},
@@ -99,6 +101,10 @@ class Panel(actions.TranslationActionsMixin):
 
     def _update_read_more_button(self, index):
         pass
+
+    @staticmethod
+    def _is_separator(msg):
+        return bool(msg.get("separator"))
 
     def _resolve_mentions_in_text(self, text, mentioned):
         return text.replace("@5511888", "@Ana") if mentioned else text
@@ -119,6 +125,7 @@ def message(number, text=None, jid=JID):
 def wx(monkeypatch):
     fake = FakeWx()
     monkeypatch.setattr(actions, "wx", fake)
+    monkeypatch.setattr(backlog, "wx", fake)
     return fake
 
 
@@ -164,19 +171,31 @@ def test_the_same_message_is_queued_once(wx, submitted):
 
 
 @pytest.mark.parametrize("error", ["ai_error_authentication", "ai_error_quota",
-                                   "ai_error_credits", "ai_error_credentials"])
+                                   "ai_error_credits", "ai_error_credentials",
+                                   "ai_error_translation_local_load",
+                                   "ai_error_translation_engine_missing"])
 def test_a_repeating_refusal_pauses_automatic_translation_and_says_so(wx, submitted, error):
     panel = Panel()
     panel._maybe_auto_translate(JID, message(1))
     panel._maybe_auto_translate(JID, message(2))
     submitted[0](None, error)
-    assert panel.spoken == ["translation_auto_paused"]
+    local = error in ("ai_error_translation_local_load", "ai_error_translation_engine_missing")
+    # the offline model's faults also say their own cause, not only "provider refused"
+    assert panel.spoken == (["translation_auto_paused_local", error] if local else ["translation_auto_paused"])
     assert not panel._translation_queue
     panel._maybe_auto_translate(JID, message(3))
     assert len(submitted) == 1
     panel.resume_automatic_translation()
     panel._maybe_auto_translate(JID, message(4))
     assert len(submitted) == 2
+
+
+def test_a_failed_text_of_the_offline_model_does_not_pause(wx, submitted):
+    panel = Panel()
+    panel._maybe_auto_translate(JID, message(1))
+    submitted[0](None, "ai_error_translation_local_failed")
+    panel._maybe_auto_translate(JID, message(2))
+    assert len(submitted) == 2 and panel.spoken == []
 
 
 def test_a_one_off_failure_neither_pauses_nor_speaks(wx, submitted):
@@ -340,3 +359,204 @@ def test_manual_translation_without_settings_says_what_is_missing(wx, submitted)
     panel._on_translate_message(message(1))
     assert submitted == [] and panel.spoken == ["translation_not_configured"]
     assert TranslationSettings().provider == ""
+
+
+def old_message(number, text=None, age=3600):
+    row = message(number, text)
+    row["messageTimestamp"] = int(time.time()) - age
+    return row
+
+
+def test_turning_a_chat_on_translates_its_latest_old_messages_too(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", all_accounts_confirmed=False))
+    panel._translation_opt_in = {}
+    rows = [old_message(number) for number in range(1, 4)]
+    panel._sorted_messages = [{"separator": True}] + rows
+    config = panel._translation_settings()
+    assert not panel._translation_candidate(rows[0], config)
+    panel._toggle_translation_chat(JID, config)
+    assert panel._translation_running[2] == "hello 1"
+    assert [entry[2] for entry in panel._translation_queue] == ["hello 2", "hello 3"]
+    assert panel._translation_candidate(rows[0], config)
+
+
+def test_the_backlog_leaves_other_chats_and_own_messages_alone(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", all_accounts_confirmed=False))
+    panel._translation_opt_in = {JID: {"provider": "gemini", "enabled": True}}
+    mine = old_message(1)
+    mine["key"]["fromMe"] = True
+    panel._sorted_messages = [mine]
+    panel._translate_chat_backlog(JID)
+    panel._translate_chat_backlog("5511000@s.whatsapp.net")
+    assert not submitted and not hasattr(panel, "_translation_running")
+
+
+def test_selected_texts_keep_the_order_and_skip_what_has_no_text():
+    rows = [message(1), {"separator": True, "key": {"id": "id2"}}, message(3), message(4)]
+    audio = {"key": {"remoteJid": JID, "id": "id5"}, "messageType": "audioMessage",
+             "message": {"audioMessage": {}}}
+    found = backlog.selected_texts(rows + [audio], {"id1", "id2", "id3", "id5"},
+                                   lambda row: bool(row.get("separator")))
+    assert [row["key"]["id"] for row in found] == ["id1", "id3"]
+    assert len(backlog.selected_texts([message(n) for n in range(80)], {f"id{n}" for n in range(80)})) == 50
+
+
+def test_the_bulk_translation_asks_then_translates_each_selected_message(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    panel._on_mass_translate_messages()
+    assert wx.asked and panel.spoken[-1] == "sending Google Gemini"
+    assert len(submitted) == 1
+    submitted[0]("one", None)
+    assert len(submitted) == 2
+    submitted[1]("two", None)
+    assert panel.spoken[-1] == "translation_bulk_done"
+    assert panel._bulk_translation is None
+    assert [value[2] for value in panel._translation_results.values()] == ["one", "two"]
+
+
+def test_the_bulk_translation_stops_on_the_first_error_and_says_why(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    panel._on_mass_translate_messages()
+    assert len(submitted) == 1
+    submitted[0](None, "ai_error_credentials")
+    assert panel.spoken[-1] == "ai_error_credentials"
+    assert panel._bulk_translation is None and len(submitted) == 1
+
+
+def test_the_bulk_translation_refuses_an_empty_selection_and_a_second_run(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [message(1)]
+    panel.selected_messages = {"nothing"}
+    panel._on_mass_translate_messages()
+    assert panel.spoken[-1] == "translation_bulk_none" and not wx.asked
+    panel._bulk_translation = object()
+    panel._on_mass_translate_messages()
+    assert panel.spoken[-1] == "ai_error_busy"
+
+
+def test_the_bulk_translation_shows_one_window_in_the_separate_display(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected", display="separate"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.selected_messages = {"id1", "id2"}
+    shown = []
+    panel._show_translation = lambda answer, **kwargs: shown.append(answer)
+    panel._on_mass_translate_messages()
+    submitted[0]("one", None)
+    submitted[1]("two", None)
+    assert shown == ["one\n\ntwo"]
+
+
+def test_from_here_takes_received_text_messages_from_the_focused_one_on():
+    own = message(3)
+    own["key"]["fromMe"] = True
+    audio = {"key": {"remoteJid": JID, "id": "id4"}, "message": {}}
+    rows = [message(1), message(2), own, audio, message(5), {"separator": True}, message(6)]
+    found = to_end.messages_from_here(rows, rows[1], lambda row: bool(row.get("separator")))
+    assert [row["key"]["id"] for row in found] == ["id2", "id5", "id6"]
+    assert to_end.messages_from_here(rows, {"key": {}}) == []
+    assert len(to_end.messages_from_here([message(n) for n in range(80)], message(0))) == 50
+
+
+def test_translate_from_here_asks_then_translates_to_the_end(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2), old_message(3)]
+    panel._on_translate_from_here(panel._sorted_messages[1])
+    assert wx.asked and len(submitted) == 1
+    submitted[0]("two", None)
+    submitted[1]("three", None)
+    assert panel.spoken[-1] == "translation_bulk_done" and panel._bulk_translation is None
+    assert [value[2] for value in panel._translation_results.values()] == ["two", "three"]
+
+
+def test_cancelling_a_run_stops_it_and_says_so(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel._on_translate_from_here(panel._sorted_messages[0])
+    panel._cancel_bulk_translation()
+    assert panel._bulk_translation is None and panel.spoken[-1] == "translation_bulk_cancelled"
+    submitted[0]("late", None)
+    assert len(submitted) == 1 and not getattr(panel, "_translation_results", {})
+    panel._cancel_bulk_translation()
+    assert panel.spoken.count("translation_bulk_cancelled") == 1
+
+
+class Menu:
+    def __init__(self):
+        self.labels = []
+
+    def Append(self, _id, label):
+        self.labels.append(label)
+        return label
+
+
+def test_the_menu_offers_from_here_or_cancel(wx):
+    panel = Panel()
+    panel.Bind = lambda *args: None
+    menu = Menu()
+    panel._append_translation_to_end_items(menu, message(1))
+    panel._bulk_translation = object()
+    panel._append_translation_to_end_items(menu, message(1))
+    assert [label.split("\t")[0] for label in menu.labels] == ["translate_from_here", "translation_bulk_cancel_menu"]
+    assert all(label.endswith("\tAlt+Shift+Y") for label in menu.labels)
+
+
+def test_the_shortcuts_start_a_run_or_cancel_the_one_going(wx, submitted):
+    panel = Panel(dict(AUTOMATIC, scope="selected"))
+    panel._sorted_messages = [old_message(1), old_message(2)]
+    panel.messages_list.GetFirstSelected = lambda: 1
+    assert panel._message_at_selection()["key"]["id"] == "id2"
+    panel._on_translate_from_here_shortcut()
+    assert wx.asked and len(submitted) == 1
+    panel._on_translate_from_here_shortcut()
+    assert panel._bulk_translation is None and panel.spoken[-1] == "translation_bulk_cancelled"
+    panel.selected_messages = {"id1"}
+    panel._on_translate_selected_shortcut()
+    assert panel._bulk_translation is not None
+    panel._on_translate_selected_shortcut()
+    assert panel._bulk_translation is None
+    panel.messages_list.GetFirstSelected = lambda: -1
+    assert panel._message_at_selection() is None
+
+
+OFFLINE = {"provider": "local", "model": "small100-int8", "language": "English", "automatic": True,
+           "scope": "selected", "daily_limit": 1}
+
+
+def test_the_offline_model_turns_a_chat_on_without_asking_to_send_text(wx):
+    saved = {}
+    panel = Panel(OFFLINE)
+    panel.main_window.db.set_metadata_json = lambda key, value: saved.update(value)
+    panel._translation_opt_in = {}
+    panel._toggle_translation_chat(JID, panel._translation_settings())
+    assert wx.asked == [] and saved == {JID: {"provider": "local", "enabled": True}}
+
+
+def test_a_locked_chat_is_translated_offline_without_the_consent_question(wx, submitted, monkeypatch):
+    monkeypatch.setattr(actions, "translation_model_ready", lambda config: True)
+    panel = Panel(dict(OFFLINE, automatic=False))
+    panel.locked.add(JID)
+    panel.main_window._chat_lock_unlocked = True
+    row = message(1)
+    panel._sorted_messages = [row]
+    panel._on_translate_message(row)
+    assert wx.asked == [] and len(submitted) == 1
+
+
+def test_offline_work_reads_no_key_and_charges_no_daily_request(wx, monkeypatch):
+    works = []
+    monkeypatch.setattr(actions, "submit", lambda work, complete: works.append(work))
+    monkeypatch.setattr(actions, "CredentialStore", lambda *a: pytest.fail("no key is read"))
+    monkeypatch.setattr(actions, "translate", lambda config, key, text, token: f"{key!r}:{text}")
+    monkeypatch.setattr(actions, "translation_model_ready", lambda config: True)
+    panel = Panel(OFFLINE)
+    panel._translation_opt_in = {JID: {"provider": "local", "enabled": True}}
+    row = message(1)
+    config = panel._translation_settings()
+    panel._submit_translation(config, "hello 1", actions.RequestToken(), lambda *a: None,
+                              automatic=(JID, row))
+    assert works[0]() == "'':hello 1"
+    assert "auto_usage" not in panel.main_window._app_settings.raw

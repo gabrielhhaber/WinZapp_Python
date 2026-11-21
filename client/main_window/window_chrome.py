@@ -24,6 +24,7 @@ from core.utils import (
 from window_title import format_window_title
 from main_window.backlog_flood import held_status
 from core.profile_recovery import profile_is_local
+from core.unread_badge import counts_toward_badge
 
 
 class WindowChromeMixin:
@@ -1294,7 +1295,8 @@ class WindowChromeMixin:
         unread_chats = 0
         if not getattr(self, "_initial_sync_running", False):
             deleted = self._deleted_chats
-            # Archived conversations are intentionally excluded here — they
+            # Archived and muted conversations are left out by default (each
+            # one has its own option, core/unread_badge.py). Archived ones
             # get their own unread indicator on the "Conversas arquivadas"
             # nav item (see NavigationPanel) instead of inflating the count
             # the user sees in the window title, which used to make the
@@ -1303,7 +1305,11 @@ class WindowChromeMixin:
             unread_chats = sum(
                 1 for jid, chat in list(self.chats.items())
                 if jid not in deleted
-                and not self.is_chat_archived(jid)
+                and counts_toward_badge(
+                    self.settings,
+                    archived=self.is_chat_archived(jid),
+                    muted=self.is_chat_muted(jid),
+                )
                 and not self.is_chat_locked(jid)
                 and effective_unread_count(chat) > 0
             )
@@ -1416,14 +1422,14 @@ class WindowChromeMixin:
         sweep's own box in Settings > Conteúdo falado — ``speech_key`` is
         "announce_sync_progress" or "announce_media_progress". Never
         interrupts: the user may be reading a message. Nothing is spoken
-        during a WhatsApp voice call either: the chat sweep keeps running
-        through one on purpose (see sync_remote_chats()), and "X de Y" every
-        few seconds would talk over the call.
+        during a WhatsApp voice call or a recording either: the chat sweep
+        keeps running through one on purpose (see sync_remote_chats()), and
+        "X de Y" every few seconds would talk over the call or the take.
         """
         self._set_status(text)
         if self.background_mode or not self._announce_sync_events_enabled():
             return
-        if self._voice_call_in_progress():
+        if self._background_work_paused():
             return
         if not self.settings.get("speech_content", {}).get(speech_key, True):
             return

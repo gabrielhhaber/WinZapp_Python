@@ -776,6 +776,14 @@ def test_notices_raised_while_placing_a_call_are_answered():
     # link check comes before the click.
     assert "a[href],[role=\"link\"]" in watcher
     assert watcher.index("a[href],[role=\"link\"]") < watcher.index(".click()")
+    # One linkless notice is answered by name: calling *from* a WhatsApp
+    # Business account opens "About this call" with "Learn more" as a plain
+    # button, so every call hung at 75 s (#831). Its test id is the only
+    # exception to the link rule, and is also checked before the click.
+    known = '[data-testid="coex-calling-first-time-modal"]'
+    assert known in watcher
+    assert watcher.index(known) < watcher.index(".click()")
+    assert "if (!knownNotice && !dialog.querySelector('a[href],[role=\"link\"]')) continue;" in watcher
     # The log records the button count, never the dialog text (log-pii.md).
     assert "[call-notice]" in watcher
     assert "innerText" not in watcher and "textContent" not in watcher
@@ -796,3 +804,11 @@ def test_voip_backend_is_initialised_once_per_page():
         # test_voip_init_policy.py; these assertions only guard the wiring.
         assert "installVoipInitPolicyInPage" in source
         assert "await win.__winzappInitializeVoip(initModule," in source
+
+
+def test_waiting_room_without_a_call_id_answers_400_like_admit():
+    controller = _source("client/api_patches/src/controller/callController.ts")
+    start = controller.index("export async function callLinkWaitingRoom(")
+    route = controller[start:controller.index("\nexport ", start + 1)]
+    assert "if (!req.body?.callId)" in route
+    assert route.index("status(400)") < route.index("evaluateCallLink")

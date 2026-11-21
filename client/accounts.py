@@ -272,6 +272,33 @@ class AccountRegistry:
 
         return self._txn(_fn)
 
+    def adopt(self, account_id: str, name: str) -> dict:
+        """Register an already paired account under its existing id: one
+        copied from the installed WinZapp into a portable copy, whose data
+        folder (accounts/<id>) already holds it (installed_account_copy.py)."""
+        if not is_valid_account_id(account_id):
+            raise ValueError(f"invalid account id {account_id!r}")
+        if not isinstance(name, str):
+            raise ValueError("name must be a string")
+
+        def _fn(data):
+            if any(a["id"] == account_id for a in data["accounts"]):
+                raise ValueError(f"account {account_id} already registered")
+            now = int(time.time())
+            acc = {
+                "id": account_id,
+                "name": name,
+                "state": "paired",
+                "autostart": False,
+                "order": max((a["order"] for a in data["accounts"]), default=0) + 1,
+                "created_at": now,
+                "last_used_at": now,
+            }
+            data["accounts"].append(acc)
+            return acc, True
+
+        return self._txn(_fn)
+
     def rename(self, account_id: str, name: str) -> None:
         def _fn(data):
             for a in data["accounts"]:

@@ -49,7 +49,8 @@ SAME_AS_ENGLISH_OK = {"installer.c": set(), "uninstaller.c": set()}
 INSTALLER_FIELDS = [
     "title", "path_label", "browse", "desktop_sc", "startmenu_sc", "install",
     "cancel", "browse_title", "err_no_folder", "extract_failed", "done_msg",
-    "done_title", "err_fmt", "err_title",
+    "done_title", "err_fmt", "err_title", "sounds_group", "sounds_full",
+    "sounds_whatsapp",
 ]
 UNINSTALLER_FIELDS = [
     "title", "prompt", "uninstall", "cancel", "not_found", "done_msg",

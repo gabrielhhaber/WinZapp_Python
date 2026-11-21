@@ -32,6 +32,7 @@ import aiosqlite
 from cryptography.fernet import Fernet
 
 from core.phone_contacts import SYNCED_KEY, is_phone_synced
+from core.wpp_message_time import GUESSED_TIMESTAMP, keep_known_timestamp
 from core.quote_recovery import is_undecrypted_placeholder, keep_known_content, knows_content
 from core.star_storage import (
     preserve_stars, starred_messages, update_star_state, upgrade_starred_column)
@@ -808,6 +809,10 @@ class DatabaseManager:
     async def update_message_star_state(self, remote_jid: str, message_id: str, state: dict) -> None:
         await update_star_state(self, remote_jid, message_id, state)
 
+    async def update_message_pin_state(self, jid, mid, pinned, timestamp, duration):
+        from core.message_pin_state import update_pin_state
+        await update_pin_state(self, jid, mid, pinned, timestamp, duration)
+
     async def merge_message_star_states(self, remote_jid: str, messages: list[dict]) -> list[dict]:
         async with self._write_lock:
             return await preserve_stars(self, await self._ensure_conn(), remote_jid, messages)
@@ -852,10 +857,12 @@ class DatabaseManager:
                 result.append((row["remote_jid"], msg))
         return result
 
-    async def get_starred_messages(self, limit: int = 2000) -> list[tuple[str, dict]]:
-        """Every starred message of every chat, newest first, as
+    async def get_starred_messages(self, limit: int = 2000,
+                                   remote_jids=None) -> list[tuple[str, dict]]:
+        """Every starred message of every chat (or of the one chat whose
+        address forms are *remote_jids*), newest first, as
         ``(remote_jid, msg)``: the starred messages window (star_storage)."""
-        return await starred_messages(self, limit)
+        return await starred_messages(self, limit, remote_jids)
 
     async def get_message_count(self, remote_jid: str) -> int:
         """Return total message count for a chat."""
@@ -919,12 +926,15 @@ class DatabaseManager:
     def _needs_stored_row(self, msg: dict) -> bool:
         """Whether writing *msg* has to read its stored row first."""
         return (self._video_wants_stored_duration(msg) or may_hold_transcription(msg)
-                or is_undecrypted_placeholder(msg))
+                or is_undecrypted_placeholder(msg) or bool(msg.get(GUESSED_TIMESTAMP)))
 
     def _apply_known_local_fields(self, msg: dict, stored: dict | None) -> dict:
         """_with_known_local_fields()'s rules over a row already read."""
         if stored is None:
             return with_known_transcription(msg, None)
+        # A time the sync guessed never rewrites a stored one (history paging
+        # writes straight through here, not through carry_over_known_timestamps).
+        msg = keep_known_timestamp(msg, stored)
         if is_undecrypted_placeholder(msg) and knows_content(stored):
             # A ciphertext never overwrites a message already decrypted here
             # (core/quote_recovery.keep_known_content).

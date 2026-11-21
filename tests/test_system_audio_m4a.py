@@ -291,15 +291,26 @@ class TestMixedComposer(unittest.TestCase):
             stereo_voice_bitrate_kbps, voice_bitrate_kbps,
         )
         from core.voice_recording_mode import recording_output_channels, prepare_voice_pcm
+        from core.voice_nr_send_plan import plan_send_reduction
+        from core.voice_nr_options import effective_nr_on_failure, voice_nr_engine, voice_nr_moment, voice_nr_on_failure
         from ui.conversation_panel.typing_row import append_message_row, message_row_count  # pure; no wx
         from core.pending_timestamp import pending_send_timestamp
-        namespace = dict(logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
+        from core.ordered_dispatch import OrderedDispatcher
+        # Not the process-wide dispatcher: a ticket this file leaves held would
+        # block every later send to the same chat in other test files.
+        self.voice_dispatcher = OrderedDispatcher()
+        namespace = dict(voice_dispatcher=self.voice_dispatcher, logging=logging, os=os, tempfile=tempfile, time=time, uuid=uuid,
                          pending_send_timestamp=pending_send_timestamp, wave=wave, threading=self.threads, wx=fake_wx,
                          recording_output_channels=recording_output_channels,
                          prepare_voice_pcm=prepare_voice_pcm,
                          encode_as_stereo=encode_as_stereo, bitrate_arg=bitrate_arg,
                          voice_bitrate_kbps=voice_bitrate_kbps,
                          stereo_voice_bitrate_kbps=stereo_voice_bitrate_kbps,
+                         voice_nr_engine=voice_nr_engine,
+                         voice_nr_moment=voice_nr_moment,
+                         voice_nr_on_failure=voice_nr_on_failure,
+                         effective_nr_on_failure=effective_nr_on_failure,
+                         plan_send_reduction=plan_send_reduction,
                          drop_empty_side=drop_empty_side,
                          STEREO_MIMETYPE=STEREO_MIMETYPE,
                          encrypt=encrypt, data_path=lambda name: str(self.folder / name),
@@ -307,17 +318,8 @@ class TestMixedComposer(unittest.TestCase):
                          append_message_row=append_message_row,
                          message_row_count=message_row_count)
         # Bind the actual send handler; no wx/App or capture APIs are imported.
-        bind(self.p, ['_send_voice_message', '_encode_stereo_voice'], namespace)
-        # New helper is bound when present so RED tests reach old behavior first.
-        import ast
-        from tests.god_modules import conversations_source_files
-        found = any(
-            isinstance(n, ast.FunctionDef) and n.name == '_enqueue_system_audio_file'
-            for path in conversations_source_files()
-            for n in ast.walk(ast.parse(path.read_text(encoding='utf-8')))
-        )
-        if found:
-            bind(self.p, ['_enqueue_system_audio_file'], namespace)
+        bind(self.p, ['_send_voice_message', '_encode_stereo_voice',
+                      '_reduce_for_send'], namespace)
 
     def encode(self, ffmpeg, wav_path, bitrate='192k'):
         import wave
@@ -335,32 +337,34 @@ class TestMixedComposer(unittest.TestCase):
             fn, args = self.ui.pop(0)
             fn(*args)
 
-    def test_mixed_send_is_ordinary_audio_and_bypasses_voice_gate_and_opus(self):
+    def test_mixed_send_is_a_stereo_voice_message_and_skips_the_noise_gate(self):
         self.p._send_voice_message(None)
-        msg = self.p._sorted_messages[0]
-        self.assertIs(msg['message']['audioMessage']['ptt'], False)
-        self.assertEqual(msg['message']['audioMessage']['mimetype'], 'audio/mp4')
-        self.assertTrue(msg['message']['audioMessage']['fileName'].endswith('.m4a'))
-        # The worker must retain the first chat/quote even after navigation.
-        self.p.conversation = {'remoteJid': 'new-chat'}
-        self.p._recording_frames = [b'next recording']
         self.threads.drain()
         self.drain_ui()
+        msg = self.p._sorted_messages[0]
+        row = msg['message']['audioMessage']
+        self.assertIs(row['ptt'], True)
+        self.assertEqual(row['mimetype'], 'audio/mp4')
+        self.assertTrue(row['fileName'].endswith('.m4a'))
+        # The worker went down the stereo-voice path: 128k stereo AAC, never
+        # the noise gate (computer audio must not be denoised) nor Opus.
+        self.encoder.assert_called_once()
+        self.assertEqual(self.encoder.call_args.kwargs.get('bitrate'), '128k')
         self.gate.assert_not_called()
         self.p.main_window._convert_wav_to_ogg.assert_not_called()
         pm = self.p.main_window.message_queue.enqueue.call_args.args[0]
-        self.assertIsNone(pm.audio_path)
-        self.assertIsNone(pm.ogg_bytes)
-        self.assertEqual((pm.media_path, pm.media_type, pm.jid),
-                         (str(self.m4a_paths[0]), 'audio', 'first-chat'))
-        self.assertTrue(pm.owns_media_path)
-        self.assertEqual(pm.custom_filename, 'default_filename_audio.m4a')
-        self.assertNotEqual(os.path.basename(pm.media_path), pm.custom_filename)
+        self.assertIsNone(pm.media_path)
+        self.assertEqual(pm.ogg_bytes, self.encoded)
+        self.assertEqual(pm.voice_mimetype, 'audio/mp4')
+        self.assertEqual(pm.jid, 'first-chat')
+        # The worker must retain the first chat/quote even after navigation.
+        self.p.conversation = {'remoteJid': 'new-chat'}
+        self.p._recording_frames = [b'next recording']
         self.assertEqual(pm.quoted['key']['id'], 'quoted')
         cache = self.folder / 'voice_messages' / (pm.local_id + '.msv')
         self.assertEqual(self.decrypt(cache.read_bytes()), self.encoded)
-        self.assertTrue(self.m4a_paths[0].exists(), 'retry source must survive enqueue')
-        self.assertFalse(Path(self.written_wavs[0]).exists())
+        self.assertTrue(Path(pm.audio_path).exists(), 'retry source must survive enqueue')
+        os.unlink(pm.audio_path)
     def test_aac_failure_is_visible_and_never_falls_back_to_ogg(self):
         self.encoder.side_effect = None
         self.encoder.return_value = None
@@ -375,15 +379,15 @@ class TestMixedComposer(unittest.TestCase):
         wav_path = self.encoder.call_args.args[1]
         self.assertFalse(Path(wav_path).exists())
 
-    def test_cache_failure_is_visible_and_removes_plaintext_outputs(self):
+    def test_msv_cache_failure_does_not_block_the_voice_message(self):
         (self.folder / 'voice_messages').write_bytes(b'blocks directory creation')
         self.p._send_voice_message(None)
         self.threads.drain()
         self.drain_ui()
-        self.p.main_window.message_queue.enqueue.assert_not_called()
-        self.p.main_window._on_message_failed.assert_called_once()
-        self.assertFalse(Path(self.written_wavs[0]).exists())
-        self.assertFalse(self.m4a_paths[0].exists())
+        pm = self.p.main_window.message_queue.enqueue.call_args.args[0]
+        self.p.main_window._on_message_failed.assert_not_called()
+        self.assertTrue(Path(pm.audio_path).exists())
+        os.unlink(pm.audio_path)
 
     def test_wav_write_failure_is_visible_and_cleans_partial_wav(self):
         self.p._send_voice_message(None)
@@ -416,6 +420,27 @@ class TestMixedComposer(unittest.TestCase):
         self.p.main_window._on_cancelled_message_dropped.assert_called_once_with(local_id)
         self.assertFalse(self.m4a_paths[0].exists())
         self.assertFalse((self.folder / 'voice_messages' / (local_id + '.msv')).exists())
+
+    def test_cancel_while_the_ticket_waits_to_enqueue_cannot_resurrect_send(self):
+        # The recording is encoded, but an earlier one to the same chat still
+        # holds the dispatcher: the cancel lands between _process and _enqueue,
+        # when the queue has nothing to cancel yet.
+        from unittest.mock import patch
+        held = []
+        with patch.object(self.voice_dispatcher, 'complete',
+                          side_effect=lambda jid, ticket, action: held.append(action)):
+            self.p._send_voice_message(None)
+            self.threads.drain()
+        self.assertEqual(len(held), 1)
+        self.assertTrue(callable(held[0]))
+        msg = self.p._sorted_messages[0]
+        local_id = msg['_local_id']
+        self.p._cancelled_pending_messages[local_id] = msg
+        msg['_cancelled_awaiting_id'] = True
+        held[0]()
+        self.drain_ui()
+        self.p.main_window.message_queue.enqueue.assert_not_called()
+        self.p.main_window._on_cancelled_message_dropped.assert_called_once_with(local_id)
 
     def _enqueued_after_send(self):
         self.p._send_voice_message(None)
@@ -519,7 +544,7 @@ class TestMixedComposer(unittest.TestCase):
         self.threads.drain()
         real_cache = self.folder / 'voice_messages' / 'real-id.msv'
         self.assertEqual(self.decrypt(real_cache.read_bytes()), self.encoded)
-        self.assertFalse(Path(pm.media_path).exists())
+        self.assertFalse(Path(pm.recording_path).exists())
         mw.message_sent_sound.play.assert_called_once()
         mw.conversations_panel._mark_message_sent.assert_called_once_with(
             pm.local_id, real_id='real-id', quote_lost=False)
@@ -561,9 +586,11 @@ class TestMixedComposer(unittest.TestCase):
         stream.play.assert_called_once()  # stub only: never opens BASS/device
         p._stop_audio.assert_not_called()
 
-    def test_real_attachment_pipeline_uploads_unchanged_m4a_as_audio_not_document_or_ptt(self):
+    def test_mixed_recording_is_sent_through_the_voice_endpoint_as_ptt(self):
+        import base64
         import logging
         import sys
+        from core.voice_stereo import voice_data_uri
         from tests.test_system_audio_ui import functions
         self.p._send_voice_message(None)
         self.threads.drain()
@@ -571,34 +598,34 @@ class TestMixedComposer(unittest.TestCase):
         pm = self.p.main_window.message_queue.enqueue.call_args.args[0]
         mw = self.p.main_window
         mw._resolve_jid_for_send = lambda jid: jid
+        mw._set_wa_connected = lambda *args, **kwargs: None
         mw.wpp_server, mw.wpp_port, mw.token = 'http://not-used.invalid', 1, 'fake'
         mw._serialize_quoted_id = lambda *args, **kwargs: 'quoted-id'
-        modules = {'core.audio_transcode': transcode,
-                   'core.message_queue': SimpleNamespace(MessageCancelled=type('MessageCancelled', (Exception,), {}))}
-        for name in ['video_transcode', 'multipart_stream', 'send_contract']:
+        modules = {'core.message_queue': SimpleNamespace(MessageCancelled=type('MessageCancelled', (Exception,), {}))}
+        for name in ['send_contract']:
             spec = importlib.util.spec_from_file_location(name, ROOT / 'client/core' / (name + '.py'))
             module = importlib.util.module_from_spec(spec)
             with patch.dict(sys.modules, modules): spec.loader.exec_module(module)
             modules['core.' + name] = module
         payloads = []
         def post(url, **kwargs):
-            payloads.append(b''.join(kwargs['data']))
+            payloads.append((url, kwargs['json']))
             return SimpleNamespace(status_code=201, json=lambda: {'status': 'success', 'response': {'id': 'real-id', 'ack': 1}})
         ns = dict(logging=logging, os=os, api_post=post,
-                  accepted_message_id=modules['core.send_contract'].accepted_message_id,
-                  MessageCancelled=modules['core.message_queue'].MessageCancelled)
+                  base64=base64, voice_data_uri=voice_data_uri,
+                  accepted_message_id=modules['core.send_contract'].accepted_message_id)
         from tests.god_modules import main_window_source_files
-        send = functions(main_window_source_files(), ['send_media_attachment'], ns)['send_media_attachment']
-        with patch.dict(sys.modules, modules), patch.object(transcode.subprocess, 'run') as convert:
-            result = send(mw, pm.jid, pm.media_path, pm.media_type, quoted=pm.quoted)
+        send = functions(main_window_source_files(), ['send_audio_message'], ns)['send_audio_message']
+        result = send(mw, pm.jid, pm.audio_path, quoted=pm.quoted,
+                      ogg_bytes=pm.ogg_bytes, voice_mimetype=pm.voice_mimetype)
         self.assertEqual(result, 'real-id')
-        convert.assert_not_called()
-        self.assertIn(b'Content-Type: audio/mp4', payloads[0])
-        self.assertIn(b'name="type"\r\n\r\naudio\r\n', payloads[0])
-        self.assertIn(b'.m4a"', payloads[0])
-        self.assertIn(self.encoded, payloads[0])
-        self.assertNotIn(b'ptt', payloads[0])
-        self.assertTrue(Path(pm.media_path).exists(), 'send callback, not sender, owns cleanup')
+        self.assertIn('/send-voice-base64', payloads[0][0])
+        body = payloads[0][1]
+        self.assertTrue(body['base64Ptt'].startswith('data:audio/mp4;base64,'),
+                        'the stereo voice message goes as a ptt voice note in AAC M4A')
+        self.assertEqual(base64.b64decode(body['base64Ptt'].split(',', 1)[1]), self.encoded)
+        self.assertTrue(Path(pm.audio_path).exists(), 'send callback, not sender, owns the retry WAV')
+        os.unlink(pm.audio_path)
 
 
 if __name__ == '__main__':

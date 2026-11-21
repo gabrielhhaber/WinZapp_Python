@@ -144,8 +144,15 @@ class TranslationCredentialStore(CredentialStore):
     @staticmethod
     def _accepts(provider):
         return isinstance(provider, str) and (
-            provider == "grok" or re.fullmatch(r"translation_[0-9a-f]{64}", provider) is not None
+            provider in TRANSLATION_ONLY_PROVIDERS
+            or re.fullmatch(r"translation_[0-9a-f]{64}", provider) is not None
         )
+
+
+#: Keys only message translation uses: Grok's and the translation services'
+#: (core/text_translation/services.py). An older build reading this vault
+#: ignores names it does not know.
+TRANSLATION_ONLY_PROVIDERS = frozenset(("grok", "deepl", "google_cloud", "microsoft"))
 
 
 def store_for_translation(shared_store, provider):

@@ -28,6 +28,7 @@ import time
 from aiohttp import web
 
 import comments as com
+import enc_secrets
 import msgmap
 
 log = logging.getLogger("bridge")
@@ -128,6 +129,15 @@ def register_routes(r, *, session, ok, jid_from_text):
         """Encrypts the comment (blocks: reads whatsmeow's database). Returns the
         message to send or the code of why it cannot."""
         own = [x for x in (s.lid, s.me) if x]
+        # neonize's own EncryptComment first: it finds the secret itself
+        if own:
+            from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message
+            sender = own[0] if parent_from_me else parent_author
+            sealed = enc_secrets.seal_comment(
+                s.client, enc_secrets.root_info(group, sender, parent_from_me, parent_id),
+                Message.FromString(com.serialize_text(text)))
+            if sealed is not None:
+                return sealed, ""
         path = os.path.join(s.folder, com.SESSION_FILE)
         found = None
         for who in (own if parent_from_me else [parent_author]):

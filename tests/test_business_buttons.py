@@ -287,3 +287,64 @@ def test_a_reply_that_failed_says_so(monkeypatch):
     panel = _Panel()
     panel._on_business_button({"kind": "reply", "source": "native", "index": 0, "label": "Yes", "value": "y"}, MSG)
     assert panel.said == ["business_button_failed"]
+
+
+class TestButtonsOfAFocusedRowWithoutSelectionEvent:
+    """A conversation opened with its message already focused (one row) gets no
+    selection event, so the focus path itself must show the buttons."""
+
+    BUTTONED = {"key": {"id": "a"}, "dynamicReplyButtons": [
+        {"buttonId": "1", "buttonText": {"displayText": "Car"}, "type": 1}]}
+    PLAIN = {"key": {"id": "b"}}
+
+    @pytest.fixture(autouse=True)
+    def _buttons_of(self, monkeypatch):
+        # Only BUTTONED carries buttons; its stored shape is not what is under test.
+        from core import business_message_content
+        monkeypatch.setattr(business_message_content, "message_business_buttons",
+                            lambda m: [{"kind": "reply"}] if m is not None and "dynamicReplyButtons" in m else [])
+
+    def stub(self, messages):
+        from ui.conversation_panel.message_list import MessageListMixin
+        panel = SimpleNamespace(
+            _sorted_messages=messages, _business_context=None,
+            _is_separator=lambda m: False,
+            _buttons_container=Mock(), conversation_panel=Mock(),
+            _show_business_buttons=Mock())
+        panel._show_business_buttons.side_effect = lambda m: (
+            setattr(panel, "_business_context", object()),
+            setattr(panel, "_business_shown_msg", m))
+        return panel, MessageListMixin._update_business_buttons
+
+    def test_a_single_focused_row_shows_its_buttons(self):
+        panel, update = self.stub([self.BUTTONED])
+        update(panel, 0)
+        panel._show_business_buttons.assert_called_once_with(self.BUTTONED)
+
+    def test_already_shown_buttons_are_not_rebuilt(self):
+        panel, update = self.stub([self.BUTTONED])
+        update(panel, 0)
+        update(panel, 0)
+        panel._show_business_buttons.assert_called_once()
+
+    def test_moving_to_a_row_without_buttons_hides_them(self):
+        panel, update = self.stub([self.BUTTONED, self.PLAIN])
+        update(panel, 0)
+        update(panel, 1)
+        panel._buttons_container.Hide.assert_called_once()
+        assert panel._business_context is None
+
+    def test_buttons_hidden_by_the_media_reset_show_again_on_the_same_row(self):
+        panel, update = self.stub([self.BUTTONED])
+        update(panel, 0)
+        panel._business_context = None
+        panel._business_shown_msg = None  # what _hide_all_media_controls now does
+        update(panel, 0)
+        assert panel._show_business_buttons.call_count == 2
+
+    def test_a_rebuilt_copy_of_the_same_message_is_not_rebuilt(self):
+        panel, update = self.stub([self.BUTTONED])
+        update(panel, 0)
+        panel._sorted_messages = [dict(self.BUTTONED)]
+        update(panel, 0)
+        panel._show_business_buttons.assert_called_once()

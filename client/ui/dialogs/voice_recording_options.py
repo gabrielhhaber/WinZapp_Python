@@ -1,4 +1,7 @@
-"""Native channel selector in Settings > Audio, with no capture/device probes."""
+"""Native channel selector and bitrates in Settings > Audio, with no capture/device probes.
+
+The noise reduction choices live in the noise reducer's own window
+(ui/dialogs/noise_reducer_options.py)."""
 
 import wx
 
@@ -44,13 +47,14 @@ class VoiceRecordingOptionsMixin:
     def _save_voice_recording_options(self):
         index = self._voice_recording_mode_radio.GetSelection()
         mode = RECORDING_MODES[index] if 0 <= index < len(RECORDING_MODES) else "auto"
-        self.main_window.settings.setdefault("general", {})["voice_recording_mode"] = mode
+        general = self.main_window.settings.setdefault("general", {})
+        general["voice_recording_mode"] = mode
         index = self._voice_bitrate_choice.GetSelection()
         if 0 <= index < len(VOICE_BITRATES_KBPS):
-            self.main_window.settings.setdefault("general", {})["voice_recording_bitrate"] = VOICE_BITRATES_KBPS[index]
+            general["voice_recording_bitrate"] = VOICE_BITRATES_KBPS[index]
         index = self._voice_bitrate_stereo_choice.GetSelection()
         if 0 <= index < len(VOICE_BITRATES_KBPS):
-            self.main_window.settings.setdefault("general", {})["voice_recording_bitrate_stereo"] = VOICE_BITRATES_KBPS[index]
+            general["voice_recording_bitrate_stereo"] = VOICE_BITRATES_KBPS[index]
 
     def _relabel_voice_recording_options(self):
         i18n = self.main_window.i18n

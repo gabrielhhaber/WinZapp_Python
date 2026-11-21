@@ -46,7 +46,7 @@ import ctypes
 import ctypes.wintypes
 import uuid
 from urllib.parse import quote as _url_quote
-from accessible_output2 import outputs
+from core.speech_backend import outputs
 from core.accessible_speech import AccessibleSpeechOutput
 from core.sound_system import (
     SoundSystem, Sound, load_sound, SOUND_EVENTS,
@@ -288,7 +288,10 @@ from main_window.calls import CallsMixin
 from main_window.call_desktop_audio import DesktopCallAudioMixin
 from main_window.call_translation import CallTranslationMixin
 from main_window.call_participants import CallParticipantsMixin
+from main_window.call_links import CallLinksMixin
 from main_window.call_hotkeys import CallHotkeysMixin
+from main_window.default_audio_devices import DefaultAudioDevicesMixin
+from main_window.edit_alerts import EditAlertsMixin
 from main_window.identity import IdentityMixin
 from main_window.message_events import MessageEventsMixin
 from main_window.wpp_server import WppServerMixin
@@ -358,9 +361,12 @@ class MainWindow(
     DesktopCallAudioMixin,
     CallTranslationMixin,
     CallParticipantsMixin,
+    CallLinksMixin,
     CallHotkeysMixin,
+    DefaultAudioDevicesMixin,
     IdentityMixin,
     MessageEventsMixin,
+    EditAlertsMixin,
     WppServerMixin,
     NeonizeBridgeMixin,
     ManualReconnectMixin,
@@ -448,6 +454,12 @@ class MainWindow(
         self.resume_pending = resume_pending
         self.registry = registry
         self.global_dir = global_dir
+        # One incremental controller per account/window, before any UI can
+        # record. init_UI() enters MainLoop inside this constructor, so
+        # initializing it after MainWindow(...) returns is too late.
+        # Construction only creates locks/state, not a model or audio device.
+        from core.incremental_denoise import IncrementalDenoiseController
+        self._incremental_controller = IncrementalDenoiseController()
         # Locks and saving state (initialized early to prevent AttributeErrors on early saves/migrations)
         self._save_lock = threading.Lock()
         self._save_timer = None
@@ -610,6 +622,9 @@ class MainWindow(
         # Windows default and warns — settings.json itself is left untouched
         # so the same device is retried on the next launch.
         self._apply_configured_audio_devices()
+        # Sounds on "system default" follow Windows' default from now on
+        # (a headset plugged in): main_window/default_audio_devices.py.
+        self._start_default_output_follow()
 
         # ── Auto-updater ──────────────────────────────────────────────────────
         # Schedule the update checker on the event loop early (but after i18n
@@ -1422,6 +1437,8 @@ class MainWindow(
         controls.Add(self.voice_call_window_video_button, 0, wx.ALL, 8)
         call_sizer.Add(controls, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         call_sizer.Add(self.voice_call_window_participants_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+        self.voice_call_window_waiting_room_button = self._make_call_waiting_room_button(call_panel)
+        call_sizer.Add(self.voice_call_window_waiting_room_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
         self.voice_call_window_desktop_audio_button = self._make_call_desktop_audio_button(call_panel)
         call_sizer.Add(self.voice_call_window_desktop_audio_button, 0, wx.ALL, 8)
         self.voice_call_window_translation_button = self._make_live_translation_button(call_panel)
@@ -1475,6 +1492,9 @@ class MainWindow(
         self.status_panel.Hide()
         self.calls_panel = CallsPanel(self, self.content_panel)
         self.calls_panel.Hide()
+        from ui.contacts_panel import ContactsPanel
+        self.contacts_panel = ContactsPanel(self, self.content_panel)
+        self.contacts_panel.Hide()
         # Communities (Alt+8) and Channels (Alt+9): panels like Calls
         from ui.dialogs.communities import CommunitiesPanel
         from ui.dialogs.channels import ChannelsPanel
@@ -1494,6 +1514,7 @@ class MainWindow(
         content_sizer.Add(self.calls_panel, 1, wx.EXPAND)
         content_sizer.Add(self.communities_panel, 1, wx.EXPAND)
         content_sizer.Add(self.channels_panel, 1, wx.EXPAND)
+        content_sizer.Add(self.contacts_panel, 1, wx.EXPAND)
         self.content_panel.SetSizer(content_sizer)
 
         # Main panel: nav sidebar on left, content on right
@@ -2029,9 +2050,14 @@ if __name__ == "__main__":
                 "WinZapp", 0x40)
             sys.exit(0)
         elif _mode == "first_run":
-            _acc = _registry.add("default", state="pending")
-            _account_id = _acc["id"]
-            _resume_pending = True
+            # A portable copy may start on the installed copy's accounts
+            # instead of linking one more device (installed_account_copy.py).
+            from installed_account_copy import start_portable_on_installed_accounts
+            _account_id = None if background else start_portable_on_installed_accounts(
+                _registry, gd, _startup_i18n())
+            _resume_pending = _account_id is None
+            if _account_id is None:
+                _account_id = _registry.add("default", state="pending")["id"]
         elif _mode == "autostart_boot":
             # Boot launcher: open foreground here, spawn the rest in background.
             from account_launcher import build_launch_command

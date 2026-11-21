@@ -19,15 +19,16 @@ unchanged export is byte for byte the same). Each tree's patches apply in
 order on top of its pin. Generated protobuf code (`Neonize.pb.go`,
 `Neonize_pb2.py/.pyi`) is never in a patch: the build regenerates it from
 `Neonize.proto` with the pinned toolchain, which reproduces upstream's own
-generated files exactly (checked on 0.6.0; on 0.10.0 only the "protoc v7.36.0" version stamp in the
-header comments differs, upstream generated with a newer protoc).
+generated files exactly (checked on 0.6.0; on 0.10.0 and 0.12.4 only the "protoc v7.36.0" version
+stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
 - **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
   whatsmeow patch) and media transfers to and from disk with progress and
-  cancel (`DownloadAnyToFile`, `UploadFile`, `TransferProgress`,
-  `TransferCancel`; the bridge's `transfers.py`). The rest of what this patch
+  cancel (`DownloadAnyToFileTracked`, `UploadFile`, `TransferProgress`,
+  `TransferCancel`; the bridge's `transfers.py`). The tracked download has its own
+  name because neonize 0.12 took `DownloadAnyToFile` for a plain download to a path. The rest of what this patch
   carried on 0.6.0 (app-state events 46-49 and 51-53, `fetch_app_state` /
   `request_app_state_recovery`, the `DecodePatchInfo` fix and
   `update_group_request_participants`, upstream pull requests #227-#232) is in
@@ -36,20 +37,27 @@ What the patches carry today:
 - **neonize 0002**: voice calls through meowcaller (`calls.go`, exported
   functions, no protobuf) and the session database in WAL with a 30 s busy
   timeout.
-- **neonize 0003**: `ContactUpdate` (54), `PushNameUpdate` (55) and
-  `AppStateSyncComplete` (56). A full app-state sync (right after pairing)
-  does not emit `ContactUpdate`: whatsmeow stores those names in bulk, and
-  `AppStateSyncComplete` for `critical_unblock_low` says when they are there
-  (`contact_events.py` reloads them).
-- **neonize 0005**: raw info queries and MEX (GraphQL) queries
+- **Event numbers.** neonize 0.12 took 54-76 for its own events and made
+  `subscribers` a `[128]` array, so the events only WinZapp has start at 100:
+  `AppStateMutation` (100), `NewsletterChange` (101); `ChatLock` stays 50.
+  What WinZapp's old patch for the contact events added is neonize's own now:
+  `ContactSyncEv` (58, was `ContactUpdateEv`), `PushNameEv` (59, was
+  `PushNameUpdateEv`) and `AppStateSyncCompleteEv` (56). A full app-state sync
+  (right after pairing) does not emit `ContactSyncEv`: whatsmeow stores those
+  names in bulk, and `AppStateSyncComplete` for `critical_unblock_low` says
+  when they are there (`contact_events.py` reloads them). The media retry
+  answer is upstream's `MediaRetryEv` (29, with `Error.Code`), no longer
+  patched; neither is the stopped-client crash of the contact and chat-settings
+  stores (upstream answers "client not found" itself).
+- **neonize 0004**: raw info queries and MEX (GraphQL) queries
   (`goneonize/rawiq.go`: `SendIQ` / `SendMexIQ`, JSON in and out; the
-  client's `send_iq` / `send_mex`), `AppStateMutation` (57) for every app
+  client's `send_iq` / `send_mex`), `AppStateMutation` (100) for every app
   state mutation, and `MutationInfo.Remove` so `send_app_state` can send a
   REMOVE. The bridge's custom lists, community joins, channel edits, status
   privacy and contact removal use them (`neonize_bridge/COVERAGE.md`).
-- **neonize 0006**: `MediaConn`, the media upload hosts and token, for the
+- **neonize 0005**: `MediaConn`, the media upload hosts and token, for the
   unencrypted upload of a catalog product's picture (`media_upload.py`).
-- **neonize 0010**: the sync client's `get_linked_group_participants` reads
+- **neonize 0008**: the sync client's `get_linked_group_participants` reads
   the `ReturnFunctionWithError` the Go side sends (it parsed another message
   and failed with "Wire format was corrupt"; the async client was right). It
   gives `community-participants` and the community total in `group-info`.
@@ -88,33 +96,34 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
-- **neonize 0014**: `CallAddParticipant` adds a number or LID to the call this
+- **neonize 0032 / meowcaller 0030**: call links. `CallLinkCreate`, `CallLinkJoin`, `CallWaitingRoom` and `CallWaitingRoomDecide` (Python `create_link`, `join_link`, `waiting_room`, `decide_waiting`; `neonize_bridge/call_links.py`). meowcaller's link join follows a WhatsApp Web capture (`datasheets/voip-call-link-join.md`): incoming with the camera off, the codec of the join ACK, a 10 s `<heartbeat>` for the whole call; rosters and waiting rooms keep each person's push name and guest flag.
+- **neonize 0012**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
   already on the call's list), WhatsApp's "Add participant"; Python
   `CallClient.add_participant` (`neonize_bridge/call_invites.py`).
-- **neonize 0015**: a channel update (`NewsletterMessage`) carries whatsmeow's
+- **neonize 0013**: a channel update (`NewsletterMessage`) carries whatsmeow's
   `MessageID`, `Timestamp` and `Type`, which the encoder dropped: a channel's
   updates could not be deduplicated nor sorted (`neonize_bridge/channel_updates.py`).
-- **neonize 0016 / whatsmeow 0011**: a channel update carries the server's
+- **neonize 0014 / whatsmeow 0011**: a channel update carries the server's
   `is_sender="true"` (`NewsletterMessage.IsSender`), the attribute WhatsApp Web keys an
   update `fromMe` from: a channel's admin sees their own updates as sent.
-- **neonize 0018**: `SendNewsletterMessage` (Python
+- **neonize 0016**: `SendNewsletterMessage` (Python
   `send_newsletter_message`), `SendMessage` with
   `SendRequestExtra.MediaHandle`: a channel's photo or video goes up
   unencrypted (`upload_newsletter`) and out with the upload's handle, which
   whatsmeow sends as the node's `media_id` (`channel_media.py`).
-- **neonize 0019**: `NewsletterChange` (58, `NewsletterChangeEv`), the
+- **neonize 0017**: `NewsletterChange` (101, `NewsletterChangeEv`), the
   whatsmeow event above; the bridge's `channel_events.py` sends the ones the
   channels windows show as `channels-changed`.
-- **neonize 0020**: `AutomaticMessageRerequestFromPhone`, off by default in
+- **neonize 0018**: `AutomaticMessageRerequestFromPhone`, off by default in
   whatsmeow: a message this device cannot decrypt (a group message without its
   sender key) is asked of the account's own phone, as WhatsApp Web does
   (`PLACEHOLDER_MESSAGE_RESEND`); it used to be lost when the sender's device
   did not resend it.
-- **neonize 0021**: `send_newsletter_message`'s answer is turned into bytes like
+- **neonize 0019**: `send_newsletter_message`'s answer is turned into bytes like
   `send_message`'s: a channel post went out and the call raised
   `expected bytes, LP_Bytes found`, so a published post was reported as failed.
-- **neonize 0012 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
+- **neonize 0010 / meowcaller 0005-0006**: bounded PCM reads without multi-frame
   truncation, on-time microphone underruns, negotiated MLow/Opus codecs and
   authenticated packet ordering, including late accepted codec settings.
   See [call audio](neonize-call-audio.md) for
@@ -136,6 +145,58 @@ What the patches carry today:
   its device number; an `<accept>` with a bare `from` while the call's peer is
   still bare counts as the phone (device 0). Before a release, call a contact
   with a phone and a companion device and answer on each in turn.
+- **meowcaller 0027**: adding someone to a one-to-one call. The roster the
+  inviter sends names the peer's device that answered: every device that rings
+  sends a `<preaccept>` with its capability and the last one (usually the
+  phone) was kept, because meowcaller's own `<accept>` carries none. With the
+  phone named, the server took the companion really in the call for a device
+  that had not answered: it got the group invite as a new offer, no PIDs and
+  no group key, so it rang again and went silent (user logs, 2026-11-14).
+  WhatsApp Web's `<accept>` carries none either, and the inviter loses too:
+  its group receiver is keyed by the device the roster names, so every packet
+  of the companion fails to unprotect (`unprotect_failed` climbs while
+  `frames` stops; logs of both sides, 2026-11-16). A `<preaccept>` that
+  arrives after the answer (a phone woken by a push) does not replace the
+  device that answered. And
+  the device in the call no longer rings again when that invite arrives:
+  `onGroupOffer` replaced the live `Call` with a ringing one; it now applies
+  the invite as a group update. **Not yet validated on a live call**: call a
+  contact on Neonize, let them answer on the computer, add a third person and
+  check that the second one keeps hearing and is not rung.
+- **meowcaller 0028**: adding someone to a call that is already a group call.
+  Every invite went out as the first one does: an offer to the invited person
+  with a `<destination>` and the whole roster in `<group_info>`. That offer is
+  what turns a one-to-one call into a group call; once the server holds the
+  group call it answers nothing to it, so the bridge logged "participante
+  convidado" and nobody rang (user logs, 2026-11-16: the first person added
+  joined, the next six invites got no ack and no group update). WhatsApp Web
+  (2.3000.1052669929, captured over CDP on 2026-11-17 with
+  `diagnostico_cdp/callstanza_out.js`) sends
+  `<call to="<call-id>@call"><offer call-id call-creator><audio enc="opus" rate="16000"/><net medium="2"/><invite><user jid user_pn><device jid/>…</user></invite></offer></call>`:
+  to the call, only the invited user and their devices, no roster, no
+  capability. The server acks it with the roster, the user in state
+  `outgoing`, then `receipt` when a device rings. `participantInviteNode`
+  (`engine_group_invite.go`) picks the form: the group one as soon as a group
+  update arrived for the call (the ack of the first invite is one). Ringing
+  someone already on the list takes the same stanza. What Web puts in its
+  first invite (one-to-one to group) was not captured: only that it goes to
+  the call too, so that form is left as it was, since it works. **Not yet
+  validated on a live call**: on Neonize, call someone, add a third person,
+  wait for them to join and add a fourth.
+- **meowcaller 0029**: an invite is confirmed by the server before it is
+  reported. `AddParticipant` / `RingParticipant` returned as soon as the stanza
+  left, so the invites the server dropped answered `invited` and WinZapp said
+  so. `sendParticipantInvite` sends the invite as a request and waits up to
+  15 s for the ack with its id; it succeeds only when the ack's roster lists
+  the person (what WhatsApp Web got: the user in state `outgoing`). No ack, an
+  error ack, no roster or a roster without the person fail, and none of them
+  ends the call. whatsmeow gives an awaited ack to the waiter, not to the
+  node handlers, so `onCallAck` no longer sees it: the roster is applied
+  there. `call/add-participants` therefore answers only after the server did,
+  one person at a time, and the client waits `request_timeout(people)`
+  (`client/core/call_invites.py`), saying "Calling <names>..." meanwhile.
+  WPPConnect is unchanged: WhatsApp Web's own `inviteToCall` resolves before
+  its offer is acked.
 - **meowcaller 0010**: diagnostics only, no behaviour change. For every call it
   logs the relay endpoints (name, `is_fna`, token ids; never an address), the
   one media runs on (`*`), the first STUN packets the relay sends back, and
@@ -164,23 +225,48 @@ What the patches carry today:
   device was skipped and the call was digital silence (issue #689, Gustavo's
   rejoin). Audio is told apart by the SSRC and keys derived from the device id,
   not by the PID.
-- **neonize 0022**: the "chamadas: meowcaller" log writer counted repeated
+- **neonize 0020**: the "chamadas: meowcaller" log writer counted repeated
   messages (first 8, then every 200) for the whole process; it now counts per
   `call_id`, so a later call keeps its roster, key epoch and summary lines.
-- **neonize 0023**: media retry. `SendMediaRetry` / `DecryptMediaRetry`
+- **neonize 0021**: media retry. `SendMediaRetry` / `DecryptMediaRetry`
   (`goneonize/mediaretry.go`, JSON in and out like `rawiq.go`; Python
   `send_media_retry` / `decrypt_media_retry`) wrap whatsmeow's
   `SendMediaRetryReceipt` and `DecryptMediaRetryNotification`, and the phone's
-  answer is `events.MediaRetry` as event 59 (`MediaRetryEv`). When a download
+  answer is neonize's own `MediaRetryEv` (29). When a download
   fails with an expired link the bridge (`media_retry.py`, called by
   `get-media-by-message`) asks the phone to upload the file again, waits for
   the answer and downloads from the new direct path; "not found" answers 410.
-- **neonize 0024**: `DownloadRetriedMedia` (`goneonize/mediaretry_download.go`,
+- **neonize 0022**: `DownloadRetriedMedia` (`goneonize/mediaretry_download.go`,
   Python `download_retried_media`). The retry notification brings only the new
   direct path, and the phone's new upload can encrypt to other bytes, so
   whatsmeow's check of the old `fileEncSHA256` refused all 7 hosts (issue #756).
   The ciphertext is authenticated by the media key's HMAC and the plaintext by
   `fileSHA256` (`mediaretry_decrypt.go`, tested alone with `go test`).
+- **neonize 0031**: `applyDeviceProps` (`goneonize/device_props.go`, tested in
+  `device_props_test.go`) resets `store.DeviceProps` from a clean clone of
+  `baseDeviceProps` before merging each session's `DeviceProps` in `Neonize()`
+  (`goneonize/main.go`), so one session's `FullSyncDaysLimit` and unknown protobuf
+  fields (`supportOmittedConversationMetadata`) do not accumulate across
+  `Neonize()` calls. `store.DeviceProps` stays process-global: the reset
+  is per call, not per session, so sessions that pair concurrently in one
+  process still share it.
+- **whatsmeow 0017**: `omittedHistoryConversations` and
+  `storeConversationPNLIDMappings` (`omitted_history.go`, tested in
+  `omitted_history_test.go`) decode `HistorySync.omittedConversationMetadata`
+  (field 25) via `protowire`, store PN↔LID mappings from
+  `PhoneNumberToLidMappings` and regular/omitted `Conversation` entries
+  synchronously before `DownloadHistorySync` dispatches `events.HistorySync`,
+  and pass omitted conversations to `storeHistoricalMessageSecrets` for
+  `tcToken` privacy-token storage (`docs/traps/sync-completion.md`). A
+  conversation's LID is read as `lidJID`, then an `@lid` ID, then `accountLid`
+  (the account's, so possibly the user's own); a derived pair never overrides
+  an explicit mapping of the same sync and never gives the own LID to another
+  phone (the bridge's `omitted_history.block_lid_mappings` does the same).
+
+- **meowcaller 0026**: `go.mod` / `go.sum` follow neonize's whatsmeow pin
+  (`neonize_upstream.json` `whatsmeow.version`), as meowcaller 0001 did for the
+  previous one. A new whatsmeow pin needs this patch redone: `go get
+  go.mau.fi/whatsmeow@<pin>` and `go mod tidy` in the meowcaller tree.
 
 ## Toolchain (once)
 

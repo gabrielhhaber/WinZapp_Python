@@ -1,10 +1,21 @@
-"""Discover calls only for the visible group; late replies cannot change chats."""
+"""Discover calls only for the visible chat; late replies cannot change chats.
+
+A group asks call/group/ongoing. A one-to-one chat asks call/ongoing (the
+Calls tab's list) for a call with several people filed under it: WhatsApp
+files one started from a private chat under the creator's chat. While such a
+call goes on without this device the call buttons give way to "Join"; while
+this device is in a call with the chat, to "Return to call".
+"""
 import logging
+import re
 import threading
 
 import wx
 from core.conversation_view import conversation_in_view
+from core.ongoing_calls import chat_call_button, ongoing_entries, ongoing_for_chat
 from ui.conversation_panel.call_capabilities import can_place_call, can_relocate_call_focus
+
+_PERSON = re.compile(r"\d+@(?:s\.whatsapp\.net|c\.us|lid)")
 
 
 class GroupCallJoinPanelMixin:
@@ -19,19 +30,34 @@ class GroupCallJoinPanelMixin:
         sizer.Add(self._group_call_join_btn, 0, wx.LEFT | wx.TOP, 5)
         self._group_call_join_btn.Hide()
 
+    def _same_call_chat(self, left, right):
+        same = getattr(self.main_window, "_chat_jids_equivalent", None)
+        return left == right or (callable(same) and bool(same(left, right)))
+
+    def _chat_call_kind(self, jid):
+        """"return", "join" or "" for the open chat (core/ongoing_calls.py)."""
+        call = getattr(self, "_ongoing_group_call", None)
+        kind = chat_call_button(str(jid or ""), call,
+                                getattr(self.main_window, "_active_voice_call", None),
+                                self._same_call_chat)
+        if kind == "join" and not can_place_call(
+                self.main_window, is_video=call["isVideo"], is_group=True):
+            return ""
+        return kind
+
     def _show_ongoing_group_call(self, call):
         self._ongoing_group_call = call
         button = self._group_call_join_btn
         changed = False
         jid = str((self.conversation or {}).get("remoteJid") or "")
-        shown = (call is not None and jid.endswith("@g.us")
-                 and call.get("groupJid") == jid and can_place_call(
-                     self.main_window, is_video=call["isVideo"], is_group=True))
+        kind = self._chat_call_kind(jid)
+        shown = bool(kind)
         if button.IsShown() and not shown and button.HasFocus() and can_relocate_call_focus(self):
             self.message_field.SetFocus()
         if shown:
             i18n = self.main_window.i18n
-            label = (i18n.t("group_call_join_video_button") if call["isVideo"]
+            label = (i18n.t("calls_return_to_current") if kind == "return"
+                     else i18n.t("group_call_join_video_button") if call["isVideo"]
                      else i18n.t("group_call_join_button"))
             if button.GetLabel() != label:
                 button.SetLabel(label)
@@ -62,10 +88,18 @@ class GroupCallJoinPanelMixin:
         if watch is not None and watch[0] is conversation:
             return
         self._stop_group_call_watch()
-        if not conversation or not jid.endswith("@g.us"):
+        if not conversation or not self._chat_has_calls(jid):
             return
         watch = (conversation, object())
         self._group_call_watch = watch
+        # one warning per watch: a poll every 10 s that keeps failing would
+        # fill the log (a bridge without group calls answers 501 each time)
+        warned = []
+
+        def warn(text):
+            if not warned:
+                warned.append(True)
+                logging.warning(text)
 
         def current():
             return (getattr(self, "_group_call_watch", None) is watch
@@ -89,6 +123,13 @@ class GroupCallJoinPanelMixin:
                 self._show_ongoing_group_call(None)
                 schedule()
                 return
+            if not jid.endswith("@g.us") and not can_place_call(main, is_group=True):
+                # an engine without group calls has no call/ongoing to ask for
+                # a private chat (it answers 501); the capabilities may still
+                # arrive, so the watch goes on
+                self._show_ongoing_group_call(None)
+                schedule()
+                return
             self._group_call_probe_inflight = watch
 
             def finish(call):
@@ -105,6 +146,17 @@ class GroupCallJoinPanelMixin:
 
             def worker():
                 call = None
+                if not jid.endswith("@g.us"):
+                    try:
+                        response = main._raise_for_call_response(
+                            main._post_call_control("ongoing", {}, timeout=20), "ongoing")
+                        call = ongoing_for_chat(ongoing_entries(response.json()), jid,
+                                                self._same_call_chat)
+                    except Exception:
+                        call = None
+                        warn("[call] ongoing call check unavailable")
+                    wx.CallAfter(finish, call)
+                    return
                 try:
                     response = main._raise_for_call_response(
                         main._post_call_control("group/ongoing", {"groupJid": jid}, timeout=20),
@@ -122,21 +174,37 @@ class GroupCallJoinPanelMixin:
                         raise ValueError("Invalid ongoing call response")
                 except Exception:
                     call = None
-                    logging.warning("[call] ongoing group call check unavailable")
+                    warn("[call] ongoing group call check unavailable")
                 wx.CallAfter(finish, call)
 
             threading.Thread(target=worker, daemon=True, name="group-ongoing-call").start()
 
         wx.CallAfter(tick)
 
+    def _chat_has_calls(self, jid):
+        """A group, or a person who is not this account."""
+        if jid.endswith("@g.us"):
+            return True
+        is_self = getattr(self.main_window, "_is_self_jid", lambda _jid: False)
+        return bool(_PERSON.fullmatch(jid)) and not is_self(jid)
+
     def _on_join_ongoing_group_call(self, _event=None):
         call = getattr(self, "_ongoing_group_call", None)
         conversation = self.conversation
-        if not call or not conversation or not conversation_in_view(self):
+        if not conversation or not conversation_in_view(self):
             return
         jid = str(conversation.get("remoteJid") or "")
-        if not jid.endswith("@g.us") or call["groupJid"] != jid:
+        kind = self._chat_call_kind(jid)
+        main = self.main_window
+        if kind == "return":
+            # as the Calls tab's button: back to the call's window
+            main._sync_voice_call_bar()
+            main._focus_call_window()
+            return
+        if kind != "join":
             return
         name = self.conversation_name or conversation.get("name") or ""
-        self.main_window._start_call(jid, name, is_group=True,
-                                     is_video=call["isVideo"], join_call_id=call["id"])
+        # the engine's own form of the chat: a call started from a private
+        # chat is filed under the creator's @lid (call/group/join checks it)
+        main._start_call(call.get("chatJid") or jid, name, is_group=True,
+                         is_video=call["isVideo"], join_call_id=call["id"])

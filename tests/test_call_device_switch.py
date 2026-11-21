@@ -307,3 +307,49 @@ def test_a_switch_without_a_share_resumes_nothing():
     window._restart_active_voice_call_audio()
 
     assert resumed == []
+
+
+def test_a_change_of_the_windows_default_lists_the_devices_again_between_close_and_reopen(monkeypatch):
+    """PortAudio reads the device list and the defaults only when it starts:
+    the headset that became Windows' default is reached only after a refresh,
+    and the refresh closes every PortAudio stream, so it must come after the
+    old session closed and before the new one opens."""
+    import core.call_audio
+    import core.default_audio_endpoints as endpoints
+
+    window = _CallWindow()
+    old_audio = window._call_audio_session
+    order = []
+    monkeypatch.setattr(endpoints, "refresh_portaudio_devices",
+                        lambda sd: order.append(("refresh", old_audio.stopped)))
+    monkeypatch.setattr(core.call_audio, "sd", object())
+    original_start = window._start_voice_call_audio
+
+    def _start(*args, **kwargs):
+        order.append(("start", old_audio.stopped))
+        return original_start(*args, **kwargs)
+    window._start_voice_call_audio = _start
+
+    assert window._restart_active_voice_call_audio(refresh_device_list=True) is True
+
+    assert order == [("refresh", 1), ("start", 1)]
+    assert window._call_audio_session.started == 1
+
+
+def test_a_device_chosen_in_the_settings_does_not_refresh_portaudio(monkeypatch):
+    import core.default_audio_endpoints as endpoints
+
+    calls = []
+    monkeypatch.setattr(endpoints, "refresh_portaudio_devices", lambda sd: calls.append(sd))
+    window = _CallWindow()
+
+    window._restart_active_voice_call_audio()
+
+    assert calls == []
+
+
+def test_a_switch_already_running_is_reported_as_not_started():
+    window = _CallWindow()
+    window._call_audio_restart_pending = True
+
+    assert window._restart_active_voice_call_audio(refresh_device_list=True) is False

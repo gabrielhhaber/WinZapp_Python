@@ -175,7 +175,10 @@ class MessageRenderingMixin:
 
         # ── Call ─────────────────────────────────────────────────────────────
         if is_call_log(msg):
-            return call_log_label(msg, i18n, self._format_duration)
+            # A one-to-one call that became a group call says who it was with.
+            people = getattr(self.main_window, "call_log_participants_text", None)
+            return call_log_label(msg, i18n, self._format_duration,
+                                  people(msg) if people is not None else "")
 
         # ── Order, or a seller's follow-up to one (core/commerce.py) ─────────
         commerce_text = commerce_message_label(msg, i18n)
@@ -1251,15 +1254,23 @@ class MessageRenderingMixin:
                                or (not sender and hide_unnamed_sender_numbers_enabled(
                                    self.main_window.settings)))]
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
-        if msg.get("starred"):
-            pieces[0] = f"★ {pieces[0]}"
         if msg.get("pinInChat"):
             pieces[0] = f"📌 {i18n.t('message_pinned')}, {pieces[0]}"
+        # Settings > User interface > "Announce 'Starred' at the start of the
+        # message" (default off): off keeps the word as a trailing clause
+        # below, like "Edited". On moves it to the front, before the sender.
+        # Done ahead of the forwarded block so "Forwarded" still comes first.
+        is_starred = bool(msg.get("starred"))
+        if is_starred and self.main_window.settings.get("user_interface", {}).get(
+            "starred_prefix_enabled", False
+        ):
+            pieces[0] = f"{i18n.t('status_starred')}, {pieces[0]}"
+            is_starred = False  # already announced; don't also append the suffix below
         # Settings > Interface do usuário > "Anunciar 'Encaminhada' no início
         # da mensagem" (default off). Off keeps the long-standing behavior of
         # a trailing ", Encaminhada" clause below, same position as "Editada"
         # and the delivery status. On moves it to the very front — ahead of
-        # the sender, and even ahead of the star/pin markers above — so a
+        # the sender, and even ahead of the starred word and pin marker above — so a
         # screen reader user arrowing quickly through a busy forwarded chat
         # (a forward chain, a viral message) hears it's forwarded before
         # anything else, instead of only after the sender and full body.
@@ -1279,6 +1290,12 @@ class MessageRenderingMixin:
             pieces[-1] += f", {i18n.t('status_edited')}"
         if is_forwarded:
             pieces[-1] += f", {i18n.t('status_forwarded')}"
+        # A starred message ends with the word "Starred", like "Edited" and
+        # "Forwarded" (or opens with it, see above). It used to open with a
+        # star glyph, which screen readers skip or read differently depending
+        # on the symbol level.
+        if is_starred:
+            pieces[-1] += f", {i18n.t('status_starred')}"
 
         # Append quoted message preview (if this is a reply)
         if ctx and include_quoted_preview:
@@ -1392,16 +1409,18 @@ class MessageRenderingMixin:
                 cn = (chat_obj.get("name") or "").strip()
                 if cn and not mw._is_bad_contact_name(cn):
                     return cn
-        if msg is not None:
-            for key_candidate in ("pushName", "pushname", "name", "displayName"):
-                push = msg.get(key_candidate, "")
-                if push and not mw._is_bad_contact_name(push):
-                    return push
         # Fallback: presence-learned pushName map
         for cjid in candidates:
             pname = (ppm.get(cjid) or "").strip()
             if pname and not mw._is_bad_contact_name(pname):
                 return pname
+        # The name the message itself carries is the one its sender had THEN:
+        # only when nothing current is known, never ahead of it.
+        if msg is not None:
+            for key_candidate in ("pushName", "pushname", "name", "displayName"):
+                push = msg.get(key_candidate, "")
+                if push and not mw._is_bad_contact_name(push):
+                    return push
         # Fallback 2: scan sorted messages in the current conversation
         for m in getattr(self, "_sorted_messages", []):
             if not isinstance(m, dict):

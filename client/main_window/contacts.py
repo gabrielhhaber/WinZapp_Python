@@ -11,7 +11,7 @@ import time
 import wx
 from core.sync_lifecycle import capture_sync_context, sync_context_is_current
 from core import phone_contacts
-from core.remote_contact_names import learn_remote_profiles, profile_name
+from core.remote_contact_names import learn_remote_profiles, lid_phone_pairs, profile_name
 from core.chat_contact_names import has_address_book_name
 from core.unsaved_contact_marker import contact_is_saved
 from main_window.message_rules import quote_is_of_my_message
@@ -104,8 +104,8 @@ class ContactsMixin:
         Runs the request on its own thread; *on_done(result)* is called on the
         wx thread with a phone_contacts.SaveResult: whether it worked, the i18n
         key of the error, the JID WhatsApp filed the contact under and whether
-        the sync with the phone was confirmed. The caller stores the local
-        record on success (save_local_contact()), under that JID.
+        phone sync was requested (not a phone completion receipt). The caller
+        stores the local record on success (save_local_contact()), under that JID.
         """
         base, token = f"{self.wpp_server}:{self.wpp_port}", self.token
 
@@ -300,6 +300,9 @@ class ContactsMixin:
                     contact["remoteJid"] = jid_str.replace("@c.us", "@s.whatsapp.net")
                 contact["pushName"] = profile_name(contact, ContactsMixin._is_bad_contact_name)
                 contact["type"] = "contact"
+            # Before the names: a saved contact listed under its @lid and its
+            # number must fold into one person, as the bridge says it is.
+            self._learn_address_book_lids(response_data)
             # Group-only senders have no private chat and are not in the
             # phonebook. Their public nicknames must still reach the name cache.
             learned_profiles = learn_remote_profiles(
@@ -379,6 +382,19 @@ class ContactsMixin:
             logging.exception("Exception in get_remote_contacts")
             wx.MessageBox(f"{self.i18n.t('contact_retrieval_failed')} {format_exc()}", self.i18n.t("error").format(app_name=self.app_name), wx.OK | wx.ICON_ERROR, self)
 
+    def _learn_address_book_lids(self, rows):
+        """Register the @lid -> number pairs `all-contacts` gives (its rows'
+        `phoneNumber`), one chat-list refresh for the whole batch."""
+        known = getattr(self, "_lid_to_phone", None) or {}
+        pairs = [(lid, phone) for lid, phone in lid_phone_pairs(rows, self._normalize_jid)
+                 if known.get(lid) != phone]
+        for lid, phone in pairs:
+            self.register_jid_mapping(lid, phone, defer_ui=True)
+        if pairs:
+            logging.info("[get_remote_contacts] %d @lid contact(s) bridged to their number.",
+                         len(pairs))
+            wx.CallAfter(self._schedule_set_chats)
+
     def start_periodic_contacts_sync(self):
         if hasattr(self, "_contacts_sync_thread_started") and self._contacts_sync_thread_started:
             return
@@ -405,13 +421,13 @@ class ContactsMixin:
                     if getattr(self, "_initial_sync_running", False):
                         # Don't fight the initial sync for the same dict.
                         continue
-                    if self._voice_call_in_progress():
+                    if self._background_work_paused():
                         # The only safe place to stand the message sync down
                         # during a call: nothing has been attempted yet, so
                         # skipping this cycle cannot be mistaken for a round
                         # that succeeded. See sync_chat_messages()' own note.
                         logging.info(
-                            "[periodic_contacts_sync] skipped during active voice call"
+                            "[periodic_contacts_sync] skipped during voice call or audio recording"
                         )
                         continue
                     context = capture_sync_context(self)

@@ -38,3 +38,40 @@ def include_current_call(entries, active, state):
     current = ongoing_entries({"response": [{"id": call_id,
         "chatJid": active.get("peer_jid"), "isVideo": bool(active.get("is_video"))}]})
     return current + rows
+
+
+def ongoing_for_chat(entries, jid, same_chat):
+    """The call of `ongoing_entries()` filed under the chat `jid` is, as the
+    conversation panel shows it ({id, groupJid: jid, chatJid, isVideo}), or None.
+
+    A call with several people started from a one-to-one chat is filed under
+    the creator's chat, often by @lid while WinZapp keeps the chat under the
+    number: `same_chat(a, b)` bridges the two (seen over CDP on 2026-11-17).
+    `chatJid` is the engine's own form, the one call/group/join must be given.
+    """
+    for entry in entries or ():
+        call = entry["ongoing"]
+        if same_chat(call["chatJid"], jid):
+            return {"id": call["id"], "groupJid": jid, "chatJid": call["chatJid"],
+                    "isVideo": call["isVideo"]}
+    return None
+
+
+def chat_call_button(jid, ongoing, active, same_chat):
+    """What the conversation of `jid` offers in place of its call buttons:
+    "return" while this device is in a call with that chat, "join" while a call
+    of that chat goes on without it, "" otherwise (the call buttons stay).
+
+    `ongoing` is the cached discovery for that chat, `active` the call this
+    device holds (MainWindow._active_voice_call)."""
+    if not jid:
+        return ""
+    active = active if isinstance(active, dict) else {}
+    if active:
+        if (same_chat(str(active.get("peer_jid") or ""), jid)
+                or (active.get("group_jid") and active.get("group_jid") == jid)
+                or (ongoing and active.get("call_id") == ongoing.get("id"))):
+            return "return"
+    if ongoing and ongoing.get("groupJid") == jid:
+        return "join"
+    return ""

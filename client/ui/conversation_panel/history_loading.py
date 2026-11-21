@@ -8,6 +8,7 @@ ConversationsPanel.__init__/init_UI is available here.
 import logging
 import threading
 import wx
+from core.page_size import messages_page_size
 from core.utils import history_window
 from main_window import history_boundary
 
@@ -90,7 +91,7 @@ class HistoryLoadingMixin:
         sem isto o passo que corrige o bug ficava sem teste nenhum — dava para
         apagar o argumento da âncora com a suíte inteira verde.
         """
-        return history_window(
+        offset, sep_idx = history_window(
             displayable,
             getattr(self, "_pinned_jump_id", "") or getattr(self, "_expanded_oldest_msg_id", "")
             or self._reading_resume_anchor(),
@@ -98,6 +99,21 @@ class HistoryLoadingMixin:
             limit,
             self._unread_sep_idx,
         )
+        window = len(displayable) - offset
+        if window > max(2 * limit, 1000):
+            # Which input made the window this wide (issue #812: 1,655 -> 12,021
+            # rows in one refresh). Flags and counts only: no id, JID or name.
+            logging.info(
+                "[_history_window_for_rebuild] wide window of %d row(s) of %d "
+                "(page %d): pinned_jump=%s resume_anchor=%s expanded_anchor=%s "
+                "expanded_floor=%d unread_separator_rows=%d",
+                window, len(displayable), limit,
+                bool(getattr(self, "_pinned_jump_id", "")),
+                bool(self._reading_resume_anchor()),
+                bool(getattr(self, "_expanded_oldest_msg_id", "")),
+                getattr(self, "_expanded_visible_count", 0),
+                len(displayable) - self._unread_sep_idx if self._unread_sep_idx >= 0 else 0)
+        return offset, sep_idx
 
     def _remember_expanded_window(self) -> None:
         """Registra até onde a lista está materializada agora.
@@ -241,16 +257,14 @@ class HistoryLoadingMixin:
 
     def _load_older_messages(self):
         """Load older messages from the local database, or fall back to the server if none remain locally."""
-        if not self.conversation or not self._all_sorted_messages:
-            logging.info(f"[_load_older_messages] Aborting: conversation={self.conversation is not None}, all_sorted={len(self._all_sorted_messages) if self._all_sorted_messages else 0}")
+        if not self.conversation:
+            logging.info("[_load_older_messages] Aborting: conversation=False")
             return
 
         self._is_loading_more = True
         try:
             remote_jid = self.conversation.get("remoteJid", "")
-            limit = int(
-                self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
-            )
+            limit = messages_page_size(self.main_window.settings)
             # Count separator objects to get the actual database message count currently in memory.
             extra_pins = getattr(self, "_pinned_extra_history_ids", set())
             loaded_db_count = sum(
@@ -304,9 +318,10 @@ class HistoryLoadingMixin:
                                 
                             self._sync_message_rows(_old_rows, self._sorted_messages)
 
-                            self.messages_list.Focus(n_new)
-                            self.messages_list.Select(n_new, True)
-                            self.messages_list.EnsureVisible(n_new)
+                            focus_idx = n_new if old_count > 0 else max(0, len(self._sorted_messages) - 1)
+                            self.messages_list.Focus(focus_idx)
+                            self.messages_list.Select(focus_idx, True)
+                            self.messages_list.EnsureVisible(focus_idx)
                             self._is_loading_more = False
                             return
                         else:
@@ -322,8 +337,8 @@ class HistoryLoadingMixin:
 
     def _load_older_messages_from_server(self):
         """Fetch older messages from server when the beginning of local history is reached."""
-        if not self.conversation or not self._all_sorted_messages:
-            logging.info(f"[_load_older_messages_from_server] Aborting: conversation={self.conversation is not None}, all_sorted={len(self._all_sorted_messages) if self._all_sorted_messages else 0}")
+        if not self.conversation:
+            logging.info("[_load_older_messages_from_server] Aborting: conversation=False")
             self._is_loading_more = False
             return
         
@@ -334,30 +349,32 @@ class HistoryLoadingMixin:
             self._is_loading_more = False
             return
         
-        # A duplicate-only page still advances the server cursor. Prefer that
-        # cursor on the next attempt so we do not request the same 200 rows.
-        oldest_msg = self._server_history_anchor.get(phone_jid)
-        if oldest_msg is None:
-            # Get oldest non-separator and non-pending message ID
-            for m in self._all_sorted_messages:
-                if m.get("_type") == "unread_separator":
-                    continue
-                m_id = m.get("key", {}).get("id", "")
-                # Skip local pending/virtual messages (UUIDs contain hyphens or start with 'pending-')
-                if m.get("_local_pending") or m_id.startswith("pending-") or "-" in m_id:
-                    continue
-                oldest_msg = m
-                break
+        oldest_msg = None
+        if self._all_sorted_messages:
+            # A duplicate-only page still advances the server cursor. Prefer that
+            # cursor on the next attempt so we do not request the same 200 rows.
+            oldest_msg = self._server_history_anchor.get(phone_jid)
+            if oldest_msg is None:
+                # Get oldest non-separator and non-pending message ID
+                for m in self._all_sorted_messages:
+                    if m.get("_type") == "unread_separator":
+                        continue
+                    m_id = m.get("key", {}).get("id", "")
+                    # Skip local pending/virtual messages (UUIDs contain hyphens or start with 'pending-')
+                    if m.get("_local_pending") or m_id.startswith("pending-") or "-" in m_id:
+                        continue
+                    oldest_msg = m
+                    break
 
-        if oldest_msg is None:
-            # Fallback to the first message if all are pending/separators
-            oldest_msg = self._all_sorted_messages[0]
+            if oldest_msg is None:
+                # Fallback to the first message if all are pending/separators
+                oldest_msg = self._all_sorted_messages[0]
 
-        oldest_id = oldest_msg.get("key", {}).get("id", "")
-        logging.info(f"[_load_older_messages_from_server] oldest_id={oldest_id}")
-        if not oldest_id:
-            self._is_loading_more = False
-            return
+            oldest_id = oldest_msg.get("key", {}).get("id", "")
+            logging.info(f"[_load_older_messages_from_server] oldest_id={oldest_id}")
+            if not oldest_id:
+                self._is_loading_more = False
+                return
 
         self._is_loading_more = True
         
@@ -478,9 +495,10 @@ class HistoryLoadingMixin:
 
             self._sync_message_rows(_old_rows, self._sorted_messages)
 
-            self.messages_list.Focus(n_new)
-            self.messages_list.Select(n_new, True)
-            self.messages_list.EnsureVisible(n_new)
+            focus_idx = n_new if old_count > 0 else max(0, len(self._sorted_messages) - 1)
+            self.messages_list.Focus(focus_idx)
+            self.messages_list.Select(focus_idx, True)
+            self.messages_list.EnsureVisible(focus_idx)
         finally:
             self.messages_list.Thaw()
 
@@ -490,9 +508,7 @@ class HistoryLoadingMixin:
         self._is_loading_more = True
         self.messages_list.Freeze()
         try:
-            limit = int(
-                self.main_window.settings.get("user_interface", {}).get("messages_page_size", 200)
-            )
+            limit = messages_page_size(self.main_window.settings)
             new_start = max(0, self._messages_offset - limit)
             new_msgs  = self._all_sorted_messages[new_start:self._messages_offset]
             if not new_msgs:

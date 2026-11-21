@@ -252,7 +252,7 @@ class TestPeriodicPoll:
         monkeypatch.setattr(contacts, "time", SimpleNamespace(sleep=sleep))
         monkeypatch.setattr(contacts.wx, "CallAfter", lambda fn, *a, **k: None)
         stub = window(_wa_connected=True, chats={}, settings={})
-        stub._voice_call_in_progress = lambda: False
+        stub._background_work_paused = lambda: False
         stub._capture_chat_sync_baseline = lambda: {}
         def fetch(old, **kwargs):
             assert kwargs["expected_context"].run == 1

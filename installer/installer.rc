@@ -3,7 +3,7 @@
 
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "installer.manifest"
 
-IDD_INSTALL DIALOGEX 0, 0, 310, 145
+IDD_INSTALL DIALOGEX 0, 0, 310, 190
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "WinZapp Installer"
 FONT 9, "Segoe UI"
@@ -15,9 +15,14 @@ BEGIN
                     7, 40, 296, 10, WS_TABSTOP
     AUTOCHECKBOX    "Create Start menu shortcut", IDC_STARTMENU_SC,
                     7, 55, 296, 10, WS_TABSTOP
-    LTEXT           "", IDC_STATUS, 7, 75, 296, 9
-    CONTROL         "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH,
-                    7, 88, 296, 13
-    DEFPUSHBUTTON   "Install", IDC_INSTALL, 193, 110, 55, 14
-    PUSHBUTTON      "Cancel", IDC_CANCEL,  254, 110, 55, 14
+    GROUPBOX        "Sounds to install", IDC_SOUNDS_GROUP, 7, 70, 296, 40
+    AUTORADIOBUTTON "All of WinZapp's sounds", IDC_SOUNDS_FULL,
+                    15, 82, 280, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Only the original WhatsApp sounds", IDC_SOUNDS_WHATSAPP,
+                    15, 95, 280, 10
+    LTEXT           "", IDC_STATUS, 7, 120, 296, 9
+    CONTROL         "", IDC_PROGRESS, "msctls_progress32", PBS_SMOOTH | WS_GROUP,
+                    7, 133, 296, 13
+    DEFPUSHBUTTON   "Install", IDC_INSTALL, 193, 155, 55, 14, WS_GROUP
+    PUSHBUTTON      "Cancel", IDC_CANCEL,  254, 155, 55, 14
 END

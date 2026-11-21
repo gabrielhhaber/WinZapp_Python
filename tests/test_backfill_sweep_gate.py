@@ -38,7 +38,7 @@ def _run_loop(monkeypatch):
     stub._collapse_and_list_backfill_pending = lambda: list(UNOPENED)
     stub._pending_name_resolution = lambda: []
     stub._chats_needing_deep_history = lambda: ["deep-chat"]
-    stub._voice_call_in_progress = lambda: False
+    stub._background_work_paused = lambda: False
     stub.refresh_history_still_landing = lambda **k: False
     stub._start_deferred_media_sync = lambda: None
     stub._background_backfill_work_allowed = MainWindow._background_backfill_work_allowed

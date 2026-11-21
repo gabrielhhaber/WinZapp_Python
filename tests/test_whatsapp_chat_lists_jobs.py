@@ -180,3 +180,44 @@ def test_thread_start_failure_releases_job_without_http(queue, monkeypatch):
     window._request_wa_lists(results.append)
     assert not calls and window._wa_lists_job is None
     assert results == [ListResult(None, "failed")]
+
+
+def test_remote_label_event_refreshes_snapshot_without_dropping_the_filter(queue, monkeypatch):
+    window = Window()
+    window.conversations_panel._wa_list_id = "42"
+    updated = ListSnapshot((WhatsAppList("42", "Friends", frozenset({OTHER})),), True)
+    monkeypatch.setattr(jobs, "request_lists", lambda *_args: ListResult(updated, "loaded"))
+
+    window._refresh_wa_lists_after_label_event()
+    assert window._wa_lists_snapshot.find("42") is not None
+    assert not window._wa_lists_snapshot.can_edit
+    assert window.conversations_panel._wa_list_id == "42"
+    drain(queue)
+    assert window._wa_lists_snapshot == updated
+    assert window.refreshes == 1
+
+
+def test_label_burst_invalidates_inflight_read_and_coalesces_one_followup(queue, monkeypatch):
+    window, calls = Window(), []
+    old = window._wa_lists_state()
+    updated = ListSnapshot((WhatsAppList("42", "Friends", frozenset({OTHER})),), True)
+    def read(*args):
+        calls.append(args)
+        return ListResult(old if len(calls) == 1 else updated, "loaded")
+    monkeypatch.setattr(jobs, "request_lists", read)
+    window._request_wa_lists(lambda result: None)
+    for _ in range(4):
+        window._refresh_wa_lists_after_label_event()
+    assert len(queue[0]) == 1 and not window._wa_lists_state().can_edit
+    drain(queue)
+    assert window.refreshes == 0 and not window._wa_lists_state().can_edit
+    drain(queue)
+    assert len(calls) == 2 and window._wa_lists_state() == updated
+
+
+def test_queued_label_followup_cannot_refresh_another_account(queue):
+    window = Window()
+    context = window._wa_lists_context()
+    window.token = "another"
+    window._refresh_wa_lists_after_label_event(context)
+    assert not queue[0]

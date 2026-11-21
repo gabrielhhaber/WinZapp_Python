@@ -264,7 +264,7 @@ class ShortcutsMixin:
             self.status_panel.refresh_labels()
         if hasattr(self, "calls_panel"):
             self.calls_panel.refresh_labels()
-        for name in ("communities_panel", "channels_panel"):
+        for name in ("contacts_panel", "communities_panel", "channels_panel"):
             panel = getattr(self, name, None)
             if panel is not None:
                 panel.refresh_labels()

@@ -90,3 +90,33 @@ async def test_a_stale_column_never_lists_an_unstarred_message(in_memory_db):
     await conn.execute("UPDATE messages SET starred=1")
     await conn.commit()
     assert await db.get_starred_messages() == []
+
+
+async def test_the_starred_messages_of_one_chat_only(in_memory_db):
+    """The starred button of an open conversation lists that chat alone."""
+    db = in_memory_db
+    await db.insert_message(A, message("A1", 100, starred=True))
+    await db.insert_message(B, message("B1", 200, starred=True))
+    got = await db.get_starred_messages(remote_jids=[A])
+    assert [(jid, m["key"]["id"]) for jid, m in got] == [(A, "A1")]
+
+
+async def test_one_chat_is_found_under_every_address_form(in_memory_db):
+    """A row kept under the legacy @c.us form or under the chat's @lid is
+    still that chat's: the window passes the phone and @lid forms, and each
+    brings its @c.us twin."""
+    db = in_memory_db
+    lid = "123456789@lid"
+    await db.insert_message(A, message("A1", 100, starred=True))
+    await db.insert_message(A.replace("@s.whatsapp.net", "@c.us"), message("A2", 200, starred=True))
+    await db.insert_message(lid, message("A3", 300, starred=True))
+    await db.insert_message(B, message("B1", 400, starred=True))
+    got = await db.get_starred_messages(remote_jids=[A, lid])
+    assert [m["key"]["id"] for _jid, m in got] == ["A3", "A2", "A1"]
+
+
+async def test_no_address_lists_nothing_rather_than_every_chat(in_memory_db):
+    db = in_memory_db
+    await db.insert_message(A, message("A1", 100, starred=True))
+    assert await db.get_starred_messages(remote_jids=[]) == []
+    assert await db.get_starred_messages(remote_jids=[""]) == []

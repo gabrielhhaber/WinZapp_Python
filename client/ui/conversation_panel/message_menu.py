@@ -6,7 +6,7 @@ ConversationsPanel.__init__/init_UI is available here.
 """
 
 from ui.shortcut_bindings import set_shortcut_label
-from ui.shortcut_bindings import refresh_popup_shortcuts
+from ui.shortcut_bindings import popup_item_label, refresh_popup_shortcuts
 import logging
 import os
 import pyperclip
@@ -125,6 +125,9 @@ class MessageMenuMixin:
             inline_item = mass_menu.Append(
                 wx.ID_ANY, f"{i18n.t('transcribe_selected_inline')}\tCtrl+Alt+Shift+N")
             self.Bind(wx.EVT_MENU, self._on_mass_transcribe_inline_messages, inline_item)
+            translate_item = mass_menu.Append(wx.ID_ANY, popup_item_label(
+                self, i18n.t('translate_selected'), 'messages.ID_TRANSLATE_SELECTED'))
+            self.Bind(wx.EVT_MENU, self._on_mass_translate_messages, translate_item)
             delete_transcriptions_item = mass_menu.Append(
                 wx.ID_ANY,
                 f"{i18n.t('transcription_bulk_delete_menu')}\tCtrl+Alt+Shift+Delete")
@@ -414,6 +417,8 @@ class MessageMenuMixin:
         if message_text(msg):
             translation_item = menu.Append(wx.ID_ANY, self._translation_menu_label())
             self.Bind(wx.EVT_MENU, lambda event: self._on_translate_message(msg), translation_item)
+        # From this message to the end, or cancel the run (translation_to_end.py).
+        self._append_translation_to_end_items(menu, msg)
         chat = self.conversation or {}
         if chat.get("remoteJid"):
             self._append_translation_chat_item(menu, chat["remoteJid"])
@@ -526,6 +531,17 @@ class MessageMenuMixin:
                 wx.EVT_MENU,
                 lambda e, m=msg: self._on_menu_resend_message(m),
                 resend_item,
+            )
+        if msg.get("_nr_pending_retry"):
+            # Fourth-option note: besides "Try sending again" (which retries
+            # the neural PROCESSING), the user may explicitly send the note
+            # as recorded — their choice, action by action (Fran 18:35);
+            # nothing ever sends the unprocessed audio on its own.
+            raw_item = menu.Append(wx.ID_ANY, i18n.t('nr_pending_send_raw'))
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_menu_send_nr_pending_raw(m),
+                raw_item,
             )
 
         if _is_text and is_missing_quote_failure(msg):
