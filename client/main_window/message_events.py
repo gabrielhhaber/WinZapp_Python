@@ -1537,7 +1537,6 @@ class MessageEventsMixin:
             repaint = getattr(self, "_repaint_rows_for_name_change", None)
             if repaint is not None:
                 repaint(targets)
-        if changed:
             unresolvable = getattr(self, "_unresolvable_names", None)
             for target in targets:
                 if not unresolvable or target not in unresolvable:
