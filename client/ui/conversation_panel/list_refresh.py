@@ -388,9 +388,14 @@ class ListRefreshMixin:
         """True when the user is looking at this conversation right now.
 
         The window is active and has been for at least 5 seconds (the same
-        gate main_window/message_events.py uses to mark the active chat read),
-        so an incoming message is read as it lands: no unread separator.
+        gate main_window/message_events.py uses to mark the active chat read,
+        which is what makes skipping the separator safe), and the conversation
+        is on screen, not hidden behind another panel. An incoming message is
+        then read as it lands: no unread separator.
         """
+        from core.conversation_view import conversation_in_view
+        if not conversation_in_view(self):
+            return False
         mw = self.main_window
         if not getattr(mw, "_allow_ui_focus_changes", lambda: False)():
             return False
