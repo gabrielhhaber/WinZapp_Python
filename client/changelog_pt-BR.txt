@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens de voz e arquivos de áudio podem ser salvos como MP3 pela lista de tipos de arquivo em Salvar como.
+
 - Tradução ao vivo com Gemini em chamadas individuais, em uma ou duas direções, com redução opcional do volume da voz original e reconexão automática.
 - Nova opção em Configurações > Acessibilidade: "Anunciar mesmo quando o WinZapp não estiver em foco", desmarcada por padrão. Desmarcada, o WinZapp só fala pelo leitor de tela enquanto uma de suas janelas está em foco, para não interromper quem trabalha em outro programa, mesmo com a janela aberta; isso vale para todos os anúncios falados, inclusive o aviso de nova versão. Marcada, os anúncios continuam em qualquer situação.
 

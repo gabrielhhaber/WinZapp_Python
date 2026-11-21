@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Voice messages and audio can now be saved as MP3 using the file type list in Save As.
+
 - Individual calls can be translated with Gemini Live Translate in one or both directions, with optional volume reduction for the original voice and automatic reconnection.
 - New option in Settings > Accessibility: "Announce even when WinZapp is not focused", unchecked by default. Unchecked, WinZapp speaks through the screen reader only while one of its windows has focus, so it does not interrupt you while you work in another program, even with the window open; this covers every spoken announcement, the new-version notice included. Checked, announcements continue in every situation.
 

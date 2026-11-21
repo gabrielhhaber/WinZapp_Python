@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- As mensagens de voz e os ficheiros de áudio podem ser guardados como MP3 na lista de tipos de ficheiro em Guardar como.
+
 - Tradução em direto com o Gemini em chamadas individuais, num ou nos dois sentidos, com redução opcional do volume da voz original e reconexão automática.
 - Nova opção em Definições > Acessibilidade: "Anunciar mesmo quando o WinZapp não estiver em foco", desmarcada por predefinição. Desmarcada, o WinZapp só fala pelo leitor de ecrã enquanto uma das suas janelas está em foco, para não interromper quem trabalha noutro programa, mesmo com a janela aberta; isto vale para todos os anúncios falados, incluindo o aviso de nova versão. Marcada, os anúncios continuam em qualquer situação.
 

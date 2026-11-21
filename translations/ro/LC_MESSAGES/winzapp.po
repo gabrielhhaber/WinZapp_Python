@@ -13103,6 +13103,19 @@ msgid "Save to the last folder used"
 msgstr "Salvați în ultimul folder utilizat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/media_files.py
+msgctxt "save_mp3_failed"
+msgid "Could not save the audio as MP3."
+msgstr "Fișierul audio nu a putut fi salvat în format MP3."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/media_files.py
+#, python-brace-format
+msgctxt "save_mp3_replace"
+msgid "{filename} already exists. Replace it?"
+msgstr "Fișierul {filename} există deja. Vrei să îl înlocuiești?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "save_selected"
 msgid "Save selected"
