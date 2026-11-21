@@ -1,0 +1,338 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 21:54:52 +0000
+Subject: [PATCH] engine: replace the relay channel of a group call that died
+ instead of ending the media
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+---
+ CHANGELOG.md                | 13 +++++++
+ audio_receive_stats.go      | 22 ++++++++++++
+ audio_receive_stats_test.go | 12 +++++++
+ engine_media.go             | 25 ++++++++++----
+ relay_reconnect.go          | 66 +++++++++++++++++++++++++++++++++++
+ relay_reconnect_test.go     | 68 +++++++++++++++++++++++++++++++++++++
+ 6 files changed, 200 insertions(+), 6 deletions(-)
+ create mode 100644 relay_reconnect.go
+ create mode 100644 relay_reconnect_test.go
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 49a8fc7..25c72a8 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,19 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ## [Unreleased]
+ 
++### engine/group-relay — `implemented`
++
++- When the relay channel of a group call dies (`abort chunk ... Too many
++  retransmissions` after a network blip) the media no longer ends: a new
++  channel is opened on the allocation in force through the same move a new
++  relay uses, three tries (2 s, 4 s apart), and five such recoveries in a row
++  at most. Live, 2026-11-21: a call that went on for the others ended for one
++  device 22 s after its channel died, by the silence watchdog.
++- The audio receive summary names every payload type no demux branch takes
++  (`unknown_by_pt`). Live, 2026-11-21: in group calls most relay packets were
++  payload type 122 and no audio was heard until a rekey; what 122 carries is
++  not known yet.
++
+ ### engine/video-state — `implemented`
+ 
+ - A server error ack to one of our `<video>` state stanzas (the stanza's `id`
+diff --git a/audio_receive_stats.go b/audio_receive_stats.go
+index d74b6ef..d0f10ce 100644
+--- a/audio_receive_stats.go
++++ b/audio_receive_stats.go
+@@ -25,6 +25,7 @@ type audioReceiveStats struct {
+ 	appData       uint64
+ 	unknown       uint64
+ 	unknownPT     uint8
++	unknownByPT   map[uint8]uint64 // every payload type no demux branch took, with its count
+ 	audioPT       uint8
+ 	unprotectFail uint64
+ 	noFrames      uint64 // authenticated but released nothing (held for order, late, or empty decode)
+@@ -48,6 +49,10 @@ func (s *audioReceiveStats) Packet(kind mediaPayloadKind, payloadType uint8) {
+ 	default:
+ 		s.unknown++
+ 		s.unknownPT = payloadType
++		if s.unknownByPT == nil {
++			s.unknownByPT = make(map[uint8]uint64)
++		}
++		s.unknownByPT[payloadType]++
+ 	}
+ }
+ 
+@@ -89,6 +94,7 @@ func (s *audioReceiveStats) Log(log zerolog.Logger) {
+ 		Uint64("relay_rtp", s.relayRTP).Uint64("audio", s.audio).Uint8("audio_pt", s.audioPT).
+ 		Uint64("video", s.video).Uint64("app_data", s.appData).
+ 		Uint64("unknown_payload", s.unknown).Uint8("unknown_pt", s.unknownPT).
++		Str("unknown_by_pt", s.unknownPTs()).
+ 		Uint64("unprotect_failed", s.unprotectFail).Uint64("no_frames", s.noFrames).
+ 		Uint64("frames", s.frames).Uint64("pcm_samples", s.pcmSamples).
+ 		Str("frames_by_sender", s.bySender()).
+@@ -116,3 +122,19 @@ func (s *audioReceiveStats) bySender() string {
+ 	}
+ 	return strings.Join(parts, " ")
+ }
++
++// unknownPTs is "122=6830 98=4" sorted by payload type: which payload types the
++// demux did not take, so a stream no branch knows (one that is audio to a
++// phone) shows up by number instead of as one anonymous total.
++func (s *audioReceiveStats) unknownPTs() string {
++	types := make([]int, 0, len(s.unknownByPT))
++	for pt := range s.unknownByPT {
++		types = append(types, int(pt))
++	}
++	sort.Ints(types)
++	parts := make([]string, 0, len(types))
++	for _, pt := range types {
++		parts = append(parts, fmt.Sprintf("%d=%d", pt, s.unknownByPT[uint8(pt)]))
++	}
++	return strings.Join(parts, " ")
++}
+diff --git a/audio_receive_stats_test.go b/audio_receive_stats_test.go
+index 8261ef7..bb2cd55 100644
+--- a/audio_receive_stats_test.go
++++ b/audio_receive_stats_test.go
+@@ -42,3 +42,15 @@ func TestTheSummaryCountsDecodedFramesBySender(t *testing.T) {
+ 		t.Fatalf("bySender = %q", got)
+ 	}
+ }
++
++func TestUnknownPayloadTypesAreCountedByNumber(t *testing.T) {
++	var s audioReceiveStats
++	for range 3 {
++		s.Packet(mediaPayloadUnknown, 122)
++	}
++	s.Packet(mediaPayloadUnknown, 98)
++	s.Packet(mediaPayloadAudio, 120)
++	if got := s.unknownPTs(); got != "98=1 122=3" {
++		t.Fatalf("unknown payload types = %q", got)
++	}
++}
+diff --git a/engine_media.go b/engine_media.go
+index dd28ff5..e54e071 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -515,17 +515,17 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	// forms.
+ 	var movingRelay atomic.Bool
+ 	var lastRelayMove time.Time
+-	moveGroupRelay := func(update groupCallUpdate) {
++	moveGroupRelay := func(update groupCallUpdate) bool {
+ 		defer movingRelay.Store(false)
+ 		nextRelay, moveErr := groupRelayData(update, inbound)
+ 		if moveErr != nil {
+ 			log.Warn().Err(moveErr).Str("call_id", callID).Msg("group allocation has no usable relay to move to")
+-			return
++			return false
+ 		}
+ 		next, _, moveErr := e.connectAndAllocate(ctx, nextRelay, streamSsrcs, inbound)
+ 		if moveErr != nil {
+ 			log.Warn().Err(moveErr).Str("call_id", callID).Msg("could not open the relay of the new group allocation")
+-			return
++			return false
+ 		}
+ 		var pingTx [12]byte
+ 		_, _ = rand.Read(pingTx[:])
+@@ -548,13 +548,14 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		); moveErr != nil {
+ 			_ = next.Close()
+ 			log.Warn().Err(moveErr).Str("call_id", callID).Msg("could not allocate on the relay of the new group allocation")
+-			return
++			return false
+ 		}
+ 		activeRelay.Store(nextRelay)
+ 		ch.Switch(next, relayRetireDelay)
+ 		log.Info().Str("call_id", callID).Str("relay_name", endpoint.relayName).
+ 			Uint32("relay_transaction_id", update.Relay.TransactionID).
+ 			Msg("moved group media to a relay of the new allocation")
++		return true
+ 	}
+ 	go func() {
+ 		t := time.NewTicker(time.Second)
+@@ -611,8 +612,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 							// The new allocation no longer lists the relay in use:
+ 							// move to one it lists, as WhatsApp does, without
+ 							// leaving the current one until the new one is ready.
+-							if !movingRelay.Load() && time.Since(lastRelayMove) >= relayMoveRetry {
+-								movingRelay.Store(true)
++							if time.Since(lastRelayMove) >= relayMoveRetry && movingRelay.CompareAndSwap(false, true) {
+ 								lastRelayMove = time.Now()
+ 								go moveGroupRelay(*update)
+ 							}
+@@ -921,14 +921,27 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	var receiveStats audioReceiveStats
+ 	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid, stunIn uint64
+ 	incomingRTCP := incomingRTCPLog{}
++	relayRecoveries := 0
+ 	for {
+ 		if ctx.Err() != nil {
+ 			return ctx.Err()
+ 		}
+ 		n, err := ch.Recv(buf)
+ 		if err != nil {
++			// WinZapp: the relay channel of a group call died ("Too many
++			// retransmissions" after a network blip) while the call goes on for
++			// the others. Open a new channel on the allocation in force, as a
++			// move to a new relay does, before the silence watchdog hangs up.
++			if relayRecoveries < relayReconnectMaxRuns && groupMode.Load() && ctx.Err() == nil &&
++				e.reconnectGroupRelay(ctx, callID, &movingRelay, moveGroupRelay) {
++				relayRecoveries++
++				log.Warn().Err(err).Str("call_id", callID).Int("recovery", relayRecoveries).
++					Msg("group relay channel failed; media moved to a new channel")
++				continue
++			}
+ 			return fmt.Errorf("relay recv: %w", err)
+ 		}
++		relayRecoveries = 0
+ 		currentRosterGeneration, activeReceivers := audioReceivers.ActiveReceiverSnapshot()
+ 		if !hasRosterGeneration || currentRosterGeneration != rosterGeneration {
+ 			for receiver, state := range videoReceiveStates {
+diff --git a/relay_reconnect.go b/relay_reconnect.go
+new file mode 100644
+index 0000000..106f894
+--- /dev/null
++++ b/relay_reconnect.go
+@@ -0,0 +1,66 @@
++package meowcaller
++
++import (
++	"context"
++	"sync/atomic"
++	"time"
++)
++
++const (
++	// relayReconnectAttempts is how many times one failure of the relay channel
++	// is retried before the call is left to the silence watchdog.
++	relayReconnectAttempts = 3
++	// relayReconnectMaxRuns bounds consecutive failures that each reconnected but
++	// then failed again without a packet in between.
++	relayReconnectMaxRuns = 5
++)
++
++// relayReconnectDelay is the wait before retry number attempt (0 is the first
++// try, made at once): 2s, then 4s.
++func relayReconnectDelay(attempt int) time.Duration {
++	if attempt <= 0 {
++		return 0
++	}
++	return time.Duration(attempt) * 2 * time.Second
++}
++
++// reconnectGroupRelay opens a new relay channel for a group call whose current
++// one died, on the allocation now in force, through move (the move to a new
++// relay). It reports whether media is flowing on a new channel again.
++func (e *engine) reconnectGroupRelay(
++	ctx context.Context,
++	callID string,
++	moving *atomic.Bool,
++	move func(groupCallUpdate) bool,
++) bool {
++	for attempt := 0; attempt < relayReconnectAttempts; attempt++ {
++		if wait := relayReconnectDelay(attempt); wait > 0 {
++			select {
++			case <-ctx.Done():
++				return false
++			case <-time.After(wait):
++			}
++		}
++		if ctx.Err() != nil {
++			return false
++		}
++		e.mu.Lock()
++		current := e.calls[callID]
++		var update *groupCallUpdate
++		if current != nil && current.group && current.groupUpdate != nil && current.groupUpdate.Relay != nil {
++			cloned := cloneGroupCallUpdate(*current.groupUpdate)
++			update = &cloned
++		}
++		e.mu.Unlock()
++		if update == nil {
++			return false
++		}
++		if !moving.CompareAndSwap(false, true) {
++			continue // a move to a new allocation is already under way
++		}
++		if move(*update) {
++			return true
++		}
++	}
++	return false
++}
+diff --git a/relay_reconnect_test.go b/relay_reconnect_test.go
+new file mode 100644
+index 0000000..170ee01
+--- /dev/null
++++ b/relay_reconnect_test.go
+@@ -0,0 +1,68 @@
++package meowcaller
++
++import (
++	"context"
++	"errors"
++	"sync/atomic"
++	"testing"
++	"time"
++)
++
++func TestRelayReconnectDelayGrows(t *testing.T) {
++	if relayReconnectDelay(0) != 0 || relayReconnectDelay(1) != 2*time.Second || relayReconnectDelay(2) != 4*time.Second {
++		t.Fatalf("delays %v %v %v", relayReconnectDelay(0), relayReconnectDelay(1), relayReconnectDelay(2))
++	}
++}
++
++func groupEngineWithRelay(callID string) *engine {
++	e := &engine{calls: map[string]*engineCall{}}
++	e.calls[callID] = &engineCall{group: true, groupUpdate: &groupCallUpdate{CallID: callID, Relay: &groupCallRelay{}}}
++	return e
++}
++
++func TestReconnectGroupRelayStopsAtTheFirstSuccess(t *testing.T) {
++	e := groupEngineWithRelay("c")
++	var moving atomic.Bool
++	tries := 0
++	ok := e.reconnectGroupRelay(context.Background(), "c", &moving, func(groupCallUpdate) bool {
++		tries++
++		moving.Store(false)
++		return true
++	})
++	if !ok || tries != 1 {
++		t.Fatalf("ok=%v tries=%d", ok, tries)
++	}
++}
++
++func TestReconnectGroupRelayGivesUpWithoutAnAllocation(t *testing.T) {
++	e := &engine{calls: map[string]*engineCall{"c": {group: true}}}
++	var moving atomic.Bool
++	if e.reconnectGroupRelay(context.Background(), "c", &moving, func(groupCallUpdate) bool { return true }) {
++		t.Fatal("reconnected with no allocation")
++	}
++}
++
++func TestReconnectGroupRelayStopsWhenTheCallEnds(t *testing.T) {
++	e := groupEngineWithRelay("c")
++	ctx, cancel := context.WithCancel(context.Background())
++	cancel()
++	var moving atomic.Bool
++	if e.reconnectGroupRelay(ctx, "c", &moving, func(groupCallUpdate) bool { return true }) {
++		t.Fatal("reconnected after the call ended")
++	}
++}
++
++func TestSwitchableRelayResumesOnTheNewChannelAfterTheCurrentOneDied(t *testing.T) {
++	old, next := newFakeRelay("old"), newFakeRelay("new")
++	s := newSwitchableRelay(old)
++	defer s.Close()
++	old.fail <- errors.New("Too many retransmissions")
++	if _, err := recvWithin(t, s); err == nil {
++		t.Fatal("the dead current relay did not report")
++	}
++	s.Switch(next, time.Hour)
++	next.in <- []byte("back")
++	if p, err := recvWithin(t, s); err != nil || p != "back" {
++		t.Fatalf("media did not resume on the new channel: %q, %v", p, err)
++	}
++}
