@@ -69,6 +69,37 @@ _VIDEO_FTYP_BRANDS = {
 }
 
 
+def _looks_like_utf16_text(header: bytes) -> bool:
+    """True when *header* is a UTF-16 text file with a byte-order mark.
+
+    The little-endian BOM ``FF FE`` is also the sync word of an MPEG audio
+    frame, so a Windows ``.txt`` (Notepad, ``msinfo32 /report``) would be read
+    as audio. Real text decodes to printable characters; audio data does not.
+    """
+    if header.startswith(b"\xff\xfe"):
+        codec = "utf-16-le"
+    elif header.startswith(b"\xfe\xff"):
+        codec = "utf-16-be"
+    else:
+        return False
+    body = header[2:]
+    body = body[: len(body) - (len(body) % 2)]
+    if not body:
+        return True  # a BOM and nothing else is an empty text file
+    try:
+        text = body.decode(codec)
+    except UnicodeDecodeError:
+        # A 4096-byte read can cut a surrogate pair; retry without the tail.
+        try:
+            text = body[:-2].decode(codec)
+        except UnicodeDecodeError:
+            return False
+    if not text:
+        return False
+    printable = sum(1 for ch in text if ch.isprintable() or ch in "\r\n\t")
+    return printable * 100 >= len(text) * 95
+
+
 def _sniff_media_type(path: str) -> str | None:
     """Identify common media containers from their file signature."""
     try:
@@ -92,6 +123,8 @@ def _sniff_media_type(path: str) -> str | None:
     if header.startswith((b"fLaC", b"ID3", b"#!AMR\n", b"FORM")):
         return "audio"
     if len(header) >= 2 and header[0] == 0xFF and (header[1] & 0xE0) == 0xE0:
+        if _looks_like_utf16_text(header):
+            return None  # a UTF-16 BOM, not an MPEG frame: it is a text file
         return "audio"
     if header.startswith(b"OggS"):
         if b"theora" in header.lower():
