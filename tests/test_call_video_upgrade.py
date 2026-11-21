@@ -357,6 +357,15 @@ def test_node_side_exposes_upgrade_and_scoped_ensure_ended():
     assert "'/api/:session/call/ensure-ended'" in ROUTES_SRC
     assert "'/api/:session/call/status'" in ROUTES_SRC
     assert "voipStack.requestVideoUpgrade()" in CONTROLLER_SRC
+    # A call link or group call is refused the A/V switch (670028): like the camera
+    # button of WhatsApp Web it turns the camera on with setCallVideoMute(false)
+    # unless the call's own video state is inactive for its mode.
+    upgrade = CONTROLLER_SRC[CONTROLLER_SRC.index("action === 'upgrade-video'"):]
+    upgrade = upgrade[: upgrade.index("action === 'status'")]
+    assert "WAWebVoipVideoStateUtils')?.isVideoStateInactiveForCallMode" in upgrade
+    assert "inactive(call.selfVideoState)" in upgrade
+    assert "call.selfVideoState !== undefined" in upgrade  # an unknown state keeps the switch
+    assert upgrade.index("setCallVideoMute(false)") < upgrade.index("voipStack.requestVideoUpgrade()")
     ensure = CONTROLLER_SRC[CONTROLLER_SRC.index("action === 'ensure-ended'"):]
     ensure = ensure[: ensure.index("return { handled: ended, stillLive: ended")]
     before_end = ensure[: ensure.index("voipStack.endCall(2, true)")]
