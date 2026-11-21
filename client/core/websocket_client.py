@@ -1997,6 +1997,9 @@ class WebSocketClient:
                             aliases, contact["pushName"], time.time(), authoritative=True,
                             chats=getattr(mw, "chats", None)):
                         updated = True
+                        repaint = getattr(mw, "_repaint_rows_for_name_change", None)
+                        if repaint is not None:
+                            repaint(aliases)
                         for alias in aliases:
                             if alias in mw.contacts and alias != jid and hasattr(mw, "db"):
                                 try:

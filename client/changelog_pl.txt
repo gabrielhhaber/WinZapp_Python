@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Gdy kontakt zmieni nazwę profilu, jego starsze wiadomości w otwartej rozmowie są od razu aktualizowane o nową nazwę, bez zamykania i ponownego otwierania programu. Dotyczy Neonize i WPPConnect.
+
 - Linki do połączeń: w Połączeniach (Alt+6) „Utwórz link do połączenia” otwiera okno, w którym wybierasz połączenie głosowe lub wideo, tworzysz link, kopiujesz go, wysyłasz do czatu albo dołączasz do jego połączenia. Link call.whatsapp.com otrzymany w wiadomości dołącza do połączenia po naciśnięciu Enter lub po wybraniu „Dołącz do połączenia” w menu kontekstowym, po potwierdzeniu; link otwarty w przeglądarce też dołącza w WinZapp, gdy jest to program otwierający linki WhatsApp (Ustawienia > Ogólne). Kto pierwszy dołączy przez link, jest administratorem połączenia: osoby bez konta WhatsApp czekają w poczekalni, WinZapp mówi imię każdej z nich, a przycisk „Poczekalnia” w oknie połączenia wpuszcza je lub odrzuca. Działa z Neonize i WPPConnect.
 
 - Kontakty: lista nawigacji zyskuje pozycję „Kontakty” po Kanałach, bez skrótu Alt+cyfra. Pokazuje zapisane kontakty, jeden wiersz na osobę, z nazwą i numerem; kontakt zapisany pod dwoma adresami (numerem i powiązanym identyfikatorem urządzenia albo brazylijskim numerem z dziewiątą cyfrą i bez niej) to jeden wiersz. „Szukaj kontaktów” filtruje według nazwy lub numeru. Przyciski i menu kontekstowe (klawisz Aplikacji lub Shift+F10) otwierają czat, rozpoczynają połączenie głosowe lub wideo, pokazują „Dane kontaktu”, usuwają kontakt albo go blokują i odblokowują; „Nowy kontakt” dodaje kontakt. „Enter na kontakcie” wybiera, co robi Enter: otwiera czat, dzwoni, dzwoni przez wideo albo pokazuje dane.

@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Quando um contato troca o nome do perfil, as mensagens antigas dele na conversa aberta agora são atualizadas na hora com o nome novo, sem precisar fechar e reabrir o programa. Vale para Neonize e para WPPConnect.
+
 - Links de ligação: em Ligações (Alt+6), "Criar link de ligação" abre uma janela onde você escolhe ligação de voz ou de vídeo, cria o link, copia, envia para uma conversa ou entra na ligação dele. Um link call.whatsapp.com recebido numa mensagem entra na ligação com Enter, ou com "Entrar na ligação" no menu de contexto, depois de uma confirmação; um link aberto no navegador também entra pelo WinZapp quando ele é o programa que abre os links do WhatsApp (Configurações > Geral). Quem entra primeiro por um link é o administrador da ligação: as pessoas sem conta no WhatsApp esperam numa sala de espera, o WinZapp diz o nome de cada uma que chega, e o botão "Sala de espera" da janela da ligação as admite ou as recusa. Funciona com Neonize e WPPConnect.
 
 - Contatos: a lista de navegação ganha "Contatos" depois de Canais, sem atalho Alt+número. Ela mostra os contatos salvos, uma linha por pessoa, com nome e número; um contato guardado com dois endereços (o número e o ID de dispositivo vinculado, ou um número brasileiro com e sem o 9º dígito) é uma linha só. "Pesquisar contatos" filtra por nome ou número. Os botões e o menu de contexto (tecla Aplicativos ou Shift+F10) abrem a conversa, fazem uma ligação de voz ou de vídeo, mostram os "Dados do contato", apagam o contato ou o bloqueiam e desbloqueiam; "Novo contato" adiciona um. "Enter em um contato" escolhe o que o Enter faz: abrir a conversa, ligar, ligar por vídeo ou mostrar os dados.
