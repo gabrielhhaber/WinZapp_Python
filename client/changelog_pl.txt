@@ -6,7 +6,6 @@ NOWOŚCI
 
 - Tłumaczenie indywidualnych rozmów na żywo przez Gemini w jedną lub obie strony, z opcjonalnym ściszaniem oryginalnego głosu i automatycznym ponownym połączeniem.
 
-- Pomoc w pisaniu: WinZapp zyskuje funkcję podobną do pomocy w pisaniu w mobilnym WhatsAppie, z dodatkową możliwością tłumaczenia szkicu. Nowy przycisk po Emoji i menu kontekstowe pola otwierają to samo okno. Poprawiaj, przeredagowuj, stosuj ton profesjonalny lub zachęcający za pomocą dostawców AI skonfigurowanych w WinZapp, a nie Meta AI; tłumaczenie odbywa się przez Google. Przed wysłaniem szkicu wymagana jest zgoda, a przed zastąpieniem pokazywany jest wynik; wiadomość nigdy nie jest wysyłana automatycznie. Wybierz czynność, a następnie naciśnij "Wykonaj wybraną czynność". Otwarcie lub zamknięcie tego okna nie wysyła szkicu.
 - Nowa opcja w Ustawienia > Dostępność: "Ogłaszaj nawet wtedy, gdy WinZapp nie jest aktywny", domyślnie wyłączona. Wyłączona, WinZapp mówi przez czytnik ekranu tylko wtedy, gdy jedno z jego okien ma fokus, aby nie przeszkadzać podczas pracy w innym programie, nawet gdy okno jest otwarte; dotyczy to wszystkich komunikatów głosowych, także powiadomienia o nowej wersji. Włączona, komunikaty są podawane zawsze.
 
 - Gdy kontakt zmieni nazwę profilu, jego starsze wiadomości w otwartej rozmowie są od razu aktualizowane o nową nazwę, bez zamykania i ponownego otwierania programu. Dotyczy Neonize i WPPConnect.
