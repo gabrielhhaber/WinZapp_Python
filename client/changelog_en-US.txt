@@ -632,7 +632,7 @@ WHAT'S NEW
 
 - Pasting a text file saved as UTF-16 (such as a Windows System Information report from msinfo32) into the message field no longer sends it as audio: it stays a document. Reported by UlisesMilani (#838).
 
-- Fixed: with a chat open and WinZapp in the foreground, an incoming message no longer shows the "1 unread message" marker; it arrives already read.
+- Settings, Messages: new option "Stop new messages in the open chat from joining the unread separator; mark them as read on arrival", off by default. Off, messages that arrive while you read the open chat keep adding to the unread separator, so you can follow what came in later. On, they are read on arrival, with no separator.
 
 V2.1.0.0
 

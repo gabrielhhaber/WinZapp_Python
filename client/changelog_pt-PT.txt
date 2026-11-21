@@ -632,7 +632,7 @@ NOVIDADES
 
 - Colar no campo de mensagem um ficheiro de texto guardado em UTF-16 (como um relatório de Informações do Sistema do Windows, do msinfo32) já não o envia como áudio: continua a ser um documento. Comunicado por UlisesMilani (#838).
 
-- Corrigido: com a conversa aberta e o WinZapp em primeiro plano, uma mensagem recebida já não aparece com o marcador "1 mensagem não lida"; chega logo como lida.
+- Definições, Mensagens: nova opção "Não acumular no separador de mensagens por ler as mensagens que chegam à conversa aberta; marcá-las como lidas à chegada", desligada por predefinição. Desligada, as mensagens que chegam enquanto lê a conversa aberta continuam a somar no separador, para acompanhar o que chegou depois. Ligada, são lidas à chegada, sem separador.
 
 V2.1.0.0
 

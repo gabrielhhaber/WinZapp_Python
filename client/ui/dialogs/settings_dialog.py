@@ -1660,6 +1660,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         messages_sizer.Add(self._show_typing_row_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        # Off (default): messages arriving in the open chat pile up in the
+        # unread separator. On: read on arrival, no separator
+        # (ui/conversation_panel/list_refresh.py _is_read_on_arrival).
+        self._read_on_arrival_cb = wx.CheckBox(
+            self._messages_page, label=i18n.t("ui_read_on_arrival_when_focused")
+        )
+        messages_sizer.Add(self._read_on_arrival_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
 
         self._self_ref_box = wx.StaticBox(
             self._messages_page, label=i18n.t("ui_self_reference_label")
@@ -2649,6 +2657,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "messages"):
             self._show_typing_row_cb.SetValue(bool(show_typing_row))
+
+        read_on_arrival = self.main_window.settings.get("user_interface", {}).get(
+            "read_on_arrival_when_focused", False
+        )
+        if wanted(unit, "messages"):
+            self._read_on_arrival_cb.SetValue(bool(read_on_arrival))
 
         show_delivery_status = self.main_window.settings.get("user_interface", {}).get(
             "show_delivery_status_in_chat_list", True
@@ -4256,6 +4270,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "show_typing_row"
             ] = self._show_typing_row_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "read_on_arrival_when_focused"
+            ] = self._read_on_arrival_cb.GetValue()
         if ready(self, "chats"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "show_delivery_status_in_chat_list"
@@ -5065,6 +5082,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._msg_list_mode_listbox_rb.SetLabel(i18n.t("ui_message_list_mode_listbox"))
             self._show_listbox_count_cb.SetLabel(i18n.t("ui_show_listbox_item_count"))
             self._show_typing_row_cb.SetLabel(i18n.t("ui_show_typing_row"))
+            self._read_on_arrival_cb.SetLabel(i18n.t("ui_read_on_arrival_when_focused"))
             self._self_ref_box.SetLabel(i18n.t("ui_self_reference_label"))
             # Keys of their own: the plain words are what messages say for me.
             self._self_ref_eu_rb.SetLabel(i18n.t("ui_self_reference_eu_option"))

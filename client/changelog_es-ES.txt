@@ -632,7 +632,7 @@ NOVEDADES
 
 - Pegar en el campo de mensaje un archivo de texto guardado en UTF-16 (como un informe de Información del sistema de Windows, de msinfo32) ya no lo envía como audio: sigue siendo un documento. Informado por UlisesMilani (#838).
 
-- Corregido: con la conversación abierta y WinZapp en primer plano, un mensaje recibido ya no muestra el marcador "1 mensaje no leído"; llega ya como leído.
+- Configuración, Mensajes: nueva opción "Excluir los mensajes nuevos de la conversación abierta del separador de no leídos y marcarlos como leídos al llegar", desactivada por defecto. Desactivada, los mensajes que llegan mientras lees la conversación abierta siguen sumándose al separador de no leídos, para que sigas lo que llegó después. Activada, se leen al llegar, sin separador.
 
 V2.1.0.0
 

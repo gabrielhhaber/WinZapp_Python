@@ -21345,6 +21345,14 @@ msgid "Preserve typed message &as caption when attaching"
 msgstr "&Păstrați mesajul tastat ca legendă la atașare"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_read_on_arrival_when_focused"
+msgid ""
+"Stop new messages in the open chat from &joining the unread separator; mark "
+"them as read on arrival"
+msgstr "Nu adău&ga mesajele noi din conversația deschisă la separatorul de mesaje necitite; marchează-le ca citite la sosire"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/reading_position_options.py
 msgctxt "ui_remove_bookmarks_after_use"
 msgid "Remo&ve permanent bookmarks automatically after the first use"

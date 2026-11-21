@@ -632,7 +632,7 @@ WHAT'S NEW
 
 - Incollare nel campo del messaggio un file di testo salvato in UTF-16 (come un rapporto Informazioni di sistema di Windows, da msinfo32) non lo invia più come audio: resta un documento. Segnalato da UlisesMilani (#838).
 
-- Corretto: con una chat aperta e WinZapp in primo piano, un messaggio in arrivo non mostra più l'indicatore "1 messaggio non letto"; arriva già come letto.
+- Impostazioni, Messaggi: nuova opzione "Nella chat aperta, WinZapp segna come letti i nuovi messaggi e non li aggiunge al separatore dei non letti", disattivata per impostazione predefinita. Disattivata, i messaggi che arrivano mentre leggi la chat aperta continuano a sommarsi nel separatore dei non letti, così segui ciò che è arrivato dopo. Attivata, sono letti all'arrivo, senza separatore.
 
 V2.1.0.0
 

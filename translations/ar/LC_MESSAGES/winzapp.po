@@ -20854,6 +20854,14 @@ msgid "Preserve typed message &as caption when attaching"
 msgstr "الإبقاء &على النص المكتوب كتوضيح عند الإرفاق"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_read_on_arrival_when_focused"
+msgid ""
+"Stop new messages in the open chat from &joining the unread separator; mark "
+"them as read on arrival"
+msgstr "عدم إ&ضافة الرسائل الجديدة في المحادثة المفتوحة إلى فاصل الرسائل غير المقروءة، ووضع علامة مقروءة عليها عند وصولها"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/reading_position_options.py
 msgctxt "ui_remove_bookmarks_after_use"
 msgid "Remo&ve permanent bookmarks automatically after the first use"
