@@ -13611,8 +13611,8 @@ msgstr ""
 msgctxt "shortcut_quick_reaction_label"
 msgid ""
 "React to the selected message with the reaction in this position of Settings"
-" > Reactions (1 is the first, 0 is the tenth); pressing the reaction already"
-" sent removes it, position"
+" > Interface > Reactions (1 is the first, 0 is the tenth); pressing the "
+"reaction already sent removes it, position"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

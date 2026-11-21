@@ -14390,9 +14390,12 @@ msgstr "Ctrl+Shift+F1 - Ctrl+Shift+F10: 1'den 9'a ve 0 için hızlı sohbeti aç
 msgctxt "shortcut_quick_reaction_label"
 msgid ""
 "React to the selected message with the reaction in this position of Settings"
-" > Reactions (1 is the first, 0 is the tenth); pressing the reaction already"
-" sent removes it, position"
-msgstr "Seçili mesaja Ayarlar > Tepkiler içindeki bu konumdaki tepkiyle tepki ver (1 ilk, 0 onuncu); önceden gönderilen tepkiye basmak onu kaldırır, konum"
+" > Interface > Reactions (1 is the first, 0 is the tenth); pressing the "
+"reaction already sent removes it, position"
+msgstr ""
+"Seçili mesaja Ayarlar > Arayüz > Tepkiler içindeki bu konumdaki tepkiyle "
+"tepki ver (1 ilk, 0 onuncu); önceden gönderilen tepkiye basmak onu kaldırır,"
+" konum"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
