@@ -367,7 +367,7 @@ msgstr "&استخدام صوت النظام عندما لا يعمل فويز أ
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "accessibility_speak_in_background_label"
-msgid "&Announce even when WinZapp is not focused"
+msgid "Announce even when WinZapp is not &focused"
 msgstr "الإعلان &حتى عندما لا يكون WinZapp في التركيز"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

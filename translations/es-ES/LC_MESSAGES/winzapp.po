@@ -377,7 +377,7 @@ msgstr "&Usar la voz del sistema cuando VoiceOver no esté activo"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "accessibility_speak_in_background_label"
-msgid "&Announce even when WinZapp is not focused"
+msgid "Announce even when WinZapp is not &focused"
 msgstr "Anunciar &incluso cuando WinZapp no tenga el foco"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
