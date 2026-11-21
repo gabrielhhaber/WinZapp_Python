@@ -623,6 +623,8 @@ WHAT'S NEW
 
 - Chiamate: avviare una chiamata da un account WhatsApp Business (WPPConnect) non resta più bloccato per 75 secondi senza squillare. WinZapp ora risponde da solo all'avviso "Informazioni su questa chiamata" che WhatsApp mostra alla prima chiamata di questi account.
 
+- Incollare nel campo del messaggio un file di testo salvato in UTF-16 (come un rapporto Informazioni di sistema di Windows, da msinfo32) non lo invia più come audio: resta un documento. Segnalato da UlisesMilani (#838).
+
 - Corretto: con una chat aperta e WinZapp in primo piano, un messaggio in arrivo non mostra più l'indicatore "1 messaggio non letto"; arriva già come letto.
 
 V2.1.0.0

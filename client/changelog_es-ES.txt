@@ -623,6 +623,8 @@ NOVEDADES
 
 - Llamadas: llamar desde una cuenta de WhatsApp Business (WPPConnect) ya no se queda bloqueado 75 segundos sin sonar. WinZapp ahora responde por sí solo al aviso "Acerca de esta llamada" que WhatsApp muestra en la primera llamada de esas cuentas.
 
+- Pegar en el campo de mensaje un archivo de texto guardado en UTF-16 (como un informe de Información del sistema de Windows, de msinfo32) ya no lo envía como audio: sigue siendo un documento. Informado por UlisesMilani (#838).
+
 - Corregido: con la conversación abierta y WinZapp en primer plano, un mensaje recibido ya no muestra el marcador "1 mensaje no leído"; llega ya como leído.
 
 V2.1.0.0

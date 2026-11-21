@@ -623,6 +623,8 @@ NOUTĂȚI
 
 - Apeluri: inițierea unui apel dintr-un cont WhatsApp Business (WPPConnect) nu mai rămâne blocată 75 de secunde fără să sune. WinZapp răspunde acum singur la avizul „Despre acest apel” pe care WhatsApp îl afișează la primul apel din astfel de conturi.
 
+- Lipirea în câmpul mesajului a unui fișier text salvat în UTF-16 (cum este un raport Informații despre sistem din Windows, de la msinfo32) nu îl mai trimite ca audio: rămâne document. Raportat de UlisesMilani (#838).
+
 - Remediat: cu o conversație deschisă și WinZapp în prim-plan, un mesaj primit nu mai afișează marcajul „1 mesaj necitit”; sosește deja citit.
 
 V2.1.0.0

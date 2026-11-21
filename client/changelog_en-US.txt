@@ -623,6 +623,8 @@ WHAT'S NEW
 
 - Calls: placing a call from a WhatsApp Business account (WPPConnect) no longer hangs for 75 seconds without ringing. WinZapp now answers by itself the "About this call" notice that WhatsApp shows on the first call from such accounts.
 
+- Pasting a text file saved as UTF-16 (such as a Windows System Information report from msinfo32) into the message field no longer sends it as audio: it stays a document. Reported by UlisesMilani (#838).
+
 - Fixed: with a chat open and WinZapp in the foreground, an incoming message no longer shows the "1 unread message" marker; it arrives already read.
 
 V2.1.0.0
