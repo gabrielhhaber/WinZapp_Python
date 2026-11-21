@@ -217,6 +217,19 @@ def test_offer_announces_and_starts_loop_only_once():
     assert stub.ring_monitor_starts == ["call-1"]
 
 
+def test_new_offer_during_a_call_does_not_ring_or_open_the_speakers():
+    stub = _MainStub()
+    stub._active_voice_call = {"call_id": "current", "phase": "CALLING"}
+
+    stub.on_incoming_call_event(_offer("second"))
+
+    assert stub.announcements == []
+    assert stub.popups == []
+    assert stub.ring_monitor_starts == []
+    assert stub._active_incoming_calls == {}
+    assert stub.call_incoming_sound.play_calls == 0
+
+
 def test_disabled_call_alerts_ignore_new_offer():
     stub = _MainStub()
     stub.settings["calls"]["alerts_enabled"] = False

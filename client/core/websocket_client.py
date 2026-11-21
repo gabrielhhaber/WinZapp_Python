@@ -2659,6 +2659,8 @@ class WebSocketClient:
                     payload.get("offerReceivedWhileOffline", False)
                 ),
             }
+            if payload.get("isMultiparty") is True:
+                normalized["isMultiparty"] = True
             if not normalized["id"] and not normalized["peerJid"]:
                 logging.warning("[WebSocketClient] incomingcall without id or peer: %r", data)
                 return
