@@ -15,6 +15,7 @@ import threading
 import time
 import wx
 from core import media_failure
+from core.audio_transcode import export_audio_as_mp3
 from core.utils import (
     MEASURED_SECONDS_KEY,
     decrypt_bytes,
@@ -823,6 +824,11 @@ class MediaFilesMixin:
                 f"*.pdf;*.doc;*.docx;*.txt;*.zip|{all_files} (*.*)|*.*"
             )
 
+        mp3_filter = None
+        if msg_type == "audioMessage" and ext_clean != "mp3":
+            mp3_filter = len(wildcard.split("|")) // 2
+            wildcard += "|MP3 (*.mp3)|*.mp3"
+
         logging.info(f"[Save As] msg_id={msg_id}, msg_type={msg_type}, is_ptt={is_ptt}, mimetype='{mimetype}', default_file='{default_file}', wildcard='{wildcard}'")
 
         dlg_title = (
@@ -853,11 +859,21 @@ class MediaFilesMixin:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             save_path = dlg.GetPath()
+            as_mp3 = mp3_filter is not None and dlg.GetFilterIndex() == mp3_filter
+        if as_mp3 and not save_path.lower().endswith(".mp3"):
+            save_path = os.path.splitext(save_path)[0] + ".mp3"
+            # The native overwrite prompt checked the name before this change.
+            if os.path.exists(save_path) and wx.MessageBox(
+                i18n.t("save_mp3_replace").format(filename=os.path.basename(save_path)),
+                dlg_title, wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING, parent or self,
+            ) != wx.YES:
+                return
         self.main_window.remember_save_folder(save_path)
 
-        threading.Thread(target=self._save_message_media, args=(msg, save_path), daemon=True).start()
+        threading.Thread(target=self._save_message_media, args=(msg, save_path, as_mp3),
+                         daemon=True).start()
 
-    def _save_message_media(self, msg, save_path):
+    def _save_message_media(self, msg, save_path, as_mp3=False):
         """
         Background-thread worker: download the media (if not already cached),
         decrypt it, and write it to save_path. Shared by the single "Save as"
@@ -899,16 +915,21 @@ class MediaFilesMixin:
         try:
             with open(media_path, "rb") as fh:
                 content = decrypt_bytes(fh.read(), self.main_window.key)
-            with open(save_path, "wb") as fh:
-                fh.write(content)
+            if as_mp3:
+                export_audio_as_mp3(self.main_window._find_api_ffmpeg(), content, save_path)
+            else:
+                with open(save_path, "wb") as fh:
+                    fh.write(content)
             # Show in folder follows the copy the user explicitly chose, not
             # the encrypted .wzmedia/.msv cache that supplied its contents.
             msg["_saved_media_path"] = os.path.abspath(save_path)
             wx.CallAfter(self._on_media_saved_as, msg)
         except Exception as exc:
+            if as_mp3:
+                logging.warning("[Save As] MP3 export failed (%s)", type(exc).__name__)
             wx.CallAfter(
                 wx.MessageBox,
-                str(exc),
+                self.main_window.i18n.t("save_mp3_failed") if as_mp3 else str(exc),
                 self.main_window.i18n.t("error").format(
                     app_name=self.main_window.app_name
                 ),
