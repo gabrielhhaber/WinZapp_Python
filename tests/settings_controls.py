@@ -47,6 +47,7 @@ MIXIN_WINDOWS = {"TranslationLocalModelsMixin": "TranslationSettingsDialog",
 FILES = (
     "settings_dialog.py", "settings_pages.py", "shortcuts_tab.py", "shortcut_capture.py",
     "ai_settings_page.py", "translation_settings.py", "translation_local_models.py",
+    "live_translation.py",
     "status_audience_dialog.py", "common_groups_tab.py",
     "whatsapp_privacy_panel.py", "whatsapp_profile_panel.py",
     "transcription_background.py", "transcription_cache.py", "transcription_external.py",

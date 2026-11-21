@@ -1399,6 +1399,10 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._calls_page, label=i18n.t("calls_video_settings_button")
         )
         calls_sizer.Add(self._call_video_settings_button, 0, wx.ALL, 8)
+        self._call_translation_settings_button = wx.Button(
+            self._calls_page, label=i18n.t("call_translation_options"))
+        calls_sizer.Add(self._call_translation_settings_button, 0, wx.ALL, 8)
+        self._call_translation_settings_button.Bind(wx.EVT_BUTTON, self._on_call_translation_settings)
 
         self._calls_page.SetSizer(calls_sizer)
         self._call_alerts_check.Bind(wx.EVT_CHECKBOX, self._on_call_alerts_toggle)
@@ -3629,6 +3633,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             return
         opener(event, parent=self, include_audio=False, include_camera=True)
 
+    def _on_call_translation_settings(self, event):
+        opener = getattr(self.main_window, "open_live_translation_settings", None)
+        if opener is not None:
+            opener(parent=self)
+
     def _on_call_alerts_toggle(self, event):
         self._update_call_fields_state()
         event.Skip()
@@ -4973,6 +4982,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._call_left_check.SetLabel(i18n.t("calls_announce_left_label"))
             self._call_audio_settings_button.SetLabel(i18n.t("calls_audio_settings_button"))
             self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
+            self._call_translation_settings_button.SetLabel(i18n.t("call_translation_options"))
         if ready(self, "notifications"):
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
             self._announce_edits_check.SetLabel(i18n.t("announce_edited_messages_label"))

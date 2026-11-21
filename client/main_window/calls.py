@@ -13,6 +13,7 @@ import wx
 from main_window.typing_feedback import stop_typing_for_capture
 from ui.conversation_panel.call_capabilities import refresh_call_controls
 from main_window.call_desktop_audio import call_desktop_share_settings, stop_call_desktop_audio
+from main_window.call_translation import stop_call_translation
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
     active_call_label_key,
@@ -518,6 +519,7 @@ class CallsMixin:
             "peer_jid": group_jid or details.get("peer_jid") or "",
             "group_jid": group_jid,
             "is_group": is_group,
+            "translation_group": bool(details.get("translation_group")),
             "name": details.get("name") or "",
             "outgoing": bool(details.get("outgoing", False)),
             "is_video": bool(details.get("is_video", False)),
@@ -557,6 +559,8 @@ class CallsMixin:
             unfollow = getattr(self, "_stop_call_default_device_follow", None)
             if callable(unfollow):
                 unfollow()
+        if stop_call_translation(self) and keep_call:
+            wx.CallAfter(self.output, self.i18n.t("call_translation_stopped"))
         stop_call_desktop_audio(self)
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -1128,6 +1132,7 @@ class CallsMixin:
         threading.Thread(target=_worker, daemon=True).start()
 
     def end_active_call(self, _event=None):
+        stop_call_translation(self)
         stop_call_desktop_audio(self)
         # Marked here, on the UI thread, before the worker even starts: an
         # outgoing offer no longer holds _call_action_lock while it blocks
@@ -1822,6 +1827,9 @@ class CallsMixin:
         if window is None:
             return
         active = getattr(self, "_active_voice_call", None)
+        sync_translation = getattr(self, "_sync_live_translation_button", None)
+        if sync_translation is not None:
+            sync_translation(active)
         participants_button = getattr(self, "voice_call_window_participants_button", None)
         if participants_button is not None:
             # show_call_participants() refuses a locked chat, so the button
@@ -2007,6 +2015,8 @@ class CallsMixin:
         if is_group_event:
             active["group_jid"] = group_jid
             active["is_group"] = True
+        if event.get("isMultiparty"):
+            active["translation_group"] = True
         if call_peer_jid:
             active["peer_jid"] = call_peer_jid
         if not active.get("name") and call_peer_jid:
@@ -2424,6 +2434,9 @@ class CallsMixin:
             self._sync_incoming_call_bar()
             return
 
+        # Keep the call already held by this window, including while it dials.
+        if getattr(self, "_active_voice_call", None):
+            return
         call_settings = getattr(self, "settings", {}).get("calls", {})
         if not call_settings.get("alerts_enabled", True):
             return
@@ -2468,6 +2481,8 @@ class CallsMixin:
             "is_group": is_group,
             "name": caller_name,
         }
+        if event.get("isMultiparty"):
+            self._incoming_call_details[identity]["translation_group"] = True
         self._arm_incoming_call_watchdog(identity)
         self._incoming_call_details[identity]["message"] = message
         # Every answerable call gets the receive-only monitor, group calls

@@ -36,6 +36,7 @@ _DEFAULTS: dict[str, Any] = {
     # Only preferences and consent; credentials have a separate encrypted store.
     "ai_media": {},
     "message_translation": {},
+    "call_translation": {},
     "updates_enabled": True,
     # Opt-in to the alpha channel (one build per commit landed on main, see
     # .github/workflows/alpha-release.yml). Global rather than per-account for

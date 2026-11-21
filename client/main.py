@@ -286,6 +286,7 @@ from main_window.chat_list import ChatListMixin
 from main_window.chat_lists import WhatsAppListsMixin
 from main_window.calls import CallsMixin
 from main_window.call_desktop_audio import DesktopCallAudioMixin
+from main_window.call_translation import CallTranslationMixin
 from main_window.call_participants import CallParticipantsMixin
 from main_window.call_links import CallLinksMixin
 from main_window.call_hotkeys import CallHotkeysMixin
@@ -358,6 +359,7 @@ class MainWindow(
     WhatsAppListsMixin,
     CallsMixin,
     DesktopCallAudioMixin,
+    CallTranslationMixin,
     CallParticipantsMixin,
     CallLinksMixin,
     CallHotkeysMixin,
@@ -1439,6 +1441,8 @@ class MainWindow(
         call_sizer.Add(self.voice_call_window_waiting_room_button, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
         self.voice_call_window_desktop_audio_button = self._make_call_desktop_audio_button(call_panel)
         call_sizer.Add(self.voice_call_window_desktop_audio_button, 0, wx.ALL, 8)
+        self.voice_call_window_translation_button = self._make_live_translation_button(call_panel)
+        call_sizer.Add(self.voice_call_window_translation_button, 0, wx.ALL, 8)
         call_panel.SetSizer(call_sizer)
         self._call_window_sizer = call_sizer
         self.voice_call_window.Bind(wx.EVT_CLOSE, self._on_voice_call_window_close)

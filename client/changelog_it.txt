@@ -6,6 +6,7 @@ WHAT'S NEW
 
 - Aggiornamento: la finestra di aggiornamento aggiunge "Altre impostazioni" (Alt+A), dopo Sì, No e Novità?. Apre una finestra dove scegli, per l'installazione, tra "Tutti i suoni di WinZapp" e "Solo i suoni originali di WhatsApp", con la scelta attuale indicata, più OK e Annulla. La scelta viene applicata quando l'aggiornamento viene installato, anche quando si installa in background o all'uscita: scegliere solo i suoni originali di WhatsApp rimuove i suoni extra di WinZapp, e sceglierli di nuovo tutti li ripristina dall'aggiornamento. I pacchetti di suoni importati, i tuoi file audio e le tue preferenze sui suoni vengono mantenuti.
 
+- Traduzione dal vivo con Gemini nelle chiamate individuali, in uno o entrambi i sensi, con riduzione facoltativa del volume originale e riconnessione automatica.
 - Nuova opzione in Impostazioni > Accessibilità: "Annuncia anche quando WinZapp non è in primo piano", disattivata per impostazione predefinita. Disattivata, WinZapp parla tramite il lettore di schermo solo mentre una delle sue finestre ha il focus, per non interromperti mentre lavori in un altro programma, anche con la finestra aperta; vale per tutti gli annunci vocali, compreso l'avviso di nuova versione. Attivata, gli annunci continuano in ogni situazione.
 
 - Quando un contatto cambia il nome del profilo, i suoi messaggi precedenti nella conversazione aperta vengono aggiornati subito con il nome nuovo, senza chiudere e riaprire il programma. Vale per Neonize e WPPConnect.

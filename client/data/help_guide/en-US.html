@@ -777,6 +777,7 @@
   <section id="ligacoes" class="wiki-section" aria-labelledby="h-ligacoes">
     <h2 id="h-ligacoes">📞 9. Calls</h2>
 <p class="lead">You can make, answer and decline voice and video calls right in WinZapp, without picking up your phone.</p>
+<p>During an individual call, choose Start live translation. Only me plays the other person's speech in your language. Both of us also translates your microphone for the other person. You can keep their original voice quieter while a translation plays. Set defaults in Settings &gt; Calls &gt; Live translation and save a Gemini key under AI settings. Gemini reconnects automatically, and the original audio is available during the reconnect.</p>
 <p>Neonize call audio includes fixes for silence after answering, lost audio frames and distortion during sample-rate conversion. Codec selection follows WhatsApp automatically; there is no codec switch to configure. This experimental engine still needs real-call quality evaluation; equal quality to other calling apps is not guaranteed.</p>
 
 <p>Neonize keeps its normal call audio mode by default. A developer-only experimental 48 kHz path is available for calls negotiated with Opus; it does not change the MLow codec or add a control to the call window. Updating does not enable it automatically.</p>
@@ -1509,6 +1510,7 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>Individual calls can be translated with Gemini Live Translate in one or both directions, with optional volume reduction for the original voice and automatic reconnection.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>New option in Settings &gt; Accessibility: "Announce even when WinZapp is not focused", unchecked by default. Unchecked, WinZapp speaks through the screen reader only while one of its windows has focus, so it does not interrupt you while you work in another program, even with the window open; this covers every spoken announcement, the new-version notice included. Checked, announcements continue in every situation.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Choose the noise reduction engine (neural or basic), when to process voice messages (while recording or when sending) and what to do if neural reduction fails.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Startup: speech support now uses its own temporary COM cache, preventing circular-import errors when the shared Windows cache has lost its index.</td></tr>
