@@ -373,7 +373,27 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         if (call.isVideo === true) {
           return { handled: true, alreadyVideo: true, call: summarizeCall(call) };
         }
+        // WhatsApp Web's camera button (useWAWebVoipCallHandlers) takes the A/V
+        // switch only while the call's own video state is "inactive for the call
+        // mode"; in every other case, a call link's or a group call's among them,
+        // it turns the camera on with setCallVideoMute(false). The switch there
+        // is refused locally with status 670028 (live, 2026-11-21).
+        let useSwitch = true;
+        try {
+          const inactive = win.require?.('WAWebVoipVideoStateUtils')?.isVideoStateInactiveForCallMode;
+          if (typeof inactive === 'function') useSwitch = inactive(call.selfVideoState) === true;
+        } catch (_) {}
         return runNativeVoipAction(async (voipStack: any) => {
+          if (!useSwitch) {
+            if (typeof voipStack?.setCallVideoMute !== 'function') {
+              throw new Error('Native VoIP setCallVideoMute is not available');
+            }
+            const status = Number(await voipStack.setCallVideoMute(false));
+            if (status !== 0) {
+              throw new Error(`setCallVideoMute failed with status ${status}`);
+            }
+            return { handled: true, via: 'native-voip', call: summarizeCall(call) };
+          }
           if (typeof voipStack?.requestVideoUpgrade !== 'function') {
             throw new Error('Native VoIP requestVideoUpgrade is not available');
           }
