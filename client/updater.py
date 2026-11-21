@@ -43,7 +43,7 @@ from update_progress import UpdateProgressLifecycle, update_control_if_alive
 from ui.modal_utils import end_modal_if_running
 from update_node_kill import bridge_stop_lines, node_kill_lines, own_node_pids
 from core.update_exit_notice import exit_notice
-from core.sound_selection import keeps_only_whatsapp, prune_to_whatsapp
+from core.sound_selection import keeps_only_whatsapp, prune_to_whatsapp, stage_selection
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
@@ -634,7 +634,8 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
                             relaunch_handoff: str = "",
                             cleanup_dir: str = "", install_guard=None,
                             result_path: str = "", run_id: str = "",
-                            relaunch_app: bool = True, exit_notice=None) -> str:
+                            relaunch_app: bool = True, exit_notice=None,
+                            delete_files: "list[str] | tuple" = ()) -> str:
     """The batch script text. Pure — every path is already console-safe.
 
     Kept apart from _run_batch_installer() so what the script says can be
@@ -784,6 +785,9 @@ def _build_installer_script(source_dir: str, install_dir: str, exe_path: str,
         # original report impossible to diagnose from the user's machine.
         "    exit /b 1\n"
         ")\n"
+        # Sounds the new selection leaves out (issue #842), only once the copy
+        # worked; a file that cannot be deleted is just left in place.
+        + "".join(f'del /F /Q "{path}" >> "{log_path}" 2>&1\n' for path in delete_files)
         + batch_success(result_path, marker_path, run_id, log_path)
         + batch_done(install_guard, "success") +
         f'>> "{log_path}" echo xcopy OK\n'
@@ -888,6 +892,15 @@ def _leave_out_unselected_sounds(source_dir: str, install_dir: str) -> int:
     return removed
 
 
+def _stage_sound_selection(source_dir: str, install_dir: str) -> list:
+    """The sounds the install keeps (issue #842): the choice made in the update
+    dialog, else the installed one. Returns the installed files the script
+    deletes after the copy; only plain-ASCII paths the batch can quote."""
+    paths = stage_selection(source_dir, install_dir)
+    return [p for p in paths
+            if p.isascii() and not any(c in p for c in '%!"^&')]
+
+
 def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,
                          extra_pids: "list[int] | tuple" = (), install_guard=None,
                          recovery_text: str = "", relaunch_app: bool = True,
@@ -913,7 +926,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
     if os.path.isdir(winzapp_sub):
         source_dir = winzapp_sub
     _keep_newer_installed_server(source_dir, install_dir)
-    _leave_out_unselected_sounds(source_dir, install_dir)
+    sounds_to_delete = _stage_sound_selection(source_dir, install_dir)
 
     bat_fd, bat_path = tempfile.mkstemp(suffix=".bat", prefix="winzapp_upd_")
     os.close(bat_fd)
@@ -1013,6 +1026,7 @@ def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pi
         run_id=uuid.uuid4().hex if install_guard else "",
         relaunch_app=relaunch_app,
         exit_notice=exit_notice,
+        delete_files=sounds_to_delete,
     )
     if not _write_installer_script(bat_path, script):
         return False
@@ -1397,7 +1411,8 @@ class UpdateProgressDialog(UpdateProgressLifecycle, wx.Dialog):
 class UpdateDialog(wx.Dialog):
     """
     Prompts the user to install an available update.
-    Buttons: Sim | Nao | Quais as novidades? (hidden when no changelog)
+    Buttons: Sim | Nao | Quais as novidades? (hidden when no changelog) |
+    Configurações adicionais (the installed sounds, issue #842)
     """
 
     def __init__(self, parent, new_version: str, changelog: str):
@@ -1440,6 +1455,10 @@ class UpdateDialog(wx.Dialog):
             self._news_btn.Bind(wx.EVT_BUTTON, self._on_whats_new)
         else:
             self._news_btn = None
+        # After Yes, No and What's new, so the order of the first three is as it was.
+        self._extra_btn = wx.Button(self, wx.ID_ANY, label=i18n.t("update_additional_settings_btn"))
+        btn_sizer.Add(self._extra_btn, 0, wx.LEFT, 4)
+        self._extra_btn.Bind(wx.EVT_BUTTON, self._on_additional_settings)
 
         sizer.Add(btn_sizer, 0, wx.ALIGN_CENTER | wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
         self.SetSizer(sizer)
@@ -1463,6 +1482,20 @@ class UpdateDialog(wx.Dialog):
         dlg = WhatsNewDialog(self, self._changelog)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def _on_additional_settings(self, event):
+        """Which sounds the installation keeps (issue #842). The choice waits
+        in core.sound_selection until the update installs."""
+        from core import sound_selection
+        from ui.dialogs.update_sound_settings import UpdateSoundSettingsDialog
+        installed = sound_selection.current_mode(_outer_exe_dir())
+        chosen = sound_selection.pending_mode() or installed
+        dlg = UpdateSoundSettingsDialog(self, self._main_window.i18n, installed, chosen)
+        try:
+            if dlg.ShowModal() == wx.ID_OK:
+                sound_selection.set_pending_mode(dlg.chosen_mode())
+        finally:
+            dlg.Destroy()
 
 
 # ── UpdateChecker ─────────────────────────────────────────────────────────────
@@ -1937,7 +1970,10 @@ class UpdateChecker(AlphaChannelChoiceMixin, BackgroundDownloadMixin, UpdateOnEx
             self._reconfirm_then_install(remote_version, zip_url, sha256sums_url,
                                          signature_url, is_alpha)
         else:
-            # User said No — retry in 3 hours
+            # User said No — retry in 3 hours. A sound choice made in Additional
+            # settings (issue #842) goes with the declined update.
+            from core.sound_selection import set_pending_mode
+            set_pending_mode(None)
             self._release_prompt()
             self._schedule_retry()
 

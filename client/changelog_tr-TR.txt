@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Güncelleme: güncelleme penceresine Evet, Hayır ve Yenilikler neler? düğmelerinden sonra "Ek ayarlar" (Alt+A) düğmesi eklendi. Kurulum için "Tüm WinZapp sesleri" ile "Yalnızca orijinal WhatsApp sesleri" arasında seçim yaptığınız, geçerli seçimi belirten ve Tamam ile İptal düğmeleri bulunan bir pencere açar. Seçim, güncelleme kurulurken uygulanır; arka planda veya çıkışta kurulduğunda da: yalnızca orijinal WhatsApp seslerini seçmek WinZapp'in ek seslerini kaldırır, hepsini yeniden seçmek ise onları güncellemeden geri yükler. İçe aktardığınız ses paketleri, kendi ses dosyalarınız ve ses tercihleriniz korunur.
+
 - Ayarlar > Erişilebilirlik'te yeni seçenek: "WinZapp odakta değilken de duyur", varsayılan olarak işaretsiz. İşaretsizken WinZapp, ekran okuyucu üzerinden yalnızca pencerelerinden biri odaktayken konuşur; böylece pencere açık olsa bile başka bir programda çalışırken sizi bölmez. Bu, yeni sürüm bildirimi dahil tüm sesli duyurular için geçerlidir. İşaretliyken duyurular her durumda sürer.
 
 - Bir kişi profil adını değiştirdiğinde, açık sohbetteki eski mesajları programı kapatıp açmaya gerek kalmadan hemen yeni adla güncellenir. Neonize ve WPPConnect için geçerlidir.

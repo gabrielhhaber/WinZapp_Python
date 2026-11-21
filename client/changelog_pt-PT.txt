@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Atualização: a janela de atualização ganha "Definições adicionais" (Alt+A), depois de Sim, Não e O que há de novo?. Abre uma janela onde escolhe, para a instalação, entre "Todos os sons do WinZapp" e "Apenas os sons originais do WhatsApp", com a escolha atual indicada, além de OK e Cancelar. A escolha é aplicada quando a atualização é instalada, inclusive quando instala em segundo plano ou ao sair: escolher só os sons originais do WhatsApp remove os sons extra do WinZapp, e escolher todos de novo restaura-os a partir da atualização. Os pacotes de sons importados, os seus próprios ficheiros de som e as suas preferências de sons são mantidos.
+
 - Nova opção em Definições > Acessibilidade: "Anunciar mesmo quando o WinZapp não estiver em foco", desmarcada por predefinição. Desmarcada, o WinZapp só fala pelo leitor de ecrã enquanto uma das suas janelas está em foco, para não interromper quem trabalha noutro programa, mesmo com a janela aberta; isto vale para todos os anúncios falados, incluindo o aviso de nova versão. Marcada, os anúncios continuam em qualquer situação.
 
 - Quando um contacto muda o nome do perfil, as mensagens antigas dessa pessoa na conversa aberta são atualizadas de imediato com o nome novo, sem ser preciso fechar e reabrir o programa. Aplica-se ao Neonize e ao WPPConnect.

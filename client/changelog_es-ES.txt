@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Actualización: la ventana de actualización incorpora "Ajustes adicionales" (Alt+A), después de Sí, No y ¿Qué hay de nuevo?. Abre una ventana donde eliges, para la instalación, entre "Todos los sonidos de WinZapp" y "Solo los sonidos originales de WhatsApp", con la elección actual indicada, además de OK y Cancelar. La elección se aplica cuando se instala la actualización, también cuando se instala en segundo plano o al salir: elegir solo los sonidos originales de WhatsApp elimina los sonidos adicionales de WinZapp, y elegir todos de nuevo los restaura desde la actualización. Se conservan los paquetes de sonidos importados, tus propios archivos de sonido y tus preferencias de sonidos.
+
 - Nueva opción en Configuración > Accesibilidad: "Anunciar incluso cuando WinZapp no tenga el foco", desmarcada por defecto. Desmarcada, WinZapp solo habla por el lector de pantalla mientras una de sus ventanas tiene el foco, para no interrumpirte mientras trabajas en otro programa, aunque la ventana esté abierta; vale para todos los anuncios hablados, incluido el aviso de nueva versión. Marcada, los anuncios continúan en cualquier situación.
 
 - Cuando un contacto cambia su nombre de perfil, sus mensajes antiguos en la conversación abierta se actualizan al instante con el nombre nuevo, sin cerrar y volver a abrir el programa. Vale para Neonize y WPPConnect.
