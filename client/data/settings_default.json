@@ -158,7 +158,8 @@
     },
     "accessibility": {
         "extended_sr_compat_enabled": true,
-        "sapi_fallback_enabled": true
+        "sapi_fallback_enabled": true,
+        "speak_in_background": false
     },
     "transcription": {
         "backend": "auto",

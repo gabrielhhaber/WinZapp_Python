@@ -1,6 +1,8 @@
 import os
 import sys
 import types
+
+import pytest
 from unittest.mock import MagicMock
 
 try:
@@ -62,6 +64,7 @@ except ImportError:
     sys.modules["sound_lib.effects"].Tempo = object
 
 import ui.conversations as conversations_module
+import core.accessible_speech as accessible_speech
 from core.accessible_speech import AccessibleSpeechOutput
 from ui.accessible import (
     AccessibleDiscardVoiceMessage,
@@ -93,6 +96,12 @@ class _FakeAuto:
 
 
 class TestAccessibleSpeechOutputSuppression:
+    @pytest.fixture(autouse=True)
+    def _own_process_in_foreground(self, monkeypatch):
+        # These tests are about the suppression window, not about which
+        # window Windows has in front (a CI runner has none of ours).
+        monkeypatch.setattr(accessible_speech, "own_process_has_foreground", lambda: True)
+
     def test_output_dropped_while_suppressed(self):
         fake = _FakeOutput()
         speech = AccessibleSpeechOutput(

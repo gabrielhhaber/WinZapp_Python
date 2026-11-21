@@ -772,6 +772,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         accessibility_sizer.Add(self._sapi_fallback_check, 0, wx.ALL, 8)
 
+        self._speak_in_background_check = wx.CheckBox(
+            self._accessibility_page, label=i18n.t("accessibility_speak_in_background_label")
+        )
+        accessibility_sizer.Add(self._speak_in_background_check, 0, wx.ALL, 8)
+
         self._accessibility_page.SetSizer(accessibility_sizer)
 
         self._spoken_content_btn = wx.Button(
@@ -2886,6 +2891,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "accessibility"):
             self._extended_sr_compat_check.SetValue(accessibility.get("extended_sr_compat_enabled", True))
             self._sapi_fallback_check.SetValue(accessibility.get("sapi_fallback_enabled", True))
+            self._speak_in_background_check.SetValue(accessibility.get("speak_in_background", False))
             self._sync_spoken_content_button()
 
         speech = self.main_window.settings.get("speech_content", {})
@@ -4426,6 +4432,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("accessibility", {})[
                 "sapi_fallback_enabled"
             ] = self._sapi_fallback_check.GetValue()
+            self.main_window.settings.setdefault("accessibility", {})[
+                "speak_in_background"
+            ] = self._speak_in_background_check.GetValue()
 
         if ready(self, "sounds"):
             self._sound_event_files.preview.stop()
@@ -5025,6 +5034,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "accessibility"):
             self._extended_sr_compat_check.SetLabel(i18n.t("accessibility_extended_sr_compat_label"))
             self._sapi_fallback_check.SetLabel(i18n.t("accessibility_sapi_fallback_label"))
+            self._speak_in_background_check.SetLabel(i18n.t("accessibility_speak_in_background_label"))
         if ready(self, "storage"):
             self._probe_video_duration_check.SetLabel(i18n.t("probe_video_duration_on_download_label"))
             self._media_cleanup_btn.SetLabel(i18n.t("cleanup_open_button"))

@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Ayarlar > Erişilebilirlik'te yeni seçenek: "WinZapp odakta değilken de duyur", varsayılan olarak işaretsiz. İşaretsizken WinZapp, ekran okuyucu üzerinden yalnızca pencerelerinden biri odaktayken konuşur; böylece pencere açık olsa bile başka bir programda çalışırken sizi bölmez. Bu, yeni sürüm bildirimi dahil tüm sesli duyurular için geçerlidir. İşaretliyken duyurular her durumda sürer.
+
 - Bir kişi profil adını değiştirdiğinde, açık sohbetteki eski mesajları programı kapatıp açmaya gerek kalmadan hemen yeni adla güncellenir. Neonize ve WPPConnect için geçerlidir.
 
 - Arama bağlantıları: Aramalar'da (Alt+6) "Arama bağlantısı oluştur", sesli veya görüntülü arama seçip bağlantıyı oluşturduğunuz, kopyaladığınız, bir sohbete gönderdiğiniz veya aramasına katıldığınız bir pencere açar. Bir iletide gelen call.whatsapp.com bağlantısı, onaydan sonra Enter ile ya da bağlam menüsündeki "Aramaya katıl" ile aramaya katılır; tarayıcıda açılan bir bağlantı da WinZapp WhatsApp bağlantılarını açan program olduğunda WinZapp'ta katılır (Ayarlar > Genel). Bir bağlantıyla ilk katılan kişi aramanın yöneticisidir: WhatsApp hesabı olmayanlar bekleme odasında bekler, WinZapp gelen her kişinin adını söyler ve arama penceresindeki "Bekleme odası" düğmesi onları içeri alır veya reddeder. Neonize ve WPPConnect ile çalışır.

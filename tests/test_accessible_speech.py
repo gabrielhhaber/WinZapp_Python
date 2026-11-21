@@ -10,7 +10,18 @@ Fakes stand in for accessible_output2's Auto and its individual outputs —
 no real screen reader or SAPI COM object is touched.
 """
 
+import pytest
+
+import core.accessible_speech as accessible_speech
 from core.accessible_speech import AccessibleSpeechOutput
+
+
+@pytest.fixture(autouse=True)
+def _own_process_in_foreground(monkeypatch):
+    """The real foreground lookup asks Windows; these tests are about the
+    settings gates, so the process is the foreground one unless a test says
+    otherwise (TestSpeakInBackground passes its own foreground_getter)."""
+    monkeypatch.setattr(accessible_speech, "own_process_has_foreground", lambda: True)
 
 
 class _FakeOutput:
@@ -233,3 +244,40 @@ class TestSilenceScreenReaderFocus:
         out.silence_screen_reader_focus()
 
         assert getattr(nvda, "silenced", 0) == 0
+
+
+class TestSpeakInBackground:
+    def _out(self, settings, foreground):
+        nvda = _FakeOutput("nvda", active=True)
+        out = AccessibleSpeechOutput(
+            _FakeAuto([nvda]), lambda: settings, foreground_getter=lambda: foreground)
+        return out, nvda
+
+    def test_dropped_in_background_by_default(self):
+        out, nvda = self._out(_settings(), foreground=False)
+        out.output("hello")
+        assert nvda.spoken == []
+
+    def test_spoken_in_foreground_by_default(self):
+        out, nvda = self._out(_settings(), foreground=True)
+        out.output("hello")
+        assert nvda.spoken == [("hello", {})]
+
+    def test_spoken_in_background_when_enabled(self):
+        settings = _settings()
+        settings["accessibility"]["speak_in_background"] = True
+        out, nvda = self._out(settings, foreground=False)
+        out.speak("hello")
+        assert nvda.spoken == [("hello", {})]
+
+    def test_silence_is_not_gated_by_focus(self):
+        out, nvda = self._out(_settings(), foreground=False)
+        out.silence()
+        assert nvda.silenced == 1
+
+    def test_foreground_lookup_fails_open_off_windows(self, monkeypatch):
+        monkeypatch.undo()
+        import sys
+        if sys.platform == "win32":
+            pytest.skip("real Windows lookup")
+        assert accessible_speech.own_process_has_foreground() is True

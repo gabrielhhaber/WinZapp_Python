@@ -10,6 +10,31 @@ everywhere at once.
 """
 
 
+def own_process_has_foreground() -> bool:
+    """True when the window the user is working in belongs to this process.
+
+    Process-wide on purpose, not ``MainWindow.IsActive()``: a modal dialog, the
+    call window or the settings window is WinZapp too, and speech is also
+    raised from worker threads, where Windows answers "no active window".
+    Fails open (True) off Windows or on any error, so a lookup problem never
+    silences the app.
+    """
+    try:
+        import ctypes
+        import os
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd:
+            return False
+        pid = wintypes.DWORD(0)
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        return pid.value == os.getpid()
+    except Exception:
+        return True
+
+
 class AccessibleSpeechOutput:
     """Wraps an accessible_output2 Auto instance (or anything exposing the
     same ``.outputs`` list and ``.get_first_available_output()`` method) and
@@ -27,6 +52,12 @@ class AccessibleSpeechOutput:
       mid-session silences WinZapp immediately instead of keeping whatever
       was active at startup.
 
+    - speak_in_background (default False): when False, speech is dropped while
+      no WinZapp window has the foreground (``foreground_getter``, default
+      :func:`own_process_has_foreground`), so announcements never interrupt
+      work in another application. Applies to every spoken announcement,
+      new-version notices included. ``silence()`` is not gated.
+
     ``suppressed_getter``, when given, is polled on every ``output()`` call:
     while it returns True, the call is dropped silently instead of being
     spoken. This backs Settings > Conteúdo Falado's "silence while recording
@@ -38,7 +69,9 @@ class AccessibleSpeechOutput:
     suppression window is what triggered it.
     """
 
-    def __init__(self, auto_output, settings_getter, suppressed_getter=None):
+    def __init__(self, auto_output, settings_getter, suppressed_getter=None,
+                 foreground_getter=None):
+        self._foreground_getter = foreground_getter or (lambda: own_process_has_foreground())
         self._auto = auto_output
         self._settings_getter = settings_getter
         self._suppressed_getter = suppressed_getter
@@ -56,6 +89,9 @@ class AccessibleSpeechOutput:
 
     def output(self, text, **options):
         if self._suppressed_getter is not None and self._suppressed_getter():
+            return
+        cfg = self._settings_getter().get("accessibility", {})
+        if not cfg.get("speak_in_background", False) and not self._foreground_getter():
             return
         output = self._resolve_output()
         if output:
