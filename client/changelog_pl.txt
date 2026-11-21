@@ -623,6 +623,8 @@ NOWOŚCI
 
 - Połączenia: nawiązanie połączenia z konta WhatsApp Business (WPPConnect) nie zawiesza się już na 75 sekund bez dzwonienia. WinZapp sam odpowiada teraz na komunikat „Informacje o tym połączeniu”, który WhatsApp pokazuje przy pierwszym połączeniu z takich kont.
 
+- Naprawiono: gdy rozmowa jest otwarta, a WinZapp jest na pierwszym planie, nowa wiadomość nie pokazuje już znacznika „1 nieprzeczytana wiadomość”; od razu jest oznaczona jako przeczytana.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

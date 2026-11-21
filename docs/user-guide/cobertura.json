@@ -316,6 +316,7 @@
     "785caa493c55": "Conversas longas: atualizar o histórico de uma conversa aberta com milhares de m",
     "ced79b326bda": "Corrigido: com o cancelamento de ruído por voz neural ligado, as mensagens de vo",
     "984cd50b2671": "Mensagens mostradas ao abrir uma conversa: a configuração agora aceita no máximo",
-    "b3e42dc46c09": "Ligações: ligar a partir de uma conta do WhatsApp Business (WPPConnect) não fica"
+    "b3e42dc46c09": "Ligações: ligar a partir de uma conta do WhatsApp Business (WPPConnect) não fica",
+    "bf48b3de6b10": "Corrigido: com a conversa aberta e o WinZapp em primeiro plano, uma mensagem rec"
   }
 }

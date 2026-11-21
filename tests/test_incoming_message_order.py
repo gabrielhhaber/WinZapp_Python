@@ -121,3 +121,30 @@ def test_replay_older_than_the_last_server_row_is_late_despite_an_own_send():
     panel.on_incoming_message("g@g.us", replay)
     assert [m["key"]["id"] for m in panel._sorted_messages] == ["recent", "sent"]
     panel.main_window._schedule_refresh_messages.assert_called_once_with()
+
+
+def _focused_panel(active, activated_ago):
+    import time
+    panel = _Panel([_msg("recent", ts=1_800_000_000)])
+    panel.main_window._allow_ui_focus_changes = lambda: active
+    panel.main_window._last_activation_time = time.time() - activated_ago
+    panel._is_read_on_arrival = lambda: ListRefreshMixin._is_read_on_arrival(panel)
+    return panel
+
+
+def test_message_in_focused_open_chat_gets_no_unread_separator():
+    panel = _focused_panel(True, 60)
+    incoming = _msg("new", ts=1_800_000_001)
+    panel._records.append(incoming)
+    panel.on_incoming_message("g@g.us", incoming)
+    assert [m["key"]["id"] for m in panel._sorted_messages] == ["recent", "new"]
+    panel._update_unread_separator_for_incoming.assert_not_called()
+
+
+@pytest.mark.parametrize("active,ago", [(False, 60), (True, 1)])
+def test_inactive_or_just_activated_window_still_gets_separator(active, ago):
+    panel = _focused_panel(active, ago)
+    incoming = _msg("new", ts=1_800_000_001)
+    panel._records.append(incoming)
+    panel.on_incoming_message("g@g.us", incoming)
+    panel._update_unread_separator_for_incoming.assert_called_once_with(incoming)

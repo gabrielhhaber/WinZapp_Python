@@ -623,6 +623,8 @@ NOVEDADES
 
 - Llamadas: llamar desde una cuenta de WhatsApp Business (WPPConnect) ya no se queda bloqueado 75 segundos sin sonar. WinZapp ahora responde por sí solo al aviso "Acerca de esta llamada" que WhatsApp muestra en la primera llamada de esas cuentas.
 
+- Corregido: con la conversación abierta y WinZapp en primer plano, un mensaje recibido ya no muestra el marcador "1 mensaje no leído"; llega ya como leído.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

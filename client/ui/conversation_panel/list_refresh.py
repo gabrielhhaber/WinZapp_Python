@@ -384,6 +384,19 @@ class ListRefreshMixin:
 
         return False
 
+    def _is_read_on_arrival(self) -> bool:
+        """True when the user is looking at this conversation right now.
+
+        The window is active and has been for at least 5 seconds (the same
+        gate main_window/message_events.py uses to mark the active chat read),
+        so an incoming message is read as it lands: no unread separator.
+        """
+        mw = self.main_window
+        if not getattr(mw, "_allow_ui_focus_changes", lambda: False)():
+            return False
+        last_act = getattr(mw, "_last_activation_time", 0)
+        return time.time() - last_act >= 5.0
+
     def on_incoming_message(self, remote_jid: str, msg: dict):
         """
         Called (on the main thread) when a new message arrives via WebSocket.
@@ -475,7 +488,8 @@ class ListRefreshMixin:
             # user's own just-sent message, which is what made Alt+2 ("jump
             # to last message") land on a stale earlier separator/row
             # instead of the message the user actually just sent.
-            if not from_me and self._counts_toward_unread_separator(msg):
+            if (not from_me and self._counts_toward_unread_separator(msg)
+                    and not self._is_read_on_arrival()):
                 self._update_unread_separator_for_incoming(msg)
 
             # Append the real message (focus must NOT move)
