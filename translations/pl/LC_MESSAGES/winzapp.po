@@ -3774,7 +3774,8 @@ msgstr "&Ustawienia wideo połączenia"
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
 #: client/ui/dialogs/status_audience_dialog.py
-#: client/ui/dialogs/summary_voice_choice.py client/updater.py
+#: client/ui/dialogs/summary_voice_choice.py
+#: client/ui/dialogs/update_sound_settings.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "&Anuluj"
@@ -11505,6 +11506,7 @@ msgstr "Tryb offline włączony. Niektóre funkcje mogą być niedostępne."
 #: client/ui/dialogs/shortcut_capture.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
+#: client/ui/dialogs/update_sound_settings.py
 msgctxt "ok"
 msgid "&OK"
 msgstr "&OK"
@@ -15125,6 +15127,36 @@ msgstr "Domyślny pakiet dźwięków"
 msgctxt "sound_pack_label"
 msgid "Sound &pack:"
 msgstr "Pa&kiet dźwięków:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "sound_selection_all"
+msgid "&All WinZapp sounds"
+msgstr "&Wszystkie dźwięki WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+#, python-brace-format
+msgctxt "sound_selection_current"
+msgid "Sounds installed now: {selection}."
+msgstr "Obecnie zainstalowane dźwięki: {selection}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "sound_selection_note"
+msgid ""
+"The change is applied when the update is installed. Sound packs you "
+"imported, your own sound files and your sound preferences are kept."
+msgstr ""
+"Zmiana zostanie zastosowana po zainstalowaniu aktualizacji. Zaimportowane "
+"paczki dźwięków, Twoje własne pliki dźwiękowe i preferencje dźwięków zostaną"
+" zachowane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "sound_selection_whatsapp"
+msgid "On&ly the original WhatsApp sounds"
+msgstr "&Tylko oryginalne dźwięki WhatsApp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "soundpack_import_error_absolute_path"
@@ -21856,6 +21888,17 @@ msgstr "Usuń gwiazdkę"
 msgctxt "unsupported_message"
 msgid "Incompatible message"
 msgstr "Nieobsługiwana wiadomość"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+msgctxt "update_additional_settings_btn"
+msgid "&Additional settings"
+msgstr "Dodatkowe &ustawienia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "update_additional_settings_title"
+msgid "Additional settings"
+msgstr "Dodatkowe ustawienia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_channel_choice.py
 #, python-brace-format

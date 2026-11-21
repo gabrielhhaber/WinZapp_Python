@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Aktualizacja: okno aktualizacji zyskuje przycisk "Dodatkowe ustawienia" (Alt+U), po Tak, Nie i Co nowego?. Otwiera okno, w którym wybierasz dla instalacji między "Wszystkie dźwięki WinZapp" a "Tylko oryginalne dźwięki WhatsApp", z podaną aktualną opcją, oraz OK i Anuluj. Wybór jest stosowany po zainstalowaniu aktualizacji, także gdy instaluje się w tle lub przy wyjściu: wybranie samych oryginalnych dźwięków WhatsApp usuwa dodatkowe dźwięki WinZapp, a ponowny wybór wszystkich przywraca je z aktualizacji. Zaimportowane paczki dźwięków, Twoje własne pliki dźwiękowe i preferencje dźwięków zostają zachowane.
+
 - Tłumaczenie indywidualnych rozmów na żywo przez Gemini w jedną lub obie strony, z opcjonalnym ściszaniem oryginalnego głosu i automatycznym ponownym połączeniem.
 
 - Nowa opcja w Ustawienia > Dostępność: "Ogłaszaj nawet wtedy, gdy WinZapp nie jest aktywny", domyślnie wyłączona. Wyłączona, WinZapp mówi przez czytnik ekranu tylko wtedy, gdy jedno z jego okien ma fokus, aby nie przeszkadzać podczas pracy w innym programie, nawet gdy okno jest otwarte; dotyczy to wszystkich komunikatów głosowych, także powiadomienia o nowej wersji. Włączona, komunikaty są podawane zawsze.

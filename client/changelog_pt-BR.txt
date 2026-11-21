@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Atualização: a janela de atualização ganha "Configurações adicionais" (Alt+A), depois de Sim, Não e Quais as novidades?. Ela abre uma janela onde você escolhe, para a instalação, entre "Todos os sons do WinZapp" e "Somente os sons originais do WhatsApp", com a escolha atual informada, além de OK e Cancelar. A escolha é aplicada quando a atualização é instalada, inclusive quando ela instala em segundo plano ou ao sair: escolher só os sons originais do WhatsApp remove os sons extras do WinZapp, e escolher todos de novo os restaura a partir da atualização. Pacotes de sons importados, seus próprios arquivos de som e suas preferências de sons são mantidos.
+
 - Tradução ao vivo com Gemini em chamadas individuais, em uma ou duas direções, com redução opcional do volume da voz original e reconexão automática.
 - Nova opção em Configurações > Acessibilidade: "Anunciar mesmo quando o WinZapp não estiver em foco", desmarcada por padrão. Desmarcada, o WinZapp só fala pelo leitor de tela enquanto uma de suas janelas está em foco, para não interromper quem trabalha em outro programa, mesmo com a janela aberta; isso vale para todos os anúncios falados, inclusive o aviso de nova versão. Marcada, os anúncios continuam em qualquer situação.
 
