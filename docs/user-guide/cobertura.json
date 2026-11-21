@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "46a86f32f3a2": "Nova opção em Configurações > Acessibilidade: \"Anunciar mesmo quando o WinZapp n",
     "382b179ba825": "Quando um contato troca o nome do perfil, as mensagens antigas dele na conversa ",
     "78923268c5bd": "Links de ligação: em Ligações (Alt+6), \"Criar link de ligação\" abre uma janela o",
     "201e37405ea0": "Contatos: a lista de navegação ganha \"Contatos\" depois de Canais, sem atalho Alt",
@@ -317,7 +318,7 @@
     "ced79b326bda": "Corrigido: com o cancelamento de ruído por voz neural ligado, as mensagens de vo",
     "984cd50b2671": "Mensagens mostradas ao abrir uma conversa: a configuração agora aceita no máximo",
     "b3e42dc46c09": "Ligações: ligar a partir de uma conta do WhatsApp Business (WPPConnect) não fica",
-    "bf48b3de6b10": "Corrigido: com a conversa aberta e o WinZapp em primeiro plano, uma mensagem rec",
-    "b405b7195624": "Colar no campo de mensagem um arquivo de texto salvo em UTF-16 (como um relatóri"
+    "b405b7195624": "Colar no campo de mensagem um arquivo de texto salvo em UTF-16 (como um relatóri",
+    "bf48b3de6b10": "Corrigido: com a conversa aberta e o WinZapp em primeiro plano, uma mensagem rec"
   }
 }

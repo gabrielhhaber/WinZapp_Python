@@ -1313,7 +1313,8 @@ DEFAULT_SETTINGS = {
     },
     "accessibility": {
         "extended_sr_compat_enabled": True,
-        "sapi_fallback_enabled": True
+        "sapi_fallback_enabled": True,
+        "speak_in_background": False
     },
     # Local (offline) transcription of voice messages. Every value is a stored
     # "automatic" rather than a blank — see core/transcription/preferences.py,

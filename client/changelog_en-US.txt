@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- New option in Settings > Accessibility: "Announce even when WinZapp is not focused", unchecked by default. Unchecked, WinZapp speaks through the screen reader only while one of its windows has focus, so it does not interrupt you while you work in another program, even with the window open; this covers every spoken announcement, the new-version notice included. Checked, announcements continue in every situation.
+
 - When a contact changes their profile name, their older messages in the open conversation are now updated at once with the new name, without closing and reopening the program. Applies to Neonize and WPPConnect.
 
 - Call links: in Calls (Alt+6), "Create call link" opens a window where you choose a voice or video call, create the link, copy it, send it to a chat or join its call. A call.whatsapp.com link in a message joins its call with Enter, or with "Join call" in its context menu, after a confirmation; a link opened in a browser also joins in WinZapp when WinZapp is the program set to open WhatsApp links (Settings > General). Whoever joins a link first is the call's admin: people without a WhatsApp account wait in a waiting room, WinZapp says the name of each one who arrives, and the call window's "Waiting room" button lets them in or denies them. It works with Neonize and WPPConnect.

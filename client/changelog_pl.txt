@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Nowa opcja w Ustawienia > Dostępność: "Ogłaszaj nawet wtedy, gdy WinZapp nie jest aktywny", domyślnie wyłączona. Wyłączona, WinZapp mówi przez czytnik ekranu tylko wtedy, gdy jedno z jego okien ma fokus, aby nie przeszkadzać podczas pracy w innym programie, nawet gdy okno jest otwarte; dotyczy to wszystkich komunikatów głosowych, także powiadomienia o nowej wersji. Włączona, komunikaty są podawane zawsze.
+
 - Gdy kontakt zmieni nazwę profilu, jego starsze wiadomości w otwartej rozmowie są od razu aktualizowane o nową nazwę, bez zamykania i ponownego otwierania programu. Dotyczy Neonize i WPPConnect.
 
 - Linki do połączeń: w Połączeniach (Alt+6) „Utwórz link do połączenia” otwiera okno, w którym wybierasz połączenie głosowe lub wideo, tworzysz link, kopiujesz go, wysyłasz do czatu albo dołączasz do jego połączenia. Link call.whatsapp.com otrzymany w wiadomości dołącza do połączenia po naciśnięciu Enter lub po wybraniu „Dołącz do połączenia” w menu kontekstowym, po potwierdzeniu; link otwarty w przeglądarce też dołącza w WinZapp, gdy jest to program otwierający linki WhatsApp (Ustawienia > Ogólne). Kto pierwszy dołączy przez link, jest administratorem połączenia: osoby bez konta WhatsApp czekają w poczekalni, WinZapp mówi imię każdej z nich, a przycisk „Poczekalnia” w oknie połączenia wpuszcza je lub odrzuca. Działa z Neonize i WPPConnect.

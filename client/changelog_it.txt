@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Nuova opzione in Impostazioni > Accessibilità: "Annuncia anche quando WinZapp non è in primo piano", disattivata per impostazione predefinita. Disattivata, WinZapp parla tramite il lettore di schermo solo mentre una delle sue finestre ha il focus, per non interromperti mentre lavori in un altro programma, anche con la finestra aperta; vale per tutti gli annunci vocali, compreso l'avviso di nuova versione. Attivata, gli annunci continuano in ogni situazione.
+
 - Quando un contatto cambia il nome del profilo, i suoi messaggi precedenti nella conversazione aperta vengono aggiornati subito con il nome nuovo, senza chiudere e riaprire il programma. Vale per Neonize e WPPConnect.
 
 - Link di chiamata: in Chiamate (Alt+6), "Crea link di chiamata" apre una finestra in cui scegli chiamata vocale o videochiamata, crei il link, lo copi, lo invii a una chat o ti unisci alla sua chiamata. Un link call.whatsapp.com ricevuto in un messaggio ti unisce alla chiamata con Invio, o con "Unisciti alla chiamata" nel menu contestuale, dopo una conferma; un link aperto nel browser si unisce anche da WinZapp quando è il programma che apre i link di WhatsApp (Impostazioni > Generale). Chi entra per primo da un link è l'amministratore della chiamata: le persone senza account WhatsApp aspettano in una sala d'attesa, WinZapp dice il nome di ciascuna che arriva e il pulsante "Sala d'attesa" della finestra della chiamata le ammette o le rifiuta. Funziona con Neonize e WPPConnect.

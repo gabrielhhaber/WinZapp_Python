@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Nova opção em Configurações > Acessibilidade: "Anunciar mesmo quando o WinZapp não estiver em foco", desmarcada por padrão. Desmarcada, o WinZapp só fala pelo leitor de tela enquanto uma de suas janelas está em foco, para não interromper quem trabalha em outro programa, mesmo com a janela aberta; isso vale para todos os anúncios falados, inclusive o aviso de nova versão. Marcada, os anúncios continuam em qualquer situação.
+
 - Quando um contato troca o nome do perfil, as mensagens antigas dele na conversa aberta agora são atualizadas na hora com o nome novo, sem precisar fechar e reabrir o programa. Vale para Neonize e para WPPConnect.
 
 - Links de ligação: em Ligações (Alt+6), "Criar link de ligação" abre uma janela onde você escolhe ligação de voz ou de vídeo, cria o link, copia, envia para uma conversa ou entra na ligação dele. Um link call.whatsapp.com recebido numa mensagem entra na ligação com Enter, ou com "Entrar na ligação" no menu de contexto, depois de uma confirmação; um link aberto no navegador também entra pelo WinZapp quando ele é o programa que abre os links do WhatsApp (Configurações > Geral). Quem entra primeiro por um link é o administrador da ligação: as pessoas sem conta no WhatsApp esperam numa sala de espera, o WinZapp diz o nome de cada uma que chega, e o botão "Sala de espera" da janela da ligação as admite ou as recusa. Funciona com Neonize e WPPConnect.

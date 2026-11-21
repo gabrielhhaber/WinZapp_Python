@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Opțiune nouă în Setări > Accesibilitate: "Anunță chiar și când WinZapp nu este în prim-plan", debifată implicit. Debifată, WinZapp vorbește prin cititorul de ecran doar cât timp una dintre ferestrele sale are focalizarea, ca să nu te întrerupă când lucrezi în alt program, chiar și cu fereastra deschisă; se aplică tuturor anunțurilor vorbite, inclusiv notificării de versiune nouă. Bifată, anunțurile continuă în orice situație.
+
 - Când un contact schimbă numele profilului, mesajele sale mai vechi din conversația deschisă sunt actualizate imediat cu numele nou, fără a închide și redeschide programul. Se aplică pentru Neonize și WPPConnect.
 
 - Linkuri de apel: în Apeluri (Alt+6), „Creați link de apel” deschide o fereastră în care alegeți apel vocal sau video, creați linkul, îl copiați, îl trimiteți într-o conversație sau vă alăturați apelului lui. Un link call.whatsapp.com primit într-un mesaj vă alătură apelului cu Enter sau cu „Alăturați-vă apelului” din meniul contextual, după o confirmare; un link deschis în browser vă alătură tot din WinZapp când acesta este programul care deschide linkurile WhatsApp (Setări > General). Cine intră primul printr-un link este administratorul apelului: persoanele fără cont WhatsApp așteaptă într-o sală de așteptare, WinZapp spune numele fiecăreia care sosește, iar butonul „Sala de așteptare” din fereastra apelului le admite sau le respinge. Funcționează cu Neonize și WPPConnect.
