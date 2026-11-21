@@ -140,6 +140,19 @@ function fresh() {
   pendingLink = { id: 'PENDING' };
   assert.equal(api.mayStopAudio(), false);
   pendingLink = null;
+  // the module is lazy: absent until Bootloader loads the popup that owns it
+  const lazy = modules.WAWebVoipCreateCallLink;
+  delete modules.WAWebVoipCreateCallLink;
+  let loaded = [];
+  modules.Bootloader = { loadModules: async (names) => { loaded.push(...names);
+    modules.WAWebVoipCreateCallLink = lazy; } };
+  api = fresh();
+  assert.deepEqual(await api.create(false), { link: VOICE, isVideo: false });
+  assert.deepEqual(loaded, ['WAWebVoipCreateCallLinksPopup.react']);
+  delete modules.WAWebVoipCreateCallLink;
+  modules.Bootloader = { loadModules: async () => {} };
+  api = fresh();
+  await assert.rejects(api.create(false), /unavailable/);
   console.log(JSON.stringify({ passed: true }));
 })().catch((error) => { console.error(error); process.exit(1); });
 '''
