@@ -10,6 +10,8 @@ import tempfile
 
 def export_audio_as_mp3(ffmpeg: str, content: bytes, destination: str) -> None:
     """Encode a decrypted attachment and publish it only after FFmpeg succeeds."""
+    if not ffmpeg or not os.path.isfile(ffmpeg):
+        raise FileNotFoundError("FFmpeg was not found")
     with tempfile.TemporaryDirectory(prefix="winzapp-mp3-") as work_dir:
         source = os.path.join(work_dir, "source")
         with open(source, "wb") as stream:
