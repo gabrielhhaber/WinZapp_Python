@@ -24,6 +24,7 @@ class _Panel(_Stub):
         self._matches_open_conversation = lambda jid: jid == "g@g.us"
         self._counts_toward_unread_separator = lambda msg: True
         self._update_unread_separator_for_incoming = Mock()
+        self._is_read_on_arrival = lambda: False
         self._clear_empty_placeholder = lambda: None
         self.populate_messages(preserve_focus=True)
         self.populate_calls.clear()
@@ -127,6 +128,7 @@ def test_replay_older_than_the_last_server_row_is_late_despite_an_own_send():
 def _focused_panel(active, activated_ago):
     panel = _Panel([_msg("recent", ts=1_800_000_000)])
     panel.main_window._allow_ui_focus_changes = lambda: active
+    panel.messages_list.EnsureVisible = lambda idx: None
     panel.main_window._last_activation_time = time.time() - activated_ago
     panel._is_read_on_arrival = lambda: ListRefreshMixin._is_read_on_arrival(panel)
     return panel
