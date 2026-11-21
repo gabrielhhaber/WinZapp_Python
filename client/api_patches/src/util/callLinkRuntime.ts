@@ -43,8 +43,13 @@ export function installCallLinkRuntimeInPage(): void {
     let found = module(name);
     for (const wanted of [loader, fallback]) {
       if (found) break;
-      try { await module('Bootloader')?.loadModules?.([wanted]); } catch (_) { /* not loadable */ }
-      found = module(name);
+      // loadModules returns at once with a handle to cancel (not a Promise): the
+      // module is defined when its code has arrived, so look again until it is.
+      try { module('Bootloader')?.loadModules?.([wanted]); } catch (_) { /* not loadable */ }
+      for (let waited = 0; waited < 10000 && !found; waited += 100) {
+        found = module(name);
+        if (!found) await new Promise((done) => win.setTimeout(done, 100));
+      }
     }
     return found;
   };
