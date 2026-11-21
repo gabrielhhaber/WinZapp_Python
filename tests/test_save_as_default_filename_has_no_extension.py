@@ -133,6 +133,38 @@ class TestConversationsPanelSaveMediaMessage:
 
         assert calls == [_CapturingFileDialog.captured["defaultFile"]]
 
+    def test_voice_note_mp3_filter_selects_conversion_and_changes_suffix(self, monkeypatch, tmp_path):
+        class AcceptMp3(_CapturingFileDialog):
+            def ShowModal(self):
+                return wx.ID_OK
+
+            def GetPath(self):
+                return str(tmp_path / "note.ogg")
+
+            def GetFilterIndex(self):
+                return self.captured["wildcard"].split("|").index("*.mp3") // 2
+
+        from unittest.mock import Mock
+
+        monkeypatch.setattr(wx, "FileDialog", AcceptMp3)
+        thread = Mock()
+        patch_conversations_global(monkeypatch, "threading", type("_Threading", (), {"Thread": thread}))
+        panel = self._panel()
+        panel._save_message_media = Mock()
+        panel.main_window.remember_save_folder = Mock()
+        msg = self._msg()
+        msg["messageType"] = "audioMessage"
+        msg["message"] = {"audioMessage": {"mimetype": "audio/ogg; codecs=opus", "ptt": True}}
+
+        panel.save_media_message(msg)
+
+        assert AcceptMp3.captured["wildcard"].startswith("OGG (*.ogg)")
+        destination = str(tmp_path / "note.mp3")
+        panel.main_window.remember_save_folder.assert_called_once_with(destination)
+        thread.assert_called_once_with(target=panel._save_message_media,
+                                       args=(msg, destination, True), daemon=True)
+        thread.return_value.start.assert_called_once()
+
 
 class TestStatusPanelSaveStatusMedia:
     _stub_cls = type(

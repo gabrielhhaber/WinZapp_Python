@@ -1,4 +1,4 @@
-"""Audio format conversion helpers used by the in-app player."""
+"""Audio format conversion helpers for playback, sending, and export."""
 
 import logging
 import mimetypes
@@ -6,6 +6,36 @@ import os
 import subprocess
 import sys
 import tempfile
+
+
+def export_audio_as_mp3(ffmpeg: str, content: bytes, destination: str) -> None:
+    """Encode a decrypted attachment and publish it only after FFmpeg succeeds."""
+    if not ffmpeg or not os.path.isfile(ffmpeg):
+        raise FileNotFoundError("FFmpeg was not found")
+    with tempfile.TemporaryDirectory(prefix="winzapp-mp3-") as work_dir:
+        source = os.path.join(work_dir, "source")
+        with open(source, "wb") as stream:
+            stream.write(content)
+        fd, encoded = tempfile.mkstemp(
+            dir=os.path.dirname(os.path.abspath(destination)), suffix=".mp3"
+        )
+        os.close(fd)
+        try:
+            subprocess.run(
+                [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+                 "-i", source, "-map", "0:a:0", "-c:a", "libmp3lame", "-q:a", "3",
+                 "-f", "mp3", encoded],
+                check=True,
+                capture_output=True,
+                timeout=300,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if not os.path.getsize(encoded):
+                raise OSError("FFmpeg produced an empty MP3")
+            os.replace(encoded, destination)
+        finally:
+            if os.path.exists(encoded):
+                os.unlink(encoded)
 
 
 def transcode_audio_to_wav(ffmpeg: str, source_path: str) -> str | None:
