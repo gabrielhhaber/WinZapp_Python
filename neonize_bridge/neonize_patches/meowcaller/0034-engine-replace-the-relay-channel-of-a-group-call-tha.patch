@@ -9,10 +9,10 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
  CHANGELOG.md                | 13 +++++++
  audio_receive_stats.go      | 22 ++++++++++++
  audio_receive_stats_test.go | 12 +++++++
- engine_media.go             | 22 +++++++++---
+ engine_media.go             | 25 ++++++++++----
  relay_reconnect.go          | 66 +++++++++++++++++++++++++++++++++++
  relay_reconnect_test.go     | 68 +++++++++++++++++++++++++++++++++++++
- 6 files changed, 199 insertions(+), 4 deletions(-)
+ 6 files changed, 200 insertions(+), 6 deletions(-)
  create mode 100644 relay_reconnect.go
  create mode 100644 relay_reconnect_test.go
 
@@ -112,7 +112,7 @@ index 8261ef7..bb2cd55 100644
 +	}
 +}
 diff --git a/engine_media.go b/engine_media.go
-index dd28ff5..be97f77 100644
+index dd28ff5..e54e071 100644
 --- a/engine_media.go
 +++ b/engine_media.go
 @@ -515,17 +515,17 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
@@ -152,7 +152,17 @@ index dd28ff5..be97f77 100644
  	}
  	go func() {
  		t := time.NewTicker(time.Second)
-@@ -921,14 +922,27 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+@@ -611,8 +612,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 							// The new allocation no longer lists the relay in use:
+ 							// move to one it lists, as WhatsApp does, without
+ 							// leaving the current one until the new one is ready.
+-							if !movingRelay.Load() && time.Since(lastRelayMove) >= relayMoveRetry {
+-								movingRelay.Store(true)
++							if time.Since(lastRelayMove) >= relayMoveRetry && movingRelay.CompareAndSwap(false, true) {
+ 								lastRelayMove = time.Now()
+ 								go moveGroupRelay(*update)
+ 							}
+@@ -921,14 +921,27 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
  	var receiveStats audioReceiveStats
  	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid, stunIn uint64
  	incomingRTCP := incomingRTCPLog{}
