@@ -37,7 +37,7 @@ class Owner:
             # The numbered families are lists indexed by digit: the bookmarks
             # and the ten review-by-position commands (ID_REVIEW[d]).
             self.ids[name] = ([number + digit for digit in range(10)]
-                              if 'BOOKMARK' in name or name == 'ID_REVIEW' else number)
+                              if 'BOOKMARK' in name or name in ('ID_REVIEW', 'ID_QUICK_REACTION') else number)
         return self.ids[name]
 
 

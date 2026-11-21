@@ -11,6 +11,7 @@ import time
 import wx
 from ui.dialogs.emoji_picker import choose_reaction_emoji, skin_tone_step
 from core.reaction_shortcuts import (
+    quick_reaction_at,
     quick_reactions,
     reaction_to_send,
     remember_reaction,
@@ -157,6 +158,27 @@ class ReactionsMixin:
                 args=(jid, msg_key, emoji),
                 daemon=True,
             ).start()
+
+    def _on_accel_quick_reaction(self, digit):
+        """Quick-reaction shortcut (issue #852): react to the focused message
+        with the row of Settings > Reactions at that position (digit 1..9, 0
+        the tenth). Sending the reaction already sent removes it, as in the
+        picker."""
+        if not self.conversation:
+            return
+        index = self.messages_list.GetFirstSelected()
+        if index < 0 or index >= len(self._sorted_messages):
+            return
+        msg = self._sorted_messages[index]
+        if self._is_separator(msg) or self._reject_system_event_action(msg):
+            return
+        msg_id = (msg.get("key") or {}).get("id", "")
+        if not msg_id:
+            return
+        reactions = self.main_window.settings.get("reactions", {})
+        chosen = quick_reaction_at(reactions.get("quick_reaction_slots"), digit)
+        current = (self._reaction_map.get(msg_id) or {}).get(self._SELF_REACTOR_KEY, "")
+        self._send_reaction(msg, reaction_to_send(chosen, current))
 
     _SELF_REACTOR_KEY = "_me_"
 
