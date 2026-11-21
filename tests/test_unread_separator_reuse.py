@@ -68,6 +68,7 @@ class _Stub:
     _clear_empty_placeholder = ConversationsPanel._clear_empty_placeholder
     _recompute_unread_sep_idx = ConversationsPanel._recompute_unread_sep_idx
     _counts_toward_unread_separator = ConversationsPanel._counts_toward_unread_separator
+    _is_read_on_arrival = ConversationsPanel._is_read_on_arrival
     _update_unread_separator_for_incoming = (
         ConversationsPanel._update_unread_separator_for_incoming
     )
