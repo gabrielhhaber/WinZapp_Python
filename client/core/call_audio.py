@@ -27,6 +27,7 @@ from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResamp
 from core.call_audio_output import render_output
 from core.call_audio_channels import MicrophoneDownmix, log_downmix_side, shared_channel_counts
 from core.call_desktop_audio import CallDesktopAudio, mix_desktop_pcm
+from core.live_translation import LiveTranslationDirection, OUTPUT_RATE, OutgoingTranslationGate
 
 try:
     import sounddevice as sd
@@ -440,6 +441,9 @@ class CallAudioSession:
         self._microphone_muted = False
         self._desktop_audio = None
         self._desktop_audio_lock = threading.Lock()
+        self._translation_lock = threading.Lock()
+        self._live_translation = ()
+        self._translation_gate = OutgoingTranslationGate(CALL_SAMPLE_RATE)
         self._media_epoch = ''
         self._dequeued_media_epoch = ''
         self._stream_epoch = next_stream_epoch()
@@ -459,7 +463,53 @@ class CallAudioSession:
     def set_microphone_muted(self, muted: bool) -> None:
         """Mute only this call's outgoing microphone, keeping the stream alive."""
         self._microphone_muted = bool(muted)
+        with self._translation_lock:
+            self._translation_gate.reset()
+            if len(self._live_translation) == 2:
+                self._live_translation[1].set_muted(self._microphone_muted)
         logging.info("[call_audio] microphone %s", "muted" if self._microphone_muted else "unmuted")
+
+    @property
+    def live_translation(self):
+        return self._live_translation
+
+    def start_live_translation(self, key, my_language, peer_language, on_state, *, duck=False):
+        with self._translation_lock:
+            if not self.running or self._live_translation:
+                return False
+            incoming = LiveTranslationDirection(
+                key, my_language, OUTPUT_RATE, on_state, play=self._play_translated_call_audio,
+                duck=duck)
+            directions = [incoming]
+            if peer_language:
+                outgoing = LiveTranslationDirection(key, peer_language, CALL_SAMPLE_RATE, on_state)
+                outgoing.set_muted(self._microphone_muted)
+                directions.append(outgoing)
+            self._live_translation = tuple(directions)
+            self._translation_gate.reset()
+            try:
+                for direction in directions:
+                    direction.start()
+            except RuntimeError:
+                self._live_translation = ()
+                for direction in directions:
+                    direction.stop()
+                raise
+            return True
+
+    def stop_live_translation(self):
+        with self._translation_lock:
+            if not self._live_translation:
+                return False
+            directions, self._live_translation = self._live_translation, ()
+            for direction in directions:
+                direction.stop()
+            return True
+
+    def _play_translated_call_audio(self, direction, pcm, rate):
+        with self._translation_lock:
+            if direction in self._live_translation and not self._stop_event.is_set():
+                self._put_drop_oldest(self._output_queue, PlaybackPCM(pcm, rate, self._media_epoch))
 
     @property
     def desktop_audio(self):
@@ -678,6 +728,7 @@ class CallAudioSession:
         silence for the rest of the call.
         """
         self._stop_event.set()
+        self.stop_live_translation()
         self.stop_desktop_audio()
         self._output_buffer.set_owner(None)
         if notify_bridge:
@@ -711,6 +762,9 @@ class CallAudioSession:
             sample_rate = int(sample_rate or CALL_SAMPLE_RATE)
         except (TypeError, ValueError):
             sample_rate = CALL_SAMPLE_RATE
+        directions = self._live_translation
+        if directions and directions[0].feed(pcm, sample_rate):
+            return
         self._put_drop_oldest(self._output_queue, PlaybackPCM(bytes(pcm), sample_rate, epoch))
 
     def _query_devices(self):
@@ -1247,6 +1301,17 @@ class CallAudioSession:
                     time.sleep(0.05)
 
     def _emit_microphone_frame(self, pcm, epoch):
+        # Tap the processed microphone before mixing desktop audio or NVDA.
+        with self._translation_lock:
+            directions = self._live_translation
+            if self._microphone_muted:
+                pcm = bytes(len(pcm))
+            elif len(directions) == 2:
+                outgoing = directions[1]
+                if outgoing.feed(pcm, CALL_SAMPLE_RATE):
+                    pcm = self._translation_gate.select(pcm, outgoing.take)
+                else:
+                    self._translation_gate.reset()
         # The lock covers only the mix: Stop sharing and hang-up take it from
         # the UI thread, so it must never be held across network I/O.
         with self._desktop_audio_lock:

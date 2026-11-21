@@ -4,6 +4,7 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Traducere în timp real cu Gemini în apeluri individuale, într-un sens sau în ambele, cu reducerea opțională a volumului vocii originale și reconectare automată.
 - Opțiune nouă în Setări > Accesibilitate: "Anunță chiar și când WinZapp nu este în prim-plan", debifată implicit. Debifată, WinZapp vorbește prin cititorul de ecran doar cât timp una dintre ferestrele sale are focalizarea, ca să nu te întrerupă când lucrezi în alt program, chiar și cu fereastra deschisă; se aplică tuturor anunțurilor vorbite, inclusiv notificării de versiune nouă. Bifată, anunțurile continuă în orice situație.
 
 - Când un contact schimbă numele profilului, mesajele sale mai vechi din conversația deschisă sunt actualizate imediat cu numele nou, fără a închide și redeschide programul. Se aplică pentru Neonize și WPPConnect.

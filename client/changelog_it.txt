@@ -4,6 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Traduzione dal vivo con Gemini nelle chiamate individuali, in uno o entrambi i sensi, con riduzione facoltativa del volume originale e riconnessione automatica.
 - Nuova opzione in Impostazioni > Accessibilità: "Annuncia anche quando WinZapp non è in primo piano", disattivata per impostazione predefinita. Disattivata, WinZapp parla tramite il lettore di schermo solo mentre una delle sue finestre ha il focus, per non interromperti mentre lavori in un altro programma, anche con la finestra aperta; vale per tutti gli annunci vocali, compreso l'avviso di nuova versione. Attivata, gli annunci continuano in ogni situazione.
 
 - Quando un contatto cambia il nome del profilo, i suoi messaggi precedenti nella conversazione aperta vengono aggiornati subito con il nome nuovo, senza chiudere e riaprire il programma. Vale per Neonize e WPPConnect.

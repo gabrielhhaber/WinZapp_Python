@@ -621,6 +621,45 @@ def test_the_offer_of_another_device_only_becomes_a_call_to_join():
     calls.own_device_offer(N(call_media=None), data, jid("21", "lid"))     # no call layer
 
 
+def test_busy_call_does_not_register_a_second_offer_or_schedule_a_rejection(monkeypatch):
+    from neonize import events
+
+    now = 1700000001
+    handlers, emitted, ignored = {}, [], []
+    client = N(event=lambda event: lambda callback: handlers.setdefault(event, callback))
+    media = N(live_call=lambda: "", answered_here=lambda _: None, elsewhere=ignored.append)
+    session = N(name="test", emit=lambda key, value: emitted.append(key),
+                me="5511888@s.whatsapp.net", lid="", call_media=media)
+    monkeypatch.setattr(calls.time, "time", lambda: now)
+    timers = []
+    monkeypatch.setattr(calls.threading, "Timer", lambda *args: timers.append(args))
+    calls.register_events(client, session)
+    answered = meta("phone-call", creator=jid("5511999"))
+    setattr(answered, "from", jid("5511888"))
+    handlers[events.CallAcceptEv](client, N(basicCallMeta=answered))
+    handlers[events.CallOfferEv](client, offer(call_id="waiting"))
+
+    assert emitted == []
+    assert ignored == ["waiting"]
+    assert timers == []
+    assert session.ringing_calls.to_refuse({"callId": "waiting"}) == []
+    session.ringing_calls.forget("phone-call")
+    assert not session.ringing_calls.is_busy_elsewhere("waiting", now)
+
+
+def test_an_unconfirmed_outgoing_phone_call_expires_if_no_end_arrives():
+    pending = calls.Pending()
+    pending.remember_remote_call("phone", 1000, calls.RING_LIMIT)
+    assert not pending.is_busy_elsewhere("phone", 1001)
+    assert pending.is_busy_elsewhere("second", 1001)
+    assert not pending.is_busy_elsewhere("second", 1000 + calls.RING_LIMIT)
+
+
+def test_a_duplicate_offer_does_not_shorten_a_confirmed_remote_call():
+    pending = calls.Pending()
+    pending.remember_remote_call("phone", 1000)
+    pending.remember_remote_call("phone", 1001, calls.RING_LIMIT)
+    assert pending.is_busy_elsewhere("second", 1001 + calls.RING_LIMIT)
 def test_a_call_that_became_a_group_call_is_filed_with_its_people(monkeypatch):
     """Both layers that file a call record name the people a group roster of
     the call listed, as WhatsApp Web's callParticipants ([{participant}])."""
