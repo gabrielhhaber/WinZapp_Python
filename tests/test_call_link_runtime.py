@@ -140,19 +140,24 @@ function fresh() {
   pendingLink = { id: 'PENDING' };
   assert.equal(api.mayStopAudio(), false);
   pendingLink = null;
-  // the module is lazy: absent until Bootloader loads the popup that owns it
+  // the module is lazy: loadModules answers at once with a cancel handle (not a Promise)
+  // and the module is defined only some time later; the helper must wait for it
   const lazy = modules.WAWebVoipCreateCallLink;
   delete modules.WAWebVoipCreateCallLink;
   let loaded = [];
-  modules.Bootloader = { loadModules: async (names) => { loaded.push(...names);
-    modules.WAWebVoipCreateCallLink = lazy; } };
+  let ticks = 0;
+  const realTimeout = window.setTimeout;
+  window.setTimeout = (fn) => { ticks += 1; if (ticks === 3) modules.WAWebVoipCreateCallLink = lazy; fn(); };
+  modules.Bootloader = { loadModules: (names) => { loaded.push(...names); return { remove: () => {} }; } };
   api = fresh();
   assert.deepEqual(await api.create(false), { link: VOICE, isVideo: false });
   assert.deepEqual(loaded, ['WAWebVoipCreateCallLinksPopup.react']);
+  // never defined: it gives up with the "unavailable" error
   delete modules.WAWebVoipCreateCallLink;
-  modules.Bootloader = { loadModules: async () => {} };
+  ticks = -1000;
   api = fresh();
   await assert.rejects(api.create(false), /unavailable/);
+  window.setTimeout = realTimeout;
   console.log(JSON.stringify({ passed: true }));
 })().catch((error) => { console.error(error); process.exit(1); });
 '''
