@@ -625,6 +625,8 @@ V3.0.0.0
 
 - المكالمات: لم يعد إجراء مكالمة من حساب WhatsApp Business (WPPConnect) يتعلّق 75 ثانية دون أن يرنّ. يردّ WinZapp الآن تلقائيًا على إشعار «حول هذه المكالمة» الذي يعرضه WhatsApp عند أول مكالمة من هذه الحسابات.
 
+- لصق ملف نصي محفوظ بترميز UTF-16 (مثل تقرير معلومات النظام في Windows من msinfo32) في حقل الرسالة لم يعد يرسله كصوت: يبقى مستندًا. أبلغ عنه UlisesMilani (#838).
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

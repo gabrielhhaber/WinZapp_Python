@@ -623,6 +623,8 @@ NOVIDADES
 
 - Ligações: ligar a partir de uma conta do WhatsApp Business (WPPConnect) não fica mais travado por 75 segundos sem tocar. O WinZapp agora responde sozinho ao aviso "Sobre esta ligação" que o WhatsApp mostra na primeira ligação dessas contas.
 
+- Colar no campo de mensagem um arquivo de texto salvo em UTF-16 (como um relatório de Informações do Sistema do Windows, do msinfo32) não o envia mais como áudio: ele continua sendo um documento. Relatado por UlisesMilani (#838).
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.
