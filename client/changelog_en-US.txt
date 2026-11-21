@@ -625,6 +625,8 @@ WHAT'S NEW
 
 - Pasting a text file saved as UTF-16 (such as a Windows System Information report from msinfo32) into the message field no longer sends it as audio: it stays a document. Reported by UlisesMilani (#838).
 
+- Fixed: with a chat open and WinZapp in the foreground, an incoming message no longer shows the "1 unread message" marker; it arrives already read.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

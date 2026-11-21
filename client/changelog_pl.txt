@@ -625,6 +625,8 @@ NOWOŚCI
 
 - Wklejenie do pola wiadomości pliku tekstowego zapisanego w UTF-16 (na przykład raportu Informacje o systemie z Windows, z msinfo32) nie wysyła go już jako dźwięku: pozostaje dokumentem. Zgłosił UlisesMilani (#838).
 
+- Naprawiono: gdy rozmowa jest otwarta, a WinZapp jest na pierwszym planie, nowa wiadomość nie pokazuje już znacznika „1 nieprzeczytana wiadomość”; od razu jest oznaczona jako przeczytana.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

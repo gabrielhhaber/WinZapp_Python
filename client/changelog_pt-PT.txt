@@ -625,6 +625,8 @@ NOVIDADES
 
 - Colar no campo de mensagem um ficheiro de texto guardado em UTF-16 (como um relatório de Informações do Sistema do Windows, do msinfo32) já não o envia como áudio: continua a ser um documento. Comunicado por UlisesMilani (#838).
 
+- Corrigido: com a conversa aberta e o WinZapp em primeiro plano, uma mensagem recebida já não aparece com o marcador "1 mensagem não lida"; chega logo como lida.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.
