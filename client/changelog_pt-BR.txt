@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens de voz e arquivos de áudio podem ser salvos como MP3 pela lista de tipos de arquivo em Salvar como.
+
 - Nova opção em Configurações > Acessibilidade: "Anunciar mesmo quando o WinZapp não estiver em foco", desmarcada por padrão. Desmarcada, o WinZapp só fala pelo leitor de tela enquanto uma de suas janelas está em foco, para não interromper quem trabalha em outro programa, mesmo com a janela aberta; isso vale para todos os anúncios falados, inclusive o aviso de nova versão. Marcada, os anúncios continuam em qualquer situação.
 
 - Quando um contato troca o nome do perfil, as mensagens antigas dele na conversa aberta agora são atualizadas na hora com o nome novo, sem precisar fechar e reabrir o programa. Vale para Neonize e para WPPConnect.
