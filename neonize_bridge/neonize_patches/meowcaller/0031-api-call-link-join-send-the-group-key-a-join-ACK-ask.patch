@@ -1,0 +1,133 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 00:33:04 +0000
+Subject: [PATCH] api/call-link-join: send the group key a join ACK asks for
+
+A call link joined second gets rekey="1" in the link_join ACK's group_info
+and in no later group_update. Only the group_update handler fanned the key
+out, so neither account ever sent the epoch: maybeStartMedia waited for it
+forever and the call stayed silent (no "starting media", 0 frames each way).
+The join now runs the same fan-out when its ACK asks for the key.
+
+Validated: engine_call_link_test.go (the fan-out runs once for a rekey=1 ACK
+and not without it; fails without the change). Not yet on a live call.
+---
+ CHANGELOG.md             |  5 +++++
+ engine.go                |  3 +++
+ engine_call_link_test.go | 38 ++++++++++++++++++++++++++++++++++++++
+ engine_group_api.go      | 20 +++++++++++++++++++-
+ 4 files changed, 65 insertions(+), 1 deletion(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 6fb061d..253aa4f 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -22,6 +22,11 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+   they are a guest (`account_kind=guest`): a guest has no phone number, so
+   the name is all a client can show.
+ - Joining a link whose call is already held here is refused.
++- A link joined second is told to create the group key in its join ACK
++  (`rekey="1"` on `group_info`) and no later `group_update` repeats it; only
++  the stanza handler fanned the key out, so nobody sent it and media never
++  started. The join now fans the key out when its ACK asks for it
++  (`engine_call_link_test.go`).
+ - KAT-verified on the captured stanzas (`signaling/call_link_test.go`,
+   `engine_call_link_test.go`); not yet validated on a live call.
+ 
+diff --git a/engine.go b/engine.go
+index 68da225..29b17ae 100644
+--- a/engine.go
++++ b/engine.go
+@@ -37,6 +37,9 @@ type engine struct {
+ 	sendCallNode    func(context.Context, waBinary.Node) error
+ 	requestCallNode func(context.Context, waBinary.Node, string) (*waBinary.Node, error)
+ 	rawCallHookErr  error
++	// distributeEpoch fans the group key out when the server asks this
++	// device for it (nil: distributeRequestedGroupEpoch); tests replace it.
++	distributeEpoch func(context.Context, groupCallUpdate) error
+ }
+ 
+ // engineCall is the engine's per-call state: the public Call handle plus the inputs
+diff --git a/engine_call_link_test.go b/engine_call_link_test.go
+index 792ac74..003c807 100644
+--- a/engine_call_link_test.go
++++ b/engine_call_link_test.go
+@@ -152,3 +152,41 @@ func TestAJoinThatWaitsSendsTheWaitingRoomHeartbeat(t *testing.T) {
+ 	}
+ 	eng.finishCall("LCID", "test")
+ }
++
++func TestAJoinAckThatAsksForTheGroupKeyDistributesIt(t *testing.T) {
++	// A link joined second gets rekey="1" in the join ACK and in no later
++	// group_update: without the fan-out here nobody sends the key.
++	previous := callLinkHeartbeatInterval
++	callLinkHeartbeatInterval = time.Hour
++	defer func() { callLinkHeartbeatInterval = previous }()
++	ack := linkJoinAck(false)
++	ack.GetChildren()[0].Attrs["rekey"] = "1"
++	eng, _ := linkTestEngine(ack)
++	var asked []groupCallUpdate
++	eng.distributeEpoch = func(_ context.Context, update groupCallUpdate) error {
++		asked = append(asked, update)
++		return nil
++	}
++	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{}); err != nil {
++		t.Fatalf("join: %v", err)
++	}
++	if len(asked) != 1 || asked[0].CallID != "LCID" || !asked[0].RekeyRequested {
++		t.Fatalf("fan-out %+v", asked)
++	}
++	eng.finishCall("LCID", "test")
++}
++
++func TestAJoinAckWithoutARekeyRequestDistributesNothing(t *testing.T) {
++	previous := callLinkHeartbeatInterval
++	callLinkHeartbeatInterval = time.Hour
++	defer func() { callLinkHeartbeatInterval = previous }()
++	eng, _ := linkTestEngine(linkJoinAck(false))
++	eng.distributeEpoch = func(context.Context, groupCallUpdate) error {
++		t.Fatal("no rekey was asked for")
++		return nil
++	}
++	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{}); err != nil {
++		t.Fatalf("join: %v", err)
++	}
++	eng.finishCall("LCID", "test")
++}
+diff --git a/engine_group_api.go b/engine_group_api.go
+index cfb6e78..7f25381 100644
+--- a/engine_group_api.go
++++ b/engine_group_api.go
+@@ -442,13 +442,31 @@ func (e *engine) joinPublicCallLink(
+ 	e.c.log.Info().Str("call_id", result.CallID).Bool("video", video).
+ 		Bool("waiting_room", result.InWaitingRoom).Bool("has_roster", result.Group != nil).
+ 		Msg("joined a call link")
++	rekeyRequested := false
+ 	if result.Group != nil {
+-		e.applyGroupUpdate(*result.Group)
++		rekeyRequested = e.applyGroupUpdate(*result.Group) && result.Group.RekeyRequested
+ 	}
+ 	e.startCallLinkHeartbeat(result.CallID)
++	if rekeyRequested {
++		e.distributeJoinRekey(*result.Group)
++	}
+ 	return call, nil
+ }
+ 
++// distributeJoinRekey answers a rekey the server asked for in the join ACK
++// itself: a link joined second is told to create the group key there, and no
++// later group_update repeats it, so the stanza handler's fan-out never runs
++// and nobody sends the key (media never starts).
++func (e *engine) distributeJoinRekey(update groupCallUpdate) {
++	distribute := e.distributeEpoch
++	if distribute == nil {
++		distribute = e.distributeRequestedGroupEpoch
++	}
++	if err := distribute(context.Background(), update); err != nil {
++		e.c.log.Warn().Err(err).Str("call_id", update.CallID).Msg("group rekey fanout after a call link join failed")
++	}
++}
++
+ func (e *engine) requestCall(ctx context.Context, node waBinary.Node, requestID string) (*waBinary.Node, error) {
+ 	// Source of truth: https://github.com/tulir/whatsmeow/blob/e9a033b24933681519c70b9237db3e91e93e4265/client.go#L745-L759
+ 	if e.requestCallNode == nil {
