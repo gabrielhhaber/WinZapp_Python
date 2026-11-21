@@ -96,7 +96,7 @@ class Media:
     def join_link(self, link, video=False):
         self.joined.append((link, video))
         waits = getattr(self, "waits", False)
-        return "L1", {"call": "L1", "waiting": waits, "admin": not waits}
+        return "L1", {"call": "L1", "waiting": waits, "admin": not waits, "mediaEpoch": "e" * 32}
 
     def waiting_room(self, call_id):
         return self.room if call_id == "L1" else None
@@ -141,8 +141,8 @@ def test_joining_takes_the_kind_from_the_link_and_refuses_a_second_call():
     assert bad == 400
     assert status == 200 and media.joined == [(VOICE, False)]
     assert body["response"] == {"id": "L1", "isVideo": False, "isCallLink": True, "peerJid": "",
-                                "waiting": False, "admin": True, "state": "ACTIVE",
-                                "outgoing": False}
+                                "waiting": False, "admin": True, "mediaEpoch": "e" * 32,
+                                "state": "ACTIVE", "outgoing": False}
     media.waits = True                      # an admin has to let this account in
     (_, waiting), = post(s, ("call/link/join", {"link": VOICE}))
     assert waiting["response"]["waiting"] is True and waiting["response"]["state"] == "CONNECTING"

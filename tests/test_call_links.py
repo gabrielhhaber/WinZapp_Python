@@ -121,9 +121,11 @@ def test_the_join_answer_replays_connected_unless_the_user_waits_to_be_let_in():
     stub = Stub()
     record = {"call_id": "L1", "call_link": VOICE, "is_video": False}
     stub._active_voice_call = record
-    stub._on_call_link_joined(record, {"id": "L1", "admin": True})
+    stub._on_call_link_joined(record, {"id": "L1", "admin": True, "mediaEpoch": "a" * 32})
     assert record["call_link_admin"] is True
     assert [(e["id"], e["state"], e["peerJid"]) for e in stub.events] == [("L1", "ACTIVE", "")]
+    # the epoch the microphone and speaker bind to travels with the replay
+    assert stub.events[0]["mediaEpoch"] == "a" * 32
 
     waiting = {"call_id": "L2", "call_link": VOICE}
     stub._active_voice_call = waiting

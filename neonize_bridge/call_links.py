@@ -125,6 +125,7 @@ def register_routes(r, *, session, ok):
         return ok(status="success", response={
             "id": joined, "isVideo": video, "isCallLink": True, "peerJid": "",
             "waiting": bool(answer.get("waiting")), "admin": bool(answer.get("admin")),
+            "mediaEpoch": answer.get("mediaEpoch") or "",
             "state": "CONNECTING" if answer.get("waiting") else "ACTIVE", "outgoing": False})
 
     async def waiting_room(req):

@@ -466,6 +466,8 @@ def test_joining_a_call_link_makes_a_live_group_call_with_no_chat():
     event = [e for e in sent if e[0] == "callstate"][-1][1]["data"]
     assert event["isCallLink"] is True and event["isGroup"] is True and event["peerJid"] == ""
     assert m.answered_here("L1")["link"] is True
+    # the answer hands the client the epoch its media binds to: the event's own
+    assert answer["mediaEpoch"] == event["mediaEpoch"] == m._calls["L1"]["media_epoch"]
 
 
 class WaitingLinkCalls(LinkCalls):

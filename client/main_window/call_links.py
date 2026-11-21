@@ -119,6 +119,10 @@ class CallLinksMixin:
             return
         self.on_voice_call_state_event({
             "id": call_id, "state": "ACTIVE", "event": "state", "peerJid": "",
+            # the epoch the microphone and speaker bind to: the bridge's own
+            # event for it can land before the record has the call's id and be
+            # dropped as another call's
+            "mediaEpoch": body.get("mediaEpoch"),
             "outgoing": False, "isVideo": bool(call_record.get("is_video")), "isGroup": True,
         })
         self._sync_call_link_controls()
