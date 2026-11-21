@@ -5,6 +5,7 @@ from core.reaction_shortcuts import (
     REACTION_HISTORY_LIMIT,
     assign_quick_reaction,
     fixed_quick_reactions,
+    quick_reaction_at,
     quick_reactions,
     remember_reaction,
 )
@@ -22,17 +23,34 @@ def test_quick_reactions_keep_the_existing_twelve_at_first():
     assert quick_reactions([]) == list(DEFAULT_QUICK_REACTIONS)
 
 
-def test_repeated_custom_reaction_gradually_enters_the_twelve():
-    history = []
-    for _ in range(3):
-        history = remember_reaction(history, "🐶")
-    assert "🐶" not in quick_reactions(history)
-
-    history = remember_reaction(history, "🐶")
-    picks = quick_reactions(history)
+def test_a_custom_reaction_is_listed_after_its_first_use():
+    """Issue #852: a reaction typed or picked once appears in the recents."""
+    picks = quick_reactions(remember_reaction([], "🐶"))
     assert len(picks) == 12
     assert picks[0] == "🐶"
-    assert "🥰" not in picks
+    assert picks[1:] == list(DEFAULT_QUICK_REACTIONS[:11])
+
+
+def test_a_custom_reaction_stays_listed_while_others_are_used_more():
+    history = remember_reaction([], "🐶")
+    for _ in range(3):
+        history = remember_reaction(history, "😂")
+    picks = quick_reactions(history)
+    assert picks[:2] == ["😂", "🐶"]
+    assert len(picks) == len(set(picks)) == 12
+
+
+def test_a_heavily_used_default_is_not_displaced_by_one_custom_pick():
+    history = ["👍"] * 5 + ["🐶"]
+    assert quick_reactions(history)[:2] == ["👍", "🐶"]
+
+
+def test_quick_reaction_at_follows_the_configured_rows_not_the_usage():
+    rows = list(DEFAULT_QUICK_REACTIONS)
+    assert [quick_reaction_at(rows, d) for d in (1, 2, 9, 0)] == [rows[0], rows[1], rows[8], rows[9]]
+    assert quick_reaction_at(None, 1) == DEFAULT_QUICK_REACTIONS[0]
+    custom = assign_quick_reaction(rows, 0, "🐶")
+    assert quick_reaction_at(custom, 1) == "🐶"
 
 
 def test_by_default_the_most_used_reaction_comes_first():
