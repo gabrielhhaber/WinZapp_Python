@@ -70,18 +70,16 @@ _VIDEO_FTYP_BRANDS = {
 
 
 def _looks_like_utf16_text(header: bytes) -> bool:
-    """True when *header* is a UTF-16 text file with a byte-order mark.
+    """True when *header* is UTF-16LE text with a byte-order mark. (The
+    big-endian ``FE FF`` BOM never looked like audio, so it is not handled.)
 
     The little-endian BOM ``FF FE`` is also the sync word of an MPEG audio
     frame, so a Windows ``.txt`` (Notepad, ``msinfo32 /report``) would be read
     as audio. Real text decodes to printable characters; audio data does not.
     """
-    if header.startswith(b"\xff\xfe"):
-        codec = "utf-16-le"
-    elif header.startswith(b"\xfe\xff"):
-        codec = "utf-16-be"
-    else:
+    if not header.startswith(b"\xff\xfe"):
         return False
+    codec = "utf-16-le"
     body = header[2:]
     body = body[: len(body) - (len(body) % 2)]
     if not body:

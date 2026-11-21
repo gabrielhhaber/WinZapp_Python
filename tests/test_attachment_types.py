@@ -60,13 +60,14 @@ def test_utf16_le_text_with_bom_is_a_document_not_audio(tmp_path, encoding):
     assert classify_attachment_media_type(report) == "document"
 
 
-def test_utf16_be_text_with_bom_is_a_document(tmp_path):
-    report = tmp_path / "report.txt"
-    report.write_bytes(b"\xfe\xff" + "Relatório de sistema".encode("utf-16-be"))
+def test_utf16_text_longer_than_the_sniffed_header_is_a_document(tmp_path):
+    # 😀 is a surrogate pair; the 4096-byte read can cut one in half.
+    report = tmp_path / "long.txt"
+    report.write_bytes(("a" * 2046 + "😀" * 10).encode("utf-16"))
     assert classify_attachment_media_type(report) == "document"
 
 
-def test_pasted_utf16_text_stays_a_document_even_when_audio_is_documents(tmp_path):
+def test_pasted_utf16_text_stays_a_document_with_the_default_audio_mode(tmp_path):
     from core.attachment_types import pasted_attachment_media_type
 
     report = tmp_path / "msinfo.txt"
