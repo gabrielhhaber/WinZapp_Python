@@ -381,7 +381,11 @@ async function evaluateWppCall(req: Request, action: string, payload: CallAction
         let useSwitch = true;
         try {
           const inactive = win.require?.('WAWebVoipVideoStateUtils')?.isVideoStateInactiveForCallMode;
-          if (typeof inactive === 'function') useSwitch = inactive(call.selfVideoState) === true;
+          // Only a known video state that is not inactive leaves the switch: an unknown one
+          // (undefined) keeps what 1:1 calls always did.
+          if (typeof inactive === 'function' && call.selfVideoState !== undefined) {
+            useSwitch = inactive(call.selfVideoState) === true;
+          }
         } catch (_) {}
         return runNativeVoipAction(async (voipStack: any) => {
           if (!useSwitch) {

@@ -364,6 +364,7 @@ def test_node_side_exposes_upgrade_and_scoped_ensure_ended():
     upgrade = upgrade[: upgrade.index("action === 'status'")]
     assert "WAWebVoipVideoStateUtils')?.isVideoStateInactiveForCallMode" in upgrade
     assert "inactive(call.selfVideoState)" in upgrade
+    assert "call.selfVideoState !== undefined" in upgrade  # an unknown state keeps the switch
     assert upgrade.index("setCallVideoMute(false)") < upgrade.index("voipStack.requestVideoUpgrade()")
     ensure = CONTROLLER_SRC[CONTROLLER_SRC.index("action === 'ensure-ended'"):]
     ensure = ensure[: ensure.index("return { handled: ended, stillLive: ended")]
