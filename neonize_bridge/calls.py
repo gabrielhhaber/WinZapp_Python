@@ -41,6 +41,8 @@ RING_TTL = 600
 # A call's offer is kept for as long as an answered call may still go on: its
 # end (<terminate>) says neither the group nor whether it was a video call.
 OFFER_TTL = 6 * 3600
+# A linked device may not receive a terminal event from the phone.
+REMOTE_BUSY_TTL = 2 * 60 * 60
 # Past this many seconds from the offer's own time, an incoming call nobody
 # answered is surely over on the caller's side. The call layer keeps such a
 # call open forever when its end never reaches us (an offer delivered from
@@ -405,6 +407,19 @@ class Pending:
         self._rings = {}
         self._accepted = {}
         self._offers = {}       # id -> ({"groupJid", "isVideo"}, when)
+        self._remote_busy = {}
+        self._remote_lock = threading.Lock()
+
+    def remember_remote_call(self, call_id, now, lifetime=REMOTE_BUSY_TTL):
+        """A live signal from another device using this account."""
+        with self._remote_lock:
+            self._remote_busy[call_id] = max(self._remote_busy.get(call_id, 0), now + lifetime)
+
+    def is_busy_elsewhere(self, call_id, now):
+        with self._remote_lock:
+            self._remote_busy = {key: until for key, until in self._remote_busy.items()
+                                 if until > now}
+            return any(key != call_id for key in self._remote_busy)
 
     def accept(self, call_id, server_ts, now):
         """The CallAccept: someone answered on another device. Our own answer
@@ -440,6 +455,8 @@ class Pending:
         return found[0] if found else None
 
     def forget(self, call_id):
+        with self._remote_lock:
+            self._remote_busy.pop(call_id, None)
         self._rings.pop(call_id, None)
         self._accepted.pop(call_id, None)
         self._offers.pop(call_id, None)
@@ -479,14 +496,29 @@ def register_events(cli, s):
     @cli.event(nev.CallOfferEv)
     def _offer(c, e):
         try:
-            data = offer_event(e, time.time())
-            if not data["id"]:
+            now = time.time()
+            data = offer_event(e, now)
+            call_id = data["id"]
+            if not call_id:
                 return
+            media = getattr(s, "call_media", None)
+            local_call = media.live_call() if media is not None else ""
+            recent = (not data["offerReceivedWhileOffline"]
+                      and 0 < data["timestamp"] <= now
+                      and now - data["timestamp"] < RING_LIMIT)
             if from_this_account(e.basicCallMeta, getattr(s, "me", ""), getattr(s, "lid", "")):
+                if local_call != call_id and recent:
+                    s.ringing_calls.remember_remote_call(call_id, now, RING_LIMIT)
                 own_device_offer(s, data, e.basicCallMeta.callCreator)
                 return
-            s.ringing_calls.remember(data["id"], e.basicCallMeta.callCreator, time.time(), data)
-            media = getattr(s, "call_media", None)
+            if ((local_call and local_call != call_id)
+                    or s.ringing_calls.is_busy_elsewhere(call_id, now)):
+                # Leave the offer on the phone. Never start a watchdog that
+                # would reject it over WhatsApp after a local ring timeout.
+                if media is not None:
+                    media.elsewhere(call_id)
+                return
+            s.ringing_calls.remember(call_id, e.basicCallMeta.callCreator, now, data)
             if media is not None:
                 media.remember_offer(data)
                 ongoing_calls.remember_offer(media, data["id"], e.basicCallMeta.callCreator, data)
@@ -508,9 +540,22 @@ def register_events(cli, s):
     @cli.event(nev.CallAcceptEv)
     def _answered(c, e):
         try:
-            if e.basicCallMeta.callID:
-                s.ringing_calls.accept(
-                    e.basicCallMeta.callID, msgmap.seconds(e.basicCallMeta.timestamp), time.time())
+            meta = e.basicCallMeta
+            call_id = meta.callID
+            if not call_id:
+                return
+            now = time.time()
+            timestamp = msgmap.seconds(meta.timestamp)
+            s.ringing_calls.accept(call_id, timestamp, now)
+            media = getattr(s, "call_media", None)
+            if media is not None and (media.live_call() == call_id or media.answered_here(call_id)):
+                return
+            sender = _user(getattr(getattr(meta, "from", None), "User", ""))
+            me, lid = getattr(s, "me", ""), getattr(s, "lid", "")
+            own_users = {_user(me), _user(lid)} - {""}
+            if sender in own_users or from_this_account(meta, me, lid):
+                if 0 < timestamp <= now and now - timestamp < RING_LIMIT:
+                    s.ringing_calls.remember_remote_call(call_id, now)
         except Exception:
             log.exception("call answered")
 

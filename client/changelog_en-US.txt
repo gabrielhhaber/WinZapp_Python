@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Individual calls can be translated with Gemini Live Translate in one or both directions, with optional volume reduction for the original voice and automatic reconnection.
+
 - Writing help: WinZapp gains a feature similar to writing help in WhatsApp for mobile, with the added option of translating the draft. The new button after Emoji and the composer context menu open the same window. Correct, rephrase, use a professional or encouraging tone with the AI providers configured in WinZapp, not Meta AI; translation uses Google. Consent is requested before sending the draft and the result is previewed before replacement; the message is never sent automatically. Choose an action, then press "Run selected action". Opening or closing this window does not send the draft.
 
 - Writing help: new Alt+Shift+H shortcut to open the window from anywhere in the chat while a draft is written. It can be changed in the Shortcuts tab of Settings, and the field's context menu and the button now show the shortcut in use.

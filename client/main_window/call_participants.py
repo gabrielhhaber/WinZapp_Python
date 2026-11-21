@@ -44,6 +44,10 @@ class CallParticipantsMixin:
         note_seen(self.__dict__.setdefault("_call_seen", {}), call_id,
                   [(jid, "") for jid in connected], mine)
         if self._call_held_here(call_id):
+            if len(rosters[call_id]) >= 2:
+                refresh = getattr(self, "_sync_voice_call_bar", None)
+                if refresh is not None:
+                    refresh()
             calls = (getattr(self, "settings", {}) or {}).get("calls", {})
             name = lambda jid: self.chat_display_name({"remoteJid": jid, "name": ""})
             if calls.get("announce_participant_joined", True):

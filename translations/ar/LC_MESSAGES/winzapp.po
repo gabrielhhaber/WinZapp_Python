@@ -845,6 +845,7 @@ msgid "The request was cancelled."
 msgstr "تم إلغاء الطلب."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
 msgctxt "ai_error_credentials"
 msgid ""
 "The API key cannot be read or saved. Re-enter it; for a damaged credential "
@@ -3030,6 +3031,131 @@ msgctxt "call_participants_you"
 msgid "You"
 msgstr "أنت"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_ask_language"
+msgid "Choose when starting"
+msgstr "الاختيار عند البدء"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_both"
+msgid "Both of us"
+msgstr "للطرفين"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_choose_peer"
+msgid "Choose the other person's language."
+msgstr "اختر لغة الطرف الآخر."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_connecting"
+msgid "Connecting to Gemini Live Translate."
+msgstr "جارٍ الاتصال بخدمة Gemini للترجمة الحية."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_consent"
+msgid ""
+"Gemini receives the other person's call audio. In both directions it also "
+"receives your microphone audio. Make sure the other person agrees before you"
+" start."
+msgstr ""
+"يُرسل صوت الطرف الآخر إلى Gemini. وفي وضع «للطرفين» يُرسل صوت ميكروفونك "
+"أيضًا. تأكد من موافقة الطرف الآخر قبل البدء."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_duck"
+msgid "Lower origina&l voice while translation plays"
+msgstr "خف&ض صوت الطرف الآخر أثناء سماع الترجمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_failed"
+msgid ""
+"Live translation could not continue. The call has returned to its original "
+"audio."
+msgstr "تعذّر متابعة الترجمة الحية. عادت المكالمة إلى الصوت الأصلي."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_key_needed"
+msgid "Add a Google Gemini API key in AI settings to translate calls."
+msgstr "أضف مفتاح Google Gemini في إعدادات الذكاء الاصطناعي لترجمة المكالمات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_listen"
+msgid "Only me"
+msgstr "لي فقط"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_mode"
+msgid "&Who hears translations"
+msgstr "&من يسمع الترجمة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_my_language"
+msgid "M&y language"
+msgstr "لغت&ي"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py client/ui/dialogs/settings_dialog.py
+msgctxt "call_translation_options"
+msgid "Live &translation"
+msgstr "الترجمة ال&حية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/live_translation.py
+msgctxt "call_translation_peer_language"
+msgid "Other &person's language"
+msgstr "لغة الطرف الآ&خر"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_ready"
+msgid "Live translation is active."
+msgstr "الترجمة الحية مفعّلة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_reconnecting"
+msgid ""
+"Reconnecting to Gemini. Original audio is available while a translation "
+"direction reconnects."
+msgstr ""
+"جارٍ إعادة الاتصال بخدمة Gemini. يمكنك سماع الصوت الأصلي أثناء إعادة "
+"الاتصال."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_save_failed"
+msgid "Could not save the default call languages."
+msgstr "تعذّر حفظ لغات المكالمات الافتراضية."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_start"
+msgid "Start &live translation"
+msgstr "بدء الترجمة ال&حية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py
+msgctxt "call_translation_stop"
+msgid "Stop &live translation"
+msgstr "إيقاف الترجمة ال&حية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_translation.py client/main_window/calls.py
+msgctxt "call_translation_stopped"
+msgid "Live translation stopped."
+msgstr "توقفت الترجمة الحية."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "call_video_no_camera_error"
 msgid "No camera available."
@@ -3173,8 +3299,9 @@ msgstr "&إعدادات فيديو المكالمة"
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/attach_contact_dialog.py client/ui/dialogs/call_invite.py
 #: client/ui/dialogs/community_create.py client/ui/dialogs/emoji_picker.py
-#: client/ui/dialogs/meta_ai_terms.py client/ui/dialogs/new_contact.py
-#: client/ui/dialogs/new_group.py client/ui/dialogs/new_poll_dialog.py
+#: client/ui/dialogs/live_translation.py client/ui/dialogs/meta_ai_terms.py
+#: client/ui/dialogs/new_contact.py client/ui/dialogs/new_group.py
+#: client/ui/dialogs/new_poll_dialog.py
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
 #: client/ui/dialogs/status_audience_dialog.py
@@ -10507,7 +10634,8 @@ msgstr "تم تمكين وضع عدم الاتصال. بعض الميزات قد
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main_window/calls.py client/main_window/settings.py
-#: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
+#: client/ui/dialogs/live_translation.py client/ui/dialogs/settings_dialog.py
+#: client/ui/dialogs/shortcut_capture.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "ok"

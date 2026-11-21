@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Las llamadas individuales se pueden traducir con Gemini Live Translate en uno o ambos sentidos, con reducción opcional del volumen original y reconexión automática.
+
 - Ayuda para escribir: llega a WinZapp una función similar a la ayuda para escribir de WhatsApp para celulares, con la posibilidad adicional de traducir el borrador. El nuevo botón después de Emoji y el menú contextual del campo abren la misma ventana. Permite corregir, reformular o usar un tono profesional o alentador con los proveedores de IA configurados en WinZapp, no con Meta AI; la traducción se hace con Google. Pide permiso antes de enviar el borrador y muestra el resultado antes de reemplazarlo; nunca envía el mensaje automáticamente. Elige una acción y después pulsa "Ejecutar acción elegida". Abrir o cerrar esta ventana no envía el borrador.
 
 - Ayuda para escribir: nuevo atajo Alt+Shift+H para abrir la ventana desde cualquier lugar del chat con un borrador escrito. Se puede cambiar en la pestaña Atajos de Configuración, y el menú contextual del campo y el botón ahora muestran el atajo en uso.

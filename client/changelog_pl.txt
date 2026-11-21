@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Tłumaczenie indywidualnych rozmów na żywo przez Gemini w jedną lub obie strony, z opcjonalnym ściszaniem oryginalnego głosu i automatycznym ponownym połączeniem.
+
 - Pomoc w pisaniu: WinZapp zyskuje funkcję podobną do pomocy w pisaniu w mobilnym WhatsAppie, z dodatkową możliwością tłumaczenia szkicu. Nowy przycisk po Emoji i menu kontekstowe pola otwierają to samo okno. Poprawiaj, przeredagowuj, stosuj ton profesjonalny lub zachęcający za pomocą dostawców AI skonfigurowanych w WinZapp, a nie Meta AI; tłumaczenie odbywa się przez Google. Przed wysłaniem szkicu wymagana jest zgoda, a przed zastąpieniem pokazywany jest wynik; wiadomość nigdy nie jest wysyłana automatycznie. Wybierz czynność, a następnie naciśnij "Wykonaj wybraną czynność". Otwarcie lub zamknięcie tego okna nie wysyła szkicu.
 
 - Pomoc w pisaniu: nowy skrót Alt+Shift+H otwiera okno z dowolnego miejsca czatu, gdy jest napisany szkic. Można go zmienić na karcie Skróty w Ustawieniach, a menu kontekstowe pola i przycisk pokazują teraz używany skrót.

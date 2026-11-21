@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Tradução em direto com o Gemini em chamadas individuais, num ou nos dois sentidos, com redução opcional do volume da voz original e reconexão automática.
+
 - Ajuda para escrever: chega ao WinZapp uma função semelhante à ajuda para escrever do WhatsApp para telemóveis, com a opção adicional de traduzir o rascunho. O novo botão após Emoji e o menu de contexto do campo abrem a mesma janela. Corrija, reformule, use um tom profissional ou encorajador com os fornecedores de IA configurados no WinZapp, não com a Meta AI; a tradução é feita com o Google. É pedido consentimento antes de enviar o rascunho e é mostrada uma prévia antes de o substituir; a mensagem nunca é enviada automaticamente. Escolha uma ação e depois prima "Executar ação escolhida". Abrir ou fechar esta janela não envia o rascunho.
 
 - Ajuda de escrita: novo atalho Alt+Shift+H para abrir a janela a partir de qualquer ponto da conversa com um rascunho escrito. Pode ser alterado no separador Atalhos das Definições, e o menu de contexto do campo e o botão passam a mostrar o atalho em uso.
