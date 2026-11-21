@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 19:09:50 +0000
+Subject: [PATCH] engine: forget the id of a video state stanza that was not
+ sent
+
+---
+ engine_video_refused.go      |  9 ++++++++-
+ engine_video_refused_test.go | 13 +++++++++++++
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/engine_video_refused.go b/engine_video_refused.go
+index a8fa5d2..72f4f72 100644
+--- a/engine_video_refused.go
++++ b/engine_video_refused.go
+@@ -21,7 +21,14 @@ func (e *engine) transmitVideoState(callID string, node waBinary.Node) error {
+ 		e.videoStateIDs[id] = callID
+ 		e.mu.Unlock()
+ 	}
+-	return e.transmitCallNode(context.Background(), node)
++	err := e.transmitCallNode(context.Background(), node)
++	if err != nil {
++		// nothing was sent, so no ack will name it
++		if id, _ := node.Attrs["id"].(string); id != "" {
++			e.takeVideoStateID(id)
++		}
++	}
++	return err
+ }
+ 
+ // takeVideoStateID returns the call a <video> state stanza of the given id was sent
+diff --git a/engine_video_refused_test.go b/engine_video_refused_test.go
+index f8b9352..b542e1e 100644
+--- a/engine_video_refused_test.go
++++ b/engine_video_refused_test.go
+@@ -2,6 +2,7 @@ package meowcaller
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"testing"
+ 
+ 	waBinary "go.mau.fi/whatsmeow/binary"
+@@ -69,3 +70,15 @@ func TestTheVideoStateIDsStayBounded(t *testing.T) {
+ 		t.Fatalf("%d ids remembered, bound is %d", len(eng.videoStateIDs), maxVideoStateIDs)
+ 	}
+ }
++
++func TestAVideoStateThatWasNotSentIsNotRemembered(t *testing.T) {
++	eng, _ := testEngineWithOutgoingCall()
++	eng.sendCallNode = func(context.Context, waBinary.Node) error { return errors.New("offline") }
++	node := waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"id": "X1"}}
++	if err := eng.transmitVideoState("CID", node); err == nil {
++		t.Fatal("the send error was swallowed")
++	}
++	if len(eng.videoStateIDs) != 0 {
++		t.Fatalf("the id of a stanza that was never sent is remembered: %v", eng.videoStateIDs)
++	}
++}
