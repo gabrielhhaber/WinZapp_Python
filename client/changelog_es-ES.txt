@@ -4,6 +4,10 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Reacciones: una reacción personalizada, elegida con "Añadir más reacciones", entra ahora en la lista de reacciones rápidas la primera vez que se usa, en lugar de la última reacción predeterminada que nunca has usado. Además hay diez comandos nuevos en Configuración > Atajos de teclado (Mensajes), "Reaccionar al mensaje seleccionado con la reacción de esta posición", del 1 al 9 y 0 para la décima: cada uno reacciona al mensaje enfocado con la reacción de esa posición en Configuración > Interfaz > Reacciones, que tú eliges y que no cambia con el uso; pulsar la reacción ya enviada la quita. Vienen sin tecla, porque Ctrl+Alt+1 a 9 ya cambian de cuenta; tú eliges la tecla de cada uno.
+
+- Actualización: la ventana de actualización incorpora "Ajustes adicionales" (Alt+A), después de Sí, No y ¿Qué hay de nuevo?. Abre una ventana donde eliges, para la instalación, entre "Todos los sonidos de WinZapp" y "Solo los sonidos originales de WhatsApp", con la elección actual indicada, además de OK y Cancelar. La elección se aplica cuando se instala la actualización, también cuando se instala en segundo plano o al salir: elegir solo los sonidos originales de WhatsApp elimina los sonidos adicionales de WinZapp, y elegir todos de nuevo los restaura desde la actualización. Se conservan los paquetes de sonidos importados, tus propios archivos de sonido y tus preferencias de sonidos.
+
 - Los mensajes de voz y los archivos de audio se pueden guardar como MP3 desde la lista de tipos de archivo de Guardar como.
 
 - Las llamadas individuales se pueden traducir con Gemini Live Translate en uno o ambos sentidos, con reducción opcional del volumen original y reconexión automática.

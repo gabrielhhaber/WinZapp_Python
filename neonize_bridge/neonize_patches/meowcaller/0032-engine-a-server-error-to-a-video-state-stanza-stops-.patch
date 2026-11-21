@@ -1,0 +1,246 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 19:08:21 +0000
+Subject: [PATCH] engine: a server error to a video state stanza stops only our
+ video, not the call
+
+---
+ CHANGELOG.md                 | 10 +++++
+ engine.go                    | 16 ++++++--
+ engine_video_refused.go      | 65 +++++++++++++++++++++++++++++++++
+ engine_video_refused_test.go | 71 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 158 insertions(+), 4 deletions(-)
+ create mode 100644 engine_video_refused.go
+ create mode 100644 engine_video_refused_test.go
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d7a44d5..49a8fc7 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,16 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ## [Unreleased]
+ 
++### engine/video-state — `implemented`
++
++- A server error ack to one of our `<video>` state stanzas (the stanza's `id`
++  is remembered) no longer ends the call: only our video stops (`localVideo`
++  and the gate cleared, the sender disabled) and the call goes on. Live,
++  2026-11-21: a voice call of a call link turned to video ended 0.2 s after the
++  camera's first frame with `call rejected by server` (403), four times of
++  four, while its audio worked. Why the server refuses a link call's video
++  state is still unknown (needs a capture of WhatsApp Web doing it).
++
+ ### api/call-link-join — `implemented`
+ 
+ - Joining a call link builds the call entry as WhatsApp Web holds it after the
+diff --git a/engine.go b/engine.go
+index 68da225..be06dad 100644
+--- a/engine.go
++++ b/engine.go
+@@ -37,6 +37,10 @@ type engine struct {
+ 	sendCallNode    func(context.Context, waBinary.Node) error
+ 	requestCallNode func(context.Context, waBinary.Node, string) (*waBinary.Node, error)
+ 	rawCallHookErr  error
++
++	// videoStateIDs maps the id of each <video> state stanza sent to its call, so an
++	// error ack naming one can be told from an error ack of the call itself.
++	videoStateIDs map[string]string
+ }
+ 
+ // engineCall is the engine's per-call state: the public Call handle plus the inputs
+@@ -311,7 +315,7 @@ func (e *engine) transitionVideo(callID string, transition int) error {
+ 		})
+ 	}
+ 	send := func(state int, dec string, orientation *int) error {
+-		return e.transmitCallNode(context.Background(), build(state, dec, orientation))
++		return e.transmitVideoState(callID, build(state, dec, orientation))
+ 	}
+ 
+ 	var err error
+@@ -380,7 +384,7 @@ func (e *engine) setVideoEnabled(callID string, enabled bool) error {
+ 		CallID: callID, To: to, CallCreator: creator, WrapperID: e.nextCallNodeID(),
+ 		State: state, Dec: dec,
+ 	})
+-	err := e.transmitCallNode(context.Background(), node)
++	err := e.transmitVideoState(callID, node)
+ 	if err == nil || !enabled {
+ 		return err
+ 	}
+@@ -412,7 +416,7 @@ func (e *engine) setVideoOrientation(callID string, orientation int) error {
+ 		CallID: callID, To: to, CallCreator: creator, WrapperID: e.nextCallNodeID(),
+ 		State: signaling.VideoStateEnabled, DeviceOrientation: &orientation,
+ 	})
+-	return e.transmitCallNode(context.Background(), node)
++	return e.transmitVideoState(callID, node)
+ }
+ 
+ // placeCall resolves target to a LID, builds and sends the <offer>, registers the Call,
+@@ -1087,6 +1091,10 @@ func (e *engine) applyVoipSettingsCodec(m *engineCall, node *waBinary.Node, call
+ // caller bring up media. An error ack tears the call down.
+ func (e *engine) onCallAck(ack *waBinary.Node) {
+ 	if errCode := ack.AttrGetter().String("error"); errCode != "" {
++		if callID, ok := e.takeVideoStateID(ack.AttrGetter().OptionalString("id")); ok {
++			e.videoStateRefused(callID, errCode)
++			return
++		}
+ 		callID := ""
+ 		if en := findChild(ack, "error"); en != nil {
+ 			callID = en.AttrGetter().String("call-id")
+@@ -1279,7 +1287,7 @@ func (e *engine) onVideoStanza(v *waBinary.Node) {
+ 			CallID: callID, To: to, CallCreator: creator, WrapperID: e.nextCallNodeID(),
+ 			State: signaling.VideoStateEnabled, DeviceOrientation: &orientation,
+ 		})
+-		if err := e.transmitCallNode(context.Background(), node); err != nil {
++		if err := e.transmitVideoState(callID, node); err != nil {
+ 			e.mu.Lock()
+ 			if current := e.calls[callID]; current == m {
+ 				current.localVideo = false
+diff --git a/engine_video_refused.go b/engine_video_refused.go
+new file mode 100644
+index 0000000..a8fa5d2
+--- /dev/null
++++ b/engine_video_refused.go
+@@ -0,0 +1,65 @@
++package meowcaller
++
++import (
++	"context"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++)
++
++// maxVideoStateIDs bounds the ids remembered; a call sends a handful.
++const maxVideoStateIDs = 64
++
++// transmitVideoState sends a <video> state stanza and remembers its id: a server that
++// refuses it answers an <ack class="call" error="..."> carrying that id, which is not
++// the end of the call.
++func (e *engine) transmitVideoState(callID string, node waBinary.Node) error {
++	if id, _ := node.Attrs["id"].(string); id != "" {
++		e.mu.Lock()
++		if e.videoStateIDs == nil || len(e.videoStateIDs) >= maxVideoStateIDs {
++			e.videoStateIDs = make(map[string]string)
++		}
++		e.videoStateIDs[id] = callID
++		e.mu.Unlock()
++	}
++	return e.transmitCallNode(context.Background(), node)
++}
++
++// takeVideoStateID returns the call a <video> state stanza of the given id was sent
++// for, and forgets the id.
++func (e *engine) takeVideoStateID(id string) (string, bool) {
++	if id == "" {
++		return "", false
++	}
++	e.mu.Lock()
++	defer e.mu.Unlock()
++	callID, ok := e.videoStateIDs[id]
++	if ok {
++		delete(e.videoStateIDs, id)
++	}
++	return callID, ok
++}
++
++// videoStateRefused handles a server error ack to one of our <video> state stanzas.
++// The server answers 403 to a link call's video state (live, 2026-11-21: four voice
++// calls of a call link turned to video ended 0.2 s after the camera's first frame
++// with "call rejected by server"), and ending the whole call for it dropped a call
++// whose audio worked. Only our video stops; the call goes on.
++func (e *engine) videoStateRefused(callID, errCode string) {
++	e.mu.Lock()
++	m := e.calls[callID]
++	var sender *videoSender
++	if m != nil {
++		m.localVideo = false
++		m.videoGate = false
++		sender = m.videoTx
++	}
++	e.mu.Unlock()
++	if m == nil {
++		return
++	}
++	if sender != nil {
++		sender.disable()
++	}
++	e.c.log.Warn().Str("call_id", callID).Str("error_code", errCode).
++		Msg("video state refused by server; the call goes on without our video")
++}
+diff --git a/engine_video_refused_test.go b/engine_video_refused_test.go
+new file mode 100644
+index 0000000..f8b9352
+--- /dev/null
++++ b/engine_video_refused_test.go
+@@ -0,0 +1,71 @@
++package meowcaller
++
++import (
++	"context"
++	"testing"
++
++	waBinary "go.mau.fi/whatsmeow/binary"
++)
++
++func videoErrorAck(id string) *waBinary.Node {
++	return &waBinary.Node{
++		Tag:   "ack",
++		Attrs: waBinary.Attrs{"class": "call", "id": id, "error": "403"},
++		Content: []waBinary.Node{{
++			Tag: "error", Attrs: waBinary.Attrs{"call-id": "CID", "code": "403"},
++		}},
++	}
++}
++
++func TestAServerErrorToAVideoStateLeavesTheCallUp(t *testing.T) {
++	eng, call := testEngineWithOutgoingCall()
++	m := eng.calls[call.ID()]
++	m.localVideo, m.videoGate = true, true
++	m.videoTx = &videoSender{active: true}
++	var sentID string
++	eng.sendCallNode = func(_ context.Context, node waBinary.Node) error {
++		sentID, _ = node.Attrs["id"].(string)
++		return nil
++	}
++	if err := eng.setVideoEnabled("CID", true); err != nil {
++		t.Fatalf("setVideoEnabled: %v", err)
++	}
++	if sentID == "" {
++		t.Fatal("the video state stanza carries no id")
++	}
++
++	eng.onCallAck(videoErrorAck(sentID))
++
++	if eng.lookup("CID") == nil || call.State() == CallPhaseEnded {
++		t.Fatal("an error ack to a video state ended the call")
++	}
++	if eng.callIsSendingVideo("CID") {
++		t.Fatal("the call still sends video after the server refused it")
++	}
++	if active, _ := senderVideoState(m.videoTx); active {
++		t.Fatal("the video sender is still active")
++	}
++	if len(eng.videoStateIDs) != 0 {
++		t.Fatalf("the id of the answered stanza is still remembered: %v", eng.videoStateIDs)
++	}
++}
++
++func TestAServerErrorToAnythingElseStillEndsTheCall(t *testing.T) {
++	eng, call := testEngineWithOutgoingCall()
++	eng.onCallAck(videoErrorAck("NOT-A-VIDEO-STATE"))
++	if eng.lookup(call.ID()) != nil {
++		t.Fatal("an error ack that names no video state must end the call")
++	}
++}
++
++func TestTheVideoStateIDsStayBounded(t *testing.T) {
++	eng, _ := testEngineWithOutgoingCall()
++	eng.sendCallNode = func(context.Context, waBinary.Node) error { return nil }
++	for i := 0; i < 3*maxVideoStateIDs; i++ {
++		node := waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"id": string(rune('A'+i%26)) + string(rune('a'+i/26))}}
++		_ = eng.transmitVideoState("CID", node)
++	}
++	if len(eng.videoStateIDs) > maxVideoStateIDs {
++		t.Fatalf("%d ids remembered, bound is %d", len(eng.videoStateIDs), maxVideoStateIDs)
++	}
++}

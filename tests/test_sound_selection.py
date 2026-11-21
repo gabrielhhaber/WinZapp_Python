@@ -62,22 +62,115 @@ def _a_new_pack(source_dir):
 
 
 def test_the_updater_prunes_the_new_pack_for_a_whatsapp_only_install(tmp_path):
-    import updater
     source, install = tmp_path / "new", tmp_path / "installed"
     default = _a_new_pack(source)
     (install / "sounds").mkdir(parents=True)
     (install / sel.INSTALLED_SOUNDS_MARKER).write_text("whatsapp", encoding="utf-8")
     kept_installed = install / "sounds" / "startup.ogg"
     kept_installed.write_bytes(b"x")
-    assert updater._leave_out_unselected_sounds(str(source), str(install)) == 1
+    assert [os.path.basename(f) for f in sel.stage_selection(str(source), str(install))] == []
     assert sorted(p.name for p in default.iterdir()) == ["call_ended.ogg"]
     assert kept_installed.exists()
 
 
 def test_the_updater_deletes_nothing_without_the_marker(tmp_path):
-    import updater
     source, install = tmp_path / "new", tmp_path / "installed"
     default = _a_new_pack(source)
     install.mkdir()
-    assert updater._leave_out_unselected_sounds(str(source), str(install)) == 0
+    assert sel.stage_selection(str(source), str(install)) == []
     assert len(list(default.iterdir())) == 2
+
+
+# ── Changing the selection from the update dialog (issue #842) ───────────────
+
+def _an_install(tmp_path, marker=None):
+    install = tmp_path / "installed"
+    default = install / "sounds" / "default"
+    (default / "alerts").mkdir(parents=True)
+    for name in ("call_ended.ogg", "startup.ogg", "default.pack.json", "alerts/Alert-02.ogg"):
+        (default / name).write_bytes(b"x")
+    (install / "sounds" / "custom.ogg").write_bytes(b"x")
+    if marker:
+        (install / sel.INSTALLED_SOUNDS_MARKER).write_text(marker, encoding="utf-8")
+    return install
+
+
+def test_the_current_mode_comes_from_the_marker(tmp_path):
+    assert sel.current_mode(str(tmp_path)) == sel.MODE_ALL
+    (tmp_path / sel.INSTALLED_SOUNDS_MARKER).write_text("whatsapp", encoding="utf-8")
+    assert sel.current_mode(str(tmp_path)) == sel.MODE_WHATSAPP
+
+
+def test_choosing_whatsapp_prunes_the_release_marks_it_and_lists_the_installed_extras(tmp_path):
+    install = _an_install(tmp_path)
+    source = tmp_path / "new"
+    default = _a_new_pack(source)
+    extras = sel.stage_selection(str(source), str(install), sel.MODE_WHATSAPP)
+    assert [os.path.basename(p) for p in extras] == ["startup.ogg"]
+    assert sorted(p.name for p in default.iterdir()) == ["call_ended.ogg"]
+    assert (source / sel.INSTALLED_SOUNDS_MARKER).read_text(encoding="utf-8") == "whatsapp"
+    # Nothing installed is touched here; the update's script deletes after the copy.
+    assert (install / "sounds" / "default" / "startup.ogg").exists()
+    assert (install / "sounds" / "custom.ogg").exists()
+
+
+def test_choosing_all_again_keeps_the_whole_release_and_replaces_the_marker(tmp_path):
+    install = _an_install(tmp_path, marker="whatsapp")
+    source = tmp_path / "new"
+    default = _a_new_pack(source)
+    assert sel.stage_selection(str(source), str(install), sel.MODE_ALL) == []
+    assert len(list(default.iterdir())) == 2
+    assert not sel.keeps_only_whatsapp(str(source))
+    assert (source / sel.INSTALLED_SOUNDS_MARKER).read_text(encoding="utf-8") == "full"
+
+
+def test_keeping_the_current_selection_changes_nothing_else(tmp_path):
+    source = tmp_path / "new"
+    default = _a_new_pack(source)
+    full = _an_install(tmp_path / "a")
+    assert sel.stage_selection(str(source), str(full), sel.MODE_ALL) == []
+    assert not (source / sel.INSTALLED_SOUNDS_MARKER).exists() and len(list(default.iterdir())) == 2
+    only = _an_install(tmp_path / "b", marker="whatsapp")
+    assert sel.stage_selection(str(source), str(only), sel.MODE_WHATSAPP) == []
+    assert sorted(p.name for p in default.iterdir()) == ["call_ended.ogg"]
+    assert not (source / sel.INSTALLED_SOUNDS_MARKER).exists()
+
+
+def test_the_pending_choice_wins_over_the_installed_one_and_can_be_cleared(tmp_path):
+    install = _an_install(tmp_path, marker="whatsapp")
+    source = tmp_path / "new"
+    _a_new_pack(source)
+    try:
+        sel.set_pending_mode(sel.MODE_ALL)
+        assert sel.pending_mode() == sel.MODE_ALL
+        sel.stage_selection(str(source), str(install))
+        assert (source / sel.INSTALLED_SOUNDS_MARKER).read_text(encoding="utf-8") == "full"
+        sel.set_pending_mode("nonsense")
+        assert sel.pending_mode() is None
+    finally:
+        sel.set_pending_mode(None)
+
+
+def test_the_update_script_deletes_the_dropped_sounds_only_after_the_copy():
+    import updater
+    args = dict(source_dir="C:\\src", install_dir="C:\\app", exe_path="C:\\app\\WinZapp.exe",
+                log_path="C:\\log.txt", marker_path="C:\\app\\m", pid=1, api_port=6300)
+    script = updater._build_installer_script(**args, delete_files=["C:\\app\\sounds\\default\\startup.ogg"])
+    line = 'del /F /Q "C:\\app\\sounds\\default\\startup.ogg"'
+    assert line in script and script.index("exit /b 1\n)\n") < script.index(line)
+    assert "del /F /Q" not in updater._build_installer_script(**args)
+
+
+def test_a_read_only_label_loses_its_mnemonics():
+    assert sel.plain_label("On&ly the original") == "Only the original"
+    assert sel.plain_label("Tom && &Jerry") == "Tom & Jerry"
+    assert sel.plain_label("إ&ضافية") == "إضافية"
+
+
+def test_the_installed_selection_line_has_no_mnemonic_in_any_locale():
+    import polib
+    for po_path in (ROOT / "translations").glob("*/LC_MESSAGES/winzapp.po"):
+        po = polib.pofile(str(po_path))
+        for key in ("sound_selection_all", "sound_selection_whatsapp"):
+            text = sel.plain_label(po.find(key, by="msgctxt").msgstr)
+            assert "&" not in text, (po_path, key)

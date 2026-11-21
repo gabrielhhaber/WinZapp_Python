@@ -3747,7 +3747,8 @@ msgstr "Configurações &de vídeo da chamada"
 #: client/ui/dialogs/order_create_dialog.py
 #: client/ui/dialogs/settings_dialog.py client/ui/dialogs/shortcut_capture.py
 #: client/ui/dialogs/status_audience_dialog.py
-#: client/ui/dialogs/summary_voice_choice.py client/updater.py
+#: client/ui/dialogs/summary_voice_choice.py
+#: client/ui/dialogs/update_sound_settings.py client/updater.py
 msgctxt "cancel"
 msgid "&Cancel"
 msgstr "&Cancelar"
@@ -11482,6 +11483,7 @@ msgstr "Modo offline ativado. Algumas funções podem estar indisponíveis."
 #: client/ui/dialogs/shortcut_capture.py
 #: client/ui/dialogs/status_audience_dialog.py
 #: client/ui/dialogs/transcription_windows.py
+#: client/ui/dialogs/update_sound_settings.py
 msgctxt "ok"
 msgid "&OK"
 msgstr "&OK"
@@ -14499,6 +14501,17 @@ msgstr ""
 "Ctrl+Shift+F1 a Ctrl+Shift+F10: abrir o chat de acesso rápido de 1 a 9 e 0"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_quick_reaction_label"
+msgid ""
+"React to the selected message with the reaction in this position of Settings"
+" > Interface > Reactions (1 is the first, 0 is the tenth); pressing the "
+"reaction already sent removes it, position"
+msgstr ""
+"Reagir à mensagem selecionada com a reação desta posição de Configurações > "
+"Interface > Reações (1 é a primeira, 0 é a décima); apertar a reação já "
+"enviada a remove, posição"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
 msgid "Remove &shortcut"
 msgstr "Remover &atalho"
@@ -15091,6 +15104,36 @@ msgstr "Pacote de som padrão"
 msgctxt "sound_pack_label"
 msgid "Sound &pack:"
 msgstr "Pacote de so&m:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "sound_selection_all"
+msgid "&All WinZapp sounds"
+msgstr "&Todos os sons do WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+#, python-brace-format
+msgctxt "sound_selection_current"
+msgid "Sounds installed now: {selection}."
+msgstr "Sons instalados agora: {selection}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "sound_selection_note"
+msgid ""
+"The change is applied when the update is installed. Sound packs you "
+"imported, your own sound files and your sound preferences are kept."
+msgstr ""
+"A alteração é aplicada quando a atualização for instalada. Os pacotes de "
+"sons importados, seus próprios arquivos de som e suas preferências de sons "
+"são mantidos."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "sound_selection_whatsapp"
+msgid "On&ly the original WhatsApp sounds"
+msgstr "&Somente os sons originais do WhatsApp"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "soundpack_import_error_absolute_path"
@@ -21659,6 +21702,17 @@ msgstr "Desfavoritar"
 msgctxt "unsupported_message"
 msgid "Incompatible message"
 msgstr "Mensagem incompatível"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
+msgctxt "update_additional_settings_btn"
+msgid "&Additional settings"
+msgstr "Configurações &adicionais"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/update_sound_settings.py
+msgctxt "update_additional_settings_title"
+msgid "Additional settings"
+msgstr "Configurações adicionais"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/update_channel_choice.py
 #, python-brace-format

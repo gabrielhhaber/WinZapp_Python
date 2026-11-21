@@ -147,6 +147,18 @@ SHORTCUTS = (
     Shortcut('messages.ID_REVIEW[8]', 'messages', 'ID_REVIEW[8]', 'shortcut_review_message_label', 0, 0, 0),
     Shortcut('messages.ID_REVIEW[9]', 'messages', 'ID_REVIEW[9]', 'shortcut_review_message_label', 0, 0, 0),
     Shortcut('messages.ID_REVIEW[0]', 'messages', 'ID_REVIEW[0]', 'shortcut_review_message_label', 0, 0, 0),
+    # React with row N of Settings > Reactions (issue #852). No default key: Ctrl+Alt+1..9
+    # switch accounts and every other digit combination is taken; the user binds them.
+    Shortcut('messages.ID_QUICK_REACTION[1]', 'messages', 'ID_QUICK_REACTION[1]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[2]', 'messages', 'ID_QUICK_REACTION[2]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[3]', 'messages', 'ID_QUICK_REACTION[3]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[4]', 'messages', 'ID_QUICK_REACTION[4]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[5]', 'messages', 'ID_QUICK_REACTION[5]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[6]', 'messages', 'ID_QUICK_REACTION[6]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[7]', 'messages', 'ID_QUICK_REACTION[7]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[8]', 'messages', 'ID_QUICK_REACTION[8]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[9]', 'messages', 'ID_QUICK_REACTION[9]', 'shortcut_quick_reaction_label', 0, 0, 0),
+    Shortcut('messages.ID_QUICK_REACTION[0]', 'messages', 'ID_QUICK_REACTION[0]', 'shortcut_quick_reaction_label', 0, 0, 0),
     Shortcut('messages.ID_BOOKMARK[0]', 'messages', 'ID_BOOKMARK[0]', 'shortcut_ctrl_num_label', 2, 48, 0),
     Shortcut('messages.ID_BOOKMARK[1]', 'messages', 'ID_BOOKMARK[1]', 'shortcut_ctrl_num_label', 2, 49, 0),
     Shortcut('messages.ID_BOOKMARK[2]', 'messages', 'ID_BOOKMARK[2]', 'shortcut_ctrl_num_label', 2, 50, 0),

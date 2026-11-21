@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Reazioni: una reazione personalizzata, scelta con "Aggiungi altre reazioni", ora entra nell'elenco delle reazioni rapide già al primo utilizzo, al posto dell'ultima reazione predefinita che non hai mai usato. Ci sono inoltre dieci nuovi comandi in Impostazioni > Scorciatoie da Tastiera (Messaggi), "Reagire al messaggio selezionato con la reazione di questa posizione", da 1 a 9 e 0 per la decima: ognuno reagisce al messaggio in primo piano con la reazione di quella posizione in Impostazioni > Interfaccia > Reazioni, che scegli tu e che non cambia con l'uso; premere la reazione già inviata la rimuove. Sono senza tasto, perché Ctrl+Alt+1 a 9 cambiano già account; il tasto di ciascuno lo scegli tu.
+
+- Aggiornamento: la finestra di aggiornamento aggiunge "Altre impostazioni" (Alt+A), dopo Sì, No e Novità?. Apre una finestra dove scegli, per l'installazione, tra "Tutti i suoni di WinZapp" e "Solo i suoni originali di WhatsApp", con la scelta attuale indicata, più OK e Annulla. La scelta viene applicata quando l'aggiornamento viene installato, anche quando si installa in background o all'uscita: scegliere solo i suoni originali di WhatsApp rimuove i suoni extra di WinZapp, e sceglierli di nuovo tutti li ripristina dall'aggiornamento. I pacchetti di suoni importati, i tuoi file audio e le tue preferenze sui suoni vengono mantenuti.
+
 - I messaggi vocali e i file audio si possono salvare come MP3 dall’elenco dei tipi di file in Salva con nome.
 
 - Traduzione dal vivo con Gemini nelle chiamate individuali, in uno o entrambi i sensi, con riduzione facoltativa del volume originale e riconnessione automatica.

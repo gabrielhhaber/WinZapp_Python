@@ -7,7 +7,6 @@ DEFAULT_QUICK_REACTIONS = (
     "❤️", "👍", "👎", "😂", "😮", "😢", "🙏", "🔥", "🎉", "💯", "😎", "🥰",
 )
 REACTION_HISTORY_LIMIT = 100
-_DEFAULT_HEAD_START = 3
 
 
 def _valid_history(history) -> list[str]:
@@ -60,12 +59,22 @@ def _ranked_by_use(history) -> list[str]:
     defaults = {emoji: index for index, emoji in enumerate(DEFAULT_QUICK_REACTIONS)}
     last_used = {emoji: index for index, emoji in enumerate(recent)}
     choices = set(defaults) | set(counts)
+    # Any reaction already used outranks a default never used, so a custom
+    # reaction joins the list the first time it is sent (issue #852); among
+    # equal counts the more recent one is first, and unused defaults keep
+    # their shipped order at the tail.
     return sorted(choices, key=lambda emoji: (
-        -(counts[emoji] + (_DEFAULT_HEAD_START if emoji in defaults else 0)),
-        0 if emoji in defaults else 1,
-        defaults.get(emoji, len(defaults)),
+        -counts[emoji],
         -last_used.get(emoji, -1),
+        defaults.get(emoji, len(defaults)),
     ))[:len(DEFAULT_QUICK_REACTIONS)]
+
+
+def quick_reaction_at(slots, digit: int) -> str:
+    """The reaction a quick-reaction shortcut sends: digit 1..9 is the
+    configured row 1..9 and 0 the tenth, whatever the usage order."""
+    rows = fixed_quick_reactions(slots)
+    return rows[9 if digit == 0 else digit - 1]
 
 
 def reaction_to_send(chosen: str, current: str) -> str:
@@ -76,11 +85,10 @@ def reaction_to_send(chosen: str, current: str) -> str:
 
 
 def quick_reactions(history, current: str = "", *, fixed_slots=None) -> list[str]:
-    """Rank recent choices; defaults yield a slot only after repeated use.
+    """Rank recent choices; a reaction used even once is listed.
 
-    The last hundred successful reactions adapt to changing habits. Defaults
-    start with three virtual uses, so a new emoji does not displace one after
-    a single exploratory pick. Always include the current reaction so its
+    The last hundred successful reactions adapt to changing habits. A custom
+    reaction takes the place of the last default nobody has used. Always include the current reaction so its
     checked row remains available for removal, even if it is not in the top 12
     (with fixed rows it gets a thirteenth row instead, so no configured row
     is ever replaced).
