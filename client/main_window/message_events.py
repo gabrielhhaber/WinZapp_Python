@@ -1531,6 +1531,13 @@ class MessageEventsMixin:
             self.contacts, ppm, stamps, targets, push, ts, authoritative=live,
             chats=getattr(self, "chats", None))
         if changed:
+            # Rows already on screen keep the label they were drawn with, so
+            # the sender's older messages kept the previous name until the
+            # window was rebuilt (restart). Repaint those rows.
+            repaint = getattr(self, "_repaint_rows_for_name_change", None)
+            if repaint is not None:
+                repaint(targets)
+        if changed:
             unresolvable = getattr(self, "_unresolvable_names", None)
             for target in targets:
                 if not unresolvable or target not in unresolvable:
@@ -1542,6 +1549,17 @@ class MessageEventsMixin:
                     logging.warning("[_learn_sender_name] Failed to clear unresolvable name %s: %s",
                                     target, exc)
         return changed
+
+    def _repaint_rows_for_name_change(self, jids) -> None:
+        """Ask for the open conversation's rows of *jids* to be redrawn with the
+        name now known for them (debounced, scoped to those JIDs)."""
+        refresh = getattr(self, "_schedule_refresh_active_messages", None)
+        if refresh is None:
+            return
+        try:
+            wx.CallAfter(refresh, {j for j in jids if j})
+        except Exception:
+            logging.debug("[_repaint_rows_for_name_change] could not schedule", exc_info=True)
 
     def _needs_sender_resolution(self, jid: str) -> bool:
         """True when `jid` is an @lid we still have no display name for.

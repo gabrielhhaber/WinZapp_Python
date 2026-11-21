@@ -238,3 +238,29 @@ class TestLearnSenderNameStamps:
         stub._presence_pushname_map[self.LID] = "alex grupos"
         assert not stub.learn(self._msg("alex", int(time.time()) - 86400), live=True)
         assert stub._presence_pushname_map[self.LID] == "alex grupos"
+
+
+class TestRowsRepaintOnRename:
+    LID = "9@lid"
+
+    def test_a_learned_rename_asks_for_the_senders_rows_to_be_redrawn(self):
+        import time
+        stub = _Stub()
+        asked = []
+        stub._repaint_rows_for_name_change = asked.append
+        msg = _group_msg(self.LID, "Ramiro")
+        msg["messageTimestamp"] = int(time.time())
+        stub.learn(msg, live=True)
+        assert asked and self.LID in asked[0]
+        asked.clear()
+        stub.learn(msg, live=True)          # same name again: nothing to redraw
+        assert not asked
+
+    def test_repaint_request_is_scoped_to_the_jids_and_scheduled_on_the_ui_thread(self, monkeypatch):
+        import main_window.message_events as module
+        calls = []
+        monkeypatch.setattr(module.wx, "CallAfter", lambda f, *a: calls.append((f, a)))
+        refresh = object()
+        stub = type("S", (), {"_schedule_refresh_active_messages": refresh})()
+        module.MessageEventsMixin._repaint_rows_for_name_change(stub, [self.LID, "", "1@s.whatsapp.net"])
+        assert calls == [(refresh, ({self.LID, "1@s.whatsapp.net"},))]

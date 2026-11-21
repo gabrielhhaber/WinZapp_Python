@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Când un contact schimbă numele profilului, mesajele sale mai vechi din conversația deschisă sunt actualizate imediat cu numele nou, fără a închide și redeschide programul. Se aplică pentru Neonize și WPPConnect.
+
 - Linkuri de apel: în Apeluri (Alt+6), „Creați link de apel” deschide o fereastră în care alegeți apel vocal sau video, creați linkul, îl copiați, îl trimiteți într-o conversație sau vă alăturați apelului lui. Un link call.whatsapp.com primit într-un mesaj vă alătură apelului cu Enter sau cu „Alăturați-vă apelului” din meniul contextual, după o confirmare; un link deschis în browser vă alătură tot din WinZapp când acesta este programul care deschide linkurile WhatsApp (Setări > General). Cine intră primul printr-un link este administratorul apelului: persoanele fără cont WhatsApp așteaptă într-o sală de așteptare, WinZapp spune numele fiecăreia care sosește, iar butonul „Sala de așteptare” din fereastra apelului le admite sau le respinge. Funcționează cu Neonize și WPPConnect.
 
 - Contacte: lista de navigare primește „Contacte” după Canale, fără comandă rapidă Alt+cifră. Arată contactele salvate, un rând pe persoană, cu nume și număr; un contact păstrat sub două adrese (numărul și ID-ul de dispozitiv asociat, sau un număr brazilian cu și fără a 9-a cifră) este un singur rând. „Căutați contacte” filtrează după nume sau număr. Butoanele și meniul contextual (tasta Aplicații sau Shift+F10) deschid conversația, fac un apel vocal sau video, arată „Detaliile contactului”, șterg contactul sau îl blochează și deblochează; „Contact nou” adaugă unul. „Enter pe un contact” alege ce face Enter: deschide conversația, apelează, apelează video sau arată detaliile.
