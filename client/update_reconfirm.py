@@ -46,6 +46,8 @@ class ReconfirmMixin:
     def _install_reconfirmed(self, *args):
         self._install_pending = False   # _do_install() refuses while it is set
         if getattr(self._mw, "_shutting_down", False):
+            from core.sound_selection import set_pending_mode
+            set_pending_mode(None)   # the choice belonged to this install
             self._release_prompt()
             self._schedule_retry()
             return

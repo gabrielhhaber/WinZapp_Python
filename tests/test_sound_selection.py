@@ -62,24 +62,22 @@ def _a_new_pack(source_dir):
 
 
 def test_the_updater_prunes_the_new_pack_for_a_whatsapp_only_install(tmp_path):
-    import updater
     source, install = tmp_path / "new", tmp_path / "installed"
     default = _a_new_pack(source)
     (install / "sounds").mkdir(parents=True)
     (install / sel.INSTALLED_SOUNDS_MARKER).write_text("whatsapp", encoding="utf-8")
     kept_installed = install / "sounds" / "startup.ogg"
     kept_installed.write_bytes(b"x")
-    assert updater._leave_out_unselected_sounds(str(source), str(install)) == 1
+    assert [os.path.basename(f) for f in sel.stage_selection(str(source), str(install))] == []
     assert sorted(p.name for p in default.iterdir()) == ["call_ended.ogg"]
     assert kept_installed.exists()
 
 
 def test_the_updater_deletes_nothing_without_the_marker(tmp_path):
-    import updater
     source, install = tmp_path / "new", tmp_path / "installed"
     default = _a_new_pack(source)
     install.mkdir()
-    assert updater._leave_out_unselected_sounds(str(source), str(install)) == 0
+    assert sel.stage_selection(str(source), str(install)) == []
     assert len(list(default.iterdir())) == 2
 
 
@@ -159,5 +157,20 @@ def test_the_update_script_deletes_the_dropped_sounds_only_after_the_copy():
                 log_path="C:\\log.txt", marker_path="C:\\app\\m", pid=1, api_port=6300)
     script = updater._build_installer_script(**args, delete_files=["C:\\app\\sounds\\default\\startup.ogg"])
     line = 'del /F /Q "C:\\app\\sounds\\default\\startup.ogg"'
-    assert line in script and script.index("xcopy /E") < script.index(line)
+    assert line in script and script.index("exit /b 1\n)\n") < script.index(line)
     assert "del /F /Q" not in updater._build_installer_script(**args)
+
+
+def test_a_read_only_label_loses_its_mnemonics():
+    assert sel.plain_label("On&ly the original") == "Only the original"
+    assert sel.plain_label("Tom && &Jerry") == "Tom & Jerry"
+    assert sel.plain_label("إ&ضافية") == "إضافية"
+
+
+def test_the_installed_selection_line_has_no_mnemonic_in_any_locale():
+    import polib
+    for po_path in (ROOT / "translations").glob("*/LC_MESSAGES/winzapp.po"):
+        po = polib.pofile(str(po_path))
+        for key in ("sound_selection_all", "sound_selection_whatsapp"):
+            text = sel.plain_label(po.find(key, by="msgctxt").msgstr)
+            assert "&" not in text, (po_path, key)

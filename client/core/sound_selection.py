@@ -89,7 +89,7 @@ _pending_mode: Optional[str] = None
 
 
 def set_pending_mode(mode: Optional[str]) -> None:
-    """Remember the update's chosen mode; None, or the current one, clears it."""
+    """Remember the update's chosen mode; None (or anything else) clears it."""
     global _pending_mode
     _pending_mode = mode if mode in (MODE_ALL, MODE_WHATSAPP) else None
 
@@ -139,3 +139,9 @@ def _write_marker(directory: str, mode: str) -> None:
     value = MODE_WHATSAPP if mode == MODE_WHATSAPP else _MARKER_ALL
     with open(os.path.join(directory, INSTALLED_SOUNDS_MARKER), "w", encoding="utf-8") as fh:
         fh.write(value)
+
+
+def plain_label(text: str) -> str:
+    """*text* without wx mnemonics (``&x`` -> ``x``, ``&&`` -> ``&``), for a
+    label that is only read: a mnemonic there would take an Alt letter."""
+    return text.replace("&&", "\0").replace("&", "").replace("\0", "&")

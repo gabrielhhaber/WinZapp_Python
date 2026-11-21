@@ -43,7 +43,7 @@ from update_progress import UpdateProgressLifecycle, update_control_if_alive
 from ui.modal_utils import end_modal_if_running
 from update_node_kill import bridge_stop_lines, node_kill_lines, own_node_pids
 from core.update_exit_notice import exit_notice
-from core.sound_selection import keeps_only_whatsapp, prune_to_whatsapp, stage_selection
+from core.sound_selection import stage_selection
 from update_relaunch import (relaunch_environment, relaunch_lines, run_elevated,
                              start_relaunch_waiter)
 from version import __version__
@@ -881,24 +881,17 @@ def _keep_newer_installed_server(source_dir: str, install_dir: str) -> None:
         logging.exception("Auto-updater: could not check the installed WPPConnect Server")
 
 
-def _leave_out_unselected_sounds(source_dir: str, install_dir: str) -> int:
-    """The install chose only WhatsApp's own sounds (issue #769): the update
-    must not bring the rest of the pack back. Prunes the new files in
-    *source_dir*, never the installed ones. Returns how many were left out."""
-    if not keeps_only_whatsapp(install_dir):
-        return 0
-    removed = prune_to_whatsapp(os.path.join(source_dir, "sounds"))
-    logging.info("Auto-updater: %d sound(s) left out, as the install chose.", removed)
-    return removed
-
-
 def _stage_sound_selection(source_dir: str, install_dir: str) -> list:
     """The sounds the install keeps (issue #842): the choice made in the update
     dialog, else the installed one. Returns the installed files the script
     deletes after the copy; only plain-ASCII paths the batch can quote."""
     paths = stage_selection(source_dir, install_dir)
-    return [p for p in paths
-            if p.isascii() and not any(c in p for c in '%!"^&')]
+    # The script's own paths go through _console_safe_path(); these must too,
+    # or an accented install folder would keep its extras under a marker that
+    # says they were removed.
+    safe = [os.path.join(_console_safe_path(os.path.dirname(p)), os.path.basename(p))
+            for p in paths]
+    return [p for p in safe if p.isascii() and not any(c in p for c in '%!"^&')]
 
 
 def _run_batch_installer(extracted_dir: str, install_dir: str, exe_name: str, pid: int, api_port: int = 6300,

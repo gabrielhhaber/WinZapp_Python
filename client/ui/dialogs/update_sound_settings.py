@@ -8,7 +8,7 @@ so a screen reader reads both when the dialog opens.
 """
 import wx
 
-from core.sound_selection import MODE_ALL, MODE_WHATSAPP
+from core.sound_selection import MODE_ALL, MODE_WHATSAPP, plain_label
 
 
 def mode_label_key(mode: str) -> str:
@@ -24,7 +24,7 @@ class UpdateSoundSettingsDialog(wx.Dialog):
                          style=wx.DEFAULT_DIALOG_STYLE)
         sizer = wx.BoxSizer(wx.VERTICAL)
         current = i18n.t("sound_selection_current").format(
-            selection=i18n.t(mode_label_key(installed_mode)))
+            selection=plain_label(i18n.t(mode_label_key(installed_mode))))
         info = wx.StaticText(self, label=current)
         info.Wrap(420)
         sizer.Add(info, 0, wx.ALL, 12)
