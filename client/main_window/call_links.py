@@ -21,6 +21,7 @@ import threading
 
 import wx
 
+from core.call_media_ownership import valid_media_epoch
 from core.call_links import (
     arrivals_announcement,
     newly_waiting,
@@ -113,12 +114,27 @@ class CallLinksMixin:
         if not call_id or call_id.startswith("outgoing:"):
             return
         if body.get("waiting") is True:
-            # not "connected" yet: the call's admin has to let this user in
+            # not "connected" yet: the call's admin has to let this user in.
+            # The epoch is bound now all the same: an admission that lands
+            # before this answer is processed is dropped like the join's own
+            # event, and nothing would replay it.
+            epoch = body.get("mediaEpoch")
+            if valid_media_epoch(epoch) and not call_record.get("media_epoch"):
+                call_record["media_epoch"] = epoch
+                audio = (getattr(self, "_call_audio_session", None)
+                         or getattr(self, "_call_ring_audio_session", None))
+                setter = getattr(audio, "set_media_epoch", None)
+                if callable(setter):
+                    setter(epoch)
             self.output(self.i18n.t("call_link_waiting_for_admin"), interrupt=True)
             self._sync_call_link_controls()
             return
         self.on_voice_call_state_event({
             "id": call_id, "state": "ACTIVE", "event": "state", "peerJid": "",
+            # the epoch the microphone and speaker bind to: the bridge's own
+            # event for it can land before the record has the call's id and be
+            # dropped as another call's
+            "mediaEpoch": body.get("mediaEpoch"),
             "outgoing": False, "isVideo": bool(call_record.get("is_video")), "isGroup": True,
         })
         self._sync_call_link_controls()

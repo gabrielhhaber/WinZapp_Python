@@ -1,6 +1,8 @@
 """Call links on the client: reading a link, the waiting room, and joining
 (core/call_links.py, main_window/call_links.py)."""
 
+import types
+
 from core import call_links as cl
 from main_window.call_links import CallLinksMixin
 
@@ -121,14 +123,21 @@ def test_the_join_answer_replays_connected_unless_the_user_waits_to_be_let_in():
     stub = Stub()
     record = {"call_id": "L1", "call_link": VOICE, "is_video": False}
     stub._active_voice_call = record
-    stub._on_call_link_joined(record, {"id": "L1", "admin": True})
+    stub._on_call_link_joined(record, {"id": "L1", "admin": True, "mediaEpoch": "a" * 32})
     assert record["call_link_admin"] is True
     assert [(e["id"], e["state"], e["peerJid"]) for e in stub.events] == [("L1", "ACTIVE", "")]
+    # the epoch the microphone and speaker bind to travels with the replay
+    assert stub.events[0]["mediaEpoch"] == "a" * 32
 
     waiting = {"call_id": "L2", "call_link": VOICE}
     stub._active_voice_call = waiting
-    stub._on_call_link_joined(waiting, {"waiting": True})
+    bound = []
+    stub._call_audio_session = types.SimpleNamespace(set_media_epoch=bound.append)
+    stub._on_call_link_joined(waiting, {"waiting": True, "mediaEpoch": "b" * 32})
     assert len(stub.events) == 1 and stub.spoken == ["call_link_waiting_for_admin"]
+    # waiting, the audio still binds to the call's epoch: an admission that
+    # lands before this answer is dropped and nothing would replay it
+    assert waiting["media_epoch"] == "b" * 32 and bound == ["b" * 32]
 
     # a record that is no longer the active call is left alone
     stub._on_call_link_joined(record, {"id": "L1"})

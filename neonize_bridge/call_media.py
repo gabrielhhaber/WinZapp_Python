@@ -1033,11 +1033,18 @@ class CallMedia(CallIngressMixin):
         token = str(link).split("?")[0].rstrip("/").rsplit("/", 1)[-1]
         answer = self.calls.join_link(token, video=video)
         joined = str(answer["call"])
+        # The client binds its microphone and speaker to this epoch. The
+        # callstate event below can reach it before the join answer has
+        # given the call its id, and is then dropped as another call's, so the
+        # answer carries the epoch too (a call link joined that way heard
+        # nothing and was heard by no one).
+        epoch = uuid.uuid4().hex
+        answer = dict(answer, mediaEpoch=epoch)
         with self._lock:
             self._elsewhere.discard(joined)
             self._calls[joined] = {"id": joined, "peer": "", "outgoing": False, "state": "",
                                    "video": bool(video), "connected": True, "group": "",
-                                   "link": True}
+                                   "link": True, "media_epoch": epoch}
         self._note_answered(joined)
         # someone waiting for an admin is not in the call yet: meowcaller's
         # phase 4 brings ACTIVE (and the start of its duration) on admission
