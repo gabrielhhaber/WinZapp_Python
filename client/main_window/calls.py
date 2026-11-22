@@ -466,6 +466,10 @@ class CallsMixin:
             return True
 
         audio = getattr(self, "_call_ring_audio_session", None)
+        logging.info(
+            "[call_audio] session for answer: reuses_ring_monitor=%s epoch_bound=%s",
+            audio is not None,
+            valid_media_epoch((owner or {}).get('media_epoch') or (details or {}).get('media_epoch')))
         if audio is None:
             audio, session_name = self._build_call_audio_session()
         else:

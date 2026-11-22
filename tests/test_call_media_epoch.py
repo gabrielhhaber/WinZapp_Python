@@ -95,3 +95,27 @@ def test_remote_video_stopped_clears_only_the_active_calls_frame():
     assert not cleared
     scope['on_call_video_remote_stopped'](ws, {'mediaEpoch': B})
     assert cleared == [1]
+
+
+def test_remote_audio_dropped_by_epoch_is_counted_and_logged(caplog):
+    import logging as _logging
+    scope = socket_methods('on_call_audio_remote')
+    main = N(_active_voice_call={}, on_call_remote_audio=lambda *a, **k: None)
+    ws = N(main_window=main, _belongs_to_this_session=lambda data: True)
+    with caplog.at_level(_logging.WARNING):
+        for _ in range(3):
+            scope['on_call_audio_remote'](ws, {'pcm': base64.b64encode(b'synthetic').decode(), 'mediaEpoch': A})
+    assert ws._call_remote_audio_epoch_drops == 3
+    assert sum('dropped by media epoch' in r.message for r in caplog.records) == 1
+
+
+def test_epoch_drop_log_starts_again_for_the_next_call(caplog):
+    import logging as _logging
+    scope = socket_methods('on_call_audio_remote')
+    main = N(_active_voice_call={}, on_call_remote_audio=lambda *a, **k: None)
+    ws = N(main_window=main, _belongs_to_this_session=lambda data: True)
+    frame = base64.b64encode(b'synthetic').decode()
+    with caplog.at_level(_logging.WARNING):
+        scope['on_call_audio_remote'](ws, {'pcm': frame, 'mediaEpoch': A})
+        scope['on_call_audio_remote'](ws, {'pcm': frame, 'mediaEpoch': B})
+    assert sum('dropped by media epoch' in r.message for r in caplog.records) == 2
