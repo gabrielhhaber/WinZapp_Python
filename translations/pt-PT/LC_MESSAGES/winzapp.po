@@ -21386,7 +21386,9 @@ msgctxt "ui_read_on_arrival_when_focused"
 msgid ""
 "Stop new messages in the open chat from &joining the unread separator; mark "
 "them as read on arrival"
-msgstr "Não acumular no separador de mensagens por ler as mensagens que c&hegam à conversa aberta; marcá-las como lidas à chegada"
+msgstr ""
+"Não acumular no separador de mensagens por ler as mensagens que c&hegam à "
+"conversa aberta; marcá-las como lidas à chegada"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/reading_position_options.py
@@ -22225,6 +22227,11 @@ msgstr "erro desconhecido"
 msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr "A chamada de voz não está disponível nesta conversa."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_link_no_video"
+msgid "This is a voice call link, so it cannot be switched to video."
+msgstr "Este link de chamada é só de voz, por isso não pode ser mudado para vídeo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"

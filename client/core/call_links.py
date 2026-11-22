@@ -45,6 +45,12 @@ def parse_call_link(text) -> tuple:
     return _canonical(found) if found else (None, "")
 
 
+def call_link_is_voice_only(link) -> bool:
+    """True for a voice link: its call has no camera, so WhatsApp refuses the
+    switch to video (status 670028) and WinZapp does not even try."""
+    return parse_call_link(link)[0] is False
+
+
 def _canonical(found) -> tuple:
     if len(found.group(2)) != TOKEN_LENGTH:
         return None, ""

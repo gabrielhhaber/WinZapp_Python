@@ -20596,6 +20596,11 @@ msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr ""
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_link_no_video"
+msgid "This is a voice call link, so it cannot be switched to video."
+msgstr ""
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"
 msgid "Microphone muted."

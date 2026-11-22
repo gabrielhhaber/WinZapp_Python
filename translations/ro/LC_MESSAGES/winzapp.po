@@ -21363,7 +21363,9 @@ msgctxt "ui_read_on_arrival_when_focused"
 msgid ""
 "Stop new messages in the open chat from &joining the unread separator; mark "
 "them as read on arrival"
-msgstr "Nu adău&ga mesajele noi din conversația deschisă la separatorul de mesaje necitite; marchează-le ca citite la sosire"
+msgstr ""
+"Nu adău&ga mesajele noi din conversația deschisă la separatorul de mesaje "
+"necitite; marchează-le ca citite la sosire"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/reading_position_options.py
@@ -22202,6 +22204,11 @@ msgstr "eroare necunoscută"
 msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr "Apelurile vocale nu sunt disponibile în această conversație."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_link_no_video"
+msgid "This is a voice call link, so it cannot be switched to video."
+msgstr "Acesta este un link de apel doar vocal, deci nu poate fi trecut la video."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"

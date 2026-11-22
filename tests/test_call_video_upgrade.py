@@ -646,3 +646,28 @@ def test_an_event_naming_this_account_never_becomes_the_calls_peer():
     event = dict(_event(is_video=False), peerJid="81@lid")
     stub.on_voice_call_state_event(event)
     assert stub._active_voice_call["peer_jid"] == PEER
+
+
+def test_a_voice_call_link_is_never_sent_to_the_video_switch(monkeypatch):
+    """WhatsApp refuses the switch of a voice link (670028); WinZapp says why
+    instead of posting upgrade-video."""
+    from core.call_links import call_link_is_voice_only
+
+    token = "AbCdEfGhIjKlMnOpQrStUv"
+    spoken = []
+    for link, tried in (("https://call.whatsapp.com/voice/" + token, False),
+                        ("https://call.whatsapp.com/video/" + token, True),
+                        ("", True)):
+        stub = _PromoteStub(response={})
+        stub.i18n = _I18n()
+        stub.output = lambda text, interrupt=False: spoken.append(text)
+        stub._active_voice_call["call_link"] = link
+        threads = []
+        monkeypatch.setattr(threading, "Thread",
+                            lambda *a, **k: threads.append(k) or SimpleNamespace(start=lambda: None))
+        stub.promote_call_to_video()
+        assert bool(threads) is tried
+        assert stub._call_upgrade_pending is tried
+    assert spoken == ["voice_call_link_no_video"]
+    assert call_link_is_voice_only("https://call.whatsapp.com/voice/" + token)
+    assert not call_link_is_voice_only("not a link")
