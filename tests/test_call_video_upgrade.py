@@ -671,3 +671,14 @@ def test_a_voice_call_link_is_never_sent_to_the_video_switch(monkeypatch):
     assert spoken == ["voice_call_link_no_video"]
     assert call_link_is_voice_only("https://call.whatsapp.com/voice/" + token)
     assert not call_link_is_voice_only("not a link")
+
+def test_a_stopped_remote_video_clears_the_window_image_only_for_that_call(monkeypatch):
+    calls = []
+    image = SimpleNamespace(SetBitmap=lambda bmp: calls.append(bmp))
+    active = {"identity": "A"}
+    stub = SimpleNamespace(call_video_image=image, _active_voice_call=active,
+                           _call_remote_video_rendered=True)
+    MainWindow._clear_call_remote_video(stub, expected_call={"identity": "B"})
+    assert calls == [] and stub._call_remote_video_rendered is True
+    MainWindow._clear_call_remote_video(stub, expected_call=active)
+    assert len(calls) == 1 and stub._call_remote_video_rendered is False

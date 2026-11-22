@@ -183,6 +183,16 @@ class CallVideo:
                                                 **({'mediaEpoch': self._wire_epochs[call_id]} if call_id in self._wire_epochs else {}),
                                                 "jpeg": base64.b64encode(jpeg).decode("ascii")})
 
+    def remote_stopped(self, call_id):
+        """The other side turned its camera off: the client drops the last frame
+        instead of showing it frozen."""
+        with self._lock:
+            if call_id not in self._decoders:
+                return
+            self.emit("call:video:remote:stopped",
+                      {"session": self.name,
+                       **({'mediaEpoch': self._wire_epochs[call_id]} if call_id in self._wire_epochs else {})})
+
     # ----------------------------------------------------------------- end
     def end(self, call_id):
         with self._lock:
