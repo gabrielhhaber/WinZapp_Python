@@ -35,6 +35,7 @@ def unique_copy_name(name: str, used: set) -> str:
     All staged files share one folder, so two documents both called
     "report.pdf" must not overwrite each other.
     """
+    name = safe_file_name(name)
     base, ext = _split_ext(name)
     candidate = name
     n = 1
@@ -43,6 +44,16 @@ def unique_copy_name(name: str, used: set) -> str:
         n += 1
     used.add(candidate.lower())
     return candidate
+
+
+def safe_file_name(name: str) -> str:
+    """*name* reduced to a plain file name: no folder part and none of the
+    characters Windows refuses, so a media name from a message can never make
+    the staged file land outside the temp folder."""
+    name = (name or "").replace("\\", "/").rsplit("/", 1)[-1]
+    name = "".join("_" if c in '<>:"|?*' or ord(c) < 32 else c for c in name)
+    name = name.strip(" .")
+    return name or "file"
 
 
 def _split_ext(name: str) -> "tuple[str, str]":

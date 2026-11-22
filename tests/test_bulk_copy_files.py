@@ -6,7 +6,8 @@ import pytest
 
 from ui.conversation_panel import bulk_copy_files
 from ui.conversation_panel.bulk_copy_files import BulkCopyFilesMixin
-from ui.conversation_panel.bulk_copy_plan import split_copy_selection, unique_copy_name
+from ui.conversation_panel.bulk_copy_plan import (
+    safe_file_name, split_copy_selection, unique_copy_name)
 
 
 class _I18n:
@@ -54,6 +55,10 @@ def _msg(msg_id, name, msg_type="documentMessage"):
 def staged(monkeypatch, tmp_path):
     """Runs CallAfter inline, caches under tmp_path, skips real decryption."""
     calls = []
+    monkeypatch.setattr(
+        bulk_copy_files.tempfile, "mkdtemp",
+        lambda prefix="": str(tmp_path / "staged") if os.makedirs(tmp_path / "staged", exist_ok=True) is None else "",
+    )
     monkeypatch.setattr(bulk_copy_files.wx, "CallAfter", lambda f, *a: f(*a))
     monkeypatch.setattr(bulk_copy_files, "decrypt_bytes", lambda raw, key: raw)
     monkeypatch.setattr(
@@ -96,6 +101,13 @@ class TestUniqueName:
         used = set()
         unique_copy_name("notes", used)
         assert unique_copy_name("notes", used) == "notes_1"
+
+
+class TestSafeName:
+    def test_folder_parts_and_forbidden_characters_are_removed(self):
+        assert safe_file_name("..\\..\\evil/x:y?.pdf") == "x_y_.pdf"
+        assert safe_file_name("") == "file"
+        assert safe_file_name("a.pdf") == "a.pdf"
 
 
 class TestStaging:
