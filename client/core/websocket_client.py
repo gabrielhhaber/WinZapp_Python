@@ -386,6 +386,7 @@ class WebSocketClient:
         self.sio.on("media-download-progress", self.on_media_download_progress)
         self.sio.on("incomingcall", self.on_wpp_incoming_call)
         self.sio.on("callstate", self.on_wpp_call_state)
+        self.sio.on("callmedia", self.on_wpp_call_media)
         self.sio.on("call:audio:remote", self.on_call_audio_remote)
         self.sio.on("call:video:remote", self.on_call_video_remote)
         self.sio.on("call:video:remote:stopped", self.on_call_video_remote_stopped)
@@ -2695,6 +2696,17 @@ class WebSocketClient:
             wx.CallAfter(self.main_window.on_voice_call_state_event, normalized)
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_call_state error")
+
+    def on_wpp_call_media(self, data):
+        """Forward the page's media-health sample of the active call."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            payload = data.get("data") or data
+            if isinstance(payload, dict):
+                wx.CallAfter(self.main_window.on_call_media_sample, dict(payload))
+        except Exception:
+            logging.exception("[WebSocketClient] on_wpp_call_media error")
 
     def send_call_microphone_audio(self, pcm: bytes):
         """Send a Python-captured PCM frame to the page call bridge."""

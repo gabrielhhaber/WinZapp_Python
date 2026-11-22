@@ -3343,6 +3343,15 @@ msgid "Voice call"
 msgstr "Apel vocal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_media_stall.py
+msgctxt "call_media_stalled"
+msgid ""
+"No audio is arriving from the other participants. Leave the call and join "
+"again."
+msgstr ""
+"Nu ajunge sunet de la ceilalți participanți. Ieși din apel și intră din nou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "call_participant_declined_row"
 msgid "{name}, declined"
@@ -22208,7 +22217,8 @@ msgstr "Apelurile vocale nu sunt disponibile în această conversație."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_link_no_video"
 msgid "This is a voice call link, so it cannot be switched to video."
-msgstr "Acesta este un link de apel doar vocal, deci nu poate fi trecut la video."
+msgstr ""
+"Acesta este un link de apel doar vocal, deci nu poate fi trecut la video."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"

@@ -3366,6 +3366,16 @@ msgid "Voice call"
 msgstr "Chamada de voz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_media_stall.py
+msgctxt "call_media_stalled"
+msgid ""
+"No audio is arriving from the other participants. Leave the call and join "
+"again."
+msgstr ""
+"Não está a chegar áudio dos outros participantes. Saia da chamada e entre "
+"novamente."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "call_participant_declined_row"
 msgid "{name}, declined"
@@ -22231,7 +22241,8 @@ msgstr "A chamada de voz não está disponível nesta conversa."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_link_no_video"
 msgid "This is a voice call link, so it cannot be switched to video."
-msgstr "Este link de chamada é só de voz, por isso não pode ser mudado para vídeo."
+msgstr ""
+"Este link de chamada é só de voz, por isso não pode ser mudado para vídeo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"

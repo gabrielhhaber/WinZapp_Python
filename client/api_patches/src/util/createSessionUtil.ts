@@ -1980,6 +1980,43 @@ export default class CreateSessionUtil {
       // Same reconnect case as the incoming-call binding above.
     }
 
+    try {
+      // Media health of the call in progress, sampled by the page every few
+      // seconds (see __winzappCallMediaPoll below). The engine's own
+      // diagnostics are only kept for minutes inside the page, so every ~30 s
+      // they are copied into this log, stripped of addresses and numbers.
+      await client.page.exposeFunction(
+        '__winzappOnCallMedia',
+        (sample: any) => {
+          if (!sample || typeof sample !== 'object') return;
+          const scrub = (text: any): string =>
+            String(text || '')
+              .replace(/\b\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b/g, '<ip>')
+              .replace(/[0-9a-f:]*:[0-9a-f:]*:[0-9a-f:]+/gi, '<ip>')
+              .replace(/\S+@\S+/g, '<jid>')
+              .replace(/\d{7,}/g, '<n>')
+              .slice(0, 4000);
+          if (sample.stats || sample.relays) {
+            req.logger.info(
+              `[${client.session}] [call-media] bytes_received=${Number(sample.bytesReceived) || 0} ` +
+                `remotes=${JSON.stringify(sample.remotes || [])} ` +
+                `stats=${scrub(sample.stats)} relays=${scrub(sample.relays)}`
+            );
+          }
+          req.io.to(`session:${client.session}`).emit('callmedia', {
+            session: client.session,
+            data: {
+              callId: String(sample.callId || ''),
+              bytesReceived: Number(sample.bytesReceived) || 0,
+              remotes: Array.isArray(sample.remotes) ? sample.remotes.slice(0, 64) : [],
+            },
+          });
+        }
+      );
+    } catch (e) {
+      // Same reconnect case as the bindings above.
+    }
+
     const installListener = (attempt = 0) => {
       // CallStore is hydrated from persisted WhatsApp Web state at startup.
       // Its `add` event therefore does not necessarily mean "a call started
@@ -2727,6 +2764,56 @@ export default class CreateSessionUtil {
           };
           (window as any).__winzappRearmCallStatePoll = armCallStatePoll;
           armCallStatePoll();
+          // Media health: while the engine reports an ACTIVE call, report how
+          // many bytes arrived and which remote participants it has connected
+          // or timed out. The verdict ("connected but deaf") is Python's;
+          // this only reads. Every ~30 s the engine's own statistics and relay
+          // summary ride along so they reach wppconnect.log.
+          try {
+            window.clearInterval((window as any).__winzappCallMediaPoll);
+          } catch (_) {
+            // An id from before WhatsApp's wrapper: nothing to clear.
+          }
+          let mediaSampleBusy = false;
+          let mediaSamples = 0;
+          (window as any).__winzappCallMediaPoll = window.setInterval(() => {
+            if (mediaSampleBusy) return;
+            const getter =
+              WPP?.whatsapp?.functions?.getVoipStackInterface ||
+              WPP?.whatsapp?.getVoipStackInterface;
+            if (typeof getter !== 'function') return;
+            mediaSampleBusy = true;
+            Promise.resolve(getter())
+              .then(async (stack: any) => {
+                const raw = await stack?.getCallInfo?.();
+                if (!raw) return;
+                let info: any = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (!info || info.call_state !== 6 || info.call_ending === true) return;
+                const remotes = (Array.isArray(info.participants) ? info.participants : [])
+                  .filter((p: any) => p && p.is_self !== true)
+                  .map((p: any) => ({
+                    connected: p.state === 1,
+                    timedOut: p.rx_timedout === true,
+                    packets: Number(p.rx_audio_packet_count) || 0,
+                  }));
+                let sample: any = {
+                  callId: String(info.call_id || ''),
+                  bytesReceived: Number(info.bytes_received) || 0,
+                  remotes,
+                };
+                mediaSamples += 1;
+                if (mediaSamples % 10 === 1) {
+                  try { sample.stats = String(await stack.getShortStatisticString?.() || ''); } catch (_) { /* optional */ }
+                  try {
+                    const relays = await stack.getWebTransportRelayDebugSummary?.();
+                    sample.relays = typeof relays === 'string' ? relays : JSON.stringify(relays || '');
+                  } catch (_) { /* optional */ }
+                }
+                (window as any).__winzappOnCallMedia(sample);
+              })
+              .catch(() => undefined)
+              .then(() => { mediaSampleBusy = false; });
+          }, 3000);
           return true;
         }, listenerStartedAt)
         .then((installed: boolean) => {
