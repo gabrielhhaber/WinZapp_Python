@@ -20872,7 +20872,9 @@ msgctxt "ui_read_on_arrival_when_focused"
 msgid ""
 "Stop new messages in the open chat from &joining the unread separator; mark "
 "them as read on arrival"
-msgstr "عدم إ&ضافة الرسائل الجديدة في المحادثة المفتوحة إلى فاصل الرسائل غير المقروءة، ووضع علامة مقروءة عليها عند وصولها"
+msgstr ""
+"عدم إ&ضافة الرسائل الجديدة في المحادثة المفتوحة إلى فاصل الرسائل غير "
+"المقروءة، ووضع علامة مقروءة عليها عند وصولها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/reading_position_options.py
@@ -21675,6 +21677,11 @@ msgctxt "voice_call_individual_only"
 msgid "Voice calling is not available in this chat."
 msgstr "المكالمات الصوتية غير متاحة في هذه الدردشة."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_link_no_video"
+msgid "This is a voice call link, so it cannot be switched to video."
+msgstr "هذا رابط مكالمة صوتية فقط، لذا لا يمكن تحويله إلى فيديو."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"
 msgid "Microphone muted."
@@ -21759,7 +21766,7 @@ msgstr "إلغاء كتم الميكروفون"
 #, python-brace-format
 msgctxt "voice_call_upgrade_failed"
 msgid "Could not switch the call to video: {error}"
-msgstr "لم يمكن 전환 المكالمة إلى فيديو: {error}"
+msgstr "تعذّر تحويل المكالمة إلى فيديو: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_upgraded_to_video"

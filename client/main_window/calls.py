@@ -24,7 +24,7 @@ from core.api_client import (
     api_get,
     api_post,
 )
-from core.call_links import joined_call_id
+from core.call_links import call_link_is_voice_only, joined_call_id
 from core.call_matching import call_event_matches_active
 from core.call_tone_player import play_call_ended_sound, stop_call_tone, update_call_tone
 from core.call_participants import active_participants_available
@@ -1283,6 +1283,9 @@ class CallsMixin:
         if getattr(self, "_voice_call_last_announced_state", "") != "ACTIVE":
             return  # still ringing: there is no connected call to switch yet
         if getattr(self, "_call_upgrade_pending", False):
+            return
+        if call_link_is_voice_only(active.get("call_link")):
+            self.output(self.i18n.t("voice_call_link_no_video"), True)
             return
         self._call_upgrade_pending = True
         expected_call = active
