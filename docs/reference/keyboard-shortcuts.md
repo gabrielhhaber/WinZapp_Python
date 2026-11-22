@@ -235,7 +235,7 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Aramalar paneli | arama listesine git | Alt+L | calls.ID_ALT_L |
 | Aramalar paneli | cevapsız bir aramayı geri ara | Kontrol+Shift+R | calls.ID_CTRL_SHIFT_R |
 | Aramalar paneli | arama listesini yenile | F5 | calls.ID_F5 |
-| Aramalar paneli | arama bağlantısı oluştur | Alt+İ (dile göre) | calls.ID_ALT_CALL_LINK |
+| Aramalar paneli | arama bağlantısı oluştur | Alt+B | calls.ID_ALT_CALL_LINK |
 | Medya görüntüleyici | önceki durum | Kontrol+Sol | media.ID_CTRL_LEFT |
 | Medya görüntüleyici | sonraki durum | Kontrol+Sağ | media.ID_CTRL_RIGHT |
 | Medya görüntüleyici | medyayı kaydet/indir | Kontrol+Shift+S | media.ID_CTRL_SHIFT_S |
