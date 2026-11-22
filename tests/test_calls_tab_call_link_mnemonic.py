@@ -47,7 +47,6 @@ class _Panel:
 
 def test_pt_br_label_is_alt_i():
     panel = _Panel("Cr&iar link de ligação")
-    assert CallsPanel._call_link_accelerator(panel) == [(wx.ACCEL_ALT, ord("I"), 4242)]
     CallsPanel._label_call_link_button(panel)
     assert panel._call_link_btn.label == "Criar link de ligação"
     assert panel._call_link_btn.accessible.GetKeyboardShortcut(0) == (wx.ACC_OK, "Alt+I")
@@ -55,7 +54,6 @@ def test_pt_br_label_is_alt_i():
 
 def test_a_label_without_a_mnemonic_registers_nothing():
     panel = _Panel("Create call link")
-    assert CallsPanel._call_link_accelerator(panel) == []
     CallsPanel._label_call_link_button(panel)
     assert panel._call_link_btn.accessible is None
 

@@ -26,7 +26,8 @@ class Owner:
     def __init__(self):
         self.settings = {SECTION: {}}
         self.i18n = SimpleNamespace(t=lambda key: {'main_nav': '&Navigation',
-            'messages': '&Messages', 'type_message': 'Ty&pe message'}.get(key, key))
+            'messages': '&Messages', 'type_message': 'Ty&pe message',
+            'calls_create_call_link_button': 'Create call l&ink'}.get(key, key))
         self.ids = {}
 
     def __getattr__(self, name):
