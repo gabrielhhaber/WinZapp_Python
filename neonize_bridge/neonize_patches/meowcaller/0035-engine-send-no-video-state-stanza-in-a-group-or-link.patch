@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: c <c@c>
+Date: Sun, 22 Nov 2026 01:12:01 +0000
+Subject: [PATCH] engine: send no video state stanza in a group or link call
+
+---
+ CHANGELOG.md             |  7 +++++++
+ engine_call_link_test.go | 22 ++++++++++++++++++++++
+ engine_video_refused.go  | 11 +++++++++++
+ 3 files changed, 40 insertions(+)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 25c72a8..fbaa09c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -7,6 +7,13 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ## [Unreleased]
+ 
++### engine/group-video — `implemented`
++
++- A group or link call no longer sends a `<video>` state stanza when the
++  camera turns on or off. Captured live from WhatsApp Web, 2026-11-22: its
++  camera on and off put only heartbeats on the wire, and the server answers
++  our stanza with 403.
++
+ ### engine/group-relay — `implemented`
+ 
+ - When the relay channel of a group call dies (`abort chunk ... Too many
+diff --git a/engine_call_link_test.go b/engine_call_link_test.go
+index eb539a9..8e4e821 100644
+--- a/engine_call_link_test.go
++++ b/engine_call_link_test.go
+@@ -210,3 +210,25 @@ func TestAKeyAlreadyHeldForTheTransactionIsNotDrawnAgain(t *testing.T) {
+ 	}
+ 	eng.finishCall("LCID", "test")
+ }
++
++func TestAGroupCallSendsNoVideoStateStanza(t *testing.T) {
++	// Live capture of WhatsApp Web (2026-11-22): the camera of a link call changes
++	// nothing on the signaling wire.
++	eng, sent := linkTestEngine(linkJoinAck(false))
++	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{Video: true}); err != nil {
++		t.Fatalf("join: %v", err)
++	}
++	waitForTags(t, sent, 1)
++	before := len(sent.tags())
++	node := waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"id": "V1"}}
++	if err := eng.transmitVideoState("LCID", node); err != nil {
++		t.Fatalf("transmit: %v", err)
++	}
++	if _, kept := eng.takeVideoStateID("V1"); kept {
++		t.Fatal("a stanza that was not sent leaves no id to answer")
++	}
++	if len(sent.tags()) != before {
++		t.Fatalf("the video state went out: %v", sent.tags())
++	}
++	eng.finishCall("LCID", "test")
++}
+diff --git a/engine_video_refused.go b/engine_video_refused.go
+index 72f4f72..ca09108 100644
+--- a/engine_video_refused.go
++++ b/engine_video_refused.go
+@@ -13,6 +13,17 @@ const maxVideoStateIDs = 64
+ // refuses it answers an <ack class="call" error="..."> carrying that id, which is not
+ // the end of the call.
+ func (e *engine) transmitVideoState(callID string, node waBinary.Node) error {
++	e.mu.Lock()
++	m := e.calls[callID]
++	group := m != nil && m.group
++	e.mu.Unlock()
++	if group {
++		// WhatsApp Web sends no <video> stanza in a link or group call (captured live,
++		// 2026-11-22: turning the camera on and off put only heartbeats on the wire); the
++		// server answers one with 403.
++		e.c.log.Debug().Str("call_id", callID).Msg("video state stanza skipped in a group call")
++		return nil
++	}
+ 	if id, _ := node.Attrs["id"].(string); id != "" {
+ 		e.mu.Lock()
+ 		if e.videoStateIDs == nil || len(e.videoStateIDs) >= maxVideoStateIDs {
