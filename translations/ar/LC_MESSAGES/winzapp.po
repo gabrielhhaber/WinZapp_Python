@@ -21766,7 +21766,7 @@ msgstr "إلغاء كتم الميكروفون"
 #, python-brace-format
 msgctxt "voice_call_upgrade_failed"
 msgid "Could not switch the call to video: {error}"
-msgstr "لم يمكن 전환 المكالمة إلى فيديو: {error}"
+msgstr "تعذّر تحويل المكالمة إلى فيديو: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_upgraded_to_video"
