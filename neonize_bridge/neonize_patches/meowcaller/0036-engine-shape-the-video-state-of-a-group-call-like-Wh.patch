@@ -1,0 +1,169 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: c <c@c>
+Date: Sun, 22 Nov 2026 01:32:22 +0000
+Subject: [PATCH] engine: shape the video state of a group call like WhatsApp
+ Web's, and send it again
+
+---
+ CHANGELOG.md             | 10 ++++++----
+ engine.go                |  1 +
+ engine_call_link_test.go | 37 ++++++++++++++++++++++++-------------
+ engine_video_refused.go  | 40 +++++++++++++++++++++++++++++++---------
+ 4 files changed, 62 insertions(+), 26 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index fbaa09c..cf3c5d7 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -9,10 +9,12 @@ All notable changes to meowcaller, tracked per module. Format loosely follows
+ 
+ ### engine/group-video — `implemented`
+ 
+-- A group or link call no longer sends a `<video>` state stanza when the
+-  camera turns on or off. Captured live from WhatsApp Web, 2026-11-22: its
+-  camera on and off put only heartbeats on the wire, and the server answers
+-  our stanza with 403.
++- The `<video>` state stanza of a group or link call is shaped like WhatsApp
++  Web's: `state`, `device_orientation` and a counting `transaction-id`, no
++  `dec`. Captured live, 2026-11-22: its camera on and off sent exactly that,
++  and the server answered each with an ack without error. (An earlier change
++  of this series stopped sending the stanza in a group call; that was wrong,
++  WhatsApp Web does send it.)
+ 
+ ### engine/group-relay — `implemented`
+ 
+diff --git a/engine.go b/engine.go
+index be06dad..3d97a94 100644
+--- a/engine.go
++++ b/engine.go
+@@ -60,6 +60,7 @@ type engineCall struct {
+ 	direction         CallDirection
+ 	codec             AudioCodec   // audio codec for this call, selected from voip_settings (MLow default)
+ 	localVideo        bool         // this client is sending, or has requested to send, video
++	videoStateTx      int          // <video> state stanzas sent in a group call (transaction-id)
+ 	remoteVideo       bool         // the peer is sending video to this client
+ 	videoGate         bool         // outbound upgrade is waiting for peer acceptance
+ 	peerVideoUpgrade  bool         // the peer's inbound upgrade is waiting for local acceptance
+diff --git a/engine_call_link_test.go b/engine_call_link_test.go
+index 8e4e821..5a66951 100644
+--- a/engine_call_link_test.go
++++ b/engine_call_link_test.go
+@@ -2,6 +2,7 @@ package meowcaller
+ 
+ import (
+ 	"context"
++	"strconv"
+ 	"sync"
+ 	"testing"
+ 	"time"
+@@ -211,24 +212,34 @@ func TestAKeyAlreadyHeldForTheTransactionIsNotDrawnAgain(t *testing.T) {
+ 	eng.finishCall("LCID", "test")
+ }
+ 
+-func TestAGroupCallSendsNoVideoStateStanza(t *testing.T) {
+-	// Live capture of WhatsApp Web (2026-11-22): the camera of a link call changes
+-	// nothing on the signaling wire.
++func TestAGroupCallVideoStateIsShapedLikeWhatsAppWebs(t *testing.T) {
++	// Live capture of WhatsApp Web (2026-11-22): <video call-id call-creator state
++	// device_orientation transaction-id/>, no dec, the ack without error.
+ 	eng, sent := linkTestEngine(linkJoinAck(false))
+ 	if _, err := eng.joinPublicCallLink(context.Background(), "TOKEN", CallLinkOptions{Video: true}); err != nil {
+ 		t.Fatalf("join: %v", err)
+ 	}
+ 	waitForTags(t, sent, 1)
+-	before := len(sent.tags())
+-	node := waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"id": "V1"}}
+-	if err := eng.transmitVideoState("LCID", node); err != nil {
+-		t.Fatalf("transmit: %v", err)
+-	}
+-	if _, kept := eng.takeVideoStateID("V1"); kept {
+-		t.Fatal("a stanza that was not sent leaves no id to answer")
+-	}
+-	if len(sent.tags()) != before {
+-		t.Fatalf("the video state went out: %v", sent.tags())
++	for i, state := range []string{"1", "6"} {
++		node := waBinary.Node{Tag: "call", Attrs: waBinary.Attrs{"id": "V" + state}, Content: []waBinary.Node{
++			{Tag: "video", Attrs: waBinary.Attrs{"call-id": "LCID", "state": state, "dec": "h264"}}}}
++		if err := eng.transmitVideoState("LCID", node); err != nil {
++			t.Fatalf("transmit: %v", err)
++		}
++		if _, kept := eng.takeVideoStateID("V" + state); !kept {
++			t.Fatal("the id of the stanza is remembered for a refusal")
++		}
++		var video waBinary.Node
++		for _, n := range sent.nodes {
++			if kids := n.GetChildren(); len(kids) > 0 && kids[0].Tag == "video" && kids[0].AttrGetter().OptionalString("state") == state {
++				video = kids[0]
++			}
++		}
++		ag := video.AttrGetter()
++		if _, hasDec := video.Attrs["dec"]; hasDec || ag.OptionalString("device_orientation") != "0" ||
++			ag.OptionalString("transaction-id") != strconv.Itoa(i+1) {
++			t.Fatalf("video attrs %v", video.Attrs)
++		}
+ 	}
+ 	eng.finishCall("LCID", "test")
+ }
+diff --git a/engine_video_refused.go b/engine_video_refused.go
+index ca09108..9f3cd1e 100644
+--- a/engine_video_refused.go
++++ b/engine_video_refused.go
+@@ -2,6 +2,7 @@ package meowcaller
+ 
+ import (
+ 	"context"
++	"strconv"
+ 
+ 	waBinary "go.mau.fi/whatsmeow/binary"
+ )
+@@ -14,16 +15,15 @@ const maxVideoStateIDs = 64
+ // the end of the call.
+ func (e *engine) transmitVideoState(callID string, node waBinary.Node) error {
+ 	e.mu.Lock()
+-	m := e.calls[callID]
+-	group := m != nil && m.group
+-	e.mu.Unlock()
+-	if group {
+-		// WhatsApp Web sends no <video> stanza in a link or group call (captured live,
+-		// 2026-11-22: turning the camera on and off put only heartbeats on the wire); the
+-		// server answers one with 403.
+-		e.c.log.Debug().Str("call_id", callID).Msg("video state stanza skipped in a group call")
+-		return nil
++	if m := e.calls[callID]; m != nil && m.group {
++		// WhatsApp Web's <video> state stanza in a link or group call carries state,
++		// device_orientation and a counting transaction-id, and no dec (captured live,
++		// 2026-11-22: states 6, 1, 6, 1, 6 as transaction ids 4 to 7, the server's ack
++		// without error).
++		m.videoStateTx++
++		node = groupVideoStateNode(node, m.videoStateTx)
+ 	}
++	e.mu.Unlock()
+ 	if id, _ := node.Attrs["id"].(string); id != "" {
+ 		e.mu.Lock()
+ 		if e.videoStateIDs == nil || len(e.videoStateIDs) >= maxVideoStateIDs {
+@@ -81,3 +81,25 @@ func (e *engine) videoStateRefused(callID, errCode string) {
+ 	e.c.log.Warn().Str("call_id", callID).Str("error_code", errCode).
+ 		Msg("video state refused by server; the call goes on without our video")
+ }
++
++// groupVideoStateNode reshapes a <call><video/></call> state stanza the way WhatsApp
++// Web sends it in a group call.
++func groupVideoStateNode(node waBinary.Node, transaction int) waBinary.Node {
++	children, ok := node.Content.([]waBinary.Node)
++	if !ok || len(children) != 1 || children[0].Tag != "video" {
++		return node
++	}
++	video := children[0]
++	attrs := make(waBinary.Attrs, len(video.Attrs)+2)
++	for key, value := range video.Attrs {
++		attrs[key] = value
++	}
++	delete(attrs, "dec")
++	if _, set := attrs["device_orientation"]; !set {
++		attrs["device_orientation"] = "0"
++	}
++	attrs["transaction-id"] = strconv.Itoa(transaction)
++	video.Attrs = attrs
++	node.Content = []waBinary.Node{video}
++	return node
++}
