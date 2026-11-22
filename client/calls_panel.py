@@ -21,6 +21,7 @@ appear first in All and on Ongoing, and Enter joins them by call id.
 
 from ui.shortcut_bindings import refresh_popup_shortcuts
 from ui.shortcut_bindings import make_shortcut_table
+from core.conversation_view import mnemonic_letter
 import logging
 import threading
 
@@ -43,7 +44,12 @@ from core.call_log import (
     list_update_plan,
 )
 from core.list_row_diff import plan_row_diff
-from ui.accessible import AccessibleReturnCallButton
+from ui.accessible import (
+    AccessibleAltShortcutButton,
+    AccessibleReturnCallButton,
+    accelerator_keycode,
+    split_mnemonic,
+)
 from ui.ongoing_calls import OngoingCallsMixin
 
 # How many call records the tab reads from the database at most.
@@ -112,7 +118,8 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         self._return_call_btn.Hide()
         self._init_ongoing_calls(sizer)
         # WhatsApp's "New call link" (ui/call_link_dialog.py); always there.
-        self._call_link_btn = wx.Button(self, label=i18n.t("calls_create_call_link_button"))
+        self._call_link_btn = wx.Button(self)
+        self._label_call_link_button()
         self._call_link_btn.Bind(wx.EVT_BUTTON, self._on_create_call_link)
         sizer.Add(self._call_link_btn, 0, wx.LEFT | wx.BOTTOM, 5)
 
@@ -126,16 +133,38 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         self.ID_ALT_L = wx.NewIdRef()
         self.ID_CTRL_SHIFT_R = wx.NewIdRef()
         self.ID_F5 = wx.NewIdRef()
+        self.ID_ALT_CALL_LINK = wx.NewIdRef()
+        i18n = self.main_window.i18n
         # Explicit, like ConversationsPanel's Alt+M for "&Mensagens": a
         # StaticText mnemonic moving focus proved unreliable in this app.
         self.SetAcceleratorTable(make_shortcut_table(self, 'calls', [
             (wx.ACCEL_ALT, ord("L"), self.ID_ALT_L),
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("R"), self.ID_CTRL_SHIFT_R),
             (wx.ACCEL_NORMAL, wx.WXK_F5, self.ID_F5),
+            # The label's "&" letter, as an accelerator: a native mnemonic on this
+            # panel's button never fired (see _label_call_link_button).
+            (wx.ACCEL_ALT, ord(mnemonic_letter(
+                i18n.t("calls_create_call_link_button"), "I")), self.ID_ALT_CALL_LINK),
         ]))
         self.Bind(wx.EVT_MENU, lambda e: self.focus_list(), id=self.ID_ALT_L)
         self.Bind(wx.EVT_MENU, self._on_return_call, id=self.ID_CTRL_SHIFT_R)
         self.Bind(wx.EVT_MENU, lambda e: self.on_show(), id=self.ID_F5)
+        self.Bind(wx.EVT_MENU, self._on_create_call_link, id=self.ID_ALT_CALL_LINK)
+
+    def _label_call_link_button(self):
+        """Label "Create call link" without a native mnemonic.
+
+        Alt+<letter> is an accelerator (ID_ALT_CALL_LINK), as for the incoming-call
+        buttons: the `&` mnemonic did nothing on this panel, and a real one would
+        also fire on the bare letter while the button has focus.
+        """
+        text = self.main_window.i18n.t("calls_create_call_link_button")
+        label, letter = split_mnemonic(text)
+        self._call_link_btn.SetLabel(label)
+        if accelerator_keycode(letter) is None:
+            self._call_link_btn.SetAccessible(None)
+            return
+        self._call_link_btn.SetAccessible(AccessibleAltShortcutButton(letter))
 
     def refresh_labels(self):
         """Update every translatable label after a language change."""
@@ -147,7 +176,8 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
             col.SetText(i18n.t("calls_list_label").replace("&", ""))
             self._lists[tab].SetColumn(0, col)
         self._return_call_btn.SetLabel(i18n.t("return_call_button"))
-        self._call_link_btn.SetLabel(i18n.t("calls_create_call_link_button"))
+        self._label_call_link_button()
+        self._create_accelerators()
         if self._loaded:
             self._populate_all()
 

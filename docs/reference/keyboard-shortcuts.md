@@ -1,6 +1,6 @@
 # WinZapp kısayol düzenleme envanteri
 
-Bu belge uygulamanın merkezi komut kataloğunu açıklar. Katalogda 303 ayrı düzenlenebilir yerel atama ve bunların 323 bağlam kaydı bulunur. Sistem genelinde WinZapp'ı gösterme ataması bunlara ek olarak listelenir. Aynı komutun ana pencere ve alt panellerdeki kayıtları tek ayarı paylaşır. Rakamlı ailelerin her rakamı ve alternatif tuş birleşimleri ayrı düzenlenebilir.
+Bu belge uygulamanın merkezi komut kataloğunu açıklar. Katalogda 304 ayrı düzenlenebilir yerel atama ve bunların 324 bağlam kaydı bulunur. Sistem genelinde WinZapp'ı gösterme ataması bunlara ek olarak listelenir. Aynı komutun ana pencere ve alt panellerdeki kayıtları tek ayarı paylaşır. Rakamlı ailelerin her rakamı ve alternatif tuş birleşimleri ayrı düzenlenebilir.
 
 ## Kullanım
 
@@ -235,6 +235,7 @@ Aşağıdaki değerler Türkçe arayüz içindir. Çevirinin mnemonik harfi değ
 | Aramalar paneli | arama listesine git | Alt+L | calls.ID_ALT_L |
 | Aramalar paneli | cevapsız bir aramayı geri ara | Kontrol+Shift+R | calls.ID_CTRL_SHIFT_R |
 | Aramalar paneli | arama listesini yenile | F5 | calls.ID_F5 |
+| Aramalar paneli | arama bağlantısı oluştur | Alt+B | calls.ID_ALT_CALL_LINK |
 | Medya görüntüleyici | önceki durum | Kontrol+Sol | media.ID_CTRL_LEFT |
 | Medya görüntüleyici | sonraki durum | Kontrol+Sağ | media.ID_CTRL_RIGHT |
 | Medya görüntüleyici | medyayı kaydet/indir | Kontrol+Shift+S | media.ID_CTRL_SHIFT_S |
