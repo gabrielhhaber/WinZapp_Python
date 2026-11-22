@@ -646,3 +646,46 @@ def test_an_event_naming_this_account_never_becomes_the_calls_peer():
     event = dict(_event(is_video=False), peerJid="81@lid")
     stub.on_voice_call_state_event(event)
     assert stub._active_voice_call["peer_jid"] == PEER
+
+
+VOICE_LINK = "https://call.whatsapp.com/voice/" + "A" * 22
+VIDEO_LINK = "https://call.whatsapp.com/video/" + "A" * 22
+
+
+def test_link_is_voice_only_only_for_a_voice_link():
+    from core.call_links import link_is_voice_only
+
+    assert link_is_voice_only(VOICE_LINK) is True
+    assert link_is_voice_only(VIDEO_LINK) is False
+    assert link_is_voice_only("") is False  # an ordinary call has no link
+    assert link_is_voice_only(None) is False
+    assert link_is_voice_only("https://example.com/voice/x") is False
+
+
+def test_promote_in_a_voice_link_says_why_and_never_posts(monkeypatch):
+    started = []
+    monkeypatch.setattr(threading, "Thread", lambda *a, **k: started.append(k) or SimpleNamespace(start=lambda: None))
+    active = _voice_call()
+    active["call_link"] = VOICE_LINK
+    stub = _Stub(active)
+    stub._voice_call_last_announced_state = "ACTIVE"
+
+    stub.promote_call_to_video()
+
+    assert stub.announcements[-1] == "voice_call_upgrade_link_voice_only"
+    assert started == []
+    assert not getattr(stub, "_call_upgrade_pending", False)
+
+
+def test_promote_in_a_video_link_still_tries(monkeypatch):
+    started = []
+    monkeypatch.setattr(threading, "Thread", lambda *a, **k: started.append(k) or SimpleNamespace(start=lambda: None))
+    active = _voice_call()
+    active["call_link"] = VIDEO_LINK
+    stub = _Stub(active)
+    stub._voice_call_last_announced_state = "ACTIVE"
+
+    stub.promote_call_to_video()
+
+    assert "voice_call_upgrade_link_voice_only" not in stub.announcements
+    assert len(started) == 1

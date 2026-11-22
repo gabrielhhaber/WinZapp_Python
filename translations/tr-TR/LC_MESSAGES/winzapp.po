@@ -22036,6 +22036,15 @@ msgid "Could not switch the call to video: {error}"
 msgstr "Arama görüntülüye geçirilemedi: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_upgrade_link_voice_only"
+msgid ""
+"This call link is voice only and cannot be switched to video. Join a video "
+"link to use the camera."
+msgstr ""
+"Bu arama bağlantısı yalnızca sesli olduğu için görüntülüye geçirilemez. "
+"Kamerayı kullanmak için görüntülü bir arama bağlantısına katılın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_upgraded_to_video"
 msgid "The call is now a video call."
 msgstr "Arama artık görüntülü arama."

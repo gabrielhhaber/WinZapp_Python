@@ -22254,6 +22254,15 @@ msgid "Could not switch the call to video: {error}"
 msgstr "Não foi possível promover a ligação para vídeo: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
+msgctxt "voice_call_upgrade_link_voice_only"
+msgid ""
+"This call link is voice only and cannot be switched to video. Join a video "
+"link to use the camera."
+msgstr ""
+"Este link de ligação é só de voz e não pode ser promovido a vídeo. Entre num"
+" link de vídeo para usar a câmera."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "voice_call_upgraded_to_video"
 msgid "The call is now a video call."
 msgstr "A ligação passou a ser de vídeo."

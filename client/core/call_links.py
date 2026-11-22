@@ -45,6 +45,12 @@ def parse_call_link(text) -> tuple:
     return _canonical(found) if found else (None, "")
 
 
+def link_is_voice_only(link) -> bool:
+    """True when *link* is a call link made for voice: its call cannot take a
+    camera (WhatsApp refuses the video upgrade there, status 670028)."""
+    return parse_call_link(link)[0] is False
+
+
 def _canonical(found) -> tuple:
     if len(found.group(2)) != TOKEN_LENGTH:
         return None, ""

@@ -24,7 +24,7 @@ from core.api_client import (
     api_get,
     api_post,
 )
-from core.call_links import joined_call_id
+from core.call_links import joined_call_id, link_is_voice_only
 from core.call_matching import call_event_matches_active
 from core.call_tone_player import play_call_ended_sound, stop_call_tone, update_call_tone
 from core.call_participants import active_participants_available
@@ -1279,6 +1279,11 @@ class CallsMixin:
         """Ctrl+P: turn the ongoing voice call into a video call."""
         active = getattr(self, "_active_voice_call", None)
         if not active or active.get("is_video"):
+            return
+        if link_is_voice_only(active.get("call_link")):
+            # WhatsApp refuses it (status 670028) before anything is sent:
+            # say why instead of trying and failing with an HTTP 500.
+            self.output(self.i18n.t("voice_call_upgrade_link_voice_only"), interrupt=True)
             return
         if getattr(self, "_voice_call_last_announced_state", "") != "ACTIVE":
             return  # still ringing: there is no connected call to switch yet
