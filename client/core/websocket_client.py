@@ -2754,6 +2754,15 @@ class WebSocketClient:
                 return
             expected = (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch')
             if not accepts_media_epoch(expected, data):
+                # Counted, not spoken: a call whose remote audio is all dropped
+                # here is silent for the user and left no trace (issue #875).
+                dropped = getattr(self, "_call_remote_audio_epoch_drops", 0) + 1
+                self._call_remote_audio_epoch_drops = dropped
+                if dropped in (1, 50, 500):
+                    logging.warning(
+                        "[call_audio] remote audio dropped by media epoch (%d so far): "
+                        "client_bound=%s frame_tagged=%s",
+                        dropped, bool(expected), 'mediaEpoch' in data)
                 return
             pcm = _socketio_binary_to_bytes(data.get("pcm"))
             if not pcm:
