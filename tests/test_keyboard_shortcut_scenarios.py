@@ -483,3 +483,17 @@ def test_a_call_key_cannot_take_the_show_winzapp_key(monkeypatch):
     dialog = settings_stub(global_vk=ord('R'))
     assert not dialog._accept_shortcut(CALL_ANSWER, (2, ord('R')))
     assert warnings
+
+
+def test_calls_panel_alt_mnemonic_opens_create_call_link():
+    opened = []
+    button = SimpleNamespace(GetLabel=lambda: 'Cr&iar link de ligação')
+    owner = SimpleNamespace(main_window=window({}), _call_link_btn=button,
+                            _on_create_call_link=lambda: opened.append(1))
+    alt_i = Event(ord('I'), 1)
+    keys.handle_calls_shortcut(owner, alt_i)
+    assert opened == [1] and not alt_i.skipped
+    for other in (Event(ord('I')), Event(ord('I'), 3), Event(ord('K'), 1)):
+        keys.handle_calls_shortcut(owner, other)
+        assert other.skipped
+    assert opened == [1]

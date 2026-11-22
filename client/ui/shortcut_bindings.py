@@ -397,12 +397,26 @@ def bind_enter_command(owner, field, shortcut_id, handler):
     field.Bind(wx.EVT_KEY_DOWN, on_key)
 
 
+def call_link_mnemonic_pressed(owner, event):
+    """Alt+<mnemonic> of "Create call link". The button sits in a plain panel,
+    not a dialog, so wx never runs its native mnemonic there."""
+    button = getattr(owner, '_call_link_btn', None)
+    if button is None or event_chord(event)[0] != 1:
+        return False
+    from core.conversation_view import mnemonic_letter
+    letter = mnemonic_letter(button.GetLabel(), '')
+    return len(letter) == 1 and event.GetKeyCode() == ord(letter)
+
+
 def handle_calls_shortcut(owner, event):
     if matches(owner, event, 'calls.next_filter'):
         owner.notebook.AdvanceSelection(True)
         return
     if matches(owner, event, 'calls.previous_filter'):
         owner.notebook.AdvanceSelection(False)
+        return
+    if call_link_mnemonic_pressed(owner, event):
+        owner._on_create_call_link()
         return
     event = command_key_event(owner, 'calls', event)
     event.Skip()
