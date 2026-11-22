@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 22 Nov 2026 20:49:04 -0300
+Subject: [PATCH] Log the transaction and fate of every group key epoch
+
+Seen live: members who left a group call and joined again were heard but
+did not hear us, and the log could not tell whether their new key epoch
+reached our send path. "group rekey installed" was logged even when the
+epoch was dropped as older than the one held, and an epoch parked until
+its group update logged nothing at all.
+
+Now each epoch logs its transaction: "group key epoch held" when it
+becomes the call's key (with whether media is running), "older than the
+one held, ignored" with the transaction held, and "parked until its group
+update" with the roster's transaction. WhatsApp Web sends each enc_rekey
+with the transaction of the group_update that asked for it, so these
+match the roster lines.
+
+Tested: full suite passes.
+---
+ engine_group_control.go | 11 +++++++++++
+ group_media_receive.go  |  5 +++++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/engine_group_control.go b/engine_group_control.go
+index 8ac4663..5e2bd19 100644
+--- a/engine_group_control.go
++++ b/engine_group_control.go
+@@ -304,7 +304,13 @@ func (e *engine) installGroupEpoch(callID string, transactionID uint32, rawKey [
+ 	if m.hasGroupEpoch {
+ 		switch {
+ 		case transactionID < m.groupEpochTxID:
++			held := m.groupEpochTxID
+ 			e.mu.Unlock()
++			e.c.log.Info().
++				Str("call_id", callID).
++				Uint32("transaction_id", transactionID).
++				Uint32("held_transaction_id", held).
++				Msg("group key epoch older than the one held, ignored")
+ 			return nil
+ 		case transactionID == m.groupEpochTxID && bytes.Equal(m.groupRawEpoch, rawKey):
+ 			e.mu.Unlock()
+@@ -346,6 +352,11 @@ func (e *engine) installGroupEpoch(callID string, transactionID uint32, rawKey [
+ 	m.groupEpochTxID = transactionID
+ 	m.hasGroupEpoch = true
+ 	e.mu.Unlock()
++	e.c.log.Info().
++		Str("call_id", callID).
++		Uint32("transaction_id", transactionID).
++		Bool("media_running", receivers != nil).
++		Msg("group key epoch held")
+ 	e.maybeStartMedia(callID)
+ 	return nil
+ }
+diff --git a/group_media_receive.go b/group_media_receive.go
+index 91ab12e..6512add 100644
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -648,6 +648,11 @@ func (r *participantReceiveRegistry) ApplyGroupRawEpoch(transactionID uint32, ra
+ 			return fmt.Errorf("meowcaller: conflicting group raw epoch for transaction %d", transactionID)
+ 		}
+ 		r.pendingEpochs[transactionID] = bytes.Clone(rawKey)
++		r.log.Info().
++			Str("call_id", r.callID).
++			Uint32("transaction_id", transactionID).
++			Uint32("roster_transaction_id", r.transactionID).
++			Msg("group key epoch parked until its group update")
+ 		return nil
+ 	}
+ 	return r.applyGroupRawEpochLocked(transactionID, rawKey)

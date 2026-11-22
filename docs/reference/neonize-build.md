@@ -96,6 +96,17 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
+- **meowcaller 0019 / 0037**: the three audio payload types WhatsApp Web
+  registers, all MLow at 16 kHz: PT 120 (`mlow-1`), PT 121 (`mlow-red-1`,
+  decoded by its SplitRed main frame) and PT 122 (`mlow-1` on a payload type
+  of its own, `enable_mlow_separate_pt_tx` in `voip_settings`). Which one a
+  phone sends in a group call depends on the capabilities of who is in it
+  when it joins: one who answered a call phones were already in got PT 122
+  and, before 0037, heard nobody.
+- **meowcaller 0038 / neonize 0033**: every group key epoch logs its
+  transaction and what became of it (held, older and ignored, parked until
+  its group update), and the roster and key lines are never cut by the call
+  log's 8-line quota.
 - **neonize 0032 / meowcaller 0030**: call links. `CallLinkCreate`, `CallLinkJoin`, `CallWaitingRoom` and `CallWaitingRoomDecide` (Python `create_link`, `join_link`, `waiting_room`, `decide_waiting`; `neonize_bridge/call_links.py`). meowcaller's link join follows a WhatsApp Web capture (`datasheets/voip-call-link-join.md`): incoming with the camera off, the codec of the join ACK, a 10 s `<heartbeat>` for the whole call; rosters and waiting rooms keep each person's push name and guest flag.
 - **neonize 0012**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
