@@ -3646,7 +3646,7 @@ msgstr "Ustawienia &dźwięku połączenia"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
 msgctxt "calls_create_call_link_button"
 msgid "Create call l&ink"
-msgstr "U&twórz link do połączenia"
+msgstr "Utwórz &link do połączenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "calls_echo_cancellation_label"

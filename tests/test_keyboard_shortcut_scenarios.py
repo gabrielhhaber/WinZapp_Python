@@ -497,3 +497,18 @@ def test_calls_panel_alt_mnemonic_opens_create_call_link():
         keys.handle_calls_shortcut(owner, other)
         assert other.skipped
     assert opened == [1]
+
+
+def test_call_link_mnemonic_never_shadows_a_main_shortcut_in_any_locale():
+    import glob, re
+    from core.conversation_view import mnemonic_letter
+    from core.keyboard_shortcuts import mnemonic_keycode
+    taken = {(s.mod, s.key) for s in SHORTCUTS
+             if s.scope == 'main' and isinstance(s.key, int)}
+    for path in glob.glob('translations/*/LC_MESSAGES/winzapp.po'):
+        text = open(path, encoding='utf-8').read()
+        found = re.search(r'msgid "Create call l&ink"\nmsgstr "(.*)"', text)
+        letter = mnemonic_letter(found.group(1), '')
+        assert letter, path
+        code = mnemonic_keycode(letter)
+        assert code is None or (1, code) not in taken, (path, letter)

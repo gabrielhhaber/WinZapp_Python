@@ -404,8 +404,9 @@ def call_link_mnemonic_pressed(owner, event):
     if button is None or event_chord(event)[0] != 1:
         return False
     from core.conversation_view import mnemonic_letter
+    from core.keyboard_shortcuts import mnemonic_keycode
     letter = mnemonic_letter(button.GetLabel(), '')
-    return len(letter) == 1 and event.GetKeyCode() == ord(letter)
+    return bool(letter) and event.GetKeyCode() == mnemonic_keycode(letter)
 
 
 def handle_calls_shortcut(owner, event):
