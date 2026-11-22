@@ -228,3 +228,20 @@ def test_a_session_gets_video_only_with_the_dll_and_an_ffmpeg(monkeypatch):
     monkeypatch.setattr(layer, "video_available", lambda: False)
     media = server.new_call_media("s1", b"uuid", lambda e, d: None, None)
     assert media.video is None and media.group_calls is False
+
+
+def test_the_other_side_turning_its_camera_off_clears_the_client_frame():
+    fake = VideoCalls(remote_video=[b"unit1", None])
+    m, fake, sent = video_media(fake)
+    m.remember_offer({"id": "IN3", "peerJid": "5511@c.us", "isVideo": True})
+    assert m.answer("IN3")
+    stopped = lambda: [d for e, d in sent if e == "call:video:remote:stopped"]
+    m.handle({"ev": "video", "call": "IN3", "active": True})
+    assert stopped() == []
+    m.handle({"ev": "video", "call": "IN3", "active": False})
+    assert len(stopped()) == 1
+    # a call that never showed the other side has nothing to clear
+    m.remember_offer({"id": "IN4", "peerJid": "5512@c.us"})
+    m.answer("IN4")
+    m.handle({"ev": "video", "call": "IN4", "active": False})
+    assert len(stopped()) == 1

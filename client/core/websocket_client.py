@@ -388,6 +388,7 @@ class WebSocketClient:
         self.sio.on("callstate", self.on_wpp_call_state)
         self.sio.on("call:audio:remote", self.on_call_audio_remote)
         self.sio.on("call:video:remote", self.on_call_video_remote)
+        self.sio.on("call:video:remote:stopped", self.on_call_video_remote_stopped)
         # These two handlers existed but were never registered — contact
         # name/photo updates and presence changes only ever reached the app
         # through onpresencechanged and the 5-minute contacts poll, so a
@@ -2840,6 +2841,20 @@ class WebSocketClient:
                         handler(jpeg)
         except Exception:
             logging.exception("[WebSocketClient] on_call_video_remote error")
+
+    def on_call_video_remote_stopped(self, data):
+        """The other side turned its camera off (Neonize): clear the last frame."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            expected = (getattr(self.main_window, '_active_voice_call', None) or {}).get('media_epoch')
+            if not accepts_media_epoch(expected, data):
+                return
+            handler = getattr(self.main_window, "on_call_remote_video_stopped", None)
+            if handler is not None:
+                handler()
+        except Exception:
+            logging.exception("[WebSocketClient] on_call_video_remote_stopped error")
 
     def on_wpp_ack(self, data):
         try:

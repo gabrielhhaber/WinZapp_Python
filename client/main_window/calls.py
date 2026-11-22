@@ -726,6 +726,20 @@ class CallsMixin:
             return
         wx.CallAfter(self._show_call_remote_video, jpeg, expected_call=active, media_epoch=media_epoch)
 
+    def on_call_remote_video_stopped(self):
+        """The other side's camera is off: no frozen last frame in the window."""
+        active = getattr(self, "_active_voice_call", None)
+        if active:
+            wx.CallAfter(self._clear_call_remote_video, expected_call=active)
+
+    def _clear_call_remote_video(self, *, expected_call=None):
+        if expected_call is not None and getattr(self, "_active_voice_call", None) is not expected_call:
+            return
+        image = getattr(self, "call_video_image", None)
+        if image is not None:
+            image.SetBitmap(wx.NullBitmap)
+            self._call_remote_video_rendered = False
+
     def _show_call_remote_video(self, jpeg: bytes, *, expected_call=None, media_epoch=None):
         active = getattr(self, '_active_voice_call', None)
         if expected_call is not None and active is not expected_call:

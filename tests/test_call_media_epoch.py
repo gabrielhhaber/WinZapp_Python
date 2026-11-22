@@ -83,3 +83,15 @@ def test_ambiguous_wasapi_prefix_cannot_choose_an_unrelated_endpoint():
     assert session._wasapi_twin(0, input_device=False) is None
     devices.append({'name': prefix, 'hostapi': 1, 'max_output_channels': 1})
     assert session._wasapi_twin(0, input_device=False) == 3
+
+
+def test_remote_video_stopped_clears_only_the_active_calls_frame():
+    scope = socket_methods('on_call_video_remote_stopped')
+    cleared = []
+    main = N(_active_voice_call={'media_epoch': B},
+             on_call_remote_video_stopped=lambda: cleared.append(1))
+    ws = N(main_window=main, _belongs_to_this_session=lambda data: True)
+    scope['on_call_video_remote_stopped'](ws, {'mediaEpoch': A})
+    assert not cleared
+    scope['on_call_video_remote_stopped'](ws, {'mediaEpoch': B})
+    assert cleared == [1]

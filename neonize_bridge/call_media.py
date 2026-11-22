@@ -811,6 +811,8 @@ class CallMedia(CallIngressMixin):
                 return
         if ev.get("upgrade") or ev.get("active"):
             self._mark_video(call_id)
+        elif ev.get("active") is False and self.video is not None:
+            self.video.remote_stopped(call_id)
 
     def upgrade_video(self, call_id=""):
         """Asks the other side to turn the connected call into a video call.
