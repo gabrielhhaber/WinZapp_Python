@@ -145,13 +145,14 @@ class TestStaging:
         panel = _Panel(downloads=False)
         panel._stage("", [_msg("m1", "a.pdf")])
         assert staged == []
-        assert panel.main_window.announced == ["msg_copy_error"]
+        assert panel.main_window.announced == ["downloading", "msg_copy_error"]
 
     def test_text_alone_still_copies_when_every_file_failed(self, staged):
         panel = _Panel(downloads=False)
         panel._stage("texto", [_msg("m1", "a.pdf")])
         assert staged == [([], "texto")]
-        assert panel.main_window.announced == ["messages_copied_bulk_files_partial"]
+        assert panel.main_window.announced == [
+            "downloading", "messages_copied_bulk_files_partial"]
 
     def test_clipboard_refusal_is_reported(self, staged, monkeypatch, tmp_path):
         (tmp_path / "m1.cache").write_bytes(b"x")

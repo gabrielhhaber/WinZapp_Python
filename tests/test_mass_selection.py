@@ -1366,6 +1366,11 @@ def _file_msg(msg_id, msg_type="documentMessage"):
     }
 
 
+def _location_msg(msg_id):
+    return {"key": {"id": msg_id, "remoteJid": "grupo@g.us", "fromMe": False},
+            "messageType": "locationMessage", "message": {}}
+
+
 class TestMassCopyFiles:
     def test_files_only_are_staged_and_the_clipboard_text_is_left_alone(self, fake_clipboard):
         panel = _Panel(messages=[_file_msg("f1"), _file_msg("f2", "audioMessage")])
@@ -1388,8 +1393,7 @@ class TestMassCopyFiles:
         assert fake_clipboard == []  # one clipboard write, made after staging
 
     def test_unsupported_types_do_not_count_as_something_to_copy(self, fake_clipboard):
-        loc = {"key": {"id": "l1"}, "messageType": "locationMessage", "message": {}}
-        panel = _Panel(messages=[loc])
+        panel = _Panel(messages=[_location_msg("l1")])
         panel.selected_messages = {"l1"}
         panel._on_mass_copy_messages(None)
         assert panel.main_window.announced == ["copy_selected_nothing_to_copy"]
@@ -1451,14 +1455,14 @@ class TestMassCopyMessages:
         assert fake_clipboard == [expected]
 
     def test_skips_non_text_message_types(self, fake_clipboard, fixed_datetime_format):
-        msgs = [_text_msg("m1", "only this", ts=1755972565), _saveable_msg("m2"), SEPARATOR]
+        msgs = [_text_msg("m1", "only this", ts=1755972565), _location_msg("m2"), SEPARATOR]
         panel = _Panel(messages=msgs)
         panel.selected_messages = {"m1", "m2"}
         panel._on_mass_copy_messages(None)
         assert fake_clipboard == [_expected_line(1755972565, "Gabriel Haberkamp", "only this")]
 
     def test_nothing_copyable_announces_and_touches_no_clipboard(self, fake_clipboard):
-        panel = _Panel(messages=[_saveable_msg("m1")])
+        panel = _Panel(messages=[_location_msg("m1")])
         panel.selected_messages = {"m1"}
         panel._on_mass_copy_messages(None)
         assert fake_clipboard == []
