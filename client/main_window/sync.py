@@ -685,6 +685,12 @@ class SyncMixin:
         existing = getattr(self, "sync_thread", None)
         if existing is not None and existing.is_alive():
             return
+        # A round started inside a call froze the WhatsApp Web page for seconds
+        # (live, 2026-11-21: a link call's media session did not survive it); the gate
+        # sits where the round is decided, so one never starts half-way through.
+        paused = getattr(self, "_background_work_paused", None)
+        if callable(paused) and paused():
+            return
         # Back off further after each failed round (the usual cause is the
         # WhatsApp Web page still busy with its own history sync), but never
         # stop retrying: capped at 10 minutes.
