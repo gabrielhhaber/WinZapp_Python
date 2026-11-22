@@ -289,6 +289,7 @@ from main_window.call_desktop_audio import DesktopCallAudioMixin
 from main_window.call_translation import CallTranslationMixin
 from main_window.call_participants import CallParticipantsMixin
 from main_window.call_links import CallLinksMixin
+from main_window.call_media_stall import CallMediaStallMixin
 from main_window.call_hotkeys import CallHotkeysMixin
 from main_window.default_audio_devices import DefaultAudioDevicesMixin
 from main_window.edit_alerts import EditAlertsMixin
@@ -362,6 +363,7 @@ class MainWindow(
     CallTranslationMixin,
     CallParticipantsMixin,
     CallLinksMixin,
+    CallMediaStallMixin,
     CallHotkeysMixin,
     DefaultAudioDevicesMixin,
     IdentityMixin,
