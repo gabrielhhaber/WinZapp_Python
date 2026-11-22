@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WinZapp\n"
 "Report-Msgid-Bugs-To: https://github.com/gabrielhhaber/WinZapp_Python/issues\n"
-"POT-Creation-Date: 2026-11-16 05:19+0100\n"
-"PO-Revision-Date: 2026-11-16 08:53+0100\n"
+"POT-Creation-Date: 2026-11-22 03:21+0100\n"
+"PO-Revision-Date: 2026-11-22 20:09+0100\n"
 "Last-Translator: DJ Graco\n"
 "Language-Team: \n"
 "Language: pl\n"
@@ -275,7 +275,7 @@ msgstr "Zarządzaj kontami"
 #, python-brace-format
 msgctxt "acc_pair_now_prompt"
 msgid "Account \"{name}\" created. Connect it now (pair)?"
-msgstr "Konto \"{name}\" zostało utworzone. Połączyć je teraz (sparować)?"
+msgstr "Konto \"{name}\" zostało utworzone. Połączyć je teraz z WhatsAppem?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 msgctxt "acc_rename_prompt"
@@ -300,7 +300,7 @@ msgstr "połączone"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "acc_state_pending"
 msgid "awaiting pairing"
-msgstr "oczekuje na parowanie"
+msgstr "oczekuje na połączenie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -1036,8 +1036,8 @@ msgid ""
 "This copy of WinZapp lacks a component the offline translation needs. "
 "Reinstall WinZapp, or choose another translation provider."
 msgstr ""
-"W tej kopii WinZapp brakuje składnika potrzebnego do tłumaczenia lokalnego. "
-"Zainstaluj ponownie WinZapp lub wybierz innego dostawcę tłumaczenia."
+"W tej kopii WinZappa brakuje składnika potrzebnego do tłumaczenia lokalnego."
+" Zainstaluj ponownie WinZapp lub wybierz innego dostawcę tłumaczenia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_translation_language"
@@ -2960,7 +2960,7 @@ msgstr "Kontakty nieuczestniczące w połączeniu"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_list_conversations"
 msgid "Conversations not in the call"
-msgstr "Czaty nieuczestniczące w połączeniu"
+msgstr "Osoby z czatów prywatnych do zaproszenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/call_invite.py
 msgctxt "call_invite_none"
@@ -2981,7 +2981,7 @@ msgstr "Zaznacz co najmniej jedną osobę."
 #, python-brace-format
 msgctxt "call_invite_sending"
 msgid "Calling {names}..."
-msgstr "Dzwonię do: {names}..."
+msgstr "Wysyłanie zaproszenia do połączenia: {names}…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/call_invites.py
 #, python-brace-format
@@ -3003,18 +3003,18 @@ msgstr "Zaznaczono za dużo osób. Wolne miejsca w połączeniu: {count}"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_admit_button"
 msgid "&Let in"
-msgstr "&Wpuść"
+msgstr "Za&twierdź"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "call_link_admitted"
 msgid "{name} was let into the call."
-msgstr "Wpuszczono do połączenia: {name}."
+msgstr "Zatwierdzono dołączenie do połączenia: {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
 msgctxt "call_link_call_name"
 msgid "call link participants"
-msgstr "uczestnicy linku"
+msgstr "uczestnicy połączenia przez link"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_link_dialog.py
 msgctxt "call_link_copied"
@@ -3061,13 +3061,14 @@ msgstr "Tworzenie linku do połączenia..."
 #, python-brace-format
 msgctxt "call_link_decision_failed"
 msgid "WhatsApp did not take the decision about {name}."
-msgstr "WhatsApp nie przyjął decyzji w sprawie: {name}."
+msgstr ""
+"Nie udało się zastosować decyzji dotyczącej osoby {name} w poczekalni."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "call_link_denied"
 msgid "{name} was not let in."
-msgstr "Nie wpuszczono: {name}."
+msgstr "Odrzucono prośbę o dołączenie do połączenia: {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_deny_button"
@@ -3089,8 +3090,8 @@ msgid ""
 "WhatsApp did not connect in time. Open the call link again once WinZapp is "
 "connected."
 msgstr ""
-"Nie udało się nawiązać połączenia z WhatsAppem w wyznaczonym czasie. Otwórz "
-"link do połączenia ponownie po nawiązaniu połączenia."
+"Nie udało się na czas połączyć z WhatsAppem. Otwórz link ponownie, gdy "
+"WinZapp będzie połączony z WhatsAppem."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_external_waiting"
@@ -3124,14 +3125,14 @@ msgid ""
 "Join the video call of this link? Your camera stays off and your microphone "
 "will be on."
 msgstr ""
-"Dołączyć do połączenia wideo z tego linku? Kamera pozostanie wyłączona, a "
+"Dołączyć przez ten link do połączenia wideo? Kamera pozostanie wyłączona, a "
 "mikrofon będzie włączony."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_join_voice_confirm"
 msgid "Join the voice call of this link? Your microphone will be on."
 msgstr ""
-"Dołączyć do połączenia głosowego z tego linku? Mikrofon będzie włączony."
+"Dołączyć przez ten link do połączenia głosowego? Mikrofon będzie włączony."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "call_link_joining"
@@ -3178,12 +3179,12 @@ msgstr "&Wyślij do czatu..."
 #, python-brace-format
 msgctxt "call_link_send_failed"
 msgid "Could not send the call link to {name}."
-msgstr "Nie udało się wysłać linku do połączenia do: {name}."
+msgstr "Nie udało się wysłać linku do połączenia na czat {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_send_prompt"
 msgid "Chat to send the link to:"
-msgstr "Czat, do którego wysłać link:"
+msgstr "Wybierz czat, na który chcesz wysłać link:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_send_title"
@@ -3194,7 +3195,7 @@ msgstr "Wyślij link do połączenia"
 #, python-brace-format
 msgctxt "call_link_sent"
 msgid "Call link sent to {name}."
-msgstr "Wysłano link do połączenia do: {name}."
+msgstr "Wysłano link do połączenia na czat {name}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
 msgctxt "call_link_title"
@@ -3214,7 +3215,8 @@ msgstr "Ktoś"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/call_links.py
 msgctxt "call_link_waiting_for_admin"
 msgid "You are in the waiting room. The call's organizer will let you in."
-msgstr "Jesteś w poczekalni. Organizator połączenia cię wpuści."
+msgstr ""
+"Jesteś w poczekalni. Dołączenie do połączenia wymaga zgody organizatora."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_waiting_list_label"
@@ -3499,7 +3501,7 @@ msgstr "Ty"
 #: client/ui/dialogs/live_translation.py
 msgctxt "call_translation_ask_language"
 msgid "Choose when starting"
-msgstr "Wybierz przy uruchomieniu"
+msgstr "Wybierz przy włączaniu tłumaczenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/live_translation.py
@@ -3527,9 +3529,9 @@ msgid ""
 "receives your microphone audio. Make sure the other person agrees before you"
 " start."
 msgstr ""
-"Gemini otrzymuje dźwięk rozmówcy. Przy tłumaczeniu w obie strony otrzymuje "
-"także dźwięk z Twojego mikrofonu. Upewnij się przed rozpoczęciem, że "
-"rozmówca wyraża zgodę."
+"Do Gemini będzie wysyłany dźwięk odbierany od rozmówcy. W trybie „Obie "
+"osoby” wysyłany będzie także dźwięk z Twojego mikrofonu. Przed włączeniem "
+"tłumaczenia upewnij się, że rozmówca się na to zgadza."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/live_translation.py
@@ -3604,7 +3606,7 @@ msgstr ""
 #: client/main_window/call_translation.py
 msgctxt "call_translation_save_failed"
 msgid "Could not save the default call languages."
-msgstr "Nie udało się zapisać domyślnych języków rozmów."
+msgstr "Nie udało się zapisać domyślnych języków tłumaczenia rozmów."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_translation.py
@@ -5212,9 +5214,10 @@ msgid ""
 "undone. Continue?"
 msgstr ""
 "Liczba plików multimedialnych do usunięcia: {files} ({mb:.1f} MB). Zwolni to"
-" miejsce na dysku. Wiadomości pozostaną w czatach, ale usuniętych plików nie"
-" będzie można pobrać ponownie ani automatycznie, ani ręcznie, chyba że "
-"ponownie sparujesz to konto. Tej operacji nie można cofnąć. Kontynuować?"
+" miejsce na dysku. Wiadomości pozostaną w czatach. Usunięte pliki nie będą "
+"pobierane automatycznie. Aby spróbować ponownie pobrać wybrany plik, wybierz"
+" przy jego wiadomości „Pobierz” i potwierdź ponowne pobranie. Plik może już "
+"nie być dostępny w WhatsAppie. Tej operacji nie można cofnąć. Kontynuować?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/media_cleanup_dialog.py
@@ -6126,7 +6129,7 @@ msgid ""
 "the announcement group is closed. This cannot be undone."
 msgstr ""
 "Dezaktywować społeczność '{name}'? Jej grupy przestaną być z nią połączone, "
-"a grupa ogłoszeń zostanie zamknięta. Tego nie można cofnąć."
+"a grupa z ogłoszeniami zostanie zamknięta. Tego nie można cofnąć."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/community_admin.py
@@ -6195,7 +6198,7 @@ msgstr "D&ezaktywuj społeczność"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_demote"
 msgid "&Demote community admin..."
-msgstr "Od&bierz uprawnienia administratora społeczności..."
+msgstr "Odwo&łaj jako administratora społeczności..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_details"
@@ -6226,7 +6229,7 @@ msgstr "Grupy, w których nie jestem"
 #, python-brace-format
 msgctxt "communities_group_announcements"
 msgid "{name}, announcement group"
-msgstr "{name}, grupa ogłoszeń"
+msgstr "{name}, grupa z ogłoszeniami"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/communities.py
 #, python-brace-format
@@ -6401,7 +6404,7 @@ msgstr "Kto ma zostać administratorem '{name}'?"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_promote"
 msgid "&Promote to community admin..."
-msgstr "&Nadaj uprawnienia administratora społeczności..."
+msgstr "Mia&nuj administratorem społeczności..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_refresh"
@@ -6498,7 +6501,7 @@ msgstr "&Odpowiedzi"
 #: client/ui/dialogs/community_comments.py
 msgctxt "community_comments_not_announcement"
 msgid "This message is not in a community announcement group."
-msgstr "Ta wiadomość nie znajduje się w grupie ogłoszeń społeczności."
+msgstr "Ta wiadomość nie znajduje się w grupie z ogłoszeniami społeczności."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/community_comments.py
@@ -6798,7 +6801,7 @@ msgstr "Brak zapisanych kontaktów."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "contacts_tab_enter_label"
 msgid "Enter on a contact"
-msgstr "Enter na kontakcie"
+msgstr "Działanie klawisza Enter na kontakcie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "contacts_tab_info"
@@ -7340,19 +7343,20 @@ msgstr "Usuń zaznaczone czaty"
 #, python-brace-format
 msgctxt "demote_confirm"
 msgid "Remove {name} as group admin?"
-msgstr "Odebrać {name} uprawnienia administratora grupy?"
+msgstr "Odwołać osobę {name} z roli administratora grupy?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "demote_failed"
 msgid "Could not remove {name} as group admin: {error}"
-msgstr "Nie udało się odebrać {name} uprawnień administratora: {error}"
+msgstr ""
+"Nie udało się odwołać osoby {name} z roli administratora grupy: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "demote_from_admin"
 msgid "Remove as group admin"
-msgstr "Odbierz uprawnienia administratora grupy"
+msgstr "Odwołaj jako administratora grupy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -7478,28 +7482,29 @@ msgstr "&Zdarzenie:"
 #: client/ui/dialogs/conversation_edit_alerts.py
 msgctxt "edit_alerts_notify_label"
 msgid "&Notify edits while in the background"
-msgstr "&Powiadamiaj o edycjach w tle"
+msgstr "&Powiadamiaj o edytowanych wiadomościach, gdy WinZapp jest w tle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_alerts_scope_background"
 msgid "Message edited by someone else, program in the background"
-msgstr "Wiadomość edytowana przez kogoś innego, program w tle"
+msgstr "Wiadomość edytowana przez inną osobę, gdy WinZapp jest w tle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_alerts_scope_foreground"
 msgid "Message edited by someone else, app in foreground"
-msgstr "Wiadomość edytowana przez kogoś innego, aplikacja na pierwszym planie"
+msgstr ""
+"Wiadomość edytowana przez inną osobę, gdy WinZapp jest na pierwszym planie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_alerts_scope_saved"
 msgid "Edit of your message saved"
-msgstr "Edycja Twojej wiadomości zapisana"
+msgstr "Zapisano zmiany w Twojej wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_edit_alerts.py
 msgctxt "edit_alerts_sound_default"
 msgid "Default (as in Sound events)"
-msgstr "Domyślny (jak w zdarzeniach dźwiękowych)"
+msgstr "Domyślny (zgodnie z ustawieniami dźwięków zdarzeń)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_edit_alerts.py
@@ -7517,7 +7522,7 @@ msgstr "&Dźwięk:"
 #: client/ui/dialogs/conversation_edit_alerts.py
 msgctxt "edit_alerts_speak_label"
 msgid "Spea&k edits while the window is active"
-msgstr "&Czytaj edycje, gdy okno jest aktywne"
+msgstr "Od&czytuj edytowane wiadomości, gdy okno jest aktywne"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_edit_alerts.py
@@ -7727,9 +7732,9 @@ msgid ""
 " it. Your messages stay on this computer, and switching back to the previous"
 " engine picks its connection up where it was."
 msgstr ""
-"Zmieniono silnik połączenia, więc to konto trzeba ponownie sparować z nowym "
-"silnikiem. Twoje wiadomości zostają na tym komputerze, a powrót do "
-"poprzedniego silnika wznawia jego połączenie tam, gdzie je przerwano."
+"Zmieniono silnik połączenia, więc to konto trzeba ponownie sparować. Twoje "
+"wiadomości zostają na tym komputerze, a powrót do poprzedniego silnika "
+"wznawia jego połączenie tam, gdzie je przerwano."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_tokens.py
@@ -8058,7 +8063,7 @@ msgstr "{name} (+{count})"
 #, python-brace-format
 msgctxt "fg_edited_msg"
 msgid "Message from {name} edited"
-msgstr "Wiadomość od {name} edytowana"
+msgstr "Edytowano wiadomość: {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/message_events.py
@@ -9143,7 +9148,7 @@ msgstr "Telefon zakończył wysyłanie historii wiadomości."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "history_transfer_resumed"
 msgid "The phone is sending the message history again."
-msgstr "Telefon znowu wysyła historię wiadomości."
+msgstr "Telefon wznowił przesyłanie historii wiadomości."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -9152,8 +9157,9 @@ msgid ""
 "The phone stopped sending the message history at {percent}%. Open WhatsApp "
 "on your phone and keep it on the screen; WinZapp will ask for the rest."
 msgstr ""
-"Telefon przestał wysyłać historię wiadomości przy {percent}%. Otwórz "
-"WhatsAppa na telefonie i pozostaw go na ekranie; WinZapp poprosi o resztę."
+"Przesyłanie historii wiadomości z telefonu zatrzymało się na {percent}%. "
+"Otwórz WhatsAppa na telefonie i pozostaw tę aplikację na ekranie. WinZapp "
+"poprosi telefon o pozostałą część historii."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "history_transfer_started"
@@ -9161,8 +9167,8 @@ msgid ""
 "The phone is sending the message history. Keep WhatsApp open on your phone's"
 " screen until WinZapp says it has finished."
 msgstr ""
-"Telefon wysyła historię wiadomości. Pozostaw WhatsAppa otwartego na ekranie "
-"telefonu, dopóki WinZapp nie powie, że skończył."
+"Telefon przesyła historię wiadomości. Pozostaw WhatsAppa otwartego na "
+"ekranie telefonu do czasu, aż WinZapp poinformuje o zakończeniu przesyłania."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 msgctxt "hotkey_first_run_message"
@@ -9880,8 +9886,10 @@ msgid ""
 "This media was removed by the cleanup and will not be downloaded again "
 "unless this account is paired again."
 msgstr ""
-"Ten plik został usunięty podczas czyszczenia i nie zostanie pobrany "
-"ponownie, chyba że to konto zostanie sparowane na nowo."
+"Ten plik został usunięty podczas czyszczenia i nie będzie pobierany "
+"automatycznie. Aby spróbować pobrać go ręcznie, wybierz przy tej wiadomości "
+"„Pobierz” i potwierdź ponowne pobranie. Plik może już nie być dostępny w "
+"WhatsAppie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -10540,7 +10548,7 @@ msgstr ""
 #: client/ui/dialogs/engine_picker.py
 msgctxt "neonize_offer_switch"
 msgid "Switch to Neonize (pairing required)"
-msgstr "Przełącz na Neonize (wymagane ponowne sparowanie)"
+msgstr "Przełącz na Neonize (wymagane ponowne połączenie konta z WhatsAppem)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #: client/ui/dialogs/engine_picker.py
@@ -10711,7 +10719,7 @@ msgstr "Do&daj opcję"
 #: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_allow_multiple"
 msgid "Allow &multiple answers"
-msgstr "Zezwól na &kilka odpowiedzi"
+msgstr "Zezwól na wi&ele odpowiedzi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
@@ -11247,8 +11255,8 @@ msgid ""
 "Could not apply neural noise reduction; the voice message stayed pending so "
 "you can try sending it again."
 msgstr ""
-"Nie można zastosować neuronowej redukcji szumów; wiadomość głosowa pozostała"
-" oczekująca, aby można było spróbować wysłać ją ponownie."
+"Nie udało się zastosować neuronowej redukcji szumów. Wiadomość głosową "
+"zachowano jako oczekującą, aby można było ponowić wysyłanie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -11262,8 +11270,8 @@ msgid ""
 "Could not apply neural noise reduction, and the voice message could not be "
 "kept for another attempt; it was not sent."
 msgstr ""
-"Nie można zastosować neuronowej redukcji szumów, a wiadomości głosowej nie "
-"udało się zachować do kolejnej próby; nie została wysłana."
+"Nie udało się zastosować neuronowej redukcji szumów ani zachować wiadomości "
+"głosowej do ponownej próby. Wiadomość nie została wysłana."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py
@@ -11473,7 +11481,9 @@ msgstr "&Włącz powiadomienia w tle o nowych wiadomościach"
 #| msgid "N&otify messages edited by others while in the background"
 msgctxt "notify_edited_messages_label"
 msgid "Notify messages e&dited by others while in the background"
-msgstr "Powiadamiaj o wiadomościach &edytowanych przez innych w tle"
+msgstr ""
+"Powiadamiaj o wiadomościach &edytowanych przez inne osoby, gdy WinZapp jest "
+"w tle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
@@ -12075,8 +12085,8 @@ msgid ""
 "Close the installed WinZapp (also in the notification area) so its account "
 "can be copied, then choose Retry."
 msgstr ""
-"Zamknij zainstalowany WinZapp (także w obszarze powiadomień), aby można było"
-" skopiować konto, a następnie wybierz Ponów próbę."
+"Zamknij zainstalowaną wersję WinZappa, także tę działającą w obszarze "
+"powiadomień. Następnie wybierz „Ponów próbę”, aby skopiować konta."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/installed_account_copy.py
 msgctxt "portable_copy_installed_failed"
@@ -12084,8 +12094,9 @@ msgid ""
 "The installed WinZapp's account could not be copied. Nothing in the "
 "installation was changed; this portable copy will link a new device."
 msgstr ""
-"Nie udało się skopiować konta zainstalowanego WinZapp. W instalacji nic się "
-"nie zmieniło; ta przenośna kopia połączy nowe urządzenie."
+"Nie udało się skopiować kont z zainstalowanej wersji WinZappa. Zainstalowana"
+" wersja pozostała bez zmian. Wersja przenośna przejdzie do łączenia nowego "
+"urządzenia."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/installed_account_copy.py
 #, python-brace-format
@@ -12097,11 +12108,11 @@ msgid ""
 "\n"
 "Both copies are the same linked device: never open them at the same time. Choose No to link a new device."
 msgstr ""
-"Ten przenośny WinZapp nie ma jeszcze konta. WinZapp zainstalowany na tym komputerze ma: {accounts}.\n"
+"Ta przenośna kopia WinZappa nie ma jeszcze skonfigurowanych kont. W wersji zainstalowanej na tym komputerze są połączone konta: {accounts}.\n"
 "\n"
-"Użyć tutaj jego kopii, bez ponownego łączenia WhatsApp? W zainstalowanym WinZapp nic się nie zmieni.\n"
+"Czy chcesz skopiować te konta do wersji przenośnej, bez ponownego łączenia urządzenia z WhatsAppem? Zainstalowana wersja pozostanie bez zmian.\n"
 "\n"
-"Obie kopie to to samo połączone urządzenie: nigdy nie otwieraj ich jednocześnie. Wybierz Nie, aby połączyć nowe urządzenie."
+"Dla każdego skopiowanego konta obie wersje będą korzystać z tego samego połączonego urządzenia. Nigdy nie uruchamiaj ich jednocześnie. Wybierz „Nie”, aby połączyć nowe urządzenie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -12182,7 +12193,8 @@ msgid ""
 "profile is damaged you will need to pair again."
 msgstr ""
 "Kopie zapasowe profilu zajmują {size}. Usunąć je teraz? Bez nich, jeśli "
-"profil zostanie uszkodzony, trzeba będzie sparować ponownie."
+"profil zostanie uszkodzony, trzeba będzie ponownie połączyć konto z "
+"WhatsAppem."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/session_lifecycle.py
@@ -12199,7 +12211,8 @@ msgid ""
 "will need to pair again)"
 msgstr ""
 "&Nie przechowuj kopii zapasowych profilu (oszczędza miejsce, ale jeśli "
-"profil zostanie uszkodzony, trzeba będzie sparować ponownie)"
+"profil zostanie uszkodzony, trzeba będzie ponownie połączyć konto z "
+"WhatsAppem)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_backup_live_confirm"
@@ -12289,9 +12302,9 @@ msgid ""
 "saved copy to restore. You will need to disconnect the session and pair "
 "again."
 msgstr ""
-"Profil przeglądarki używany do połączenia z WhatsApp jest uszkodzony i nie "
-"ma zapisanej kopii do przywrócenia. Trzeba będzie rozłączyć sesję i sparować"
-" ponownie."
+"Profil przeglądarki używany do połączenia z WhatsAppem jest uszkodzony i nie"
+" ma zapisanej kopii do przywrócenia. Trzeba będzie rozłączyć sesję i "
+"sparować ponownie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_load_failed"
@@ -12426,19 +12439,19 @@ msgstr "&Informacje:"
 #, python-brace-format
 msgctxt "promote_confirm"
 msgid "Make {name} a group admin?"
-msgstr "Nadać {name} uprawnienia administratora grupy?"
+msgstr "Mianować osobę {name} administratorem grupy?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "promote_failed"
 msgid "Could not make {name} a group admin: {error}"
-msgstr "Nie udało się nadać {name} uprawnień administratora: {error}"
+msgstr "Nie udało się mianować osoby {name} administratorem grupy: {error}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
 msgctxt "promote_to_admin"
 msgid "Make group admin"
-msgstr "Nadaj uprawnienia administratora grupy"
+msgstr "Mianuj administratorem grupy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "qrcode_generating"
@@ -12794,7 +12807,7 @@ msgstr "{name} nagrywa wiadomość głosową..."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "remote_chat_deleted_closed"
 msgid "This chat was deleted on another device, so it was closed."
-msgstr "Ten czat został usunięty na innym urządzeniu, więc został zamknięty."
+msgstr "Czat został zamknięty, ponieważ usunięto go na innym urządzeniu."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "remote_chat_locked_closed"
@@ -14558,9 +14571,9 @@ msgid ""
 " > Interface > Reactions (1 is the first, 0 is the tenth); pressing the "
 "reaction already sent removes it, position"
 msgstr ""
-"Zareaguj na zaznaczoną wiadomość reakcją z tej pozycji w Ustawienia > "
-"Interfejs > Reakcje (1 to pierwsza, 0 to dziesiąta). Wybranie reakcji już "
-"wysłanej usuwa ją. Pozycja"
+"Zareaguj na wiadomość z fokusem reakcją z wybranej pozycji w Ustawienia > "
+"Interfejs > Reakcje (1 oznacza pierwszą pozycję, a 0 — dziesiątą). Ponowne "
+"wybranie tej samej reakcji usuwa ją. Pozycja"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
@@ -14632,7 +14645,7 @@ msgstr "Wzmianki"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_reorder"
 msgid "Reorderable lists"
-msgstr "Listy z kolejnością do zmiany"
+msgstr "Zmiana kolejności elementów na listach"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -15014,18 +15027,18 @@ msgstr "Wiadomość w bieżącym czacie"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_message_edit_saved"
 msgid "Edit of your message saved"
-msgstr "Edycja Twojej wiadomości zapisana"
+msgstr "Zapisano zmiany w Twojej wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_message_edited_background"
 msgid "Message edited by someone else while the program is in the background"
-msgstr "Wiadomość edytowana przez kogoś innego, gdy program jest w tle"
+msgstr "Wiadomość edytowana przez inną osobę, gdy WinZapp jest w tle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_message_edited_foreground"
 msgid "Message edited by someone else (app in foreground)"
 msgstr ""
-"Wiadomość edytowana przez kogoś innego (aplikacja na pierwszym planie)"
+"Wiadomość edytowana przez inną osobę, gdy WinZapp jest na pierwszym planie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_message_foreground"
@@ -15963,7 +15976,7 @@ msgstr "Wyświetlono"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_list.py
 msgctxt "status_recent_updates"
 msgid "Recent"
-msgstr "Ostatnie"
+msgstr "Najnowsze aktualizacje"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 msgctxt "status_refresh"
@@ -16110,7 +16123,7 @@ msgstr "Zobacz reakcje"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_tab/status_list.py
 msgctxt "status_viewed_updates"
 msgid "Viewed"
-msgstr "Obejrzane"
+msgstr "Wyświetlone aktualizacje"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/notification_manager.py client/main_window/chat_list.py
@@ -20882,8 +20895,8 @@ msgid ""
 "their text is not sent anywhere."
 msgstr ""
 "Pobrać model tłumaczenia {name} ({license}) z Hugging Face? Rozmiar "
-"pobierania: {size}. Wiadomości będą wtedy tłumaczone na tym komputerze, a "
-"ich tekst nie będzie nigdzie wysyłany."
+"pobierania: {size}. Po pobraniu wiadomości będą tłumaczone na tym "
+"komputerze, bez wysyłania ich tekstu poza niego."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/text_translation/local_text.py
@@ -21328,7 +21341,7 @@ msgstr "Esc czyści wyszukiwanie i &filtry na liście czatów"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_escape_clears_message_search"
 msgid "Esc clears the messa&ge search in the active chat"
-msgstr "Esc czyści wyszukiwanie w &bieżącym czacie"
+msgstr "Esc czyści wyszukiwanie wiadomości w &bieżącym czacie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21554,8 +21567,8 @@ msgid ""
 "Stop new messages in the open chat from &joining the unread separator; mark "
 "them as read on arrival"
 msgstr ""
-"Nie dodawaj nowych wiadomo&ści z otwartego czatu do separatora "
-"nieprzeczytanych; oznaczaj je jako przeczytane od razu"
+"Gdy okno jest aktywne, oznaczaj nowe wiadomo&ści w otwartym czacie od razu "
+"jako przeczytane, bez zwiększania licznika przy separatorze nieprzeczytanych"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/reading_position_options.py
@@ -21681,7 +21694,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_starred_prefix_label"
 msgid "Announce \"Starre&d\" at the start of the message, before the sender"
-msgstr "Og&łaszaj \"Oznaczono gwiazdką\" na początku wiadomości, przed nadawcą"
+msgstr "Og&łaszaj „Oznaczono gwiazdką” na początku wiadomości, przed nadawcą"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -22388,8 +22401,8 @@ msgstr "Połączenie głosowe nie jest dostępne w tym czacie."
 msgctxt "voice_call_link_no_video"
 msgid "This is a voice call link, so it cannot be switched to video."
 msgstr ""
-"To jest link tylko do połączenia głosowego, więc nie można przełączyć go na "
-"wideo."
+"Ten link prowadzi do połączenia głosowego. Nie można przełączyć tego "
+"połączenia na wideo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "voice_call_microphone_muted"
@@ -22530,19 +22543,19 @@ msgstr "Podstawowa (bramka szumów)"
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "voice_nr_engine_label"
 msgid "&Noise reduction engine"
-msgstr "&Silnik redukcji szumów"
+msgstr "Rodzaj redukcji &szumów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "voice_nr_engine_neural"
 msgid "Neural"
-msgstr "Neuronowy"
+msgstr "Neuronowa"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "voice_nr_moment_label"
 msgid "&Process voice messages"
-msgstr "&Przetwarzanie wiadomości głosowych"
+msgstr "Moment &przetwarzania wiadomości głosowych"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -22566,7 +22579,7 @@ msgstr "Wyślij z podstawową redukcją szumów (domyślne)"
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "voice_nr_on_failure_label"
 msgid "&When noise reduction fails"
-msgstr "&Gdy redukcja szumów się nie powiedzie"
+msgstr "&Gdy neuronowa redukcja szumów się nie powiedzie"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
