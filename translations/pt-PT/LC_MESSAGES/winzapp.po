@@ -7428,6 +7428,7 @@ msgstr "Descarregar"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
+#: client/ui/conversation_panel/bulk_copy_files.py
 #: client/ui/conversation_panel/media_files.py
 msgctxt "downloading"
 msgid "downloading..."
@@ -10318,6 +10319,19 @@ msgctxt "messages_copied_bulk"
 msgid "Messages copied to the clipboard as a single text."
 msgstr "Mensagens copiadas para a área de transferência como um único texto."
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_copy_files.py
+msgctxt "messages_copied_bulk_files"
+msgid "Messages copied."
+msgstr "Mensagens copiadas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_copy_files.py
+#, python-brace-format
+msgctxt "messages_copied_bulk_files_partial"
+msgid "Messages copied. {count} could not be copied."
+msgstr "Mensagens copiadas. Não foi possível copiar {count}."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sending.py
 msgctxt "meta_ai_send_rejected_error"
 msgid ""
@@ -10400,6 +10414,7 @@ msgid "Message copied."
 msgstr "Mensagem copiada."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_link_dialog.py
+#: client/ui/conversation_panel/bulk_copy_files.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/business_buttons.py
 #: client/ui/conversation_panel/contact_messages.py

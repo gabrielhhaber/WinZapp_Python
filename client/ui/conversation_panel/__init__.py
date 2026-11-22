@@ -35,6 +35,7 @@ Where to look (and where new code goes):
     message_stars            sequential star jobs, explicit old-star migration
     message_accels           accelerator handlers for messages
     bulk_messages            bulk actions on selected messages
+    bulk_copy_files          copying the selected files (and text) to the clipboard as files
     bulk_transcription       transcribing the selected messages in one go (#469)
     transcription_delete     deleting saved transcriptions from the keyboard, one or selected
     forwarding               forwarding messages
@@ -78,6 +79,7 @@ Where to look (and where new code goes):
     own_sender               the sender prefix of a row and the setting that hides it on my own messages
     text_helpers             small text helpers (_URL_RE, captions, last seen)
     selection_rules          pure chat multi-selection rules
+    bulk_copy_plan           which selected messages copy as text, which as files; staged names
     transfer_gauge           the focus-keeping transfer gauge control
 
 Rules for this package:

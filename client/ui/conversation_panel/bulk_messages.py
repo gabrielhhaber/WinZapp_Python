@@ -10,6 +10,7 @@ import os
 import pyperclip
 import threading
 import wx
+from ui.conversation_panel.bulk_copy_plan import split_copy_selection
 from ui.conversation_panel.media_paths import _SAVEABLE_MESSAGE_TYPES
 from core.message_copy_format import format_copied_message
 from core.call_log import is_call_log
@@ -22,27 +23,32 @@ class BulkMessagesMixin:
     """
 
     def _on_mass_copy_messages(self, event):
-        """Copy every selected plain-text message to the clipboard as one
-        WhatsApp-export-style block of text, one line per message formatted
-        "<date> <time> - <sender>: <text>" — the date/time pattern follows
-        the active app language's datetime_fmt through
+        """Copy every selected message to the clipboard.
+
+        Text messages become one WhatsApp-export-style block, one line per
+        message formatted "<date> <time> - <sender>: <text>" — the pattern
+        follows the active app language's datetime_fmt through
         core.message_copy_format, independently of the Windows regional
         format used by timestamps displayed elsewhere in the interface.
-        Other message types (media, location, contact cards, ...) are
-        silently skipped, same as how _on_menu_copy_message only ever
-        handles "conversation"/"extendedTextMessage". Order follows
+
+        Documents, photos, videos and audio are copied as files (CF_HDROP), so
+        one paste in Windows Explorer drops them all. A selection of both puts
+        the text block and the files on the clipboard together: Explorer
+        pastes the files, a text field pastes the text. Other message types
+        (location, contact cards, ...) are silently skipped, same as how
+        _on_menu_copy_message only ever handles text. Order follows
         _sorted_messages, not set iteration order, same as the other mass
         message actions."""
         if not self.selected_messages: return
         i18n = self.main_window.i18n
-        _TEXT_TYPES = ("conversation", "extendedTextMessage")
+        selected = [
+            m for m in self._sorted_messages
+            if not self._is_separator(m)
+            and m.get("key", {}).get("id") in self.selected_messages
+        ]
+        text_msgs, file_msgs = split_copy_selection(selected)
         lines = []
-        for m in self._sorted_messages:
-            if self._is_separator(m) or m.get("key", {}).get("id") not in self.selected_messages:
-                continue
-            msg_type = m.get("messageType", "")
-            if msg_type not in _TEXT_TYPES:
-                continue
+        for m in text_msgs:
             text = self._message_text_with_names(m)
             if not text:
                 continue
@@ -51,8 +57,17 @@ class BulkMessagesMixin:
             lines.append(format_copied_message(
                 ts, sender, text, i18n.t("datetime_fmt")))
 
-        if not lines:
+        if not lines and not file_msgs:
             self.main_window.output(i18n.t("copy_selected_nothing_to_copy"), interrupt=True)
+            return
+
+        copied_ids = list(self.selected_messages)
+        if file_msgs:
+            # Staging decrypts (and may download) files, so it runs off the
+            # main thread and announces its own outcome.
+            self.selected_messages.clear()
+            self._refresh_message_rows_by_ids(copied_ids)
+            self._start_bulk_copy_with_files("\n".join(lines), file_msgs)
             return
 
         try:
@@ -61,7 +76,6 @@ class BulkMessagesMixin:
             self.main_window.output(i18n.t("msg_copy_error"), interrupt=True)
             return
 
-        copied_ids = list(self.selected_messages)
         self.selected_messages.clear()
         self._refresh_message_rows_by_ids(copied_ids)
         self.main_window.output(i18n.t("messages_copied_bulk"), interrupt=True)

@@ -176,6 +176,7 @@ from ui.conversation_panel.poll_messages import PollMessagesMixin
 from ui.conversation_panel.event_messages import EventMessagesMixin
 from ui.conversation_panel.contact_messages import ContactMessagesMixin
 from ui.conversation_panel.bulk_messages import BulkMessagesMixin
+from ui.conversation_panel.bulk_copy_files import BulkCopyFilesMixin
 from ui.conversation_panel.bulk_transcription import BulkTranscriptionMixin
 from ui.conversation_panel.transcription_delete import TranscriptionDeleteMixin
 from ui.conversation_panel.message_data import MessageDataMixin
@@ -239,6 +240,7 @@ class ConversationsPanel(
     PollInlineMixin,
     ContactMessagesMixin,
     BulkMessagesMixin,
+    BulkCopyFilesMixin,
     BulkTranscriptionMixin,
     TranscriptionDeleteMixin,
     AIActionsMixin,

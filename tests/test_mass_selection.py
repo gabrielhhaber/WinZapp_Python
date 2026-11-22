@@ -265,6 +265,7 @@ class _Panel(PinnedMessagesMixin):
         self.starred = []
         self.pinned = []
         self.copied_files = []
+        self.bulk_file_copies = []
         # The mass star/pin handlers apply the flag themselves and repaint
         # once, instead of delegating to the single-message handlers — these
         # record that they do exactly one repaint / one persist per batch.
@@ -325,6 +326,9 @@ class _Panel(PinnedMessagesMixin):
 
     def _on_menu_copy_file(self, msg):
         self.copied_files.append(msg["key"]["id"])
+
+    def _start_bulk_copy_with_files(self, text, file_msgs):
+        self.bulk_file_copies.append((text, [m["key"]["id"] for m in file_msgs]))
 
     def seek_active_playback_by(self, delta_seconds):
         return False
@@ -1352,6 +1356,44 @@ def fixed_datetime_format(monkeypatch):
 def _expected_line(ts, sender, text):
     stamp = datetime.fromtimestamp(ts).strftime("%d/%m/%Y %H:%M")
     return f"{stamp} - {sender}: {text}"
+
+
+def _file_msg(msg_id, msg_type="documentMessage"):
+    return {
+        "key": {"id": msg_id, "remoteJid": "grupo@g.us", "fromMe": False},
+        "messageType": msg_type,
+        "message": {msg_type: {}},
+    }
+
+
+class TestMassCopyFiles:
+    def test_files_only_are_staged_and_the_clipboard_text_is_left_alone(self, fake_clipboard):
+        panel = _Panel(messages=[_file_msg("f1"), _file_msg("f2", "audioMessage")])
+        panel.selected_messages = {"f1", "f2"}
+        panel._on_mass_copy_messages(None)
+        assert panel.bulk_file_copies == [("", ["f1", "f2"])]
+        assert fake_clipboard == []
+        assert panel.selected_messages == set()
+
+    def test_mixed_selection_hands_the_text_block_over_with_the_files(self, fake_clipboard, fixed_datetime_format):
+        ts = 1755972565
+        panel = _Panel(messages=[
+            _text_msg("t1", "oi", ts=ts), _file_msg("f1"), _file_msg("f2", "imageMessage"),
+        ])
+        panel.selected_messages = {"t1", "f1", "f2"}
+        panel._on_mass_copy_messages(None)
+        assert panel.bulk_file_copies == [
+            (_expected_line(ts, "Gabriel Haberkamp", "oi"), ["f1", "f2"])
+        ]
+        assert fake_clipboard == []  # one clipboard write, made after staging
+
+    def test_unsupported_types_do_not_count_as_something_to_copy(self, fake_clipboard):
+        loc = {"key": {"id": "l1"}, "messageType": "locationMessage", "message": {}}
+        panel = _Panel(messages=[loc])
+        panel.selected_messages = {"l1"}
+        panel._on_mass_copy_messages(None)
+        assert panel.main_window.announced == ["copy_selected_nothing_to_copy"]
+        assert panel.bulk_file_copies == []
 
 
 class TestMassCopyMessages:
