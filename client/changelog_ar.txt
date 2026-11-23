@@ -650,6 +650,8 @@ V3.0.0.0
 
 - Neonize على Windows على معالج ARM: لم يعد جسر الاتصال يفشل في البدء (ولم يعد الاقتران برمز QR يتعطل) بسبب طلبه نسخة ARM من مكتبته التي لا يستطيع البرنامج تحميلها؛ وهو الآن يستخدم نسخة البنية التي يعمل عليها فعلًا.
 
+- تم الإصلاح: مع تفعيل التثبيت عند الخروج، بقي الخيار مساعدة > تثبيت التحديث المنزَّل غير متاح بعد الإعلان عن تنزيل التحديث. أصبح الخيار متاحاً الآن ويثبّت التحديث فوراً ثم يعيد تشغيل WinZapp؛ أما الخروج فيظل يثبّت التحديث دون إعادة التشغيل.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
