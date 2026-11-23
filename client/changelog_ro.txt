@@ -644,6 +644,8 @@ NOUTĂȚI
 
 - Cu Neonize, „Adaugă contact” din datele conversației salvează acum cu adevărat contactul în agenda WhatsApp și pe telefon. Înainte, contactul era scris sub identificatorul intern (LID) în loc de numărul de telefon, iar iPhone-ul îl arunca după câteva secunde, deși WinZapp spunea că sincronizarea fusese solicitată.
 
+- Neonize: când puntea de conexiune nu poate porni, WinZapp o spune acum imediat cu voce, în loc să piardă anunțul atunci când programul se bloca afișându-l, și scrie în jurnal sfârșitul ieșirii punții și arhitectura procesorului computerului, pentru ca cauza să poată fi găsită.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

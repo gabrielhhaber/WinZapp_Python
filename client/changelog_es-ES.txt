@@ -644,6 +644,8 @@ NOVEDADES
 
 - Con Neonize, "Añadir contacto" en los datos de la conversación ahora guarda de verdad el contacto en la agenda de WhatsApp y en el teléfono. Antes, el contacto se grababa con el identificador interno (LID) en lugar del número, y el iPhone lo descartaba segundos después, aunque WinZapp decía que la sincronización se había solicitado.
 
+- Neonize: cuando el puente de conexión no consigue iniciarse, WinZapp ahora lo avisa por voz al instante, en lugar de que el aviso se perdiera cuando el programa se bloqueaba al mostrarlo, y guarda en el registro el final de la salida del propio puente y la arquitectura del procesador del equipo, para poder encontrar la causa.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

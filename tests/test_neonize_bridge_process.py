@@ -608,3 +608,39 @@ def test_request_shutdown_reports_false_on_an_error(monkeypatch):
 
     monkeypatch.setattr(requests, "Session", _Broken)
     assert nb.request_shutdown(6300, "s3cret") is False
+
+
+def test_output_tail_returns_only_the_end_of_the_file(tmp_path):
+    path = tmp_path / "bridge.log"
+    path.write_text("\n".join(f"line {n}" for n in range(100)), encoding="utf-8")
+    tail = nb.output_tail(str(path), lines=3)
+    assert tail == "line 97\nline 98\nline 99"
+
+
+def test_output_tail_reads_at_most_the_byte_limit(tmp_path):
+    path = tmp_path / "bridge.log"
+    path.write_text("x" * 50_000 + "\nlast", encoding="utf-8")
+    assert len(nb.output_tail(str(path), limit=100)) <= 100
+    assert nb.output_tail(str(path), limit=100).endswith("last")
+
+
+def test_output_tail_of_a_missing_file_is_empty(tmp_path):
+    assert nb.output_tail(str(tmp_path / "none.log")) == ""
+
+
+def test_machine_summary_shows_the_real_architecture_under_emulation():
+    summary = nb.machine_summary(
+        {"PROCESSOR_ARCHITECTURE": "AMD64", "PROCESSOR_ARCHITEW6432": "ARM64",
+         "PROCESSOR_IDENTIFIER": "ARMv8 (64-bit) Family 8 Model 1"}, machine="AMD64")
+    assert "PROCESSOR_ARCHITEW6432=ARM64" in summary and "ARMv8" in summary
+
+
+def test_a_bridge_that_dies_at_once_logs_the_end_of_its_output(tmp_path, caplog):
+    bridge = _bridge(tmp_path)
+    handle = _handle(bridge, proc=_Proc(pid=900, exits=1))
+    os.makedirs(nb.run_dir(bridge), exist_ok=True)
+    with open(os.path.join(nb.run_dir(bridge), nb.OUTPUT_FILE), "w", encoding="utf-8") as stream:
+        stream.write("Traceback...\nOSError: [WinError 193] not a valid Win32 application\n")
+    with caplog.at_level("ERROR", logger="neonize_bridge"):
+        assert handle.start() is False
+    assert "WinError 193" in caplog.text and "PROCESSOR_ARCHITECTURE" in caplog.text

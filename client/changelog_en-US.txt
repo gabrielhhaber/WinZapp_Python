@@ -644,6 +644,8 @@ WHAT'S NEW
 
 - With Neonize, "Add contact" in the conversation details now really saves the contact in the WhatsApp address book and on the phone. Before, the contact was written under the internal identifier (LID) instead of the phone number, and the iPhone dropped it seconds later, even though WinZapp said the synchronization had been requested.
 
+- Neonize: when the connection bridge fails to start, WinZapp now says so out loud right away, instead of the notice being lost when the program crashed while showing it, and writes the end of the bridge's own output and the computer's processor architecture to the log, so the cause can be found.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
