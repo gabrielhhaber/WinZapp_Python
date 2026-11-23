@@ -10,8 +10,6 @@ NOVEDADES
 
 - Cuando WhatsApp rechaza temporalmente los códigos de emparejamiento de un número, WinZapp lo dice al momento, en lugar de quedarse en "conectando" durante un minuto y medio, y sugiere "Conectar con código QR", que no usa código de emparejamiento.
 
-- Mensajes de voz: las grabaciones en mono usan ahora 128 kbps por defecto, como las estéreo, porque 64 kbps sonaba mal. Las instalaciones que seguían en el antiguo valor de 64 kbps pasan a 128 kbps una vez; cualquier otra tasa elegida se conserva.
-
 - Al copiar solo la leyenda de un mensaje (Ctrl+Shift+C), el lector de pantalla ahora dice "Leyenda copiada" en lugar de "Mensaje copiado", para que no parezca que se copió el archivo (foto, vídeo o documento).
 
 - El nombre del contacto en el mensaje citado de una respuesta ahora sigue su nombre de perfil más reciente en lugar de mostrar uno antiguo, aunque sus mensajes originales ya estuvieran actualizados. Vale para Neonize y WPPConnect.

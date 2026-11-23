@@ -10,8 +10,6 @@ WHAT'S NEW
 
 - Quando WhatsApp rifiuta temporaneamente i codici di associazione per un numero, WinZapp lo dice subito, invece di restare su "connessione in corso" per un minuto e mezzo, e suggerisce "Connettiti con il codice QR", che non usa un codice di associazione.
 
-- Messaggi vocali: le registrazioni mono usano ora 128 kbps per impostazione predefinita, come quelle stereo, perché 64 kbps suonava male. Le installazioni ancora sul vecchio valore di 64 kbps passano a 128 kbps una volta; qualsiasi altra velocità scelta viene mantenuta.
-
 - Copiando solo la didascalia di un messaggio (Ctrl+Shift+C), il lettore di schermo ora dice "Didascalia copiata" invece di "Messaggio copiato", così non sembra che il file (foto, video o documento) sia stato copiato.
 
 - Il nome del contatto nel messaggio citato di una risposta ora segue il suo nome di profilo più recente invece di mostrarne uno vecchio, anche quando i suoi messaggi originali erano già aggiornati. Vale per Neonize e WPPConnect.

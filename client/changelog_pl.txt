@@ -10,8 +10,6 @@ NOWOŚCI
 
 - Gdy WhatsApp tymczasowo odmawia kodów parowania dla numeru, WinZapp mówi o tym od razu, zamiast przez półtorej minuty pozostawać w stanie "łączenie", i proponuje "Połącz za pomocą kodu QR", które nie używa kodu parowania.
 
-- Wiadomości głosowe: nagrania mono domyślnie mają teraz 128 kb/s, tak jak stereo, bo 64 kb/s brzmiało słabo. Instalacje, które wciąż miały dawne domyślne 64 kb/s, przechodzą jednorazowo na 128 kb/s; każda inna wybrana wartość zostaje zachowana.
-
 - Po skopiowaniu samego podpisu wiadomości (Ctrl+Shift+C) czytnik ekranu mówi teraz „Podpis skopiowany” zamiast „Wiadomość skopiowana”, żeby nie sprawiało to wrażenia, że skopiowano plik (zdjęcie, film lub dokument).
 
 - Nazwa kontaktu w cytowanej wiadomości odpowiedzi odpowiada teraz jego najnowszej nazwie profilu zamiast starej, nawet gdy jego oryginalne wiadomości były już zaktualizowane. Dotyczy Neonize i WPPConnect.

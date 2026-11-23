@@ -2028,19 +2028,33 @@ PATCHED_POST_SCAN_AUTH_CHECK = """            // Wait for interface update
 
 ORIGINAL_RELOAD_LOGIN_BY_CODE = """            await this.loginByCode(this.options.phoneNumber).catch((error) => this.log('error', error));"""
 
-PATCHED_RELOAD_LOGIN_BY_CODE = """            // After a code was accepted WhatsApp Web reloads to finish logging
-            // in. Asking for a new code on that page throws the login away.
-            if (this.__wzCodeAccepted || this.isLogged) {
-                this.log('verbose', 'Pairing code already accepted — not requesting another on reload.');
+PATCHED_RELOAD_LOGIN_BY_CODE = """            // WhatsApp Web reloads to finish logging in once the phone accepts the
+            // pairing code, and asking for a new code on that page throws the
+            // login away. isLogged is often still false then: the scan wait's
+            // probe throws during the reload. So a reload while a code was on
+            // screen waits for the login first, and asks for a new code only if
+            // it never comes (the reload had another cause).
+            let wzLoggedIn = this.isLogged;
+            if (!wzLoggedIn && this.lastLinkCode != null) {
+                this.log('verbose', 'Page reloaded while a pairing code was shown; waiting for the login before asking for another.');
+                const wzLoad = this.pageLoadPromise;
+                for (let i = 0; i < 60 && !wzLoggedIn && !this.page.isClosed(); i++) {
+                    if (wzLoad !== this.pageLoadPromise) {
+                        return; // a newer page took over; its own load decides
+                    }
+                    wzLoggedIn = this.isLogged ||
+                        (await (0, auth_1.needsToScan)(this.page).catch(() => null)) === false;
+                    if (!wzLoggedIn) {
+                        await (0, sleep_1.sleep)(1000);
+                    }
+                }
             }
-            else {
+            if (wzLoggedIn) {
+                this.log('verbose', 'Pairing code already accepted; not requesting another on reload.');
+            }
+            else if (!this.page.isClosed()) {
                 await this.loginByCode(this.options.phoneNumber).catch((error) => this.log('error', error));
             }"""
-
-ORIGINAL_LOGIN_SUCCESS = """                this.log('http', 'Login with success');"""
-
-PATCHED_LOGIN_SUCCESS = """                this.__wzCodeAccepted = true;
-                this.log('http', 'Login with success');"""
 
 
 def _patch_post_link_reload(content: str, notes: list) -> str:
@@ -2048,10 +2062,8 @@ def _patch_post_link_reload(content: str, notes: list) -> str:
     for name, anchor, original, patched in (
         ("waitForLogin post-scan check", "async waitForLogin()",
          ORIGINAL_POST_SCAN_AUTH_CHECK, PATCHED_POST_SCAN_AUTH_CHECK),
-        ("page-load pairing request", "async waitForLogin()",
+        ("page-load pairing request", "async afterPageScriptInjected()",
          ORIGINAL_RELOAD_LOGIN_BY_CODE, PATCHED_RELOAD_LOGIN_BY_CODE),
-        ("login success flag", "async waitForLogin()",
-         ORIGINAL_LOGIN_SUCCESS, PATCHED_LOGIN_SUCCESS),
     ):
         if patched in content:
             notes.append(f"{name}: already survives the post-link reload.")

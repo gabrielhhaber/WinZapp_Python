@@ -79,3 +79,34 @@ def test_a_community_not_read_yet_waits_for_the_reload():
     panel._finish_reload([SCHOOL, CLUB])
     assert panel._selected().jid == CLUB.jid
     assert panel._pending_select == ""
+
+
+def test_a_failed_reading_drops_the_pending_community():
+    # Left pending, the next unrelated reading (Refresh, after a join) would
+    # suddenly move the selection and the focus to it.
+    panel = _Panel(communities=None)
+    panel._announce_if_shown = Mock()
+    panel._pending_select = SCHOOL.jid
+    panel._finish_reload(None)
+    assert panel._pending_select == ""
+    panel._announce_if_shown.assert_called_once()
+    panel._finish_reload([SCHOOL, CLUB])
+    assert panel._selected().jid == CLUB.jid  # the first by name, not the old jump
+    panel._groups.SetFocus.assert_not_called()
+
+
+def test_a_community_the_reading_does_not_bring_is_said_not_kept():
+    panel = _Panel(communities=None)
+    panel._announce_if_shown = Mock()
+    panel._pending_select = "120363000000000999@g.us"
+    panel._finish_reload([SCHOOL, CLUB], quiet=True)
+    assert panel._pending_select == ""
+    panel._announce_if_shown.assert_called_once()  # the count, not silence
+
+
+def test_a_reading_that_cannot_start_drops_the_pending_community():
+    panel = _Panel(communities=None)
+    panel._current = lambda: False
+    panel._pending_select = CLUB.jid
+    panel._reload()
+    assert panel._pending_select == ""

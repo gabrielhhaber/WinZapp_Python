@@ -241,7 +241,10 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
     # ── reading ───────────────────────────────────────────────────────────
 
     def _reload(self, event=None, quiet=False):
-        if self._busy or not self._current():
+        if self._busy:
+            return  # the reading in flight also settles _pending_select
+        if not self._current():
+            self._pending_select = ""
             return
         self._set_busy(True)
         self._status.SetLabel(self._i18n.t("loading"))
@@ -251,14 +254,22 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
 
     def _finish_reload(self, communities, quiet=False):
         self._set_busy(False)
+        # A community asked for from the chat list is settled by this reading,
+        # whatever it brings: left pending, a later Refresh would jump to it.
+        pending, self._pending_select = getattr(self, "_pending_select", ""), ""
         if communities is None or not self._current():
             logging.warning("[communities] read_failed")
             self._announce_if_shown(self._i18n.t("communities_unavailable"))
             return
         self._loaded = True
         self._show(communities)
-        if getattr(self, "_pending_select", ""):
-            self._apply_pending_select()
+        if pending:
+            self._pending_select = pending
+            if not self._apply_pending_select():
+                # Not a community this account still has: say what the list
+                # holds rather than leave the user on another one in silence.
+                self._pending_select = ""
+                quiet = False
         text = (self._i18n.t("communities_count").format(count=len(communities))
                 if communities else self._i18n.t("communities_empty"))
         if quiet:       # shown again: the list is what it was, said only on screen
