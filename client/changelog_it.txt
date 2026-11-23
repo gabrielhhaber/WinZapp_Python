@@ -4,6 +4,12 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Community: Invio su una community nell'elenco delle chat ora apre il pannello Community con quella community selezionata e il focus sui suoi gruppi, invece della chat della community stessa. L'opzione è in Impostazioni > Interfaccia > Chat, attiva per impostazione predefinita.
+
+- Collegamento con il numero di telefono: il collegamento non fallisce più dopo che WhatsApp sul telefono ha accettato il codice di associazione. WinZapp chiudeva WhatsApp Web durante il ricaricamento che completa l'accesso, o vi chiedeva un nuovo codice, e il telefono mostrava il dispositivo come collegato mentre WinZapp restava sulla finestra di associazione. La finestra del codice ora mostra anche il testo, il codice e Annulla in ordine, invece di disegnarli uno sopra l'altro.
+
+- Quando WhatsApp rifiuta temporaneamente i codici di associazione per un numero, WinZapp lo dice subito, invece di restare su "connessione in corso" per un minuto e mezzo, e suggerisce "Connettiti con il codice QR", che non usa un codice di associazione.
+
 - Copiando solo la didascalia di un messaggio (Ctrl+Shift+C), il lettore di schermo ora dice "Didascalia copiata" invece di "Messaggio copiato", così non sembra che il file (foto, video o documento) sia stato copiato.
 
 - Il nome del contatto nel messaggio citato di una risposta ora segue il suo nome di profilo più recente invece di mostrarne uno vecchio, anche quando i suoi messaggi originali erano già aggiornati. Vale per Neonize e WPPConnect.

@@ -330,3 +330,20 @@ def linkable_groups(chats, communities, is_locked=lambda jid: False):
         if name:
             rows.append((jid, name))
     return sorted(rows, key=lambda row: (row[1].casefold(), row[0]))
+
+
+def is_community_chat(chat, known_jids=()):
+    """Is *chat* (a chat-list entry) a community itself, not one of its groups?
+
+    WhatsApp Web marks the community's own chat groupMetadata.isParentGroup;
+    *known_jids* (the communities already read) covers an entry that arrived
+    without its metadata."""
+    if not isinstance(chat, dict):
+        return False
+    meta = chat.get("groupMetadata")
+    if isinstance(meta, dict) and meta.get("isParentGroup") is True:
+        return True
+    jid = chat.get("remoteJid") or chat.get("id")
+    if isinstance(jid, dict):
+        jid = jid.get("_serialized")
+    return isinstance(jid, str) and jid.endswith("@g.us") and jid in set(known_jids)

@@ -64,11 +64,12 @@ def show_contacts(mw):
     return panel
 
 
-def show_communities(mw):
-    """Alt+8 and the navigation list's Communities."""
+def show_communities(mw, select=""):
+    """Alt+8, the navigation list's Communities, and a community opened from
+    the chat list (*select*: its jid, shown with its groups)."""
     panel = show_side_panel(mw, "communities_panel")
     if panel is not None:
-        panel.on_show()
+        panel.on_show(select=select)
     return panel
 
 

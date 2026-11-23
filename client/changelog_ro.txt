@@ -4,6 +4,12 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Comunități: Enter pe o comunitate din lista de conversații deschide acum panoul Comunități cu acea comunitate selectată și focalizarea pe grupurile ei, în locul conversației comunității. Opțiunea este în Setări > Interfață > Conversații, activată implicit.
+
+- Conectarea cu numărul de telefon: conectarea nu mai eșuează după ce WhatsApp de pe telefon acceptă codul de asociere. WinZapp închidea WhatsApp Web în timpul reîncărcării care finalizează autentificarea, sau cerea un cod nou pe ea, iar telefonul arăta dispozitivul ca fiind conectat în timp ce WinZapp rămânea în fereastra de asociere. Fereastra codului arată acum și textul, codul și Anulare în ordine, în loc să le deseneze unele peste altele.
+
+- Când WhatsApp refuză temporar codurile de asociere pentru un număr, WinZapp spune imediat acest lucru, în loc să rămână la "se conectează" timp de un minut și jumătate, și sugerează „Conectați-vă cu codul QR”, care nu folosește un cod de asociere.
+
 - La copierea doar a legendei unui mesaj (Ctrl+Shift+C), cititorul de ecran spune acum „Legenda a fost copiată”, nu „Mesaj copiat”, ca să nu pară că fișierul (poză, videoclip sau document) a fost copiat.
 
 - Numele contactului din mesajul citat al unui răspuns urmează acum cel mai recent nume de profil, în loc să arate unul vechi, chiar dacă mesajele sale originale erau deja actualizate. Se aplică pentru Neonize și WPPConnect.

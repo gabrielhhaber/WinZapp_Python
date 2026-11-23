@@ -99,6 +99,7 @@
         "hide_unnamed_sender_numbers": false,
         "mark_unsaved_contacts": true,
         "show_delivery_status_in_chat_list": true,
+        "open_communities_in_panel": true,
         "keep_pinned_chat_order": false,
         "show_channels_in_chat_list": false,
         "message_draft_mode": "per_conversation",

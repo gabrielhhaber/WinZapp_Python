@@ -11379,10 +11379,12 @@ msgstr "رمز الاقتران:"
 msgctxt "pairing_code_rate_limited"
 msgid ""
 "WhatsApp is temporarily limiting pairing code requests for this number. Wait"
-" a few minutes and try again in {app_name}."
+" a few minutes and try again in {app_name}. Or choose “Connect with QR code”"
+" instead: it does not use a pairing code."
 msgstr ""
 "يقوم واتساب مؤقتًا بتحديد طلبات رمز الاقتران لهذا الرقم. انتظر بضع دقائق "
-"وحاول مرة أخرى في {app_name}."
+"وحاول مرة أخرى في {app_name}. أو اختر «الاتصال برمز الاستجابة السريعة» بدلاً"
+" من ذلك، فهو لا يستخدم رمز اقتران."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_dial_intro"
@@ -20873,6 +20875,14 @@ msgstr "الرسا&ئل"
 msgctxt "ui_messages_page_size_label"
 msgid "When opening a chat, show &up to this many messages:"
 msgstr "عند فتح دردشة، أظهر ما يصل إل&ى هذا العدد من الرسائل:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_open_communities_in_panel"
+msgid ""
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
+msgstr "فتح المجتمعات من قائمة المحادثات في لوحة الم&جتمعات مع مجموعاتها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

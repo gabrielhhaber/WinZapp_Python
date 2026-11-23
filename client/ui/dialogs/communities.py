@@ -76,6 +76,9 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
         # and the communities whose other groups were already asked for.
         self._filter = SUBGROUP_FILTERS[0]
         self._refreshed = set()
+        # A community opened from the chat list: selected, with the focus on
+        # its groups, once the list holds it (on_show / _show).
+        self._pending_select = ""
         super().__init__(parent)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -138,14 +141,38 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
 
     # ── shown and translated ──────────────────────────────────────────────
 
-    def on_show(self):
+    def on_show(self, select=""):
         """Alt+8 / the navigation list: the list gets the focus and the
         communities are read again; their count is said the first time, or
-        after the account's connection changed (a new pairing)."""
+        after the account's connection changed (a new pairing).
+
+        *select*: a community opened from the chat list. It is selected and
+        the focus goes to its groups — at once when the list already holds
+        it, otherwise when the reload brings it."""
         if self._renew_connection():
             self._loaded, self._refreshed = False, set()
+        self._pending_select = select or ""
+        # Focus once: a community already in the list takes it to its groups
+        # straight away (two moves would be announced twice).
+        if self._pending_select and self._apply_pending_select():
+            self._reload(quiet=True)
+            return
         self._list.SetFocus()
-        self._reload(quiet=self._loaded)
+        self._reload(quiet=self._loaded or bool(self._pending_select))
+
+    def _apply_pending_select(self):
+        """Select the community asked for and focus its groups (its list when
+        it has none shown). True when the list held it."""
+        jid = self._pending_select
+        index = next((position for position, community in enumerate(self._communities)
+                      if community.jid == jid), -1)
+        if not jid or index < 0:
+            return False
+        self._pending_select = ""
+        self._list.SetSelection(index)
+        self._show_selected("")
+        (self._groups if self._groups.GetCount() else self._list).SetFocus()
+        return True
 
     def refresh_labels(self):
         """MainWindow switched language: every label, and the rows."""
@@ -215,7 +242,10 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
     # ── reading ───────────────────────────────────────────────────────────
 
     def _reload(self, event=None, quiet=False):
-        if self._busy or not self._current():
+        if self._busy:
+            return  # the reading in flight also settles _pending_select
+        if not self._current():
+            self._pending_select = ""
             return
         self._set_busy(True)
         self._status.SetLabel(self._i18n.t("loading"))
@@ -225,12 +255,22 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
 
     def _finish_reload(self, communities, quiet=False):
         self._set_busy(False)
+        # A community asked for from the chat list is settled by this reading,
+        # whatever it brings: left pending, a later Refresh would jump to it.
+        pending, self._pending_select = getattr(self, "_pending_select", ""), ""
         if communities is None or not self._current():
             logging.warning("[communities] read_failed")
             self._announce_if_shown(self._i18n.t("communities_unavailable"))
             return
         self._loaded = True
         self._show(communities)
+        if pending:
+            self._pending_select = pending
+            if not self._apply_pending_select():
+                # Not a community this account still has: say what the list
+                # holds rather than leave the user on another one in silence.
+                self._pending_select = ""
+                quiet = False
         text = (self._i18n.t("communities_count").format(count=len(communities))
                 if communities else self._i18n.t("communities_empty"))
         if quiet:       # shown again: the list is what it was, said only on screen

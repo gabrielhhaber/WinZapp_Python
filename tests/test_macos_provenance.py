@@ -431,6 +431,45 @@ def test_a_tag_that_does_not_hold_stops_the_build(git, api):
         P.resolve_build_source(git, api)
 
 
+# -- the Mac maintainer's own build on top of a release -------------------------
+
+def _local_git(head=OTHER, dirty="", contains=True):
+    def git(*args):
+        if args[0] == "rev-parse":
+            return head
+        if args[0] == "status":
+            return dirty
+        if args[0] == "merge-base":
+            assert args[1:] == ("--is-ancestor", COMMIT, head)
+            if not contains:
+                raise RuntimeError("not an ancestor")
+            return ""
+        raise AssertionError(args)
+    return git
+
+
+def test_a_local_build_names_the_release_it_contains_and_its_own_commit():
+    assert P.resolve_local_build_source(_local_git(), Api(), TAG) == (TAG, OTHER)
+
+
+@pytest.mark.parametrize("git,api,tag", [
+    (_local_git(contains=False), Api(), TAG),          # HEAD does not contain the release
+    (_local_git(dirty=" M client/main.py"), Api(), TAG),
+    (_local_git(), Api(tags={}), TAG),                 # not an official tag
+    (_local_git(), Api(), "main"),                     # not a release tag
+])
+def test_a_local_build_that_does_not_hold_stops(git, api, tag):
+    with pytest.raises(P.ProvenanceError):
+        P.resolve_local_build_source(git, api, tag)
+
+
+def test_a_local_build_still_takes_every_newer_release_and_only_those():
+    # running tag = the release it was built on; the commit differs from any release
+    assert _verify(running=TAG, tag="v2.0.0.6", raw=_prov(version="v2.0.0.6"),
+                   api=Api(tags={"v2.0.0.6": ("commit", COMMIT)}), running_commit=OTHER)[0]
+    assert not _verify(running=TAG, running_commit=OTHER)[0]   # its own base is not newer
+
+
 # -- the updater uses it --------------------------------------------------------
 
 def test_the_updater_verifies_before_downloading_and_the_hash_before_extracting():

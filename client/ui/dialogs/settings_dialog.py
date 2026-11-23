@@ -1869,6 +1869,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         chats_sizer.Add(self._show_delivery_status_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
 
+        # On (default): a community opened from the chat list shows its groups
+        # in the Communities panel (conversation_navigation.py).
+        self._open_communities_in_panel_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_open_communities_in_panel")
+        )
+        chats_sizer.Add(self._open_communities_in_panel_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT, 8)
+
         self._mark_unsaved_contacts_cb = wx.CheckBox(
             self._chats_page, label=i18n.t("ui_mark_unsaved_contacts")
         )
@@ -2669,6 +2676,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         if wanted(unit, "chats"):
             self._show_delivery_status_cb.SetValue(bool(show_delivery_status))
+
+        open_communities_in_panel = self.main_window.settings.get("user_interface", {}).get(
+            "open_communities_in_panel", True
+        )
+        if wanted(unit, "chats"):
+            self._open_communities_in_panel_cb.SetValue(bool(open_communities_in_panel))
 
         keep_pinned_order = self.main_window.settings.get("user_interface", {}).get(
             "keep_pinned_chat_order", False
@@ -4277,6 +4290,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "show_delivery_status_in_chat_list"
             ] = self._show_delivery_status_cb.GetValue()
+            self.main_window.settings.setdefault("user_interface", {})[
+                "open_communities_in_panel"
+            ] = self._open_communities_in_panel_cb.GetValue()
         old_keep_pinned_order = ui_settings.get("keep_pinned_chat_order", False)
         if ready(self, "chats"):
             self.main_window.settings.setdefault("user_interface", {})[
@@ -5097,6 +5113,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._hide_unnamed_sender_numbers_cb.SetHelpText(i18n.t("ui_hide_unnamed_sender_numbers_help"))
         if ready(self, "chats"):
             self._show_delivery_status_cb.SetLabel(i18n.t("ui_show_delivery_status_in_chat_list"))
+            self._open_communities_in_panel_cb.SetLabel(i18n.t("ui_open_communities_in_panel"))
             self._keep_pinned_order_cb.SetLabel(i18n.t("ui_keep_pinned_chat_order"))
             self._show_channels_cb.SetLabel(i18n.t("ui_show_channels_in_chat_list"))
             self._message_draft_radio.SetLabel(i18n.t("ui_message_draft_label"))
