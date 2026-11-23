@@ -646,6 +646,8 @@ NOVEDADES
 
 - Neonize: cuando el puente de conexión no consigue iniciarse, WinZapp ahora lo avisa por voz al instante, en lugar de que el aviso se perdiera cuando el programa se bloqueaba al mostrarlo, y guarda en el registro el final de la salida del propio puente y la arquitectura del procesador del equipo, para poder encontrar la causa.
 
+- Neonize en Windows sobre ARM: el puente de conexión ya no deja de iniciarse (y el emparejamiento por código QR ya no se queda bloqueado) por pedir la versión ARM de su biblioteca, que el programa no puede cargar; ahora usa la de la arquitectura con la que realmente se ejecuta.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

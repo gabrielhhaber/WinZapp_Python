@@ -646,6 +646,8 @@ NOUTĂȚI
 
 - Neonize: când puntea de conexiune nu poate porni, WinZapp o spune acum imediat cu voce, în loc să piardă anunțul atunci când programul se bloca afișându-l, și scrie în jurnal sfârșitul ieșirii punții și arhitectura procesorului computerului, pentru ca cauza să poată fi găsită.
 
+- Neonize pe Windows pe ARM: puntea de conexiune nu mai eșuează la pornire (iar asocierea prin cod QR nu mai rămâne blocată) pentru că cerea versiunea ARM a bibliotecii sale, pe care programul nu o poate încărca; acum folosește versiunea arhitecturii pe care rulează de fapt.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

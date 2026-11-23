@@ -648,6 +648,8 @@ V3.0.0.0
 
 - في Neonize، عندما يتعذر تشغيل جسر الاتصال، يعلن WinZapp ذلك صوتيًا فورًا بدلًا من ضياع التنبيه عندما كان البرنامج يتعطل أثناء عرضه، ويكتب في السجل نهاية مخرجات الجسر نفسه وبنية معالج الكمبيوتر، حتى يمكن العثور على السبب.
 
+- Neonize على Windows على معالج ARM: لم يعد جسر الاتصال يفشل في البدء (ولم يعد الاقتران برمز QR يتعطل) بسبب طلبه نسخة ARM من مكتبته التي لا يستطيع البرنامج تحميلها؛ وهو الآن يستخدم نسخة البنية التي يعمل عليها فعلًا.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
