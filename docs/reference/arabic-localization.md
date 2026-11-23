@@ -15,11 +15,11 @@ acceptable. This is initial user acceptance, not a comprehensive linguistic,
 right-to-left layout, or screen-reader certification. Further Arabic-speaking
 review and accessibility feedback are welcome.
 
-The complete usage guide is translated in `docs/user-guide/secoes/ar/`, with the
+The complete usage guide is translated in `docs/user-guide/sections/ar/`, with the
 page text in `docs/user-guide/i18n/ar.json`. It was written with AI assistance
 from the English sections and has not had a native-speaker review yet. Every
 interface label it quotes comes from the PO, and the guide checks in
-`docs/user-guide/PROCESSO.md` cover it like the other seven guides. Further
+`docs/user-guide/PROCESS.md` cover it like the other seven guides. Further
 Arabic-speaking review is welcome here too.
 
 ## Terms the guide follows

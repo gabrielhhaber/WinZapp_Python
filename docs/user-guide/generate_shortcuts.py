@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Gera as tabelas de atalhos do guia a partir do catálogo do WinZapp.
 
-Uso: python gerar_atalhos.py <pasta-do-repositorio-winzapp> <idioma> [saida.html]
+Uso: python generate_shortcuts.py <pasta-do-repositorio-winzapp> <idioma> [saida.html]
   idioma: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar ou it
 
 Lê client/core/shortcut_catalog.py e o PO pt-BR do próprio repositório, então
@@ -78,7 +78,7 @@ def juntar_numerados(linhas, number_range='{first} a {last}'):
 
 def main():
     repo, locale = Path(sys.argv[1]), sys.argv[2]
-    destino = Path(sys.argv[3]) if len(sys.argv) > 3 else Path('secoes/zz-atalhos-gerados.html')
+    destino = Path(sys.argv[3]) if len(sys.argv) > 3 else Path('sections/zz-generated-shortcuts.html')
     t = json.loads((Path(__file__).parent / 'i18n' / f'{locale}.json').read_text(encoding='utf-8'))
     sys.path.insert(0, str(repo / 'client'))
     from core.shortcut_catalog import SHORTCUTS

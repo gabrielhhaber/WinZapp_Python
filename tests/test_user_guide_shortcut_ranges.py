@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 GUIDE_DIR = Path(__file__).resolve().parents[1] / "docs" / "user-guide"
-_spec = importlib.util.spec_from_file_location("guide_shortcut_ranges", GUIDE_DIR / "gerar_atalhos.py")
+_spec = importlib.util.spec_from_file_location("guide_shortcut_ranges", GUIDE_DIR / "generate_shortcuts.py")
 _guide = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_guide)
 

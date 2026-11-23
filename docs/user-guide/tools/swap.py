@@ -1,7 +1,7 @@
 from pathlib import Path
 import json,re,sys,glob
 AQUI=Path(__file__).resolve().parent.parent; sys.path.insert(0,str(AQUI))
-from gerar_atalhos import carregar_po
+from generate_shortcuts import carregar_po
 from pathlib import Path
 loc=sys.argv[1]; apply=len(sys.argv)>2 and sys.argv[2]=='apply'
 R=AQUI.parent.parent/'translations'
@@ -12,7 +12,7 @@ for k,v in en.items():
     if k in lo and lo[k].strip():
         allm.setdefault(norm(v),lo[k]); exact.setdefault(v.replace('&','').strip().lower(),lo[k])
         if ' | ' in v and ' | ' in lo[k]: allm.setdefault(norm(v.split(' | ',1)[1]),lo[k].split(' | ',1)[1])
-g=json.load(open(str(AQUI/'ferramentas/gloss.json'))); pre=json.load(open(str(AQUI/'ferramentas/prefix.json')))
+g=json.load(open(str(AQUI/'tools/gloss.json'))); pre=json.load(open(str(AQUI/'tools/prefix.json')))
 m={norm(v['en-US']):v[loc] for v in g.values() if loc in v}
 pm=[(norm(v['en-US']),v[loc].split(' (')[0].rstrip('.')) for v in pre.values() if loc in v]
 clean=lambda s:s.replace('&','')
@@ -37,7 +37,7 @@ def sw_marker(mm):
 def sw_quote(mm):
     r=lookup(mm.group(1))
     return '"'+r+'"' if r else mm.group(0)
-for f in sorted(glob.glob(str(AQUI/'secoes'/loc/'*.html'))):
+for f in sorted(glob.glob(str(AQUI/'sections'/loc/'*.html'))):
     t=open(f,encoding='utf-8').read()
     parts=re.split(r'(<[^>]+>)',t)
     for i,p in enumerate(parts):

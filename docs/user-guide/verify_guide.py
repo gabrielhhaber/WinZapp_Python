@@ -5,17 +5,17 @@ Roda como teste (tests/test_user_guide_coverage.py), então barra o PR e a alpha
 (o job `test` do alpha-release.yml roda o pytest inteiro). Três conferências:
 
 1. Cada item da versão em andamento (a primeira de client/changelog_pt-BR.txt)
-   está registrado em cobertura.json -> "itens". Registrar é dizer: "eu li este
+   está registrado em coverage.json -> "itens". Registrar é dizer: "eu li este
    item e o guia já explica a função". Item novo, ou com o começo reescrito,
    fica sem registro e o teste falha dizendo qual.
 2. Os guias gerados em client/data/help_guide são exatamente o que o
-   gerar_guia.py produz agora (atalhos, textos do PO, seções).
+   generate_guide.py produz agora (atalhos, textos do PO, seções).
 3. Os 8 idiomas têm as mesmas seções, os mesmos selos "desde" e os mesmos
    subtítulos.
 
 Uso:
-  python verificar_guia.py <repo>             confere e lista o que falta
-  python verificar_guia.py <repo> --registrar registra os itens atuais
+  python verify_guide.py <repo>             confere e lista o que falta
+  python verify_guide.py <repo> --registrar registra os itens atuais
                                               (só depois de atualizar o guia!)
 """
 import hashlib
@@ -27,9 +27,9 @@ from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI))
-import gerar_guia  # noqa: E402
+import generate_guide  # noqa: E402
 
-COBERTURA = AQUI / 'cobertura.json'
+COBERTURA = AQUI / 'coverage.json'
 TAMANHO_CHAVE = 80
 
 
@@ -65,8 +65,8 @@ def guias_desatualizados(repo):
     """Idiomas cujo guia gerado difere do que está em client/data/help_guide."""
     ruins = []
     with tempfile.TemporaryDirectory() as tmp:
-        for loc in gerar_guia.IDIOMAS:
-            gerar_guia.gerar(str(repo), loc, pasta_saida=tmp)
+        for loc in generate_guide.IDIOMAS:
+            generate_guide.gerar(str(repo), loc, pasta_saida=tmp)
             novo = (Path(tmp) / f'{loc}.html').read_bytes().replace(b'\r\n', b'\n')
             atual = Path(repo) / 'client' / 'data' / 'help_guide' / f'{loc}.html'
             # Fim de linha normalizado: no Windows o checkout pode trazer CRLF.
@@ -78,7 +78,7 @@ def guias_desatualizados(repo):
 def divergencias_entre_idiomas():
     """Compara cada idioma com o pt-BR: nomes de seção, selos e subtítulos."""
     def perfil(loc):
-        pasta = AQUI / 'secoes' / loc
+        pasta = AQUI / 'sections' / loc
         return {
             a.name: (a.read_text(encoding='utf-8').count('class="desde"'),
                      a.read_text(encoding='utf-8').count('<h3'))
@@ -86,7 +86,7 @@ def divergencias_entre_idiomas():
         }
     base = perfil('pt-BR')
     achados = []
-    for loc in gerar_guia.IDIOMAS[1:]:
+    for loc in generate_guide.IDIOMAS[1:]:
         outro = perfil(loc)
         if outro.keys() != base.keys():
             achados.append(f'{loc}: seções diferentes do pt-BR')
@@ -107,11 +107,11 @@ def registrar(repo):
 def main():
     repo = sys.argv[1]
     if '--registrar' in sys.argv:
-        print(f'{registrar(repo)} itens registrados em cobertura.json')
+        print(f'{registrar(repo)} itens registrados em coverage.json')
         return
     problemas = []
     problemas += [f'item do changelog sem registro no guia: {i}' for i in itens_sem_registro(repo)]
-    problemas += [f'guia desatualizado (rode gerar_guia.py): {l}' for l in guias_desatualizados(repo)]
+    problemas += [f'guia desatualizado (rode generate_guide.py): {l}' for l in guias_desatualizados(repo)]
     problemas += divergencias_entre_idiomas()
     print('\n'.join(problemas) or 'guia completo')
     sys.exit(1 if problemas else 0)
