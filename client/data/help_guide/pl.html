@@ -663,7 +663,7 @@
   <li>Używany mikrofon i głośnik znajdują się w Ustawienia &gt; Dźwięk.</li>
   <li>W Neonize wiadomość głosowa jest dostarczana także kontaktom na Androidzie.</li>
   <li>Jeśli biblioteka typów plików komputera (libmagic) się nie wczyta, Neonize rozpoznaje typ na podstawie samego pliku i wiadomość głosowa wychodzi normalnie.</li>
-  <li>Wiadomości głosowe mono są domyślnie kodowane z przepływnością 64 kb/s, a stereo — 128 kb/s. W Ustawieniach &gt; Dźwięk opcje "Przepływność wiadomości głosowych (kb/s)" (mono) i "Przepływność stereofonicznych wiadomości głosowych (kb/s)" pozwalają wybrać od 32 do 256 kb/s.</li>
+  <li>Wiadomości głosowe mono są domyślnie kodowane z przepływnością 128 kb/s, a stereo — 128 kb/s. W Ustawieniach &gt; Dźwięk opcje "Przepływność wiadomości głosowych (kb/s)" (mono) i "Przepływność stereofonicznych wiadomości głosowych (kb/s)" pozwalają wybrać od 32 do 256 kb/s.</li>
 </ul>
 
 <h3>Słuchanie</h3>
@@ -1504,6 +1504,7 @@
 <table class="field-table">
   <tr><th>Sytuacja</th><th>Co zrobić</th></tr>
   <tr><td>WinZapp prosi o ponowne połączenie z kontem WhatsApp</td><td>Połącz konto, korzystając z numeru telefonu lub kodu QR. Twoje czaty są usuwane tylko wtedy, gdy połączysz inny numer. Jeśli stało się to bez powodu, zachowaj <code>log.log</code> i <code>shutdown_audit.log</code> przed ponownym otwarciem.</td></tr>
+  <tr><td>Telefon akceptuje kod parowania, ale WinZapp zostaje w oknie parowania</td><td>Zaktualizuj WinZapp: poprawka zachowuje logowanie, które WhatsApp Web kończy po zaakceptowaniu kodu. Jeśli WhatsApp mówi, że tymczasowo ogranicza kody parowania dla Twojego numeru, nie proś o kolejne, bo wydłuża to oczekiwanie: wybierz "Połącz za pomocą kodu QR", które nie używa kodu parowania.</td></tr>
   <tr><td>Wiadomości nie przychodzą lub lista wygląda na zawieszoną</td><td>Poczekaj na postęp synchronizacji; użyj Shift+F5 w czacie albo F5 dla wszystkich. Sprawdź też, czy tryb offline nie jest włączony. Jeśli lista synchronizuje się w kółko, zaktualizuj WinZapp: poprawka pozwala zakończyć synchronizację listy czatów.</td></tr>
   <tr><td>Lokalna transkrypcja na karcie graficznej NVIDIA kończy się błędem lub zawiesza</td><td>Zaktualizuj WinZapp: poprawka ładuje biblioteki CUDA w systemie Windows przed użyciem karty graficznej. Jeśli nie można ich załadować, WinZapp informuje o tym i proponuje transkrypcję na procesorze.</td></tr>
   <tr><td>WinZapp zawiesza się przy wysyłaniu lub odbieraniu dużych plików</td><td>Zaktualizuj WinZapp: poprawka zapobiega pobieraniu odebranego pliku razem z powiadomieniem o wiadomości oraz gromadzeniu aktualizacji ekranu przez postęp wysyłania i pobierania.</td></tr>

@@ -4,6 +4,12 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Linking by phone number: the link no longer fails after WhatsApp on the phone accepts the pairing code. WinZapp used to close WhatsApp Web during the reload that finishes the login, or ask for a new code on it, so the phone showed the device as linked while WinZapp stayed on the pairing window. The pairing code window also lists its text, the code and Cancel in order instead of drawing them on top of each other.
+
+- When WhatsApp temporarily refuses pairing codes for a number, WinZapp says so right away instead of staying on "connecting" for a minute and a half, and suggests "Connect with QR code", which does not use a pairing code.
+
+- Voice messages: mono recordings now default to 128 kbps, like stereo, because 64 kbps sounded poor. Installs still on the old 64 kbps default move to 128 kbps once; any other rate you chose is kept.
+
 - Copying just the caption of a message (Ctrl+Shift+C) now makes the screen reader say "Caption copied" instead of "Message copied", so it no longer sounds as if the file (photo, video or document) was copied.
 
 - The contact name on the quoted message of a reply now follows their most recent profile name instead of showing an old one, even when their original messages were already up to date. Applies to Neonize and WPPConnect.

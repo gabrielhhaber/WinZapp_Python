@@ -662,7 +662,7 @@
   <li>Microfonul și difuzorul folosite se află în Setări &gt; Audio.</li>
   <li>Cu Neonize, mesajul vocal este livrat și contactelor de pe Android.</li>
   <li>Dacă biblioteca de tipuri de fișiere a computerului (libmagic) nu se încarcă, Neonize recunoaște tipul chiar din fișier, iar mesajul vocal pleacă normal.</li>
-  <li>Mesajele vocale mono sunt înregistrate implicit la 64 kbps, iar cele stereo la 128 kbps. În Setări &gt; Audio, "Rata de biți a mesajelor vocale (kbps)" (mono) și "Rata de biți a mesajelor vocale stereo (kbps)" permit alegerea între 32 și 256 kbps.</li>
+  <li>Mesajele vocale mono sunt înregistrate implicit la 128 kbps, iar cele stereo la 128 kbps. În Setări &gt; Audio, "Rata de biți a mesajelor vocale (kbps)" (mono) și "Rata de biți a mesajelor vocale stereo (kbps)" permit alegerea între 32 și 256 kbps.</li>
 </ul>
 
 <h3>Ascultare</h3>
@@ -1503,6 +1503,7 @@
 <table class="field-table">
   <tr><th>Situație</th><th>Ce să faci</th></tr>
   <tr><td>WinZapp îți cere să asociezi din nou</td><td>Asociază cu număr sau cod QR. Conversațiile tale sunt șterse doar dacă te conectezi cu alt număr. Dacă s-a întâmplat fără motiv, păstrează <code>log.log</code> și <code>shutdown_audit.log</code> înainte de a-l deschide din nou.</td></tr>
+  <tr><td>Telefonul acceptă codul de asociere, dar WinZapp rămâne în fereastra de asociere</td><td>Actualizați WinZapp: o corecție păstrează autentificarea pe care WhatsApp Web o finalizează după ce codul este acceptat. Dacă WhatsApp spune că limitează temporar codurile de asociere pentru numărul dvs., nu mai cereți coduri noi, deoarece așteptarea se prelungește: alegeți "Conectați-vă cu codul QR", care nu folosește un cod de asociere.</td></tr>
   <tr><td>Mesajele nu sosesc sau lista pare blocată</td><td>Așteaptă progresul sincronizării; folosește Shift+F5 în conversație sau F5 pentru toate. Verifică și că modul offline nu este activ. Dacă lista se sincronizează mereu de la capăt, actualizează WinZapp: o corectare permite listei de conversații să își termine sincronizarea.</td></tr>
   <tr><td>Transcrierea locală pe placa grafică NVIDIA eșuează sau se blochează</td><td>Actualizați WinZapp: o corecție încarcă bibliotecile CUDA în Windows înainte de folosirea plăcii grafice. Dacă nu pot fi încărcate, WinZapp anunță problema și propune transcrierea pe procesor.</td></tr>
   <tr><td>WinZapp se blochează la trimiterea sau primirea fișierelor mari</td><td>Actualizează WinZapp: o corectare împiedică descărcarea unui fișier primit odată cu notificarea mesajului și acumularea actualizărilor ecranului de către progresul trimiterii și descărcării.</td></tr>

@@ -4,6 +4,12 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor.
+
+- WhatsApp bir numara için eşleme kodlarını geçici olarak reddettiğinde WinZapp bunu bir buçuk dakika "bağlanıyor" durumunda beklemek yerine hemen söylüyor ve eşleme kodu kullanmayan "QR kodu ile bağlan" seçeneğini öneriyor.
+
+- Sesli mesajlar: mono kayıtlar artık stereo gibi varsayılan olarak 128 kbps kullanıyor, çünkü 64 kbps kötü duyuluyordu. Hâlâ eski 64 kbps varsayılanında olan kurulumlar bir kez 128 kbps'ye geçiyor; seçtiğiniz başka bir hız korunuyor.
+
 - Bir iletinin yalnızca açıklaması kopyalandığında (Ctrl+Shift+C) ekran okuyucu artık "İleti kopyalandı" yerine "Açıklama kopyalandı" diyor; böylece dosyanın (fotoğraf, video veya belge) kopyalandığı izlenimi verilmiyor.
 
 - Bir yanıtın alıntılanan mesajındaki kişi adı, kişinin orijinal mesajları zaten güncel olsa bile eski adı göstermek yerine artık en son profil adını izler. Neonize ve WPPConnect için geçerlidir.

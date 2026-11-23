@@ -4,6 +4,12 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Ligação pelo número de telefone: a ligação já não falha depois de o WhatsApp do telemóvel aceitar o código de emparelhamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o início de sessão, ou pedia um novo código nele, e o telemóvel mostrava o dispositivo como ligado enquanto o WinZapp continuava na janela de emparelhamento. A janela do código passa também a mostrar o texto, o código e Cancelar por ordem, em vez de os desenhar uns sobre os outros.
+
+- Quando o WhatsApp recusa temporariamente códigos de emparelhamento para um número, o WinZapp avisa de imediato, em vez de ficar em "a ligar" durante um minuto e meio, e sugere "Ligar-se através do código QR", que não usa código de emparelhamento.
+
+- Mensagens de voz: as gravações em mono passam a usar 128 kbps por predefinição, como o estéreo, porque 64 kbps soava mal. Instalações ainda na antiga predefinição de 64 kbps passam para 128 kbps uma vez; qualquer outra taxa que tenha escolhido é mantida.
+
 - Copiar só a legenda de uma mensagem (Ctrl+Shift+C) passa a fazer o leitor de ecrã dizer "Legenda copiada", e não "Mensagem copiada", para não parecer que o ficheiro (foto, vídeo ou documento) foi copiado.
 
 - O nome do contacto na mensagem citada de uma resposta passa a seguir o nome mais recente do perfil, em vez de mostrar um nome antigo, mesmo quando as mensagens originais dessa pessoa já estavam atualizadas. Aplica-se ao Neonize e ao WPPConnect.
