@@ -1906,6 +1906,18 @@ class Connect:
         self.cancel_btn = wx.Button(self.pairing_dial, label=self.i18n.t("cancel_pairing"))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
 
+        # Lay the controls out in reading order. Without a sizer every control
+        # sat at the dialog's origin, drawn on top of each other, and the
+        # instructions' "the pairing code below" pointed at nothing below.
+        pairing_sizer = wx.BoxSizer(wx.VERTICAL)
+        pairing_sizer.Add(self.pairing_instructions, 0, wx.ALL | wx.EXPAND, 10)
+        self.pairing_instructions.Wrap(380)
+        pairing_sizer.Add(self.pairing_code_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+        pairing_sizer.Add(self.pairing_code_field, 0, wx.ALL | wx.EXPAND, 10)
+        pairing_sizer.Add(self.cancel_btn, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        self.pairing_dial.SetSizerAndFit(pairing_sizer)
+        self.pairing_dial.SetMinSize(self.pairing_dial.GetSize())
+
         self.pairing_dial.CentreOnParent()
 
         self.main_window.waiting_pairing_sound.play()

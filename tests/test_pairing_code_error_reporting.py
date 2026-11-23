@@ -39,6 +39,8 @@ class _WsStub:
         self.instance_name = instance_name
         self._phone_code_error = ""
         self._phone_code_value = ""
+        import threading
+        self._phone_code_event = threading.Event()
 
 
 class TestOnWppPhoneCodeError:
@@ -577,3 +579,31 @@ class TestExpiredPairingCodeIsAnnounced:
         ws.on_wpp_phone_code_error({"session": SESSION, "name": "LinkCodeExpired"})
 
         assert ws.main_window.speak_output.spoken == []
+
+
+class TestARefusalEndsTheCodeWait:
+    """WhatsApp refusing the first code must not leave the dialog on
+    "connecting" for the rest of its 90 s wait (macOS report, 2026-11-23)."""
+
+    RATE_LIMIT = {
+        "session": SESSION, "name": "CompanionHelloError",
+        "message": "CompanionHelloError",
+        "details": {"type": '{"name":"IQErrorRateOverlimit","value":{"text":"rate-overlimit","code":429}}'},
+    }
+
+    def test_a_rate_limit_before_any_code_ends_the_wait(self):
+        ws = _WsStub()
+        ws.on_wpp_phone_code_error(dict(self.RATE_LIMIT))
+        assert ws._phone_code_event.is_set()
+        assert ws._phone_code_value == ""
+
+    def test_any_other_failure_keeps_waiting(self):
+        ws = _WsStub()
+        ws.on_wpp_phone_code_error({"session": SESSION, "name": "Error", "message": "boom"})
+        assert not ws._phone_code_event.is_set()
+
+    def test_a_refusal_after_a_code_was_shown_does_not_touch_the_wait(self):
+        ws = _WsStub()
+        ws._phone_code_value = "ABCD1234"
+        ws.on_wpp_phone_code_error(dict(self.RATE_LIMIT))
+        assert not ws._phone_code_event.is_set()

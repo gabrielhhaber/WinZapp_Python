@@ -1738,6 +1738,7 @@ def patch_host_layer_source(content: str):
 
     # Neither method changed in 2.3.2, so both runtimes take the same text.
     content = _patch_qr_reads(content, notes)
+    content = _patch_post_link_reload(content, notes)
 
     ok = not any("DID NOT MATCH" in note for note in notes)
     return content, notes, ok
@@ -1993,4 +1994,72 @@ def _patch_qr_reads(content: str, notes: list) -> str:
     else:
         notes.append("getQrCode: DID NOT MATCH the known source text — left untouched.")
 
+    return content
+
+
+# --- After a pairing code is accepted (2026-11-23, macOS report) -----------
+# WhatsApp Web reloads its page right after the phone accepts a pairing code.
+# Two things then threw the login away before WhatsApp Web had saved it:
+#   1. waitForLogin() asked isAuthenticated() once, 200 ms after the scan wait
+#      ended. Mid-reload the probe throws, the answer was read as "failed"
+#      (qrReadError) and the browser was closed.
+#   2. The page-load hook called loginByCode() again on the reloaded page,
+#      which asked WhatsApp for a NEW code and discarded the pending login.
+# The phone showed "Logging in..." for about a minute and then a linked
+# device the computer no longer had.
+
+ORIGINAL_POST_SCAN_AUTH_CHECK = """            // Wait for interface update
+            await (0, sleep_1.sleep)(200);
+            authenticated = await (0, auth_1.isAuthenticated)(this.page).catch(() => null);
+            if (authenticated === null) {"""
+
+PATCHED_POST_SCAN_AUTH_CHECK = """            // Wait for interface update
+            await (0, sleep_1.sleep)(200);
+            authenticated = await (0, auth_1.isAuthenticated)(this.page).catch(() => null);
+            // WhatsApp Web reloads the page right after a successful link; until
+            // the new page is injected the probe throws (null). Wait it out
+            // instead of closing the browser before the login is saved.
+            for (let i = 0; authenticated === null && i < 120 && !this.page.isClosed(); i++) {
+                await this.waitForPageLoad().catch(() => null);
+                await (0, sleep_1.sleep)(500);
+                authenticated = await (0, auth_1.isAuthenticated)(this.page).catch(() => null);
+            }
+            if (authenticated === null) {"""
+
+ORIGINAL_RELOAD_LOGIN_BY_CODE = """            await this.loginByCode(this.options.phoneNumber).catch((error) => this.log('error', error));"""
+
+PATCHED_RELOAD_LOGIN_BY_CODE = """            // After a code was accepted WhatsApp Web reloads to finish logging
+            // in. Asking for a new code on that page throws the login away.
+            if (this.__wzCodeAccepted || this.isLogged) {
+                this.log('verbose', 'Pairing code already accepted — not requesting another on reload.');
+            }
+            else {
+                await this.loginByCode(this.options.phoneNumber).catch((error) => this.log('error', error));
+            }"""
+
+ORIGINAL_LOGIN_SUCCESS = """                this.log('http', 'Login with success');"""
+
+PATCHED_LOGIN_SUCCESS = """                this.__wzCodeAccepted = true;
+                this.log('http', 'Login with success');"""
+
+
+def _patch_post_link_reload(content: str, notes: list) -> str:
+    """Keep the login WhatsApp Web finishes on the reload after a pairing."""
+    for name, anchor, original, patched in (
+        ("waitForLogin post-scan check", "async waitForLogin()",
+         ORIGINAL_POST_SCAN_AUTH_CHECK, PATCHED_POST_SCAN_AUTH_CHECK),
+        ("page-load pairing request", "async waitForLogin()",
+         ORIGINAL_RELOAD_LOGIN_BY_CODE, PATCHED_RELOAD_LOGIN_BY_CODE),
+        ("login success flag", "async waitForLogin()",
+         ORIGINAL_LOGIN_SUCCESS, PATCHED_LOGIN_SUCCESS),
+    ):
+        if patched in content:
+            notes.append(f"{name}: already survives the post-link reload.")
+        elif original in content:
+            content = content.replace(original, patched, 1)
+            notes.append(f"{name}: patched — survives the reload after a pairing code is accepted.")
+        elif anchor not in content:
+            notes.append(f"{name}: not in this file — nothing to patch.")
+        else:
+            notes.append(f"{name}: DID NOT MATCH the known source text — left untouched.")
     return content

@@ -2242,6 +2242,16 @@ class WebSocketClient:
                 logging.warning(
                     "[WebSocketClient] pairing-code failure details: %r", details
                 )
+            # Before any code was shown the connect dialog is blocked in its
+            # 90 s phoneCode wait, and it only reads _phone_code_error after
+            # that wait. host.layer.js gives up on a rate limit instead of
+            # retrying, so no code can follow it: end the wait now, and the
+            # dialog says WhatsApp refused instead of sitting on "connecting".
+            # Other failures still wait — host.layer.js retries those itself.
+            if (not self._phone_code_value
+                    and self._phone_code_rate_limited
+                    and not self._phone_code_event.is_set()):
+                self._phone_code_event.set()
             if name in ("LinkCodeExpired", "LinkCodeRefreshFailed"):
                 # The quota verdict is read here, not inside the announcement:
                 # CallAfter runs on the wx thread whenever it gets there, and
