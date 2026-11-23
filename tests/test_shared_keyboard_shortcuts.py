@@ -156,6 +156,62 @@ class TestComingForward:
         assert refreshed == []
 
 
+class TestTheSharedFileIsLocked:
+    """The switch that brings this window forward often sets off a save in the
+    account being left, which holds app.json's lock at that very instant. The
+    pull used to be dropped then, leaving this window on the old keys."""
+
+    @pytest.fixture
+    def later(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr(settings_module.wx, "CallLater",
+                            lambda ms, fn, *a: calls.append((ms, fn, a)))
+        return calls
+
+    def _locked(self, window, times):
+        from coord_locks import LockTimeout
+        real = window._app_settings.get_snapshot
+        left = [times]
+
+        def get_snapshot(key):
+            if left[0]:
+                left[0] -= 1
+                raise LockTimeout("held by another account")
+            return real(key)
+        window._app_settings.get_snapshot = get_snapshot
+
+    def test_the_pull_is_tried_again_and_takes_the_keys(self, tmp_path, refreshed, later):
+        one = _account(tmp_path)
+        two = _account(tmp_path)
+        _choose_shortcuts(one, USERS)
+        self._locked(two, times=1)
+
+        two._pull_shared_shortcuts()
+        assert _answers(two, "main.account[1]") != (CTRL_SHIFT, ord("3"))
+        (_ms, retry, args), = later
+        retry(*args)
+
+        assert _answers(two, "main.account[1]") == (CTRL_SHIFT, ord("3"))
+        assert refreshed == [two]
+
+    def test_it_gives_up_after_the_last_try(self, tmp_path, later):
+        two = _account(tmp_path)
+        self._locked(two, times=1)
+
+        two._pull_shared_shortcuts(attempt=settings_module._PULL_RETRIES)
+
+        assert later == []
+
+    def test_not_while_the_window_shuts_down(self, tmp_path, later):
+        two = _account(tmp_path)
+        two._shutting_down = True
+        self._locked(two, times=1)
+
+        two._pull_shared_shortcuts()
+
+        assert later == []
+
+
 class TestFirstStartOnThisVersion:
     def test_the_account_holding_overrides_hands_them_to_the_install(self, tmp_path):
         """Account 1 had them; account 2 had none. Either may start first."""

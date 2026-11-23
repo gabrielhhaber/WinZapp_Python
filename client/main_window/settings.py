@@ -56,6 +56,11 @@ from core.audio_devices import (
 from traceback import format_exc
 from core.quiet_hours import is_quiet_hours_active
 
+# _pull_shared_shortcuts() retrying past another account's write of app.json:
+# a save holds the lock for milliseconds, so 20 x 150 ms covers it with room.
+_PULL_RETRIES = 20
+_PULL_RETRY_MS = 150
+
 
 class SettingsMixin:
     """First-run checks, settings load/save/migrate, settings export/import, live
@@ -622,7 +627,7 @@ class SettingsMixin:
         except Exception:
             logging.exception("[settings] sharing the keyboard shortcuts failed (non-fatal)")
 
-    def _pull_shared_shortcuts(self):
+    def _pull_shared_shortcuts(self, attempt=0):
         """Take the shortcuts another account changed, as this window comes
         forward.
 
@@ -633,6 +638,12 @@ class SettingsMixin:
         hold it for minutes) and without waiting on another process's writer:
         a change of this account's own not saved yet is left for the save to
         write (core.shared_shortcuts.shortcuts_to_pull()).
+
+        Another account holding the shared file's lock at that instant (its
+        own save, often the one the switch itself sets off) used to drop the
+        pull, leaving this window on the old keys until its next save. It is
+        tried again shortly instead, on the main thread and never blocking it,
+        for up to _PULL_RETRIES times.
         """
         app = getattr(self, "_app_settings", None)
         snapshot = getattr(self, "_global_settings_snapshot", None)
@@ -653,8 +664,12 @@ class SettingsMixin:
             from ui.shortcut_bindings import refresh_shortcuts
             refresh_shortcuts(self)
         except LockTimeout:
-            # Another account is writing the shared file right now; this
-            # window's next save pulls whatever it wrote.
+            # Another account is writing the shared file right now.
+            if attempt < _PULL_RETRIES and not getattr(self, "_shutting_down", False):
+                wx.CallLater(_PULL_RETRY_MS, self._pull_shared_shortcuts, attempt + 1)
+            else:
+                logging.info("[settings] shared keyboard shortcuts still locked "
+                             "after %d tries; the next save pulls them", attempt + 1)
             return
         except Exception:
             logging.exception("[settings] pulling the shared keyboard shortcuts failed")
