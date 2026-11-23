@@ -257,6 +257,37 @@ def rotate_output(path: str, limit: int = OUTPUT_LIMIT, *,
     return True
 
 
+TAIL_LINES = 30
+TAIL_BYTES = 8192
+
+
+def output_tail(path: str, lines: int = TAIL_LINES, limit: int = TAIL_BYTES) -> str:
+    """The last lines of the bridge's output file ("" when unreadable), so a
+    bridge that exits at once leaves its reason in the client's log. Only the
+    file's end is read; the log formatter masks phone numbers and tokens."""
+    try:
+        with open(path, "rb") as stream:
+            stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, stream.tell() - limit))
+            text = stream.read().decode("utf-8", "replace")
+    except OSError:
+        return ""
+    return "\n".join(text.splitlines()[-lines:]).strip()
+
+
+def machine_summary(environ=None, machine=None) -> str:
+    """The CPU architecture as the process sees it, for the log: under x64
+    emulation on Windows ARM, PROCESSOR_ARCHITECTURE says AMD64 while
+    PROCESSOR_IDENTIFIER and PROCESSOR_ARCHITEW6432 still name the real one."""
+    environ = os.environ if environ is None else environ
+    if machine is None:
+        import platform
+        machine = platform.machine()
+    return "machine=%s PROCESSOR_ARCHITECTURE=%s PROCESSOR_ARCHITEW6432=%s PROCESSOR_IDENTIFIER=%s" % (
+        machine, environ.get("PROCESSOR_ARCHITECTURE", ""),
+        environ.get("PROCESSOR_ARCHITEW6432", ""), environ.get("PROCESSOR_IDENTIFIER", ""))
+
+
 def spawn(cmd, env, cwd, output=None):
     """Start the bridge hidden, its output going to the ``output`` file."""
     flags = 0
@@ -598,7 +629,9 @@ class NeonizeBridge:
                 log.info("neonize bridge up on port %s (pid %s)", self.port, self.proc.pid)
                 return True
             if self.proc.poll() is not None:
-                log.error("neonize bridge exited early with code %s", self.proc.returncode)
+                log.error("neonize bridge exited early with code %s (%s); end of its output:\n%s",
+                          self.proc.returncode, machine_summary(),
+                          output_tail(output) or "(empty or unreadable)")
                 return False
             self._sleep(0.5)
         log.error("neonize bridge did not open port %s in time", self.port)

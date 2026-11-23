@@ -644,6 +644,10 @@ NOVIDADES
 
 - Com o Neonize, "Adicionar contacto" nos dados da conversa passa a guardar mesmo o contacto na agenda do WhatsApp e do telemóvel. Antes, o contacto era gravado com o identificador interno (LID) no lugar do número, e o iPhone descartava-o segundos depois, embora o WinZapp dissesse que a sincronização tinha sido pedida.
 
+- Neonize: quando a bridge de ligação não consegue iniciar, o WinZapp passa a avisar por voz de imediato, em vez de o aviso se perder quando o programa bloqueava ao mostrá-lo, e grava no registo o final da saída da própria bridge e a arquitetura do processador do computador, para que a causa possa ser encontrada.
+
+- Neonize no Windows em ARM: a bridge de ligação deixa de falhar ao iniciar (e o emparelhamento por código QR deixa de ficar bloqueado) por pedir a versão ARM da sua biblioteca, que o programa não consegue carregar; passa a usar a da arquitetura em que realmente corre.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.

@@ -645,6 +645,10 @@ NOWOŚCI
 
 - W Neonize opcja „Dodaj kontakt” w danych rozmowy naprawdę zapisuje teraz kontakt w książce adresowej WhatsApp i w telefonie. Wcześniej kontakt był zapisywany pod wewnętrznym identyfikatorem (LID) zamiast numeru telefonu, a iPhone odrzucał go po kilku sekundach, mimo że WinZapp mówił, że zażądał synchronizacji.
 
+- Neonize: gdy most połączenia nie może się uruchomić, WinZapp od razu mówi o tym głosem, zamiast gubić komunikat, gdy program zawieszał się przy jego wyświetlaniu, i zapisuje w logu koniec wyjścia samego mostu oraz architekturę procesora komputera, aby można było znaleźć przyczynę.
+
+- Neonize w systemie Windows na ARM: most połączenia nie przestaje już się uruchamiać (a parowanie kodem QR nie utyka), bo żądał wersji ARM swojej biblioteki, której program nie może załadować; teraz używa wersji dla architektury, na której naprawdę działa.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

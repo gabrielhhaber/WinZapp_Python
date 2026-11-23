@@ -5,6 +5,9 @@ option (wpp_custom_api).
 
 Usage:  .venv\\Scripts\\python server.py [--port 6300] [--folder data]
 """
+import bridge_arch
+bridge_arch.pin()    # before anything imports neonize
+
 import argparse
 import asyncio
 import base64

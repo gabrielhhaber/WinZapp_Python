@@ -59,6 +59,8 @@ def boxes(monkeypatch):
     monkeypatch.setattr(bridge_process, "NeonizeBridge", _FakeBridge)
     shown = []
     monkeypatch.setattr(mixin_module.wx, "MessageBox", lambda *a, **k: shown.append(a))
+    # the box waits for the main loop in the app; here it is run at once
+    monkeypatch.setattr(mixin_module.wx, "CallAfter", lambda f, *a, **k: f(*a, **k))
     return shown
 
 
@@ -104,6 +106,7 @@ def test_a_bridge_that_does_not_come_up_is_reported_once_and_keeps_the_default_k
     (message, title, _style), = boxes
     assert message == "neonize_bridge_unavailable_message"
     assert title == "neonize_bridge_unavailable_title"
+    assert window.spoken[-1] == "neonize_bridge_unavailable_message"
 
 
 def test_background_mode_does_not_open_a_message_box(boxes, monkeypatch):

@@ -644,6 +644,10 @@ WHAT'S NEW
 
 - Con Neonize, "Aggiungi contatto" nei dati della conversazione ora salva davvero il contatto nella rubrica di WhatsApp e sul telefono. Prima il contatto veniva scritto con l'identificatore interno (LID) al posto del numero, e l'iPhone lo scartava pochi secondi dopo, anche se WinZapp diceva che la sincronizzazione era stata richiesta.
 
+- Neonize: quando il ponte di connessione non riesce ad avviarsi, WinZapp ora lo annuncia subito a voce, invece di perdere l'avviso quando il programma si bloccava mostrandolo, e scrive nel log la fine dell'output del ponte e l'architettura del processore del computer, così che la causa si possa trovare.
+
+- Neonize su Windows ARM: il ponte di connessione non smette più di avviarsi (e l'abbinamento con il codice QR non resta più bloccato) perché chiedeva la versione ARM della sua libreria, che il programma non riesce a caricare; ora usa quella dell'architettura con cui gira davvero.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
