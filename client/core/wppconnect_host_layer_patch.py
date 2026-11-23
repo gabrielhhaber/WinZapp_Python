@@ -2062,7 +2062,10 @@ def _patch_post_link_reload(content: str, notes: list) -> str:
     for name, anchor, original, patched in (
         ("waitForLogin post-scan check", "async waitForLogin()",
          ORIGINAL_POST_SCAN_AUTH_CHECK, PATCHED_POST_SCAN_AUTH_CHECK),
-        ("page-load pairing request", "async afterPageScriptInjected()",
+        # Both texts belong to the runtime whose waitForLogin() this fix is
+        # for: older runtimes (2.3.x) also have afterPageScriptInjected(),
+        # with another loginByCode() call that must not raise the alarm.
+        ("page-load pairing request", "async waitForLogin()",
          ORIGINAL_RELOAD_LOGIN_BY_CODE, PATCHED_RELOAD_LOGIN_BY_CODE),
     ):
         if patched in content:

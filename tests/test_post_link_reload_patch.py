@@ -40,10 +40,18 @@ def test_a_file_without_these_functions_is_left_alone():
 
 
 def test_changed_text_inside_the_function_is_reported_not_guessed():
-    src = "async afterPageScriptInjected() {} async waitForLogin() {}"
+    src = "async waitForLogin() {}"
     notes = []
     assert m._patch_post_link_reload(src, notes) == src
     assert sum("DID NOT MATCH" in n for n in notes) == 2
+
+
+def test_an_older_runtime_with_another_page_load_call_raises_no_alarm():
+    # 2.3.x has afterPageScriptInjected() but not this runtime's waitForLogin().
+    src = "async afterPageScriptInjected() { return this.loginByCode(phone); }"
+    notes = []
+    assert m._patch_post_link_reload(src, notes) == src
+    assert not any("DID NOT MATCH" in n for n in notes)
 
 
 def test_reload_waits_for_the_new_page_before_giving_up():
