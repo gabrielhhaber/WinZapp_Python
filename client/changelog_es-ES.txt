@@ -1,3 +1,11 @@
+V2.1.2.0
+
+Esta es una versión de mantenimiento de la estable. Solo corrige la vinculación del teléfono por código, para que no se pierda el vínculo y no se pida un código nuevo después de que WhatsApp acepte el primero.
+
+CORRECCIONES
+
+- La vinculación por código de emparejamiento ya no pierde el inicio de sesión. Cuando el teléfono aceptaba el código, WhatsApp Web se recargaba; WinZapp lo leía como un fallo, cerraba el navegador y pedía un código nuevo, gastando un código real del límite de WhatsApp. Ahora espera a la página recargada, mantiene el inicio de sesión y nunca pide otro código una vez aceptado uno. Después de actualizar WinZapp, acepta cuando te pida actualizar WPPConnect.
+
 V2.1.1.0
 
 Esta es una versión de mantenimiento de la estable. Solo corrige el envío de mensajes, que dejó de funcionar cuando WhatsApp Web cambió por dentro.

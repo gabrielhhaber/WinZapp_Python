@@ -1,3 +1,11 @@
+V2.1.2.0
+
+Bu, kararlı sürüm için bir bakım sürümüdür. Yalnızca telefonun kodla bağlanmasını düzeltir; böylece WhatsApp ilk kodu kabul ettikten sonra bağlantı kaybolmaz ve yeni kod istenmez.
+
+DÜZELTMELER
+
+- Eşleştirme koduyla bağlanma artık oturumu kaybetmiyor. Telefon kodu kabul ettikten sonra WhatsApp Web yeniden yükleniyordu; WinZapp bu anı hata sayıp tarayıcıyı kapatıyor ve yeni bir kod istiyor, WhatsApp'ın sınırından gerçek bir kodu harcıyordu. Artık yeniden yüklenen sayfayı bekliyor, oturumu koruyor ve bir kod kabul edildikten sonra bir daha kod istemiyor. WinZapp'i güncelledikten sonra, WPPConnect'i güncellemeyi istediğinde kabul edin.
+
 V2.1.1.0
 
 Bu, kararlı sürüm için bir bakım sürümüdür. Yalnızca WhatsApp Web içeride değiştiğinde çalışmayı bırakan mesaj göndermeyi düzeltir.

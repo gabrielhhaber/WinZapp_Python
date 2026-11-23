@@ -1,3 +1,11 @@
+V2.1.2.0
+
+Aceasta este o versiune de întreținere a celei stabile. Corectează doar asocierea telefonului prin cod, ca legătura să nu se piardă și să nu se ceară un cod nou după ce WhatsApp l-a acceptat pe primul.
+
+CORECTĂRI
+
+- Asocierea prin cod de împerechere nu mai pierde autentificarea. După ce telefonul accepta codul, WhatsApp Web se reîncărca; WinZapp considera acel moment o eroare, închidea browserul și cerea un cod nou, consumând un cod real din limita WhatsApp. Acum așteaptă pagina reîncărcată, păstrează autentificarea și nu mai cere niciodată alt cod după ce unul a fost acceptat. După actualizarea WinZapp, acceptați când vă cere să actualizați WPPConnect.
+
 V2.1.1.0
 
 Aceasta este o versiune de întreținere a celei stabile. Corectează doar trimiterea mesajelor, care a încetat să funcționeze când WhatsApp Web s-a schimbat pe dinăuntru.

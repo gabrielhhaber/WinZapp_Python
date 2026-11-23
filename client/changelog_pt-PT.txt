@@ -1,3 +1,11 @@
+V2.1.2.0
+
+Esta é uma versão de manutenção da estável. Só corrige a ligação do telemóvel por código, para que a ligação não se perca e não seja pedido um novo código depois de o WhatsApp aceitar o primeiro.
+
+CORREÇÕES
+
+- A ligação por código de emparelhamento já não perde o início de sessão. Depois de o telemóvel aceitar o código, o WhatsApp Web recarregava; o WinZapp lia esse momento como falha, fechava o navegador e pedia um novo código, gastando um código verdadeiro do limite do WhatsApp. Agora espera pela página recarregada, mantém o início de sessão e nunca pede outro código depois de um ter sido aceite. Depois de atualizar o WinZapp, aceite quando ele pedir para atualizar o WPPConnect.
+
 V2.1.1.0
 
 Esta é uma versão de manutenção da estável. Só corrige o envio de mensagens, que deixou de funcionar quando o WhatsApp Web mudou por dentro.
