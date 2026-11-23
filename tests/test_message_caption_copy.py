@@ -119,7 +119,7 @@ class TestCopyCaption:
         stub._on_menu_copy_caption(_image_msg("legenda"))
 
         assert copied == ["legenda"]
-        assert stub.main_window.output_calls == ["msg_copied"]
+        assert stub.main_window.output_calls == ["msg_caption_copied"]
 
     def test_reports_error_when_no_caption(self, monkeypatch):
         import ui.conversations as conv_module

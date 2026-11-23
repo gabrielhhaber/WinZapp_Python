@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Copiando solo la didascalia di un messaggio (Ctrl+Shift+C), il lettore di schermo ora dice "Didascalia copiata" invece di "Messaggio copiato", così non sembra che il file (foto, video o documento) sia stato copiato.
+
+- Il nome del contatto nel messaggio citato di una risposta ora segue il suo nome di profilo più recente invece di mostrarne uno vecchio, anche quando i suoi messaggi originali erano già aggiornati. Vale per Neonize e WPPConnect.
+
 - La copia dei messaggi selezionati (Ctrl+Alt+Shift+C, oppure Ctrl+C con "Sostituisci le scorciatoie con le azioni in blocco quando selezioni chat e messaggi" attivo) ora copia anche documenti, audio, immagini e video: i file vanno negli appunti in una volta sola e si possono incollare tutti insieme, per esempio in Esplora file, con il nome originale. In una selezione che mescola testo e file, il testo viaggia insieme come un unico blocco da incollare in un campo di testo. WinZapp dice "Messaggi copiati" e, se un file non è stato scaricato, quanti ne sono rimasti fuori.
 
 - Reazioni: una reazione personalizzata, scelta con "Aggiungi altre reazioni", ora entra nell'elenco delle reazioni rapide già al primo utilizzo, al posto dell'ultima reazione predefinita che non hai mai usato. Ci sono inoltre dieci nuovi comandi in Impostazioni > Scorciatoie da Tastiera (Messaggi), "Reagire al messaggio selezionato con la reazione di questa posizione", da 1 a 9 e 0 per la decima: ognuno reagisce al messaggio in primo piano con la reazione di quella posizione in Impostazioni > Interfaccia > Reazioni, che scegli tu e che non cambia con l'uso; premere la reazione già inviata la rimuove. Sono senza tasto, perché Ctrl+Alt+1 a 9 cambiano già account; il tasto di ciascuno lo scegli tu.
@@ -637,6 +641,12 @@ WHAT'S NEW
 - Incollare nel campo del messaggio un file di testo salvato in UTF-16 (come un rapporto Informazioni di sistema di Windows, da msinfo32) non lo invia più come audio: resta un documento. Segnalato da UlisesMilani (#838).
 
 - Impostazioni, Messaggi: nuova opzione "Nella chat aperta, WinZapp segna come letti i nuovi messaggi e non li aggiunge al separatore dei non letti", disattivata per impostazione predefinita. Disattivata, i messaggi che arrivano mentre leggi la chat aperta continuano a sommarsi nel separatore dei non letti, così segui ciò che è arrivato dopo. Attivata, sono letti all'arrivo, senza separatore.
+
+- Con Neonize, "Aggiungi contatto" nei dati della conversazione ora salva davvero il contatto nella rubrica di WhatsApp e sul telefono. Prima il contatto veniva scritto con l'identificatore interno (LID) al posto del numero, e l'iPhone lo scartava pochi secondi dopo, anche se WinZapp diceva che la sincronizzazione era stata richiesta.
+
+- Neonize: quando il ponte di connessione non riesce ad avviarsi, WinZapp ora lo annuncia subito a voce, invece di perdere l'avviso quando il programma si bloccava mostrandolo, e scrive nel log la fine dell'output del ponte e l'architettura del processore del computer, così che la causa si possa trovare.
+
+- Neonize su Windows ARM: il ponte di connessione non smette più di avviarsi (e l'abbinamento con il codice QR non resta più bloccato) perché chiedeva la versione ARM della sua libreria, che il programma non riesce a caricare; ora usa quella dell'architettura con cui gira davvero.
 
 V2.1.0.0
 

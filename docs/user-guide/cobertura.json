@@ -4,6 +4,8 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "82b826dd5a99": "Copiar só a legenda de uma mensagem (Ctrl+Shift+C) agora faz o leitor de tela di",
+    "3d7ad4ffa798": "O nome do contato na mensagem citada de uma resposta agora segue o nome mais rec",
     "b70c017d0e9f": "Copiar mensagens selecionadas (Ctrl+Alt+Shift+C, ou Ctrl+C com \"Substituir atalh",
     "12d706c79d90": "Reações: uma reação personalizada, escolhida em \"Adicionar mais reações\", agora ",
     "a422b629a460": "Atualização: a janela de atualização ganha \"Configurações adicionais\" (Alt+A), d",
@@ -324,6 +326,9 @@
     "984cd50b2671": "Mensagens mostradas ao abrir uma conversa: a configuração agora aceita no máximo",
     "b3e42dc46c09": "Ligações: ligar a partir de uma conta do WhatsApp Business (WPPConnect) não fica",
     "b405b7195624": "Colar no campo de mensagem um arquivo de texto salvo em UTF-16 (como um relatóri",
-    "5053de0f1bb1": "Configurações, Mensagens: nova opção \"Não acumular no separador de não lidas as "
+    "5053de0f1bb1": "Configurações, Mensagens: nova opção \"Não acumular no separador de não lidas as ",
+    "1453dc64c422": "No Neonize, \"Adicionar contato\" nos dados da conversa agora salva o contato de v",
+    "73eaa785a812": "Neonize: quando a bridge de conexão não consegue iniciar, o WinZapp agora avisa ",
+    "42121ad126e2": "Neonize no Windows em ARM: a bridge de conexão não deixa mais de iniciar (e o pa"
   }
 }

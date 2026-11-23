@@ -4,6 +4,10 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- La copierea doar a legendei unui mesaj (Ctrl+Shift+C), cititorul de ecran spune acum „Legenda a fost copiată”, nu „Mesaj copiat”, ca să nu pară că fișierul (poză, videoclip sau document) a fost copiat.
+
+- Numele contactului din mesajul citat al unui răspuns urmează acum cel mai recent nume de profil, în loc să arate unul vechi, chiar dacă mesajele sale originale erau deja actualizate. Se aplică pentru Neonize și WPPConnect.
+
 - Copierea mesajelor selectate (Ctrl+Alt+Shift+C sau Ctrl+C cu „Înlocuiți comenzile rapide cu acțiuni în bloc atunci când selectați conversații și mesaje” bifată) copiază acum și documente, audio, imagini și videoclipuri: fișierele ajung în clipboard dintr-o dată și pot fi lipite toate împreună, de exemplu în File Explorer, cu numele lor original. Într-o selecție care amestecă text și fișiere, textul merge împreună ca un singur bloc, pentru a fi lipit într-un câmp de text. WinZapp spune „Mesaje copiate” și, dacă un fișier nu a putut fi descărcat, câte au rămas pe dinafară.
 
 - Reacții: o reacție personalizată, aleasă cu „Adăugați mai multe reacții”, intră acum în lista reacțiilor rapide chiar la prima utilizare, în locul ultimei reacții implicite pe care nu ați folosit-o niciodată. Există și zece comenzi noi în Setări > Comenzi rapide (Mesaje), „Reacționați la mesajul selectat cu reacția din această poziție”, de la 1 la 9 și 0 pentru a zecea: fiecare reacționează la mesajul în focus cu reacția din acea poziție din Setări > Interfață > Reacții, pe care o alegeți dumneavoastră și care nu se schimbă odată cu utilizarea; apăsarea reacției deja trimise o elimină. Vin fără tastă, pentru că Ctrl+Alt+1 la 9 schimbă deja conturile; tasta fiecăreia o alegeți dumneavoastră.
@@ -637,6 +641,12 @@ NOUTĂȚI
 - Lipirea în câmpul mesajului a unui fișier text salvat în UTF-16 (cum este un raport Informații despre sistem din Windows, de la msinfo32) nu îl mai trimite ca audio: rămâne document. Raportat de UlisesMilani (#838).
 
 - Setări, Mesaje: opțiune nouă "Nu adăuga mesajele noi din conversația deschisă la separatorul de mesaje necitite; marchează-le ca citite la sosire", dezactivată implicit. Dezactivată, mesajele care sosesc cât timp citești conversația deschisă continuă să se adune în separatorul de mesaje necitite, ca să urmărești ce a sosit după. Activată, sunt citite la sosire, fără separator.
+
+- Cu Neonize, „Adaugă contact” din datele conversației salvează acum cu adevărat contactul în agenda WhatsApp și pe telefon. Înainte, contactul era scris sub identificatorul intern (LID) în loc de numărul de telefon, iar iPhone-ul îl arunca după câteva secunde, deși WinZapp spunea că sincronizarea fusese solicitată.
+
+- Neonize: când puntea de conexiune nu poate porni, WinZapp o spune acum imediat cu voce, în loc să piardă anunțul atunci când programul se bloca afișându-l, și scrie în jurnal sfârșitul ieșirii punții și arhitectura procesorului computerului, pentru ca cauza să poată fi găsită.
+
+- Neonize pe Windows pe ARM: puntea de conexiune nu mai eșuează la pornire (iar asocierea prin cod QR nu mai rămâne blocată) pentru că cerea versiunea ARM a bibliotecii sale, pe care programul nu o poate încărca; acum folosește versiunea arhitecturii pe care rulează de fapt.
 
 V2.1.0.0
 

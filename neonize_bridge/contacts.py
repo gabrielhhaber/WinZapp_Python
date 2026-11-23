@@ -221,6 +221,23 @@ def found_in_query(responses):
     return None
 
 
+def registered_phone_jid(found: dict, mapped_phone: str, typed_digits: str) -> str:
+    """The phone JID ('digits@s.whatsapp.net') of the person `found` describes.
+
+    With LID addressing WhatsApp answers the number query with the person's
+    `@lid` (whatsmeow's IsOnWhatsAppResponse.JID), and the number only as a
+    mapping it stores. A save that kept the LID as the "phone" wrote the
+    address book entry under the LID's digits, which the iPhone dropped a few
+    seconds later: `mapped_phone` is that mapping ('' if unknown), and
+    `typed_digits` the last resort when it is not."""
+    jid = found["jid"]
+    if not jid.endswith("@lid"):
+        return jid
+    if mapped_phone and not mapped_phone.endswith("@lid"):
+        return mapped_phone
+    return f"{typed_digits}@s.whatsapp.net"
+
+
 def known_phone_jid(client, user: str):
     """The address WhatsApp itself gives the phone number `user` (the typed
     digits or, for a Brazilian mobile, the form with/without the 9th digit that
@@ -489,6 +506,16 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of, 
                 {"response": None, "status": "Connected",
                  "message": f"O número {digits} não existe."}, status=400)
         phone_jid = found["jid"]
+        if phone_jid.endswith("@lid"):
+            # the query answered with the LID: the entry and the notice are
+            # keyed by the number
+            lid = lid or phone_jid
+            try:
+                mapped = jid_text(await execute(s.client.get_pn_from_lid,
+                                                jid_from_text(phone_jid)))
+            except Exception:
+                mapped = ""
+            phone_jid = registered_phone_jid(found, mapped, digits)
         if not lid:
             try:
                 found_lid = await execute(s.client.get_lid_from_pn, jid_from_text(phone_jid))

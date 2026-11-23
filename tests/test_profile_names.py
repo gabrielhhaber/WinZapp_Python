@@ -65,3 +65,28 @@ def test_private_chat_named_after_the_old_profile_follows():
     chats = {PHONE: {"name": "alex oliveira"}}
     _apply(world, "alex oliveira grupos", 100, chats=chats)
     assert chats[PHONE]["name"] == "alex oliveira grupos"
+
+
+def _bad(name):
+    return not name
+
+
+def test_freshest_name_beats_a_stale_record_of_the_other_address():
+    from core.profile_names import freshest_profile_name
+    contacts = {PHONE: {"name": "alex grupos", "pushName": "alex grupos"}}
+    ppm = {LID: "alex oliveira", PHONE: "alex grupos"}
+    stamps = {LID: 200}
+    assert freshest_profile_name(contacts.get, ppm, stamps, [PHONE, LID], _bad) == "alex oliveira"
+
+
+def test_freshest_name_yields_to_an_address_book_name_and_to_no_stamp():
+    from core.profile_names import freshest_profile_name
+    saved = {PHONE: {"name": "Alex (agenda)", "isMyContact": True}}
+    assert freshest_profile_name(saved.get, {LID: "alex"}, {LID: 5}, [PHONE, LID], _bad) == ""
+    assert freshest_profile_name({}.get, {LID: "alex"}, {}, [PHONE, LID], _bad) == ""
+
+
+def test_the_newest_stamp_wins_between_addresses():
+    from core.profile_names import freshest_profile_name
+    ppm = {LID: "novo", PHONE: "velho"}
+    assert freshest_profile_name({}.get, ppm, {LID: 300, PHONE: 100}, [PHONE, LID], _bad) == "novo"

@@ -29,6 +29,7 @@ independently verifiable official source when recording future decisions.
 - [Other reviewed terms](#other-reviewed-terms)
 - [Device linking and channel roles](#device-linking-and-channel-roles)
 - [Events, writing help and noise reduction](#events-writing-help-and-noise-reduction)
+- [Review of 22 November 2026](#review-of-22-november-2026)
 - [Meaning, sources and spoken wording](#meaning-sources-and-spoken-wording)
 - [Language review and technical references](#language-review-and-technical-references)
 
@@ -237,6 +238,93 @@ Apply these names to quoted labels in the guide and changelog too. When the
 English source is stale, verify the actual behavior in code and explain the
 Polish clarification in the PR rather than silently treating the source as
 correct or changing other locales without review.
+
+## Review of 22 November 2026
+
+The following decisions were accepted by @djgraco on 22 November 2026 after
+reviewing the Polish UI, guide and changelog at commit
+`36ddb25044cf70d7700036e7f42e9fe2f36c876d`, including a second comparison with
+the supplied WhatsApp APK. They extend, rather than reset, the earlier reviews.
+The supplied `split_i18n_pl.apk` has SHA-256
+`d272f6bab7aa8278539c57d79d4af7f17ee18cfe2c6cb43475dfe3cbf205ec01`.
+Its `assets/i18n_pl/strings_pl.pack` contains ordinary entries and plural groups;
+their numeric IDs are resource identifiers within that pack, not line numbers.
+
+| Meaning / UI role | Reviewed Polish |
+| --- | --- |
+| directly promote a group member | Mianuj administratorem grupy |
+| directly demote a group administrator | Odwołaj jako administratora grupy |
+| promote a community administrator | Mianuj administratorem społeczności... |
+| demote a community administrator | Odwołaj jako administratora społeczności... |
+| community announcement group | grupa z ogłoszeniami |
+| approve a person's call-link join request | Zatwierdź |
+| decline a person's call-link join request | Odrzuć |
+| status-list section with unopened updates | Najnowsze aktualizacje |
+| status-list section with opened updates | Wyświetlone aktualizacje |
+| poll option permitting multiple answers | Zezwól na wiele odpowiedzi |
+| noise-reduction method selector | Rodzaj redukcji szumów |
+| neural noise-reduction method | Neuronowa |
+| voice-message processing timing | Moment przetwarzania wiadomości głosowych |
+| failure policy for neural processing | Gdy neuronowa redukcja szumów się nie powiedzie |
+| edit of the user's own message saved | Zapisano zmiany w Twojej wiadomości |
+| contact Enter-action selector | Działanie klawisza Enter na kontakcie |
+| reorderable-list shortcut group | Zmiana kolejności elementów na listach |
+
+The APK supports group administrator appointment (ID 10731), dismissal
+(6544/6545), community appointment/dismissal (4953, 6300/6301), the announcement
+group (1909/4995), status sections (15986/21252), and the poll option (18049).
+The call waiting-room family has `Zatwierdź` (21858), `Odrzuć` (21859), a
+waiting-room timeout (21863), and plural group 847 about approving participants'
+joining. Copy terms only for the corresponding operation. A group/community
+promotion directly changes a role; a channel administrator invitation still
+requires acceptance and retains the separately reviewed invitation wording.
+An approval is permission to join, not a guarantee that the person has already
+connected. Waiting for the organizer's decision must not promise acceptance.
+
+The following are deliberate native-speaker decisions, even where the supplied
+APK uses a different label:
+
+- Keep `Online`, `Kto widzi, że jestem online`, and the corresponding shortcut
+  descriptions. The APK's `aktywny(-a)` and privacy question (5713, 17756)
+  were reviewed but not adopted. Keep `Widziano` and its matching privacy choice.
+- Prefer the established linking wording in the initial QR/phone-code flow,
+  but do **not** ban `parowanie` or mechanically replace it in account and
+  recovery messages. Keep it where another `połączenie` would be repetitive or
+  blur the difference between a network connection and linking the device.
+  In particular, retain `Połączyć można tylko konta oczekujące na parowanie.`;
+  `Połączyć można tylko konta oczekujące na połączenie.` was explicitly rejected.
+- Keep the `Osobiste` filter name and descriptive `czaty prywatne` in their
+  respective roles. The supplied pack does not prove a matching standalone
+  `Osobiste` filter label; do not invent APK verification for it.
+- Keep `Podpis` for an attachment caption; the user also associates this term
+  with Unigram. A missing matching phrase in the supplied pack is not a reason
+  to rename a clear, reviewed feature.
+- Keep `Wyświetlana nazwa` for a profile display name, and `nazwy głosujących`
+  rather than narrowing arbitrary contact names to first names. Retain the
+  distinctions between profile About (`Informacje`) and status updates, between
+  contact blocking and chat access protection, and between calls and chat threads.
+- Keep WinZapp's own AI, transcription, audio-device, storage and accessibility
+  terminology where its functions differ from the phone application. The APK
+  contains both `aktualizacje` and `aktualności` for channels and both `rozmowa`
+  and `połączenie` for calls; none justifies a global word replacement.
+
+Use the reviewed labels in current guide instructions and matching shortcuts.
+Do not rewrite quoted old UI names throughout historical changelog entries
+merely because the current interface now has a new label.
+
+For edited-message options, distinguish the global notification labels from
+the shorter labels in a chat's own settings. Describe background/foreground
+as the state of WinZapp, not of the edit. Marking arrivals as read is not
+speech synthesis: it requires the visible chat and an active window, with the
+five-second gate explained in the guide. Allowing background speech does not
+override the other muting and announcement preferences.
+
+For media cleanup, verify the actual manual-download path before repeating an
+old warning: `restore_cleaned=True` permits one explicit confirmed download;
+automatic downloads remain blocked. This distinction applies to both the
+cleanup confirmation and the message explaining why a file was not restored.
+If English also has a stale description, explain the Polish correction in the
+PR without changing the source catalogs or application behavior.
 
 ## Meaning, sources and spoken wording
 

@@ -4,6 +4,10 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Al copiar solo la leyenda de un mensaje (Ctrl+Shift+C), el lector de pantalla ahora dice "Leyenda copiada" en lugar de "Mensaje copiado", para que no parezca que se copió el archivo (foto, vídeo o documento).
+
+- El nombre del contacto en el mensaje citado de una respuesta ahora sigue su nombre de perfil más reciente en lugar de mostrar uno antiguo, aunque sus mensajes originales ya estuvieran actualizados. Vale para Neonize y WPPConnect.
+
 - Copiar los mensajes seleccionados (Ctrl+Alt+Shift+C, o Ctrl+C con "Sustituir atajos por acciones en masa al seleccionar chats y mensajes" marcado) ahora también copia documentos, audios, imágenes y vídeos: los archivos van al portapapeles de una vez y se pueden pegar todos juntos, por ejemplo en el Explorador de archivos, con su nombre original. En una selección que mezcla texto y archivos, el texto viaja como un único bloque para pegar en un campo de texto. WinZapp dice "Mensajes copiados" y, si no se pudo descargar algún archivo, cuántos quedaron fuera.
 
 - Reacciones: una reacción personalizada, elegida con "Añadir más reacciones", entra ahora en la lista de reacciones rápidas la primera vez que se usa, en lugar de la última reacción predeterminada que nunca has usado. Además hay diez comandos nuevos en Configuración > Atajos de teclado (Mensajes), "Reaccionar al mensaje seleccionado con la reacción de esta posición", del 1 al 9 y 0 para la décima: cada uno reacciona al mensaje enfocado con la reacción de esa posición en Configuración > Interfaz > Reacciones, que tú eliges y que no cambia con el uso; pulsar la reacción ya enviada la quita. Vienen sin tecla, porque Ctrl+Alt+1 a 9 ya cambian de cuenta; tú eliges la tecla de cada uno.
@@ -637,6 +641,12 @@ NOVEDADES
 - Pegar en el campo de mensaje un archivo de texto guardado en UTF-16 (como un informe de Información del sistema de Windows, de msinfo32) ya no lo envía como audio: sigue siendo un documento. Informado por UlisesMilani (#838).
 
 - Configuración, Mensajes: nueva opción "Excluir los mensajes nuevos de la conversación abierta del separador de no leídos y marcarlos como leídos al llegar", desactivada por defecto. Desactivada, los mensajes que llegan mientras lees la conversación abierta siguen sumándose al separador de no leídos, para que sigas lo que llegó después. Activada, se leen al llegar, sin separador.
+
+- Con Neonize, "Añadir contacto" en los datos de la conversación ahora guarda de verdad el contacto en la agenda de WhatsApp y en el teléfono. Antes, el contacto se grababa con el identificador interno (LID) en lugar del número, y el iPhone lo descartaba segundos después, aunque WinZapp decía que la sincronización se había solicitado.
+
+- Neonize: cuando el puente de conexión no consigue iniciarse, WinZapp ahora lo avisa por voz al instante, en lugar de que el aviso se perdiera cuando el programa se bloqueaba al mostrarlo, y guarda en el registro el final de la salida del propio puente y la arquitectura del procesador del equipo, para poder encontrar la causa.
+
+- Neonize en Windows sobre ARM: el puente de conexión ya no deja de iniciarse (y el emparejamiento por código QR ya no se queda bloqueado) por pedir la versión ARM de su biblioteca, que el programa no puede cargar; ahora usa la de la arquitectura con la que realmente se ejecuta.
 
 V2.1.0.0
 

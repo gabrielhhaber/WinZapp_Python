@@ -9765,6 +9765,12 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_caption_copied"
+msgid "Caption copied."
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
 #: client/ui/conversation_panel/translation_actions.py
 msgctxt "msg_copied"
 msgid "Message copied."

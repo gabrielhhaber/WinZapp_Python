@@ -146,11 +146,14 @@ class NeonizeBridgeMixin:
             return
         logging.error("MainWindow: neonize bridge is not available")
         if not getattr(self, "background_mode", False):
-            wx.MessageBox(
-                self.i18n.t("neonize_bridge_unavailable_message"),
-                self.i18n.t("neonize_bridge_unavailable_title"),
-                wx.OK | wx.ICON_ERROR,
-            )
+            message = self.i18n.t("neonize_bridge_unavailable_message")
+            title = self.i18n.t("neonize_bridge_unavailable_title")
+            # Said at once, before any dialog: a modal box opened from inside
+            # __init__ crashed with 0x8001010d (a COM call-out during the screen
+            # reader's input-synchronous call) and took the notice with it.
+            self.output(message, interrupt=True)
+            # The box itself waits for the main loop.
+            wx.CallAfter(wx.MessageBox, message, title, wx.OK | wx.ICON_ERROR)
 
     def _use_neonize_bridge_secret(self):
         """The bridge only answers to its own secret. It stands in for the API key
