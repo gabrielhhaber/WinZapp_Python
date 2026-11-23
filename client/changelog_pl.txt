@@ -649,6 +649,8 @@ NOWOŚCI
 
 - Neonize w systemie Windows na ARM: most połączenia nie przestaje już się uruchamiać (a parowanie kodem QR nie utyka), bo żądał wersji ARM swojej biblioteki, której program nie może załadować; teraz używa wersji dla architektury, na której naprawdę działa.
 
+- Naprawiono: gdy włączona była instalacja przy wyjściu, po komunikacie o pobraniu aktualizacji opcja Pomoc > Zainstaluj pobraną aktualizację nadal była niedostępna. Teraz jest dostępna i od razu instaluje aktualizację, a potem ponownie uruchamia WinZapp; wyjście nadal instaluje bez ponownego uruchamiania.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

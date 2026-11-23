@@ -648,6 +648,8 @@ NOVIDADES
 
 - Neonize no Windows em ARM: a bridge de conexão não deixa mais de iniciar (e o pareamento por QR code não fica mais travado) por pedir a versão ARM da sua biblioteca, que o programa não consegue carregar; agora ela usa a da arquitetura em que realmente roda.
 
+- Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização foi baixada, Ajuda > Instalar atualização baixada continuava indisponível. Agora o item fica disponível e instala a atualização na hora, reabrindo o WinZapp em seguida; sair continua instalando sem reabrir.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.

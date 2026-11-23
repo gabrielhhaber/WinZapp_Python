@@ -648,6 +648,8 @@ WHAT'S NEW
 
 - Neonize su Windows ARM: il ponte di connessione non smette più di avviarsi (e l'abbinamento con il codice QR non resta più bloccato) perché chiedeva la versione ARM della sua libreria, che il programma non riesce a caricare; ora usa quella dell'architettura con cui gira davvero.
 
+- Corretto: con l'installazione all'uscita attiva, dopo l'avviso che l'aggiornamento era stato scaricato, Guida > Installa l'aggiornamento scaricato restava non disponibile. Ora la voce è disponibile e installa subito l'aggiornamento, poi riavvia WinZapp; uscire continua a installare senza riavviare.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
