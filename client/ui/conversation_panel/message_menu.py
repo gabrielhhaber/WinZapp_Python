@@ -614,7 +614,7 @@ class MessageMenuMixin:
         if text:
             try:
                 pyperclip.copy(text)
-                self.main_window.output(self.main_window.i18n.t("msg_copied"))
+                self.main_window.output(self.main_window.i18n.t("msg_caption_copied"))
             except Exception:
                 self.main_window.output(self.main_window.i18n.t("msg_copy_error"))
         else:
