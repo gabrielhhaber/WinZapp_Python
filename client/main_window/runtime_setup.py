@@ -357,9 +357,19 @@ def _looks_like_json_response(response) -> bool:
     treated as the old one, so a server that says nothing keeps the behaviour
     it has always had instead of having raw JSON written to disk as if it were
     a file.
+
+    ``x-winzapp-mimetype`` decides first. On the raw path WPPConnect's
+    sendMediaBuffer() sets Content-Type to the *file's* mimetype, so a JSON
+    document (an ``app.json`` sent in a chat) came back as
+    ``application/json``: read as the envelope, ``.get("base64")`` found
+    nothing and Save As said the media could not be downloaded. That header is
+    only ever set on the raw path, never on the envelope.
     """
     try:
-        content_type = (response.headers.get("Content-Type") or "").lower()
+        headers = response.headers
+        if any(str(name).lower() == "x-winzapp-mimetype" for name in headers):
+            return False
+        content_type = (headers.get("Content-Type") or "").lower()
     except Exception:
         return True
     if not content_type:

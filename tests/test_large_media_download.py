@@ -107,6 +107,22 @@ class TestTellingTheTwoResponseShapesApart:
         broken = types.SimpleNamespace()
         assert _looks_like_json_response(broken) is True
 
+    @pytest.mark.parametrize("header", ["x-winzapp-mimetype", "X-WinZapp-Mimetype"])
+    def test_a_json_document_sent_raw_is_the_file(self, header):
+        """WPPConnect's raw path sets Content-Type to the file's own mimetype,
+        so an app.json sent in a chat arrives as application/json. Read as the
+        envelope it had no "base64" and Save As reported a failed download."""
+        from requests.structures import CaseInsensitiveDict
+        response = types.SimpleNamespace(headers=CaseInsensitiveDict({
+            "Content-Type": "application/json", header: "application/json"}))
+        assert _looks_like_json_response(response) is False
+
+    def test_the_envelope_without_the_raw_marker_is_still_json(self):
+        from requests.structures import CaseInsensitiveDict
+        response = types.SimpleNamespace(headers=CaseInsensitiveDict({
+            "Content-Type": "application/json; charset=utf-8"}))
+        assert _looks_like_json_response(response) is True
+
     def test_it_never_touches_the_body(self):
         """Sniffing means reading, and the body may be hundreds of megabytes
         that must be read exactly once."""
