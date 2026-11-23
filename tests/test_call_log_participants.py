@@ -129,6 +129,7 @@ class TestLabel:
 
 class _MW:
     call_log_participants_text = MainWindow.call_log_participants_text
+    ongoing_call_people_text = MainWindow.ongoing_call_people_text
     _call_person = MainWindow._call_person
 
     def __init__(self, saved=()):
@@ -164,6 +165,29 @@ class TestMainWindowText:
     def test_a_group_chat_call_keeps_the_group_name(self):
         msg = _record("120363000000000000@g.us", ME_LID, ANA, BIA)
         assert _MW().call_log_participants_text(msg, "120363000000000000@g.us") == ""
+
+
+class TestLiveCallText:
+    """A live call (Calls tab, Ongoing) is named as the phone names it."""
+
+    def test_a_call_started_on_the_phone_is_named_after_who_is_in_it(self):
+        # filed under this account's own chat: never "Me"
+        live = {"id": "C1", "chatJid": ME_LID, "isVideo": False, "people": [ANA]}
+        assert _MW().ongoing_call_people_text(live) == "Ana"
+        live["people"] = [ANA, BIA, CAIO, DUDA]
+        assert _MW().ongoing_call_people_text(live) == "Ana e mais 3 pessoas"
+
+    def test_a_private_call_that_became_a_group_call_names_its_creator_first(self):
+        live = {"id": "C1", "chatJid": BIA, "isVideo": False, "people": [ANA, BIA]}
+        assert _MW().ongoing_call_people_text(live) == "Bia e Ana"
+
+    def test_a_call_with_one_other_person_or_a_groups_keeps_the_chat_name(self):
+        assert _MW().ongoing_call_people_text(
+            {"id": "C1", "chatJid": BIA, "isVideo": False, "people": [BIA]}) == ""
+        assert _MW().ongoing_call_people_text(
+            {"id": "C1", "chatJid": "120363000000000000@g.us", "isVideo": False,
+             "people": [ANA, BIA]}) == ""
+        assert _MW().ongoing_call_people_text({"id": "C1", "chatJid": ME_LID, "isVideo": False}) == ""
 
 
 class TestCallsTabRow:

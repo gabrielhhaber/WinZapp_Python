@@ -702,6 +702,40 @@ def test_a_group_call_reports_who_is_connected_when_it_changes():
                         "connected": ["3@lid", "5511@s.whatsapp.net"]}]
 
 
+def test_a_private_call_that_became_a_group_call_can_be_joined_again():
+    """Someone added people to a one-to-one call: from then on it is a group
+    call, and the one who leaves it finds it to join again (Calls tab and
+    chat), filed under the chat it was placed in, with its creator for the
+    lobby query."""
+    fake = RosterCalls()
+    m, _sent = media(fake)
+    m.own_creator = lambda: "555:27@lid"
+    m.remember_offer({"id": "IN", "peerJid": "5511@s.whatsapp.net"}, "100:3@lid")
+    m._calls["IN"]["state"] = "ACTIVE"
+    m._calls["OUT"] = {"id": "OUT", "peer": "5522@s.whatsapp.net", "outgoing": True,
+                       "state": "ACTIVE", "video": True, "group": ""}
+    fake.people = [{"jid": "1@lid", "state": "connected"}]
+    m.report_rosters()
+    known = cm.ongoing_calls.known(m)
+    assert (known.get("IN")["creator"], known.get("IN")["chat"]) == ("100:3@lid", "5511@c.us")
+    assert (known.get("OUT")["creator"], known.get("OUT")["chat"], known.get("OUT")["video"]) == (
+        "555:27@lid", "5522@c.us", True)
+
+
+def test_a_private_call_or_a_known_group_call_is_not_filed_again():
+    fake = RosterCalls()
+    m, _sent = media(fake)
+    m.remember_offer({"id": "IN", "peerJid": "5511@c.us"}, "100:3@lid")
+    m._calls["IN"]["state"] = "ACTIVE"
+    fake.roster = lambda call_id: {"group": False, "participants": []}
+    m.report_rosters()
+    assert cm.ongoing_calls.known(m).get("IN") is None
+    cm.ongoing_calls.known(m).remember("IN", "100:3@lid", "1203@g.us", False)
+    fake.roster = lambda call_id: {"group": True, "participants": []}
+    m.report_rosters()
+    assert cm.ongoing_calls.known(m).get("IN")["chat"] == "1203@g.us"
+
+
 def test_a_state_change_alone_is_reported_for_the_participants_window():
     """Someone stops ringing and declines: nobody joined or left, yet an open
     participants window has to show it, and it refreshes on this event."""

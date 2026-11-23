@@ -62,6 +62,20 @@ listed `@c.us` chat as `@s.whatsapp.net` (`core/ongoing_calls.py`), so lock
 checks and names match the stored chat, and preserves the chat peer even
 when the multiparty call has no group JID.
 
+A call filed under a person's chat also carries `people`: who is connected to
+it, this account left out (`connectedPeople` in `groupCallRuntime.ts`,
+`connected_people` in the bridge). It matters when this account is the
+creator: a call it started on its phone, with no group, is filed under its own
+chat. `_start_call` refused that chat as "a call to yourself"
+(`voice_call_individual_only`), so the creator who left on the phone could not
+join again from WinZapp (reported 2026-11-22). Now such a call
+(`core/ongoing_calls.is_own_chat_call`) is offered in the chat of each person
+in `people`. Its Calls row is named after them, like a one-to-one call that
+became a group call (`MainWindow.ongoing_call_people_text`), and its "Open
+conversation" goes to the first of them. A join (`join_call_id` with
+`is_group`) is the only thing allowed to the account's own chat; placing a call
+there is still refused.
+
 Enter, the Join button and the context menu join the selected live call by
 id. A call already active on this PC instead offers Return to call, which
 focuses the existing call window without joining again. Other active calls
@@ -104,4 +118,9 @@ lobby query WhatsApp Web sends for a call the account is not in
 (`<lobby query="1"/>` to `<id>@call`, captured over CDP); the answer's roster
 gives who is `connected`. Joining sends WhatsApp Web's `<accept>` (meowcaller
 `api/ongoing-group-join`). A call started while the bridge was off, that never
-rang here, is not listed.
+rang here, is not listed. A one-to-one call becomes listed once someone is added
+to it: `report_rosters` sees its roster turn into a group's and files it
+(`CallMedia._remember_promoted`) as WhatsApp does. For a call that rang here,
+that is the caller's chat, and the lobby query names the creator kept from the
+offer. For a call placed here, it is the chat of the person called. Whoever
+leaves such a call finds it again to join.

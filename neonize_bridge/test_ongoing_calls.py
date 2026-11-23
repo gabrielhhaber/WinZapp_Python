@@ -118,6 +118,25 @@ def test_a_group_shows_its_call_while_someone_is_in_it():
     assert media.asked == [("G1", "100:27@lid")]          # one lobby answer per round
 
 
+def test_a_call_filed_under_a_person_lists_who_is_in_it_but_this_account():
+    """A call this account started on its phone, with no group, is filed under
+    its own chat: the client offers it in the chats of the people in it."""
+    lobby = {"call": "M1", "video": True, "participants": [
+        {"jid": "1@lid", "pn": "5511@s.whatsapp.net", "state": "connected"},
+        {"jid": "9:27@lid", "state": "connected"},
+        {"jid": "2@lid", "state": "invited"},
+        {"jid": "3@lid", "state": "connected"}]}
+    media = Media({"M1": lobby})
+    oc.known(media).remember("M1", "9:27@lid", "9@lid", False)
+    (_, listed), = post(session(media), ("call/ongoing", {}))
+    assert listed["response"] == [{"id": "M1", "chatJid": "9@lid", "isVideo": True,
+                                   "people": ["5511@s.whatsapp.net", "3@lid"]}]
+    media.live = "M1"                               # this client is in it: its own roster
+    (_, held), = post(session(media), ("call/ongoing", {}))
+    assert held["response"] == [{"id": "M1", "chatJid": "9@lid", "isVideo": False,
+                                 "people": ["1@lid"]}]
+
+
 def test_a_call_nobody_is_in_any_more_is_gone():
     media = Media({"G1": None})
     oc.known(media).remember("G1", "100:27@lid", "1203@g.us", False)

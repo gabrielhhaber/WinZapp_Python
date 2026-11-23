@@ -1568,10 +1568,13 @@ class CallsMixin:
         # "calling Me..." and POSTed an offer to the user's own JID -- with the
         # button hidden, a blind user had no way to know the action even
         # existed there. This is the layer every path goes through.
+        # Joining is the exception: a call this account started on its phone,
+        # with no group, is filed under its own chat, and joining it again
+        # from here was refused as a call to itself (reported 2026-11-22).
         unreachable = (
             not peer_jid
             or peer_jid.endswith(("@newsletter", "@broadcast"))
-            or self._is_self_jid(peer_jid)
+            or (self._is_self_jid(peer_jid) and not (join_call_id and is_group))
         )
         if is_group and not join_call_id:
             unreachable = unreachable or not peer_jid.endswith("@g.us")

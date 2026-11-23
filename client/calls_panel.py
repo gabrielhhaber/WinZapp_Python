@@ -258,7 +258,7 @@ class CallsPanel(OngoingCallsMixin, wx.Panel):
         mw = self.main_window
         if entry.get("ongoing"):
             key = "call_log_ongoing_video" if entry["ongoing"]["isVideo"] else "call_log_ongoing_voice"
-            return f'{mw.chat_display_name(entry["jid"])}: {mw.i18n.t(key)}'
+            return f'{self._ongoing_call_name(entry)}: {mw.i18n.t(key)}'
         panel = getattr(mw, "conversations_panel", None)
         msg = entry["msg"]
         label = call_log_label(

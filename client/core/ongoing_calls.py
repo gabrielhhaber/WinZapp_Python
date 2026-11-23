@@ -4,6 +4,24 @@ import re
 from core.call_matching import is_placeholder_call_id
 
 _CHAT = re.compile(r"\d+(?:-\d+)?@(?:g\.us|lid|s\.whatsapp\.net|c\.us)")
+_PERSON = re.compile(r"\d+@(?:lid|s\.whatsapp\.net|c\.us)")
+_PEOPLE_LIMIT = 64
+
+
+def _canonical(jid):
+    return re.sub(r"@c\.us$", "@s.whatsapp.net", jid)
+
+
+def _people(raw):
+    """The `people` of an ongoing call (who is connected to it, this account
+    left out), canonical and valid only; [] when the engine sent none."""
+    if not isinstance(raw, list):
+        return []
+    people = []
+    for jid in raw[:_PEOPLE_LIMIT]:
+        if isinstance(jid, str) and _PERSON.fullmatch(jid) and _canonical(jid) not in people:
+            people.append(_canonical(jid))
+    return people
 
 
 def ongoing_entries(body):
@@ -19,10 +37,33 @@ def ongoing_entries(body):
         seen.add(row["id"])
         # Canonical form, so lock checks and name lookups match the stored
         # chat; the runtime treats both phone forms as the same chat.
-        chat = re.sub(r"@c\.us$", "@s.whatsapp.net", row["chatJid"])
-        result.append({"jid": chat, "ongoing": {
-            "id": row["id"], "chatJid": chat, "isVideo": row["isVideo"]}})
+        chat = _canonical(row["chatJid"])
+        ongoing = {"id": row["id"], "chatJid": chat, "isVideo": row["isVideo"]}
+        people = _people(row.get("people"))
+        if people:
+            ongoing["people"] = people
+        result.append({"jid": chat, "ongoing": ongoing})
     return result
+
+
+def is_own_chat_call(ongoing, is_self):
+    """True for a call filed under this account's own chat: one it started on
+    another device (its phone) with no group. WhatsApp files such a call
+    under its creator's chat, which here is the account itself, so it is
+    named after and offered in the chats of the people in it instead."""
+    return bool(isinstance(ongoing, dict) and ongoing.get("people")
+                and not str(ongoing.get("chatJid") or "").endswith("@g.us")
+                and is_self(str(ongoing.get("chatJid") or "")))
+
+
+def ongoing_conversation_jid(entry, is_self):
+    """The chat "Open conversation" of a live Calls row goes to: the first
+    person in a call filed under this account's own chat, the call's chat
+    otherwise."""
+    ongoing = entry.get("ongoing") or {}
+    if is_own_chat_call(ongoing, is_self):
+        return ongoing["people"][0]
+    return entry["jid"]
 
 
 def include_current_call(entries, active, state):
@@ -40,7 +81,7 @@ def include_current_call(entries, active, state):
     return current + rows
 
 
-def ongoing_for_chat(entries, jid, same_chat):
+def ongoing_for_chat(entries, jid, same_chat, is_self=lambda _jid: False):
     """The call of `ongoing_entries()` filed under the chat `jid` is, as the
     conversation panel shows it ({id, groupJid: jid, chatJid, isVideo}), or None.
 
@@ -48,10 +89,17 @@ def ongoing_for_chat(entries, jid, same_chat):
     the creator's chat, often by @lid while WinZapp keeps the chat under the
     number: `same_chat(a, b)` bridges the two (seen over CDP on 2026-11-17).
     `chatJid` is the engine's own form, the one call/group/join must be given.
+
+    When this account is the creator (it started the call on its phone), that
+    chat is its own: the call is offered in the chat of each person connected
+    to it (is_own_chat_call; reported 2026-11-22, the creator who left on the
+    phone could not join from WinZapp).
     """
     for entry in entries or ():
         call = entry["ongoing"]
-        if same_chat(call["chatJid"], jid):
+        if same_chat(call["chatJid"], jid) or (
+                is_own_chat_call(call, is_self)
+                and any(same_chat(person, jid) for person in call["people"])):
             return {"id": call["id"], "groupJid": jid, "chatJid": call["chatJid"],
                     "isVideo": call["isVideo"]}
     return None

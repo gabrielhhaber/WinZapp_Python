@@ -5,7 +5,7 @@ import threading
 import wx
 
 from core.call_log import TAB_ALL, TAB_ONGOING
-from core.ongoing_calls import ongoing_entries, include_current_call
+from core.ongoing_calls import include_current_call, ongoing_conversation_jid, ongoing_entries
 
 
 class OngoingCallsMixin:
@@ -96,6 +96,13 @@ class OngoingCallsMixin:
         # empty placeholder there would read "No calls" on the focused row.
         self._populate_all(tabs=None if getattr(self, "_loaded", False) else (TAB_ONGOING,))
 
+    def _ongoing_call_name(self, entry):
+        """A live call's name: its people's for one the phone names so
+        (MainWindow.ongoing_call_people_text), its chat's otherwise."""
+        mw = self.main_window
+        people = getattr(mw, "ongoing_call_people_text", None)
+        return (people(entry["ongoing"]) if people is not None else "")             or mw.chat_display_name(entry["jid"])
+
     def _ongoing_confirmed_now(self):
         return getattr(self, "_ongoing_confirmed", None) is self._ongoing_watch
 
@@ -182,7 +189,7 @@ class OngoingCallsMixin:
             mw._sync_voice_call_bar()
             mw._focus_call_window()
             return
-        mw._start_call(call["chatJid"], mw.chat_display_name(entry["jid"]),
+        mw._start_call(call["chatJid"], self._ongoing_call_name(entry),
                        is_group=True, is_video=call["isVideo"], join_call_id=call["id"])
 
     def _ongoing_context_menu(self):
@@ -195,6 +202,8 @@ class OngoingCallsMixin:
         item = menu.Append(wx.ID_ANY, self._ongoing_join_btn.GetLabel()+"\tEnter")
         self.Bind(wx.EVT_MENU, self._join_ongoing_call, item)
         opened = menu.Append(wx.ID_ANY, self.main_window.i18n.t("calls_open_conversation"))
-        self.Bind(wx.EVT_MENU, lambda e: self.main_window.navigate_to_conversation_jid(entry["jid"]), opened)
+        chat = ongoing_conversation_jid(
+            entry, getattr(self.main_window, "_is_self_jid", lambda _jid: False))
+        self.Bind(wx.EVT_MENU, lambda e: self.main_window.navigate_to_conversation_jid(chat), opened)
         self.PopupMenu(menu)
         menu.Destroy()

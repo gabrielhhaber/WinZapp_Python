@@ -36,6 +36,26 @@ export function installGroupCallRuntimeInPage(): void {
     if (!chatJid.endsWith('@g.us') && module('WAWebMsgGetters')?.getIsGroupCall?.(call) !== true) return null;
     return { id: call.id.id, chatJid, isVideo: call.isVideoCall === true };
   };
+  // Who is connected to a call filed under a person's chat, this account
+  // left out. A call this account started on another device, with no group,
+  // is filed under the account's own chat; WinZapp offers it in theirs.
+  const connectedPeople = (record: any): any => {
+    const connected = module('WAWebVoipWaCallEnums')?.CallParticipantState?.Connected;
+    const participants = module('WAWebMsgGetters')?.getCallParticipants?.(record) ?? record?.callParticipants;
+    const people: any = [];
+    if (connected == null || !Array.isArray(participants)) return people;
+    for (const person of participants.slice(0, 1024)) {
+      if (person?.outcome !== connected) continue;
+      let isSelf = false;
+      try { isSelf = module('WAWebUserPrefsMeUser')?.isMeAccount?.(person.participant) === true; } catch (_) { /* Unknown identity. */ }
+      if (isSelf) continue;
+      let wid = person.participant;
+      try { wid = module('WAWebLidMigrationUtils')?.toPn?.(wid) || wid; } catch (_) { /* Keep the LID. */ }
+      const jid = serialized(wid).replace(/@c\.us$/, '@s.whatsapp.net');
+      if (/^\d+@(?:lid|s\.whatsapp\.net)$/.test(jid) && !people.includes(jid)) people.push(jid);
+    }
+    return people;
+  };
   const refresh = async (calls: any): Promise<any> => {
     await calls.waitUntilLoaded?.();
     if (module('WAWebVoipInitEventEmitter')?.VoipInitEventEmitter?.getIsVoipInited?.() !== true) {
@@ -80,7 +100,9 @@ export function installGroupCallRuntimeInPage(): void {
         try {
           context(chatJid);
           const call = describe(record, chatJid);
-          if (call) result.set(call.id, call);
+          if (call) {
+            result.set(call.id, chatJid.endsWith('@g.us') ? call : { ...call, people: connectedPeople(record) });
+          }
         } catch (_) { /* Unknown/unavailable chats cannot be joined. */ }
       }
       return Array.from(result.values());

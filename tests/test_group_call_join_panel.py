@@ -324,6 +324,25 @@ def test_a_call_filed_under_the_contacts_lid_is_found_and_joined(runtime):
         "is_group": True, "is_video": True, "join_call_id": "C1"})]
 
 
+def test_a_call_this_account_started_on_its_phone_is_joined_from_its_peoples_chats(runtime):
+    """Reported 2026-11-22: the creator left the call on the phone and found
+    no way to join it from WinZapp. WhatsApp files it under the creator's chat,
+    here the account's own, so it is offered in the chat of each person
+    connected to it, and joined under the engine's form of that chat."""
+    queued, _ = runtime
+    me = "555000099@lid"
+    panel = person_panel()
+    panel.main_window._is_self_jid = lambda jid: jid == me
+    panel.result = [{"id": "C1", "chatJid": me, "isVideo": False, "people": [LID, "5598@lid"]}]
+    panel._sync_voice_call_button(PERSON)
+    queued.pop(0)()
+    assert panel._group_call_join_btn.shown
+    assert panel._group_call_join_btn.label == "group_call_join_button"
+    panel._on_join_ongoing_group_call()
+    assert panel.started == [((me, "Ana"), {
+        "is_group": True, "is_video": False, "join_call_id": "C1"})]
+
+
 def test_a_contact_with_no_call_keeps_the_call_buttons(runtime):
     queued, _ = runtime
     panel = person_panel()
