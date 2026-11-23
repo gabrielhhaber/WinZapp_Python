@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "82b826dd5a99": "Copiar só a legenda de uma mensagem (Ctrl+Shift+C) agora faz o leitor de tela di",
     "3d7ad4ffa798": "O nome do contato na mensagem citada de uma resposta agora segue o nome mais rec",
     "b70c017d0e9f": "Copiar mensagens selecionadas (Ctrl+Alt+Shift+C, ou Ctrl+C com \"Substituir atalh",
     "12d706c79d90": "Reações: uma reação personalizada, escolhida em \"Adicionar mais reações\", agora ",

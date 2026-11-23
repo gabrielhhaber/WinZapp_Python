@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Al copiar solo la leyenda de un mensaje (Ctrl+Shift+C), el lector de pantalla ahora dice "Leyenda copiada" en lugar de "Mensaje copiado", para que no parezca que se copió el archivo (foto, vídeo o documento).
+
 - El nombre del contacto en el mensaje citado de una respuesta ahora sigue su nombre de perfil más reciente en lugar de mostrar uno antiguo, aunque sus mensajes originales ya estuvieran actualizados. Vale para Neonize y WPPConnect.
 
 - Copiar los mensajes seleccionados (Ctrl+Alt+Shift+C, o Ctrl+C con "Sustituir atajos por acciones en masa al seleccionar chats y mensajes" marcado) ahora también copia documentos, audios, imágenes y vídeos: los archivos van al portapapeles de una vez y se pueden pegar todos juntos, por ejemplo en el Explorador de archivos, con su nombre original. En una selección que mezcla texto y archivos, el texto viaja como un único bloque para pegar en un campo de texto. WinZapp dice "Mensajes copiados" y, si no se pudo descargar algún archivo, cuántos quedaron fuera.
