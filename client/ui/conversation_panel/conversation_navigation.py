@@ -52,9 +52,33 @@ class ConversationNavigationMixin:
 
     def on_conversation_selected_by_index(self, index):
         try:
-            self.navigate_to_conversation(self.chats_list[index])
+            chat = self.chats_list[index]
         except Exception:
             return
+        if self._open_community_in_panel(chat):
+            return
+        try:
+            self.navigate_to_conversation(chat)
+        except Exception:
+            return
+
+    def _open_community_in_panel(self, chat) -> bool:
+        """A community opened from the chat list shows its groups in the
+        Communities panel instead of its own chat, unless Settings >
+        Interface > Chats turns that off. True when it went there."""
+        mw = self.main_window
+        if not mw.settings.get("user_interface", {}).get("open_communities_in_panel", True):
+            return False
+        from core.communities import is_community_chat
+        panel = getattr(mw, "communities_panel", None)
+        known = [community.jid for community in getattr(panel, "_communities", None) or ()]
+        if not is_community_chat(chat, known):
+            return False
+        jid = chat.get("remoteJid") or chat.get("id")
+        if isinstance(jid, dict):
+            jid = jid.get("_serialized")
+        from main_window.content_panels import show_communities
+        return show_communities(mw, select=jid) is not None
 
     def _stop_typing_for_current_conversation(self):
         """Stop typing/recording status for the currently open conversation, if active."""

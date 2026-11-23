@@ -76,6 +76,9 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
         # and the communities whose other groups were already asked for.
         self._filter = SUBGROUP_FILTERS[0]
         self._refreshed = set()
+        # A community opened from the chat list: selected, with the focus on
+        # its groups, once the list holds it (on_show / _show).
+        self._pending_select = ""
         super().__init__(parent)
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -138,14 +141,37 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
 
     # ── shown and translated ──────────────────────────────────────────────
 
-    def on_show(self):
+    def on_show(self, select=""):
         """Alt+8 / the navigation list: the list gets the focus and the
         communities are read again; their count is said the first time, or
-        after the account's connection changed (a new pairing)."""
+        after the account's connection changed (a new pairing).
+
+        *select*: a community opened from the chat list. It is selected and
+        the focus goes to its groups — at once when the list already holds
+        it, otherwise when the reload brings it."""
         if self._renew_connection():
             self._loaded, self._refreshed = False, set()
+        self._pending_select = select or ""
         self._list.SetFocus()
-        self._reload(quiet=self._loaded)
+        if self._pending_select and self._apply_pending_select():
+            self._reload(quiet=True)
+            return
+        self._reload(quiet=self._loaded or bool(self._pending_select))
+
+    def _apply_pending_select(self):
+        """Select the community asked for and focus its groups (its list when
+        it has none shown). True when the list held it."""
+        jid = self._pending_select
+        index = next((position for position, community in enumerate(self._communities)
+                      if community.jid == jid), -1)
+        if not jid or index < 0:
+            return False
+        self._pending_select = ""
+        self._list.SetSelection(index)
+        self._show_selected("")
+        if self._groups.GetCount():
+            self._groups.SetFocus()
+        return True
 
     def refresh_labels(self):
         """MainWindow switched language: every label, and the rows."""
@@ -231,6 +257,8 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
             return
         self._loaded = True
         self._show(communities)
+        if getattr(self, "_pending_select", ""):
+            self._apply_pending_select()
         text = (self._i18n.t("communities_count").format(count=len(communities))
                 if communities else self._i18n.t("communities_empty"))
         if quiet:       # shown again: the list is what it was, said only on screen

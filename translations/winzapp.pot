@@ -19843,6 +19843,14 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_open_communities_in_panel"
+msgid ""
+"Open &communities from the chat list in the Communities panel, with their "
+"groups"
+msgstr ""
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_page_jump_size_label"
 msgid "Messages &to skip when pressing Page Up / Page Down:"
 msgstr ""

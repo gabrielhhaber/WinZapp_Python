@@ -21131,6 +21131,16 @@ msgstr "Bir so&hbet açıldığında en fazla bu kadar mesaj göster:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_open_communities_in_panel"
+msgid ""
+"Open &communities from the chat list in the Communities panel, with their "
+"groups"
+msgstr ""
+"Sohbet listesindeki &toplulukları grupları ile birlikte Topluluklar "
+"panelinde aç"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_page_jump_size_label"
 msgid "Messages &to skip when pressing Page Up / Page Down:"
 msgstr "Say&fa yukarı/aşağı ile geçilecek mesaj sayısı:"
