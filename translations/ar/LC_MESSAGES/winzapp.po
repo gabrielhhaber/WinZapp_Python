@@ -20880,9 +20880,9 @@ msgstr "عند فتح دردشة، أظهر ما يصل إل&ى هذا العد�
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
-msgstr "فتح الم&جتمعات من قائمة المحادثات في لوحة المجتمعات مع مجموعاتها"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
+msgstr "فتح المجتمعات من قائمة المحادثات في لوحة الم&جتمعات مع مجموعاتها"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

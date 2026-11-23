@@ -21395,11 +21395,11 @@ msgstr "Ao &iniciar uma conversa, apresentar este número de mensagens:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
-"Abrir &comunidades da lista de conversas no painel Comunidades, com os "
-"respetivos grupos"
+"E&xibir os grupos no painel Comunidades ao abrir uma comunidade da lista de "
+"conversas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

@@ -21140,11 +21140,11 @@ msgstr "When opening a chat, show &up to this many messages:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

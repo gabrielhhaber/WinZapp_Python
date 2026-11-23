@@ -21133,11 +21133,11 @@ msgstr "Bir so&hbet açıldığında en fazla bu kadar mesaj göster:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
-"Sohbet listesindeki &toplulukları grupları ile birlikte Topluluklar "
-"panelinde aç"
+"Sohbet listesindeki toplulukları grupları ile birlikte Topluluklar "
+"&panelinde aç"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

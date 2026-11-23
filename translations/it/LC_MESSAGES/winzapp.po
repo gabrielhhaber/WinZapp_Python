@@ -21526,10 +21526,10 @@ msgstr "Quando apri &una chat, mostra fino a questo numero di messaggi:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
-"Apri le &community dall'elenco delle chat nel pannello Community, con i loro"
+"Apri le communit&y dall'elenco delle chat nel pannello Community, con i loro"
 " gruppi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

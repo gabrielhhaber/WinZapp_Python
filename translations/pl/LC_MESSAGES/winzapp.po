@@ -21563,11 +21563,11 @@ msgstr "P&rzy otwieraniu czatu pokaż maksymalnie tyle wiadomości:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
-"Otwieraj &społeczności z listy czatów w panelu Społeczności, razem z ich "
-"grupami"
+"Otwieraj społeczności z listy czatów w panelu Społeczności, razem z ich "
+"&grupami"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

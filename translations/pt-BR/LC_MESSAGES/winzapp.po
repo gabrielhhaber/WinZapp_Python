@@ -21339,10 +21339,10 @@ msgstr "Ao a&brir uma conversa, mostrar número de mensagens até:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
-"Abrir &comunidades da lista de conversas no painel Comunidades, com os "
+"A&brir comunidades da lista de conversas no painel Comunidades, com os "
 "grupos delas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

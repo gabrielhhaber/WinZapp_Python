@@ -19845,8 +19845,8 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_open_communities_in_panel"
 msgid ""
-"Open &communities from the chat list in the Communities panel, with their "
-"groups"
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
 msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po

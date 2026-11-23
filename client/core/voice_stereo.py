@@ -130,8 +130,9 @@ def migrate_mono_voice_bitrate(settings) -> bool:
     if not isinstance(settings, dict):
         return False
     general = settings.get("general")
-    if not isinstance(general, dict) or general.get("voice_recording_bitrate_migrated_128"):
-        return False
+    if (not isinstance(general, dict) or general.get("voice_recording_bitrate_migrated_128")
+            or "voice_recording_bitrate" not in general):
+        return False  # nothing stored yet: the backfill supplies 128 and the flag
     if general.get("voice_recording_bitrate") == LEGACY_DEFAULT_VOICE_BITRATE_KBPS:
         general["voice_recording_bitrate"] = DEFAULT_VOICE_BITRATE_KBPS
     general["voice_recording_bitrate_migrated_128"] = True
