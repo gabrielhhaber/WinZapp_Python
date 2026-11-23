@@ -25,6 +25,7 @@ from core.commerce import (
     message_label as commerce_message_label,
 )
 from core.quote_recovery import RECOVERED_FROM_QUOTE
+from core.profile_names import freshest_profile_name
 from core.message_sender_labels import (
     hide_unnamed_sender_numbers_enabled, message_sender_label, quoted_sender_label,
 )
@@ -836,6 +837,11 @@ class MessageRenderingMixin:
             # _phone_to_lid, so interleaving them let a stale chat name answer
             # before the @lid contact record was ever read.
             contact_lookup = getattr(mw, "_get_contact_tolerant", None) or mw.contacts.get
+            fresh = freshest_profile_name(
+                contact_lookup, ppm, getattr(mw, "_pushname_stamps", {}), candidates,
+                getattr(mw, "_is_bad_contact_name", lambda name: not name))
+            if fresh:
+                return fresh
             for cjid in candidates:
                 c = contact_lookup(cjid)
                 if c:
@@ -1397,6 +1403,11 @@ class MessageRenderingMixin:
         # Contact records first, then chat names, and the 8/9-digit tolerant
         # lookup: see _sender_label()'s _contact_name().
         contact_lookup = getattr(mw, "_get_contact_tolerant", None) or mw.contacts.get
+        fresh = freshest_profile_name(
+            contact_lookup, ppm, getattr(mw, "_pushname_stamps", {}), candidates,
+            getattr(mw, "_is_bad_contact_name", lambda name: not name))
+        if fresh:
+            return fresh
         for cjid in candidates:
             contact = contact_lookup(cjid)
             if contact:
@@ -1422,7 +1433,9 @@ class MessageRenderingMixin:
                 if push and not mw._is_bad_contact_name(push):
                     return push
         # Fallback 2: scan sorted messages in the current conversation
-        for m in getattr(self, "_sorted_messages", []):
+        # Newest first: the name an old message carries is the one its sender
+        # had back then.
+        for m in reversed(getattr(self, "_sorted_messages", None) or []):
             if not isinstance(m, dict):
                 continue
             m_part = m.get("key", {}).get("participant") or m.get("participant")

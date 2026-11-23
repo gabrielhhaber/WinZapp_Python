@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Bir yanıtın alıntılanan mesajındaki kişi adı, kişinin orijinal mesajları zaten güncel olsa bile eski adı göstermek yerine artık en son profil adını izler. Neonize ve WPPConnect için geçerlidir.
+
 - Seçili iletileri kopyalama (Ctrl+Alt+Shift+C ya da "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" işaretliyken Ctrl+C) artık belgeleri, sesleri, resimleri ve videoları da kopyalıyor: dosyalar bir seferde panoya gider ve özgün adlarıyla, örneğin Dosya Gezgini'nde, hep birlikte yapıştırılabilir. Metin ve dosyaları karıştıran bir seçimde metin, bir metin alanına yapıştırılmak üzere tek blok olarak birlikte gelir. WinZapp "Mesajlar kopyalandı" der ve bir dosya indirilemediyse kaç tanesinin dışarıda kaldığını söyler.
 
 - Tepkiler: "Daha fazla tepki ekle" ile seçilen özel bir tepki, ilk kullanıldığında hızlı tepkiler listesine girer ve hiç kullanmadığınız son varsayılan tepkinin yerini alır. Ayrıca Ayarlar > Kısayollar (Mesajlar) içinde on yeni komut var: "Seçili mesaja bu konumdaki tepkiyle tepki ver", 1'den 9'a ve onuncu için 0: her biri odaktaki mesaja Ayarlar > Arayüz > Tepkiler içindeki o konumun tepkisiyle tepki verir; bu tepkiyi siz seçersiniz ve kullanımla değişmez; önceden gönderilen tepkiye basmak onu kaldırır. Ctrl+Alt+1 ile 9 zaten hesap değiştirdiği için tuşsuz gelirler; her birinin tuşunu siz seçersiniz.

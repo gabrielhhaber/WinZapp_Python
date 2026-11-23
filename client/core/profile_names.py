@@ -69,3 +69,26 @@ def apply_profile_name(contacts: dict, ppm: dict, stamps: dict, targets, name: s
                     chat[field] = name
                     changed = True
     return changed
+
+
+def freshest_profile_name(contact_of, ppm: dict, stamps: dict, candidates, is_bad) -> str:
+    """The profile name learned most recently this session for any address in
+    *candidates* (the same person), or "" when none was, or when an address
+    book names them (that name wins, as everywhere else).
+
+    The records of the different addresses can disagree (a rename reached one
+    of them), and the lookups answered from whichever came first in their
+    fixed order. A name learned this session carries the time it was learned
+    (*stamps*); one stored from before has none, so a freshly learned name
+    always beats an old one. *contact_of* looks a record up by JID."""
+    if not isinstance(stamps, dict) or not isinstance(ppm, dict) or not stamps:
+        return ""
+    best, best_ts = "", 0
+    for jid in candidates:
+        if contact_is_saved(contact_of(jid)):
+            return ""
+        ts = stamps.get(jid, 0)
+        name = (ppm.get(jid) or "").strip()
+        if ts > best_ts and name and not is_bad(name):
+            best, best_ts = name, ts
+    return best
