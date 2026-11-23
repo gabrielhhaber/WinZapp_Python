@@ -641,6 +641,8 @@ NOWOŚCI
 
 - Ustawienia > Interfejs > Wiadomości: dodano domyślnie wyłączoną opcję „Gdy okno jest aktywne, oznaczaj nowe wiadomości w otwartym czacie od razu jako przeczytane, bez zwiększania licznika przy separatorze nieprzeczytanych”. Przy opcji wyłączonej wiadomości napływające podczas przeglądania czatu nadal zwiększają licznik przy separatorze, co pomaga śledzić nowe wiadomości. Po jej włączeniu są oznaczane jako przeczytane od razu, bez zwiększania tego licznika, gdy czat jest widoczny, a okno WinZappa pozostaje aktywne od co najmniej 5 sekund.
 
+- W Neonize opcja „Dodaj kontakt” w danych rozmowy naprawdę zapisuje teraz kontakt w książce adresowej WhatsApp i w telefonie. Wcześniej kontakt był zapisywany pod wewnętrznym identyfikatorem (LID) zamiast numeru telefonu, a iPhone odrzucał go po kilku sekundach, mimo że WinZapp mówił, że zażądał synchronizacji.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

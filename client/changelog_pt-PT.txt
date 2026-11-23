@@ -640,6 +640,8 @@ NOVIDADES
 
 - Definições, Mensagens: nova opção "Não acumular no separador de mensagens por ler as mensagens que chegam à conversa aberta; marcá-las como lidas à chegada", desligada por predefinição. Desligada, as mensagens que chegam enquanto lê a conversa aberta continuam a somar no separador, para acompanhar o que chegou depois. Ligada, são lidas à chegada, sem separador.
 
+- Com o Neonize, "Adicionar contacto" nos dados da conversa passa a guardar mesmo o contacto na agenda do WhatsApp e do telemóvel. Antes, o contacto era gravado com o identificador interno (LID) no lugar do número, e o iPhone descartava-o segundos depois, embora o WinZapp dissesse que a sincronização tinha sido pedida.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.

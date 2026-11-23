@@ -640,6 +640,8 @@ WHAT'S NEW
 
 - Impostazioni, Messaggi: nuova opzione "Nella chat aperta, WinZapp segna come letti i nuovi messaggi e non li aggiunge al separatore dei non letti", disattivata per impostazione predefinita. Disattivata, i messaggi che arrivano mentre leggi la chat aperta continuano a sommarsi nel separatore dei non letti, così segui ciò che è arrivato dopo. Attivata, sono letti all'arrivo, senza separatore.
 
+- Con Neonize, "Aggiungi contatto" nei dati della conversazione ora salva davvero il contatto nella rubrica di WhatsApp e sul telefono. Prima il contatto veniva scritto con l'identificatore interno (LID) al posto del numero, e l'iPhone lo scartava pochi secondi dopo, anche se WinZapp diceva che la sincronizzazione era stata richiesta.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
