@@ -640,6 +640,8 @@ WHAT'S NEW
 
 - Settings, Messages: new option "Stop new messages in the open chat from joining the unread separator; mark them as read on arrival", off by default. Off, messages that arrive while you read the open chat keep adding to the unread separator, so you can follow what came in later. On, they are read on arrival, with no separator.
 
+- With Neonize, "Add contact" in the conversation details now really saves the contact in the WhatsApp address book and on the phone. Before, the contact was written under the internal identifier (LID) instead of the phone number, and the iPhone dropped it seconds later, even though WinZapp said the synchronization had been requested.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

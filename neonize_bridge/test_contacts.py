@@ -413,3 +413,19 @@ def test_send_does_not_retry_groups():
     with pytest.raises(RuntimeError):
         contacts.send_with_known_address(
             _Sender("no LID found"), _to("1203", "g.us"), "hi", _build)
+
+
+def test_registered_phone_jid_is_the_number_when_the_query_answers_with_the_lid():
+    found = {"jid": "123456789012@lid", "business": False}
+    assert contacts.registered_phone_jid(found, "5511999990000@s.whatsapp.net", "5511999990000") \
+        == "5511999990000@s.whatsapp.net"
+    # the mapping is unknown: the typed number, never the LID's digits
+    assert contacts.registered_phone_jid(found, "", "5511999990000") == \
+        "5511999990000@s.whatsapp.net"
+    assert contacts.registered_phone_jid(found, "999@lid", "5511999990000") == \
+        "5511999990000@s.whatsapp.net"
+
+
+def test_registered_phone_jid_keeps_a_number_answer():
+    found = {"jid": "5511999990000@s.whatsapp.net", "business": False}
+    assert contacts.registered_phone_jid(found, "", "5511999900000") == found["jid"]
