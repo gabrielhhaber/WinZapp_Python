@@ -615,8 +615,6 @@ def finish_bundle(source=None):
     plist.pop("WinZappReleaseTag", None)
     if source:
         plist["WinZappReleaseTag"], plist["WinZappSourceCommit"] = source
-        if os.environ.get("WINZAPP_LOCAL_BASE_TAG", "").strip():
-            plist["WinZappLocalBuild"] = True
         # What Sparkle compares, ordered exactly like the tags
         # (provenance.bundle_version).
         plist["CFBundleVersion"] = load_provenance().bundle_version(source[0])
