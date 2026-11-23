@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mostra o que mudou no WinZapp desde a alpha que o guia cobre.
 
-Uso: python novidades_desde_a_ultima.py <pasta-do-repositorio-winzapp>
+Uso: python news_since_last.py <pasta-do-repositorio-winzapp>
 
 Saída: (1) alpha mais recente, (2) commits/PRs novos, (3) diff do changelog
 pt-BR (a fonte principal de funcionalidades), (4) atalhos novos/removidos/
@@ -11,7 +11,7 @@ import json, re, subprocess, sys
 from pathlib import Path
 
 repo = Path(sys.argv[1])
-cob = json.loads((Path(__file__).parent / 'cobertura.json').read_text(encoding='utf-8'))
+cob = json.loads((Path(__file__).parent / 'coverage.json').read_text(encoding='utf-8'))
 
 def git(*args):
     return subprocess.run(['git', '-C', str(repo), *args], capture_output=True, text=True, check=True).stdout
@@ -41,4 +41,4 @@ for k in sorted(depois.keys() - antes.keys()): print('NOVO     ', k, depois[k])
 for k in sorted(antes.keys() - depois.keys()): print('REMOVIDO ', k, antes[k])
 for k in sorted(antes.keys() & depois.keys()):
     if antes[k] != depois[k]: print('ALTERADO ', k, antes[k], '->', depois[k])
-print('\nDepois de atualizar as seções: edite cobertura.json, acrescente a linha em secoes/99-registro.html e rode gerar_guia.py.')
+print('\nDepois de atualizar as seções: edite coverage.json, acrescente a linha em sections/99-changelog.html e rode generate_guide.py.')

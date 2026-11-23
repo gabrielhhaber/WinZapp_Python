@@ -104,14 +104,14 @@ uv run translations-check               # release-ready catalog validation
   session (rule 7).
 - **A changelog item is owed to the usage guide too.**
   `tests/test_user_guide_coverage.py` fails while an item of the unreleased
-  version in `client/changelog_pt-BR.txt` is not in `docs/user-guide/cobertura.json`.
-  Describe the feature in `docs/user-guide/secoes/<every locale>/` (a bug fix
+  version in `client/changelog_pt-BR.txt` is not in `docs/user-guide/coverage.json`.
+  Describe the feature in `docs/user-guide/sections/<every locale>/` (a bug fix
   the guide already describes needs no text), add an "unreleased" row to each
-  `99-registro.html`, then `python docs/user-guide/verificar_guia.py . --registrar`
-  and `python docs/user-guide/gerar_guia.py .` (it writes the git-ignored
+  `99-changelog.html`, then `python docs/user-guide/verify_guide.py . --registrar`
+  and `python docs/user-guide/generate_guide.py .` (it writes the git-ignored
   `client/data/help_guide/`: `git add -f`). Shortcut tables come from the
   catalog; a new catalog scope needs a title in `docs/user-guide/i18n/<locale>.json`.
-  Process: `docs/user-guide/PROCESSO.md`.
+  Process: `docs/user-guide/PROCESS.md`.
 - A dependency change goes into `pyproject.toml` and `requirements.txt`, then
   `uv lock` (`tests/test_requirements_in_sync.py`).
 - `client/api/` and `client/node/` are git-ignored and must exist before

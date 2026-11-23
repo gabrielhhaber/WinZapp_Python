@@ -372,5 +372,5 @@ instructions in their owning documents:
   adding strings, placeholders, mnemonics and required checks.
 - [The gettext workflow](gettext-migration.md) covers catalog synchronization,
   fuzzy review, compilation, metadata and the supported catalog format.
-- [The guide maintenance process](../user-guide/PROCESSO.md) covers regenerating
+- [The guide maintenance process](../user-guide/PROCESS.md) covers regenerating
   dependent guides, including shortcut tables, and adding generated outputs.

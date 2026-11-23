@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys,re,glob
 AQUI=Path(__file__).resolve().parent.parent; sys.path.insert(0,str(AQUI))
-from gerar_atalhos import carregar_po
+from generate_shortcuts import carregar_po
 from pathlib import Path
 loc=sys.argv[1]
 po=carregar_po(AQUI.parent.parent/'translations'/loc/'LC_MESSAGES/winzapp.po')
@@ -14,7 +14,7 @@ rep={
  '("..., duration: 0:12, transcription: ...")': '("..., '+po['duration']+': 0:12, '+po['transcription_row_label']+': ...")',
 }
 n=0
-for p in glob.glob(str(AQUI/'secoes'/loc/'*.html')):
+for p in glob.glob(str(AQUI/'sections'/loc/'*.html')):
     t=open(p,encoding='utf-8').read();o=t
     for a,b in rep.items(): t=t.replace(a,b)
     if t!=o: open(p,'w',encoding='utf-8').write(t);n+=1

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Monta client/data/help_guide/<idioma>.html a partir de template.html, i18n/ e secoes/<idioma>/*.html.
+"""Monta client/data/help_guide/<idioma>.html a partir de template.html, i18n/ e sections/<idioma>/*.html.
 
-Uso: python gerar_guia.py <pasta-do-repositorio-winzapp> [idioma ...]
+Uso: python generate_guide.py <pasta-do-repositorio-winzapp> [idioma ...]
 Sem idiomas, gera todos. Idiomas: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it.
 
 1. Regenera as tabelas de atalhos do catálogo do repositório, com o PO do idioma.
 2. Numera e junta as seções (ordem dos nomes de arquivo).
-3. Escreve o HTML final com a alpha coberta (cobertura.json).
+3. Escreve o HTML final com a alpha coberta (coverage.json).
 """
 import json, re, subprocess, sys
 from pathlib import Path
@@ -16,10 +16,10 @@ IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro', 'ar', 'it']
 
 def gerar(repo, loc, pasta_saida=None):
     t = json.loads((AQUI / 'i18n' / f'{loc}.json').read_text(encoding='utf-8'))
-    cob = json.loads((AQUI / 'cobertura.json').read_text(encoding='utf-8'))
-    pasta = AQUI / 'secoes' / loc
-    gerado = pasta / '.atalhos-gerados.html'
-    subprocess.run([sys.executable, str(AQUI / 'gerar_atalhos.py'), repo, loc, str(gerado)], check=True)
+    cob = json.loads((AQUI / 'coverage.json').read_text(encoding='utf-8'))
+    pasta = AQUI / 'sections' / loc
+    gerado = pasta / '.generated-shortcuts.html'
+    subprocess.run([sys.executable, str(AQUI / 'generate_shortcuts.py'), repo, loc, str(gerado)], check=True)
     nav, toc, secoes = [], [], []
     for n, arq in enumerate(sorted(pasta.glob('[0-9]*.html')), 1):
         texto = arq.read_text(encoding='utf-8')
@@ -27,7 +27,7 @@ def gerar(repo, loc, pasta_saida=None):
         if not m:
             sys.exit(f'{loc}/{arq.name}: falta a linha <!--nav: ...-->')
         titulo, corpo = m.group(1).strip(), texto[m.end():]
-        corpo = corpo.replace('<!--ATALHOS_GERADOS-->', gerado.read_text(encoding='utf-8'))
+        corpo = corpo.replace('<!--GENERATED_SHORTCUTS-->', gerado.read_text(encoding='utf-8'))
         sid = re.sub(r'^\d+-', '', arq.stem)
         emoji, sem_emoji = titulo.split(' ', 1)
         nav.append(f'    <a href="#{sid}" class="nav-link">{n}. {sem_emoji}</a>')
@@ -40,7 +40,7 @@ def gerar(repo, loc, pasta_saida=None):
               'SEARCH': t['search'], 'SEARCH_LABEL': t['search_label'], 'INTRO': t['intro'],
               'COVERAGE': t['coverage'].replace('{ALPHA}', cob['alpha']).replace('{DATA}', cob['data']),
               'TOC_LABEL': t['toc_label'], 'TOC_TITLE': t['toc_title'],
-              'NAV': '\n'.join(nav), 'TOC': '\n'.join(toc), 'SECOES': '\n'.join(secoes)}
+              'NAV': '\n'.join(nav), 'TOC': '\n'.join(toc), 'SECTIONS': '\n'.join(secoes)}
     html = (AQUI / 'template.html').read_text(encoding='utf-8')
     for k, v in campos.items():
         html = html.replace('{{' + k + '}}', v)
@@ -57,10 +57,10 @@ def main():
     repo = sys.argv[1]
     alvo = sys.argv[2:] or IDIOMAS
     for loc in alvo:
-        if (AQUI / 'secoes' / loc).is_dir():
+        if (AQUI / 'sections' / loc).is_dir():
             gerar(repo, loc)
         else:
-            print(f'{loc}: sem pasta secoes/{loc}, ignorado')
+            print(f'{loc}: sem pasta sections/{loc}, ignorado')
 
 if __name__ == '__main__':
     main()
