@@ -414,6 +414,10 @@ class ArchivedConversationsPanel(ChatListSelectionMixin, wx.Panel):
         except IndexError:
             return
         mw = self.main_window
+        # An archived community opens in the Communities panel too, as from
+        # the chat list (Settings > Interface > Chats decides).
+        if mw.conversations_panel._open_community_in_panel(chat):
+            return
         # Switch to conversations panel and open the chat there
         mw.archived_conversations_panel.Hide()
         mw.conversations_panel.Show()

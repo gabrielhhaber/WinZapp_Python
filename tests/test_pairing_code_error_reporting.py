@@ -607,3 +607,24 @@ class TestARefusalEndsTheCodeWait:
         ws._phone_code_value = "ABCD1234"
         ws.on_wpp_phone_code_error(dict(self.RATE_LIMIT))
         assert not ws._phone_code_event.is_set()
+
+
+def test_the_pairing_window_lists_its_controls_in_reading_order(wx_app):
+    # Without a sizer they were all drawn at the origin, on top of each other.
+    import wx
+    from tests.conftest import hidden_frame
+    from ui.dialogs.connect import layout_pairing_controls
+    frame = hidden_frame()
+    try:
+        panel = wx.Panel(frame)
+        instructions = wx.StaticText(panel, label="Type the pairing code below")
+        label = wx.StaticText(panel, label="Code")
+        field = wx.TextCtrl(panel, value="ABCD-EFGH")
+        cancel = wx.Button(panel, label="Cancel")
+        sizer = layout_pairing_controls(panel, instructions, label, field, cancel)
+        assert [item.GetWindow() for item in sizer.GetChildren()] == [
+            instructions, label, field, cancel]
+        tops = [control.GetPosition().y for control in (instructions, label, field, cancel)]
+        assert tops == sorted(tops) and len(set(tops)) == 4
+    finally:
+        frame.Destroy()

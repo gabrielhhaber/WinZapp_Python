@@ -110,3 +110,37 @@ def test_a_reading_that_cannot_start_drops_the_pending_community():
     panel._pending_select = CLUB.jid
     panel._reload()
     assert panel._pending_select == ""
+
+
+def _archived(community):
+    conversations = SimpleNamespace(_open_community_in_panel=Mock(return_value=community),
+                                    navigate_to_conversation=Mock(), Show=Mock(),
+                                    conversations_label=Mock(), conversations_list=Mock())
+    mw = SimpleNamespace(conversations_panel=conversations, archived_conversations_panel=Mock(),
+                         content_panel=Mock())
+    return SimpleNamespace(main_window=mw, chats_list=[{"id": "1@g.us"}])
+
+
+def test_an_archived_community_goes_to_the_panel_too():
+    from ui.conversation_panel.archived_panel import ArchivedConversationsPanel
+    stub = _archived(community=True)
+    ArchivedConversationsPanel.on_conversation_selected(stub, SimpleNamespace(GetIndex=lambda: 0))
+    stub.main_window.archived_conversations_panel.Hide.assert_not_called()
+    stub.main_window.conversations_panel.navigate_to_conversation.assert_not_called()
+
+
+def test_an_archived_chat_still_opens_as_a_chat():
+    from ui.conversation_panel.archived_panel import ArchivedConversationsPanel
+    stub = _archived(community=False)
+    ArchivedConversationsPanel.on_conversation_selected(stub, SimpleNamespace(GetIndex=lambda: 0))
+    stub.main_window.conversations_panel.navigate_to_conversation.assert_called_once()
+
+
+def test_a_community_already_listed_moves_the_focus_once():
+    panel = _Panel()
+    panel._renew_connection = lambda: False
+    panel._reload = Mock()
+    CommunitiesPanel.on_show(panel, select=SCHOOL.jid)
+    panel._groups.SetFocus.assert_called_once()
+    panel._list.SetFocus.assert_not_called()  # no stop on the list first
+    panel._reload.assert_called_once_with(quiet=True)

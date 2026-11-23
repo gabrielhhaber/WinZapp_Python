@@ -152,10 +152,12 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
         if self._renew_connection():
             self._loaded, self._refreshed = False, set()
         self._pending_select = select or ""
-        self._list.SetFocus()
+        # Focus once: a community already in the list takes it to its groups
+        # straight away (two moves would be announced twice).
         if self._pending_select and self._apply_pending_select():
             self._reload(quiet=True)
             return
+        self._list.SetFocus()
         self._reload(quiet=self._loaded or bool(self._pending_select))
 
     def _apply_pending_select(self):
@@ -169,8 +171,7 @@ class CommunitiesPanel(TranslatedLabels, CommunityAdminActions, BackgroundWork, 
         self._pending_select = ""
         self._list.SetSelection(index)
         self._show_selected("")
-        if self._groups.GetCount():
-            self._groups.SetFocus()
+        (self._groups if self._groups.GetCount() else self._list).SetFocus()
         return True
 
     def refresh_labels(self):
