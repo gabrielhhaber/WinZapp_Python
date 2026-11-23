@@ -1108,7 +1108,8 @@ DEFAULT_SETTINGS = {
         # where the neural model runs: cpu, cuda12, cuda13, coreml (core/cuda_components)
         "noise_reduction_device": "cpu",
         "voice_recording_mode": "auto",
-        "voice_recording_bitrate": 64,
+        "voice_recording_bitrate": 128,
+        "voice_recording_bitrate_migrated_128": True,
         "voice_recording_bitrate_stereo": 128,
         "system_audio_recording_volume": 100,
         "system_audio_recording_nvda_volume": 100,

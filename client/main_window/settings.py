@@ -27,7 +27,7 @@ from core.sound_system import (
     sound_event_enabled,
     sound_event_override_path,
 )
-from core.voice_stereo import migrate_stereo_voice_bitrate
+from core.voice_stereo import migrate_mono_voice_bitrate, migrate_stereo_voice_bitrate
 from core.utils import (
     DEFAULT_SETTINGS,
     backfill_missing_defaults,
@@ -1036,6 +1036,9 @@ class SettingsMixin:
         # default 128. Must run ahead of the backfill -- see
         # migrate_stereo_voice_bitrate().
         if migrate_stereo_voice_bitrate(self.settings):
+            changed = True
+        # Mono's default went 64 -> 128; an install still on 64 moves once.
+        if migrate_mono_voice_bitrate(self.settings):
             changed = True
         if changed:
             self.save_settings()

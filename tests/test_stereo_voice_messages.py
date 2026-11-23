@@ -82,9 +82,9 @@ class TestWhatGoesOut:
         ({}, 64), (None, 64),
         ({"general": {"voice_recording_bitrate": 128}}, 128),
         ({"general": {"voice_recording_bitrate": 256}}, 256),
-        ({"general": {"voice_recording_bitrate": 100}}, 64),
-        ({"general": {"voice_recording_bitrate": "128"}}, 64),
-        ({"general": {"voice_recording_bitrate": True}}, 64),
+        ({"general": {"voice_recording_bitrate": 100}}, 128),
+        ({"general": {"voice_recording_bitrate": "128"}}, 128),
+        ({"general": {"voice_recording_bitrate": True}}, 128),
         ({"general": "x"}, 64)])
     def test_the_bitrate_is_the_chosen_one_else_64(self, settings, kbps):
         from core.voice_stereo import voice_bitrate_kbps
@@ -386,3 +386,24 @@ def test_the_pending_message_carries_the_custom_filename_to_the_sender():
     assert pm.custom_filename == "Audio.m4a"
     assert PendingMessage("L2", "j", media_path="x.bin").custom_filename == ""
     assert "custom_filename=msg.custom_filename" in inspect.getsource(message_queue)
+
+
+class TestMonoDefaultIs128:
+    def test_default(self):
+        from core.voice_stereo import voice_bitrate_kbps
+        assert voice_bitrate_kbps({}) == 128
+
+    def test_an_install_on_the_old_64_default_moves_once(self):
+        from core.voice_stereo import migrate_mono_voice_bitrate
+        settings = {"general": {"voice_recording_bitrate": 64}}
+        assert migrate_mono_voice_bitrate(settings) is True
+        assert settings["general"]["voice_recording_bitrate"] == 128
+        settings["general"]["voice_recording_bitrate"] = 64  # chosen afterwards
+        assert migrate_mono_voice_bitrate(settings) is False
+        assert settings["general"]["voice_recording_bitrate"] == 64
+
+    def test_another_chosen_rate_is_kept(self):
+        from core.voice_stereo import migrate_mono_voice_bitrate
+        settings = {"general": {"voice_recording_bitrate": 192}}
+        assert migrate_mono_voice_bitrate(settings) is True
+        assert settings["general"]["voice_recording_bitrate"] == 192

@@ -20,7 +20,9 @@ message. So a stereo recording is AAC and a mono one OGG/Opus, both through
 #: made recordings of over a minute slow to send. A stereo (AAC) recording has
 #: its own setting, default 128: at 64 it sounded poor.
 VOICE_BITRATES_KBPS = (32, 48, 64, 96, 128, 192, 256)
-DEFAULT_VOICE_BITRATE_KBPS = 64
+DEFAULT_VOICE_BITRATE_KBPS = 128
+# The mono default until 2026-11-23; an install still on it is moved to 128.
+LEGACY_DEFAULT_VOICE_BITRATE_KBPS = 64
 DEFAULT_STEREO_VOICE_BITRATE_KBPS = 128
 #: Sent in place of Opus's mimetype for a stereo voice message.
 STEREO_MIMETYPE = "audio/mp4"
@@ -111,9 +113,28 @@ def migrate_stereo_voice_bitrate(settings) -> bool:
         return False  # no old setting: the backfill supplies the 128 default
     old = general.get("voice_recording_bitrate")
     chosen = old if (isinstance(old, int) and not isinstance(old, bool)
-                     and old in VOICE_BITRATES_KBPS and old != DEFAULT_VOICE_BITRATE_KBPS) \
+                     and old in VOICE_BITRATES_KBPS and old != LEGACY_DEFAULT_VOICE_BITRATE_KBPS) \
         else DEFAULT_STEREO_VOICE_BITRATE_KBPS
     general["voice_recording_bitrate_stereo"] = chosen
+    return True
+
+
+def migrate_mono_voice_bitrate(settings) -> bool:
+    """Move an install still on the old 64 kbps mono default to 128.
+
+    64 kbps made mono voice messages sound poor. 64 saved by the old default
+    cannot be told apart from a deliberate 64, so — as the stereo migration
+    did — an install on 64 moves to 128 once; any other rate is kept, and a
+    64 chosen after this ran stays. Returns True if *settings* changed.
+    """
+    if not isinstance(settings, dict):
+        return False
+    general = settings.get("general")
+    if not isinstance(general, dict) or general.get("voice_recording_bitrate_migrated_128"):
+        return False
+    if general.get("voice_recording_bitrate") == LEGACY_DEFAULT_VOICE_BITRATE_KBPS:
+        general["voice_recording_bitrate"] = DEFAULT_VOICE_BITRATE_KBPS
+    general["voice_recording_bitrate_migrated_128"] = True
     return True
 
 
