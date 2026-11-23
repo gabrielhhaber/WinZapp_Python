@@ -117,6 +117,18 @@ def release_source():
     def git(*args):
         return subprocess.run(["git", "-C", ROOT, *args], check=True, capture_output=True,
                               text=True).stdout.strip()
+    base = os.environ.get("WINZAPP_LOCAL_BASE_TAG", "").strip()
+    if base:
+        # The maintainer's own build on top of an official release: it runs
+        # unreleased commits and still updates to newer official releases.
+        if base == "auto":
+            base = git("describe", "--tags", "--abbrev=0", "--match", "v*")
+        try:
+            source = prov.resolve_local_build_source(git, prov.fetch_official, base)
+        except prov.ProvenanceError as exc:
+            sys.exit(f"Local build on {base}: {exc}")
+        print(f"   local build of {source[1][:12]} on top of {source[0]}: updates to newer releases")
+        return source
     try:
         source = prov.resolve_build_source(git, prov.fetch_official,
                                            os.environ.get("WINZAPP_RELEASE_TAG", ""))
@@ -603,6 +615,8 @@ def finish_bundle(source=None):
     plist.pop("WinZappReleaseTag", None)
     if source:
         plist["WinZappReleaseTag"], plist["WinZappSourceCommit"] = source
+        if os.environ.get("WINZAPP_LOCAL_BASE_TAG", "").strip():
+            plist["WinZappLocalBuild"] = True
         # What Sparkle compares, ordered exactly like the tags
         # (provenance.bundle_version).
         plist["CFBundleVersion"] = load_provenance().bundle_version(source[0])
@@ -791,7 +805,11 @@ def main():
         print("\nDone.")
         return
     # First, before minutes of work: a tag that does not hold stops here.
-    source = release_source() if a.zip or os.environ.get("WINZAPP_MAC_RELEASES_REPO") else None
+    local = bool(os.environ.get("WINZAPP_LOCAL_BASE_TAG", "").strip())
+    if local and a.zip:
+        sys.exit("WINZAPP_LOCAL_BASE_TAG is for the maintainer's own builds, never a release --zip")
+    source = (release_source()
+              if a.zip or local or os.environ.get("WINZAPP_MAC_RELEASES_REPO") else None)
     sparkle_plist(source)       # a bad Sparkle key or feed stops here too, not at the end
     if not a.no_deps:
         python_deps()
