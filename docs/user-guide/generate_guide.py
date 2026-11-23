@@ -40,7 +40,7 @@ def gerar(repo, loc, pasta_saida=None):
               'SEARCH': t['search'], 'SEARCH_LABEL': t['search_label'], 'INTRO': t['intro'],
               'COVERAGE': t['coverage'].replace('{ALPHA}', cob['alpha']).replace('{DATA}', cob['data']),
               'TOC_LABEL': t['toc_label'], 'TOC_TITLE': t['toc_title'],
-              'NAV': '\n'.join(nav), 'TOC': '\n'.join(toc), 'SECOES': '\n'.join(secoes)}
+              'NAV': '\n'.join(nav), 'TOC': '\n'.join(toc), 'SECTIONS': '\n'.join(secoes)}
     html = (AQUI / 'template.html').read_text(encoding='utf-8')
     for k, v in campos.items():
         html = html.replace('{{' + k + '}}', v)
