@@ -106,3 +106,39 @@ class TestSenderLabelContactName:
         msg = {"key": {"fromMe": False, "participant": JID, "remoteJid": "g@g.us"}}
         label = panel._sender_label(msg)
         assert "Unknown User" not in label
+
+
+class TestFreshestNameWiring:
+    LID = "9@lid"
+
+    def _panel(self):
+        mw = _FakeMainWindow(contacts={JID: {"name": "alex oliveira grupos",
+                                             "pushName": "alex oliveira grupos"}})
+        mw._lid_to_phone = {self.LID: JID}
+        mw._phone_to_lid = {JID: self.LID}
+        mw._presence_pushname_map = {self.LID: "alex oliveira"}
+        mw._pushname_stamps = {self.LID: 200}
+        return _PanelStub(mw)
+
+    def test_participant_name_takes_the_name_learned_last_over_a_stale_record(self):
+        panel = self._panel()
+        assert panel._get_participant_name(JID) == "alex oliveira"
+
+    def test_sender_row_and_quoted_sender_agree(self):
+        panel = self._panel()
+        msg = {"key": {"remoteJid": "1@g.us", "participant": self.LID, "fromMe": False}}
+        assert panel._sender_label(msg) == panel._get_participant_name(self.LID) == "alex oliveira"
+
+    def test_without_a_stamp_the_old_order_is_kept(self):
+        panel = self._panel()
+        panel.main_window._pushname_stamps = {}
+        assert panel._get_participant_name(JID) == "alex oliveira grupos"
+
+    def test_message_scan_fallback_uses_the_newest_message_name(self):
+        mw = _FakeMainWindow()
+        panel = _PanelStub(mw)
+        panel._sorted_messages = [
+            {"key": {"participant": "7@s.whatsapp.net"}, "pushName": "nome velho"},
+            {"key": {"participant": "7@s.whatsapp.net"}, "pushName": "nome novo"},
+        ]
+        assert panel._get_participant_name("7@s.whatsapp.net") == "nome novo"

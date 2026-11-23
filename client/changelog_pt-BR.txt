@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- O nome do contato na mensagem citada de uma resposta agora segue o nome mais recente do perfil dele, em vez de mostrar um nome antigo, mesmo quando as mensagens originais dele já estavam atualizadas. Vale para Neonize e para WPPConnect.
+
 - Copiar mensagens selecionadas (Ctrl+Alt+Shift+C, ou Ctrl+C com "Substituir atalhos por ações em massa ao selecionar conversas e mensagens" marcado) agora também copia documentos, áudios, imagens e vídeos: os arquivos vão para a área de transferência de uma vez e podem ser colados todos juntos, por exemplo no Explorador de Arquivos, com o nome original. Numa seleção que mistura texto e arquivos, o texto vai junto como um único bloco, para colar num campo de texto. O WinZapp diz "Mensagens copiadas" e, se algum arquivo não puder ser baixado, quantos ficaram de fora.
 
 - Reações: uma reação personalizada, escolhida em "Adicionar mais reações", agora entra na lista de reações rápidas já na primeira vez que é usada, no lugar da última reação padrão que você nunca usou. Além disso, há dez novos comandos em Configurações > Atalhos de teclado (Mensagens), "Reagir à mensagem selecionada com a reação desta posição", de 1 a 9 e 0 para a décima: cada um reage à mensagem em foco com a reação daquela posição em Configurações > Interface > Reações, que você escolhe e que não muda com o uso; apertar a reação já enviada a remove. Eles vêm sem tecla, porque Ctrl+Alt+1 a 9 já trocam de conta; você escolhe a tecla de cada um.

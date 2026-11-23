@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Nazwa kontaktu w cytowanej wiadomości odpowiedzi odpowiada teraz jego najnowszej nazwie profilu zamiast starej, nawet gdy jego oryginalne wiadomości były już zaktualizowane. Dotyczy Neonize i WPPConnect.
+
 - Kopiowanie zaznaczonych wiadomości (Ctrl+Alt+Shift+C albo Ctrl+C przy włączonej opcji „Zastąp skróty akcjami masowymi podczas zaznaczania czatów i wiadomości”) kopiuje teraz także dokumenty, nagrania audio, obrazy i filmy: pliki trafiają do schowka naraz i można je wkleić wszystkie razem, na przykład w Eksploratorze plików, pod ich oryginalnymi nazwami. W zaznaczeniu mieszającym tekst i pliki tekst trafia do schowka jako jeden blok do wklejenia w polu tekstowym. WinZapp mówi „Wiadomości skopiowane” i, jeśli jakiegoś pliku nie udało się pobrać, ile z nich pominięto.
 
 - Reakcje: reakcja własna wybrana przez „Dodaj więcej reakcji” trafia teraz na listę szybkich reakcji już przy pierwszym użyciu, na miejsce ostatniej domyślnej reakcji, której nigdy nie użyto. Doszło też dziesięć poleceń w Ustawienia > Skróty klawiszowe (Wiadomości), „Zareaguj na zaznaczoną wiadomość reakcją z tej pozycji”, od 1 do 9 i 0 dla dziesiątej: każde reaguje na wiadomość w fokusie reakcją z tej pozycji w Ustawienia > Interfejs > Reakcje, którą wybierasz sam i która nie zmienia się wraz z użyciem; wybranie reakcji już wysłanej usuwa ją. Polecenia nie mają domyślnego klawisza, bo Ctrl+Alt+1 do 9 przełączają już konta; klawisz każdego z nich wybierasz sam.
