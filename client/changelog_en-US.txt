@@ -1,3 +1,11 @@
+V2.1.2.0
+
+This is a maintenance release for the stable version. It only fixes linking a phone by code, so that the link is not lost and a new code is not requested after WhatsApp accepted the first one.
+
+FIXES
+
+- Linking by pairing code no longer loses the link. After the phone accepted the code, WhatsApp Web reloads; WinZapp used to read that moment as a failure, close the browser and ask for a new code, which wasted a real code against WhatsApp's limit. It now waits for the reloaded page, keeps the login and never asks for another code once one was accepted. After updating WinZapp, accept when it asks to update WPPConnect.
+
 V2.1.1.0
 
 This is a maintenance release for the stable version. It only fixes sending messages, which stopped working when WhatsApp Web changed internally.
