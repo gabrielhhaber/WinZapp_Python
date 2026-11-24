@@ -67,7 +67,7 @@ WHAT'S NEW
 
 - Neonize: mentre il telefono invia la cronologia dei messaggi, WinZapp lo dice e ti chiede di tenere WhatsApp aperto sullo schermo del telefono, avvisa quando il telefono si ferma (con la percentuale), quando riprende a inviare e quando finisce; mentre è fermo, WinZapp chiede il resto al telefono ogni 90 secondi.
 
-- Neonize: le conversazioni che WhatsApp per iPhone lascia fuori dal primo blocco di cronologia (ora ne invia solo 400) vengono ora richieste e importate anch'esse.
+- Neonize: le conversazioni che WhatsApp per iPhone lascia fuori dal primo blocco di cronologia (ora ne invia solo 400) vengono ora richieste e importate anch'esse. Quando il telefono non invia l'elenco di quelle lasciate fuori, WinZapp, terminata la cronologia dell'associazione, chiede al telefono le conversazioni mancanti e attende la risposta per qualche minuto prima di considerare completa la sincronizzazione.
 
 - Neonize: eliminare una lista la toglie anche dalle sue chat, che non puntano più a una lista che non esiste.
 

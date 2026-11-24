@@ -68,7 +68,7 @@ NOWOŚCI
 
 - Neonize: WinZapp ogłasza rozpoczęcie przesyłania historii wiadomości z telefonu i prosi o pozostawienie WhatsAppa otwartego na jego ekranie. Informuje też o zatrzymaniu przesyłania, podając osiągnięty procent postępu, oraz o wznowieniu i zakończeniu transferu. Podczas przerwy co 90 sekund ponawia prośbę o pozostałą część historii.
 
-- Neonize: WinZapp prosi teraz także o czaty pominięte przez WhatsAppa na iPhonie w pierwszej partii historii i je importuje. Ta pierwsza partia zawiera obecnie tylko 400 czatów.
+- Neonize: WinZapp prosi teraz także o czaty pominięte przez WhatsAppa na iPhonie w pierwszej partii historii i je importuje. Ta pierwsza partia zawiera obecnie tylko 400 czatów. Gdy telefon nie wysyła listy pominiętych czatów, WinZapp po zakończeniu historii parowania prosi telefon o brakujące czaty i czeka kilka minut na odpowiedź, zanim uzna synchronizację za zakończoną.
 
 - Neonize: usunięcie listy usuwa ją także z jej czatów, więc nie wskazują już na nieistniejącą listę.
 
