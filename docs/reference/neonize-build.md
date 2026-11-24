@@ -279,6 +279,23 @@ Go must be at least the `go` line of neonize's `goneonize/go.mod`, and gcc a
 afterwards so both are on the PATH. protoc, protoc-gen-go and mypy-protobuf
 are fetched by the build into `neonize_bridge/neonize_build/tools/`.
 
+### macOS
+
+The same build makes neonize's dylib (`neonize-darwin-arm64.dylib` on Apple
+Silicon, `neonize-darwin-amd64.dylib` on Intel), the name neonize loads it by.
+It needs the Xcode command line tools (`xcode-select --install`: Apple's
+clang is cgo's compiler), Go (`brew install go`) and libmagic
+(`brew install libmagic`, for python-magic). The library is built for the
+architecture of the Python that runs `build_neonize.py`, so an Intel Python
+under Rosetta gets the Intel one. `neonize_platform.py` holds these rules;
+protoc's macOS downloads are checked against `protoc_platforms` in the
+manifest (outside `toolchain`, so a build's identity is the same on every
+system). The bridge's requirements come from `requirements-macos.lock`
+(python-magic instead of python-magic-bin, the same versions as
+`requirements.lock`). Nobody on the team needs a Mac for it:
+`neonize-dll.yml`'s `build-macos` job builds and tests both architectures on
+GitHub's macOS runners, and keeps each build as an artifact.
+
 ## Building
 
 ```powershell
@@ -298,7 +315,7 @@ leave half a package. `prepare.py` does the same for a fresh checkout
 (downloading the published build instead when `release` is set).
 
 Output in `neonize_bridge/neonize_build/dist/`: `neonize/` (the package with
-`neonize-windows-amd64.dll`), the zip, `SHA256SUMS.txt` and
+`neonize-windows-amd64.dll`, or the dylib on macOS), the zip, `SHA256SUMS.txt` and
 `BUILD_INFO.json` (the exact inputs: neonize commit, whatsmeow, meowcaller,
 a hash of each tree's patches, the zip's SHA-256).
 

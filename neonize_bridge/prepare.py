@@ -10,10 +10,12 @@ yet: WinZapp builds neonize from the approved upstream release plus
 `neonize_upstream.json` names a `release` (published by the "Neonize DLL" CI
 workflow), this script downloads that package, checks its SHA-256 and what is
 inside it, and puts it in place of the PyPI neonize; without one, or with
---from-source, it runs build_neonize.py (Go and a 64-bit MinGW gcc needed).
+--from-source, it runs build_neonize.py (Go and a C compiler needed: a 64-bit
+MinGW gcc on Windows, the Xcode command line tools on macOS).
 
-Windows x64 only. Standard library only, so it runs before anything is
-installed. Run it again to repair the install; close WinZapp first (the
+Windows x64 and macOS (Apple Silicon and Intel). The published build is the
+Windows DLL, so macOS always builds from source. Standard library only, so it
+runs before anything is installed. Run it again to repair the install; close WinZapp first (the
 bridge keeps the DLL open).
 """
 
@@ -28,6 +30,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
+import neonize_platform
 import neonize_upstream
 
 #: Where the "Neonize DLL" workflow publishes the built package.
@@ -50,11 +53,24 @@ VENV = os.path.join(HERE, ".venv")
 #: the identity of the neonize installed in the virtualenv (neonize_upstream.py),
 #: so build.py can tell it is the build this checkout calls for
 MARKER = os.path.join(VENV, neonize_upstream.MARKER)
-PYTHON = os.path.join(VENV, "Scripts", "python.exe")
+#: None on a system the bridge is not built for (main() says so)
+try:
+    TARGET = neonize_platform.target()
+except ValueError:
+    TARGET = None
+PYTHON = neonize_platform.venv_python(VENV, TARGET) if TARGET else ""
 
 
 def run(*cmd):
     subprocess.run(cmd, check=True)
+
+
+def runtime_lock(target) -> str:
+    """The hashed lock of the bridge's requirements for this system: neonize
+    needs python-magic-bin on Windows and python-magic (Homebrew's libmagic)
+    elsewhere, and the wheels differ."""
+    name = "requirements.lock" if target.system == "windows" else "requirements-macos.lock"
+    return os.path.join(HERE, name)
 
 
 def site_packages() -> str:
@@ -127,9 +143,12 @@ def host_allowed(url: str) -> bool:
         host == suffix or host.endswith("." + suffix) for suffix in ALLOWED_HOST_SUFFIXES)
 
 
-def usable_release():
+def usable_release(target=None):
     """The `release` of neonize_upstream.json when it was built from this
-    checkout's pins and patches (its identity), else None: build from source."""
+    checkout's pins and patches (its identity) for this system, else None:
+    build from source. The published build is the Windows DLL."""
+    if (target or TARGET).system != "windows":
+        return None
     release = neonize_upstream.load(os.path.join(HERE, neonize_upstream.MANIFEST)).get("release")
     if release is None:
         return None
@@ -156,15 +175,14 @@ def download_build(release) -> bytes:
 
 
 def main():
-    if sys.platform != "win32":
-        sys.exit("The Neonize bridge build is Windows x64 only.")
+    if TARGET is None or TARGET.system not in ("windows", "darwin"):
+        sys.exit("The Neonize bridge is built for Windows x64 and macOS only.")
     if not os.path.isfile(PYTHON):
         print("Creating the virtualenv...")
         run(sys.executable, "-m", "venv", VENV)
     print("Installing requirements...")
     # The lock pins every package, direct or not, to the hashes that were reviewed.
-    run(PYTHON, "-m", "pip", "install", "--require-hashes", "-r",
-        os.path.join(HERE, "requirements.lock"))
+    run(PYTHON, "-m", "pip", "install", "--require-hashes", "-r", runtime_lock(TARGET))
     release = None if "--from-source" in sys.argv[1:] else usable_release()
     if release is None:
         print("Building neonize from source (build_neonize.py)...")
@@ -173,7 +191,7 @@ def main():
         data = download_build(release)
         target = site_packages()
         package = os.path.join(target, PACKAGE)
-        dll = os.path.join(package, "neonize-windows-amd64.dll")
+        dll = os.path.join(package, neonize_platform.library_name(TARGET))
         if os.path.isfile(dll):
             try:                    # a running bridge keeps the DLL open
                 with open(dll, "r+b"):

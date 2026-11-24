@@ -1,5 +1,6 @@
 """Builds the neonize package the Neonize bridge runs: official neonize at the
-approved release, plus WinZapp's patches, compiled into the Windows DLL.
+approved release, plus WinZapp's patches, compiled into the library neonize
+loads: the DLL on Windows, the dylib on macOS (neonize_platform.py).
 
     python neonize_bridge/build_neonize.py all --install   # what most people want
     python neonize_bridge/build_neonize.py prepare         # workspace from the patches
@@ -17,8 +18,11 @@ toolchain and `dist/` the output. Change the code there, commit, run
 `export`, and commit the patches in this repository. The whole flow, and how
 to move to a new upstream release: docs/reference/neonize-build.md.
 
-Needs git, Go (the version neonize's go.mod asks) and a 64-bit MinGW gcc on
-the PATH (`winget install GoLang.Go BrechtSanders.WinLibs.POSIX.UCRT`).
+Needs git, Go (the version neonize's go.mod asks) and a C compiler for cgo:
+on Windows a 64-bit MinGW gcc on the PATH (`winget install GoLang.Go
+BrechtSanders.WinLibs.POSIX.UCRT`), on macOS the Xcode command line tools
+(`xcode-select --install`) and Go (`brew install go`). The library is built
+for the system and architecture of the Python that runs this script.
 """
 import argparse
 import datetime
@@ -34,6 +38,7 @@ import sys
 import urllib.request
 import zipfile
 
+import neonize_platform as platforms
 import neonize_upstream as upstream
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -46,6 +51,7 @@ BRANCH, BASE = "winzapp", "upstream"
 # committer of the workspace commits (the author comes from each patch)
 GIT_ID = ["-c", "user.name=WinZapp build", "-c", "user.email=build@winzapp.invalid"]
 GIT_CONFIG = {"core.autocrlf": "false", "core.longpaths": "true", "advice.detachedHead": "false"}
+TARGET = platforms.target()
 
 
 def say(text):
@@ -379,18 +385,22 @@ def ensure_tools(info):
     versions upstream generates with. Returns the PATH entries they need."""
     tool = info["toolchain"]
     protoc_dir = os.path.join(TOOLS, "protoc")
-    if not _stamp_ok(protoc_dir, tool["protoc"]["sha256"]):
+    protoc_asset, protoc_sha256 = upstream.protoc_download(info, platforms.protoc_asset_key(TARGET))
+    if not _stamp_ok(protoc_dir, protoc_sha256):
         url = (f"https://github.com/protocolbuffers/protobuf/releases/download/"
-               f"v{tool['protoc']['version']}/{tool['protoc']['asset']}")
+               f"v{tool['protoc']['version']}/{protoc_asset}")
         say(f"downloading {url}")
         with urllib.request.urlopen(url, timeout=120) as response:
             data = response.read(64 * 1024 * 1024)
-        if upstream.sha256_hex(data) != tool["protoc"]["sha256"]:
+        if upstream.sha256_hex(data) != protoc_sha256:
             sys.exit("protoc download does not match the manifest's SHA-256.")
         shutil.rmtree(protoc_dir, ignore_errors=True)
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             archive.extractall(protoc_dir)
-        _stamp(protoc_dir, tool["protoc"]["sha256"])
+        # a zip keeps no execute bit for extractall: protoc has to run
+        protoc = os.path.join(protoc_dir, "bin", platforms.executable("protoc", TARGET))
+        os.chmod(protoc, os.stat(protoc).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        _stamp(protoc_dir, protoc_sha256)
     gobin = os.path.join(TOOLS, "gobin")
     if not _stamp_ok(gobin, tool["protoc_gen_go"]):
         os.makedirs(gobin, exist_ok=True)
@@ -401,10 +411,10 @@ def ensure_tools(info):
     if not _stamp_ok(mypy, tool["mypy_protobuf"]):
         shutil.rmtree(mypy, ignore_errors=True)
         run([sys.executable, "-m", "venv", mypy])
-        run([os.path.join(mypy, "Scripts", "python.exe"), "-m", "pip", "install", "-q",
+        run([platforms.venv_python(mypy, TARGET), "-m", "pip", "install", "-q",
              f"mypy-protobuf=={tool['mypy_protobuf']}"])
         _stamp(mypy, tool["mypy_protobuf"])
-    return [os.path.join(protoc_dir, "bin"), gobin, os.path.join(mypy, "Scripts")]
+    return [os.path.join(protoc_dir, "bin"), gobin, platforms.venv_scripts(mypy, TARGET)]
 
 
 def generate(info):
@@ -412,7 +422,7 @@ def generate(info):
     # resolves the program itself on this process's PATH: protoc goes by full path
     tool_dirs = ensure_tools(info)
     env = {**os.environ, "PATH": os.pathsep.join(tool_dirs + [os.environ.get("PATH", "")])}
-    protoc = os.path.join(tool_dirs[0], "protoc.exe")
+    protoc = os.path.join(tool_dirs[0], platforms.executable("protoc", TARGET))
     defproto = os.path.join(tree_path("neonize"), "goneonize", "defproto")
     run([protoc, "--go_out=.", "--go_opt=paths=source_relative", "Neonize.proto"], cwd=defproto, env=env)
     run([protoc, "--python_out=../../neonize/proto", "--mypy_out=../../neonize/proto",
@@ -422,14 +432,16 @@ def generate(info):
 
 # ------------------------------------------------------------------ build
 def check_compilers():
+    windows = TARGET.system == "windows"
     if not shutil.which("go"):
-        sys.exit("Go is not on the PATH (winget install GoLang.Go).")
-    compiler = os.environ.get("CC", "gcc")
+        sys.exit("Go is not on the PATH (" + ("winget install GoLang.Go" if windows else "brew install go") + ").")
+    compiler = os.environ.get("CC", platforms.default_compiler(TARGET))
     if not shutil.which(compiler):
-        sys.exit(f"{compiler} is not on the PATH (winget install BrechtSanders.WinLibs.POSIX.UCRT).")
-    machine = run([compiler, "-dumpmachine"], capture=True)
-    if not machine.startswith("x86_64"):
-        sys.exit(f"{compiler} builds for {machine}; the DLL needs a 64-bit (x86_64) MinGW gcc.")
+        hint = "winget install BrechtSanders.WinLibs.POSIX.UCRT" if windows else "xcode-select --install"
+        sys.exit(f"{compiler} is not on the PATH ({hint}).")
+    problem = platforms.compiler_problem(TARGET, run([compiler, "-dumpmachine"], capture=True))
+    if problem:
+        sys.exit(f"{compiler}: {problem}")
 
 
 def file_sha256(path):
@@ -455,10 +467,14 @@ def build(info):
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.copytree(os.path.join(tree, "neonize"), package,
                     ignore=shutil.ignore_patterns("__pycache__", "*.dll", "*.so", "*.dylib"))
-    env = {**os.environ, "CGO_ENABLED": "1", "GOFLAGS": "-mod=readonly", "GOTOOLCHAIN": "local"}
-    say("compiling the DLL (go build -buildmode=c-shared)")
+    # GOOS/GOARCH follow the Python that will load the library (an Intel
+    # Python under Rosetta on an Apple Silicon Mac needs the amd64 one)
+    env = {**os.environ, "CGO_ENABLED": "1", "GOFLAGS": "-mod=readonly", "GOTOOLCHAIN": "local",
+           "GOOS": TARGET.system, "GOARCH": TARGET.arch}
+    library = platforms.library_name(TARGET)
+    say(f"compiling {library} (go build -buildmode=c-shared)")
     run(["go", "build", "-buildmode=c-shared", "-trimpath", "-ldflags=-s",
-         "-o", os.path.join(package, upstream.DLL_NAME), "."],
+         "-o", os.path.join(package, library), "."],
         cwd=os.path.join(tree, "goneonize"), env=env)
     for header in glob.glob(os.path.join(package, "*.h")):
         os.remove(header)
@@ -470,7 +486,7 @@ def build(info):
             sums.append(f"{file_sha256(full)} *{os.path.relpath(full, DIST).replace(os.sep, '/')}")
     with open(os.path.join(DIST, "SHA256SUMS.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(sorted(sums, key=lambda line: line.split("*", 1)[1])) + "\n")
-    asset = os.path.join(DIST, upstream.asset_name(version))
+    asset = os.path.join(DIST, platforms.asset_name(version, TARGET))
     with zipfile.ZipFile(asset, "w", zipfile.ZIP_DEFLATED) as archive:
         for root, _dirs, files in os.walk(package):
             for name in sorted(files):
@@ -497,16 +513,17 @@ def build(info):
 
 # ------------------------------------------------------------------ install
 def install(venv):
-    python = os.path.join(venv, "Scripts", "python.exe")
+    python = platforms.venv_python(venv, TARGET)
     if not os.path.isfile(python):
         sys.exit(f"No virtualenv at {venv} (run prepare.py first).")
     source = os.path.join(DIST, "neonize")
-    if not os.path.isfile(os.path.join(source, upstream.DLL_NAME)):
+    library = platforms.library_name(TARGET)
+    if not os.path.isfile(os.path.join(source, library)):
         sys.exit("Nothing built yet: run `build` first.")
     site = run([python, "-c", "import sysconfig;print(sysconfig.get_paths()['purelib'])"], capture=True)
     target = os.path.join(site, "neonize")
-    dll = os.path.join(target, upstream.DLL_NAME)
-    if os.path.isfile(dll):
+    dll = os.path.join(target, library)
+    if TARGET.system == "windows" and os.path.isfile(dll):
         # A loaded DLL can be renamed on Windows but not opened for writing:
         # check before deleting anything, or a running bridge leaves half a package.
         try:

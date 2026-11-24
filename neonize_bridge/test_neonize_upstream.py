@@ -6,6 +6,7 @@ import re
 
 import pytest
 
+import neonize_platform
 import neonize_upstream as nu
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +39,8 @@ def test_the_committed_manifest_is_valid_and_pins_whole_commits():
     (lambda m: m["whatsmeow"].update(version="latest"), "Go module version"),
     (lambda m: m["meowcaller"].update(commit="main"), "full SHA-1"),
     (lambda m: m["toolchain"]["protoc"].update(sha256="x"), "SHA-256"),
+    (lambda m: m.update(protoc_platforms=["x"]), "table"),
+    (lambda m: m["protoc_platforms"].update({"osx-x86_64": "x"}), "SHA-256"),
     (lambda m: m.update(release={"tag": "../x", "asset": "a.zip", "sha256": "0" * 64}), "plain"),
 ])
 def test_a_malformed_manifest_is_refused(change, message):
@@ -92,7 +95,8 @@ def test_go_mod_reading():
 
 
 def test_release_url_and_asset_name():
-    release = {"tag": "neonize-0.6.0-winzapp.1", "asset": nu.asset_name("0.6.0"), "sha256": "0" * 64}
+    asset = neonize_platform.asset_name("0.6.0", neonize_platform.Target("windows", "amd64"))
+    release = {"tag": "neonize-0.6.0-winzapp.1", "asset": asset, "sha256": "0" * 64}
     assert nu.release_url("gabrielhhaber/WinZapp_Python", release) == (
         "https://github.com/gabrielhhaber/WinZapp_Python/releases/download/"
         "neonize-0.6.0-winzapp.1/neonize-0.6.0-winzapp-windows-amd64.zip")
@@ -149,3 +153,25 @@ def test_the_identity_changes_with_any_patch_byte_or_pin():
     edited[tree][name] = patches[tree][name] + b" "
     assert nu.build_identity(nu.pins(info), edited) != base
     assert nu.build_identity(nu.pins(info, OTHER), patches) != base
+
+
+def test_protoc_has_a_checked_download_for_every_system_the_library_is_built_on():
+    info = manifest()
+    assert nu.protoc_download(info, "win64") == (info["toolchain"]["protoc"]["asset"],
+                                                 info["toolchain"]["protoc"]["sha256"])
+    version = info["toolchain"]["protoc"]["version"]
+    for key in ("osx-aarch_64", "osx-x86_64", "linux-x86_64"):
+        asset, digest = nu.protoc_download(info, key)
+        assert asset == f"protoc-{version}-{key}.zip"
+        assert re.fullmatch(r"[0-9a-f]{64}", digest)
+    with pytest.raises(ValueError, match="no protoc download"):
+        nu.protoc_download(info, "solaris-sparc")
+
+
+def test_the_other_systems_protoc_does_not_change_a_builds_identity():
+    """Only `toolchain` is part of the identity: the macOS protoc generates the
+    same code, so adding it leaves every Windows virtualenv current."""
+    info = manifest()
+    other = copy.deepcopy(info)
+    other["protoc_platforms"] = {}
+    assert nu.pins(info) == nu.pins(other)

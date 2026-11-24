@@ -129,10 +129,28 @@ def _pins(path):
     return dict(re.findall(r"^([A-Za-z0-9_.\-]+)==([^\s\\]+)", path.read_text(encoding="utf-8"), re.M))
 
 
-def test_the_runtime_lock_covers_the_requirements_with_hashes():
-    lock = ROOT / "neonize_bridge" / "requirements.lock"
+def _requirements_for(windows):
+    """requirements.txt's pins whose environment marker holds on Windows (or not)."""
+    pins = {}
+    for line in (ROOT / "neonize_bridge" / "requirements.txt").read_text(encoding="utf-8").splitlines():
+        found = re.match(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)\s*(?:;\s*(.*))?$", line)
+        if not found:
+            continue
+        marker = (found.group(3) or "").replace(" ", "")
+        if marker and ("=='win32'" in marker) != windows:
+            continue
+        pins[found.group(1)] = found.group(2)
+    return pins
+
+
+@pytest.mark.parametrize("lock_name, windows", [("requirements.lock", True),
+                                                ("requirements-macos.lock", False)])
+def test_the_runtime_lock_covers_the_requirements_with_hashes(lock_name, windows):
+    lock = ROOT / "neonize_bridge" / lock_name
     locked = {k.lower(): v for k, v in _pins(lock).items()}
-    for name, version in _pins(ROOT / "neonize_bridge" / "requirements.txt").items():
+    wanted = _requirements_for(windows)
+    assert ("python-magic-bin" in wanted) == windows and ("python-magic" in wanted) != windows
+    for name, version in wanted.items():
         assert locked[name.lower()] == version
     text = lock.read_text(encoding="utf-8")
     assert text.count("--hash=sha256:") >= len(locked)
