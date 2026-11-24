@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Ligar-se através do código QR: o código QR voltou a aparecer. Nas versões mais recentes do WhatsApp Web, alguns computadores recebem uma página de início de sessão separada, só com o ecrã do código QR, e nela o WinZapp ficava a ligar até desistir, sem mostrar o código. O WinZapp passa a usar uma versão do WhatsApp Web que traz a aplicação completa e, se mesmo assim receber a página de início de sessão, mostra o código QR em poucos segundos.
+
 - Comunidades: Enter numa comunidade da lista de conversas abre agora o painel Comunidades com essa comunidade selecionada e o foco nos respetivos grupos, em vez da conversa da própria comunidade. A opção está em Definições > Interface > Conversas, ativada por predefinição.
 
 - Ligação pelo número de telefone: a ligação já não falha depois de o WhatsApp do telemóvel aceitar o código de emparelhamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o início de sessão, ou pedia um novo código nele, e o telemóvel mostrava o dispositivo como ligado enquanto o WinZapp continuava na janela de emparelhamento. A janela do código passa também a mostrar o texto, o código e Cancelar por ordem, em vez de os desenhar uns sobre os outros. Se o WhatsApp Web continuar sem abrir as conversas depois de o código ser aceite, o WinZapp tenta agora mais uma vez e depois avisa, em vez de ficar à espera para sempre na janela de emparelhamento, e uma ligação que o telemóvel aceitou já não é descartada quando reinicia o WinZapp.

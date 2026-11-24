@@ -598,6 +598,23 @@ function satisfiesWhatsappRange(version, range) {
   return true;
 }
 
+// A catalogue document that can only show the login screen (measured
+// 2026-11-24). WhatsApp Web runs an A/B experiment
+// (WAWebLoggedOutSeparationGating): for a browser without a login, `/`
+// answers 302 to `/login/`, a ~185 KB document whose WAWebLoggedOutBootstrap
+// registers the QR screen and nothing else, and once the phone links it sends
+// the page back to `/` for the full app. The wa-version crawler follows that
+// redirect, so some catalogue entries hold the login document under `/`
+// (2.3000.1048585219, 1052828872, 1054203907 and every build from 1055857453
+// on, against ~1 MB for a full one). Pinned, it is what the interception
+// serves for `/` every time: a linked profile never gets the full app, and on
+// the login screen ChatCollection, Socket, Stream and the rest are never
+// defined, which is what kept wa-js from ever reaching WPP.isReady (see
+// client/core/wppconnect_wa_js_loader_patch.py).
+function isLoggedOutOnlyDocument(html) {
+  return typeof html === 'string' && html.includes('WAWebLoggedOutBootstrap');
+}
+
 // The newest build this install can serve AND that Meta has not expired yet.
 //
 // Walks the catalogue newest-first and stops at the first entry that is both
@@ -645,18 +662,20 @@ function selectServableVersion(catalogue, now, supportedRange) {
   // is a readdirSync of html/ (392 files on the shipped package) plus a read of
   // a ~600 KB HTML file. This runs inside session startup, so the passes added
   // above must not put that cost back on the hot path they were written around.
+  //
+  // The cache holds what kind of document the build has: 'full', 'loggedOut'
+  // (see isLoggedOutOnlyDocument) or false when it cannot be served at all.
   const serveCache = new Map();
-  const canServe = (version) => {
+  const documentKind = (version) => {
     if (serveCache.has(version)) return serveCache.get(version);
-    let servable;
+    let kind;
     try {
-      catalogue.getPageContent(version);
-      servable = true;
+      kind = isLoggedOutOnlyDocument(catalogue.getPageContent(version)) ? 'loggedOut' : 'full';
     } catch (e) {
-      servable = false;
+      kind = false;
     }
-    serveCache.set(version, servable);
-    return servable;
+    serveCache.set(version, kind);
+    return kind;
   };
   const isStable = (version) => !/-alpha|-beta/i.test(version);
   // The compatibility range is the OUTERMOST constraint, above both expiry and
@@ -671,39 +690,52 @@ function selectServableVersion(catalogue, now, supportedRange) {
   // a build of uncertain compatibility: WhatsApp serves its own newest build
   // AND we lose the document interception. So a range that matches nothing
   // degrades to today's behaviour, loudly, rather than to no pin at all.
+  //
+  // Inside each of those tiers a full document comes before a logged-out-only
+  // one (isLoggedOutOnlyDocument): the latter cannot boot a logged-in session,
+  // so it is pinned only when the tier has nothing else, and flagged.
+  const kinds = [['full'], ['full', 'loggedOut']];
   for (const respectRange of [true, false]) {
     const supported = (version) =>
       !respectRange || satisfiesWhatsappRange(version, supportedRange);
-    for (const stableOnly of [true, false]) {
-      for (let i = available.length - 1; i >= 0; i--) {
-        const version = available[i];
-        if (stableOnly && !isStable(version)) continue;
-        if (!supported(version)) continue;
-        const expire = versionExpiry(catalogue, version);
-        if (expire !== null && expire <= now) continue;
-        if (!canServe(version)) continue;
-        return {
-          version,
-          expire,
-          expired: false,
-          unsupported: !respectRange,
-          total: available.length,
-        };
-      }
-    }
-    for (const stableOnly of [true, false]) {
-      for (let i = available.length - 1; i >= 0; i--) {
-        const version = available[i];
-        if (stableOnly && !isStable(version)) continue;
-        if (!supported(version)) continue;
-        if (canServe(version)) {
+    for (const accepted of kinds) {
+      for (const stableOnly of [true, false]) {
+        for (let i = available.length - 1; i >= 0; i--) {
+          const version = available[i];
+          if (stableOnly && !isStable(version)) continue;
+          if (!supported(version)) continue;
+          const expire = versionExpiry(catalogue, version);
+          if (expire !== null && expire <= now) continue;
+          const kind = documentKind(version);
+          if (!accepted.includes(kind)) continue;
           return {
             version,
-            expire: versionExpiry(catalogue, version),
-            expired: true,
+            expire,
+            expired: false,
             unsupported: !respectRange,
+            loggedOutOnly: kind === 'loggedOut',
             total: available.length,
           };
+        }
+      }
+    }
+    for (const accepted of kinds) {
+      for (const stableOnly of [true, false]) {
+        for (let i = available.length - 1; i >= 0; i--) {
+          const version = available[i];
+          if (stableOnly && !isStable(version)) continue;
+          if (!supported(version)) continue;
+          const kind = documentKind(version);
+          if (accepted.includes(kind)) {
+            return {
+              version,
+              expire: versionExpiry(catalogue, version),
+              expired: true,
+              unsupported: !respectRange,
+              loggedOutOnly: kind === 'loggedOut',
+              total: available.length,
+            };
+          }
         }
       }
     }
@@ -764,6 +796,17 @@ function resolveWhatsappVersion() {
         `installed wa-js declares (${waJsSupportedRange}). Pinning ` +
         `${selected.version} regardless, because running unpinned is worse. If the ` +
         'session never leaves INITIALIZING, run: npm update @wppconnect/wa-version ' +
+        '(or reinstall the API from WinZapp).'
+      );
+    }
+    if (selected.loggedOutOnly) {
+      // Only reached when no build with a full document is left in the tier
+      // (see isLoggedOutOnlyDocument): a QR code can still be read, but a
+      // linked profile may never reach the chat list.
+      console.error(
+        `[WinZapp] Pinning ${selected.version}, whose document in this catalogue is ` +
+        "WhatsApp Web's login page only: no build with the full app document is " +
+        'left. If a linked account stays offline, run: npm update @wppconnect/wa-version ' +
         '(or reinstall the API from WinZapp).'
       );
     }

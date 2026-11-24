@@ -138,7 +138,9 @@ uv run translations-check               # release-ready catalog validation
   `client/core/wppconnect_wa_js_patch.py`, patches `@wppconnect/wa-js`'s
   bundle, the script injected into the WhatsApp Web page; a seventh,
   `client/core/wppconnect_newsletter_chat_patch.py`, patches the same bundle
-  so a post to a channel finds the channel's chat and its send job.
+  so a post to a channel finds the channel's chat and its send job; an
+  eighth, `client/core/wppconnect_wa_js_loader_patch.py`, keeps wa-js's
+  module loader from saturating WhatsApp Web's login-only page (no QR code).
 - **`neonize_bridge/neonize_patches/`** — WinZapp's patches on official
   neonize, whatsmeow and meowcaller (the Neonize engine's DLL);
   `build_neonize.py` applies them and builds into the git-ignored

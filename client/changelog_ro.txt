@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Conectați-vă cu codul QR: codul QR apare din nou. În cele mai noi versiuni WhatsApp Web, unele calculatoare primesc o pagină de autentificare separată, doar cu ecranul codului QR, iar pe ea WinZapp încerca să se conecteze până renunța, fără să arate codul. WinZapp folosește acum o versiune WhatsApp Web care conține aplicația completă și, dacă primește totuși pagina de autentificare, arată codul QR în câteva secunde.
+
 - Comunități: Enter pe o comunitate din lista de conversații deschide acum panoul Comunități cu acea comunitate selectată și focalizarea pe grupurile ei, în locul conversației comunității. Opțiunea este în Setări > Interfață > Conversații, activată implicit.
 
 - Conectarea cu numărul de telefon: conectarea nu mai eșuează după ce WhatsApp de pe telefon acceptă codul de asociere. WinZapp închidea WhatsApp Web în timpul reîncărcării care finalizează autentificarea, sau cerea un cod nou pe ea, iar telefonul arăta dispozitivul ca fiind conectat în timp ce WinZapp rămânea în fereastra de asociere. Fereastra codului arată acum și textul, codul și Anulare în ordine, în loc să le deseneze unele peste altele. Dacă WhatsApp Web tot nu deschide conversațiile după ce codul a fost acceptat, WinZapp încearcă acum încă o dată și apoi îți spune, în loc să aștepte la nesfârșit în fereastra de asociere, iar o conectare acceptată de telefon nu mai este pierdută când repornești WinZapp.

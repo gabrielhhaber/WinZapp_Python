@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- QR kodu ile bağlan: QR kodu yeniden görünüyor. En yeni WhatsApp Web sürümlerinde bazı bilgisayarlar yalnızca QR kodu ekranını içeren ayrı bir giriş sayfası alıyor ve WinZapp bu sayfada kodu göstermeden vazgeçene kadar bağlanmaya çalışıyordu. WinZapp artık uygulamanın tamamını içeren bir WhatsApp Web sürümü kullanıyor ve yine de giriş sayfasını alırsa QR kodunu birkaç saniye içinde gösteriyor.
+
 - Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.
 
 - Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor. Kod kabul edildikten sonra WhatsApp Web sohbetlerinizi hâlâ açmazsa, WinZapp artık eşleme penceresinde sonsuza kadar beklemek yerine bir kez daha dener ve ardından size bildirir; telefonun kabul ettiği bir bağlantı da WinZapp'i yeniden başlattığınızda artık silinmez.
