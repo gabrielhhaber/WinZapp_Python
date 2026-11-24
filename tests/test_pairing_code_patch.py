@@ -1859,7 +1859,12 @@ class TestV240KeepsTheCatchQrParameter:
 
         assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
         first_pass = host_layer.read_text(encoding="utf-8")
-        assert PATCHED_V240_WAIT_FOR_QR_CODE_SCAN in first_pass
+        # The bounded wait, extended to end at once on a closed browser
+        # (wppconnect_pairing_completion_patch.py).
+        from core.wppconnect_pairing_completion_patch import (
+            PATCHED_WAIT_FOR_QR_CODE_SCAN as PATCHED_V240_V2_WAIT_FOR_QR_CODE_SCAN,
+        )
+        assert PATCHED_V240_V2_WAIT_FOR_QR_CODE_SCAN in first_pass
         assert V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN not in first_pass
         # The 2.3.x text would have lost the parameter.
         assert PATCHED_WAIT_FOR_QR_CODE_SCAN not in first_pass
