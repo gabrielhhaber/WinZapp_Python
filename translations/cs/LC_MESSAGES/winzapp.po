@@ -298,7 +298,7 @@ msgstr "čeká na spárování"
 msgctxt "acc_switch_behavior_keep_open"
 msgid "&Keep windows of all accounts open on screen and system tray"
 msgstr ""
-"&Ponechat okna všech účtů otevřená na obrazovce i v oznamovací oblasti"
+"Ponechat okna &všech účtů otevřená na obrazovce i v oznamovací oblasti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -311,7 +311,7 @@ msgstr "Co dělat při přepnutí účtu:"
 msgctxt "acc_switch_behavior_single"
 msgid "Hide current account window to system tray (single &visible window)"
 msgstr ""
-"Skrýt okno aktuálního účtu do oznamovací oblasti (jen &jedno viditelné okno)"
+"Skrýt okno aktuálního &účtu do oznamovací oblasti (jen jedno viditelné okno)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 msgctxt "acc_switch_label"
@@ -357,7 +357,7 @@ msgid ""
 " as new messages in the active chat, downloads, typing/recording audio, "
 "among others)"
 msgstr ""
-"&Zapnout rozšířenou kompatibilitu s odečítačem obrazovky (další ohlášení, "
+"Zapnout &rozšířenou kompatibilitu s odečítačem obrazovky (další ohlášení, "
 "například nové zprávy v aktivním chatu, stahování, psaní/nahrávání zvuku a "
 "další)"
 
@@ -365,7 +365,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "accessibility_sapi_fallback_label"
 msgid "&Use SAPI voice when the screen reader is not available"
-msgstr "&Použít hlas SAPI, když odečítač obrazovky není k dispozici"
+msgstr "Použít hlas &SAPI, když odečítač obrazovky není k dispozici"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "accessibility_sapi_fallback_label_macos"
@@ -412,7 +412,7 @@ msgstr "Účet nešlo přepnout. Druhý proces WinZappu se nespustil."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "activate_all_sounds"
 msgid "&Enable all"
-msgstr "&Zapnout vše"
+msgstr "Z&apnout vše"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 msgctxt "add_attachment"
@@ -537,12 +537,12 @@ msgstr "Exportuji protokoly..."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
 msgctxt "advanced_fixed_port_check"
 msgid "Start the local API on a &fixed port"
-msgstr "Spouštět místní API na &pevném portu"
+msgstr "&Spouštět místní API na pevném portu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/advanced_tab.py
 msgctxt "advanced_fixed_port_label"
 msgid "Local API &port (applies the next time WinZapp starts):"
-msgstr "P&ort místního API (projeví se při příštím spuštění WinZappu):"
+msgstr "Port &místního API (projeví se při příštím spuštění WinZappu):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "advanced_log_level_debug"
@@ -581,7 +581,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_accessibility_enabled_label"
 msgid "Ena&ble AI features (transcription and description)"
-msgstr "&Zapnout funkce AI (přepis a popis)"
+msgstr "Zapno&ut funkce AI (přepis a popis)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -624,7 +624,7 @@ msgstr "před {minutes} min"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ai_auto_button"
 msgid "Automatic transcri&ption and description..."
-msgstr "Automatický pře&pis a popis..."
+msgstr "Auto&matický přepis a popis..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -686,7 +686,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_auto_used_today"
 msgid "Automatic &requests made today:"
-msgstr "Dnes provedené automatické &požadavky:"
+msgstr "&Dnes provedené automatické požadavky:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_balanced"
@@ -815,7 +815,7 @@ msgstr "Popsat"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_describe_images_label"
 msgid "Describe received ima&ges"
-msgstr "Popisovat přijaté &obrázky"
+msgstr "&Popisovat přijaté obrázky"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_describe_sticker_menu"
@@ -1082,7 +1082,7 @@ msgid ""
 "&Hide the online AI button after the message list (the message menu still "
 "offers it)"
 msgstr ""
-"&Skrýt tlačítko online AI za seznamem zpráv (nabídka zprávy ho dál nabízí)"
+"Skr&ýt tlačítko online AI za seznamem zpráv (nabídka zprávy ho dál nabízí)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -1265,7 +1265,7 @@ msgstr "Převést na přístupný text"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_privacy_link"
 msgid "&Provider privacy policy"
-msgstr "&Zásady ochrany soukromí poskytovatele"
+msgstr "Z&ásady ochrany soukromí poskytovatele"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_text_result_dialog.py
@@ -1276,7 +1276,7 @@ msgstr "Zpracovávám pomocí AI, čekejte prosím..."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_profile"
 msgid "Descr&iption detail"
-msgstr "Po&drobnost popisu"
+msgstr "Pod&robnost popisu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -1292,12 +1292,12 @@ msgstr "Nastavit &vybraného poskytovatele"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_enabled_checkbox"
 msgid "&Enabled (tried automatically)"
-msgstr "&Zapnuto (zkouší se automaticky)"
+msgstr "Zapnuto (zkou&ší se automaticky)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_list_label"
 msgid "AI providers (order = tr&y order)"
-msgstr "Poskytovatelé AI (pořadí = pořadí &zkoušení)"
+msgstr "Poskytovatelé &AI (pořadí = pořadí zkoušení)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_provider_move_down_button"
@@ -1349,7 +1349,7 @@ msgstr "Odpovídám na vaši otázku…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_read_answers"
 msgid "Read &new answers aloud using WinZapp speech settings"
-msgstr "Číst &nové odpovědi nahlas podle nastavení řeči WinZappu"
+msgstr "&Číst nové odpovědi nahlas podle nastavení řeči WinZappu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
@@ -1418,7 +1418,7 @@ msgstr "Odeslat &médium"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_settings_help"
 msgid "&Usage and privacy information"
-msgstr "Informace o &používání a soukromí"
+msgstr "&Informace o používání a soukromí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_settings_notice"
@@ -1442,12 +1442,12 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_show_key"
 msgid "Show or &hide key"
-msgstr "Zobrazit nebo &skrýt klíč"
+msgstr "Zob&razit nebo skrýt klíč"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_status_label"
 msgid "S&tatus"
-msgstr "S&tav"
+msgstr "&Stav"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
@@ -1760,7 +1760,7 @@ msgstr "Vlastní"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "alert_tone_custom_path_label"
 msgid "Cus&tom file path:"
-msgstr "Cesta k &vlastnímu souboru:"
+msgstr "&Cesta k vlastnímu souboru:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -1773,7 +1773,7 @@ msgstr "Výchozí"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "alert_tone_group_label"
 msgid "&Background notification sound for groups:"
-msgstr "Zvuk oznámení na pozadí pro &skupiny:"
+msgstr "Zvuk oznámení &na pozadí pro skupiny:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -1785,7 +1785,7 @@ msgstr "Upozornění {n}"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "alert_tone_private_label"
 msgid "Background &notification sound for private chats:"
-msgstr "Zvuk &oznámení na pozadí pro soukromé chaty:"
+msgstr "Zvu&k oznámení na pozadí pro soukromé chaty:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py client/ui/media_viewer.py
@@ -1812,7 +1812,7 @@ msgstr "Výběr všeho zrušen"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "alpha_updates_label"
 msgid "C&heck for alpha updates (unstable)"
-msgstr "&Hledat alfa aktualizace (nestabilní)"
+msgstr "Hledat &alfa aktualizace (nestabilní)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -2164,18 +2164,18 @@ msgstr "Archivované chaty"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "archived_chats_nav"
 msgid "Archived chats alt+4"
-msgstr "Archivované chaty Alt+4"
+msgstr "Archivované chaty alt+4"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 #, python-brace-format
 msgctxt "archived_chats_nav_unread_plural"
 msgid "Archived chats, {count} unread alt+4"
-msgstr "Archivované chaty, nepřečtené: {count} Alt+4"
+msgstr "Archivované chaty, nepřečtené: {count} alt+4"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "archived_chats_nav_unread_singular"
 msgid "Archived chats, 1 unread alt+4"
-msgstr "Archivované chaty, 1 nepřečtený Alt+4"
+msgstr "Archivované chaty, 1 nepřečtený alt+4"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_list.py
 msgctxt "archived_suffix"
@@ -2339,20 +2339,20 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "audio_input_device_label"
 msgid "Recording &device (microphone)"
-msgstr "Nahrávací &zařízení (mikrofon)"
+msgstr "Nahr&ávací zařízení (mikrofon)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "audio_mark_played_in_list_label"
 msgid "&Mark audios as played in chats and announce it to the screen reader"
 msgstr ""
-"&Označovat zvuky v chatech jako přehrané a ohlásit to odečítači obrazovky"
+"Označovat &zvuky v chatech jako přehrané a ohlásit to odečítači obrazovky"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "audio_output_device_label"
 msgid "Pla&yback device (speaker)"
-msgstr "&Přehrávací zařízení (reproduktor)"
+msgstr "Přehráva&cí zařízení (reproduktor)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/audio_playback.py
@@ -2434,7 +2434,7 @@ msgstr "Položku pro spuštění nešlo přidat. Chyba:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "autostart_label"
 msgid "Start WinZapp &in the background when Windows starts"
-msgstr "Spouštět WinZapp &na pozadí při startu Windows"
+msgstr "Spou&štět WinZapp na pozadí při startu Windows"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "autostart_label_macos"
@@ -3046,7 +3046,7 @@ msgstr "Toto není platný odkaz na hovor WhatsApp."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "call_link_join_button"
 msgid "&Join call"
-msgstr "&Připojit se k hovoru"
+msgstr "Připojit &se k hovoru"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/links.py
@@ -3562,25 +3562,25 @@ msgstr "Není dostupná žádná kamera."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "calls_alerts_enabled_label"
 msgid "Allow &incoming call alerts"
-msgstr "Povolit upozornění na &příchozí hovory"
+msgstr "Povolit &upozornění na příchozí hovory"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "calls_announce_joined_label"
 msgid "Announce when someone &joins a call"
-msgstr "Ohlásit, když se někdo &připojí k hovoru"
+msgstr "Ohlásit, &když se někdo připojí k hovoru"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "calls_announce_left_label"
 msgid "A&nnounce when someone leaves a call"
-msgstr "O&hlásit, když někdo opustí hovor"
+msgstr "Oh&lásit, když někdo opustí hovor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "calls_audio_settings_button"
 msgid "Ca&ll audio settings"
-msgstr "Nastavení &zvuku hovoru"
+msgstr "&Nastavení zvuku hovoru"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/calls_panel.py
 msgctxt "calls_create_call_link_button"
@@ -3626,7 +3626,7 @@ msgstr "&Hovory"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "calls_nav"
 msgid "Calls alt+6"
-msgstr "Hovory Alt+6"
+msgstr "Hovory alt+6"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 msgctxt "calls_noise_suppression_label"
@@ -3653,7 +3653,7 @@ msgstr "Otevřít chat"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "calls_popup_enabled_label"
 msgid "Open a &window when a call comes in"
-msgstr "Při příchozím hovoru otevřít &okno"
+msgstr "P&ři příchozím hovoru otevřít okno"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/group_calls.py
@@ -3814,7 +3814,7 @@ msgstr "{name} už není správce."
 #: client/ui/dialogs/channel_admins.py
 msgctxt "channel_admin_invite"
 msgid "&Invite admin..."
-msgstr "&Pozvat správce..."
+msgstr "P&ozvat správce..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_invite_button"
@@ -3880,7 +3880,7 @@ msgstr "&Jmenovat správcem..."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channel_admin_revoke"
 msgid "Ca&ncel admin invite..."
-msgstr "&Zrušit pozvánku pro správce..."
+msgstr "Z&rušit pozvánku pro správce..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -4211,7 +4211,7 @@ msgstr "Sport"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_copy_link"
 msgid "Co&py link"
-msgstr "&Kopírovat odkaz"
+msgstr "Kop&írovat odkaz"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -4252,7 +4252,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_delete"
 msgid "Delete c&hannel"
-msgstr "S&mazat kanál"
+msgstr "Sm&azat kanál"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 #, python-brace-format
@@ -4275,7 +4275,7 @@ msgstr "&Popis"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_details"
 msgid "&Details"
-msgstr "Po&drobnosti"
+msgstr "Pod&robnosti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_directory_unavailable"
@@ -4310,7 +4310,7 @@ msgstr "&Sledovat"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_follow_by_link"
 msgid "Follow &by link..."
-msgstr "Sledovat přes &odkaz..."
+msgstr "Sledovat &přes odkaz..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_followed"
@@ -4404,7 +4404,7 @@ msgstr "Zadejte název kanálu."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "channels_nav"
 msgid "Channels alt+9"
-msgstr "Kanály Alt+9"
+msgstr "Kanály alt+9"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/channels.py
 msgctxt "channels_none"
@@ -4419,7 +4419,7 @@ msgstr "Nebyl nalezen žádný kanál."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_open"
 msgid "&Open channel"
-msgstr "Ote&vřít kanál"
+msgstr "Otev&řít kanál"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "channels_people"
@@ -4753,7 +4753,7 @@ msgstr "Chaty byly odebrány ze Zamčených chatů."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/chat_lock.py
 msgctxt "chat_lock_close"
 msgid "&Close and hide vault"
-msgstr "&Zavřít a skrýt trezor"
+msgstr "Zavřít &a skrýt trezor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/chat_lock.py
 msgctxt "chat_lock_closed"
@@ -4953,7 +4953,7 @@ msgstr "Změnit &tajný kód"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "chat_lock_settings_button"
 msgid "&Locked chats"
-msgstr "&Zamčené chaty"
+msgstr "Zam&čené chaty"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -4974,7 +4974,7 @@ msgstr "Nastavení zamčených chatů je otevřené"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "chat_lock_settings_unlock"
 msgid "O&pen locked-chat settings"
-msgstr "&Otevřít nastavení zamčených chatů"
+msgstr "Otevřít &nastavení zamčených chatů"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/chat_lock.py
 msgctxt "chat_lock_setup_pin_label"
@@ -5010,7 +5010,7 @@ msgstr "Trezor zamčených chatů se automaticky zavřel."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "chat_lock_timeout_label"
 msgid "&Close the vault automatically after inactivity"
-msgstr "Po nečinnosti trezor automaticky &zavřít"
+msgstr "&Po nečinnosti trezor automaticky zavřít"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -5383,7 +5383,7 @@ msgstr "&Košík"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_cart_note"
 msgid "&Message to the business (optional)"
-msgstr "&Zpráva pro firmu (nepovinné)"
+msgstr "Zpráva pro &firmu (nepovinné)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "commerce_cart_remove"
@@ -6105,12 +6105,12 @@ msgstr "Deak&tivovat komunitu"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_demote"
 msgid "&Demote community admin..."
-msgstr "Odebrat &správce komunity..."
+msgstr "O&debrat správce komunity..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_details"
 msgid "D&escription and admins"
-msgstr "Po&pis a správci"
+msgstr "Popis a spr&ávci"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_empty"
@@ -6232,12 +6232,12 @@ msgstr "Ko&munity"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "communities_nav"
 msgid "Communities alt+8"
-msgstr "Komunity Alt+8"
+msgstr "Komunity alt+8"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "communities_new"
 msgid "&New community..."
-msgstr "&Nová komunita..."
+msgstr "Nová &komunita..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/community_admin.py
@@ -6489,7 +6489,7 @@ msgstr "&Klíč API (tajný klíč):"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "connection_custom_api_label"
 msgid "&Use custom API (remote server)"
-msgstr "&Použít vlastní API (vzdálený server)"
+msgstr "Použít &vlastní API (vzdálený server)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/engine_picker.py
@@ -6565,7 +6565,7 @@ msgstr "Připojení k internetu obnoveno."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "connection_server_label"
 msgid "Server Address (&HTTP/HTTPS):"
-msgstr "Adresa serveru (&HTTP/HTTPS):"
+msgstr "Adresa &serveru (HTTP/HTTPS):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -6838,7 +6838,7 @@ msgstr "&Informace o chatu"
 #: client/ui/dialogs/conversation_edit_alerts.py
 msgctxt "conversation_sound_custom_path_label"
 msgid "&Sound file path:"
-msgstr "Cesta ke &zvukovému souboru:"
+msgstr "&Cesta ke zvukovému souboru:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -6856,7 +6856,7 @@ msgstr "&Přehrát ukázku zvuku"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "conversation_sound_preview_stop"
 msgid "Stop sound &preview"
-msgstr "Zastavit &ukázku zvuku"
+msgstr "Zastavit &přehrávání"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/add_member_dialog.py
@@ -7449,7 +7449,7 @@ msgstr "&Upravit kontakt"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "edit_group_description"
 msgid "Edit gro&up description"
-msgstr "Upravit &popis skupiny"
+msgstr "Upravit popis skupin&y"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -7838,7 +7838,7 @@ msgstr "&Místo (nepovinné):"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_menu_cancel"
 msgid "Cancel e&vent"
-msgstr "Zrušit &událost"
+msgstr "Z&rušit událost"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_menu_edit"
@@ -7924,7 +7924,7 @@ msgstr "&Uložit"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_start_date_label"
 msgid "&Start date:"
-msgstr "Datum &začátku:"
+msgstr "&Datum začátku:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "event_start_required"
@@ -8120,7 +8120,7 @@ msgstr "Přeposlat vybrané zprávy"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "general_notifications_button"
 msgid "&Notifications"
-msgstr "&Oznámení"
+msgstr "Ozn&ámení"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #: client/ui/dialogs/settings_dialog.py
@@ -8360,7 +8360,7 @@ msgstr "Stav pozvánky"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_title"
 msgid "&Group invitation"
-msgstr "Pozvánka do &skupiny"
+msgstr "Pozv&ánka do skupiny"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_invitation_unavailable"
@@ -8374,7 +8374,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_action"
 msgid "&Join group or request approval"
-msgstr "&Připojit se ke skupině nebo požádat o schválení"
+msgstr "Připojit &se ke skupině nebo požádat o schválení"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_join_approval_not_required"
@@ -8519,7 +8519,7 @@ msgstr "Nestažené / odkazy"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_list_label"
 msgid "Media &list"
-msgstr "&Seznam médií"
+msgstr "S&eznam médií"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_loading_history"
@@ -8529,12 +8529,12 @@ msgstr "Načítám historii skupiny..."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_open_btn"
 msgid "&Open"
-msgstr "&Otevřít"
+msgstr "Otev&řít"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_save_as_btn"
 msgid "Sa&ve as..."
-msgstr "&Uložit jako..."
+msgstr "U&ložit jako..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "group_media_tab"
@@ -9108,7 +9108,7 @@ msgstr "&Importovat složku se zvuky"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "import_sound_pack_zip_button"
 msgid "Import .&ZIP file"
-msgstr "Importovat soubor .&ZIP"
+msgstr "I&mportovat soubor .ZIP"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -9146,7 +9146,7 @@ msgstr "Hovor přijat."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "incoming_call_close_button"
 msgid "&Close window"
-msgstr "&Zavřít okno"
+msgstr "Z&avřít okno"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/calls.py
 #, python-brace-format
@@ -9465,7 +9465,7 @@ msgstr "Zamčené chaty"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "locked_chats_nav"
 msgid "Locked chats alt+7"
-msgstr "Zamčené chaty Alt+7"
+msgstr "Zamčené chaty alt+7"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/profile_disk_guard.py
 #: client/main_window/manual_reconnect.py
@@ -10173,7 +10173,7 @@ msgstr "hlasová zpráva"
 #: client/ui/conversation_panel/archived_panel.py client/ui/conversations.py
 msgctxt "messages"
 msgid "&Messages"
-msgstr "&Zprávy"
+msgstr "Zp&rávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_messages.py
@@ -10604,7 +10604,7 @@ msgstr "&Skrýt jména hlasujících"
 #: client/ui/dialogs/new_poll_dialog.py
 msgctxt "new_poll_move_down"
 msgid "Move do&wn"
-msgstr "Posunout &dolů"
+msgstr "&Posunout dolů"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/new_poll_dialog.py
@@ -10850,7 +10850,7 @@ msgstr "Ověřuji integritu stahování..."
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_model_download_btn"
 msgid "&Download noise reduction model"
-msgstr "&Stáhnout model pro potlačení šumu"
+msgstr "Stáhnout model pro potlačení &šumu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/noise_model_text.py
 #, python-brace-format
@@ -10877,7 +10877,7 @@ msgstr ""
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_model_label"
 msgid "N&oise reduction model"
-msgstr "M&odel pro potlačení šumu"
+msgstr "&Model pro potlačení šumu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_model_section.py
@@ -10919,7 +10919,7 @@ msgstr ""
 #: client/ui/dialogs/noise_reducer_dialog.py
 msgctxt "noise_reducer_button"
 msgid "&Noise reducer settings..."
-msgstr "Nastavení &potlačení šumu..."
+msgstr "&Nastavení potlačení šumu..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/noise_reducer_dialog.py
@@ -11320,7 +11320,7 @@ msgstr "Zvuk, název chatu nebo skupiny a text zprávy"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "notification_content_label"
 msgid "&Background notification content"
-msgstr "&Obsah oznámení na pozadí"
+msgstr "O&bsah oznámení na pozadí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "notification_content_name"
@@ -11336,7 +11336,7 @@ msgstr "Jen zvuk"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "notifications_label"
 msgid "Enable background &notifications for new messages"
-msgstr "Zapnout &oznámení na pozadí pro nové zprávy"
+msgstr "Zapnout oznámení &na pozadí pro nové zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -11898,7 +11898,7 @@ msgstr "{name}: {options}"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/poll_dialog.py
 msgctxt "poll_voters_button"
 msgid "&View votes"
-msgstr "&Zobrazit hlasy"
+msgstr "Z&obrazit hlasy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/poll_voters_dialog.py
@@ -11995,7 +11995,7 @@ msgstr "Ukázku nejde přehrát – zvukový soubor je neplatný nebo chybí."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "preview_sound_play"
 msgid "P&lay sound preview"
-msgstr "Přehrát &ukázku zvuku"
+msgstr "P&řehrát ukázku zvuku"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "preview_sound_stop"
@@ -12209,7 +12209,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "profile_picture_btn"
 msgid "Pro&file picture"
-msgstr "Profilový &obrázek"
+msgstr "P&rofilový obrázek"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/profile_picture_dialog.py
@@ -12533,7 +12533,7 @@ msgstr "Emoji pro pozici {position}"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "reactions_reset_button"
 msgid "&Restore default positions"
-msgstr "&Obnovit výchozí pozice"
+msgstr "Obnovit &výchozí pozice"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12931,7 +12931,7 @@ msgstr "Uložit kontakt"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "save_folder_browse_btn"
 msgid "&Browse..."
-msgstr "&Procházet..."
+msgstr "P&rocházet..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12943,7 +12943,7 @@ msgstr "Zvolte výchozí složku pro ukládání souborů"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "save_folder_custom_label"
 msgid "Custom &folder:"
-msgstr "Vlastní &složka:"
+msgstr "Vl&astní složka:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -12970,7 +12970,7 @@ msgstr "Ukládat do složky Stažené soubory aktuálního uživatele"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "save_folder_mode_label"
 msgid "Default Windows &Explorer behavior when saving files"
-msgstr "Výchozí chování &Průzkumníka Windows při ukládání souborů"
+msgstr "&Výchozí chování Průzkumníka Windows při ukládání souborů"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "save_folder_mode_label_macos"
@@ -14390,7 +14390,7 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_remove"
 msgid "Remove &shortcut"
-msgstr "Odebrat &zkratku"
+msgstr "O&debrat zkratku"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_reorder_down_label"
@@ -14414,12 +14414,12 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_reset"
 msgid "Restore &default"
-msgstr "Obnovit &výchozí"
+msgstr "O&bnovit výchozí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_reset_all"
 msgid "&Restore all defaults"
-msgstr "Obnovit &všechny výchozí"
+msgstr "Ob&novit všechny výchozí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_retry_status_label"
@@ -14974,7 +14974,7 @@ msgstr "Výchozí sada zvuků"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "sound_pack_label"
 msgid "Sound &pack:"
-msgstr "Sada &zvuků:"
+msgstr "Sa&da zvuků:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/update_sound_settings.py
@@ -15081,7 +15081,7 @@ msgstr "Při ohlašování stavu skupiny brát v úvahu aktivitu více &účastn
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_link_previews_label"
 msgid "Announce link preview &loading and adding"
-msgstr "Ohlašovat &načítání a přidání náhledu odkazu"
+msgstr "O&hlašovat načítání a přidání náhledu odkazu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15114,7 +15114,7 @@ msgid ""
 "Mute spo&ken content announcements and the Send button while recording a "
 "voice message"
 msgstr ""
-"Během nahrávání hlasové zprávy ztlumit ohlášení &mluveného obsahu a tlačítko"
+"&Během nahrávání hlasové zprávy ztlumit ohlášení mluveného obsahu a tlačítko"
 " Odeslat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -15128,13 +15128,13 @@ msgstr "Automaticky &vyslovovat zprávy v aktivním chatu"
 msgctxt "speech_speak_other_conv_label"
 msgid "&Automatically speak messages in other chats while the program is open"
 msgstr ""
-"&Automaticky vyslovovat zprávy v ostatních chatech, když je program otevřený"
+"Automaticky vyslovovat zprávy v ostatních chatech, &když je program otevřený"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "spell_check_label"
 msgid "Spell checking in &the message field"
-msgstr "Kontrola pravopisu v &poli zprávy"
+msgstr "&Kontrola pravopisu v poli zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -15339,12 +15339,12 @@ msgstr "Zprávy s hvězdičkou: {count}"
 #: client/ui/dialogs/starred_messages.py
 msgctxt "starred_list"
 msgid "Starred &messages"
-msgstr "&Zprávy s hvězdičkou"
+msgstr "Zprávy &s hvězdičkou"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "starred_nav"
 msgid "Starred messages alt+0"
-msgstr "Zprávy s hvězdičkou Alt+0"
+msgstr "Zprávy s hvězdičkou alt+0"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "starred_no_match"
@@ -15629,7 +15629,7 @@ msgstr "Médium statusu bylo úspěšně uloženo."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/navigation.py
 msgctxt "status_nav"
 msgid "Status alt+5"
-msgstr "Status Alt+5"
+msgstr "Status alt+5"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_dialogs.py client/ui/media_viewer.py
@@ -15815,7 +15815,7 @@ msgstr "Uložit jako..."
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 msgctxt "status_send"
 msgid "&Post status"
-msgstr "&Zveřejnit status"
+msgstr "Z&veřejnit status"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_data.py
@@ -17417,7 +17417,7 @@ msgstr "Zvuková zařízení"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_audio_playback"
 msgid "A&udio playback"
-msgstr "Přehrávání &zvuku"
+msgstr "P&řehrávání zvuku"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_audio_options.py
 #: client/ui/dialogs/settings_dialog.py
@@ -17452,7 +17452,7 @@ msgstr "Obecné"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tab_profile_backup"
 msgid "&Profile backup"
-msgstr "Záloha &profilu"
+msgstr "Z&áloha profilu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -17618,7 +17618,7 @@ msgstr "Přepsat vybrané zprávy do jejich řádků"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_advanced_button"
 msgid "A&dvanced options..."
-msgstr "&Pokročilé volby..."
+msgstr "Pokro&čilé volby..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
@@ -17677,7 +17677,7 @@ msgid ""
 "Automatically transcribe received voice &messages and videos and put the "
 "text in the message line"
 msgstr ""
-"Automaticky přepisovat přijaté hlasové &zprávy a videa a vložit text do "
+"Automati&cky přepisovat přijaté hlasové zprávy a videa a vložit text do "
 "řádku zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -17709,7 +17709,7 @@ msgstr ""
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_background_cancel_btn"
 msgid "Cancel download in the bac&kground"
-msgstr "Zrušit stahování na &pozadí"
+msgstr "Zrušit stahování &na pozadí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/transcription_flow.py
 msgctxt "transcription_background_cancelling"
@@ -18055,7 +18055,7 @@ msgstr "Knihovny CUDA"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_cuda_button"
 msgid "CUDA li&braries..."
-msgstr "Kni&hovny CUDA..."
+msgstr "Knihovn&y CUDA..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_cuda_install_btn"
@@ -18065,12 +18065,12 @@ msgstr "&Nainstalovat"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_cuda_remove_btn"
 msgid "Remo&ve"
-msgstr "O&debrat"
+msgstr "Od&ebrat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_cuda_repair_btn"
 msgid "Repa&ir"
-msgstr "&Opravit"
+msgstr "O&pravit"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_tab.py
@@ -18189,7 +18189,7 @@ msgstr "CUDA není k dispozici. Přepis poběží na procesoru."
 #: client/ui/dialogs/transcription_tab.py
 msgctxt "transcription_device_label"
 msgid "W&here to run the transcription"
-msgstr "&Kde spouštět přepis"
+msgstr "Kd&e spouštět přepis"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_device_no_cuda_found"
@@ -18940,7 +18940,7 @@ msgstr "Přepis dokončen."
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_folders_button"
 msgid "Models &folder and models in other folders..."
-msgstr "Složka &modelů a modely v jiných složkách..."
+msgstr "Složka modelů &a modely v jiných složkách..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_hidden_vault_closed"
@@ -18982,7 +18982,7 @@ msgstr "&Ponechat model načtený v paměti (faster-whisper a whisper.cpp)"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_language_detect"
 msgid "Detect a&utomatically"
-msgstr "Rozpoznat a&utomaticky"
+msgstr "&Rozpoznat automaticky"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_language_interface"
@@ -19276,7 +19276,7 @@ msgstr "O&debrat"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_repair_btn"
 msgid "Repa&ir"
-msgstr "&Opravit"
+msgstr "Oprav&it"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_model_unavailable_auto"
@@ -19568,7 +19568,7 @@ msgstr "8 bitů, výpočty v 32 bitech (int8_float32)"
 #: client/ui/dialogs/transcription_precision.py
 msgctxt "transcription_precision_label"
 msgid "&Calculation precision (faster-whisper only)"
-msgstr "&Přesnost výpočtu (jen faster-whisper)"
+msgstr "Přesnost &výpočtu (jen faster-whisper)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_background.py
@@ -19737,7 +19737,7 @@ msgstr "&Vložit do zprávy"
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_notes_label"
 msgid "&Warnings"
-msgstr "Upo&zornění"
+msgstr "Up&ozornění"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
@@ -19943,7 +19943,7 @@ msgstr "Textové soubory (*.txt)|*.txt"
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_saved_button"
 msgid "Sa&ved transcriptions..."
-msgstr "&Uložené přepisy..."
+msgstr "Ulo&žené přepisy..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -20046,7 +20046,7 @@ msgstr ""
 #: client/ui/dialogs/transcription_windows.py
 msgctxt "transcription_statuses_button"
 msgid "&Transcription of statuses..."
-msgstr "Přepis &statusů..."
+msgstr "P&řepis statusů..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/transcription_store.py
@@ -20183,7 +20183,7 @@ msgstr "O&debrat"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_whisper_cpp_repair_btn"
 msgid "Repa&ir"
-msgstr "&Opravit"
+msgstr "O&pravit"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_whisper_cpp_verify_btn"
@@ -20244,7 +20244,7 @@ msgstr "&Adresa vlastního API"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_auto_age"
 msgid "Translate automatically the messages &received up to:"
-msgstr "Automaticky překládat zprávy &přijaté nejvýš:"
+msgstr "Automatick&y překládat zprávy přijaté nejvýš:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -20372,7 +20372,7 @@ msgstr "Žádná z vybraných zpráv nemá text k překladu."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display"
 msgid "Translation &display"
-msgstr "&Zobrazení překladu"
+msgstr "Zo&brazení překladu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_display_append"
@@ -20407,7 +20407,7 @@ msgstr "Cílový &jazyk"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_local_device"
 msgid "W&here to run the offline model"
-msgstr "K&de spouštět offline model"
+msgstr "Kd&e spouštět offline model"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_local_download"
@@ -20454,7 +20454,7 @@ msgstr "Stahuji překladový model {name}…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_local_model"
 msgid "&Offline model"
-msgstr "&Offline model"
+msgstr "O&ffline model"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
@@ -20579,7 +20579,7 @@ msgstr "Překládám pomocí {provider}…"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_settings"
 msgid "Message t&ranslation"
-msgstr "&Překlad zpráv"
+msgstr "P&řeklad zpráv"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translation_source_auto"
@@ -20647,7 +20647,7 @@ msgstr "Otevřít"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "tray_show_icon"
 msgid "&Show icon and unread message count in the system tray"
-msgstr "&Zobrazovat ikonu a počet nepřečtených zpráv v oznamovací oblasti"
+msgstr "Zobrazovat ikonu &a počet nepřečtených zpráv v oznamovací oblasti"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/api_start_behind_window.py
@@ -20789,7 +20789,7 @@ msgstr "&Chaty"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_confirm_archive_chat"
 msgid "Ask for confirmation before archi&ving chats"
-msgstr "Před archi&vací chatů žádat o potvrzení"
+msgstr "Před &archivací chatů žádat o potvrzení"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20807,7 +20807,7 @@ msgstr "Před smazáním chatů žádat o &potvrzení"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_confirm_mark_all_read"
 msgid "Ask for confirmation before &marking all chats as read"
-msgstr "Před &označením všech chatů jako přečtených žádat o potvrzení"
+msgstr "Před označením všech &chatů jako přečtených žádat o potvrzení"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20826,7 +20826,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_conversation_video_media_viewer_dialog_label"
 msgid "&Show chat videos in a separate player (opens a new dialog)"
-msgstr "&Zobrazovat videa z chatu v samostatném přehrávači (otevře nové okno)"
+msgstr "Zo&brazovat videa z chatu v samostatném přehrávači (otevře nové okno)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20835,7 +20835,7 @@ msgid ""
 "&When deleting a media message, start with \"Also delete the media from your"
 " phone\" checked"
 msgstr ""
-"&Při mazání zprávy s médiem mít předem zaškrtnuté „Smazat média i z "
+"Při &mazání zprávy s médiem mít předem zaškrtnuté „Smazat média i z "
 "telefonu“"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20846,7 +20846,7 @@ msgid ""
 "the list instead of playing it (Alt+Shift+N plays or opens it); turned off, "
 "Enter and Space play or open it and Alt+Shift+N transcribes it into its line"
 msgstr ""
-"Enter a mezerník na hlasové zprávě nebo videu ji &přepíše do jejího řádku v "
+"Enter &a mezerník na hlasové zprávě nebo videu ji přepíše do jejího řádku v "
 "seznamu, místo aby ji přehrály (Alt+Shift+N ji přehraje nebo otevře); když "
 "je to vypnuté, Enter a mezerník přehrávají nebo otevírají a Alt+Shift+N "
 "přepisuje do řádku"
@@ -20861,7 +20861,7 @@ msgstr "Esc vymaže hledání a &filtry v seznamu chatů"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_escape_clears_message_search"
 msgid "Esc clears the messa&ge search in the active chat"
-msgstr "Esc vymaže hledání ve &zprávách v aktivním chatu"
+msgstr "Esc vymaže &hledání ve zprávách v aktivním chatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20895,7 +20895,7 @@ msgstr "Oddělovač nepřečtených &zpráv nebo poslední zprávu"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forward_keep_link_preview_label"
 msgid "Keep link pre&views by default when forwarding messages"
-msgstr "Při přeposílání zpráv ve výchozím stavu ponechat &náhledy odkazů"
+msgstr "Při přepos&ílání zpráv ve výchozím stavu ponechat náhledy odkazů"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20904,26 +20904,26 @@ msgid ""
 "For&ward voice messages as voice messages instead of audio (they are still "
 "marked as forwarded)"
 msgstr ""
-"Přeposílat hlasové zprávy jako &hlasové zprávy místo zvuku (dál jsou "
+"Přeposílat hlasové zprávy &jako hlasové zprávy místo zvuku (dál jsou "
 "označené jako přeposlané)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forwarded_prefix_label"
 msgid "A&nnounce \"Forwarded\" at the start of the message, before the sender"
-msgstr "Ohlašovat „Přeposláno“ na &začátku zprávy, před odesílatelem"
+msgstr "Ohl&ašovat „Přeposláno“ na začátku zprávy, před odesílatelem"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_group_media_default_types_label"
 msgid "Message types shown &by default in a group's Media tab"
-msgstr "Typy zpráv zobrazené &ve výchozím stavu na kartě Média skupiny"
+msgstr "Typy zpr&áv zobrazené ve výchozím stavu na kartě Média skupiny"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_hide_own_sender_in_message_list"
 msgid "&Hide the sender on my own messages in the messages list"
-msgstr "&Skrýt odesílatele u mých vlastních zpráv v seznamu zpráv"
+msgstr "Skrýt odesílatele &u mých vlastních zpráv v seznamu zpráv"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20949,7 +20949,7 @@ msgstr ""
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_keep_pinned_chat_order"
 msgid "Keep &pinned chats in a fixed order"
-msgstr "Ponechat &připnuté chaty v pevném pořadí"
+msgstr "Ponechat připnuté &chaty v pevném pořadí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -20958,7 +20958,7 @@ msgid ""
 "&Keep the chat search when opening a chat, so Esc returns to the results "
 "instead of the full list"
 msgstr ""
-"&Ponechat hledání chatů při otevření chatu, aby se Esc vrátil k výsledkům "
+"Ponechat hledání chatů při otevření chatu, &aby se Esc vrátil k výsledkům "
 "místo celého seznamu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -20986,7 +20986,7 @@ msgstr "Ponechat ji v poli zprávy pro další chat"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_message_draft_label"
 msgid "Unsent message &when you leave a conversation"
-msgstr "Neodeslaná zpráva při &odchodu z chatu"
+msgstr "Neodes&laná zpráva při odchodu z chatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21045,7 +21045,7 @@ msgstr "Oddělovač nepřečtených nebo poslední zpráva"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_messages_button"
 msgid "&Messages"
-msgstr "&Zprávy"
+msgstr "Zpr&ávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21060,7 +21060,7 @@ msgid ""
 "&Jump to the Communities panel, with its groups, when opening a community "
 "from the chat list"
 msgstr ""
-"&Přejít do panelu Komunity i s jejich skupinami při otevření komunity ze "
+"Přejít do panelu Komunity &i s jejich skupinami při otevření komunity ze "
 "seznamu chatů"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -21083,7 +21083,7 @@ msgstr "Počet zpráv pro skok dopředu/dozadu klávesami Page Up a Page Down:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
-msgstr "Při připojení přílohy &ponechat napsanou zprávu jako popisek"
+msgstr "Při připoj&ení přílohy ponechat napsanou zprávu jako popisek"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21092,7 +21092,7 @@ msgid ""
 "Stop new messages in the open chat from &joining the unread separator; mark "
 "them as read on arrival"
 msgstr ""
-"Nové zprávy v otevřeném chatu &nepřidávat k oddělovači nepřečtených; označit"
+"Nové zprávy v otevřeném chatu nepřidávat &k oddělovači nepřečtených; označit"
 " je jako přečtené hned po příchodu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -21111,7 +21111,7 @@ msgstr "Automaticky odebírat &dočasné záložky po prvním použití"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_selected_announce_position_end"
 msgid "Announce \"selected\" at &the end of the message or chat"
-msgstr "Ohlašovat „vybráno“ na &konci zprávy nebo chatu"
+msgstr "Ohlašovat „v&ybráno“ na konci zprávy nebo chatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21123,13 +21123,13 @@ msgstr "Kde ohlašovat vybrané položky:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_selected_announce_position_start"
 msgid "&Announce \"selected\" at the start of the message or chat"
-msgstr "&Ohlašovat „vybráno“ na začátku zprávy nebo chatu"
+msgstr "Ohla&šovat „vybráno“ na začátku zprávy nebo chatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_self_reference_custom_label"
 msgid "&Custom word"
-msgstr "&Vlastní slovo"
+msgstr "V&lastní slovo"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
 msgctxt "ui_self_reference_eu"
@@ -21152,7 +21152,7 @@ msgstr "Jak mě označovat?"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_self_reference_other"
 msgid "Oth&er"
-msgstr "&Jiné"
+msgstr "J&iné"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/contacts.py
 msgctxt "ui_self_reference_voce"
@@ -21175,7 +21175,7 @@ msgstr "Zobrazovat &kanály v seznamu chatů"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_show_delivery_status_in_chat_list"
 msgid "&Show last message's delivery status in the chat list"
-msgstr "&Zobrazovat v seznamu chatů stav doručení poslední zprávy"
+msgstr "Zobrazovat v &seznamu chatů stav doručení poslední zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21190,7 +21190,7 @@ msgid ""
 "Display item position and count when using List bo&x mode (Only applies when"
 " List box mode is selected)"
 msgstr ""
-"V režimu seznamového pole zobrazovat pozici a počet &položek (platí jen při "
+"V &režimu seznamového pole zobrazovat pozici a počet položek (platí jen při "
 "zvoleném režimu seznamového pole)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
@@ -21199,7 +21199,7 @@ msgctxt "ui_show_typing_row"
 msgid ""
 "Show who is typing or &recording audio as the last row of the messages list"
 msgstr ""
-"Jako poslední řádek seznamu zpráv zobrazovat, kdo píše nebo &nahrává zvuk"
+"Jako poslední &řádek seznamu zpráv zobrazovat, kdo píše nebo nahrává zvuk"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21217,25 +21217,25 @@ msgstr "&Mezerník vybírá/ruší výběr, když už nějaký výběr existuje"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_starred_prefix_label"
 msgid "Announce \"Starre&d\" at the start of the message, before the sender"
-msgstr "Ohlašovat „S &hvězdičkou“ na začátku zprávy, před odesílatelem"
+msgstr "Ohla&šovat „S hvězdičkou“ na začátku zprávy, před odesílatelem"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_status_media_viewer_dialog_label"
 msgid "Show statuses &in a separate player (opens a new dialog)"
-msgstr "Zobrazovat statusy &v samostatném přehrávači (otevře nové okno)"
+msgstr "Zobrazovat status&y v samostatném přehrávači (otevře nové okno)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_unread_position_after"
 msgid "S&how the number after the chat name"
-msgstr "Zobrazit počet &za názvem chatu"
+msgstr "Zo&brazit počet za názvem chatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_unread_position_before"
 msgid "Show the number &before the chat name"
-msgstr "Zobrazit počet &před názvem chatu"
+msgstr "Zob&razit počet před názvem chatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21247,7 +21247,7 @@ msgstr "Počet nových zpráv v seznamu chatů:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_audio"
 msgid "Aud&io (read all as audio)"
-msgstr "&Zvuk (číst vše jako zvuk)"
+msgstr "Zvuk (&číst vše jako zvuk)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21259,13 +21259,13 @@ msgstr "Čtení hlasových zpráv v chatech a statusech:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_message_mode_voice_message"
 msgid "Voice messa&ge (distinguish voice messages from audio files)"
-msgstr "&Hlasová zpráva (rozlišovat hlasové zprávy od zvukových souborů)"
+msgstr "Hlasová zpráva (&rozlišovat hlasové zprávy od zvukových souborů)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_record_focus_discard"
 msgid "Discard &button"
-msgstr "Tlačítko &Zahodit"
+msgstr "&Tlačítko Zahodit"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21277,7 +21277,7 @@ msgstr "Při nahrávání hlasové zprávy přejít na"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_voice_record_focus_send"
 msgid "S&end button (default)"
-msgstr "Tlačítko &Odeslat (výchozí)"
+msgstr "Tlač&ítko Odeslat (výchozí)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -21799,7 +21799,7 @@ msgstr "&Ano"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "updates_label"
 msgid "Automatically check &for updates"
-msgstr "Automaticky &hledat aktualizace"
+msgstr "Au&tomaticky hledat aktualizace"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/backlog_flood.py client/main_window/sync.py
@@ -22107,7 +22107,7 @@ msgstr "Nahrávám zvuk"
 #: client/ui/dialogs/voice_recording_options.py
 msgctxt "voice_recording_bitrate_label"
 msgid "Voice &message bitrate (kbps)"
-msgstr "Datový tok &hlasové zprávy (kb/s)"
+msgstr "&Datový tok hlasové zprávy (kb/s)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/voice_recording_options.py
@@ -22481,7 +22481,7 @@ msgstr "Nic se nezměnilo."
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "wa_privacy_online_label"
 msgid "Who &can see when I'm online"
-msgstr "Kdo &vidí, že jsem online"
+msgstr "Kdo vidí, &že jsem online"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "wa_privacy_opt_all"
@@ -22516,12 +22516,12 @@ msgstr "Zapnuto"
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "wa_privacy_profile_pic_label"
 msgid "&Profile photo"
-msgstr "&Profilová fotka"
+msgstr "Profilová &fotka"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "wa_privacy_read_receipts_label"
 msgid "&Read receipts"
-msgstr "Potvrzení o &přečtení"
+msgstr "Po&tvrzení o přečtení"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/whatsapp_privacy_panel.py
@@ -22647,7 +22647,7 @@ msgstr "&Soukromí"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "wa_settings_tab_profile"
 msgid "&Profile"
-msgstr "&Profil"
+msgstr "P&rofil"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main.py
 #: client/ui/dialogs/connect.py
@@ -22793,7 +22793,7 @@ msgstr "Vynutit přeinstalaci WPPConnect"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "wpp_port_label"
 msgid "API &port (WPPConnect):"
-msgstr "&Port API (WPPConnect):"
+msgstr "Port &API (WPPConnect):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 msgctxt "wpp_reinstall_notice_message"
