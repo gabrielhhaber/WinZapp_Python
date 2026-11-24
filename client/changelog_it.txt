@@ -4,6 +4,12 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Community: Invio su una community nell'elenco delle chat ora apre il pannello Community con quella community selezionata e il focus sui suoi gruppi, invece della chat della community stessa. L'opzione è in Impostazioni > Interfaccia > Chat, attiva per impostazione predefinita.
+
+- Collegamento con il numero di telefono: il collegamento non fallisce più dopo che WhatsApp sul telefono ha accettato il codice di associazione. WinZapp chiudeva WhatsApp Web durante il ricaricamento che completa l'accesso, o vi chiedeva un nuovo codice, e il telefono mostrava il dispositivo come collegato mentre WinZapp restava sulla finestra di associazione. La finestra del codice ora mostra anche il testo, il codice e Annulla in ordine, invece di disegnarli uno sopra l'altro.
+
+- Quando WhatsApp rifiuta temporaneamente i codici di associazione per un numero, WinZapp lo dice subito, invece di restare su "connessione in corso" per un minuto e mezzo, e suggerisce "Connettiti con il codice QR", che non usa un codice di associazione.
+
 - Copiando solo la didascalia di un messaggio (Ctrl+Shift+C), il lettore di schermo ora dice "Didascalia copiata" invece di "Messaggio copiato", così non sembra che il file (foto, video o documento) sia stato copiato.
 
 - Il nome del contatto nel messaggio citato di una risposta ora segue il suo nome di profilo più recente invece di mostrarne uno vecchio, anche quando i suoi messaggi originali erano già aggiornati. Vale per Neonize e WPPConnect.
@@ -647,6 +653,8 @@ WHAT'S NEW
 - Neonize: quando il ponte di connessione non riesce ad avviarsi, WinZapp ora lo annuncia subito a voce, invece di perdere l'avviso quando il programma si bloccava mostrandolo, e scrive nel log la fine dell'output del ponte e l'architettura del processore del computer, così che la causa si possa trovare.
 
 - Neonize su Windows ARM: il ponte di connessione non smette più di avviarsi (e l'abbinamento con il codice QR non resta più bloccato) perché chiedeva la versione ARM della sua libreria, che il programma non riesce a caricare; ora usa quella dell'architettura con cui gira davvero.
+
+- Corretto: con l'installazione all'uscita attiva, dopo l'avviso che l'aggiornamento era stato scaricato, Guida > Installa l'aggiornamento scaricato restava non disponibile. Ora la voce è disponibile e installa subito l'aggiornamento, poi riavvia WinZapp; uscire continua a installare senza riavviare.
 
 V2.1.0.0
 

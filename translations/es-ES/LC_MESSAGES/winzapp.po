@@ -11605,11 +11605,13 @@ msgstr "Código de emparejamiento:"
 msgctxt "pairing_code_rate_limited"
 msgid ""
 "WhatsApp is temporarily limiting pairing code requests for this number. Wait"
-" a few minutes and try again in {app_name}."
+" a few minutes and try again in {app_name}. Or choose “Connect with QR code”"
+" instead: it does not use a pairing code."
 msgstr ""
 "WhatsApp está limitando temporalmente las solicitudes de código de "
 "emparejamiento para este número. Espere unos minutos e inténtelo de nuevo en"
-" {app_name}."
+" {app_name}. O elija «Conectar con código QR»: no usa un código de "
+"emparejamiento."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/dialogs/connect.py
 msgctxt "pairing_dial_intro"
@@ -21408,6 +21410,16 @@ msgstr "&Mensajes"
 msgctxt "ui_messages_page_size_label"
 msgid "When opening a chat, show &up to this many messages:"
 msgstr "Al abrir un chat, mostrar número de mensajes &hasta:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_open_communities_in_panel"
+msgid ""
+"&Jump to the Communities panel, with its groups, when opening a community "
+"from the chat list"
+msgstr ""
+"Abrir las comunidades de la lista de chats en el panel Comunidades, con sus "
+"&grupos"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

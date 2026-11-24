@@ -1,0 +1,67 @@
+<!--nav: 🔌 Primeros pasos-->
+<p class="lead">WinZapp es un cliente de WhatsApp para Windows hecho para personas que usan lector de pantalla (NVDA, JAWS o Narrator). Funciona como WhatsApp Web: tu teléfono sigue siendo el dispositivo principal y WinZapp se une como dispositivo vinculado.</p>
+
+<h3>Instalar</h3>
+<p>Descarga siempre desde la página de Releases del repositorio oficial (<code>github.com/gabrielhhaber/WinZapp_Python/releases</code>). Las copias en otros sitios no son del proyecto. Cada versión trae estos archivos:</p>
+<table class="field-table">
+  <tr><th>Archivo</th><th>Para qué sirve</th></tr>
+  <tr><td class="field-name">WinZappInstaller.exe</td><td>El instalador. La opción correcta para la mayoría. Se instala en <code>%LOCALAPPDATA%\WinZapp</code> (no necesita administrador), puede crear accesos directos en el escritorio y en el menú Inicio y registra un desinstalador en Configuración de Windows &gt; Aplicaciones.</td></tr>
+  <tr><td class="field-name">WinZapp.zip</td><td>El mismo programa en versión portátil. Extráelo en una carpeta de un disco local y ejecuta <code>WinZapp.exe</code>.</td></tr>
+  <tr><td class="field-name">SHA256SUMS.txt</td><td>Sumas de verificación para comprobar la descarga.</td></tr>
+</table>
+<div class="callout warn">
+  <div class="callout-title">⚠️ Disco local</div>
+  WinZapp no funciona desde una carpeta de red (como <code>\\servidor\carpeta</code>, o la carpeta Descargas de una máquina virtual). Si ocurre, te avisa y explica qué hacer: instalar con WinZappInstaller o mover la carpeta a un disco de tu propio ordenador.
+</div>
+<p>Requisitos: Windows 10 u 11 de 64 bits, conexión a internet y una cuenta de WhatsApp en el teléfono.</p>
+
+<h3>Estable o alpha</h3>
+<ul>
+  <li><strong>Estable:</strong> hecha a mano y recomendada. Es la marcada como "Latest" en la página de Releases.</li>
+  <li><strong>Alpha:</strong> marcada como "Pre-release". Se genera automáticamente con cada cambio de la línea principal, sin pruebas largas, así que puede tener defectos. El número termina en "alpha" (por ejemplo, <code>2.1.0.4397alpha</code>; los últimos dígitos cuentan los cambios hechos en el proyecto).</li>
+</ul>
+<p>Por defecto solo recibes versiones estables. Para recibir también las alphas, marca "Buscar actualizaciones alpha (inestables)" en Configuración &gt; General.</p>
+
+<h3>Primer inicio</h3>
+<p>La primera vez, WinZapp descarga y prepara por sí solo los componentes que hablan con WhatsApp Web (el servidor WPPConnect y un navegador Chromium interno). Esto necesita internet y muestra una ventana de progreso con el título "Iniciando WPPConnect, por favor espera...". En los inicios siguientes, con la cuenta ya vinculada, la ventana principal y tus chats aparecen al instante y WhatsApp se conecta en segundo plano. Los mensajes que envíes mientras tanto esperan y salen en cuanto la conexión esté lista. El título de la ventana muestra "iniciando WPPConnect..." hasta que todo esté listo.</p>
+
+<h3>Vincular tu cuenta</h3>
+<p>La pantalla de conexión ofrece dos formas de emparejar:</p>
+<ol class="steps">
+  <li><span class="step-num">1</span><div><strong>Número de teléfono:</strong> Si todavía no has vinculado, la lista "Motor de conexión", antes del país, permite elegir entre Neonize y WPPConnect (alternativa) sin abrir la configuración; al elegir, WinZapp pide confirmación y se reinicia con el motor elegido. elige el país (la lista está en orden alfabético, usa el país y el idioma de Windows y admite escribir varias letras para buscar), escribe el número y continúa. WinZapp muestra un código. En el teléfono, abre WhatsApp, ve a Dispositivos vinculados &gt; Vincular un dispositivo y elige vincular con número de teléfono.</div></li>
+  <li><span class="step-num">2</span><div><strong>Código QR:</strong> escanea el código de la pantalla con WhatsApp en el teléfono, en Dispositivos vinculados.</div></li>
+</ol>
+<p>WinZapp anuncia cuándo se está generando el código, cuándo aparece de verdad, cuándo caduca y cuándo no se pudo generar. Si WhatsApp rechaza el código, el mensaje explica el motivo.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 Vincular un número distinto</div>
+  Cerrar o cancelar la pantalla de emparejamiento no borra tus chats. El historial solo se borra cuando se conecta de verdad un número de teléfono distinto, y en ese caso WinZapp te avisa.
+</div>
+
+<h3>Dónde están tus datos</h3>
+<p>Todo está en una carpeta <code>data</code> junto al programa: cuentas, historial de mensajes, medios descargados y registros. Con el instalador, es <code>%LOCALAPPDATA%\WinZapp\data</code>. Haz una copia de esa carpeta si quieres llevar tu historial a otro ordenador. El contenido de los mensajes y el token de sesión se guardan cifrados.</p>
+
+<h3>Actualizaciones</h3>
+<p>WinZapp busca versiones nuevas por sí solo y ofrece descargarlas e instalarlas. Para comprobar ahora, usa Ayuda &gt; Comprobar actualizaciones (si no se puede llegar al servidor de actualizaciones, te lo dice). Algunas cosas útiles:</p>
+<ul>
+  <li>Con "Descargar las actualizaciones y las descargas de la transcripción en segundo plano, sin la ventana de progreso" (Configuración &gt; General), sigues usando el programa, conectado, mientras la actualización se descarga; solo cuando está lista WinZapp avisa de que va a instalar. Si estás en una llamada, el aviso espera a que termine.</li>
+  <li>Ayuda &gt; Instalar actualización descargada instala al momento una actualización ya descargada, tanto la que dejó para más tarde como la que guarda la opción de instalar al salir. Instalada así, WinZapp se abre de nuevo al terminar; salir sigue instalando sin reabrir.</li>
+  <li>Cancelar la ventana de progreso antes de que empiece la instalación detiene la actualización con seguridad.</li>
+  <li>El paquete descargado se conserva mientras espera para instalarse. Cuando WinZapp se cierre, espera a que termine el instalador antes de volver a abrirlo. Si la instalación no termina, alcanzar el límite de espera no reabre WinZapp automáticamente. Una copia incompleta es un fallo; una actualización posterior correcta elimina el aviso del fallo anterior. Si la copia falla o no se puede confirmar su finalización, WinZapp permanece cerrado y abre instrucciones de recuperación en el Bloc de notas. Espera a que termine el instalador antes de reparar. Haz una copia de seguridad de tu carpeta data actual, repara los archivos del programa con el instalador oficial o ZIP y conserva tu carpeta data. La nota muestra la carpeta de instalación y la ubicación del registro de la actualización.</li>
+  <li>Con más de una cuenta abierta, la actualización abre una sola ventana y cierra las demás cuentas antes de instalar.</li>
+  <li>Ayuda &gt; Forzar reinstalación de WPPConnect y Forzar reinstalación desde el archivo ZIP sirven para cuando algo del servidor local se desajusta.</li>
+  <li>Ayuda &gt; Novedades muestra qué cambió en cada versión, y Ayuda &gt; "Novedades desde la última vez que miraste..." resume solo lo que es nuevo para ti, en frases sencillas. El botón "¿Qué hay de nuevo?" de la ventana de actualización muestra lo que cambia la versión ofrecida; en una alpha, también lista los cambios de cada alpha desde la tuya.</li>
+</ul>
+
+<h3>Comprobar la descarga</h3>
+<p>Cada versión trae un <code>SHA256SUMS.txt</code>. Para comprobarlo en CMD:</p>
+<p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
+<p>El valor debe coincidir con el de la línea del archivo. Si es distinto, borra el archivo y descárgalo de nuevo. El actualizador de WinZapp también comprueba la suma (y, en las versiones más nuevas, la firma) antes de instalar.</p>
+
+<p>En el motor Neonize, la ventana de conexión pregunta cuánto historial traer al conectar: solo los mensajes recientes, 30 días, 6 meses, 1 año, todo el historial o un periodo personalizado (días, meses o años, escrito en el campo que aparece debajo). El teléfono envía el historial una vez, al conectar; los mensajes de hace más de un año solo llegan así. Si cambias la elección con el código QR en pantalla, se genera un nuevo código QR con ella.</p>
+
+<h3>Sonidos que se instalarán</h3>
+<p>Instalador: un nuevo grupo "Sonidos que se instalarán" permite elegir entre "Todos los sonidos de WinZapp" (el predeterminado) y "Solo los sonidos originales de WhatsApp". Con la segunda opción, los demás sonidos no se conservan en la instalación, y las actualizaciones siguen dejándolos fuera.</p>
+<p>Actualización: la ventana de actualización tiene el botón "Ajustes adicionales" (Alt+A), después de "Sí", "No" y "¿Qué hay de nuevo?". Abre una ventana con "Todos los sonidos de WinZapp" y "Solo los sonidos originales de WhatsApp", con la elección actual indicada, y los botones "OK" y "Cancelar". La elección vale cuando se instala la actualización: con solo los sonidos originales se eliminan los sonidos adicionales de WinZapp; al elegir todos de nuevo, vuelven con la actualización. Los paquetes de sonidos importados, tus archivos de sonido y tus preferencias no cambian.</p>
+
+<h3>Versión portátil con una cuenta ya instalada</h3>
+<p>Versión portátil: en el primer inicio, cuando el WinZapp instalado en el equipo tiene cuentas vinculadas, WinZapp pregunta si quieres usar una copia de ellas en lugar de vincular un dispositivo más. La instalación solo se lee; si está abierta, WinZapp te pide que la cierres y elijas Reintentar, y si la copia falla no se cambia nada y se vincula un dispositivo nuevo.</p>

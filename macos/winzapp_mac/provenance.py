@@ -304,6 +304,33 @@ def resolve_build_source(git, fetch, tag_hint=""):
     return tag, head
 
 
+def resolve_local_build_source(git, fetch, base_tag):
+    """Build time, for the Mac maintainer's own builds: (base_tag, HEAD) when
+    HEAD is a clean commit that CONTAINS the commit *base_tag* points at in the
+    official repository. Raises ProvenanceError otherwise.
+
+    Such a build runs fixes not yet released, and still updates: the updater
+    offers only releases newer than *base_tag*, and every download is verified
+    against the official repository exactly as before (verify_release). Nothing
+    here is trusted by anyone else — a local build is never zipped as a release
+    (build_app.py refuses --zip with it) — so naming the release it was built
+    on top of weakens no check; it only tells the updater where it stands."""
+    if not is_release_tag(base_tag):
+        raise ProvenanceError(f"{base_tag!r} is not a release tag")
+    head = git("rev-parse", "HEAD")
+    if not is_commit(head):
+        raise ProvenanceError("HEAD is not a full commit id")
+    if git("status", "--porcelain", "--untracked-files=no"):
+        raise ProvenanceError("tracked files differ from HEAD; commit first")
+    official = resolve_official_tag(base_tag, fetch)
+    try:
+        git("merge-base", "--is-ancestor", official, head)
+    except Exception:
+        raise ProvenanceError(
+            f"HEAD {head[:12]} does not contain {OFFICIAL_REPO}'s {base_tag} ({official[:12]})")
+    return base_tag, head
+
+
 def verify_release(raw, tag, running_tag, fetch, running_commit=""):
     """(ok, detail) before anything is downloaded: the provenance in *raw* is
     valid, belongs to release *tag*, is newer than *running_tag*, and the

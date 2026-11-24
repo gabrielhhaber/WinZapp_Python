@@ -4,6 +4,12 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Społeczności: Enter na społeczności na liście czatów otwiera teraz panel Społeczności z zaznaczoną tą społecznością i fokusem na jej grupach zamiast czatu samej społeczności. Opcja jest w Ustawieniach > Interfejs > Czaty, domyślnie włączona.
+
+- Łączenie za pomocą numeru telefonu: połączenie nie kończy się już błędem po tym, jak WhatsApp na telefonie zaakceptuje kod parowania. WinZapp zamykał WhatsApp Web podczas przeładowania, które kończy logowanie, albo prosił na nim o nowy kod, więc telefon pokazywał urządzenie jako połączone, a WinZapp zostawał w oknie parowania. Okno kodu pokazuje teraz też tekst, kod i Anuluj po kolei, zamiast rysować je jedno na drugim.
+
+- Gdy WhatsApp tymczasowo odmawia kodów parowania dla numeru, WinZapp mówi o tym od razu, zamiast przez półtorej minuty pozostawać w stanie "łączenie", i proponuje "Połącz za pomocą kodu QR", które nie używa kodu parowania.
+
 - Po skopiowaniu samego podpisu wiadomości (Ctrl+Shift+C) czytnik ekranu mówi teraz „Podpis skopiowany” zamiast „Wiadomość skopiowana”, żeby nie sprawiało to wrażenia, że skopiowano plik (zdjęcie, film lub dokument).
 
 - Nazwa kontaktu w cytowanej wiadomości odpowiedzi odpowiada teraz jego najnowszej nazwie profilu zamiast starej, nawet gdy jego oryginalne wiadomości były już zaktualizowane. Dotyczy Neonize i WPPConnect.
@@ -648,6 +654,8 @@ NOWOŚCI
 - Neonize: gdy most połączenia nie może się uruchomić, WinZapp od razu mówi o tym głosem, zamiast gubić komunikat, gdy program zawieszał się przy jego wyświetlaniu, i zapisuje w logu koniec wyjścia samego mostu oraz architekturę procesora komputera, aby można było znaleźć przyczynę.
 
 - Neonize w systemie Windows na ARM: most połączenia nie przestaje już się uruchamiać (a parowanie kodem QR nie utyka), bo żądał wersji ARM swojej biblioteki, której program nie może załadować; teraz używa wersji dla architektury, na której naprawdę działa.
+
+- Naprawiono: gdy włączona była instalacja przy wyjściu, po komunikacie o pobraniu aktualizacji opcja Pomoc > Zainstaluj pobraną aktualizację nadal była niedostępna. Teraz jest dostępna i od razu instaluje aktualizację, a potem ponownie uruchamia WinZapp; wyjście nadal instaluje bez ponownego uruchamiania.
 
 V2.1.0.0
 

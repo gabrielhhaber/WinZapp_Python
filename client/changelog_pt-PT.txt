@@ -4,6 +4,12 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Comunidades: Enter numa comunidade da lista de conversas abre agora o painel Comunidades com essa comunidade selecionada e o foco nos respetivos grupos, em vez da conversa da própria comunidade. A opção está em Definições > Interface > Conversas, ativada por predefinição.
+
+- Ligação pelo número de telefone: a ligação já não falha depois de o WhatsApp do telemóvel aceitar o código de emparelhamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o início de sessão, ou pedia um novo código nele, e o telemóvel mostrava o dispositivo como ligado enquanto o WinZapp continuava na janela de emparelhamento. A janela do código passa também a mostrar o texto, o código e Cancelar por ordem, em vez de os desenhar uns sobre os outros.
+
+- Quando o WhatsApp recusa temporariamente códigos de emparelhamento para um número, o WinZapp avisa de imediato, em vez de ficar em "a ligar" durante um minuto e meio, e sugere "Ligar-se através do código QR", que não usa código de emparelhamento.
+
 - Copiar só a legenda de uma mensagem (Ctrl+Shift+C) passa a fazer o leitor de ecrã dizer "Legenda copiada", e não "Mensagem copiada", para não parecer que o ficheiro (foto, vídeo ou documento) foi copiado.
 
 - O nome do contacto na mensagem citada de uma resposta passa a seguir o nome mais recente do perfil, em vez de mostrar um nome antigo, mesmo quando as mensagens originais dessa pessoa já estavam atualizadas. Aplica-se ao Neonize e ao WPPConnect.
@@ -647,6 +653,8 @@ NOVIDADES
 - Neonize: quando a bridge de ligação não consegue iniciar, o WinZapp passa a avisar por voz de imediato, em vez de o aviso se perder quando o programa bloqueava ao mostrá-lo, e grava no registo o final da saída da própria bridge e a arquitetura do processador do computador, para que a causa possa ser encontrada.
 
 - Neonize no Windows em ARM: a bridge de ligação deixa de falhar ao iniciar (e o emparelhamento por código QR deixa de ficar bloqueado) por pedir a versão ARM da sua biblioteca, que o programa não consegue carregar; passa a usar a da arquitetura em que realmente corre.
+
+- Corrigido: com a instalação ao sair ativada, depois de avisar que a atualização foi transferida, Ajuda > Instalar atualização transferida continuava indisponível. Agora o item fica disponível e instala a atualização de imediato, voltando a abrir o WinZapp em seguida; sair continua a instalar sem voltar a abrir.
 
 V2.1.0.0
 

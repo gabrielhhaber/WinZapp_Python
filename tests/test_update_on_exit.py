@@ -62,6 +62,7 @@ class TestNoRelaunch:
 
 class _Checker:
     install_staged_on_exit = UpdateOnExitMixin.install_staged_on_exit
+    install_staged_now = UpdateOnExitMixin.install_staged_now
     _continue_exit_without_install = UpdateOnExitMixin._continue_exit_without_install
     _say_staged_or_background_update = UpdateOnExitMixin._say_staged_or_background_update
 
@@ -83,6 +84,27 @@ class _Checker:
 
     def _release_prompt(self):
         self.released += 1
+
+
+class TestInstallStagedFromTheHelpMenu:
+    """Help > "Install downloaded update" must work for the package the
+    install-on-exit mode holds, not only for one left with "Install later"."""
+
+    def test_the_menu_sees_a_staged_package_and_installs_it_with_a_relaunch(self, tmp_path):
+        import pending_install
+        args = ("9.9", "zip", "sums", "sig", True)
+        checker = _Checker((args, str(tmp_path)))
+        checker._pending_install = None
+        mw = types.SimpleNamespace(_update_checker=checker, _pending_wpp_install=None,
+                                   i18n=checker._mw.i18n, output=lambda *a, **k: None)
+        assert pending_install.has_pending(mw)
+        assert pending_install.install_pending(mw, may_interrupt=lambda w: True) is True
+        assert checker.installs == [(args, {"extracted_dir": str(tmp_path)})]
+        assert checker._staged_update is None
+        assert not pending_install.has_pending(mw)
+
+    def test_nothing_staged_installs_nothing(self):
+        assert _Checker().install_staged_now() is False
 
 
 class TestInstallOnExit:

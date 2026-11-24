@@ -28,8 +28,15 @@ def ask_install_now(mw, text, title) -> bool:
 
 
 def app_pending(mw):
+    """A WinZapp package waiting for the user: one left with "Install later"
+    (`_pending_install`) or one the install-on-exit mode downloaded and holds
+    (`_staged_update`, update_on_exit.py). Its notice says "ready", so the menu
+    item must be there for it too."""
     checker = getattr(mw, "_update_checker", None)
-    return getattr(checker, "_pending_install", None) if checker is not None else None
+    if checker is None:
+        return None
+    return (getattr(checker, "_pending_install", None)
+            or getattr(checker, "_staged_update", None))
 
 
 def wpp_pending(mw):
@@ -87,6 +94,10 @@ def install_pending(mw, may_interrupt=None) -> bool:
         mw._install_staged_wpp_now(target_tag, staged, finished)
         return True
     logging.info("[pending-install] installing the downloaded WinZapp update")
-    mw._update_checker.install_pending_update()
+    checker = mw._update_checker
+    if getattr(checker, "_pending_install", None):
+        checker.install_pending_update()
+    else:
+        checker.install_staged_now()
     refresh_menu(mw)
     return True

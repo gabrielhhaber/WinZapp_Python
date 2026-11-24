@@ -1204,6 +1204,10 @@ DEFAULT_SETTINGS = {
         "hide_unnamed_sender_numbers": False,
         "mark_unsaved_contacts": True,
         "show_delivery_status_in_chat_list": True,
+        # On: Enter on a community in the chat list opens the Communities panel
+        # with that community and its groups (ConversationNavigation). Off: it
+        # opens the community's own chat, as before.
+        "open_communities_in_panel": True,
         "keep_pinned_chat_order": False,
         "show_channels_in_chat_list": False,
         # What happens to what was typed and not sent when the conversation

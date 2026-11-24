@@ -106,6 +106,22 @@ def pairing_startup_settled(data) -> bool:
             or status in _PAIRING_STARTUP_DEAD_STATUSES)
 
 
+def layout_pairing_controls(window, instructions, label, field, cancel):
+    """Lay the pairing-code window out in reading order: instructions, the
+    code's label, the code, Cancel. Without a sizer every control sat at the
+    window's origin, drawn on top of each other, and the instructions' "the
+    pairing code below" pointed at nothing below."""
+    sizer = wx.BoxSizer(wx.VERTICAL)
+    sizer.Add(instructions, 0, wx.ALL | wx.EXPAND, 10)
+    instructions.Wrap(380)
+    sizer.Add(label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 10)
+    sizer.Add(field, 0, wx.ALL | wx.EXPAND, 10)
+    sizer.Add(cancel, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 10)
+    window.SetSizerAndFit(sizer)
+    window.SetMinSize(window.GetSize())
+    return sizer
+
+
 class Connect:
     def __init__(self, main_window):
         self.main_window = main_window
@@ -1905,6 +1921,10 @@ class Connect:
         self.pairing_code_field = wx.TextCtrl(self.pairing_dial, style=wx.TE_CENTER | wx.TE_READONLY | wx.TE_DONTWRAP, value=pairing_code)
         self.cancel_btn = wx.Button(self.pairing_dial, label=self.i18n.t("cancel_pairing"))
         self.cancel_btn.Bind(wx.EVT_BUTTON, self.on_cancel_pairing)
+
+        layout_pairing_controls(self.pairing_dial, self.pairing_instructions,
+                                self.pairing_code_label, self.pairing_code_field,
+                                self.cancel_btn)
 
         self.pairing_dial.CentreOnParent()
 

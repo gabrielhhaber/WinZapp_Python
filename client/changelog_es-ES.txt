@@ -4,6 +4,12 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Comunidades: Intro sobre una comunidad de la lista de chats abre ahora el panel Comunidades con esa comunidad seleccionada y el foco en sus grupos, en lugar del chat de la propia comunidad. La opción está en Ajustes > Interfaz > Chats, activada de forma predeterminada.
+
+- Vincular con el número de teléfono: la vinculación ya no falla después de que WhatsApp en el teléfono acepte el código de emparejamiento. WinZapp cerraba WhatsApp Web durante la recarga que completa el inicio de sesión, o pedía en ella un código nuevo, y el teléfono mostraba el dispositivo como vinculado mientras WinZapp seguía en la ventana de emparejamiento. La ventana del código también muestra ahora el texto, el código y Cancelar en orden, en lugar de dibujarlos unos encima de otros.
+
+- Cuando WhatsApp rechaza temporalmente los códigos de emparejamiento de un número, WinZapp lo dice al momento, en lugar de quedarse en "conectando" durante un minuto y medio, y sugiere "Conectar con código QR", que no usa código de emparejamiento.
+
 - Al copiar solo la leyenda de un mensaje (Ctrl+Shift+C), el lector de pantalla ahora dice "Leyenda copiada" en lugar de "Mensaje copiado", para que no parezca que se copió el archivo (foto, vídeo o documento).
 
 - El nombre del contacto en el mensaje citado de una respuesta ahora sigue su nombre de perfil más reciente en lugar de mostrar uno antiguo, aunque sus mensajes originales ya estuvieran actualizados. Vale para Neonize y WPPConnect.
@@ -647,6 +653,8 @@ NOVEDADES
 - Neonize: cuando el puente de conexión no consigue iniciarse, WinZapp ahora lo avisa por voz al instante, en lugar de que el aviso se perdiera cuando el programa se bloqueaba al mostrarlo, y guarda en el registro el final de la salida del propio puente y la arquitectura del procesador del equipo, para poder encontrar la causa.
 
 - Neonize en Windows sobre ARM: el puente de conexión ya no deja de iniciarse (y el emparejamiento por código QR ya no se queda bloqueado) por pedir la versión ARM de su biblioteca, que el programa no puede cargar; ahora usa la de la arquitectura con la que realmente se ejecuta.
+
+- Corregido: con la instalación al salir activada, tras avisar de que la actualización se había descargado, Ayuda > Instalar actualización descargada seguía sin estar disponible. Ahora el elemento está disponible e instala la actualización al momento y vuelve a abrir WinZapp; salir sigue instalando sin reabrir.
 
 V2.1.0.0
 

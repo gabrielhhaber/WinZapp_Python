@@ -20,6 +20,7 @@ import threading
 
 import wx
 
+import pending_install
 from update_package import discard_package, download_update_package
 
 SETTING = "update_on_exit"
@@ -76,6 +77,8 @@ class UpdateOnExitMixin:
                      new_version)
         wx.CallAfter(mw.output, mw.i18n.t("update_on_exit_ready").format(version=new_version),
                      False)
+        # Help > "Install downloaded update" becomes available (pending_install.py).
+        wx.CallAfter(pending_install.refresh_menu, mw)
 
     def _say_staged_or_background_update(self) -> None:
         """A check the user asked for while an update is held or downloading."""
@@ -94,6 +97,28 @@ class UpdateOnExitMixin:
         self._exit_fallback = None
         if callback is not None:
             wx.CallAfter(callback)
+
+    def install_staged_now(self) -> bool:
+        """Main thread, from Help > "Install downloaded update": install the
+        held package now instead of waiting for Exit, and start WinZapp again
+        afterwards like any other update the user chose to install. False when
+        nothing is staged."""
+        staged = getattr(self, "_staged_update", None)
+        if not staged or getattr(self, "_install_pending", False):
+            return False
+        if getattr(self._mw, "_shutting_down", False):
+            return False
+        args, extract_dir = staged
+        self._staged_update = None
+        pending_install.refresh_menu(self._mw)
+        logging.info("Auto-updater: installing the staged %s on the user's request.", args[0])
+        try:
+            self._do_install(*args, extracted_dir=extract_dir)
+        finally:
+            # Still here: the install did not take the app down. The prompt
+            # claim was released by _do_install().
+            self._background_version = ""
+        return True
 
     def install_staged_on_exit(self) -> bool:
         """Main thread, from the Exit command. True when the install took over
