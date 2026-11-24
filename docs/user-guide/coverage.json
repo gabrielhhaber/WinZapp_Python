@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "90fe2e178f12": "Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia",
     "0e693d370d0d": "Conectar com QR-CODE: o QR Code voltou a aparecer. Nas versões mais recentes do ",
     "2936d96aa8d2": "Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Com",
     "09fbe7002b47": "Conectar pelo número de telefone: a conexão não falha mais depois que o WhatsApp",
@@ -335,6 +336,9 @@
     "73eaa785a812": "Neonize: quando a bridge de conexão não consegue iniciar, o WinZapp agora avisa ",
     "42121ad126e2": "Neonize no Windows em ARM: a bridge de conexão não deixa mais de iniciar (e o pa",
     "34917b3be826": "Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização f",
-    "9162dac61c67": "Neonize: quando a bridge de conexão demora demais para iniciar, o log do program"
+    "9162dac61c67": "Neonize: quando a bridge de conexão demora demais para iniciar, o log do program",
+    "1676e3a04355": "Corrigido: depois de trocar o dispositivo de áudio, os sons de notificação (toas",
+    "e2761794715e": "No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na ",
+    "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio"
   }
 }

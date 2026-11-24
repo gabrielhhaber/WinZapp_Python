@@ -2,7 +2,7 @@
 """Gera as tabelas de atalhos do guia a partir do catálogo do WinZapp.
 
 Uso: python generate_shortcuts.py <pasta-do-repositorio-winzapp> <idioma> [saida.html]
-  idioma: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar ou it
+  idioma: pt-BR, pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it ou cs
 
 Lê client/core/shortcut_catalog.py e o PO pt-BR do próprio repositório, então
 as tabelas nunca ficam desatualizadas em relação ao código.

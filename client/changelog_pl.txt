@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Czeski: WinZapp jest teraz dostępny po czesku (Čeština): interfejs, przewodnik użytkownika, instalator i dezinstalator (które podążają za językiem wyświetlania Windows) oraz te informacje o wersji. Czeski jest też dostępny jako język tłumaczenia wiadomości, a sprawdzanie pisowni go obsługuje. Dziękujemy jaxcze za tłumaczenie.
+
 - Połącz za pomocą kodu QR: kod QR znowu się pojawia. W najnowszych wersjach WhatsApp Web niektóre komputery dostają osobną stronę logowania, tylko z ekranem kodu QR, i na niej WinZapp łączył się, aż w końcu rezygnował, nie pokazując kodu. WinZapp używa teraz wersji WhatsApp Web z pełną aplikacją, a jeśli mimo to dostanie stronę logowania, pokazuje kod QR w ciągu kilku sekund.
 
 - Społeczności: Enter na społeczności na liście czatów otwiera teraz panel Społeczności z zaznaczoną tą społecznością i fokusem na jej grupach zamiast czatu samej społeczności. Opcja jest w Ustawieniach > Interfejs > Czaty, domyślnie włączona.
@@ -70,7 +72,7 @@ NOWOŚCI
 
 - Neonize: WinZapp ogłasza rozpoczęcie przesyłania historii wiadomości z telefonu i prosi o pozostawienie WhatsAppa otwartego na jego ekranie. Informuje też o zatrzymaniu przesyłania, podając osiągnięty procent postępu, oraz o wznowieniu i zakończeniu transferu. Podczas przerwy co 90 sekund ponawia prośbę o pozostałą część historii.
 
-- Neonize: WinZapp prosi teraz także o czaty pominięte przez WhatsAppa na iPhonie w pierwszej partii historii i je importuje. Ta pierwsza partia zawiera obecnie tylko 400 czatów.
+- Neonize: WinZapp prosi teraz także o czaty pominięte przez WhatsAppa na iPhonie w pierwszej partii historii i je importuje. Ta pierwsza partia zawiera obecnie tylko 400 czatów. Gdy telefon nie wysyła listy pominiętych czatów, WinZapp po zakończeniu historii parowania prosi telefon o brakujące czaty i czeka kilka minut na odpowiedź, zanim uzna synchronizację za zakończoną.
 
 - Neonize: usunięcie listy usuwa ją także z jej czatów, więc nie wskazują już na nieistniejącą listę.
 
@@ -660,6 +662,12 @@ NOWOŚCI
 - Naprawiono: gdy włączona była instalacja przy wyjściu, po komunikacie o pobraniu aktualizacji opcja Pomoc > Zainstaluj pobraną aktualizację nadal była niedostępna. Teraz jest dostępna i od razu instaluje aktualizację, a potem ponownie uruchamia WinZapp; wyjście nadal instaluje bez ponownego uruchamiania.
 
 - Neonize: gdy most połączenia uruchamia się zbyt długo, log programu mówi teraz, czy nadal działa, i pokazuje ostatnie linie jego wyjścia, a most zapisuje w swoim logu każdy krok startu na bieżąco, więc most zatrzymany w połowie pokazuje gdzie.
+
+- Naprawiono: po zmianie urządzenia audio dźwięki powiadomień (toast) przestawały być odtwarzane, a nagrania w rozmowach i pozostałe dźwięki WinZapp nadal działały. Zmiana urządzenia unieważniała już wczytane dźwięki powiadomień; teraz są ponownie wczytywane razem z pozostałymi dźwiękami.
+
+- W Neonize kontakt zapisany z imieniem i nazwiskiem nie traci już nazwiska w rozmowie po kilku sekundach: pełna nazwa jest zapisywana w prawidłowej kolejności, więc rozmowa nadal pokazuje na przykład „Nuno Soares”, a nie samo „Nuno”.
+
+- Neonize: gdy most połączenia zawiesza się podczas uruchamiania, po 25 sekundach zapisuje teraz w swoim logu, w którym miejscu utknął.
 
 V2.1.0.0
 

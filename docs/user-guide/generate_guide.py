@@ -12,7 +12,7 @@ import json, re, subprocess, sys
 from pathlib import Path
 
 AQUI = Path(__file__).parent
-IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro', 'ar', 'it']
+IDIOMAS = ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pl', 'tr-TR', 'ro', 'ar', 'it', 'cs']
 
 def gerar(repo, loc, pasta_saida=None):
     t = json.loads((AQUI / 'i18n' / f'{loc}.json').read_text(encoding='utf-8'))

@@ -1,0 +1,140 @@
+<!--nav: 📨 Uvnitř chatu-->
+<p class="lead">Když otevřete chat, uvidíte seznam zpráv a pole pro zprávu. Každá zpráva je řádek, který čtečka obrazovky přečte s odesílatelem, obsahem a stavem.</p>
+
+<h3>Odesílání zpráv</h3>
+<p>Pište do pole pro zprávu a stiskněte Enter; Shift+Enter vloží nový řádek. Odesílání probíhá přes frontu na pozadí. Pokud WhatsApp zprávu přijme, ale nepotvrdí doručení, WinZapp vám řekne, abyste před dalším odesláním zkontrolovali chat, aby zpráva nebyla doručena dvakrát. Odesílat zprávy lze i sobě (chat "Já (zprávy sobě)").</p>
+<ul>
+  <li><strong>Emotikony se při psaní mění na emoji</strong>: <code>:)</code> se změní na 🙂, <code>:D</code> na 😃, <code>&lt;3</code> na ❤️, jakmile za nimi napíšete mezeru nebo interpunkci. Backspace hned po převodu vrátí to, co jste napsali. Lze to vypnout v Nastavení &gt; Obecné. Ctrl+. otevře výběr emoji (šipky vlevo a vpravo mění odstín pleti).</li>
+  <li><strong>Kontrola pravopisu:</strong> speciální zvuk zazní, když napíšete slovo chybně, když za ním napíšete interpunkci a když kurzor dojde na chybně napsané slovo. V kontextové nabídce pole nabízí podnabídka "Pravopis" návrhy ze slovníku Windows. V Nastavení si zvolíte, zda se řídit Windows, mít kontrolu vždy zapnutou, nebo vždy vypnutou.</li>
+  <li><strong>Zmínky:</strong> napište <code>@</code> a vyberte osobu (Enter vloží zmínku, Esc zavře seznam). Ve skupinách funguje také <code>@all</code>.</li>
+</ul>
+<p>V F1 je "Návrhy zmínek" seznam zobrazený při psaní @: Enter vloží vybranou zmínku a Esc návrhy zavře. "Zmínky v této zprávě" se týká osob zmíněných v přijaté nebo odeslané zprávě: Enter nebo Mezerník otevře vybranou zmínku. Jsou to oddělené kontexty, i když sdílejí klávesy.</p>
+
+<h3>Čtení zpráv</h3>
+<table class="field-table">
+  <tr><th>Zkratka</th><th>Akce</th></tr>
+  <tr><td class="field-name">Alt+2</td><td>Přejít na poslední zprávu</td></tr>
+  <tr><td class="field-name">Alt+3</td><td>Přejít na nepřečtené zprávy (také Alt+U a Ctrl+L)</td></tr>
+  <tr><td class="field-name">Alt+L</td><td>Přečíst zbytek textové zprávy, která je v seznamu zkrácená</td></tr>
+  <tr><td class="field-name">Alt+C</td><td>Zobrazit text zprávy v okně (k pohodlnému čtení nebo zkopírování části)</td></tr>
+  <tr><td class="field-name">Alt+Shift+L</td><td>Oznámit stav zprávy s fokusem (odesláno, doručeno, přečteno)</td></tr>
+  <tr><td class="field-name">Alt+Shift+K</td><td>Oznámit datum a čas zprávy s fokusem</td></tr>
+  <tr><td class="field-name">Alt+Shift+Q</td><td>Přejít na citovanou zprávu v odpovědi</td></tr>
+  <tr><td class="field-name">Alt+Shift+M / Alt+Shift+J</td><td>Přejít na předchozí / další zprávu, která se zmiňuje o vás</td></tr>
+  <tr><td class="field-name">Alt+Shift+P / Alt+Shift+O</td><td>Přejít na předchozí / další zprávu, která odpovídá vám (opakovaným stisknutím procházíte odpovědi zpět a po nejstarší se vrátíte na nejnovější)</td></tr>
+  <tr><td class="field-name">Alt+T</td><td>Oznámit stav kontaktu: naposledy online, online, píše. Tlačítko chatu a údaje o kontaktu ukazují stejné informace, vždy aktuální</td></tr>
+</table>
+<p>Zprávy smazané pro vás na jiném zařízení se z konverzace odstraní, jakmile dorazí oznámení o smazání, u WPPConnect i Neonize.</p>
+<p>Alt+T přečte nejnovější dostupné informace, aniž by čekalo na síťový požadavek. Psaní a nahrávání hlasu lze hlásit i tehdy, když není dostupná viditelnost online; tyto indikátory neznamenají, že se viditelnost online sdílí. Indikátor aktivity vyprší po deseti sekundách bez obnovení. Soukromí údaje o posledním přihlášení zůstává respektováno. Aktivita patří ke konverzaci, ve které probíhá: skupiny a soukromé chaty se sledují odděleně.</p>
+<p>Aktualizace stavu kontaktu nemění součty nepřečtených zpráv a nepřepisují nezměněné názvy oken ani popisky archivovaných chatů. Oznámení o psaní a nahrávání se řídí vaším nastavením řeči. Nově zjištěná jména kontaktů se ukládají na pozadí; žádné další nastavení není potřeba.</p>
+
+<p><strong>Kontrola posledních zpráv podle pozice:</strong> existuje deset příkazů, od nejnovější zprávy (1) po desátou (0), které danou zprávu přečtou bez přesunu fokusu; dvojí rychlé stisknutí stejné klávesy ji zkopíruje. Přicházejí bez klávesy, protože Alt+1 až Alt+9 patří hlavnímu oknu: klávesy zvolte v Nastavení &gt; Rozhraní &gt; Klávesové zkratky.</p>
+<p><strong>"Psaní" v seznamu:</strong> s volbou "Jako poslední řádek seznamu zpráv zobrazovat, kdo píše nebo nahrává zvuk" (Nastavení &gt; Rozhraní &gt; Zprávy) se na konci seznamu objeví dočasný řádek, například "Ana píše...", který zmizí, když osoba přestane. Nikdy nepřesouvá fokus a sám o sobě se nečte.</p>
+<p><strong>Jiné druhy řádků:</strong> zprávy, které WhatsApp ještě nenačetl, se zobrazí jako "Čekám na tuto zprávu. Může to chvíli trvat." a po doručení se změní na text. Zprávy k jednorázovému zobrazení se zobrazí jako "Zpráva k jednorázovému zobrazení. Zobrazíte ji v telefonu." Zprávy s objednávkou a produkty od firem ukazují položky, celkovou částku a stav. Hovory se zobrazují na místě v chatu, kde proběhly ("Zmeškaný hlasový hovor", "Přijatý videohovor"...).</p>
+
+<h3>Odpovědi, úpravy, mazání, přeposílání</h3>
+<table class="field-table">
+  <tr><th>Zkratka</th><th>Akce</th></tr>
+  <tr><td class="field-name">Alt+R</td><td>Odpovědět na zprávu s fokusem</td></tr>
+  <tr><td class="field-name">Alt+Shift+R</td><td>Odpovědět soukromě (ve skupinách)</td></tr>
+  <tr><td class="field-name">Alt+Shift+V</td><td>Chatovat s účastníkem (ve skupinách)</td></tr>
+  <tr><td class="field-name">Alt+E</td><td>Upravit vlastní zprávu</td></tr>
+  <tr><td class="field-name">Delete</td><td>Smazat zprávu (pro sebe nebo pro všechny)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+E</td><td>Přeposlat</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>Zkopírovat zprávu; na odkazu s fokusem zkopíruje odkaz</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+C</td><td>Zkopírovat popisek fotky, videa nebo dokumentu</td></tr>
+  <tr><td class="field-name">Alt+Shift+D</td><td>Informace o zprávě</td></tr>
+</table>
+<ul>
+  <li><strong>Odpověď:</strong> pokud se původní zpráva před odesláním nenajde, WinZapp vám oznámí, že citace chybí, a ponechá váš text k úpravě přes nabídku zprávy ("Upravit neodeslanou odpověď bez citace"). Odpovědi se zmínkou nesou citaci s sebou. U Neonize se při citování hlasové zprávy v citaci, kterou vidí druhá osoba, zobrazí její délka.</li>
+  <li><strong>Mazání médií:</strong> když smažete fotku, video, audio nebo dokument, potvrzení obsahuje volbu "Smazat média i z telefonu", ve výchozím stavu zaškrtnutou. Odškrtněte ji, abyste smazali zprávu a soubor uložený v telefonu zachovali. Políčko platí i pro více vybraných zpráv a zobrazí se jen tehdy, když je mezi nimi médium. V Nastavení &gt; Rozhraní &gt; Zprávy určíte, jak se bude nabízet na začátku.</li>
+  <li><strong>Přeposlání:</strong> cíle vyberte v seznamu s vyhledáváním (šipka dolů v poli přejde na první výsledek). Když se přeposlání podaří, čtečka obrazovky řekne "Zpráva přeposlána." (nebo kolik zpráv), bez okna, které by bylo třeba zavřít. Přeposlané hlasové zprávy dorazí jako běžné audio, pokud v Nastavení &gt; Zvuk nezaškrtnete "Přeposílat hlasové zprávy jako hlasové zprávy místo zvuku". U Neonize se přeposlaná kopie objeví v cílové konverzaci okamžitě. Když má vybraná zpráva náhled odkazu, políčko "Ponechat náhled odkazu" začíná podle nastavení v Nastavení &gt; Rozhraní &gt; Zprávy, "Při přeposílání zpráv ve výchozím stavu ponechat náhledy odkazů". U WPPConnect se kopie odešle jako nová zpráva a není označena jako přeposlaná; u Neonize je.</li>
+  <li><strong>Informace o zprávě:</strong> u vaší zprávy ukazuje, kdy byla doručena, přečtena a přehrána, s úplným datem a časem, a to dotazem přímo u WhatsApp (takže se zobrazí i potvrzení, která dorazila, když byl WinZapp zavřený). Ve skupině vypíše podle jmen, kdo ji obdržel a kdo přečetl.</li>
+  <li><strong>Citované zprávy:</strong> v odpovědi se jako odkazy počítají jen odkazy samotné odpovědi.</li>
+</ul>
+
+<h3>Reakce</h3>
+<p>Ctrl+Shift+R otevře reakce zprávy (nebo u zmeškaného hovoru zavolá zpět). Seznam obsahuje 12 rychlých reakcí; vyberete jednu a zareagujete, vaše aktuální reakce je označená a jejím opětovným výběrem ji odeberete. Šipky vlevo a vpravo mění odstín pleti emoji. Na konci "Přidat další reakce" otevře úplný výběr emoji. Reakce, které používáte nejčastěji, se začnou objevovat mezi těmi 12, nejpoužívanější nahoře. Pokud dáváte přednost pevným pozicím, použijte Nastavení &gt; Rozhraní &gt; Reakce: "Použít pevné rychlé reakce" a na každé pozici Enter otevře výběr, kde zvolíte její emoji; "Obnovit výchozí pozice" to vrátí zpět. Když někdo zareaguje na vaši zprávu, zazní speciální zvuk (Nastavení &gt; Zvuky událostí). Alt+Shift+E nahlas přečte poslední reakce, které zpráva s fokusem obdržela. Vlastní reakce zvolená přes "Přidat další reakce" se do seznamu přidá při prvním použití. V Nastavení &gt; Klávesové zkratky (Zprávy) deset příkazů "Reagovat na vybranou zprávu reakcí z této pozice" (1 až 9 a 0 pro desátou) zareaguje na zprávu s fokusem reakcí na dané pozici v Nastavení &gt; Rozhraní &gt; Reakce; tento výběr se používáním nemění a stisknutí již odeslané reakce ji odebere. Přicházejí bez klávesy, protože Ctrl+Alt+1 až 9 už přepínají účty: klávesu pro každý příkaz si zvolíte sami.</p>
+
+<h3>Hvězdička a připnutí</h3>
+<ul>
+  <li><strong>Hvězdička</strong> (Ctrl+Shift+O): hvězdičky se synchronizují s WhatsApp a každá změna se ověřuje. Chcete-li poslat své staré místní hvězdičky do WhatsApp, použijte v nabídce chatu "Synchronizovat staré místní hvězdičky s WhatsAppem…". Když zprávu označíte nebo odznačíte hvězdičkou v telefonu či na jiném zařízení, její označení v otevřené konverzaci se aktualizuje po příchodu oznámení, u WPPConnect i Neonize. Zpráva s hvězdičkou končí v řádku konverzace slovem "S hvězdičkou", po "Upraveno" a "Přeposláno". V Nastavení > Rozhraní > Zprávy volba "Ohlašovat „S hvězdičkou“ na začátku zprávy, před odesílatelem" umístí slovo místo toho na začátek řádku.</li>
+  <li><strong>Zprávy s hvězdičkou</strong> (Alt+0 nebo řádek "Zprávy s hvězdičkou" v navigačním seznamu): každá zpráva s hvězdičkou ze všech chatů, od nejnovější, čtená jako chat, odesílatel, text a datum. "Hledat ve zprávách s hvězdičkou" zúží seznam podle libovolného slova, bez ohledu na diakritiku a velikost písmen; Enter nebo "Otevřít v chatu" otevře chat u dané zprávy a Delete nebo "Odebrat hvězdičku" hvězdičku odebere.</li>
+  <li><strong>Připnutí zprávy</strong> (Ctrl+Shift+P, když nenahráváte): tlačítko v každém chatu vypíše zprávy připnuté ve WhatsApp, včetně starých; Enter vás přenese na zprávu v historii. Když chat otevřete, počet připnutých zpráv se oznámí bez změny fokusu.</li>
+</ul>
+<p>Připnutí nebo odepnutí zprávy na jiném zařízení aktualizuje její příznak a přehled připnutých zpráv otevřeného chatu, jakmile dorazí oznámení.</p>
+
+<h3>Záložky</h3>
+<p>Záložky jsou pozice, které vytvoříte na zprávách, abyste se k nim později vrátili. S fokusem na zprávě vytvoří Ctrl+0 až Ctrl+9 záložku (nebo, pokud už toto číslo existuje, na ni přejde); Ctrl+Shift+0 až 9 ji odebere. Alt+Shift+0 až 9 vytvoří dočasné záložky, které se smažou, když chat opustíte; Ctrl+Alt+Shift+0 až 9 dočasné záložky odebere. V Nastavení &gt; Rozhraní &gt; Chaty volby "Automaticky odebírat trvalé záložky po prvním použití" a "Automaticky odebírat dočasné záložky po prvním použití" způsobí, že skok na záložku ji hned odebere, takže stejná klávesa příště vytvoří novou záložku.</p>
+<h3>Rychlé chaty</h3>
+<p>S fokusem na chatu v seznamu chatů nebo s otevřeným chatem stiskněte Ctrl+Alt+Shift+F1 až F10 a přiřaďte jej na rychlou pozici. Ctrl+Shift+stejná funkční klávesa jej otevře odkudkoli v hlavním okně. F1 až F9 jsou pozice 1 až 9; F10 je pozice 0. Přiřazení jsou pro každý účet zvlášť a zůstanou i po restartu. Tyto zkratky můžete změnit v Nastavení, Rozhraní, Klávesové zkratky, nebo chat přiřadit z jeho kontextové nabídky. Chráněné chaty přiřadit nelze.</p>
+
+<h3>Hledání v chatu</h3>
+<p>Ctrl+Shift+F otevře hledání. F3 přejde na další výsledek a Shift+F3 na předchozí, odkudkoli v otevřeném chatu; fokus následuje výsledek a čtečka obrazovky oznámí pozici. Fungují také tlačítka "Předchozí výsledek" a "Další výsledek" a v poli hledání dělají totéž Enter a Shift+Enter.</p>
+<p>Esc v chatu: když je hledání ve zprávách aktivní, první Esc hledání vymaže a zavře lištu, teprve poté zavře chat. Volbu "Esc vymaže hledání ve zprávách v aktivním chatu" lze vypnout v Nastavení &gt; Rozhraní &gt; Chaty.</p>
+
+<h3>Odkazy</h3>
+<p>Zpráva se dvěma nebo více odkazy se stane procházitelným seznamem. Enter nebo Mezerník na odkazu jej otevře; Ctrl+C odkaz zkopíruje; kontextová nabídka obsahuje "Otevřít odkaz" a "Kopírovat odkaz". Odkazy na pozvání do skupiny (<code>chat.whatsapp.com/...</code>) místo prohlížeče otevřou okno WinZappu "Připojit se ke skupině přes odkaz" s náhledem skupiny; nabídka odkazu také nabízí "Připojit se ke skupině přes odkaz" a ponechává "Otevřít odkaz" pro ty, kdo chtějí prohlížeč. Zprávy, které odesíláte, také nesou náhled odkazu.</p>
+<p>V náhledu odkazu se název a popis zobrazují se skutečnými znaky, bez kódů HTML jako &amp;amp; nebo &amp;eacute;, a to jak v náhledu, který WinZapp odesílá, tak v tom, který čtete.</p>
+<p>Když píšete zprávu s odkazem, čtečka obrazovky řekne "Načítá se náhled odkazu...", když WinZapp začne náhled načítat, "Náhled odkazu přidán.", když je připojen ke zprávě, nebo "Náhled odkazu nešlo načíst" a důvod. V Nastavení &gt; Přístupnost &gt; Mluvený obsah tato tři oznámení zapíná a vypíná volba "Ohlašovat načítání a přidání náhledu odkazu".</p>
+
+<h3>Kontakty, ankety a karty</h3>
+<ul>
+  <li><strong>Přijatá karta kontaktu:</strong> Enter nebo Mezerník ji uloží jako kontakt. Kontextová nabídka umožňuje zobrazit jméno a číslo, zkopírovat číslo pomocí Ctrl+C a chatovat. Pokud karta obsahuje více než jedno číslo, WinZapp se zeptá, které použít.</li>
+  <li><strong>Přijaté ankety:</strong> řádek přečte otázku a poté jednotlivé možnosti, s procentem a počtem hlasů, pokud je WinZapp obdrží. Enter otevře okno se stejným seznamem, zaškrtávacími políčky pro hlasování a ukazatelem průběhu u každé možnosti. U ankety s jednou odpovědí vás Tab ze zprávy zavede na možnosti a zaškrtnutí jedné už hlasuje. Tlačítko "Zobrazit hlasy" (Alt+V) vypíše, kdo pro co hlasoval. Vytvoření ankety najdete v části Přílohy. V otevřené konverzaci se výsledky ankety obnoví, když dorazí nová událost hlasování, u Neonize i WPPConnect.</li>
+  <li><strong>Zprávy s objednávkou:</strong> Enter otevře objednávku; viz část Firmy.</li>
+  <li><strong>Oznámení komunity:</strong> v nabídce zprávy s oznámením otevře "Odpovědi na oznámení komunity..." okno pro čtení a odesílání odpovědí a obnovení seznamu; text se zachová, pokud odeslání není potvrzeno.</li>
+</ul>
+
+<p>Chcete-li v chatu vytvořit událost, zvolte v nabídce příloh "Událost". Zadejte název a datum a čas začátku; popis, místo a konec jsou volitelné. "Typ hovoru" vybírá mezi "Bez hovoru", "Hlasový hovor" a "Videohovor"; zda lze vytvořit událost s hovorem, závisí na připojovacím modulu, a když WinZapp řekne, že to nejde, zvolte "Bez hovoru". Enter na zprávě s událostí otevře její podrobnosti a odpovědi; tam, kde je odpovídání dostupné, zvolte "Přijdu", "Možná" nebo "Nepřijdu". Podrobnosti vaší vlastní události mají také "Upravit událost" a "Zrušit událost"; zrušení se potvrzuje.</p>
+
+<h3>Chat s Meta AI</h3>
+<p>WhatsApp před první zprávou vyžaduje přijetí podmínek služby Meta AI. WinZapp podmínky zobrazí, s odkazem k jejich přečtení, a přijetí zaznamená.</p>
+
+<h3>Výběr zpráv a hromadné akce</h3>
+<p>Funguje to jako v chatech: Ctrl+Mezerník označí, poté Mezerník označí další, Ctrl+Shift+Mezerník označí vše. V podnabídce "Hromadné akce" (nebo pomocí zkratek) lze s vybranými zprávami provést:</p>
+<table class="field-table">
+  <tr><th>Akce</th><th>Zkratka</th></tr>
+  <tr><td>Kopírovat</td><td class="field-name">Ctrl+Alt+Shift+C</td></tr>
+  <tr><td>Přeposlat</td><td class="field-name">Ctrl+Alt+Shift+E</td></tr>
+  <tr><td>Označit hvězdičkou</td><td class="field-name">Ctrl+Alt+Shift+F</td></tr>
+  <tr><td>Připnout</td><td class="field-name">Ctrl+Alt+Shift+X</td></tr>
+  <tr><td>Uložit</td><td class="field-name">Ctrl+Alt+Shift+S</td></tr>
+  <tr><td>Smazat</td><td class="field-name">Delete (při výběru)</td></tr>
+  <tr><td>Přepsat a zobrazit společně / na jejich řádcích / smazat přepisy</td><td class="field-name">Ctrl+Alt+Shift+T / N / Delete</td></tr>
+</table>
+<p>Kopírování bere také vybrané dokumenty, audio, obrázky a videa: do schránky se dostanou jako soubory pod původními názvy a lze je vložit najednou, například do Průzkumníka souborů. Pokud výběr míchá text a soubory, text se přidá jako jediný blok k vložení do textového pole. WinZapp řekne "Zprávy zkopírovány." a, pokud se soubor nepodařilo stáhnout, kolik jich bylo vynecháno. Při zapnuté volbě nahrazení zkratek hromadnými akcemi (výchozí) dělá totéž Ctrl+C na výběru.</p>
+<p>Výběr končí s chatem: když chat zavřete, nic nezůstane označené.</p>
+
+<h3>Koncepty, opětovné odeslání a ovládací prvky za seznamem</h3>
+<p>Pole pro zprávu uchovává to, co jste napsali, spolu s konverzací: opustíte-li konverzaci bez odeslání, text, včetně zmínek, se vrátí, když ji znovu otevřete. V Nastavení &gt; Rozhraní &gt; Chaty volba "Neodeslaná zpráva při odchodu z chatu" určuje, zda se text ponechá v poli pro další konverzaci, uchová jako koncept dané konverzace (výchozí), nebo zahodí. Koncepty vydrží, dokud se WinZapp nezavře.</p>
+<p>Vaše zpráva, která selhala nebo nebyla potvrzena, text či příloha, má ve své nabídce "Zkusit odeslat znovu", také pomocí Ctrl+Shift+Y. WinZapp nikdy nic neodešle znovu sám.</p>
+<p>Při přehrávání se Tab za seznamem zpráv zastaví u tlačítka rychlosti a ukazatele délky a u hlasové zprávy, obrázku nebo videa u tlačítka online AI. Každý z nich lze odstranit z cesty: "Skrýt tlačítko rychlosti během přehrávání médií (zkratky rychlosti fungují dál)" a "Skrýt pruh délky během přehrávání médií (Tab ho přeskočí)" v Nastavení &gt; Zvuk &gt; Přehrávání zvuku a "Skrýt tlačítko online AI za seznamem zpráv (nabídka zprávy ho dál nabízí)" v Online AI: přepisy a popisy. Zkratky a nabídka zprávy dál fungují.</p>
+
+<h3>Zprávy ve správném chatu</h3>
+<p>Zprávy: konfliktní alternativní identity už nesměrují zprávy odeslané jiné osobě nebo od ní přijaté do vašeho chatu se sebou samým. Neplatné aliasy se ignorují; nevyřešené zprávy zůstávají u svého původního chatu, dokud se identita nevyřeší.</p>
+
+<p>V modulu Neonize klávesa Home na začátku chatu požádá telefon o starší zprávy, vždy jednu dávku, dokud pro daný chat nemá co dalšího poslat. Telefon takto obvykle dá zhruba rok zpět; pro starší zvolte při připojování období.</p>
+
+<h3>Firemní šablony a tlačítka</h3>
+<p>Podporované firemní šablony zobrazují dostupný nadpis, zprávu, zápatí a možnosti. Po výběru zprávy se pomocí Tab dostanete k jejím tlačítkům a Enter nebo Mezerník některé aktivuje. Webové odkazy se otevřou jen po aktivaci; odpověď nebo volba ze seznamu odešle jednu odpověď, tlačítko kopírování zkopíruje kód a tlačítko telefonu přečte číslo, aniž by zahájilo hovor. Některé formuláře, akce specifické pro aplikaci a média uvnitř šablony tu nejsou dostupné a je to vysvětleno. Starý záznam, který si zprávu nebo odkaz neuchoval, nelze rekonstruovat; podívejte se do WhatsApp v telefonu.</p>
+
+<h3>Překlad zpráv</h3>
+<p>Stiskněte Shift+Enter na textové zprávě v seznamu zpráv nebo zvolte v její kontextové nabídce "Přeložit zprávu". WinZapp řekne "Překládám pomocí …" a poté přečte překlad. Zkratku můžete změnit v Nastavení. Pro nastavení otevřete Nastavení &gt; "Online AI: přepisy a popisy" &gt; "Překlad zpráv"; toto tlačítko tam je, i když jsou ostatní funkce AI vypnuté. Vyberte "Poskytovatel": jednoho z vašich poskytovatelů AI, Grok (xAI), nebo "OpenAI Compatible" či "Anthropic Compatible" s vlastní "Adresa vlastního API" (https, nebo http pouze na tomto počítači). Poté vyberte "Model" (prověření poskytovatelé už jeden mají; "Načíst modely" vypíše další) a "Cílový jazyk". Nechte klíč API prázdný, chcete-li použít klíč, který už je pro daného poskytovatele uložený. Grok, vlastní adresy a modely, které WinZapp nezná, musí před přijetím OK projít "Otestovat překlad". "Zobrazení překladu" nahradí text zprávy v seznamu, přidá překlad za originál, nebo jej otevře v samostatném okně s tlačítkem "Kopírovat". Tato nastavení platí pro všechny účty WinZapp.</p>
+<p>"Automatický překlad" překládá přijaté textové zprávy, jakmile dorazí. V "Chaty pro automatický překlad" zvolte "Všechny chaty kromě těch, které vypnu" nebo "Jen chaty, které zapnu"; poté v kontextové nabídce chatu použijte "Zapnout automatický překlad pro tento chat" nebo "Vypnout automatický překlad pro tento chat". "Automaticky překládat zprávy přijaté nejvýš:" a denní limit (0 pro neomezený) chrání vaši kvótu a WinZapp jednou denně oznámí, že limit byl dosažen. Pokud poskytovatel odmítne klíč, kvótu nebo kredit, automatický překlad se na hodinu pozastaví a oznámí to; opětovné použití nastavení AI jej obnoví. Zapnutí automatického překladu pro chat přeloží také jeho 10 nejnovějších přijatých zpráv, bez ohledu na stáří. Chcete-li přeložit to, co už v chatu je, vyberte zprávy a zvolte "Přeložit vybrané zprávy" v podnabídce "Hromadné akce" kontextové nabídky: WinZapp se nejdřív zeptá, než text odešle poskytovateli, poté přeloží vybrané textové zprávy (nejvýše 50) jednu po druhé a na konci řekne, kolik jich bylo přeloženo. Pokud se překlad zobrazuje v samostatném okně, otevřete jej stisknutím Shift+Enter na zprávě. Chcete-li překládat od zprávy s fokusem po poslední, zvolte v kontextové nabídce "Přeložit odsud do konce" nebo stiskněte Alt+Shift+Y; "Přeložit vybrané zprávy" má také zkratku Ctrl+Alt+Shift+Y. Zahrnuty jsou jen přijaté textové zprávy (nejvýše 50) a obě zkratky lze změnit na záložce Zkratky v Nastavení. Během překladu se stejná položka nabídky a zkratka změní na "Zrušit překlad zpráv".</p>
+<div class="callout info">
+  <div class="callout-title">🔒 Zamčené chaty</div>
+  Zamčené chaty se nikdy nepřekládají automaticky. Překlad zprávy z nich vyžaduje otevřený trezor a pokaždé žádá o potvrzení. Zapnutí automatického překladu pro všechny konverzace se také nejdřív zeptá.
+</div>
+
+<h3>Souhrn zpráv pomocí AI</h3>
+<p>Tlačítko "Shrnout nepřečtené zprávy" a Ctrl+Shift+U (měnitelné na záložce Zkratky v Nastavení) se v otevřeném chatu zobrazí, dokud má nepřečtené zprávy; tlačítko se zobrazí jen od 10 nepřečtených zpráv, zkratka funguje s libovolným počtem. V seznamu konverzací zvolte v kontextové nabídce chatu "Shrnout nepřečtené zprávy pomocí AI": chat se neotevře ani neoznačí jako přečtený. Kontextová nabídka zprávy obsahuje "Shrnout nepřečtené zprávy pomocí AI" (ty pod čárou nepřečtených), "Shrnout pomocí AI odsud do konce" a, jsou-li vybrány zprávy, "Shrnout vybrané zprávy pomocí AI". Položky "Shrnout pomocí AI odsud do konce" a "Shrnout vybrané zprávy pomocí AI" mají zkratky: Alt+Shift+I a Ctrl+Alt+Shift+I (měnitelné na záložce Zkratky v Nastavení); každá položka nabídky ukazuje používanou zkratku.</p>
+<p>Souhrn se otevře v okně výsledku Online AI, s doplňujícími otázkami a tlačítkem kopírování, a těsně nad ním je poznámka, že jej vytvořila AI a může obsahovat chyby. Používá poskytovatele z Nastavení &gt; Online AI (zobrazí se, až jsou nastaveni), nikoli Meta AI ani poskytovatele překladu zpráv. První použití žádá o vlastní souhlas, před přepisem jakékoli hlasové zprávy, protože text zpráv a jména lidí, kteří je napsali, jdou poskytovateli; v běžných chatech se souhlas pamatuje pro každého poskytovatele. Zamčený chat lze shrnout s otevřeným trezorem, ale souhlas se žádá pokaždé, nikdy se nepamatuje, a okno se zavře, když se trezor zamkne.</p>
+<p>Hlasové zprávy vstupují jako text svého přepisu: použije se uložený přepis a u ostatních zvolíte místní přepis, online přepis nebo žádný, jak je popsáno níže. Pro jeden souhrn se přepisuje nejvýše 20 nejnovějších, v okně, které ukazuje a hlásí průběh ("Přepisuji hlasovou zprávu 3 z 12 pro shrnutí") a má tlačítko Cancel, které souhrn zahodí; výsledek se otevře až po jeho zavření. Hlasové zprávy bez přepisu vstupují jako "[Hlasová zpráva]", bez obsahu, a okno řekne, kolik jich je. Vstupuje nejvýše 200 zpráv a 15 000 znaků; okno řekne, kolik starších zpráv bylo vynecháno.</p>
+<p>Před přepisem se okno zeptá, jak naložit s hlasovými zprávami, které nemají uložený přepis: "Místně, v tomto počítači" (výchozí), "Online, pomocí poskytovatele AI" nebo "Hlasové zprávy nepřepisovat" (zůstanou jen jako značka). U online možnosti vyberete poskytovatele a model přepisu, nezávisle na modelu, který píše souhrn. Otevření okna, změna volby ani jeho zavření nic neodesílá. U online možnosti druhá otázka řekne, kolik hlasových zpráv bude odesláno, přesně tak, jak jsou, kterému poskytovateli, a že to může spotřebovat kvótu nebo způsobit poplatky; má políčko, které zapamatuje souhlas tohoto poskytovatele a už se neptá (zamčené chaty se ptají vždy). Okno souhrnu varuje, když se přepis hlasových zpráv nezdařil nebo překročily limit 20, aby částečný souhrn nebyl považován za úplný.</p>
+
+<h3>Zprávy s hvězdičkou jednoho chatu</h3>
+<p>Konverzace: okna Chat info a Group info mají novou záložku "Zprávy s hvězdičkou" za "Média", která vypisuje zprávy s hvězdičkou daného chatu s polem pro hledání; "Otevřít v chatu" (nebo Enter) přesune fokus na zprávu v konverzaci a "Odebrat hvězdičku" (nebo Delete) její hvězdičku odebere.</p>
+
+<h3>Offline překlad a překladatelské služby</h3>
+<p>Překlad zpráv: kromě vašich online poskytovatelů AI nabízí "Poskytovatel" v nastavení překladu "Offline model v tomto počítači" (dvanáct modelů, SMaLL-100, M2M-100, mBART-50, NLLB-200 a MADLAD-400 v několika velikostech, stahovaných pomocí "Stáhnout model" a spouštěných na procesoru nebo grafické kartě; text nikdy neopustí počítač, takže se neřeší souhlas ani denní limit), překladatelské služby LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (s regionem svého zdroje) a Google Translate a Ollama a LM Studio jako místní poskytovatele. U offline modelu se zdrojový jazyk zjišťuje nebo vybírá.</p>

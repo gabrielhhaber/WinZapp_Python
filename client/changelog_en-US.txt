@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Czech: WinZapp is now available in Czech (Čeština): the interface, the user guide, the installer and uninstaller (which follow the Windows display language) and these release notes. Czech is also offered as a language to translate messages into, and the spell checker supports it. Thanks to jaxcze for the translation.
+
 - Connect with QR code: the QR code shows up again. With the latest WhatsApp Web versions, some computers get a separate login page that only has the QR code screen, and on it WinZapp kept connecting until it gave up, without showing the code. WinZapp now uses a WhatsApp Web version that carries the full app and, if it still gets the login page, shows the QR code within a few seconds.
 
 - Communities: Enter on a community in the chat list now opens the Communities panel with that community selected and the focus on its groups, instead of the community's own chat. Settings > Interface > Chats has the option, on by default.
@@ -69,7 +71,7 @@ WHAT'S NEW
 
 - Neonize: while the phone sends the message history, WinZapp says so and asks you to keep WhatsApp open on the phone's screen, warns when the phone stops (with the percentage), when it sends again and when it finishes; while it is stopped, WinZapp asks the phone for the rest every 90 seconds.
 
-- Neonize: the conversations that WhatsApp for iPhone leaves out of its first history batch (it now sends only 400) are now requested and imported as well.
+- Neonize: the conversations that WhatsApp for iPhone leaves out of its first history batch (it now sends only 400) are now requested and imported as well. When the phone does not send the list of the ones left out, WinZapp, once the pairing's history is done, asks the phone for the conversations that are missing and waits a few minutes for the answer before calling the sync complete.
 
 - Neonize: deleting a list also removes it from its chats, so they do not keep pointing at a list that no longer exists.
 
@@ -659,6 +661,12 @@ WHAT'S NEW
 - Fixed: with install-on-exit turned on, after WinZapp announced that the update was downloaded, Help > Install downloaded update stayed unavailable. The item is now available and installs the update right away, then starts WinZapp again; exiting still installs without restarting.
 
 - Neonize: when the connection bridge takes too long to start, the program log now says whether it is still running and shows the last lines of its output, and the bridge writes each step of its start to its own log as it goes, so a bridge that stops half-way shows where.
+
+- Fixed: after switching the audio device, notification (toast) sounds stopped playing while chat audio and the other WinZapp sounds kept working. The switch left the already loaded notification sounds unusable; they are now reloaded together with the other sounds.
+
+- With Neonize, a contact saved with a first and last name no longer loses the last name in the conversation a few seconds later: the full name is stored in the right order, so the conversation keeps showing, for example, "Nuno Soares" instead of just "Nuno".
+
+- Neonize: when the connection bridge gets stuck while starting, it now writes to its own log where it is stuck after 25 seconds.
 
 V2.1.0.0
 

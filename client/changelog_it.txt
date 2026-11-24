@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Ceco: WinZapp è ora disponibile in ceco (Čeština): l'interfaccia, la guida per l'utente, il programma di installazione e di disinstallazione (che seguono la lingua di visualizzazione di Windows) e queste note di rilascio. Il ceco è offerto anche come lingua in cui tradurre i messaggi, e il correttore ortografico lo supporta. Grazie a jaxcze per la traduzione.
+
 - Connettiti con il codice QR: il codice QR torna a comparire. Con le versioni più recenti di WhatsApp Web, alcuni computer ricevono una pagina di accesso separata, con la sola schermata del codice QR, e lì WinZapp continuava a connettersi fino a rinunciare, senza mostrare il codice. WinZapp ora usa una versione di WhatsApp Web che contiene l'app completa e, se riceve comunque la pagina di accesso, mostra il codice QR in pochi secondi.
 
 - Community: Invio su una community nell'elenco delle chat ora apre il pannello Community con quella community selezionata e il focus sui suoi gruppi, invece della chat della community stessa. L'opzione è in Impostazioni > Interfaccia > Chat, attiva per impostazione predefinita.
@@ -69,7 +71,7 @@ WHAT'S NEW
 
 - Neonize: mentre il telefono invia la cronologia dei messaggi, WinZapp lo dice e ti chiede di tenere WhatsApp aperto sullo schermo del telefono, avvisa quando il telefono si ferma (con la percentuale), quando riprende a inviare e quando finisce; mentre è fermo, WinZapp chiede il resto al telefono ogni 90 secondi.
 
-- Neonize: le conversazioni che WhatsApp per iPhone lascia fuori dal primo blocco di cronologia (ora ne invia solo 400) vengono ora richieste e importate anch'esse.
+- Neonize: le conversazioni che WhatsApp per iPhone lascia fuori dal primo blocco di cronologia (ora ne invia solo 400) vengono ora richieste e importate anch'esse. Quando il telefono non invia l'elenco di quelle lasciate fuori, WinZapp, terminata la cronologia dell'associazione, chiede al telefono le conversazioni mancanti e attende la risposta per qualche minuto prima di considerare completa la sincronizzazione.
 
 - Neonize: eliminare una lista la toglie anche dalle sue chat, che non puntano più a una lista che non esiste.
 
@@ -659,6 +661,12 @@ WHAT'S NEW
 - Corretto: con l'installazione all'uscita attiva, dopo l'avviso che l'aggiornamento era stato scaricato, Guida > Installa l'aggiornamento scaricato restava non disponibile. Ora la voce è disponibile e installa subito l'aggiornamento, poi riavvia WinZapp; uscire continua a installare senza riavviare.
 
 - Neonize: quando il ponte di connessione impiega troppo ad avviarsi, il log del programma ora dice se è ancora in esecuzione e mostra le ultime righe del suo output, e il ponte scrive nel proprio log ogni passo dell'avvio man mano che procede, così un ponte che si ferma a metà mostra dove.
+
+- Corretto: dopo aver cambiato il dispositivo audio, i suoni delle notifiche (toast) smettevano di suonare, mentre gli audio delle chat e gli altri suoni di WinZapp continuavano a funzionare. Il cambio rendeva inutilizzabili i suoni di notifica già caricati; ora vengono ricaricati insieme agli altri suoni.
+
+- Con Neonize, un contatto salvato con nome e cognome non perde più il cognome nella conversazione pochi secondi dopo: il nome completo viene memorizzato nell'ordine giusto e la conversazione continua a mostrare, ad esempio, "Nuno Soares" invece di solo "Nuno".
+
+- Neonize: quando il ponte di connessione si blocca all'avvio, ora scrive nel proprio log, dopo 25 secondi, in che punto è bloccato.
 
 V2.1.0.0
 

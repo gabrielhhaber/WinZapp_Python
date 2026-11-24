@@ -1564,6 +1564,14 @@ class SettingsMixin:
         a new active pack / enabled / per-event override without restarting.
         """
         stop_typing_sound(self)
+        # The toast/edit notification sounds are cached per file path, outside
+        # the Sound Events attributes rebuilt below. A device change frees
+        # and re-initialises BASS, which invalidates every cached stream, so a
+        # stale cache left the notification sounds silent (every play() failed
+        # on a dead handle) while all freshly loaded sounds kept working.
+        cache = getattr(self, "_notification_sound_cache", None)
+        if cache is not None:
+            cache.clear()
         active_pack = self.get_active_sound_pack()
         default_pack = self._default_sound_pack
         pack_id = active_pack.get("id") if active_pack else DEFAULT_PACK_ID

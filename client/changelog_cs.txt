@@ -1,0 +1,1293 @@
+V3.0.0.0
+
+Toto vydání přináší komunity a přepracované okno nastavení, navíc ke všemu, co obsahuje verze 2.1.0.0.
+
+NOVINKY
+
+- Čeština: WinZapp je nově k dispozici v češtině: rozhraní, návod k použití, instalační a odinstalační program (které se řídí jazykem zobrazení Windows) a tyto poznámky k vydání. Češtinu lze také zvolit jako jazyk, do kterého se zprávy překládají, a kontrola pravopisu ji podporuje. Za překlad děkujeme uživateli jaxcze.
+
+- Připojit pomocí QR kódu: QR kód se znovu zobrazuje. V nejnovějších verzích WhatsApp Web dostávají některé počítače samostatnou přihlašovací stránku jen s obrazovkou QR kódu a WinZapp se na ní připojoval, dokud to nevzdal, aniž by kód zobrazil. WinZapp nyní používá verzi WhatsApp Web s celou aplikací, a pokud přesto dostane přihlašovací stránku, zobrazí QR kód během několika sekund.
+
+- Komunity: Enter na komunitě v seznamu chatů nově otevře panel Komunity s vybranou komunitou a fokusem na jejích skupinách, místo chatu samotné komunity. Volba je v Nastavení > Rozhraní > Chaty a ve výchozím stavu je zapnutá.
+
+- Připojení pomocí telefonního čísla: připojení už neselže poté, co WhatsApp v telefonu přijme párovací kód. WinZapp dříve při opětovném načtení, kterým se přihlášení dokončuje, zavřel WhatsApp Web nebo si na něm vyžádal nový kód, takže telefon ukazoval zařízení jako připojené, zatímco WinZapp zůstal v okně párování. Okno s párovacím kódem také vypisuje svůj text, kód a Zrušit popořadě, místo aby je kreslilo přes sebe. Pokud se WhatsApp Web po přijetí kódu stále neotevře s vašimi chaty, WinZapp to nově zkusí ještě jednou a pak vám to oznámí, místo aby donekonečna čekal v okně párování, a připojení, které telefon přijal, se už při restartu WinZappu neodhodí.
+
+- Když WhatsApp dočasně odmítá párovací kódy pro nějaké číslo, WinZapp to oznámí hned, místo aby minutu a půl zůstal na „připojování“, a navrhne „Připojit pomocí QR kódu“, které párovací kód nepoužívá.
+
+- Kopírování pouze popisku zprávy (Ctrl+Shift+C) nově odečítač oznámí jako „Popisek zkopírován“ místo „Zpráva zkopírována“, takže už to nezní, jako by se zkopíroval soubor (fotka, video nebo dokument).
+
+- Jméno kontaktu u citované zprávy v odpovědi nově odpovídá jeho nejnovějšímu profilovému jménu, místo aby ukazovalo staré, i když už byly jeho původní zprávy aktuální. Platí pro Neonize a WPPConnect.
+
+- Kopírování vybraných zpráv (Ctrl+Alt+Shift+C, nebo Ctrl+C se zaškrtnutým „Při výběru chatů a zpráv nahradit zkratky hromadnými akcemi“) nově kopíruje také dokumenty, zvuky, obrázky a videa: soubory se hned zkopírují do schránky a lze je vložit společně, například do Průzkumníka souborů, pod původními názvy. Ve výběru, který míchá text a soubory, se text přenese jako jediný blok k vložení do textového pole. WinZapp oznámí „Zprávy zkopírovány“ a pokud se některý soubor nepodařilo stáhnout, kolik jich bylo vynecháno.
+
+- Reakce: vlastní reakce zvolená pomocí „Přidat další reakce“ se nově při prvním použití zařadí do seznamu rychlých reakcí, a to na místo poslední výchozí reakce, kterou jste nikdy nepoužili. Přibývá také deset nových příkazů v Nastavení > Klávesové zkratky (Zprávy), „Reagovat na vybranou zprávu reakcí na této pozici“, 1 až 9 a 0 pro desátou: každý z nich zareaguje na zprávu s fokusem reakcí na dané pozici v Nastavení > Rozhraní > Reakce, kterou si zvolíte a která se podle používání nemění; stisk již odeslané reakce ji odebere. Přicházejí bez klávesy, protože Ctrl+Alt+1 až 9 už přepínají účty; klávesu pro každý příkaz si zvolíte sami.
+
+- Aktualizace: okno aktualizace získává „Další nastavení“ (Alt+D), za Ano, Ne a Co je nového?. Otevře okno, ve kterém pro instalaci volíte mezi „Všechny zvuky WinZappu“ a „Jen původní zvuky WhatsAppu“, s uvedením aktuální volby, a také OK a Zrušit. Volba se použije při instalaci aktualizace, i když se nainstaluje na pozadí nebo při ukončení: výběr jen původních zvuků WhatsAppu odebere zvuky WinZappu navíc a opětovný výběr všech je z aktualizace obnoví. Importované sady zvuků, vaše vlastní zvukové soubory i předvolby zvuků zůstanou zachovány.
+
+- Hlasové zprávy a zvuk lze nově uložit jako MP3 pomocí seznamu typů souborů v Uložit jako.
+
+- Individuální hovory lze překládat pomocí Gemini Live Translate v jednom nebo obou směrech, s volitelným snížením hlasitosti původního hlasu a automatickým opětovným připojením.
+- Nová volba v Nastavení > Přístupnost: „Ohlašovat, i když WinZapp nemá fokus“, ve výchozím stavu nezaškrtnutá. Když není zaškrtnutá, WinZapp mluví přes odečítač jen tehdy, když má fokus některé z jeho oken, takže vás nepřerušuje, když pracujete v jiném programu, a to ani s otevřeným oknem; týká se to všech mluvených oznámení, včetně oznámení o nové verzi. Když je zaškrtnutá, oznámení pokračují za všech okolností.
+
+- Když kontakt změní své profilové jméno, jeho starší zprávy v otevřeném chatu se nově ihned aktualizují na nové jméno, bez zavření a opětovného otevření programu. Platí pro Neonize a WPPConnect.
+
+- Odkazy na hovor: v části Hovory (Alt+6) otevře „Vytvořit odkaz na hovor“ okno, ve kterém zvolíte hlasový hovor nebo videohovor, vytvoříte odkaz, zkopírujete ho, pošlete do chatu nebo se k jeho hovoru připojíte. Odkaz call.whatsapp.com ve zprávě se připojí k hovoru klávesou Enter, nebo pomocí „Připojit se k hovoru“ v jeho místní nabídce, po potvrzení; odkaz otevřený v prohlížeči se také připojí ve WinZappu, pokud je WinZapp nastaven jako program pro otevírání odkazů WhatsApp (Nastavení > Obecné). Kdo se k odkazu připojí první, je správcem hovoru: lidé bez účtu WhatsApp čekají v čekárně, WinZapp vysloví jméno každého, kdo dorazí, a tlačítko „Čekárna“ v okně hovoru je pustí dovnitř nebo odmítne. Funguje s Neonize i WPPConnect.
+
+- Kontakty: navigační seznam nově obsahuje „Kontakty“ za Kanály, bez zkratky Alt+číslo. Zobrazuje uložené kontakty, jeden řádek na osobu podle jména a čísla; kontakt uložený pod dvěma adresami (jeho číslem a propojeným ID, nebo brazilským číslem s 9. číslicí a bez ní) je jediný řádek. „Hledat kontakty“ filtruje podle jména nebo čísla. Tlačítka a místní nabídka (klávesa Applications nebo Shift+F10) otevřou chat, zahájí hlasový hovor nebo videohovor, zobrazí „Podrobnosti kontaktu“, kontakt odstraní, nebo ho zablokují či odblokují; „Nový kontakt“ jeden přidá. „Enter na kontaktu“ určuje, co Enter udělá: otevře chat, zavolá, zahájí videohovor nebo zobrazí podrobnosti.
+
+- Chat: okna Informace o chatu a Informace o skupině získávají novou kartu „Zprávy s hvězdičkou“ za „Média“, která vypisuje zprávy s hvězdičkou z daného chatu a má pole pro hledání; „Otevřít v chatu“ (nebo Enter) přesune fokus na zprávu v chatu a „Odebrat hvězdičku“ (nebo Delete) její hvězdičku odebere.
+
+- Hovory: chat, který je v probíhajícím hovoru, tedy skupina nebo soukromý chat, jehož hovor se rozrostl na více lidí, nově místo tlačítek hovoru ukazuje „Připojit se k probíhajícímu hlasovému hovoru“ nebo „Připojit se k probíhajícímu videohovoru (kamera vypnutá)“; když je toto zařízení v hovoru s daným chatem, tlačítko zní „Vrátit se do hovoru“ a vrátí okno hovoru do popředí.
+
+- Hovory: hovor mezi dvěma lidmi, který se změnil na skupinový, je uveden podle svých účastníků, stejně jako v telefonu („A, B a C“, nebo „A a N dalších lidí“), v chatu, v náhledu v seznamu chatů a na kartě Hovory. Skupinový hovor, který proběhl bez vás a vaše zařízení jen zvonilo, se už nezobrazuje jako přijatý.
+
+- Hovory, „Přidat účastníky“: každá osoba se objeví jednou, takže kontakt uložený s 9. číslicí i bez ní, nebo pod svým číslem a propojeným ID, je jediný řádek; druhý seznam nabízí každý chat mezi dvěma lidmi, ať je kontakt uložený, nebo ne; a pole přijme ručně zadané telefonní číslo.
+
+- Hovory: když přidáváte lidi, WinZapp řekne „Volá se: <jména>...“, dokud je pozvánka venku, a „Pozváni do hovoru“ až poté, co to server WhatsAppu potvrdil, místo aby oznamoval lidi, kterým nikdy nezazvonilo. Neonize: přidání někoho do hovoru mezi dvěma lidmi nebo do hovoru, který už je skupinový, mu nově zazvoní, aniž by se ztlumila osoba, která už v hovoru je; a někdo, koho seznam v jedné odpovědi uvádí číslem a v další propojeným ID, se už neohlašuje jako odcházející a přicházející.
+
+- Hovory: když se uzavře proces NVDA, který sdílení zvuku počítače sleduje, zatímco hovor pokračuje, sdílení se samo jednou znovu spustí, jako by se znovu stisklo „Sdílet zvuk počítače“; restart, který selže, se oznámí jako dříve.
+
+- Neonize: hovor mezi dvěma lidmi, který zahájíte z WinZappu, se nově objeví také v historii hovorů ve vašem telefonu.
+
+- Překlad zpráv: kromě vašich online poskytovatelů AI nabízí „Poskytovatel“ v nastavení překladu „Offline model v tomto počítači“ (dvanáct modelů, SMaLL-100, M2M-100, mBART-50, NLLB-200 a MADLAD-400 v několika velikostech, stahovaných pomocí „Stáhnout model“ a spouštěných na procesoru nebo grafické kartě; text počítač nikdy neopustí, takže se neptáme na souhlas a neplatí denní limit), překladové služby LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (s regionem jeho prostředku) a Google Translate a Ollama a LM Studio jako místní poskytovatele. U offline modelu se zdrojový jazyk zjišťuje, nebo zvolí.
+
+- Instalační program: nová skupina „Zvuky k instalaci“ umožňuje zvolit mezi „Všechny zvuky WinZappu“ (výchozí) a „Jen původní zvuky WhatsAppu“. S druhou volbou se ostatní zvuky v instalaci neuchovávají a aktualizace je dál vynechávají.
+
+- Přenosná verze: při prvním spuštění, když WinZapp nainstalovaný v počítači má spárované účty, se WinZapp zeptá, zda místo připojení dalšího zařízení použít jejich kopii. Instalace se jen čte; pokud běží, WinZapp vás požádá, abyste ji zavřeli a zvolili Zkusit znovu, a pokud se kopírování nezdaří, nic se nezmění a připojí se nové zařízení.
+
+- Nastavení > Klávesové zkratky: klávesy, které změníte, se nově uplatní u všech účtů instalace, nejen u toho, kde jste je změnili; klávesa nastavená pro přepnutí na účet 2 reaguje z každého účtu. Při prvním spuštění s touto verzí se změněné klávesy každého účtu přidají k těm instalace: když oba změnily tentýž příkaz, zůstane klávesa instalace, a klávesa, kterou už používá jiný příkaz, se vynechá.
+
+- Upravené zprávy: Zvukové události získávají „Úprava vaší zprávy uložena“ (zapnuto) a „Zprávu upravil někdo jiný“ pro program v popředí a na pozadí (vypnuto); Nastavení > Obecné > Oznámení získává „Vyslovovat úpravy, když je okno aktivní“ a „Oznamovat úpravy, když je okno na pozadí“ (vypnuto); a okno s údaji každého chatu má okno „Upravené zprávy“ pro volbu jiných zvuků a oznámení pro daný chat. Úprava od někoho jiného se oznámí, jen dokud WhatsApp úpravu dané zprávy ještě přijímá, takže úpravy přehrané po opětovném připojení zůstanou tiché.
+
+- Zvuky a hovory nastavené na „výchozí zařízení systému“ nově sledují výchozí přehrávací zařízení Windows: když připojíte sluchátka, která Windows nastaví jako výchozí, zvuky WinZappu i zvuk hovorů se přesunou na ně, jako u jiných programů.
+
+- Když nahráváte zvuk (hlasovou zprávu nebo mikrofon spolu se zvukem počítače), opakovaná synchronizace na pozadí, procházení historie a stahování médií se pozastaví, jako to už dělaly během hovoru, takže se nahrávka nerozpadá na kousky kvůli vytíženému počítači.
+
+- Smazaný chat se vrátí do seznamu, když se znovu použije, novou zprávou nebo jeho opětovným otevřením z Nového chatu, i když byl smazán pod jinou podobou dané osoby, například propojeným ID nebo číslem s 9. číslicí či bez ní.
+
+- WPPConnect: zpráva, kterou odpověď cituje, už po restartu WinZappu neskáče na konec svého chatu; zachovává si svůj skutečný čas.
+
+- WPPConnect, Nový chat: brazilské číslo zadané s 9. číslicí, kterou WhatsApp nepoužívá, nově otevře skutečný chat místo druhého, prázdného.
+
+- Neonize: když telefon posílá historii zpráv, WinZapp to oznámí a požádá vás, abyste na telefonu nechali WhatsApp otevřený na obrazovce, upozorní, když telefon přestane (s procentem), když začne znovu posílat a když skončí; dokud je zastavený, WinZapp se telefonu každých 90 sekund ptá na zbytek.
+
+- Neonize: chaty, které WhatsApp pro iPhone vynechává z první dávky historie (nově posílá jen 400), se nově také vyžádají a naimportují. Když telefon neodešle seznam vynechaných, WinZapp po dokončení historie párování požádá telefon o chybějící chaty a před prohlášením synchronizace za dokončenou několik minut čeká na odpověď.
+
+- Neonize: smazání seznamu ho také odebere z jeho chatů, takže neukazují na seznam, který už neexistuje.
+
+- Nastavení potlačení šumu: pole modelu má nově ve všech jazycích písmeno pro Alt.
+
+- Nahrávka mikrofonu spolu se zvukem počítače se nově odesílá jako hlasová zpráva (Ctrl+Shift+H), ne jako zvuková příloha; zachovává stereo (AAC), když oba kanály nesou zvuk, jako jiné stereo nahrávky. Dříve se v chatu odesílala jako běžný zvukový soubor.
+
+- Neonize: zprávy přijaté, zatímco je WinZapp otevřený, se nově odesílateli ukazují jako doručené, i když je okno bez fokusu nebo na pozadí. Dříve odesílatel viděl jen „odesláno“, dokud byl WinZapp bez fokusu; a při vypnutých potvrzeních o přečtení otevření chatu nic nezměnilo. Přítomnost online zůstává vázána na okno.
+
+- Neonize: odeslaná zpráva se mohla vrátit na „Odesláno“, poté co ji WhatsApp už potvrdil jako doručenou — v seznamu zpráv i ve stavovém řádku. Aplikace už skutečné potvrzení o doručení, přečtení nebo přehrání nepřepíše vlastním potvrzením „odesláno“ a žádný stav zprávy se po potvrzení nevrací zpět.
+
+- Když běží NVDA, nahrávání mikrofonu spolu se zvukem počítače už neskončí chybou „problém se zvukovým zařízením“, když WinZapp na vteřinu či dvě zamrzne (vytížený nebo pomalý počítač): zvuk z té chvíle se přeskočí, nahrávání pokračuje a zbytek zůstane synchronní. Bez samostatného zachytávání NVDA to platilo už dříve; nově jsou pokryty i samostatně nahrávané NVDA a další odečítače zvuku počítače.
+
+- Hlasové zprávy mohou při nahrávání na pozadí používat neurální potlačení šumu, místo aby čekaly do odeslání. Okno nastavení potlačení šumu v Nastavení > Zvuk umožňuje zvolit základní nebo neurální potlačení, zpracování při nahrávání nebo při odeslání (výchozí) a co dělat, když neurální potlačení selže: odeslat se základním potlačením, nebo nechat zprávu čekat na ruční opakování. Zpracování při nahrávání používá procesor nebo CoreML; výběr CUDA ho vypne a použije zpracování při odeslání. Zpracování pomocí CUDA při nahrávání neexistuje. Cesta CoreML při nahrávání nebyla v reálném používání ověřena.
+
+- Kontakt má nově jediné jméno: když někdo změní své profilové jméno, všechny jeho zprávy, staré i skupinové, ukazují nové jméno, místo aby se střídalo staré s novým. Platí pro Neonize a WPPConnect.
+
+- Spuštění: podpora řeči nově používá vlastní dočasnou mezipaměť COM, což brání chybám cyklického importu, když sdílená mezipaměť Windows ztratí svůj index.
+
+- Tlačítka obchodní zprávy se nově zobrazí i tehdy, když se chat otevře s již zvolenou zprávou, například chat s jedinou zprávou, nejen po přesunutí fokusu na ni. Funguje s Neonize i WPPConnect.
+
+- V seznamu online poskytovatelů AI a v možnostech nové ankety přesouvají vybranou položku Alt+šipka nahoru a Alt+šipka dolů a tlačítka Posunout nahoru a Posunout dolů tyto klávesy oznamují. Klávesy se objevují v seznamu na F1 a lze je změnit v Nastavení > Klávesové zkratky.
+
+- Při vytváření ankety nově fungují s Neonize i WPPConnect zaškrtávací pole Skrýt jména hlasujících a volba Časový limit (bez limitu, 1 hodina, 8 hodin, 24 hodin, 3 dny nebo 7 dní). V části Zobrazit hlasy ukazuje anketa, která skrývá jména, „Skryté jméno“ místo toho, kdo hlasoval; váš vlastní hlas se stále čte jako „Vy“.
+- Při vytváření ankety tlačítka Posunout nahoru a Posunout dolů před odesláním přeuspořádají možnosti; anketa odejde do WhatsAppu v pořadí, v jakém jste ji nechali, s Neonize i WPPConnect.
+
+- Zprávy s hvězdičkou nově končí slovem „S hvězdičkou“, jako „Upraveno“ a „Přeposláno“, místo aby začínaly symbolem ★. Nová volba v Nastavení > Rozhraní > Zprávy oznamuje toto slovo na začátku řádku, před odesílatelem.
+
+- Zvuky psaní, typing_bubble, typing_pulse a zpracování AI ve výchozí sadě zvuků jsou nově soubory Ogg, jako zbytek sady. Na tom, jak znějí, ani na vašich vlastních zvucích se nic nemění.
+
+- V otevřeném chatu s aktivním hledáním ve zprávách (Ctrl+Shift+F) první Esc hledání vymaže a zavře lištu a odečítač řekne „Hledání ve zprávách vymazáno“; další Esc zavře chat. Můžete to vypnout v Nastavení, Chaty.
+
+- V seznamech chatů (běžném, archivovaných a zamčených) Esc vymaže hledání a filtry a odečítač řekne „Filtry vymazány“; při vybraných chatech první Esc stále zruší jen výběr. Můžete to vypnout v Nastavení, Chaty. Funguje to také z filtrů, hledání a dalších ovládacích prvků panelu chatů; uvnitř otevřeného chatu Esc stále nejprve zavře chat nebo zruší výběr zpráv.
+
+- Přidání chatu do seznamu nebo jeho odebrání z něj na jiném zařízení aktualizuje seznamy a otevřený filtr, aniž by se změnil seznam, který jste vybrali.
+
+- Změna profilové fotky na jiném zařízení aktualizuje otevřený panel Profil, aniž by přepsala jméno, Info nebo fotku, které jste ještě neuložili.
+
+- Změna voleb Ponechat chaty archivované nebo Soukromí statusů na jiném zařízení aktualizuje otevřený panel a zachová volby, které jste ještě nepoužili.
+
+- Opraveny uložené kontakty chybějící ve WhatsAppu na iPhonu: ID kontaktu propojeného zařízení se nově posílá celé, v souladu s nativní obrazovkou kontaktů ve WhatsAppu.
+
+- Uložení kontaktu do telefonu nově říká, že telefon byl požádán o jeho přidání, místo aby tvrdil, že už je v adresáři; uložení, které WhatsApp nepotvrdil, se už nehlásí jako hotové.
+
+- Změny soukromí provedené na jiném zařízení aktualizují otevřený panel a zachovají pole, která jste změnili, ale ještě nepoužili.
+
+- Zablokování nebo odblokování kontaktu na jiném zařízení aktualizuje WinZapp, jakmile to WhatsApp ohlásí.
+
+- Když kontakt nebo skupina změní či odstraní svůj obrázek, WinZapp přestane zobrazovat ten starý.
+
+- Kontakty uložené, přejmenované nebo odebrané z adresáře na jiném zařízení a změny veřejných profilových jmen aktualizují WinZapp po obdržení oznámení, přičemž se zachovají místní jména a historie.
+
+- Popisy skupin, nastavení a účastníci nově sledují živá oznámení, včetně povýšení a degradace správců, a obnovují oprávnění k odesílání v otevřeném chatu.
+
+- Smazání chatu na jiném zařízení ho z WinZappu odstraní po příchodu oznámení; chat se zprávami novějšími než oznámení se zachová. Pokud byl otevřený, zavře se a WinZapp řekne proč.
+
+- Připnutí nebo odepnutí zprávy na jiném zařízení aktualizuje její příznak a přehled připnutých zpráv otevřeného chatu po příchodu oznámení.
+
+- Změna časovače mizejících zpráv na jiném zařízení, v chatu nebo ve skupině, aktualizuje WinZapp bez čekání na úplnou synchronizaci.
+
+- Zamčení nebo odemčení chatu v telefonu aktualizuje WinZapp po příchodu oznámení; pokud byl otevřený, zavře se a WinZapp řekne proč.
+
+- Změny ztlumení, archivace a připnutí provedené na jiném zařízení aktualizují seznam chatů po příchodu oznámení, s WPPConnect i Neonize.
+
+- Zprávy smazané pro vás na jiném zařízení se z chatu odstraní po příchodu oznámení o smazání, s WPPConnect i Neonize.
+
+- Označení zprávy hvězdičkou nebo odebrání hvězdičky v telefonu či na jiném zařízení aktualizuje její značku v otevřeném chatu po příchodu oznámení, s WPPConnect i Neonize.
+
+- Neonize: úpravy zachovávají původní ID zprávy a zaznamenávají úplný klíč oznámení o úpravě, včetně autora ve skupinách.
+
+- Neonize: události reakcí používají formát WPPConnect, s úplnými klíči reakce a původní zprávy, odesílatelem a časovým razítkem v sekundách.
+
+- V otevřeném chatu se výsledky ankety obnoví, když přijde nová událost hlasování, s Neonize i WPPConnect. Neonize: události kompatibilní s WPPConnect pro hlasy, odvolané zprávy a přiřazení štítků; přijatá ID statusů zachovávají autora.
+
+- Archivace chatu nově vyžaduje potvrzení, z místní nabídky nebo pomocí Ctrl+Shift+Q, stejně jako smazání. Dialog se ptá „Opravdu chcete tento chat archivovat?“ a má tlačítka „Archivovat chat“ (Alt+A) a „Zrušit“ (Alt+Z), plus zaškrtávací pole „Už nezobrazovat“, které se počítá jen společně s potvrzením. V Nastavení > Rozhraní volba „Před archivací chatů žádat o potvrzení“ otázku znovu zapne.
+
+- Překlad zpráv, které už v chatu jsou: místní nabídka zprávy získává „Přeložit odsud do konce“ (Alt+Shift+Y) a hromadná akce „Přeložit vybrané zprávy“ ukazuje svou zkratku, Ctrl+Alt+Shift+Y. Obě lze změnit na kartě Klávesové zkratky v Nastavení a položky nabídky ukazují používanou zkratku. Zatímco běží překlad více zpráv, stejná položka nabídky a zkratka se změní na „Zrušit překlad zpráv“. Týká se přijatých textových zpráv, nejvýš 50 najednou, s poskytovatelem, modelem a zobrazením z „Přeložit zprávu“.
+
+- Pomoc s psaním: WinZapp získává funkci podobnou pomoci s psaním ve WhatsAppu pro mobil, s přidanou možností přeložit koncept. Nové tlačítko za Emoji a místní nabídka editoru zprávy otevírají totéž okno. Opravit, přeformulovat, použít profesionální nebo povzbudivý tón s poskytovateli AI nastavenými ve WinZappu, ne s Meta AI; překlad používá Google. Před odesláním konceptu se žádá o souhlas a výsledek se před nahrazením zobrazí v náhledu; zpráva se nikdy neodešle automaticky. Zvolte akci a stiskněte „Spustit vybranou akci“. Otevření ani zavření tohoto okna koncept neodešle.
+
+- Pomoc s psaním: nová zkratka Alt+Shift+H otevře okno odkudkoli v chatu, zatímco se píše koncept. Lze ji změnit na kartě Klávesové zkratky v Nastavení a místní nabídka pole i tlačítko nově ukazují používanou zkratku.
+
+- WPPConnect Server aktualizován na 2.10.87, s WPPConnect 2.4.6 a WA-JS 4.8.2, díky čemuž odesílání zpráv opět funguje poté, co se WhatsApp Web uvnitř změnil. Čtení historie zpráv už nehromadí kopie v paměti, prohlížeč, který WinZapp ovládá, se zavírá automaticky jen tehdy, když ho otevřel sám WinZapp, a čekání na načtení WhatsApp Webu nově funguje i při skryté stránce. Média přijatá bez adresy ke stažení se nově stahují podle ID zprávy.
+
+- Shrnutí zpráv pomocí AI, jako ve WhatsAppu: otevřený chat získává tlačítko „Shrnout nepřečtené zprávy“ a zkratku Ctrl+Shift+U; místní nabídka seznamu chatů získává „Shrnout nepřečtené zprávy pomocí AI“, které čte zprávy z databáze, aniž by chat otevřelo nebo označilo jako přečtený; a místní nabídka zprávy nabízí shrnutí nepřečtených, „odsud do konce“ a vybraných. Tlačítko se objeví jen při 10 a více nepřečtených zprávách; zkratka funguje s jakýmkoli počtem. Shrnutí používá poskytovatele AI, které už máte nastavené v Nastavení > Online AI (ne Meta AI), otevře se v okně s doplňujícími otázkami a tlačítkem Kopírovat a uvádí, že vzniklo pomocí AI a může obsahovat chyby. Hlasové zprávy vstupují jako text: WinZapp použije už uložený přepis nebo přepíše na místě pomocí místního přepisu, nejvýš 20 nejnovějších, v okně, které ukazuje průběh a má tlačítko Zrušit; bez nastaveného přepisu zůstanou jen značkou a výsledek to uvede. Souhlas je samostatný, žádá se před přepisem jakékoli hlasové zprávy, jednou, a v běžných chatech se zapamatuje; v zamčených chatech se žádá pokaždé, nikdy se nezapamatuje a okno se zavře, když se trezor zamkne. Shrnutí pokrývá až 200 zpráv a 15 000 znaků a uvádí, kolik starších zpráv bylo vynecháno.
+
+- Shrnutí pomocí AI: dvě nové zkratky pro místní nabídku zprávy, Alt+Shift+I pro shrnutí odsud do konce a Ctrl+Alt+Shift+I pro shrnutí vybraných zpráv. Lze je změnit na kartě Klávesové zkratky v Nastavení a položky nabídky nově ukazují používanou zkratku, včetně Ctrl+Shift+U u nepřečtených.
+
+- Shrnutí pomocí AI: když shrnujete zprávy, které zahrnují hlasové zprávy bez uloženého přepisu, okno se zeptá, jak je přepsat: místně (výchozí), online s poskytovatelem a modelem přepisu odděleným od modelu shrnutí, nebo vůbec. Než se hlasové zprávy odešlou, otázka řekne, kolik jich jde, kterému poskytovateli a že to může spotřebovat kvótu nebo vést k poplatkům, se zaškrtávacím polem pro zapamatování souhlasu daného poskytovatele. Uložené přepisy se znovu použijí a výsledek upozorní, kolik hlasových zpráv selhalo nebo bylo vynecháno kvůli limitu. Otevření, změna nebo zavření oken nic neodešle. Požádal UlisesMilani (#791).
+
+- WPPConnect: když dochází místo na disku (méně než 4 GB volných), WinZapp bezpečně zavře WhatsApp, než přijde o relaci, přejde do režimu offline a řekne proč. Jakmile je volných alespoň 5 GB, připojí se znovu sám. Dříve se při zhruba 3 GB volných mohla relace vrátit odhlášená, jako by byla smazána.
+
+- Automatický přepis: hlasová zpráva přijatá, zatímco byl počítač uspaný, už nezůstane nepřepsaná, když dorazí spolu s dalšími po probuzení.
+
+- Neonize: když někdo vstoupí do skupiny přes její odkaz pozvánky, zobrazí se to jako „se připojil přes odkaz pozvánky do skupiny“, jako ve WhatsApp Webu, a také když se do skupiny přes odkaz připojíte sami, zůstane v chatu toto oznámení.
+
+- Vymazání chatu v telefonu nově vymaže stejný chat ve WinZappu, u obou modulů připojení. Zprávy s hvězdičkou zůstanou, když je telefon zachoval, a zpráva, která přišla po vymazání, se neodstraní.
+
+- Kanály: kanál otevřený z okna Kanály, například ze seznamů Populární teď nebo Doporučené, nově načte své aktualizace hned, místo aby do další synchronizace ukazoval „V tomto kanálu zatím nejsou žádné aktualizace.“ Čtou se i podrobnosti kanálu, který nesledujete.
+
+- Skupiny: tlačítko „Informace o skupině“ drží krok s počtem účastníků. Ve skupině, do které jste právě vstoupili a jejíž seznam účastníků se načítá delší dobu, se číslo objeví, jakmile seznam dorazí, a mění se, když někdo vstoupí nebo odejde, zatímco je chat otevřený.
+
+- Po probuzení počítače ze spánku už WinZapp o pár minut později znovu neukazuje „Aktualizace chatů“. Chaty, které nešlo přečíst, zatímco se obnovovalo připojení, se přečtou ve stejné synchronizaci.
+
+- Neonize: změna možnosti soukromí ve WhatsAppu, například „Naposledy online“ nebo „Potvrzení o přečtení“, už neukazuje „Některá nastavení se nepodařilo použít.“, když WhatsApp změnu použil.
+
+- Protokol účtu už při stahování médií nezaznamenává přístupový kód relace WPPConnect.
+
+- Modul připojení: Neonize je nově první v seznamu a předvybraná možnost, když se WinZapp při prvním spuštění ptá na modul; stále je označen jako experimentální, ale je to ten doporučený pro obecné použití. WPPConnect se stává druhou možností, označenou „alternativa“ za svým názvem, při prvním spuštění, v okně párování a v Nastavení > Připojení. Kdo už WPPConnect používá, zůstane na něm, dokud nepřepne.
+- Po delší době bez otevření WinZappu: dokud WhatsApp po synchronizaci stále doručuje staré zprávy, titulek okna dál říká „Aktualizace chatů“, místo aby vše představoval jako synchronizované, a seznam chatů zůstává v klidu, takže se po něm můžete pohybovat, aniž by chaty měnily místo. Aktualizuje se jednou, když zprávy přestanou přicházet. Týká se to Neonize i WPPConnect. U Neonize WinZapp také používá vlastní oznámení WhatsAppu, že staré zprávy čekají na doručení, takže se stav ukáže od první zprávy a zmizí, až když doručování skončí.
+
+- Oznámení: když najednou přijde mnoho nových zpráv (například po návratu nestabilního připojení), WinZapp přehraje a vysloví jen první tři a do konce dávky mlčí, místo aby zvuk opakoval desítkykrát. Zprávy zůstávají v seznamu a počítají se jako nepřečtené. Limit se volí v Nastavení > Obecné > Oznámení, pod „Maximální počet oznámení za sekundu, když přijde hodně zpráv najednou:“ (výchozí: 3).
+
+- Neonize: přijetí podmínek Meta AI už neselhává s chybou WhatsAppu. WinZapp nově posílá přijetí ve stejném formátu, jaký WhatsApp Web používá pro toto oznámení, a potvrdí ho až poté, co znovu přečte, že je oznámení zaznamenáno jako přijaté.
+
+- Hovory: lepší podpora stereo mikrofonů a sluchátek ve sdíleném režimu, s návratem k mono, když je to potřeba. Hlas se stále posílá v mono.
+
+- V okně hovoru stiskněte Ctrl+M z libovolného ovládacího prvku, abyste ztlumili nebo zrušili ztlumení mikrofonu a slyšeli jeho nový stav. Okno odchozího hovoru ukazuje stav hovoru a oznamuje, kdy vyzvání nebo se připojí.
+
+- Během hlasového hovoru ve Windows 11 použijte Sdílet zvuk počítače k odesílání zvuku systému nebo zvuku jedné aplikace, s NVDA zvukem nebo bez něj, v hlasitosti, kterou zvolíte. Zpočátku není vybráno nic. Ztlumení mikrofonu sdílení nezastaví a změna zvukových zařízení hovoru ho nechá běžet. Použijte Zastavit sdílení zvuku počítače k ukončení sdílení nezávisle na mikrofonu.
+
+- Neonize: v hovorech se hlas druhé osoby ukládá do vyrovnávací paměti o něco déle (asi 60 ms), aby se snížilo vysekávání, když zvuk přichází v dávkách.
+
+- Překlad zpráv: stiskněte Shift+Enter na textové zprávě v seznamu zpráv (zkratku lze změnit) nebo použijte její místní nabídku. Nastavte ho v Nastavení > Online AI: přepisy a popisy > Překlad zpráv: poskytovatele (vaši poskytovatelé AI, Grok nebo vaše vlastní adresa kompatibilní s OpenAI či Anthropic), model, cílový jazyk a zda překlad nahradí text, bude následovat za ním nebo se otevře v samostatném okně. Volitelný automatický překlad přijatých zpráv, ve všech chatech nebo jen v těch, které zapnete, s maximálním stářím zprávy a denním limitem; pozastaví se na hodinu, pokud poskytovatel odmítne klíč, kvótu nebo kredit. Zamčené chaty se automaticky nepřekládají nikdy a překlad zprávy z nich vyžaduje potvrzení pokaždé. Druhy médií, které online AI zpracovává, jsou nově v okně „Zpracovávané typy médií...“ na téže stránce. Zapnutí automatického překladu pro chat nově přeloží také jeho 10 posledních přijatých zpráv, bez ohledu na stáří, a „Přeložit vybrané zprávy“ v hromadných akcích přeloží vybrané textové zprávy (až 50) po vyžádání potvrzení. Požádal UlisesMilani (#793).
+
+- Neonize: oznámení o smazání zprávy, pro zprávu nebo chat, které WinZapp nemá, už v seznamu chatů nevytvoří „Skupinu bez názvu“. Smazané zprávy ve vašich stávajících chatech se nemění.
+
+- Neonize: stará média, která telefon znovu nahraje po žádosti o jejich opětovné odeslání, se nově skutečně stáhnou. Dříve byl znovu nahraný soubor odmítnut, protože neodpovídal kontrole původního souboru, a médium se stále nedalo otevřít.
+
+- Aktualizace při ukončení: nová volba v Nastavení > Obecné stahuje aktualizace automaticky, bez ptaní, a instaluje je, když WinZapp ukončíte. Zavření okna do oznamovací oblasti se za ukončení nepočítá a WinZapp se po instalaci znovu neotevře: zůstane zavřený a novou verzi použije při dalším otevření.
+
+- Neonize: stará historie chatů se nově při synchronizaci na pozadí skutečně importuje; předchozí oprava se na konci každého průchodu stále rušila. Stará média, která nejdou obnovit ani po dotazu na telefon, se nově ukazují jako vypršelá, místo opakované chyby připojení.
+
+- Neonize: média s vypršelým odkazem se nově vyžádají znovu z telefonu. Když stahování selže, protože odkaz vypršel, WinZapp požádá telefon o opětovné nahrání média a stáhne ho z nového odkazu; pokud telefon soubor už nemá, médium zůstane označené jako vypršelé.
+
+- Nové odpovědi a odeslané zprávy se už neobjevují nad původní zprávou, když jdou hodiny počítače pozadu za hodinami WhatsAppu. Prozatímní čas odeslané zprávy není nikdy dřívější než poslední už zobrazená zpráva nebo zpráva, na kterou odpovídáte.
+
+- Neonize: historie, kterou telefon posílá několik hodin, se už nepovažuje za úplnou kvůli 45sekundové pauze mezi bloky. Dokud je hlášený průběh pod 100 %, WinZapp čeká až 10 minut ticha, takže se chaty nepovažují za konečné příliš brzy.
+
+- Média, která se nepodaří stáhnout: chybová zpráva už nezmiňuje WPPConnect, který v modulu Neonize neexistuje. Nově říká, že odkaz mohl vypršet nebo připojení k WhatsAppu může být nedostupné.
+
+- Obchodní šablony: zachovávají dostupný text a podporovaná tlačítka, udržují pozice tlačítek a vysvětlují chybějící obsah nebo nepodporované akce. Prázdné staré záznamy nelze rekonstruovat.
+
+- WPPConnect Server 2.10.79 se nově nabízí jako aktualizace, aniž by se čekalo na novou verzi WinZappu. Aktualizuje jen bezpečnostní závislosti a změny WinZappu na serveru nejsou dotčeny.
+
+- Neonize: po spárování s „Celou historií“ se stará historie chatů nově skutečně importuje. Dříve import zasekaly stovky starých prázdných chatů, které jste nikdy neotevřeli, a většina už stažených zpráv se nikdy neobjevila. Stará média, jejichž odkaz vypršel, se nově rozpoznají jako vypršelá, místo aby selhala s chybou a opakovala se několikrát.
+
+- Zmínky: ve skupinové zprávě s @all už Tab hned po otevření chatu neprochází jeden odkaz za druhým pro každého člena. Dříve se to dělo, dokud se členové skupiny nenačetli a zpráva neztratila fokus.
+
+- Místní přepis: přepnutí účtů, zatímco se přepisují hlasové zprávy, už nezaplní paměť počítače. Najednou se načítá jeden model: druhý přepis, ze stejného účtu nebo jiného, počká na první a řekne, že čeká, a nečinný model účtu se uvolní, když grafickou kartu potřebuje jiný.
+
+- Vymazat chat (Neonize): vymazání chatu ve WinZappu nově vymaže i telefon. Oznámení dříve telefon minulo a zprávy se při další synchronizaci vrátily.
+
+- Automatický přepis: hlasové zprávy, které přijdou všechny najednou poté, co byl počítač v hibernaci nebo offline, se nově přepíšou. Doba, po kterou počítač spal nebo byl offline, se už nepočítá do stáří zprávy a fronta pojme až 100 zpráv.
+
+- Místní přepis: nová volba „Přepisovat i zprávy, které přijdou pozdě“, zobrazená při zapnutém automatickém přepisu, přepisuje přijaté zprávy bez ohledu na to, jak dávno byly odeslány.
+
+- Mizející zprávy (Neonize): zvuk nahraný pomocí Ctrl+Shift+H, fotky, videa a dokumenty nově řídí časovač mizejících zpráv chatu.
+
+- Hovory (Neonize): hovor, který zahájíte s kontaktem, se už neobjeví ve vašem vlastním chatu, jako byste zavolali sami sobě.
+
+- Skupinové zprávy (Neonize): zpráva, kterou tento počítač nemohl otevřít, se nově vyžádá i od vašeho telefonu, jako to dělá WhatsApp Web. Dříve se ztratila, když ji zařízení odesílatele neposlalo znovu.
+
+- Párování (Neonize): při připojování si zvolíte, kolik historie přinést: jen nedávné zprávy, 30 dní, 6 měsíců, 1 rok, celou historii nebo vlastní období ve dnech, měsících či letech. Zprávy starší než zhruba rok přijdou jen tímto způsobem.
+
+- Starší zprávy (Neonize): klávesa Home dál žádá telefon o starší zprávy, dokud žádné nezbudou, i tam, kde se WhatsApp Web zastaví.
+
+- Kanály: pozvánky ke sledování kanálu nebo k tomu, abyste se stali jeho správci, se nově zobrazují v chatu, s názvem kanálu a slovy zvoucího. Enter otevře kanál.
+
+- Potlačení šumu: nové okno „Nastavení potlačení šumu“ v Nastavení, Zvuk, s neurálním modelem a procesorem, na kterém běží: procesor počítače, karta NVIDIA s CUDA 12 (která používá součásti místního přepisu) nebo s CUDA 13, nebo Core ML na Macu. Stahují se jen chybějící součásti, podle volby stahovat na pozadí, a lze je tam odebrat. Nové pole volí mezi neurálním potlačením a běžným, které je rychlejší.
+
+- Místní přepis (whisper.cpp): v počítačích s Windows ARM64 WinZapp používá nativní sestavení pro ARM64 a jako volbu nabízí sestavení pro karty NVIDIA s CUDA 13.
+
+- Kanály: tam, kde ho WhatsApp vašemu účtu nabízí, má „Upravit kanál...“ volbu „U aktualizací zobrazovat profil správce“, jako ve WhatsApp Webu (WPPConnect).
+
+- Kanály: „Statistiky...“ v okně Kanály čte statistiky kanálu, který spravujete, tak jak je ukazuje WhatsApp Web (dosah, sledující, čistý přírůstek sledujících, noví sledující a odhlášení za 30 dní, podle sledujících a ostatních a podle zemí), s WPPConnect i Neonize. WhatsApp je má od 100 sledujících.
+
+- Stahování médií: „Stahuji média: X z Y“ nově počítá jen média, která je ještě třeba stáhnout. Dříve počítalo i ta stažená v dřívějších relacích a vypadalo to, jako by se skoro nic nestáhlo (například „723 z 728 zpracováno (66 staženo)“, když dalších 659 už v počítači bylo).
+
+- Kanály: v „Vytvořit kanál...“ a „Upravit kanál...“ volba Reakce určuje, kdo smí na aktualizace reagovat (libovolné emoji, jen výchozí emoji, nebo žádné reakce), jako ve WhatsApp Webu, s WPPConnect i Neonize.
+
+- Zprávy s hvězdičkou: nové okno vypisuje všechny zprávy s hvězdičkou ze všech chatů (Alt+0, nebo řádek „Zprávy s hvězdičkou“ v navigačním seznamu), s polem pro hledání; Enter otevře chat na dané zprávě a Delete odebere hvězdičku. Navrženo v issue #708.
+
+- Nastavení > Rozhraní > Chaty: nová volba „Automaticky vybraná pozice v seznamu zpráv“. S „Pokračovat tam, kde jste skončili (poslední zpráva s fokusem)“ se po návratu do chatu (včetně přepnutí z jednoho chatu do druhého) seznam zpráv postaví na zprávu, na které jste při odchodu byli, ať už přišly nové nepřečtené zprávy, nebo ne. Oddělovač nepřečtených a další řádky, které nejsou zprávami, se za pozici nikdy nepočítají. Výchozí zůstává „Oddělovač nepřečtených nebo poslední zpráva“. Volba vybírá jen zprávu v seznamu: zda fokus půjde do seznamu, nebo do pole zprávy, určuje stále stávající volba.
+
+- Záložky: dvě nová zaškrtávací pole v Nastavení > Rozhraní > Chaty, „Trvalé záložky po prvním použití automaticky odebrat“ a „Dočasné záložky po prvním použití automaticky odebrat“. Když jsou zaškrtnutá, skok na záložku (Ctrl+0 až 9 pro trvalé, Alt+Shift+0 až 9 pro dočasné) ji hned odebere, takže stejná klávesa příště nastaví novou záložku, bez odebírání pomocí Ctrl+Shift+číslo.
+
+- Zvuky: dvě nové volby v Nastavení, Zvuky událostí umožňují zvolit, který zvuk se přehraje pro novou zprávu, když je WinZapp v popředí, jeden pro otevřený chat a jeden pro ostatní chaty. Každý může ponechat vlastní zvuk pro popředí, jako dosud, nebo použít stejný zvuk oznámení, který jste zvolili pro zprávy na pozadí.
+
+- Odkazy WhatsApp: WinZapp nově otevírá odkazy na chaty. Odkaz wa.me nebo api.whatsapp.com (například od letecké společnosti, obchodu nebo webu) otevře chat s daným číslem, i když není ve vašich kontaktech, vloží zprávu z odkazu do pole zprávy a nechá tam fokus, připravený, abyste ji zkontrolovali a odeslali. Fungují i odkazy jen s číslem. Nainstalovaná verze se nově při prvním spuštění sama zaregistruje pro odkazy WhatsApp, takže se WinZapp objeví ve Windows v Výchozích aplikacích; přenosná verze má volbu dál v Nastavení, Obecné.
+
+- Správce účtů: nové zaškrtávací pole „Při spuštění WinZappu připojit všechny účty“. Když je zapnuté, spuštění WinZappu otevře na pozadí také každý další spárovaný účet.
+
+- Záloha: záloha profilu (v Nastavení > Úložiště a ve správci úložiště) se už nezobrazuje, když WinZapp běží s modulem Neonize, který nemá profil prohlížeče k zálohování.
+
+- Zprávy: kolidující alternativní identity už nesměrují zprávy odeslané jiné osobě nebo od ní přijaté do vašeho chatu se sebou samými. Neplatné aliasy se ignorují; nevyřešené zprávy zůstanou u svého původního chatu, dokud se identita nevyřeší.
+
+- Filtr nepřečtených: po aktualizaci nebo restartu programu některé chaty s nepřečtenými zprávami z filtru zmizely (například 12 se stalo 9), dokud jste nespustili novou synchronizaci klávesou F5. Počet se nově dívá na nejnovější zprávy chatu místo nejstarších. Skupinové chaty, jejichž poslední záznamy byly skupinová oznámení (pozvánky, přidaní členové, změna popisu), také už nemizí: tato oznámení už nezabírají místo skutečných nepřečtených zpráv.
+
+- Zkratky Alt+písmeno: v několika oknech používaly dva ovládací prvky stejné písmeno, takže Alt+písmeno se mezi nimi jen přepínalo (v některých jazycích například „Obnovit“ a „Přidat účastníky“ v okně účastníků hovoru). Každý ovládací prvek v okně má nově své vlastní písmeno, ve všech jazycích.
+
+- Seznam chatů: když zvolený filtr (Nepřečtené, Skupiny, Individuální), seznam WhatsAppu nebo hledání nenajde žádný chat, seznam ukáže jeden řádek, který to říká (například „Žádné nepřečtené chaty.“), jako to už dělal seznam zpráv u prázdného chatu, místo aby odečítači nezbylo nic ke čtení.
+
+- Skupinové hovory: WinZapp nově říká, kdo se k hovoru připojí a kdo ho opustí (Nastavení > Hovory, „Ohlásit, když se někdo připojí k hovoru“ a „Ohlásit, když někdo opustí hovor“, ve výchozím stavu zapnuto), a okno „Účastníci hovoru“ se při tom samo aktualizuje, bez tlačítka Obnovit; F5 načte seznam znovu.
+
+- Globální klávesová zkratka: když nějaké okno WinZappu čeká na odpověď, například výzva k aktualizaci ponechaná otevřená, zatímco byl program v oznamovací oblasti, globální zkratka nově přenese toto okno do popředí. Hlavní okno se dříve zobrazilo a na nic nereagovalo.
+
+- Popisy obrázků pomocí AI: když účtu poskytovatele dojde kredit (OpenRouter odpoví 402), WinZapp to nově řekne a navrhne přidat kredit nebo zvolit bezplatný model, místo aby žádal o kontrolu identifikátoru modelu; s více poskytovateli přejde na dalšího.
+
+- Nahrávání se zvukem počítače: na pomalejších počítačích se nahrávání mikrofonu spolu se zvukem počítače (Ctrl+Shift+H) přeskakovalo a koktalo, nejhůř s řečí NVDA nahrávanou samostatně, protože míchání zvuků nestíhalo a kousky zvuku se ztrácely. Míchání je nově mnohonásobně rychlejší a nahrávka vychází celá.
+
+- Kanály: ve WPPConnect selhalo odeslání příspěvku do kanálu, který spravujete (text, fotka, video nebo anketa), dříve než se dostalo do WhatsAppu, a otevřený kanál ukazoval jen to, co už WhatsApp Web držel, často žádné aktualizace vůbec (například The New York Times) a žádné vaše nové příspěvky. Příspěvky nově odcházejí a kanál se otevře s celou stránkou svých nejnovějších aktualizací, čtených ze serveru WhatsAppu. Po návratu z kanálu klávesou Esc je okno Kanály tak, jak jste ho nechali: stejný seznam, hledání, kategorie i vybraný kanál.
+
+- Aktualizace: na vytíženém počítači se aktualizace mohla zastavit s „WinZapp nemohl ověřit, že je instalace aktualizace bezpečná. Instalace nebyla zahájena.“, protože PowerShell, který instalaci hlídá, startoval déle než 15 sekund; nově má až minutu. U Neonize se aktualizace mohla zastavit i v půlce, protože se most na pozadí ještě zavíral a držel svůj soubor: instalační program nově čeká, až se zavře, a v případě potřeby ho zavře, než zkopíruje soubory.
+
+- Kanály s Neonize: otevření nebo synchronizace kanálu žádaly WhatsApp o tisíc aktualizací najednou; server neodpověděl, kanál zůstal prázdný a synchronizace to zkoušela znovu každých 30 sekund. Aktualizace se nově žádají po 100, jako to dělá WhatsApp Web.
+
+- Seznam zpráv: na brazilské klávesnici (ABNT2) stisk „/“ v seznamu zpráv napsal do pole zprávy „Á“ a „ç“ vyšlo jako „º“. Psaní v seznamu nově pošle poli písmeno nebo číslici, kterou klávesnice skutečně píše, a interpunkce zůstane v seznamu. Ze stejného důvodu „ÿ“, které gesta NVDA s klávesou Windows nechávala v poli, pocházelo z klávesy, kterou NVDA samo vkládá; nově se ignoruje jen tato klávesa a skutečné „ÿ“ lze napsat.
+
+- Hovory: okno „Přidat účastníky“ nově funguje s odečítačem. Lidé se označují stejnými klávesami, zvukem a oznámeními jako v seznamech chatů a zpráv (Ctrl+mezerník, mezerník při označené položce, Shift+šipky, Ctrl+Shift+mezerník, Esc) a výsledek se vysloví: kdo byl pozván, koho nešlo přidat, nebo proč žádost selhala.
+
+- Hovory: zpožděná média a práce se zařízením či kamerou zůstávají u svého původního hovoru a streamu. Neonize zpracovává média v omezených frontách mimo smyčku serveru a po přechodné chybě vysílání si ponechá svůj čtecí proces. Nejednoznačné názvy WASAPI už nevybírají první odpovídající zařízení. Protokoly hovorů Neonize nově obsahují také souhrny úrovně signálu bez ukládání obsahu zvuku, aby pomohly vyšetřit ticho. Když se výstup hovoru znovu otevře, starý stream, který se nepodaří zavřít, nemůže spotřebovat zvuk nového streamu; selhání reference ozvěny už nezatlumí přehrávaný zvuk.
+
+- Karta Média v chatech a skupinách: Ctrl+C na dokumentu, fotce, videu nebo zvuku nově zkopíruje soubor do schránky, jako v seznamu zpráv, místo aby řeklo „Tuto zprávu nešlo zkopírovat.“ Položka místní nabídky se nově také jmenuje „Kopírovat soubor“.
+
+- Tlačítko Otevřít nově otevírá dokumenty, fotky, videa a další soubory v externím prohlížeči pod jejich skutečným názvem, místo názvu jako „tmpab12cd34“, stejně jako to už dělalo Uložit jako.
+
+- Nastavení > Obecné > Oznámení získává „Pořadí u zpráv ze skupin v oznámeních Windows:“, s „Nejdřív jméno účastníka“ (výchozí, jako dosud: „Gustavo in WinZapp | Developers and Testers“) a „Nejdřív název skupiny“ (jako v oficiálním WhatsApp Desktop: „WinZapp | Developers and Testers, Gustavo“). Volba mění jen text oznámení Windows; to, co odečítač oznamuje, když je okno aktivní, zůstává stejné.
+
+- Nahrávání zvuku počítače už neskončí chybou „problém se zvukovým zařízením“, když WinZapp na vteřinu či dvě zamrzne (vytížený nebo pomalý počítač): zvuk z té chvíle se přeskočí, nahrávání pokračuje a zbytek zůstane synchronní.
+
+- Neonize: při vypnutých potvrzeních o přečtení v Soukromí už nevidíte stav „přečteno“ u zpráv, které odesíláte v chatech mezi dvěma lidmi, stejně jako už ostatním neposíláte potvrzení o přečtení (jako u WPPConnect). Nastavení nově funguje oběma směry.
+
+- ClickBus: ověřená obchodní jména se nově zobrazují v seznamu chatů, texty o cestách a interaktivní tlačítka se ukazují celé a volba vybraná v karuselu se odesílá s indexem karty.
+
+- Nastavení > Úložiště získává Správce úložiště: prohlížení logických velikostí a pokrytí, volba shody médií a ochran, náhled odebrání místních kopií nebo obnovitelného uložení, obnovení uložených souborů a nastavení volitelných pravidel, oznámení a orientačních cílů. Automatické odebrání je omezeno na ověřenou obnovitelnou mezipaměť kompilace; veškeré plánování začíná vypnuté. Vyčištěná média lze vyžádat jednotlivě, aniž by se zrušily blokace automatického stahování.
+
+- Hovory Neonize: obnoví se odpověď nebo ukončení, které přijde před místní registrací hovoru; selhání skupinových hovorů nově rozlišují omezení rychlosti WhatsAppu a podporované limity členů.
+
+- Hovory Neonize: protokol nově zaznamenává koncové body relé a odpovědi relé, aby se zjistilo, proč příchozí hovor nemusí nést žádný zvuk od druhé osoby (issue #689). Chování se nemění.
+
+- Skupinové hovory Neonize: když se člen skupiny připojí ke skupinovému hovoru, který jste zahájili, hovor se aktivuje a začne zvuk, místo aby zůstal na „volání“ s vypuštěným mikrofonem. Konec hovoru se nově zaznamená ve skupině a v historii hovorů, ne v soukromém chatu s jedním z členů (issue #689).
+
+- Skupinové hovory Neonize: když pozvánka do skupinového hovoru dorazí bez názvu skupiny, program se serveru zeptá, o kterou skupinu jde, takže probíhající hovor se ukáže v chatu skupiny, abyste se mohli připojit (issue #689).
+
+- Skupinové hovory Neonize: protokol nově zaznamenává, co obsahují seznamy účastníků zaslané serverem (jen počty, žádná jména), aby se zjistilo, proč někteří lidé, kteří se k hovoru připojí, nikoho neslyší (issue #689). Chování se nemění.
+
+- Skupinové hovory Neonize: zařízení připojené k hovoru si nově ponechá identifikátor, který dostalo při připojení, místo aby ho ztratilo při další aktualizaci serveru. Kdo odpoví přes Neonize, už neslyší jen osobu, která hovor zahájila, a nově slyší i ostatní účastníky (issue #689).
+
+- Hovory Neonize: hovory, které zahájíte, a hovory, které přijmete a sami zavěsíte, se nově objeví v historii chatu a v části Hovory. Dříve se nezaznamenávaly vůbec (issue #689).
+
+- Hovory Neonize: protokol nově každých 5 sekund počítá pakety jednotlivých druhů, které relé doručuje (bez jmen), aby se zjistilo, proč se u některých přijatých hovorů zvuk volajícího zastaví (issue #689). Chování se nemění.
+
+- Skupinové hovory (Neonize): poté, co zavěsíte skupinový hovor a vrátíte se do něj z panelu hovorů (nebo se připojíte k hovoru, který už probíhá), jste přestali všechny slyšet. WinZapp ignoroval každého, kdo už v hovoru byl, než jste se vrátili; nově je zase slyší. Protokol hovoru také počítá opakované zprávy podle hovoru, takže diagnostické řádky z hovoru už po několika hovorech nemizí (issue #689).
+
+- Neonize: první zpráva na nové telefonní číslo zadané v novém chatu (Ctrl+N) už nekončí jako „nepotvrzeno“, když má WhatsApp číslo zaregistrované v jeho jiné podobě (s 9. číslicí brazilských mobilů nebo bez ní): nově se odešle na adresu, kterou WhatsApp zná. Číslo zadané v novém chatu nově otevře chat pod adresou, kterou WhatsApp zná, takže nezůstane duplicitní chat.
+
+- Hlasové zprávy: datový tok nahrávání je zpět na 64 kb/s, které se odesílá rychle i po minutě (změna na 256 kb/s zpomalila odesílání). Nastavení > Zvuk získává „Datový tok hlasové zprávy (kb/s)“, k výběru od 32 do 256 kb/s.
+- Hlasové zprávy: nahrávky ve stereu (AAC) nově odcházejí ve výchozím stavu na 128 kb/s, protože 64 kb/s znělo špatně; mono nahrávky zůstávají na 64 kb/s. Nastavení > Zvuk získává „Datový tok stereo hlasové zprávy (kb/s)“. Instalace, které jsou stále na starém výchozím 64 kb/s, přejdou pro stereo na 128 kb/s; jakákoli jiná rychlost, kterou jste zvolili, se zachová.
+
+- Nastavení > Rozhraní > Chaty: nová volba „Počet nových zpráv v seznamu chatů“, díky které odečítač obrazovky řekne počet nových zpráv před názvem chatu místo za ním. Platí pro seznam chatů, archivované chaty a zamčené chaty. (navrhl Michal Suchý)
+
+- Nové okno Kanály (Alt+9, také v navigačním seznamu): zobrazí kanály, které sledujete, nebo prohledá adresář kanálů WhatsAppu (bez textu doporučené kanály). U zvoleného kanálu ho můžete otevřít a číst jeho aktualizace, sledovat ho nebo přestat sledovat, ztlumit nebo zrušit ztlumení jeho oznámení, kopírovat jeho odkaz a u vlastních kanálů ho upravit nebo smazat. Kanál také můžete začít sledovat podle odkazu a vytvořit nový kanál. Zobrazování kanálů v seznamu chatů zůstává samostatným nastavením. Funguje s WPPConnect i Neonize.
+- Kanály jako ve WhatsApp Web: v okně „Najít kanály“ zužují adresář Kategorie (firmy, zábava, životní styl, zprávy, organizace, lidé, sport) a Zobrazení (doporučené, populární, oblíbené, nové). V kanálech, které spravujete, se pole zprávy otevře pro zveřejňování textových aktualizací, fotek, videí a hlasování, vlastní aktualizace lze upravit z nabídky zprávy (Alt+E) v časovém limitu úprav WhatsAppu, aktualizaci lze připnout nebo odepnout z nabídky zprávy (Ctrl+Shift+P) a připnuté se zobrazují v „Připnuté zprávy“; tlačítko „Správci a sledující...“ řekne, kolik správců kanál má, a jeho vlastníkovi umožní pozvat kontakt za správce nebo pozvánku zrušit. Toto okno uvádí vlastníka, správce, čekající pozvánky a sledující: vlastník může ze sledujícího udělat správce, zrušit pozvánku, odebrat správce nebo udělat ze správce vlastníka a správce se může správcovství vzdát. Funguje s WPPConnect i Neonize.
+
+- Hovory: do probíhajícího hovoru teď můžete přidávat lidi tlačítkem „Přidat účastníky“ v seznamu účastníků hovoru. Skupinový hovor nabídne členy skupiny, kteří v něm ještě nejsou; soukromý hovor nabídne vaše kontakty a hovor pak má víc lidí, jako ve WhatsAppu. Komu už bylo voláno a nepřipojil se, tomu se zavolá znovu. Funguje s WPPConnect i Neonize.
+
+- Experimentální engine Neonize byl aktualizován z verze 0.6.0 na 0.12.4. Chat smazaný v telefonu teď zmizí i z WinZappu a označení chatu jako přečteného nebo nepřečteného v telefonu opět aktualizuje počítadlo nepřečtených. Informace o kontaktu se teď aktualizují hned, jak je kontakt změní.
+- Neonize: reakce ve skupinách oznámení komunit, které přicházejí šifrované, se teď zobrazují a vaše se v těchto skupinách odesílají šifrované. Komentáře k oznámením teď otevírá a odesílá přímo engine, dřívější způsob zůstává jako záložní.
+
+- Server WPPConnect byl aktualizován na 2.10.78, který přestal poskytovat soukromou mezipaměť médií přes HTTP.
+
+- Server WPPConnect byl aktualizován na 2.10.75, který opravuje webhook Chatwootu přijímající požadavky bez ověření a záplatuje zranitelnost v knihovnách glob a minimatch.
+
+- Nastavení WhatsAppu > Soukromí: nová volba „Ponechat chaty archivované“, přímo od WhatsAppu, která určuje, zda se archivovaný chat po příchodu nové zprávy vrátí do seznamu. Funguje s WPPConnect i Neonize.
+
+- Neonize: když je volba WhatsAppu „Ponechat chaty archivované“ vypnutá, archivovaný chat, který dostane novou zprávu, se teď vrátí do seznamu chatů jako v telefonu; dříve zůstával v Archivovaných.
+
+- Hlasové zprávy: v režimu Automaticky se nahrávka, jejíž levý nebo pravý vstup je úplně tichý, teď odešle v monu ze vstupu se zvukem, takže vás uslyší na obou stranách, ne jen na jedné. Mono a Stereo dělají přesně to, co říkají.
+
+- Nastavení (Ctrl+,) se teď otevře okamžitě: při otevření okna se sestaví jen stránka Obecné a každá další stránka nebo okno se sestaví až při prvním přechodu na ni. Hledání funguje hned: výsledky přibývají, zatímco se načítají ostatní stránky, můžete dál psát a odečítač obrazovky není přerušován, když seznam výsledků roste.
+
+- Neonize: přečtení chatu ho teď označí jako přečtený v telefonu i ve WhatsApp Web tak, jak to dělají vlastní aplikace WhatsAppu. Dříve mohl WhatsApp Web po přečtení mnoha chatů v Neonize několik minut dál zobrazovat už přečtené zprávy jako nepřečtené.
+
+- Neonize: zprávy v soukromých chatech se už samy neoznačují jako přečtené, dokud chat není otevřený.
+
+- Neonize: kanály v seznamu chatů (když je zapnutá volba jejich zobrazování) teď zobrazují svůj název místo kódu.
+
+- Neonize: odesílání do velkých skupin je rychlejší: šifrovací klíč skupiny se teď posílá jen zařízením, která ho ještě nemají, místo zařízení každého člena s každou zprávou.
+
+- Neonize: zprávy pro Meta AI fungují. WinZapp vás požádá o přijetí podmínek Meta AI, pokud je účet ještě nepřijal, a odpovědi Meta AI se zobrazují jako text místo neznámé zprávy.
+
+- Neonize: zveřejnění statusu (text, obrázek, video nebo hlas) už nekončí chybou „server returned error 400“. Stávalo se to v chatech se mizejícími zprávami a na jakémkoli účtu poté, co telefon synchronizoval kontakt uložený pod novým identifikátorem WhatsAppu.
+
+- Neonize: WinZapp teď žádá telefon o starší zprávy chatu, jako to dělá WhatsApp Web, když kliknete na zobrazení dřívějších zpráv. Dříve měl chat jen to, co přišlo při propojení zařízení, a nová synchronizace nepřinesla nic dalšího.
+
+- Zpráva, kterou WinZapp už zná, se už nezmění na „Čekám na tuto zprávu“. Po přechodu z Neonize na WPPConnect se tak mohla zobrazit právě odeslaná zpráva, i po F5 nebo po znovuotevření WinZappu.
+
+- Zmínky: napsání emoji v seznamu návrhů zmínek už nerozbije odeslání. Dříve se mohlo stát, že zpráva neodešla kvůli chybě serveru.
+
+- Skupiny: ve skupině, kde smějí zprávy posílat jen správci, je teď pole zprávy pro členy jen ke čtení i v Neonize; dříve zůstávalo ve většině takových skupin upravitelné.
+
+- Klávesové zkratky: seznam na F1 opravuje popisky akcí, odstraňuje opakované řádky v rámci sekce a odděluje návrhy zmínek při psaní od zmínek uvnitř zprávy. Ve španělštině a evropské portugalštině Alt+P přejde do pole zprávy a Alt+E zůstává pro úpravu zpráv.
+
+- Hlasové zprávy: Nastavení > Zvuk teď nabízí nahrávání Automaticky, Mono a Stereo. Mono smíchá oba vstupy mikrofonu, takže mikrofon připojený jen vlevo nebo vpravo je slyšet z obou stran. Tlačítko nahrávání zůstává jedno; volba platí od další nahrávky.
+
+- Opraveno: server WPPConnect už po aktualizaci nebo nové instalaci nepadá při spuštění s chybou „Cannot find module '@babel/runtime'“ („WinZapp API failed to start in time“).
+
+- Neonize: když uprostřed hovoru vypadne internet, můžete hovor stále zavěsit; dříve tlačítko selhalo s chybou „Disconnected“.
+
+- Server WPPConnect 2.10.74 se teď nabízí jako aktualizace, aniž by se čekalo na novou verzi WinZappu. Aktualizuje jen dokumentaci a jednu bezpečnostní závislost a změny WinZappu v serveru to neovlivní.
+
+- Neonize: soubor nebo zpráva, kterou přeposíláte, se teď v cílovém chatu zobrazí hned, aniž byste ho museli ručně obnovovat.
+
+- Mac: kontrola aktualizací už nekončí chybou zabezpečeného připojení na Macích bez Pythonu z python.org. Už nainstalované verze potřebují jednu ruční instalaci, aby tuto opravu získaly.
+
+- Skupiny: když někdo píše, WinZapp teď oznámí jeho jméno místo pouhého telefonního čísla, pokud jste od něj viděli zprávu, i když není ve vašich kontaktech.
+
+- Mac: mikrofon teď můžete nahrávat spolu se zvukem počítače (Command+Shift+H) v systému macOS 14.4 a novějším. Poprvé se macOS zeptá na oprávnění nahrávat zvuk systému.
+
+- Skupiny: WinZapp vás teď pozná ve skupinách, které vás uvádějí pod propojeným ID (@lid), takže správce už nemá položku Přidat člena zašedlou.
+
+- Hovory Neonize: hovor, který zahájíte a nikdo ho nepřijme, teď po minutě sám skončí s výsledkem „nepřijato“, místo aby ve volacím okně zvonil minuty poté, co WhatsApp přestal zvonit na druhém telefonu.
+- Mac: WinZapp teď řekne, když macOS čeká na oprávnění k mikrofonu nebo když bylo zamítnuto, místo aby se zdálo, že tlačítko nahrávání nic nedělá.
+
+- Hlasové zprávy: teď je jen jedno tlačítko nahrávání. WinZapp nahrává ve stereu, když vstupní zařízení nabízí dva kanály, a jinak v monu, takže druhé tlačítko nahrávání, Ctrl+Shift+G a volba stereo zmizely. Stereo nahrávka je teď skutečná hlasová zpráva, která se přehraje na iPhonu, a kvalita je až 256 kb/s. Přiložený stereo soubor Opus se teď také převede, aby se přehrál na iPhonu.
+
+- Přiložené kontakty: přijatý kontakt už nepřichází prázdný a bez telefonního čísla. Vizitku kontaktu teď uchovávají WPPConnect i Neonize, takže vidíte a můžete kopírovat číslo a psát si s danou osobou.
+
+- Neonize: příspěvky z kanálů, které sledujete (ID začínající 120363), se už nezobrazují jako chaty a zprávy; nikdy nebyly určeny k zobrazení mimo oblast kanálů.
+
+- Párování: opraveno zůstávání aplikace na obrazovce párování po úspěšném propojení, zatímco telefon ji už uváděl jako připojenou.
+
+- Hovory Neonize: přidána ve výchozím stavu vypnutá experimentální cesta 48 kHz PCM pro sjednané hovory s Opusem, s kontrolou formátu a instance hovoru. Běžné hovory si ponechávají stávající záložní řešení MLow.
+
+- Označení jako přečtené nebo nepřečtené, ztlumení, archivace a připnutí teď mají mluvené potvrzení. Opakovaná chyba při načítání seznamu chatů ukáže jedno okno místo jednoho při každém pokusu. Na Macu WinZapp pozná, že se počítač probudil, a znovu se připojí, a Home a End přejdou na začátek a konec seznamů. Když nelze obnovit relaci, nové spárování stejného čísla už nesmaže vaši historii.
+
+- Soubor README teď začíná přímými odkazy ke stažení pro Windows a Mac, takže už nemusíte na stránce Releases hledat správný soubor.
+
+- Arabština: přepis hlasových zpráv a zvuku teď v nabídkách, nastavení a zprávách používá „تفريغ“ (přepis) místo „تسجيل“ (nahrávání), takže už to nezní jako nahrávání vašeho hlasu.
+
+- Když přijmete aktualizaci, WinZapp teď před stažením znovu ověří, která verze je nejnovější, takže už nenainstaluje alfu starší než nejnovější, když se alfy publikují rychle po sobě.
+
+- Hovory Neonize: opraveno souběžné zpracování, kvůli kterému mohl přijatý příchozí hovor zůstat bez zvuku, zachován vícerámcový přijatý zvuk a omezeno aliasing mikrofonu. Pro zvuk se teď používá sjednaný kodek, s omezeným přeřazováním paketů a zvládáním ztrát.
+
+- Server WPPConnect byl aktualizován na 2.10.71, který přidává opravu zranitelnosti v knihovně používané vrstvou prohlížeče (deepmerge) a načítá ji při spuštění serveru.
+
+- Rychlé chaty: Ctrl+Alt+Shift+F1–F10 přiřadí chat a Ctrl+Shift+stejná funkční klávesa ho otevře odkudkoli v okně (F10 je pozice 0). Přiřazení jsou pro každý účet zvlášť, zkratky lze změnit v Nastavení a stávající zkratky záložek zůstávají dostupné.
+
+- Arabština je teď dostupná v Nastavení > Obecné > Jazyk, s arabským textem v instalačním a odinstalačním programu pro Windows.
+
+- Server WPPConnect byl aktualizován na 2.10.70, který zpřísňuje své administrátorské cesty (výpis a zálohování relací teď vyžadují tajný klíč v hlavičce místo v adrese), složky relací, které maže při odhlášení, a způsob dělení seznamů kontaktů. Stávající úklid relací při ukončení s vlastním API byl upraven tak, aby tomu odpovídal.
+
+- Skupinový hovor, který zvonil a nebyl přijat, se teď zaznamená ve své skupině a jeho vyzvánění uvádí název skupiny: už se nezobrazuje jako soukromý hovor od toho, kdo ho zahájil.
+
+- Nový engine připojení, experimentální: Neonize se připojuje k WhatsAppu bez prohlížeče, přes místní most. Zvolte ho v Nastavení, Připojení (nebo v otázce při prvním spuštění) a restartujte WinZapp; výchozí zůstává WPPConnect. Zkompilované sestavení už most obsahuje a WPPConnect zůstává nainstalovaný vedle něj; z kopie repozitáře nastavte most pomocí neonize_bridge/prepare.py (viz README v této složce). Při prvním spuštění po aktualizaci dostane instalace, která stále používá WPPConnect, jednorázové upozornění nabízející přepnutí; každý engine si uchovává vlastní připojení, takže přepnutí a návrat nezpůsobí ztrátu ani jednoho. S Neonize fungují také vlastní seznamy chatů, připojení ke skupinám komunity (nebo žádost o něj) a zrušení této žádosti, deaktivace komunity, úprava a mazání vašich kanálů, volba toho, kdo vidí váš status, a odebrání kontaktu. S Neonize fungují také katalogy, košíky a objednávky (zobrazení katalogu firmy, naplnění a odeslání košíku a na účtu Business odpovídání na objednávky a správa vlastního katalogu), stejně jako tlačítka, seznamy a klíče Pix ve zprávách. S Neonize funguje i přeposílání poloh a vizitek kontaktů. S Neonize fungují také videohovory, změna hlasového hovoru na videohovor a skupinové hovory. Komunita s Neonize také uvádí skupiny, ve kterých nejste. S Neonize lze také najít probíhající skupinové hovory a připojit se k nim, se seznamem toho, kdo v nich je. Tlačítka hovorů v chatech, včetně připojení k probíhajícímu skupinovému hovoru, se řídí podporou hlášenou Neonize a po příchodu jeho odpovědi se samy obnoví, aniž by vzaly fokus jinému oknu nebo skrytému chatu. Veřejná profilová jména získaná při synchronizaci kontaktů se teď používají i pro účastníky skupin bez soukromého chatu, zatímco jména uložená v adresáři mají přednost.
+
+- Tlačítkem Účastníci hovoru v okně hovoru, nebo na vybraném probíhajícím hovoru v Hovorech, uvidíte připojené lidi podle jmen.
+
+- Mistral je k dispozici pro online přepis, popisy obrázků a extrakci textu z PDF. Zvuk používá model hlasových zpráv zvolený v okně poskytovatele (Voxtral Mini Transcribe 3 ve výchozím stavu, nebo Voxtral Small Transcribe 3; oba v náhledu); fotky, samolepky a snímky videí používají zvolený model pro obraz (Ministral 3 3B ve výchozím stavu); PDF používají Mistral OCR. Získání modelů uvádí jen kompatibilní modely pro obraz. Než se média odešlou Mistralu, WinZapp upozorní, že jeho bezplatný tarif může požadavky používat k trénování.
+
+- Dokud je hovor dostupný, skupinové chaty místo tlačítek zahájení hovoru zobrazují „Připojit se k probíhajícímu hlasovému hovoru“ nebo „Připojit se k probíhajícímu videohovoru (kamera vypnutá)“. Hovory uvádějí probíhající hovory ve Všech a Probíhajících, včetně hovorů s více účastníky mimo skupinové chaty. Připojení k videu začíná s vypnutou kamerou.
+
+- Mnoho po sobě jdoucích aktualizací přítomnosti kontaktů (psaní, online) už na několik sekund nezasekne WinZapp ani nezpomalí celý počítač na účtech s mnoha chaty.
+- Přítomnost kontaktů: zjišťování nových jmen kontaktů už v rozhraní nečeká na zápis do databáze. Čekající aktualizace jmen uchovávají nejnovější úplný snímek, s uspořádaným zpracováním při ukončení a mazání místních dat.
+
+- Přítomnost kontaktů: omezena opakovaná práce rozhraní, když přichází mnoho aktualizací online nebo psaní. Nezměněné tituly oken a popisky archivovaných chatů se už nepřepisují, zatímco ohlášení psaní si zachovávají stávající časování.
+
+- Seznamy chatů (chaty, archivované a zamčené chaty) teď využívají celou šířku seznamu, takže názvy chatů a náhledy zpráv se při širokém okně ořezávají mnohem méně.
+
+- Aktualizace WinZappu nebo WPPConnect už v polovině nezasekne celý počítač. Kroky instalace a sestavení teď běží s nižší prioritou, takže odečítač obrazovky mluví plynule.
+
+- Server WPPConnect byl aktualizován na 2.10.63, s WPPConnect 2.3.6 a WA-JS 4.7.2. Prohlížeč, který WinZapp ovládá, se teď při zavření relace nebo selhání jejího spuštění uvolňuje úplněji, obnovená relace se rozpozná jako přihlášená dříve a odpojení telefonu se hlásí jen po skutečném zrušení spárování.
+
+- Indikátory psaní a nahrávání hlasu v soukromých chatech zůstávají dostupné, i když WhatsApp hlásí kontakt jako offline. Aktivita se zobrazuje odděleně od viditelnosti online a vyprší, když se přestane obnovovat. Aktivita patří k chatu, ve kterém probíhá: skupiny a soukromé chaty se sledují zvlášť. Zmeškané obnovy údaje o posledním přihlášení se opakují a omezení viditelnosti také vymažou dříve zobrazené informace o online a posledním přihlášení. Pokud data o stavu v otevřeném chatu stále čekají na připravení, WinZapp provede omezený počet pokusů o obnovu; skryté informace je nespouštějí. Když data o stavu ještě nejsou připravená, první čtení počká na dokončení odběru; změny posledního přihlášení a viditelnosti se také aktualizují nezávisle na změnách aktivity. Jediný zaseknutý požadavek na stav už neblokuje pozdější obnovy; náhradní čtení zůstávají omezená. Chybějící informace o posledním přihlášení se obnoví při návratu do okna, při čtení informací o aktuálním kontaktu a když psaní nebo nahrávání skončí bez závěrečné aktualizace. Informace o kontaktu se otevřou, aniž by čekaly na požadavky o posledním přihlášení; pozdní odpovědi o přítomnosti profilu nemohou obnovit informace z předchozího připojení. Indikátory psaní a nahrávání ve skupinách už nezůstávají vázané na staré připojení. Omezení viditelnosti zjištěná při obnově stavu také vymažou staré informace v chatech a podrobnostech kontaktu.
+
+- Připnuté zprávy: otevření připnutých zpráv skupiny, jejíž připnutí jsou starší, než co WhatsApp Web drží v paměti, už nekončí chybou „Could not load pinned messages“ a počet na tlačítku ukazuje správné číslo.
+
+- Server WPPConnect byl aktualizován na 2.10.62. Spárování nového účtu už neztratí QR kód, když WhatsApp krátce po spuštění relace ohlásí telefon jako odpojený.
+
+- Hovory: přeinstalování WPPConnect zachová novější kompatibilní katalog verzí WhatsApp Web a ověří jeho aktuálnost. Znovu sestavený katalog se kontroluje bez dřívějšího šestihodinového čekání. Potvrzený neopakovatelný nesoulad smlouvy VoIP zastaví opakovanou inicializaci.
+
+- Skupinové hovory: do skupiny s víc než 32 účastníky nelze ve WhatsAppu volat, takže tlačítka hovorů jsou nahrazena tlačítkem „Volání není možné“, jehož poznámka říká, že skupina má víc než 32 účastníků, a zkratky hovorů říkají totéž místo zahájení hovoru.
+
+- Skupinové hovory: tlačítka hlasového a videohovoru se teď zobrazují ve skupinovém chatu a zahájí hovor do skupiny a příchozí skupinový hovor zvoní, je ohlášen názvem skupiny a lze ho přijmout, stejným tlačítkem Přijmout a globální klávesou pro přijetí jako hovor jeden na jednoho. Zapnutí kamery během hlasového hovoru funguje stejně jako v hovoru jeden na jednoho a události hovoru od jednotlivých účastníků zůstávají u skupiny, takže okno hovoru drží název skupiny od prvního zazvonění do konce.
+
+- Videohovory: WinZapp teď najde kameru pomocí sestavení FFmpeg, které dodává a které uvádí zařízení DirectShow bez nadpisu „DirectShow video devices“. Toto sestavení nevrátilo žádnou kameru, takže videohovor odešel jen pro příjem, s „No camera found“ v protokolu.
+
+- Na tlačítka ve firemních zprávách lze odpovídat: tlačítko odpovědi odešle odpověď tak, jak to dělá WhatsApp Web (tlačítka odpovědi u běžných zpráv, rychlé odpovědi u interaktivních zpráv, tlačítka šablon a řádky seznamů), tlačítko odkazu otevře odkaz, tlačítko kopírování zkopíruje kód a tlačítko volání řekne číslo. Tlačítka se zobrazují pod seznamem zpráv, když je zpráva vybraná.
+
+- Server WPPConnect 2.10.61 se teď nabízí jako aktualizace, aniž by se čekalo na novou verzi WinZappu. Aktualizuje jen závislosti a změny WinZappu v serveru to neovlivní.
+
+- Server WPPConnect 2.10.63 se teď nabízí jako aktualizace, aniž by se čekalo na novou verzi WinZappu. Aktualizuje jen závislosti a změny WinZappu v serveru to neovlivní.
+
+- Aktualizace pro macOS vysvětlují, zda ověření selhalo kvůli problému s připojením, certifikátem, serverem nebo limitem požadavků GitHubu a zda nešlo zkontrolovat soubor pro ověření, nebo oficiální značku vydání. Dočasné selhání připojení a serveru se jednou zopakují; limity požadavků ukážou dobu čekání a během ní nespouštějí opakované požadavky.
+
+- Aktualizace: instalace si zachovává vlastnictví i po zavření WinZappu a stažený balíček čekající na instalaci se uchovává. Za úspěch se počítá jen úplná kopie; úspěšná aktualizace smaže dřívější varování o selhání. Automatické znovuotevření počká na dokončení instalačního programu a nepokračuje, když je dosažen limit čekání. Po neúplné nebo nepotvrzené kopii zůstane WinZapp zavřený a otevře pokyny k obnově v Poznámkovém bloku.
+
+- Hlasové hovory zachovávají časování napříč zvukovými pakety a používají převod s omezeným pásmem, když mikrofon nebo reproduktor potřebuje jinou vzorkovací frekvenci. Zvuk, který už má frekvenci hovoru, si ponechává přímou cestu.
+
+- Okno Nastavení má teď pole hledání a seznam kategorií: šipky mění kategorii, Tab vstoupí do jejích voleb a v hledání šipka dolů přejde na výsledky, kde Enter nebo mezerník otevře nalezenou volbu, i když je v okně tlačítka. Několik kategorií bylo sloučeno: Zvuk (zařízení, zvuk vložený pomocí Ctrl+V, hlasové zprávy a ztlumení při nahrávání), Zvuky událostí (zvukové události a tóny upozornění) a Úložiště (se složkou pro ukládání). Mluvený obsah, Přehrávání zvuku, Záloha profilu, Klávesové zkratky, Reakce, Oznámení, Zprávy, Chaty, Zamčené chaty a Potvrzení se staly tlačítky, která otevírají okno každého tématu. „Uživatelské rozhraní“ se teď jmenuje „Rozhraní“ a Připojení se přesunulo na konec seznamu.
+
+- Nastavení WhatsAppu (nabídka Soubor) teď otevře Nastavení rovnou v kategorii Nastavení WhatsAppu, s tlačítky Soukromí a Profil; samostatné okno zmizelo. WinZapp se WhatsAppu ptá až při otevření každého tlačítka a Ctrl+Shift+, tuto kategorii stále otevírá.
+
+- Komunity: okno „Nový chat“ má nové tlačítko „Komunity“, které otevře seznam komunit, ve kterých jste. Výběr komunity zobrazí její popis, správce a skupiny komunity, ke kterým jste se připojili, s označenou skupinou oznámení a obecnou skupinou; Enter nebo „Otevřít skupinu“ přejde na vybranou skupinu. Pokud jste správcem komunity, okno nabízí také „Přidat skupiny...“, „Odebrat skupinu z komunity“, „Jmenovat správcem komunity...“, „Odebrat správce komunity...“ a „Deaktivovat komunitu“ a „Nová komunita...“ vytvoří komunitu s názvem, popisem a skupinami, které zvolíte. Po každé akci WinZapp znovu načte komunity a řekne, že je hotovo, až když WhatsApp změnu zobrazí; jinak řekne, že žádost byla odeslána, ale ještě není potvrzena, nebo že byla odmítnuta.
+
+- Odpovědi na oznámení komunity: otevřete nabídku zprávy a zvolte „Odpovědi na oznámení komunity...“, abyste odpovědi četli a odesílali. Odpovědi se aktualizují samy, dokud je okno otevřené, pole odpovědi už není jen pro čtení a váš text se zachová, když odeslání není potvrzeno. V seznamu chatů náhled skupiny uvádí „Někdo odpověděl na oznámení“, když je to poslední aktivita. Oznámení uvádějí známý počet odpovědí. Autoři používají uložená nebo profilová jména a vaše odpovědi respektují vaše nastavení odkazování na sebe.
+
+- Komunity jsou teď řádkem navigačního seznamu, za Hovory, se zkratkou Alt+8 v názvu řádku, takže se k nim dostanete šipkami v seznamu i pomocí Alt+8.
+
+- Zablokování čísla, které nemáte uložené v kontaktech, už nekončí chybou „Could not block this contact“: WinZapp teď před zablokováním otevře chat, který WhatsApp vyžaduje.
+
+- Nový chat zahájený s brazilským číslem napsaným s dodatečnou devítkou se po odeslání první zprávy už v seznamu chatů nezobrazuje dvakrát: WinZapp ponechá chat pod číslem, které používá sám WhatsApp.
+
+- Videozprávy (kulatá videa odesílaná místo hlasové zprávy) se teď zobrazují jako videa místo „Nepodporovaná zpráva“, v seznamu se nazývají „videozpráva“ a mají stejnou délku, přehrávání a Uložit jako jako jakékoli video.
+
+- Potlačení ozvěny v hlasových hovorech a videohovorech bylo přestavěno na stejném enginu, který používají Google Meet i samotný WhatsApp (potlačovač ozvěny WebRTC): mluvení přes reproduktor notebooku nebo se zapnutou smyčkou (loopback) mixážního pultu už nezpůsobí, že druhá osoba slyší svůj vlastní hlas. Volba je teď zapnutá, i pro ty, kdo WinZapp už používali; chcete-li ji vypnout, zrušte zaškrtnutí „Zapnout potlačení ozvěny (omezí zpětnou vazbu z mikrofonu)“ v „Nastavení zvuku hovoru“. Potlačení šumu mikrofonu během hovorů teď také používá tento engine.
+
+- Protokol hovorů (log.log) teď každých 5 sekund ukazuje, kolik zvuku z reproduktoru se dostává do mikrofonu před potlačením ozvěny a kolik jí zůstává v odesílaném zvuku, se zpožděním této ozvěny. Pokud někdo stále slyší svůj hlas, protokol řekne, zda ozvěna prošla potlačovačem, nebo dorazila jinou cestou.
+
+- Přijímání hovorů z libovolného okna: když zvoní hovor jeden na jednoho, Ctrl+Alt+Shift+Enter ho přijme, přenese okno hovoru před jakýkoli program a přesune do něj fokus a Ctrl+Alt+Shift+Backspace ho odmítne, stejně jako zvonící skupinový hovor; když nezvoní žádný hovor, Ctrl+Alt+Shift+Backspace ukončí probíhající hovor. Při více otevřených účtech se jako první odmítne hovor zvonící na kterémkoli z nich. Videohovor se přijme se zapnutou kamerou, jako jeho tlačítko Přijmout. Obě klávesy lze změnit v Klávesových zkratkách v Nastavení a patří WinZappu jen tehdy, když mohou něco udělat, takže ostatní programy je po zbytek času mají.
+
+- Nastavení: nová kategorie Pokročilé, s úrovní protokolu log.log (ladění, informace, jen varování nebo jen chyby, použije se hned), pevným portem místního API, pro provoz dvou kopií WinZappu nebo když port 6300 už používá jiný program (projeví se při příštím spuštění WinZappu), a volbou „Zobrazovat všechny aktualizace serveru WPPConnect, nejen ty, které ověřili správci WinZappu“, ve výchozím stavu vypnutou, která nabízí také vydání, která správci ještě neověřili, s varováním. V kategorii Připojení je pole Port teď povolené jen u vlastního API.
+
+- Nastavení: každý ovládací prvek v Nastavení a v oknech, která otevírá, má v každém jazyce zkratkové písmeno s Alt, které se v jednom okně nikdy neopakuje. Aby se písmena vešla, byl Místní přepis rozdělen na okna (pokročilé volby, uložené přepisy, statusy, složky, knihovny CUDA a whisper.cpp) a automatické volby online AI se přesunuly do okna „Automatický přepis a popis...“.
+
+- Klávesové zkratky: seznam je teď strom podle kategorií (šipka doprava otevře kategorii, což se řekne jen jednou) a má pole hledání; v hledání šipka dolů přejde na výsledky. Opravena chyba, která bránila změně zkratky.
+
+- Koncept pro každý chat, jako ve WhatsApp Web: text, který jste napsali a neodeslali, zůstane u chatu, ve kterém vznikl, včetně zmínek, a vrátí se, když ho znovu otevřete; dříve vás následoval do dalšího chatu. Rozhraní > Chaty umožňuje zvolit, zda ho ponechat v poli pro další chat (jako dříve), ponechat ho jako koncept daného chatu (výchozí), nebo zahodit.
+
+- Když přepnete chat, tlačítka „Reakce“ a „Číst dál“ zprávy, na které jste byli, se už v novém chatu nezobrazují při procházení klávesou Tab.
+
+- Smazání poslední zprávy chatu pro všechny hned změní jeho náhled v seznamu chatů na „zpráva smazána“.
+
+- Alt+A už neotevírá nabídku příloh; její zkratka zůstává Ctrl+Shift+A.
+
+- Seznam zpráv: tři nové volby, ve výchozím stavu vypnuté, vyřadí tlačítko online AI (Přepsat nebo Popsat; nabídka zprávy ho stále nabízí), pruh délky a tlačítko rychlosti z pořadí klávesy Tab během přehrávání. Zkratky rychlosti a přetáčení fungují dál.
+
+- Místní přepis: s volbou „přepisovat bez okna s průběhem“ požadavek na přepis jiné zprávy v řádku, zatímco jeden běží, zařadí nový do fronty místo odmítnutí; opětovné stisknutí zkratky u čekající zprávy ji z fronty odebere.
+
+- Místní přepis: automatika už neříká „No transcription model is ready“ tomu, kdo má stažený model: na malé grafické kartě, která nutný nainstalovaný model nepojme, běží na procesoru, místo aby žádala o další stažení; a automatický engine se řídí modely, které už v počítači jsou.
+
+- Enter a mezerník nastavené na přepis teď fungují i na zvuk a video odeslané jako soubor a karta Média v podrobnostech chatu u videí tuto volbu respektuje.
+
+- Podrobnosti chatu: automatický přepis jsou teď dvě pole, místní (Whisper) a online, každé ukazuje, co chat dělá teď, a lze ho zapnout nebo vypnout jen pro daný chat.
+
+- Zkusit odeslat znovu: v nabídce vaší zprávy, která selhala nebo nebyla potvrzena, textu nebo přílohy, a u statusů, které neodešly a které teď zůstávají na kartě Status hned za Můj status; zkratka Ctrl+Shift+Y. Nic se neodešle znovu samo.
+
+- Zveřejnění statusu: vždy jen jedno najednou (opětovné stisknutí Zveřejnit status nezduplikuje) a velké video se už nehlásí jako selhané, dokud se ještě nahrává; nepotvrzený příspěvek vám řekne, abyste před dalším zveřejněním zkontrolovali Můj status.
+
+- Můj status: smažte status pro všechny klávesou Delete nebo tlačítkem „Smazat status“, s vlastním potvrzením WhatsAppu.
+
+- Komunity: Enter v seznamu přejde na skupiny komunity a tlačítko otevře skupinu s nejnovější aktivitou; filtr zobrazí všechny skupiny, ty, ve kterých jste, a ty, ve kterých nejste; a můžete se ke skupině připojit, požádat o připojení a žádost zrušit, jako ve WhatsApp Web.
+
+- Objednávky: Enter otevře podrobnosti objednávky, kterou pro vás prodejce vytvořil, s položkami a mezisoučtem; kupující může potvrdit objednávku zaplacenou mimo aplikaci, jako ve WhatsApp Web; a okno říká, kterou odpověď kupujícího WinZapp zatím nenabízí.
+
+- Nastavení WhatsAppu: v Soukromí nabízejí volby statusu „Moje kontakty kromě“ a „Sdílet jen s“ pouze kontakty uložené v telefonu, jediné, které WhatsApp nechá status vidět; v Profilu tlačítko Vybrat fotku řekne, zda existuje aktuální fotka a který soubor byl zvolen, bez objektové navigace.
+
+- Seznamy chatů: se zapnutou volbou „Esc zruší výběr“ Esc zruší výběr vybraných chatů v hlavním seznamu, v Archivovaných a v Zamčených chatech.
+
+- Aktualizace s více otevřenými účty: instalační program před kopírováním počká na zavření každého účtu a WinZapp se už při spuštění nezavře mlčky, když je účet už otevřený nebo aktualizace vypadá zaseknutě: řekne proč a zapíše to do protokolu. Během aktualizace, která stále probíhá, jen zapíše do protokolu a skončí, bez okna, protože ho instalační program po dokončení otevře znovu.
+
+- Synchronizace velkých účtů: po velkých dávkách zpráv WinZapp žádá WhatsApp Web o uvolnění paměti, kterou už nepoužívá, což snižuje paměť využitou při synchronizaci.
+
+- Karta Média v podrobnostech chatu: po Uložit jako už odečítač obrazovky neohlašuje okno jako nedostupné.
+
+- Nový chat: tlačítko pro připojení ke skupině podle odkazu teď má zkratkové písmeno s Alt.
+
+- Potlačení ozvěny teď funguje i tehdy, když se ozvěna vrací velmi pozdě, jako u smyčky (loopback) některých mixážních pultů, která mohla trvat víc než půl sekundy a dorazila k druhé osobě celá. WinZapp změří, jak dlouho se hlas druhé osoby vrací přes váš mikrofon, a nastaví potlačovač na toto zpoždění, až do 1,5 sekundy.
+
+- Neonize: jméno uloženého kontaktu se už jednou za minutu nenahrazuje profilovým jménem, které si osoba zvolila ve svém WhatsAppu (nebo jménem, které chatu dal telefon). Jméno, které jste kontaktu dali, zůstává; profilové jméno se zobrazí jen u lidí, které jste neuložili.
+
+- Hovory Neonize: WinZapp teď přehrává tóny, které za vás dříve přehrával WhatsApp Web. Zatímco zvoní druhý telefon, slyšíte vyzvánění s výškou a rytmem země, do které voláte, a při navazování nebo obnovování hovoru se přehrávají krátké pípnutí. WinZapp je vytváří sám; s enginem WPPConnect se nic nemění.
+
+- Hovory Neonize: když skončí přijatý hovor, WinZapp přehraje zvuk ukončení hovoru z WhatsAppu. Je to nová Zvuková událost „Hovor ukončen“, takže se řídí sadou zvuků a lze ji vypnout nebo nahradit ve zvukových událostech. S enginem WPPConnect si WhatsApp Web přehrává svůj vlastní.
+
+- Hlasové zprávy a zvuky, které se nepřehrály: když zvuková karta nebyla v okamžiku, kdy WinZapp otevřel zvukový výstup, k dispozici (například po probuzení počítače), žádná hlasová zpráva se nepřehrála, dokud se WinZapp nerestartoval, a nic neříkalo proč. WinZapp se teď při selhání přehrávání pokusí zvukový výstup obnovit, a pokud stále nemůže přehrávat, řekne to přes odečítač obrazovky.
+
+- Neonize: chaty, které jako by zmizely. WhatsApp většině starých chatů nedává datum aktivity a WinZapp je bral jako prázdné chaty a po vymazání místních dat (například F5 pro novou synchronizaci) je neuchoval: účet s víc než 160 chaty se vrátil s 37. Most teď každý chat datuje podle jeho nejnovější zprávy, takže se vrátí všechny.
+
+- Neonize: komunita a její skupina oznámení zobrazují celkový počet členů komunity, jako to dělá WhatsApp, ne jen vlastní účastníky skupiny.
+
+- Neonize: uložený kontakt, který píše ve skupině, se zobrazuje se jménem z adresáře, bez „~“ neuloženého kontaktu. Kanály se už v seznamu chatů nezobrazují jako chaty bez názvu. Člen skupiny se skrytým číslem se zobrazuje se svým profilovým jménem, už ne jako „+55∙∙∙∙∙∙∙∙76“.
+
+- Kanály v seznamu chatů: nová volba „Zobrazovat kanály v seznamu chatů“ v Nastavení, Rozhraní, Chaty, ve výchozím stavu vypnutá, drží kanály mimo seznam chatů. Zapněte ji, abyste je tam znovu viděli.
+
+- Přepínání mezi WPPConnect a Neonize: oba enginy používají port 6300 a program si spletl engine, který jste právě opustili a který se ještě zavíral, s tím, který jste zvolili. Volba WPPConnect pak vedla k chybě „no pairing code was received“ a přepnutí na Neonize ukázalo připojování a pak offline až do dalšího restartu. WinZapp teď nejdřív uvolní místo (zastaví most Neonize, nebo počká na zavření serveru WPPConnect) a druhá složka WinZappu se už nepřipojí k mostu první.
+
+- Okno párování má teď před zemí seznam „Engine připojení“, takže ten, kdo se ještě nespároval, si může vybrat mezi WPPConnect a Neonize, aniž by musel do Nastavení. Volba vyžádá potvrzení a restartuje WinZapp s daným enginem.
+
+- Program už nedodává Node.js, protože ho Neonize nepotřebuje. Pokud zvolíte WPPConnect (při prvním spuštění, v okně párování nebo v Nastavení), WinZapp před připojením stáhne Node.js s ověřeným kontrolním součtem a nastaví WPPConnect. Stahování je menší.
+
+- Neonize: pokud most zmizí, zatímco je WinZapp otevřený (například předchozí spuštění, které se ještě zavíralo, ho zastaví krátce poté, co ho toto přijalo, což se stávalo při přepnutí na Neonize z úvodního upozornění), WinZapp ho teď sám znovu spustí, místo aby zůstal na „připojování“ a pak offline až do dalšího restartu.
+
+- Neonize: když odejde poslední WinZapp, most je teď požádán, aby zavřel svá připojení k WhatsAppu a databáze a sám skončil; násilně se zastaví, jen pokud to do 10 sekund neudělá. Dříve se vždy okamžitě ukončil, což mohlo přerušit zápis.
+
+- Neonize: QR kód pro párování už se v okně připojení neořezává. Zobrazí se celý, ve velikosti, kterou kamera telefonu přečte.
+
+- Nastavení > Pokročilé má nové tlačítko „Exportovat protokoly tohoto účtu...“. Uloží na pozadí soubor .zip s protokoly aktuálního účtu (a mostu Neonize) a ohlásí výsledek.
+
+- Nastavení > Klávesové zkratky: nové pole zachytí klávesy, které stisknete, a okamžitě vypíše odpovídající příkazy ve všech kategoriích, s ohlášením, kolik jich bylo nalezeno, a s tlačítkem pro vymazání hledání. Strom zkratek už při psaní neohlašuje nechtěné výběry, sestaví se jen jednou při otevření Nastavení, Esc zavře okno bez chyb a po použití změn přejde fokus na tlačítko OK.
+
+- Automatický přepis chatu je teď jedna volba v okně údajů chatu nebo skupiny: Žádná, Online s AI nebo Místně s Whisperem. Stejná zpráva se nikdy nepřepíše dvakrát a nekonzistentní nastavení se odmítnou.
+
+- WinZapp se spouští a otevírá Nastavení rychleji: do databáze se přepisují jen kontakty, které se skutečně změnily, ladicí protokol databáze po jednotlivých dotazech (stovky MB) je umlčen a neúplné složky Chrome po přerušeném stahování se uklízejí.
+
+- F5 už chvíli nezduplikuje chaty v seznamu: vazba mezi adresou @lid a telefonním číslem se při opětovném načtení stejného účtu zachovává.
+
+- Reakce přijaté přes adresu @lid se teď dostanou do chatu uloženého pod telefonním číslem (a naopak), takže se správně zobrazí v náhledu, v seznamu i v živých oznámeních.
+
+- „Odpovědi na oznámení komunity“ se teď zobrazují jen ve skupinách oznámení komunit, ne v běžných skupinách.
+
+- WPPConnect: označení zprávy hvězdičkou a lajkování statusu opět fungují.
+
+- Neonize: synchronizace stavu aplikace už nezpůsobuje konflikty, které poškozovaly stav přečtení chatu; označení chatu jako přečteného už nebrzdí odesílání zpráv; zprávy odeslané do chatu se mizejícími zprávami nesou jeho časovač; potvrzení o přečtení respektují volbu soukromí WhatsAppu (tichá potvrzení, když je vypnutá); a párování telefonním číslem v Brazílii zkouší číslo s devátou číslicí i bez ní.
+
+- Neonize: hlasové zprávy se teď doručují kontaktům na Androidu; dříve zůstávaly na jediném šedém zatržítku, protože zprávě chyběla vlnová křivka, kterou WhatsApp očekává.
+
+- Neonize: hlasové zprávy, fotky a dokumenty se už neztratí, když se nepodaří načíst knihovnu typů souborů počítače (libmagic); typ se teď rozpozná ze samotného souboru.
+
+- Hlasové zprávy: mono a stereo nahrávky se odesílají s datovým tokem až 256 kb/s. Neonize také zapisuje do protokolu jeden řádek za každou odeslanou mediální zprávu a ID potvrzení o doručení, aby se zjistilo, proč se některé hlasové zprávy nedoručují.
+
+- Neonize: stereo hlasové zprávy teď odcházejí označené jako audio/mp4, což je typ, který WhatsApp očekává, takže se doručují kontaktům na Androidu.
+
+- Potlačení šumu mikrofonu pro hlasové zprávy teď může používat neuronový model: se zaškrtnutou volbou „Zapnout potlačení šumu mikrofonu“ v Nastavení, Zvuk, nabídne stejná stránka stažení modelu; stahuje se jednou, přes internet, a nahrávky se dál zpracovávají v tomto počítači. Bez modelu, nebo když ho nelze pro nahrávku použít, WinZapp použije základní šumovou bránu jako dřív a řekne to. Pokud nelze potlačení šumu použít vůbec, zpráva se odešle nezpracovaná a WinZapp to také řekne.
+
+- Španělština: popisek přehrané hlasové zprávy teď zní „Reproducido“ místo „Reproducida“, v souladu s „Enviado“, „Entregado“ a „Leído“.
+
+- Oznámení o psaní: volitelně opakujte zvuk, když někdo píše, používejte jen odečítač obrazovky, obojí, nebo obojí vypněte. Vlastní zvuk zvolte v Nastavení, Zvukové události. Stávající volby mluveného obsahu zůstávají zachovány a zvuky psaní jsou ve výchozím stavu vypnuté v obou enginech připojení. Zvuky psaní jsou ve výchozím stavu ztlumeny během nahrávání hlasové zprávy a hovorů. Chcete-li je povolit, zrušte zaškrtnutí políčka „Ztlumit zvuky psaní během nahrávání hlasu a hovorů“ ve Zvukových událostech. To mění jen zvuky psaní; řeč odečítače obrazovky a ostatní zvuky si zachovávají stávající nastavení.
+
+- Španělština: překlad teď důsledně říká „chat/chats“ místo střídání s „conversación/conversaciones“ a v souvisejících textech, včetně návodu k použití, je opravena shoda rodu a čísla.
+
+- WPPConnect: když WhatsApp Web ještě synchronizuje dlouhou historii, WinZapp teď říká „synchronizace s WhatsAppem...“ místo zobrazení účtu jako odpojeného a nepřehrává zvuk odpojení.
+
+- WPPConnect: neúplný katalog verzí WhatsApp Web se opraví při spuštění serveru a Node, který se při startu zastaví, se ohlásí okamžitě, ne až po pěti minutách.
+
+- Arabština: návod k použití (Nápověda > Návod k použití) je teď v arabštině úplný.
+
+- Neonize: chat s ověřenou firmou teď zobrazuje ověřený název firmy, pokud není ve vašem adresáři.
+
+- Nový jazyk: italština. Zvolte ji v Nastavení > Obecné > Jazyk, v instalačním a odinstalačním programu. Program je plně přeložen; návod k použití a tyto poznámky k vydání zatím zůstávají v angličtině.
+
+- Přeposlání zprávy s odkazem teď zachová náhled odkazu. Dialog přeposílání má nové políčko „Ponechat náhled odkazu“, ve výchozím stavu zaškrtnuté, zobrazené, když má vybraná zpráva náhled; Nastavení > Rozhraní > Zprávy má „Při přeposílání zpráv ve výchozím stavu ponechat náhledy odkazů“, kterým zvolíte počáteční stav. Funguje s WPPConnect i Neonize. Poznámka: s WPPConnect se zpráva přeposlaná s náhledem odešle jako nová zpráva a nenese štítek „Přeposláno“; s Neonize ho nese.
+
+- Když píšete zprávu s odkazem, odečítač obrazovky teď říká „Načítá se náhled odkazu...“, zatímco se náhled získává, „Náhled odkazu přidán.“, když je připojen, nebo „Náhled odkazu nešlo načíst: důvod.“, když selže. V Nastavení > Přístupnost > Mluvený obsah nová volba „Ohlašovat načítání a přidání náhledu odkazu“ zapíná nebo vypíná všechny tři zprávy; ve výchozím stavu je zapnutá.
+
+- Neonize: citování hlasové zprávy teď ukazuje její délku (například 0:15) v bublině citace ve WhatsAppu druhé osoby, jako s WPPConnect (issue #707).
+
+- Status: statusy s polohou, hlasováním, seznamem kontaktů a dalšími typy kontaktů, které se zobrazovaly jako „Nepodporovaná zpráva“, se teď zobrazují se správným popiskem.
+
+- Hovory: tlačítko „Účastníci hovoru“ v okně hovoru má teď zkratku Ctrl+Shift+P (Ctrl+P zůstává přepnutím na video). Odečítač obrazovky tuto zkratkovou klávesu na tlačítku ohlašuje a je uvedena mezi zkratkami okna hovoru.
+
+- Neonize: statusy „Přidejte svůj“, otázka a animovaná samolepka se už nezobrazují jako „Nepodporovaná zpráva“; protokol mostu teď zaznamenává typ zpráv, pro které nemá přiřazení.
+
+- Psaní: indikátor psaní se už neobjeví znovu několik sekund poté, co osoba odeslala svou zprávu (issue #743).
+
+- Okno Co je nového: klávesa Esc ho teď zavře, jak z Nápověda > Co je nového, tak z Nápověda > „Co je nového od posledního zobrazení...“. Dříve Esc nedělala nic a museli jste přejít na tlačítko zavřít.
+
+- Aktualizace s více otevřenými účty: WinZapp teď před instalací aktualizace počká, až se ostatní účty dokončí zavírání. Dříve mohla instalace selhat s varováním, že jsou otevřené jiné účty, a pokračovala, až když jste odpověděli Ano a zkusili to znovu.
+
+- Výchozí model Google Gemini pro online AI je teď Gemini 3.5 Flash-Lite, který bývá méně často postižen chybami vysokého vytížení. Kdo už zvolil jiný pevný model, ten si ho ponechá; kdo používal model doporučený WinZappem, přejde na nový.
+
+- Skupiny: náhled v seznamu chatů a ohlášení odečítače obrazovky teď ukazují všechny, kdo zároveň píšou nebo nahrávají zvuk, se správným jednotným a množným číslem („Ana a Bia píšou...“, „Ana píše a Bia nahrává zvuk...“), ne jen posledního. Odečítač obrazovky ohlásí celý seznam při každé změně, včetně toho, když někdo přestane a ostatní pokračují, a nic neřekne, když není nikdo aktivní. U jediné osoby se náhled teď čte „Ana píše...“, bez dvojtečky. Alt+T seznam také používá a volby ohlašování psaní a nahrávání platí pro mluvená ohlášení. Volba „Při ohlašování stavu skupiny brát v úvahu aktivitu více účastníků“ v Nastavení > Přístupnost > Mluvený obsah je ve výchozím stavu zapnutá; po vypnutí se skupiny vrátí ke staršímu chování.
+
+- Pole zprávy: vložení emoji už nevyvolá chybu „surrogates not allowed“, zatímco se povoluje tlačítko pomoci s psaním. Nahlásil UlisesMilani (#797).
+
+- Nové volby v Nastavení > Oznámení, které vynechají archivované a ztlumené chaty z počtu nepřečtených zobrazeného v ikoně v oznamovací oblasti a v titulku okna. Obě jsou ve výchozím stavu zapnuté: archivované chaty už byly vynechané a lze je nyní započítat znovu; ztlumené chaty jsou teď vynechané, což mění dřívější chování. Zrušte zaškrtnutí volby, aby se tyto chaty znovu započítávaly.
+
+- Dlouhé chaty: obnovení historie otevřeného chatu s tisíci zprávami už nezasekne okno na desítky sekund, když seznam zpráv zobrazuje pozici každé zprávy („N z M“).
+
+- Opraveno: se zapnutým neuronovým potlačením hlasového šumu se hlasové zprávy teď odesílají v pořadí, v jakém byly nahrány, i když jedna dokončí zpracování dřív než jiná.
+
+- Zprávy zobrazené při otevření chatu: nastavení teď přijímá nejvýš 1 000. Hodnoty v desítkách tisíc zasekly okno na víc než minutu, když přišlo najednou mnoho zpráv nebo když jste psali; vyšší uložená hodnota se bere jako 1 000 a Nastavení > Zprávy žádá číslo od 1 do 1 000.
+
+- Hovory: zahájení hovoru z účtu WhatsApp Business (WPPConnect) už na 75 sekund nezamrzne bez vyzvánění. WinZapp teď sám odpoví na upozornění „O tomto hovoru“, které WhatsApp zobrazuje při prvním hovoru z takových účtů.
+
+- Vložení textového souboru uloženého jako UTF-16 (například zprávy Informace o systému Windows z msinfo32) do pole zprávy ho už neodešle jako zvuk: zůstane dokumentem. Nahlásil UlisesMilani (#838).
+
+- Nastavení, Zprávy: nová volba „Nové zprávy v otevřeném chatu nepřidávat k oddělovači nepřečtených; označit je jako přečtené hned po příchodu“, ve výchozím stavu vypnutá. Vypnutá: zprávy, které přijdou, zatímco čtete otevřený chat, se dál přidávají k oddělovači nepřečtených, takže můžete sledovat, co přišlo později. Zapnutá: čtou se při příchodu, bez oddělovače.
+
+- S Neonize „Přidat kontakt“ v podrobnostech chatu teď skutečně uloží kontakt do adresáře WhatsAppu a do telefonu. Dříve se kontakt zapsal pod vnitřním identifikátorem (LID) místo telefonního čísla a iPhone ho o pár sekund později zahodil, přestože WinZapp řekl, že synchronizace byla vyžádána.
+
+- Neonize: když se most připojení nepodaří spustit, WinZapp to teď hned řekne nahlas, místo aby se upozornění ztratilo při pádu programu během jeho zobrazování, a zapíše do protokolu konec vlastního výstupu mostu a architekturu procesoru počítače, aby šla zjistit příčina.
+
+- Neonize ve Windows na ARM: most připojení už nepadá při spuštění (a párování QR kódem už nezůstane zaseknuté) kvůli požadavku na ARM verzi jeho knihovny, kterou program nedokáže načíst; teď používá verzi pro architekturu, na které skutečně běží.
+
+- Opraveno: se zapnutou instalací při ukončení zůstávala po ohlášení stažení aktualizace položka Nápověda > Nainstalovat staženou aktualizaci nedostupná. Položka je teď dostupná, aktualizaci hned nainstaluje a pak WinZapp znovu spustí; ukončení stále instaluje bez restartu.
+
+- Neonize: když spuštění mostu připojení trvá příliš dlouho, protokol programu teď říká, zda stále běží, a ukazuje poslední řádky jeho výstupu a most zapisuje každý krok svého spuštění do vlastního protokolu průběžně, takže most, který se zastaví v půli, ukáže kde.
+
+- Opraveno: po přepnutí zvukového zařízení přestaly hrát zvuky oznámení (toast), zatímco zvuk chatu a ostatní zvuky WinZappu fungovaly dál. Přepnutí nechalo už načtené zvuky oznámení nepoužitelné; nyní se načítají znovu spolu s ostatními zvuky.
+
+- V Neonize už kontakt uložený s křestním jménem a příjmením o příjmení po několika sekundách v konverzaci nepřijde: celé jméno se ukládá ve správném pořadí, takže konverzace dál ukazuje například „Nuno Soares“ místo pouhého „Nuno“.
+
+- Neonize: když se most připojení při spouštění zasekne, po 25 sekundách nyní zapíše do svého logu, kde se zasekl.
+
+V2.1.0.0
+
+Toto vydání přináší přepis hlasových zpráv přímo ve vašem počítači, bez odesílání čehokoli kamkoli, a online AI přepis a popis hlasových zpráv, obrázků, videí, samolepek a souborů PDF.
+
+NOVINKY
+
+- Místní přepis pomocí faster-whisper: opraveno načítání knihoven CUDA ve Windows, které mohlo bránit použití grafické karty a nechat pozdější přepisy zaseknuté. Pokud se knihovny nepodaří načíst, WinZapp ohlásí problém ještě před spuštěním výpočtu na grafické kartě.
+
+- Váš stav online teď sleduje aktuální okno, i když rychle přepnete jinam, schováte WinZapp do oznamovací oblasti nebo se na pozadí znovu připojíte. Zpožděná aktualizace online už nepředběhne aktualizaci offline a neúspěšná aktualizace offline se zopakuje.
+
+- Nové zkratky, každou lze změnit na kartě Klávesové zkratky v Nastavení: Alt+8 otevře komunity odkudkoli v okně; Alt+Shift+B otevře katalog a košík firmy ve vybraném nebo otevřeném chatu; a na účtu WhatsApp Business Ctrl+Shift+N vytvoří objednávku pro kontakt chatu. Tam, kde se nepoužijí, WinZapp řekne proč. Enter na zprávě s objednávkou objednávku otevře.
+
+- Nápověda > „Co je nového od posledního zobrazení“ jednoduchými větami řekne, co se v těchto poznámkách k vydání změnilo od doby, kdy je na tomto počítači naposledy někdo otevřel: nové položky každé sekce, položky, které se změnily (v nynějším znění), a odstraněné, a celou verzi, pokud je nová. Je to stejné pro všechny účty. A tlačítko „Co je nového?“ v okně aktualizace teď ukazuje, co nabízená verze mění v těchto poznámkách, místo poznámek verze, kterou máte; u alfa verze navíc pro každou alfu od té vaší vypíše změny, které eviduje GitHub (název a číslo každého pull requestu).
+
+- Místní přepis pomocí whisper.cpp: možnost „Ponechat model načtený v paměti (faster-whisper a whisper.cpp)“ se teď týká i whisper.cpp. Když je zapnutá, model se načte jednou a mezi přepisy zůstává v paměti (nebo na grafické kartě), místo aby se načítal znovu pro každou zprávu; dosud měla tato možnost účinek jen u faster-whisper. Pokud program, který model drží načtený, nejde použít, přepis proběhne jako dřív.
+
+- V Nastavení > Místní přepis nová možnost „Přepisovat bez okna s průběhem: zůstat na zprávách nebo statusech, dokud není text hotový (stejná zkratka přepis zruší)“, ve výchozím stavu vypnutá, způsobí, že Alt+Shift+T a Alt+Shift+N přepisují bez otevření okna s průběhem: zůstanete v seznamu a výsledek se objeví, až bude hotový. Stejná zkratka na téže zprávě přepis zruší.
+
+- Reakce: v seznamu rychlých reakcí šipky doleva a doprava mění odstín pleti vybraného emoji, pokud ho má, stejně jako už v nástroji pro výběr emoji.
+
+- Košíky a objednávky: v chatech s firmou má místní nabídka chatu položku „Firemní katalog a košík...“, která vypíše produkty katalogu s cenou a dostupností a sestaví košík („Přidat do košíku...“, „Změnit množství...“, „Odebrat z košíku“, „Vyprázdnit košík“); „Odeslat objednávku“ odešle objednávku jednou, po otázce, která říká, co a komu půjde. Pokud firma svůj košík vypnula, katalog si lze dál prohlížet a WinZapp řekne, že tam objednávky nepřijímá. Zprávy s objednávkou a aktualizace objednávek se teď zobrazují v seznamu zpráv, v náhledu chatu i v oznámeních, s položkami, celkovou částkou a stavem; položka „Zobrazit objednávku...“ v nabídce zprávy otevře podrobnosti. Účty WhatsApp Business v tomto okně navíc dostanou „Přijmout objednávku“, „Odmítnout objednávku“ a „Aktualizovat stav...“ pro objednávky, které přijmou, a v nabídce chatu podnabídku „Firemní nástroje“ s položkami „Vytvořit objednávku pro tento kontakt...“ a „Přijímat košíky v mém katalogu“. Tyto možnosti prodejce se zobrazují jen na účtech WhatsApp Business, stejně jako ve WhatsApp Web. Produkt, který firma pošle ze svého katalogu, se teď zobrazí s názvem, cenou a popisem, místo aby se zobrazil jako nepodporovaná zpráva.
+
+- Žádosti o vstup do skupiny: ve skupině, kde jste správce, má okno s údaji o skupině nové tlačítko „Čekající žádosti o vstup...“. Vypíše, kdo čeká na schválení (jméno nebo číslo, jak žádost přišla — přes odkaz pozvánky, přes komunitu nebo přidáním od účastníka — a kdy), a „Schválit“ a „Odmítnout“ vyřídí vybranou žádost. WinZapp se po každé odpovědi znovu zeptá WhatsAppu na seznam a oznámí ji jako vyřízenou, až když žádost ze seznamu zmizí.
+
+- Mazání přepisů z klávesnice: Alt+Shift+Delete smaže uložený místní přepis zprávy s fokusem (dosud to uměla jen položka „Smazat přepis“ místní nabídky) a při vybraných zprávách se řídí možností „Při výběru chatů a zpráv nahradit zkratky hromadnými akcemi“. Ctrl+Alt+Shift+Delete a nová položka „Smazat uložené místní přepisy vybraných zpráv“ v podnabídce „Hromadné akce“ smažou přepisy všech vybraných zpráv, po jediné otázce, která říká kolika. Na kartě Status Alt+Shift+Delete smaže přepis statusu s fokusem. Okno „Můj status“ teď u vašich vlastních zvukových a video statusů také přijímá Alt+Shift+T, Alt+Shift+N a Alt+Shift+Delete. Všechny tyto klávesy jsou uvedené na kartě „Klávesové zkratky“ a lze je změnit.
+
+- Místní přepis statusů: zvukové a video statusy lze teď přepisovat přímo ve vašem počítači, stejnými klávesami jako v chatech. Na kartě Status Alt+Shift+T otevře text v okně s výsledkem (nebo už uložený přepis) a Alt+Shift+N ho vloží do řádku statusu v seznamu a přečte nahlas; obě klávesy lze změnit na kartě Klávesové zkratky. Nastavení > Místní přepis má tři nové možnosti, které odpovídají těm pro chaty: „Automaticky místně přepisovat přijaté zvukové a video statusy a vložit text do řádku statusu“ (ve výchozím stavu vypnuto), „Enter a mezerník přepisují zvukové a video statusy místně do řádku statusu (Alt+Shift+N je pak otevře nebo přehraje)“ (ve výchozím stavu vypnuto) a „Ukládat místní přepisy statusů spolu s nimi, aby se neprováděly znovu (mezipaměť; smaže se spolu se statusem)“ (ve výchozím stavu zapnuto), a také tlačítko „Vymazat uložené místní přepisy statusů“. Přepis se uchovává se statusem a smaže se s ním, když status vyprší. Možnost mezipaměti pro jednotlivé modely je stejná, jakou používají chaty.
+
+- Mazání zpráv s médii: když smažete fotku, video, zvuk nebo dokument, potvrzení má teď políčko „Smazat média i z telefonu“, ve výchozím stavu zaškrtnuté, stejně jako ve WhatsApp Web. Zrušte zaškrtnutí, chcete-li zprávu smazat, ale soubor uložený v telefonu ponechat. Dosud WinZapp vždy smazal i soubor z telefonu, aniž nabídl možnost volby. Políčko se objeví při mazání jedné zprávy i několika vybraných, pro vás i pro všechny, a neobjeví se, pokud žádná z nich není médium. V Nastavení > Rozhraní určuje možnost „Při mazání zprávy s médiem mít předem zaškrtnuté „Smazat média i z telefonu““, jak se políčko zobrazí na začátku.
+
+- Odkazy na pozvánky do skupin: stisknutí Enter nebo mezerníku na odkazu pozvánky (https://chat.whatsapp.com/...) uvnitř zprávy, kliknutí na něj nebo stisknutí Enter na samotné zprávě teď místo prohlížeče otevře okno WinZappu „Připojit se ke skupině přes odkaz“ s vyplněným odkazem a už vyžádaným náhledem skupiny; připojíte se, jen pokud se tak rozhodnete. Místní nabídka odkazu nabízí „Připojit se ke skupině přes odkaz“ a ponechává „Otevřít odkaz“ pro prohlížeč. Okno teď přijímá odkazy ve tvaru, v jakém je WhatsApp generuje dnes, tedy končící na „?mode=...“, které se dříve odmítaly jako neplatné. V Nastavení > Obecné nová možnost „Nechat Windows otevírat pozvánky do skupin WhatsApp ve WinZappu“, ve výchozím stavu vypnutá, zaregistruje WinZapp pro odkazy „whatsapp:“: když použijete tlačítko pro připojení na stránce pozvánky otevřené v prohlížeči nebo jiném programu, Windows předá pozvánku WinZappu, i když je zavřený (poprvé se Windows mohou zeptat, kterou aplikaci použít). Windows předávají odkazy https přímo jen aplikacím z Microsoft Store, proto cesta vede přes tuto stránku.
+
+- Hromadný přepis vybraných zpráv (issue #469). Podnabídka Hromadné akce má dvě položky, každou s vlastní zkratkou, kterou lze změnit na kartě Klávesové zkratky: „Přepsat vybrané zprávy a zobrazit je dohromady“ (Ctrl+Alt+Shift+T, jako Alt+Shift+T) a „Přepsat vybrané zprávy do jejich řádků“ (Ctrl+Alt+Shift+N, jako Alt+Shift+N). Když je zapnutá možnost nahradit zkratky hromadnými akcemi, Alt+Shift+T a Alt+Shift+N působí také na výběr. WinZapp před začátkem řekne, kolik zpráv se přepíše, přeskočí nebo použije znovu, přepisuje je na pozadí jednu po druhé a ohlašuje „zpráva 3 z 12“, při selhání jedné pokračuje dál a na konci řekne, kolik zpráv bylo přepsáno, přeskočeno a kolik selhalo. Stejná zkratka nebo místní nabídka frontu zruší a místní nabídka zobrazí všechny přepisy dohromady, s odesílatelem, datem a časem, ke zkopírování nebo uložení.
+
+- Místní přepis teď funguje i u videí: zvuk videa se převede na audio a předá se faster-whisper nebo whisper.cpp. Platí pro ně všechny možnosti: Alt+Shift+T, přepis do řádku (Alt+Shift+N), přepisování klávesami Enter a mezerník (Alt+Shift+N pak video přehraje nebo otevře), automatický přepis přijatých videí, mezipaměť pro jednotlivé modely a její vymazání. GIFy se přeskakují a video bez zvuku je jako takové ohlášeno.
+
+- V Nastavení > Místní přepis má mezipaměť přepisů teď vlastní ovládací prvky: obecnou možnost (ve výchozím stavu zapnutou) ukládat přepisy se zprávami, aby se neprováděly znovu, volbu pro každý model (podle obecného nastavení, zapnuto nebo vypnuto) a tlačítko „Vymazat uložené přepisy všech modelů“, které vymaže mezipaměť každého modelu ve všech chatech. Když je mezipaměť pro model vypnutá, jeho nové přepisy se neukládají a objeví se v okně s výsledkem; už uložené zůstanou, dokud je nevymažete.
+
+- V Nastavení > Místní přepis možnost „Automaticky přepisovat přijaté hlasové zprávy a vložit text do řádku zprávy“, ve výchozím stavu vypnutá, přepíše každou došlou hlasovou zprávu místním přepisem a zobrazí text v řádku zprávy, stejně jako přepis do řádku, který provedete ručně. Přepisy běží jeden po druhém, jen u čerstvě došlých zpráv (do 10 minut zvuku) a mimo zamčené chaty. Žádná okna ani ohlášení u každé zprávy; pokud místní přepis není připravený, WinZapp na chvíli přestane a jednou řekne proč (například že není připravený žádný model): pauza se pak tiše opakuje a oznámení se vrátí, až když použijete nastavení nebo když přepis znovu zafunguje. Okamžik, kdy se do volné paměti nevejde žádný model, pauzu nezpůsobí.
+
+- V Nastavení > Místní přepis skupina „Znovu použít stažené soubory z jiné složky“ umožňuje nasměrovat WinZapp na složku s knihovnami CUDA (cublas64_12.dll a cublasLt64_12.dll) a na složku s programy whisper.cpp, které už jste stáhli (tu, která obsahuje složky cpu a cuda), místo toho, aby se všechno stahovalo znovu. Složka se jen čte: nic z ní se nekopíruje, nemění ani nemaže. Knihovny CUDA se musí dát načíst a programy whisper.cpp procházejí stejnými kontrolami jako ty, které WinZapp stahuje sám.
+
+- V Nastavení > Místní přepis možnost „Ponechat model načtený v paměti (faster-whisper)“, ve výchozím stavu vypnutá, vám ušetří čekání na načtení modelu po každé pauze mezi přepisy. Bez ní se načtený model uvolní z paměti 5 minut po posledním přepisu, čímž se paměť počítače (nebo grafické karty) vrátí jiným programům. whisper.cpp spouští pro každý přepis nový proces, takže pro něj tato možnost nic nemění.
+
+- Místní přepis uložený u každé zprávy se teď uchovává pro každý model zvlášť: když v Nastavení změníte model (nebo program), zpráva se přepíše znovu zvoleným modelem a text dřívějšího modelu zůstane uložený pro případ, že se k němu vrátíte. V Nastavení > Místní přepis tlačítko „Vymazat uložené přepisy tohoto modelu“ odstraní ve všech chatech jen to, co přepsal vybraný model.
+
+- Procházení posledních zpráv podle pozice: deset nových příkazů na kartě „Klávesové zkratky“ v Nastavení, jeden pro každou pozici od nejnovější zprávy (1) po desátou (0), přečte danou zprávu nahlas bez přesunu fokusu a dvojí rychlé stisknutí téže klávesy ji zkopíruje. Přicházejí bez přiřazené klávesy, protože Alt+1 až Alt+9 patří hlavnímu oknu: uvolněte je nebo na této kartě zvolte jiné klávesy.
+
+- Aktualizace: zrušení nebo zavření okna s průběhem před zahájením instalace teď aktualizaci bezpečně zastaví. Pokud už instalace začala, WinZapp se zavře, aby ji nechal dokončit. Instalátory už nečekají donekonečna na ukončení WinZappu a probíhající aktualizace se už nehlásí jako jiný otevřený účet.
+
+- Pozvánky do skupin: Nový chat teď nabízí Připojit se ke skupině přes odkaz, s náhledem před připojením a samostatnými výsledky čekající na schválení a nepotvrzeno.
+
+- Skupiny: odkazy pozvánek a QR kódy lze teď zobrazit, zkopírovat, uložit a po potvrzení resetovat. Schválení členů a nepotvrzené výsledky se hlásí přesně; vytváření skupin, odchod z nich a úprava oprávnění se zpracovávají správně.
+
+- Ankety: zvolte Anketa, poslední položku nabídky příloh, a odešlete anketu s otázkou, až 12 možnostmi a možností povolit více odpovědí. Přijaté ankety se už nezobrazují jako nepodporované zprávy: řádek čte nejdřív otázku, pak každou možnost (s jejími hlasy, když je WinZapp obdrží), a Enter otevře okno se stejným seznamem, zaškrtávacími políčky pro hlasování a ukazatelem průběhu u každé možnosti.
+
+- Hlasy v anketě: u ankety s jednou odpovědí se Tabem ze zprávy dostanete k jejím možnostem a zaškrtnutí jedné okamžitě hlasuje. Každá možnost teď také ukazuje svůj podíl hlasů v procentech a okno ankety má tlačítko Zobrazit hlasy (Alt+V), které vypíše, kdo pro co hlasoval.
+
+- Seznam možností ankety: teď se před ním ohlašuje popisek „Možnosti“ a po hlasování se počet hlasů u zaškrtnuté možnosti hned aktualizuje.
+
+- Chyby instalace a aktualizace WPPConnect se teď zobrazují v textovém poli jen pro čtení, s podrobnostmi ke čtení a kopírování. Připravené aktualizace ukazují jedno hlášení o chybě místo zdvojených oznámení.
+
+- Mazání nebo vymazání chatů se může přestat ptát na potvrzení: oba dialogy mají teď zaškrtávací políčko „Už nezobrazovat“, které platí jen spolu s Ano. Když se otázka nezobrazuje, vymazání ponechá zprávy s hvězdičkou. Nastavení > Rozhraní má dvě odpovídající možnosti, kterými potvrzení znovu zapnete.
+
+- Volitelná možnost „Skrýt telefonní čísla odesílatelů bez jména ve zprávách“ v Nastavení > Rozhraní. Když je zapnutá, zprávy od lidí bez jména začínají přímo svým obsahem, v seznamu zpráv i v ohlášeních otevřeného chatu; nepřidává se žádný náhradní popisek odesílatele. Jména a čísla uvnitř obsahu zpráv zůstávají. Ve výchozím stavu je vypnutá.
+
+- Přizpůsobitelné klávesové zkratky: nová karta Klávesové zkratky v Nastavení vypisuje každou zkratku aplikace, včetně globální zkratky pro zobrazení okna. Vyberte jednu, stiskněte Změnit a zadejte novou kombinaci, nebo ji vypněte, případně použijte Obnovit výchozí či Obnovit všechny výchozí. Konflikty se hlásí před použitím a změny se projeví až po Použít nebo OK.
+
+- Připnuté zprávy: tlačítko v každém chatu vypisuje zprávy připnuté ve WhatsAppu, včetně starších zpráv. Stisknutím Enter přejdete na zprávu v historii. Otevření chatu ohlásí počet připnutých zpráv bez přesunu fokusu; každá připnutá zpráva má také čitelnou značku.
+
+- Tlačítko „Profilový obrázek“ (Alt+F) na kartě Přehled v „Informace o chatu“ a „Informace o skupině“. Zobrazí profilový obrázek chatu nebo obrázek skupiny a „Otevřít v externím prohlížeči“ (Alt+A) obrázek otevře ve výchozím programu Windows pro obrázky. Když obrázek není nebo vám ho dotyčný nedovolí vidět, zpráva oznámí, že přístup k tomuto profilovému obrázku není k dispozici.
+
+- Podnabídka „Pravopis“ v místní nabídce pole zprávy nabízí návrhy ze slovníku Windows. Editor si zachovává standardní navigaci čtečky obrazovky i zvuk pravopisné chyby ve WinZappu.
+
+- „Ponechat připnuté chaty v pevném pořadí“ na kartě Rozhraní v Nastavení. Když je zapnuto, nové zprávy připnuté chaty nepřesouvají a jejich pořadí se zachová i po restartu. Ve výchozím stavu je vypnuto; nepřipnuté chaty se při příchodu nových zpráv dál posouvají nahoru.
+
+- Přepis a popis médií pomocí AI. Nová karta „Online AI: přepisy a popisy“ v Nastavení zapíná funkce AI (ve výchozím stavu jsou vypnuté) a přijímá klíč API jednoho nebo více poskytovatelů — Gemini, OpenAI, Claude, Groq a OpenRouter — které se zkoušejí v pořadí, jaké nastavíte, takže když jeden selže nebo mu dojde kvóta, odpoví další. V místní nabídce zprávy nebo pomocí Ctrl+Shift+I „Přepsat pomocí online AI“ změní hlasovou zprávu na text, „Popsat“ popíše fotku nebo video, „Popsat samolepku“ popíše samolepku a „Převést na přístupný text“ změní PDF na prostý čitelný text. Výsledek se otevře v okně s textem a u fotek a videí se v něm můžete ptát na další věci. WinZapp se před odesláním médií poskytovateli zeptá a u zamčených chatů se ptá pokaždé znovu; vaše klíče jsou ve vašem počítači šifrované a odesílají se jen poskytovateli, kterému patří. Dokud poskytovatel pracuje, hraje čekací zvuk a odpovědi lze automaticky číst nahlas. Text se řídí jazykem aplikace.
+
+- Místní přepis hlasových a zvukových zpráv. „Přepsat zprávu místně pomocí Whisperu“ v místní nabídce hlasové nebo zvukové zprávy, nebo pomocí Alt+Shift+T, změní zvuk na text přímo ve vašem počítači pomocí Whisperu: nic se nikam neodesílá. Text se otevře v okně, kde ho lze zkopírovat, uložit nebo vložit do zprávy, a uchovává se se zprávou, šifrovaný stejně jako ona; potom Alt+Shift+T znovu zobrazí uložený přepis a místní nabídka nabízí „Zobrazit přepis“, „Přepsat znovu“ a „Smazat přepis“. Všechno se nastavuje na nové kartě „Místní přepis“ v Nastavení. Jsou dvě součásti přepisu: faster-whisper, výchozí, který je součástí WinZappu, a whisper.cpp, volitelný program, který karta nainstaluje ve verzi pro procesor nebo pro grafickou kartu NVIDIA. whisper.cpp je experimentální: zatím nebyl vyzkoušen s konečným balíčkem vydání, takže podporovanou součástí je faster-whisper. faster-whisper může používat i grafickou kartu NVIDIA, jakmile na stejné kartě nainstalujete „Knihovny CUDA“. Modely se stahují, jen když o to požádáte, ve všech velikostech od tiny po large-v3 a large-v3-turbo a pro whisper.cpp také v menších 8bitových a 5bitových verzích a některé ve větší 32bitové verzi s plnou přesností. Seznam obsahuje také modely, které rozumějí jen jednomu jazyku, označené jako takové: jen anglické a modely třetích stran pro švédštinu, hebrejštinu, jidiš a japonštinu. „Kde spouštět přepis“ a „Přesnost výpočtu“ u faster-whisper zůstávají na Automaticky, nebo je můžete zvolit sami. Model, který jste už stáhli do jiné složky, lze použít přes „Modely v jiných složkách“ bez kopírování a složku modelů lze přesunout jinam, včetně modelů. Hlasový filtr brání Whisperu vymýšlet si text v tichu na konci zprávy; když ho nejde použít, WinZapp vám to řekne. Nenahrazuje to „Přepsat pomocí online AI“: jsou to dva různé příkazy a zvuk poskytovateli odesílá jen ten s online AI. Když je zapnutá možnost „Stahovat aktualizace a soubory pro přepis na pozadí“ (Nastavení > Obecné), stahování z této karty — modely, whisper.cpp a knihovny CUDA — běží také bez okna s průběhem a WinZapp řekne, kdy každé skončí. V seznamu modelů Ctrl+mezerník model označí (mezerník označuje dál, dokud jsou nějaké označené, a Esc zruší označení všech, podle stejných dvou možností jako u seznamů chatů a zpráv) a Stáhnout pak stáhne všechny označené modely jeden po druhém. Stahování běžící na pozadí lze zastavit pomocí „Zrušit stahování na pozadí“. Alt+Shift+N vloží přepis do vlastního řádku zprávy („…, délka: 0:12, přepis: …“) a přečte ho nahlas, bez okna. Nová možnost „Enter a mezerník na hlasové zprávě ji přepíšou do jejího řádku…“ v Nastavení > Rozhraní to vymění s přehráváním: když je zapnutá, Enter a mezerník přepisují a Alt+Shift+N přehrává nebo pozastavuje; když je vypnutá, jako vždy, Enter a mezerník přehrávají a Alt+Shift+N přepisuje do řádku.
+
+- Popis videí a statusů pomocí AI. Video se teď popisuje z jediného snímku, který se z něj vezme, takže jeho zvuk se poskytovateli nikdy neposílá, a tlačítko „Popsat“ i Ctrl+Shift+I fungují také tehdy, když se video otevře v samostatném okně. Na kartě Status (Alt+5) tlačítko „Popsat“ hned za „Uložit jako...“ popisuje fotky a video statusy, jak v samostatném prohlížeči, tak v přehrávači uvnitř karty.
+
+- Když někdo zareaguje na vaši zprávu, přehraje se samostatný zvuk. Jeho soubor změníte nebo ho vypnete v Nastavení > Zvuky událostí.
+
+- Vlastní seznamy WhatsAppu: obnovení a filtrování podle vašich seznamů, vytvoření nebo přejmenování seznamu a přidávání či odebírání vybraných chatů. Úprava seznamů závisí na podpoře účtu WhatsApp. Zamčené a místně nedostupné chaty jsou z výběru vyloučené; ostatní členství zůstávají beze změny. Neověřené změny se hlásí bez automatických opakování. Když úprava není dostupná, správce vysvětlí, zda ji WhatsApp vypnul, tato verze ji nepodporuje, nebo selhala kontrola podpory.
+
+- Kontakty synchronizované s telefonem: když přidáváte kontakt (v „Informace o chatu“, v „Nový chat“ nebo ze zprávy s kontaktem), jsou teď dvě karty, „Místní kontakt WinZappu“ (jen ve WinZappu) a „Kontakt synchronizovaný s telefonem“, který uloží jméno do WhatsAppu i do adresáře telefonu. Synchronizovaná karta se otevře jako výchozí, číslo, které už v adresáři telefonu je, ukáže jen tuto kartu a smazání synchronizovaného kontaktu ho odstraní také z WhatsAppu a z telefonu
+
+- Nová zkratka Alt+Shift+P v seznamu zpráv: skok na předchozí zprávu, která vám odpovídá, jako Alt+Shift+M pro zmínky. Opakované stisknutí vrací zpět přes ně a na konci se vrátí k nejnovější. Je také uvedena v „Klávesové zkratky“ (F1). Alt+Shift+J a Alt+Shift+O dělají totéž dopředu: další zmínka a další odpověď vám.
+
+- „Píše“ v seznamu zpráv: když osoba v otevřeném chatu (nebo ve skupině účastník) píše nebo nahrává zvuk, na konci seznamu zpráv se objeví dočasný poslední řádek, například „Ana píše...“. Zmizí, když přestane nebo když dorazí její zpráva. Nikdy sám od sebe nepřesune fokus (jen pokud jste na řádku, když zmizí, přesune vás na poslední zprávu) a sám se nečte nahlas, takže ohlášení psaní zůstává přesně takové, jaké bylo. Není to zpráva: nemá místní nabídku ani akce. Ve výchozím stavu je vypnuto; zapnete ho zaškrtnutím „Jako poslední řádek seznamu zpráv zobrazovat, kdo píše nebo nahrává zvuk“ na kartě Rozhraní v Nastavení
+
+- Emotikony se při psaní mění na emoji, jako ve WhatsApp Web: „:)“ se změní na 🙂, „:D“ na 😃, „<3“ na ❤️ a tak dále, když za nimi napíšete mezeru nebo interpunkci, nebo zprávu odešlete hned po nich. Převádí se jen emotikona stojící samostatně, nikdy ta uvnitř odkazu, slova nebo `kódu`. Stisknutí Backspace hned po převodu vrátí to, co jste napsali. Lze to vypnout v Nastavení, na kartě „Obecné“, „Během psaní převádět emotikony jako :D na emoji“
+
+- Průběh stahování v seznamu zpráv: když se stahuje dokument, jeho zpráva čte například „35 % (13,8 MB z 39,4 MB)“ a po dokončení stahování se vrátí k názvu a velikosti souboru.
+
+- „Informace o zprávě“ ukazují, co ví samotný WhatsApp. U zprávy, kterou jste odeslali, se okno (Alt+Shift+D) teď ptá WhatsAppu, kdy byla doručena, přečtena a přehrána, takže se objeví i potvrzení, která dorazila, když byl WinZapp zavřený, každé s úplným datem a časem. Ve skupině vypíše, kdo ji dostal a kdo ji přečetl, podle jmen, například „Přečteno (2/9): Ana, Bia“.
+
+- Informace o osobním chatu teď vypisují také profilové jméno, které si kontakt zvolil, ověřené jméno firmy a zda jde o firemní účet. Jméno, které jen opakuje už zobrazené, se vynechá.
+
+- Zkratky filtru chatů: Alt+Shift+F přejde na přepínače filtru chatů, které to teď ohlašují, a Alt+Shift+A, Alt+Shift+U, Alt+Shift+G a Alt+Shift+I vyberou přímo ze seznamu chatů Všechny, Nepřečtené, Skupiny a Jednotlivci. Možnosti seznamů WhatsAppu a „Spravovat seznamy WhatsAppu“ jsou teď před filtry chatů. Všechny jsou v nápovědě ke zkratkám na F1.
+
+- Informace o osobním chatu mají novou kartu „Společné skupiny“, která vypisuje skupiny, ve kterých jste vy i kontakt. Stisknutím Enter na skupině ji otevřete. Pokud WhatsApp neodpoví, karta to řekne, místo aby zůstala prázdná.
+
+- WinZapp se otevírá rychleji. Když je váš účet už připojený, hlavní okno a vaše chaty se objeví hned, zatímco se WPPConnect spouští a WhatsApp připojuje na pozadí, místo až po okně „Spouští se WPPConnect, čekejte prosím...“. Zprávy, které mezitím odešlete, počkají a odejdou, jakmile je WhatsApp připojený. První spuštění a účet, který se ještě musí spárovat, ukážou toto okno jako dřív. Titulek okna říká „spouští se WPPConnect...“, dokud není připraven. Totéž platí pro aktualizace WPPConnect a vynucené přeinstalace: žádné okno vám nepřekáží.
+
+- macOS: sestavení vydání se teď aktualizují přes standardní okna Sparkle 2, která VoiceOver čte dobře. „Zkontrolovat aktualizace“ (v nabídce WinZapp pod O programu WinZapp a v Nápovědě), automatická kontrola každé 3 hodiny a „Hledat alfa aktualizace“ otevřou Sparkle. Když je zapnutá automatická kontrola, aktualizace se stáhne na pozadí a nainstaluje se při ukončení WinZappu, jako v jiných aplikacích pro Mac; dokud WinZapp zůstává otevřený, Sparkle při další kontrole nabídne „Nainstalovat a znovu spustit“ a aktualizace se oznámí hlasem i oznámením. Okno aktualizace říká, co se změnilo od verze, kterou používáte, jako „Co je nového?“ ve Windows, a u alfy vypíše pull requesty každé alfy od vaší. Před nabídnutím nebo stažením vydání WinZapp zkontroluje, že značka vydání existuje v oficiálním repozitáři, ukazuje na deklarovaný commit a je novější než verze, kterou používáte; pokud cokoli z toho selže nebo GitHub není dostupný, aktualizace se nenabídne a když jste kontrolu spustili sami, zobrazí se důvod. Vaše ostatní účty se před instalací aktualizace zavřou a potom se znovu otevřou. Zámky účtů, které zůstaly po dřívějším ukončení, už na Macu neblokují aktualizace ani spuštění.
+
+- Mluvený průběh synchronizace a stahování médií: během synchronizace (úplné při prvním spárování nebo na F5 a také aktualizace změněných chatů při otevření WinZappu) a stahování médií, které po ní následuje, WinZapp zhruba každých 5 sekund ukazuje v titulku okna a říká nahlas, jak daleko je: „Synchronizace chatů: 12 z 80“ a „Stahování médií: zpracováno 30 ze 120 (staženo 8)“. Dřív se mezi ohlášením začátku a konce nic neozývalo a dlouhá synchronizace působila zaseknutě. „Zpracováno“ počítá i média, která stahovat nebylo třeba (například už jsou v počítači), a celkový počet zahrnuje jen média, jejichž stahování vaše nastavení Úložiště stále dovoluje, ne celou historii. Průběh se řídí možností „Ohlašovat synchronizaci, stahování médií a automatický režim offline“ v Nastavení > Obecné a nehlásí se, když se WinZapp spouští na pozadí nebo během hlasového hovoru; automatická kontrola, která běží každou minutu, zůstává tichá. V Nastavení > Mluvený obsah políčka „Každých pár sekund ohlašovat průběh synchronizace chatů“ a „Každých pár sekund ohlašovat průběh stahování médií“, ve výchozím stavu zaškrtnutá, vypínají každé z těchto ohlášení zvlášť; titulek okna dál čísla ukazuje.
+
+- Nové okno Soubor > Nastavení WhatsAppu s kartou Soukromí pro soukromí vašeho účtu WhatsApp, použité přímo na WhatsAppu: naposledy online, kdo vidí, kdy jste online, O mně, profilová fotka, potvrzení o přečtení, kdo vás může přidat do skupin a kdo vidí váš status (moje kontakty, moje kontakty kromě... nebo sdílet jen s...). Lidé pro status se vybírají z vašich synchronizovaných kontaktů v seznamu, který lze prohledávat, a každý se zaškrtává mezerníkem. Okno načte aktuální hodnoty z WhatsAppu, odešle jen to, co jste změnili, a pak to přečte zpět a řekne, která nastavení WhatsApp nepotvrdil.
+
+- Totéž okno Soubor > Nastavení WhatsAppu má také kartu Profil, kde můžete změnit zobrazované jméno, text O mně a profilovou fotku svého účtu WhatsApp, aniž byste vzali do ruky telefon. Karta se otevře s již zobrazeným vaším současným jménem a textem O mně a informací, zda máte fotku; pole ponechané prázdné nebo nezměněné zůstane na WhatsAppu, jak je, každé se ukládá samostatně (to, které WhatsApp odmítne, ostatní nezastaví a okno vypíše, která selhala) a fotka se vybírá ze souboru JPG nebo PNG. Okno se otevře odkudkoli pomocí Ctrl+Shift+čárka (klávesa Nastavení plus Shift), kterou lze změnit na kartě Klávesové zkratky.
+
+- Informace o osobním chatu teď ukazují, zda jsou jeho oznámení ztlumená (a do kdy) a, když to WhatsApp hlásí, časovač mizejících zpráv.
+
+- Nápověda > „Návod k použití“ otevře ve výchozím prohlížeči úplného průvodce používáním programu ve zvoleném jazyce: kde je která funkce, zkratky a co říká čtečka obrazovky. Má vyhledávání a nabídku sekcí a tabulky zkratek se berou přímo z programu.
+
+- Úklid médií: Nastavení > Úložiště > „Úklid médií“ uvolňuje místo na disku smazáním stažených mediálních souborů v chatech, které zvolíte; zprávy zůstanou. Vyberete chaty, typy médií a minimální velikost, „Shromáždit údaje“ ukáže, kolik souborů a MB odpovídá, aniž by cokoli smazalo, a „Provést úklid“ požádá o potvrzení a smaže přesně to, co bylo ukázáno. Soubory, které jste uložili pomocí Uložit jako, a média neodeslaných zpráv se nikdy nedotknou a vyčištěné soubory se automatickým stahováním ani synchronizací znovu nestahují, dokud se neodhlásíte nebo znovu nespárujete.
+
+- Online přepis a popis v řádku zprávy, automatický: okno s výsledkem AI má „Vložit přepis do řádku zprávy“ (hlasové zprávy) a „Vložit popis do řádku zprávy“ (obrázky, samolepky a videa). V Nastavení > Online AI: přepisy a popisy dvě nové možnosti, obě ve výchozím stavu vypnuté, automaticky přepisují přijaté hlasové zprávy a popisují přijaté obrázky, samolepky a videa pomocí online poskytovatelů, bez okna nebo zvuku u každé zprávy; zapnutí jedné žádá o obvyklý souhlas a vypne místní automatický přepis, a naopak. Okno s údaji o chatu každého chatu má políčka „přepisovat“ a „popisovat“ (platí také pro místní automatický přepis) s volbou mezi „Všechny chaty kromě těch, které vypnu“ a „Jen chaty, které zapnu“. Abyste ochránili svou kvótu API, můžete zvolit, jak stará přijatá zpráva se ještě zpracuje (5 minut, 15, 30 nebo 1 hodina) a nastavit denní strop automatických online požadavků (ve výchozím stavu 50, 0 znamená bez omezení); když každý poskytovatel odmítá z důvodu, který se opakuje, například kvóta nebo klíč, automatická fronta se na hodinu pozastaví a jednou to oznámí.
+
+- Chaty a zprávy od kontaktů, které jste neuložili, teď před jménem zobrazují vlnovku (~), jako WhatsApp. Vypnete to v Nastavení > Rozhraní pomocí „Jména neuložených kontaktů v chatech a zprávách uvozovat vlnovkou (~)“.
+
+- Nový nebo prázdný osobní chat teď rozšiřuje řádek „žádné zprávy“ o upozornění, že zprávy a hovory jsou end-to-end šifrované, a pokud má chat časovač mizejících zpráv, o jeho délku. Informace o chatu také uvádějí šifrování.
+
+- Pole popisku příloh teď přijímá víc řádků, jako WhatsApp Desktop: Enter dál odešle přílohu s popiskem a Shift+Enter nebo Ctrl+Enter začnou nový řádek, jako v poli zprávy.
+
+- Odebrání účtu teď odebere všechno, co mu patří: kromě jeho zpráv a nastavení se smaže i profil prohlížeče, který drží jeho přihlášení k WhatsAppu, a zálohy tohoto profilu, a cokoli, co se nepodařilo odstranit, se dokončí při dalším spuštění WinZappu. Když je účet jediný, můžete ho nyní odebrat v Účty > Spravovat účty: WinZapp požádá o potvrzení, zavře se a další spuštění je první spuštění.
+
+- Nastavení > Rozhraní: nová možnost „Automaticky přehrávat hlasové zprávy za sebou“, ve výchozím stavu zapnutá, určuje, zda další hlasová zpráva začne sama, když jedna skončí. Vypněte ji, aby každá hlasová zpráva skončila sama. Možnost „Při přehrávání zvuků za sebou automaticky přesunout fokus na další zvuk“ dál řídí jen to, zda za zvukem sleduje fokus klávesnice.
+
+OPRAVY
+
+- Opravena chyba „chat nenalezen“ při odesílání zpráv nebo příloh do existující konverzace, kterou už WhatsApp načetl.
+
+- Přijetí souboru ho už nestahuje do oznámení o zprávě kvůli nepoužívanému nastavení webhooku. Aktualizace průběhu nahrávání a stahování teď uchovávají jen nejnovější čekající hodnotu, takže se při rychlých přenosech nehromadí aktualizace obrazovky.
+
+- Opraveno opakované synchronizování konverzací, když byl seznam chatů WhatsAppu dostupný, ale nešlo ho přenést na místní server. Existující konverzace se zachovají a seznam se může dosynchronizovat.
+
+- Odesílání hlasových zpráv a dokumentů selhávalo s chybou „Cannot read properties of undefined (reading 'prepRawMedia')“ na sestavení WhatsApp Web vydaném 15. října, které tuto funkci přesunulo. WinZapp teď dodává odpovídající verzi své knihovny WhatsApp Web (WA-JS 4.7.1). Pokud odesílání po aktualizaci stále selhává, přeinstalujte WPPConnect z okna aktualizace.
+
+- macOS: v seznamech chatů a zpráv už VoiceOver neztrácí své místo, když se řádek změní, například když se změní počet nepřečtených, někdo začne nahrávat zvuk nebo dorazí nová zpráva. Otevření chatu s VoiceOver teď funguje hned a pokaždé, místo aby někdy selhalo nebo zareagovalo až po prodlevě, a VoiceOver se pak přesune do pole zprávy; oznámení, například to o připnutých zprávách, se čtou až po poli, místo aby ho přerušila.
+
+- macOS: zkratky s Command teď dělají na každé obrazovce totéž. Podtržené písmeno tlačítka dříve převzalo Command a toto písmeno: když bylo zobrazeno „Číst dál“, Command-R stisklo ho místo nahrávání hlasové zprávy, a jiná tlačítka takto převzala další zkratky. Podtržené písmeno tlačítka se teď stiskne pomocí Command-Option a písmena, což je podoba Alt a písmena ve Windows, a zkratka WinZappu na stejných klávesách má stále přednost, jako ve Windows.
+
+- Tlačítka pro nahrávání v druhém režimu (stereo nebo mono) a pro nahrávání se zvukem počítače oznamovala čtečce obrazovky zkratku Ctrl+R. Teď oznamují svou vlastní, Ctrl+Shift+G a Ctrl+Shift+H, nebo klávesy, které jste jim přiřadili.
+
+- Okna Informace o skupině, Informace o chatu, Pozvánka do skupiny a Připojit se ke skupině přes odkaz mají teď přístupovou klávesu (Alt+písmeno) na každém tlačítku a na každém popisku pole nebo seznamu. Dřív ji neměla tlačítka v Informace o skupině, některá v Informace o chatu a žádný ovládací prvek pozvánky. Tlačítko, které zavírá okno pozvánky a bylo zobrazeno anglicky, teď následuje jazyk WinZappu.
+
+- Zprávy odeslané při přehrávání nebo pozastavení řady hlasových zpráv neukazovaly v seznamu žádný stav („Odesláno“, „Doručeno“ ani „Přečteno“), dokud řada neskončila, přestože Informace o zprávě (Alt+Shift+D) už ukazovaly správný. Teď během řady čeká jen řádek, který má fokus, aby ho čtečka obrazovky nečetla přes zvuk; každý další řádek se aktualizuje hned a ten, který čekal, se aktualizuje, když z něj fokus odejde, když se přehrávání pozastaví nebo když řada skončí.
+
+- Aktualizace: „Zkontrolovat aktualizace“ v nabídce Nápověda teď řekne, když WinZapp nemohl kontaktovat server aktualizací, místo aby neřekl nic.
+
+- Odpovědi: když se původní zpráva před odesláním nenajde, WinZapp ohlásí chybějící citaci a ponechá váš text k úpravě z nabídky zprávy. Neodešle tiše bez citace ani nehlásí ztrátu připojení. Nejisté odeslání se stále automaticky neopakuje.
+
+- Synchronizace: přehrané zprávy historie si zachovávají své chronologické místo, místo aby se objevovaly jako nové příchozí. Dočasná selhání při kontrole alternativní adresy chatu zůstávají ve frontě k opakování.
+
+- Přeposlání už neotevírá okno, když se podařilo. „Zpráva přeposlána.“ (nebo kolik zpráv bylo přeposláno) teď říká čtečka obrazovky, bez okna k zavření a bez přerušení toho, co se čte; funguje i když je WinZapp v oznamovací oblasti.
+
+- Synchronizace a doplňování historie chatů se teď ptají WhatsApp Webu na zprávy nejvýš dvou chatů najednou místo až šesti, což při první synchronizaci udržuje nízké využití procesoru a paměti na malých počítačích a serverech, aniž by to bylo znatelně pomalejší. Otevření chatu, rolování nahoru a opětovná synchronizace konverzace zpomalené nejsou.
+
+- Aktualizátor teď po sobě uklízí: když je aktualizace nainstalována, smaže složku, do které se rozbalila v dočasné složce, a při dalším spuštění WinZappu odstraní také to, co tam zanechaly dřívější aktualizace, neúspěšné instalace a přerušená stahování, což se mohlo nasčítat až na úplnou kopii každé verze, kterou jste kdy nainstalovali.
+
+- Ctrl+Shift+V (hlasový hovor) a Ctrl+Alt+Shift+V (videohovor) teď fungují i tehdy, když má fokus pole zprávy.
+
+- Odeslání zprávy sobě už neselhává s „nešlo potvrdit odeslání“ na účtech, jejichž vlastní adresa měla příponu zařízení.
+
+- Když chat otevřete nebo přečtete ve WinZappu, oznámení o jeho nové zprávě se odstraní z oznamovací oblasti, místo aby tam zůstalo.
+
+- Po probuzení počítače ze spánku se nové zprávy načítají spolehlivě: otevřená konverzace a nedávné chaty se zkontrolují znovu, i když seznam chatů WhatsAppu vypadá nezměněný, a aktualizace chatů propojených pomocí ID propojeného zařízení se už neignorují
+
+- Zmínky: osoba zmíněná jménem vedle @all si ponechá svůj odkaz ve zmínkách zprávy a zmínka o vás v oznámení a v náhledu seznamu chatů používá slovo zvolené v „Jak mám být oslovován?“ místo pevného slova
+
+- Nastavení, karta „Rozhraní“: karta se teď posouvá a skupiny možností na jejím konci se zase čtou na správném místě. Na menších obrazovkách čtečka obrazovky ohlašovala „Pozice, na které ohlašovat vybrané položky“ na zaškrtávacím políčku za ní, a ne na přepínačích samotné skupiny
+
+- Média AI: reset všech klíčů vymaže i zapamatovaný souhlas s odesíláním, i když se před použitím zadá nový klíč. Dlouhé přepisy a text z PDF teď hlásí chybu překročení limitu textu, místo aby tiše ztrácely svůj konec; pro tento limit se automaticky nezkouší jiný poskytovatel.
+
+- Tlačítko „Popsat“ u zpráv s médii. U fotky, samolepky nebo videa (a také u zvuku a PDF, když jsou funkce AI zapnuté) se hned za „Uložit jako...“ objeví tlačítko dosažitelné klávesou Tab, které dělá totéž jako zkratka Ctrl+Shift+I; v místní nabídce je položka nyní mezi ostatními akcemi médií a také ukazuje Ctrl+Shift+I. Tlačítko a položka se zobrazují jen u zpráv, které lze popsat.
+
+- Model „Automaticky (doporučeno)“ v okně každého poskytovatele AI (Online AI: přepisy a popisy). Políčko, ve výchozím stavu zaškrtnuté u poskytovatelů, kde jste model nevybrali, způsobí, že WinZapp vždy používá model, který doporučuje a který se řídí aktualizacemi; zrušte zaškrtnutí, abyste vybrali nebo zadali pevný model.
+
+- Zvukové soubory odeslané jako příloha: soubor WAV nebo OGG Vorbis ve stereu nebo prostorovém zvuku (5.1, 7.1) teď dorazí se všemi kanály, jako běžný zvuk, a zachová si vzorkovací frekvenci až do 48 kHz (vyšší se odešle na 48 kHz). Dřív dorazil v monu a vypadal jako hlasová zpráva. Soubor s více než 8 kanály, které AAC nepřenese, se místo toho odešle beze změny jako dokument.
+
+- Aktualizace WinZappu už nevrací zpět aktualizaci WPPConnect. Po aktualizaci WPPConnect na novější verzi, než s jakou WinZapp přichází (z oznámení o aktualizaci nebo pomocí „Vynutit přeinstalaci WPPConnect“ v nabídce Nápověda), další aktualizace WinZappu ho vrátila na starou verzi a stejná aktualizace WPPConnect se nabízela znovu
+
+- Status: „To se mi líbí ❤️“ zase funguje. Po změně ve WhatsApp Web selhávalo označení statusu kontaktu jako oblíbeného s hlášením „Reakci na tento status nešlo odeslat.“
+
+- „Použít vlastní API (vzdálený server)“: WinZapp už neříká „Profil prohlížeče používaný k připojení k WhatsAppu je poškozený a není uložena žádná kopie k obnovení“ o profilu, který je v pořádku. Tento profil leží na serveru a WinZapp ho hledal v tomto počítači, nic nenašel a usoudil, že je poškozený. S vlastním API teď WinZapp ponechává profil a jeho zálohy serveru a při zavření už nezastavuje WPPConnect v tomto počítači, který nespustil.
+
+- Účty s mnoha chaty, jejichž WhatsApp Web se načítá o něco déle než 30 sekund, se teď připojí. WinZapp přestal čekat přesně po 30 sekundách, takže stejný účet selhal pokaždé stejně při každém spuštění.
+
+- Aktualizace WPPConnect: předchozí verze se uchovává, dokud nová nenastartuje a neodpoví, a když neodpoví, obnoví se. Aktualizace se odmítne ještě před zastavením čehokoli, když není dost místa na disku pro obě verze, a přeinstalace znovu použije už stažený Chrome.
+
+- Naposledy online v otevřeném chatu se teď udržuje aktuální. Tlačítko konverzace, Alt+T a údaje o kontaktu ukazují stejné informace a stará odpověď už nemůže přepsat novější aktualizaci online nebo naposledy online.
+
+- Naposledy online v otevřeném chatu teď také kontroluje známý alternativní identifikátor kontaktu, když první odpověď stále čeká, takže Alt+T a tlačítko statusu už nehlásí nedostupné informace, když údaje existují pod jiným identifikátorem.
+
+- Obnova připojení a synchronizace zpráv už nezaměňují starou relaci nebo kolo synchronizace s aktuálním. Pozdní odpovědi od připojení, seznamu chatů nebo historie zpráv se zahazují, pomalá kontrola připojení se už nepovažuje za probuzení počítače ze spánku a nová synchronizace už nenechá čekající historii bez pracovníka. Tím se předchází zbytečným přechodům do „offline“ a neúplné historii zpráv.
+
+- Označení chatu jako přečteného se teď znovu dostane do telefonu, když je chat znám pod telefonním číslem i pod ID propojeného zařízení, a přečtení, které selže, se zopakuje při příštím otevření chatu, takže chat po přečtení ve WinZappu už nezůstává v telefonu nepřečtený.
+
+- WinZapp se teď správně zavře, místo aby nechal okno, které se nikdy nepřipojí, když se okno „Připojit k WinZappu“ zavře bez spárování poté, co se při spuštění otevřelo hlavní okno, nebo když v tomto okamžiku chybí token relace. V tom druhém případě se hlášení „Nepodařilo se získat token uživatele.“ stále zobrazí jako první. Hlavní okno dříve zůstalo otevřené, bez připojení k WhatsAppu a bez jakéhokoli upozornění.
+
+- Aktualizace WinZappu už nerozbíjí npm lidem, kteří ho používají i mimo WinZapp. Když je WinZapp ve složce, která ke své aktualizaci potřebuje oprávnění správce, po aktualizaci se už znovu nespustí jako správce (pokud už jako správce neběžel) a npm WinZappu má vlastní mezipaměť místo sdílení té vaší. Aktualizace také už nezavírá jiné programy, které používají síťové porty blízké těm WinZappu, například databázi PostgreSQL.
+
+- Aktualizace WPPConnect Server už neselhává s chybou npm „ETARGET“, když je uložený seznam balíčků npm starší než verze, které server potřebuje. WinZapp teď požádá npm o kontrolu online a zkusí to znovu.
+
+- Když se aktualizace nebo stahování Node zrušily ve stejném okamžiku, kdy skončily, mohl WinZapp ukázat chybu „Attempt to exit a non-running event loop“. Pozdní dokončení se teď ignorují.
+
+- Dialog přeposlání: stisknutí šipky dolů v poli hledání se teď přesune na první výsledek a dá fokus seznamu, jako při hledání v konverzacích.
+
+- Výběr země pro párování podle telefonního čísla teď vypisuje každou zemi a území, které WhatsApp podporuje (chyběly mimo jiné Nizozemsko, Keňa, Bělorusko a Severní Makedonie) a názvy zemí se teď zobrazují ve zvoleném jazyce i pro polštinu, turečtinu a rumunštinu.
+
+- Ověřené firemní účty WhatsApp (banky, platební aplikace, dodavatelé služeb), které jste si neuložili jako kontakty, ukazovaly v seznamu chatů jen své telefonní číslo. Teď ukazují ověřené jméno firmy, jako ve WhatsAppu. Jméno uložené ve vašich kontaktech má stále přednost.
+
+- WPPConnect Server aktualizován na 2.10.55. Kromě oprav z upstreamu pro požadavky, na které se odpovídalo dvakrát, se odeslání, když WhatsApp Web nemohl vyhledat číslo (například při opětovném načítání stránky), teď zkusí znovu, místo aby se mylně hlásilo, že číslo neexistuje. Stejný příjemce v jednom požadavku se také vyhledá jen jednou. Pokud WinZapp při spuštění nabídne aktualizaci WPPConnect, přijměte ji, abyste nainstalovali novou verzi.
+
+- Odhlášení z relace, která zůstala nedokončená (například účet, který nikdy nedokončil párování), teď dostane odpověď, místo aby tiše selhalo.
+
+- Stažené soubory, jejichž velikost je násobkem 16 bajtů (například APK), už nekončí 16 bajty navíc. Android je odmítal instalovat s hlášením „problem parsing the package“; teď je uložený soubor totožný s originálem.
+
+- macOS: instalace aktualizace a první spuštění po ní jsou mnohem rychlejší. Aplikace má mnohem méně souborů k rozbalení (asi 24 000 místo 61 000), její server se na místo dostane za zlomek sekundy místo několika sekund, předchozí kopie se maže na pozadí a prohlížeč, ve kterém WhatsApp běží (asi 190 MB), se zachovává místo toho, aby se po každé aktualizaci stahoval znovu.
+
+- Náhledy odkazů už v popisu neukazují nezpracované kódy HTML, například &amp; nebo &eacute;. Když se náhled odesílá z WinZappu a když se čte, tyto kódy se teď změní na skutečné znaky.
+
+- Potlačení ozvěny v hlasových a videohovorech teď funguje u hovorů, které přijmete. Reproduktor hrál od zazvonění hovoru, takže potlačovač porovnával váš mikrofon se zvukem z doby před jeho otevřením a ozvěnu nikdy nenašel: druhá osoba dál slyšela vlastní hlas, i když byla možnost zapnutá. Reference teď začíná, když se mikrofon otevře.
+
+- WPPConnect Server aktualizován na 2.10.58. Upstream teď odmítá spustit relaci, dokud se relace zálohují nebo obnovují, ukládá soubor tokenu každé relace atomicky, takže pád ho už nemůže nechat napůl zapsaný, a znovu používá zkontrolovaný přístupový token minutu, místo aby ho kontroloval při každém požadavku. Pokud WinZapp při spuštění nabídne aktualizaci WPPConnect, přijměte ji, abyste nainstalovali novou verzi.
+
+- Aktualizace WPPConnect Server se už nenavrhují samy od sebe. WinZapp dřív hledal novější vydání upstreamu a nabízel ho, ale jeho opravy se do každého vydání přenášejí ručně, takže aktualizace mohla skončit na verzi, kterou zatím nepodporuje. Teď WinZapp nabízí jen verzi, se kterou byl vyzkoušen, nebo takovou, kterou tým WinZappu zkontroloval proti vaší verzi WinZappu, obvykle aktualizaci, která přináší jen bezpečnostní opravy knihoven, které server používá; ta se doporučuje a můžete ji odmítnout. Aktualizace, která mění samotný server, počká na verzi WinZappu, která ji podporuje. Nápověda > Vynutit přeinstalaci WPPConnect také používá nejnovější z těchto verzí a nová instalace používá tu, se kterou byl tento WinZapp vyzkoušen.
+
+V2.0.2.0
+
+Toto je další udržovací vydání stabilní verze. Mění jen to, jak WinZapp spolupracuje se serverem WPPConnect, tedy programem, který WinZapp propojuje s WhatsAppem: podporuje nejnovější verzi serveru a nově instaluje jen verze, o kterých ví, že fungují.
+
+OPRAVY
+
+Je podporován server WPPConnect 2.10.58. Server nyní odmítne spustit relaci, dokud probíhá zálohování nebo obnova relací, ukládá soubor s tokenem každé relace vcelku, takže ho pád nemůže zanechat napůl zapsaný, a ověřený přístupový token znovu používá po dobu jedné minuty místo ověřování při každém požadavku. Pokud vám WinZapp při spuštění nabídne aktualizaci WPPConnect, přijměte ji a nová verze se nainstaluje.
+
+WinZapp už aktualizace serveru WPPConnect nenavrhuje sám od sebe. Dříve vyhledal nejnovější verzi původního projektu a nabídl ji, jenže opravy se do jednotlivých verzí přenášejí ručně, takže aktualizace mohla skončit na verzi, kterou ještě nepodporuje. Nově WinZapp instaluje a nabízí jen verzi, se kterou byl otestován. Stejnou verzi používá i nová instalace a příkaz Nápověda > Vynutit přeinstalaci WPPConnect.
+
+Bezpečné aktualizace serveru WPPConnect nyní přicházejí, aniž byste museli čekat na novou verzi WinZappu. Když tým WinZappu ověří, že novější verze serveru s vaším WinZappem funguje, obvykle jde o aktualizaci, která jen přináší bezpečnostní opravy knihoven používaných serverem, WinZapp ji nabídne jako doporučenou aktualizaci a můžete ji odmítnout. Příkaz Nápověda > Vynutit přeinstalaci WPPConnect používá také nejnovější z těchto verzí.
+
+Aktualizace WinZappu už nevrací server WPPConnect na starší verzi, než jakou jste už nainstalovali, například na doporučenou, takže se stejná aktualizace serveru nenabízí znovu.
+
+V2.0.1.0
+
+Toto je udržovací vydání stabilní verze. Aktualizuje pouze knihovny WPPConnect, které WinZapp používá ke komunikaci s WhatsAppem, poté co změna ve WhatsApp Web rozbila odesílání hlasových zpráv a dokumentů.
+
+OPRAVY
+
+Odesílání hlasových zpráv a dokumentů znovu funguje. WhatsApp Web se změnil tak, že tato odesílání selhávala; WinZapp nyní používá aktualizované knihovny WPPConnect (WPPConnect 2.3.5 a WA-JS 4.7.1), které si s tím poradí.
+
+Je podporován server WPPConnect 2.10.55. Instalace nebo aktualizace na nejnovější server už nekončí chybou „npm run build failed“ a server se nyní spouští s aktuálním nastavením.
+
+Propojení účtu už nenechává běžet zastaralou smyčku QR kódů, když se párování zruší, a stránka WhatsApp Web, která se nikdy úplně nenačte, se nyní po 60 sekundách vzdá, místo aby WinZapp nechala čekat.
+
+Pokud jste používali předchozí verzi a hlasové zprávy po aktualizaci stále selhávají, WinZapp vám při spuštění nabídne přeinstalaci WPPConnect; jednou ji přijměte a nové knihovny se nainstalují.
+
+V2.0.0.0
+
+Hlavní novinkou tohoto vydání jsou hovory: z WinZappu nyní můžete sami zahajovat, přijímat a odmítat hlasové i video hovory, aniž byste sahali po telefonu, a to s přístupným oknem hovoru, klávesovými zkratkami, vlastním nastavením zvuku a historií hovorů na nové kartě Hovory. Přibyly také zamčené chaty, hledání v archivovaných chatech, turečtina a rumunština a několik zlepšení použitelnosti, spolu s opravami situací, kdy WinZapp chtěl nové spárování, ačkoli nebylo potřeba. Pod povrchem prošel kód programu rozsáhlou reorganizací: na tom, jak WinZapp používáte, nic nemění, ale usnadňuje to jeho údržbu a opravy do budoucna.
+
+NOVINKY
+
+- Zprávy s hvězdičkou nyní používají vlastní hvězdičky WhatsAppu. Každá změna se ověřuje na propojeném zařízení; selhání a neověřené výsledky se hlásí zvlášť. Staré místní hvězdičky zůstávají, dokud v kontextové nabídce chatu nezvolíte „Synchronizovat staré místní hvězdičky s WhatsAppem“ a nepotvrdíte to. Dávku můžete zastavit po dokončení aktuálního požadavku.
+
+- Hlasové a video hovory. V soukromém chatu tlačítka „Hlasový hovor“ (Ctrl+Shift+V) a „Videohovor“ (Ctrl+Alt+Shift+V) zahájí hovor přímo z WinZappu. Hovor se otevře v okně s tlačítky dosažitelnými klávesou Tab a s vlastními zkratkami: Ctrl+M vypne nebo zapne mikrofon, Ctrl+V zapne nebo vypne kameru ve videohovoru, Ctrl+P změní hlasový hovor na videohovor, Ctrl+C otevře nastavení hovoru a Ctrl+Shift+Q hovor ukončí. Čtečka obrazovky oznámí, kdy se hovor spojí, kdy se znovu připojuje a kdy skončí.
+
+- Přijímání a odmítání hovorů ve WinZappu. Okno příchozího hovoru má nyní tlačítka „Přijmout“, „Odmítnout“ a „Ztišit vyzvánění“; u videohovoru „Přijmout s videem“ a „Přijmout bez videa“. Zkratky tohoto okna fungují jen s klávesou Alt a podtrženým písmenem, takže omylem stisknutá klávesa hovor nepřijme ani neodmítne.
+
+- Nová karta Hovory (Alt+6) s historií hovorů ze všech chatů, rozdělenou na Všechny, Zmeškané, Odmítnuté a Přijaté; mezi nimi přepínáte klávesami Ctrl+Tab a Alt+Shift+Nab. V seznamu Enter otevře chat hovoru, Ctrl+Shift+R zavolá zpět na zmeškaný hovor a F5 seznam obnoví.
+
+- Hovory se zobrazují v chatu i v seznamu chatů jako ve WhatsAppu: „Zmeškaný hlasový hovor“, „Přijatý videohovor“ a podobně, na místě v chatu, kde se odehrály. U zmeškaného hovoru zavolá zpět tlačítko „Zavolat zpět“ nebo Ctrl+Shift+R.
+
+- Nastavení zvuku a videa hovorů. Na kartě Hovory v Nastavení volí „Nastavení zvuku hovoru“ mikrofon a reproduktor používané pro hovory a „Nastavení videa hovoru“ kameru. Je tam také potlačení ozvěny, které omezuje vlastní zvuk vracející se zpět, když místo sluchátek používáte reproduktory, potlačení šumu mikrofonu, které snižuje stálý šum, například z ventilátorů a syčení, a výhradní režim pro mikrofon i pro reproduktor. Během hovoru se stejné možnosti otevřou klávesou Ctrl+C.
+
+- Zamčené chaty (Alt+7). „Zamknout chat“ v kontextové nabídce nebo klávesou Alt+Shift+N přesune chat do trezoru chráněného 6 až 12místným PINem, pryč ze seznamu chatů, z archivovaných chatů, z hledání i z okna přeposílání. Oznámení z těchto chatů říkají jen to, kolik přišlo nových zpráv, bez jména a bez obsahu. Při nastavení trezoru WinZapp vytvoří klíč pro obnovení, který lze nechat přečíst nahlas nebo zkopírovat, abyste mohli nastavit nový PIN, pokud zapomenete ten současný. Trezor se zavře sám, když se WinZapp minimalizuje, skryje do oznamovací oblasti nebo přepne na jiný panel, a také, chcete-li, po určité době bez používání; Ctrl+Shift+K trezor okamžitě zavře a skryje. Zamčené chaty lze také odebrat z navigační nabídky: trezor se pak otevírá zadáním tajného kódu do hledání chatů.
+
+- Hledání v archivovaných chatech. Archivované chaty (Alt+3) mají nyní pole pro hledání jako hlavní seznam: Ctrl+F vás do něj přenese a šipka dolů přejde na první výsledek.
+
+- Dva nové jazyky: turečtina a rumunština. Zvolte je v Nastavení na kartě Obecné.
+
+- Reagujte jakýmkoli emoji. „Přidat další reakce“ na konci 12 rychlých voleb otevře úplný výběr; emoji, která používáte často, postupně zaujmou místo mezi těmito rychlými volbami, od nejpoužívanějšího. Pokud chcete každou reakci najít vždy na stejné pozici, použijte novou kartu Reakce v Nastavení: se zapnutou volbou „Použít pevné rychlé reakce“ se 12 pozic už podle používání nemění a Enter na pozici otevře výběr emoji, kde zvolíte, která reakce tam patří.
+
+- Zobrazení souboru uloženého pomocí Uložit jako v jeho složce. Jakmile taková kopie zvolená uživatelem existuje, použijte Ctrl+Enter, položku kontextové nabídky „Zobrazit ve složce“ nebo tlačítko dosažitelné klávesou Tab vedle tlačítek Otevřít a Uložit jako, čímž se otevře Průzkumník souborů s vybraným souborem; samotná interní stahování tuto akci nenabízejí.
+
+- Volba, zda zprávy s hvězdičkou zůstanou při vymazání chatu. Potvrzení vymazání má nyní možnost „Ponechat zprávy s hvězdičkou“, ve výchozím stavu zaškrtnutou, stejně jako ve WhatsApp Web. Když ji zrušíte, zprávy s hvězdičkou se vymažou spolu se vším ostatním, i v telefonu. Platí při vymazání jednoho chatu, několika vybraných chatů i archivovaného chatu.
+
+- Potvrzení před označením všech chatů jako přečtených. Příkaz se nyní nejdřív zeptá, s výchozí odpovědí Ne, takže náhodně stisknuté Alt a Enter už neoznačí všechno jako přečtené, ani v telefonu. Otázka má volbu „Už nezobrazovat“: když ji zaškrtnete a potvrdíte Ano, další požadavky označí všechno rovnou. Chcete-li se znovu dotazovat, použijte v Nastavení na kartě Rozhraní volbu „Před označením všech chatů jako přečtených žádat o potvrzení“.
+
+- Záloha profilu v Nastavení. Nová karta Záloha profilu určuje, jak často WinZapp při zavření obnovuje kopii profilu prohlížeče, kterou používá k obnovení připojení, ve výchozím stavu každých 24 hodin. Zálohu lze pořídit i při otevřeném WinZappu, v intervalu, který zvolíte: WhatsApp se po dobu zálohování odpojí, což může trvat několik minut, a WinZapp se může zeptat před každou zálohou. Nová záloha nahradí předchozí, až když se WhatsApp s ní znovu připojí. Pokud nechcete na zálohu obětovat místo, zaškrtněte „Neuchovávat zálohy profilu“ s vědomím, že při poškození profilu budete muset znovu spárovat; po zaškrtnutí WinZapp řekne, kolik místa zálohy zabírají, a zeptá se, zda je smazat.
+
+- Export a import nastavení. V nabídce Soubor zapíše „Exportovat nastavení“ vaše předvolby do souboru a „Importovat nastavení“ použije tento soubor tady, hned a bez restartu — pro přenos všeho na jiný počítač nebo jiný účet. Připojení k WhatsAppu a to, co patří jednomu účtu, například vymazané chaty a zvuky jednotlivých chatů, v souboru nejsou. Pokud používáte vlastní API, jeho adresa, port a klíč se přenášejí s ním.
+
+- Mezerník přehraje a pozastaví zvuk nebo video s fokusem. Tato klávesa v seznamu zpráv dosud nedělala nic. Je užší než Enter: nikdy neotevře odkaz, dokument, prohlížeč ani chat kontaktu.
+
+- Režim výběru. Jakmile vyberete první položku klávesou Ctrl+Mezerník, samotný mezerník vybírá a ruší výběr dalších — v seznamu chatů, v seznamu zpráv i v okně přeposílání — aniž byste museli u každé držet Ctrl. Čtečka obrazovky oznámí zapnutí i vypnutí tohoto režimu, který se vypne sám, jakmile není nic vybráno. Pokud chcete, aby mezerník vždy přehrával, zrušte v Nastavení, Rozhraní, zaškrtnutí volby „Mezerník vybírá/ruší výběr, když už nějaký výběr existuje“.
+
+- Esc nejdřív zruší výběr, až potom zavře. Když jsou zprávy vybrány, první Esc je jen zruší a teprve druhý zavře chat. Lze to vypnout také v Nastavení, Rozhraní.
+
+- Stereo hlasové zprávy. S mikrofonem, který opravdu nahrává stereo, může hlasová zpráva zachovat zvuk z obou stran. Zaškrtněte „Nahrávat hlasové zprávy ve výchozím stavu stereo“ na kartě Zvuková zařízení v Nastavení, nebo použijte nové tlačítko pod „Nahrát hlasovou zprávu“ (Ctrl+Shift+G) a nahrajte jen jednu zprávu v opačném režimu: stereo, když je výchozí mono, mono, když je výchozí stereo. Stereo nahrávka se odešle jako zvuková zpráva, nikoli jako hlasová zpráva, takže se přehraje i na iPhonu. Pokud mikrofon neposkytuje dva kanály, zpráva se nahraje mono a WinZapp vám to oznámí.
+
+- Nová synchronizace jen otevřeného chatu klávesou Shift+F5, také v nabídce Synchronizace. Na rozdíl od F5, které všechny chaty smaže a stáhne znovu, Shift+F5 znovu načte zprávy otevřeného chatu z WhatsAppu, chybějící vloží na správné místo a odstraní ty, které tam už neexistují, aniž by sahalo na starší historii. F5 a Shift+F5 se nyní ptají na potvrzení, s výchozí odpovědí Ne a volbou „Už nezobrazovat“; chcete-li se znovu dotazovat, použijte odpovídající volby na kartě Rozhraní v Nastavení. Když je chat už aktuální, nebo v něm WhatsApp nemá žádné zprávy, Shift+F5 to řekne, místo aby oznámilo, že se nepodařilo synchronizovat.
+
+- Globální klávesová zkratka, která vrací WinZapp z oznamovací oblasti, ho tam nyní také posílá: když je WinZapp v popředí, stejná zkratka ho skryje do oznamovací oblasti. Ve všech ostatních situacích okno stále přenese do popředí.
+
+- Nahrávání mikrofonu spolu se zvukem počítače. Nové tlačítko „Nahrát mikrofon a zvuk počítače“ (Ctrl+Shift+H) nahraje do jedné zprávy váš hlas i vše, co počítač přehrává, například video, hudbu nebo samotnou čtečku obrazovky. Při nahrávání dva posuvníky nastavují zvlášť hlasitost ostatních zvuků počítače a NVDA; bez NVDA je druhý zakázaný. Tyto hlasitosti ovlivňují jen nahrávku, ne to, co slyšíte, a pamatují se pro každý účet. Před zahájením WinZapp upozorní, že do nahrávky půjde vše, co v počítači hraje, s volbou „Už nezobrazovat“; chcete-li být upozorněni znovu, použijte na kartě Rozhraní volbu „Upozornit před nahráváním zvuku počítače“. Nahrávka se odešle jako zvuková zpráva.
+
+- Zavření jen aktuálního účtu. Při více účtech „Zavřít aktuální účet“ v nabídce Účty (Ctrl+F4) zavře jen účet, ve kterém jste, uvolní jeho paměť a připojení a přepne vás na jiný otevřený účet; ostatní běží dál. Chcete-li ho znovu otevřít, vyberte ho v nabídce Účty jiného účtu nebo stiskněte Ctrl+Alt s jeho číslem. Pokud je to jediný otevřený účet, WinZapp se nejdřív zeptá, protože jeho zavřením se program ukončí.
+
+- Rychlé přepnutí zvukového zařízení. Ctrl+Alt+Shift+H otevře seznam přehrávacích zařízení a Ctrl+Alt+Shift+G seznam nahrávacích zařízení, číslovaných od 1 do 0: stiskem čísla přepnete okamžitě, nebo použijte šipky a Enter. Přepnutí platí pro zvuky, hlasové zprávy i hovory — probíhající hovor se přesune na nové zařízení bez přerušení — a pro všechny otevřené účty, dokud WinZapp nezavřete. Zařízení zvolená v Nastavení zůstávají beze změny.
+
+- Volba, co říkají oznámení na pozadí. Na kartě Obecné v Nastavení nabízí „Obsah oznámení na pozadí“ tři úrovně: zvuk, název chatu nebo skupiny a text zprávy, jako dosud; zvuk a název chatu nebo skupiny bez textu; nebo jen zvuk, bez oznámení na obrazovce a bez čtení nahlas. Oznámení ze zamčených chatů stále neukazují ani jméno, ani obsah.
+
+- Návrat k výsledkům hledání při zavření chatu. Když je na kartě Rozhraní v Nastavení zaškrtnuto „Ponechat hledání chatů při otevření chatu“, hledání chatů zůstane aktivní, když otevřete nalezený chat, a Esc vrátí fokus na tento chat mezi výsledky místo na úplný seznam. Volba je ve výchozím stavu vypnutá.
+
+- Přeposílání hlasových zpráv jako hlasových zpráv. WhatsApp mění každou přeposlanou hlasovou zprávu na obyčejný zvuk, čímž ji vyřadí z postupného přehrávání hlasových zpráv v cílovém chatu. Když je na kartě Rozhraní v Nastavení zaškrtnuto „Přeposílat hlasové zprávy jako hlasové zprávy místo zvuku“, kopie dorazí jako hlasová zpráva a dál je označená jako přeposlaná. Volba je ve výchozím stavu vypnutá.
+
+- Stahování aktualizací na pozadí. Když je na kartě Obecné v Nastavení zaškrtnuto „Stahovat aktualizace na pozadí, bez okna s průběhem“, přijatá aktualizace, WinZappu nebo WPPConnect, se stáhne bez okna s průběhem a vy dál normálně používáte aplikaci, připojeni. Teprve když je připravena, WinZapp oznámí, že se chystá instalovat: u aktualizace samotného WinZappu se zavře a znovu otevře; u aktualizace WPPConnect přejde do offline jen na dobu potřebnou k přepnutí verzí a restartu, místo po celou dobu stahování a instalace. Pokud právě voláte, oznámení počká na konec hovoru. Volba platí pro všechny účty a je ve výchozím stavu vypnutá.
+
+VYLEPŠENÍ
+
+- Kontrola pravopisu: zvuk chyby se nyní přehraje i když napíšete interpunkci (čárku, tečku, otazník a podobně) hned za slovo s chybou, nikoli jen mezeru, a také když kurzor dorazí ke slovu s chybou šipkami, Ctrl+šipkami, klávesami Home, End nebo myší.
+
+- Velká reorganizace kódu. Dva největší soubory WinZappu, které samy o sobě měly přes 50 000 řádků a obsahovaly téměř vše, co program dělá, byly rozděleny na desítky menších částí, z nichž každá se stará o jednu věc: synchronizaci, připojení, odesílání zpráv, hovory, seznam chatů a tak dále. Pro vás jako uživatele se nic nemění. Pro vývojáře je mnohem snazší každou část najít, pochopit a opravit a mnohem těžší, aby oprava nepozorovaně něco jiného rozbila — a právě to drží WinZapp dlouhodobě zdravý.
+
+- Protokoly WinZappu a místního serveru (log.log a wppconnect.log) už neobsahují telefonní čísla, identifikátory WhatsAppu ani jména kontaktů: objevují se zamaskované. Protokoly nyní můžete při hlášení problému odeslat, aniž byste odhalili své kontakty.
+
+- Polský překlad byl revidován.
+
+- Zvukové soubory vložené do pole zprávy klávesou Ctrl+V lze nyní odeslat jako zvuk nebo jako dokument, s novou volbou „Zvukové soubory vložené do pole zprávy (Ctrl+V)“ na kartě Soubory a ukládání v Nastavení; výchozí je zvuk. Zpráva se v chatu hned zobrazí s typem, v jakém bude odeslána.
+
+- Archivované a zamčené chaty lze nyní vybírat stejně jako hlavní chaty: Ctrl+Mezerník, Shift+šipky, Shift+Home/End, Ctrl+Shift+Mezerník a mezerník v režimu výběru, se stejným zvukem a oznámeními. Nabídka „Hromadné akce“ (s vlastními zkratkami) umí archivované chaty vrátit z archivu, vymazat, smazat a označit jako přečtené nebo nepřečtené a zamčené chaty odemknout nebo označit jako přečtené či nepřečtené.
+
+- Automatické stahování médií se nyní hned řídí volbou „Automaticky stahovat média“ na kartě Úložiště v Nastavení: zrušením zaškrtnutí se probíhající stahování zastaví a zaškrtnutím (nebo zaškrtnutím jiného typu médií) se stahování spustí, aniž by se čekalo na další synchronizaci. Když je volba zrušena, platí to nyní i pro média ve zprávách, které dorazí při otevřeném WinZappu, a seznam typů je zakázaný, přičemž zachová to, co bylo zaškrtnuto.
+
+- WinZapp nyní udržuje svůj seznam verzí WhatsApp Web aktuální. Při spuštění na pozadí stáhne novější, pokud existuje, a použije ji při dalším spuštění WinZappu, což opravuje hovory selhávající v instalacích, kde seznam zastaral.
+
+- Když se hovor nemůže zahájit, protože používaná verze WhatsApp Web hovory nepodporuje, WinZapp to nyní řekne a poradí, co zkusit (restartovat WinZapp nebo v nabídce Nápověda zvolit „Vynutit přeinstalaci WPPConnect“), místo aby přečetl kód chyby.
+
+- Instalační program se nyní stahuje mnohem menší: soubory WinZappu v něm jsou komprimované, jako už byly v přenosném ZIPu, a instalační program při instalaci každý soubor kontroluje.
+
+- Instalační a odinstalační program se nyní zobrazují ve všech jazycích, ve kterých je WinZapp dostupný: brazilské portugalštině, evropské portugalštině, španělštině, polštině, rumunštině, turečtině a angličtině. Řídí se jazykem zobrazení Windows a pro jakýkoli jiný zobrazují angličtinu.
+
+- Knihovna WhatsAppu, kterou WinZapp používá, byla aktualizována. Poznámky jejích vývojářů uvádějí opravy vytváření skupin, získávání a resetování pozvánkových odkazů do skupin, úprav popisů skupin, změny vašeho profilového jména a nahrávání médií v nedávných verzích WhatsApp Web. Pokud vám WinZapp při spuštění nabídne aktualizaci WPPConnect, přijměte ji, aby se nová knihovna nainstalovala.
+
+- Hledání v konverzaci klávesami F3 a Shift+F3. Nyní můžete skočit na další výsledek klávesou F3 a na předchozí klávesou Shift+F3 odkudkoli v otevřené konverzaci, včetně seznamu zpráv, aniž byste se vraceli do pole hledání; fokus následuje výsledek a čtečka obrazovky oznámí jeho pozici. Enter a Shift+Enter dál fungují jako alternativa, ale jen v poli hledání, protože v seznamu zpráv už dělají jiné věci. Tlačítka „Předchozí výsledek“ a „Další výsledek“ nyní oznamují Shift+F3 a F3 a nápověda ke zkratkám byla aktualizována.
+
+- Přeposílání nyní potvrdí, že se povedlo. Dříve se oznamovalo jen selhání; nyní se na konci zobrazí okno s hlášením „Zpráva přeposlána.“ nebo s počtem přeposlaných zpráv.
+
+- Chaty, které zamknete pomocí Zámku chatu WhatsAppu v telefonu, jsou nyní skryté i ve WinZappu. Zmizí ze seznamu konverzací a objeví se jen v části „Zamčené chaty“ (Alt+7), po zadání PINu WinZappu; pokud jste ho nikdy nenastavili, WinZapp vám při prvním použití nabídne jeho vytvoření. Odemknout je lze jen v telefonu, takže WinZapp u těchto chatů nenabízí „Odemknout chat“, a chat, který v telefonu odemknete, se sám vrátí do seznamu.
+
+OPRAVY
+
+- Hovory už nekončí chybou „NumPy was built with baseline optimizations“ následovanou „cannot load module more than once per process“ na počítačích se starším procesorem nebo procesorem omezeným virtuálním strojem. WinZapp nyní obsahuje sestavení NumPy, které běží na jakémkoli 64bitovém procesoru.
+
+- Hovory: opravena chyba „cannot load module more than once per process“, která se mohla objevit při zahájení hlasového nebo videohovoru. Hovorový modul WhatsAppu se nyní spouští jen jednou a sdílí se, místo aby ho znovu spouštěla každá akce hovoru.
+
+- Když jste napsali někomu, kdo není ve vašich kontaktech a nemá ve svém profilu WhatsAppu jméno, chat začal zobrazovat vaše vlastní jméno místo jeho telefonního čísla. Nyní dál zobrazuje telefonní číslo, dokud se nezjistí jeho skutečné jméno.
+
+- Odinstalační program se nyní řídí jazykem zobrazení Windows jako instalační, místo aby se vždy zobrazoval v portugalštině.
+
+- Přeposílání zpráv už neselhává v nedávných verzích WhatsApp Web, kde bylo každé přeposlání odmítnuto s chybou „forwardMessages function is not available“.
+
+- Zahájení hlasové zprávy s ztlumenými oznámeními o nahrávání už nenechá čtečku obrazovky začít říkat „Odeslat“, než ji přeruší. WinZapp se nyní vyhne automatickému přesunu fokusu, který ořezané oznámení způsoboval, a klávesy Ctrl+R, Ctrl+Shift+P a Ctrl+Shift+D zůstávají k dispozici.
+
+- Zprávy, které jste v konverzaci vybrali, zůstaly vybrané i po jejím zavření a po opětovném otevření byly zase vybrané. Výběr nyní končí s konverzací.
+
+- Když WhatsApp krátce po otevření aplikace odmítl připojení, záložní kopie profilu prohlížeče se nikdy neobnovila: pokud párovací kódy začaly přicházet v prvních několika sekundách, WinZapp relaci zavřel a poslal vás znovu párovat, i když byla uložená dobrá kopie. Nyní kopii obnoví, jakmile se objeví první kód, a nové spárování vyžaduje, jen když obnova nepomůže.
+
+- Přidání člena skupiny podle telefonního čísla nedělalo nic: tlačítko „Přidat číslo“ nikoho nepřidalo a nezobrazilo žádnou chybu. Nyní číslo přidá hned a oznámí, zda se to povedlo, a neplatné číslo se ohlásí. Ve stejném dialogu se pole hledání nyní čte jako „Hledat kontakt“.
+
+- Při otevřeném chatu se seznam zpráv každou minutu zmenšil zpět na nastavený limit a starší zprávy mizely — včetně uložené historie. WinZapp si zprávy mimo rozsah, který ve WhatsAppu kontroluje, pletl se zprávami smazanými v telefonu. Zpráva se nyní odstraní, jen když WhatsApp ukáže, že opravdu už neexistuje — nikdy jen proto, že se nepodařilo ji najít, a nikdy v období, které obnova profilu vrátila zpět — a seznam se při čtení už nezmenšuje.
+
+- Ve skupinách s mnoha účastníky mohly informace o skupině minuty zůstat na „Načítání...“ — Přehled a seznam Účastníci se zobrazily, až když WinZapp jeden po druhém dohledal číslo každého člena, jehož číslo ještě neznal. Vypadalo to zamrzlé a pomohlo jen zavřít a znovu otevřít dialog. Informace se nyní zobrazí, jakmile skupina odpoví, a chybějící jména a čísla se do seznamu doplní dodatečně, aniž by vás přesunula z řádku, na kterém jste.
+
+- Změna jazyka v Nastavení a stisk Použít nyní přeloží všechny volby. Některé zůstaly v předchozím jazyce, dokud se Nastavení nezavřelo a znovu neotevřelo, například „Po otevření chatu zobrazit nejvýš tolik zpráv“ a „Počet zpráv k přeskočení při stisku Page Up / Page Down“.
+
+- Výchozí rychlost přehrávání zvuku se už sama nevrací na 1x. Po otevření Nastavení bylo pole na kartě Přehrávání zvuku prázdné bez ohledu na uloženou rychlost a stisk Použít a poté OK přepsal rychlost hodnotou 1x. Uložená rychlost se nyní zobrazí vybraná a zachová se.
+
+- Po obnovení profilu prohlížeče WinZappem se chaty s nepřečtenými zprávami už nezobrazují jako přečtené.
+
+- Kopírování části okna s textem zprávy (Alt+C) přinášelo zalomení řádků, která zpráva neměla, všude tam, kde okno dlouhé řádky dělí, aby se lépe četly. Kopírování nyní dává zprávu tak, jak byla napsána, jen s jejími vlastními zalomeními.
+
+- Zprávy, které WhatsApp ještě nestihl načíst, z chatu mizely a odpověď na některou z nich citovala zprávu, která se nikde neobjevila. Stává se to například u zpráv od někoho, kdo změnil telefon, dokud mu je telefon znovu neodešle. Nyní se zobrazí jako „Čekám na tuto zprávu. Může to chvíli trvat.“ jako ve WhatsAppu a nahradí je text, jakmile dorazí, nebo dříve, když někdo odpoví s citací zprávy.
+
+- Počítadlo nepřečtených zpráv skupiny mohlo zmizet, když někdo zareagoval na zprávu, i když zprávy zůstaly nepřečtené, a ve skupinách se systémovými oznámeními samo každou minutu klesalo. Počítadlo nyní ukazuje zprávy, které opravdu nejsou přečtené.
+
+- Při kopírování zprávy (Ctrl+C), otevření jejího textu (Alt+C) nebo kopírování více zpráv najednou se lidé, kteří v ní byli zmíněni, objevili jako telefonní čísla nebo jako nesmyslný řetězec číslic místo jména zobrazeného v seznamu zpráv. Nyní se objevují jako jména.
+
+- U vlastního zvuku oznámení bez vybraného souboru, v údajích chatu nebo na kartě Tóny upozornění v Nastavení, zůstalo tlačítko ukázky dostupné a zobrazilo chybu. Nyní se objeví, jen když zadaná cesta vede k existujícímu souboru.
+
+- Při otevřených více účtech se aktualizace nikdy nedokončila: WinZapp se znovu otevřel ve staré verzi a nabídl stejnou aktualizaci znovu, bez vysvětlení, co se stalo. Nyní před instalací zavře ostatní účty a pokud se aktualizaci nepodaří dokončit, řekne vám to při dalším spuštění.
+
+- Zprávy pro Meta AI se nedoručovaly a její odpovědi se zobrazovaly prázdné. WhatsApp vyžaduje před první zprávou přijetí podmínek služby Meta AI: WinZapp nyní tyto podmínky zobrazí s odkazem k přečtení a zaznamená váš souhlas. Pokud je zpráva přesto odmítnuta, oznámení vysvětlí proč a odpovědi Meta AI ukazují svůj text.
+
+- V odpovědi se odkazy citované zprávy braly jako vlastní odkazy odpovědi: staly se zastávkou klávesy Tab, mohly spolu s vlastními odkazy odpovědi tvořit seznam odkazů a Enter otevřel citovaný odkaz místo zobrazení textu zprávy. Nyní se počítají jen vlastní odkazy odpovědi.
+
+- Kliknutí na oznámení o zprávě při otevřeném panelu Stav otevřelo chat za ním a nechalo fokus klávesnice uvízlý na neviditelném ovládacím prvku, dokud nestisknete Alt+1. Totéž se dělo při otevření chatu účastníka z informací o skupině. WinZapp nyní před otevřením chatu zobrazí seznam chatů.
+
+- V informacích o skupině Enter na účastníkovi, se kterým jste nikdy nemluvili nebo který se zobrazoval jen jako číslo, zavřel dialog a nechal vás ve skupině. Nyní otevře soukromý chat s ním.
+
+- Po přidání místního kontaktu z informací o chatu seznam zpráv dál zobrazoval jméno, které daná osoba používá ve WhatsAppu, dokud se WinZapp nerestartoval. Nové jméno se nyní zobrazí hned.
+
+- Při párování jiného čísla, než bylo předchozí, WinZapp smaže data starého účtu, ale již běžící synchronizace několik minut dál přidávala do seznamu chaty tohoto účtu, které pak znovu zmizely. Tato synchronizace se nyní zastaví okamžitě.
+
+- Poté, co se změnilo zařízení pro výstup zvuku — odpojila se USB nebo Bluetooth sluchátka, přepnulo se výchozí zařízení Windows nebo se změnil výstup v Nastavení — se zvuková zpráva, kterou jste chtěli přehrát, mohla bez upozornění vůbec nepřehrát a fungovala až na druhý pokus. WinZapp se nyní přepne na výchozí zařízení a zprávu přehraje napoprvé.
+
+- Když se počítač probudil ze spánku ještě bez internetu, mohl WinZapp zůstat odpojený i po návratu internetu, dokud se nezavřel a znovu neotevřel. Nyní před opětovným otevřením připojení k WhatsAppu počká na síť.
+
+- Když dorazilo více zpráv ze stejného chatu najednou, krátce poté, co jste ten chat ve WinZappu přečetli, mohlo počítadlo nepřečtených ukazovat méně zpráv, než dorazilo: tři najednou odeslané soubory se zobrazily jako dvě nepřečtené. Počítadlo nyní ukazuje všechny.
+
+- Ponechání chatu otevřeného a přepnutí na archivované chaty (Alt+4) způsobilo, že WinZapp dál bral tento chat jako ten, který čtete: jeho nové zprávy se označovaly jako přečtené, přehrával se zvuk otevřeného chatu a četly se nahlas, ačkoli jste byli v jiném panelu. To se nyní děje, jen když je panel chatu na obrazovce; chat zůstává otevřený a při návratu ho najdete tam, kde jste ho nechali.
+
+- V archivovaných chatech Alt+M nepřešlo na seznam zpráv otevřeného chatu, jako to dělá v hlavních chatech. Nyní to funguje odkudkoli v panelu.
+
+- Chat, který máte otevřený v jednom seznamu, se nyní skryje, když přepnete na jiný: hlavní chaty (Alt+1), archivované chaty (Alt+4) nebo zamčené chaty. Přepnutí jen změní seznam a postaví vás na něj; neukáže ani nenačte znovu otevřený chat. Chat zůstává otevřený a vrátíte ho klávesami Alt+M, Alt+2 nebo Alt+3, nebo jeho opětovným otevřením; objeví se pak v seznamu, ze kterého byl otevřen. Tím se také opravuje archivovaný chat, který zůstával na obrazovce v hlavních chatech. Chat otevřený z hlavních chatů jim patří, i když je archivovaný a byl nalezen polem hledání.
+
+- Totéž platí pro každý jiný panel, například Stav nebo Hovory: když za ním zůstane otevřený chat, jeho nové zprávy se oznamují jako zprávy kteréhokoli jiného chatu a neoznačují se jako přečtené. Zprávy z archivovaných chatů se oznamují, jen když je na obrazovce seznam archivovaných.
+
+- Oznámení „píše“ a „nahrává zvuk“ se dál četla pro chat ponechaný otevřený za jiným panelem (Alt+4, Stav, Hovory...). Nyní se oznamují, jen když je tento chat na obrazovce, jako se tak už dělo u označování jako přečtené a u zvuků.
+
+- V chatu, který byl někdy vymazán, počítadlo nepřečtených zpráv asi minutu po příchodu zprávy samo zmizelo a otevření chatu ho neoznačilo jako přečtený v telefonu. Stávalo se to hlavně ve vytížených ztlumených skupinách. Nyní počítadlo zůstává, dokud chat nepřečtete, a přečtení ve WinZappu ho označí jako přečtený i v telefonu.
+
+- Zprávy k jednorázovému zobrazení dorazily bez počítadla, zvuku a oznámení a po synchronizaci zůstaly navždy jako zpráva, která se stále načítá. Nyní se zobrazí „Zpráva k jednorázovému zobrazení. Zobrazíte ji v telefonu.“ se zvukem a oznámením nové zprávy. Samotný obsah zůstává v telefonu, jako ve WhatsApp Web.
+
+- Při otevření ze síťové složky — například ze složky Stažené ve virtuálním stroji Parallels na Macu, která ve skutečnosti leží na druhém počítači — WinZapp nemohl nainstalovat svůj místní server a zobrazil nesrozumitelnou chybu. Nyní řekne, že odtud běžet nemůže, a vysvětlí, jak to napravit: nainstalovat pomocí WinZappInstaller, nebo přesunout složku na disk přímo v počítači.
+
+- Odpověď na výzvu k aktualizaci, když se WinZapp ještě spouštěl, ho mohla nechat bez okna, běžícího na pozadí, a znovu se otevřel až po ukončení procesu nebo restartu počítače. Výzva nyní počká na otevření hlavního okna a pokud se vypnutí zasekne, WinZapp se ukončí sám, místo aby zůstal zaseknutý.
+
+- Čtečka obrazovky už bez důvodu znovu nečte zprávu s fokusem v otevřené konverzaci. Když nová zpráva dorazila spolu s reakcí (nebo po zprávě, kterou jste odeslali), automatické obnovení přepsalo celý seznam zpráv a NVDA zopakovalo položku, na které jste byli; nyní se seznam aktualizuje po řádcích a dotkne se jen řádků, které se skutečně změnily.
+
+- Oznámení „píše“ a „nahrává zvuk“ se ve skupinách opět čtou. WhatsApp začal hlásit, kdo píše, způsobem, který WinZapp neuměl přečíst, takže to oznamovaly jen soukromé chaty.
+
+- Výběr konverzace, která už byla otevřená, ze seznamu nyní respektuje nastavení „Po otevření chatu přejít na“ (pole zprávy, nebo oddělovač nepřečtených / poslední zpráva); dříve šel vždy do pole zprávy.
+
+- Odpověď na zprávu se zmínkou o někom v odpovědi se příjemcům odeslala jako nová zpráva, bez citace, ačkoli ji WinZapp zobrazoval jako odpověď. Citace nyní odchází spolu se zmínkou.
+
+- Oznámení o aktualizacích se nyní zobrazují i při spuštění WinZappu s Windows: v tom případě se nenabídla ani aktualizace samotného WinZappu, ani serveru WPPConnect. Oznámení o serveru WPPConnect také nyní nabízí novější vydání, než se kterým byl WinZapp otestován, jako doporučenou aktualizaci, kterou můžete odmítnout, místo aby to dělalo jen tehdy, když sám WinZapp zvýšil požadovanou verzi.
+
+- V chatu, jehož starší zprávy jsou jen v telefonu, se WinZapp po dosažení první zprávy neustále ptal telefonu na ně: nic nedorazilo, telefon mohl pokaždé zobrazit oznámení o synchronizaci a seznam zůstával minuty zaneprázdněný. WinZapp nyní tento případ pozná, nic se neptá a oznámí „Starší zprávy zobrazíte ve WhatsAppu v telefonu.“
+
+V1.1.1.0
+
+Toto vydání je o tom, aby váš účet zůstal připojený. WinZapp nově uchovává zálohu profilu prohlížeče — v něm totiž ve skutečnosti žije vaše připojení k WhatsAppu — a když ho přestane WhatsApp přijímat, sám ho obnoví a řekne vám, co se stalo. K tomu přibývají opravy situací, které přerušily relaci a donutily aplikaci znovu žádat o spárování: vypnutí počítače, uspání a probuzení a samovolný restart připojení aplikací. Přibyla také kontrola pravopisu v poli zprávy a akce s odkazy.
+
+NOVINKY
+
+- Automatické obnovení profilu prohlížeče. Vaše připojení k WhatsAppu je uložené v profilu prohlížeče, který WinZapp používá pod kapotou, a když přestal být přijímán, jediným východiskem bylo znovu spárovat. WinZapp nově uchovává jeho zálohu, ponechává i předchozí kopii a když zjistí, že připojení bylo odmítnuto, sám ji obnoví — a nahlas oznámí, že profil obnovil a znovu se připojuje. Nikdy nenabídne kopii, kterou WhatsApp už odmítl, a pokud neexistuje žádná použitelná kopie, řekne to srozumitelně, místo aby vás nechal offline bez vysvětlení.
+
+- Kontrola pravopisu v poli zprávy. V Nastavení si vyberete mezi tím, že se bude řídit vlastním nastavením pravopisu ve Windows (výchozí), bude vždy zapnutá, nebo vždy vypnutá. Přibyl také samostatný zvuk pravopisné chyby, který nastavíte spolu s ostatními zvuky.
+
+- Akce s odkazy ve zprávách. Pokud zpráva obsahuje odkazy, kontextová nabídka nově nabízí Otevřít odkaz a Kopírovat odkaz pro odkaz, na kterém se nacházíte, a Ctrl+C zkopíruje tento odkaz místo celé zprávy.
+
+- Upozornění na nekompletní vnitřní prohlížeč. Pokud se prohlížeč, který WinZapp používá k připojení k WhatsAppu, nemůže spustit — obvykle proto, že antivirový program odstranil jeho část — aplikace to řekne jasnými slovy a vysvětlí, co dělat, místo aby to vypadalo jako problém WhatsAppu.
+
+- Upozornění na nepotvrzené odeslání. Když WhatsApp zprávu přijme, ale nepotvrdí doručení, WinZapp vám doporučí zkontrolovat chat před opětovným odesláním, aby se stejná zpráva nedoručila dvakrát.
+
+VYLEPŠENÍ
+
+- Spuštění s Windows se nyní připojí mnohem dříve. Aplikace dřív začala čekat na připojení až poté, co ho už zkusila použít, a dlouho zbytečně ukazovala „WhatsApp odpojen“. Nyní počká, až bude všechno připravené, a teprve potom se objeví v oznamovací oblasti.
+
+- Seznam zpráv se už každou minutu nepřestavuje celý. Přepíšou se jen řádky, které se opravdu změnily, takže odečítač přestane znovu číst zprávu, na které stojíte, a zvuk výběru se už nespouští sám od sebe.
+
+- Méně oznámení o synchronizaci na telefonu. WinZapp žádá telefon o starší historii jen v chatech, které jste otevřeli, vždy jen jednu žádost naráz, a úplně přestane žádat, jakmile chat odpoví, že už nemá nic dalšího.
+
+- Chaty, které synchronizace přestala kontrolovat, se znovu zkontrolují samy, aniž byste museli obnovovat klávesou F5.
+
+- Při více otevřených účtech najednou otevře aktualizace WinZappu jediné okno místo jednoho pro každý účet.
+
+- Zvuk: WinZapp se mikrofonu nejprve zeptá na jeho vlastní vzorkovací frekvenci a až potom zkouší pevné, a výstup zvuku se sám obnoví, když se změní nebo odpojí výchozí zařízení.
+
+- Reakce, které přišly, když byl chat zavřený, se nyní zobrazí po jeho otevření.
+
+- Zalomení řádků v poli zprávy lze nyní odečítačem obrazovky normálně procházet.
+
+- Aktualizované připojení k WhatsAppu (WPPConnect 2.10.21) včetně oprav zabezpečení a WinZapp nyní sám pozná, když se toto připojení rozešlo s očekávanou verzí a je potřeba ho přeinstalovat.
+
+OPRAVY
+
+- Vypnutí počítače už nepoškodí relaci. WinZapp zavíral připojení k WhatsAppu příliš pozdě během vypínání Windows, až když byl proces, který ho drží, už ukončen — a profil se vrátil nepoužitelný, takže příště žádal o spárování. Nyní vše zavře, zatímco se Windows ještě ptají, zda se smí vypnout.
+
+- Uspání počítače už nepoškodí relaci. Po probuzení WinZapp restartoval připojení, aniž by počkal, až prohlížeč dopíše, co měl rozepsané, a to samo stačilo ke ztrátě spárování. Nyní počká.
+
+- Odpověď na status zase funguje. Odpověď selhala s hlášením, že ji nelze odeslat.
+
+- Nejednoznačné selhání odeslání už nevytváří duplicitní zprávy: když nelze zjistit, zda WhatsApp zprávu přijal, WinZapp ji sám znovu neodešle.
+
+- Stahování velkých dokumentů je opět možné. Soubory o několika stech megabajtech ohlásily „stahování“ a nevytvořily nic.
+
+- Ukazatel průběhu odesílání a stahování nyní ukazuje přenos, který skutečně probíhá, a už se netočí u zprávy, která je hotová, ani se neobjevuje na špatném řádku.
+
+- Zrušení nebo zavření obrazovky párování už nesmaže vaše chaty, stejně jako to nedělá krátkodobé selhání ověření při spuštění. Historie se vymaže jen tehdy, když se skutečně připojí jiné telefonní číslo — a WinZapp vám řekne, že k tomu došlo.
+
+- QR kód se ohlásí, až když je opravdu na obrazovce. WinZapp dřív řekl „QR kód byl aktualizován“, ještě než se vůbec zobrazil nějaký kód, takže se zdálo, že se kód objeví až na druhý pokus. Obrazovka párování nyní říká, že se kód vytváří, ohlásí ho, když se skutečně objeví, a řekne, když se ho nepodařilo vytvořit nebo když párovací kód vypršel — místo aby mlčela nebo ohlašovala aktualizaci, která se nikdy nestala.
+
+- Nepřečtené: chaty se už neobjevují znovu jako nepřečtené, aniž by přišla nová zpráva.
+
+- Přízračný znak, který se objevoval v poli zprávy po návratu z jiného programu při spuštěném NVDA, je pryč.
+
+- Kopírování hlasové zprávy nyní funguje.
+
+- Chaty, které ukazovaly číslo místo jména, se nyní správně přiřadí.
+
+- Přepnutí účtů nyní správně vyčistí média předchozího účtu, která by jinak mohla zůstat v počítači.
+
+V1.1.0.0
+
+Toto vydání přidává kartu Média, prohlížeč médií ve vlastním okně, náhledy odkazů, hromadné akce a kartu Přístupnost v nastavení. Synchronizace chatů je mnohem rychlejší a seznam chatů se už nepřestavuje při každé zprávě, což výrazně omezuje opakované čtení odečítačem obrazovky.
+
+NOVINKY
+
+- Karta Média v chatech a skupinách. Zobrazuje fotky, videa, zvuky, hlasové zprávy, dokumenty a odkazy, s filtrováním podle typu a podle toho, zda jsou stažené, nebo nestažené, s načtením celé historie a s akcemi otevřít, uložit a smazat u každé zprávy. Zvuky a hlasové zprávy jsou dva samostatné filtry: můžete zobrazit jen jedno nebo jen druhé a zvolit, zda automatické stahování získá jedno, druhé, nebo obojí.
+
+- Prohlížeč médií ve vlastním okně s přehráním a pozastavením, přeskokem vpřed a vzad o 10 sekund, pozicí, hlasitostí a rychlostí. V nastavení si zvolíte, zda se v něm budou otevírat videa z chatů a statusy.
+
+- Náhledy odkazů ve zprávách. Pokud zpráva obsahuje dva nebo více odkazů, stanou se seznamem, ve kterém se dá pohybovat. Vaše odesílané zprávy nyní také nesou náhled.
+
+- Hromadné akce se zprávami a chaty: kopírování, označení hvězdičkou, připnutí, přeposlání, uložení a smazání zpráv; označení chatů jako přečtených nebo nepřečtených, jejich archivace a vymazání. Každá akce má vlastní zkratku a Ctrl+C zkopíruje výběr.
+
+- Karta Přístupnost v nastavení s rozšířenou kompatibilitou s odečítači obrazovky a možností používat hlas SAPI, když není spuštěn žádný odečítač obrazovky.
+
+- Karta Soubory a ukládání, kde zvolíte, zda se dialogy ukládání otevírají v poslední použité složce, ve složce Stažené soubory, nebo ve složce, kterou si vyberete.
+
+- Reakce: nyní vidíte, která reakce je vaše, a odeberete ji jejím opětovným výběrem.
+
+- Uložení přijaté zprávy s kontaktem jako kontaktu klávesou Enter nebo mezerníkem.
+
+- Přehrání již nahraného zvuku během pozastaveného nahrávání pomocí Ctrl+P.
+
+- Přestavěný výběr země v dialogu párování: používá zemi a jazyk nastavené ve Windows, je seřazený abecedně, přijímá vyhledávání psaním více písmen a chrání předvolbu země před nechtěnou úpravou.
+
+- Nová nastavení: zobrazovat „včera“ místo data, ohlašovat „Přeposláno“ před odesílatelem, rozlišovat hlasové zprávy od zvuků, což je nyní výchozí místo čtení všeho jako zvuku, zjistit délku videa hned po stažení, zvolit, které typy médií se zobrazují ve výchozím stavu, a přestat označovat zvuky jako přehrané.
+
+- Hledání v seznamech kontaktů („Připojit kontakt“ a „Přidat člena“): pole má fokus hned po otevření seznamu, během psaní filtruje podle jména (včetně příjmení) a podle čísla a po jeho vymazání se znovu zobrazí všechny kontakty.
+
+- Přijatá vizitka kontaktu: kontextová nabídka se zobrazením jména a čísla, kopírováním čísla klávesou Ctrl+C a zahájením chatu. Když vizitka obsahuje více než jedno číslo, WinZapp se zeptá, které použít.
+
+VYLEPŠENÍ
+
+- Dokumenty mohou mít nyní až 2 GB, což je skutečný limit WhatsAppu. WinZapp je dřív bezdůvodně zastavil na 1 GB. Fotky, videa a zvuky zůstávají na 1 GB, což je limit WhatsAppu pro ně.
+
+- Přírůstková synchronizace chatů. Spuštění aplikace a obnovení jsou mnohem rychlejší a WinZapp oznámí, kdy aktualizace začíná a kdy končí.
+
+- Seznam chatů je mnohem rychlejší. Nová zpráva nebo potvrzení o doručení aktualizuje jen tento jeden řádek místo přestavby celého seznamu. V praxi odečítač obrazovky čte znovu mnohem méně.
+
+- Akce se zprávou také aktualizují jen řádek této zprávy a úprava zprávy už nezamrzá rozhraní.
+
+- Oznámení respektují Asistenta soustředění ve Windows.
+
+- Skupiny: upozornění, že zprávy smějí posílat jen správci, přičemž pole zprávy je nastavené jen pro čtení. Dialog přidání člena zobrazuje jména místo čísel a hlásí, koho se nepodařilo přidat.
+
+- Připojení kontaktu: seznam neobsahuje duplicity, je seřazený a už nezobrazuje nerozpoznané položky.
+
+- Zvuk: soubory OGG, které aplikace nedokázala dekódovat, se nyní automaticky převedou a odesílání souborů WAV funguje.
+
+OPRAVY
+
+- Relace ukončená WhatsAppem: WinZapp to nyní hned oznámí a otevře párování, místo aby vás nechal v seznamu chatů a dokola opakoval, že QR kód byl aktualizován. Když na obrazovce párování nikdo není, relace se zavře, místo aby se donekonečna žádalo WhatsApp o nový kód — takový nekonečný proud žádostí mohl vést k zablokování účtu — a WinZapp nahlas oznámí, že relaci zavřel a že se musíte připojit znovu.
+
+- Nepřečtené: už přečtené zprávy se nevracejí jako nové, chat přečtený v telefonu se respektuje a otevřený chat už neztrácí svůj počet.
+
+- Oddělovač nepřečtených a vaše pozice čtení se už neztrácejí během čtení. Otevřený chat se pravidelně přestavoval, což přerušovalo odečítač obrazovky uprostřed věty.
+
+- Relace: zavření a opětovné otevření WinZappu už nevyžaduje nové spárování. Vypnutí nyní před zavřením počká na zapsání relace.
+
+- Párování: když WhatsApp kód odmítne, zobrazí se skutečný důvod a aktualizace serveru už nepřeruší probíhající párování.
+
+- Automatické aktualizace opět fungují, když je aplikace nainstalovaná ve složce s diakritikou nebo jinými zvláštními znaky.
+
+- Soukromí: aplikace už nezapisuje obsah zpráv ani přihlašovací údaje do souboru protokolu.
+
+- Odesílání: zrušení zprávy, která už byla odeslána, je nyní jasně vysvětleno a velká odesílání se už cestou neztrácejí.
+
+- Videa bez uvedené délky už nezobrazují „0 sekund“.
+
+- První zpráva od kontaktu už po otevření chatu nezmizí.
+
+- Přístupnost: zkratka pro emoji se nyní hlásí odečítači obrazovky, Alt+T uvnitř chatu opět funguje a řeč už není přerušována každým potvrzením o doručení.
+
+- Synchronizace se už nespouští stále dokola. Stačil jediný chat, který WhatsApp nerozpoznává a který nikdy nebyl skutečným chatem, aby WinZapp nabyl dojmu, že se synchronizace nikdy nedokončila: začínala znovu od začátku každých pár minut a pokaždé to oznámila, i když už bylo všechno načteno.
+
+- Rychlé obnovení chatů už nepřeskakuje chaty, které dostaly nové zprávy. Zůstávaly na starém obsahu, dokud jste nestiskli F5 a nesynchronizovali vše, což zcela mařilo smysl rychlejšího obnovení.
+
+- WinZapp nyní zná datum vypršení verze WhatsApp Web, kterou používá. Když vyprší, stáhne tu, kterou WhatsApp právě poskytuje, místo aby trval na verzi, která už není přijímána. Právě to zastavovalo synchronizaci, nechávalo seznam chatů prázdný a končilo tím, že vás WhatsApp odebral z propojených zařízení.
+
+- První párovací kód po přerušeném připojení už neselhává. WinZapp si žádal o kódy sám, na pozadí, dokud WhatsApp neodmítl pro příliš mnoho žádostí; nyní mezi žádostmi čeká a když WhatsApp přesto odmítne, zpráva vysvětlí proč, místo aby ukázala interní chybu.
+
+- Filtr médií „Nestažené / odkazy“ uváděl hlasové zprávy, které už v počítači byly, včetně těch, které jste přehráli v aplikaci.
+
+- Dokument, který odešlete, nyní zobrazuje svou velikost hned, jak se objeví v seznamu zpráv, stejně jako to už dělaly přijaté.
+
+- WinZapp nyní dává přednost stabilní verzi WhatsApp Web před alfa verzí, jsou-li dostupné obě — používání alfa verze způsobilo, že zařízení bylo několik hodin po spárování odpárováno. Úvodní synchronizace je také tolerantnější k pomalosti, než usoudí, že připojení nefunguje.
+
+- Chat „Zprávy sobě“ už nezobrazuje potvrzení o doručení a přečtení ani značku „přehráno“ u zvuků — v chatu se sebou samými nedávají smysl.
+
+- „Smazat pro všechny“ v chatu „Zprávy sobě“ nyní skutečně funguje. Zpráva dřív zmizela jen místně a při další synchronizaci se vrátila.
+
+- Alt+2, Alt+3 a Ctrl+W bez otevřeného chatu nyní řeknou „Není otevřený žádný chat“, místo aby neudělaly nic.
+
+- Alt+2 v prázdném chatu řekne „Tento chat je prázdný“, místo aby mlčelo.
+
+- Seznam chatů se vrací na řádek, na kterém skutečně byl fokus, a ne vždy na chat, který byl otevřený.
+
+- Oddělovač nepřečtených už nemizí ani neukazuje špatný počet, když je aplikace minimalizovaná do oznamovací oblasti s otevřeným chatem.
+
+- Archivovaný chat se už nahlas neohlašuje, když přijde nová zpráva, zatímco je aplikace v popředí.
+
+- Přehrávání hlasových zpráv za sebou už nečte celý předchozí řádek nahlas přes nový.
+
+- Možnost ztišit odečítač obrazovky během nahrávání zvuku nyní zastaví oznámení u zdroje, místo aby se ho pokoušela zrušit poté, co už začalo.
+
+- Přidání nového kontaktu přes WinZapp mohlo zdvojit chat a nechat jeho první zprávu trvale uvízlou jako „nepotvrzenou“, kdykoli WhatsApp rozpoznal to číslo v jiném formátu (např. s devátou číslicí nebo bez ní).
+
+- Název skupiny změněný ve WhatsAppu se nyní ve WinZappu projeví, i při opětovné synchronizaci klávesou F5. Dřív se starý název nikdy nenahradil.
+
+- Přepnutí zařízení pro výstup zvuku v Nastavení během přehrávání zvuku mohlo způsobit, že první pokus o přehrání jiného zvuku tiše selhal; nyní se přehraje hned napoprvé.
+
+- Odpojení přes Soubor > Odpojit už znovu nepřehrává zvuky „připojeno“ a „synchronizace zahájena“ ani se nepokouší připojit samo — účet zůstane řádně odpojený.
+
+- Protokol instalátoru aktualizace je nyní uvnitř složky protokolů samotného účtu (vedle log.log a shutdown_audit.log), místo aby ležel volně v programové složce.

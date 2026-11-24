@@ -43,7 +43,7 @@ REQUEST_TIMEOUT = 30
 #: Target languages the dialog offers, as (code, i18n key) pairs. Codes are
 #: the ones the endpoint accepts; keys name the language in the app's own
 #: locale. The list is deliberately short — every entry is a string owed by
-#: nine locale catalogs.
+#: ten locale catalogs.
 TARGET_LANGUAGES = (
     ("es", "translate_lang_es"),
     ("pt", "translate_lang_pt"),
@@ -51,6 +51,7 @@ TARGET_LANGUAGES = (
     ("it", "translate_lang_it"),
     ("fr", "translate_lang_fr"),
     ("de", "translate_lang_de"),
+    ("cs", "translate_lang_cs"),
 )
 
 
