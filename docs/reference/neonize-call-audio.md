@@ -6,6 +6,24 @@ The bridge keeps its public PCM contract: microphone input is s16le mono
 bandwidth: the ordinary MLow encoder still uses its supported 16 kHz path.
 These source fixes do not establish parity with Telegram or Signal.
 
+## Transport boundary (issue #768, first step of tier C)
+
+`core/call_audio_transport.py` defines `CallAudioTransport` for outgoing
+mono s16le PCM and start/stop controls. `CallAudioSession` accepts an injected
+transport; existing callers still get `SocketIOCallAudioTransport`. JSON and
+base64 encoding now belong to that adapter rather than the device pipeline.
+The default adapter preserves the existing event names and envelopes for
+both WPPConnect and Neonize, including media/stream ownership tags.
+
+Capture, processing, muting, desktop mixing, ownership checks and the
+`stop(notify_bridge=False)` device-switch policy remain in the session.
+Incoming PCM still follows the existing owner-checked Socket.IO receive path
+into `enqueue_remote_audio`. No native transport is selected or downloaded,
+and no buffer, resampler, WASAPI mode or audio quality setting changes.
+This boundary is preparation for a native transport, not NetEQ integration
+or evidence of reduced latency. Tier C's native loop and optional component
+loading/fallback remain unimplemented.
+
 ## Answer and stream ownership
 
 Native `Active`/`ready` can arrive during `Answer`, before its return. Audio

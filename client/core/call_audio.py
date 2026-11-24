@@ -7,7 +7,6 @@ plays the PCM extracted from the remote WebRTC track.
 
 from __future__ import annotations
 
-import base64
 import logging
 import queue
 import sys
@@ -15,7 +14,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass
-from core.call_media_ownership import accepts_media_epoch, media_fields, next_stream_epoch, valid_media_epoch
+from core.call_media_ownership import accepts_media_epoch, next_stream_epoch, valid_media_epoch
 from core.call_media_ownership import CapturedPCM, PlaybackPCM
 from typing import Optional
 
@@ -25,6 +24,7 @@ from core.audio_devices import repair_device_name
 from core.call_audio_processing import CallAudioProcessor
 from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
 from core.call_audio_output import render_output
+from core.call_audio_transport import CallAudioTransport, SocketIOCallAudioTransport
 from core.call_audio_channels import MicrophoneDownmix, log_downmix_side, shared_channel_counts
 from core.call_desktop_audio import CallDesktopAudio, mix_desktop_pcm
 from core.live_translation import LiveTranslationDirection, OUTPUT_RATE, OutgoingTranslationGate
@@ -407,8 +407,10 @@ class _OutputJitterBuffer:
 class CallAudioSession:
     """Own the Python side of one low-latency voice-call audio pipeline."""
 
-    def __init__(self, sio, config: CallAudioConfig, *, sounddevice_module=None):
-        self._sio = sio
+    def __init__(self, sio, config: CallAudioConfig, *, sounddevice_module=None,
+                 transport: CallAudioTransport | None = None):
+        self._transport = (transport if transport is not None
+                           else SocketIOCallAudioTransport(sio, config.session))
         self._config = config
         self._sd = sounddevice_module or sd
         self._input_stream = None
@@ -1322,13 +1324,9 @@ class CallAudioSession:
                 pcm = mix_desktop_pcm(pcm, worker.take(len(pcm)), worker.volume)
         if self._stop_event.is_set() or epoch != self._media_epoch:
             return
-        self._sio.emit("call:audio:mic", {
-            "session": self._config.session,
-            **media_fields(epoch, self._stream_epoch),
-            "sampleRate": CALL_SAMPLE_RATE,
-            "encoding": "base64",
-            "pcm": base64.b64encode(pcm).decode("ascii"),
-        })
+        self._transport.send_microphone(
+            pcm, sample_rate=CALL_SAMPLE_RATE,
+            media_epoch=epoch, stream_epoch=self._stream_epoch)
 
     def _process_microphone(self, processor: CallAudioProcessor, pcm: bytes) -> bytes:
         """Run one microphone chunk through the processor.
@@ -1451,14 +1449,13 @@ class CallAudioSession:
 
     def _emit_start(self) -> None:
         try:
-            self._sio.emit("call:audio:start", {"session": self._config.session})
+            self._transport.start()
         except Exception:
             logging.debug("[call_audio] could not emit call:audio:start", exc_info=True)
 
     def _emit_stop(self) -> None:
         try:
-            self._sio.emit("call:audio:stop", {"session": self._config.session,
-                                              **media_fields(self._media_epoch, self._stream_epoch)})
+            self._transport.stop(media_epoch=self._media_epoch, stream_epoch=self._stream_epoch)
         except Exception:
             logging.debug("[call_audio] could not emit call:audio:stop", exc_info=True)
 
