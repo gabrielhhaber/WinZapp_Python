@@ -660,6 +660,8 @@ V3.0.0.0
 
 - في Neonize، عندما يستغرق جسر الاتصال وقتًا طويلًا جدًا للبدء، يذكر سجل البرنامج الآن ما إذا كان لا يزال يعمل ويعرض آخر أسطر مخرجاته، ويكتب الجسر في سجله الخاص كل خطوة من بدايته أثناء تقدمه، فإذا توقف في منتصف الطريق يظهر مكان توقفه.
 
+- تم الإصلاح: بعد تبديل جهاز الصوت، كانت أصوات الإشعارات (toast) تتوقف عن العمل بينما تستمر الرسائل الصوتية في المحادثات وبقية أصوات WinZapp في العمل. كان التبديل يجعل أصوات الإشعارات المحمّلة مسبقًا غير صالحة؛ وهي الآن تُعاد تحميلها مع بقية الأصوات.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

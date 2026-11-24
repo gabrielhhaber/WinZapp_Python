@@ -659,6 +659,8 @@ NOWOŚCI
 
 - Neonize: gdy most połączenia uruchamia się zbyt długo, log programu mówi teraz, czy nadal działa, i pokazuje ostatnie linie jego wyjścia, a most zapisuje w swoim logu każdy krok startu na bieżąco, więc most zatrzymany w połowie pokazuje gdzie.
 
+- Naprawiono: po zmianie urządzenia audio dźwięki powiadomień (toast) przestawały być odtwarzane, a nagrania w rozmowach i pozostałe dźwięki WinZapp nadal działały. Zmiana urządzenia unieważniała już wczytane dźwięki powiadomień; teraz są ponownie wczytywane razem z pozostałymi dźwiękami.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

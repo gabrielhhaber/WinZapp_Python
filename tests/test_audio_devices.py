@@ -757,3 +757,26 @@ class TestFollowDefaultOutput:
         ss = self._sound_system(monkeypatch, default=None)
         assert ss.follow_default_output() is False
         assert ss.output.free_calls == 0
+
+
+def test_load_sounds_drops_the_cached_notification_sounds(monkeypatch):
+    """A device change frees BASS, so every cached toast/edit Sound is dead.
+
+    load_sounds() is what every device path calls afterwards; it has to empty
+    _notification_sound_cache or the notification sounds stay silent.
+    """
+    import types
+    import main_window.settings as settings_module
+
+    monkeypatch.setattr(settings_module, "stop_typing_sound", lambda _mw: None)
+    stub = types.SimpleNamespace(
+        _notification_sound_cache={"a.ogg": object()},
+        settings={},
+        _default_sound_pack=None,
+        get_active_sound_pack=lambda: None,
+    )
+    try:
+        settings_module.SettingsMixin.load_sounds(stub)
+    except Exception:
+        pass  # the per-event loading below the cache reset is not under test
+    assert stub._notification_sound_cache == {}

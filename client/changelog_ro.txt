@@ -658,6 +658,8 @@ NOUTĂȚI
 
 - Neonize: când puntea de conexiune durează prea mult să pornească, jurnalul programului spune acum dacă încă rulează și arată ultimele linii ale ieșirii ei, iar puntea scrie în propriul jurnal fiecare pas al pornirii pe măsură ce avansează, astfel încât o punte oprită la jumătate arată unde.
 
+- Remediat: după schimbarea dispozitivului audio, sunetele de notificare (toast) nu mai erau redate, în timp ce mesajele audio din conversații și celelalte sunete WinZapp continuau să funcționeze. Schimbarea făcea inutilizabile sunetele de notificare deja încărcate; acum sunt reîncărcate împreună cu celelalte sunete.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

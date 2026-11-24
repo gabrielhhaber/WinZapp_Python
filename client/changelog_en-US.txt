@@ -658,6 +658,8 @@ WHAT'S NEW
 
 - Neonize: when the connection bridge takes too long to start, the program log now says whether it is still running and shows the last lines of its output, and the bridge writes each step of its start to its own log as it goes, so a bridge that stops half-way shows where.
 
+- Fixed: after switching the audio device, notification (toast) sounds stopped playing while chat audio and the other WinZapp sounds kept working. The switch left the already loaded notification sounds unusable; they are now reloaded together with the other sounds.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
