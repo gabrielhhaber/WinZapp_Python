@@ -34,7 +34,7 @@ def test_native_writing_dialog_layout_and_actions(wx_app, tmp_path, monkeypatch,
         assert dialog.result.GetWindowStyleFlag() & wx.TE_READONLY
         assert dialog.result.GetName() == frame.i18n.t('ai_result')
         assert dialog.action.GetCount() == 5
-        assert dialog.target.GetCount() == 6
+        assert dialog.target.GetCount() == 7
         assert not dialog.target.IsEnabled()
         assert not dialog.replace.IsEnabled()
         dialog.action.SetSelection(4)
