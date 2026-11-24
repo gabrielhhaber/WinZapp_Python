@@ -58,9 +58,12 @@ class Progress:
             wait = PARTIAL_SILENCE if self.percent is not None else SILENCE
             return now - self.last >= wait
 
-    def state(self, now, stored_chats):
-        """The history-sync-status fields that depend on the progress."""
-        complete = self.complete(now, stored_chats)
+    def state(self, now, stored_chats, hold=False):
+        """The history-sync-status fields that depend on the progress. `hold`:
+        something is still to come that the blocks did not announce (the
+        conversations asked of the phone, recent_conversations.py), so the
+        history is not called complete yet."""
+        complete = self.complete(now, stored_chats) and not hold
         return {"unprocessedChunks": self.in_flight,
                 "initialSyncComplete": complete, "recentCompleted": complete}
 

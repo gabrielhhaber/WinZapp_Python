@@ -281,3 +281,30 @@ Web state is lost; its cost is a pause of the page's JavaScript.
     `request_older_messages(..., user_asked=True)`), and focuses `max(0,
     len(sorted_messages) - 1)` when `old_count == 0` instead of `n_new` (which equals
     `len(sorted_messages)` and would be out of bounds).
+
+## When the phone sends no omitted batch: `RECENT_CONVERSATIONS_ON_DEMAND_REQUEST` (2026-11-21)
+
+- **Report**: a ~1,014-chat iPhone account, three pairings on 2026-11-21 with build
+  `3.0.0.5853alpha` (which already advertised field 28 and handled omitted batches):
+  `INITIAL_BOOTSTRAP` carried 399 chats, `RECENT` 13 blocks and `FULL` 64 blocks
+  (~300,000 messages, `100%`) and the bridge log has **no** `history omitted` line, so the
+  client listed 458 chats (359 main + the archived ones) and the oldest had its newest
+  message on `2026-07-01`. The phone itself stopped sending; nothing in WinZapp dropped a
+  chat. Whether field 28 reaches that phone's registration, or the phone only honours it
+  with other capabilities, is not known.
+- **Fallback** (`neonize_bridge/recent_conversations.py`): when `INITIAL_BOOTSTRAP` holds
+  `>= 399` chats and no omitted batch follows, once the pairing's transfer is complete the
+  bridge sends WhatsApp's own `PeerDataOperationRequestType.RECENT_CONVERSATIONS_ON_DEMAND_REQUEST`
+  (`15`, `RecentConversationsOnDemandRequest { conversationCount = 2000,
+  messagesPerConversation = 50 }`), up to 3 times, 90 s apart. The answer is
+  `HistorySync` blocks of `syncType = 9`, stored by the ordinary path of
+  `_store_history_block` and kept out of the numbered transfer's progress. Experimental:
+  the answer is logged (`recent conversations answer: N chats (M new), K messages`), read
+  it in the next report before building on it.
+- **Held, not announced**: until the answer arrives or 270 s pass after the transfer
+  completed, `history-sync-status` says `initialSyncComplete = false`
+  (`history_progress.Progress.state(hold=...)`), so the client's first sync lists the new
+  chats with their real archived/pinned state. A chat the answer adds after that reaches
+  the client as one silent `received-message` (`isMdHistoryMsg`) with its newest message,
+  never for an archived chat (its flag only travels in the chat list).
+
