@@ -39,7 +39,9 @@ from core import neonize_bridge_layout
 log = logging.getLogger("neonize_bridge")
 
 PORT = 6300
-PACKAGED_EXE = "neonize_bridge.exe"
+#: the frozen bridge a compiled build ships (PyInstaller names it after the
+#: system: an .exe on Windows, a plain executable in the Mac app)
+PACKAGED_EXE = "neonize_bridge.exe" if sys.platform == "win32" else "neonize_bridge"
 START_TIMEOUT = 60.0          # seconds to wait for the port after spawning
 BRIDGE_PID_FILE = "bridge.pid"
 CLIENTS_DIR = "clients"
@@ -91,15 +93,22 @@ def run_dir(bridge: str) -> str:
     return os.path.join(bridge, "run")
 
 
+def venv_python(bridge: str, platform_name: str = None) -> str:
+    """The interpreter of the bridge's own virtualenv (``prepare.py`` makes it)."""
+    if (platform_name or sys.platform) == "win32":
+        return os.path.join(bridge, ".venv", "Scripts", "python.exe")
+    return os.path.join(bridge, ".venv", "bin", "python")
+
+
 def command(bridge: str, port: int = PORT):
     """The command that starts the bridge, or None if this install has none.
-    A compiled build ships ``neonize_bridge/neonize_bridge.exe``; from the
-    repository it is the bridge's own virtualenv."""
+    A compiled build ships ``neonize_bridge/neonize_bridge.exe`` (on the Mac,
+    ``neonize_bridge``); from the repository it is the bridge's own virtualenv."""
     packaged = os.path.join(bridge, PACKAGED_EXE)
     if os.path.isfile(packaged):
         return [packaged, "--port", str(port), "--folder", data_dir(bridge),
                 "--history-days", HISTORY_DAYS]
-    python = os.path.join(bridge, ".venv", "Scripts", "python.exe")
+    python = venv_python(bridge)
     script = os.path.join(bridge, "server.py")
     if os.path.isfile(python) and os.path.isfile(script):
         return [python, script, "--port", str(port), "--folder",
@@ -142,11 +151,7 @@ def pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
     if sys.platform != "win32":
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            return False
-        return True
+        return _posix_alive(pid)
     import ctypes
     kernel32 = ctypes.windll.kernel32
     handle = kernel32.OpenProcess(0x1000, False, pid)   # QUERY_LIMITED_INFORMATION
@@ -161,12 +166,38 @@ def pid_alive(pid: int) -> bool:
         kernel32.CloseHandle(handle)
 
 
+def _posix_alive(pid: int, waitpid=None, kill=None) -> bool:
+    """Off Windows. A bridge this client spawned stays a zombie after it exits
+    until it is reaped, and signal 0 still reaches a zombie: the shutdown wait
+    would then run out its whole grace and kill a bridge that already closed.
+    So a child of ours is reaped first; anyone else's pid answers to signal 0."""
+    waitpid = waitpid or os.waitpid
+    kill = kill or os.kill
+    try:
+        reaped, _status = waitpid(pid, getattr(os, "WNOHANG", 1))
+        if reaped == pid:
+            return False
+    except ChildProcessError:
+        pass                    # not our child: signal 0 says whether it runs
+    except OSError:
+        return False
+    try:
+        kill(pid, 0)
+    except PermissionError:
+        return True             # it runs, under another user
+    except OSError:
+        return False
+    return True
+
+
 def process_created(pid: int) -> str:
     """When the process was created, as a string that only means something
-    next to the same pid ("" if it cannot be read, or off Windows, where the
-    bridge is never started by this feature)."""
-    if sys.platform != "win32" or pid <= 0:
+    next to the same pid ("" if it cannot be read). Without it the last client
+    out never stops the bridge (``stop`` only kills a pid proven ours)."""
+    if pid <= 0:
         return ""
+    if sys.platform != "win32":
+        return _posix_created(pid)
     import ctypes
     from ctypes import wintypes
     kernel32 = ctypes.windll.kernel32
@@ -181,6 +212,17 @@ def process_created(pid: int) -> str:
         return str((created.dwHighDateTime << 32) | created.dwLowDateTime)
     finally:
         kernel32.CloseHandle(handle)
+
+
+def _posix_created(pid: int, psutil_module=None) -> str:
+    """Off Windows: the creation time psutil reads (the Mac build ships it,
+    coord_mac.py), "" when psutil is missing or the process is gone."""
+    try:
+        if psutil_module is None:
+            import psutil as psutil_module
+        return repr(psutil_module.Process(pid).create_time())
+    except Exception:
+        return ""
 
 
 IDENTITY_TIMEOUT = 3.0
@@ -298,9 +340,13 @@ def spawn(cmd, env, cwd, output=None):
         flags = subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
     sink = open(output, "ab") if output else subprocess.DEVNULL
     try:
+        # Off Windows, its own session: the bridge is shared by every account, so
+        # a signal to this client's process group (a Ctrl-C in a development
+        # run, a quit) must not reach it; the last client out stops it.
         return subprocess.Popen(
             cmd, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
-            stdout=sink, stderr=subprocess.STDOUT, creationflags=flags)
+            stdout=sink, stderr=subprocess.STDOUT, creationflags=flags,
+            start_new_session=sys.platform != "win32")
     finally:
         if output:
             sink.close()
