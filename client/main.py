@@ -304,6 +304,7 @@ from main_window.poll_sending import PollSendingMixin
 from main_window.session_lifecycle import SessionLifecycleMixin
 from main_window.shortcuts import ShortcutsMixin
 from main_window.settings import SettingsMixin
+from main_window.shortcut_sharing import ShortcutSharingMixin
 from main_window.session_tokens import SessionTokensMixin
 from main_window.chat_lock import ChatLockMixin
 from main_window.phone_chat_lock import PhoneChatLockMixin
@@ -379,6 +380,7 @@ class MainWindow(
     ShortcutsMixin,
     QuickChatsMixin,
     SettingsMixin,
+    ShortcutSharingMixin,
     SessionTokensMixin,
     ChatLockMixin,
     PhoneChatLockMixin,

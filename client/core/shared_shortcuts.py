@@ -85,6 +85,91 @@ def share_account_overrides(app, settings, catalog, translate_factory):
     return shared
 
 
+#: settings["general"]: does a shortcut with no choice of its own follow the
+#: install (True, the default) or keep a key for this account only?
+SHARED_FLAG = "keyboard_shortcuts_shared"
+#: settings: {shortcut id: True (install) / False (this account)}, only the
+#: commands whose own check box was set apart from the general one.
+SCOPE_KEY = "keyboard_shortcuts_scope"
+#: settings: this account's own overrides, kept while a command follows the
+#: install, so moving it back to the account brings its key back.
+OWN_KEY = "keyboard_shortcuts_own"
+
+
+def shares_by_default(settings):
+    return (settings.get("general") or {}).get(SHARED_FLAG, True) is not False
+
+
+def is_shared(shortcut_id, scope, default_shared):
+    """Whether one command takes the install's key: its own choice if it has
+    one, else the general check box."""
+    choice = (scope or {}).get(shortcut_id)
+    return choice if isinstance(choice, bool) else default_shared
+
+
+def scope_choice(shared, default_shared):
+    """What to store for a command's check box: nothing when it agrees with
+    the general one (it follows that one from then on), else the choice."""
+    return None if shared == default_shared else shared
+
+
+def effective_overrides(shared, own, scope, default_shared):
+    """The overrides this account answers to: each command from the install
+    or from the account, as its check box says."""
+    result = {k: v for k, v in (shared or {}).items()
+              if is_shared(k, scope, default_shared)}
+    result.update({k: v for k, v in (own or {}).items()
+                   if not is_shared(k, scope, default_shared)})
+    return result
+
+
+def route_effective(effective, shared, own, scope, default_shared):
+    """(shared, own) holding `effective` -- a whole set chosen at once, an
+    import -- each command in the home its check box names. A command's entry
+    in the other home is left as it was: it is another account's key, or this
+    account's own kept for later."""
+    new_shared = {k: v for k, v in (shared or {}).items()
+                  if not is_shared(k, scope, default_shared)}
+    new_own = {k: v for k, v in (own or {}).items()
+               if is_shared(k, scope, default_shared)}
+    for key, binding in (effective or {}).items():
+        target = new_shared if is_shared(key, scope, default_shared) else new_own
+        target[key] = binding
+    return new_shared, new_own
+
+
+def apply_changes(base, before, after):
+    """`base` with what changed from `before` to `after`, and nothing else.
+
+    The Settings page edits the install's overrides as it found them on
+    opening; writing its whole copy back would undo a change another account
+    made since. Only the commands the page itself changed are carried."""
+    missing = object()
+    result = dict(base or {})
+    for key in set(before or {}) | set(after or {}):
+        old, new = (before or {}).get(key, missing), (after or {}).get(key, missing)
+        if old == new:
+            continue
+        if new is missing:
+            result.pop(key, None)
+        else:
+            result[key] = new
+    return result
+
+
+def own_seeded(shared, own, scope, was_default, now_default):
+    """The account's own overrides once the general check box moves from the
+    install to the account: a command following it that has no key of its own
+    yet starts from the install's, so nothing changes under the user's hands."""
+    result = dict(own or {})
+    if not was_default or now_default:
+        return result
+    for key, binding in (shared or {}).items():
+        if not isinstance((scope or {}).get(key), bool) and key not in result:
+            result[key] = binding
+    return result
+
+
 def shortcuts_to_pull(local, snapshot, shared):
     """The install's overrides when this account should take them now, else None.
 

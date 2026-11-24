@@ -59,6 +59,9 @@ class _Stub:
     # The real one: with no `_app_settings` (no shared file here) it returns
     # at once. tests/test_global_settings_reconcile.py drives it for real.
     _persist_global_settings = MainWindow._persist_global_settings
+    _shared_shortcut_mirror = MainWindow._shared_shortcut_mirror
+    _compose_shortcuts = MainWindow._compose_shortcuts
+    _route_imported_shortcuts = MainWindow._route_imported_shortcuts
 
     def __init__(self, settings=None):
         self.settings = settings if settings is not None else _settings()

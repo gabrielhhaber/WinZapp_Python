@@ -56,11 +56,6 @@ from core.audio_devices import (
 from traceback import format_exc
 from core.quiet_hours import is_quiet_hours_active
 
-# _pull_shared_shortcuts() retrying past another account's write of app.json:
-# a save holds the lock for milliseconds, so 20 x 150 ms covers it with room.
-_PULL_RETRIES = 20
-_PULL_RETRY_MS = 150
-
 
 class SettingsMixin:
     """First-run checks, settings load/save/migrate, settings export/import, live
@@ -609,71 +604,6 @@ class SettingsMixin:
             return
         self._share_keyboard_shortcuts()
 
-    def _share_keyboard_shortcuts(self):
-        """The keyboard shortcuts are the install's (core/shared_shortcuts.py):
-        take them from the shared file, handing it this account's own the
-        first time, and reconcile them from then on like the keys above. Its
-        own step, so a failure here leaves the other install-wide keys in
-        step and this account on the shortcuts it had."""
-        try:
-            from core import shared_shortcuts
-            from core.keyboard_shortcuts import SECTION
-            from core.shortcut_catalog import SHORTCUTS
-            general = self.settings.setdefault("general", {})
-            shared = shared_shortcuts.share_account_overrides(
-                self._app_settings, self.settings, SHORTCUTS,
-                lambda: shared_shortcuts.catalog_translate(general.get("language")))
-            self._global_settings_snapshot[SECTION] = copy.deepcopy(shared)
-        except Exception:
-            logging.exception("[settings] sharing the keyboard shortcuts failed (non-fatal)")
-
-    def _pull_shared_shortcuts(self, attempt=0):
-        """Take the shortcuts another account changed, as this window comes
-        forward.
-
-        A pull otherwise waits for this account's next save, and an account
-        hidden in the tray saves little: switching to it with a key just
-        changed in the other account found it still on the old one -- the
-        very report the shared shortcuts fix. Without _save_lock (a sync can
-        hold it for minutes) and without waiting on another process's writer:
-        a change of this account's own not saved yet is left for the save to
-        write (core.shared_shortcuts.shortcuts_to_pull()).
-
-        Another account holding the shared file's lock at that instant (its
-        own save, often the one the switch itself sets off) used to drop the
-        pull, leaving this window on the old keys until its next save. It is
-        tried again shortly instead, on the main thread and never blocking it,
-        for up to _PULL_RETRIES times.
-        """
-        app = getattr(self, "_app_settings", None)
-        snapshot = getattr(self, "_global_settings_snapshot", None)
-        if app is None or not snapshot:
-            return
-        from coord_locks import LockTimeout
-        from core.keyboard_shortcuts import SECTION
-        from core.shared_shortcuts import shortcuts_to_pull
-        if SECTION not in snapshot:
-            return
-        try:
-            pulled = shortcuts_to_pull(self.settings.get(SECTION), snapshot[SECTION],
-                                       app.get_snapshot(SECTION))
-            if pulled is None:
-                return
-            self.settings[SECTION] = pulled
-            snapshot[SECTION] = copy.deepcopy(pulled)
-            from ui.shortcut_bindings import refresh_shortcuts
-            refresh_shortcuts(self)
-        except LockTimeout:
-            # Another account is writing the shared file right now.
-            if attempt < _PULL_RETRIES and not getattr(self, "_shutting_down", False):
-                wx.CallLater(_PULL_RETRY_MS, self._pull_shared_shortcuts, attempt + 1)
-            else:
-                logging.info("[settings] shared keyboard shortcuts still locked "
-                             "after %d tries; the next save pulls them", attempt + 1)
-            return
-        except Exception:
-            logging.exception("[settings] pulling the shared keyboard shortcuts failed")
-
     def _persist_global_settings(self, explicit=()):
         """Reconcile the global keys of self.settings with global/app.json
         (plan Zad 2.3b): write the ones this account changed, and take the
@@ -729,12 +659,14 @@ class SettingsMixin:
             # never treated as changed: with no baseline, a stale copy and a
             # new choice look the same, and writing would be the old bug.
             snapshot = getattr(self, "_global_settings_snapshot", None) or {}
-            # The whole-section keys (the keyboard shortcuts) sit at the top
-            # of self.settings, so the settings dict itself is their section.
+            # The whole-section keys (the keyboard shortcuts) are reconciled
+            # through the in-memory mirror of the install's copy, not through
+            # settings[SECTION]: that one also holds this account's own keys
+            # (main_window/shortcut_sharing.py), recomposed below.
             sections = (
                 (self.settings.setdefault("general", {}), _GENERAL_GLOBAL),
                 (self.settings.setdefault("connection", {}), _CONNECTION_GLOBAL),
-                (self.settings, _SECTION_GLOBAL),
+                (self._shared_shortcut_mirror(), _SECTION_GLOBAL),
             )
             compared = {}
             with app_settings_lock(app.global_dir):
@@ -760,6 +692,7 @@ class SettingsMixin:
                     section[k] = current[k]
                     new_snapshot[k] = current[k]
             self._global_settings_snapshot = new_snapshot
+            self._compose_shortcuts()
             if pulled:
                 # This runs on whatever thread saved, holding _save_lock;
                 # applying touches wx, so it waits for the main thread.
@@ -796,7 +729,7 @@ class SettingsMixin:
         with self._save_lock:
             for key, value in choices.items():
                 if key in _SECTION_GLOBAL:
-                    self.settings[key] = value
+                    self._shared_shortcut_mirror()[key] = value
                     continue
                 section = "connection" if key in _CONNECTION_GLOBAL else "general"
                 self.settings.setdefault(section, {})[key] = value
@@ -1388,6 +1321,10 @@ class SettingsMixin:
             imported_global.append("wpp_engine")
         with self._save_lock:
             self.settings.update(merged)
+            if any(name in imported_global for name in _SECTION_GLOBAL):
+                # Each imported key to the install or to this account, as
+                # its check box on Settings > Shortcuts says.
+                self._route_imported_shortcuts()
             self._persist_global_settings(explicit=imported_global)
         self.save_settings()
         self._engine_restart_pending = False

@@ -56,6 +56,8 @@ class _Window:
 
     _apply_global_settings = MainWindow._apply_global_settings
     _share_keyboard_shortcuts = MainWindow._share_keyboard_shortcuts
+    _shared_shortcut_mirror = MainWindow._shared_shortcut_mirror
+    _compose_shortcuts = MainWindow._compose_shortcuts
 
 
 class TestTheMigration:

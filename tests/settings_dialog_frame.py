@@ -15,7 +15,8 @@ import types
 
 from main import MainWindow
 
-_METHODS = ("choose_global_settings", "install_wide_values", "_persist_global_settings")
+_METHODS = ("choose_global_settings", "install_wide_values", "_persist_global_settings",
+            "_shared_shortcut_mirror", "_compose_shortcuts")
 
 
 def give_global_settings(frame):

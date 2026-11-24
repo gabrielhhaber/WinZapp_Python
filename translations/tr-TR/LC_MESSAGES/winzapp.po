@@ -14489,6 +14489,16 @@ msgstr ""
 "yeni, 0 onuncu); hızlıca iki kez basılırsa mesajı kopyalar, konum"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_all_accounts"
+msgid "every account"
+msgstr "tüm hesaplarda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_this_account"
+msgid "this account only"
+msgstr "yalnızca bu hesapta"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_global"
 msgid "System-wide"
 msgstr "Sistem genelinde"
@@ -14588,6 +14598,12 @@ msgstr ""
 msgctxt "shortcut_settings_list"
 msgid "Commands and keyboard shortcuts"
 msgstr "Komutlar ve klavye kısayolları"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_shared_all_accounts"
+msgid "&Use the same shortcuts in every account"
+msgstr "Tüm &hesaplarda aynı kısayolları kullan"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14724,6 +14740,12 @@ msgstr "Ctrl+Alt+Shift+Y: seçili mesajları çevir"
 msgctxt "shortcut_unassigned"
 msgid "Not assigned"
 msgstr "Atanmamış"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_use_in_all_accounts"
+msgid "&Use this shortcut in every account"
+msgstr "Bu kısayolu tüm &hesaplarda kullan"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py

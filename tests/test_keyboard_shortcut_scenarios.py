@@ -207,16 +207,32 @@ def test_cancelled_staged_edit_does_not_mutate_saved_preferences(monkeypatch):
     assert dialog.main_window.settings[SECTION] == {'main.ID_ALT_1': [2, ord('J')]}
 
 
-def test_ok_hands_changed_shortcuts_to_the_install_as_an_explicit_choice(monkeypatch):
-    """The shortcuts are install-wide (core/shared_shortcuts.py): written to
-    the shared file even when equal to what this account last pulled."""
+def _sharing(shared=None, own=None, scope=None, default_shared=True):
+    return {'shared': dict(shared or {}), 'own': dict(own or {}),
+            'scope': dict(scope or {}), 'default_shared': default_shared}
+
+
+def _shared_stub(**state):
+    """The page on an account with the shared file: the install's keys and
+    the account's own (main_window/shortcut_sharing.py)."""
+    import copy
+    dialog = settings_stub()
+    dialog._sharing = _sharing(**state)
+    dialog._sharing_loaded = copy.deepcopy(dialog._sharing)
+    dialog._shortcut_overrides = dialog._effective_shortcuts()
+    dialog._refresh_shortcut_rows = lambda: None
+    dialog._mark_dirty = lambda: None
+    return dialog
+
+
+def test_ok_hands_the_change_to_the_window_once(monkeypatch):
     monkeypatch.setattr('ui.dialogs.shortcuts_tab.refresh_shortcuts', lambda _: None)
-    dialog = settings_stub({'main.account[1]': None})
-    dialog._shortcut_overrides_loaded = {}
+    dialog = _shared_stub()
     chosen = []
-    dialog.main_window.choose_global_settings = chosen.append
+    dialog.main_window.choose_keyboard_shortcuts = lambda state, before: chosen.append((state, before))
+    dialog._stage_shortcut('main.account[1]', None)
     dialog._apply_shortcut_values()
-    assert chosen == [{SECTION: {'main.account[1]': None}}]
+    assert chosen == [(_sharing(shared={'main.account[1]': None}), {})]
     dialog._apply_shortcut_values()  # Apply, then OK: the same values once
     assert len(chosen) == 1
 
@@ -224,12 +240,76 @@ def test_ok_hands_changed_shortcuts_to_the_install_as_an_explicit_choice(monkeyp
 def test_ok_on_an_untouched_shortcuts_page_writes_nothing(monkeypatch):
     """Writing it would undo a change another account made since."""
     monkeypatch.setattr('ui.dialogs.shortcuts_tab.refresh_shortcuts', lambda _: None)
-    dialog = settings_stub({'main.account[1]': None})
-    dialog._shortcut_overrides_loaded = {'main.account[1]': None}
+    dialog = _shared_stub(shared={'main.account[1]': None})
     chosen = []
-    dialog.main_window.choose_global_settings = chosen.append
+    dialog.main_window.choose_keyboard_shortcuts = lambda *args: chosen.append(args)
     dialog._apply_shortcut_values()
     assert chosen == []
+
+
+class TestOneCommandForThisAccountOnly:
+    def test_its_key_goes_to_the_account_and_its_choice_is_kept(self):
+        dialog = _shared_stub(shared={'main.account[1]': [6, ord('3')]})
+        dialog._stage_shortcut('main.account[1]', [6, ord('7')], shared=False)
+        assert dialog._sharing['own'] == {'main.account[1]': [6, ord('7')]}
+        # The other accounts keep the install's key.
+        assert dialog._sharing['shared'] == {'main.account[1]': [6, ord('3')]}
+        assert dialog._sharing['scope'] == {'main.account[1]': False}
+        assert dialog._shortcut_overrides == {'main.account[1]': [6, ord('7')]}
+
+    def test_back_to_the_general_choice_it_follows_that_again(self):
+        dialog = _shared_stub(own={'main.account[1]': [6, ord('7')]},
+                              scope={'main.account[1]': False})
+        dialog._stage_shortcut('main.account[1]', [6, ord('8')], shared=True)
+        assert dialog._sharing['scope'] == {}
+        assert dialog._sharing['shared'] == {'main.account[1]': [6, ord('8')]}
+        # Kept, so moving it back to the account brings its key back.
+        assert dialog._sharing['own'] == {'main.account[1]': [6, ord('7')]}
+
+    def test_the_change_window_starts_from_the_general_check_box(self):
+        dialog = _shared_stub(default_shared=False, scope={'main.account[2]': True})
+        assert dialog._shortcut_is_shared(spec('main.account[1]')) is False
+        assert dialog._shortcut_is_shared(spec('main.account[2]')) is True
+
+    def test_only_a_command_set_apart_says_so_on_its_row(self):
+        dialog = _shared_stub(scope={'main.account[2]': False})
+        dialog._shortcut_binding = lambda s: None
+        assert ', shortcut_row_this_account' in dialog._shortcut_row_text(spec('main.account[2]'))
+        assert 'shortcut_row' not in dialog._shortcut_row_text(spec('main.account[1]'))
+
+    def test_a_key_outside_the_overrides_has_no_choice(self):
+        from ui.dialogs.shortcuts_tab import GLOBAL
+        assert _shared_stub()._shortcut_is_shared(GLOBAL) is None
+        assert settings_stub()._shortcut_is_shared(spec('main.account[1]')) is None
+
+
+class TestTheGeneralCheckBox:
+    def test_unticked_the_account_starts_from_the_install_keys(self):
+        dialog = _shared_stub(shared={'main.account[1]': [6, ord('3')]})
+        dialog._shortcuts_shared_box = SimpleNamespace(GetValue=lambda: False)
+        dialog._on_shortcuts_shared_box()
+        assert dialog._sharing['default_shared'] is False
+        assert dialog._sharing['own'] == {'main.account[1]': [6, ord('3')]}
+        assert dialog._shortcut_overrides == {'main.account[1]': [6, ord('3')]}
+
+    def test_ticked_again_the_install_keys_come_back_and_the_own_are_kept(self):
+        dialog = _shared_stub(shared={'main.account[1]': [6, ord('3')]},
+                              own={'main.account[1]': [6, ord('7')]}, default_shared=False)
+        dialog._shortcuts_shared_box = SimpleNamespace(GetValue=lambda: True)
+        dialog._on_shortcuts_shared_box()
+        assert dialog._shortcut_overrides == {'main.account[1]': [6, ord('3')]}
+        assert dialog._sharing['own'] == {'main.account[1]': [6, ord('7')]}
+
+    def test_reset_all_resets_each_command_in_its_own_home(self):
+        dialog = _shared_stub(shared={'main.account[1]': [6, ord('3')], 'main.ID_ALT_1': None},
+                              own={'main.account[1]': [6, ord('7')]},
+                              scope={'main.account[1]': False})
+        dialog._hotkey_field = SimpleNamespace(_vk=0, _mod=0, SetValue=lambda _: None)
+        dialog._reset_all_shortcuts()
+        assert dialog._shortcut_overrides == {}
+        assert dialog._sharing['own'] == {}
+        # Another account's key for a command this one keeps apart survives.
+        assert dialog._sharing['shared'] == {'main.account[1]': [6, ord('3')]}
 
 
 def test_disabled_shortcut_and_unset_global_are_not_a_conflict():
