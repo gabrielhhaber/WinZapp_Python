@@ -1,0 +1,49 @@
+<!--nav: 🎙️ Hlasové zprávy a zvuk-->
+<p class="lead">Nahrávejte, poslouchejte a odesílejte hlasové zprávy a ovládejte přehrávání, aniž byste opustili chat.</p>
+
+<h3>Nahrávání</h3>
+<table class="field-table">
+  <tr><th>Zkratka</th><th>Akce</th></tr>
+  <tr><td class="field-name">Ctrl+R</td><td>Nahrát hlasovou zprávu</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+P</td><td>Pozastavit a obnovit nahrávání</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>Poslechnout si, co bylo nahráno, když je nahrávání pozastavené</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+D</td><td>Zahodit nahrávku</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+H</td><td>Nahrávat mikrofon a zvuk počítače</td></tr>
+</table>
+<ul>
+  <li><strong>Kanály nahrávání hlasových zpráv:</strong> Existuje jedno tlačítko nahrávání. V Nastavení &gt; Zvuk nabízí "Kanály pro nahrávání hlasové zprávy" možnosti "Automaticky (použít kanály zařízení)" (výchozí), "Mono (smíchat levý a pravý)" a "Stereo (když je k dispozici)". Automatic a Stereo zachovají dva kanály, pokud je zařízení podporuje, jinak použijí mono. Mono zprůměruje levý a pravý kanál do jednoho: použijte ho pro mikrofon připojený jen k INPUT 1 nebo INPUT 2 zvukového rozhraní. Jediný aktivní vstup je po zprůměrování tišší a nepoužije se žádné automatické zesílení. V režimu Automatic se nahrávka s jednou stranou úplně tichou odešle jako mono, převzaté ze strany se zvukem. Volba se zafixuje při zahájení nahrávání a platí i pro pozastavený náhled. Neovlivňuje hovory ani nahrávání mikrofonu + zvuku počítače. Stereofonní hlasové zprávy se přehrají i na iPhonu.</li>
+  <li><strong>Mikrofon + zvuk počítače:</strong> nahraje do jedné zprávy váš hlas a to, co počítač přehrává (video, hudbu, čtečku obrazovky). Během nahrávání dva posuvníky upravují hlasitost ostatních zvuků a NVDA (bez NVDA je druhý zakázaný); platí jen pro nahrávku a uchovávají se pro každý účet zvlášť. Před zahájením WinZapp upozorní, že do nahrávky půjde všechno, co se přehrává, s políčkem "Už nezobrazovat" (volba "Upozornit před nahráváním zvuku počítače" upozornění vrátí). Pokud se WinZapp na vteřinu nebo dvě zasekne (pomalý nebo vytížený počítač), zvuk z té chvíle se přeskočí a nahrávání pokračuje. Nahrávka se odešle jako hlasová zpráva, stereofonně, pokud oba kanály nesou zvuk.</li>
+  <li>Oznámení nahrávání lze umlčet; čtečka obrazovky nezačne říkat "Odeslat", než je přerušena.</li>
+  <li><strong>Potlačení šumu mikrofonu:</strong> se zaškrtnutou volbou "Zapnout potlačení šumu mikrofonu" v Nastavení &gt; Zvuk otevřete nastavení potlačení šumu a vyberete engine (neuronový, nebo základní), kdy zpracovávat (při nahrávání, nebo při odeslání) a co se stane, když neuronové potlačení selže. Neuronový model se stahuje jednou z nastavení potlačení šumu.</li>
+  <li>Použitý mikrofon a reproduktor jsou v Nastavení &gt; Zvuk.</li>
+  <li>U Neonize se hlasová zpráva doručí i kontaktům na Androidu.</li>
+  <li>Pokud se nenačte knihovna typů souborů počítače (libmagic), Neonize pozná typ ze samotného souboru a hlasová zpráva odejde normálně.</li>
+  <li>Mono hlasové zprávy se ve výchozím nastavení nahrávají rychlostí 64 kbps a stereofonní rychlostí 128 kbps. V Nastavení &gt; Zvuk vám "Datový tok hlasové zprávy (kb/s)" (mono) a "Datový tok stereo hlasové zprávy (kb/s)" umožňují zvolit od 32 do 256 kbps.</li>
+</ul>
+
+<h3>Poslech</h3>
+<ul>
+  <li>U hlasových a zvukových zpráv <strong>Enter</strong> nebo <strong>Mezerník</strong> přehrává a pozastavuje. V Nastavení &gt; Zvuk můžete hlasové zprávy odlišit od zvukových souborů.</li>
+  <li><strong>Rychlost:</strong> Alt+, zpomaluje a Alt+. zrychluje. Výchozí rychlost se nastavuje v Nastavení &gt; Zvuk &gt; Audio playback.</li>
+  <li><strong>Vpřed a vzad:</strong> Shift+Šipka vpravo/vlevo posune o 5 sekund; Shift+Page Down/Up o 1 minutu; Shift+Home a Shift+End přejdou na začátek a na konec toho, co se přehrává.</li>
+  <li>Následující hlasové zprávy se přehrávají za sebou, pokud nezrušíte zaškrtnutí "Automaticky přehrávat hlasové zprávy za sebou" v Nastavení &gt; Uživatelské rozhraní. Během sekvence řádek s fokusem počká s aktualizací svého stavu, aby čtečka obrazovky nečetla přes zvuk.</li>
+  <li><strong>Ctrl+Alt+Shift+P</strong> pozastaví nebo obnoví zvuk, který se přehrává, z libovolného panelu.</li>
+  <li>Pokud se změní výstupní zařízení (například odpojená sluchátka), WinZapp přepne na výchozí zařízení a zprávu poprvé přehraje.</li>
+  <li>Pokud zvuková karta není dostupná (například když se počítač probudí), WinZapp se při selhání přehrávání pokusí obnovit zvukový výstup; pokud stále nemůže přehrávat, oznámí vám to čtečkou obrazovky.</li>
+  <li>V Nastavení je volba, která zvuk neoznačuje jako přehraný.</li>
+</ul>
+
+<h3>Přepnutí zvukového zařízení na místě</h3>
+<p>Ctrl+Alt+Shift+H otevře seznam přehrávacích zařízení a Ctrl+Alt+Shift+G seznam nahrávacích zařízení, číslovaných 1 až 0: stisknutím čísla přepnete okamžitě, nebo použijte šipky a Enter. Přepnutí platí pro zvuky, hlasové zprávy a hovory (probíhající hovor se změní bez přerušení), pro všechny otevřené účty, dokud WinZapp nezavřete. Zařízení vybraná v Nastavení se nemění.</p>
+
+<p>Potlačení šumu mikrofonu zapněte v Nastavení &gt; Zvuk. Otevřete nastavení potlačení šumu, stáhněte model (stačí jednou), vyberte procesor (CPU, CUDA 12/13 ve Windows nebo CoreML na Macu) a spravujte jeho požadované součásti. Zpracování zůstává ve vašem počítači. Ve stejném okně vyberte engine, okamžik zpracování a akci při selhání:</p>
+<dl>
+  <dt>Typ potlačení šumu</dt><dd>Neurální / Základní (šumová brána)</dd>
+  <dt>Zpracovat hlasové zprávy</dt><dd>Při odeslání / Při nahrávání</dd>
+  <dt>Když potlačení šumu selže</dt><dd>Odeslat se základním potlačením šumu (výchozí) / Ponechat hlasovou zprávu čekající, abyste ji zkusili odeslat znovu</dd>
+</dl>
+<p>Ponechte výchozí zpracování při odeslání, nebo zvolte zpracování při nahrávání, aby pracovalo na pozadí, zatímco nahráváte. Zpracování při nahrávání je dostupné jen s CPU nebo s procesovou cestou CoreML. Volba CUDA tuto možnost zakáže a použije zpracování při odeslání; zpracování při nahrávání s CUDA neexistuje. Zpracování při nahrávání s CoreML nebylo ověřeno v reálném používání. Pokud neuronové zpracování selže, výchozí je odeslání se základním potlačením. Zvolte možnost čekání, aby se zpráva ponechala: zkuste to znovu ručně z její místní nabídky, nebo výslovně zvolte "Odeslat bez potlačení šumu".</p>
+
+<h3>Výchozí zařízení a nahrávky</h3>
+<p>Zvuky a hovory nastavené na "Výchozí systémové" nyní sledují výchozí přehrávací zařízení Windows: když připojíte náhlavní soupravu, kterou Windows nastaví jako výchozí, zvuky WinZappu a zvuk hovorů se na ni přesunou, stejně jako u jiných programů.</p>
+<p>Když nahráváte zvuk (hlasovou zprávu nebo mikrofon plus zvuk počítače), opakující se synchronizace na pozadí, procházení historie a stahování médií se pozastaví, jako to už dělaly během hovoru, aby nahrávku nerozsekal vytížený počítač.</p>

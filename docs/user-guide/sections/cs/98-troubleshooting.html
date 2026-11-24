@@ -1,0 +1,17 @@
+<!--nav: 🧰 Řešení potíží-->
+<table class="field-table">
+  <tr><th>Situace</th><th>Co dělat</th></tr>
+  <tr><td>WinZapp vás žádá o nové spárování</td><td>Spárujte pomocí čísla nebo QR kódu. Vaše chaty se smažou, jen pokud připojíte jiné číslo. Pokud se to stalo bez důvodu, uschovejte <code>log.log</code> a <code>shutdown_audit.log</code>, než program znovu otevřete.</td></tr>
+  <tr><td>Telefon přijme párovací kód, ale WinZapp zůstane v okně párování</td><td>Aktualizujte WinZapp: oprava zachová přihlášení, které WhatsApp Web dokončí po přijetí kódu. Pokud WhatsApp hlásí, že dočasně omezuje párovací kódy pro vaše číslo, nežádejte o další, protože se tím čekání prodlužuje: zvolte "Připojit pomocí QR kódu", které párovací kód nepoužívá.</td></tr>
+  <tr><td>Zprávy nepřicházejí nebo seznam vypadá zaseknutý</td><td>Počkejte na průběh synchronizace; použijte Shift+F5 v chatu nebo F5 pro všechny. Zkontrolujte také, že není zapnutý režim offline. Pokud se seznam synchronizuje stále dokola, aktualizujte WinZapp: oprava umožní seznamu chatů dokončit synchronizaci.</td></tr>
+  <tr><td>Místní přepis na grafické kartě NVIDIA selže nebo se zasekne</td><td>Aktualizujte WinZapp: oprava načte knihovny CUDA ve Windows před použitím grafické karty. Pokud je nelze načíst, WinZapp to oznámí a nabídne přepis na procesoru.</td></tr>
+  <tr><td>WinZapp při odesílání nebo příjmu velkých souborů zamrzá</td><td>Aktualizujte WinZapp: oprava zabrání tomu, aby se přijatý soubor stahoval spolu s oznámením o zprávě, a zabrání hromadění překreslení obrazovky kvůli průběhu odesílání a stahování.</td></tr>
+  <tr><td>Při odesílání do existující konverzace se zobrazí chyba "chat not found"</td><td>Aktualizujte WinZapp: oprava způsobí, že odesílání zpráv a příloh použije konverzaci, kterou už WhatsApp načetl.</td></tr>
+  <tr><td>Můj účet se stále zobrazuje jako online, i když jsem okno opustil</td><td>WinZapp žádá o stav offline, když je jeho okno neaktivní, minimalizované, skryté nebo běží na pozadí, a opakuje to každých 20 sekund. Pokud problém přetrvává, poznamenejte si místní čas a stav okna a pošlete upravené diagnostické protokoly. Protokoly rozlišují požadovaný stav od místního pozorování běhu; ani jedno nepotvrzuje, co zobrazilo jiné zařízení.</td></tr>
+  <tr><td>Hovory se nespustí</td><td>Restartujte WinZapp nebo použijte Nápověda &gt; Vynutit přeinstalaci WPPConnect. WinZapp udržuje seznam verzí WhatsApp Web aktuální sám.</td></tr>
+  <tr><td>Interní prohlížeč se neotevře</td><td>Obvykle jeho část odstranil antivirus. WinZapp na to upozorní a vysvětlí to; použijte Vynutit přeinstalaci WPPConnect.</td></tr>
+  <tr><td>Zpráva byla odeslána, ale WinZapp to nepotvrdil</td><td>Před opakovaným odesláním zkontrolujte chat; WinZapp v těchto případech neodesílá znovu sám.</td></tr>
+  <tr><td>"Starší zprávy zobrazíte ve WhatsAppu v telefonu."</td><td>Tyto zprávy existují jen v telefonu.</td></tr>
+  <tr><td>Při instalaci nebo aktualizaci WPPConnect se zobrazí chyba</td><td>Chyba se zobrazí v textovém poli jen pro čtení, abyste ji mohli přečíst a zkopírovat; pošlete ji při hlášení problému.</td></tr>
+  <tr><td>Místní přepis nefunguje</td><td>V Nastavení &gt; Místní přepis zkontrolujte, že je model stažený a připravený. WinZapp řekne proč, když přepis není připravený.</td></tr>
+</table>

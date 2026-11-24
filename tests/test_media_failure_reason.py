@@ -46,7 +46,7 @@ def test_a_later_answer_replaces_the_reason_and_old_ones_are_dropped():
     assert media_failure.failure_key(_msg("X0")) == "media_download_failed"
 
 
-@pytest.mark.parametrize("code", ["en-US", "pt-BR", "pt-PT", "es-ES", "pl", "tr-TR", "ro", "ar", "it"])
+@pytest.mark.parametrize("code", ["en-US", "pt-BR", "pt-PT", "es-ES", "pl", "tr-TR", "ro", "ar", "it", "cs"])
 def test_every_sentence_exists_in_every_locale(code):
     from tests.test_i18n_keys_exist import _locale
     strings = _locale(code)

@@ -372,7 +372,7 @@ class TestTheStringsExplainIt:
 
     def test_the_f1_line_and_the_menu_say_local(self, locale):
         table = load_strings(locale)
-        words = {"tr-TR": ("yerel", "bu bilgisayarda"), "pl": ("lokaln",), "ar": ("محلي",)}.get(locale, ("local",))
+        words = {"tr-TR": ("yerel", "bu bilgisayarda"), "pl": ("lokaln",), "ar": ("محلي",), "cs": ("místn",)}.get(locale, ("local",))
         for key in ("transcribe_inline_menu", "shortcut_alt_shift_n_label"):
             assert any(w in table[key].lower() for w in words), (locale, key)
 

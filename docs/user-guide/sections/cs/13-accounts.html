@@ -1,0 +1,27 @@
+<!--nav: 👤 Účty, oznamovací oblast a synchronizace-->
+<h3>Více účtů</h3>
+<p>Každý účet má vlastní okno a vlastní místní server. Mezi nimi přepíná nabídka <strong>Účty</strong>; stejně tak Ctrl+Alt+1 až 9. "Zavřít aktuální účet" (Ctrl+F4) ukončí jen účet, ve kterém jste, uvolní jeho paměť a připojení a přejde na jiný otevřený účet. Chcete-li ho znovu otevřít, zvolte ho v nabídce Účty jiného účtu nebo použijte Ctrl+Alt s jeho číslem. Pokud je otevřený jediný, WinZapp se nejdřív zeptá, protože jeho zavřením se program ukončí.</p>
+<p>V Účty &gt; Správa účtů zaškrtávací políčko "Při spuštění WinZappu připojit všechny účty" způsobí, že WinZapp při každém spuštění otevře na pozadí všechny ostatní spárované účty. Ve výchozím stavu je vypnuto a platí pro celou instalaci, ne pro jediný účet.</p>
+<p>Odstranění účtu (Účty &gt; Správa účtů, tlačítko Delete) smaže vše, co mu patří: zprávy, média, nastavení, profil prohlížeče, který uchovává přihlášení k WhatsAppu, a zálohy tohoto profilu. Co nelze odstranit hned, dokončí se při příštím spuštění WinZappu. Když je účet jediný, lze ho také odstranit: WinZapp požádá o potvrzení (výchozí je Ne), zavře se a příští spuštění je první spuštění.</p>
+
+<h3>Synchronizace</h3>
+<ul>
+  <li><strong>F5</strong> smaže všechny chaty a stáhne je znovu (požádá o potvrzení, s výchozí volbou Ne a "Už nezobrazovat").</li>
+  <li><strong>Shift+F5</strong> znovu synchronizuje jen otevřený chat: načte zprávy znovu, vrátí na místo ty, které chyběly, a odstraní ty, které už neexistují, aniž by se dotkl starší historie. Řekne, zda je chat už aktuální, nebo zda pro něj WhatsApp nemá žádné zprávy. Také žádá o potvrzení.</li>
+  <li>Průběh se hlásí hlasem každých několik sekund a zobrazuje se v názvu okna: "Synchronizace chatů: 12 z 80" a "Stahování médií: zpracováno 30 z 120 (staženo 8)". Každé oznámení lze vypnout v Nastavení &gt; Přístupnost &gt; Mluvený obsah; volba "Ohlašovat synchronizaci, stahování médií a automatický režim offline" řídí oznámení, která se nehlásí hlasem, když se WinZapp spouští na pozadí nebo během hovoru.</li>
+  <li><strong>Režim offline</strong> (Ctrl+Alt+Shift+O) přepne WinZapp do režimu offline; do něj i z něj se také sám přepíná podle připojení. Když se počítač probudí ze spánku, WinZapp znovu otevře připojení a načte nové zprávy.</li>
+  <li>V chatu, jehož nejstarší zprávy existují jen v telefonu, WinZapp řekne "Starší zprávy zobrazíte ve WhatsAppu v telefonu."</li>
+</ul>
+
+<h3>Oznamovací oblast a oznámení</h3>
+<p>V Nastavení &gt; Obecné &gt; Oznámení má "Obsah oznámení na pozadí" tři úrovně: zvuk, název chatu a text zprávy; zvuk a název chatu bez textu; nebo jen zvuk, bez oznámení na obrazovce a bez čtení. Oznámení respektují Windows Focus Assist a přečtení chatu uvnitř WinZappu odstraní jeho oznámení z oznamovací oblasti. V "Pořadí u zpráv ze skupin v oznámeních Windows:" volíte "Nejdřív jméno účastníka" (výchozí: "Gustavo ve WinZapp | Vývojáři a testeři") nebo "Nejdřív název skupiny" (jako v oficiálním WhatsApp Desktop: "WinZapp | Vývojáři a testeři, Gustavo"); volba se týká jen textu oznámení Windows, ne toho, co čtečka obrazovky oznamuje, když je okno aktivní.</p>
+
+<h3>Připojení a obnova</h3>
+<p>Připojení k WhatsAppu je uloženo v profilu interního prohlížeče. WinZapp si uchovává jeho zálohy (Nastavení &gt; Úložiště &gt; Záloha profilu) a sám je obnoví, když je připojení odmítnuto, přičemž nahlas řekne, že obnovil a znovu se připojuje; k novému spárování vás vyzve, jen když neexistuje použitelná záloha. Pokud je interní prohlížeč neúplný (obvykle jeho část odstranil antivirus), WinZapp to oznámí a vysvětlí, co dělat.</p>
+<p>Pokud WhatsApp relaci odpojí, WinZapp vám to ihned oznámí a otevře párování. V Nastavení &gt; Připojení můžete použít vlastní API (vzdálený server); v takovém případě jsou profil prohlížeče a zálohy ponechány serveru.</p>
+<p>Když otevřete WinZapp po dlouhé době bez používání WPPConnect, může WhatsApp Web několik minut dohánět data. Mezitím název okna říká "synchronizace s WhatsAppem...": účet nespadl a není co dělat.</p>
+<p>Po dlouhé době bez otevření WinZappu může WhatsApp po skončení synchronizace nadále doručovat staré zprávy. Zatímco přicházejí, název okna říká "Aktualizace chatů" a seznam chatů zůstává nehybný, takže se jím můžete pohybovat, aniž by chaty měnily místo; aktualizuje se jednou, až zprávy přestanou přicházet. Když přijde najednou mnoho nových zpráv, WinZapp omezí jejich oznámení: s výchozím limitem propustí první tři za sekundu a pak mlčí, dokud zprávy nepřicházejí pomaleji než limit; každá zpráva je přesto uložena, v seznamu a započtena jako nepřečtená. Limit se volí v Nastavení &gt; Obecné &gt; Oznámení, pod "Maximální počet oznámení za sekundu, když přijde hodně zpráv najednou:" (výchozí: 3).</p>
+
+<h3>Historie odeslaná telefonem (Neonize)</h3>
+<p>Neonize: když telefon odesílá historii zpráv, WinZapp to oznámí a požádá vás, abyste na telefonu nechali WhatsApp otevřený na obrazovce, upozorní, když telefon přestane (s procentem), když znovu odesílá a když skončí; dokud je zastaven, WinZapp žádá telefon o zbytek každých 90 sekund.</p>
+<p>Neonize: konverzace, které WhatsApp pro iPhone vynechává z první dávky historie (nyní posílá jen 400), se nyní také vyžádají a importují.</p>
