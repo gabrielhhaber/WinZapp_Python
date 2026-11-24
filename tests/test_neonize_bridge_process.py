@@ -644,3 +644,18 @@ def test_a_bridge_that_dies_at_once_logs_the_end_of_its_output(tmp_path, caplog)
     with caplog.at_level("ERROR", logger="neonize_bridge"):
         assert handle.start() is False
     assert "WinError 193" in caplog.text and "PROCESSOR_ARCHITECTURE" in caplog.text
+
+
+def test_the_bridge_output_is_not_buffered(tmp_path):
+    assert nb.environment(_bridge(tmp_path), {})["PYTHONUNBUFFERED"] == "1"
+
+
+def test_a_bridge_that_never_opens_the_port_logs_the_end_of_its_output(tmp_path, caplog):
+    bridge = _bridge(tmp_path)
+    handle = _handle(bridge, proc=_Proc(pid=900))      # alive, port closed
+    os.makedirs(nb.run_dir(bridge), exist_ok=True)
+    with open(os.path.join(nb.run_dir(bridge), nb.OUTPUT_FILE), "w", encoding="utf-8") as stream:
+        stream.write("bridge start +0.1s: imports begin\nbridge start +2.0s: loading neonize\n")
+    with caplog.at_level("ERROR", logger="neonize_bridge"):
+        assert handle.start() is False
+    assert "did not open port" in caplog.text and "loading neonize" in caplog.text

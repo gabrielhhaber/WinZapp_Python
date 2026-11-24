@@ -656,6 +656,8 @@ NOUTĂȚI
 
 - Remediat: cu instalarea la ieșire activată, după anunțul că actualizarea a fost descărcată, Ajutor > Instalează actualizarea descărcată rămânea indisponibil. Acum elementul este disponibil și instalează actualizarea imediat, apoi pornește din nou WinZapp; ieșirea continuă să instaleze fără repornire.
 
+- Neonize: când puntea de conexiune durează prea mult să pornească, jurnalul programului spune acum dacă încă rulează și arată ultimele linii ale ieșirii ei, iar puntea scrie în propriul jurnal fiecare pas al pornirii pe măsură ce avansează, astfel încât o punte oprită la jumătate arată unde.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.
