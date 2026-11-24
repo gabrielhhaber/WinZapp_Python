@@ -151,13 +151,17 @@ def test_a_definition_outside_a_resource_is_seen_within_thirty_seconds():
 def test_new_module_names_end_a_cached_miss_as_upstream():
     """A name registered without a new resource (inline __d) is searched
     again within a second, like upstream's key-count check."""
+    # the same condition both times, so the second lookup meets a cached miss
     scenario = """
-    clock += 1500; C(wanted);
+    const wantNew = (m) => Boolean(m && m.WAWebNew);
+    clock += 1500; const first = C(wantNew);
     modulesMap.WAWebNew = {factory() {}}; defined.add('WAWebNew');
     clock += 1500;
-    return {found: C((m) => Boolean(m && m.WAWebNew))};
+    return {first, found: C(wantNew)};
     """
-    assert _run(_patched(), scenario=scenario) == {"found": "WAWebNew"}
+    expected = {"first": None, "found": "WAWebNew"}
+    assert _run(_patched(), scenario=scenario) == expected
+    assert _run(SOURCE, scenario=scenario) == expected
 
 
 def test_a_repeat_is_a_no_op():

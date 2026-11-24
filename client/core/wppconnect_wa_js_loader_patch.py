@@ -38,7 +38,7 @@ predeclared and gets defined outside a Bootloader resource is seen up to 30 s
 late instead of 1 s; the full document and the move to it after a link load
 resources, so the count moves there. With it, measured in an isolated
 WPPConnect on the same builds: QR in
-6 s on 2.3000.1055857453 and on 2.3000.1056039834, unchanged on
+6-10 s on 2.3000.1055857453 and on 2.3000.1056039834, unchanged on
 2.3000.1055837054 (full document). Without `getLoadedResourceCount` the
 loader behaves exactly as upstream.
 
