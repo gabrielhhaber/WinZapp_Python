@@ -658,6 +658,8 @@ NOVEDADES
 
 - Neonize: cuando el puente de conexión tarda demasiado en iniciarse, el registro del programa ahora dice si sigue en ejecución y muestra las últimas líneas de su salida, y el puente escribe en su propio registro cada paso de su inicio a medida que avanza, para que un puente que se detenga a medias muestre dónde.
 
+- Corregido: después de cambiar el dispositivo de audio, los sonidos de notificación (toast) dejaban de sonar, mientras que los audios de los chats y los demás sonidos de WinZapp seguían funcionando. El cambio dejaba inutilizables los sonidos de notificación ya cargados; ahora se recargan junto con los demás sonidos.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.
