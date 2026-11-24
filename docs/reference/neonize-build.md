@@ -24,6 +24,13 @@ stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
+- **neonize 0034 / meowcaller 0037**: the bridge queue opts into
+  `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing
+  adaptive playback reservoir without a second native prefill/lookahead.
+  Conventional sinks and group mixing retain their buffering policy.
+  Native tests cover timestamp overlap, short frames, clock/source changes
+  and sink handoff; client timing tests exercise the unchanged reservoir.
+
 - **neonize 0033**: optional stateless `CallResamplePCM48To16`, exposed as
   `Calls.resample_pcm48_to16`. It moves the bridge's 97-tap microphone FIR to
   Go without changing its 16 kHz call contract. Each invocation includes the

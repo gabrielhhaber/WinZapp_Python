@@ -4,6 +4,8 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Llamadas individuales con Neonize: eliminada una espera duplicada en el audio recibido, manteniendo el ajuste automático de la reproducción ante variaciones de la red.
+
 - Llamadas con Neonize: conversión del audio del micrófono optimizada para reducir el procesamiento en Python, con retorno automático al procesamiento anterior cuando el motor instalado no admite la optimización.
 
 - Checo: WinZapp ya está disponible en checo (Čeština): la interfaz, la guía del usuario, el instalador y el desinstalador (que siguen el idioma de visualización de Windows) y estas notas de la versión. El checo también se ofrece como idioma al que traducir mensajes, y el corrector ortográfico lo admite. Gracias a jaxcze por la traducción.

@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chiamate individuali con Neonize: eliminata un’attesa duplicata nell’audio ricevuto, mantenendo la regolazione automatica della riproduzione contro le variazioni del ritardo di rete.
+
 - Chiamate con Neonize: conversione dell’audio del microfono ottimizzata per ridurre l’elaborazione in Python, con ritorno automatico all’elaborazione precedente se il motore installato non supporta l’ottimizzazione.
 
 - Ceco: WinZapp è ora disponibile in ceco (Čeština): l'interfaccia, la guida per l'utente, il programma di installazione e di disinstallazione (che seguono la lingua di visualizzazione di Windows) e queste note di rilascio. Il ceco è offerto anche come lingua in cui tradurre i messaggi, e il correttore ortografico lo supporta. Grazie a jaxcze per la traduzione.

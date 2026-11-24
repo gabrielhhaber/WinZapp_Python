@@ -108,10 +108,32 @@ in CI. The existing client processing and echo cancellation remain responsible
 for capture/playback processing.
 
 This removes the Python FIR loop when the matching DLL is installed. It does
-not remove Socket.IO or either playback reservoir. The native playout releases
-its prefill as a burst, so reducing just the client's threshold is not evidence
-of lower end-to-end latency; reservoir tuning needs separate timing/jitter
-validation. No playback thresholds change with this optimization.
+not remove Socket.IO or change playback thresholds.
+
+## One playback reservoir for direct Neonize audio
+
+The bridge's `chamadaAtiva` queue now advertises meowcaller's optional
+`BufferedAudioSink` capability (neonize 0034, meowcaller 0037). Its downstream
+device callback already owns an adaptive reservoir, so decoded direct-call PCM
+is delivered immediately instead of waiting for the next RTP packet and a
+second native prefill. Sinks without the capability retain the original native
+timestamp alignment and prefill. The group mixer retains its existing policy.
+
+Authentication, packet ordering and codec PLC still precede delivery. The
+immediate path keeps natural decoder lengths, completes a short predecessor
+with bounded silence, excludes already delivered overlapping PCM, and handles
+RTP wrap. It does not enqueue an elapsed network outage after a full frame.
+A new receive SSRC or codec clock resets this timeline, so its fresh origin is
+not mistaken for duplicate audio. Sink changes hand pending PCM over once;
+flush/drain never replay PCM already sent to a buffered sink.
+
+Python keeps its existing Neonize 120 ms prebuffer, 240 ms adaptive ceiling,
+360 ms cap, fades and underrun/refill policy. No WPPConnect setting changes.
+Synthetic Go schedules and the real Python reservoir show first playback at
+60 ms instead of 120 ms for regular 60 ms packets. Bounded jitter and burst
+scenarios preserve PCM without additional underruns; a longer outage retains
+the existing starvation/refill behavior. This is local timing evidence, not a
+measurement of provider, hardware or live end-to-end call latency.
 
 Native `callPCMQueue` retains multi-frame decoder output across short C reads
 instead of dropping bytes beyond the caller's capacity. Capacity is eight

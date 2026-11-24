@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia indywidualne przez Neonize: usunięto podwójne oczekiwanie na odtwarzanie odbieranego dźwięku, zachowując automatyczne buforowanie chroniące przed wahaniami opóźnienia sieci.
+
 - Połączenia przez Neonize: zoptymalizowano konwersję dźwięku mikrofonu, aby zmniejszyć obciążenie Pythona. Jeśli zainstalowany silnik nie obsługuje optymalizacji, automatycznie używany jest dotychczasowy sposób przetwarzania.
 
 - Czeski: WinZapp jest teraz dostępny po czesku (Čeština): interfejs, przewodnik użytkownika, instalator i dezinstalator (które podążają za językiem wyświetlania Windows) oraz te informacje o wersji. Czeski jest też dostępny jako język tłumaczenia wiadomości, a sprawdzanie pisowni go obsługuje. Dziękujemy jaxcze za tłumaczenie.
