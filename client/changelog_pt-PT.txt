@@ -664,6 +664,8 @@ NOVIDADES
 
 - Com o Neonize, um contacto guardado com nome e apelido já não perde o apelido na conversa alguns segundos depois: o nome completo é gravado na ordem certa e a conversa continua a mostrar, por exemplo, "Nuno Soares" em vez de só "Nuno".
 
+- Neonize: quando a bridge de ligação bloqueia ao iniciar, passa a gravar no seu próprio registo, passados 25 segundos, em que ponto está parada.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada para lado nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, autocolantes e PDFs.

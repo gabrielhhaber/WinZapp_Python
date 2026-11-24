@@ -664,6 +664,8 @@ WHAT'S NEW
 
 - With Neonize, a contact saved with a first and last name no longer loses the last name in the conversation a few seconds later: the full name is stored in the right order, so the conversation keeps showing, for example, "Nuno Soares" instead of just "Nuno".
 
+- Neonize: when the connection bridge gets stuck while starting, it now writes to its own log where it is stuck after 25 seconds.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

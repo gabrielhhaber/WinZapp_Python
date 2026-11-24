@@ -664,6 +664,8 @@ NOVINKY
 
 - V Neonize už kontakt uložený s křestním jménem a příjmením o příjmení po několika sekundách v konverzaci nepřijde: celé jméno se ukládá ve správném pořadí, takže konverzace dál ukazuje například „Nuno Soares“ místo pouhého „Nuno“.
 
+- Neonize: když se most připojení při spouštění zasekne, po 25 sekundách nyní zapíše do svého logu, kde se zasekl.
+
 V2.1.0.0
 
 Toto vydání přináší přepis hlasových zpráv přímo ve vašem počítači, bez odesílání čehokoli kamkoli, a online AI přepis a popis hlasových zpráv, obrázků, videí, samolepek a souborů PDF.

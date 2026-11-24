@@ -664,6 +664,8 @@ NOUTĂȚI
 
 - Cu Neonize, un contact salvat cu prenume și nume de familie nu mai pierde numele de familie în conversație după câteva secunde: numele complet este stocat în ordinea corectă, așa că conversația continuă să arate, de exemplu, „Nuno Soares” în loc de doar „Nuno”.
 
+- Neonize: când puntea de conexiune se blochează la pornire, scrie acum în propriul jurnal, după 25 de secunde, în ce punct este blocată.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

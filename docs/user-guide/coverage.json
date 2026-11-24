@@ -337,6 +337,7 @@
     "34917b3be826": "Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização f",
     "9162dac61c67": "Neonize: quando a bridge de conexão demora demais para iniciar, o log do program",
     "1676e3a04355": "Corrigido: depois de trocar o dispositivo de áudio, os sons de notificação (toas",
-    "e2761794715e": "No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na "
+    "e2761794715e": "No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na ",
+    "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio"
   }
 }
