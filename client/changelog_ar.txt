@@ -658,6 +658,8 @@ V3.0.0.0
 
 - تم الإصلاح: مع تفعيل التثبيت عند الخروج، بقي الخيار مساعدة > تثبيت التحديث المنزَّل غير متاح بعد الإعلان عن تنزيل التحديث. أصبح الخيار متاحاً الآن ويثبّت التحديث فوراً ثم يعيد تشغيل WinZapp؛ أما الخروج فيظل يثبّت التحديث دون إعادة التشغيل.
 
+- في Neonize، عندما يستغرق جسر الاتصال وقتًا طويلًا جدًا للبدء، يذكر سجل البرنامج الآن ما إذا كان لا يزال يعمل ويعرض آخر أسطر مخرجاته، ويكتب الجسر في سجله الخاص كل خطوة من بدايته أثناء تقدمه، فإذا توقف في منتصف الطريق يظهر مكان توقفه.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

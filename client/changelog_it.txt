@@ -656,6 +656,8 @@ WHAT'S NEW
 
 - Corretto: con l'installazione all'uscita attiva, dopo l'avviso che l'aggiornamento era stato scaricato, Guida > Installa l'aggiornamento scaricato restava non disponibile. Ora la voce è disponibile e installa subito l'aggiornamento, poi riavvia WinZapp; uscire continua a installare senza riavviare.
 
+- Neonize: quando il ponte di connessione impiega troppo ad avviarsi, il log del programma ora dice se è ancora in esecuzione e mostra le ultime righe del suo output, e il ponte scrive nel proprio log ogni passo dell'avvio man mano che procede, così un ponte che si ferma a metà mostra dove.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
