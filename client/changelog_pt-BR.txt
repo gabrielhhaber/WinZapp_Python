@@ -4,6 +4,14 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Ligações: uma ligação que você começou pelo celular e que virou ligação em grupo pode ser retomada pelo WinZapp depois que você sai dela: "Entrar na ligação de voz em andamento" aparece na conversa de cada pessoa que continua nela, e a linha da aba Ligações mostra o nome delas. Vale para Neonize e WPPConnect.
+
+- Neonize: ao entrar numa ligação em grupo que já está em andamento, você agora ouve as pessoas cujo celular manda o áudio num formato que o WinZapp antes descartava; com elas, você não ouvia ninguém.
+
+- Salvar como (Ctrl+Shift+S) um documento JSON recebido numa conversa, como o arquivo app.json das configurações, agora salva o arquivo, em vez de dizer que não foi possível baixá-lo.
+
+- Atalhos: ao passar para outra conta logo depois de trocar uma tecla, a conta que aparece responde à tecla nova mesmo quando a anterior ainda está gravando as configurações; antes ela podia ficar com a tecla antiga até salvar alguma coisa.
+
 - Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Comunidades com essa comunidade selecionada e o foco nos grupos dela, em vez da conversa da própria comunidade. A opção fica em Configurações > Interface > Conversas, ligada por padrão.
 
 - Conectar pelo número de telefone: a conexão não falha mais depois que o WhatsApp do celular aceita o código de pareamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o login, ou pedia um novo código nele, e o celular mostrava o aparelho como conectado enquanto o WinZapp continuava na janela de pareamento. A janela do código também passa a mostrar o texto, o código e Cancelar em ordem, em vez de desenhá-los uns sobre os outros.
@@ -51,7 +59,7 @@ NOVIDADES
 
 - Versão portátil: no primeiro início, quando o WinZapp instalado no computador tem contas vinculadas, o WinZapp pergunta se você quer usar uma cópia delas em vez de vincular mais um dispositivo. A instalação só é lida; se ela estiver aberta, o WinZapp pede que você a feche e escolha Repetir, e, se a cópia falhar, nada é alterado e um novo dispositivo é vinculado.
 
-- Configurações > Atalhos: as teclas que você troca agora valem para todas as contas da instalação, e não só para aquela em que você as trocou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro início com esta versão, as teclas trocadas em cada conta entram nas da instalação: se as duas trocaram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora.
+- Configurações > Atalhos: as teclas que você troca agora valem para todas as contas da instalação, e não só para aquela em que você as trocou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro início com esta versão, as teclas trocadas em cada conta entram nas da instalação: se as duas trocaram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora. Você também pode manter teclas só para uma conta: a caixa "Usar os mesmos atalhos em todas as contas", na mesma aba, vem marcada; desmarcada, as teclas que você trocar nesta conta valem só para ela, e as das outras contas não mudam. A janela de alteração de cada atalho tem também a caixa "Usar este atalho em todas as contas", que segue a caixa geral até você mudá-la; um atalho que não segue a caixa geral aparece na lista com "em todas as contas" ou "só nesta conta".
 
 - Mensagens editadas: Eventos de som ganha "Edição da sua mensagem salva" (ativado) e "Mensagem editada por outra pessoa" com o programa em primeiro e em segundo plano (desativados); Configurações > Geral > Notificações ganha "Ler edições com a janela ativa" e "Notificar edições em segundo plano" (desativados); e a janela de dados de cada conversa tem uma janela "Mensagens editadas" para escolher sons e avisos diferentes naquela conversa. A edição de outra pessoa só é anunciada enquanto o WhatsApp ainda aceita editar aquela mensagem, então edições repetidas na reconexão ficam em silêncio.
 

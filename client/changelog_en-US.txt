@@ -4,6 +4,14 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Calls: a call you started on your phone that became a group call can be rejoined from WinZapp after you leave it: "Join ongoing voice call" appears in the chat of each person still in it, and its row in the Calls tab shows their names. Works with Neonize and WPPConnect.
+
+- Neonize: joining a group call already under way, you now hear the people whose phones send audio in a format WinZapp used to drop; with them, you heard nobody.
+
+- Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.
+
+- Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
+
 - Communities: Enter on a community in the chat list now opens the Communities panel with that community selected and the focus on its groups, instead of the community's own chat. Settings > Interface > Chats has the option, on by default.
 
 - Linking by phone number: the link no longer fails after WhatsApp on the phone accepts the pairing code. WinZapp used to close WhatsApp Web during the reload that finishes the login, or ask for a new code on it, so the phone showed the device as linked while WinZapp stayed on the pairing window. The pairing code window also lists its text, the code and Cancel in order instead of drawing them on top of each other.
@@ -51,7 +59,7 @@ WHAT'S NEW
 
 - Portable version: on its first start, when the WinZapp installed on the computer has paired accounts, WinZapp asks whether to use a copy of them instead of linking one more device. The installation is only read; if it is running, WinZapp asks you to close it and choose Retry, and if the copy fails nothing is changed and a new device is linked.
 
-- Settings > Shortcuts: the keys you change now apply to every account of the installation, not only the one where you changed them; a key set for switch to account 2 answers from every account. On the first start with this version, each account's changed keys join the installation's: where both changed a command the installation's key stays, and a key that another command already uses is left out.
+- Settings > Shortcuts: the keys you change now apply to every account of the installation, not only the one where you changed them; a key set for switch to account 2 answers from every account. On the first start with this version, each account's changed keys join the installation's: where both changed a command the installation's key stays, and a key that another command already uses is left out. You can also keep keys for one account only: the "Use the same shortcuts in every account" box on the same page comes checked; unchecked, the keys you change in this account apply to it alone, and the other accounts keep theirs. Each shortcut's Change window also has a "Use this shortcut in every account" box, which follows the general one until you change it; a shortcut that does not follow the general box shows "every account" or "this account only" in the list.
 
 - Edited messages: Sound events gains "Edit of your message saved" (on) and "Message edited by someone else" for the program in the foreground and in the background (off); Settings > General > Notifications gains "Speak edits while the window is active" and "Notify edits while in the background" (off); and each conversation's data window has an "Edited messages" window to choose different sounds and announcements for that chat. Someone else's edit is announced only while WhatsApp still accepts an edit of that message, so edits replayed after a reconnection stay silent.
 

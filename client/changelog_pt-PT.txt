@@ -4,6 +4,14 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Chamadas: uma chamada que começou no telemóvel e que passou a chamada de grupo pode ser retomada pelo WinZapp depois de sair dela: "Entrar na chamada de voz em curso" aparece na conversa de cada pessoa que continua nela, e a linha do separador Chamadas mostra o nome delas. Vale para Neonize e WPPConnect.
+
+- Neonize: ao entrar numa chamada de grupo que já está em curso, passa a ouvir as pessoas cujo telemóvel envia o áudio num formato que o WinZapp antes descartava; com elas, não ouvia ninguém.
+
+- Guardar como (Ctrl+Shift+S) um documento JSON recebido numa conversa, como o ficheiro app.json das definições, passa a guardar o ficheiro, em vez de dizer que não foi possível transferi-lo.
+
+- Atalhos: ao passar para outra conta logo depois de alterar uma tecla, a conta que aparece responde à tecla nova mesmo quando a anterior ainda está a gravar as definições; antes podia ficar com a tecla antiga até guardar alguma coisa.
+
 - Comunidades: Enter numa comunidade da lista de conversas abre agora o painel Comunidades com essa comunidade selecionada e o foco nos respetivos grupos, em vez da conversa da própria comunidade. A opção está em Definições > Interface > Conversas, ativada por predefinição.
 
 - Ligação pelo número de telefone: a ligação já não falha depois de o WhatsApp do telemóvel aceitar o código de emparelhamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o início de sessão, ou pedia um novo código nele, e o telemóvel mostrava o dispositivo como ligado enquanto o WinZapp continuava na janela de emparelhamento. A janela do código passa também a mostrar o texto, o código e Cancelar por ordem, em vez de os desenhar uns sobre os outros.
@@ -51,7 +59,7 @@ NOVIDADES
 
 - Versão portátil: no primeiro arranque, quando o WinZapp instalado no computador tem contas associadas, o WinZapp pergunta se quer usar uma cópia delas em vez de associar mais um dispositivo. A instalação só é lida; se estiver aberta, o WinZapp pede que a feche e escolha Repetir, e, se a cópia falhar, nada é alterado e é associado um novo dispositivo.
 
-- Definições > Atalhos: as teclas que altera passam a valer para todas as contas da instalação, e não só para aquela em que as alterou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro arranque com esta versão, as teclas alteradas em cada conta juntam-se às da instalação: se ambas alteraram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora.
+- Definições > Atalhos: as teclas que altera passam a valer para todas as contas da instalação, e não só para aquela em que as alterou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro arranque com esta versão, as teclas alteradas em cada conta juntam-se às da instalação: se ambas alteraram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora. Também pode manter teclas só para uma conta: a caixa "Usar os mesmos atalhos em todas as contas", no mesmo separador, vem marcada; desmarcada, as teclas que alterar nesta conta valem só para ela, e as das outras contas não mudam. A janela de alteração de cada atalho tem também a caixa "Usar este atalho em todas as contas", que segue a caixa geral até a alterar; um atalho que não segue a caixa geral aparece na lista com "em todas as contas" ou "só nesta conta".
 
 - Mensagens editadas: Eventos de som ganha "Edição da sua mensagem guardada" (ativado) e "Mensagem editada por outra pessoa" com o programa em primeiro e em segundo plano (desativados); Definições > Geral > Notificações ganha "Ler edições com a janela ativa" e "Notificar edições em segundo plano" (desativados); e a janela de dados de cada conversa tem uma janela "Mensagens editadas" para escolher sons e avisos diferentes nessa conversa. A edição de outra pessoa só é anunciada enquanto o WhatsApp ainda aceita editar essa mensagem, por isso as edições repetidas na religação ficam em silêncio.
 

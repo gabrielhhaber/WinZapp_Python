@@ -4,6 +4,14 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chiamate: una chiamata iniziata dal telefono e diventata di gruppo si può riprendere da WinZapp dopo esserne usciti: "Unisciti alla chiamata vocale in corso" compare nella chat di ogni persona ancora presente, e la sua riga nella scheda Chiamate mostra i loro nomi. Funziona con Neonize e WPPConnect.
+
+- Neonize: entrando in una chiamata di gruppo già in corso, ora senti le persone il cui telefono invia l’audio in un formato che WinZapp prima scartava; con loro non sentivi nessuno.
+
+- Salva con nome (Ctrl+Maiusc+S) su un documento JSON ricevuto in una chat, come il file app.json delle impostazioni, ora salva il file invece di dire che non è stato possibile scaricarlo.
+
+- Scorciatoie da tastiera: passando a un altro account subito dopo aver cambiato un tasto, l’account che compare risponde al tasto nuovo anche mentre il precedente sta ancora salvando le impostazioni; prima poteva restare sul tasto vecchio finché non salvava qualcosa.
+
 - Community: Invio su una community nell'elenco delle chat ora apre il pannello Community con quella community selezionata e il focus sui suoi gruppi, invece della chat della community stessa. L'opzione è in Impostazioni > Interfaccia > Chat, attiva per impostazione predefinita.
 
 - Collegamento con il numero di telefono: il collegamento non fallisce più dopo che WhatsApp sul telefono ha accettato il codice di associazione. WinZapp chiudeva WhatsApp Web durante il ricaricamento che completa l'accesso, o vi chiedeva un nuovo codice, e il telefono mostrava il dispositivo come collegato mentre WinZapp restava sulla finestra di associazione. La finestra del codice ora mostra anche il testo, il codice e Annulla in ordine, invece di disegnarli uno sopra l'altro.
@@ -51,7 +59,7 @@ WHAT'S NEW
 
 - Versione portatile: al primo avvio, quando il WinZapp installato sul computer ha account collegati, WinZapp chiede se vuoi usarne una copia invece di collegare un altro dispositivo. L'installazione viene solo letta; se è in esecuzione, WinZapp ti chiede di chiuderla e scegliere Riprova, e se la copia fallisce non cambia nulla e viene collegato un nuovo dispositivo.
 
-- Impostazioni > Scorciatoie da tastiera: i tasti che cambi ora valgono per tutti gli account dell'installazione, non solo per quello in cui li hai cambiati; un tasto impostato per passa all'account 2 risponde da ogni account. Al primo avvio con questa versione, i tasti cambiati in ogni account si uniscono a quelli dell'installazione: se entrambi hanno cambiato lo stesso comando resta il tasto dell'installazione, e un tasto che un altro comando usa già viene lasciato fuori.
+- Impostazioni > Scorciatoie da tastiera: i tasti che cambi ora valgono per tutti gli account dell'installazione, non solo per quello in cui li hai cambiati; un tasto impostato per passa all'account 2 risponde da ogni account. Al primo avvio con questa versione, i tasti cambiati in ogni account si uniscono a quelli dell'installazione: se entrambi hanno cambiato lo stesso comando resta il tasto dell'installazione, e un tasto che un altro comando usa già viene lasciato fuori. Puoi anche tenere tasti solo per un account: la casella "Usa le stesse scorciatoie in tutti gli account", nella stessa scheda, è selezionata; deselezionata, i tasti che cambi in questo account valgono solo per lui, e quelli degli altri account non cambiano. La finestra di modifica di ogni scorciatoia ha anche la casella "Usa questa scorciatoia in tutti gli account", che segue quella generale finché non la cambi; una scorciatoia che non segue la casella generale compare nell'elenco con "in tutti gli account" o "solo in questo account".
 
 - Messaggi modificati: Eventi sonori ottiene "Modifica del tuo messaggio salvata" (attivo) e "Messaggio modificato da un'altra persona" per il programma in primo piano e in background (disattivi); Impostazioni > Generale > Notifiche ottiene "Leggi le modifiche con la finestra attiva" e "Notifica le modifiche in background" (disattivi); e la finestra dei dati di ogni conversazione ha una finestra "Messaggi modificati" per scegliere suoni e annunci diversi in quella chat. La modifica di un'altra persona viene annunciata solo finché WhatsApp accetta ancora di modificare quel messaggio, quindi le modifiche riproposte dopo una riconnessione restano silenziose.
 

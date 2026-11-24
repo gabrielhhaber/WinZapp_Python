@@ -4,6 +4,14 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Llamadas: una llamada que empezaste en el teléfono y que se convirtió en llamada de grupo se puede retomar desde WinZapp después de salir de ella: "Unirse a la llamada de voz en curso" aparece en la conversación de cada persona que sigue en ella, y su fila en la pestaña Llamadas muestra sus nombres. Funciona con Neonize y WPPConnect.
+
+- Neonize: al unirte a una llamada de grupo ya en curso, ahora oyes a las personas cuyo teléfono envía el audio en un formato que WinZapp antes descartaba; con ellas, no oías a nadie.
+
+- Guardar como (Ctrl+Shift+S) en un documento JSON recibido en una conversación, como el archivo app.json de la configuración, ahora guarda el archivo, en lugar de decir que no se pudo descargar.
+
+- Atajos de teclado: al pasar a otra cuenta justo después de cambiar una tecla, la cuenta que aparece responde a la tecla nueva aunque la anterior siga guardando su configuración; antes podía quedarse con la tecla antigua hasta guardar algo.
+
 - Comunidades: Intro sobre una comunidad de la lista de chats abre ahora el panel Comunidades con esa comunidad seleccionada y el foco en sus grupos, en lugar del chat de la propia comunidad. La opción está en Ajustes > Interfaz > Chats, activada de forma predeterminada.
 
 - Vincular con el número de teléfono: la vinculación ya no falla después de que WhatsApp en el teléfono acepte el código de emparejamiento. WinZapp cerraba WhatsApp Web durante la recarga que completa el inicio de sesión, o pedía en ella un código nuevo, y el teléfono mostraba el dispositivo como vinculado mientras WinZapp seguía en la ventana de emparejamiento. La ventana del código también muestra ahora el texto, el código y Cancelar en orden, en lugar de dibujarlos unos encima de otros.
@@ -51,7 +59,7 @@ NOVEDADES
 
 - Versión portátil: en el primer inicio, cuando el WinZapp instalado en el equipo tiene cuentas vinculadas, WinZapp pregunta si quieres usar una copia de ellas en lugar de vincular un dispositivo más. La instalación solo se lee; si está abierta, WinZapp te pide que la cierres y elijas Reintentar, y si la copia falla no se cambia nada y se vincula un dispositivo nuevo.
 
-- Configuración > Atajos de teclado: las teclas que cambias ahora valen para todas las cuentas de la instalación, y no solo para aquella en la que las cambiaste; una tecla definida para ir a la cuenta 2 responde en todas las cuentas. En el primer inicio con esta versión, las teclas cambiadas en cada cuenta se unen a las de la instalación: si ambas cambiaron el mismo comando, vale la de la instalación, y una tecla que otro comando ya usa queda fuera.
+- Configuración > Atajos de teclado: las teclas que cambias ahora valen para todas las cuentas de la instalación, y no solo para aquella en la que las cambiaste; una tecla definida para ir a la cuenta 2 responde en todas las cuentas. En el primer inicio con esta versión, las teclas cambiadas en cada cuenta se unen a las de la instalación: si ambas cambiaron el mismo comando, vale la de la instalación, y una tecla que otro comando ya usa queda fuera. También puedes mantener teclas solo para una cuenta: la casilla "Usar los mismos atajos en todas las cuentas", en la misma pestaña, viene marcada; desmarcada, las teclas que cambies en esta cuenta valen solo para ella, y las de las demás cuentas no cambian. La ventana para cambiar cada atajo tiene también la casilla "Usar este atajo en todas las cuentas", que sigue a la general hasta que la cambies; un atajo que no sigue la casilla general aparece en la lista con "en todas las cuentas" o "solo en esta cuenta".
 
 - Mensajes editados: Eventos de sonido incorpora "Edición de tu mensaje guardada" (activado) y "Mensaje editado por otra persona" con el programa en primer plano y en segundo plano (desactivados); Configuración > General > Notificaciones incorpora "Leer ediciones con la ventana activa" y "Notificar ediciones en segundo plano" (desactivados); y la ventana de datos de cada chat tiene una ventana "Mensajes editados" para elegir sonidos y avisos distintos en ese chat. La edición de otra persona solo se anuncia mientras WhatsApp aún acepta editar ese mensaje, así que las ediciones repetidas al reconectar quedan en silencio.
 
