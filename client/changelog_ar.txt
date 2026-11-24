@@ -664,6 +664,8 @@ V3.0.0.0
 
 - تم الإصلاح: بعد تبديل جهاز الصوت، كانت أصوات الإشعارات (toast) تتوقف عن العمل بينما تستمر الرسائل الصوتية في المحادثات وبقية أصوات WinZapp في العمل. كان التبديل يجعل أصوات الإشعارات المحمّلة مسبقًا غير صالحة؛ وهي الآن تُعاد تحميلها مع بقية الأصوات.
 
+- في Neonize، لم تعد جهة الاتصال المحفوظة باسم أول واسم عائلة تفقد اسم العائلة في المحادثة بعد ثوانٍ: يُخزَّن الاسم الكامل بالترتيب الصحيح، فتواصل المحادثة عرض «Nuno Soares» مثلًا بدل «Nuno» فقط.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

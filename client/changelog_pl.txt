@@ -663,6 +663,8 @@ NOWOŚCI
 
 - Naprawiono: po zmianie urządzenia audio dźwięki powiadomień (toast) przestawały być odtwarzane, a nagrania w rozmowach i pozostałe dźwięki WinZapp nadal działały. Zmiana urządzenia unieważniała już wczytane dźwięki powiadomień; teraz są ponownie wczytywane razem z pozostałymi dźwiękami.
 
+- W Neonize kontakt zapisany z imieniem i nazwiskiem nie traci już nazwiska w rozmowie po kilku sekundach: pełna nazwa jest zapisywana w prawidłowej kolejności, więc rozmowa nadal pokazuje na przykład „Nuno Soares”, a nie samo „Nuno”.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.
