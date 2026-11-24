@@ -9,6 +9,7 @@ import bridge_arch
 bridge_arch.pin()    # before anything imports neonize
 import startup_trace
 startup_trace.mark("imports begin (" + startup_trace.describe() + ")")
+startup_trace.watch(25)   # a start stuck for 25 s dumps where (cancelled once the app is made)
 
 import argparse
 import asyncio
@@ -3533,6 +3534,7 @@ def main():
             h.addFilter(StateOnly())
     startup_trace.mark("creating the app")
     app = create_app(a.folder, a.single_session)
+    startup_trace.done()
     startup_trace.mark("app created; opening port %s" % a.port)
     web.run_app(app, port=a.port, **SERVER_OPTIONS)
 
