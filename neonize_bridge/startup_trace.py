@@ -30,8 +30,8 @@ def describe() -> str:
 
 
 def watch(seconds: float, stream=None, repeat: bool = False) -> bool:
-    """If the start has not finished after ``seconds`` 
-    write the Python stack of every thread to the stream: the frame a hung start
+    """If the start has not finished after ``seconds``, write once
+    the Python stack of every thread to the stream: the frame a hung start
     is stuck in, which a mark alone cannot show (a native call that never
     returns). False when the stream cannot take it."""
     try:
