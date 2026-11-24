@@ -12742,14 +12742,14 @@ msgstr "Než tuto odpověď obnovíte, dokončete nebo vymažte rozepsanou zprá
 #, python-brace-format
 msgctxt "reply_to"
 msgid "Re&ply to {name}"
-msgstr "&Odpovědět: {name}"
+msgstr "Odpovědět &na {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 #, python-brace-format
 msgctxt "reply_to_group"
 msgid "Re&ply to {name} in {group}"
-msgstr "&Odpovědět: {name} v {group}"
+msgstr "Odpovědět &na {name} v {group}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_rendering.py
