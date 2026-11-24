@@ -3574,7 +3574,7 @@ msgstr "Ohlásit, &když se někdo připojí k hovoru"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "calls_announce_left_label"
 msgid "A&nnounce when someone leaves a call"
-msgstr "Oh&lásit, když někdo opustí hovor"
+msgstr "Ohlásit, když někdo opustí &hovor"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -7017,7 +7017,7 @@ msgstr "%d. %m. %Y %H:%M"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "deactivate_all_sounds"
 msgid "&Disable all"
-msgstr "&Vypnout vše"
+msgstr "V&ypnout vše"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
 #: client/core/cuda_components/text.py client/core/noise_model_text.py
@@ -9102,7 +9102,7 @@ msgstr "Importovat sadu zvuků"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "import_sound_pack_folder_button"
 msgid "&Import sound folder"
-msgstr "&Importovat složku se zvuky"
+msgstr "Impo&rtovat složku se zvuky"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -13340,7 +13340,7 @@ msgstr "Při ukládání nastavení došlo k chybě:"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "settings_search_label"
 msgid "&Search settings"
-msgstr "&Hledat v nastavení"
+msgstr "H&ledat v nastavení"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -14865,18 +14865,18 @@ msgstr "Párovací kód aktualizován"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "sound_event_path_label"
 msgid "Sound &file path:"
-msgstr "Cesta ke zvukovému &souboru:"
+msgstr "C&esta ke zvukovému souboru:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/sound_event_files.py
 msgctxt "sound_event_preview"
 msgid "Pre&view sound"
-msgstr "&Přehrát ukázku zvuku"
+msgstr "Přehrá&t ukázku zvuku"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_preview_stop"
 msgid "Stop pre&view"
-msgstr "Zastavit &ukázku"
+msgstr "Zas&tavit ukázku"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "sound_event_qrcode_loaded"
@@ -16289,7 +16289,7 @@ msgstr "Změřená logická velikost: {size}. Soubory: {count}."
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "storage_manager_open"
 msgid "Sto&rage manager…"
-msgstr "Správce ú&ložiště…"
+msgstr "Správce &úložiště…"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/media_files.py
@@ -19925,7 +19925,7 @@ msgstr "Přepis použije {backend} s modelem {model} a grafickou kartu."
 #, python-brace-format
 msgctxt "transcription_save_default_name"
 msgid "Transcription - {name}"
-msgstr "Přepis – {name}"
+msgstr "Přepis - {name}"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/transcription_result.py
@@ -20722,7 +20722,7 @@ msgstr "&Interval opakování (sekundy):"
 #: client/ui/dialogs/typing_feedback_controls.py
 msgctxt "typing_feedback_label"
 msgid "T&yping notification:"
-msgstr "Upozornění na &psaní:"
+msgstr "Upozorn&ění na psaní:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/typing_feedback_controls.py
