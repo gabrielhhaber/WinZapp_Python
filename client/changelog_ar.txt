@@ -668,6 +668,8 @@ V3.0.0.0
 
 - في Neonize، عندما يتعطل جسر الاتصال أثناء البدء، يكتب الآن في سجله الخاص، بعد 25 ثانية، أين توقف.
 
+- Mac: أصبح محرك Neonize متاحًا الآن في WinZapp لأجهزة Mac أيضًا، على Apple Silicon وIntel، ويتصل مباشرة بواتساب دون متصفح. اختره من قائمة «محرك الاتصال» في نافذة الاتصال أو من الإعدادات > الاتصال.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

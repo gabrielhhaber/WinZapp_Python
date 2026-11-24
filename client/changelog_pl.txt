@@ -667,6 +667,8 @@ NOWOŚCI
 
 - Neonize: gdy most połączenia zawiesza się podczas uruchamiania, po 25 sekundach zapisuje teraz w swoim logu, w którym miejscu utknął.
 
+- Mac: silnik Neonize jest teraz dostępny także w WinZapp na Maca, na Apple Silicon i Intel, i łączy się bezpośrednio z WhatsAppem, bez przeglądarki. Wybierz go na liście "Silnik połączenia" w oknie połączenia albo w Ustawienia > Połączenie.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

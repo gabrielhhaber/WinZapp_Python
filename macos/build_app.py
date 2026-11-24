@@ -2,7 +2,7 @@
 """Build a self-contained WinZapp.app for macOS (Apple Silicon or Intel —
 whichever Mac runs the build).
 
-    python3 macos/build_app.py [--no-deps] [--no-api] [--zip] [--install | --install-only]
+    python3 macos/build_app.py [--no-deps] [--no-api] [--no-bridge] [--zip] [--install | --install-only]
 
 Steps
   1. Python deps into .pydeps/ (requirements.txt minus Windows-only pins).
@@ -11,6 +11,9 @@ Steps
   3. setup_api.py with that Node -> client/api (WPPConnect server + its
      headless Chrome).
   4. PyInstaller -> macos/dist/WinZapp.app (runtime hook installs winzapp_mac).
+  4b. The Neonize bridge, frozen, into Contents/Resources/neonize_bridge
+     (bridge_bundle.py: neonize's dylib is compiled from source, so this needs
+     Go; --no-bridge leaves the Neonize engine out of a quick local build).
   5. The server runtime (api/ + node/) into Contents/Resources/runtime with a
      STAMP, without the server's development packages (runtime_prune.py);
      the app installs it into Application Support at launch
@@ -25,7 +28,8 @@ Steps
      WinZappSourceCommit).
      --install: the app into /Applications (only while WinZapp is not running).
 
-Requires Homebrew's portaudio (brew install portaudio) for PyAudio.
+Requires Homebrew's portaudio (brew install portaudio) for PyAudio, and Go
+(brew install go) for the Neonize bridge.
 Every step fails loudly; nothing is installed unless all of them passed.
 """
 
@@ -50,7 +54,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
-import runtime_prune     # noqa: E402  (macos/, beside this script)
+import bridge_bundle     # noqa: E402  (macos/, beside this script)
+import runtime_prune     # noqa: E402
 ROOT = os.path.dirname(HERE)
 CLIENT = os.path.join(ROOT, "client")
 PYDEPS = os.path.join(ROOT, ".pydeps")
@@ -668,7 +673,8 @@ def sign_developer_id(identity, profile=None):
             binaries.append(p)
     # deepest first, so containing code is signed after what it contains
     binaries.sort(key=lambda p: p.count(os.sep), reverse=True)
-    runtime_exes = {"node", "chrome-headless-shell"}
+    # the Neonize bridge too: a Python that loads a Go library through ctypes
+    runtime_exes = {"node", "chrome-headless-shell", bridge_bundle.EXECUTABLE}
     base = ["codesign", "--force", "--timestamp", "--options", "runtime", "--sign", identity]
     print(f"   signing {len(binaries)} binaries", flush=True)
     for p in binaries:
@@ -791,6 +797,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-api", action="store_true", help="skip rebuilding client/api")
     ap.add_argument("--no-deps", action="store_true", help="skip pip")
+    ap.add_argument("--no-bridge", action="store_true",
+                    help="leave the Neonize bridge out (no Go needed; WPPConnect only)")
     ap.add_argument("--install", action="store_true")
     ap.add_argument("--zip", action="store_true", help="also write a release .zip")
     ap.add_argument("--install-only", action="store_true",
@@ -817,6 +825,9 @@ def main():
         build_api(node_dir)
     sparkle_dir = fetch_sparkle()
     pyinstaller()
+    if not a.no_bridge:
+        step("Neonize bridge -> Contents/Resources/neonize_bridge")
+        bridge_bundle.bundle(ROOT, APP, BUILD, ARCH)
     bundle_runtime(node_dir)
     embed_sparkle(sparkle_dir)
     finish_bundle(source)

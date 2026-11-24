@@ -17,6 +17,10 @@ on:
       - "requirements.txt"
       - "client/api_patches/**"
       - "client/node_download_config.py"
+      # the Neonize bridge the app carries (macos/bridge_bundle.py)
+      - "neonize_bridge/**"
+      - "winzapp_tools/bridge_build.py"
+      - "client/core/neonize_bridge_process.py"
   workflow_dispatch:
 
 permissions:
@@ -48,8 +52,19 @@ jobs:
       - name: PortAudio (for PyAudio)
         run: brew install portaudio
 
+      # neonize's dylib is compiled from source for the bundled Neonize bridge
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.x"
+          cache: false
+
       - name: Build WinZapp.app
         run: python macos/build_app.py --zip
+
+      # Loads neonize (and its dylib) before parsing the arguments: a bridge
+      # that cannot start fails here, not at a user's first switch to Neonize.
+      - name: The bundled Neonize bridge starts
+        run: macos/dist/WinZapp.app/Contents/Resources/neonize_bridge/neonize_bridge --help
 
       - name: macOS layer tests
         env:

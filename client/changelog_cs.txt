@@ -666,6 +666,8 @@ NOVINKY
 
 - Neonize: když se most připojení při spouštění zasekne, po 25 sekundách nyní zapíše do svého logu, kde se zasekl.
 
+- Mac: engine Neonize je nyní i ve WinZapp pro Mac, na Apple Silicon i Intel, a připojuje se přímo k WhatsAppu, bez prohlížeče. Vyberte ho v seznamu "Engine připojení" v okně připojení nebo v Nastavení > Připojení.
+
 V2.1.0.0
 
 Toto vydání přináší přepis hlasových zpráv přímo ve vašem počítači, bez odesílání čehokoli kamkoli, a online AI přepis a popis hlasových zpráv, obrázků, videí, samolepek a souborů PDF.
