@@ -82,10 +82,18 @@ def test_a_fresh_install_has_nothing_to_rename(tmp_path):
     assert layout.migrate(str(root), running=False) == 0
 
 
+def _make_venv_python(tmp_path):
+    """The bridge virtualenv's interpreter where this system looks for it."""
+    from core import neonize_bridge_process
+    python = neonize_bridge_process.venv_python(str(tmp_path / "neonize_bridge"))
+    os.makedirs(os.path.dirname(python))
+    with open(python, "w") as stream:
+        stream.write("")
+
+
 def test_starting_the_bridge_renames_the_legacy_folders_first(tmp_path):
     bridge = _legacy_bridge(tmp_path)
-    (tmp_path / "neonize_bridge" / ".venv" / "Scripts").mkdir(parents=True)
-    (tmp_path / "neonize_bridge" / ".venv" / "Scripts" / "python.exe").write_text("")
+    _make_venv_python(tmp_path)
     (tmp_path / "neonize_bridge" / "server.py").write_text("")
 
     class _Proc:
@@ -131,9 +139,7 @@ def _handle(bridge, *, alive, created, killed):
 
 def _installed(tmp_path):
     bridge = _legacy_bridge(tmp_path)
-    scripts = tmp_path / "neonize_bridge" / ".venv" / "Scripts"
-    scripts.mkdir(parents=True)
-    (scripts / "python.exe").write_text("")
+    _make_venv_python(tmp_path)
     (tmp_path / "neonize_bridge" / "server.py").write_text("")
     return bridge
 
