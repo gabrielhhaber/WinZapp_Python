@@ -73,6 +73,7 @@ import history_progress
 import history_resume
 import older_history
 import omitted_history
+import recent_conversations
 import call_invites
 import channels_panel
 import channel_events
@@ -767,6 +768,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         threading.Thread(target=self._check_always, daemon=True).start()
         threading.Thread(target=self._copy_always, daemon=True).start()
         threading.Thread(target=history_resume.watch, args=(self,), daemon=True).start()
+        threading.Thread(target=recent_conversations.watch, args=(self,), daemon=True).start()
         self.flush_pending_reads()      # read notices kept while disconnected
 
     def _on_unlinked(self, generation, c):
@@ -1402,12 +1404,15 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             self._store_history_block(data)
             return
         omitted_batch = omitted_history.is_omitted_batch(data)
+        recent_conversations.note_block(self, data, omitted_batch)
         progress = history_progress.progress_of(self, time.monotonic())
         progress.started(time.monotonic())
         percent = None
         try:
             percent = self._store_history_block(data)
-            if omitted_batch:
+            if omitted_batch or recent_conversations.is_answer(data):
+                # not a block of the pairing's numbered transfer: its progress
+                # says nothing about how far that stands
                 percent = None
             elif omitted_history.tracks_transfer_progress(data):
                 history_resume.note_block(self, data, time.monotonic())
@@ -1540,10 +1545,23 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             answer = Session._history_rows(jid, c)
             rows.extend(answer)
             total += len(answer)
+        recent_answer = recent_conversations.is_answer(data)
+        known = ({jid for jid, _fields in chats if self.db.has_chat(jid)}
+                 if recent_answer and hasattr(self.db, "has_chat") else set())
         self.db.chats_in_batch(chats)
         if ends:
             self.db.history_ends_of_existing(ends)
         self.db.messages_in_batch(rows)
+        if recent_answer:
+            recent_conversations.tracker_of(self).answered()
+            previews = recent_conversations.new_chat_previews(chats, rows, known)
+            log.info("recent conversations answer: %d chats (%d new), %d messages",
+                     len(chats), sum(1 for jid, _f in chats if jid not in known), total)
+            if callable(emit_fn):
+                session_name = getattr(self, "name", "")
+                for w in previews:
+                    emit_fn("received-message", {
+                        "session": session_name, "response": {**w, "isMdHistoryMsg": True}})
         if on_demand and on_demand_new and callable(emit_fn):
             session_name = getattr(self, "name", "")
             for _chat, w, _raw in on_demand_new:
@@ -2530,7 +2548,8 @@ def create_app(folder, fixed=""):
         s = session(req)
         counts = s.db.counts()
         state = history_progress.progress_of(s, time.monotonic()).state(
-            time.monotonic(), counts["chat"])
+            time.monotonic(), counts["chat"],
+            hold=recent_conversations.tracker_of(s).pending(time.monotonic()))
         return ok(status="success", response={
             "backendWorkerBridgeReady": True, **state,
             "unprocessed": state["unprocessedChunks"], "restarted": False, "removed": [],

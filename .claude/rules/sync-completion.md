@@ -15,6 +15,7 @@ paths:
   - "neonize_bridge/omitted_history.py"
   - "neonize_bridge/older_history.py"
   - "neonize_bridge/history_resume.py"
+  - "neonize_bridge/recent_conversations.py"
 ---
 
 # Sync completion
