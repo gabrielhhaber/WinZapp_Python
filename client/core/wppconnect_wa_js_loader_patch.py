@@ -32,8 +32,12 @@ Fix: a failed `importNamespace()` is not retried until something new can have
 been defined. Modules only arrive in resources the Bootloader loads, so its
 `getLoadedResourceCount()` is the epoch: a failure, a search miss and the
 registry's key list are reused while that count is unchanged (30 s, 30 s and
-1 s at most, so nothing is held forever if a definition arrives some other
-way). With it, measured in an isolated WPPConnect on the same builds: QR in
+1 s at most). New module names still end a cached miss within a second, as
+upstream's own key-count check does. The one cost: a module that was already
+predeclared and gets defined outside a Bootloader resource is seen up to 30 s
+late instead of 1 s; the full document and the move to it after a link load
+resources, so the count moves there. With it, measured in an isolated
+WPPConnect on the same builds: QR in
 6 s on 2.3000.1055857453 and on 2.3000.1056039834, unchanged on
 2.3000.1055837054 (full document). Without `getLoadedResourceCount` the
 loader behaves exactly as upstream.
@@ -85,16 +89,27 @@ _MISS_SET = re.compile(
 
 def _require(m):
     loader, g = m.group("loader"), m.group("g")
+    # wzEpoch: Bootloader's loaded-resource count, -1 when unknown. Bootloader
+    # may export itself or a `default` (wa-js's own getBootloader() accepts
+    # both); a failed lookup is retried at most once a second.
+    # wzCount: the key count of moduleRequire.m, recomputed only when the
+    # getter hands out a new object, so searchId keeps upstream's "new module
+    # names appeared -> search again" without an Object.keys per lookup.
     return (
-        f"{loader}.moduleRequire=function(){{let wzBoot=null;const wzFail=new Map,"
-        f"wzEpoch=()=>{{try{{return wzBoot=wzBoot||{g}.require(\"Bootloader\"),"
-        f"\"function\"==typeof wzBoot.getLoadedResourceCount?wzBoot.getLoadedResourceCount():-1}}"
+        f"{loader}.moduleRequire=function(){{let wzBoot=null,wzBootTried=0,wzCountOf=null,wzCountN=-1;"
+        f"const wzFail=new Map,"
+        f"wzEpoch=()=>{{try{{if(!wzBoot){{if(Date.now()-wzBootTried<1e3)return-1;wzBootTried=Date.now();"
+        f"const wzMod={g}.require(\"Bootloader\");"
+        f"wzBoot=wzMod&&\"function\"==typeof wzMod.getLoadedResourceCount?wzMod:wzMod&&wzMod.default}}"
+        f"return wzBoot&&\"function\"==typeof wzBoot.getLoadedResourceCount?wzBoot.getLoadedResourceCount():-1}}"
         f"catch(wzErr){{return-1}}}},"
         f"wzRequire=function(wzId){{const wzNow=wzEpoch(),wzLast=wzFail.get(wzId);"
         f"if(-1!==wzNow&&wzLast&&wzLast.epoch===wzNow&&Date.now()-wzLast.at<3e4)return null;"
         f"try{{return {g}.ErrorGuard.skipGuardGlobal(!0),{g}.importNamespace(wzId)}}"
         f"catch(wzErr){{-1!==wzNow&&wzFail.set(wzId,{{epoch:wzNow,at:Date.now()}})}}return null}};"
-        f"return {MARKER},wzRequire.wzMiss=new Map,wzRequire.wzKeys=null,wzRequire}}()"
+        f"return {MARKER},wzRequire.wzMiss=new Map,wzRequire.wzKeys=null,"
+        f"wzRequire.wzCount=()=>{{const wzM=wzRequire.m;"
+        f"return wzM!==wzCountOf&&(wzCountOf=wzM,wzCountN=Object.keys(wzM).length),wzCountN}},wzRequire}}()"
     )
 
 
@@ -118,7 +133,8 @@ def _miss_check(m):
     cond = m.group("cond")
     return (
         f"if(null==={m.group('cached')}&&\"meta\"==={m.group('loader')}.loaderType&&{req}.wzEpoch"
-        f"&&{req}.wzMiss.get({cond})==={req}.wzEpoch()&&Date.now()-({m.group('times')}.get({cond})||0)<3e4)"
+        f"&&{req}.wzMiss.get({cond})==={req}.wzEpoch()&&Date.now()-({m.group('times')}.get({cond})||0)<3e4"
+        f"&&{m.group('counts')}.get({cond})==={req}.wzCount())"
         f"return null;" + m.group("check")
     )
 
