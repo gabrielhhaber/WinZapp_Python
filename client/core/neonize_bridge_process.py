@@ -260,8 +260,8 @@ def rotate_output(path: str, limit: int = OUTPUT_LIMIT, *,
     return True
 
 
-TAIL_LINES = 30
-TAIL_BYTES = 8192
+TAIL_LINES = 90      # a stack dump of the hung start (every thread) must fit
+TAIL_BYTES = 16384
 
 
 def output_tail(path: str, lines: int = TAIL_LINES, limit: int = TAIL_BYTES) -> str:
