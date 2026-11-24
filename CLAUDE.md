@@ -119,7 +119,8 @@ uv run translations-check               # release-ready catalog validation
   Details: `docs/reference/build-and-setup.md`.
 - The Neonize bridge's neonize (DLL included) is built from source:
   `neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py all --install`
-  (Go + 64-bit MinGW gcc; close WinZapp first). Approved upstream release in
+  (Go + 64-bit MinGW gcc; close WinZapp first). On macOS the same script
+  builds the dylib (`docs/reference/neonize-build.md`, "macOS"). Approved upstream release in
   `neonize_bridge/neonize_upstream.json`; CI: `.github/workflows/neonize-dll.yml`.
 - `macos/` is a Mac-only layer the Windows build never runs; what it asks of
   a Windows change: `docs/reference/macos.md`.
