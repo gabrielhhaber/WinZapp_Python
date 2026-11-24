@@ -9,7 +9,7 @@ import bridge_arch
 bridge_arch.pin()    # before anything imports neonize
 import startup_trace
 startup_trace.mark("imports begin (" + startup_trace.describe() + ")")
-startup_trace.watch(25)   # a start stuck for 25 s dumps where (cancelled once the app is made)
+startup_trace.watch(25)   # a start stuck for 25 s dumps where, once (cancelled when the app is made)
 
 import argparse
 import asyncio

@@ -29,8 +29,8 @@ def describe() -> str:
         platform.python_version(), platform.architecture()[0], platform.machine())
 
 
-def watch(seconds: float, stream=None, repeat: bool = True) -> bool:
-    """If the start has not finished after ``seconds`` (and again every so often),
+def watch(seconds: float, stream=None, repeat: bool = False) -> bool:
+    """If the start has not finished after ``seconds`` 
     write the Python stack of every thread to the stream: the frame a hung start
     is stuck in, which a mark alone cannot show (a native call that never
     returns). False when the stream cannot take it."""
