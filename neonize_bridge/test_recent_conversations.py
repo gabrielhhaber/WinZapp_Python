@@ -71,7 +71,6 @@ def test_an_answer_stops_the_asking():
 
 def test_the_history_is_held_until_answered_or_given_up():
     t = capped()
-    assert t.pending(0)                         # before the transfer is done
     t.next_request(100, transfer_done=True)
     assert t.pending(100 + rc.GIVE_UP - 1)
     assert not t.pending(100 + rc.GIVE_UP)      # the phone never answered
@@ -234,3 +233,34 @@ def test_an_omitted_batch_cancels_the_request(tmp_path):
         [Conversation(ID="111@lid", name="Older", conversationTimestamp=1700000000)])
     server.Session._store_history(s, batch)
     assert not rc.tracker_of(s).wanted()
+
+
+def test_the_answer_keeps_the_state_of_a_chat_already_stored(tmp_path):
+    s, db, emitted = stored_session(tmp_path)
+    db.chats_in_batch([("old@s.whatsapp.net", {"ts": 5, "archived": 1, "unread": 0})])
+    answer = N(syncType=9, progress=0, chunkOrder=1, pushnames=[], phoneNumberToLidMappings=[],
+               conversations=[conversation("old@s.whatsapp.net", 2, unread=7)])
+    server.Session._store_history_block(s, answer)
+    chat = {c["jid"]: c for c in db.chats()}["old@s.whatsapp.net"]
+    assert chat["archived"] == 1 and chat["unread"] == 0 and chat["ts"] == 5
+    assert len(db.messages("old@s.whatsapp.net")) == 2
+    assert emitted == []
+
+
+def test_the_answer_goes_to_the_address_the_chat_is_stored_under(tmp_path):
+    s, db, emitted = stored_session(tmp_path)
+    db.chats_in_batch([("5511@s.whatsapp.net", {"ts": 5})])
+    s.existing_chat = lambda jid: "5511@s.whatsapp.net" if jid == "99@lid" else ""
+    answer = N(syncType=9, progress=0, chunkOrder=1, pushnames=[], phoneNumberToLidMappings=[],
+               conversations=[conversation("99@lid", 2)])
+    server.Session._store_history_block(s, answer)
+    assert [c["jid"] for c in db.chats()] == ["5511@s.whatsapp.net"]
+    assert len(db.messages("5511@s.whatsapp.net")) == 2
+    assert emitted == []
+
+
+def test_the_hold_has_a_deadline_even_when_nobody_asked():
+    t = capped()
+    assert t.pending(0)
+    assert t.pending(rc.GIVE_UP - 1)
+    assert not t.pending(rc.GIVE_UP)

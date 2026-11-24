@@ -1505,6 +1505,8 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
         on_demand = older_history.is_on_demand(data)
         ends = []
         on_demand_new = []
+        recent_answer = recent_conversations.is_answer(data)
+        known = set()
         for c in data.conversations:
             jid = c.ID
             if not jid or jid.endswith("@broadcast") or jid.endswith("@newsletter"):
@@ -1541,13 +1543,19 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                           and self.db.chat_omitted_info(keys) is not None):
                         self.db.mark_history_exhausted(keys, older_history.OMITTED_ANCHOR)
                 continue
-            chats.append((jid, Session._conversation_fields(c, history_end)))
-            answer = Session._history_rows(jid, c)
+            target = jid
+            if recent_answer:
+                # under the key the chat is stored with (number or LID); one
+                # already stored keeps the state the live events gave it, the
+                # answer only adds its messages
+                target = (existing_fn(jid) if callable(existing_fn) else "") or jid
+                if hasattr(self.db, "has_chat") and self.db.has_chat(target):
+                    known.add(target)
+            if target not in known:
+                chats.append((target, Session._conversation_fields(c, history_end)))
+            answer = Session._history_rows(target, c)
             rows.extend(answer)
             total += len(answer)
-        recent_answer = recent_conversations.is_answer(data)
-        known = ({jid for jid, _fields in chats if self.db.has_chat(jid)}
-                 if recent_answer and hasattr(self.db, "has_chat") else set())
         self.db.chats_in_batch(chats)
         if ends:
             self.db.history_ends_of_existing(ends)
@@ -1556,7 +1564,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
             recent_conversations.tracker_of(self).answered()
             previews = recent_conversations.new_chat_previews(chats, rows, known)
             log.info("recent conversations answer: %d chats (%d new), %d messages",
-                     len(chats), sum(1 for jid, _f in chats if jid not in known), total)
+                     len(chats) + len(known), len(chats), total)
             if callable(emit_fn):
                 session_name = getattr(self, "name", "")
                 for w in previews:

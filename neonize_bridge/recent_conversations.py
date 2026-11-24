@@ -119,7 +119,9 @@ class Tracker:
         with self._lock:
             if not self._wanted():
                 return False
-            return self.due_since is None or now - self.due_since < GIVE_UP
+            if self.due_since is None:
+                self.due_since = now        # the hold has a deadline even if nobody asks
+            return now - self.due_since < GIVE_UP
 
 
 def tracker_of(s):
