@@ -662,6 +662,8 @@ NOUTĂȚI
 
 - Remediat: după schimbarea dispozitivului audio, sunetele de notificare (toast) nu mai erau redate, în timp ce mesajele audio din conversații și celelalte sunete WinZapp continuau să funcționeze. Schimbarea făcea inutilizabile sunetele de notificare deja încărcate; acum sunt reîncărcate împreună cu celelalte sunete.
 
+- Cu Neonize, un contact salvat cu prenume și nume de familie nu mai pierde numele de familie în conversație după câteva secunde: numele complet este stocat în ordinea corectă, așa că conversația continuă să arate, de exemplu, „Nuno Soares” în loc de doar „Nuno”.
+
 V2.1.0.0
 
 Această versiune aduce transcrierea mesajelor vocale pe propriul dumneavoastră computer, fără să fie trimis nimic nicăieri, și transcrierea și descrierea cu AI online a mesajelor vocale, imaginilor, videoclipurilor, autocolantelor și PDF-urilor.

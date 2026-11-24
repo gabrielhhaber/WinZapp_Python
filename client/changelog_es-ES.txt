@@ -662,6 +662,8 @@ NOVEDADES
 
 - Corregido: después de cambiar el dispositivo de audio, los sonidos de notificación (toast) dejaban de sonar, mientras que los audios de los chats y los demás sonidos de WinZapp seguían funcionando. El cambio dejaba inutilizables los sonidos de notificación ya cargados; ahora se recargan junto con los demás sonidos.
 
+- Con Neonize, un contacto guardado con nombre y apellido ya no pierde el apellido en la conversación unos segundos después: el nombre completo se guarda en el orden correcto y la conversación sigue mostrando, por ejemplo, "Nuno Soares" en lugar de solo "Nuno".
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

@@ -335,7 +335,9 @@ class SavingClient(FakeClient):
 
     def __init__(self):
         super().__init__()
-        self.contact = N(get_contact=self._get_contact, put_contact_name=lambda *a: None)
+        self.stored_names = []
+        self.contact = N(get_contact=self._get_contact,
+                         put_contact_name=lambda *a: self.stored_names.append(a[1:]))
 
     def is_on_whatsapp(self, *numbers):
         return [N(IsIn=True, JID=jid(PHONE), HasField=lambda field: False)]
@@ -367,6 +369,8 @@ async def test_save_contact_tells_the_server_before_writing_the_address_book(
         (mutation,) = fake.calls[1][1].Mutations
         # the index WhatsApp Web writes (toString({legacy: true}) of a number)
         assert list(mutation.Index) == ["contact", f"{PHONE}@s.whatsapp.net"]
+        # whatsmeow's store takes (first, full): the reverse of neonize's label
+        assert fake.stored_names == [("Ana", "Ana Silva")]
     finally:
         await http.close()
 

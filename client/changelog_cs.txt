@@ -662,6 +662,8 @@ NOVINKY
 
 - Opraveno: po přepnutí zvukového zařízení přestaly hrát zvuky oznámení (toast), zatímco zvuk chatu a ostatní zvuky WinZappu fungovaly dál. Přepnutí nechalo už načtené zvuky oznámení nepoužitelné; nyní se načítají znovu spolu s ostatními zvuky.
 
+- V Neonize už kontakt uložený s křestním jménem a příjmením o příjmení po několika sekundách v konverzaci nepřijde: celé jméno se ukládá ve správném pořadí, takže konverzace dál ukazuje například „Nuno Soares“ místo pouhého „Nuno“.
+
 V2.1.0.0
 
 Toto vydání přináší přepis hlasových zpráv přímo ve vašem počítači, bez odesílání čehokoli kamkoli, a online AI přepis a popis hlasových zpráv, obrázků, videí, samolepek a souborů PDF.

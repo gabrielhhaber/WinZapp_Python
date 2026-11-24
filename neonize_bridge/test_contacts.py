@@ -429,3 +429,7 @@ def test_registered_phone_jid_is_the_number_when_the_query_answers_with_the_lid(
 def test_registered_phone_jid_keeps_a_number_answer():
     found = {"jid": "5511999990000@s.whatsapp.net", "business": False}
     assert contacts.registered_phone_jid(found, "", "5511999900000") == found["jid"]
+
+
+def test_store_name_args_follow_whatsmeows_order_not_neonizes_label():
+    assert contacts.store_name_args("Nuno Soares", "Nuno") == ("Nuno", "Nuno Soares")
