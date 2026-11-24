@@ -16,9 +16,9 @@ class Titles(HTMLParser):
         self.active, self.parts, self.navigation, self.headings = None, [], [], []
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == "a" and attrs.get("href") == "#armazenamento":
+        if tag == "a" and attrs.get("href") == "#storage":
             self.active, self.parts = "a", []
-        if tag == "h2" and attrs.get("id") == "h-armazenamento":
+        if tag == "h2" and attrs.get("id") == "h-storage":
             self.active, self.parts = "h2", []
     def handle_data(self, data):
         if self.active: self.parts.append(data)

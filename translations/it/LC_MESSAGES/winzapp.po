@@ -11681,7 +11681,7 @@ msgctxt "pairing_engine_switch_title"
 msgid "Change connection engine"
 msgstr "Cambi motore di connessione"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/core/websocket_client.py
 msgctxt "pairing_failed_msg"
 msgid ""
 "WinZapp couldn't finish pairing with WhatsApp. Please try connecting again."
@@ -20649,6 +20649,11 @@ msgstr "Verific&a"
 msgctxt "translate_from_here"
 msgid "Translate from here to the end"
 msgstr "Traduci da qui alla fine"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_cs"
+msgid "Czech"
+msgstr "Ceco"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"

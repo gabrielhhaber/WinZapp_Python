@@ -74,6 +74,18 @@ def kill_tree(pid, grace=0.0):
                 pass
 
 
+def owns_port_listener(window):
+    """Whether what listens on the account's port is this account's own Node,
+    to be killed on quit. Not on a custom API: the user's own server, or the
+    Neonize bridge, which every account shares and which
+    _stop_wpp_server() already leaves (it asks the bridge to close its
+    sessions; the last account out stops it, neonize_bridge_process.py).
+    The same rule as profile_is_local(): both mean "the bundled WPPConnect".
+    """
+    from core.profile_recovery import profile_is_local
+    return profile_is_local(window)
+
+
 def install():
     from main_window import wpp_server
     cls = wpp_server.WppServerMixin
@@ -89,9 +101,11 @@ def install():
             return None
         from . import lifecycle_mac
         lifecycle_mac.leave_dock()
-        proc = getattr(self, "wpp_process", None)
-        pid = proc.pid if proc is not None and proc.poll() is None else None
-        pid = pid or find_pid_listening_on_port(self, getattr(self, "wpp_port", 6300))
+        pid = None
+        if owns_port_listener(self):
+            proc = getattr(self, "wpp_process", None)
+            pid = proc.pid if proc is not None and proc.poll() is None else None
+            pid = pid or find_pid_listening_on_port(self, getattr(self, "wpp_port", 6300))
         try:
             return orig_stop(self, *args, **kwargs)
         finally:

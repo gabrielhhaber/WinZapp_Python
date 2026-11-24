@@ -4,9 +4,11 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Cehă: WinZapp este acum disponibil în cehă (Čeština): interfața, ghidul de utilizare, programul de instalare și cel de dezinstalare (care urmează limba de afișare din Windows) și aceste note de versiune. Ceha este oferită și ca limbă în care se pot traduce mesaje, iar verificatorul ortografic o acceptă. Mulțumim lui jaxcze pentru traducere.
+
 - Comunități: Enter pe o comunitate din lista de conversații deschide acum panoul Comunități cu acea comunitate selectată și focalizarea pe grupurile ei, în locul conversației comunității. Opțiunea este în Setări > Interfață > Conversații, activată implicit.
 
-- Conectarea cu numărul de telefon: conectarea nu mai eșuează după ce WhatsApp de pe telefon acceptă codul de asociere. WinZapp închidea WhatsApp Web în timpul reîncărcării care finalizează autentificarea, sau cerea un cod nou pe ea, iar telefonul arăta dispozitivul ca fiind conectat în timp ce WinZapp rămânea în fereastra de asociere. Fereastra codului arată acum și textul, codul și Anulare în ordine, în loc să le deseneze unele peste altele.
+- Conectarea cu numărul de telefon: conectarea nu mai eșuează după ce WhatsApp de pe telefon acceptă codul de asociere. WinZapp închidea WhatsApp Web în timpul reîncărcării care finalizează autentificarea, sau cerea un cod nou pe ea, iar telefonul arăta dispozitivul ca fiind conectat în timp ce WinZapp rămânea în fereastra de asociere. Fereastra codului arată acum și textul, codul și Anulare în ordine, în loc să le deseneze unele peste altele. Dacă WhatsApp Web tot nu deschide conversațiile după ce codul a fost acceptat, WinZapp încearcă acum încă o dată și apoi îți spune, în loc să aștepte la nesfârșit în fereastra de asociere, iar o conectare acceptată de telefon nu mai este pierdută când repornești WinZapp.
 
 - Când WhatsApp refuză temporar codurile de asociere pentru un număr, WinZapp spune imediat acest lucru, în loc să rămână la "se conectează" timp de un minut și jumătate, și sugerează „Conectați-vă cu codul QR”, care nu folosește un cod de asociere.
 
@@ -67,7 +69,7 @@ NOUTĂȚI
 
 - Neonize: cât timp telefonul trimite istoricul mesajelor, WinZapp anunță și vă cere să țineți WhatsApp deschis pe ecranul telefonului, avertizează când telefonul se oprește (cu procentul), când trimite din nou și când termină; cât timp este oprit, WinZapp cere restul de la telefon la fiecare 90 de secunde.
 
-- Neonize: conversațiile pe care WhatsApp pentru iPhone le lasă în afara primului lot de istoric (acum trimite doar 400) sunt acum cerute și importate și ele.
+- Neonize: conversațiile pe care WhatsApp pentru iPhone le lasă în afara primului lot de istoric (acum trimite doar 400) sunt acum cerute și importate și ele. Când telefonul nu trimite lista celor lăsate pe dinafară, WinZapp, după ce se termină istoricul asocierii, cere telefonului conversațiile care lipsesc și așteaptă câteva minute răspunsul înainte de a considera sincronizarea încheiată.
 
 - Neonize: ștergerea unei liste o scoate și din conversațiile ei, care nu mai arată spre o listă ce nu mai există.
 
@@ -655,6 +657,14 @@ NOUTĂȚI
 - Neonize pe Windows pe ARM: puntea de conexiune nu mai eșuează la pornire (iar asocierea prin cod QR nu mai rămâne blocată) pentru că cerea versiunea ARM a bibliotecii sale, pe care programul nu o poate încărca; acum folosește versiunea arhitecturii pe care rulează de fapt.
 
 - Remediat: cu instalarea la ieșire activată, după anunțul că actualizarea a fost descărcată, Ajutor > Instalează actualizarea descărcată rămânea indisponibil. Acum elementul este disponibil și instalează actualizarea imediat, apoi pornește din nou WinZapp; ieșirea continuă să instaleze fără repornire.
+
+- Neonize: când puntea de conexiune durează prea mult să pornească, jurnalul programului spune acum dacă încă rulează și arată ultimele linii ale ieșirii ei, iar puntea scrie în propriul jurnal fiecare pas al pornirii pe măsură ce avansează, astfel încât o punte oprită la jumătate arată unde.
+
+- Remediat: după schimbarea dispozitivului audio, sunetele de notificare (toast) nu mai erau redate, în timp ce mesajele audio din conversații și celelalte sunete WinZapp continuau să funcționeze. Schimbarea făcea inutilizabile sunetele de notificare deja încărcate; acum sunt reîncărcate împreună cu celelalte sunete.
+
+- Cu Neonize, un contact salvat cu prenume și nume de familie nu mai pierde numele de familie în conversație după câteva secunde: numele complet este stocat în ordinea corectă, așa că conversația continuă să arate, de exemplu, „Nuno Soares” în loc de doar „Nuno”.
+
+- Neonize: când puntea de conexiune se blochează la pornire, scrie acum în propriul jurnal, după 25 de secunde, în ce punct este blocată.
 
 V2.1.0.0
 

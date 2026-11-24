@@ -29,6 +29,7 @@ MARKERS = {
     "ro": (("local",), ("ai online",)),
     "ar": (("محلي",), ("عبر الإنترنت",)),
     "it": (("local",), ("ia online",)),
+    "cs": (("místn",), ("online ai",)),
 }
 
 LOCAL_KEYS = (

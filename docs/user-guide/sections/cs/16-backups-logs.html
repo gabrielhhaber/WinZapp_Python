@@ -1,0 +1,15 @@
+<!--nav: 💾 Zálohy a protokoly-->
+<h3>Záloha profilu</h3>
+<p>V profilu interního prohlížeče žije vaše připojení k WhatsAppu. V Nastavení &gt; Úložiště &gt; Záloha profilu:</p>
+<ul>
+  <li>Nastavte, jak často WinZapp při zavření zálohu obnovuje (výchozí: 24 hodin; 0 ji provede při každém zavření).</li>
+  <li>Zapněte zálohu také za chodu WinZappu, v intervalu, který zvolíte. Během jejího vytváření zůstane WhatsApp odpojený, což může trvat několik minut, a WinZapp se může zeptat před každým spuštěním. Nová záloha nahradí předchozí, až když se WhatsApp s ní znovu připojí.</li>
+  <li>"Neuchovávat zálohy profilu" šetří místo, ale pokud se profil poškodí, budete se muset spárovat znovu. Když to zaškrtnete, WinZapp řekne, kolik místa zálohy zabírají, a zeptá se, zda je chcete smazat.</li>
+</ul>
+<p>S enginem Neonize, který nemá interní prohlížeč, není co zálohovat: záloha profilu se nezobrazuje v Nastavení &gt; Úložiště ani ve správci úložiště.</p>
+<p>Tyto zálohy WinZapp používá k automatické obnově (viz část Účty, oznamovací oblast a synchronizace). Chcete-li zachovat historii zpráv a médií, zkopírujte složku <code>data</code>.</p>
+
+<h3>Protokoly</h3>
+<p>Protokoly WinZappu (<code>log.log</code>) a místního serveru (<code>wppconnect.log</code>) maskují telefonní čísla, identifikátory WhatsAppu a jména kontaktů, takže je lze poslat při hlášení problému, aniž by se prozradily vaše kontakty. Jsou v <code>data\accounts\&lt;account id&gt;\logs</code>, uvnitř složky WinZappu. <code>log.log</code> se při každém spuštění nahradí. U problémů s opakovanou žádostí o spárování nebo ztrátou relace pošlete také <code>shutdown_audit.log</code>.</p>
+<p>V Pokročilé tlačítko "Exportovat protokoly tohoto účtu..." uloží na pozadí soubor .zip s protokoly aktuálního účtu a mostu Neonize a oznámí, kdy skončí.</p>
+<p>Problémy hlaste a funkce požadujte v Issues repozitáře (<code>github.com/gabrielhhaber/WinZapp_Python/issues</code>). Nápověda &gt; O programu ukazuje verzi, kterou formulář pro hlášení chyb vyžaduje.</p>

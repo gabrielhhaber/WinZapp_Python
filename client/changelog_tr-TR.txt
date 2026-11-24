@@ -4,9 +4,11 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Çekçe: WinZapp artık Çekçe (Čeština) olarak da kullanılabiliyor: arayüz, kullanım kılavuzu, yükleyici ve kaldırıcı (Windows görüntüleme diline uyar) ve bu sürüm notları. Çekçe ayrıca mesajların çevrileceği bir dil olarak sunulur ve yazım denetimi onu destekler. Çeviri için jaxcze'ye teşekkürler.
+
 - Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.
 
-- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor.
+- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor. Kod kabul edildikten sonra WhatsApp Web sohbetlerinizi hâlâ açmazsa, WinZapp artık eşleme penceresinde sonsuza kadar beklemek yerine bir kez daha dener ve ardından size bildirir; telefonun kabul ettiği bir bağlantı da WinZapp'i yeniden başlattığınızda artık silinmez.
 
 - WhatsApp bir numara için eşleme kodlarını geçici olarak reddettiğinde WinZapp bunu bir buçuk dakika "bağlanıyor" durumunda beklemek yerine hemen söylüyor ve eşleme kodu kullanmayan "QR kodu ile bağlan" seçeneğini öneriyor.
 
@@ -67,7 +69,7 @@ YENİLİKLER
 
 - Neonize: telefon ileti geçmişini gönderirken WinZapp bunu söyler ve WhatsApp'ı telefonun ekranında açık tutmanızı ister; telefon durduğunda (yüzdeyle), yeniden gönderdiğinde ve bitirdiğinde uyarır; telefon durmuşken WinZapp her 90 saniyede bir kalanını telefondan ister.
 
-- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor.
+- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor. Telefon dışarıda bıraktığı sohbetlerin listesini göndermediğinde, WinZapp eşleştirme geçmişi bittikten sonra telefondan eksik sohbetleri ister ve eşzamanlamayı tamamlanmış saymadan önce yanıtı birkaç dakika bekler.
 
 - Neonize: bir listeyi silmek onu sohbetlerinden de kaldırır; böylece sohbetler artık var olmayan bir listeyi göstermeye devam etmez.
 
@@ -655,6 +657,14 @@ YENİLİKLER
 - ARM üzerinde Windows'ta Neonize: bağlantı köprüsü, programın yükleyemediği ARM sürümünü istediği için artık başlatılamamazlık etmiyor (ve QR kodla eşleştirme takılı kalmıyor); artık gerçekte çalıştığı mimarinin sürümünü kullanıyor.
 
 - Düzeltildi: Çıkışta yükleme açıkken, güncellemenin indirildiği duyurulduktan sonra Yardım > İndirilen güncellemeyi yükle öğesi kullanılamaz kalıyordu. Artık öğe kullanılabilir; güncellemeyi hemen yükler ve ardından WinZapp'ı yeniden başlatır; çıkış yapmak yine yeniden başlatmadan yükler.
+
+- Neonize: bağlantı köprüsü başlatılırken çok uzun sürdüğünde programın günlüğü artık hâlâ çalışıp çalışmadığını söyler ve çıktısının son satırlarını gösterir; köprü de başlangıcının her adımını ilerledikçe kendi günlüğüne yazar, böylece yarıda kalan bir köprü nerede durduğunu gösterir.
+
+- Düzeltildi: ses aygıtı değiştirildikten sonra bildirim (toast) sesleri çalmaz oluyordu; sohbet sesleri ve WinZapp'ın diğer sesleri ise çalışmaya devam ediyordu. Aygıt değişikliği önceden yüklenmiş bildirim seslerini kullanılamaz hale getiriyordu; artık diğer seslerle birlikte yeniden yükleniyor.
+
+- Neonize ile ad ve soyadıyla kaydedilen bir kişi, birkaç saniye sonra sohbette soyadını artık kaybetmiyor: tam ad doğru sırayla saklanıyor, böylece sohbet örneğin yalnızca "Nuno" yerine "Nuno Soares" göstermeye devam ediyor.
+
+- Neonize: bağlantı köprüsü başlatılırken takılırsa, artık 25 saniye sonra nerede takıldığını kendi günlüğüne yazar.
 
 V2.1.0.0
 

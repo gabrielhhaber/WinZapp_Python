@@ -1,0 +1,67 @@
+<!--nav: 🔌 Začínáme-->
+<p class="lead">WinZapp je klient WhatsAppu pro Windows určený lidem, kteří používají čtečku obrazovky (NVDA, JAWS nebo Narrator). Funguje jako WhatsApp Web: hlavním zařízením zůstává váš telefon a WinZapp se k němu připojí jako propojené zařízení.</p>
+
+<h3>Instalace</h3>
+<p>Stahujte vždy ze stránky Releases oficiálního repozitáře (<code>github.com/gabrielhhaber/WinZapp_Python/releases</code>). Kopie na jiných webech k projektu nepatří. Každé vydání obsahuje tyto soubory:</p>
+<table class="field-table">
+  <tr><th>Soubor</th><th>K čemu slouží</th></tr>
+  <tr><td class="field-name">WinZappInstaller.exe</td><td>Instalátor. Pro většinu lidí správná volba. Instaluje do <code>%LOCALAPPDATA%\WinZapp</code> (nejsou potřeba práva správce), může vytvořit zástupce na ploše a v nabídce Start a zapíše odinstalátor do Nastavení Windows &gt; Aplikace.</td></tr>
+  <tr><td class="field-name">WinZapp.zip</td><td>Tentýž program jako přenosná verze. Rozbalte ho do složky na místním disku a spusťte <code>WinZapp.exe</code>.</td></tr>
+  <tr><td class="field-name">SHA256SUMS.txt</td><td>Kontrolní součty k ověření stažených souborů.</td></tr>
+</table>
+<div class="callout warn">
+  <div class="callout-title">⚠️ Místní disk</div>
+  WinZapp nefunguje ze síťové složky (například <code>\\server\folder</code> nebo ze složky Stažené soubory ve virtuálním počítači). Pokud k tomu dojde, program vám to oznámí a vysvětlí, co dělat: nainstalujte ho pomocí WinZappInstaller, nebo složku přesuňte na disk ve svém počítači.
+</div>
+<p>Požadavky: 64bitový Windows 10 nebo 11, připojení k internetu a účet WhatsApp v telefonu.</p>
+
+<h3>Stabilní verze, nebo alpha</h3>
+<ul>
+  <li><strong>Stabilní:</strong> sestavená ručně a doporučená. Je to ta, která je na stránce Releases označená "Latest".</li>
+  <li><strong>Alpha:</strong> označená "Pre-release". Sestavuje se automaticky při každé změně v hlavní větvi, bez dlouhého testování, takže může obsahovat chyby. Číslo verze končí na "alpha" (například <code>2.1.0.4397alpha</code>; poslední číslice počítají změny provedené v projektu).</li>
+</ul>
+<p>Ve výchozím nastavení dostáváte jen stabilní verze. Chcete-li dostávat i alpha verze, zaškrtněte "Hledat alfa aktualizace (nestabilní)" v Nastavení &gt; Obecné.</p>
+
+<h3>První spuštění</h3>
+<p>Při prvním spuštění WinZapp sám stáhne a nastaví součásti, které komunikují s WhatsApp Webem (server WPPConnect a interní prohlížeč Chromium). K tomu je potřeba internet a zobrazí se okno s průběhem nazvané "Spouštím WPPConnect, čekejte prosím...". Při dalších spuštěních, kdy je účet už připojený, se hlavní okno a vaše chaty objeví okamžitě a WhatsApp se připojuje na pozadí. Zprávy, které mezitím odešlete, počkají a odejdou, jakmile bude připojení připraveno. Titulek okna zobrazuje "spouštění WPPConnect...", dokud není všechno připraveno.</p>
+
+<h3>Připojení účtu</h3>
+<p>Obrazovka připojení nabízí dva způsoby spárování:</p>
+<ol class="steps">
+  <li><span class="step-num">1</span><div><strong>Telefonní číslo:</strong> Pokud jste ještě nespárovali, seznam "Engine připojení" před zemí vám umožní vybrat mezi Neonize a WPPConnect (alternativní), aniž byste otevírali Nastavení; po výběru se WinZapp zeptá na potvrzení a restartuje se s vybraným enginem. Vyberte zemi (seznam je abecední, používá zemi a jazyk Windows a k vyhledání přijímá psaní několika písmen), zadejte číslo a pokračujte. WinZapp zobrazí kód. V telefonu otevřete WhatsApp, přejděte na Propojená zařízení &gt; Propojit zařízení a zvolte propojení pomocí telefonního čísla.</div></li>
+  <li><span class="step-num">2</span><div><strong>QR kód:</strong> naskenujte kód na obrazovce pomocí WhatsAppu v telefonu v části Propojená zařízení.</div></li>
+</ol>
+<p>WinZapp oznamuje, kdy se kód generuje, kdy se skutečně zobrazí, kdy vyprší a kdy se ho nepodařilo vygenerovat. Pokud WhatsApp kód odmítne, zpráva vysvětlí proč.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 Připojení jiného čísla</div>
+  Zavření nebo zrušení obrazovky párování vaše chaty nesmaže. Historie se vymaže, až když se skutečně připojí jiné telefonní číslo, a v takovém případě vás WinZapp upozorní.
+</div>
+
+<h3>Kde jsou vaše data</h3>
+<p>Všechno je ve složce <code>data</code> vedle programu: účty, historie zpráv, stažená média a protokoly. U instalátoru je to <code>%LOCALAPPDATA%\WinZapp\data</code>. Tuto složku zálohujte, pokud chcete přenést historii do jiného počítače. Obsah zpráv a token relace jsou uloženy šifrovaně.</p>
+
+<h3>Aktualizace</h3>
+<p>WinZapp si nové verze hledá sám a nabídne jejich stažení a instalaci. Chcete-li zkontrolovat hned, použijte Nápověda &gt; Zkontrolovat aktualizace (pokud se k serveru aktualizací nelze připojit, program vám to sdělí). Několik užitečných informací:</p>
+<ul>
+  <li>S volbou "Stahovat aktualizace a soubory pro přepis na pozadí, bez okna průběhu" (Nastavení &gt; Obecné) program během stahování aktualizace dál používáte a zůstáváte připojeni; teprve když je aktualizace připravena, WinZapp oznámí, že ji bude instalovat. Pokud právě voláte, oznámení počká do konce hovoru.</li>
+  <li>Nápověda &gt; Nainstalovat staženou aktualizaci nainstaluje už stažené aktualizace okamžitě, ať jste ji odložili, nebo ji drží volba instalace při ukončení. Při takové instalaci se WinZapp po dokončení znovu spustí; ukončení programu aktualizaci stále nainstaluje, ale znovu nespustí.</li>
+  <li>Zrušení okna s průběhem před zahájením instalace aktualizaci bezpečně zastaví.</li>
+  <li>Stažený balíček se uchovává, dokud čeká na instalaci. Až se WinZapp zavře, počkejte, než instalátor skončí, a teprve potom program znovu otevřete. Pokud instalace neskončí, dosažení časového limitu čekání WinZapp automaticky znovu neotevře. Neúplná kopie je chyba; pozdější úspěšná aktualizace dřívější upozornění na chybu vymaže. Pokud se kopírování nezdaří nebo nelze potvrdit jeho dokončení, WinZapp zůstane zavřený a v Poznámkovém bloku otevře pokyny k obnově. Počkejte, než instalátor skončí, a až potom opravujte. Zálohujte stávající složku s daty, opravte soubory programu pomocí oficiálního instalátoru nebo ZIP a složku s daty si ponechte. Poznámka uvádí instalační složku a umístění protokolu aktualizace.</li>
+  <li>Pokud je otevřeno více účtů, aktualizace otevře jediné okno a před instalací ostatní účty zavře.</li>
+  <li>Nápověda &gt; Vynutit přeinstalaci WPPConnect a Vynutit přeinstalaci ze souboru ZIP slouží pro případ, že se něco v místním serveru pokazí.</li>
+  <li>Nápověda &gt; Co je nového ukazuje, co se změnilo v každé verzi, a Nápověda &gt; "Co je nového od posledního zobrazení..." shrnuje jednoduchými větami jen to, co je nové pro vás. Tlačítko "Co je nového?" v okně aktualizace ukazuje, co mění nabízená verze; u alphy navíc vypíše změny každé alphy od té vaší.</li>
+</ul>
+
+<h3>Ověření stažených souborů</h3>
+<p>Každé vydání obsahuje soubor <code>SHA256SUMS.txt</code>. Ověření v CMD:</p>
+<p><code>certutil -hashfile WinZappInstaller.exe SHA256</code></p>
+<p>Hodnota se musí shodovat s tou na řádku daného souboru. Pokud se liší, soubor smažte a stáhněte znovu. Aktualizátor WinZappu také před instalací kontroluje kontrolní součet (a u novějších verzí i podpis).</p>
+
+<p>U enginu Neonize se v okně připojení zeptá, kolik historie přenést při připojení: jen nedávné zprávy, 30 dnů, 6 měsíců, 1 rok, celou historii nebo vlastní období (dny, měsíce nebo roky, zadané v poli, které se zobrazí níže). Telefon odešle historii jednou, při připojení; zprávy starší než zhruba rok přijdou jen tímto způsobem. Změna volby, když je na obrazovce QR kód, vytvoří nový QR kód, který ji obsahuje.</p>
+
+<h3>Zvuky k instalaci</h3>
+<p>Instalátor: nová skupina "Zvuky k instalaci" nabízí výběr mezi "Všechny zvuky WinZapp" (výchozí) a "Jen původní zvuky WhatsAppu". U druhé možnosti se ostatní zvuky v instalaci neuchovávají a aktualizace je nadále vynechávají.</p>
+<p>Aktualizace: okno aktualizace má tlačítko "Další nastavení" (Alt+A) za tlačítky "Ano", "No" a "What's new?". Otevře okno s volbami "All WinZapp sounds" a "Only the original WhatsApp sounds", s uvedenou aktuální volbou, a s tlačítky "OK" a "Cancel". Volba se uplatní při instalaci aktualizace: u jen původních zvuků se přidané zvuky WinZappu odstraní; když znovu zvolíte všechny, vrátí se spolu s aktualizací. Importované sady zvuků, vaše vlastní zvukové soubory a vaše předvolby se nemění.</p>
+
+<h3>Přenosná verze s nainstalovaným účtem</h3>
+<p>Přenosná verze: při prvním spuštění, pokud WinZapp nainstalovaný v počítači má spárované účty, se WinZapp zeptá, zda místo propojení dalšího zařízení použít jejich kopii. Instalace se jen čte; pokud běží, WinZapp vás požádá, abyste ji zavřeli a zvolili Opakovat, a pokud se kopírování nezdaří, nic se nezmění a propojí se nové zařízení.</p>

@@ -122,6 +122,17 @@ def layout_pairing_controls(window, instructions, label, field, cancel):
     return sizer
 
 
+def pairing_was_accepted(private_info: dict, token: str) -> bool:
+    """Did the phone accept the pairing of the session this token names?
+
+    Set by WebSocketClient.on_wpp_pairing_accepted() from the server's
+    `pairing-accepted` event. Keyed by session, so a token for any other
+    session — a later pairing attempt, a different account — gets no benefit.
+    """
+    session = (token or "").split(":")[0]
+    return bool(session) and private_info.get("link_accepted_session") == session
+
+
 class Connect:
     def __init__(self, main_window):
         self.main_window = main_window
@@ -314,7 +325,12 @@ class Connect:
             )
             headers = {"Authorization": f"Bearer {_bearer}", "Content-Type": "application/json"}
             check_resp = api_get(check_url, headers=headers, timeout=5)
-            is_paired = private_info.get("paired", False)
+            # A session whose pairing the phone accepted is a paired one, even
+            # when session-logged never came: wiping it discards a device the
+            # phone lists as linked.
+            is_paired = private_info.get("paired", False) or pairing_was_accepted(
+                private_info, token
+            )
             if check_resp.status_code in (401, 403):
                 logging.warning("[check_connection_status] check-connection-session returned unauthorized (HTTP %s).", check_resp.status_code)
                 if is_paired:

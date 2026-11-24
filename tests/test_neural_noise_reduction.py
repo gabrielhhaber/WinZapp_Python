@@ -209,7 +209,7 @@ def test_removing_the_model_deletes_its_file_and_forgets_the_loaded_one(
 def test_every_locale_has_the_fallback_notice():
     import polib, glob
     files = glob.glob(os.path.join(os.path.dirname(__file__), "..", "translations", "*", "LC_MESSAGES", "winzapp.po"))
-    assert len(files) == 9  # upstream added Arabic and Italian after the first adaptation
+    assert len(files) == 10  # upstream added Arabic, Italian and Czech after the first adaptation
     for f in files:
         for key in ("noise_reduction_fallback", "noise_reduction_failed"):
             entry = [e for e in polib.pofile(f) if e.msgctxt == key]
@@ -229,7 +229,7 @@ class _PoI18n:
         return self._t[key]
 
 
-LOCALES = ["en-US", "es-ES", "pl", "pt-BR", "pt-PT", "ro", "tr-TR", "it"]
+LOCALES = ["en-US", "es-ES", "pl", "pt-BR", "pt-PT", "ro", "tr-TR", "it", "cs"]
 
 
 def test_noise_model_section_speaks_in_every_locale():
