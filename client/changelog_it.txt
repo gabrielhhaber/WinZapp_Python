@@ -668,6 +668,8 @@ WHAT'S NEW
 
 - Neonize: quando il ponte di connessione si blocca all'avvio, ora scrive nel proprio log, dopo 25 secondi, in che punto è bloccato.
 
+- Mac: il motore Neonize ora è incluso anche in WinZapp per Mac, su Apple Silicon e Intel, e si connette direttamente a WhatsApp, senza browser. Sceglilo nell'elenco "Motore di connessione" della finestra di connessione o in Impostazioni > Connessione.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

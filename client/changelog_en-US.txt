@@ -668,6 +668,8 @@ WHAT'S NEW
 
 - Neonize: when the connection bridge gets stuck while starting, it now writes to its own log where it is stuck after 25 seconds.
 
+- Mac: the Neonize engine now comes with WinZapp for Mac too, on Apple Silicon and Intel, and connects straight to WhatsApp, without a browser. Choose it in the "Connection engine" list of the connection window or in Settings > Connection.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.

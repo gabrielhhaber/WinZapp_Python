@@ -1,5 +1,6 @@
 """prepare.py: the build's zip can only replace files of the neonize package."""
 import io
+import os
 import zipfile
 
 import pytest
@@ -97,3 +98,26 @@ def test_the_declared_size_above_the_limit_is_refused(monkeypatch):
 ])
 def test_only_downloads_from_github(url, expected):
     assert prepare.host_allowed(url) is expected
+
+
+# -- which lock and which build, by system ------------------------------------
+
+def test_each_system_installs_its_own_lock():
+    """python-magic-bin is Windows-only; python-magic (Homebrew's libmagic) is
+    what macOS needs: the wrong lock fails the hash install on the user's Mac."""
+    import neonize_platform
+    windows = prepare.runtime_lock(neonize_platform.Target("windows", "amd64"))
+    mac = prepare.runtime_lock(neonize_platform.Target("darwin", "arm64"))
+    assert os.path.basename(windows) == "requirements.lock"
+    assert os.path.basename(mac) == "requirements-macos.lock"
+    assert os.path.isfile(windows) and os.path.isfile(mac)
+
+
+def test_macos_never_downloads_the_published_windows_build(monkeypatch):
+    import neonize_platform
+    release = {"tag": "neonize-0.12.4-winzapp.1", "asset": "a.zip", "sha256": "0" * 64,
+               "identity": "1" * 64}
+    monkeypatch.setattr(prepare.neonize_upstream, "load", lambda path: {"release": release})
+    monkeypatch.setattr(prepare.neonize_upstream, "checkout_identity", lambda here: "1" * 64)
+    assert prepare.usable_release(neonize_platform.Target("darwin", "arm64")) is None
+    assert prepare.usable_release(neonize_platform.Target("windows", "amd64")) is release

@@ -22,9 +22,10 @@ def _repo(tmp_path, venv="current"):
     (bridge / "neonize_upstream.py").write_text(
         f'MARKER = ".neonize-build-sha256"\ndef checkout_identity(folder):\n    return "{HASH}"\n')
     (bridge / "requirements-build.lock").write_text("")
+    (bridge / "requirements-build-macos.lock").write_text("")
     if venv != "none":
-        (bridge / ".venv" / "Scripts").mkdir(parents=True)
-        (bridge / ".venv" / "Scripts" / "python.exe").write_text("")
+        bb.venv_python(root).parent.mkdir(parents=True)
+        bb.venv_python(root).write_text("")
         (bridge / ".venv" / ".neonize-build-sha256").write_text(HASH if venv == "current" else "old")
     return root
 
@@ -40,8 +41,8 @@ class _Runner:
         self.calls.append((list(command), cwd))
         if command[-1].endswith("prepare.py"):
             venv = Path(self.root) / "neonize_bridge" / ".venv"
-            (venv / "Scripts").mkdir(parents=True, exist_ok=True)
-            (venv / "Scripts" / "python.exe").write_text("")
+            bb.venv_python(self.root).parent.mkdir(parents=True, exist_ok=True)
+            bb.venv_python(self.root).write_text("")
             (venv / ".neonize-build-sha256").write_text(HASH)
         if "PyInstaller" in command and self.produce_exe:
             out = Path(command[command.index("--distpath") + 1]) / "neonize_bridge"
@@ -129,22 +130,52 @@ def _pins(path):
     return dict(re.findall(r"^([A-Za-z0-9_.\-]+)==([^\s\\]+)", path.read_text(encoding="utf-8"), re.M))
 
 
-def test_the_runtime_lock_covers_the_requirements_with_hashes():
-    lock = ROOT / "neonize_bridge" / "requirements.lock"
+def _requirements_for(windows):
+    """requirements.txt's pins whose environment marker holds on Windows (or not)."""
+    pins = {}
+    for line in (ROOT / "neonize_bridge" / "requirements.txt").read_text(encoding="utf-8").splitlines():
+        found = re.match(r"^([A-Za-z0-9_.\-]+)==([^\s;]+)\s*(?:;\s*(.*))?$", line)
+        if not found:
+            continue
+        marker = (found.group(3) or "").replace(" ", "")
+        if marker and ("=='win32'" in marker) != windows:
+            continue
+        pins[found.group(1)] = found.group(2)
+    return pins
+
+
+@pytest.mark.parametrize("lock_name, windows", [("requirements.lock", True),
+                                                ("requirements-macos.lock", False)])
+def test_the_runtime_lock_covers_the_requirements_with_hashes(lock_name, windows):
+    lock = ROOT / "neonize_bridge" / lock_name
     locked = {k.lower(): v for k, v in _pins(lock).items()}
-    for name, version in _pins(ROOT / "neonize_bridge" / "requirements.txt").items():
+    wanted = _requirements_for(windows)
+    assert ("python-magic-bin" in wanted) == windows and ("python-magic" in wanted) != windows
+    for name, version in wanted.items():
         assert locked[name.lower()] == version
     text = lock.read_text(encoding="utf-8")
     assert text.count("--hash=sha256:") >= len(locked)
     assert "--index-url" not in text and "--extra-index-url" not in text
 
 
-def test_the_build_tools_are_the_ones_the_client_build_uses():
-    pins = {k.lower(): v for k, v in _pins(ROOT / "neonize_bridge" / "requirements-build.lock").items()}
+@pytest.mark.parametrize("lock_name", ["requirements-build.lock", "requirements-build-macos.lock"])
+def test_the_build_tools_are_the_ones_the_client_build_uses(lock_name):
+    pins = {k.lower(): v for k, v in _pins(ROOT / "neonize_bridge" / lock_name).items()}
     client = {k.lower(): v for k, v in _pins(ROOT / "requirements.txt").items()}
     assert pins["pyinstaller"] == client["pyinstaller"]
     assert pins["pyinstaller-hooks-contrib"] == client["pyinstaller-hooks-contrib"]
-    assert "--hash=sha256:" in (ROOT / "neonize_bridge" / "requirements-build.lock").read_text(encoding="utf-8")
+    assert "--hash=sha256:" in (ROOT / "neonize_bridge" / lock_name).read_text(encoding="utf-8")
+
+
+def test_the_mac_build_finds_its_own_interpreter_lock_and_executable(tmp_path):
+    root = tmp_path / "repo"
+    assert bb.venv_python(root, "win32") == root / "neonize_bridge" / ".venv" / "Scripts" / "python.exe"
+    assert bb.venv_python(root, "darwin") == root / "neonize_bridge" / ".venv" / "bin" / "python"
+    assert bb.build_lock(root, "win32").name == "requirements-build.lock"
+    assert bb.build_lock(root, "darwin").name == "requirements-build-macos.lock"
+    # the name the client starts (client/core/neonize_bridge_process.PACKAGED_EXE)
+    import sys
+    assert bb.EXE_NAME == ("neonize_bridge.exe" if sys.platform == "win32" else "neonize_bridge")
 
 
 def test_prepare_installs_from_the_lock_and_leaves_its_marker():

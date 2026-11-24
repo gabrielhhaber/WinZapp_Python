@@ -37,5 +37,11 @@
     "protoc_gen_go": "v1.36.12",
     "mypy_protobuf": "5.1.0"
   },
+  "protoc_platforms": {
+    "osx-aarch_64": "2c7e92b8b578916937df132b3032e2e8e6c170862ecf7a8333094a6f3d03650c",
+    "osx-x86_64": "ab124429c1f49951f03b6c0c0e911fec04e2c7c20de5c935e0cde7353bbd016c",
+    "linux-x86_64": "af27ea66cd26938fe48587804ca7d4817457a08350021a1c6e23a27ccc8c6904",
+    "linux-aarch_64": "31c5e9e3c7bf013cf41fb97765ee255c140024a6b175b6cc9b64beddd7c23ba7"
+  },
   "release": null
 }
