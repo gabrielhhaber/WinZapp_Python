@@ -54,6 +54,7 @@ __SELECTOR_SOURCE__
 console.log('__RESULT__' + JSON.stringify({
   selected: selectServableVersion(catalogue, scenario.now, scenario.range),
   loggedOut: (scenario.documents || []).map((html) => isLoggedOutOnlyDocument(html)),
+  live: (scenario.live || []).map(([html, pinnedLoggedOut]) => servesLiveDocument(html, pinnedLoggedOut)),
 }));
 """
 
@@ -73,12 +74,12 @@ def _selector_source():
     return source[start:end]
 
 
-def _run(tmp_path, versions=(), documents=(), range_=None):
+def _run(tmp_path, versions=(), documents=(), range_=None, live=()):
     harness = tmp_path / "harness.js"
     harness.write_text(HARNESS.replace("__SELECTOR_SOURCE__", _selector_source()),
                        encoding="utf-8")
     scenario = {"versions": list(versions), "documents": list(documents),
-                "now": NOW_MS, "range": range_}
+                "now": NOW_MS, "range": range_, "live": [list(pair) for pair in live]}
     proc = subprocess.run([_node(), str(harness), json.dumps(scenario)],
                           capture_output=True, text=True, timeout=60)
     for line in proc.stdout.splitlines():
@@ -150,3 +151,39 @@ def test_a_full_catalogue_is_chosen_exactly_as_before(tmp_path):
     ])
     assert result["selected"]["version"] == "2.3000.1055837054-alpha"
     assert result["selected"]["loggedOutOnly"] is False
+
+
+def test_with_everything_expired_the_newest_full_document_still_wins(tmp_path):
+    """The expired pass ranks documents the same way: the full one boots a
+    linked profile, the login one never does."""
+    result = _run(tmp_path, versions=[
+        _entry("2.3000.1055837054-alpha", expire_offset_days=-2),
+        _entry("2.3000.1056039834-alpha", login_only=True, expire_offset_days=-1),
+    ])
+    selected = result["selected"]
+    assert selected["version"] == "2.3000.1055837054-alpha"
+    assert selected["expired"] is True and selected["loggedOutOnly"] is False
+
+
+def test_the_wa_js_range_still_comes_before_the_document_kind(tmp_path):
+    """A full document outside wa-js's range loses to a login one inside it:
+    the range is the outermost rule (tests/test_wa_js_supported_range_pin.py)."""
+    result = _run(tmp_path, range_="<2.3000.1056000000", versions=[
+        _entry("2.3000.1055969240-alpha", login_only=True),
+        _entry("2.3000.1056039834-alpha"),
+    ])
+    selected = result["selected"]
+    assert selected["version"] == "2.3000.1055969240-alpha"
+    assert selected["loggedOutOnly"] is True and selected["unsupported"] is False
+
+
+def test_a_live_login_document_never_replaces_an_expired_full_pin(tmp_path):
+    """The expired-catalogue branch asks Meta for its current document, which
+    is the login page for a browser in the experiment's test group."""
+    result = _run(tmp_path, live=[
+        (LOGIN_DOCUMENT, False),  # pin is full: keep it
+        (LOGIN_DOCUMENT, True),   # pin is a login page too: the live one is newer
+        (FULL_DOCUMENT, False),
+        (FULL_DOCUMENT, True),
+    ])
+    assert result["live"] == [False, True, True, True]
