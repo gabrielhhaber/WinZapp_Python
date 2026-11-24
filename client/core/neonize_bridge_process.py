@@ -94,7 +94,8 @@ def run_dir(bridge: str) -> str:
 
 
 def venv_python(bridge: str, platform_name: str = None) -> str:
-    """The interpreter of the bridge's own virtualenv (``prepare.py`` makes it)."""
+    """The interpreter of the bridge's own virtualenv (``neonize_bridge/prepare.py``
+    makes it, on Windows and, with #900, on macOS)."""
     if (platform_name or sys.platform) == "win32":
         return os.path.join(bridge, ".venv", "Scripts", "python.exe")
     return os.path.join(bridge, ".venv", "bin", "python")
@@ -170,7 +171,9 @@ def _posix_alive(pid: int, waitpid=None, kill=None) -> bool:
     """Off Windows. A bridge this client spawned stays a zombie after it exits
     until it is reaped, and signal 0 still reaches a zombie: the shutdown wait
     would then run out its whole grace and kill a bridge that already closed.
-    So a child of ours is reaped first; anyone else's pid answers to signal 0."""
+    So a child of ours is reaped first; anyone else's pid answers to signal 0.
+    Once reaped here, its Popen's poll() answers 0, not the real exit code:
+    read the code before asking whether the pid is alive."""
     waitpid = waitpid or os.waitpid
     kill = kill or os.kill
     try:

@@ -79,8 +79,11 @@ def owns_port_listener(window):
     to be killed on quit. Not on a custom API: the user's own server, or the
     Neonize bridge, which every account shares and which
     _stop_wpp_server() already leaves (it asks the bridge to close its
-    sessions; the last account out stops it, neonize_bridge_process.py)."""
-    return not getattr(window, "wpp_custom_api", False)
+    sessions; the last account out stops it, neonize_bridge_process.py).
+    The same rule as profile_is_local(): both mean "the bundled WPPConnect".
+    """
+    from core.profile_recovery import profile_is_local
+    return profile_is_local(window)
 
 
 def install():
