@@ -8184,7 +8184,7 @@ msgstr "správce skupiny"
 #: client/ui/conversation_panel/conversation_navigation.py
 msgctxt "group_admins_only"
 msgid "Only admins can send messages in this grou&p"
-msgstr "V této skupině můžou posílat zprávy jen &správci"
+msgstr "V této skupině mohou zprávy &napsat jen správci"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/group_calls.py client/ui/ongoing_calls.py
