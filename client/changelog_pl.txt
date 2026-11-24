@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia Neonize: dźwięk korzysta z bezpośredniego połączenia lokalnego z natywnym silnikiem, z automatycznym powrotem do Socket.IO, gdy jest ono niedostępne.
+
 - Połączenia indywidualne przez Neonize: usunięto podwójne oczekiwanie na odtwarzanie odbieranego dźwięku, zachowując automatyczne buforowanie chroniące przed wahaniami opóźnienia sieci.
 
 - Połączenia przez Neonize: zoptymalizowano konwersję dźwięku mikrofonu, aby zmniejszyć obciążenie Pythona. Jeśli zainstalowany silnik nie obsługuje optymalizacji, automatycznie używany jest dotychczasowy sposób przetwarzania.

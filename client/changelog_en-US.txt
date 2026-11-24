@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable.
+
 - One-to-one Neonize calls: removed a duplicate wait in incoming audio while keeping automatic playback buffering that protects against network jitter.
 
 - Neonize calls: microphone audio conversion is optimized to reduce Python processing, with automatic fallback when the installed engine does not support the optimization.

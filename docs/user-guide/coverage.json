@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "452e70867219": "Chamadas Neonize: o áudio usa uma conexão local direta com o motor nativo, com r",
     "90caab9b5af9": "Chamadas individuais pelo Neonize: removida uma espera duplicada no áudio recebi",
     "0e667c42f7cd": "Chamadas pelo Neonize: conversão do áudio do microfone otimizada para reduzir o ",
     "90fe2e178f12": "Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia",

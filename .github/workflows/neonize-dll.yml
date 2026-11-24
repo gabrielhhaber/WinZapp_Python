@@ -96,7 +96,7 @@ jobs:
           CGO_ENABLED: "1"
           GOTOOLCHAIN: local
           GOFLAGS: -mod=readonly
-        run: go test -p 1 -count=1 -run 'Test(CallPCMResample|CallPCMBuffered|CallLifecycle|IncomingAfterTerminal|IncomingBeforeTerminal|OldIncomingOwner|ConcurrentIncomingAndEnd|CallEventQueue)' .
+        run: go test -p 1 -count=1 -run 'Test(CallAudioIPC|CallPCMResample|CallPCMBuffered|CallLifecycle|IncomingAfterTerminal|IncomingBeforeTerminal|OldIncomingOwner|ConcurrentIncomingAndEnd|CallEventQueue)' .
 
       - name: The patches round-trip (export reproduces them byte for byte)
         run: |

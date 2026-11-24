@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chiamate Neonize: l’audio usa una connessione locale diretta al motore nativo, con ritorno automatico a Socket.IO quando non è disponibile.
+
 - Chiamate individuali con Neonize: eliminata un’attesa duplicata nell’audio ricevuto, mantenendo la regolazione automatica della riproduzione contro le variazioni del ritardo di rete.
 
 - Chiamate con Neonize: conversione dell’audio del microfono ottimizzata per ridurre l’elaborazione in Python, con ritorno automatico all’elaborazione precedente se il motore installato non supporta l’ottimizzazione.

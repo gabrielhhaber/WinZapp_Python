@@ -457,6 +457,9 @@ class CallAudioSession:
         # only pays for a copy. Bounded: nobody drains it while ringing.
         self._echo_reference_tap: "deque[tuple[np.ndarray, int]]" = deque(maxlen=64)
         self._reference_resampler = _ReferenceResampler()
+        configure_transport = getattr(self._transport, 'configure', None)
+        if callable(configure_transport):
+            configure_transport(self.enqueue_remote_audio, self._stream_epoch)
 
     @property
     def microphone_muted(self) -> bool:
@@ -541,6 +544,10 @@ class CallAudioSession:
             return True
 
     @property
+    def native_audio_active(self):
+        return bool(getattr(self._transport, 'receiving_native', False))
+
+    @property
     def media_epoch(self):
         return self._media_epoch
 
@@ -558,7 +565,10 @@ class CallAudioSession:
             self._output_buffer.reset()
             self._output_resampler.reset()
             self._media_epoch = epoch
-            return True
+        bind_owner = getattr(self._transport, 'bind_owner', None)
+        if callable(bind_owner):
+            bind_owner(epoch)
+        return True
 
     @property
     def running(self) -> bool:
@@ -730,6 +740,9 @@ class CallAudioSession:
         silence for the rest of the call.
         """
         self._stop_event.set()
+        close_transport = getattr(self._transport, 'close', None)
+        if callable(close_transport):
+            close_transport()
         self.stop_live_translation()
         self.stop_desktop_audio()
         self._output_buffer.set_owner(None)

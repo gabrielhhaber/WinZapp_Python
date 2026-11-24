@@ -44,6 +44,7 @@ from call_audio_delivery import AudioDelivery, counters
 from call_video import VIDEO_ACCEPT, VIDEO_REQUEST
 from call_media_ingress import MediaIngress
 from call_media_ownership import CallIngressMixin
+from call_audio_native import CallNativeAudioMixin
 
 log = logging.getLogger("bridge")
 
@@ -217,7 +218,7 @@ def _serialized(method):
     return run
 
 
-class CallMedia(CallIngressMixin):
+class CallMedia(CallIngressMixin, CallNativeAudioMixin):
     """The calls of one session. `calls` is a neonize.calls.Calls (or a fake);
     `emit(event, data)` sends to the session's clients."""
 
@@ -784,6 +785,11 @@ class CallMedia(CallIngressMixin):
             if type(epoch) is not int or not 0 < epoch < 2**53 or epoch < call.get('mic_stream_epoch', 0):
                 return
             call['mic_stopped_epoch'] = max(epoch, call.get('mic_stopped_epoch', 0))
+        closer = getattr(self.calls, 'close_audio_transport', None)
+        if callable(closer) and data.get('mediaProtocol') == 1:
+            pcm_format = self._format_for(call)
+            if pcm_format is not None:
+                closer(call['id'], pcm_format['generation'], data['streamEpoch'])
         with self._mic_lock:
             self._mic.clear()
             self._mic_owner = None

@@ -4,6 +4,8 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO.
+
 - Individuální hovory přes Neonize: odstraněno dvojité čekání při příjmu zvuku při zachování automatického přizpůsobování přehrávání kolísání síťového zpoždění.
 
 - Hovory přes Neonize: převod zvuku mikrofonu byl optimalizován tak, aby se snížila zátěž Pythonu. Pokud nainstalovaný modul optimalizaci nepodporuje, automaticky se použije dosavadní zpracování.

@@ -781,6 +781,7 @@
   <section id="calls" class="wiki-section" aria-labelledby="h-calls">
     <h2 id="h-calls">📞 9. Połączenia</h2>
 <p class="lead">Możesz wykonywać, odbierać i odrzucać połączenia głosowe i wideo bezpośrednio w WinZapp, bez sięgania po telefon.</p>
+<p>Połączenia Neonize: dźwięk korzysta z bezpośredniego połączenia lokalnego z natywnym silnikiem, z automatycznym powrotem do Socket.IO, gdy jest ono niedostępne. Nie trzeba zmieniać ustawień. Sterowanie połączeniem nadal korzysta z dotychczasowego połączenia.</p>
 <p>Podczas połączeń indywidualnych przez Neonize odbierany dźwięk trafia do bufora odtwarzania bez dodatkowego oczekiwania w silniku. Automatyczne dostosowanie do wahań opóźnienia sieci nadal działa i nie wymaga zmiany ustawień.</p>
 <p>Optymalizacja konwersji dźwięku mikrofonu podczas połączeń przez Neonize działa automatycznie i nie wymaga zmiany ustawień. Jeśli zainstalowany silnik jej nie obsługuje, WinZapp nadal korzysta z dotychczasowego sposobu przetwarzania.</p>
 <p>Podczas trwającego połączenia indywidualnego wybierz „Włącz tłumaczenie na żywo”. Tryb „Tylko ja” odtwarza głos rozmówcy przetłumaczony na Twój język. Tryb „Obie osoby” tłumaczy również dźwięk z Twojego mikrofonu na język rozmówcy. Możesz ściszyć oryginalny głos podczas tłumaczenia. Domyślne języki ustawisz w Ustawienia &gt; Połączenia &gt; Tłumaczenie na żywo; klucz Gemini zapisz w ustawieniach AI. Podczas automatycznego ponownego łączenia słychać oryginalny dźwięk.</p>
@@ -1528,6 +1529,7 @@
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia Neonize: dźwięk korzysta z bezpośredniego połączenia lokalnego z natywnym silnikiem, z automatycznym powrotem do Socket.IO, gdy jest ono niedostępne.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia indywidualne przez Neonize: usunięto podwójne oczekiwanie na odtwarzanie odbieranego dźwięku, zachowując automatyczne buforowanie chroniące przed wahaniami opóźnienia sieci.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia przez Neonize: zoptymalizowano konwersję dźwięku mikrofonu, aby zmniejszyć obciążenie Pythona. Jeśli zainstalowany silnik nie obsługuje optymalizacji, automatycznie używany jest dotychczasowy sposób przetwarzania.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>W oknie Zapisz jako można wybrać typ pliku MP3 dla wiadomości głosowych i plików audio.</td></tr>

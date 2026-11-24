@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize aramaları: ses, yerel motora doğrudan bir yerel bağlantı üzerinden aktarılır; bağlantı kullanılamadığında otomatik olarak Socket.IO kullanılır.
+
 - Neonize bire bir aramaları: ağ gecikmesindeki değişimlere karşı otomatik oynatma tamponlaması korunarak gelen sesteki yinelenen bekleme kaldırıldı.
 
 - Neonize aramaları: Python üzerindeki işlem yükünü azaltmak için mikrofon sesi dönüştürme işlemi optimize edildi. Yüklü motor bu optimizasyonu desteklemiyorsa önceki işleme yöntemine otomatik olarak dönülür.

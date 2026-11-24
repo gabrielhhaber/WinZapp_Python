@@ -37,6 +37,11 @@ What the patches carry today:
   microphone owner's history; older DLLs keep the Python fallback. Synthetic
   Go and compiled-package binding tests cover the conversion.
 
+- **neonize 0035**: optional native loopback PCM transport
+  (`CallAudioTransportOpen` / `CallAudioTransportClose`). A generation- and
+  stream-bound authenticated socket connects the audio session straight to
+  Go, with exclusive queue ownership and Socket.IO fallback. See
+  [neonize-call-audio.md](neonize-call-audio.md) for protocol and lifecycle.
 - **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
   whatsmeow patch) and media transfers to and from disk with progress and
   cancel (`DownloadAnyToFileTracked`, `UploadFile`, `TransferProgress`,

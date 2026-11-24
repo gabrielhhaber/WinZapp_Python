@@ -23,6 +23,36 @@ def binding(monkeypatch, native):
     return module
 
 
+def test_native_transport_binding_keeps_generation_and_stream(monkeypatch):
+    opened, closed = [], []
+    descriptor = {'protocol': 1, 'port': 1234, 'secret': 'ab'*32,
+                  'sampleRate': 48000, 'generation': 7}
+    def open_transport(uuid, call_id, generation, stream, buffer, capacity):
+        opened.append((uuid, call_id, generation, stream))
+        data = json.dumps(descriptor).encode()
+        ctypes.memmove(buffer, data, len(data))
+        return len(data)
+    native = SimpleNamespace(CallAudioTransportOpen=open_transport,
+                             CallAudioTransportClose=lambda *a: closed.append(a))
+    calls = binding(monkeypatch, native).Calls(b'account')
+    assert calls.open_audio_transport('C', 7, 123) == descriptor
+    calls.close_audio_transport('C', 7, 123)
+    assert opened == closed == [(b'account', b'C', 7, 123)]
+    for generation, stream in [(0,123), (7,True), (7,2**53)]:
+        with pytest.raises(ValueError):
+            calls.open_audio_transport('C', generation, stream)
+
+
+def test_native_transport_missing_or_failed_binding(monkeypatch):
+    calls = binding(monkeypatch, SimpleNamespace()).Calls('account')
+    assert calls.open_audio_transport('C', 7, 123) is None
+    calls.close_audio_transport('C', 7, 123)
+    native = SimpleNamespace(CallAudioTransportOpen=lambda *a: -2)
+    module = binding(monkeypatch, native)
+    with pytest.raises(module.CallError):
+        module.Calls('account').open_audio_transport('C', 7, 123)
+
+
 class Native:
     def __init__(self):
         self.configured = []

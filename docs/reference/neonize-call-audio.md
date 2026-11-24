@@ -30,11 +30,57 @@ the existing rate-limited rejection counters. The selected session rechecks
 ownership and stop state before queueing, so a reconnection during decoding
 or a delayed callback after a device switch cannot enqueue into a different
 call. Existing public audio/video handler names remain available.
-No native transport is selected or downloaded, and no buffer, resampler,
-WASAPI mode or audio quality setting changes.
-This boundary is preparation for a native transport, not NetEQ integration
-or evidence of reduced latency. Tier C's native loop and optional component
-loading/fallback remain unimplemented.
+Neonize now selects `NeonizeCallAudioTransport`; WPPConnect retains the
+Socket.IO adapter. No separate component is downloaded. This implements the
+native PCM transport portion of tier C, not NetEQ integration or evidence of
+measured latency/quality improvements. Device modes and buffer targets stay
+unchanged.
+
+### Direct native PCM
+
+After an audio session binds its media epoch, a background worker negotiates
+`POST call/audio/transport` over the existing authenticated HTTP API. The
+bridge validates the exact connected record, protocol, media epoch and
+monotonic microphone stream; the optional native export additionally validates
+the native generation and rejects reused stream reservations. A ringing call
+retries the not-yet-connected response until it connects or the session stops.
+Unsupported builds, negotiation/connect failures and disconnects retain or
+restore Socket.IO for the rest of that audio session.
+
+The Go DLL listens only on IPv4 loopback, on an ephemeral port. Its random
+32-byte, single-consumer credential expires with the pending listener after
+10 seconds. The client is restricted to `127.0.0.1`; the descriptor cannot
+provide a different host. Authentication sends the raw 32 bytes, followed by
+the server's `NZA1` acknowledgement. Each subsequent packet has a four-byte
+little-endian length. Client packets are exactly 1920 PCM bytes (20 ms,
+48 kHz mono s16le), or an empty heartbeat. Server packets contain the same
+12-byte rate/generation header as `read_audio_frame`, followed by at most
+60 ms of native PCM; empty PCM is a heartbeat. Size, rate and generation
+are checked before delivery/allocation. Credentials and PCM never enter logs.
+
+The server regroups capture into 60 ms and uses the existing native FIR for
+16 kHz calls, with per-connection history. The client capture queue holds
+three frames and discards frames older than 200 ms. Socket timeouts bound
+stalled peers. Remote PCM goes from Go's bounded queue straight to the
+session receiver, without Python bridge processing, JSON or base64. Capture,
+AEC, mixing, translation and playback still belong to the client pipeline.
+
+An independent reader mutex serializes the native handoff with a pending
+Socket.IO read; microphone writes never wait on remote PCM. While a native
+consumer owns the record, legacy reads wait without draining its queue and
+legacy writes are rejected. On disconnect the lease releases both directions
+and the existing bridge reader resumes. In-flight Socket.IO delivery is ignored
+while that session receives native PCM. Partial capture and queued native
+microphone data are discarded at ownership changes. A device switch closes
+the local transport even with `notify_bridge=False`, without emitting the
+bridge-stop event. Call end closes the listener/socket; stale generation,
+stream, reservation and stop requests cannot affect a replacement.
+
+Native call counters still count source/sink frames; bridge Python PCM-boundary
+counters describe Socket.IO traffic only. Client logs report native activation
+or fallback without credentials. Validation is synthetic (native loopback,
+binding, client and bridge tests, and DLL build); no live-call or hardware
+acceptance is claimed.
 
 ## Answer and stream ownership
 
