@@ -6,7 +6,7 @@ NOVIDADES
 
 - Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia do usuário, o instalador e o desinstalador (que seguem o idioma de exibição do Windows) e estas notas de versão. O tcheco também aparece como idioma para traduzir mensagens, e o corretor ortográfico o suporta. Obrigado a jaxcze pela tradução.
 
-- Conectar com QR-CODE: o código QR voltou a aparecer. Nas versões mais recentes do WhatsApp Web, alguns computadores recebem uma página de login separada, só com a tela do código QR, e nela o WinZapp ficava conectando até desistir, sem mostrar o código. O WinZapp agora usa uma versão do WhatsApp Web que traz o aplicativo completo e, se mesmo assim receber a página de login, mostra o código QR em poucos segundos.
+- Conectar com QR-CODE: o código QR voltou a aparecer. Nas versões mais recentes do WhatsApp Web, alguns computadores recebem uma página de login separada, só com a tela do código QR, e nela o WinZapp ficava conectando até desistir, sem mostrar o código. Agora o código QR aparece nessa página em poucos segundos.
 
 - Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Comunidades com essa comunidade selecionada e o foco nos grupos dela, em vez da conversa da própria comunidade. A opção fica em Configurações > Interface > Conversas, ligada por padrão.
 

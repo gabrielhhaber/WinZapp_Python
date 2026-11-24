@@ -598,32 +598,6 @@ function satisfiesWhatsappRange(version, range) {
   return true;
 }
 
-// A catalogue document that can only show the login screen (measured
-// 2026-11-24). WhatsApp Web runs an A/B experiment
-// (WAWebLoggedOutSeparationGating): for a browser without a login, `/`
-// answers 302 to `/login/`, a ~185 KB document whose WAWebLoggedOutBootstrap
-// registers the QR screen and nothing else, and once the phone links it sends
-// the page back to `/` for the full app. The wa-version crawler follows that
-// redirect, so some catalogue entries hold the login document under `/`
-// (2.3000.1048585219, 1052828872, 1054203907 and every build from 1055857453
-// on, against ~1 MB for a full one). Pinned, it is what the interception
-// serves for `/` every time: a linked profile never gets the full app, and on
-// the login screen ChatCollection, Socket, Stream and the rest are never
-// defined, which is what kept wa-js from ever reaching WPP.isReady (see
-// client/core/wppconnect_wa_js_loader_patch.py).
-function isLoggedOutOnlyDocument(html) {
-  return typeof html === 'string' && html.includes('WAWebLoggedOutBootstrap');
-}
-
-// The expired-catalogue branch (see fetchLiveWhatsappDocument) asks Meta for
-// its current document. A browser without a login in the experiment's test
-// group gets the login page there too, so a live login document only replaces
-// the local pin when that pin is a login document as well: an expired full
-// document still boots a linked profile, a login one never does.
-function servesLiveDocument(liveHtml, pinnedLoggedOutOnly) {
-  return !isLoggedOutOnlyDocument(liveHtml) || Boolean(pinnedLoggedOutOnly);
-}
-
 // The newest build this install can serve AND that Meta has not expired yet.
 //
 // Walks the catalogue newest-first and stops at the first entry that is both
@@ -654,12 +628,10 @@ function servesLiveDocument(liveHtml, pinnedLoggedOutOnly) {
 // thing that keeps a freshly-paired session paired right now. Whatever does
 // fix the unpairing has to work on an all-alpha catalogue too.
 //
-// Returns { version, expire, expired, unsupported, loggedOutOnly, total }, or
-// null when the catalogue is empty/unusable. `expired: true` means nothing
-// valid was left and this is the newest servable build regardless — see the
-// call site for why that is still pinned rather than dropped. `unsupported`:
-// outside wa-js's declared range; `loggedOutOnly`: the build's document is the
-// login page (isLoggedOutOnlyDocument), pinned only when no full one was left.
+// Returns { version, expire, expired, total }, or null when the catalogue is
+// empty/unusable. `expired: true` means nothing valid was left and this is the
+// newest servable build regardless — see the call site for why that is still
+// pinned rather than dropped.
 function selectServableVersion(catalogue, now, supportedRange) {
   // Taken as a parameter, defaulting to the module-scope value, so a test can
   // drive the compatibility range without reaching into module state.
@@ -673,20 +645,18 @@ function selectServableVersion(catalogue, now, supportedRange) {
   // is a readdirSync of html/ (392 files on the shipped package) plus a read of
   // a ~600 KB HTML file. This runs inside session startup, so the passes added
   // above must not put that cost back on the hot path they were written around.
-  //
-  // The cache holds what kind of document the build has: 'full', 'loggedOut'
-  // (see isLoggedOutOnlyDocument) or false when it cannot be served at all.
   const serveCache = new Map();
-  const documentKind = (version) => {
+  const canServe = (version) => {
     if (serveCache.has(version)) return serveCache.get(version);
-    let kind;
+    let servable;
     try {
-      kind = isLoggedOutOnlyDocument(catalogue.getPageContent(version)) ? 'loggedOut' : 'full';
+      catalogue.getPageContent(version);
+      servable = true;
     } catch (e) {
-      kind = false;
+      servable = false;
     }
-    serveCache.set(version, kind);
-    return kind;
+    serveCache.set(version, servable);
+    return servable;
   };
   const isStable = (version) => !/-alpha|-beta/i.test(version);
   // The compatibility range is the OUTERMOST constraint, above both expiry and
@@ -701,52 +671,39 @@ function selectServableVersion(catalogue, now, supportedRange) {
   // a build of uncertain compatibility: WhatsApp serves its own newest build
   // AND we lose the document interception. So a range that matches nothing
   // degrades to today's behaviour, loudly, rather than to no pin at all.
-  //
-  // Inside each of those tiers a full document comes before a logged-out-only
-  // one (isLoggedOutOnlyDocument): the latter cannot boot a logged-in session,
-  // so it is pinned only when the tier has nothing else, and flagged.
-  const kinds = [['full'], ['full', 'loggedOut']];
   for (const respectRange of [true, false]) {
     const supported = (version) =>
       !respectRange || satisfiesWhatsappRange(version, supportedRange);
-    for (const accepted of kinds) {
-      for (const stableOnly of [true, false]) {
-        for (let i = available.length - 1; i >= 0; i--) {
-          const version = available[i];
-          if (stableOnly && !isStable(version)) continue;
-          if (!supported(version)) continue;
-          const expire = versionExpiry(catalogue, version);
-          if (expire !== null && expire <= now) continue;
-          const kind = documentKind(version);
-          if (!accepted.includes(kind)) continue;
-          return {
-            version,
-            expire,
-            expired: false,
-            unsupported: !respectRange,
-            loggedOutOnly: kind === 'loggedOut',
-            total: available.length,
-          };
-        }
+    for (const stableOnly of [true, false]) {
+      for (let i = available.length - 1; i >= 0; i--) {
+        const version = available[i];
+        if (stableOnly && !isStable(version)) continue;
+        if (!supported(version)) continue;
+        const expire = versionExpiry(catalogue, version);
+        if (expire !== null && expire <= now) continue;
+        if (!canServe(version)) continue;
+        return {
+          version,
+          expire,
+          expired: false,
+          unsupported: !respectRange,
+          total: available.length,
+        };
       }
     }
-    for (const accepted of kinds) {
-      for (const stableOnly of [true, false]) {
-        for (let i = available.length - 1; i >= 0; i--) {
-          const version = available[i];
-          if (stableOnly && !isStable(version)) continue;
-          if (!supported(version)) continue;
-          const kind = documentKind(version);
-          if (accepted.includes(kind)) {
-            return {
-              version,
-              expire: versionExpiry(catalogue, version),
-              expired: true,
-              unsupported: !respectRange,
-              loggedOutOnly: kind === 'loggedOut',
-              total: available.length,
-            };
-          }
+    for (const stableOnly of [true, false]) {
+      for (let i = available.length - 1; i >= 0; i--) {
+        const version = available[i];
+        if (stableOnly && !isStable(version)) continue;
+        if (!supported(version)) continue;
+        if (canServe(version)) {
+          return {
+            version,
+            expire: versionExpiry(catalogue, version),
+            expired: true,
+            unsupported: !respectRange,
+            total: available.length,
+          };
         }
       }
     }
@@ -778,25 +735,14 @@ function resolveWhatsappVersion() {
     const override = String(process.env.WINZAPP_WA_WEB_VERSION || '').trim();
     if (override) {
       let servable = false;
-      let loggedOutOnly = false;
       try {
-        loggedOutOnly = isLoggedOutOnlyDocument(waVersion.getPageContent(override));
+        waVersion.getPageContent(override);
         servable = true;
       } catch (e) {}
       if (servable) {
         console.log(
           `[WinZapp] Pinning WhatsApp Web to ${override} (WINZAPP_WA_WEB_VERSION override).`
         );
-        if (loggedOutOnly) {
-          // Honoured (the override is a deliberate test), but said: this
-          // document is the login page, so a linked profile never gets the app.
-          console.warn(
-            `[WinZapp] ${override}'s document in this catalogue is WhatsApp Web's login ` +
-            'page only: a QR code can be read, but a linked account will not reach its ' +
-            'chats while this override is set.'
-          );
-        }
-        pinnedCatalogueLoggedOutOnly = loggedOutOnly;
         return override;
       }
       console.error(
@@ -821,22 +767,7 @@ function resolveWhatsappVersion() {
         '(or reinstall the API from WinZapp).'
       );
     }
-    if (selected.loggedOutOnly) {
-      // Only reached when no build with a full document is left in the tier
-      // (see isLoggedOutOnlyDocument): a QR code can still be read, but a
-      // linked profile may never reach the chat list.
-      // An update does not necessarily help: the wa-version crawler stores
-      // whatever `/` redirected to, so newer entries may be login pages too.
-      console.error(
-        `[WinZapp] Pinning ${selected.version}, whose document in this catalogue is ` +
-        "WhatsApp Web's login page only: no build with the full app document is " +
-        'left. A QR code can still be read, but a linked account may stay offline. ' +
-        'Updating @wppconnect/wa-version helps only once its catalogue holds full ' +
-        'documents again (docs/traps/whatsapp-web-version-pin.md).'
-      );
-    }
     pinnedCatalogueExpired = Boolean(selected.expired);
-    pinnedCatalogueLoggedOutOnly = Boolean(selected.loggedOutOnly);
     if (selected.expired) {
       // Every entry in the catalogue is past its expiry date, so whatever we
       // pin here may already be refused by Meta. We pin anyway, loudly.
@@ -857,17 +788,14 @@ function resolveWhatsappVersion() {
         'Meta may already refuse to serve it, and this install cannot know a newer ' +
         'one exists. Pinning it anyway, because running unpinned makes sending to ' +
         'individual contacts fail silently. FIX: npm update @wppconnect/wa-version ' +
-        '(or reinstall the API from WinZapp) and restart; if the update brings only ' +
-        "builds whose document is the login page, this warning's build stays the " +
-        'better pin for a linked account.'
+        '(or reinstall the API from WinZapp) and restart.'
       );
     } else if (selected.expire !== null
         && selected.expire - Date.now() <= VERSION_EXPIRY_WARNING_MS) {
       console.warn(
         `[WinZapp] The newest usable WhatsApp Web build (${selected.version}) expires on ` +
-        `${new Date(selected.expire).toISOString()} and this catalogue has no newer build ` +
-        'with the full app document. Run: npm update @wppconnect/wa-version (or reinstall ' +
-        'the API from WinZapp); newer entries that hold only the login page do not count.'
+        `${new Date(selected.expire).toISOString()} and this catalogue has nothing newer. ` +
+        'Run: npm update @wppconnect/wa-version (or reinstall the API from WinZapp).'
       );
     }
     const expiryNote = selected.expire === null
@@ -895,11 +823,6 @@ function resolveWhatsappVersion() {
 // Read once, by the interception wrapper below, to decide whether to try Meta's
 // own current document before falling back to the expired local copy.
 let pinnedCatalogueExpired = false;
-
-// Set by resolveWhatsappVersion() when the pinned build's document is the
-// login page (isLoggedOutOnlyDocument). Read by the same wrapper: a live login
-// document from Meta then replaces it, but never an expired full one.
-let pinnedCatalogueLoggedOutOnly = false;
 
 // How long to wait for Meta's live document before giving up and using the
 // expired local build. This runs inside session startup, so it is a budget, not
@@ -1170,12 +1093,7 @@ function patchWppconnectVersionPinning() {
       // `body` still null — a failed fetch must cost nothing but the timeout.
       if (pinnedCatalogueExpired) {
         const live = await fetchLiveWhatsappDocument();
-        if (live && !servesLiveDocument(live.html, pinnedCatalogueLoggedOutOnly)) {
-          console.warn(
-            `[WinZapp] Meta's live document (${live.channel}) is WhatsApp Web's login ` +
-            'page only; keeping the expired local build, whose document is the full app.'
-          );
-        } else if (live) {
+        if (live) {
           body = live.html;
           source = `live from Meta via ${live.channel} (local catalogue fully expired)`;
           console.warn(

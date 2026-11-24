@@ -106,7 +106,7 @@ the build regenerates it from the patched `.ts` sources.
 ## Verify
 
 ```
-uv run pytest tests/test_api_patches_in_sync.py tests/test_reapply_node_modules_patches.py tests/test_pairing_code_patch.py tests/test_status_layer_patch.py tests/test_welcome_layer_patch.py tests/test_wa_js_patch.py tests/test_newsletter_chat_patch.py tests/test_wa_js_loader_patch.py tests/test_logged_out_document_pin.py tests/test_large_file_patch.py
+uv run pytest tests/test_api_patches_in_sync.py tests/test_reapply_node_modules_patches.py tests/test_pairing_code_patch.py tests/test_status_layer_patch.py tests/test_welcome_layer_patch.py tests/test_wa_js_patch.py tests/test_newsletter_chat_patch.py tests/test_wa_js_loader_patch.py tests/test_large_file_patch.py
 ```
 
 `test_the_two_copies_of_each_patch_are_identical` fails locally after pulling
