@@ -88,10 +88,30 @@ not prove speech intelligibility, physical output routing, or installed acceptan
 ## PCM and clocks
 
 `call_audio_pcm.py` uses a 97-tap streaming Blackman FIR before 3:1 decimation
-(1 ms group delay). It preserves sample count, packet-boundary continuity and
-speech level; it adds no AGC, compressor or noise suppression. Synthetic tests
-measure passband level and alias attenuation. The existing client processing
-and echo cancellation remain responsible for capture/playback processing.
+(1 ms group delay). When `Calls.resample_pcm48_to16` is available, the FIR runs
+in Go through `CallResamplePCM48To16` (neonize patch 0033). The bridge retains
+the 96-sample history and incomplete capture bytes per microphone stream;
+the native function is stateless and accepts at most 100 ms plus history.
+Changing calls, stopping a stream or replacing it discards that history as
+before. PCM48 calls bypass the converter; the native PCM rate/generation
+checks and the 60 ms writer contract are unchanged.
+
+An older binding/DLL, a failed call or an invalid native result selects the
+Python implementation. Since the caller owns the history, fallback retries
+the same window without dropping or replaying samples. Only the exception
+type is logged, once per failed converter instance. No native codec is forced.
+Both paths preserve sample count, packet-boundary continuity and speech level;
+they add no AGC, compressor or noise suppression. Synthetic Go tests compare
+the exact output hash with the Python reference and measure passband level
+and alias attenuation. The compiled-package binding test checks the C boundary
+in CI. The existing client processing and echo cancellation remain responsible
+for capture/playback processing.
+
+This removes the Python FIR loop when the matching DLL is installed. It does
+not remove Socket.IO or either playback reservoir. The native playout releases
+its prefill as a burst, so reducing just the client's threshold is not evidence
+of lower end-to-end latency; reservoir tuning needs separate timing/jitter
+validation. No playback thresholds change with this optimization.
 
 Native `callPCMQueue` retains multi-frame decoder output across short C reads
 instead of dropping bytes beyond the caller's capacity. Capacity is eight

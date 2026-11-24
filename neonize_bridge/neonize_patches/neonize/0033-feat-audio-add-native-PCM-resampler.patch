@@ -1,0 +1,259 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Igor Alves <igoralves.dev82@gmail.com>
+Date: Tue, 24 Nov 2026 17:05:50 -0300
+Subject: [PATCH] feat(audio): add native PCM resampler
+
+---
+ goneonize/calls_pcm_resample.go        | 66 +++++++++++++++++++
+ goneonize/calls_pcm_resample_export.go | 25 ++++++++
+ goneonize/calls_pcm_resample_test.go   | 87 ++++++++++++++++++++++++++
+ neonize/_binder.py                     |  3 +
+ neonize/calls.py                       | 22 +++++++
+ 5 files changed, 203 insertions(+)
+ create mode 100644 goneonize/calls_pcm_resample.go
+ create mode 100644 goneonize/calls_pcm_resample_export.go
+ create mode 100644 goneonize/calls_pcm_resample_test.go
+
+diff --git a/goneonize/calls_pcm_resample.go b/goneonize/calls_pcm_resample.go
+new file mode 100644
+index 0000000..7796fe2
+--- /dev/null
++++ b/goneonize/calls_pcm_resample.go
+@@ -0,0 +1,66 @@
++package main
++
++import (
++	"encoding/binary"
++	"errors"
++	"math"
++)
++
++// Exact float64 coefficients of the bridge's 97-tap Blackman FIR
++// (call_audio_pcm._coefficients): same 1 ms delay and 7.2 kHz cutoff.
++// Caller-owned 96-sample history makes each window stateless and retryable.
++var callPCM48Weights = [...]float64{
++	-8.752528809696861e-20, 8.080964925798341e-07, -6.311008359483296e-06, -2.4882686528518194e-05,
++	-2.6870192119695758e-05, 2.2882379602571387e-05, 0.00010544190657806932, 0.00012727960880249951,
++	-3.156019884406716e-19, -0.00023031174915877015, -0.00035075859614928034, -0.00014494464099400623,
++	0.0003453323209088549, 0.0007265163580994858, 0.0005222965692356142, -0.0003326454977023654,
++	-0.0012298380271600906, -0.0012473353100230134, 2.0124972990895e-18, 0.0017387901375696929,
++	0.0023927344314039973, 0.0009054634699153738, -0.001996633617344079, -0.003921342152465149,
++	-0.0026505413178492046, 0.0015968375917540887, 0.005614102643542887, 0.00544016625717412,
++	-5.614833690363781e-18, -0.007010580674725765, -0.009330340450589072, -0.0034279031957476,
++	0.007366945721669128, 0.014157734252223435, 0.009403967232684182, -0.005593289397221215,
++	-0.01951477693928679, -0.018877445724338613, 9.792735989280948e-18, 0.024788855309792926,
++	0.033792645523816285, 0.012887446979454051, -0.02926535352339013, -0.060920000167290815,
++	-0.045476036452554505, 0.03227291077944305, 0.15030459724173942, 0.25706504596876706,
++	0.2999986810806577, 0.25706504596876706, 0.15030459724173942, 0.032272910779443054,
++	-0.04547603645255451, -0.060920000167290815, -0.02926535352339013, 0.012887446979454053,
++	0.033792645523816285, 0.024788855309792933, 9.79273598928095e-18, -0.018877445724338613,
++	-0.019514776939286795, -0.005593289397221216, 0.009403967232684182, 0.014157734252223433,
++	0.007366945721669131, -0.0034279031957476004, -0.009330340450589072, -0.007010580674725768,
++	-5.614833690363781e-18, 0.005440166257174124, 0.0056141026435428875, 0.0015968375917540876,
++	-0.002650541317849206, -0.0039213421524651555, -0.0019966336173440806, 0.0009054634699153738,
++	0.002392734431403999, 0.0017387901375696937, 2.0124972990895026e-18, -0.0012473353100230138,
++	-0.0012298380271600906, -0.00033264549770236593, 0.0005222965692356156, 0.0007265163580994851,
++	0.0003453323209088553, -0.00014494464099400612, -0.00035075859614928077, -0.00023031174915877107,
++	-3.156019884406727e-19, 0.00012727960880249973, 0.00010544190657806903, 2.288237960257145e-05,
++	-2.6870192119695934e-05, -2.488268652851839e-05, -6.31100835948324e-06, 8.080964925798341e-07,
++	-8.752528809696861e-20,
++}
++
++func resampleCallPCM48(window []byte) ([]byte, error) {
++	if len(window) < 192 || len(window) > 9792 || (len(window)-192)%6 != 0 {
++		return nil, errors.New("invalid PCM48 resampler window")
++	}
++	output := make([]byte, (len(window)-192)/3)
++	for end, dst := 196, 0; end < len(window); end, dst = end+6, dst+2 {
++		var sum, correction float64
++		for i, weight := range callPCM48Weights {
++			offset := end - 192 + i*2
++			sample := int16(binary.LittleEndian.Uint16(window[offset:]))
++			// Explicit rounding prevents fused multiply-add from changing
++			// the Python reference's separately rounded products.
++			product := float64(weight * float64(sample))
++			next := sum + product
++			if math.Abs(sum) >= math.Abs(product) {
++				correction += (sum - next) + product
++			} else {
++				correction += (product - next) + sum
++			}
++			sum = next
++		}
++		value := math.RoundToEven(sum + correction)
++		value = max(-32768, min(32767, value))
++		binary.LittleEndian.PutUint16(output[dst:], uint16(int16(value)))
++	}
++	return output, nil
++}
+diff --git a/goneonize/calls_pcm_resample_export.go b/goneonize/calls_pcm_resample_export.go
+new file mode 100644
+index 0000000..8b2f0dd
+--- /dev/null
++++ b/goneonize/calls_pcm_resample_export.go
+@@ -0,0 +1,25 @@
++package main
++
++/*
++#include <stdint.h>
++*/
++import "C"
++
++import "unsafe"
++
++// CallResamplePCM48To16 owns no stream state and never touches a client, device
++// or call queue. History travels with the window and cannot outlive its owner.
++//
++//export CallResamplePCM48To16
++func CallResamplePCM48To16(input *C.char, size C.int, output *C.uchar, capacity C.int) C.int {
++	if input == nil || output == nil || size < 192 || size > 9792 ||
++		(size-192)%6 != 0 || capacity < (size-192)/3 {
++		return -1
++	}
++	pcm, err := resampleCallPCM48(C.GoBytes(unsafe.Pointer(input), size))
++	if err != nil {
++		return -1
++	}
++	copy(unsafe.Slice((*byte)(unsafe.Pointer(output)), len(pcm)), pcm)
++	return C.int(len(pcm))
++}
+diff --git a/goneonize/calls_pcm_resample_test.go b/goneonize/calls_pcm_resample_test.go
+new file mode 100644
+index 0000000..659a037
+--- /dev/null
++++ b/goneonize/calls_pcm_resample_test.go
+@@ -0,0 +1,87 @@
++package main
++
++import (
++	"bytes"
++	"crypto/sha256"
++	"encoding/binary"
++	"fmt"
++	"math"
++	"testing"
++)
++
++func TestCallPCMResampleMatchesPythonReference(t *testing.T) {
++	window := make([]byte, 9792)
++	for i := 0; i < 4800; i++ {
++		binary.LittleEndian.PutUint16(window[192+2*i:], uint16(int16((i*7919)%65536-32768)))
++	}
++	before := append([]byte(nil), window...)
++	output, err := resampleCallPCM48(window)
++	if err != nil || len(output) != 3200 {
++		t.Fatalf("conversion: bytes=%d error=%v", len(output), err)
++	}
++	// Generated by call_audio_pcm.PCM48To16 from the same deterministic PCM.
++	if got := fmt.Sprintf("%x", sha256.Sum256(output)); got != "90d6271c4861a1946d5e0a265d33b7fae3866e18c3187d4e5b49a6ed4f36059f" {
++		t.Fatalf("Python reference mismatch: %s", got)
++	}
++	if !bytes.Equal(window, before) {
++		t.Fatal("conversion changed caller-owned history/input")
++	}
++	// Packet boundaries do not change the sample clock or filter state.
++	var parts []byte
++	for offset := 192; offset < len(window); offset += 1920 {
++		pcm, err := resampleCallPCM48(window[offset-192 : offset+1920])
++		if err != nil {
++			t.Fatal(err)
++		}
++		parts = append(parts, pcm...)
++	}
++	if !bytes.Equal(parts, output) {
++		t.Fatal("packet split changed the output")
++	}
++	zero, _ := resampleCallPCM48(make([]byte, 2112))
++	if !bytes.Equal(zero, make([]byte, 640)) {
++		t.Fatal("native converter retained another stream's history")
++	}
++}
++
++func TestCallPCMResampleRejectsInvalidOrUnboundedWindows(t *testing.T) {
++	for _, size := range []int{0, 191, 193, 194, 9793, 9798} {
++		if _, err := resampleCallPCM48(make([]byte, size)); err == nil {
++			t.Fatalf("accepted %d-byte window", size)
++		}
++	}
++	if output, err := resampleCallPCM48(make([]byte, 192)); err != nil || len(output) != 0 {
++		t.Fatal("history alone must produce no samples")
++	}
++}
++
++func TestCallPCMResamplePreservesSpeechAndRejectsAliases(t *testing.T) {
++	for _, frequency := range []float64{1000, 9000, 12000, 20000} {
++		window := make([]byte, 9792)
++		for i := 0; i < 4800; i++ {
++			value := int16(math.RoundToEven(20000 * math.Sin(2*math.Pi*frequency*float64(i)/48000)))
++			binary.LittleEndian.PutUint16(window[192+2*i:], uint16(value))
++		}
++		pcm, _ := resampleCallPCM48(window)
++		var energy float64
++		for i := 160; i < len(pcm); i += 2 {
++			value := float64(int16(binary.LittleEndian.Uint16(pcm[i:])))
++			energy += value * value
++		}
++		rms := math.Sqrt(energy / float64((len(pcm)-160)/2))
++		db := 20 * math.Log10(max(rms, 1e-12)/(20000/math.Sqrt2))
++		if (frequency == 1000 && math.Abs(db) > .1) || (frequency > 8000 && db > -60) {
++			t.Fatalf("frequency=%g relative level=%g dB", frequency, db)
++		}
++	}
++}
++
++func BenchmarkCallPCMResample(b *testing.B) {
++	window := make([]byte, 2112) // one 20 ms capture and its 96-sample history
++	b.ReportAllocs()
++	for b.Loop() {
++		if _, err := resampleCallPCM48(window); err != nil {
++			b.Fatal(err)
++		}
++	}
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index af0c243..b863996 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -1028,6 +1028,9 @@ if not os.environ.get("SPHINX"):
+         gocode.CallWriteAudio.argtypes = [
+             ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+         gocode.CallWriteAudio.restype = ctypes.c_int
++    if hasattr(gocode, "CallResamplePCM48To16"):
++        gocode.CallResamplePCM48To16.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallResamplePCM48To16.restype = ctypes.c_int
+     if hasattr(gocode, "CallAudioFormat"):
+         gocode.CallsConfigurePCM48.argtypes = [ctypes.c_int]
+         gocode.CallsConfigurePCM48.restype = None
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 984e3c3..820ed0b 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -84,6 +84,28 @@ class Calls:
+     def __init__(self, uuid: bytes):
+         self.uuid = uuid
+ 
++    @staticmethod
++    def resample_pcm48_to16(window: bytes):
++        """Convert 96 history samples + up to 100 ms of PCM48, without stream state.
++
++        None means an older DLL: the caller retains its Python fallback.
++        The caller owns the history and must clear it on a microphone change.
++        """
++        convert = getattr(gocode, "CallResamplePCM48To16", None)
++        if convert is None:
++            return None
++        size = len(window)
++        if size < 192 or size > 9792 or (size - 192) % 6:
++            raise ValueError("invalid PCM48 resampler window")
++        expected = (size - 192) // 3
++        if not expected:
++            return b""
++        buffer = ctypes.create_string_buffer(expected)
++        count = convert(window, size, buffer, expected)
++        if count != expected:
++            raise CallError("native PCM48 resampler failed")
++        return buffer.raw[:count]
++
+     def enabled(self) -> bool:
+         """Whether the call layer is installed on this (connected) client."""
+         return available() and gocode.CallsEnabled(self.uuid) == 1

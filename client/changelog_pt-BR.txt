@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Chamadas pelo Neonize: conversão do áudio do microfone otimizada para reduzir o trabalho em Python, com retorno automático ao processamento anterior quando o motor instalado não oferece a otimização.
+
 - Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia do usuário, o instalador e o desinstalador (que seguem o idioma de exibição do Windows) e estas notas de versão. O tcheco também aparece como idioma para traduzir mensagens, e o corretor ortográfico o suporta. Obrigado a jaxcze pela tradução.
 
 - Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Comunidades com essa comunidade selecionada e o foco nos grupos dela, em vez da conversa da própria comunidade. A opção fica em Configurações > Interface > Conversas, ligada por padrão.

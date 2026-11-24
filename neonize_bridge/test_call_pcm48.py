@@ -121,6 +121,33 @@ def test_pcm48_configuration_is_off_by_default_and_capability_gated():
     assert layer.flags[-1] == (True, {})
 
 
+def test_pcm16_uses_native_fir_and_stream_stop_clears_its_history():
+    from call_audio_pcm import PCM48To16
+    media, native, _ = connected()
+    native.audio_format = lambda call_id: {"sampleRate": 16000, "generation": native.generation}
+    windows = []
+    def convert(window):
+        windows.append(window)
+        return PCM48To16._convert(window)
+    native.resample_pcm48_to16 = convert
+    source = b'\x11\x22' * 2880
+    capture(media, source)
+    assert native.written == [(PCM48To16().push(source), 16000, 7)]
+    assert len(windows) == 1 and windows[0][:192] == bytes(192)
+    media.stop_microphone()
+    native.written.clear()
+    capture(media, bytes(5760))
+    assert native.written == [(bytes(1920), 16000, 7)]
+    assert windows[-1][:192] == bytes(192)
+
+
+def test_pcm48_bypasses_native_fir_entirely():
+    media, native, _ = connected()
+    native.resample_pcm48_to16 = lambda *a: pytest.fail("PCM48 must not be downsampled")
+    capture(media, b'\x11\x22' * 2880)
+    assert native.written == [(b'\x11\x22' * 2880, 48000, 7)]
+
+
 def test_native_format_failure_releases_reader_without_emitting_audio():
     media, native, sent = connected()
     def failed(*args):

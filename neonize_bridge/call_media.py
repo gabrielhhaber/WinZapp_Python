@@ -67,13 +67,13 @@ PLACED_GROUP_KEEP = 6 * 3600
 class FrameAssembler:
     """Regroups 48 kHz capture into 60 ms frames at the selected PCM rate."""
 
-    def __init__(self, sample_rate=CALL_RATE):
+    def __init__(self, sample_rate=CALL_RATE, *, native_resample=None):
         if sample_rate not in (16000, 48000):
             raise ValueError("unsupported call PCM rate")
         self.sample_rate = sample_rate
         self.frame_bytes = sample_rate * 60 // 1000 * 2
         self._pending = b""
-        self._resampler = PCM48To16()
+        self._resampler = PCM48To16(native_resample)
 
     def push(self, pcm48: bytes) -> list:
         pcm16 = self._resampler.push(pcm48) if self.sample_rate == CALL_RATE else pcm48
@@ -752,7 +752,8 @@ class CallMedia(CallIngressMixin):
                 stats.report()
                 return
             if self._mic_owner is not call:
-                self._mic = FrameAssembler(pcm_format["sampleRate"])
+                self._mic = FrameAssembler(pcm_format["sampleRate"], native_resample=
+                                           getattr(self.calls, "resample_pcm48_to16", None))
                 self._mic_owner = call
             if call is not None:
                 for frame in self._mic.push(pcm):

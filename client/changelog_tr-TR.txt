@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize aramaları: Python üzerindeki işlem yükünü azaltmak için mikrofon sesi dönüştürme işlemi optimize edildi. Yüklü motor bu optimizasyonu desteklemiyorsa önceki işleme yöntemine otomatik olarak dönülür.
+
 - Çekçe: WinZapp artık Çekçe (Čeština) olarak da kullanılabiliyor: arayüz, kullanım kılavuzu, yükleyici ve kaldırıcı (Windows görüntüleme diline uyar) ve bu sürüm notları. Çekçe ayrıca mesajların çevrileceği bir dil olarak sunulur ve yazım denetimi onu destekler. Çeviri için jaxcze'ye teşekkürler.
 
 - Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.

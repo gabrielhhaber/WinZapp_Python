@@ -4,6 +4,8 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Hovory přes Neonize: převod zvuku mikrofonu byl optimalizován tak, aby se snížila zátěž Pythonu. Pokud nainstalovaný modul optimalizaci nepodporuje, automaticky se použije dosavadní zpracování.
+
 - Čeština: WinZapp je nově k dispozici v češtině: rozhraní, návod k použití, instalační a odinstalační program (které se řídí jazykem zobrazení Windows) a tyto poznámky k vydání. Češtinu lze také zvolit jako jazyk, do kterého se zprávy překládají, a kontrola pravopisu ji podporuje. Za překlad děkujeme uživateli jaxcze.
 
 - Komunity: Enter na komunitě v seznamu chatů nově otevře panel Komunity s vybranou komunitou a fokusem na jejích skupinách, místo chatu samotné komunity. Volba je v Nastavení > Rozhraní > Chaty a ve výchozím stavu je zapnutá.

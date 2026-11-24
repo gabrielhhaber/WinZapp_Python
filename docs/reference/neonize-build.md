@@ -24,6 +24,12 @@ stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
+- **neonize 0033**: optional stateless `CallResamplePCM48To16`, exposed as
+  `Calls.resample_pcm48_to16`. It moves the bridge's 97-tap microphone FIR to
+  Go without changing its 16 kHz call contract. Each invocation includes the
+  microphone owner's history; older DLLs keep the Python fallback. Synthetic
+  Go and compiled-package binding tests cover the conversion.
+
 - **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
   whatsmeow patch) and media transfers to and from disk with progress and
   cancel (`DownloadAnyToFileTracked`, `UploadFile`, `TransferProgress`,
