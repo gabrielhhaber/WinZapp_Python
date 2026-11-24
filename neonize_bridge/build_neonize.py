@@ -261,6 +261,7 @@ def ensure_clean(name):
 
 def fresh_repo(tree):
     if os.path.isdir(tree):
+        make_tree_writable(tree)        # a folder without its search bit hides its contents
         shutil.rmtree(tree, onexc=_writable_retry)
     os.makedirs(tree)
     run(["git", "init", "-q"], cwd=tree)
