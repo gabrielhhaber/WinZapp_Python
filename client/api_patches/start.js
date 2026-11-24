@@ -1169,13 +1169,12 @@ function patchWppconnectVersionPinning() {
       // Awaited before the local read so the fallback below is reached with
       // `body` still null — a failed fetch must cost nothing but the timeout.
       if (pinnedCatalogueExpired) {
-        let live = await fetchLiveWhatsappDocument();
+        const live = await fetchLiveWhatsappDocument();
         if (live && !servesLiveDocument(live.html, pinnedCatalogueLoggedOutOnly)) {
           console.warn(
             `[WinZapp] Meta's live document (${live.channel}) is WhatsApp Web's login ` +
             'page only; keeping the expired local build, whose document is the full app.'
           );
-          live = null;
         } else if (live) {
           body = live.html;
           source = `live from Meta via ${live.channel} (local catalogue fully expired)`;
