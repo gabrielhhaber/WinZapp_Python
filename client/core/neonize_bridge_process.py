@@ -124,6 +124,9 @@ def environment(bridge: str, base_env=None) -> dict:
     env["PATH"] = os.pathsep.join(
         [f for f in folders if os.path.isdir(f)] + [env.get("PATH", "")])
     env["PYTHONIOENCODING"] = "utf-8"
+    # bridge.log is a file, so Python would hold its output in a buffer: a bridge
+    # that hangs would leave the file empty (reported 2026-11-24).
+    env["PYTHONUNBUFFERED"] = "1"
     return env
 
 
@@ -634,7 +637,9 @@ class NeonizeBridge:
                           output_tail(output) or "(empty or unreadable)")
                 return False
             self._sleep(0.5)
-        log.error("neonize bridge did not open port %s in time", self.port)
+        log.error("neonize bridge did not open port %s in time (still running: %s) (%s); "
+                  "end of its output:\n%s", self.port, self.proc.poll() is None,
+                  machine_summary(), output_tail(output) or "(empty or unreadable)")
         return False
 
     def stop(self) -> bool:

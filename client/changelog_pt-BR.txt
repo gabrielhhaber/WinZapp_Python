@@ -656,6 +656,8 @@ NOVIDADES
 
 - Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização foi baixada, Ajuda > Instalar atualização baixada continuava indisponível. Agora o item fica disponível e instala a atualização na hora, reabrindo o WinZapp em seguida; sair continua instalando sem reabrir.
 
+- Neonize: quando a bridge de conexão demora demais para iniciar, o log do programa agora diz se ela ainda está rodando e mostra as últimas linhas da saída dela, e a bridge grava no próprio log cada etapa do seu início conforme avança, para que uma bridge que pare no meio mostre onde.
+
 V2.1.0.0
 
 Esta versão traz a transcrição de mensagens de voz no seu próprio computador, sem enviar nada a lugar nenhum, e a transcrição e a descrição com IA online de mensagens de voz, imagens, vídeos, figurinhas e PDFs.

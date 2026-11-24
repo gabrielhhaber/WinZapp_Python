@@ -657,6 +657,8 @@ NOWOŚCI
 
 - Naprawiono: gdy włączona była instalacja przy wyjściu, po komunikacie o pobraniu aktualizacji opcja Pomoc > Zainstaluj pobraną aktualizację nadal była niedostępna. Teraz jest dostępna i od razu instaluje aktualizację, a potem ponownie uruchamia WinZapp; wyjście nadal instaluje bez ponownego uruchamiania.
 
+- Neonize: gdy most połączenia uruchamia się zbyt długo, log programu mówi teraz, czy nadal działa, i pokazuje ostatnie linie jego wyjścia, a most zapisuje w swoim logu każdy krok startu na bieżąco, więc most zatrzymany w połowie pokazuje gdzie.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

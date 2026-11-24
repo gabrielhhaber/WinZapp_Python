@@ -333,6 +333,7 @@
     "1453dc64c422": "No Neonize, \"Adicionar contato\" nos dados da conversa agora salva o contato de v",
     "73eaa785a812": "Neonize: quando a bridge de conexão não consegue iniciar, o WinZapp agora avisa ",
     "42121ad126e2": "Neonize no Windows em ARM: a bridge de conexão não deixa mais de iniciar (e o pa",
-    "34917b3be826": "Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização f"
+    "34917b3be826": "Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização f",
+    "9162dac61c67": "Neonize: quando a bridge de conexão demora demais para iniciar, o log do program"
   }
 }

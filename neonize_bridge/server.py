@@ -7,6 +7,8 @@ Usage:  .venv\\Scripts\\python server.py [--port 6300] [--folder data]
 """
 import bridge_arch
 bridge_arch.pin()    # before anything imports neonize
+import startup_trace
+startup_trace.mark("imports begin (" + startup_trace.describe() + ")")
 
 import argparse
 import asyncio
@@ -3469,8 +3471,10 @@ def turn_off_bot_tag():
 
 
 def main():
+    startup_trace.mark("imports done; loading neonize")
     turn_off_bot_tag()
     media_probe.install_safe_from_magic()
+    startup_trace.mark("neonize loaded")
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=6300)
     ap.add_argument("--single-session", default="",
@@ -3500,7 +3504,10 @@ def main():
                 return rec.levelno >= logging.WARNING or rec.name == "bridge"                     or bool(pattern.search(rec.getMessage()))
         for h in logging.getLogger().handlers:
             h.addFilter(StateOnly())
-    web.run_app(create_app(a.folder, a.single_session), port=a.port, **SERVER_OPTIONS)
+    startup_trace.mark("creating the app")
+    app = create_app(a.folder, a.single_session)
+    startup_trace.mark("app created; opening port %s" % a.port)
+    web.run_app(app, port=a.port, **SERVER_OPTIONS)
 
 
 if __name__ == "__main__":
