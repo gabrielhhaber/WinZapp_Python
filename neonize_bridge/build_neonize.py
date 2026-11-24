@@ -268,8 +268,35 @@ def fresh_repo(tree):
         run(["git", "config", key, value], cwd=tree)
 
 
+def make_writable(path):
+    """Give the owner write access to `path` (the Go module cache is read-only),
+    keeping what it had: on Windows this clears the read-only flag; elsewhere a
+    folder also keeps (or gets) its search bit, without which nothing inside it
+    could be reached, listed or removed."""
+    mode = os.stat(path, follow_symlinks=False).st_mode
+    wanted = stat.S_IREAD | stat.S_IWRITE | (stat.S_IXUSR if stat.S_ISDIR(mode) else 0)
+    if stat.S_ISLNK(mode) or mode & wanted == wanted:
+        return
+    os.chmod(path, mode | wanted)
+
+
+def make_tree_writable(tree):
+    """make_writable() on `tree` and everything in it, each folder before its
+    contents, so the walk can go on into it."""
+    make_writable(tree)
+    for root, dirs, files in os.walk(tree):
+        for entry in dirs + files:
+            make_writable(os.path.join(root, entry))
+
+
 def _writable_retry(function, path, _error):
-    os.chmod(path, stat.S_IWRITE)          # the Go module cache is read-only
+    # deleting an entry needs write access to its folder off Windows, and to
+    # the entry itself on Windows
+    parent = os.path.dirname(path)
+    if parent and os.path.isdir(parent):
+        make_writable(parent)
+    if os.path.lexists(path):
+        make_writable(path)
     function(path)
 
 
@@ -312,9 +339,7 @@ def prepare_whatsmeow(info, force):
                             f"{info['module']}@{info['version']}"], capture=True))
     fresh_repo(tree)
     shutil.copytree(found["Dir"], tree, dirs_exist_ok=True)
-    for root, dirs, files in os.walk(tree):
-        for entry in dirs + files:
-            os.chmod(os.path.join(root, entry), stat.S_IWRITE | stat.S_IREAD)
+    make_tree_writable(tree)
     git(tree, "add", "-A")
     git(tree, "commit", "-q", "-m", f"{info['module']} {info['version']} ({found['Sum']})")
     run(["git", "tag", "-f", BASE], cwd=tree, capture=True)

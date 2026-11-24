@@ -35,8 +35,11 @@ on:
     paths:
       - "neonize_bridge/neonize_patches/**"
       - "neonize_bridge/neonize_upstream.json"
+      - "neonize_bridge/neonize_upstream.py"
       - "neonize_bridge/neonize_platform.py"
       - "neonize_bridge/build_neonize.py"
+      - "neonize_bridge/prepare.py"
+      - "neonize_bridge/requirements*"
       - ".github/workflows/neonize-dll.yml"
   workflow_dispatch:
     inputs:

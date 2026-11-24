@@ -292,7 +292,17 @@ protoc's macOS downloads are checked against `protoc_platforms` in the
 manifest (outside `toolchain`, so a build's identity is the same on every
 system). The bridge's requirements come from `requirements-macos.lock`
 (python-magic instead of python-magic-bin, the same versions as
-`requirements.lock`). Nobody on the team needs a Mac for it:
+`requirements.lock`). After a change to `requirements.txt` or
+`requirements.lock`, regenerate it from `neonize_bridge/`:
+
+```sh
+grep -oE "^[A-Za-z0-9_.-]+==[^ \\]+" requirements.lock > windows-pins.txt
+uv pip compile requirements.txt -c windows-pins.txt --generate-hashes \
+  --python-version 3.13 --python-platform aarch64-apple-darwin -o requirements-macos.lock
+rm windows-pins.txt
+```
+
+(uv's hashes cover every wheel of each version, Intel's included.) Nobody on the team needs a Mac for it:
 `neonize-dll.yml`'s `build-macos` job builds and tests both architectures on
 GitHub's macOS runners, and keeps each build as an artifact.
 
