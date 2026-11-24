@@ -9,17 +9,29 @@ These source fixes do not establish parity with Telegram or Signal.
 ## Transport boundary (issue #768, first step of tier C)
 
 `core/call_audio_transport.py` defines `CallAudioTransport` for outgoing
-mono s16le PCM and start/stop controls. `CallAudioSession` accepts an injected
-transport; existing callers still get `SocketIOCallAudioTransport`. JSON and
-base64 encoding now belong to that adapter rather than the device pipeline.
+mono s16le PCM and start/stop controls, and `CallAudioFrame` /
+`CallAudioReceiver` for incoming PCM. `CallAudioSession` accepts an injected
+transport; existing callers still get `SocketIOCallAudioTransport`. Outgoing
+JSON/base64 encoding belongs to that adapter rather than the device pipeline.
 The default adapter preserves the existing event names and envelopes for
 both WPPConnect and Neonize, including media/stream ownership tags.
 
 Capture, processing, muting, desktop mixing, ownership checks and the
 `stop(notify_bridge=False)` device-switch policy remain in the session.
-Incoming PCM still follows the existing owner-checked Socket.IO receive path
-into `enqueue_remote_audio`. No native transport is selected or downloaded,
-and no buffer, resampler, WASAPI mode or audio quality setting changes.
+The Socket.IO receive adapter (`core/call_audio_socketio.py`) converts
+base64, binary and Node Buffer envelopes to `CallAudioFrame`. Direct
+transports can construct a frame from PCM without a Socket.IO envelope and
+deliver it to the same `CallAudioReceiver` callback. Legacy frames retain
+the two-argument callback; tagged frames carry their original `media_epoch`.
+Malformed explicit tags are rejected, never treated as untagged legacy PCM.
+
+Socket events still check account and media ownership before decoding, with
+the existing rate-limited rejection counters. The selected session rechecks
+ownership and stop state before queueing, so a reconnection during decoding
+or a delayed callback after a device switch cannot enqueue into a different
+call. Existing public audio/video handler names remain available.
+No native transport is selected or downloaded, and no buffer, resampler,
+WASAPI mode or audio quality setting changes.
 This boundary is preparation for a native transport, not NetEQ integration
 or evidence of reduced latency. Tier C's native loop and optional component
 loading/fallback remain unimplemented.
