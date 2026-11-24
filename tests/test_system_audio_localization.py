@@ -43,6 +43,7 @@ class SystemAudioLocalizationTests(unittest.TestCase):
             'ro': ('Volumul sunetului computerului (%)', 'Volumul celorlalte sunete (%)', 'Volumul NVDA (%)'),
             'ar': ('صوت الكمبيوتر (%)', 'صوت الأصوات الأخرى (%)', 'صوت NVDA (%)'),
             'it': ('Volume audio del computer (%)', 'Volume degli altri suoni (%)', 'Volume NVDA (%)'),
+            'cs': ('Hlasitost zvuku počítače (%)', 'Hlasitost ostatních zvuků (%)', 'Hlasitost NVDA (%)'),
         }
         locales = registered_locale_codes()
         self.assertEqual(set(labels), set(locales))
@@ -76,6 +77,8 @@ class SystemAudioLocalizationTests(unittest.TestCase):
                    'للأصوات الأخرى', 'لا تغير الشرائط مستوى الاستماع', 'معلوماتك الخاصة'),
             'it': ('microfono', 'in questa modalità', 'se utilizzi nvda', 'due cursori', 'senza nvda',
                    'altri suoni del computer', 'non modificano il volume di ascolto', 'informazioni private'),
+            'cs': ('mikrofon', 'v tomto režimu', 'pokud používáte nvda', 'dva posuvníky', 'bez nvda',
+                   'ostatní zvuky počítače', 'nemění hlasitost, kterou slyšíte', 'soukromé informace'),
         }
         device_terms = {
             'pt-BR': ('dispositivos de saída', 'padrão'),
@@ -87,6 +90,7 @@ class SystemAudioLocalizationTests(unittest.TestCase):
             'ro': ('dispozitivele de ieșire', 'implicit'),
             'ar': ('أجهزة الإخراج', 'الافتراضي'),
             'it': ('dispositivi di uscita', 'predefinit'),
+            'cs': ('výstupních zařízení', 'výchozí'),
         }
         locales = registered_locale_codes()
         self.assertEqual(set(phrases), set(locales))

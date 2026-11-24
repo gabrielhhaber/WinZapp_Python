@@ -11,7 +11,7 @@ from ui.dialogs import ai_writing_dialog as module
 pytestmark = pytest.mark.wxgui
 
 
-@pytest.mark.parametrize('language', ['es-ES', 'en-US', 'pt-BR', 'pt-PT', 'ar', 'it', 'pl', 'ro', 'tr-TR'])
+@pytest.mark.parametrize('language', ['es-ES', 'en-US', 'pt-BR', 'pt-PT', 'ar', 'it', 'pl', 'ro', 'tr-TR', 'cs'])
 def test_native_writing_dialog_layout_and_actions(wx_app, tmp_path, monkeypatch, language):
     frame = hidden_frame()
     frame.settings = {'general': {'language': language}}

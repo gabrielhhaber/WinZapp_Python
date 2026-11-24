@@ -20037,6 +20037,11 @@ msgid "Translate from here to the end"
 msgstr "ترجمة من هنا حتى النهاية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_cs"
+msgid "Czech"
+msgstr "التشيكية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr "الألمانية"

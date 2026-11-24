@@ -126,6 +126,17 @@ static const UninstallStrings STR_IT = {
     L"Disinstallazione completata",
 };
 
+static const UninstallStrings STR_CS = {
+    L"Odinstalovat WinZapp",
+    L"Opravdu chcete odinstalovat WinZapp?",
+    L"Odinstalovat",
+    L"Zrušit",
+    L"Instalační složku WinZapp se nepodařilo najít.\n"
+    L"Program už možná byl odinstalován.",
+    L"WinZapp byl úspěšně odinstalován.",
+    L"Odinstalace dokončena",
+};
+
 static const UninstallStrings *g_str = &STR_EN;
 
 static void select_language(void)
@@ -139,6 +150,7 @@ static void select_language(void)
     case WINZAPP_LANG_TR:    g_str = &STR_TR;    break;
     case WINZAPP_LANG_AR:    g_str = &STR_AR;    break;
     case WINZAPP_LANG_IT:    g_str = &STR_IT;    break;
+    case WINZAPP_LANG_CS:    g_str = &STR_CS;    break;
     default:                 g_str = &STR_EN;    break;
     }
 }

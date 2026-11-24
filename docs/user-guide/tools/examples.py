@@ -7,7 +7,7 @@ loc=sys.argv[1]
 po=carregar_po(AQUI.parent.parent/'translations'/loc/'LC_MESSAGES/winzapp.po')
 f=lambda k,**kw: po[k].format(**kw)
 rep={
- '"35% (13.8 MB of 39.4 MB)"': '"'+f('downloading_progress_size',pct=35,done='13,8 MB' if loc in('es-ES','pl','tr-TR','ro') else '13.8 MB',total='39,4 MB' if loc in('es-ES','pl','tr-TR','ro') else '39.4 MB')+'"',
+ '"35% (13.8 MB of 39.4 MB)"': '"'+f('downloading_progress_size',pct=35,done='13,8 MB' if loc in('es-ES','pl','tr-TR','ro','cs') else '13.8 MB',total='39,4 MB' if loc in('es-ES','pl','tr-TR','ro','cs') else '39.4 MB')+'"',
  '"Downloading media: 30 of 120 processed (8 downloaded)"': '"'+f('sync_media_progress',done=30,total=120,downloaded=8)+'"',
  '"Syncing chats: 12 of 80"': '"'+f('sync_chats_progress',done=12,total=80)+'"',
  '"message 3 of 12"': '"'+f('bulk_transcription_progress',index=3,total=12).rstrip('.')+'"',

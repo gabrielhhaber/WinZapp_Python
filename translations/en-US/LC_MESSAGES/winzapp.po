@@ -20281,6 +20281,11 @@ msgid "Translate from here to the end"
 msgstr "Translate from here to the end"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "translate_lang_cs"
+msgid "Czech"
+msgstr "Czech"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "translate_lang_de"
 msgid "German"
 msgstr "German"
