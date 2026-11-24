@@ -246,6 +246,35 @@ class SafeMagic:
         return getattr(self._real, name)
 
 
+def _missing_libmagic(*_args, **_kwargs):
+    raise RuntimeError("libmagic is not available")
+
+
+def ensure_magic_module(modules=None, importer=None):
+    """neonize imports `magic` (python-magic) at the top of neonize.client, and
+    python-magic fails at import when libmagic cannot be loaded: a Mac without
+    Homebrew's libmagic would lose the whole bridge over a mimetype. Then a
+    stand-in `magic` module takes its place, whose calls raise, so SafeMagic
+    answers by the file signature. True when the real one imported."""
+    import sys
+    import types
+    modules = sys.modules if modules is None else modules
+    if importer is None:
+        import importlib
+        importer = importlib.import_module
+    try:
+        importer("magic")
+        return True
+    except (ImportError, OSError):
+        log.warning("libmagic cannot be loaded; mimetypes come from the file signature",
+                    exc_info=True)
+    stand_in = types.ModuleType("magic")
+    stand_in.from_buffer = stand_in.from_file = _missing_libmagic
+    stand_in.Magic = _missing_libmagic
+    modules["magic"] = stand_in
+    return False
+
+
 def install_safe_from_magic(modules=None):
     """Makes every `magic.from_buffer` / `from_file` call of neonize (its
     `upload`, `MediaType.from_magic`, `build_*_message`, `send_image`,
@@ -254,6 +283,7 @@ def install_safe_from_magic(modules=None):
     twice."""
     import sys
     if modules is None:         # neonize.client is otherwise imported only when a session starts
+        ensure_magic_module()
         import neonize.client       # noqa: F401
         import neonize.utils.enum   # noqa: F401
     for name, module in list((modules if modules is not None else sys.modules).items()):

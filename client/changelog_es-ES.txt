@@ -666,6 +666,8 @@ NOVEDADES
 
 - Neonize: cuando el puente de conexión se queda atascado al iniciarse, ahora escribe en su propio registro, a los 25 segundos, en qué punto está atascado.
 
+- Mac: el motor Neonize ahora también viene en WinZapp para Mac, en Apple Silicon e Intel, y se conecta directamente a WhatsApp, sin navegador. Elígelo en la lista "Motor de conexión" de la ventana de conexión o en Configuración > Conexión.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.
