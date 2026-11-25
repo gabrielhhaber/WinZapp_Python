@@ -70,3 +70,4 @@ class TimedPlaybackPCM(PlaybackPCM):
     timestamp: int
     ssrc: int
     clock: int
+    mixed: bool = False  # one sender of a group call, mixed with the others

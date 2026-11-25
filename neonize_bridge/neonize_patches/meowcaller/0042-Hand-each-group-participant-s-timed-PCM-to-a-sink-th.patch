@@ -1,0 +1,318 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Wed, 25 Nov 2026 01:51:32 -0300
+Subject: [PATCH] Hand each group participant's timed PCM to a sink that mixes
+ senders itself
+
+In a group call every participant's decoded PCM went through the
+participant mixer: per-sender queues with a 120 ms prefill, drop-oldest
+past 240 ms, a 10 ms wall-clock ticker, and one untimed stream to the sink,
+whose own reservoir then buffered it again. The timed NetEq playout of
+direct calls (TimedAudioSink) never applied to groups.
+
+A sink can now implement MixedTimedAudioSink: when it wants mixed timed
+audio, each participant frame is written with that participant's SSRC and
+PCM-unit RTP timestamp, so the sink runs one NetEq per sender on the device
+clock and mixes them, as WebRTC does. Concealed frames are not sent to it
+(its NetEq conceals per sender); recovered frames are. The roster still
+decides who is heard. The mixer ticker drops whatever was waiting while
+such a sink is attached, so none of it arrives later as untimed PCM. Every
+other sink, and this one when it stops wanting mixed timed audio, keeps the
+mixer exactly as before.
+
+Tested: frames reach the sink on each sender's SSRC/timeline and not the
+mixer; sinks without the capability (protocol 2, no NetEq, plain sinks)
+keep the mixer; the roster filters timed audio; concealment is dropped only
+where the sink conceals; mixer reset keeps the roster; full suite passes.
+---
+ audio.go                  |  10 ++++
+ engine_media.go           |  23 +++++++-
+ group_audio_mixer.go      |  25 ++++++++
+ group_audio_timed.go      |  36 ++++++++++++
+ group_audio_timed_test.go | 121 ++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 212 insertions(+), 3 deletions(-)
+ create mode 100644 group_audio_timed.go
+ create mode 100644 group_audio_timed_test.go
+
+diff --git a/audio.go b/audio.go
+index 83f5e94..2c8b25f 100644
+--- a/audio.go
++++ b/audio.go
+@@ -59,6 +59,16 @@ type TimedAudioSink interface {
+ 	WriteTimedFrame(frame []float32, timestamp, ssrc, clock uint32) error
+ }
+ 
++// MixedTimedAudioSink mixes several timed senders itself, one NetEq per
++// sender on the device clock. A group call then hands it each participant's
++// decoded PCM on that participant's own timeline (SSRC and PCM-unit RTP
++// timestamp) instead of meowcaller's participant mixer.
++type MixedTimedAudioSink interface {
++	TimedAudioSink
++	WantsMixedTimedAudio() bool
++	WriteMixedTimedFrame(frame []float32, timestamp, ssrc, clock uint32) error
++}
++
+ // SinkFunc adapts a plain function to an AudioSink (Close is a no-op).
+ type SinkFunc func(frame []float32)
+ 
+diff --git a/engine_media.go b/engine_media.go
+index 54ec368..9d627df 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -420,6 +420,12 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			if sink == nil {
+ 				continue
+ 			}
++			if mixedTimedSink(sink) != nil {
++				// The sink mixes each participant's timed PCM itself.
++				audioMixer.Reset()
++				audioSinkFramer.pending = nil
++				continue
++			}
+ 			chunk, ok := audioMixer.MixChunk()
+ 			if !ok {
+ 				continue
+@@ -920,6 +926,8 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 	buf := make([]byte, 1500)
+ 	var receiveStats audioReceiveStats
+ 	var rtpIn, rtpSeen, unprotectFail, rtpInspect, vidIn, appDataIn, appDataUnprotectFail, videoUnprotectFail, videoFrameIn, videoSinkMissing, rtcpIn, rtcpAuthFail, groupForwardingInvalid, stunIn uint64
++	var groupTimedFailures uint64
++	groupTimedStarted := false
+ 	incomingRTCP := incomingRTCPLog{}
+ 	relayRecoveries := 0
+ 	for {
+@@ -1247,9 +1255,9 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 		for _, audio := range frames {
+ 			// NetEq conceals by its own playout clock. The codec's state was
+ 			// advanced above, but do not enqueue a second synthetic gap.
+-			if audio.Concealed && !groupMixing.Load() {
++			if audio.Concealed {
+ 				_, sink := callPlayerSink(call)
+-				if timed, ok := sink.(TimedAudioSink); ok && timed.WantsTimedAudio() {
++				if sinkConcealsLoss(sink, groupMixing.Load()) {
+ 					continue
+ 				}
+ 			}
+@@ -1265,7 +1273,16 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 				mixedMode = groupMixing.Load()
+ 			}
+ 			if mixedMode {
+-				audioMixer.Add(audio.ParticipantID, audio.PCM)
++				_, sink := callPlayerSink(call)
++				timed, deliverErr := deliverGroupAudio(sink, audioMixer, audio, receiveClock)
++				if deliverErr != nil {
++					if groupTimedFailures++; groupTimedFailures == 1 {
++						log.Warn().Err(deliverErr).Msg("failed to write timed participant audio")
++					}
++				} else if timed && !groupTimedStarted {
++					groupTimedStarted = true
++					log.Info().Msg("started per-participant timed inbound audio delivery to downstream mixer")
++				}
+ 			} else {
+ 				_, sink := callPlayerSink(call)
+ 				audioPlayout.setReceiveEpoch(audio.SSRC, receiveClock)
+diff --git a/group_audio_mixer.go b/group_audio_mixer.go
+index 8565fa2..c2cfe1b 100644
+--- a/group_audio_mixer.go
++++ b/group_audio_mixer.go
+@@ -75,6 +75,31 @@ func (m *participantAudioMixer) Add(participantID string, pcm []float32) bool {
+ 	return true
+ }
+ 
++// Allows reports whether the roster lets this participant be heard.
++func (m *participantAudioMixer) Allows(participantID string) bool {
++	if participantID == "" {
++		return false
++	}
++	m.mu.Lock()
++	defer m.mu.Unlock()
++	if !m.rosterApplied {
++		return true
++	}
++	_, ok := m.allowed[participantID]
++	return ok
++}
++
++// Reset drops the PCM waiting to be mixed: a sink that mixes timed senders
++// took over, and this audio must not reach it later as untimed PCM. The
++// roster stays; mixing that starts again begins with its prefill.
++func (m *participantAudioMixer) Reset() {
++	m.mu.Lock()
++	defer m.mu.Unlock()
++	for _, queue := range m.streams {
++		queue.pending, queue.started = nil, false
++	}
++}
++
+ func (m *participantAudioMixer) Retain(participantIDs []string) {
+ 	// Source of truth: https://github.com/purpshell/meowcaller/blob/fabad4acce2147da4e40c1e8c6a1643053ae8c59/datasheets/group-audio-mixer.md#L35-L37
+ 	// NOT VALIDATED: validated once a departed participant stops contributing to live playout.
+diff --git a/group_audio_timed.go b/group_audio_timed.go
+new file mode 100644
+index 0000000..cd18802
+--- /dev/null
++++ b/group_audio_timed.go
+@@ -0,0 +1,36 @@
++package meowcaller
++
++// A sink that mixes timed senders itself gets every participant's decoded PCM
++// on its own timeline; any other sink keeps the participant mixer.
++
++func mixedTimedSink(sink AudioSink) MixedTimedAudioSink {
++	if mixed, ok := sink.(MixedTimedAudioSink); ok && mixed.WantsMixedTimedAudio() {
++		return mixed
++	}
++	return nil
++}
++
++// sinkConcealsLoss reports whether the sink's NetEq conceals a loss by its own
++// device clock in this mode, so a concealed frame must not reach it as well.
++func sinkConcealsLoss(sink AudioSink, group bool) bool {
++	if group {
++		return mixedTimedSink(sink) != nil
++	}
++	timed, ok := sink.(TimedAudioSink)
++	return ok && timed.WantsTimedAudio()
++}
++
++// deliverGroupAudio hands one decoded participant frame to a sink that mixes
++// timed senders, or to the participant mixer. It reports whether the sink took
++// it. Both honour the roster: a participant the mixer would refuse is dropped.
++func deliverGroupAudio(sink AudioSink, mixer *participantAudioMixer, audio decodedParticipantAudio, clock uint32) (bool, error) {
++	mixed := mixedTimedSink(sink)
++	if mixed == nil {
++		mixer.Add(audio.ParticipantID, audio.PCM)
++		return false, nil
++	}
++	if !mixer.Allows(audio.ParticipantID) || len(audio.PCM) == 0 {
++		return true, nil
++	}
++	return true, mixed.WriteMixedTimedFrame(audio.PCM, audio.Timestamp, audio.SSRC, clock)
++}
+diff --git a/group_audio_timed_test.go b/group_audio_timed_test.go
+new file mode 100644
+index 0000000..1235994
+--- /dev/null
++++ b/group_audio_timed_test.go
+@@ -0,0 +1,121 @@
++package meowcaller
++
++import "testing"
++
++type groupTimedTestSink struct {
++	mixed, timed bool
++	frames       []groupTimedTestFrame
++	plain        int
++}
++
++type groupTimedTestFrame struct {
++	samples                int
++	timestamp, ssrc, clock uint32
++}
++
++func (s *groupTimedTestSink) WriteFrame([]float32) error { s.plain++; return nil }
++func (s *groupTimedTestSink) Close() error               { return nil }
++func (s *groupTimedTestSink) BuffersAudioPlayout() bool  { return true }
++func (s *groupTimedTestSink) WantsTimedAudio() bool      { return s.timed }
++func (s *groupTimedTestSink) WriteTimedFrame([]float32, uint32, uint32, uint32) error {
++	return nil
++}
++func (s *groupTimedTestSink) WantsMixedTimedAudio() bool { return s.mixed }
++func (s *groupTimedTestSink) WriteMixedTimedFrame(frame []float32, timestamp, ssrc, clock uint32) error {
++	s.frames = append(s.frames, groupTimedTestFrame{len(frame), timestamp, ssrc, clock})
++	return nil
++}
++
++func groupTimedAudio(participant string, ssrc, timestamp uint32) decodedParticipantAudio {
++	return decodedParticipantAudio{ParticipantID: participant, SSRC: ssrc, Timestamp: timestamp, PCM: make([]float32, FrameSamples)}
++}
++
++// Each participant keeps its own SSRC and timeline: the sink's NetEq per
++// sender, not meowcaller's mixer, absorbs that sender's jitter and loss.
++func TestGroupAudioGoesToAMixingTimedSinkOnEachSendersTimeline(t *testing.T) {
++	sink := &groupTimedTestSink{mixed: true, timed: true}
++	mixer := newParticipantAudioMixer()
++	for _, audio := range []decodedParticipantAudio{
++		groupTimedAudio("a", 11, 0), groupTimedAudio("b", 22, 5000), groupTimedAudio("a", 11, 960),
++	} {
++		if timed, err := deliverGroupAudio(sink, mixer, audio, 48000); !timed || err != nil {
++			t.Fatalf("frame not delivered timed: %v %v", timed, err)
++		}
++	}
++	want := []groupTimedTestFrame{{FrameSamples, 0, 11, 48000}, {FrameSamples, 5000, 22, 48000}, {FrameSamples, 960, 11, 48000}}
++	if len(sink.frames) != len(want) {
++		t.Fatalf("got %d frames, want %d", len(sink.frames), len(want))
++	}
++	for i := range want {
++		if sink.frames[i] != want[i] {
++			t.Fatalf("frame %d: %+v, want %+v", i, sink.frames[i], want[i])
++		}
++	}
++	if _, ok := mixer.MixChunk(); ok {
++		t.Fatal("timed participant audio also reached the mixer")
++	}
++}
++
++func TestGroupAudioKeepsTheMixerWithoutAMixingTimedSink(t *testing.T) {
++	for _, sink := range []AudioSink{
++		&groupTimedTestSink{timed: true},                // protocol 2: direct calls only
++		&groupTimedTestSink{mixed: false, timed: false}, // no NetEq
++		SinkFunc(func([]float32) {}),
++	} {
++		mixer := newParticipantAudioMixer()
++		for n := 0; n < 3; n++ {
++			if timed, _ := deliverGroupAudio(sink, mixer, groupTimedAudio("a", 11, uint32(n*FrameSamples)), 48000); timed {
++				t.Fatal("audio bypassed the mixer for a sink that does not mix timed senders")
++			}
++		}
++		if _, ok := mixer.MixChunk(); !ok {
++			t.Fatal("the mixer did not get the audio")
++		}
++	}
++}
++
++func TestGroupTimedAudioHonoursTheRoster(t *testing.T) {
++	sink := &groupTimedTestSink{mixed: true, timed: true}
++	mixer := newParticipantAudioMixer()
++	mixer.Retain([]string{"a"})
++	deliverGroupAudio(sink, mixer, groupTimedAudio("gone", 33, 0), 48000)
++	deliverGroupAudio(sink, mixer, groupTimedAudio("a", 11, 0), 48000)
++	if len(sink.frames) != 1 || sink.frames[0].ssrc != 11 {
++		t.Fatalf("a participant outside the roster was heard: %+v", sink.frames)
++	}
++}
++
++func TestConcealedFramesAreDroppedOnlyWhereTheSinkConceals(t *testing.T) {
++	direct := &groupTimedTestSink{timed: true}
++	mixed := &groupTimedTestSink{timed: true, mixed: true}
++	cases := []struct {
++		sink  AudioSink
++		group bool
++		want  bool
++	}{
++		{direct, false, true},
++		{direct, true, false}, // the mixer path still needs codec concealment
++		{mixed, true, true},
++		{mixed, false, true},
++		{SinkFunc(func([]float32) {}), false, false},
++		{SinkFunc(func([]float32) {}), true, false},
++	}
++	for i, c := range cases {
++		if got := sinkConcealsLoss(c.sink, c.group); got != c.want {
++			t.Fatalf("case %d: %v, want %v", i, got, c.want)
++		}
++	}
++}
++
++func TestMixerResetDropsWaitingAudioButKeepsTheRoster(t *testing.T) {
++	mixer := newParticipantAudioMixer()
++	mixer.Retain([]string{"a"})
++	mixer.Add("a", make([]float32, 3*FrameSamples))
++	mixer.Reset()
++	if _, ok := mixer.MixChunk(); ok {
++		t.Fatal("audio waiting before the reset was mixed after it")
++	}
++	if !mixer.Allows("a") || mixer.Allows("b") {
++		t.Fatal("the reset changed the roster")
++	}
++}

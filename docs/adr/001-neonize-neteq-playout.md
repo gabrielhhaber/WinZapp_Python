@@ -51,8 +51,10 @@ state may advance through a missing predecessor, but synthetic concealment PCM
 is not inserted again when the timed sink owns direct-call playout. NetEq
 conceals by the device clock even when no later packet arrives.
 
-Groups, live translation, unsupported device rates, older bridge/DLL versions
-and unavailable/failed components retain compatible playback. Supported output
+Live translation, unsupported device rates, older bridge/DLL versions and
+unavailable/failed components retain compatible playback. Group calls
+(2026-11-25, protocol 3) give each sender its own NetEq instance and sum them
+in the device callback; without NetEq they keep the participant mixer. Supported output
 rates are 8, 16, 32 and 48 kHz. Source/codec epochs and large discontinuities
 reset NetEq; device changes close its instance. Protocol 1 and WPPConnect's
 audio/control contract stay compatible.

@@ -151,3 +151,29 @@ class MicrophonePCMEncoder:
         frames = [pending[i:i + self._frame_samples] for i in range(0, end, self._frame_samples)]
         self._pending = pending[end:].copy()
         return frames
+
+
+class PerSenderResampler:
+    """One FIR history per timed sender of a group call.
+
+    Group senders arrive interleaved; one shared history would either mix
+    their tails or, reset on every change of sender, click at each packet.
+    A sender whose rate or codec clock changes starts a fresh history. The
+    least recently heard sender is dropped past ``limit``.
+    """
+
+    def __init__(self, limit: int = 32):
+        self._limit = limit
+        self._senders: dict = {}
+
+    def reset(self) -> None:
+        self._senders.clear()
+
+    def process(self, sender, source, samples, source_rate: int, target_rate: int) -> np.ndarray:
+        entry = self._senders.pop(sender, None)
+        if entry is None or entry[0] != source:
+            entry = (source, StreamingMonoResampler())
+            while len(self._senders) >= self._limit:
+                self._senders.pop(next(iter(self._senders)))
+        self._senders[sender] = entry  # most recently heard last
+        return entry[1].process(samples, source_rate, target_rate)

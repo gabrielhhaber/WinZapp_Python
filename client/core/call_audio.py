@@ -22,7 +22,7 @@ import numpy as np
 
 from core.audio_devices import repair_device_name
 from core.call_audio_processing import CallAudioProcessor
-from core.call_audio_resampling import MicrophonePCMEncoder, StreamingMonoResampler
+from core.call_audio_resampling import MicrophonePCMEncoder, PerSenderResampler, StreamingMonoResampler
 from core.call_audio_output import render_output
 from core.call_audio_transport import CallAudioTransport, SocketIOCallAudioTransport
 from core.call_audio_channels import MicrophoneDownmix, log_downmix_side, shared_channel_counts
@@ -432,6 +432,7 @@ class CallAudioSession:
                      "/".join(map(str, output_buffer_profile(config.neonize_audio))))
         self._output_resampler = StreamingMonoResampler()
         self._output_timed_source = None
+        self._group_resamplers = PerSenderResampler()
         self._output_underruns_logged = 0
         self._stop_event = threading.Event()
         # Held around every write to the output stream and around replacing
@@ -573,6 +574,7 @@ class CallAudioSession:
             self._drain_queue(self._output_queue)
             self._output_buffer.reset()
             self._output_resampler.reset()
+            self._group_resamplers.reset()
             self._media_epoch = epoch
         bind_owner = getattr(self._transport, 'bind_owner', None)
         if callable(bind_owner):
@@ -613,6 +615,7 @@ class CallAudioSession:
         # runs, and it must find an empty, correctly scaled reservoir.
         self._output_buffer.configure(self._output_rate)
         self._output_resampler.reset()
+        self._group_resamplers.reset()
         try:
             self._output_stream.start()
         except Exception:
@@ -731,6 +734,7 @@ class CallAudioSession:
             self._output_buffer.configure(rate)
             self._configure_transport_playout()
             self._output_resampler.reset()
+            self._group_resamplers.reset()
             try:
                 stream.start()
             except Exception:
@@ -769,6 +773,7 @@ class CallAudioSession:
             self._close_stream(self._output_stream)
             self._output_stream = None
             self._output_resampler.reset()
+            self._group_resamplers.reset()
         self._drain_queue(self._mic_queue)
         self._drain_queue(self._output_queue)
         self._output_buffer.reset()
@@ -793,7 +798,9 @@ class CallAudioSession:
         item = (TimedPlaybackPCM(bytes(pcm), sample_rate, epoch, *timeline)
                 if timeline is not None else PlaybackPCM(bytes(pcm), sample_rate, epoch))
         if timeline is not None:
-            while self._output_queue.qsize() >= 8:
+            from core.call_neteq_buffer import timed_ingress_limit
+            limit = timed_ingress_limit(getattr(self._output_buffer, 'stream_count', 0), item.mixed)
+            while self._output_queue.qsize() >= limit:
                 try:
                     self._output_queue.get_nowait()
                 except queue.Empty:
@@ -1451,12 +1458,16 @@ class CallAudioSession:
                     if self._output_stream is None:
                         continue
                     target_rate = self._output_rate
+                    if isinstance(item, TimedPlaybackPCM) and item.mixed:
+                        self._push_group_sender(item, samples, source_rate, target_rate)
+                        continue
                     # Share stream-swap ownership with the FIR history and
                     # reservoir push: no old-rate packet may enter a new sink.
                     source = ((source_rate, item.ssrc, item.clock)
                               if isinstance(item, TimedPlaybackPCM) else None)
                     if source != self._output_timed_source:
                         self._output_resampler.reset()
+                        self._group_resamplers.reset()
                         self._output_timed_source = source
                     samples = self._output_resampler.process(samples, source_rate, target_rate)
                     if samples.size:
@@ -1469,8 +1480,30 @@ class CallAudioSession:
                 time.sleep(0.05)
             self._log_output_underruns()
 
+    def _push_group_sender(self, item, samples, source_rate, target_rate) -> None:
+        """One group-call sender's timed PCM, under the output lock, into its
+        own NetEq. It never enters the single-source reservoir (live
+        translation, or a buffer without NetEq): the senders would interleave
+        there. Dropped meanwhile, until the transport falls back to the
+        bridge's participant mixer."""
+        push_timed = getattr(self._output_buffer, 'push_timed', None)
+        if (self._live_translation or not callable(push_timed)
+                or not getattr(self._output_buffer, 'native_available', False)):
+            # Released outside the output lock, like a NetEq failure.
+            self._group_fallback_due = True
+            return
+        samples = self._group_resamplers.process(
+            item.ssrc, (source_rate, item.clock), samples, source_rate, target_rate)
+        if samples.size:
+            push_timed(samples, item.timestamp, source_rate, item.ssrc, item.clock, mixed=True)
+
     def _log_output_underruns(self) -> None:
         """Report starvation from OUTSIDE the callback, rate limited."""
+        group_fallback, self._group_fallback_due = getattr(self, '_group_fallback_due', False), False
+        if group_fallback and not getattr(self._output_buffer, 'native_failed', False):
+            fallback = getattr(self._transport, 'fallback', None)
+            if callable(fallback):
+                fallback()
         if getattr(self._output_buffer, 'native_failed', False):
             self._output_buffer.release_failed()
             fallback = getattr(self._transport, 'fallback', None)

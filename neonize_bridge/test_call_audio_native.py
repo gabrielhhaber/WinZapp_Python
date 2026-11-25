@@ -70,6 +70,26 @@ def test_timed_transport_is_an_explicit_capability():
     assert not opened
 
 
+def test_group_timed_transport_needs_a_neonize_that_serves_protocol_3():
+    media, _, opened = owned()
+    media.calls.open_audio_transport = lambda *a, **kw: opened.append((a,kw)) or {'protocol':3}
+    media.calls.audio_protocols = lambda: (1, 2, 3)
+    assert media.open_audio_transport(body(audioProtocol=3)) == {'protocol':3}
+    assert opened == [(('C',7,123), {'protocol':3})]
+
+
+@pytest.mark.parametrize('listing', [None, lambda: (1, 2), lambda: 1/0])
+def test_older_neonize_gets_protocol_2_not_1_for_a_protocol_3_request(listing):
+    media, _, opened = owned()
+    media.calls.open_audio_transport = lambda *a, **kw: opened.append((a,kw)) or {'protocol':2}
+    if listing is not None:
+        media.calls.audio_protocols = listing
+    elif hasattr(media.calls, 'audio_protocols'):
+        del media.calls.audio_protocols
+    assert media.open_audio_transport(body(audioProtocol=3)) == {'protocol':2}
+    assert opened == [(('C',7,123), {'protocol':2})]
+
+
 def test_stop_revokes_native_lease_with_matching_generation():
     media, owner, opened = owned()
     media.open_audio_transport(body())

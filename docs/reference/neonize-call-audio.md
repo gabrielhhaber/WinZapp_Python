@@ -134,9 +134,9 @@ runs in the device callback. The upstream algorithm's local CPU/allocation
 cost still needs hardware acceptance; this is not a hard realtime guarantee.
 
 Source/codec epochs, large timestamp discontinuities and device/rate changes
-discard the old native state. Groups, live translation, unsupported device
-rates, missing/incompatible components and legacy peers retain compatible
-playback. Starting live translation releases native transport for that audio
+discard the old native state. Live translation, unsupported device rates,
+missing/incompatible components and legacy peers retain compatible playback
+(groups: see "Group calls: one NetEq per sender" below). Starting live translation releases native transport for that audio
 session. Runtime render failures produce silence and a flag; the worker logs
 once, closes the component and releases native transport back to Socket.IO.
 Device switching still does not emit `call:audio:stop`.
@@ -153,6 +153,41 @@ Merge on recovery, arbitrary device periods, strided writes, ABI bounds,
 timestamp wrap/source replacement, optional loading and fallback. The built
 DLL is exercised without devices. Real-call/provider/hardware acceptance is
 still outstanding; no end-to-end quality parity is claimed.
+
+## Group calls: one NetEq per sender
+
+Protocol 3 (`audioProtocol=3`, `CallAudioTransportOpenV3`, handshake `NZA3`)
+is protocol 2 plus flag 3 (timed | mixed): one sender of a group call, on its
+own SSRC and PCM-unit RTP timeline. The client asks for 3; the bridge asks a
+neonize whose `Calls.audio_protocols()` lacks 3 for protocol 2 (an older
+wrapper would otherwise open protocol 1), and the client asks again for 2
+when an older bridge answers 400. Flag 3 is refused outside protocol 3.
+
+With a protocol 3 lease the call record is a meowcaller
+`MixedTimedAudioSink`: in a group each participant's decoded frame is written
+timed (meowcaller 0042) instead of entering the participant mixer, whose
+ticker drops whatever was waiting while such a sink is attached. Concealed
+frames are not sent (each NetEq conceals its sender); recovered PT 121 frames
+are. The roster still decides who is heard. The native queue keeps 480 ms
+(8 frames) per sender and 64 frames in all, drop-oldest within the sender, so
+a direct call keeps the old bound and one talker cannot push others out.
+
+The client gives every sender its own NetEq and its own FIR history
+(`PerSenderResampler`); the device callback renders each 10 ms block from
+every NetEq and sums them, clipped to [-1, 1], as WebRTC's mixer pulls each
+receive stream. A direct (flag 1) frame keeps one sender: other streams close.
+A sender silent for 5 s is closed by the worker; past 16 senders the least
+recently heard one is. The player's timed ingress holds 8 frames per sender
+heard plus one.
+
+Fallback keeps the layers of direct calls, plus one: group senders never
+enter the single-source reservoir, where they would interleave. Without
+NetEq (missing or old DLL, unsupported rate, failure) or during live
+translation they are dropped, and the worker releases the native transport
+outside the output lock, so the bridge's participant mixer takes the group
+back over Socket.IO. A mixed frame that races a lease change to protocol 2 is
+dropped in Go. Older DLLs, wrappers and bridges negotiate protocol 2 or 1 and
+keep the mixer.
 
 ## Answer and stream ownership
 
