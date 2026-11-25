@@ -668,6 +668,8 @@ WHAT'S NEW
 
 - Neonize: quando il ponte di connessione si blocca all'avvio, ora scrive nel proprio log, dopo 25 secondi, in che punto è bloccato.
 
+- Neonize su Windows su ARM: il ponte di connessione non si chiude più da solo subito dopo l'avvio (con il messaggio che non è stato possibile avviarlo), cosa che impediva l'associazione.
+
 - Mac: il motore Neonize ora è incluso anche in WinZapp per Mac, su Apple Silicon e Intel, e si connette direttamente a WhatsApp, senza browser. Sceglilo nell'elenco "Motore di connessione" della finestra di connessione o in Impostazioni > Connessione.
 
 V2.1.0.0

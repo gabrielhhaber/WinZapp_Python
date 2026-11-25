@@ -33,3 +33,8 @@ def test_a_start_that_hangs_dumps_the_stack_and_a_finished_one_does_not(tmp_path
         startup_trace.done()
         time.sleep(0.5)
     assert fine.read_text() == ""
+
+
+def test_describe_names_the_go_settings_when_there_are_any():
+    assert startup_trace.describe({"GODEBUG": "asyncpreemptoff=1"}).endswith(", GODEBUG=asyncpreemptoff=1")
+    assert "GODEBUG" not in startup_trace.describe({})

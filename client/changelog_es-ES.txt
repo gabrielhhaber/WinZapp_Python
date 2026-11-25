@@ -668,6 +668,8 @@ NOVEDADES
 
 - Neonize: cuando el puente de conexión se queda atascado al iniciarse, ahora escribe en su propio registro, a los 25 segundos, en qué punto está atascado.
 
+- Neonize en Windows en ARM: el puente de conexión ya no se cierra solo nada más iniciarse (con el mensaje de que no se pudo iniciar), lo que impedía la vinculación.
+
 - Mac: el motor Neonize ahora también viene en WinZapp para Mac, en Apple Silicon e Intel, y se conecta directamente a WhatsApp, sin navegador. Elígelo en la lista "Motor de conexión" de la ventana de conexión o en Configuración > Conexión.
 
 V2.1.0.0
