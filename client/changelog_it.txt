@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- macOS: il controllo delle versioni più recenti di WhatsApp Web ora funziona sui Mac senza Python di python.org installato. Falliva con un errore di certificato che il registro segnava come "offline", quindi l'elenco delle versioni non si aggiornava mai e, quando WhatsApp smetteva di servire la versione usata da WinZapp, WPPConnect non riusciva più a connettersi.
+
 - Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".
 
 - Chiamate Neonize: corretto il ritorno all’audio compatibile quando l’uscita esclusiva usa una frequenza non supportata da NetEQ, mantenendo la compensazione delle perdite di pacchetti.
