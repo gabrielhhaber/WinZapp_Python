@@ -44,8 +44,10 @@ happens, and the round keeps writing until it exits.
 
 import inspect
 import logging
+import sys
 import threading
 import time
+import traceback
 
 import connection_state as cs
 import main as main_module
@@ -117,6 +119,30 @@ class _InFlightSync:
         self._release.set()
         self.thread.join(timeout=5)
         assert not self.thread.is_alive()
+
+
+def _join(worker, timeout=30):
+    """Wait for the handoff thread, and say where every thread is if it hangs.
+
+    A bare ``join(timeout=5)`` that times out says nothing, and the test then
+    fails three lines later on a claim the still-running thread re-took (an
+    intermittent shard failure on 2026-11-25: the call took exactly 5.01 s and
+    the log never reached the "wiping beside it" line, so the thread was parked
+    somewhere before it). The wait is generous because a healthy thread ends
+    within the 0.2 s the tests give it; the dump is what the next occurrence
+    needs to name the culprit.
+    """
+    worker.join(timeout=timeout)
+    if worker.is_alive():
+        stacks = []
+        for ident, frame in sys._current_frames().items():
+            names = [t.name for t in threading.enumerate() if t.ident == ident]
+            stacks.append("--- thread %s\n%s" % (
+                names[0] if names else ident,
+                "".join(traceback.format_stack(frame))))
+        raise AssertionError(
+            "%s still running after %ss:\n%s"
+            % (worker.name, timeout, "\n".join(stacks)))
 
 
 def _resync_thread():
@@ -976,7 +1002,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         worker = _resync_thread()
         assert worker is not None
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert not worker.is_alive()
         assert stub.syncs_started == 1
@@ -997,7 +1023,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         _run_live(stub, monkeypatch)
         worker = _resync_thread()
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.wipe_calls == 2
         names = [e if isinstance(e, str) else e[0] for e in stub.events]
@@ -1018,7 +1044,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         _run_live(stub, monkeypatch)
         worker = _resync_thread()
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.events[-1][0] == "sync"
         assert stub._initial_sync_running is True
@@ -1035,7 +1061,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         worker = _resync_thread()
         stub._try_start_sync_thread = _boom
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub._initial_sync_running is False
 
@@ -1058,7 +1084,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         assert stub.syncs_started == 0
 
         second.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.syncs_started == 1
         assert stub.wipe_calls == 2
@@ -1093,7 +1119,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         _run_live(stub, monkeypatch)
         worker = _resync_thread()
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.full_sync_latches == ["another-number-wipe"] * 2
         names = [e if isinstance(e, str) else e[0] for e in stub.events]
@@ -1127,7 +1153,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
 
         stub._apply_another_number_wipe = _boom
         first.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub._initial_sync_running is True
         # And that round gives it back on its own schedule, as it always does.
@@ -1159,7 +1185,7 @@ class TestTheRoundThatWasAlreadyRunningWhenPairingEnded:
         second.thread.name = "the-round-that-would-not-end"
         with caplog.at_level(logging.WARNING):
             first.finish()
-            worker.join(timeout=5)
+            _join(worker)
 
         assert not worker.is_alive()
         # The state the line is there to explain.
@@ -1279,7 +1305,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
     def test_the_corrective_sync_really_starts_this_session(self, monkeypatch):
         stub, worker, second = self._exhausted(monkeypatch)
 
-        worker.join(timeout=5)
+        _join(worker)
 
         assert not worker.is_alive()
         assert not second.thread.is_alive()
@@ -1293,7 +1319,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
     def test_the_wipe_waits_for_the_round_to_exit(self, monkeypatch):
         stub, worker, second = self._exhausted(monkeypatch)
 
-        worker.join(timeout=5)
+        _join(worker)
 
         names = [e if isinstance(e, str) else e[0] for e in stub.events]
         wipes = [i for i, n in enumerate(names) if n == "wipe"]
@@ -1309,7 +1335,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         with caplog.at_level(logging.WARNING):
             stub, worker, second = self._exhausted(
                 monkeypatch, honours=False, wait=0.2)
-            worker.join(timeout=5)
+            _join(worker)
 
         assert not worker.is_alive()
         assert second.thread.is_alive()
@@ -1328,7 +1354,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         stub, worker, second = self._exhausted(
             monkeypatch, wait=2, round_factory=_LostBumpSync)
 
-        worker.join(timeout=5)
+        _join(worker)
 
         assert second.overwrote
         assert not second.thread.is_alive()
@@ -1346,7 +1372,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         stub, worker, second = self._exhausted(
             monkeypatch, wait=0.3, shutting_down=True)
 
-        worker.join(timeout=5)
+        _join(worker)
 
         assert not worker.is_alive()
         assert stub.wipe_calls == 1
@@ -1377,7 +1403,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         assert worker.is_alive()
 
         stub._shutting_down = False
-        worker.join(timeout=5)
+        _join(worker)
 
         assert not worker.is_alive()
         assert stub.wipe_calls == 2
@@ -1396,7 +1422,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         worker = _resync_thread()
         stub._shutting_down = True
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert not worker.is_alive()
         assert stub.wipe_calls == 1
@@ -1419,7 +1445,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
 
         stub._apply_another_number_wipe = _wipe_then_close
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.wipe_calls == 2
         assert stub.syncs_started == 0
@@ -1437,7 +1463,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         while connected and outside manual offline mode."""
         stub, worker, second = self._exhausted(
             monkeypatch, honours=False, wait=0.2)
-        worker.join(timeout=5)
+        _join(worker)
         second.finish()
         starts_before = stub.syncs_started
 
@@ -1459,7 +1485,7 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         _run_live(stub, monkeypatch)
         worker = _resync_thread()
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert getattr(stub, "_sync_run_id", 0) == 0
         assert stub.syncs_started == 1
@@ -1651,7 +1677,7 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
         worker = _resync_thread()
         assert worker is not None
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.wipe_calls == 2
         assert stub.recorded_number == "5511999999999"
@@ -1673,7 +1699,7 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
         worker = _resync_thread()
         assert worker is not None
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         # (what the key named, how many settings writes had landed) at the
         # start of each wipe: pass 1 finds A untouched and has written nothing,
@@ -1692,7 +1718,7 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
         worker = _resync_thread()
         assert worker is not None
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.saved == 2
 
@@ -1707,7 +1733,7 @@ class TestASecondPassThatEmptiedNothingPutsThePreviousNumberBack:
         worker = _resync_thread()
         assert worker is not None
         in_flight.finish()
-        worker.join(timeout=5)
+        _join(worker)
 
         assert stub.syncs_started == 1
         assert stub._force_full_sync is True
