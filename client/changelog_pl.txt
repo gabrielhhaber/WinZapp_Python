@@ -1,3 +1,13 @@
+V2.1.3.0
+
+To wersja konserwacyjna wersji stabilnej. Naprawia tylko łączenie telefonu za pomocą kodu QR i kodu, które przestało działać w najnowszych wersjach WhatsApp Web.
+
+POPRAWKI
+
+- Kod QR znów się pojawia. Najnowsze wersje WhatsApp Web otwierają stronę samego logowania dla osób, które jeszcze nie połączyły telefonu, a WinZapp przeciążał ją tak, że kod QR nigdy się nie wyświetlał. Po aktualizacji WinZapp zaakceptuj, gdy poprosi o aktualizację WPPConnect.
+
+- Łączenie za pomocą kodu QR i kodu parowania nie gubi już połączenia po przyjęciu przez telefon. WhatsApp Web przeładowuje wtedy stronę; WinZapp uznawał to za błąd i prosił o nowy kod QR lub kod. Teraz czeka na przeładowaną stronę, zachowuje logowanie i kończy łączenie.
+
 V2.1.2.0
 
 To wersja konserwacyjna wersji stabilnej. Naprawia tylko łączenie telefonu za pomocą kodu, aby połączenie nie ginęło i aby nie był żądany nowy kod po przyjęciu pierwszego przez WhatsApp.

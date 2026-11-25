@@ -1,3 +1,13 @@
+V2.1.3.0
+
+Esta é uma versão de manutenção da estável. Só corrige a ligação do telemóvel por QR code e por código, que deixou de funcionar com as versões recentes do WhatsApp Web.
+
+CORREÇÕES
+
+- O QR code volta a aparecer. As versões recentes do WhatsApp Web abrem uma página só de início de sessão para quem ainda não ligou o telemóvel, e o WinZapp deixava-a sobrecarregada até o QR code nunca ser mostrado. Depois de atualizar o WinZapp, aceite quando ele pedir para atualizar o WPPConnect.
+
+- A ligação por QR code e por código de emparelhamento já não se perde depois de o telemóvel aceitar. O WhatsApp Web recarrega a página nesse momento; o WinZapp lia isso como falha e pedia um novo QR code ou código. Agora espera pela página recarregada, mantém o início de sessão e conclui a ligação.
+
 V2.1.2.0
 
 Esta é uma versão de manutenção da estável. Só corrige a ligação do telemóvel por código, para que a ligação não se perca e não seja pedido um novo código depois de o WhatsApp aceitar o primeiro.

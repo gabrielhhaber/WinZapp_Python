@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
-    "7bad9aa00a14": "O vínculo por código de pareamento não perde mais o login. Depois que o telefone"
+    "387f04c38bd9": "O QR code volta a aparecer. As versões recentes do WhatsApp Web abrem uma página",
+    "6fc661641d04": "O vínculo por QR code e por código de pareamento não se perde mais depois que o "
   }
 }

@@ -1,3 +1,13 @@
+V2.1.3.0
+
+Bu, kararlı sürüm için bir bakım sürümüdür. Yalnızca telefonun QR kodu ve kodla bağlanmasını düzeltir; bu, WhatsApp Web'in son sürümlerinde çalışmaz olmuştu.
+
+DÜZELTMELER
+
+- QR kodu yeniden görünüyor. WhatsApp Web'in son sürümleri, henüz bağlanmamış biri için yalnızca oturum açma sayfası açıyor ve WinZapp bu sayfayı aşırı yükleyerek QR kodunun hiç gösterilmemesine yol açıyordu. WinZapp'i güncelledikten sonra, WPPConnect'i güncellemeyi istediğinde kabul edin.
+
+- QR koduyla ve eşleştirme koduyla bağlanma artık telefon kabul ettikten sonra bağlantıyı kaybetmiyor. WhatsApp Web o anda sayfayı yeniden yüklüyor; WinZapp bunu hata sayıp yeni bir QR kodu veya kod istiyordu. Artık yeniden yüklenen sayfayı bekliyor, oturumu koruyor ve bağlanmayı tamamlıyor.
+
 V2.1.2.0
 
 Bu, kararlı sürüm için bir bakım sürümüdür. Yalnızca telefonun kodla bağlanmasını düzeltir; böylece WhatsApp ilk kodu kabul ettikten sonra bağlantı kaybolmaz ve yeni kod istenmez.

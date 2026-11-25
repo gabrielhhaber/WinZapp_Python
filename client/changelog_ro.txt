@@ -1,3 +1,13 @@
+V2.1.3.0
+
+Aceasta este o versiune de întreținere a celei stabile. Corectează doar asocierea telefonului prin cod QR și prin cod, care nu mai funcționa cu versiunile recente de WhatsApp Web.
+
+CORECTĂRI
+
+- Codul QR apare din nou. Versiunile recente de WhatsApp Web deschid o pagină doar de autentificare pentru cine nu a asociat încă telefonul, iar WinZapp o suprasolicita până când codul QR nu mai era afișat niciodată. După actualizarea WinZapp, acceptați când vă cere să actualizați WPPConnect.
+
+- Asocierea prin cod QR și prin cod de împerechere nu mai pierde legătura după ce telefonul acceptă. WhatsApp Web reîncarcă pagina în acel moment; WinZapp considera asta o eroare și cerea un cod QR sau un cod nou. Acum așteaptă pagina reîncărcată, păstrează autentificarea și termină conectarea.
+
 V2.1.2.0
 
 Aceasta este o versiune de întreținere a celei stabile. Corectează doar asocierea telefonului prin cod, ca legătura să nu se piardă și să nu se ceară un cod nou după ce WhatsApp l-a acceptat pe primul.

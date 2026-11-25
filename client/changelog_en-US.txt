@@ -1,3 +1,13 @@
+V2.1.3.0
+
+This is a maintenance release for the stable version. It only fixes linking a phone by QR code and by code, which stopped working with recent WhatsApp Web versions.
+
+FIXES
+
+- The QR code shows up again. Recent WhatsApp Web versions open a login-only page for anyone who has not linked yet, and WinZapp left it overloaded until the QR code was never shown. After updating WinZapp, accept when it asks to update WPPConnect.
+
+- Linking by QR code and by pairing code no longer loses the link after the phone accepts. WhatsApp Web reloads the page at that moment; WinZapp used to read that as a failure and ask for a new QR code or code. It now waits for the reloaded page, keeps the login and finishes connecting.
+
 V2.1.2.0
 
 This is a maintenance release for the stable version. It only fixes linking a phone by code, so that the link is not lost and a new code is not requested after WhatsApp accepted the first one.
