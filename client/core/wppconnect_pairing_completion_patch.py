@@ -388,6 +388,10 @@ ORIGINAL_CHECK_QR_CODE_AFTER_PROBE = (
     "        this.isLogged = !needScan;\n"
 )
 
+#: Changing this text later: keep the old one in the step's "older" tuple AND
+#: in wppconnect_host_layer_patch._carries_upstream_auth_probe_fix(), which
+#: runs before this upgrade on the same launch; missing either raises one
+#: DID NOT MATCH on the first launch after the update.
 PATCHED_CHECK_QR_CODE_AFTER_PROBE = (
     "        // A navigation can invalidate the execution context while waiting for QR.\n"
     "        // An unknown result is not proof that the session has registered.\n"
