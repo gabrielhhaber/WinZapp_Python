@@ -6,6 +6,8 @@ NOWOŚCI
 
 - Czeski: WinZapp jest teraz dostępny po czesku (Čeština): interfejs, przewodnik użytkownika, instalator i dezinstalator (które podążają za językiem wyświetlania Windows) oraz te informacje o wersji. Czeski jest też dostępny jako język tłumaczenia wiadomości, a sprawdzanie pisowni go obsługuje. Dziękujemy jaxcze za tłumaczenie.
 
+- Połącz za pomocą kodu QR: kod QR znowu się pojawia. W najnowszych wersjach WhatsApp Web niektóre komputery dostają osobną stronę logowania, tylko z ekranem kodu QR, i na niej WinZapp łączył się, aż w końcu rezygnował, nie pokazując kodu. Teraz kod QR pojawia się na tej stronie w ciągu kilku sekund.
+
 - Społeczności: Enter na społeczności na liście czatów otwiera teraz panel Społeczności z zaznaczoną tą społecznością i fokusem na jej grupach zamiast czatu samej społeczności. Opcja jest w Ustawieniach > Interfejs > Czaty, domyślnie włączona.
 
 - Łączenie za pomocą numeru telefonu: połączenie nie kończy się już błędem po tym, jak WhatsApp na telefonie zaakceptuje kod parowania. WinZapp zamykał WhatsApp Web podczas przeładowania, które kończy logowanie, albo prosił na nim o nowy kod, więc telefon pokazywał urządzenie jako połączone, a WinZapp zostawał w oknie parowania. Okno kodu pokazuje teraz też tekst, kod i Anuluj po kolei, zamiast rysować je jedno na drugim. Jeśli po zaakceptowaniu kodu WhatsApp Web nadal nie otwiera czatów, WinZapp próbuje teraz jeszcze raz, a potem o tym informuje, zamiast czekać bez końca w oknie parowania, a połączenie zaakceptowane przez telefon nie jest już odrzucane po ponownym uruchomieniu WinZapp.

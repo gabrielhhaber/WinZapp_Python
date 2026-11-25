@@ -296,3 +296,7 @@ def test_every_node_modules_patch_still_matches_the_pinned_runtime():
             patched = bundle_copy.read_text(encoding="utf-8")
             assert newsletter_chat._PATCHED.search(patched), "channel chat lookup not patched"
             assert newsletter_chat._NAMED_JOB.search(patched), "channel send job not bound by name"
+            # no QR code on WhatsApp Web's login-only page without it
+            assert setup_api._patch_meta_loader_bundle(tmp)
+            from core.wppconnect_wa_js_loader_patch import MARKER
+            assert MARKER in bundle_copy.read_text(encoding="utf-8"), "Meta loader not patched"
