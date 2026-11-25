@@ -1,5 +1,15 @@
 """Dependency notices describe the resolved packages, without machine paths."""
 from build_neteq import dependency_notices
+import pytest
+
+
+@pytest.mark.parametrize('system', ['darwin', 'linux'])
+def test_other_platforms_keep_compatible_audio_without_windows_rust_build(monkeypatch, tmp_path, system):
+    import build_neteq
+    monkeypatch.setattr(build_neteq.shutil, 'which', lambda *a: pytest.fail('Windows toolchain searched'))
+    monkeypatch.setattr(build_neteq.subprocess, 'run', lambda *a, **k: pytest.fail('Windows DLL build attempted'))
+    build_neteq.build(tmp_path / 'package', system=system)
+    assert not (tmp_path / 'package').exists()
 
 
 def test_resolved_dependency_notices_keep_versions_and_license_text(tmp_path):

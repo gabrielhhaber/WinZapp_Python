@@ -25,7 +25,9 @@ def dependency_notices(metadata):
     return '\n\n'.join(result)
 
 
-def build(package):
+def build(package, *, system="windows"):
+    if system != "windows":
+        return
     root = Path(__file__).resolve().parents[1]
     work = root / 'neonize_bridge/neonize_build'
     source = root / 'native/call_neteq'

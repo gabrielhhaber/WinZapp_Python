@@ -16,9 +16,11 @@ YENİLİKLER
 
 - Çekçe: WinZapp artık Çekçe (Čeština) olarak da kullanılabiliyor: arayüz, kullanım kılavuzu, yükleyici ve kaldırıcı (Windows görüntüleme diline uyar) ve bu sürüm notları. Çekçe ayrıca mesajların çevrileceği bir dil olarak sunulur ve yazım denetimi onu destekler. Çeviri için jaxcze'ye teşekkürler.
 
+- QR kodu ile bağlan: QR kodu yeniden görünüyor. En yeni WhatsApp Web sürümlerinde bazı bilgisayarlar yalnızca QR kodu ekranını içeren ayrı bir giriş sayfası alıyor ve WinZapp bu sayfada kodu göstermeden vazgeçene kadar bağlanmaya çalışıyordu. Artık QR kodu bu sayfada birkaç saniye içinde görünüyor.
+
 - Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.
 
-- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor. Kod kabul edildikten sonra WhatsApp Web sohbetlerinizi hâlâ açmazsa, WinZapp artık eşleme penceresinde sonsuza kadar beklemek yerine bir kez daha dener ve ardından size bildirir; telefonun kabul ettiği bir bağlantı da WinZapp'i yeniden başlattığınızda artık silinmez.
+- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor. Kod kabul edildikten sonra WhatsApp Web sohbetlerinizi hâlâ açmazsa, WinZapp artık eşleme penceresinde sonsuza kadar beklemek yerine bir kez daha dener ve ardından size bildirir; telefonun kabul ettiği bir bağlantı da WinZapp'i yeniden başlattığınızda artık silinmez. QR kodla bağlama da artık bu yeniden yüklemeyi atlatıyor: WinZapp, telefon taramayı kabul ettikten birkaç saniye sonra yeni bir QR kodu gösterip vazgeçmiyor.
 
 - WhatsApp bir numara için eşleme kodlarını geçici olarak reddettiğinde WinZapp bunu bir buçuk dakika "bağlanıyor" durumunda beklemek yerine hemen söylüyor ve eşleme kodu kullanmayan "QR kodu ile bağlan" seçeneğini öneriyor.
 
@@ -675,6 +677,8 @@ YENİLİKLER
 - Neonize ile ad ve soyadıyla kaydedilen bir kişi, birkaç saniye sonra sohbette soyadını artık kaybetmiyor: tam ad doğru sırayla saklanıyor, böylece sohbet örneğin yalnızca "Nuno" yerine "Nuno Soares" göstermeye devam ediyor.
 
 - Neonize: bağlantı köprüsü başlatılırken takılırsa, artık 25 saniye sonra nerede takıldığını kendi günlüğüne yazar.
+
+- Mac: Neonize motoru artık Mac için WinZapp'te de, Apple Silicon ve Intel'de geliyor ve tarayıcı olmadan doğrudan WhatsApp'a bağlanıyor. Bağlantı penceresindeki "Bağlantı motoru" listesinden ya da Ayarlar > Bağlantı'dan seçin.
 
 V2.1.0.0
 

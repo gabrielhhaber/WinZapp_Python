@@ -16,9 +16,11 @@ NOVIDADES
 
 - Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia do usuário, o instalador e o desinstalador (que seguem o idioma de exibição do Windows) e estas notas de versão. O tcheco também aparece como idioma para traduzir mensagens, e o corretor ortográfico o suporta. Obrigado a jaxcze pela tradução.
 
+- Conectar com QR-CODE: o código QR voltou a aparecer. Nas versões mais recentes do WhatsApp Web, alguns computadores recebem uma página de login separada, só com a tela do código QR, e nela o WinZapp ficava conectando até desistir, sem mostrar o código. Agora o código QR aparece nessa página em poucos segundos.
+
 - Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Comunidades com essa comunidade selecionada e o foco nos grupos dela, em vez da conversa da própria comunidade. A opção fica em Configurações > Interface > Conversas, ligada por padrão.
 
-- Conectar pelo número de telefone: a conexão não falha mais depois que o WhatsApp do celular aceita o código de pareamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o login, ou pedia um novo código nele, e o celular mostrava o aparelho como conectado enquanto o WinZapp continuava na janela de pareamento. A janela do código também passa a mostrar o texto, o código e Cancelar em ordem, em vez de desenhá-los uns sobre os outros. Se o WhatsApp Web ainda não abrir as conversas depois que o código é aceito, o WinZapp agora tenta mais uma vez e então avisa, em vez de esperar para sempre na janela de pareamento, e uma conexão que o celular aceitou não é mais descartada quando você reinicia o WinZapp.
+- Conectar pelo número de telefone: a conexão não falha mais depois que o WhatsApp do celular aceita o código de pareamento. O WinZapp fechava o WhatsApp Web durante o recarregamento que conclui o login, ou pedia um novo código nele, e o celular mostrava o aparelho como conectado enquanto o WinZapp continuava na janela de pareamento. A janela do código também passa a mostrar o texto, o código e Cancelar em ordem, em vez de desenhá-los uns sobre os outros. Se o WhatsApp Web ainda não abrir as conversas depois que o código é aceito, o WinZapp agora tenta mais uma vez e então avisa, em vez de esperar para sempre na janela de pareamento, e uma conexão que o celular aceitou não é mais descartada quando você reinicia o WinZapp. A conexão pelo código QR agora também sobrevive a esse recarregamento: o WinZapp não mostra mais um novo código QR nem desiste poucos segundos depois que o celular aceitou a leitura.
 
 - Quando o WhatsApp recusa temporariamente códigos de pareamento para um número, o WinZapp avisa na hora, em vez de ficar em "conectando" por um minuto e meio, e sugere "Conectar com QR-CODE", que não usa código de pareamento.
 
@@ -675,6 +677,8 @@ NOVIDADES
 - No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na conversa alguns segundos depois: o nome completo do contato é gravado na ordem certa e a conversa continua mostrando, por exemplo, "Nuno Soares" em vez de só "Nuno".
 
 - Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio log, depois de 25 segundos, em que ponto está parada.
+
+- Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e Intel, e conecta direto ao WhatsApp, sem navegador. Escolha-o na lista "Motor de conexão" da janela de conexão ou em Configurações > Conexão.
 
 V2.1.0.0
 

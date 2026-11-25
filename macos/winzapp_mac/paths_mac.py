@@ -35,6 +35,18 @@ STAMP = "STAMP"
 KEEP_IN_API = ("log", "uploads", "WhatsAppImages", "wppconnect_tokens", "tokens", "userDataDir")
 
 
+#: the frozen Neonize bridge, in Contents/Resources like the runtime
+#: (macos/bridge_bundle.py); it runs from inside the app and writes only to its
+#: data folder in Application Support
+BRIDGE_FOLDER = "neonize_bridge"
+
+
+def bundled_resource(meipass, *parts):
+    """A path in Contents/Resources of the app whose PyInstaller folder
+    (sys._MEIPASS, Contents/Frameworks) is `meipass`."""
+    return os.path.join(os.path.dirname(meipass), "Resources", *parts)
+
+
 def bundled_runtime():
     if not hasattr(sys, "_MEIPASS"):
         return None
@@ -295,6 +307,8 @@ def install():
     def resource_path(*parts):
         if parts and parts[0] in _RUNTIME_PARTS:
             return os.path.join(RUNTIME, *parts)
+        if parts and parts[0] == BRIDGE_FOLDER:
+            return bundled_resource(sys._MEIPASS, *parts)
         return orig_resource_path(*parts)
 
     def writable_base_dir():

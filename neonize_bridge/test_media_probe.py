@@ -185,3 +185,25 @@ def test_neonizes_real_modules_get_the_safe_magic_and_media_type_still_works(mon
     assert isinstance(neonize.client.magic, mp.SafeMagic)
     assert MediaType.from_magic(opus(48000)) is MediaType.MediaAudio
     assert neonize.client.magic.from_buffer(b"%PDF-1.7" + b"\0" * 8, mime=True) == "application/pdf"
+
+
+def test_a_libmagic_that_cannot_load_does_not_take_the_bridge_down():
+    """python-magic raises at import without libmagic (a Mac without Homebrew's):
+    neonize.client imports it, so a stand-in takes its place and SafeMagic
+    answers by the file signature."""
+    modules = {}
+
+    def no_libmagic(name):
+        raise ImportError("failed to find libmagic.  Check your installation")
+
+    assert mp.ensure_magic_module(modules, importer=no_libmagic) is False
+    stand_in = modules["magic"]
+    with pytest.raises(RuntimeError):
+        stand_in.from_buffer(b"%PDF-1.7", mime=True)
+    assert mp.SafeMagic(stand_in).from_buffer(b"%PDF-1.7" + b"\0" * 8, mime=True) == "application/pdf"
+
+
+def test_a_working_libmagic_is_left_as_it_is():
+    modules = {}
+    assert mp.ensure_magic_module(modules, importer=lambda name: object()) is True
+    assert modules == {}

@@ -44,6 +44,20 @@ def _patched() -> str:
     return content
 
 
+def _shipped_5944() -> str:
+    """What builds 5944 ran (PRs #886 + #893): today's patches minus the QR
+    path's — checkQrCode() as upstream ships it and #893's waitForInChat()."""
+    content = _patched().replace(
+        completion.PATCHED_WAIT_FOR_IN_CHAT, completion.V1_WAIT_FOR_IN_CHAT, 1
+    ).replace(
+        completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE,
+        completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE, 1,
+    )
+    assert completion.V1_WAIT_FOR_IN_CHAT in content
+    assert completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE not in content
+    return content
+
+
 def _shipped_v1() -> str:
     """What build 5928 ran: the scan wait bound and the 2026-11-23 texts."""
     content = host._patch_qr_reads(UPSTREAM, [])
@@ -66,14 +80,18 @@ const sleep_1 = { sleep };
 
 const world = {
   registered: false, latch: false, stream: 'QR', socket: 'CONNECTED',
-  reloading: false, browserGone: false, throwing: false,
+  reloading: false, browserGone: false, throwing: false, ref: 1,
 };
+// Page-side listeners; a reload (a new document) drops them.
+let handlers = {};
 globalThis.window = {};
 globalThis.WPP = {
-  on() {},
+  on(name, fn) { (handlers[name] = handlers[name] || []).push(fn); },
   conn: {
     isRegistered: () => world.registered,
     isMainReady: () => world.latch,
+    // wa-js: null once registered, else the QR payload for the current ref.
+    getAuthCode: async () => (world.registered ? null : { fullCode: `2@ref${world.ref}`, type: 'multidevice' }),
   },
   whatsapp: {
     Stream: { get mode() { return world.stream; } },
@@ -98,10 +116,11 @@ const auth_1 = {
   isAuthenticated: (p) => p.evaluate(() => WPP.conn.isRegistered()),
   needsToScan: async (p) => !(await p.evaluate(() => WPP.conn.isRegistered())),
   isInsideChat: (p) => p.evaluate(() => WPP.conn.isRegistered() && WPP.conn.isMainReady()),
+  asciiQr: async (code) => `ascii:${code}`,
 };
 const browser_1 = { InjectionTimeoutError: class extends Error {} };
 
-const out = { statusFind: [], loginByCode: [], reports: [], logs: [], reloads: [] };
+const out = { statusFind: [], loginByCode: [], reports: [], logs: [], reloads: [], qrs: [] };
 
 class Host {
   constructor() {
@@ -112,6 +131,8 @@ class Host {
     this.session = 's';
     this.page = page;
     this.lastLinkCode = null;
+    this.attempt = 0;  // wppconnect's own initial values
+    this.urlCode = '';
     this.options = {
       phoneNumber: '15550000000',
       deviceSyncTimeout: 0,
@@ -119,6 +140,9 @@ class Host {
       catchLinkCodeError: (failure) => out.reports.push({ at: now, ...failure }),
     };
     this.statusFind = (status) => out.statusFind.push({ at: now, status });
+    // The QR the client shows: wppconnect's create() hands catchQR in.
+    this.catchQR = (base64, ascii, attempt, urlCode) => out.qrs.push({ at: now, attempt, urlCode });
+    if (scenario.method === 'qr') delete this.options.phoneNumber;
   }
   log(level, message) { out.logs.push(`${now} ${level} ${message && message.message || message}`); }
   getWAVersion() { return Promise.resolve('2.3000.0'); }
@@ -135,11 +159,14 @@ UPSTREAM_METHODS
 }
 
 const client = new Host();
+window.checkQrCode = () => client.checkQrCode();
 
 function reload(why) {
   out.reloads.push({ at: now, why });
   world.reloading = true;
   world.latch = false;  // a new document: wa-js starts over
+  world.ref += 1;       // and WhatsApp Web mints a new QR ref for it
+  handlers = {};
   client.isInjected = false;
   const load = (async () => {
     await sleep(400);
@@ -154,6 +181,11 @@ function reload(why) {
 for (const [at, action, value] of scenario.events) {
   timers.push({ at, seq: seq++, resolve: () => {
     if (action === 'reload') reload('WhatsApp Web');
+    else if (action === 'rotate') {
+      // WhatsApp Web rotates the QR ref; wa-js emits conn.auth_code_change.
+      world.ref += 1;
+      for (const fn of handlers['conn.auth_code_change'] || []) Promise.resolve().then(() => fn && fn());
+    }
     else {
       Object.assign(world, value);
       if (world.registered && world.stream === 'MAIN' && !scenario.latchMissed && !world.reloading) world.latch = true;
@@ -196,13 +228,13 @@ def _node():
     return shutil.which("node")
 
 
-def _run(source: str, events, until=1_200_000, latch_missed=False) -> dict:
+def _run(source: str, events, until=1_200_000, latch_missed=False, method="code") -> dict:
     node = _node()
     if not node:
         pytest.skip("node not available")
     script = _HARNESS.replace("UPSTREAM_METHODS", source)
     env = dict(os.environ, WZ_SCENARIO=json.dumps(
-        {"events": events, "until": until, "latchMissed": latch_missed}))
+        {"events": events, "until": until, "latchMissed": latch_missed, "method": method}))
     proc = subprocess.run([node, "-e", script], capture_output=True, text=True,
                           timeout=120, env=env)
     assert proc.returncode == 0, proc.stderr
@@ -329,6 +361,130 @@ class TestReloadWithoutAcceptance:
         assert run["loginByCode"][1] >= 20_000 + 60_000
 
 
+# --- the post-link reload, for BOTH pairing methods --------------------------
+#
+# QR report, build 5944 (2026-11-24), wppconnect.log: "Waiting for QRCode Scan
+# (Attempt 1)", "Login with success", "Checking phone is connected...",
+# WhatsApp Web's post-link reload, "Waiting for QRCode Scan (Attempt 2)" — a
+# NEW QR — and 13 s after the login "Phone not connected", browserClose.
+# Nothing reached the pairing dialog.
+#
+# #886/#893 fixed the reload for the phone code only, and their tests ran the
+# phone code only, so the QR path kept the bug. The contract below runs over
+# both methods: a fix to one path that leaves the other behind fails here.
+
+LINK_ACCEPTED_AT = 15_000
+RELOAD_AT = 17_000
+METHODS = ("code", "qr")
+
+
+def _post_link_reload(restored_at=None):
+    """The phone accepts at 15 s ("Login with success"), WhatsApp Web reloads
+    at 17 s, and the reloaded page asks to scan while it restores the login
+    (needsToScan() true, a fresh QR ref on offer), with WhatsApp's QR-ref
+    rotation going on. The login comes back at ``restored_at``, or never."""
+    events = [
+        [LINK_ACCEPTED_AT, "set", {"registered": True}],
+        [RELOAD_AT, "set", {"registered": False}],
+        [RELOAD_AT, "reload", None],
+        [RELOAD_AT + 3_000, "rotate", None],
+        [RELOAD_AT + 23_000, "rotate", None],
+        [RELOAD_AT + 43_000, "rotate", None],
+    ]
+    if restored_at is None:
+        events.append([RELOAD_AT, "set", {"socket": "UNPAIRED"}])
+    else:
+        events.append([restored_at, "set", {"registered": True, "stream": "MAIN"}])
+    return events
+
+
+def _new_code_or_qr_after_acceptance(run, method):
+    if method == "code":
+        return [at for at in run["loginByCode"] if at >= LINK_ACCEPTED_AT]
+    return [q for q in run["qrs"] if q["at"] >= LINK_ACCEPTED_AT]
+
+
+class TestTheReportedQrPairing:
+    def test_shipped_5944_reproduces_the_report(self):
+        """Control: the user's exact sequence on the build they had."""
+        run = _run(_shipped_5944(), _post_link_reload(restored_at=25_000), method="qr")
+        assert run["result"]["state"] == "rejected"
+        assert run["result"]["error"] == "Phone not connected"
+        assert run["result"]["at"] < RELOAD_AT + 5_000  # seconds, not a bound
+        assert _statuses(run)[-2:] == ["qrReadSuccess", "phoneNotConnected"]
+        assert [q["attempt"] for q in run["qrs"]] == [1, 2]
+        assert run["qrs"][1]["at"] >= RELOAD_AT  # a new QR after acceptance
+        assert run["reports"] == []  # and the dialog heard nothing
+
+    def test_patched_waits_out_the_restore_and_connects(self):
+        run = _run(_patched(), _post_link_reload(restored_at=25_000), method="qr")
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert _statuses(run)[-2:] == ["qrReadSuccess", "inChat"]
+        assert [q["attempt"] for q in run["qrs"]] == [1]
+        assert run["reports"] == []
+
+    def test_the_in_chat_wait_alone_outlasts_a_transient_logout(self):
+        """Defence in depth: should checkQrCode()'s step ever stop matching,
+        a transient isLogged = false after the link still does not end
+        waitForInChat() with "Phone not connected" (#893's loop did)."""
+        without_qr_step = _patched().replace(
+            completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE,
+            completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE, 1,
+        )
+        run = _run(without_qr_step, _post_link_reload(restored_at=25_000), method="qr")
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert "phoneNotConnected" not in _statuses(run)
+
+    def test_a_qr_reload_without_a_link_still_shows_the_new_qr(self):
+        """Nothing was accepted: the new page's QR is the one to scan."""
+        run = _run(_patched(), [[20_000, "reload", None]], until=60_000, method="qr")
+        assert run["result"]["state"] == "pending"
+        assert [q["attempt"] for q in run["qrs"]] == [1, 2]
+        assert run["qrs"][1]["at"] >= 20_000
+
+
+@pytest.mark.parametrize("method", METHODS)
+class TestPostLinkReloadContract:
+    """Whatever the pairing method, a link the phone accepted ends connected
+    or with PairingNotCompleted on the dialog — never "Phone not connected" in
+    silence — and no new code or QR goes out while the login is restored."""
+
+    @pytest.mark.parametrize("restored_after", [8_000, 50_000])
+    def test_login_restored_on_the_reloaded_page_connects(self, method, restored_after):
+        run = _run(_patched(), _post_link_reload(restored_at=RELOAD_AT + restored_after),
+                   method=method)
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert "phoneNotConnected" not in _statuses(run)
+        assert _statuses(run)[-2:] == ["qrReadSuccess", "inChat"]
+        assert _new_code_or_qr_after_acceptance(run, method) == []
+        assert run["reports"] == []
+
+    def test_login_never_restored_is_reported_to_the_dialog(self, method):
+        run = _run(_patched(), _post_link_reload(restored_at=None), method=method)
+        assert run["result"]["state"] == "rejected"
+        assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
+        assert run["result"]["at"] <= LINK_ACCEPTED_AT + completion.PAIRING_GIVE_UP_AFTER_MS + 5_000
+        assert run["reports"][0]["at"] <= run["result"]["at"]
+        assert _new_code_or_qr_after_acceptance(run, method) == []
+
+    def test_both_methods_get_the_same_reload_and_bound(self, method):
+        """A QR link is not thrown away sooner than a phone-code one: the
+        restore wait leaves the end to waitForInChat(), which reloads once at
+        90 s and only then gives up."""
+        run = _run(_patched(), _post_link_reload(restored_at=None), method=method)
+        assert "page.reload()" in [r["why"] for r in run["reloads"]]
+        assert run["reports"][0]["at"] >= LINK_ACCEPTED_AT + completion.PAIRING_GIVE_UP_AFTER_MS
+
+    def test_a_second_reload_during_the_restore_still_connects(self, method):
+        events = _post_link_reload(restored_at=RELOAD_AT + 30_000) + [
+            [RELOAD_AT + 10_000, "reload", None],
+        ]
+        run = _run(_patched(), events, method=method)
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert _new_code_or_qr_after_acceptance(run, method) == []
+        assert run["reports"] == []
+
+
 # --- the patch itself --------------------------------------------------------
 
 class TestPatchText:
@@ -342,6 +498,15 @@ class TestPatchText:
         notes = []
         out = completion.patch_pairing_completion(_shipped_v1(), notes)
         assert out == _patched()
+        assert not any("DID NOT MATCH" in n for n in notes)
+
+    def test_upgrades_the_shipped_5944_texts(self):
+        """An install #893 already patched gets the QR path on top, cleanly."""
+        notes = []
+        out = completion.patch_pairing_completion(_shipped_5944(), notes)
+        assert out == _patched()
+        assert any(n.startswith("waitForInChat pairing bound: upgraded") for n in notes), notes
+        assert any(n.startswith("checkQrCode wait after a QR link: patched") for n in notes), notes
         assert not any("DID NOT MATCH" in n for n in notes)
 
     def test_upgrades_the_first_cut_including_its_nested_guard(self):
@@ -367,6 +532,54 @@ class TestPatchText:
         notes = []
         assert completion.patch_pairing_completion(src, notes) == src
         assert sum("DID NOT MATCH" in n for n in notes) == 4
+        # checkQrCode()'s wait rides on the in-chat bound, whose alarm is above.
+        assert any(n.startswith("checkQrCode wait after a QR link: left untouched — it needs") for n in notes), notes
+
+    def test_a_2_3_runtime_keeps_upstream_check_qr_code(self):
+        """2.3.x has checkQrCode()'s lines but no bounded waitForInChat()."""
+        src = "async waitForLogin() {}\n" + completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE
+        notes = []
+        assert completion.patch_pairing_completion(src, notes) == src
+        assert "checkQrCode wait after a QR link: not in this file — nothing to patch." in notes
+
+    def test_the_qr_link_wait_needs_the_bounded_in_chat_wait(self):
+        """A waitForInChat() whose text moved leaves checkQrCode() upstream's:
+        without the bound and wzPairingSettled the wait would swallow every
+        later QR request in the run."""
+        moved = UPSTREAM.replace(
+            completion.ORIGINAL_WAIT_FOR_IN_CHAT,
+            completion.ORIGINAL_WAIT_FOR_IN_CHAT.replace("return this.isInChat;", "return !!this.isInChat;"),
+            1,
+        )
+        assert moved != UPSTREAM
+        notes = []
+        out = completion.patch_pairing_completion(moved, notes)
+        assert completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE not in out
+        assert completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE in out
+        assert "wzPairingSettled" not in out
+        assert "waitForInChat pairing bound: DID NOT MATCH the known source text — left untouched." in notes
+        assert any(n.startswith("checkQrCode wait after a QR link: left untouched — it needs") for n in notes), notes
+
+    def test_a_patched_managed_host_layer_stays_ok_on_every_launch(self):
+        """The full host.layer.js patch runs on every launch: once part 6 sits
+        inside 2.3.5+'s checkQrCode(), its auth-probe check must still
+        recognise the function, or every launch raises DID NOT MATCH."""
+        from tests.test_pairing_code_patch import _managed_source
+
+        for head in (host.MANAGED_V233_CHECK_QR_CODE, host.MANAGED_V235_CHECK_QR_CODE):
+            content = _managed_source(
+                checkqrcode_text=head
+                + completion.ORIGINAL_CHECK_IN_CHAT_PROBE
+                + completion.ORIGINAL_WAIT_FOR_IN_CHAT
+            )
+            first, notes, ok = host.patch_host_layer_source(content)
+            assert ok, notes
+            assert completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE in first
+            for _launch in range(2):
+                again, notes, ok = host.patch_host_layer_source(first)
+                assert ok, notes
+                assert again == first
+                assert any("no patch needed" in n for n in notes), notes
 
     def test_the_patched_excerpt_parses(self):
         node = _node()
@@ -380,6 +593,10 @@ class TestPatchText:
         assert "this.wzLinkedThisRun === true" in patched
         assert "!(this.options.deviceSyncTimeout > 0)" in patched
         assert "this.wzLinkedThisRun = true;" in completion.PATCHED_POST_SCAN_CHECK
+        qr_wait = completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE
+        assert "this.wzLinkedThisRun === true" in qr_wait
+        assert "!(this.options.deviceSyncTimeout > 0)" in qr_wait
+        assert "wzReportPairingNotCompleted" not in qr_wait  # waitForInChat()'s to report
 
     def test_the_live_host_layer_is_patched_and_stays_idempotent(self):
         path = ROOT.joinpath("client", "api", "node_modules", "@wppconnect-team",
@@ -388,4 +605,6 @@ class TestPatchText:
             pytest.skip("client/api is not set up")
         live, notes, ok = host.patch_host_layer_source(path.read_text(encoding="utf-8"))
         assert ok, notes
-        assert host.patch_host_layer_source(live)[0] == live
+        again, notes, ok = host.patch_host_layer_source(live)
+        assert ok, notes  # the next launch, over the file this one wrote
+        assert again == live

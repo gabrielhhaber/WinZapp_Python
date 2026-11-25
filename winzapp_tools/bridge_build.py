@@ -21,7 +21,9 @@ import sys
 from pathlib import Path
 
 BRIDGE_FOLDER = "neonize_bridge"
-EXE_NAME = "neonize_bridge.exe"
+#: what PyInstaller names the frozen bridge: an .exe on Windows, a plain
+#: executable in the Mac app (client/core/neonize_bridge_process.PACKAGED_EXE)
+EXE_NAME = "neonize_bridge.exe" if sys.platform == "win32" else "neonize_bridge"
 
 #: python-socketio loads its aiohttp driver by name at run time, so PyInstaller's
 #: static analysis does not see it.
@@ -39,8 +41,10 @@ def bridge_dir(root: Path) -> Path:
     return Path(root) / BRIDGE_FOLDER
 
 
-def venv_python(root: Path) -> Path:
-    return bridge_dir(root) / ".venv" / "Scripts" / "python.exe"
+def venv_python(root: Path, platform_name: str = None) -> Path:
+    if (platform_name or sys.platform) == "win32":
+        return bridge_dir(root) / ".venv" / "Scripts" / "python.exe"
+    return bridge_dir(root) / ".venv" / "bin" / "python"
 
 
 def frozen_dir(out_root: Path) -> Path:
@@ -66,10 +70,13 @@ def freeze_command(python: Path, root: Path, out_root: Path) -> list:
     return command
 
 
-def build_lock(root: Path) -> Path:
+def build_lock(root: Path, platform_name: str = None) -> Path:
     """The hashed lock of the build tools (PyInstaller and its hooks), the same
-    versions as the client build."""
-    return bridge_dir(root) / "requirements-build.lock"
+    versions as the client build. PyInstaller's wheels differ by system: the
+    Mac build has its own lock, at the same versions."""
+    if (platform_name or sys.platform) == "win32":
+        return bridge_dir(root) / "requirements-build.lock"
+    return bridge_dir(root) / "requirements-build-macos.lock"
 
 
 def _upstream(root: Path):
@@ -126,5 +133,7 @@ def stage(frozen: Path, staging: Path) -> int:
     destination = Path(staging) / BRIDGE_FOLDER
     if destination.exists():
         shutil.rmtree(destination)
-    shutil.copytree(frozen, destination)
+    # symlinks as they are: PyInstaller's macOS output links into its Python
+    # framework, and a copied target breaks the bundle's code signature
+    shutil.copytree(frozen, destination, symlinks=True)
     return sum(1 for item in destination.rglob("*") if item.is_file())

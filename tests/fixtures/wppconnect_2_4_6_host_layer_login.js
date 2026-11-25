@@ -15,7 +15,8 @@
  * along with WPPConnect.  If not, see <https://www.gnu.org/licenses/>.
  */
 // Verbatim excerpt of @wppconnect-team/wppconnect 2.4.6
-// dist/api/layers/host.layer.js (HostLayer methods, unmodified), used by
+// dist/api/layers/host.layer.js (HostLayer methods, unmodified; checkQrCode()
+// and getQrCode() for the QR path), used by
 // tests/test_pairing_completion_patch.py to run WinZapp's host.layer.js
 // patches under Node against a fake page. License: LGPL-3.0-or-later, as
 // above; the full text is tests/fixtures/group_presence_provider.LICENSE.md.
@@ -195,4 +196,46 @@
         }
         this.log('error', 'Unknow error');
         throw new Error('Unknow error');
+    }
+    async checkQrCode() {
+        if (this.qrLoopCancelled || this.page.isClosed())
+            return;
+        const needScan = await (0, auth_1.needsToScan)(this.page).catch(() => null);
+        if (this.qrLoopCancelled || this.page.isClosed())
+            return;
+        // A navigation can invalidate the execution context while waiting for QR.
+        // An unknown result is not proof that the session has registered.
+        if (needScan === null)
+            return;
+        this.isLogged = !needScan;
+        if (!needScan) {
+            this.attempt = 0;
+            return;
+        }
+        const result = await this.getQrCode();
+        if (this.qrLoopCancelled || this.page.isClosed())
+            return;
+        if (!result?.urlCode || this.urlCode === result.urlCode) {
+            return;
+        }
+        this.urlCode = result.urlCode;
+        this.attempt++;
+        let qr = '';
+        if (this.options.logQR || this.catchQR) {
+            qr = await (0, auth_1.asciiQr)(this.urlCode);
+        }
+        if (this.qrLoopCancelled || this.page.isClosed())
+            return;
+        if (this.options.logQR) {
+            this.log('info', `Waiting for QRCode Scan (Attempt ${this.attempt})...:\n${qr}`, { code: this.urlCode });
+        }
+        else {
+            this.log('verbose', `Waiting for QRCode Scan: Attempt ${this.attempt}`);
+        }
+        this.catchQR?.(result.base64Image, qr, this.attempt, result.urlCode);
+    }
+    async getQrCode() {
+        let qrResult;
+        qrResult = await (0, helpers_1.scrapeImg)(this.page).catch(() => undefined);
+        return qrResult;
     }

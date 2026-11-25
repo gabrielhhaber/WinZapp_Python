@@ -55,6 +55,11 @@ What this patch does, each part on its own anchor:
    target ("detached Frame") for 30 s before giving up and throwing
    "Unknow error".
 
+6. checkQrCode() (2.3.3+), after a QR link accepted in this run, waits for
+   the reloaded page to restore the login instead of writing isLogged = false
+   and publishing a new QR; waitForInChat() no longer ends on that transient
+   isLogged = false (QR report, build 5944 — see part 6 below).
+
 `PairingNotCompleted` travels on the existing `catchLinkCodeError` option, the
 channel the server already forwards as `phoneCodeError`; it is passed for QR
 pairings too, and the server drops it for a session being closed
@@ -112,7 +117,7 @@ ORIGINAL_WAIT_FOR_IN_CHAT = (
 PAIRING_RELOAD_AFTER_MS = 90000
 PAIRING_GIVE_UP_AFTER_MS = 240000
 
-PATCHED_WAIT_FOR_IN_CHAT = (
+V1_WAIT_FOR_IN_CHAT = (
     "    wzReportPairingNotCompleted(reason) {\n"
     "        // WinZapp: the pairing dialog closes only on session-logged, which the\n"
     "        // server sends after create() returns. A pairing that ends any other\n"
@@ -178,6 +183,42 @@ PATCHED_WAIT_FOR_IN_CHAT = (
     "        return this.isInChat;\n"
     "    }\n"
 )
+
+# v2 (QR report, build 5944): after a link made in this run, a transient
+# isLogged=false must not end the wait. On the QR path checkQrCode() used to
+# write it on the reloaded page (part 6 stops that), and the loop condition
+# read it as "logged out" a second later: "Phone not connected" with nothing
+# on the pairing dialog. The loop now keeps going until the login is back, the
+# bounds above end it, or the pairing was reported as not completed.
+_V1_LOOP = "        while (!this.page.isClosed() && this.isLogged && !this.isInChat) {\n"
+_V1_RETURN_TRUE = "                    return true;\n"
+_V1_RETURN_END = "        return this.isInChat;\n    }\n"
+assert V1_WAIT_FOR_IN_CHAT.count(_V1_LOOP) == 1
+assert V1_WAIT_FOR_IN_CHAT.count(_V1_RETURN_TRUE) == 1
+assert V1_WAIT_FOR_IN_CHAT.endswith(_V1_RETURN_END)
+
+PATCHED_WAIT_FOR_IN_CHAT = (
+    V1_WAIT_FOR_IN_CHAT
+    .replace(
+        _V1_LOOP,
+        "        // A login WhatsApp Web is still restoring on its post-link reload\n"
+        "        // can read as logged out for a moment; that is not the end of it.\n"
+        "        while (!this.page.isClosed() && (this.isLogged || (wzPairing && !this.wzPairingReported)) && !this.isInChat) {\n",
+        1,
+    )
+    .replace(
+        _V1_RETURN_TRUE,
+        "                    this.wzPairingSettled = true;\n" + _V1_RETURN_TRUE,
+        1,
+    )
+    .replace(
+        _V1_RETURN_END,
+        "        // From here on a QR request is a logout, not this pairing's reload.\n"
+        "        this.wzPairingSettled = true;\n" + _V1_RETURN_END,
+        1,
+    )
+)
+assert PATCHED_WAIT_FOR_IN_CHAT.count("wzPairingSettled = true") == 2
 
 # --- 3. waitForLogin's post-scan check --------------------------------------
 
@@ -302,6 +343,95 @@ PATCHED_WAIT_FOR_QR_CODE_SCAN = V1_WAIT_FOR_QR_CODE_SCAN.replace(
 assert PATCHED_WAIT_FOR_QR_CODE_SCAN != V1_WAIT_FOR_QR_CODE_SCAN
 
 
+# --- 6. checkQrCode after a QR link (2.3.3+) ---------------------------------
+#
+# QR report, build 5944 (2026-11-24). wppconnect.log, in order:
+#
+#     Waiting for QRCode Scan (Attempt 1)...
+#     Checking QRCode status...
+#     Login with success                 <- qrReadSuccess, wzLinkedThisRun
+#     Checking phone is connected...     <- waitForInChat() starts
+#     pinned document served (#2)        <- WhatsApp Web's post-link reload
+#     wapi.js injected
+#     Waiting for QRCode Scan (Attempt 2)...   <- a NEW QR, published
+#     Phone not connected                <- 13 s after the login
+#     browserClose
+#
+# On the reloaded page afterPageScriptInjected() calls checkQrCode() (and so
+# does every conn.auth_code_change). While WhatsApp Web restores the login,
+# needsToScan() answers true, so upstream wrote isLogged = false and fetched
+# and published a fresh QR. waitForInChat() reads isLogged once a second and
+# ended; waitForLogin() threw "Phone not connected", a status nothing in
+# WinZapp consumes, so the pairing dialog heard nothing.
+#
+# Once a link was accepted in this run, a needs-scan answer on a reload is now
+# waited out like the phone-code guard (part 4) does: up to 60 s, yielding to a
+# newer page load, isLogged left alone and no QR requested or published. A
+# login that never comes back is not ended here: waitForInChat()'s bounds
+# (part 2: reload at 90 s, give up at 240 s with PairingNotCompleted on the
+# dialog) end it, the same for both pairing methods. After waitForInChat() has
+# finished (wzPairingSettled) a QR request is a logout again and upstream's
+# code runs unchanged. Applied only on top of part 2 (REQUIRES), whose bounds
+# and wzPairingSettled it relies on, and only while WinZapp pins
+# deviceSyncTimeout to 0, as part 2's bound is. The phone-code path never
+# registers checkQrCode().
+
+#: How long the QR path waits, after a link accepted in this run, for the
+#: reloaded page to report the login again. The same 60 s as part 4.
+QR_RESTORE_WAIT_S = 60
+
+ORIGINAL_CHECK_QR_CODE_AFTER_PROBE = (
+    "        // A navigation can invalidate the execution context while waiting for QR.\n"
+    "        // An unknown result is not proof that the session has registered.\n"
+    "        if (needScan === null)\n"
+    "            return;\n"
+    "        this.isLogged = !needScan;\n"
+)
+
+#: Changing this text later: keep the old one in the step's "older" tuple AND
+#: in wppconnect_host_layer_patch._carries_upstream_auth_probe_fix(), which
+#: runs before this upgrade on the same launch; missing either raises one
+#: DID NOT MATCH on the first launch after the update.
+PATCHED_CHECK_QR_CODE_AFTER_PROBE = (
+    "        // A navigation can invalidate the execution context while waiting for QR.\n"
+    "        // An unknown result is not proof that the session has registered.\n"
+    "        if (needScan === null)\n"
+    "            return;\n"
+    "        // WinZapp: WhatsApp Web reloads right after a QR link and asks to scan\n"
+    "        // for a moment while it restores the login. Writing isLogged = false\n"
+    "        // there ended waitForInChat() at once (\"Phone not connected\") and a\n"
+    "        // new QR went out for a pairing the phone had already accepted. So wait\n"
+    "        // for the login instead, once per page load. A login that never comes\n"
+    "        // back is waitForInChat()'s to end (reload, then the pairing dialog).\n"
+    "        if (needScan && this.wzLinkedThisRun === true && !(this.options.deviceSyncTimeout > 0) && !this.wzPairingSettled) {\n"
+    "            const wzLoad = this.pageLoadPromise;\n"
+    "            if (this.wzPairingReported || this.wzRestoreWaitLoad === wzLoad) {\n"
+    "                return;\n"
+    "            }\n"
+    "            this.wzRestoreWaitLoad = wzLoad;\n"
+    "            this.log('verbose', 'QR code already accepted; waiting for WhatsApp Web to restore the login instead of showing a new one.');\n"
+    f"            for (let i = 0; i < {QR_RESTORE_WAIT_S}; i++) {{\n"
+    "                await (0, sleep_1.sleep)(1000);\n"
+    "                if (this.qrLoopCancelled || this.page.isClosed() || this.wzPairingReported || this.wzPairingSettled || this.isInChat) {\n"
+    "                    return;\n"
+    "                }\n"
+    "                if (wzLoad !== this.pageLoadPromise) {\n"
+    "                    return; // a newer page took over; its own checkQrCode() decides\n"
+    "                }\n"
+    "                if ((await (0, auth_1.needsToScan)(this.page).catch(() => null)) === false) {\n"
+    "                    this.isLogged = true;\n"
+    "                    this.attempt = 0;\n"
+    "                    this.log('verbose', 'Login restored after the QR code was accepted.');\n"
+    "                    return;\n"
+    "                }\n"
+    "            }\n"
+    f"            this.log('warn', 'WhatsApp Web has not restored the login {QR_RESTORE_WAIT_S}s after this page load; leaving the pairing to the in-chat wait.');\n"
+    "            return;\n"
+    "        }\n"
+    "        this.isLogged = !needScan;\n"
+)
+
+
 # (name, anchor that says this runtime has the function, shipped older
 #  patched texts to upgrade, upstream text, patched text)
 STEPS = (
@@ -317,8 +447,27 @@ STEPS = (
     ("checkInChat stream-mode check", "async waitForInChat()",
      (), ORIGINAL_CHECK_IN_CHAT_PROBE, PATCHED_CHECK_IN_CHAT_PROBE),
     ("waitForInChat pairing bound", "async waitForInChat()",
-     (), ORIGINAL_WAIT_FOR_IN_CHAT, PATCHED_WAIT_FOR_IN_CHAT),
+     (V1_WAIT_FOR_IN_CHAT,), ORIGINAL_WAIT_FOR_IN_CHAT, PATCHED_WAIT_FOR_IN_CHAT),
+    # Same runtime gate as the two above, plus REQUIRES below: its wait
+    # relies on waitForInChat()'s bounds and wzPairingSettled to end.
+    ("checkQrCode wait after a QR link", "async waitForInChat()",
+     (), ORIGINAL_CHECK_QR_CODE_AFTER_PROBE, PATCHED_CHECK_QR_CODE_AFTER_PROBE),
 )
+
+
+#: Steps whose upstream text also appears in runtimes this fix is not for, so
+#: the anchor gates the patch itself, not only the note. checkQrCode()'s lines
+#: are the same from 2.3.3 on, and 2.3.x leaves that function to upstream.
+ANCHOR_GATED = frozenset({"checkQrCode wait after a QR link"})
+
+#: Steps applied only on top of another step's result: (that step, its
+#: patched text). checkQrCode()'s wait never ends a pairing itself and stops
+#: applying only once wzPairingSettled is set; both come from the bounded
+#: waitForInChat(). Without it a later real logout in the same run would
+#: never get a new QR.
+REQUIRES = {
+    "checkQrCode wait after a QR link": ("waitForInChat pairing bound", PATCHED_WAIT_FOR_IN_CHAT),
+}
 
 
 def patch_pairing_completion(content: str, notes: list) -> str:
@@ -327,6 +476,12 @@ def patch_pairing_completion(content: str, notes: list) -> str:
     for name, anchor, older, original, patched in STEPS:
         if patched in content:
             notes.append(f"{name}: already applied.")
+            continue
+        if name in ANCHOR_GATED and anchor not in content:
+            notes.append(f"{name}: not in this file — nothing to patch.")
+            continue
+        if name in REQUIRES and REQUIRES[name][1] not in content:
+            notes.append(f"{name}: left untouched — it needs {REQUIRES[name][0]}, which did not apply.")
             continue
         old = next((text for text in older if text in content), None)
         if old is not None:

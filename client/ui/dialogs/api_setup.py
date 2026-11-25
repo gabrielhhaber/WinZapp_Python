@@ -665,6 +665,16 @@ class ApiSetupDialog(wx.Dialog):
         except Exception as exc:
             logging.warning("[api_setup] Failed to patch wa-js channel chat: %s", exc)
 
+        # WhatsApp Web's login-only page never defines the stores wa-js looks
+        # up, and its loader re-required them until the page saturated: no QR
+        # code (wppconnect_wa_js_loader_patch.py).
+        try:
+            from core.wppconnect_wa_js_loader_patch import patch_meta_loader_bundle
+            ok, note = patch_meta_loader_bundle(api_dir)
+            logging.log(logging.INFO if ok else logging.WARNING, "[api_setup] %s", note)
+        except Exception as exc:
+            logging.warning("[api_setup] Failed to patch the wa-js Meta loader: %s", exc)
+
         # browser.js — a large account whose WhatsApp Web needs a little over
         # 30 s to be ready never connected (issue #414). Takes the outer
         # api_dir, like the wa-js patch.

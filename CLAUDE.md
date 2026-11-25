@@ -119,7 +119,8 @@ uv run translations-check               # release-ready catalog validation
   Details: `docs/reference/build-and-setup.md`.
 - The Neonize bridge's neonize (DLL included) is built from source:
   `neonize_bridge\.venv\Scripts\python.exe neonize_bridge\build_neonize.py all --install`
-  (Go + 64-bit MinGW gcc; close WinZapp first). Approved upstream release in
+  (Go + 64-bit MinGW gcc; close WinZapp first). On macOS the same script
+  builds the dylib (`docs/reference/neonize-build.md`, "macOS"). Approved upstream release in
   `neonize_bridge/neonize_upstream.json`; CI: `.github/workflows/neonize-dll.yml`.
 - `macos/` is a Mac-only layer the Windows build never runs; what it asks of
   a Windows change: `docs/reference/macos.md`.
@@ -138,7 +139,9 @@ uv run translations-check               # release-ready catalog validation
   `client/core/wppconnect_wa_js_patch.py`, patches `@wppconnect/wa-js`'s
   bundle, the script injected into the WhatsApp Web page; a seventh,
   `client/core/wppconnect_newsletter_chat_patch.py`, patches the same bundle
-  so a post to a channel finds the channel's chat and its send job.
+  so a post to a channel finds the channel's chat and its send job; an
+  eighth, `client/core/wppconnect_wa_js_loader_patch.py`, keeps wa-js's
+  module loader from saturating WhatsApp Web's login-only page (no QR code).
 - **`neonize_bridge/neonize_patches/`** — WinZapp's patches on official
   neonize, whatsmeow and meowcaller (the Neonize engine's DLL);
   `build_neonize.py` applies them and builds into the git-ignored

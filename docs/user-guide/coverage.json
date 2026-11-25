@@ -10,6 +10,7 @@
     "90caab9b5af9": "Chamadas individuais pelo Neonize: removida uma espera duplicada no áudio recebi",
     "0e667c42f7cd": "Chamadas pelo Neonize: conversão do áudio do microfone otimizada para reduzir o ",
     "90fe2e178f12": "Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia",
+    "b361c5712f55": "Conectar com QR-CODE: o código QR voltou a aparecer. Nas versões mais recentes d",
     "2936d96aa8d2": "Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Com",
     "09fbe7002b47": "Conectar pelo número de telefone: a conexão não falha mais depois que o WhatsApp",
     "a211cf24a0d1": "Quando o WhatsApp recusa temporariamente códigos de pareamento para um número, o",
@@ -343,6 +344,7 @@
     "9162dac61c67": "Neonize: quando a bridge de conexão demora demais para iniciar, o log do program",
     "1676e3a04355": "Corrigido: depois de trocar o dispositivo de áudio, os sons de notificação (toas",
     "e2761794715e": "No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na ",
-    "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio"
+    "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio",
+    "7c1725c319d4": "Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e In"
   }
 }
