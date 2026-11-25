@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- When the playback or recording device chosen in Settings, such as headphones, is not connected as WinZapp starts, WinZapp now says so once and uses the system default device, instead of showing a message box at every launch. The box held up startup until it was answered, so a launch with no one at the computer ended in an error saying the WinZapp API had failed to start in time, and the program closed. The chosen device is kept and used again once it is connected.
+
 - macOS: WinZapp's check for newer WhatsApp Web versions now works on Macs without Python from python.org installed. It used to fail with a certificate error that the log reported as "offline", so the list of versions never updated and, once WhatsApp stopped serving the build WinZapp was using, WPPConnect could no longer connect.
 
 - Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".

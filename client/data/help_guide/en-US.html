@@ -672,7 +672,7 @@
   <li><strong>Forward and back:</strong> Shift+Right/Left Arrow moves 5 seconds; Shift+Page Down/Up moves 1 minute; Shift+Home and Shift+End go to the start and the end of what is playing.</li>
   <li>The following voice messages play in sequence, unless you clear "Automatically play voice messages in sequence" in Settings &gt; User interface. During the sequence, the focused row waits to update its state, so the screen reader does not read over the audio.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pauses or resumes the audio that is playing, from any panel.</li>
-  <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and plays the message the first time.</li>
+  <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and says so once, by voice. The device chosen in Settings is kept and used again once it is connected, including when it was not connected as WinZapp started.</li>
   <li>If the sound card is not available (for example, when the computer wakes up), WinZapp tries to restore the audio output when a playback fails; if it still cannot play, it tells you through the screen reader.</li>
   <li>In Settings, there is an option not to mark audio as played.</li>
 </ul>
@@ -1531,6 +1531,7 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>When the playback or recording device chosen in Settings is not connected as WinZapp starts, WinZapp says so once and uses the system default device, instead of a message box.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize engine: the Neonize label in the pairing window and in Settings no longer says "experimental" and now says "default".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback.</td></tr>
