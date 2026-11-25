@@ -895,7 +895,20 @@ class SessionLifecycleMixin:
                     except Exception as e:
                         logging.warning("[profile-recovery] close-session failed: %s: %s",
                                         type(e).__name__, redact_credentials(str(e)))
-                self.wait_for_profile_release(session_name, timeout=20.0)
+                if self.wait_for_profile_release(session_name, timeout=20.0) is False:
+                    # Still held after the wait and the kill: copying now
+                    # would write under a running browser, which recreates the
+                    # directory and makes the restore fail half way
+                    # (2026-11-25). No restore happened, so the rung goes back.
+                    logging.error("[profile-recovery] the browser still holds "
+                                  "the profile — not restoring under it.")
+                    self._shutdown_audit("profile restore abandoned — the "
+                                         "browser still held the profile")
+                    self._set_profile_recovery_generation(generation)
+                    wx.CallAfter(self._announce_profile_beyond_repair)
+                    if on_give_up is not None:
+                        wx.CallAfter(on_give_up)
+                    return
                 if (getattr(self, "_qr_flood_halted", False)
                         or self._is_pairing_dialog_active()
                         or getattr(self, "_pairing_in_progress", False)):
