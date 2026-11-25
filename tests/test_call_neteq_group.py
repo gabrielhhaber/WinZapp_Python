@@ -240,3 +240,33 @@ def test_session_feeds_each_group_sender_through_its_own_neteq(session):
         session._push_group_sender(item, np.zeros(960, dtype=np.float32), 16000, 48000)
     assert len(created) == 2 and all(len(n.packets) == 1 for n in created)
     assert created[0].packets[0][1].size == 2880  # converted to the device rate
+
+
+def test_compiled_neteq_mixes_two_senders_on_one_device_clock():
+    from pathlib import Path
+    from core.call_neteq import NetEqLibrary
+    dll = Path(__file__).parents[1]/'neonize_bridge/neonize_build/dist/neonize/winzapp_call_neteq.dll'
+    if not dll.is_file():
+        pytest.skip('NetEq component is built by the Neonize job')
+    library = NetEqLibrary(dll)
+    legacy = _OutputJitterBuffer(48000, neonize=True)
+    b = NetEqOutputBuffer(legacy, 48000, library_loader=lambda: library)
+    t = np.arange(2880 * 6, dtype=np.float32) / 48000
+    tones = {11: .2 * np.sin(2*np.pi*300*t), 22: .2 * np.sin(2*np.pi*1100*t)}
+    try:
+        for n in range(6):
+            for ssrc, tone in tones.items():
+                b.push_timed(tone[n*2880:(n+1)*2880].astype(np.float32), n*960, 16000, ssrc, 48000, mixed=True)
+        assert b.stream_count == 2
+        out = np.concatenate([np.zeros(480, dtype=np.float32) for _ in range(30)])
+        for i in range(30):
+            block = out[i*480:(i+1)*480]
+            assert b.fill(block)
+        spectrum = np.abs(np.fft.rfft(out[-9600:]))
+        freqs = np.fft.rfftfreq(9600, 1/48000)
+        level = lambda f: spectrum[np.argmin(np.abs(freqs - f))]
+        noise = np.median(spectrum)
+        assert level(300) > 50 * noise and level(1100) > 50 * noise  # both senders heard
+        assert np.max(np.abs(out)) <= 1.0 and not b.native_failed
+    finally:
+        b.reset()
