@@ -4,6 +4,16 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Messaggi fissati: il pulsante dei messaggi fissati della chat ora apre la finestra "Messaggi fissati", con l'elenco dei messaggi fissati. Ogni messaggio ha il menu contestuale e le scorciatoie dell'elenco dei messaggi: copiare, inoltrare, reagire, aggiungere ai preferiti, sfissare, eliminare, trascrivere e gli altri, con i tasti che hai scelto. Rispondere, modificare e le altre azioni che portano nella chat chiudono la finestra e si eseguono sul messaggio, già a fuoco nella chat; Invio o "Vai al messaggio" ti porta al messaggio nella cronologia.
+
+- Messaggi selezionati: "Sfissa selezionati", in "Azioni in blocco" nel menu contestuale, sfissa in una volta i messaggi selezionati che sono fissati. Con "Sostituisci le scorciatoie con le azioni in blocco quando selezioni chat e messaggi" attivato, Ctrl+Shift+P fissa i messaggi selezionati, oppure li sfissa quando sono già tutti fissati.
+
+- Nuova opzione in Impostazioni > Accessibilità > Contenuto parlato: "Annuncia quanti messaggi sono fissati all'apertura di una chat", attiva per impostazione predefinita. Disattivata, WinZapp non dice più "Messaggi fissati in questa chat: N" quando apri una chat.
+
+- Nuova opzione in Impostazioni > Generale > Notifiche: "Notifica le reazioni ai tuoi messaggi", attiva per impostazione predefinita. Disattivata, una reazione a un tuo messaggio non viene letta, non suona e non compare nelle notifiche di Windows; continua a comparire sul messaggio e nell'elenco delle chat.
+
+- Testo del messaggio (Alt+C): la finestra ha la nuova casella "A capo automatico delle righe lunghe", attiva per impostazione predefinita. Disattivata, una riga finisce solo dove il messaggio stesso va a capo, qualunque sia la lunghezza della riga o la dimensione della finestra. La scelta viene ricordata, e la copia restituisce sempre il testo come è stato scritto.
+
 - Chiamate: una chiamata iniziata dal telefono e diventata di gruppo si può riprendere da WinZapp dopo esserne usciti: "Unisciti alla chiamata vocale in corso" compare nella chat di ogni persona ancora presente, e la sua riga nella scheda Chiamate mostra i loro nomi. Funziona con Neonize e WPPConnect.
 
 - Neonize: entrando in una chiamata di gruppo già in corso, ora senti le persone il cui telefono invia l’audio in un formato che WinZapp prima scartava; con loro non sentivi nessuno.

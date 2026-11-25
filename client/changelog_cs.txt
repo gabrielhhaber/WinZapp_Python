@@ -4,6 +4,16 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Připnuté zprávy: tlačítko připnutých zpráv chatu teď otevírá okno „Připnuté zprávy“ se seznamem připnutých zpráv. Každá zpráva v něm má místní nabídku a klávesové zkratky seznamu zpráv: kopírování, přeposlání, reakci, označení hvězdičkou, odepnutí, smazání, přepis a ostatní, s klávesami, které jste si zvolili. Odpověď, úprava a další akce, které vedou do chatu, okno zavřou a provedou se na zprávě, už zaměřené v chatu; Enter nebo „Přejít na zprávu“ vás k ní přenese v historii.
+
+- Vybrané zprávy: „Odepnout vybrané“ v „Hromadné akce“ místní nabídky odepne najednou vybrané zprávy, které jsou připnuté. Když je zaškrtnuto „Při výběru chatů a zpráv nahradit zkratky hromadnými akcemi“, Ctrl+Shift+P vybrané zprávy připne, nebo je odepne, když už jsou připnuté všechny.
+
+- Nová volba v Nastavení > Přístupnost > Mluvený obsah: „Při otevření chatu ohlásit počet připnutých zpráv“, ve výchozím stavu zapnutá. Když ji vypnete, WinZapp už po otevření chatu neříká „Připnuté zprávy v tomto chatu: N“.
+
+- Nová volba v Nastavení > Obecné > Oznámení: „Oznamovat reakce na vaše zprávy“, ve výchozím stavu zapnutá. Když ji vypnete, reakce na vaši zprávu se nepřečte, nepřehraje zvuk a neobjeví se v oznámeních Windows; dál je vidět u zprávy a v seznamu chatů.
+
+- Text zprávy (Alt+C): okno má nové zaškrtávací políčko „Zalamovat dlouhé řádky“, ve výchozím stavu zaškrtnuté. Když ho zrušíte, řádek končí jen tam, kde má zpráva sama zalomení řádku, bez ohledu na délku řádku nebo velikost okna. Volba se pamatuje i pro příště a kopírování dál vrací text tak, jak byl napsán.
+
 - Hovory: hovor, který jste zahájili v telefonu a který se změnil na skupinový, můžete po svém odchodu znovu připojit z WinZappu: v chatu každé osoby, která v něm zůstává, se objeví „Připojit se k probíhajícímu hlasovému hovoru“ a řádek na kartě Hovory ukazuje jejich jména. Platí pro Neonize i WPPConnect.
 
 - Neonize: když se připojíte ke skupinovému hovoru, který už probíhá, nově uslyšíte lidi, jejichž telefon posílá zvuk ve formátu, který WinZapp dříve zahazoval; s nimi jste neslyšeli nikoho.

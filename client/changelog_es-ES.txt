@@ -4,6 +4,16 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- Mensajes fijados: el botón de mensajes fijados del chat ahora abre la ventana "Mensajes fijados", con la lista de los fijados. Cada mensaje tiene el menú contextual y los atajos de la lista de mensajes: copiar, reenviar, reaccionar, destacar, desfijar, eliminar, transcribir y los demás, con las teclas que elegiste. Responder, editar y las otras acciones que llevan al chat cierran la ventana y se hacen en el mensaje, ya enfocado en el chat; Enter o "Ir al mensaje" te lleva a él en el historial.
+
+- Mensajes seleccionados: "Desfijar seleccionados", en "Acciones en masa" del menú contextual, desfija de una vez los mensajes seleccionados que están fijados. Con "Sustituir atajos por acciones en masa al seleccionar chats y mensajes" marcado, Ctrl+Shift+P fija los mensajes seleccionados, o los desfija cuando todos ya están fijados.
+
+- Nueva opción en Configuración > Accesibilidad > Contenido hablado: "Anunciar cuántos mensajes están fijados al abrir un chat", marcada por defecto. Desmarcada, WinZapp deja de decir "Mensajes fijados en este chat: N" al abrir un chat.
+
+- Nueva opción en Configuración > General > Notificaciones: "Notificar reacciones a tus mensajes", marcada por defecto. Desmarcada, una reacción a uno de tus mensajes no se lee, no suena y no aparece en las notificaciones de Windows; sigue apareciendo en el mensaje y en la lista de chats.
+
+- Texto del mensaje (Alt+C): la ventana tiene la nueva casilla "Ajustar las líneas largas", marcada por defecto. Desmarcada, una línea solo termina donde el propio mensaje tiene un salto de línea, sea cual sea la longitud de la línea o el tamaño de la ventana. La elección se recuerda para las próximas veces, y copiar sigue entregando el texto tal como se escribió.
+
 - Llamadas: una llamada que empezaste en el teléfono y que se convirtió en llamada de grupo se puede retomar desde WinZapp después de salir de ella: "Unirse a la llamada de voz en curso" aparece en la conversación de cada persona que sigue en ella, y su fila en la pestaña Llamadas muestra sus nombres. Funciona con Neonize y WPPConnect.
 
 - Neonize: al unirte a una llamada de grupo ya en curso, ahora oyes a las personas cuyo teléfono envía el audio en un formato que WinZapp antes descartaba; con ellas, no oías a nadie.

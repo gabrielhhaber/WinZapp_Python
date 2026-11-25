@@ -4,6 +4,16 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Pinned messages: a chat's pinned messages button now opens the "Pinned messages" window, listing the pinned messages. Each one has the message list's context menu and shortcuts: copy, forward, react, star, unpin, delete, transcribe and the rest, with the keys you chose. Reply, edit and the other actions that take you into the chat close the window and run on the message, focused in the chat; Enter or "Go to message" takes you to it in the history.
+
+- Selected messages: "Unpin selected", under "Bulk actions" in the context menu, unpins every selected message that is pinned at once. With "Replace shortcuts with bulk actions when selecting chats and messages" checked, Ctrl+Shift+P pins the selected messages, or unpins them when all of them are already pinned.
+
+- New option in Settings > Accessibility > Spoken content: "Announce how many messages are pinned when a chat opens", checked by default. Unchecked, WinZapp no longer says "Pinned messages in this chat: N" when you open a chat.
+
+- New option in Settings > General > Notifications: "Notify reactions to your messages", checked by default. Unchecked, a reaction to one of your messages is not spoken, plays no sound and does not appear in Windows notifications; it still shows on the message and in the chat list.
+
+- Message text (Alt+C): the window has a new "Wrap long lines" box, checked by default. Unchecked, a line only ends where the message itself has a line break, whatever the length of the line or the size of the window. The choice is kept for next time, and copying still gives the text as it was written.
+
 - Calls: a call you started on your phone that became a group call can be rejoined from WinZapp after you leave it: "Join ongoing voice call" appears in the chat of each person still in it, and its row in the Calls tab shows their names. Works with Neonize and WPPConnect.
 
 - Neonize: joining a group call already under way, you now hear the people whose phones send audio in a format WinZapp used to drop; with them, you heard nobody.

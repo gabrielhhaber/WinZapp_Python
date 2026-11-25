@@ -4,6 +4,16 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Przypięte wiadomości: przycisk przypiętych wiadomości czatu otwiera teraz okno „Przypięte wiadomości” z listą przypiętych. Każda wiadomość ma menu kontekstowe i skróty listy wiadomości: kopiowanie, przekazywanie, reakcje, oznaczanie gwiazdką, odpinanie, usuwanie, transkrypcję i pozostałe, z wybranymi przez Ciebie klawiszami. Odpowiedź, edycja i inne akcje prowadzące do czatu zamykają okno i są wykonywane na wiadomości, już zaznaczonej w czacie; Enter lub „Przejdź do wiadomości” przenosi do niej w historii.
+
+- Zaznaczone wiadomości: „Odepnij zaznaczone” w „Akcje masowe” menu kontekstowego odpina naraz zaznaczone wiadomości, które są przypięte. Gdy zaznaczone jest „Zastąp skróty akcjami masowymi podczas zaznaczania czatów i wiadomości”, Ctrl+Shift+P przypina zaznaczone wiadomości albo je odpina, gdy wszystkie są już przypięte.
+
+- Nowa opcja w Ustawienia > Dostępność > Zawartość mówiona: „Ogłaszaj liczbę przypiętych wiadomości po otwarciu czatu”, domyślnie włączona. Po jej wyłączeniu WinZapp nie mówi już „Przypięte wiadomości w tym czacie: N” po otwarciu czatu.
+
+- Nowa opcja w Ustawienia > Ogólne > Powiadomienia: „Powiadamiaj o reakcjach na Twoje wiadomości”, domyślnie włączona. Po jej wyłączeniu reakcja na Twoją wiadomość nie jest odczytywana, nie odtwarza dźwięku i nie pojawia się w powiadomieniach Windows; nadal widać ją przy wiadomości i na liście czatów.
+
+- Tekst wiadomości (Alt+C): okno ma nowe pole wyboru „Zawijaj długie wiersze”, domyślnie zaznaczone. Po jego odznaczeniu wiersz kończy się tylko tam, gdzie sama wiadomość ma podział wiersza, niezależnie od długości wiersza i rozmiaru okna. Wybór jest zapamiętywany, a kopiowanie nadal daje tekst w takiej postaci, w jakiej został napisany.
+
 - Połączenia: połączenie rozpoczęte na telefonie, które stało się połączeniem grupowym, można wznowić w WinZapp po wyjściu z niego: „Dołącz do trwającego połączenia głosowego” pojawia się w czacie każdej osoby, która nadal w nim jest, a jego wiersz na karcie Połączenia pokazuje ich nazwy. Działa z Neonize i WPPConnect.
 
 - Neonize: po dołączeniu do trwającego już połączenia grupowego słychać teraz osoby, których telefony wysyłają dźwięk w formacie, który WinZapp wcześniej odrzucał; przy nich nie było słychać nikogo.

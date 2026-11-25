@@ -4,6 +4,16 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Mensagens afixadas: o botão de mensagens afixadas da conversa abre agora a janela "Mensagens afixadas", com a lista das afixadas. Cada mensagem tem o menu de contexto e os atalhos da lista de mensagens: copiar, reencaminhar, reagir, marcar com estrela, desafixar, eliminar, transcrever e os restantes, com as teclas que escolheu. Responder, editar e as outras ações que levam à conversa fecham a janela e são feitas na mensagem, já em foco na conversa; Enter ou "Ir para a mensagem" leva até ela no histórico.
+
+- Mensagens selecionadas: "Desafixar selecionadas", em "Ações em massa" no menu de contexto, desafixa de uma só vez as mensagens selecionadas que estão afixadas. Com "Substituir atalhos por ações em massa ao selecionar conversas e mensagens" assinalado, Ctrl+Shift+P afixa as mensagens selecionadas, ou desafixa-as quando todas já estão afixadas.
+
+- Nova opção em Definições > Acessibilidade > Conteúdo falado: "Informar quantas mensagens estão afixadas ao abrir uma conversa", assinalada por predefinição. Desassinalada, o WinZapp deixa de dizer "Mensagens afixadas nesta conversa: N" ao abrir uma conversa.
+
+- Nova opção em Definições > Geral > Notificações: "Notificar reações às suas mensagens", assinalada por predefinição. Desassinalada, uma reação a uma mensagem sua não é lida, não toca som e não aparece nas notificações do Windows; continua a aparecer na mensagem e na lista de conversas.
+
+- Texto da mensagem (Alt+C): a janela ganha a caixa "Quebrar linhas longas", assinalada por predefinição. Desassinalada, uma linha só termina onde a própria mensagem tem uma quebra de linha, seja qual for o tamanho da linha ou da janela. A escolha fica guardada para as próximas vezes, e copiar continua a entregar o texto tal como foi escrito.
+
 - Chamadas: uma chamada que começou no telemóvel e que passou a chamada de grupo pode ser retomada pelo WinZapp depois de sair dela: "Entrar na chamada de voz em curso" aparece na conversa de cada pessoa que continua nela, e a linha do separador Chamadas mostra o nome delas. Vale para Neonize e WPPConnect.
 
 - Neonize: ao entrar numa chamada de grupo que já está em curso, passa a ouvir as pessoas cujo telemóvel envia o áudio num formato que o WinZapp antes descartava; com elas, não ouvia ninguém.

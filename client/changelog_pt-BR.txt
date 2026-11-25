@@ -4,6 +4,16 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Mensagens fixadas: o botão de mensagens fixadas da conversa agora abre a janela "Mensagens fixadas", com a lista das fixadas. Cada mensagem dela tem o menu de contexto e os atalhos da lista de mensagens: copiar, encaminhar, reagir, favoritar, desafixar, apagar, transcrever e os demais, com as teclas que você escolheu. Responder, editar e as outras ações que levam à conversa fecham a janela e são feitas na mensagem, já em foco na conversa; Enter ou "Ir para a mensagem" leva até ela no histórico.
+
+- Mensagens selecionadas: "Desafixar selecionadas", em "Ações em massa" no menu de contexto, desafixa de uma vez as mensagens selecionadas que estão fixadas. Com "Substituir atalhos por ações em massa ao selecionar conversas e mensagens" marcado, Ctrl+Shift+P fixa as mensagens selecionadas, ou as desafixa quando todas já estão fixadas.
+
+- Nova opção em Configurações > Acessibilidade > Conteúdo falado: "Informar quantas mensagens estão fixadas ao abrir uma conversa", marcada por padrão. Desmarcada, o WinZapp deixa de dizer "Mensagens fixadas nesta conversa: N" ao abrir uma conversa.
+
+- Nova opção em Configurações > Geral > Notificações: "Notificar reações às suas mensagens", marcada por padrão. Desmarcada, uma reação a uma mensagem sua não é falada, não toca som e não aparece nas notificações do Windows; ela continua aparecendo na mensagem e na lista de conversas.
+
+- Texto da mensagem (Alt+C): a janela ganha a caixa "Quebrar linhas longas", marcada por padrão. Desmarcada, uma linha só termina onde a própria mensagem tem uma quebra de linha, qualquer que seja o tamanho da linha ou da janela. A escolha vale para as próximas vezes, e copiar continua entregando o texto como foi escrito.
+
 - Ligações: uma ligação que você começou pelo celular e que virou ligação em grupo pode ser retomada pelo WinZapp depois que você sai dela: "Entrar na ligação de voz em andamento" aparece na conversa de cada pessoa que continua nela, e a linha da aba Ligações mostra o nome delas. Vale para Neonize e WPPConnect.
 
 - Neonize: ao entrar numa ligação em grupo que já está em andamento, você agora ouve as pessoas cujo celular manda o áudio num formato que o WinZapp antes descartava; com elas, você não ouvia ninguém.

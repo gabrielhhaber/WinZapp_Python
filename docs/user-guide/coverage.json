@@ -4,6 +4,11 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "ae30c71187cc": "Mensagens fixadas: o botão de mensagens fixadas da conversa agora abre a janela ",
+    "15df7acbec44": "Mensagens selecionadas: \"Desafixar selecionadas\", em \"Ações em massa\" no menu de",
+    "63dbcf45e205": "Nova opção em Configurações > Acessibilidade > Conteúdo falado: \"Informar quanta",
+    "ff746d8883e4": "Nova opção em Configurações > Geral > Notificações: \"Notificar reações às suas m",
+    "7323c155f5c3": "Texto da mensagem (Alt+C): a janela ganha a caixa \"Quebrar linhas longas\", marca",
     "237f65dd4b33": "Ligações: uma ligação que você começou pelo celular e que virou ligação em grupo",
     "e46ca3b70e63": "Neonize: ao entrar numa ligação em grupo que já está em andamento, você agora ou",
     "6c93168838cb": "Salvar como (Ctrl+Shift+S) um documento JSON recebido numa conversa, como o arqu",

@@ -4,6 +4,16 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sabitlenen mesajlar: sohbetin sabitlenen mesajlar düğmesi artık sabitlenen mesajları listeleyen "Sabitlenen mesajlar" penceresini açıyor. Her mesajda mesaj listesinin bağlam menüsü ve kısayolları bulunur: kopyalama, iletme, tepki verme, yıldızlama, sabitlemeyi kaldırma, silme, yazıya dökme ve diğerleri, seçtiğiniz tuşlarla. Yanıtlama, düzenleme ve sizi sohbete götüren diğer işlemler pencereyi kapatır ve sohbette odaklanmış mesaj üzerinde yapılır; Enter veya "Mesaja git" sizi geçmişte o mesaja götürür.
+
+- Seçili mesajlar: bağlam menüsündeki "Toplu işlemler" altında "Seçilenlerin sabitlemesini kaldır", seçili mesajlardan sabitlenmiş olanların sabitlemesini tek seferde kaldırır. "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" işaretliyken Ctrl+Shift+P seçili mesajları sabitler, hepsi zaten sabitlenmişse sabitlemelerini kaldırır.
+
+- Ayarlar > Erişilebilirlik > Konuşulan içerik bölümünde yeni seçenek: "Bir sohbet açılınca kaç mesajın sabitlendiğini duyur", varsayılan olarak işaretli. İşaret kaldırılırsa WinZapp bir sohbet açıldığında artık "Bu sohbetteki sabitlenen mesajlar: N" demez.
+
+- Ayarlar > Genel > Bildirimler bölümünde yeni seçenek: "Mesajlarınıza gelen tepkileri bildir", varsayılan olarak işaretli. İşaret kaldırılırsa mesajlarınızdan birine gelen tepki okunmaz, ses çalmaz ve Windows bildirimlerinde görünmez; mesajın üzerinde ve sohbet listesinde görünmeye devam eder.
+
+- Mesaj metni (Alt+C): pencerede varsayılan olarak işaretli yeni "Uzun satırları kaydır" kutusu var. İşaret kaldırılırsa satır, satırın uzunluğu veya pencerenin boyutu ne olursa olsun yalnızca mesajın kendi satır sonunda biter. Seçim sonraki açılışlar için hatırlanır ve kopyalama metni yine yazıldığı gibi verir.
+
 - Aramalar: telefonda başlattığınız ve grup aramasına dönüşen bir aramaya, ondan ayrıldıktan sonra WinZapp üzerinden yeniden katılabilirsiniz: aramada kalan her kişinin sohbetinde "Devam eden sesli aramaya katıl" görünür ve Aramalar sekmesindeki satırı onların adlarını gösterir. Neonize ve WPPConnect ile çalışır.
 
 - Neonize: zaten sürmekte olan bir grup aramasına katıldığınızda, telefonu sesi WinZapp'in önceden attığı bir biçimde gönderen kişileri artık duyarsınız; onlarla kimseyi duymuyordunuz.
