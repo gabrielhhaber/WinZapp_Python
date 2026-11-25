@@ -4,6 +4,10 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect, łączenie kodem QR lub numerem telefonu: gdy telefon zaakceptuje parowanie, WinZapp nie mówi już, że połączenie się nie udało, kiedy WhatsApp Web wciąż otwiera czaty. Sprawdzenie wykonywane 4 minuty po parowaniu nie potrafiło odczytać stanu połączenia w nowych wersjach WhatsApp Web i uznawało działające połączenie za nieudane.
+
+- WPPConnect: przeglądarka wskazana w zmiennej środowiskowej PUPPETEER_EXECUTABLE_PATH, np. natywny Chrome dla Windows na ARM, znów jest używana, a gdy pobrano kilka wersji przeglądarki, WinZapp używa tej, której wymaga WPPConnect, a nie pierwszej znalezionej.
+
 - Przypięte wiadomości: przycisk przypiętych wiadomości czatu otwiera teraz okno „Przypięte wiadomości” z listą przypiętych. Każda wiadomość ma menu kontekstowe i skróty listy wiadomości: kopiowanie, przekazywanie, reakcje, oznaczanie gwiazdką, odpinanie, usuwanie, transkrypcję i pozostałe, z wybranymi przez Ciebie klawiszami. Odpowiedź, edycja i inne akcje prowadzące do czatu zamykają okno i są wykonywane na wiadomości, już zaznaczonej w czacie; Enter lub „Przejdź do wiadomości” przenosi do niej w historii.
 
 - Zaznaczone wiadomości: „Odepnij zaznaczone” w „Akcje masowe” menu kontekstowego odpina naraz zaznaczone wiadomości, które są przypięte. Gdy zaznaczone jest „Zastąp skróty akcjami masowymi podczas zaznaczania czatów i wiadomości”, Ctrl+Shift+P przypina zaznaczone wiadomości albo je odpina, gdy wszystkie są już przypięte.

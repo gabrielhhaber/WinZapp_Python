@@ -4,6 +4,10 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- WPPConnect, ligar com QR-CODE ou pelo número de telefone: depois de o telemóvel aceitar o emparelhamento, o WinZapp já não diz que a ligação falhou enquanto o WhatsApp Web ainda está a abrir as conversas. A verificação feita 4 minutos depois do emparelhamento não conseguia ler o estado da ligação nas versões recentes do WhatsApp Web e dava como falhada uma ligação que estava a funcionar.
+
+- WPPConnect: um navegador indicado na variável de ambiente PUPPETEER_EXECUTABLE_PATH, como um Chrome nativo do Windows em ARM, volta a ser usado, e, quando há mais de uma versão do navegador transferida, o WinZapp usa a que a WPPConnect pede, e não a primeira que encontra.
+
 - Mensagens afixadas: o botão de mensagens afixadas da conversa abre agora a janela "Mensagens afixadas", com a lista das afixadas. Cada mensagem tem o menu de contexto e os atalhos da lista de mensagens: copiar, reencaminhar, reagir, marcar com estrela, desafixar, eliminar, transcrever e os restantes, com as teclas que escolheu. Responder, editar e as outras ações que levam à conversa fecham a janela e são feitas na mensagem, já em foco na conversa; Enter ou "Ir para a mensagem" leva até ela no histórico.
 
 - Mensagens selecionadas: "Desafixar selecionadas", em "Ações em massa" no menu de contexto, desafixa de uma só vez as mensagens selecionadas que estão afixadas. Com "Substituir atalhos por ações em massa ao selecionar conversas e mensagens" assinalado, Ctrl+Shift+P afixa as mensagens selecionadas, ou desafixa-as quando todas já estão afixadas.

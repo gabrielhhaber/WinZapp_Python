@@ -4,6 +4,10 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect, QR kodu veya telefon numarasıyla bağlanma: telefon eşleştirmeyi kabul ettikten sonra WhatsApp Web sohbetleri hâlâ açarken WinZapp artık bağlantının başarısız olduğunu söylemiyor. Eşleştirmeden 4 dakika sonra yapılan kontrol, WhatsApp Web'in yeni sürümlerinde bağlantı durumunu okuyamıyor ve çalışan bir bağlantıyı başarısız sayıyordu.
+
+- WPPConnect: PUPPETEER_EXECUTABLE_PATH ortam değişkeninde belirtilen bir tarayıcı, örneğin ARM üzerinde Windows için yerel bir Chrome, yeniden kullanılıyor; birden fazla tarayıcı sürümü indirilmişse WinZapp bulduğu ilk sürümü değil, WPPConnect'in istediğini kullanıyor.
+
 - Sabitlenen mesajlar: sohbetin sabitlenen mesajlar düğmesi artık sabitlenen mesajları listeleyen "Sabitlenen mesajlar" penceresini açıyor. Her mesajda mesaj listesinin bağlam menüsü ve kısayolları bulunur: kopyalama, iletme, tepki verme, yıldızlama, sabitlemeyi kaldırma, silme, yazıya dökme ve diğerleri, seçtiğiniz tuşlarla. Yanıtlama, düzenleme ve sizi sohbete götüren diğer işlemler pencereyi kapatır ve sohbette odaklanmış mesaj üzerinde yapılır; Enter veya "Mesaja git" sizi geçmişte o mesaja götürür.
 
 - Seçili mesajlar: bağlam menüsündeki "Toplu işlemler" altında "Seçilenlerin sabitlemesini kaldır", seçili mesajlardan sabitlenmiş olanların sabitlemesini tek seferde kaldırır. "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" işaretliyken Ctrl+Shift+P seçili mesajları sabitler, hepsi zaten sabitlenmişse sabitlemelerini kaldırır.

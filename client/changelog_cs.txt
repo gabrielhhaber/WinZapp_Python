@@ -4,6 +4,10 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- WPPConnect, připojení kódem QR nebo telefonním číslem: když telefon spárování přijme, WinZapp už neříká, že se připojení nezdařilo, zatímco WhatsApp Web ještě otevírá chaty. Kontrola prováděná 4 minuty po spárování nedokázala v nových verzích WhatsApp Webu přečíst stav připojení a funkční připojení vyhodnotila jako neúspěšné.
+
+- WPPConnect: prohlížeč uvedený v proměnné prostředí PUPPETEER_EXECUTABLE_PATH, například nativní Chrome pro Windows na ARM, se zase používá, a když je staženo více verzí prohlížeče, WinZapp použije tu, kterou požaduje WPPConnect, ne první nalezenou.
+
 - Připnuté zprávy: tlačítko připnutých zpráv chatu teď otevírá okno „Připnuté zprávy“ se seznamem připnutých zpráv. Každá zpráva v něm má místní nabídku a klávesové zkratky seznamu zpráv: kopírování, přeposlání, reakci, označení hvězdičkou, odepnutí, smazání, přepis a ostatní, s klávesami, které jste si zvolili. Odpověď, úprava a další akce, které vedou do chatu, okno zavřou a provedou se na zprávě, už zaměřené v chatu; Enter nebo „Přejít na zprávu“ vás k ní přenese v historii.
 
 - Vybrané zprávy: „Odepnout vybrané“ v „Hromadné akce“ místní nabídky odepne najednou vybrané zprávy, které jsou připnuté. Když je zaškrtnuto „Při výběru chatů a zpráv nahradit zkratky hromadnými akcemi“, Ctrl+Shift+P vybrané zprávy připne, nebo je odepne, když už jsou připnuté všechny.

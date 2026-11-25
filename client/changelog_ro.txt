@@ -4,6 +4,10 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- WPPConnect, conectarea cu cod QR sau cu numărul de telefon: după ce telefonul acceptă asocierea, WinZapp nu mai spune că conectarea a eșuat cât timp WhatsApp Web încă deschide conversațiile. Verificarea făcută la 4 minute după asociere nu putea citi starea conexiunii în versiunile recente ale WhatsApp Web și considera eșuată o conexiune care funcționa.
+
+- WPPConnect: un browser indicat în variabila de mediu PUPPETEER_EXECUTABLE_PATH, cum ar fi un Chrome nativ pentru Windows pe ARM, este folosit din nou, iar când sunt descărcate mai multe versiuni ale browserului, WinZapp o folosește pe cea cerută de WPPConnect, nu prima pe care o găsește.
+
 - Mesaje fixate: butonul de mesaje fixate al conversației deschide acum fereastra „Mesaje fixate”, cu lista mesajelor fixate. Fiecare mesaj are meniul contextual și comenzile rapide ale listei de mesaje: copiere, redirecționare, reacție, marcare cu stea, anularea fixării, ștergere, transcriere și celelalte, cu tastele pe care le-ați ales. Răspunsul, editarea și celelalte acțiuni care vă duc în conversație închid fereastra și se fac pe mesaj, deja focalizat în conversație; Enter sau „Accesați mesajul” vă duce la el în istoric.
 
 - Mesaje selectate: „Anulați fixarea selecției”, din „Acțiuni în bloc” al meniului contextual, anulează dintr-o dată fixarea mesajelor selectate care sunt fixate. Cu „Înlocuiți comenzile rapide cu acțiuni în bloc atunci când selectați conversații și mesaje” bifată, Ctrl+Shift+P fixează mesajele selectate sau le anulează fixarea când toate sunt deja fixate.

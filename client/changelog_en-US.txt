@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect, connecting with a QR code or a phone number: after the phone accepts the pairing, WinZapp no longer says the connection failed while WhatsApp Web is still opening the chats. The check made 4 minutes after pairing could not read the connection state on recent WhatsApp Web versions and reported a working connection as failed.
+
+- WPPConnect: a browser named in the PUPPETEER_EXECUTABLE_PATH environment variable, such as a native Chrome for Windows on ARM, is used again, and when more than one browser version is downloaded WinZapp uses the one WPPConnect asks for, not the first one it finds.
+
 - Pinned messages: a chat's pinned messages button now opens the "Pinned messages" window, listing the pinned messages. Each one has the message list's context menu and shortcuts: copy, forward, react, star, unpin, delete, transcribe and the rest, with the keys you chose. Reply, edit and the other actions that take you into the chat close the window and run on the message, focused in the chat; Enter or "Go to message" takes you to it in the history.
 
 - Selected messages: "Unpin selected", under "Bulk actions" in the context menu, unpins every selected message that is pinned at once. With "Replace shortcuts with bulk actions when selecting chats and messages" checked, Ctrl+Shift+P pins the selected messages, or unpins them when all of them are already pinned.

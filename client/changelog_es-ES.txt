@@ -4,6 +4,10 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- WPPConnect, conectar con código QR o con el número de teléfono: después de que el teléfono acepta el emparejamiento, WinZapp ya no dice que la conexión falló mientras WhatsApp Web todavía está abriendo los chats. La comprobación que se hace 4 minutos después del emparejamiento no podía leer el estado de la conexión en las versiones recientes de WhatsApp Web y daba por fallida una conexión que funcionaba.
+
+- WPPConnect: un navegador indicado en la variable de entorno PUPPETEER_EXECUTABLE_PATH, como un Chrome nativo de Windows en ARM, vuelve a usarse, y cuando hay más de una versión del navegador descargada, WinZapp usa la que pide WPPConnect, no la primera que encuentra.
+
 - Mensajes fijados: el botón de mensajes fijados del chat ahora abre la ventana "Mensajes fijados", con la lista de los fijados. Cada mensaje tiene el menú contextual y los atajos de la lista de mensajes: copiar, reenviar, reaccionar, destacar, desfijar, eliminar, transcribir y los demás, con las teclas que elegiste. Responder, editar y las otras acciones que llevan al chat cierran la ventana y se hacen en el mensaje, ya enfocado en el chat; Enter o "Ir al mensaje" te lleva a él en el historial.
 
 - Mensajes seleccionados: "Desfijar seleccionados", en "Acciones en masa" del menú contextual, desfija de una vez los mensajes seleccionados que están fijados. Con "Sustituir atajos por acciones en masa al seleccionar chats y mensajes" marcado, Ctrl+Shift+P fija los mensajes seleccionados, o los desfija cuando todos ya están fijados.

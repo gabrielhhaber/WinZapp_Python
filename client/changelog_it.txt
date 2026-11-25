@@ -4,6 +4,10 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect, connessione con codice QR o con il numero di telefono: dopo che il telefono accetta l'associazione, WinZapp non dice più che la connessione non è riuscita mentre WhatsApp Web sta ancora aprendo le chat. Il controllo fatto 4 minuti dopo l'associazione non riusciva a leggere lo stato della connessione nelle versioni recenti di WhatsApp Web e dava per fallita una connessione che funzionava.
+
+- WPPConnect: un browser indicato nella variabile d'ambiente PUPPETEER_EXECUTABLE_PATH, come un Chrome nativo per Windows su ARM, viene di nuovo usato, e quando sono scaricate più versioni del browser WinZapp usa quella richiesta da WPPConnect, non la prima che trova.
+
 - Messaggi fissati: il pulsante dei messaggi fissati della chat ora apre la finestra "Messaggi fissati", con l'elenco dei messaggi fissati. Ogni messaggio ha il menu contestuale e le scorciatoie dell'elenco dei messaggi: copiare, inoltrare, reagire, aggiungere ai preferiti, sfissare, eliminare, trascrivere e gli altri, con i tasti che hai scelto. Rispondere, modificare e le altre azioni che portano nella chat chiudono la finestra e si eseguono sul messaggio, già a fuoco nella chat; Invio o "Vai al messaggio" ti porta al messaggio nella cronologia.
 
 - Messaggi selezionati: "Sfissa selezionati", in "Azioni in blocco" nel menu contestuale, sfissa in una volta i messaggi selezionati che sono fissati. Con "Sostituisci le scorciatoie con le azioni in blocco quando selezioni chat e messaggi" attivato, Ctrl+Shift+P fissa i messaggi selezionati, oppure li sfissa quando sono già tutti fissati.
