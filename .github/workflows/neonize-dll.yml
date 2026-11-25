@@ -164,6 +164,18 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: false
 
+      # Go's build and module caches: whatsmeow and neonize compile again only
+      # when the approved release or a patch changes (the build cache is
+      # content-addressed, so an older entry restored by prefix is still safe)
+      - name: Go caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Caches/go-build
+            ~/go/pkg/mod
+          key: go-neonize-dylib-${{ matrix.arch }}-${{ env.GO_VERSION }}-${{ hashFiles('neonize_bridge/neonize_upstream.json', 'neonize_bridge/neonize_patches/**') }}
+          restore-keys: go-neonize-dylib-${{ matrix.arch }}-${{ env.GO_VERSION }}-
+
       - name: libmagic (for python-magic)
         run: brew install libmagic
 
@@ -196,7 +208,7 @@ jobs:
         run: venv/bin/python -c "from neonize._binder import load_goneonize; print(load_goneonize().GetVersion().decode())"
 
       - name: Run the bridge's tests against the built package
-        run: venv/bin/python -m pytest neonize_bridge -q
+        run: venv/bin/python -m pytest neonize_bridge -q --numprocesses=auto
 
       - name: Keep the build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
