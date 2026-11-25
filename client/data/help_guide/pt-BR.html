@@ -672,7 +672,7 @@
   <li><strong>Avançar e voltar:</strong> Shift+Seta para a direita/esquerda anda 5 segundos; Shift+Page Down/Up anda 1 minuto; Shift+Home e Shift+End vão ao início e ao fim do que está tocando.</li>
   <li>As mensagens de voz seguintes tocam em sequência, a menos que você desmarque "Reproduzir mensagens de voz em sequência automaticamente" em Configurações &gt; Interface do usuário. Durante a sequência, a linha em foco espera para atualizar o estado, para o leitor de tela não ler por cima do áudio.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pausa ou retoma o áudio que estiver tocando, de qualquer painel.</li>
-  <li>Se o dispositivo de saída mudar (fone desconectado, por exemplo), o WinZapp passa para o dispositivo padrão e toca a mensagem na primeira vez.</li>
+  <li>Se o dispositivo de saída mudar (fone desconectado, por exemplo), o WinZapp passa para o dispositivo padrão e avisa uma única vez por voz. O dispositivo escolhido nas Configurações é mantido e volta a ser usado assim que estiver conectado, inclusive quando não estava conectado ao iniciar o WinZapp.</li>
   <li>Se a placa de som não estiver disponível (por exemplo, ao acordar o computador), o WinZapp tenta restaurar a saída de áudio quando uma reprodução falha; se mesmo assim não conseguir tocar, avisa pelo leitor de tela.</li>
   <li>Em Configurações, há a opção de não marcar áudios como reproduzidos.</li>
 </ul>
@@ -1531,6 +1531,7 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
+  <tr><td class="field-name">Ainda não lançada</td><td>Quando o dispositivo de reprodução ou de gravação escolhido nas Configurações não está conectado ao iniciar o WinZapp, o WinZapp avisa uma única vez por voz e usa o dispositivo padrão do sistema, em vez de mostrar uma caixa de mensagem.</td></tr>
   <tr><td class="field-name">Ainda não lançada</td><td>Motor Neonize: o rótulo do Neonize na janela de pareamento e nas Configurações deixou de dizer "experimental" e passou a dizer "padrão".</td></tr>
   <tr><td class="field-name">Ainda não lançada</td><td>Chamadas Neonize: corrigida a retomada do áudio compatível quando a saída exclusiva usa uma taxa não suportada pelo NetEQ, preservando a ocultação de perdas.</td></tr>
   <tr><td class="field-name">Ainda não lançada</td><td>Chamadas individuais Neonize: reprodução com NetEQ para suavizar variações de rede e perdas de áudio, com retorno automático ao modo compatível.</td></tr>
