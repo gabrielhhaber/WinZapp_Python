@@ -17,7 +17,7 @@ Para destravar: escreva a função nos 9 idiomas (roteiro abaixo), rode `python 
 | Arquivo | Função |
 |---|---|
 | `client/data/help_guide/<idioma>.html` | O guia pronto de cada idioma (um arquivo só, acessível, com busca e modo escuro). É o que o menu Ajuda > Guia de uso abre. É gerado; não edite à mão. O `.gitignore` do projeto ignora `data/`: um idioma novo precisa de `git add -f`. |
-| `sections/<idioma>/NN-nome.html` | O conteúdo, uma seção por arquivo (a ordem dos números define a ordem no guia). **É aqui que se edita.** Idiomas: pt-BR (fonte), pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it. |
+| `sections/<idioma>/NN-nome.html` | O conteúdo, uma seção por arquivo (a ordem dos números define a ordem no guia; o `nome` fica no idioma de cada guia, e os idiomas se correspondem pelo número, que também vira a âncora `#nome` da seção). **É aqui que se edita.** Idiomas: pt-BR (fonte), pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it. |
 | `i18n/<idioma>.json` | Textos da página (título, busca, menu, títulos dos grupos de atalhos) e nomes das teclas. |
 | `tools/` | `swap.py` troca rótulos entre aspas pelos do PO do idioma; `examples.py` e `verify.py` conferem os exemplos entre aspas contra o PO; `gloss.json`/`prefix.json` são glossários. |
 | `template.html` | Visual e script do guia (CSS, busca, menu). Raramente muda. |
@@ -41,7 +41,7 @@ Para destravar: escreva a função nos 9 idiomas (roteiro abaixo), rode `python 
 4. Atalhos: **nada a fazer à mão**; o `generate_guide.py` regenera as tabelas. Só atualize as tabelas escritas à mão nas seções (conversas, mensagens, voz, ligações) se um atalho citado nelas mudou.
 5. Mudou ou foi removida uma funcionalidade? Ajuste o texto da seção para descrever **só como é agora** (sem "antes era assim").
 6. **Traduza o mesmo trecho para os outros 8 idiomas** (pt-PT, en-US, es-ES, pl, tr-TR, ro, ar, it), nos mesmos arquivos `sections/<idioma>/` e na mesma ordem, com o mesmo selo `desde`. Escreva os rótulos da interface entre aspas retas, em inglês (ou como `⟦rótulo⟧`), e rode `python tools/swap.py <idioma> apply`: ele troca cada rótulo pelo texto real do PO daquele idioma. Depois `python tools/examples.py <idioma>` e `python tools/verify.py <idioma>`; o que ficar "sem correspondência" deve ser só exemplo de fala do leitor de tela, não rótulo.
-7. Registro: rode `python verify_guide.py <clone> --registrar` e acrescente uma linha em `sections/<idioma>/99-changelog.html` **em cada idioma** (alpha + o que entrou) e atualize `coverage.json`.
+7. Registro: rode `python verify_guide.py <clone> --registrar` e acrescente uma linha em `sections/<idioma>/99-*.html` **em cada idioma** (alpha + o que entrou) e atualize `coverage.json`.
 8. Rode `python generate_guide.py <clone>` (todos os idiomas) e abra os HTML: confira a busca, o menu lateral e, com leitor de tela, as seções alteradas.
 
 ## Regras de conteúdo

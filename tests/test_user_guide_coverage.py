@@ -55,7 +55,7 @@ def test_every_registered_language_goes_through_the_guide_checks():
 def test_a_subtitle_missing_from_the_arabic_guide_is_reported(tmp_path, monkeypatch):
     for locale in ("pt-BR", "ar"):
         shutil.copytree(GUIDE_DIR / "sections" / locale, tmp_path / "sections" / locale)
-    section = tmp_path / "sections" / "ar" / "13-accounts.html"
+    section = next((tmp_path / "sections" / "ar").glob("13-*.html"))
     section.write_text(
         section.read_text(encoding="utf-8").replace("<h3>", "<h4>", 1), encoding="utf-8"
     )
@@ -63,6 +63,6 @@ def test_a_subtitle_missing_from_the_arabic_guide_is_reported(tmp_path, monkeypa
     monkeypatch.setattr(verify_guide.generate_guide, "IDIOMAS", ["pt-BR", "ar"])
 
     assert any(
-        found.startswith("ar/13-accounts.html")
+        found.startswith("ar/13-*")
         for found in verify_guide.divergencias_entre_idiomas()
     )

@@ -107,7 +107,7 @@ uv run translations-check               # release-ready catalog validation
   version in `client/changelog_pt-BR.txt` is not in `docs/user-guide/coverage.json`.
   Describe the feature in `docs/user-guide/sections/<every locale>/` (a bug fix
   the guide already describes needs no text), add an "unreleased" row to each
-  `99-changelog.html`, then `python docs/user-guide/verify_guide.py . --registrar`
+  `99-*.html` (file names are in each guide's own language), then `python docs/user-guide/verify_guide.py . --registrar`
   and `python docs/user-guide/generate_guide.py .` (it writes the git-ignored
   `client/data/help_guide/`: `git add -f`). Shortcut tables come from the
   catalog; a new catalog scope needs a title in `docs/user-guide/i18n/<locale>.json`.
