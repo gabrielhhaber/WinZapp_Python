@@ -1,0 +1,525 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Wed, 25 Nov 2026 01:37:35 -0300
+Subject: [PATCH] Recover a lost MLow packet from the next PT 121 packet's
+ redundant copy
+
+A PT 121 (mlow-red) packet repeats earlier frames in its SplitRed blocks,
+but only its main frame was decoded: a lost packet was concealed (invented
+from the pitch of the last frame) even when the packet after it carried the
+lost frame itself.
+
+What a block's time code means is not documented, so no block is trusted
+by its position: a position is used only after the stream proved it, with
+a block equal byte for byte to the main frame of the packet that many
+sequence numbers back. Then, when the packet after a loss arrives, the
+repeated frame is decoded in place of the lost one, as a received frame
+(it advances the decoder state and reaches the timed NetEq sink); older
+losses the blocks do not cover are still concealed. A sender whose
+redundancy is a different encoding never proves a position and keeps the
+concealment it had. The audio receive summary now counts concealed and
+recovered frames, and the first proven position is logged once.
+
+Tested: a PT 121 stream that loses a packet gives the lost frame back
+sample for sample as a lossless receiver decodes it, with no concealment
+and the same decoder state afterwards; before the redundancy is proven the
+loss is concealed as before; re-encoded redundancy is never trusted; full
+suite passes.
+---
+ audio_codec.go             |  19 ++++
+ audio_receive_order.go     |   3 +
+ audio_receive_runtime.go   |  41 ++++++--
+ audio_receive_stats.go     |   9 ++
+ audio_red_recovery.go      |  96 +++++++++++++++++++
+ audio_red_recovery_test.go | 186 +++++++++++++++++++++++++++++++++++++
+ engine_media.go            |   2 +-
+ group_media_receive.go     |   1 +
+ mlow/decoder.go            |  10 ++
+ 9 files changed, 359 insertions(+), 8 deletions(-)
+ create mode 100644 audio_red_recovery.go
+ create mode 100644 audio_red_recovery_test.go
+
+diff --git a/audio_codec.go b/audio_codec.go
+index 48c709e..5affd18 100644
+--- a/audio_codec.go
++++ b/audio_codec.go
+@@ -132,6 +132,25 @@ func (d *callAudioDecoder) DecodeRed(payload []byte) []float32 {
+ 	return output
+ }
+ 
++// DecodeRecovered decodes an MLow frame recovered from a PT 121 packet's
++// redundant block, standing in for the packet that was lost before it. Opus
++// never travels as PT 121: nothing is recovered and the loss is concealed.
++func (d *callAudioDecoder) DecodeRecovered(frame []byte) []float32 {
++	if d.codec == AudioCodecOpus {
++		return nil
++	}
++	d.decodedOpus = false
++	output := d.mlow.DecodeRecovered(frame)
++	if len(output) == 0 {
++		return nil
++	}
++	if d.PCMRate() == FullbandSampleRate {
++		output = d.up.convert(output, true)
++	}
++	d.last = append(d.last[:0], output...)
++	return output
++}
++
+ func (d *callAudioDecoder) Conceal(samples int) []float32 {
+ 	rate := d.PCMRate()
+ 	unit := rate / 50
+diff --git a/audio_receive_order.go b/audio_receive_order.go
+index 9e2a280..08b3793 100644
+--- a/audio_receive_order.go
++++ b/audio_receive_order.go
+@@ -11,6 +11,7 @@ type orderedAudioPacket struct {
+ 	payloadType uint8
+ 	payload     []byte
+ 	arrived     time.Time
++	missing     uint16 // sequence numbers skipped right before this packet
+ }
+ 
+ type audioReceiveOrder struct {
+@@ -22,6 +23,7 @@ type audioReceiveOrder struct {
+ 	pcmTimestamp    uint32
+ 	remainder       uint64
+ 	previousSamples int
++	red             redRecovery
+ }
+ 
+ func (o *audioReceiveOrder) Push(packet orderedAudioPacket, now time.Time) []orderedAudioPacket {
+@@ -56,6 +58,7 @@ func (o *audioReceiveOrder) Push(packet orderedAudioPacket, now time.Time) []ord
+ 			break
+ 		}
+ 		o.pending = append(o.pending[:nearest], o.pending[nearest+1:]...)
++		p.missing = p.sequence - o.next
+ 		o.next = p.sequence + 1
+ 		ready = append(ready, p)
+ 	}
+diff --git a/audio_receive_runtime.go b/audio_receive_runtime.go
+index ec5d5cf..8be32cc 100644
+--- a/audio_receive_runtime.go
++++ b/audio_receive_runtime.go
+@@ -51,13 +51,40 @@ func (r *participantReceiveRegistry) ReceiveAudio(packet []byte, clock uint32, n
+ 		gap := int(timestamp-previous) - receiver.order.previousSamples
+ 		// Conceal at most 120 ms; longer gaps use the existing playout reset.
+ 		// Conceal must run BEFORE decoding the next frame for stateful Opus PLC.
+-		if concealer, ok := receiver.decoder.(interface{ Conceal(int) []float32 }); ok &&
+-			hadTimestamp && gap > 0 && gap <= rate*120/1000 {
+-			output = append(output, decodedParticipantAudio{
+-				ParticipantID: receiver.participantID, UserJID: receiver.userJID, DeviceJID: receiver.deviceJID,
+-				PID: receiver.pid, HasPID: receiver.hasPID, SSRC: header.Ssrc,
+-				Timestamp: previous + uint32(receiver.order.previousSamples), PCM: concealer.Conceal(gap), Concealed: true,
+-			})
++		if hadTimestamp && gap > 0 && gap <= rate*120/1000 {
++			start := previous + uint32(receiver.order.previousSamples)
++			recovered := receiver.order.red.Recover(packet.payloadType, packet.missing, packet.payload)
++			conceal := gap
++			if len(recovered) > 0 {
++				// Only the older lost packets the redundancy does not repeat are invented.
++				conceal = gap * int(packet.missing-uint16(len(recovered))) / int(packet.missing)
++			}
++			if concealer, ok := receiver.decoder.(interface{ Conceal(int) []float32 }); ok && conceal > 0 {
++				output = append(output, decodedParticipantAudio{
++					ParticipantID: receiver.participantID, UserJID: receiver.userJID, DeviceJID: receiver.deviceJID,
++					PID: receiver.pid, HasPID: receiver.hasPID, SSRC: header.Ssrc,
++					Timestamp: start, PCM: concealer.Conceal(conceal), Concealed: true,
++				})
++				start += uint32(conceal)
++			}
++			if decoder, ok := receiver.decoder.(interface{ DecodeRecovered([]byte) []float32 }); ok {
++				for _, frame := range recovered {
++					pcm := decoder.DecodeRecovered(frame)
++					if len(pcm) == 0 {
++						continue
++					}
++					output = append(output, decodedParticipantAudio{
++						ParticipantID: receiver.participantID, UserJID: receiver.userJID, DeviceJID: receiver.deviceJID,
++						PID: receiver.pid, HasPID: receiver.hasPID, SSRC: header.Ssrc,
++						Timestamp: start, PCM: pcm, Recovered: true,
++					})
++					start += uint32(len(pcm))
++				}
++			}
++		}
++		if receiver.order.red.Observe(packet.sequence, packet.payloadType, packet.payload) {
++			r.log.Info().Uint32("ssrc", header.Ssrc).Str("participant_id", receiver.participantID).
++				Msg("mlow-red blocks repeat earlier frames; lost packets are recovered from them")
+ 		}
+ 		pcm := decodeAudioPayload(receiver.decoder, packet.payloadType, packet.payload)
+ 		receiver.order.previousSamples = len(pcm)
+diff --git a/audio_receive_stats.go b/audio_receive_stats.go
+index d0f10ce..c7d21c9 100644
+--- a/audio_receive_stats.go
++++ b/audio_receive_stats.go
+@@ -31,6 +31,8 @@ type audioReceiveStats struct {
+ 	noFrames      uint64 // authenticated but released nothing (held for order, late, or empty decode)
+ 	frames        uint64
+ 	pcmSamples    uint64
++	concealed     uint64 // frames invented for lost packets
++	recovered     uint64 // lost packets given back by a later PT 121 packet's redundancy
+ 	// decoded frames by sender in a group call ("pid 1", or "ssrc 0x.." for a
+ 	// sender without a PID): who is heard, and who stopped being heard
+ 	framesBySender map[string]uint64
+@@ -66,6 +68,12 @@ func (s *audioReceiveStats) Audio(authenticated bool, frames []decodedParticipan
+ 		for _, frame := range frames {
+ 			s.frames++
+ 			s.pcmSamples += uint64(len(frame.PCM))
++			if frame.Concealed {
++				s.concealed++
++			}
++			if frame.Recovered {
++				s.recovered++
++			}
+ 			if !frame.Concealed {
+ 				if s.framesBySender == nil {
+ 					s.framesBySender = make(map[string]uint64)
+@@ -97,6 +105,7 @@ func (s *audioReceiveStats) Log(log zerolog.Logger) {
+ 		Str("unknown_by_pt", s.unknownPTs()).
+ 		Uint64("unprotect_failed", s.unprotectFail).Uint64("no_frames", s.noFrames).
+ 		Uint64("frames", s.frames).Uint64("pcm_samples", s.pcmSamples).
++		Uint64("concealed", s.concealed).Uint64("recovered", s.recovered).
+ 		Str("frames_by_sender", s.bySender()).
+ 		Msg("audio receive summary (totals since the media started)")
+ }
+diff --git a/audio_red_recovery.go b/audio_red_recovery.go
+new file mode 100644
+index 0000000..6ec19d3
+--- /dev/null
++++ b/audio_red_recovery.go
+@@ -0,0 +1,96 @@
++package meowcaller
++
++import (
++	"bytes"
++
++	"github.com/purpshell/meowcaller/mlow"
++	"github.com/purpshell/meowcaller/rtp"
++)
++
++// A PT 121 (mlow-red) packet repeats earlier frames in its SplitRed blocks, so
++// the packet after a loss can give the lost frame back instead of concealment
++// inventing it. What a block's time code means is not documented (meowcaller
++// and whatsapp-rust only ever decode the main frame), so no block is trusted
++// by its position alone: a position is used only after this stream proved it,
++// with a block equal, byte for byte, to the main frame of the packet that many
++// sequence numbers back. A sender whose redundancy is a different encoding
++// never proves one, and its losses stay concealed as before.
++const redRecoveryDepth = 3
++
++type redRecoveryMain struct {
++	sequence uint16
++	frame    []byte
++	ok       bool
++}
++
++type redRecovery struct {
++	mains [redRecoveryDepth]redRecoveryMain // the most recent first
++	// back[p-1] = how many packets back the block p-th from the end repeats,
++	// once proven on this stream; 0 while unknown.
++	back [redRecoveryDepth]uint16
++}
++
++// Recover returns, oldest first, the frames of the packets lost just before
++// this one that its SplitRed blocks proved to repeat: the longest run that
++// ends at the packet right before it (anything older is concealed).
++func (r *redRecovery) Recover(payloadType uint8, missing uint16, payload []byte) [][]byte {
++	if payloadType != rtp.RtpPayloadTypeMlowRed || missing == 0 {
++		return nil
++	}
++	frames, err := mlow.DepackSplitRed(payload)
++	if err != nil || len(frames) < 2 {
++		return nil
++	}
++	redundant := frames[:len(frames)-1]
++	var recovered [][]byte
++	for back := uint16(1); back <= missing; back++ {
++		frame := r.blockFor(redundant, back)
++		if frame == nil {
++			break
++		}
++		recovered = append([][]byte{frame}, recovered...)
++	}
++	return recovered
++}
++
++func (r *redRecovery) blockFor(redundant []mlow.MlowFrame, back uint16) []byte {
++	for p := 1; p <= len(redundant) && p <= redRecoveryDepth; p++ {
++		if r.back[p-1] == back {
++			return redundant[len(redundant)-p].Data
++		}
++	}
++	return nil
++}
++
++// Observe records a packet decoded in sequence order and reports whether it
++// proved a block position not proven before.
++func (r *redRecovery) Observe(sequence uint16, payloadType uint8, payload []byte) bool {
++	if payloadType != rtp.RtpPayloadTypeMlowRed {
++		r.mains = [redRecoveryDepth]redRecoveryMain{}
++		return false
++	}
++	frames, err := mlow.DepackSplitRed(payload)
++	if err != nil || len(frames) == 0 {
++		r.mains = [redRecoveryDepth]redRecoveryMain{}
++		return false
++	}
++	proved := false
++	redundant := frames[:len(frames)-1]
++	for p := 1; p <= len(redundant) && p <= redRecoveryDepth; p++ {
++		if r.back[p-1] != 0 {
++			continue
++		}
++		block := redundant[len(redundant)-p].Data
++		for _, main := range r.mains {
++			if main.ok && len(block) > 0 && bytes.Equal(block, main.frame) {
++				r.back[p-1] = sequence - main.sequence
++				proved = true
++				break
++			}
++		}
++	}
++	copy(r.mains[1:], r.mains[:redRecoveryDepth-1])
++	main := frames[len(frames)-1].Data
++	r.mains[0] = redRecoveryMain{sequence: sequence, frame: append([]byte(nil), main...), ok: true}
++	return proved
++}
+diff --git a/audio_red_recovery_test.go b/audio_red_recovery_test.go
+new file mode 100644
+index 0000000..b2fa400
+--- /dev/null
++++ b/audio_red_recovery_test.go
+@@ -0,0 +1,186 @@
++package meowcaller
++
++import (
++	"bytes"
++	"math"
++	"testing"
++	"time"
++
++	"github.com/purpshell/meowcaller/rtp"
++)
++
++func redTestFrames(t *testing.T, count int) [][]byte {
++	t.Helper()
++	encoder, err := newCallAudioEncoder(AudioCodecMlow)
++	if err != nil {
++		t.Fatal(err)
++	}
++	var frames [][]byte
++	for n := 0; n < count; n++ {
++		pcm := make([]float32, FrameSamples)
++		for i := range pcm {
++			pcm[i] = float32(.3 * math.Sin(2*math.Pi*220*float64(i+n*FrameSamples)/SampleRate))
++		}
++		frame, err := encoder.Encode(pcm)
++		if err != nil {
++			t.Fatal(err)
++		}
++		frames = append(frames, frame)
++	}
++	return frames
++}
++
++func TestRedRecoveryTrustsOnlyAProvenBlockPosition(t *testing.T) {
++	a, b, c, d := []byte{0x50, 1}, []byte{0x50, 2}, []byte{0x50, 3}, []byte{0x50, 4}
++	var r redRecovery
++	if r.Observe(10, rtp.RtpPayloadTypeMlowRed, splitRed(a, a)) {
++		t.Fatal("the first packet has nothing before it to prove a block against")
++	}
++	if got := r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed(c, d)); got != nil {
++		t.Fatalf("an unproven block was trusted: %v", got)
++	}
++	if !r.Observe(11, rtp.RtpPayloadTypeMlowRed, splitRed(a, b)) {
++		t.Fatal("a block equal to the previous main frame did not prove its position")
++	}
++	got := r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed(c, d))
++	if len(got) != 1 || !bytes.Equal(got[0], c) {
++		t.Fatalf("recovered %v, want the block repeating the lost frame", got)
++	}
++	// One redundant block covers only the packet right before: an older loss stays concealed.
++	if got := r.Recover(rtp.RtpPayloadTypeMlowRed, 2, splitRed(c, d)); len(got) != 1 {
++		t.Fatalf("recovered %d frames for 2 losses with one block, want 1", len(got))
++	}
++	if r.Recover(rtp.RtpPayloadTypeOpus, 1, splitRed(c, d)) != nil {
++		t.Fatal("a payload that is not PT 121 has no redundancy")
++	}
++}
++
++func TestRedRecoveryNeverProvesAReencodedRedundancy(t *testing.T) {
++	var r redRecovery
++	r.Observe(1, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 9}, []byte{0x50, 1}))
++	if r.Observe(2, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 7}, []byte{0x50, 2})) {
++		t.Fatal("a block that differs from the earlier main frame proved a position")
++	}
++	if r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed([]byte{0x50, 8}, []byte{0x50, 4})) != nil {
++		t.Fatal("redundancy that never matched was used")
++	}
++}
++
++// A PT 121 stream that loses a packet: once the stream has shown its blocks
++// repeat the previous frame, the lost frame comes back from the next packet,
++// decoded exactly as a receiver that lost nothing decodes it, instead of being
++// invented by concealment.
++func TestReceiveAudioRecoversALostPacketFromTheNextRedPacket(t *testing.T) {
++	frames := redTestFrames(t, 8)
++	self, peer := mediaTestJID("100", 1), mediaTestJID("200", 2)
++	key := bytes.Repeat([]byte{7}, 32)
++	registry, err := newParticipantReceiveRegistry("CID", key, self.String(), peer.String(),
++		func() participantAudioDecoder { return newCallAudioDecoder(AudioCodecMlow) })
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer registry.clear()
++	ssrc, _ := rtp.DeriveWasmParticipantSsrc("CID", rtp.FormatE2ESrtpParticipantID(peer.String()), 0)
++	tx, err := NewMediaPipeline(key, peer.String(), self.String(), ssrc, 2880)
++	if err != nil {
++		t.Fatal(err)
++	}
++	reference := newCallAudioDecoder(AudioCodecMlow)
++	var want [][]float32
++	for n, frame := range frames {
++		want = append(want, decodeAudioPayload(reference, rtp.RtpPayloadTypeMlowRed, splitRed(frames[max(0, n-1)], frame)))
++	}
++
++	now := time.Unix(0, 0)
++	var got []decodedParticipantAudio
++	for n, frame := range frames {
++		now = now.Add(60 * time.Millisecond)
++		if n == 5 {
++			continue // lost on the network
++		}
++		payload := splitRed(frames[max(0, n-1)], frame)
++		packet, err := tx.ProtectRTP(&rtp.RtpHeader{Ssrc: ssrc, SequenceNumber: uint16(n + 1),
++			Timestamp: uint32(n) * 2880, PayloadType: rtp.RtpPayloadTypeMlowRed}, payload)
++		if err != nil {
++			t.Fatal(err)
++		}
++		out, ok := registry.ReceiveAudio(packet, 48000, now)
++		if !ok {
++			t.Fatalf("packet %d not authenticated", n)
++		}
++		got = append(got, out...)
++	}
++	var recovered *decodedParticipantAudio
++	for i := range got {
++		if got[i].Concealed {
++			t.Fatalf("frame at %d was concealed although the next packet repeated it", got[i].Timestamp)
++		}
++		if got[i].Recovered {
++			recovered = &got[i]
++		}
++	}
++	if recovered == nil {
++		t.Fatal("the lost packet was not recovered")
++	}
++	if recovered.Timestamp != 5*FrameSamples {
++		t.Fatalf("recovered frame at %d, want %d", recovered.Timestamp, 5*FrameSamples)
++	}
++	if len(recovered.PCM) != len(want[5]) {
++		t.Fatalf("recovered %d samples, want %d", len(recovered.PCM), len(want[5]))
++	}
++	for i := range want[5] {
++		if recovered.PCM[i] != want[5][i] {
++			t.Fatalf("recovered sample %d: %v, want %v", i, recovered.PCM[i], want[5][i])
++		}
++	}
++	last := got[len(got)-1]
++	for i := range want[7] {
++		if last.PCM[i] != want[7][i] {
++			t.Fatal("the decoder state after the recovery differs from a lossless stream")
++		}
++	}
++}
++
++// Before the stream has proven its redundancy (here, the very first loss), the
++// lost packet is concealed exactly as before.
++func TestReceiveAudioConcealsALossBeforeRedundancyIsProven(t *testing.T) {
++	frames := redTestFrames(t, 4)
++	self, peer := mediaTestJID("100", 1), mediaTestJID("200", 2)
++	key := bytes.Repeat([]byte{7}, 32)
++	registry, err := newParticipantReceiveRegistry("CID", key, self.String(), peer.String(),
++		func() participantAudioDecoder { return newCallAudioDecoder(AudioCodecMlow) })
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer registry.clear()
++	ssrc, _ := rtp.DeriveWasmParticipantSsrc("CID", rtp.FormatE2ESrtpParticipantID(peer.String()), 0)
++	tx, err := NewMediaPipeline(key, peer.String(), self.String(), ssrc, 2880)
++	if err != nil {
++		t.Fatal(err)
++	}
++	now := time.Unix(0, 0)
++	var concealed, recovered int
++	for n, frame := range frames {
++		now = now.Add(60 * time.Millisecond)
++		if n == 1 {
++			continue
++		}
++		packet, err := tx.ProtectRTP(&rtp.RtpHeader{Ssrc: ssrc, SequenceNumber: uint16(n + 1),
++			Timestamp: uint32(n) * 2880, PayloadType: rtp.RtpPayloadTypeMlowRed}, splitRed(frames[max(0, n-1)], frame))
++		if err != nil {
++			t.Fatal(err)
++		}
++		out, _ := registry.ReceiveAudio(packet, 48000, now)
++		for _, frame := range out {
++			if frame.Concealed {
++				concealed++
++			}
++			if frame.Recovered {
++				recovered++
++			}
++		}
++	}
++	if concealed != 1 || recovered != 0 {
++		t.Fatalf("concealed %d, recovered %d; want 1 and 0", concealed, recovered)
++	}
++}
+diff --git a/engine_media.go b/engine_media.go
+index 871e444..54ec368 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -1254,7 +1254,7 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 				}
+ 			}
+ 			e.c.diag.Emit("media_in", map[string]any{
+-				"timestamp": audio.Timestamp, "concealed": audio.Concealed, "samples": len(audio.PCM),
++				"timestamp": audio.Timestamp, "concealed": audio.Concealed, "recovered": audio.Recovered, "samples": len(audio.PCM),
+ 				"pcm_rms": rmsFloat32(audio.PCM), "participant_id": audio.ParticipantID,
+ 			})
+ 			mixedMode := groupMixing.Load()
+diff --git a/group_media_receive.go b/group_media_receive.go
+index 6512add..4f0980c 100644
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -39,6 +39,7 @@ type decodedParticipantAudio struct {
+ 	Timestamp     uint32
+ 	PCM           []float32
+ 	Concealed     bool
++	Recovered     bool // decoded from a later packet's redundant copy of a lost one
+ }
+ 
+ type unprotectedParticipantMedia struct {
+diff --git a/mlow/decoder.go b/mlow/decoder.go
+index 2896836..9e806f4 100644
+--- a/mlow/decoder.go
++++ b/mlow/decoder.go
+@@ -118,6 +118,16 @@ func (d *MlowDecoder) DecodeRed(payload []byte) []float32 {
+ 	return d.decodeFrame(frames[len(frames)-1].Data)
+ }
+ 
++// DecodeRecovered decodes a frame taken from a later packet's SplitRed block
++// in place of a packet that was lost: it is a frame of the same stream, so it
++// advances the decoder state and ends any concealment like a received frame.
++func (d *MlowDecoder) DecodeRecovered(frame []byte) []float32 {
++	if len(frame) == 0 {
++		return nil
++	}
++	return d.decodeFrame(frame)
++}
++
+ // splitContainer parses a 0x92 multi-frame SplitRed container into its sequential
+ // sub-frames: 0x92 <count> [ <len> <frame> ]*(count-1) <last frame = rest>. It returns
+ // ok=false for anything that is not a well-formed container, so the caller decodes the

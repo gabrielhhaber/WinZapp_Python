@@ -16,10 +16,10 @@ Subject: [PATCH] feat(audio): preserve native playout timestamps
  create mode 100644 goneonize/calls_audio_timed_test.go
 
 diff --git a/goneonize/calls.go b/goneonize/calls.go
-index 29d7ecb..99eb282 100644
+index 0421179..2809994 100644
 --- a/goneonize/calls.go
 +++ b/goneonize/calls.go
-@@ -217,7 +217,7 @@ func (c *chamadaAtiva) ReadFrame() ([]float32, error) {
+@@ -236,7 +236,7 @@ func (c *chamadaAtiva) ReadFrame() ([]float32, error) {
  
  func (c *chamadaAtiva) WriteFrame(frame []float32) error {
  	c.recebidos.Add(1)

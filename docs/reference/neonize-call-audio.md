@@ -283,8 +283,17 @@ Late/duplicate packets never reach the stateful decoder twice. A missing
 predecessor is released when another packet arrives after 60 ms, or the queue
 reaches three packets; there is no timer that invents packets while idle.
 Opus uses decoder PLC for gaps up to 120 ms before decoding the following
-packet. The MLow port has no PLC API: its fallback is a short decay to silence,
-not FEC or reconstructed speech. Large discontinuities retain the existing
+packet. MLow conceals like G.711 Appendix I (meowcaller 0015): the last pitch
+period repeated, full level for 20 ms, faded out over 60 ms and cross-faded
+into the next decoded frame; a frame whose range decode fails restores the
+decoder state and is concealed instead. On PT 121 (mlow-red) the packet after
+a loss can give the lost frame back (meowcaller 0041): once the stream has
+shown a SplitRed block equal, byte for byte, to the main frame of an earlier
+packet, that block position is trusted, and the repeated frame is decoded in
+place of the lost one as a received frame (it is not flagged concealed, so the
+timed NetEq sink receives it). Redundancy that never matches, an unproven
+position and older losses keep the concealment. The receive summary counts
+`concealed` and `recovered` frames. Large discontinuities retain the existing
 playout reset. Group rosters use the negotiated codec for current and future
 receivers; existing SRTP keys, ROC handling and participant gates are preserved.
 
