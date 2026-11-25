@@ -4,6 +4,14 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Hovory: hovor, který jste zahájili v telefonu a který se změnil na skupinový, můžete po svém odchodu znovu připojit z WinZappu: v chatu každé osoby, která v něm zůstává, se objeví „Připojit se k probíhajícímu hlasovému hovoru“ a řádek na kartě Hovory ukazuje jejich jména. Platí pro Neonize i WPPConnect.
+
+- Neonize: když se připojíte ke skupinovému hovoru, který už probíhá, nově uslyšíte lidi, jejichž telefon posílá zvuk ve formátu, který WinZapp dříve zahazoval; s nimi jste neslyšeli nikoho.
+
+- Uložit jako (Ctrl+Shift+S) u dokumentu JSON přijatého v chatu, například souboru nastavení app.json, nyní soubor uloží, místo aby oznámilo, že ho nelze stáhnout.
+
+- Klávesové zkratky: když hned po změně klávesy přepnete na jiný účet, zobrazený účet reaguje na novou klávesu, i když předchozí účet ještě ukládá nastavení; dříve mohl zůstat u staré klávesy, dokud něco neuložil.
+
 - Hovory Neonize: opraven návrat ke kompatibilnímu zvuku, když výhradní výstup používá frekvenci nepodporovanou NetEQ, se zachováním kompenzace ztráty paketů.
 
 - Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání.
@@ -65,7 +73,7 @@ NOVINKY
 
 - Přenosná verze: při prvním spuštění, když WinZapp nainstalovaný v počítači má spárované účty, se WinZapp zeptá, zda místo připojení dalšího zařízení použít jejich kopii. Instalace se jen čte; pokud běží, WinZapp vás požádá, abyste ji zavřeli a zvolili Zkusit znovu, a pokud se kopírování nezdaří, nic se nezmění a připojí se nové zařízení.
 
-- Nastavení > Klávesové zkratky: klávesy, které změníte, se nově uplatní u všech účtů instalace, nejen u toho, kde jste je změnili; klávesa nastavená pro přepnutí na účet 2 reaguje z každého účtu. Při prvním spuštění s touto verzí se změněné klávesy každého účtu přidají k těm instalace: když oba změnily tentýž příkaz, zůstane klávesa instalace, a klávesa, kterou už používá jiný příkaz, se vynechá.
+- Nastavení > Klávesové zkratky: klávesy, které změníte, se nově uplatní u všech účtů instalace, nejen u toho, kde jste je změnili; klávesa nastavená pro přepnutí na účet 2 reaguje z každého účtu. Při prvním spuštění s touto verzí se změněné klávesy každého účtu přidají k těm instalace: když oba změnily tentýž příkaz, zůstane klávesa instalace, a klávesa, kterou už používá jiný příkaz, se vynechá. Klávesy si také můžete ponechat jen pro jeden účet: políčko „Používat stejné zkratky ve všech účtech“ na téže stránce je zaškrtnuté; když ho zrušíte, klávesy, které v tomto účtu změníte, platí jen pro něj a ostatní účty si ponechají své. Okno Změnit u každé zkratky má také políčko „Používat tuto zkratku ve všech účtech“, které se řídí obecným políčkem, dokud ho nezměníte; zkratka, která se obecným políčkem neřídí, má v seznamu uvedeno „ve všech účtech“ nebo „jen v tomto účtu“.
 
 - Upravené zprávy: Zvukové události získávají „Úprava vaší zprávy uložena“ (zapnuto) a „Zprávu upravil někdo jiný“ pro program v popředí a na pozadí (vypnuto); Nastavení > Obecné > Oznámení získává „Vyslovovat úpravy, když je okno aktivní“ a „Oznamovat úpravy, když je okno na pozadí“ (vypnuto); a okno s údaji každého chatu má okno „Upravené zprávy“ pro volbu jiných zvuků a oznámení pro daný chat. Úprava od někoho jiného se oznámí, jen dokud WhatsApp úpravu dané zprávy ještě přijímá, takže úpravy přehrané po opětovném připojení zůstanou tiché.
 
