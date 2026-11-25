@@ -678,6 +678,8 @@ YENİLİKLER
 
 - Neonize: bağlantı köprüsü başlatılırken takılırsa, artık 25 saniye sonra nerede takıldığını kendi günlüğüne yazar.
 
+- ARM üzerinde Windows'ta Neonize: bağlantı köprüsü artık başlar başlamaz kendiliğinden kapanmıyor (başlatılamadığı mesajıyla), bu da eşleştirmeyi engelliyordu.
+
 - Mac: Neonize motoru artık Mac için WinZapp'te de, Apple Silicon ve Intel'de geliyor ve tarayıcı olmadan doğrudan WhatsApp'a bağlanıyor. Bağlantı penceresindeki "Bağlantı motoru" listesinden ya da Ayarlar > Bağlantı'dan seçin.
 
 V2.1.0.0

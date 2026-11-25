@@ -678,6 +678,8 @@ NOUTĂȚI
 
 - Neonize: când puntea de conexiune se blochează la pornire, scrie acum în propriul jurnal, după 25 de secunde, în ce punct este blocată.
 
+- Neonize pe Windows pe ARM: puntea de conexiune nu se mai închide singură imediat după pornire (cu mesajul că nu a putut fi pornită), ceea ce împiedica asocierea.
+
 - Mac: motorul Neonize vine acum și în WinZapp pentru Mac, pe Apple Silicon și Intel, și se conectează direct la WhatsApp, fără browser. Alegeți-l din lista "Motor de conectare" a ferestrei de conectare sau din Setări > Conexiune.
 
 V2.1.0.0

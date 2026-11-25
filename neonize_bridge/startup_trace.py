@@ -5,6 +5,7 @@ where it stopped. Each mark is one flushed line: the last one in the file is the
 step that never finished. Nothing here is personal data.
 """
 import faulthandler
+import os
 import platform
 import sys
 import time
@@ -24,9 +25,11 @@ def mark(step: str, stream=None) -> None:
         pass
 
 
-def describe() -> str:
-    return "python %s %s, platform.machine()=%s" % (
+def describe(environ=None) -> str:
+    text = "python %s %s, platform.machine()=%s" % (
         platform.python_version(), platform.architecture()[0], platform.machine())
+    godebug = (os.environ if environ is None else environ).get("GODEBUG")
+    return text + (", GODEBUG=" + godebug if godebug else "")
 
 
 def watch(seconds: float, stream=None, repeat: bool = False) -> bool:

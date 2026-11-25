@@ -678,6 +678,8 @@ NOVIDADES
 
 - Neonize: quando a bridge de ligação bloqueia ao iniciar, passa a gravar no seu próprio registo, passados 25 segundos, em que ponto está parada.
 
+- Neonize no Windows em ARM: a bridge de ligação já não fecha sozinha logo ao iniciar (com a mensagem de que não foi possível iniciá-la), o que impedia o emparelhamento.
+
 - Mac: o motor Neonize vem agora também no WinZapp para Mac, em Apple Silicon e Intel, e liga-se diretamente ao WhatsApp, sem navegador. Escolha-o na lista "Motor de ligação" da janela de ligação ou em Definições > Ligação.
 
 V2.1.0.0
