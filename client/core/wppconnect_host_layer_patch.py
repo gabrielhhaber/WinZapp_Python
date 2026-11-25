@@ -1744,12 +1744,30 @@ def patch_host_layer_source(content: str):
     return content, notes, ok
 
 
+def _carries_upstream_auth_probe_fix(content: str) -> bool:
+    """checkQrCode() as wppconnect 2.3.3+ ships it, also once
+    wppconnect_pairing_completion_patch.py has put its QR-link wait between
+    the probe and `this.isLogged = !needScan` — that runs after this check,
+    so the next launch sees its text, which must not read as DID NOT MATCH."""
+    from core import wppconnect_pairing_completion_patch as completion
+
+    for text in (MANAGED_V233_CHECK_QR_CODE, MANAGED_V235_CHECK_QR_CODE):
+        with_qr_link_wait = text.replace(
+            completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE,
+            completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE,
+            1,
+        )
+        if text in content or with_qr_link_wait in content:
+            return True
+    return False
+
+
 def _patch_managed_link_flow(content: str, notes: list) -> str:
     """wppconnect >= 2.3.2: wa-js owns the code's lifecycle, host.layer.js
     starts it once. See the v9 entry in the module docstring."""
     if MANAGED_PATCHED_CHECK_QR_CODE in content:
         notes.append("checkQrCode: already carries the auth-probe fix.")
-    elif MANAGED_V233_CHECK_QR_CODE in content or MANAGED_V235_CHECK_QR_CODE in content:
+    elif _carries_upstream_auth_probe_fix(content):
         # Left as upstream ships it — see the v10 entry in the module
         # docstring. Recognised rather than ignored so this never reads as
         # DID NOT MATCH, which is the alarm meaning a pairing fix stopped
@@ -1929,7 +1947,12 @@ def _patch_legacy_link_flow(content: str, notes: list) -> str:
 def _patch_qr_reads(content: str, notes: list) -> str:
     """getQrCode() and waitForQrCodeScan(), which 2.3.2 left untouched — so
     the same text applies to both runtimes and neither branch above owns it."""
-    if PATCHED_V240_WAIT_FOR_QR_CODE_SCAN in content:
+    from core import wppconnect_pairing_completion_patch as completion
+
+    if (
+        PATCHED_V240_WAIT_FOR_QR_CODE_SCAN in content
+        or completion.PATCHED_WAIT_FOR_QR_CODE_SCAN in content
+    ):
         notes.append("waitForQrCodeScan: already retries a failed auth probe.")
     elif V240_ORIGINAL_WAIT_FOR_QR_CODE_SCAN in content:
         content = content.replace(
@@ -2058,23 +2081,10 @@ PATCHED_RELOAD_LOGIN_BY_CODE = """            // WhatsApp Web reloads to finish 
 
 
 def _patch_post_link_reload(content: str, notes: list) -> str:
-    """Keep the login WhatsApp Web finishes on the reload after a pairing."""
-    for name, anchor, original, patched in (
-        ("waitForLogin post-scan check", "async waitForLogin()",
-         ORIGINAL_POST_SCAN_AUTH_CHECK, PATCHED_POST_SCAN_AUTH_CHECK),
-        # Both texts belong to the runtime whose waitForLogin() this fix is
-        # for: older runtimes (2.3.x) also have afterPageScriptInjected(),
-        # with another loginByCode() call that must not raise the alarm.
-        ("page-load pairing request", "async waitForLogin()",
-         ORIGINAL_RELOAD_LOGIN_BY_CODE, PATCHED_RELOAD_LOGIN_BY_CODE),
-    ):
-        if patched in content:
-            notes.append(f"{name}: already survives the post-link reload.")
-        elif original in content:
-            content = content.replace(original, patched, 1)
-            notes.append(f"{name}: patched — survives the reload after a pairing code is accepted.")
-        elif anchor not in content:
-            notes.append(f"{name}: not in this file — nothing to patch.")
-        else:
-            notes.append(f"{name}: DID NOT MATCH the known source text — left untouched.")
-    return content
+    """Keep the login WhatsApp Web finishes on the reload after a pairing, and
+    carry it on to the chats or to an error the pairing dialog hears. The
+    texts above are v1, shipped; v2 and the rest of it live in
+    wppconnect_pairing_completion_patch.py, which upgrades them."""
+    from core import wppconnect_pairing_completion_patch as completion
+
+    return completion.patch_pairing_completion(content, notes)
