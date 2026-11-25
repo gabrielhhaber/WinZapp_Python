@@ -285,6 +285,23 @@ def test_fallback_during_negotiation_cannot_activate_neteq(monkeypatch):
     assert not transport.receiving_native
 
 
+def test_rate_downgrade_cancels_pending_timed_negotiation(monkeypatch):
+    transport = None
+    def negotiate(body):
+        assert body['audioProtocol'] == 2
+        transport.configure_playout(False)
+        return response(descriptor(protocol=2))
+    transport, fallback = configured(negotiate)
+    transport.configure_playout(True)
+    monkeypatch.setattr(native.socket, 'create_connection',
+                        lambda *a, **k: pytest.fail('obsolete timed connection activated'))
+    transport._run()
+    transport.send_microphone(b'pcm', sample_rate=48000, media_epoch='a'*32, stream_epoch=123)
+    assert not transport.receiving_native and not transport._timed
+    assert transport._fallback_requested
+    assert fallback.events[-1][0] == b'pcm'
+
+
 @pytest.mark.parametrize('clock,flags',[(0,1),(48000,7)])
 def test_invalid_timed_header_never_reaches_playout(monkeypatch,no_writer,clock,flags):
     packet=struct.pack('<IQIIII',16000,7,0,42,clock,flags)+b'\x00\x00'*960

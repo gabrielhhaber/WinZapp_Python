@@ -141,6 +141,13 @@ session. Runtime render failures produce silence and a flag; the worker logs
 once, closes the component and releases native transport back to Socket.IO.
 Device switching still does not emit `call:audio:stop`.
 
+Output capability is checked again when answering reopens the ringing stream
+in exclusive mode. If shared 48 kHz becomes an unsupported rate such as
+44.1 kHz, the transport cancels a pending protocol 2 negotiation or closes its
+active connection. The Go sink then resumes codec concealment for compatible
+playback. A supported rate change keeps native transport; neither transition
+emits a bridge-stop event.
+
 Validation covers native loss/recovery, natural acceleration after a burst,
 Merge on recovery, arbitrary device periods, strided writes, ABI bounds,
 timestamp wrap/source replacement, optional loading and fallback. The built

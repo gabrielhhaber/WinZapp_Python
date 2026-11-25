@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chiamate Neonize: corretto il ritorno all’audio compatibile quando l’uscita esclusiva usa una frequenza non supportata da NetEQ, mantenendo la compensazione delle perdite di pacchetti.
+
 - Chiamate individuali Neonize: la riproduzione con NetEQ attenua le variazioni di rete e le perdite audio, con ritorno automatico alla modalità compatibile.
 
 - Chiamate Neonize: l’audio usa una connessione locale diretta al motore nativo, con ritorno automatico a Socket.IO quando non è disponibile.

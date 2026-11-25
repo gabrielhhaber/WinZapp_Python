@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Chamadas Neonize: corrigido o regresso ao áudio compatível quando a saída exclusiva usa uma frequência não suportada pelo NetEQ, preservando a ocultação de perdas.
+
 - Chamadas individuais Neonize: reprodução com NetEQ para suavizar variações de rede e perdas de áudio, com regresso automático ao modo compatível.
 
 - Chamadas Neonize: o áudio usa uma ligação local direta ao motor nativo, com regresso automático ao Socket.IO se não estiver disponível.

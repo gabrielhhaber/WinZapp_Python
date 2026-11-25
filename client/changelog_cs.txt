@@ -4,6 +4,8 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Hovory Neonize: opraven návrat ke kompatibilnímu zvuku, když výhradní výstup používá frekvenci nepodporovanou NetEQ, se zachováním kompenzace ztráty paketů.
+
 - Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání.
 
 - Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO.

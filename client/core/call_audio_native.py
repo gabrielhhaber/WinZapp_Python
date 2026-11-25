@@ -48,7 +48,18 @@ class NeonizeCallAudioTransport:
         self._fallback_requested = False
 
     def configure_playout(self, enabled):
-        self._timed = bool(enabled)
+        connection = None
+        with self._lock:
+            lost_timed_playout = getattr(self, '_timed', False) and not enabled
+            self._timed = bool(enabled)
+            if lost_timed_playout:
+                # A shared ringing stream can become an exclusive stream at
+                # an unsupported rate on answer. Release protocol 2 so Go
+                # resumes codec PLC; do not send the bridge-stop control.
+                self._fallback_requested = True
+                connection = self._conn
+        if connection is not None:
+            self._disconnect(connection)
 
     def fallback(self):
         with self._lock:

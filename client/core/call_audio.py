@@ -729,6 +729,7 @@ class CallAudioSession:
             # The ring's audio is gone with its stream; the new device may
             # even run at a different rate.
             self._output_buffer.configure(rate)
+            self._configure_transport_playout()
             self._output_resampler.reset()
             try:
                 stream.start()
@@ -1491,11 +1492,14 @@ class CallAudioSession:
             self._output_buffer.buffered_samples,
         )
 
+    def _configure_transport_playout(self) -> None:
+        playout = getattr(self._transport, 'configure_playout', None)
+        if callable(playout):
+            playout(bool(getattr(self._output_buffer, 'native_available', False)) and not self._live_translation)
+
     def _emit_start(self) -> None:
         try:
-            playout = getattr(self._transport, 'configure_playout', None)
-            if callable(playout):
-                playout(bool(getattr(self._output_buffer, 'native_available', False)) and not self._live_translation)
+            self._configure_transport_playout()
             self._transport.start()
         except Exception:
             logging.debug("[call_audio] could not emit call:audio:start", exc_info=True)

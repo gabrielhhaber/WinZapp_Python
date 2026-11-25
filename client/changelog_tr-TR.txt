@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize aramaları: özel çıkış NetEQ tarafından desteklenmeyen bir örnekleme hızı kullandığında, paket kaybı gizleme korunarak uyumlu sese dönülmesi düzeltildi.
+
 - Bire bir Neonize aramaları: NetEQ ile oynatma, ağ dalgalanmalarını ve ses kaybını azaltır; gerektiğinde otomatik olarak uyumlu oynatmaya dönülür.
 
 - Neonize aramaları: ses, yerel motora doğrudan bir yerel bağlantı üzerinden aktarılır; bağlantı kullanılamadığında otomatik olarak Socket.IO kullanılır.

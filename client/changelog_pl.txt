@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia Neonize: poprawiono powrót do zgodnego odtwarzania, gdy wyjście w trybie wyłącznym używa częstotliwości nieobsługiwanej przez NetEQ, zachowując maskowanie utraty pakietów.
+
 - Indywidualne połączenia Neonize: odtwarzanie z NetEQ łagodzi wahania sieci i utratę dźwięku, z automatycznym powrotem do zgodnego trybu odtwarzania.
 
 - Połączenia Neonize: dźwięk korzysta z bezpośredniego połączenia lokalnego z natywnym silnikiem, z automatycznym powrotem do Socket.IO, gdy jest ono niedostępne.

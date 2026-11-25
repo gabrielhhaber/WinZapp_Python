@@ -126,3 +126,46 @@ def test_compiled_python_binding_with_multichannel_view():
         assert not instance.render(np.empty(137,dtype=np.float64))
     finally:
         instance.close()
+
+
+@pytest.mark.parametrize('exclusive_rate', [44100, 48000, 32000])
+def test_answer_revalidates_timed_transport_after_exclusive_rate_change(monkeypatch, exclusive_rate):
+    from core.call_audio import CallAudioConfig, CallAudioSession
+    from core.call_audio_native import NeonizeCallAudioTransport
+    from core.call_audio_transport import SocketIOCallAudioTransport
+    from tests.test_call_audio_session import _SoundDevice, _Socket
+    from tests.test_call_audio_native import Connection
+
+    socket = _Socket()
+    transport = NeonizeCallAudioTransport(SocketIOCallAudioTransport(socket, 'account'),
+                                         lambda body: pytest.fail('unexpected negotiation'))
+    session = CallAudioSession(socket, CallAudioConfig(
+        session='account', neonize_audio=True, exclusive_output=True,
+        echo_cancellation=False), sounddevice_module=_SoundDevice(), transport=transport)
+    session._output_buffer, _, _ = buffer()
+    monkeypatch.setattr(session, '_play_remote_loop', lambda: None)
+    monkeypatch.setattr(session, '_send_microphone_loop', lambda: None)
+    # The real stream opener/ownership callbacks still run; simulate a device
+    # that accepts the requested format only in this mode, without hardware.
+    monkeypatch.setattr(session, '_candidate_formats',
+                        lambda device, *, input_device, exclusive:
+                        [(exclusive_rate if exclusive and not input_device else 48000, 1)])
+    session.start_output_only(allow_exclusive=False)
+    connection = Connection(b'')
+    transport._conn = connection
+    transport._active = True
+    try:
+        assert session._output_rate == 48000 and transport._timed
+        session.start()
+        assert session._output_rate == exclusive_rate
+        assert session._output_buffer.native_available == (exclusive_rate != 44100)
+        assert connection.closed == (exclusive_rate == 44100)
+        assert transport._fallback_requested == (exclusive_rate == 44100)
+        assert transport._timed == (exclusive_rate != 44100)
+        assert [event for event, _ in socket.events] == ['call:audio:start']
+        assert session.running and session.output_running
+    finally:
+        session.stop(notify_bridge=False)
+        for worker in (session._player_thread, session._sender_thread):
+            if worker is not None:
+                worker.join(1)
