@@ -33,7 +33,12 @@ What the patches carry today:
   The sidecar is optional: source builders who want it run `rustup toolchain
   install 1.91.1-x86_64-pc-windows-msvc --profile minimal`; without that
   toolchain the build skips it with a warning and calls keep the compatible
-  playback (release workflows install it). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
+  playback (release workflows install it). A build without Rust reuses the
+  sidecar the previous `dist/` held, and `install` keeps the one already in
+  the venv when `dist/` has none, so a copied CI sidecar survives a rebuild.
+  A built sidecar carries `NETEQ_SOURCE.sha256` (hash of the sources above);
+  one stamped with other sources is stale and is dropped, an unstamped one is
+  kept (its ABI is checked when loaded). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
 
 - **neonize 0034 / meowcaller 0037**: the bridge queue opts into
   `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing

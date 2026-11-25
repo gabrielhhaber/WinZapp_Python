@@ -486,17 +486,26 @@ def patches_sha256(name):
     return digest.hexdigest()
 
 
+def neteq_source_digest():
+    import build_neteq
+    return build_neteq.source_digest(os.path.join(os.path.dirname(HERE), "native", "call_neteq"))
+
+
 def build(info):
     check_compilers()
     tree = tree_path("neonize")
     package = os.path.join(DIST, "neonize")
+    if TARGET.system == "windows":
+        import build_neteq
+        # A build without Rust must not lose the sidecar the previous one had
+        kept = build_neteq.read_sidecar(package)
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.copytree(os.path.join(tree, "neonize"), package,
                     ignore=shutil.ignore_patterns("__pycache__", "*.dll", "*.so", "*.dylib"))
     if TARGET.system == "windows":
-        import build_neteq
         say("compiling the pinned NetEq sidecar")
-        build_neteq.build(package, system=TARGET.system)
+        if not build_neteq.build(package, system=TARGET.system):
+            build_neteq.restore_sidecar(package, kept, neteq_source_digest())
     # GOOS/GOARCH follow the Python that will load the library (an Intel
     # Python under Rosetta on an Apple Silicon Mac needs the amd64 one)
     env = {**os.environ, "CGO_ENABLED": "1", "GOFLAGS": "-mod=readonly", "GOTOOLCHAIN": "local",
@@ -561,8 +570,16 @@ def install(venv):
                 pass
         except OSError:
             sys.exit("The neonize DLL is in use: close WinZapp (it stops the bridge) and try again.")
+    kept = {}
+    if TARGET.system == "windows":
+        import build_neteq
+        if not build_neteq.read_sidecar(source):
+            # built without Rust and nothing to reuse: keep the installed sidecar
+            kept = build_neteq.read_sidecar(target)
     shutil.rmtree(target, ignore_errors=True)
     shutil.copytree(source, target)
+    if kept:
+        build_neteq.restore_sidecar(target, kept, neteq_source_digest())
     for stale in upstream.stale_metadata(os.listdir(site)):
         shutil.rmtree(os.path.join(site, stale), ignore_errors=True)
     with open(os.path.join(DIST, "BUILD_INFO.json"), encoding="utf-8") as f:
