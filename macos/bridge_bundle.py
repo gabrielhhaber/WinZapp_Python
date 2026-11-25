@@ -18,6 +18,7 @@ the file signature (neonize_bridge/media_probe.py ensure_magic_module).
 import atexit
 import os
 import shutil
+import signal
 import subprocess
 import sys
 from typing import NamedTuple
@@ -107,32 +108,51 @@ class Freezing(NamedTuple):
     frozen: str
 
 
-def start(build_dir: str, *, python=sys.executable, popen=subprocess.Popen) -> Freezing:
+def start(build_dir: str, *, python=sys.executable, popen=subprocess.Popen,
+          at_exit=atexit.register) -> Freezing:
     """Starts freezing the bridge in a child process and returns at once.
 
     The freeze (prepare.py's Go build of neonize, then PyInstaller) shares
     nothing with the app's steps but the machine, so build_app.py runs it
     while it fetches Node, builds WPPConnect and freezes the app: the build
     takes about as long as before the bridge joined it. Its output goes to
-    ``<build_dir>/bridge.log``, shown when it fails."""
+    ``<build_dir>/bridge.log``, shown when it fails.
+
+    The child gets its own PyInstaller cache (PYINSTALLER_CONFIG_DIR): on
+    macOS PyInstaller rewrites and signs every collected binary in a cache
+    shared per Python, with no lock, and the app's freeze collects the same
+    libraries at the same time. It sits beside ``bridge/``, which
+    bridge_build.build deletes on every run."""
     os.makedirs(build_dir, exist_ok=True)
     log_path = os.path.join(build_dir, "bridge.log")
+    env = dict(os.environ, PYINSTALLER_CONFIG_DIR=os.path.join(build_dir, "bridge-pyinstaller"))
     with open(log_path, "wb") as out:
+        # its own session: stop() ends the Go build and PyInstaller with it
         process = popen([python, os.path.abspath(__file__), "freeze", build_dir],
-                        stdout=out, stderr=subprocess.STDOUT)
+                        stdout=out, stderr=subprocess.STDOUT, env=env, start_new_session=True)
     # a build that stops early does not leave the freeze running
-    atexit.register(stop, process)
+    at_exit(stop, process)
     return Freezing(process, log_path, os.path.join(build_dir, "bridge", "dist", FOLDER))
 
 
-def stop(process) -> None:
-    """Ends a freeze still running (the build stopped before it needed it)."""
-    if process.poll() is None:
-        process.terminate()
+def stop(process, *, killpg=getattr(os, "killpg", None)) -> None:
+    """Ends a freeze still running (the build stopped before it needed it),
+    with every process it started."""
+    if process.poll() is not None:
+        return
+    for sig, wait in ((signal.SIGTERM, 10), (getattr(signal, "SIGKILL", signal.SIGTERM), None)):
         try:
-            process.wait(timeout=10)
+            if killpg is not None:
+                killpg(process.pid, sig)
+            else:
+                process.terminate()
+        except OSError:
+            return
+        try:
+            process.wait(timeout=wait)
+            return
         except subprocess.TimeoutExpired:
-            process.kill()
+            continue
 
 
 def finish(freezing: Freezing, app: str, arch: str, *, log=print, freezer=None) -> str:

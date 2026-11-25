@@ -91,10 +91,13 @@ def test_a_bridge_that_is_not_executable_stops_the_build(tmp_path):
 class _Process:
     """subprocess.Popen stand-in for the background freeze."""
 
+    pid = 4242
+
     def __init__(self, code=0, running=False):
         self.code, self.running, self.terminated = code, running, False
 
     def wait(self, timeout=None):
+        self.running = False
         return self.code
 
     def poll(self):
@@ -110,15 +113,32 @@ class _Process:
 def test_the_freeze_runs_this_script_in_a_child_with_its_output_in_a_log(tmp_path):
     started = {}
 
-    def popen(command, stdout, stderr):
-        started.update(command=command, log=stdout.name)
+    def popen(command, stdout, stderr, env, start_new_session):
+        started.update(command=command, log=stdout.name, env=env, session=start_new_session)
         return _Process()
 
-    freezing = bridge_bundle.start(str(tmp_path / "build"), python="/py", popen=popen)
+    registered = []
+    freezing = bridge_bundle.start(str(tmp_path / "build"), python="/py", popen=popen,
+                                   at_exit=lambda *call: registered.append(call))
     assert started["command"] == ["/py", os.path.abspath(bridge_bundle.__file__), "freeze",
                                   str(tmp_path / "build")]
     assert started["log"] == freezing.log_path == str(tmp_path / "build" / "bridge.log")
     assert freezing.frozen == str(tmp_path / "build" / "bridge" / "dist" / "neonize_bridge")
+    # its own process group, so stop() reaches the Go build and PyInstaller
+    assert started["session"] is True
+    assert registered == [(bridge_bundle.stop, freezing.process)]
+
+
+def test_the_freeze_has_its_own_pyinstaller_cache(tmp_path):
+    """PyInstaller's macOS binary cache is shared per Python and unlocked; the
+    app's freeze runs at the same time."""
+    env = {}
+    bridge_bundle.start(str(tmp_path / "build"), popen=lambda *a, **kw: env.update(kw["env"]) or _Process(),
+                        at_exit=lambda *call: None)
+    cache = env["PYINSTALLER_CONFIG_DIR"]
+    assert cache == str(tmp_path / "build" / "bridge-pyinstaller")
+    # outside bridge/, which every freeze deletes
+    assert not cache.startswith(str(tmp_path / "build" / "bridge") + os.sep)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="execute bits")
@@ -143,11 +163,12 @@ def test_a_failed_freeze_stops_the_build_and_shows_its_output(tmp_path):
     assert "go: build failed" in shown[0]
 
 
-def test_a_build_that_stops_early_ends_the_freeze():
+def test_a_build_that_stops_early_ends_the_freeze_and_its_children():
     running, done = _Process(running=True), _Process()
-    bridge_bundle.stop(running)
-    bridge_bundle.stop(done)
-    assert running.terminated and not done.terminated
+    signals = []
+    bridge_bundle.stop(running, killpg=lambda pid, sig: signals.append((pid, sig)))
+    bridge_bundle.stop(done, killpg=lambda pid, sig: signals.append((pid, sig)))
+    assert signals == [(4242, bridge_bundle.signal.SIGTERM)]
 
 
 def test_the_child_only_accepts_freeze_and_a_folder():
