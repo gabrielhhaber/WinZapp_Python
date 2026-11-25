@@ -19,7 +19,11 @@ class CallNativeAudioMixin:
             pcm_format = self._format_for(owner)
             if not callable(opener) or pcm_format is None or not pcm_format['generation']:
                 return None
-            descriptor = opener(owner['id'], pcm_format['generation'], stream)
+            protocol = data.get('audioProtocol', 1)
+            if type(protocol) is not int or protocol not in (1, 2):
+                raise ValueError('unsupported audio protocol')
+            args = (owner['id'], pcm_format['generation'], stream)
+            descriptor = opener(*args, protocol=2) if protocol == 2 else opener(*args)
             if descriptor is None:
                 return None
             owner.update(media_protocol=1, mic_stream_epoch=stream,

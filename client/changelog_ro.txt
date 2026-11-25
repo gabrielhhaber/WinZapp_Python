@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Apeluri individuale Neonize: redarea cu NetEQ atenuează variațiile rețelei și pierderile audio, cu revenire automată la redarea compatibilă.
+
 - Apeluri Neonize: sunetul folosește o conexiune locală directă la motorul nativ, cu revenire automată la Socket.IO când aceasta nu este disponibilă.
 
 - Apeluri individuale prin Neonize: a fost eliminată o așteptare duplicată pentru sunetul primit, păstrând ajustarea automată a redării la variațiile întârzierii rețelei.

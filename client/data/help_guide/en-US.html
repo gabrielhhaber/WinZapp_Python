@@ -780,6 +780,7 @@
   <section id="calls" class="wiki-section" aria-labelledby="h-calls">
     <h2 id="h-calls">📞 9. Calls</h2>
 <p class="lead">You can make, answer and decline voice and video calls right in WinZapp, without picking up your phone.</p>
+<p>One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback. This works automatically when the component is available. Group calls, live translation and devices not supported by NetEQ keep compatible playback, without settings changes.</p>
 <p>Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable. No settings changes are needed. Call controls continue to use the usual connection.</p>
 <p>In one-to-one Neonize calls, incoming audio reaches the playback buffer without a duplicate wait in the engine. Automatic adjustment to network jitter stays active, without changing settings.</p>
 <p>Microphone audio conversion in Neonize calls is optimized automatically, without changing settings. If the installed engine does not support the optimization, WinZapp keeps using compatible processing.</p>
@@ -1528,6 +1529,7 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Not yet released</td><td>One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>One-to-one Neonize calls: removed a duplicate wait in incoming audio while keeping automatic playback buffering that protects against network jitter.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize calls: microphone audio conversion is optimized to reduce Python processing, with automatic fallback when the installed engine does not support the optimization.</td></tr>

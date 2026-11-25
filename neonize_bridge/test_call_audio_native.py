@@ -59,6 +59,17 @@ def test_replaced_record_and_missing_dll_keep_socketio():
     assert not opened
 
 
+def test_timed_transport_is_an_explicit_capability():
+    media, _, opened = owned()
+    media.calls.open_audio_transport = lambda *a, **kw: opened.append((a,kw)) or {'protocol':2}
+    assert media.open_audio_transport(body(audioProtocol=2)) == {'protocol':2}
+    assert opened == [(('C',7,123), {'protocol':2})]
+    media, _, opened = owned()
+    with pytest.raises(ValueError):
+        media.open_audio_transport(body(audioProtocol=True))
+    assert not opened
+
+
 def test_stop_revokes_native_lease_with_matching_generation():
     media, owner, opened = owned()
     media.open_audio_transport(body())

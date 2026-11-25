@@ -24,6 +24,16 @@ stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
+- **neonize 0036 / meowcaller 0038**: optional protocol 2 timed PCM, carrying
+  the source/codec epoch and sample timeline into the device-clock NetEq
+  component. Protocol 1 remains compatible. The sidecar is built from
+  `native/call_neteq` with Rust 1.91.1 (`x86_64-pc-windows-msvc`), Cargo.lock,
+  and Visual C++ Build Tools. It uses a static CRT and ships its notices.
+  Sources, lockfile and helper invalidate the installed artifact identity.
+  Source builders need `rustup toolchain install
+  1.91.1-x86_64-pc-windows-msvc --profile minimal`; published artifacts need
+  no Rust installation. CI builds/tests the component with one Cargo worker.
+
 - **neonize 0034 / meowcaller 0037**: the bridge queue opts into
   `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing
   adaptive playback reservoir without a second native prefill/lookahead.

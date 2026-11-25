@@ -158,8 +158,18 @@ jobs:
         shell: msys2 {0}
         run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
 
+      - name: Prepare pinned Rust for NetEq
+        run: rustup toolchain install 1.91.1-x86_64-pc-windows-msvc --profile minimal
+
       - name: Build WinZapp's neonize (the one the bridge runs)
         run: python neonize_bridge/build_neonize.py all
+
+      - name: Test NetEq native playout
+        env:
+          CARGO_TARGET_DIR: neonize_bridge/neonize_build/neteq-target
+          CARGO_BUILD_JOBS: "1"
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: cargo +1.91.1-x86_64-pc-windows-msvc test --locked --manifest-path native/call_neteq/Cargo.toml --target x86_64-pc-windows-msvc
 
       - name: Run synthetic native call-audio regressions
         env:

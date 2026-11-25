@@ -1,0 +1,113 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Igor Alves <igoralves.dev82@gmail.com>
+Date: Tue, 24 Nov 2026 21:46:42 -0300
+Subject: [PATCH] feat(audio): delegate timed PCM playout
+
+---
+ audio.go                    |  8 ++++++++
+ audio_playout_buffered.go   |  6 ++++++
+ audio_playout_timed_test.go | 39 +++++++++++++++++++++++++++++++++++++
+ engine_media.go             |  8 ++++++++
+ 4 files changed, 61 insertions(+)
+ create mode 100644 audio_playout_timed_test.go
+
+diff --git a/audio.go b/audio.go
+index 5e8461b..83f5e94 100644
+--- a/audio.go
++++ b/audio.go
+@@ -51,6 +51,14 @@ type BufferedAudioSink interface {
+ 	BuffersAudioPlayout() bool
+ }
+ 
++// TimedAudioSink delegates playout/PLC to the downstream NetEq device clock.
++// Timestamps are in PCM sample units; clock identifies negotiated RTP epochs.
++type TimedAudioSink interface {
++	BufferedAudioSink
++	WantsTimedAudio() bool
++	WriteTimedFrame(frame []float32, timestamp, ssrc, clock uint32) error
++}
++
+ // SinkFunc adapts a plain function to an AudioSink (Close is a no-op).
+ type SinkFunc func(frame []float32)
+ 
+diff --git a/audio_playout_buffered.go b/audio_playout_buffered.go
+index 2a16ac5..abf97ee 100644
+--- a/audio_playout_buffered.go
++++ b/audio_playout_buffered.go
+@@ -25,6 +25,12 @@ func (p *audioPlayoutBuffer) pushBuffered(timestamp uint32, frame []float32, sin
+ 		}
+ 		return false, false, nil
+ 	}
++	if timed, ok := sink.(TimedAudioSink); ok && timed.WantsTimedAudio() {
++		started = !p.started
++		p.pending, p.prefill, p.prefillSamples = nil, nil, 0
++		p.bufferedSink, p.started = true, true
++		return true, started, timed.WriteTimedFrame(frame, timestamp, p.receiveSSRC, p.receiveClock)
++	}
+ 	if !p.bufferedSink {
+ 		// If a sink changes mid-call, hand off the old pending frames once
+ 		// before the current frame. Group-mixer Drain uses the same rule.
+diff --git a/audio_playout_timed_test.go b/audio_playout_timed_test.go
+new file mode 100644
+index 0000000..fee4ebd
+--- /dev/null
++++ b/audio_playout_timed_test.go
+@@ -0,0 +1,39 @@
++package meowcaller
++
++import "testing"
++
++type timedTestSink struct {
++	timed    bool
++	metadata [][3]uint32
++	frames   [][]float32
++}
++
++func (s *timedTestSink) WriteFrame(pcm []float32) error { s.frames = append(s.frames, pcm); return nil }
++func (s *timedTestSink) Close() error                   { return nil }
++func (s *timedTestSink) BuffersAudioPlayout() bool      { return true }
++func (s *timedTestSink) WantsTimedAudio() bool          { return s.timed }
++func (s *timedTestSink) WriteTimedFrame(pcm []float32, ts, ssrc, clock uint32) error {
++	s.metadata = append(s.metadata, [3]uint32{ts, ssrc, clock})
++	return s.WriteFrame(pcm)
++}
++func TestAudioPlayoutTimedSourceAndGap(t *testing.T) {
++	p := newAudioPlayoutBuffer(16000)
++	s := &timedTestSink{timed: true}
++	p.setReceiveEpoch(42, 48000)
++	p.Push(1000, make([]float32, 960), s)
++	p.Push(2920, make([]float32, 960), s)
++	if len(s.frames) != 2 || len(s.frames[0]) != 960 || s.metadata[1] != [3]uint32{2920, 42, 48000} {
++		t.Fatal("lost source timeline or inserted a second gap")
++	}
++	s.timed = false
++	p.Push(3880, make([]float32, 960), s)
++	if len(s.frames) != 3 || len(s.metadata) != 2 {
++		t.Fatal("legacy sink did not resume")
++	}
++	s.timed = true
++	p.setReceiveEpoch(43, 16000)
++	p.Push(0, make([]float32, 960), s)
++	if s.metadata[2] != [3]uint32{0, 43, 16000} {
++		t.Fatal("new source relabeled")
++	}
++}
+diff --git a/engine_media.go b/engine_media.go
+index 5e14420..871e444 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -1245,6 +1245,14 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 			"event": "frame_authenticated", "ssrc": vh.Ssrc, "seq": vh.SequenceNumber,
+ 		})
+ 		for _, audio := range frames {
++			// NetEq conceals by its own playout clock. The codec's state was
++			// advanced above, but do not enqueue a second synthetic gap.
++			if audio.Concealed && !groupMixing.Load() {
++				_, sink := callPlayerSink(call)
++				if timed, ok := sink.(TimedAudioSink); ok && timed.WantsTimedAudio() {
++					continue
++				}
++			}
+ 			e.c.diag.Emit("media_in", map[string]any{
+ 				"timestamp": audio.Timestamp, "concealed": audio.Concealed, "samples": len(audio.PCM),
+ 				"pcm_rms": rmsFloat32(audio.PCM), "participant_id": audio.ParticipantID,

@@ -15,7 +15,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from core.call_media_ownership import accepts_media_epoch, next_stream_epoch, valid_media_epoch
-from core.call_media_ownership import CapturedPCM, PlaybackPCM
+from core.call_media_ownership import CapturedPCM, PlaybackPCM, TimedPlaybackPCM
 from typing import Optional
 
 import numpy as np
@@ -423,10 +423,15 @@ class CallAudioSession:
         )
         # The reservoir the output callback drains; the player thread fills it.
         self._output_buffer = _OutputJitterBuffer(self._output_rate, neonize=config.neonize_audio)
+        if config.neonize_audio:
+            from core.call_neteq_buffer import NetEqOutputBuffer
+            self._output_buffer = NetEqOutputBuffer(self._output_buffer, self._output_rate)
+
         logging.info("[call_audio] output profile=%s prebuffer/target/cap=%s ms",
                      "neonize" if config.neonize_audio else "default",
                      "/".join(map(str, output_buffer_profile(config.neonize_audio))))
         self._output_resampler = StreamingMonoResampler()
+        self._output_timed_source = None
         self._output_underruns_logged = 0
         self._stop_event = threading.Event()
         # Held around every write to the output stream and around replacing
@@ -491,6 +496,10 @@ class CallAudioSession:
                 outgoing.set_muted(self._microphone_muted)
                 directions.append(outgoing)
             self._live_translation = tuple(directions)
+            fallback = getattr(self._transport, 'fallback', None)
+            if callable(fallback):
+                fallback()
+
             self._translation_gate.reset()
             try:
                 for direction in directions:
@@ -766,7 +775,7 @@ class CallAudioSession:
         self._reference_resampler.reset()
         self._processor = None
 
-    def enqueue_remote_audio(self, pcm: bytes, sample_rate: int, *, media_epoch=None) -> None:
+    def enqueue_remote_audio(self, pcm: bytes, sample_rate: int, *, media_epoch=None, timeline=None) -> None:
         epoch = self._media_epoch
         if self._stop_event.is_set() or not pcm:
             return
@@ -780,7 +789,15 @@ class CallAudioSession:
         directions = self._live_translation
         if directions and directions[0].feed(pcm, sample_rate):
             return
-        self._put_drop_oldest(self._output_queue, PlaybackPCM(bytes(pcm), sample_rate, epoch))
+        item = (TimedPlaybackPCM(bytes(pcm), sample_rate, epoch, *timeline)
+                if timeline is not None else PlaybackPCM(bytes(pcm), sample_rate, epoch))
+        if timeline is not None:
+            while self._output_queue.qsize() >= 8:
+                try:
+                    self._output_queue.get_nowait()
+                except queue.Empty:
+                    break
+        self._put_drop_oldest(self._output_queue, item)
 
     def _query_devices(self):
         try:
@@ -1435,9 +1452,17 @@ class CallAudioSession:
                     target_rate = self._output_rate
                     # Share stream-swap ownership with the FIR history and
                     # reservoir push: no old-rate packet may enter a new sink.
+                    source = ((source_rate, item.ssrc, item.clock)
+                              if isinstance(item, TimedPlaybackPCM) else None)
+                    if source != self._output_timed_source:
+                        self._output_resampler.reset()
+                        self._output_timed_source = source
                     samples = self._output_resampler.process(samples, source_rate, target_rate)
                     if samples.size:
-                        self._output_buffer.push(samples)
+                        if isinstance(item, TimedPlaybackPCM) and not self._live_translation:
+                            self._output_buffer.push_timed(samples, item.timestamp, source_rate, item.ssrc, item.clock)
+                        else:
+                            self._output_buffer.push(samples)
             except Exception:
                 logging.exception("[call_audio] failed to play remote call audio")
                 time.sleep(0.05)
@@ -1445,6 +1470,12 @@ class CallAudioSession:
 
     def _log_output_underruns(self) -> None:
         """Report starvation from OUTSIDE the callback, rate limited."""
+        if getattr(self._output_buffer, 'native_failed', False):
+            self._output_buffer.release_failed()
+            fallback = getattr(self._transport, 'fallback', None)
+            if callable(fallback):
+                fallback()
+
         underruns = self._output_buffer.underruns
         if not underruns:
             return
@@ -1462,6 +1493,9 @@ class CallAudioSession:
 
     def _emit_start(self) -> None:
         try:
+            playout = getattr(self._transport, 'configure_playout', None)
+            if callable(playout):
+                playout(bool(getattr(self._output_buffer, 'native_available', False)) and not self._live_translation)
             self._transport.start()
         except Exception:
             logging.debug("[call_audio] could not emit call:audio:start", exc_info=True)

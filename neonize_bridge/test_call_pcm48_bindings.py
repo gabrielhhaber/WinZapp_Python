@@ -53,6 +53,22 @@ def test_native_transport_missing_or_failed_binding(monkeypatch):
         module.Calls('account').open_audio_transport('C', 7, 123)
 
 
+def test_native_timed_binding_selects_new_export_but_accepts_old_dll(monkeypatch):
+    selected=[]
+    def open_protocol(protocol):
+        def call(uuid, call_id, generation, stream, buffer, capacity):
+            selected.append(protocol)
+            data=json.dumps({'protocol':protocol}).encode()
+            ctypes.memmove(buffer,data,len(data))
+            return len(data)
+        return call
+    old=SimpleNamespace(CallAudioTransportOpen=open_protocol(1))
+    assert binding(monkeypatch,old).Calls(b'account').open_audio_transport('C',7,123,protocol=2)=={'protocol':1}
+    old.CallAudioTransportOpenV2=open_protocol(2)
+    assert binding(monkeypatch,old).Calls(b'account').open_audio_transport('C',7,124,protocol=2)=={'protocol':2}
+    assert selected==[1,2]
+
+
 class Native:
     def __init__(self):
         self.configured = []

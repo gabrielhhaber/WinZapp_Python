@@ -191,6 +191,18 @@ def read_patches(patches_dir) -> dict:
             if name.endswith(".patch"):
                 with open(os.path.join(folder, name), "rb") as f:
                     found[tree][name] = f.read()
+    # The sidecar source and Cargo checksums are part of the downloadable
+    # package too. A changed NetEq wrapper must invalidate the installed build.
+    native = os.path.abspath(os.path.join(patches_dir, "..", "..", "native", "call_neteq"))
+    paths = ("Cargo.toml", "Cargo.lock", "src/lib.rs", "THIRD_PARTY_NOTICES.txt")
+    if os.path.isdir(native):
+        found["call_neteq"] = {}
+        for name in paths:
+            with open(os.path.join(native, name), "rb") as handle:
+                found["call_neteq"][name] = handle.read().replace(b"\r\n", b"\n")
+        helper = os.path.join(patches_dir, "..", "build_neteq.py")
+        with open(helper, "rb") as handle:
+            found["call_neteq"]["build_neteq.py"] = handle.read().replace(b"\r\n", b"\n")
     return found
 
 

@@ -149,3 +149,20 @@ def test_the_identity_changes_with_any_patch_byte_or_pin():
     edited[tree][name] = patches[tree][name] + b" "
     assert nu.build_identity(nu.pins(info), edited) != base
     assert nu.build_identity(nu.pins(info, OTHER), patches) != base
+
+
+def test_native_neteq_sources_and_cargo_checksums_invalidate_artifact_identity(tmp_path):
+    folder=tmp_path/'neonize_bridge/neonize_patches'
+    folder.mkdir(parents=True)
+    native=tmp_path/'native/call_neteq'
+    (native/'src').mkdir(parents=True)
+    for name in ('Cargo.toml','Cargo.lock','src/lib.rs','THIRD_PARTY_NOTICES.txt'):
+        (native/name).write_bytes(b'first\nsecond\n')
+    helper=folder.parent/'build_neteq.py'
+    helper.write_bytes(b'build\n')
+    baseline=nu.read_patches(str(folder))
+    assert set(baseline['call_neteq'])=={'Cargo.toml','Cargo.lock','src/lib.rs','THIRD_PARTY_NOTICES.txt','build_neteq.py'}
+    (native/'src/lib.rs').write_bytes(b'first\r\nsecond\r\n')
+    assert nu.read_patches(str(folder))==baseline
+    (native/'Cargo.lock').write_bytes(b'new dependency checksum\n')
+    assert nu.build_identity({},nu.read_patches(str(folder)))!=nu.build_identity({},baseline)

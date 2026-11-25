@@ -455,6 +455,9 @@ def build(info):
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.copytree(os.path.join(tree, "neonize"), package,
                     ignore=shutil.ignore_patterns("__pycache__", "*.dll", "*.so", "*.dylib"))
+    import build_neteq
+    say("compiling the pinned NetEq sidecar")
+    build_neteq.build(package)
     env = {**os.environ, "CGO_ENABLED": "1", "GOFLAGS": "-mod=readonly", "GOTOOLCHAIN": "local"}
     say("compiling the DLL (go build -buildmode=c-shared)")
     run(["go", "build", "-buildmode=c-shared", "-trimpath", "-ldflags=-s",

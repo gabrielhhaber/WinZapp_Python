@@ -21,7 +21,7 @@ def read_exact(connection, size):
 
 def validate_descriptor(value):
     if (not isinstance(value, dict) or type(value.get('protocol')) is not int
-            or value['protocol'] != 1 or type(value.get('port')) is not int
+            or value['protocol'] not in (1, 2) or type(value.get('port')) is not int
             or not 0 < value['port'] < 65536
             or type(value.get('sampleRate')) is not int or value['sampleRate'] not in (16000, 48000)
             or type(value.get('generation')) is not int or not 0 < value['generation'] < 2**64
@@ -45,6 +45,17 @@ class NeonizeCallAudioTransport:
         self._active = False
         self._conn = None
         self._thread = None
+        self._fallback_requested = False
+
+    def configure_playout(self, enabled):
+        self._timed = bool(enabled)
+
+    def fallback(self):
+        with self._lock:
+            self._fallback_requested = True
+            connection = self._conn
+        if connection is not None:
+            self._disconnect(connection)
 
     def configure(self, receiver, stream_epoch):
         self._receiver = receiver
@@ -103,28 +114,34 @@ class NeonizeCallAudioTransport:
         disconnected = threading.Event()
         try:
             # Call ownership can arrive while the outgoing call is still ringing.
-            while not self._closed.is_set():
-                response = self._negotiate(media_fields(self._epoch, self._stream))
+            while not self._closed.is_set() and not self._fallback_requested:
+                body = media_fields(self._epoch, self._stream)
+                if getattr(self, '_timed', False):
+                    body['audioProtocol'] = 2
+                response = self._negotiate(body)
                 if response.status_code != 409:
                     break
                 self._closed.wait(.5)
-            if self._closed.is_set():
+            if self._closed.is_set() or self._fallback_requested:
                 return
             if response.status_code != 200:
                 logging.info('[call_audio] native transport unsupported/unavailable; using Socket.IO')
                 return
-            port, secret, rate, generation = validate_descriptor(response.json().get('response'))
+            descriptor = response.json().get('response')
+            port, secret, rate, generation = validate_descriptor(descriptor)
+            protocol = descriptor['protocol']
+            header_size = 28 if protocol == 2 else 12
             connection = socket.create_connection(('127.0.0.1', port), timeout=1)
             connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             with self._lock:
-                if self._closed.is_set():
+                if self._closed.is_set() or self._fallback_requested:
                     return
                 self._conn = connection
             connection.sendall(secret)
-            if read_exact(connection, 4) != b'NZA1':
+            if read_exact(connection, 4) != (b'NZA2' if protocol == 2 else b'NZA1'):
                 raise ValueError('invalid native audio handshake')
             with self._lock:
-                if self._closed.is_set():
+                if self._closed.is_set() or self._fallback_requested:
                     return
                 self._active = True
             logging.info('[call_audio] transport=native')
@@ -133,13 +150,21 @@ class NeonizeCallAudioTransport:
             writer.start()
             while not self._closed.is_set():
                 size, = struct.unpack('<I', read_exact(connection, 4))
-                if not 12 <= size <= 12 + rate * 60 // 1000 * 2 or size % 2:
+                if not header_size <= size <= header_size + rate * 60 // 1000 * 2 or size % 2:
                     raise ValueError('invalid native audio frame size')
                 packet = read_exact(connection, size)
                 if struct.unpack_from('<IQ', packet) != (rate, generation):
                     raise ValueError('native audio owner changed')
-                if len(packet) > 12 and not self._closed.is_set():
-                    self._receiver(packet[12:], rate, media_epoch=self._epoch)
+                if len(packet) > header_size and not self._closed.is_set():
+                    if protocol == 2:
+                        timestamp, ssrc, clock, flags = struct.unpack_from('<IIII', packet, 12)
+                        if flags not in (0,1) or (flags == 1 and clock not in (16000,48000)):
+                            raise ValueError('invalid native timeline')
+                        if flags == 1:
+                            self._receiver(packet[header_size:], rate, media_epoch=self._epoch,
+                                           timeline=(timestamp, ssrc, clock))
+                            continue
+                    self._receiver(packet[header_size:], rate, media_epoch=self._epoch)
         except (OSError, EOFError, ValueError, TypeError, AttributeError):
             # Descriptors contain a credential: never log the response/exception.
             logging.info('[call_audio] native transport unavailable; using Socket.IO')

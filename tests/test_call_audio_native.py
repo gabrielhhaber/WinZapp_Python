@@ -247,3 +247,66 @@ def test_socketio_receive_resumes_only_after_native_releases_session():
     session.native_audio_active = False
     receive(window, b'pcm', 48000, media_epoch='a'*32)
     assert received == [((b'pcm',48000), {'media_epoch':'a'*32})]
+
+
+def test_timed_native_protocol_keeps_timestamp_ssrc_and_clock(monkeypatch, no_writer):
+    pcm=b'\x01\x02'*960
+    packet=struct.pack('<IQIIII',16000,7,2**32-960,42,48000,1)+pcm
+    connection=Connection(b'NZA2'+struct.pack('<I',len(packet))+packet)
+    monkeypatch.setattr(native.socket,'create_connection',lambda *a,**k:connection)
+    bodies,received=[],[]
+    transport,_=configured(lambda body:(bodies.append(body),response(descriptor(protocol=2,sampleRate=16000)))[1],
+                           lambda *a,**k:received.append((a,k)))
+    transport.configure_playout(True)
+    transport._run()
+    assert bodies[0]['audioProtocol']==2
+    assert received==[((pcm,16000),{'media_epoch':'a'*32,'timeline':(2**32-960,42,48000)})]
+
+
+def test_requested_neteq_accepts_old_native_protocol(monkeypatch,no_writer):
+    packet=struct.pack('<IQ',48000,7)+b'\x00\x00'*960
+    connection=Connection(b'NZA1'+struct.pack('<I',len(packet))+packet)
+    monkeypatch.setattr(native.socket,'create_connection',lambda *a,**k:connection)
+    received=[]
+    transport,_=configured(receiver=lambda *a,**k:received.append(k))
+    transport.configure_playout(True)
+    transport._run()
+    assert received==[{'media_epoch':'a'*32}]
+
+
+def test_fallback_during_negotiation_cannot_activate_neteq(monkeypatch):
+    transport=None
+    def negotiate(body):
+        transport.fallback()
+        return response(descriptor(protocol=2))
+    transport,_=configured(negotiate)
+    monkeypatch.setattr(native.socket,'create_connection',lambda *a,**k:pytest.fail('late native activation'))
+    transport._run()
+    assert not transport.receiving_native
+
+
+@pytest.mark.parametrize('clock,flags',[(0,1),(48000,7)])
+def test_invalid_timed_header_never_reaches_playout(monkeypatch,no_writer,clock,flags):
+    packet=struct.pack('<IQIIII',16000,7,0,42,clock,flags)+b'\x00\x00'*960
+    connection=Connection(b'NZA2'+struct.pack('<I',len(packet))+packet)
+    monkeypatch.setattr(native.socket,'create_connection',lambda *a,**k:connection)
+    received=[]
+    transport,_=configured(lambda body:response(descriptor(protocol=2,sampleRate=16000)),
+                           lambda *a,**k:received.append(a))
+    transport.configure_playout(True)
+    transport._run()
+    assert not received and connection.closed
+
+
+def test_timed_session_queue_is_bounded_and_keeps_original_owner():
+    from core.call_audio import CallAudioConfig,CallAudioSession
+    from tests.test_call_audio_session import _SoundDevice
+    session=CallAudioSession(None,CallAudioConfig(session='account'),sounddevice_module=_SoundDevice())
+    session.set_media_epoch('a'*32)
+    for i in range(20):
+        session.enqueue_remote_audio(b'\x00\x00'*960,16000,media_epoch='a'*32,timeline=(i*960,42,48000))
+    session.enqueue_remote_audio(b'bad',16000,media_epoch='b'*32,timeline=(0,0,0))
+    assert session._output_queue.qsize()==8
+    item=session._output_queue.get_nowait()
+    assert item.timestamp==12*960 and item.epoch=='a'*32 and item.ssrc==42
+    session.stop(notify_bridge=False)
