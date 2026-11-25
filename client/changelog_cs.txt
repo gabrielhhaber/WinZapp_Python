@@ -4,6 +4,16 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Hovory Neonize: opraven návrat ke kompatibilnímu zvuku, když výhradní výstup používá frekvenci nepodporovanou NetEQ, se zachováním kompenzace ztráty paketů.
+
+- Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání.
+
+- Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO.
+
+- Individuální hovory přes Neonize: odstraněno dvojité čekání při příjmu zvuku při zachování automatického přizpůsobování přehrávání kolísání síťového zpoždění.
+
+- Hovory přes Neonize: převod zvuku mikrofonu byl optimalizován tak, aby se snížila zátěž Pythonu. Pokud nainstalovaný modul optimalizaci nepodporuje, automaticky se použije dosavadní zpracování.
+
 - Čeština: WinZapp je nově k dispozici v češtině: rozhraní, návod k použití, instalační a odinstalační program (které se řídí jazykem zobrazení Windows) a tyto poznámky k vydání. Češtinu lze také zvolit jako jazyk, do kterého se zprávy překládají, a kontrola pravopisu ji podporuje. Za překlad děkujeme uživateli jaxcze.
 
 - Připojit pomocí QR kódu: QR kód se znovu zobrazuje. V nejnovějších verzích WhatsApp Web dostávají některé počítače samostatnou přihlašovací stránku jen s obrazovkou QR kódu a WinZapp se na ní připojoval, dokud to nevzdal, aniž by kód zobrazil. Nyní se na této stránce QR kód zobrazí během několika sekund.

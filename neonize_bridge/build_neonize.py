@@ -493,6 +493,10 @@ def build(info):
     shutil.rmtree(DIST, ignore_errors=True)
     shutil.copytree(os.path.join(tree, "neonize"), package,
                     ignore=shutil.ignore_patterns("__pycache__", "*.dll", "*.so", "*.dylib"))
+    if TARGET.system == "windows":
+        import build_neteq
+        say("compiling the pinned NetEq sidecar")
+        build_neteq.build(package, system=TARGET.system)
     # GOOS/GOARCH follow the Python that will load the library (an Intel
     # Python under Rosetta on an Apple Silicon Mac needs the amd64 one)
     env = {**os.environ, "CGO_ENABLED": "1", "GOFLAGS": "-mod=readonly", "GOTOOLCHAIN": "local",

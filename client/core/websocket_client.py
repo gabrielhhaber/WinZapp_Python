@@ -1,5 +1,6 @@
 import base64
 from core.call_media_ownership import accepts_media_epoch, media_fields, next_stream_epoch
+from core.call_audio_socketio import decode_remote_audio, socketio_binary_to_bytes
 import logging
 import threading
 import time
@@ -86,34 +87,8 @@ def ack_to_status(wpp_ack):
 
 
 def _socketio_binary_to_bytes(value):
-    """Normalize a Socket.IO binary payload into bytes, or b"".
-
-    Node emits call audio as a Buffer inside an object. python-socketio
-    normally turns that into bytes, but test doubles and alternate transports
-    may surface Uint8Array-style lists or JSON Buffer objects.
-    """
-    if isinstance(value, str):
-        try:
-            return base64.b64decode(value, validate=True)
-        except (ValueError, TypeError):
-            return b""
-    if isinstance(value, bytes):
-        return value
-    if isinstance(value, bytearray):
-        return bytes(value)
-    if isinstance(value, list):
-        try:
-            return bytes(value)
-        except (TypeError, ValueError):
-            return b""
-    if isinstance(value, dict) and value.get("type") == "Buffer":
-        data = value.get("data")
-        if isinstance(data, list):
-            try:
-                return bytes(data)
-            except (TypeError, ValueError):
-                return b""
-    return b""
+    """Compatibility entry point shared with the remote-video handler."""
+    return socketio_binary_to_bytes(value)
 
 
 def phone_code_error_is_rate_limit(data) -> bool:
@@ -2823,19 +2798,12 @@ class WebSocketClient:
                         "client_bound=%s frame_tagged=%s",
                         dropped, bool(expected), 'mediaEpoch' in data)
                 return
-            pcm = _socketio_binary_to_bytes(data.get("pcm"))
-            if not pcm:
+            frame = decode_remote_audio(data)
+            if frame is None:
                 return
-            try:
-                sample_rate = int(data.get("sampleRate") or 48000)
-            except (TypeError, ValueError):
-                sample_rate = 48000
             handler = getattr(self.main_window, "on_call_remote_audio", None)
             if handler is not None:
-                if 'mediaEpoch' in data:
-                    handler(pcm, sample_rate, media_epoch=data['mediaEpoch'])
-                else:
-                    handler(pcm, sample_rate)
+                frame.deliver_to(handler)
         except Exception:
             logging.exception("[WebSocketClient] on_call_audio_remote error")
 

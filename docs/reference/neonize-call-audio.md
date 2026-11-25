@@ -6,6 +6,154 @@ The bridge keeps its public PCM contract: microphone input is s16le mono
 bandwidth: the ordinary MLow encoder still uses its supported 16 kHz path.
 These source fixes do not establish parity with Telegram or Signal.
 
+## Transport boundary (issue #768, first step of tier C)
+
+`core/call_audio_transport.py` defines `CallAudioTransport` for outgoing
+mono s16le PCM and start/stop controls, and `CallAudioFrame` /
+`CallAudioReceiver` for incoming PCM. `CallAudioSession` accepts an injected
+transport; existing callers still get `SocketIOCallAudioTransport`. Outgoing
+JSON/base64 encoding belongs to that adapter rather than the device pipeline.
+The default adapter preserves the existing event names and envelopes for
+both WPPConnect and Neonize, including media/stream ownership tags.
+
+Capture, processing, muting, desktop mixing, ownership checks and the
+`stop(notify_bridge=False)` device-switch policy remain in the session.
+The Socket.IO receive adapter (`core/call_audio_socketio.py`) converts
+base64, binary and Node Buffer envelopes to `CallAudioFrame`. Direct
+transports can construct a frame from PCM without a Socket.IO envelope and
+deliver it to the same `CallAudioReceiver` callback. Legacy frames retain
+the two-argument callback; tagged frames carry their original `media_epoch`.
+Malformed explicit tags are rejected, never treated as untagged legacy PCM.
+
+Socket events still check account and media ownership before decoding, with
+the existing rate-limited rejection counters. The selected session rechecks
+ownership and stop state before queueing, so a reconnection during decoding
+or a delayed callback after a device switch cannot enqueue into a different
+call. Existing public audio/video handler names remain available.
+Neonize now selects `NeonizeCallAudioTransport`; WPPConnect retains the
+Socket.IO adapter. No separate component is downloaded. The transport boundary
+itself does not change device modes or buffer targets. Optional NetEq playout
+is described below; neither part establishes measured provider/hardware
+latency or quality improvements.
+
+### Direct native PCM
+
+After an audio session binds its media epoch, a background worker negotiates
+`POST call/audio/transport` over the existing authenticated HTTP API. The
+bridge validates the exact connected record, protocol, media epoch and
+monotonic microphone stream; the optional native export additionally validates
+the native generation and rejects reused stream reservations. A ringing call
+retries the not-yet-connected response until it connects or the session stops.
+Unsupported builds, negotiation/connect failures and disconnects retain or
+restore Socket.IO for the rest of that audio session.
+
+The Go DLL listens only on IPv4 loopback, on an ephemeral port. Its random
+32-byte, single-consumer credential expires with the pending listener after
+10 seconds. The client is restricted to `127.0.0.1`; the descriptor cannot
+provide a different host. Authentication sends the raw 32 bytes, followed by
+the server's `NZA1` acknowledgement. Each subsequent packet has a four-byte
+little-endian length. Client packets are exactly 1920 PCM bytes (20 ms,
+48 kHz mono s16le), or an empty heartbeat. Server packets contain the same
+12-byte rate/generation header as `read_audio_frame`, followed by at most
+60 ms of native PCM; empty PCM is a heartbeat. Size, rate and generation
+are checked before delivery/allocation. Credentials and PCM never enter logs.
+
+The server regroups capture into 60 ms and uses the existing native FIR for
+16 kHz calls, with per-connection history. The client capture queue holds
+three frames and discards frames older than 200 ms. Socket timeouts bound
+stalled peers. Remote PCM goes from Go's bounded queue straight to the
+session receiver, without Python bridge processing, JSON or base64. Capture,
+AEC, mixing, translation and playback still belong to the client pipeline.
+
+An independent reader mutex serializes the native handoff with a pending
+Socket.IO read; microphone writes never wait on remote PCM. While a native
+consumer owns the record, legacy reads wait without draining its queue and
+legacy writes are rejected. On disconnect the lease releases both directions
+and the existing bridge reader resumes. In-flight Socket.IO delivery is ignored
+while that session receives native PCM. Partial capture and queued native
+microphone data are discarded at ownership changes. A device switch closes
+the local transport even with `notify_bridge=False`, without emitting the
+bridge-stop event. Call end closes the listener/socket; stale generation,
+stream, reservation and stop requests cannot affect a replacement.
+
+Native call counters still count source/sink frames; bridge Python PCM-boundary
+counters describe Socket.IO traffic only. Client logs report native activation
+or fallback without credentials. Validation is synthetic (native loopback,
+binding, client and bridge tests, and DLL build); no live-call or hardware
+acceptance is claimed.
+
+## Native NetEq PCM playout
+
+`native/call_neteq` wraps the pinned Rust `neteq` 1.0.1 port of WebRTC
+`6341cca49ffcad6fcb4603bd6cd1325fd0fe28bd` behind a C ABI. This is a PCM
+playout integration, not encoded-packet NetEq or a native WASAPI/APM rewrite.
+The upstream port reports parity with that C++ baseline; our integration
+tests do not independently certify its parity suite. See
+[ADR-001](../adr/001-neonize-neteq-playout.md).
+
+The component ships as `neonize/winzapp_call_neteq.dll` in the existing
+Neonize artifact. Cargo.lock, the wrapper sources, notices and build helper
+participate in its SHA-256 build identity. Only fixed paths inside the installed
+bridge are searched, never PATH, HTTP-supplied DLL paths or build workspaces.
+No new settings or runtime download are introduced.
+
+After the output stream selects a supported rate (8/16/32/48 kHz), a client
+with a loadable component requests `audioProtocol=2`. The native descriptor
+and acknowledgement become protocol 2 / `NZA2`; older DLLs can answer protocol
+1. Protocol 2 server packets have a 28-byte header: rate u32, generation u64,
+PCM timestamp u32, SSRC u32, negotiated RTP clock u32, flags u32, all little
+endian. Flag 1 is timestamped direct-call PCM; flag 0 is untimed group/mixer
+PCM or a heartbeat. At most 60 ms follows. Client microphone framing is
+unchanged. Rates, generation, header lengths, clock and flags are validated.
+
+The optional meowcaller timed sink carries the real accumulated PCM-unit RTP
+timestamp and source/clock epoch through Go. Its eight-packet queue holds at
+most 480 ms, splitting longer decoder writes without changing their sample
+timeline. It does not also fill the legacy PCM queue. Authentication and
+stateful codec ordering remain upstream; codec predictor state can advance
+through a loss, but synthetic codec concealment frames are skipped for this
+timed direct sink. NetEq supplies Expand on the device clock, including when
+no following RTP packet arrives.
+
+The player worker bounds its timed ingress to eight frames and applies the
+existing streaming FIR conversion. It resets FIR history on source/clock
+changes. PCM timestamps are mapped with wrap-safe accumulated deltas and
+integer remainder into the device sample rate. NetEq uses its L16 decoder
+and built-in Expand/Merge/Accelerate/PreemptiveExpand. Its packet buffer is
+bounded to 24 parsed packets and its target delay to 240 ms.
+
+`NetEqOutputBuffer` replaces, rather than feeds, the adaptive Python reservoir
+for timed PCM. PortAudio's device callback requests 10 ms blocks directly from
+the native component and retains partial blocks for arbitrary device periods;
+there is no timer-driven second playback queue or additional 120 ms prefill.
+The same ownership gate serializes insertion, rendering and native handle
+lifetime. Stale callbacks render silence without advancing a replacement.
+Strided mono views are supported, preserving multichannel mirroring and the
+existing post-render echo-reference tap. No network, logging or handle cleanup
+runs in the device callback. The upstream algorithm's local CPU/allocation
+cost still needs hardware acceptance; this is not a hard realtime guarantee.
+
+Source/codec epochs, large timestamp discontinuities and device/rate changes
+discard the old native state. Groups, live translation, unsupported device
+rates, missing/incompatible components and legacy peers retain compatible
+playback. Starting live translation releases native transport for that audio
+session. Runtime render failures produce silence and a flag; the worker logs
+once, closes the component and releases native transport back to Socket.IO.
+Device switching still does not emit `call:audio:stop`.
+
+Output capability is checked again when answering reopens the ringing stream
+in exclusive mode. If shared 48 kHz becomes an unsupported rate such as
+44.1 kHz, the transport cancels a pending protocol 2 negotiation or closes its
+active connection. The Go sink then resumes codec concealment for compatible
+playback. A supported rate change keeps native transport; neither transition
+emits a bridge-stop event.
+
+Validation covers native loss/recovery, natural acceleration after a burst,
+Merge on recovery, arbitrary device periods, strided writes, ABI bounds,
+timestamp wrap/source replacement, optional loading and fallback. The built
+DLL is exercised without devices. Real-call/provider/hardware acceptance is
+still outstanding; no end-to-end quality parity is claimed.
+
 ## Answer and stream ownership
 
 Native `Active`/`ready` can arrive during `Answer`, before its return. Audio
@@ -58,10 +206,53 @@ not prove speech intelligibility, physical output routing, or installed acceptan
 ## PCM and clocks
 
 `call_audio_pcm.py` uses a 97-tap streaming Blackman FIR before 3:1 decimation
-(1 ms group delay). It preserves sample count, packet-boundary continuity and
-speech level; it adds no AGC, compressor or noise suppression. Synthetic tests
-measure passband level and alias attenuation. The existing client processing
-and echo cancellation remain responsible for capture/playback processing.
+(1 ms group delay). When `Calls.resample_pcm48_to16` is available, the FIR runs
+in Go through `CallResamplePCM48To16` (neonize patch 0033). The bridge retains
+the 96-sample history and incomplete capture bytes per microphone stream;
+the native function is stateless and accepts at most 100 ms plus history.
+Changing calls, stopping a stream or replacing it discards that history as
+before. PCM48 calls bypass the converter; the native PCM rate/generation
+checks and the 60 ms writer contract are unchanged.
+
+An older binding/DLL, a failed call or an invalid native result selects the
+Python implementation. Since the caller owns the history, fallback retries
+the same window without dropping or replaying samples. Only the exception
+type is logged, once per failed converter instance. No native codec is forced.
+Both paths preserve sample count, packet-boundary continuity and speech level;
+they add no AGC, compressor or noise suppression. Synthetic Go tests compare
+the exact output hash with the Python reference and measure passband level
+and alias attenuation. The compiled-package binding test checks the C boundary
+in CI. The existing client processing and echo cancellation remain responsible
+for capture/playback processing.
+
+This removes the Python FIR loop when the matching DLL is installed. It does
+not remove Socket.IO or change playback thresholds.
+
+## One playback reservoir for direct Neonize audio
+
+The bridge's `chamadaAtiva` queue now advertises meowcaller's optional
+`BufferedAudioSink` capability (neonize 0034, meowcaller 0037). Its downstream
+device callback already owns an adaptive reservoir, so decoded direct-call PCM
+is delivered immediately instead of waiting for the next RTP packet and a
+second native prefill. Sinks without the capability retain the original native
+timestamp alignment and prefill. The group mixer retains its existing policy.
+
+Authentication, packet ordering and codec PLC still precede delivery. The
+immediate path keeps natural decoder lengths, completes a short predecessor
+with bounded silence, excludes already delivered overlapping PCM, and handles
+RTP wrap. It does not enqueue an elapsed network outage after a full frame.
+A new receive SSRC or codec clock resets this timeline, so its fresh origin is
+not mistaken for duplicate audio. Sink changes hand pending PCM over once;
+flush/drain never replay PCM already sent to a buffered sink.
+
+The compatible Python path keeps its Neonize 120 ms prebuffer, 240 ms adaptive
+ceiling, 360 ms cap, fades and underrun/refill policy. Timed NetEq playback
+replaces that reservoir as described above. No WPPConnect setting changes.
+Synthetic Go schedules and the real Python reservoir show first playback at
+60 ms instead of 120 ms for regular 60 ms packets. Bounded jitter and burst
+scenarios preserve PCM without additional underruns; a longer outage retains
+the existing starvation/refill behavior. This is local timing evidence, not a
+measurement of provider, hardware or live end-to-end call latency.
 
 Native `callPCMQueue` retains multi-frame decoder output across short C reads
 instead of dropping bytes beyond the caller's capacity. Capacity is eight

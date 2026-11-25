@@ -32,6 +32,66 @@ class _Socket:
         self.events.append((name, payload))
 
 
+class _PCMTransport:
+    """No socket or base64 API: the session must deliver PCM through the contract."""
+
+    def __init__(self):
+        self.events = []
+
+    def __bool__(self):
+        return False  # injection must use an explicit None check
+
+    def start(self):
+        self.events.append(("start",))
+
+    def send_microphone(self, pcm, **fields):
+        self.events.append(("pcm", pcm, fields))
+
+    def stop(self, **fields):
+        self.events.append(("stop", fields))
+
+
+def test_session_uses_injected_transport_for_pcm_and_lifecycle_without_a_socket():
+    transport = _PCMTransport()
+    session = CallAudioSession(None, CallAudioConfig(session="winzapp"),
+                               transport=transport, sounddevice_module=_SoundDevice())
+    session.set_media_epoch("a" * 32)
+    session._emit_start()
+    pcm = b"\x00\x80\xff\x7f"
+    session._emit_microphone_frame(pcm, "a" * 32)
+    session.stop()
+    owner = {"media_epoch": "a" * 32, "stream_epoch": session._stream_epoch}
+    assert transport.events == [
+        ("start",),
+        ("pcm", pcm, {"sample_rate": CALL_SAMPLE_RATE, **owner}),
+        ("stop", owner),
+    ]
+
+
+def test_injected_transport_never_receives_retired_or_stopped_microphone_frames():
+    transport = _PCMTransport()
+    session = CallAudioSession(None, CallAudioConfig(session="winzapp"),
+                               transport=transport, sounddevice_module=_SoundDevice())
+    session.set_media_epoch("a" * 32)
+    session._emit_microphone_frame(b"\1\0", "b" * 32)
+    session.stop(notify_bridge=False)
+    session._emit_microphone_frame(b"\1\0", "a" * 32)
+    assert transport.events == []
+
+
+def test_injected_transport_receives_muted_pcm_and_device_switch_keeps_bridge_enabled():
+    transport = _PCMTransport()
+    session = CallAudioSession(None, CallAudioConfig(session="winzapp"),
+                               transport=transport, sounddevice_module=_SoundDevice())
+    session.set_microphone_muted(True)
+    session._emit_microphone_frame(b"\xff\x7f", "")
+    session.stop(notify_bridge=False)
+    assert transport.events == [("pcm", b"\0\0", {
+        "sample_rate": CALL_SAMPLE_RATE, "media_epoch": "",
+        "stream_epoch": session._stream_epoch,
+    })]
+
+
 class _InputStream:
     def __init__(self, callback):
         self.callback = callback

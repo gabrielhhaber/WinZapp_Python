@@ -1,0 +1,16 @@
+[package]
+name = "winzapp-call-neteq"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+neteq = { version = "=1.0.1", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

@@ -780,6 +780,10 @@
   <section id="calls" class="wiki-section" aria-labelledby="h-calls">
     <h2 id="h-calls">📞 9. Hovory</h2>
 <p class="lead">Hlasové a videohovory můžete ve WinZappu uskutečňovat, přijímat i odmítat přímo, aniž byste sáhli po telefonu.</p>
+<p>Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání. Funkce pracuje automaticky, když je součást dostupná. Skupinové hovory, živý překlad a zařízení nepodporovaná NetEQ nadále používají kompatibilní přehrávání bez změny nastavení.</p>
+<p>Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO. Není třeba měnit nastavení. Ovládání hovoru nadále používá obvyklé spojení.</p>
+<p>Při individuálních hovorech přes Neonize přichází přijímaný zvuk do vyrovnávací paměti přehrávání bez dvojitého čekání v modulu. Automatické přizpůsobování kolísání síťového zpoždění zůstává aktivní a nevyžaduje změnu nastavení.</p>
+<p>Optimalizace převodu zvuku mikrofonu při hovorech přes Neonize probíhá automaticky a nevyžaduje změnu nastavení. Pokud ji nainstalovaný modul nepodporuje, WinZapp nadále používá kompatibilní zpracování.</p>
 <p>Během individuálního hovoru zvolte Spustit živý překlad. Jen já přehraje řeč druhé osoby ve vašem jazyce. Oba navíc překládá váš mikrofon pro druhou osobu. Původní hlas protistrany můžete při přehrávání překladu ztišit. Výchozí hodnoty nastavíte v Nastavení &gt; Hovory &gt; Živý překlad a klíč Gemini uložíte v nastavení AI. Gemini se připojuje znovu automaticky a během opětovného připojování je k dispozici původní zvuk.</p>
 <p>Zvuk hovorů v Neonize obsahuje opravy ticha po přijetí hovoru, ztracených zvukových snímků a zkreslení při převodu vzorkovací frekvence. Kodek se vybírá automaticky podle WhatsAppu; žádný přepínač kodeku se nenastavuje. Tento experimentální engine stále vyžaduje ověření kvality na skutečných hovorech; stejná kvalita jako u jiných aplikací pro volání není zaručena.</p>
 
@@ -1527,6 +1531,12 @@
 <p class="lead">Každá nová alpha, která přináší funkce, se přidává do návodu. Tento seznam ukazuje, do které alphy je průvodce úplný a co bylo přidáno v každém kole.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co přibylo do návodu</th></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Hovory Neonize: opraven návrat ke kompatibilnímu zvuku, když výhradní výstup používá frekvenci nepodporovanou NetEQ, se zachováním kompenzace ztráty paketů.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Individuální hovory přes Neonize: odstraněno dvojité čekání při příjmu zvuku při zachování automatického přizpůsobování přehrávání kolísání síťového zpoždění.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Hovory přes Neonize: převod zvuku mikrofonu byl optimalizován tak, aby se snížila zátěž Pythonu. Pokud nainstalovaný modul optimalizaci nepodporuje, automaticky se použije dosavadní zpracování.</td></tr>
+
   <tr><td class="field-name">Zatím nevydáno</td><td>Mac: engine Neonize je nyní i ve WinZapp pro Mac, na Apple Silicon i Intel, a připojuje se přímo k WhatsAppu, bez prohlížeče. Vyberte ho v seznamu "Engine připojení" v okně připojení nebo v Nastavení &gt; Připojení.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Připojit pomocí QR kódu: QR kód se zobrazuje i na samostatné přihlašovací stránce, kterou WhatsApp Web na některých počítačích otevírá.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Hlasové zprávy a zvuk lze nyní uložit jako MP3 pomocí seznamu typů souborů v dialogu Uložit jako.</td></tr>

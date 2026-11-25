@@ -117,6 +117,9 @@ jobs:
           go-version: "1.27.x"
           cache: false
 
+      - name: Prepare pinned Rust for NetEq
+        run: rustup toolchain install 1.91.1-x86_64-pc-windows-msvc --profile minimal
+
       - name: Set up uv
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:

@@ -54,3 +54,43 @@ def test_full_scale_never_wraps_or_raises():
     output = unpack(PCM48To16().push(pcm([32767, -32768] * 2400)))
     assert len(output) == 1600
     assert all(-32768 <= value <= 32767 for value in output)
+
+
+@pytest.mark.parametrize("split", [1, 2, 5, 127, 1920, 2048])
+def test_native_windows_preserve_caller_owned_history_and_packet_splits(split):
+    from call_audio_pcm import TAPS
+    windows = []
+    def native(window):
+        windows.append(window)
+        return PCM48To16._convert(window)
+    source = pcm(round(14000 * math.sin(i / 17)) for i in range(4800))
+    converter = PCM48To16(native)
+    parts = b"".join(converter.push(source[i:i+split]) for i in range(0, len(source), split))
+    assert parts == PCM48To16().push(source)
+    assert windows and all((len(w) - 2*(TAPS-1)) % 6 == 0 for w in windows)
+    converter.clear()
+    assert converter.push(pcm([0] * 960)) == pcm([0] * 320)
+    assert windows[-1][:192] == bytes(192)
+
+
+@pytest.mark.parametrize("failure", [None, b"short", "wrong type", RuntimeError("synthetic")])
+def test_native_failure_falls_back_on_the_same_window_without_losing_history(failure, caplog):
+    attempts = []
+    def native(window):
+        attempts.append(window)
+        if len(attempts) == 1:
+            return PCM48To16._convert(window)
+        if isinstance(failure, Exception):
+            raise failure
+        return failure
+    source = pcm(round(18000 * math.sin(i / 23)) for i in range(2880))
+    converter = PCM48To16(native)
+    output = b"".join(converter.push(source[i:i+1920]) for i in range(0, len(source), 1920))
+    assert output == PCM48To16().push(source)
+    assert len(attempts) == 2
+    assert "synthetic" not in caplog.text  # never log native exception detail
+
+
+def test_incomplete_capture_never_calls_native_code():
+    converter = PCM48To16(lambda window: pytest.fail("incomplete native window"))
+    assert converter.push(b"\1\0\2\0\3") == b""
