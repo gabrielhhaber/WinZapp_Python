@@ -11,6 +11,7 @@ NOUTĂȚI
 - Salvare ca (Ctrl+Shift+S) pe un document JSON primit într-o conversație, cum ar fi fișierul de setări app.json, salvează acum fișierul în loc să spună că nu a putut fi descărcat.
 
 - Comenzi rapide: când treceți la alt cont imediat după ce ați schimbat o tastă, contul care apare răspunde la tasta nouă chiar dacă cel anterior încă își salvează setările; înainte putea rămâne pe tasta veche până salva ceva.
+- Motorul Neonize: în fereastra de asociere și în Setări, eticheta Neonize nu mai spune „experimental”, ci „implicit”.
 
 - Apeluri Neonize: corectată revenirea la sunetul compatibil când ieșirea exclusivă folosește o rată neacceptată de NetEQ, păstrând mascarea pierderilor de pachete.
 
@@ -25,6 +26,10 @@ NOUTĂȚI
 - Cehă: WinZapp este acum disponibil în cehă (Čeština): interfața, ghidul de utilizare, programul de instalare și cel de dezinstalare (care urmează limba de afișare din Windows) și aceste note de versiune. Ceha este oferită și ca limbă în care se pot traduce mesaje, iar verificatorul ortografic o acceptă. Mulțumim lui jaxcze pentru traducere.
 
 - Conectați-vă cu codul QR: codul QR apare din nou. În cele mai noi versiuni WhatsApp Web, unele calculatoare primesc o pagină de autentificare separată, doar cu ecranul codului QR, iar pe ea WinZapp încerca să se conecteze până renunța, fără să arate codul. Acum codul QR apare pe această pagină în câteva secunde.
+
+- Deconectat la pornirea WinZapp: cu cele mai noi versiuni WhatsApp Web, WinZapp deschidea pagina separată de autentificare a WhatsApp Web chiar și pentru un cont deja conectat, astfel că, la fiecare pornire a WinZapp, contul revenea deconectat, cu un cod QR, iar un dispozitiv abia conectat cu codul QR sau cu numărul de telefon era deconectat din nou după câteva secunde. WinZapp nu mai deschide această pagină pentru un cont conectat: WhatsApp Web vă deschide conversațiile ca de obicei, iar pagina de autentificare este folosită doar pentru conectare.
+
+- Restaurarea copiei salvate a profilului browserului: când WhatsApp Web se deschidea deconectat și WinZapp restaura ultima copie salvată, restaurarea putea eșua dacă browserul anterior nu terminase de închis, iar WinZapp rămânea cu un profil gol care oferea doar codul QR. Acum WinZapp așteaptă ca acel browser să se închidă înainte de restaurare și nu restaurează cât timp este încă deschis; dacă restaurarea eșuează totuși, profilul existent este pus la loc, astfel încât copia salvată să poată fi restaurată la următoarea încercare.
 
 - Comunități: Enter pe o comunitate din lista de conversații deschide acum panoul Comunități cu acea comunitate selectată și focalizarea pe grupurile ei, în locul conversației comunității. Opțiunea este în Setări > Interfață > Conversații, activată implicit.
 

@@ -11,6 +11,7 @@ WHAT'S NEW
 - Salva con nome (Ctrl+Maiusc+S) su un documento JSON ricevuto in una chat, come il file app.json delle impostazioni, ora salva il file invece di dire che non è stato possibile scaricarlo.
 
 - Scorciatoie da tastiera: passando a un altro account subito dopo aver cambiato un tasto, l’account che compare risponde al tasto nuovo anche mentre il precedente sta ancora salvando le impostazioni; prima poteva restare sul tasto vecchio finché non salvava qualcosa.
+- Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".
 
 - Chiamate Neonize: corretto il ritorno all’audio compatibile quando l’uscita esclusiva usa una frequenza non supportata da NetEQ, mantenendo la compensazione delle perdite di pacchetti.
 
@@ -25,6 +26,10 @@ WHAT'S NEW
 - Ceco: WinZapp è ora disponibile in ceco (Čeština): l'interfaccia, la guida per l'utente, il programma di installazione e di disinstallazione (che seguono la lingua di visualizzazione di Windows) e queste note di rilascio. Il ceco è offerto anche come lingua in cui tradurre i messaggi, e il correttore ortografico lo supporta. Grazie a jaxcze per la traduzione.
 
 - Connettiti con il codice QR: il codice QR torna a comparire. Con le versioni più recenti di WhatsApp Web, alcuni computer ricevono una pagina di accesso separata, con la sola schermata del codice QR, e lì WinZapp continuava a connettersi fino a rinunciare, senza mostrare il codice. Ora il codice QR compare in quella pagina in pochi secondi.
+
+- Disconnessione all'avvio di WinZapp: con le versioni più recenti di WhatsApp Web, WinZapp apriva la pagina di accesso separata di WhatsApp Web anche per un account già collegato, quindi a ogni avvio di WinZapp l'account tornava disconnesso, con un codice QR, e un dispositivo appena collegato con il codice QR o con il numero di telefono veniva scollegato di nuovo pochi secondi dopo. WinZapp non apre più quella pagina per un account collegato: WhatsApp Web apre le tue chat come al solito, e la pagina di accesso serve solo per collegarsi.
+
+- Ripristino della copia salvata del profilo del browser: quando WhatsApp Web si apriva disconnesso e WinZapp ripristinava l'ultima copia salvata, il ripristino poteva fallire se il browser precedente non aveva finito di chiudersi, e WinZapp restava con un profilo vuoto che offriva solo il codice QR. Ora WinZapp attende che quel browser si chiuda prima di ripristinare e non ripristina finché è ancora aperto; se il ripristino fallisce comunque, il profilo che c'era viene rimesso al suo posto, così la copia salvata può ancora essere ripristinata al tentativo successivo.
 
 - Community: Invio su una community nell'elenco delle chat ora apre il pannello Community con quella community selezionata e il focus sui suoi gruppi, invece della chat della community stessa. L'opzione è in Impostazioni > Interfaccia > Chat, attiva per impostazione predefinita.
 

@@ -11,6 +11,7 @@ WHAT'S NEW
 - Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.
 
 - Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
+- Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".
 
 - Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.
 
@@ -25,6 +26,10 @@ WHAT'S NEW
 - Czech: WinZapp is now available in Czech (Čeština): the interface, the user guide, the installer and uninstaller (which follow the Windows display language) and these release notes. Czech is also offered as a language to translate messages into, and the spell checker supports it. Thanks to jaxcze for the translation.
 
 - Connect with QR code: the QR code shows up again. With the latest WhatsApp Web versions, some computers get a separate login page that only has the QR code screen, and on it WinZapp kept connecting until it gave up, without showing the code. The QR code now shows up on that page within a few seconds.
+
+- Logged out when WinZapp starts: with the latest WhatsApp Web versions, WinZapp opened WhatsApp Web's separate login page even for an account that was already linked, so the account came back logged out, showing a QR code, every time WinZapp started, and a device just linked with the QR code or the phone number was dropped again a few seconds later. WinZapp no longer opens that page for a linked account: WhatsApp Web opens your chats as usual, and the login page is only used to link.
+
+- Restoring the saved copy of the browser profile: when WhatsApp Web opened logged out and WinZapp restored the last saved copy, the restore could fail if the previous browser had not finished closing, and WinZapp was left on an empty profile that only offered a QR code. WinZapp now waits for that browser to close before restoring and does not restore while it is still open; if a restore fails anyway, the profile it had is put back, so the saved copy can still be restored on the next attempt.
 
 - Communities: Enter on a community in the chat list now opens the Communities panel with that community selected and the focus on its groups, instead of the community's own chat. Settings > Interface > Chats has the option, on by default.
 

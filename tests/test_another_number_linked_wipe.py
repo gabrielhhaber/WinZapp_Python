@@ -126,10 +126,13 @@ def _resync_thread():
     deterministic — and it must be looked up before the in-flight round is
     released, since a finished thread is gone from enumerate().
     """
-    for thread in threading.enumerate():
-        if thread.name == "another-number-resync":
-            return thread
-    return None
+    # The newest one: a handoff thread an earlier test of this process left
+    # waiting (a round it never released lives up to 10 s) is older, and
+    # joining it instead of this test's own thread made a test assert before
+    # its own worker had finished (CI shard 3/4, 2026-11-25).
+    found = [thread for thread in threading.enumerate()
+             if thread.name == "another-number-resync"]
+    return found[-1] if found else None
 
 
 class _Stub:
@@ -1437,7 +1440,12 @@ class TestTheSpentBoundStillEndsInACorrectiveSync:
         while connected and outside manual offline mode."""
         stub, worker, second = self._exhausted(
             monkeypatch, honours=False, wait=0.2)
-        worker.join(timeout=5)
+        # The worker ends on its own after the 0.2 s wait. The round it waited
+        # on is released only afterwards, and the stub's claim is cleared only
+        # by that round: a worker still running here would retake the claim
+        # after the release and the assertion below would read it.
+        worker.join(timeout=60)
+        assert not worker.is_alive()
         second.finish()
         starts_before = stub.syncs_started
 

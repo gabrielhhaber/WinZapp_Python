@@ -191,6 +191,60 @@ class TestRestoring:
                   encoding="utf-8") as fh:
             assert fh.read() == "live"
 
+    def test_a_browser_recreating_the_profile_mid_restore_leaves_the_original(
+            self, tmp_path, monkeypatch):
+        """2026-11-25, macOS: the old browser had not exited, recreated
+        <profile>/Default as soon as the original was moved aside, and the
+        final rename failed with "Directory not empty". The account was left
+        on that near-empty directory with the original in .broken."""
+        _make_profile(tmp_path, files=(("Default/IndexedDB/x.ldb", "good"),))
+        pr.capture_snapshot(str(tmp_path), "s1")
+        _make_profile(tmp_path, files=(("Default/IndexedDB/x.ldb", "live"),))
+        live = pr.profile_dir(str(tmp_path), "s1")
+        real_copytree = pr.shutil.copytree
+
+        def _copy_while_a_browser_writes(src, dst, *a, **kw):
+            result = real_copytree(src, dst, *a, **kw)
+            os.makedirs(os.path.join(live, "Default"))
+            with open(os.path.join(live, "Default", "Cookies"), "w",
+                      encoding="utf-8") as fh:
+                fh.write("written by the browser")
+            return result
+
+        monkeypatch.setattr(pr.shutil, "copytree", _copy_while_a_browser_writes)
+
+        assert pr.restore_snapshot(str(tmp_path), "s1") is False
+
+        with open(os.path.join(live, "Default", "IndexedDB", "x.ldb"),
+                  encoding="utf-8") as fh:
+            assert fh.read() == "live"
+        assert os.path.isfile(os.path.join(live + ".recreated", "Default", "Cookies"))
+        assert not os.path.exists(live + ".restoring")
+        assert not os.path.exists(live + ".broken")
+
+    def test_after_that_failure_the_next_restore_works(self, tmp_path, monkeypatch):
+        """The point of putting the original back: the snapshot is still
+        there and nothing is left in the way of a second attempt."""
+        _make_profile(tmp_path, files=(("Default/IndexedDB/x.ldb", "good"),))
+        pr.capture_snapshot(str(tmp_path), "s1")
+        _make_profile(tmp_path, files=(("Default/IndexedDB/x.ldb", "live"),))
+        live = pr.profile_dir(str(tmp_path), "s1")
+        real_copytree = pr.shutil.copytree
+
+        def _once(src, dst, *a, **kw):
+            result = real_copytree(src, dst, *a, **kw)
+            os.makedirs(os.path.join(live, "Default"), exist_ok=True)
+            monkeypatch.setattr(pr.shutil, "copytree", real_copytree)
+            return result
+
+        monkeypatch.setattr(pr.shutil, "copytree", _once)
+        assert pr.restore_snapshot(str(tmp_path), "s1") is False
+
+        assert pr.restore_snapshot(str(tmp_path), "s1") is True
+        with open(os.path.join(live, "Default", "IndexedDB", "x.ldb"),
+                  encoding="utf-8") as fh:
+            assert fh.read() == "good"
+
     def test_a_restored_profile_can_be_snapshotted_again(self, tmp_path):
         """The .broken and .partial siblings must not confuse the next round."""
         _make_profile(tmp_path)

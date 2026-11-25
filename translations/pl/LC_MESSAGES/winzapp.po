@@ -6631,8 +6631,8 @@ msgstr "&Silnik połączenia:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_neonize"
-msgid "Neonize (direct connection, experimental)"
-msgstr "Neonize (połączenie bezpośrednie, eksperymentalne)"
+msgid "Neonize (direct connection, default)"
+msgstr "Neonize (połączenie bezpośrednie, domyślne)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"

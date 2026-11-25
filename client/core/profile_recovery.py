@@ -692,11 +692,13 @@ def restore_snapshot(global_dir, session_name, prefer_previous=False):
         return False
     live = profile_dir(global_dir, session_name)
     broken = live + ".broken"
+    staged = live + ".restoring"
+    moved_aside = False
     try:
         shutil.rmtree(broken, ignore_errors=True)
         if os.path.exists(live):
             os.replace(live, broken)
-        staged = live + ".restoring"
+            moved_aside = True
         shutil.rmtree(staged, ignore_errors=True)
         shutil.copytree(source, staged)
         os.makedirs(os.path.dirname(live), exist_ok=True)
@@ -708,13 +710,39 @@ def restore_snapshot(global_dir, session_name, prefer_previous=False):
     except Exception as exc:
         logging.error("[profile-restore] could not restore session %s: %s",
                       session_name[:12], exc)
-        # Put the original back rather than leaving the account with neither.
-        try:
-            if not os.path.exists(live) and os.path.isdir(broken):
-                os.replace(broken, live)
-        except Exception:
-            pass
+        _put_the_original_back(live, broken, staged, moved_aside)
         return False
+
+
+def _put_the_original_back(live, broken, staged, moved_aside):
+    """After a failed restore, leave the account on the profile it had.
+
+    The live directory can exist again by the time the restore fails: a
+    browser that had not finished exiting writes its files by path, so it
+    recreates `<profile>/Default/...` as soon as the original is moved aside,
+    and the final rename then fails with "Directory not empty" (macOS, Errno
+    66, 2026-11-25). Only checking `not os.path.exists(live)` left the account
+    on that near-empty directory, with the original in `.broken` and the copy
+    in `.restoring`: a profile that can only show a QR code, and no restore
+    left to try. So the recreated directory is moved aside too (kept as
+    `.recreated`, like `.broken`, as evidence) and the original goes back,
+    which lets the next attempt restore once the browser has really gone.
+
+    `moved_aside` guards the `.broken` it puts back: one left over from an
+    earlier restore is not this account's current profile.
+    """
+    try:
+        shutil.rmtree(staged, ignore_errors=True)
+        if not moved_aside or not os.path.isdir(broken):
+            return
+        if os.path.exists(live):
+            recreated = live + ".recreated"
+            shutil.rmtree(recreated, ignore_errors=True)
+            os.replace(live, recreated)
+        os.replace(broken, live)
+    except Exception as exc:
+        logging.error("[profile-restore] could not put the original profile "
+                      "back: %s", exc)
 
 
 def has_snapshot(global_dir, session_name, prefer_previous=False):

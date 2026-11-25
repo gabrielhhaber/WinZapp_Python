@@ -11,6 +11,7 @@ YENİLİKLER
 - Bir sohbette alınan JSON belgesinde, örneğin ayarların app.json dosyasında, Farklı Kaydet (Ctrl+Shift+S) artık indirilemediğini söylemek yerine dosyayı kaydeder.
 
 - Kısayollar: bir tuşu değiştirdikten hemen sonra başka bir hesaba geçtiğinizde, önceki hesap ayarlarını hâlâ kaydediyor olsa bile açılan hesap yeni tuşa yanıt verir; önceden bir şey kaydedene kadar eski tuşta kalabiliyordu.
+- Neonize motoru: eşleştirme penceresinde ve Ayarlar'da Neonize etiketi artık "deneysel" yerine "varsayılan" diyor.
 
 - Neonize aramaları: özel çıkış NetEQ tarafından desteklenmeyen bir örnekleme hızı kullandığında, paket kaybı gizleme korunarak uyumlu sese dönülmesi düzeltildi.
 
@@ -25,6 +26,10 @@ YENİLİKLER
 - Çekçe: WinZapp artık Çekçe (Čeština) olarak da kullanılabiliyor: arayüz, kullanım kılavuzu, yükleyici ve kaldırıcı (Windows görüntüleme diline uyar) ve bu sürüm notları. Çekçe ayrıca mesajların çevrileceği bir dil olarak sunulur ve yazım denetimi onu destekler. Çeviri için jaxcze'ye teşekkürler.
 
 - QR kodu ile bağlan: QR kodu yeniden görünüyor. En yeni WhatsApp Web sürümlerinde bazı bilgisayarlar yalnızca QR kodu ekranını içeren ayrı bir giriş sayfası alıyor ve WinZapp bu sayfada kodu göstermeden vazgeçene kadar bağlanmaya çalışıyordu. Artık QR kodu bu sayfada birkaç saniye içinde görünüyor.
+
+- WinZapp açılırken oturumun kapanması: en yeni WhatsApp Web sürümlerinde WinZapp, zaten bağlı olan bir hesap için bile WhatsApp Web'in ayrı giriş sayfasını açıyordu; bu yüzden WinZapp her açıldığında hesap oturumu kapalı ve QR kodu gösterir halde geri geliyordu, QR kodu veya telefon numarasıyla yeni bağlanan bir cihazın bağlantısı da birkaç saniye sonra yeniden kesiliyordu. WinZapp artık bağlı bir hesap için bu sayfayı açmıyor: WhatsApp Web sohbetlerinizi her zamanki gibi açıyor, giriş sayfası yalnızca bağlanmak için kullanılıyor.
+
+- Tarayıcı profilinin kaydedilen kopyasını geri yükleme: WhatsApp Web oturumu kapalı açıldığında ve WinZapp son kaydedilen kopyayı geri yüklediğinde, önceki tarayıcı kapanmayı bitirmemişse geri yükleme başarısız olabiliyordu ve WinZapp yalnızca QR kodu sunan boş bir profilde kalıyordu. WinZapp artık geri yüklemeden önce o tarayıcının kapanmasını bekliyor ve tarayıcı hâlâ açıkken geri yükleme yapmıyor; geri yükleme yine de başarısız olursa önceki profil yerine konuyor, böylece kaydedilen kopya bir sonraki denemede yine geri yüklenebiliyor.
 
 - Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.
 

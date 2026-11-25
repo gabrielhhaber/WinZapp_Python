@@ -369,7 +369,11 @@ Two limits worth knowing: that prompt can be declined, and it never appears in
 `--background` mode, so an install started with Windows keeps its old build
 until someone opens WinZapp in the foreground. When a tester reports calls not
 working, the `Pinning WhatsApp Web to ...` line at the top of `wppconnect.log`
-is the first thing to compare against a working install.
+is the first thing to compare against a working install. If the log also says
+`/ left to WhatsApp`, the pinned document was not the full app and the page
+runs Meta's live build instead (`docs/traps/whatsapp-web-version-pin.md`,
+"Never serve the login document at `/`"): compare the `WhatsApp WEB version`
+line then.
 
 **A catalogue that is old by a few weeks fails the same way, and the cause is
 skew between the pinned page and Meta's live workers (measured 2026-10-01,

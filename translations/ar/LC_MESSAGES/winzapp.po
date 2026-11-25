@@ -6477,8 +6477,8 @@ msgstr "محرك الات&صال:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_neonize"
-msgid "Neonize (direct connection, experimental)"
-msgstr "Neonize (اتصال مباشر، تجريبي)"
+msgid "Neonize (direct connection, default)"
+msgstr "Neonize (اتصال مباشر، الافتراضي)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"

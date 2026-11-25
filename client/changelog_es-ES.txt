@@ -11,6 +11,7 @@ NOVEDADES
 - Guardar como (Ctrl+Shift+S) en un documento JSON recibido en una conversación, como el archivo app.json de la configuración, ahora guarda el archivo, en lugar de decir que no se pudo descargar.
 
 - Atajos de teclado: al pasar a otra cuenta justo después de cambiar una tecla, la cuenta que aparece responde a la tecla nueva aunque la anterior siga guardando su configuración; antes podía quedarse con la tecla antigua hasta guardar algo.
+- Motor Neonize: en la ventana de emparejamiento y en Configuración, la etiqueta de Neonize ya no dice "experimental" y ahora dice "predeterminado".
 
 - Llamadas Neonize: corregido el retorno al audio compatible cuando la salida exclusiva usa una frecuencia no admitida por NetEQ, manteniendo la ocultación de pérdidas.
 
@@ -25,6 +26,10 @@ NOVEDADES
 - Checo: WinZapp ya está disponible en checo (Čeština): la interfaz, la guía del usuario, el instalador y el desinstalador (que siguen el idioma de visualización de Windows) y estas notas de la versión. El checo también se ofrece como idioma al que traducir mensajes, y el corrector ortográfico lo admite. Gracias a jaxcze por la traducción.
 
 - Conectar con código QR: el código QR vuelve a aparecer. Con las versiones más recientes de WhatsApp Web, algunos ordenadores reciben una página de inicio de sesión aparte, solo con la pantalla del código QR, y en ella WinZapp seguía conectando hasta rendirse, sin mostrar el código. Ahora el código QR aparece en esa página en pocos segundos.
+
+- Sesión cerrada al abrir WinZapp: con las versiones más recientes de WhatsApp Web, WinZapp abría la página de inicio de sesión separada de WhatsApp Web incluso para una cuenta ya vinculada, así que la cuenta volvía con la sesión cerrada, mostrando un código QR, cada vez que se abría WinZapp, y un dispositivo recién vinculado con el código QR o con el número de teléfono se desvinculaba de nuevo pocos segundos después. WinZapp ya no abre esa página para una cuenta vinculada: WhatsApp Web abre tus chats como siempre, y la página de inicio de sesión solo se usa para vincular.
+
+- Restauración de la copia guardada del perfil del navegador: cuando WhatsApp Web se abría con la sesión cerrada y WinZapp restauraba la última copia guardada, la restauración podía fallar si el navegador anterior aún no había terminado de cerrarse, y WinZapp se quedaba con un perfil vacío que solo ofrecía el código QR. Ahora WinZapp espera a que ese navegador se cierre antes de restaurar y no restaura mientras siga abierto; si aun así la restauración falla, se vuelve a poner el perfil que había, para que la copia guardada pueda restaurarse en el siguiente intento.
 
 - Comunidades: Intro sobre una comunidad de la lista de chats abre ahora el panel Comunidades con esa comunidad seleccionada y el foco en sus grupos, en lugar del chat de la propia comunidad. La opción está en Ajustes > Interfaz > Chats, activada de forma predeterminada.
 

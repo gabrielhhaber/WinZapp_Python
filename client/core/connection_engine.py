@@ -5,7 +5,7 @@ API, so the rest of the client does not care which one is behind it:
 
 * ``neonize``    -- the neonize bridge (``neonize_bridge/``), a direct
   connection without a browser. It answers on a fixed local address. The
-  engine the pickers list first and preselect (still labelled experimental).
+  engine the pickers list first and preselect (labelled default).
 * ``wppconnect`` -- the bundled WPPConnect server (Node + a browser), labelled
   alternative. Still what an install with no stored choice runs on, and the
   fallback wherever Neonize has no bridge installed.
