@@ -10351,6 +10351,12 @@ msgid "Message text"
 msgstr "Mesaj metni"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "&Uzun satırları kaydır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 gün"
@@ -11386,6 +11392,12 @@ msgstr "Yeni mesajlar için arka plan &bildirimlerini etkinleştir"
 msgctxt "notify_edited_messages_label"
 msgid "Notify messages e&dited by others while in the background"
 msgstr "Arka planda başkalarının &düzenlediği mesajları bildir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Mesajlarınıza gelen tep&kileri bildir"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py

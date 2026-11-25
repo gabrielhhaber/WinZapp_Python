@@ -10423,6 +10423,12 @@ msgid "Message text"
 msgstr "Textul mesajului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "Î&ncadrează rândurile lungi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 zi"
@@ -11467,6 +11473,12 @@ msgstr "Activați &notificările de fundal pentru mesajele noi"
 msgctxt "notify_edited_messages_label"
 msgid "Notify messages e&dited by others while in the background"
 msgstr "Notifică mesajele e&ditate de alții în fundal"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Notifică &reacțiile la mesajele dvs."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py

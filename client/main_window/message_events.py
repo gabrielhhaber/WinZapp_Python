@@ -1940,6 +1940,9 @@ class MessageEventsMixin:
             target_key = reaction.get("key") or {}
             if not target_key.get("fromMe"):
                 return  # reaction to someone else's message — ignore
+            from core.notification_manager import reaction_notifications_enabled
+            if not reaction_notifications_enabled(self.settings):
+                return  # Settings > Notifications, issue #922
 
             ts = msg.get("messageTimestamp")
             if ts:

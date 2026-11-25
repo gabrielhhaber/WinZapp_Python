@@ -13,7 +13,8 @@ import pytest
 import wx
 
 from core.notification_manager import (
-    REACTION_SOUND_EVENT, NotificationManager, reaction_silenced_now,
+    REACTION_SOUND_EVENT, NotificationManager, reaction_notifications_enabled,
+    reaction_silenced_now,
 )
 from core.sound_system import SOUND_EVENTS, Sound, resolve_sound_event_path
 from main import MainWindow
@@ -310,3 +311,32 @@ def test_reaction_is_silenced_by_each_late_chat_state(check):
 def test_reaction_silence_check_tolerates_a_window_without_predicates():
     assert not reaction_silenced_now(SimpleNamespace(), JID)
     assert not reaction_silenced_now(None, JID)
+
+
+# ── Settings > Notifications > "Notify reactions to your messages" (#922) ──
+
+def test_reaction_notifications_are_on_by_default():
+    assert reaction_notifications_enabled({}) is True
+    assert reaction_notifications_enabled(None) is True
+    assert reaction_notifications_enabled({"general": {"notify_reactions": True}}) is True
+    assert reaction_notifications_enabled({"general": {"notify_reactions": False}}) is False
+
+
+@pytest.mark.parametrize("active", [True, False])
+def test_turned_off_a_reaction_is_neither_spoken_played_nor_notified(active):
+    window = _StubMainWindow(open_jid=JID, window_active=active)
+    window.settings["general"]["notify_reactions"] = False
+    window.notification_manager = Mock()
+    window._maybe_notify_reaction(JID, reaction())
+    assert window.reaction_received_sound.play_count == 0
+    assert window.spoken == []
+    window.notification_manager.send.assert_not_called()
+    window.notification_manager.send_sound_only.assert_not_called()
+
+
+def test_turned_on_a_background_reaction_is_still_notified():
+    window = _StubMainWindow(window_active=False)
+    window.settings["general"]["notify_reactions"] = True
+    window.notification_manager = Mock()
+    window._maybe_notify_reaction(JID, reaction())
+    assert window.notification_manager.send.call_count == 1

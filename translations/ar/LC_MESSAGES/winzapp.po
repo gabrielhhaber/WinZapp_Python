@@ -10241,6 +10241,12 @@ msgid "Message text"
 msgstr "نص الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "التفاف الأس&طر الطويلة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "يوم واحد"
@@ -11263,6 +11269,12 @@ msgstr "&تمكين الإشعارات في الخلفية للرسائل الج
 msgctxt "notify_edited_messages_label"
 msgid "Notify messages e&dited by others while in the background"
 msgstr "إ&شعار بالرسائل التي عدّلها آخرون في الخلفية"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "إشعار بردود ال&فعل على رسائلك"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py

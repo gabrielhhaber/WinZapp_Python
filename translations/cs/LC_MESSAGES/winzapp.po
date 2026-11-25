@@ -10311,6 +10311,12 @@ msgid "Message text"
 msgstr "Text zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "Zalamovat &dlouhé řádky"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 den"
@@ -11344,6 +11350,12 @@ msgstr "Zapnout oznámení &na pozadí pro nové zprávy"
 msgctxt "notify_edited_messages_label"
 msgid "Notify messages e&dited by others while in the background"
 msgstr "Oznamovat zprávy u&pravené ostatními, když je okno na pozadí"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Oznamovat &reakce na vaše zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py

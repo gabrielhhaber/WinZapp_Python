@@ -512,6 +512,14 @@ REACTION_SOUND_EVENT = "reaction_received"
 EDIT_SOUND_EVENT = "message_edited_background"
 
 
+def reaction_notifications_enabled(settings) -> bool:
+    """Settings > Notifications > "Notify reactions to your messages" (on by
+    default, issue #922). Off, a reaction to one of your messages is neither
+    spoken, played nor shown in a notification; it still appears on the
+    message and in the chat list."""
+    return ((settings or {}).get("general") or {}).get("notify_reactions", True) is not False
+
+
 def reaction_silenced_now(main_window, remote_jid: str) -> bool:
     """Whether a queued reaction's chat was locked, muted or archived while
     it waited. The predicates only read dicts, so this runs off the wx thread

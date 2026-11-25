@@ -10457,6 +10457,12 @@ msgid "Message text"
 msgstr "Tekst wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "Za&wijaj długie wiersze"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 dzień"
@@ -11506,6 +11512,12 @@ msgid "Notify messages e&dited by others while in the background"
 msgstr ""
 "Powiadamiaj o wiadomościach &edytowanych przez inne osoby, gdy WinZapp jest "
 "w tle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Powiadamiaj o &reakcjach na Twoje wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py

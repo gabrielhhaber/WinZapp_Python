@@ -42,7 +42,9 @@ from core.transcription import (
 from core.wrapped_text import (
     original_range,
     selection_offsets,
-    word_wrap,
+    message_viewer_wraps,
+    native_position,
+    viewer_text,
 )
 
 
@@ -984,11 +986,12 @@ class MessageMenuMixin:
         panel = wx.Panel(dlg)
         sizer = wx.BoxSizer(wx.VERTICAL)
         text_ctrl = wx.TextCtrl(
-            panel, value=word_wrap(text),
+            panel, value=viewer_text(text, message_viewer_wraps(self.main_window.settings)),
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP,
         )
         sizer.Add(text_ctrl, 1, wx.EXPAND | wx.ALL, 8)
-        # The wrap above is only for line-by-line reading. Copying hands out
+        # The wrap above (unless the box below is off, #923) is only for
+        # line-by-line reading. Copying hands out
         # the message as written: the same range of the original, with its
         # spaces where the wrap put breaks. Ctrl+C / Ctrl+Insert are consumed
         # here; the native context menu's Copy arrives as EVT_TEXT_COPY.
@@ -1020,6 +1023,25 @@ class MessageMenuMixin:
 
         text_ctrl.Bind(wx.EVT_KEY_DOWN, _on_text_key)
         text_ctrl.Bind(wx.EVT_TEXT_COPY, _copy_original)
+
+        # "Wrap long lines" (issue #923): off shows only the message's own
+        # line breaks. Both views have the original's length, so the reading
+        # position and the copy above survive the switch.
+        settings = self.main_window.settings
+        wrap_check = wx.CheckBox(panel, label=i18n.t("msg_text_word_wrap"))
+        wrap_check.SetValue(message_viewer_wraps(settings))
+
+        def _on_wrap(event):
+            wrap = wrap_check.GetValue()
+            point = len(text_ctrl.GetRange(0, text_ctrl.GetInsertionPoint()))
+            settings.setdefault("user_interface", {})["message_viewer_word_wrap"] = wrap
+            self.main_window._schedule_save_settings()
+            shown = viewer_text(text, wrap)
+            text_ctrl.ChangeValue(shown)
+            text_ctrl.SetInsertionPoint(native_position(shown, point))
+
+        wrap_check.Bind(wx.EVT_CHECKBOX, _on_wrap)
+        sizer.Add(wrap_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         close_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("close"))
         sizer.Add(close_btn, 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 8)
         panel.SetSizer(sizer)
