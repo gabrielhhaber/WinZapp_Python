@@ -81,6 +81,10 @@ const sleep_1 = { sleep };
 const world = {
   registered: false, latch: false, stream: 'QR', socket: 'CONNECTED',
   reloading: false, browserGone: false, throwing: false, ref: 1,
+  // WhatsApp Web without the Socket/Stream modules (the login-only document,
+  // measured 2026-11-25): wa-js's export is undefined. BackendEventBus keeps
+  // the socket state there (busSocket; null when it has none).
+  noSocket: false, noStream: false, busSocket: null,
 };
 // Page-side listeners; a reload (a new document) drops them.
 let handlers = {};
@@ -94,8 +98,9 @@ globalThis.WPP = {
     getAuthCode: async () => (world.registered ? null : { fullCode: `2@ref${world.ref}`, type: 'multidevice' }),
   },
   whatsapp: {
-    Stream: { get mode() { return world.stream; } },
-    Socket: { get state() { return world.socket; } },
+    get Stream() { return world.noStream ? undefined : { get mode() { return world.stream; } }; },
+    get Socket() { return world.noSocket ? undefined : { get state() { return world.socket; } }; },
+    BackendEventBus: { get socketState() { return world.busSocket; } },
   },
 };
 
@@ -315,6 +320,56 @@ class TestAPageThatNeverOpensTheChats:
         assert run["reports"] == []
 
 
+def _shipped_v2() -> str:
+    """What main and 2.1.3.0 ran before #912: the 240 s check read Socket and
+    Stream in one evaluate."""
+    content = _patched().replace(
+        completion.PATCHED_WAIT_FOR_IN_CHAT, completion.V2_WAIT_FOR_IN_CHAT, 1)
+    assert completion.V2_WAIT_FOR_IN_CHAT in content
+    return content
+
+
+class TestWithoutTheSocketModule:
+    """Issue #912: WhatsApp Web without a Socket module (and, on the login-only
+    document, without Stream either). The 240 s check read both in one
+    evaluate, so one missing module turned both into "unknown"."""
+
+    EVENTS = TestAPageThatNeverOpensTheChats.EVENTS
+
+    def _events(self, world):
+        return self.EVENTS + [[16_000, "set", world]]
+
+    def test_shipped_reports_a_connected_page_as_not_completed(self):
+        run = _run(_shipped_v2(), self._events({"noSocket": True, "busSocket": "CONNECTED"}))
+        assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
+        assert "socket unknown, stream unknown" in run["reports"][0]["message"]
+
+    def test_the_socket_state_comes_from_backend_event_bus(self):
+        run = _run(_patched(), self._events({"noSocket": True, "busSocket": "CONNECTED"}))
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert run["reports"] == []
+
+    def test_a_syncing_stream_counts_when_no_socket_state_is_readable(self):
+        run = _run(_patched(), self._events({"noSocket": True}))
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert run["reports"] == []
+
+    def test_a_bus_that_is_not_connected_still_reaches_the_dialog(self):
+        run = _run(_patched(), self._events({"noSocket": True, "noStream": True, "busSocket": "OPENING"}))
+        assert run["result"]["state"] == "rejected"
+        assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
+        assert "socket OPENING, stream unknown" in run["reports"][0]["message"]
+
+    def test_nothing_readable_still_reaches_the_dialog(self):
+        run = _run(_patched(), self._events({"noSocket": True, "noStream": True}))
+        assert run["result"]["state"] == "rejected"
+        assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
+
+    def test_a_bus_state_never_overrides_the_socket_modules_own(self):
+        run = _run(_patched(), self._events({"socket": "OPENING", "busSocket": "CONNECTED"}))
+        assert run["result"]["state"] == "rejected"
+
+
 class TestDetachedFrameDuringThePairing:
     def test_a_long_probe_outage_with_the_browser_alive_still_logs_in(self):
         """The scan wait gives up after 30 s of failed probes; the login that
@@ -498,6 +553,14 @@ class TestPatchText:
         notes = []
         out = completion.patch_pairing_completion(_shipped_v1(), notes)
         assert out == _patched()
+        assert not any("DID NOT MATCH" in n for n in notes)
+
+    def test_upgrades_the_shipped_v2_in_chat_wait(self):
+        """An install patched before #912 gets the per-module state check."""
+        notes = []
+        out = completion.patch_pairing_completion(_shipped_v2(), notes)
+        assert out == _patched()
+        assert any(n.startswith("waitForInChat pairing bound: upgraded") for n in notes), notes
         assert not any("DID NOT MATCH" in n for n in notes)
 
     def test_upgrades_the_shipped_5944_texts(self):
