@@ -1744,12 +1744,30 @@ def patch_host_layer_source(content: str):
     return content, notes, ok
 
 
+def _carries_upstream_auth_probe_fix(content: str) -> bool:
+    """checkQrCode() as wppconnect 2.3.3+ ships it, also once
+    wppconnect_pairing_completion_patch.py has put its QR-link wait between
+    the probe and `this.isLogged = !needScan` — that runs after this check,
+    so the next launch sees its text, which must not read as DID NOT MATCH."""
+    from core import wppconnect_pairing_completion_patch as completion
+
+    for text in (MANAGED_V233_CHECK_QR_CODE, MANAGED_V235_CHECK_QR_CODE):
+        with_qr_link_wait = text.replace(
+            completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE,
+            completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE,
+            1,
+        )
+        if text in content or with_qr_link_wait in content:
+            return True
+    return False
+
+
 def _patch_managed_link_flow(content: str, notes: list) -> str:
     """wppconnect >= 2.3.2: wa-js owns the code's lifecycle, host.layer.js
     starts it once. See the v9 entry in the module docstring."""
     if MANAGED_PATCHED_CHECK_QR_CODE in content:
         notes.append("checkQrCode: already carries the auth-probe fix.")
-    elif MANAGED_V233_CHECK_QR_CODE in content or MANAGED_V235_CHECK_QR_CODE in content:
+    elif _carries_upstream_auth_probe_fix(content):
         # Left as upstream ships it — see the v10 entry in the module
         # docstring. Recognised rather than ignored so this never reads as
         # DID NOT MATCH, which is the alarm meaning a pairing fix stopped

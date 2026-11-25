@@ -467,6 +467,14 @@ class TestPostLinkReloadContract:
         assert run["reports"][0]["at"] <= run["result"]["at"]
         assert _new_code_or_qr_after_acceptance(run, method) == []
 
+    def test_both_methods_get_the_same_reload_and_bound(self, method):
+        """A QR link is not thrown away sooner than a phone-code one: the
+        restore wait leaves the end to waitForInChat(), which reloads once at
+        90 s and only then gives up."""
+        run = _run(_patched(), _post_link_reload(restored_at=None), method=method)
+        assert "page.reload()" in [r["why"] for r in run["reloads"]]
+        assert run["reports"][0]["at"] >= LINK_ACCEPTED_AT + completion.PAIRING_GIVE_UP_AFTER_MS
+
     def test_a_second_reload_during_the_restore_still_connects(self, method):
         events = _post_link_reload(restored_at=RELOAD_AT + 30_000) + [
             [RELOAD_AT + 10_000, "reload", None],
@@ -523,7 +531,55 @@ class TestPatchText:
         src = "async waitForLogin() {}\nasync waitForInChat() {}\n"
         notes = []
         assert completion.patch_pairing_completion(src, notes) == src
-        assert sum("DID NOT MATCH" in n for n in notes) == 5
+        assert sum("DID NOT MATCH" in n for n in notes) == 4
+        # checkQrCode()'s wait rides on the in-chat bound, whose alarm is above.
+        assert any(n.startswith("checkQrCode wait after a QR link: left untouched — it needs") for n in notes), notes
+
+    def test_a_2_3_runtime_keeps_upstream_check_qr_code(self):
+        """2.3.x has checkQrCode()'s lines but no bounded waitForInChat()."""
+        src = "async waitForLogin() {}\n" + completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE
+        notes = []
+        assert completion.patch_pairing_completion(src, notes) == src
+        assert "checkQrCode wait after a QR link: not in this file — nothing to patch." in notes
+
+    def test_the_qr_link_wait_needs_the_bounded_in_chat_wait(self):
+        """A waitForInChat() whose text moved leaves checkQrCode() upstream's:
+        without the bound and wzPairingSettled the wait would swallow every
+        later QR request in the run."""
+        moved = UPSTREAM.replace(
+            completion.ORIGINAL_WAIT_FOR_IN_CHAT,
+            completion.ORIGINAL_WAIT_FOR_IN_CHAT.replace("return this.isInChat;", "return !!this.isInChat;"),
+            1,
+        )
+        assert moved != UPSTREAM
+        notes = []
+        out = completion.patch_pairing_completion(moved, notes)
+        assert completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE not in out
+        assert completion.ORIGINAL_CHECK_QR_CODE_AFTER_PROBE in out
+        assert "wzPairingSettled" not in out
+        assert "waitForInChat pairing bound: DID NOT MATCH the known source text — left untouched." in notes
+        assert any(n.startswith("checkQrCode wait after a QR link: left untouched — it needs") for n in notes), notes
+
+    def test_a_patched_managed_host_layer_stays_ok_on_every_launch(self):
+        """The full host.layer.js patch runs on every launch: once part 6 sits
+        inside 2.3.5+'s checkQrCode(), its auth-probe check must still
+        recognise the function, or every launch raises DID NOT MATCH."""
+        from tests.test_pairing_code_patch import _managed_source
+
+        for head in (host.MANAGED_V233_CHECK_QR_CODE, host.MANAGED_V235_CHECK_QR_CODE):
+            content = _managed_source(
+                checkqrcode_text=head
+                + completion.ORIGINAL_CHECK_IN_CHAT_PROBE
+                + completion.ORIGINAL_WAIT_FOR_IN_CHAT
+            )
+            first, notes, ok = host.patch_host_layer_source(content)
+            assert ok, notes
+            assert completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE in first
+            for _launch in range(2):
+                again, notes, ok = host.patch_host_layer_source(first)
+                assert ok, notes
+                assert again == first
+                assert any("no patch needed" in n for n in notes), notes
 
     def test_the_patched_excerpt_parses(self):
         node = _node()
@@ -537,6 +593,10 @@ class TestPatchText:
         assert "this.wzLinkedThisRun === true" in patched
         assert "!(this.options.deviceSyncTimeout > 0)" in patched
         assert "this.wzLinkedThisRun = true;" in completion.PATCHED_POST_SCAN_CHECK
+        qr_wait = completion.PATCHED_CHECK_QR_CODE_AFTER_PROBE
+        assert "this.wzLinkedThisRun === true" in qr_wait
+        assert "!(this.options.deviceSyncTimeout > 0)" in qr_wait
+        assert "wzReportPairingNotCompleted" not in qr_wait  # waitForInChat()'s to report
 
     def test_the_live_host_layer_is_patched_and_stays_idempotent(self):
         path = ROOT.joinpath("client", "api", "node_modules", "@wppconnect-team",
@@ -545,4 +605,6 @@ class TestPatchText:
             pytest.skip("client/api is not set up")
         live, notes, ok = host.patch_host_layer_source(path.read_text(encoding="utf-8"))
         assert ok, notes
-        assert host.patch_host_layer_source(live)[0] == live
+        again, notes, ok = host.patch_host_layer_source(live)
+        assert ok, notes  # the next launch, over the file this one wrote
+        assert again == live
