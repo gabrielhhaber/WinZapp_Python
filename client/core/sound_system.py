@@ -45,6 +45,9 @@ class SoundSystem:
         # apply_output_device(), read by handle_playback_failure().
         self._configured_output_device = ""
         self._warned_output_failure = False
+        # (kind, device name) pairs already announced as unavailable this
+        # session, so each missing device is spoken once, not per apply.
+        self._announced_device_failures = set()
         self._last_recovery_at = None
         # Optional SEPARATE output device for one-shot UI effect sounds (the
         # Sound class), so alerts can play on a different device than voice/
@@ -333,8 +336,8 @@ class SoundSystem:
         it — there is only one). An empty name means "system default".
 
         On failure the device is left on the system default (never in a
-        half-freed state) and, if `warn_on_failure`, a message box names the
-        device and explains playback fell back to the default. Returns
+        half-freed state) and, if `warn_on_failure`, the user is told once per
+        session, by speech, that playback fell back to the default. Returns
         whether the requested device is the one actually active afterwards.
         """
         self._configured_output_device = device_name or ""
@@ -435,18 +438,31 @@ class SoundSystem:
         return False
 
     def _warn_device_failure(self, kind: str, device_name: str):
-        """Show the "device failed to open" message box, unless running in
-        the no-UI --background autostart mode."""
+        """Say, once per session, that a configured device could not be
+        opened and the system default is used instead.
+
+        Spoken, never a message box: this runs at startup, where a modal box
+        sat on the UI thread in front of the queued Node spawn until the user
+        answered it, so an unattended launch with headphones unplugged ended
+        in "API failed to start in time" and the app closed. The setting is
+        not touched, so the device is used again once it is back. Skipped in
+        the no-UI --background autostart mode, as the box was.
+        """
+        announced = self._announced_device_failures
+        logging.warning(
+            "[sound_system] Configured %s device unavailable; using the system default",
+            kind,
+        )
+        if (kind, device_name) in announced:
+            return
+        announced.add((kind, device_name))
         if getattr(self.main_window, "background_mode", False):
             return
-        i18n = self.main_window.i18n
         key = "audio_device_failed_output" if kind == "output" else "audio_device_failed_input"
-        wx.CallAfter(
-            wx.MessageBox,
-            i18n.t(key).format(device=device_name),
-            i18n.t("error").format(app_name=self.main_window.app_name),
-            wx.OK | wx.ICON_WARNING,
-        )
+        text = self.main_window.i18n.t(key).format(device=device_name)
+        speak_output = getattr(self.main_window, "speak_output", None)
+        if speak_output is not None:
+            wx.CallAfter(speak_output.output, text)
 
     #: Floor between two output-device recoveries. See handle_playback_failure().
     _RECOVERY_COOLDOWN_SECONDS = 5.0

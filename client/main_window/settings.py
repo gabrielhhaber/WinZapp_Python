@@ -1603,16 +1603,17 @@ class SettingsMixin:
 
     def _apply_configured_audio_devices(self):
         """Finish applying the Settings > Audio Devices output/input device
-        choices, and warn if either failed.
+        choices, and say so (once per session, never a modal box) if either
+        failed.
 
         The output device itself was already switched to right after the
         sound system started (before load_sounds(), see __init__) — this
         call is deliberately a no-op if that already succeeded (Output.
         set_device() only does real work when the target device differs
         from the current one) and exists here purely to surface the failure
-        message box, which needs i18n (not ready yet at that earlier point).
+        notice, which needs i18n (not ready yet at that earlier point).
         A device that isn't found or fails to open falls back to the
-        Windows default and warns — the stored setting is left as-is so the
+        system default and is announced — the stored setting is left as-is so the
         same device is retried on the next launch (see
         core.sound_system.SoundSystem and the Settings dialog's own
         validation for the other two points this same policy applies at).
@@ -1631,12 +1632,10 @@ class SettingsMixin:
             idx = find_input_device_index(input_name)
             if idx is not None and test_input_device(idx):
                 self.effective_input_device_name = input_name
-            elif not self.background_mode:
-                wx.MessageBox(
-                    self.i18n.t("audio_device_failed_input").format(device=input_name),
-                    self.i18n.t("error").format(app_name=self.app_name),
-                    wx.OK | wx.ICON_WARNING,
-                )
+            else:
+                # Spoken, not a modal box: this runs during startup, ahead of
+                # the queued Node spawn (see SoundSystem._warn_device_failure).
+                self.sound_system._warn_device_failure("input", input_name)
 
     def _resolve_message_background_path(self) -> str:
         """Resolve the message_background Sound Events entry: '' if the user

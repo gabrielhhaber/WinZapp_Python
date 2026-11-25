@@ -5,6 +5,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 YENİLİKLER
 
 - macOS: eşleştirme penceresinde başka bir bağlantı motoru seçmek artık WinZapp'ı o motorla yeniden başlatıyor. Önceden WinZapp'ın kendi kendine yeniden başlatılamadığı söyleniyor ve motor değiştirilmiyordu.
+- Ayarlar'da seçilen oynatma ya da kayıt cihazı, örneğin kulaklık, WinZapp başlarken bağlı değilse WinZapp artık bunu bir kez sesli olarak bildirir ve sistemin varsayılan cihazını kullanır; her açılışta bir ileti kutusu göstermez. Kutu yanıtlanana kadar açılışı bekletiyordu, bu yüzden bilgisayar başında kimse yokken yapılan bir açılış, WinZapp API'nin zamanında başlatılamadığını söyleyen bir hatayla bitiyor ve program kapanıyordu. Seçilen cihaz korunur ve bağlandığı anda yeniden kullanılır.
+
 - macOS: daha yeni WhatsApp Web sürümleri denetimi artık python.org Python'u yüklü olmayan Mac'lerde çalışıyor. Daha önce günlüğün "offline" olarak kaydettiği bir sertifika hatasıyla başarısız oluyordu; bu yüzden sürüm listesi hiç güncellenmiyor ve WhatsApp, WinZapp'in kullandığı sürümü sunmayı bıraktığında WPPConnect artık bağlanamıyordu.
 
 - Neonize motoru: eşleştirme penceresinde ve Ayarlar'da Neonize etiketi artık "deneysel" yerine "varsayılan" diyor.

@@ -672,7 +672,7 @@
   <li><strong>Avanzar y retroceder:</strong> Shift+Flecha derecha/izquierda mueve 5 segundos; Shift+Av Pág/Re Pág mueve 1 minuto; Shift+Inicio y Shift+Fin van al principio y al final de lo que suena.</li>
   <li>Los mensajes de voz siguientes se reproducen en secuencia, salvo que desmarques "Reproducir mensajes de voz en secuencia automáticamente" en Configuración &gt; Interfaz de usuario. Durante la secuencia, la fila con el foco espera para actualizar su estado, para que el lector de pantalla no hable por encima del audio.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pausa o reanuda el audio que suena, desde cualquier panel.</li>
-  <li>Si cambia el dispositivo de salida (se desenchufan los auriculares, por ejemplo), WinZapp cambia al dispositivo predeterminado y reproduce el mensaje la primera vez.</li>
+  <li>Si cambia el dispositivo de salida (se desenchufan los auriculares, por ejemplo), WinZapp cambia al dispositivo predeterminado y lo avisa una vez por voz. El dispositivo elegido en Configuración se conserva y se vuelve a usar en cuanto se conecta, también si no estaba conectado al iniciar WinZapp.</li>
   <li>Si la tarjeta de sonido no está disponible (por ejemplo, al reactivar el equipo), WinZapp intenta restaurar la salida de audio cuando falla una reproducción; si aun así no consigue reproducir, lo avisa mediante el lector de pantalla.</li>
   <li>En la configuración hay una opción para no marcar los audios como reproducidos.</li>
 </ul>
@@ -1531,6 +1531,7 @@
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
+  <tr><td class="field-name">Aún no publicado</td><td>Cuando el dispositivo de reproducción o de grabación elegido en la Configuración no está conectado al iniciar WinZapp, WinZapp lo avisa una vez por voz y usa el dispositivo predeterminado del sistema, en lugar de un cuadro de mensaje.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Motor Neonize: la etiqueta de Neonize en la ventana de emparejamiento y en Configuración ya no dice "experimental" y ahora dice "predeterminado".</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Llamadas Neonize: corregido el retorno al audio compatible cuando la salida exclusiva usa una frecuencia no admitida por NetEQ, manteniendo la ocultación de pérdidas.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Llamadas individuales Neonize: reproducción con NetEQ para suavizar las variaciones de red y las pérdidas de audio, con retorno automático al modo compatible.</td></tr>
