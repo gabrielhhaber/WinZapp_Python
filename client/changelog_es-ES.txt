@@ -4,6 +4,7 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
+- macOS: elegir otro motor de conexión en la ventana de vinculación ahora reinicia WinZapp con él. Antes decía que WinZapp no pudo reiniciarse por sí solo, y el motor no se cambiaba.
 - macOS: la comprobación de versiones más recientes de WhatsApp Web ahora funciona en Macs sin el Python de python.org instalado. Fallaba con un error de certificado que el registro anotaba como "offline", así que la lista de versiones nunca se actualizaba y, cuando WhatsApp dejaba de servir la versión que usaba WinZapp, WPPConnect ya no podía conectarse.
 
 - Motor Neonize: en la ventana de emparejamiento y en Configuración, la etiqueta de Neonize ya no dice "experimental" y ahora dice "predeterminado".

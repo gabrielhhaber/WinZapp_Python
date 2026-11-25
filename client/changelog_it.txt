@@ -4,6 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- macOS: scegliere un altro motore di connessione nella finestra di associazione ora riavvia WinZapp con quel motore. Prima diceva che WinZapp non era riuscito a riavviarsi automaticamente e il motore non veniva cambiato.
 - macOS: il controllo delle versioni più recenti di WhatsApp Web ora funziona sui Mac senza Python di python.org installato. Falliva con un errore di certificato che il registro segnava come "offline", quindi l'elenco delle versioni non si aggiornava mai e, quando WhatsApp smetteva di servire la versione usata da WinZapp, WPPConnect non riusciva più a connettersi.
 
 - Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".

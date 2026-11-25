@@ -4,6 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- macOS: wybranie innego silnika połączenia w oknie łączenia uruchamia teraz WinZapp ponownie z tym silnikiem. Wcześniej pojawiał się komunikat, że WinZapp nie mógł uruchomić się ponownie samodzielnie, a silnik nie był zmieniany.
 - macOS: sprawdzanie nowszych wersji WhatsApp Web działa teraz na Macach bez zainstalowanego Pythona z python.org. Wcześniej kończyło się błędem certyfikatu, który dziennik zapisywał jako "offline", więc lista wersji nigdy się nie aktualizowała, a gdy WhatsApp przestawał udostępniać wersję używaną przez WinZapp, WPPConnect nie mógł się już połączyć.
 
 - Silnik Neonize: w oknie łączenia z kontem i w Ustawieniach etykieta Neonize nie mówi już „eksperymentalne”, tylko „domyślne”.
