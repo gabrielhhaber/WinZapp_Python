@@ -25,9 +25,16 @@ def dependency_notices(metadata):
     return '\n\n'.join(result)
 
 
+def _has_toolchain(cargo, env):
+    probe = subprocess.run([cargo, f'+{RUST}-{TARGET}', '--version'], env=env,
+                           capture_output=True, text=True)
+    return probe.returncode == 0
+
+
 def build(package, *, system="windows"):
+    """Build the sidecar into `package`; False when it was skipped."""
     if system != "windows":
-        return
+        return False
     root = Path(__file__).resolve().parents[1]
     work = root / 'neonize_bridge/neonize_build'
     source = root / 'native/call_neteq'
@@ -38,8 +45,11 @@ def build(package, *, system="windows"):
     if cargo is None and portable.is_file():
         cargo = str(portable)
         env.update(CARGO_HOME=str(work / 'tools/cargo'), RUSTUP_HOME=str(work / 'tools/rustup'))
-    if cargo is None:
-        raise RuntimeError('NetEq build requires Rust: install rustup and toolchain 1.91.1-x86_64-pc-windows-msvc')
+    if cargo is None or not _has_toolchain(cargo, env):
+        # The sidecar is optional: without it calls keep the compatible playback.
+        print(f'WARNING: Rust {RUST}-{TARGET} not found; building without the NetEq sidecar '
+              '(install rustup and that toolchain to include it)', flush=True)
+        return False
     subprocess.run([cargo, f'+{RUST}-{TARGET}', 'build', '--release', '--locked',
                     '--manifest-path', str(source / 'Cargo.toml'), '--target', TARGET],
                    env=env, check=True)
@@ -61,3 +71,4 @@ def build(package, *, system="windows"):
                 shutil.copy2(rust_licenses / name, target / name)
         if (rust_licenses / 'licenses').is_dir():
             shutil.copytree(rust_licenses / 'licenses', target / 'licenses', dirs_exist_ok=True)
+    return True

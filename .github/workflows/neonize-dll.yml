@@ -310,6 +310,9 @@ jobs:
           update: false
           install: mingw-w64-ucrt-x86_64-gcc
 
+      - name: Prepare pinned Rust for NetEq
+        run: rustup toolchain install 1.91.1-x86_64-pc-windows-msvc --profile minimal
+
       - name: Add MSYS2 UCRT64 bin to Windows PATH
         shell: msys2 {0}
         run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"

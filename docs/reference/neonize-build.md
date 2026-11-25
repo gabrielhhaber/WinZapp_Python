@@ -30,9 +30,10 @@ What the patches carry today:
   `native/call_neteq` with Rust 1.91.1 (`x86_64-pc-windows-msvc`), Cargo.lock,
   and Visual C++ Build Tools. It uses a static CRT and ships its notices.
   Sources, lockfile and helper invalidate the installed artifact identity.
-  Source builders need `rustup toolchain install
-  1.91.1-x86_64-pc-windows-msvc --profile minimal`; published artifacts need
-  no Rust installation. CI builds/tests the component with one Cargo worker.
+  The sidecar is optional: source builders who want it run `rustup toolchain
+  install 1.91.1-x86_64-pc-windows-msvc --profile minimal`; without that
+  toolchain the build skips it with a warning and calls keep the compatible
+  playback (release workflows install it). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
 
 - **neonize 0034 / meowcaller 0037**: the bridge queue opts into
   `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing
