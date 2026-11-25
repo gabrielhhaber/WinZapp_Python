@@ -178,15 +178,108 @@ class TestAFullDocument:
         assert result["warnings"] == []
 
 
+WRAPPER_HARNESS = r"""
+'use strict';
+const path = require('path');
+const scenario = JSON.parse(process.argv[2]);
+const warnings = [];
+console.log = () => {};
+console.error = () => {};
+console.warn = (m) => warnings.push(m);
+const distPath = '/fake/dist';
+let pinnedCatalogueExpired = scenario.expired;
+const waVersion = { getPageContent: () => scenario.catalogue };
+async function fetchLiveWhatsappDocument() {
+  return scenario.live === null ? null : { channel: 'fetchLatest', html: scenario.live };
+}
+const originalCalls = [];
+const browserController = {
+  initWhatsapp: async (page, token, clear, version) => {
+    originalCalls.push({ version: version === undefined ? null : version });
+  },
+};
+const fakeRequire = Object.assign((p) => {
+  if (p.includes('controllers')) return browserController;
+  throw new Error('not available in the test: ' + p);
+}, { resolve: () => '/fake/wppconnect/package.json' });
+
+const api = (function (require) {
+__SOURCE__
+  return { patchWppconnectVersionPinning };
+})(fakeRequire);
+
+(async () => {
+  const sent = [];
+  const handlers = {};
+  const cdp = {
+    send: async (method, params) => { sent.push({ method, params }); return {}; },
+    on: (event, handler) => { handlers[event] = handler; },
+  };
+  const page = { createCDPSession: async () => cdp, on: () => {}, mainFrame: () => null };
+  api.patchWppconnectVersionPinning();
+  await browserController.initWhatsapp(page, 'token', false, '2.3000.1056179073-alpha', null, null);
+  await handlers['Fetch.requestPaused']({ requestId: 'r0', request: { url: 'https://web.whatsapp.com/' } });
+  const answers = sent.filter((c) => c.method !== 'Fetch.enable').map((c) => ({
+    method: c.method,
+    body: c.params.body ? Buffer.from(c.params.body, 'base64').toString() : null,
+  }));
+  process.stdout.write('__RESULT__' + JSON.stringify({ answers, warnings, originalCalls }));
+})();
+"""
+
+
+def _wrapper_source():
+    """From the document check through the end of the real initWhatsapp
+    wrapper: the wrapper itself runs, not a reading of its text."""
+    source = START_JS.read_text(encoding="utf-8")
+    start = source.index("const FULL_APP_DOCUMENT_MARKERS")
+    wrapper = source.index("function patchWppconnectVersionPinning(", start)
+    end = source.index("\n}\n", wrapper) + 3
+    return source[start:end]
+
+
+def _run_wrapper(tmp_path, *, catalogue, live=None, expired=False):
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    script = tmp_path / "wrapper.js"
+    script.write_text(WRAPPER_HARNESS.replace("__SOURCE__", _wrapper_source()), encoding="utf-8")
+    scenario = {"catalogue": catalogue, "live": live, "expired": expired}
+    out = subprocess.run(
+        [node, str(script), json.dumps(scenario)],
+        capture_output=True, text=True, timeout=60, check=True,
+    ).stdout
+    return json.loads(out.split("__RESULT__", 1)[1])
+
+
 class TestTheWrapperUsesIt:
-    def test_initwhatsapp_passes_the_checked_document(self):
-        """The decision only matters if the wrapper hands its result, not the
-        raw catalogue body, to the interception."""
-        source = START_JS.read_text(encoding="utf-8")
-        wrapper = source[source.index("function patchWppconnectVersionPinning("):]
-        assert "pinnedDocumentForRoot(body, version)" in wrapper
-        assert "installPinnedPageInterception(page, rootBody, log)" in wrapper
-        assert "installPinnedPageInterception(page, body, log)" not in wrapper
+    """The real initWhatsapp wrapper, driven end to end: the decision only
+    matters if the wrapper hands its result, not the raw body, to the
+    interception, on the catalogue path and on the expired-catalogue one."""
+
+    def test_a_login_only_catalogue_document_is_left_to_whatsapp(self, tmp_path):
+        result = _run_wrapper(tmp_path, catalogue=LOGIN_ONLY)
+        assert result["answers"] == [{"method": "Fetch.continueRequest", "body": None}]
+        # Consumed: WPPConnect must not add its blanket interception on top.
+        assert result["originalCalls"] == [{"version": None}]
+
+    def test_a_full_catalogue_document_is_served(self, tmp_path):
+        result = _run_wrapper(tmp_path, catalogue=FULL_APP)
+        assert result["answers"] == [{"method": "Fetch.fulfillRequest", "body": FULL_APP}]
+        assert result["originalCalls"] == [{"version": None}]
+
+    def test_the_live_document_of_an_expired_catalogue_is_checked_too(self, tmp_path):
+        result = _run_wrapper(tmp_path, catalogue=FULL_APP, live=LOGIN_ONLY, expired=True)
+        assert result["answers"] == [{"method": "Fetch.continueRequest", "body": None}]
+
+    def test_the_log_names_the_live_document_not_the_catalogue_build(self, tmp_path):
+        result = _run_wrapper(tmp_path, catalogue=FULL_APP, live=LOGIN_ONLY, expired=True)
+        refused = [w for w in result["warnings"] if "is WhatsApp's login-only page" in w]
+        assert refused and all("live from Meta via fetchLatest" in w for w in refused)
+
+    def test_a_full_live_document_is_served(self, tmp_path):
+        result = _run_wrapper(tmp_path, catalogue=LOGIN_ONLY, live=FULL_APP, expired=True)
+        assert result["answers"] == [{"method": "Fetch.fulfillRequest", "body": FULL_APP}]
 
 
 CATALOGUE = ROOT / "client" / "api" / "node_modules" / "@wppconnect" / "wa-version" / "html"

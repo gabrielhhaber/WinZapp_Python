@@ -3387,7 +3387,10 @@ export async function getHistorySyncStatus(req: Request, res: Response) {
       //     including the workers, is fetched live and unintercepted. A page
       //     reporting a version other than the one start.js logged pinning is
       //     a version split, which is exactly the shape of a handshake that
-      //     stalls with no error.
+      //     stalls with no error — unless start.js also logged "/ left to
+      //     WhatsApp": the pinned document was not the full app, so the page
+      //     runs Meta's live build on purpose (docs/traps/
+      //     whatsapp-web-version-pin.md, "Never serve the login document").
       //   serviceWorker — a controlling service worker can serve the current
       //     build's assets past the document-only interception.
       await safe('pageVisibility', () => document.visibilityState);
