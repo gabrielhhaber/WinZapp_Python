@@ -483,6 +483,24 @@ class TestASuccessfulRestoreGivesBackTheQrFloodAllowance:
         MainWindow._recover_suspect_profile(stub)
         assert recorded == []
 
+    def test_a_profile_still_held_by_the_browser_is_never_overwritten(
+            self, restoring, monkeypatch):
+        """wait_for_profile_release() answers False when the browser is still
+        there after the wait and the kill. Copying then writes under a running
+        browser, which recreated the profile half way through a restore on
+        2026-11-25."""
+        restored = []
+        monkeypatch.setattr("core.profile_recovery.restore_snapshot",
+                            lambda *a, **kw: restored.append(a) or True)
+        stub = _Stub()
+        stub.wait_for_profile_release = lambda session_name, timeout=20.0: False
+
+        MainWindow._recover_suspect_profile(stub)
+
+        assert restored == []
+        assert "profile_corrupted_repair_needed" in stub.announced
+        assert any("browser still held" in a for a in stub.audits)
+
     def test_a_failed_restore_leaves_the_flood_counter_alone(self, restoring):
         """Nothing was moved aside, so the codes counted so far are real ones
         and the ceiling on them has to keep applying — the halt is the only

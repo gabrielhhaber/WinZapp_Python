@@ -19,6 +19,7 @@ NOVINKY
 - Připojit pomocí QR kódu: QR kód se znovu zobrazuje. V nejnovějších verzích WhatsApp Web dostávají některé počítače samostatnou přihlašovací stránku jen s obrazovkou QR kódu a WinZapp se na ní připojoval, dokud to nevzdal, aniž by kód zobrazil. Nyní se na této stránce QR kód zobrazí během několika sekund.
 
 - Odhlášení při spuštění WinZappu: s nejnovějšími verzemi WhatsApp Web otevíral WinZapp samostatnou přihlašovací stránku WhatsApp Web i pro účet, který už byl propojený, takže se účet při každém spuštění WinZappu vrátil odhlášený s QR kódem a zařízení právě propojené QR kódem nebo telefonním číslem se po několika sekundách znovu odpojilo. WinZapp už tuto stránku pro propojený účet neotevírá: WhatsApp Web otevře vaše chaty jako obvykle a přihlašovací stránka slouží jen k propojení.
+- Obnovení uložené kopie profilu prohlížeče: když se WhatsApp Web otevřel odhlášený a WinZapp obnovoval poslední uloženou kopii, obnovení mohlo selhat, pokud se předchozí prohlížeč ještě nestihl zavřít, a WinZapp zůstal s prázdným profilem, který nabízel jen QR kód. WinZapp teď před obnovením počká, až se ten prohlížeč zavře, a dokud je otevřený, neobnovuje; pokud obnovení přesto selže, vrátí se původní profil, takže uloženou kopii lze obnovit při dalším pokusu.
 
 - Komunity: Enter na komunitě v seznamu chatů nově otevře panel Komunity s vybranou komunitou a fokusem na jejích skupinách, místo chatu samotné komunity. Volba je v Nastavení > Rozhraní > Chaty a ve výchozím stavu je zapnutá.
 

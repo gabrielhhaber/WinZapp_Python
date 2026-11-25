@@ -19,6 +19,7 @@ WHAT'S NEW
 - Connect with QR code: the QR code shows up again. With the latest WhatsApp Web versions, some computers get a separate login page that only has the QR code screen, and on it WinZapp kept connecting until it gave up, without showing the code. The QR code now shows up on that page within a few seconds.
 
 - Logged out when WinZapp starts: with the latest WhatsApp Web versions, WinZapp opened WhatsApp Web's separate login page even for an account that was already linked, so the account came back logged out, showing a QR code, every time WinZapp started, and a device just linked with the QR code or the phone number was dropped again a few seconds later. WinZapp no longer opens that page for a linked account: WhatsApp Web opens your chats as usual, and the login page is only used to link.
+- Restoring the saved copy of the browser profile: when WhatsApp Web opened logged out and WinZapp restored the last saved copy, the restore could fail if the previous browser had not finished closing, and WinZapp was left on an empty profile that only offered a QR code. WinZapp now waits for that browser to close before restoring and does not restore while it is still open; if a restore fails anyway, the profile it had is put back, so the saved copy can still be restored on the next attempt.
 
 - Communities: Enter on a community in the chat list now opens the Communities panel with that community selected and the focus on its groups, instead of the community's own chat. Settings > Interface > Chats has the option, on by default.
 
