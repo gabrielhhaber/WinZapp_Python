@@ -86,3 +86,70 @@ def test_a_bridge_without_the_dylib_for_this_mac_stops_the_build(tmp_path):
 def test_a_bridge_that_is_not_executable_stops_the_build(tmp_path):
     with pytest.raises(SystemExit, match="not executable"):
         _bundle(tmp_path, _Freezer(tmp_path, executable=False))
+
+
+class _Process:
+    """subprocess.Popen stand-in for the background freeze."""
+
+    def __init__(self, code=0, running=False):
+        self.code, self.running, self.terminated = code, running, False
+
+    def wait(self, timeout=None):
+        return self.code
+
+    def poll(self):
+        return None if self.running else self.code
+
+    def terminate(self):
+        self.terminated = True
+
+    def kill(self):
+        self.terminated = True
+
+
+def test_the_freeze_runs_this_script_in_a_child_with_its_output_in_a_log(tmp_path):
+    started = {}
+
+    def popen(command, stdout, stderr):
+        started.update(command=command, log=stdout.name)
+        return _Process()
+
+    freezing = bridge_bundle.start(str(tmp_path / "build"), python="/py", popen=popen)
+    assert started["command"] == ["/py", os.path.abspath(bridge_bundle.__file__), "freeze",
+                                  str(tmp_path / "build")]
+    assert started["log"] == freezing.log_path == str(tmp_path / "build" / "bridge.log")
+    assert freezing.frozen == str(tmp_path / "build" / "bridge" / "dist" / "neonize_bridge")
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="execute bits")
+def test_a_finished_freeze_lands_in_resources(tmp_path):
+    freezer = _Freezer(tmp_path)
+    frozen = freezer.build(ROOT, str(tmp_path / "build" / "bridge"), None, None)
+    app = tmp_path / "WinZapp.app"
+    (app / "Contents" / "Resources").mkdir(parents=True)
+    freezing = bridge_bundle.Freezing(_Process(), str(tmp_path / "bridge.log"), str(frozen))
+    bridge = bridge_bundle.finish(freezing, str(app), "arm64", log=lambda *_: None, freezer=freezer)
+    assert bridge_bundle.problems(bridge, "arm64") == []
+
+
+def test_a_failed_freeze_stops_the_build_and_shows_its_output(tmp_path):
+    log_path = tmp_path / "bridge.log"
+    log_path.write_text("go: build failed\n")
+    shown = []
+    freezing = bridge_bundle.Freezing(_Process(code=2), str(log_path), str(tmp_path / "none"))
+    with pytest.raises(SystemExit, match="exit 2"):
+        bridge_bundle.finish(freezing, str(tmp_path / "WinZapp.app"), "arm64",
+                             log=shown.append, freezer=_Freezer(tmp_path))
+    assert "go: build failed" in shown[0]
+
+
+def test_a_build_that_stops_early_ends_the_freeze():
+    running, done = _Process(running=True), _Process()
+    bridge_bundle.stop(running)
+    bridge_bundle.stop(done)
+    assert running.terminated and not done.terminated
+
+
+def test_the_child_only_accepts_freeze_and_a_folder():
+    with pytest.raises(SystemExit, match="usage"):
+        bridge_bundle.main(["bundle"])
