@@ -1,4 +1,5 @@
 """Published storage navigation/headings preserve the full locale title."""
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -11,14 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Titles(HTMLParser):
-    def __init__(self):
+    def __init__(self, sid):
         super().__init__()
+        self.sid = sid
         self.active, self.parts, self.navigation, self.headings = None, [], [], []
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == "a" and attrs.get("href") == "#storage":
+        if tag == "a" and attrs.get("href") == "#" + self.sid:
             self.active, self.parts = "a", []
-        if tag == "h2" and attrs.get("id") == "h-storage":
+        if tag == "h2" and attrs.get("id") == "h-" + self.sid:
             self.active, self.parts = "h2", []
     def handle_data(self, data):
         if self.active: self.parts.append(data)
@@ -32,7 +34,9 @@ class Titles(HTMLParser):
 def test_storage_nav_and_heading_keep_the_full_feature_name(locale):
     catalog = polib.pofile(str(ROOT / "translations" / locale / "LC_MESSAGES/winzapp.po"))
     title = catalog.find("storage_manager_title", by="msgctxt").msgstr
-    parsed = Titles()
+    # Section files are named in each guide's own language: 18-<name>.html.
+    section = next((ROOT / "docs/user-guide/sections" / locale).glob("18-*.html"))
+    parsed = Titles(re.sub(r"^\d+-", "", section.stem))
     parsed.feed((ROOT / "client/data/help_guide" / (locale + ".html")).read_text(encoding="utf-8"))
     assert len(parsed.navigation) == 2 and all(text.endswith(title) for text in parsed.navigation)
     assert len(parsed.headings) == 1 and title in parsed.headings[0]

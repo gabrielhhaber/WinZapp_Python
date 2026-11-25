@@ -9,6 +9,7 @@ import types
 import pytest
 
 from core.call_media_ownership import accepts_media_epoch, media_fields, next_stream_epoch
+from core.call_audio_socketio import decode_remote_audio, socketio_binary_to_bytes
 
 A, B = 'a' * 32, 'b' * 32
 
@@ -20,7 +21,9 @@ def socket_methods(*names):
     nodes = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name in names]
     nodes += [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == '_socketio_binary_to_bytes']
     scope = {'base64': base64, 'logging': logging, 'accepts_media_epoch': accepts_media_epoch,
-             'media_fields': media_fields, 'next_stream_epoch': next_stream_epoch}
+             'media_fields': media_fields, 'next_stream_epoch': next_stream_epoch,
+             'decode_remote_audio': decode_remote_audio,
+             'socketio_binary_to_bytes': socketio_binary_to_bytes}
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'), scope)
     return scope
 

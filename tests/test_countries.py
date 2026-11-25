@@ -19,7 +19,7 @@ from countries import (
     _COUNTRIES, _KEY_TO_ISO2,
 )
 
-LOCALES = ["pt-BR", "pt-PT", "en-US", "es-ES", "pl", "tr-TR", "ro", "it"]
+LOCALES = ["pt-BR", "pt-PT", "en-US", "es-ES", "pl", "tr-TR", "ro", "it", "cs"]
 
 
 class TestGetCountriesOrdering:
@@ -56,7 +56,7 @@ class TestGetCountriesOrdering:
 class TestCountryCoverage:
     def test_every_country_has_a_name_in_every_ui_language(self):
         for key, _, names in _COUNTRIES:
-            for lang in ("pt", "en", "es", "pl", "tr", "ro", "it"):
+            for lang in ("pt", "en", "es", "pl", "tr", "ro", "it", "cs"):
                 assert names.get(lang), (key, lang)
 
     def test_every_country_has_an_iso_code(self):
@@ -72,14 +72,14 @@ class TestCountryCoverage:
             "pt-BR": "Países Baixos (+31)", "en-US": "Netherlands (+31)",
             "es-ES": "Países Bajos (+31)", "pl": "Holandia (+31)",
             "tr-TR": "Hollanda (+31)", "ro": "Țările de Jos (+31)",
-            "it": "Paesi Bassi (+31)",
+            "it": "Paesi Bassi (+31)", "cs": "Nizozemsko (+31)",
         }
         for lang, label in expected.items():
             assert (label, "31") in get_countries(lang)
 
     def test_names_are_not_the_portuguese_fallback(self):
         pt = {n for n, _ in get_countries("pt-BR")}
-        for lang in ("pl", "tr-TR", "ro", "it"):
+        for lang in ("pl", "tr-TR", "ro", "it", "cs"):
             assert "Alemanha (+49)" not in {n for n, _ in get_countries(lang)}
         assert "Alemanha (+49)" in pt
 

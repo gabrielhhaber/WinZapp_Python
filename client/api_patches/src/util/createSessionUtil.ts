@@ -1196,6 +1196,15 @@ export default class CreateSessionUtil {
                 if (statusFind === StatusFind.isLogged) {
                   (client as any).syncing = true;
                 }
+                // The phone accepted the pairing and WhatsApp Web confirmed the
+                // login. session-logged can still be minutes away (or never
+                // come, macOS report 2026-11-24), and until it does the client
+                // holds paired=False — so a relaunch read this session as an
+                // unfinished pairing and discarded a device the phone lists as
+                // linked. Tell it now; it keeps the session on that word.
+                if (statusFind === StatusFind.qrReadSuccess) {
+                  req.io.emit('pairing-accepted', { session: client.session });
+                }
                 if (
                   statusFind === StatusFind.disconnectedMobile ||
                   statusFind === StatusFind.notLogged

@@ -1,5 +1,6 @@
 import base64
 from core.call_media_ownership import accepts_media_epoch, media_fields, next_stream_epoch
+from core.call_audio_socketio import decode_remote_audio, socketio_binary_to_bytes
 import logging
 import threading
 import time
@@ -86,34 +87,8 @@ def ack_to_status(wpp_ack):
 
 
 def _socketio_binary_to_bytes(value):
-    """Normalize a Socket.IO binary payload into bytes, or b"".
-
-    Node emits call audio as a Buffer inside an object. python-socketio
-    normally turns that into bytes, but test doubles and alternate transports
-    may surface Uint8Array-style lists or JSON Buffer objects.
-    """
-    if isinstance(value, str):
-        try:
-            return base64.b64decode(value, validate=True)
-        except (ValueError, TypeError):
-            return b""
-    if isinstance(value, bytes):
-        return value
-    if isinstance(value, bytearray):
-        return bytes(value)
-    if isinstance(value, list):
-        try:
-            return bytes(value)
-        except (TypeError, ValueError):
-            return b""
-    if isinstance(value, dict) and value.get("type") == "Buffer":
-        data = value.get("data")
-        if isinstance(data, list):
-            try:
-                return bytes(data)
-            except (TypeError, ValueError):
-                return b""
-    return b""
+    """Compatibility entry point shared with the remote-video handler."""
+    return socketio_binary_to_bytes(value)
 
 
 def phone_code_error_is_rate_limit(data) -> bool:
@@ -366,6 +341,7 @@ class WebSocketClient:
         self.sio.on("onack", self.on_wpp_ack)
         self.sio.on("phoneCode", self.on_wpp_phone_code)
         self.sio.on("phoneCodeError", self.on_wpp_phone_code_error)
+        self.sio.on("pairing-accepted", self.on_wpp_pairing_accepted)
         self.sio.on("status-find", self.on_wpp_status_find)
         self.sio.on("onpresencechanged", self.on_wpp_presence_changed)
         self.sio.on("chats-update", self.on_chats_update)
@@ -2261,8 +2237,50 @@ class WebSocketClient:
                     self._announce_pairing_code_expired,
                     self._phone_code_rate_limited,
                 )
+            elif name == "PairingNotCompleted":
+                wx.CallAfter(self._announce_pairing_not_completed)
         except Exception:
             logging.exception("[WebSocketClient] on_wpp_phone_code_error error")
+
+    def on_wpp_pairing_accepted(self, data):
+        """The phone accepted this session's pairing and WhatsApp Web confirmed
+        the login (statusFind qrReadSuccess). `paired` is only set on
+        session-logged, which can come much later or not at all; until then a
+        relaunch read the session as an unfinished pairing and discarded a
+        device the phone lists as linked (macOS report, 2026-11-24).
+        Recorded per session, so it speaks only for the token it names —
+        see connect.pairing_was_accepted()."""
+        try:
+            if not isinstance(data, dict) or not self._belongs_to_this_session(data):
+                return
+            session = str(data.get("session") or "")
+            if not session:
+                return
+            pi = self.main_window.settings.setdefault("privateinfo", {})
+            if pi.get("link_accepted_session") != session:
+                pi["link_accepted_session"] = session
+                self.main_window.save_settings()
+            logging.info("[WebSocketClient] pairing accepted by the phone for this session.")
+        except Exception:
+            logging.exception("[WebSocketClient] on_wpp_pairing_accepted error")
+
+    def _announce_pairing_not_completed(self):
+        """host.layer.js gave up on a pairing after the phone answered it: the
+        login was never confirmed, or WhatsApp Web never connected after it
+        (wppconnect_pairing_completion_patch.py). Only `session-logged` closes
+        the pairing dialog, so without this it went on saying "Enter the
+        pairing code" for good (macOS report, 2026-11-24). Same rules as
+        _announce_pairing_code_expired(): only while the dialog is up, on the
+        wx thread."""
+        try:
+            if not self.main_window._is_pairing_dialog_active():
+                return
+            self.main_window.error_sound.play()
+            self.main_window.speak_output.output(self.i18n.t("pairing_failed_msg"))
+        except Exception:
+            logging.exception(
+                "[WebSocketClient] Failed to announce the unfinished pairing."
+            )
 
     def _announce_pairing_code_expired(self, rate_limited: bool = False):
         """Say out loud that the code on the pairing dialog is dead.
@@ -2780,19 +2798,12 @@ class WebSocketClient:
                         "client_bound=%s frame_tagged=%s",
                         dropped, bool(expected), 'mediaEpoch' in data)
                 return
-            pcm = _socketio_binary_to_bytes(data.get("pcm"))
-            if not pcm:
+            frame = decode_remote_audio(data)
+            if frame is None:
                 return
-            try:
-                sample_rate = int(data.get("sampleRate") or 48000)
-            except (TypeError, ValueError):
-                sample_rate = 48000
             handler = getattr(self.main_window, "on_call_remote_audio", None)
             if handler is not None:
-                if 'mediaEpoch' in data:
-                    handler(pcm, sample_rate, media_epoch=data['mediaEpoch'])
-                else:
-                    handler(pcm, sample_rate)
+                frame.deliver_to(handler)
         except Exception:
             logging.exception("[WebSocketClient] on_call_audio_remote error")
 

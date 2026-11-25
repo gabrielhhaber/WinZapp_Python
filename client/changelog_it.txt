@@ -12,9 +12,23 @@ WHAT'S NEW
 
 - Scorciatoie da tastiera: passando a un altro account subito dopo aver cambiato un tasto, l’account che compare risponde al tasto nuovo anche mentre il precedente sta ancora salvando le impostazioni; prima poteva restare sul tasto vecchio finché non salvava qualcosa.
 
+- Chiamate Neonize: corretto il ritorno all’audio compatibile quando l’uscita esclusiva usa una frequenza non supportata da NetEQ, mantenendo la compensazione delle perdite di pacchetti.
+
+- Chiamate individuali Neonize: la riproduzione con NetEQ attenua le variazioni di rete e le perdite audio, con ritorno automatico alla modalità compatibile.
+
+- Chiamate Neonize: l’audio usa una connessione locale diretta al motore nativo, con ritorno automatico a Socket.IO quando non è disponibile.
+
+- Chiamate individuali con Neonize: eliminata un’attesa duplicata nell’audio ricevuto, mantenendo la regolazione automatica della riproduzione contro le variazioni del ritardo di rete.
+
+- Chiamate con Neonize: conversione dell’audio del microfono ottimizzata per ridurre l’elaborazione in Python, con ritorno automatico all’elaborazione precedente se il motore installato non supporta l’ottimizzazione.
+
+- Ceco: WinZapp è ora disponibile in ceco (Čeština): l'interfaccia, la guida per l'utente, il programma di installazione e di disinstallazione (che seguono la lingua di visualizzazione di Windows) e queste note di rilascio. Il ceco è offerto anche come lingua in cui tradurre i messaggi, e il correttore ortografico lo supporta. Grazie a jaxcze per la traduzione.
+
+- Connettiti con il codice QR: il codice QR torna a comparire. Con le versioni più recenti di WhatsApp Web, alcuni computer ricevono una pagina di accesso separata, con la sola schermata del codice QR, e lì WinZapp continuava a connettersi fino a rinunciare, senza mostrare il codice. Ora il codice QR compare in quella pagina in pochi secondi.
+
 - Community: Invio su una community nell'elenco delle chat ora apre il pannello Community con quella community selezionata e il focus sui suoi gruppi, invece della chat della community stessa. L'opzione è in Impostazioni > Interfaccia > Chat, attiva per impostazione predefinita.
 
-- Collegamento con il numero di telefono: il collegamento non fallisce più dopo che WhatsApp sul telefono ha accettato il codice di associazione. WinZapp chiudeva WhatsApp Web durante il ricaricamento che completa l'accesso, o vi chiedeva un nuovo codice, e il telefono mostrava il dispositivo come collegato mentre WinZapp restava sulla finestra di associazione. La finestra del codice ora mostra anche il testo, il codice e Annulla in ordine, invece di disegnarli uno sopra l'altro.
+- Collegamento con il numero di telefono: il collegamento non fallisce più dopo che WhatsApp sul telefono ha accettato il codice di associazione. WinZapp chiudeva WhatsApp Web durante il ricaricamento che completa l'accesso, o vi chiedeva un nuovo codice, e il telefono mostrava il dispositivo come collegato mentre WinZapp restava sulla finestra di associazione. La finestra del codice ora mostra anche il testo, il codice e Annulla in ordine, invece di disegnarli uno sopra l'altro. Se WhatsApp Web continua a non aprire le chat dopo che il codice è stato accettato, WinZapp ora riprova una volta e poi te lo dice, invece di restare per sempre sulla finestra di associazione, e un collegamento accettato dal telefono non viene più scartato quando riavvii WinZapp. Anche il collegamento con il codice QR ora supera quel ricaricamento: WinZapp non mostra più un nuovo codice QR e non si arrende pochi secondi dopo che il telefono ha accettato la scansione.
 
 - Quando WhatsApp rifiuta temporaneamente i codici di associazione per un numero, WinZapp lo dice subito, invece di restare su "connessione in corso" per un minuto e mezzo, e suggerisce "Connettiti con il codice QR", che non usa un codice di associazione.
 
@@ -75,7 +89,7 @@ WHAT'S NEW
 
 - Neonize: mentre il telefono invia la cronologia dei messaggi, WinZapp lo dice e ti chiede di tenere WhatsApp aperto sullo schermo del telefono, avvisa quando il telefono si ferma (con la percentuale), quando riprende a inviare e quando finisce; mentre è fermo, WinZapp chiede il resto al telefono ogni 90 secondi.
 
-- Neonize: le conversazioni che WhatsApp per iPhone lascia fuori dal primo blocco di cronologia (ora ne invia solo 400) vengono ora richieste e importate anch'esse.
+- Neonize: le conversazioni che WhatsApp per iPhone lascia fuori dal primo blocco di cronologia (ora ne invia solo 400) vengono ora richieste e importate anch'esse. Quando il telefono non invia l'elenco di quelle lasciate fuori, WinZapp, terminata la cronologia dell'associazione, chiede al telefono le conversazioni mancanti e attende la risposta per qualche minuto prima di considerare completa la sincronizzazione.
 
 - Neonize: eliminare una lista la toglie anche dalle sue chat, che non puntano più a una lista che non esiste.
 
@@ -663,6 +677,18 @@ WHAT'S NEW
 - Neonize su Windows ARM: il ponte di connessione non smette più di avviarsi (e l'abbinamento con il codice QR non resta più bloccato) perché chiedeva la versione ARM della sua libreria, che il programma non riesce a caricare; ora usa quella dell'architettura con cui gira davvero.
 
 - Corretto: con l'installazione all'uscita attiva, dopo l'avviso che l'aggiornamento era stato scaricato, Guida > Installa l'aggiornamento scaricato restava non disponibile. Ora la voce è disponibile e installa subito l'aggiornamento, poi riavvia WinZapp; uscire continua a installare senza riavviare.
+
+- Neonize: quando il ponte di connessione impiega troppo ad avviarsi, il log del programma ora dice se è ancora in esecuzione e mostra le ultime righe del suo output, e il ponte scrive nel proprio log ogni passo dell'avvio man mano che procede, così un ponte che si ferma a metà mostra dove.
+
+- Corretto: dopo aver cambiato il dispositivo audio, i suoni delle notifiche (toast) smettevano di suonare, mentre gli audio delle chat e gli altri suoni di WinZapp continuavano a funzionare. Il cambio rendeva inutilizzabili i suoni di notifica già caricati; ora vengono ricaricati insieme agli altri suoni.
+
+- Con Neonize, un contatto salvato con nome e cognome non perde più il cognome nella conversazione pochi secondi dopo: il nome completo viene memorizzato nell'ordine giusto e la conversazione continua a mostrare, ad esempio, "Nuno Soares" invece di solo "Nuno".
+
+- Neonize: quando il ponte di connessione si blocca all'avvio, ora scrive nel proprio log, dopo 25 secondi, in che punto è bloccato.
+
+- Neonize su Windows su ARM: il ponte di connessione non si chiude più da solo subito dopo l'avvio (con il messaggio che non è stato possibile avviarlo), cosa che impediva l'associazione.
+
+- Mac: il motore Neonize ora è incluso anche in WinZapp per Mac, su Apple Silicon e Intel, e si connette direttamente a WhatsApp, senza browser. Sceglilo nell'elenco "Motore di connessione" della finestra di connessione o in Impostazioni > Connessione.
 
 V2.1.0.0
 

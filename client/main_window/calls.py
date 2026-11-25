@@ -393,6 +393,16 @@ class CallsMixin:
         echo_cancellation = bool(audio_settings.get("echo_cancellation", True))
         noise_suppression = bool(audio_settings.get("noise_suppression", False))
         session_name = str(getattr(ws, "instance_name", "") or self.token).split(":", 1)[0]
+        transport = None
+        if bool(getattr(self, "_uses_neonize", lambda: False)()):
+            from core.call_audio_native import NeonizeCallAudioTransport
+            from core.call_audio_transport import SocketIOCallAudioTransport
+            # Capture this account's endpoint; no window access in the worker.
+            url = f"{self.wpp_server}:{self.wpp_port}/api/{self.token}/call/audio/transport"
+            token = self.token
+            transport = NeonizeCallAudioTransport(
+                SocketIOCallAudioTransport(sio, session_name),
+                lambda body: api_post(url, token=token, json=body, timeout=3))
         audio = CallAudioSession(
             sio,
             CallAudioConfig(
@@ -405,6 +415,7 @@ class CallsMixin:
                 noise_suppression=noise_suppression,
                 neonize_audio=bool(getattr(self, "_uses_neonize", lambda: False)()),
             ),
+            transport=transport,
         )
         return audio, session_name
 
@@ -706,7 +717,7 @@ class CallsMixin:
             getattr(self, "_call_audio_session", None)
             or getattr(self, "_call_ring_audio_session", None)
         )
-        if session is not None:
+        if session is not None and not getattr(session, 'native_audio_active', False):
             if media_epoch is not None:
                 session.enqueue_remote_audio(pcm, sample_rate, media_epoch=media_epoch)
             else:

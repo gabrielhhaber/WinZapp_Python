@@ -12,9 +12,23 @@ YENİLİKLER
 
 - Kısayollar: bir tuşu değiştirdikten hemen sonra başka bir hesaba geçtiğinizde, önceki hesap ayarlarını hâlâ kaydediyor olsa bile açılan hesap yeni tuşa yanıt verir; önceden bir şey kaydedene kadar eski tuşta kalabiliyordu.
 
+- Neonize aramaları: özel çıkış NetEQ tarafından desteklenmeyen bir örnekleme hızı kullandığında, paket kaybı gizleme korunarak uyumlu sese dönülmesi düzeltildi.
+
+- Bire bir Neonize aramaları: NetEQ ile oynatma, ağ dalgalanmalarını ve ses kaybını azaltır; gerektiğinde otomatik olarak uyumlu oynatmaya dönülür.
+
+- Neonize aramaları: ses, yerel motora doğrudan bir yerel bağlantı üzerinden aktarılır; bağlantı kullanılamadığında otomatik olarak Socket.IO kullanılır.
+
+- Neonize bire bir aramaları: ağ gecikmesindeki değişimlere karşı otomatik oynatma tamponlaması korunarak gelen sesteki yinelenen bekleme kaldırıldı.
+
+- Neonize aramaları: Python üzerindeki işlem yükünü azaltmak için mikrofon sesi dönüştürme işlemi optimize edildi. Yüklü motor bu optimizasyonu desteklemiyorsa önceki işleme yöntemine otomatik olarak dönülür.
+
+- Çekçe: WinZapp artık Çekçe (Čeština) olarak da kullanılabiliyor: arayüz, kullanım kılavuzu, yükleyici ve kaldırıcı (Windows görüntüleme diline uyar) ve bu sürüm notları. Çekçe ayrıca mesajların çevrileceği bir dil olarak sunulur ve yazım denetimi onu destekler. Çeviri için jaxcze'ye teşekkürler.
+
+- QR kodu ile bağlan: QR kodu yeniden görünüyor. En yeni WhatsApp Web sürümlerinde bazı bilgisayarlar yalnızca QR kodu ekranını içeren ayrı bir giriş sayfası alıyor ve WinZapp bu sayfada kodu göstermeden vazgeçene kadar bağlanmaya çalışıyordu. Artık QR kodu bu sayfada birkaç saniye içinde görünüyor.
+
 - Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.
 
-- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor.
+- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor. Kod kabul edildikten sonra WhatsApp Web sohbetlerinizi hâlâ açmazsa, WinZapp artık eşleme penceresinde sonsuza kadar beklemek yerine bir kez daha dener ve ardından size bildirir; telefonun kabul ettiği bir bağlantı da WinZapp'i yeniden başlattığınızda artık silinmez. QR kodla bağlama da artık bu yeniden yüklemeyi atlatıyor: WinZapp, telefon taramayı kabul ettikten birkaç saniye sonra yeni bir QR kodu gösterip vazgeçmiyor.
 
 - WhatsApp bir numara için eşleme kodlarını geçici olarak reddettiğinde WinZapp bunu bir buçuk dakika "bağlanıyor" durumunda beklemek yerine hemen söylüyor ve eşleme kodu kullanmayan "QR kodu ile bağlan" seçeneğini öneriyor.
 
@@ -75,7 +89,7 @@ YENİLİKLER
 
 - Neonize: telefon ileti geçmişini gönderirken WinZapp bunu söyler ve WhatsApp'ı telefonun ekranında açık tutmanızı ister; telefon durduğunda (yüzdeyle), yeniden gönderdiğinde ve bitirdiğinde uyarır; telefon durmuşken WinZapp her 90 saniyede bir kalanını telefondan ister.
 
-- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor.
+- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor. Telefon dışarıda bıraktığı sohbetlerin listesini göndermediğinde, WinZapp eşleştirme geçmişi bittikten sonra telefondan eksik sohbetleri ister ve eşzamanlamayı tamamlanmış saymadan önce yanıtı birkaç dakika bekler.
 
 - Neonize: bir listeyi silmek onu sohbetlerinden de kaldırır; böylece sohbetler artık var olmayan bir listeyi göstermeye devam etmez.
 
@@ -663,6 +677,18 @@ YENİLİKLER
 - ARM üzerinde Windows'ta Neonize: bağlantı köprüsü, programın yükleyemediği ARM sürümünü istediği için artık başlatılamamazlık etmiyor (ve QR kodla eşleştirme takılı kalmıyor); artık gerçekte çalıştığı mimarinin sürümünü kullanıyor.
 
 - Düzeltildi: Çıkışta yükleme açıkken, güncellemenin indirildiği duyurulduktan sonra Yardım > İndirilen güncellemeyi yükle öğesi kullanılamaz kalıyordu. Artık öğe kullanılabilir; güncellemeyi hemen yükler ve ardından WinZapp'ı yeniden başlatır; çıkış yapmak yine yeniden başlatmadan yükler.
+
+- Neonize: bağlantı köprüsü başlatılırken çok uzun sürdüğünde programın günlüğü artık hâlâ çalışıp çalışmadığını söyler ve çıktısının son satırlarını gösterir; köprü de başlangıcının her adımını ilerledikçe kendi günlüğüne yazar, böylece yarıda kalan bir köprü nerede durduğunu gösterir.
+
+- Düzeltildi: ses aygıtı değiştirildikten sonra bildirim (toast) sesleri çalmaz oluyordu; sohbet sesleri ve WinZapp'ın diğer sesleri ise çalışmaya devam ediyordu. Aygıt değişikliği önceden yüklenmiş bildirim seslerini kullanılamaz hale getiriyordu; artık diğer seslerle birlikte yeniden yükleniyor.
+
+- Neonize ile ad ve soyadıyla kaydedilen bir kişi, birkaç saniye sonra sohbette soyadını artık kaybetmiyor: tam ad doğru sırayla saklanıyor, böylece sohbet örneğin yalnızca "Nuno" yerine "Nuno Soares" göstermeye devam ediyor.
+
+- Neonize: bağlantı köprüsü başlatılırken takılırsa, artık 25 saniye sonra nerede takıldığını kendi günlüğüne yazar.
+
+- ARM üzerinde Windows'ta Neonize: bağlantı köprüsü artık başlar başlamaz kendiliğinden kapanmıyor (başlatılamadığı mesajıyla), bu da eşleştirmeyi engelliyordu.
+
+- Mac: Neonize motoru artık Mac için WinZapp'te de, Apple Silicon ve Intel'de geliyor ve tarayıcı olmadan doğrudan WhatsApp'a bağlanıyor. Bağlantı penceresindeki "Bağlantı motoru" listesinden ya da Ayarlar > Bağlantı'dan seçin.
 
 V2.1.0.0
 

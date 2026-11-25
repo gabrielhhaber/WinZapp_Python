@@ -8,6 +8,13 @@
     "e46ca3b70e63": "Neonize: ao entrar numa ligação em grupo que já está em andamento, você agora ou",
     "6c93168838cb": "Salvar como (Ctrl+Shift+S) um documento JSON recebido numa conversa, como o arqu",
     "fa1f1668fd92": "Atalhos: ao passar para outra conta logo depois de trocar uma tecla, a conta que",
+    "50124539cd71": "Chamadas Neonize: corrigida a retomada do áudio compatível quando a saída exclus",
+    "e0e120233448": "Chamadas individuais Neonize: reprodução com NetEQ para suavizar variações de re",
+    "452e70867219": "Chamadas Neonize: o áudio usa uma conexão local direta com o motor nativo, com r",
+    "90caab9b5af9": "Chamadas individuais pelo Neonize: removida uma espera duplicada no áudio recebi",
+    "0e667c42f7cd": "Chamadas pelo Neonize: conversão do áudio do microfone otimizada para reduzir o ",
+    "90fe2e178f12": "Tcheco: o WinZapp agora está disponível em tcheco (Čeština): a interface, o guia",
+    "b361c5712f55": "Conectar com QR-CODE: o código QR voltou a aparecer. Nas versões mais recentes d",
     "2936d96aa8d2": "Comunidades: Enter numa comunidade da lista de conversas agora abre o painel Com",
     "09fbe7002b47": "Conectar pelo número de telefone: a conexão não falha mais depois que o WhatsApp",
     "a211cf24a0d1": "Quando o WhatsApp recusa temporariamente códigos de pareamento para um número, o",
@@ -337,6 +344,12 @@
     "1453dc64c422": "No Neonize, \"Adicionar contato\" nos dados da conversa agora salva o contato de v",
     "73eaa785a812": "Neonize: quando a bridge de conexão não consegue iniciar, o WinZapp agora avisa ",
     "42121ad126e2": "Neonize no Windows em ARM: a bridge de conexão não deixa mais de iniciar (e o pa",
-    "34917b3be826": "Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização f"
+    "34917b3be826": "Corrigido: com a instalação ao sair ligada, depois de avisar que a atualização f",
+    "9162dac61c67": "Neonize: quando a bridge de conexão demora demais para iniciar, o log do program",
+    "1676e3a04355": "Corrigido: depois de trocar o dispositivo de áudio, os sons de notificação (toas",
+    "e2761794715e": "No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na ",
+    "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio",
+    "4fe66311d2af": "Neonize no Windows em ARM: a bridge de conexão não fecha mais sozinha logo ao in",
+    "7c1725c319d4": "Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e In"
   }
 }

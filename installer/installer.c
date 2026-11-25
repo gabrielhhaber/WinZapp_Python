@@ -219,6 +219,26 @@ static const UiStrings STR_IT = {
     L"Solo i suoni originali di WhatsApp",
 };
 
+static const UiStrings STR_CS = {
+    L"Instalační program WinZapp",
+    L"Instalační složka:",
+    L"Procházet...",
+    L"Vytvořit zástupce na ploše",
+    L"Vytvořit zástupce v nabídce Start",
+    L"Instalovat",
+    L"Zrušit",
+    L"Vyberte instalační složku",
+    L"Vyberte prosím instalační složku.",
+    L"Rozbalení se nezdařilo.",
+    L"WinZapp byl úspěšně nainstalován!",
+    L"Instalace dokončena",
+    L"Při instalaci došlo k chybě:\n%s",
+    L"Chyba instalace",
+    L"Zvuky k instalaci",
+    L"Všechny zvuky WinZapp",
+    L"Pouze původní zvuky WhatsApp",
+};
+
 static const UiStrings *g_str = &STR_EN;
 
 static void select_language(void)
@@ -232,6 +252,7 @@ static void select_language(void)
     case WINZAPP_LANG_TR:    g_str = &STR_TR;    break;
     case WINZAPP_LANG_AR:    g_str = &STR_AR;    break;
     case WINZAPP_LANG_IT:    g_str = &STR_IT;    break;
+    case WINZAPP_LANG_CS:    g_str = &STR_CS;    break;
     default:                 g_str = &STR_EN;    break;
     }
 }

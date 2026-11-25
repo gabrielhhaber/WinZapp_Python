@@ -63,3 +63,10 @@ def retire_media_epoch(window, epoch):
 def is_retired_media_epoch(window, epoch):
     epochs = getattr(window, '_retired_media_epochs', ())
     return valid_media_epoch(epoch) and isinstance(epochs, tuple) and epoch in epochs
+
+
+@dataclass(frozen=True)
+class TimedPlaybackPCM(PlaybackPCM):
+    timestamp: int
+    ssrc: int
+    clock: int

@@ -1,0 +1,78 @@
+<!--nav: 📞 Hovory-->
+<p class="lead">Hlasové a videohovory můžete ve WinZappu uskutečňovat, přijímat i odmítat přímo, aniž byste sáhli po telefonu.</p>
+<p>Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání. Funkce pracuje automaticky, když je součást dostupná. Skupinové hovory, živý překlad a zařízení nepodporovaná NetEQ nadále používají kompatibilní přehrávání bez změny nastavení.</p>
+<p>Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO. Není třeba měnit nastavení. Ovládání hovoru nadále používá obvyklé spojení.</p>
+<p>Při individuálních hovorech přes Neonize přichází přijímaný zvuk do vyrovnávací paměti přehrávání bez dvojitého čekání v modulu. Automatické přizpůsobování kolísání síťového zpoždění zůstává aktivní a nevyžaduje změnu nastavení.</p>
+<p>Optimalizace převodu zvuku mikrofonu při hovorech přes Neonize probíhá automaticky a nevyžaduje změnu nastavení. Pokud ji nainstalovaný modul nepodporuje, WinZapp nadále používá kompatibilní zpracování.</p>
+<p>Během individuálního hovoru zvolte Spustit živý překlad. Jen já přehraje řeč druhé osoby ve vašem jazyce. Oba navíc překládá váš mikrofon pro druhou osobu. Původní hlas protistrany můžete při přehrávání překladu ztišit. Výchozí hodnoty nastavíte v Nastavení &gt; Hovory &gt; Živý překlad a klíč Gemini uložíte v nastavení AI. Gemini se připojuje znovu automaticky a během opětovného připojování je k dispozici původní zvuk.</p>
+<p>Zvuk hovorů v Neonize obsahuje opravy ticha po přijetí hovoru, ztracených zvukových snímků a zkreslení při převodu vzorkovací frekvence. Kodek se vybírá automaticky podle WhatsAppu; žádný přepínač kodeku se nenastavuje. Tento experimentální engine stále vyžaduje ověření kvality na skutečných hovorech; stejná kvalita jako u jiných aplikací pro volání není zaručena.</p>
+
+<p>Neonize ve výchozím nastavení používá svůj běžný režim zvuku hovorů. Pro hovory sjednané s kodekem Opus je k dispozici experimentální cesta 48 kHz určená jen vývojářům; nemění kodek MLow a do okna hovoru nepřidává žádný ovládací prvek. Aktualizace ji automaticky nezapíná.</p>
+
+<h3>Uskutečnění hovoru</h3>
+<p>V individuálním chatu použijte tlačítka "Hlasový hovor" (Ctrl+Shift+V) a "Videohovor" (Ctrl+Alt+Shift+V); zkratky fungují i při zaměření na textové pole zprávy. Čtečka obrazovky oznámí, kdy se hovor spojí, kdy se znovu připojuje a kdy skončí.</p>
+<p>WhatsApp povoluje hovory pouze se skupinami do 32 účastníků. Ve větší skupině nahradí tlačítka hovoru tlačítko "Volání není možné" s poznámkou "Skupina má více než 32 účastníků" a zkratky hovorů říkají totéž.</p>
+<p>Ve skupinovém chatu tatáž tlačítka volají celé skupině. Příchozí skupinový hovor zvoní, je ohlášen názvem skupiny a přijímá se jako každý jiný hovor; kameru lze zapnout během hovoru. WinZapp najde kameru pomocí FFmpeg, který je jeho součástí, takže videohovor už neodchází jen v režimu příjmu. Skupinový hovor, který zazvonil a vy jste ho nepřijali, zůstane v historii skupiny jako zmeškaný skupinový hovor.</p>
+
+<p>S Neonize se tlačítka hlasového hovoru, videohovoru a skupinového hovoru zobrazují jen pro typy hovorů, které engine hlásí jako podporované. Dokud tato informace nedorazí, tlačítka zůstávají skryta; po jejím doručení se sama aktualizují. Stejná kontrola platí pro připojení k probíhajícímu skupinovému hovoru z jeho chatu. Aktualizace nikdy nepřenese do popředí skrytý chat ani neaktivní okno.</p>
+<p>S enginem Neonize přehrává zvuky, které dříve přehrával WhatsApp Web, sám WinZapp: dokud zvoní druhý telefon, slyšíte vyzváněcí tón s výškou a rytmem země, kam voláte, a během spojování nebo opětovného připojování hovoru zazní krátká pípnutí. S enginem WPPConnect se nic nemění. Když skončí přijatý hovor, přehraje se také zvuk ukončení hovoru z WhatsAppu; jde o zvukovou událost "Hovor ukončen", kterou lze vypnout nebo nahradit v Nastavení &gt; Zvukové události.</p>
+<p>S enginem Neonize končí hovor, který zahájíte a nikdo ho nepřijme, sám po jedné minutě, stejně jako ve WhatsApp Web: zvonění ustane a výsledkem je „nepřijato“.</p>
+<p>Pokud se uprostřed hovoru přeruší internet, tlačítko zavěšení stále funguje: WinZapp ukončí hovor na vašem počítači i bez připojení, bez zobrazení chyby.</p>
+
+<p>Zahájení skupinového hovoru s Neonize vyžaduje od dvou do 31 dalších členů. Pokud WhatsApp dočasně omezí žádosti o hovor, WinZapp tento důvod oznámí; zkuste to později.</p>
+
+<h3>Během hovoru</h3>
+<table class="field-table">
+  <tr><th>Zkratka</th><th>Akce</th></tr>
+  <tr><td class="field-name">Ctrl+M</td><td>Ztlumit nebo zapnout mikrofon</td></tr>
+  <tr><td class="field-name">Ctrl+V</td><td>Zapnout nebo vypnout kameru ve videohovoru</td></tr>
+  <tr><td class="field-name">Ctrl+P</td><td>Změnit hlasový hovor na videohovor</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+P</td><td>Otevřít "Účastníci hovoru"</td></tr>
+  <tr><td class="field-name">Ctrl+C</td><td>Otevřít nastavení hovoru (mikrofon, reproduktor, kamera)</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+Q</td><td>Zavěsit</td></tr>
+</table>
+
+<h3>Přidávání lidí do hovoru</h3>
+<p>Během hovoru "Účastníci hovoru" ukazuje, kdo v něm je, a tlačítko "Přidat účastníky" otevře seznam těch, kdo se mohou připojit: ve skupinovém hovoru členové skupiny, kteří v hovoru ještě nejsou; v soukromém hovoru vaše kontakty, přičemž hovor pak bude mít více lidí. Lidi označujete a odznačujete pomocí Ctrl+Mezerník; čtečka obrazovky řekne Vybráno nebo Nevybráno a přehraje zvuk, a dokud je kdokoli označen, označuje a odznačuje i Mezerník. Ctrl+Shift+Mezerník označí všechny, Shift+šipky označí sousední řádky a Esc zruší všechna označení. Stiskněte "Přidat". Komu už bylo voláno a nepřipojil se, tomu se zazvoní znovu. Čtečka obrazovky řekne, kdo byl pozván a koho se přidat nepodařilo, případně proč žádost selhala. Pokud nebyl pozván nikdo, okno zůstane otevřené, abyste to mohli zkusit znovu.</p>
+
+<h3>Příchozí hovor</h3>
+<p>Okno obsahuje "Přijmout", "Odmítnout" a "Ztišit vyzvánění"; ve videohovoru "Přijmout s videem" a "Přijmout bez videa". Zkratkami tohoto okna jsou pouze Alt + podtržené písmeno (Alt+A přijme, Alt+V přijme bez videa, Alt+R odmítne, Alt+S ztiší upozornění, Alt+F zavře okno), aby omylem stisknutá klávesa hovor nepřijala ani neodmítla.</p>
+
+<h3>Přijetí z libovolného okna</h3>
+<p>Dokud hovor zvoní, Ctrl+Alt+Shift+Enter ho přijme z jakéhokoli programu: okno hovoru se přesune do popředí a získá fokus. Videohovor se přijímá se zapnutou kamerou, stejně jako tlačítkem "Přijmout". Ctrl+Alt+Shift+Backspace odmítne zvonící hovor, včetně skupinového, a čtečka obrazovky řekne "Hovor odmítnut."; pokud nezvoní žádný hovor, zavěsí probíhající hovor. Je-li otevřeno více účtů, odmítne se nejdřív hovor zvonící v kterémkoli z nich. Obě klávesy lze změnit nebo odebrat v Nastavení &gt; Klávesové zkratky a WinZappu patří, jen dokud mohou něco provést; po zbytek času je mají k dispozici jiné programy.</p>
+
+<h3>Karta Hovory (Alt+6)</h3>
+<p>Historie hovorů ze všech chatů, rozdělená na Vše, Zmeškané, Odmítnuté, Přijaté a Probíhající (přepíná se pomocí Ctrl+Tab a Ctrl+Shift+Tab; Alt+L přejde na seznam). V seznamu Enter otevře chat daného hovoru, Ctrl+Shift+R zavolá zpět na zmeškaný hovor a F5 seznam obnoví. U zmeškaného hovoru v chatu dělá totéž tlačítko "Zavolat zpět".</p>
+
+<h3>Nastavení hovorů</h3>
+<p>V Nastavení &gt; Hovory vybírá "Nastavení zvuku hovoru" mikrofon a reproduktor a "Nastavení videa hovoru" kameru. Najdete tam také potlačení ozvěny (snižuje návrat vašeho vlastního zvuku, když používáte reproduktor), potlačení šumu mikrofonu a exkluzivní režim pro mikrofon a reproduktor.</p>
+<p>Potlačení ozvěny je zapnuto. Používá stejný potlačovač ozvěny jako Google Meet a WhatsApp (z WebRTC), takže můžete mluvit přes reproduktor notebooku nebo se zapnutou smyčkou mixu, aniž by druhá osoba slyšela svůj vlastní hlas. Se sluchátky nijak neškodí; zrušte jeho zaškrtnutí, jen pokud to dáváte přednost.</p>
+<p>WinZapp automaticky převádí zvuk hovoru, když vybraný mikrofon nebo reproduktor používá jinou vzorkovací frekvenci než hovor. Časování mezi zvukovými pakety zůstává plynulé; není třeba zapínat žádnou další volbu.</p>
+<p>Ve sdíleném režimu (používá se, když je exkluzivní režim zrušen nebo ho zařízení odmítne) mohou hovory používat podporované stereofonní mikrofony a sluchátka, v případě potřeby s návratem k monu. Vstup z mikrofonu se mísí do mona; když je otevřen stereofonní výstup, přijatý hlas se přehrává v obou kanálech.</p>
+<div class="callout tip">
+  <div class="callout-title">💡 Pokud se hovor nespustí</div>
+  Pokud používaná verze WhatsApp Web hovory nepodporuje, WinZapp to oznámí a poradí, co zkusit: restartujte WinZapp nebo zvolte Nápověda &gt; Vynutit přeinstalaci WPPConnect.
+</div>
+<p>Při přeinstalaci WPPConnect WinZapp zachová novější kompatibilní katalog WhatsApp Web a zkontroluje, zda není k dispozici čerstvý. Bez internetu se použitelný katalog ponechá, ale jeho aktuálnost nelze potvrdit. Pokud se hovor stále nedaří spustit, obnovte přístup k internetu a restartujte WinZapp. Potvrzená nekompatibilita VoIP, kterou nelze opakovat, se oznámí bez opakování inicializace.</p>
+<p>Když je otevřen skupinový chat, WinZapp zhruba každých deset sekund zjišťuje, zda neprobíhá hovor. Tlačítko pro připojení se objeví, jen když je hovor dostupný, a zmizí, když skončí. Připojení k videohovoru začíná s vypnutou kamerou. Připojení k existujícímu hovoru se nevztahuje na limit 32 členů platný pro zahájení nového skupinového hovoru. Dokud je hovor dostupný, tlačítko "Připojit se k probíhajícímu hlasovému hovoru" nebo u videohovoru "Připojit se k probíhajícímu videohovoru (kamera vypnutá)" nahradí tlačítka pro zahájení hlasového hovoru a videohovoru. V Hovorech (Alt+6) filtr Probíhající uvádí hovory, ke kterým se lze připojit, včetně hovorů více lidí mimo skupinové chaty; ve Vše se zobrazují také nahoře. Vyberte hovor a stiskněte Enter nebo použijte totéž tlačítko pro připojení. Pokud už v tomto hovoru jste, tlačítko je "Vrátit se do hovoru" a přenese do popředí okno vašeho aktuálního hovoru. Seznam se obnovuje zhruba každých deset sekund, dokud jsou Hovory otevřené, a obsahuje pouze hovory, které WhatsApp vašemu účtu zpřístupní.</p>
+<p>Tlačítkem "Účastníci hovoru" v okně hovoru, nebo u vybraného probíhajícího hovoru v Hovorech, zobrazíte účastníky a jejich stav. Seznam se aktualizuje sám, když se někdo k hovoru připojí nebo ho opustí; F5 ho načte znovu a "Zavřít" nebo Esc ho zavře. Ve skupinovém hovoru WinZapp také oznámí, kdo se připojil a kdo odešel (Nastavení &gt; Hovory, "Ohlásit, když se někdo připojí k hovoru" a "Ohlásit, když někdo opustí hovor", ve výchozím stavu zapnuto). Seznam obsahuje lidi v hovoru, ty, kterým se zvoní nebo kteří jsou zváni, a ty, kteří odešli, odmítli nebo nepřijali, a říká, kolik lidí je v hovoru a kolik ne. Čtení seznamu se k hovoru nepřipojuje ani ho neukončuje.</p>
+
+<h3>Kontinuita zvuku hovoru</h3>
+<p>Neonize ponechává zpožděný zvuk, práci s kamerou a změny zařízení u hovoru a proudu, které je zahájily. Čekající data ukončeného nebo nahrazeného proudu se zahodí a nahromaděná média jsou omezena. Dočasné selhání při předání snímku klientovi trvale nezastaví čtení zvuku. Znovuotevření výstupu zabrání tomu, aby vyřazený proud spotřebovával zvuk nového proudu; selhání referenčního signálu ozvěny neztiší zvuk, který je už připraven k přehrání. Nejednoznačná částečná shoda názvu zařízení WASAPI ponechá původní API, místo aby vybrala libovolnou shodu.</p>
+<p>Pro řešení potíží zahrnují protokoly hovorů Neonize číselné souhrny signálu bez nahrávání obsahu zvuku. Rozlišují chybějící vzorky, digitální ticho a úrovně signálu; nedokazují, že řeči bylo rozuměno nebo že ji druhá osoba slyšela.</p>
+
+<h3>Sdílení zvuku počítače</h3>
+<p>Během hlasového hovoru ve Windows 11 použijte Sdílet zvuk počítače k odeslání zvuku systému nebo zvuku jedné aplikace, s NVDA nebo bez něj, s hlasitostí, kterou zvolíte. Zpočátku není vybráno nic. Ztlumení mikrofonu sdílení nezastaví a změna zvukových zařízení hovoru ho nechá běžet. Zastavit sdílení zvuku počítače ukončí sdílení nezávisle na mikrofonu.</p>
+<p>Zvolte zvuk systému nebo aplikaci se zvukovou relací. NVDA zahrňte zvlášť a hlasitost sdílení upravte podle potřeby.</p>
+<p>V okně hovoru stiskněte Ctrl+M z kteréhokoli ovládacího prvku, abyste mikrofon ztlumili nebo zapnuli a uslyšeli jeho nový stav. Okno odchozího hovoru zobrazuje stav hovoru a oznamuje, kdy zvoní nebo se spojí.</p>
+
+<h3>Odkazy na hovor</h3>
+<p>Odkazy na hovor: v Hovorech (Alt+6) otevře "Vytvořit odkaz na hovor" okno, kde zvolíte hlasový hovor nebo videohovor, vytvoříte odkaz, zkopírujete ho, odešlete do chatu nebo se k jeho hovoru připojíte. Odkaz call.whatsapp.com ve zprávě vás po potvrzení připojí k jeho hovoru klávesou Enter nebo pomocí "Připojit se k hovoru" v jeho místní nabídce; odkaz otevřený v prohlížeči vás také připojí ve WinZappu, pokud je WinZapp programem nastaveným pro otevírání odkazů WhatsApp (Nastavení &gt; Obecné). Kdo se k odkazu připojí jako první, je správcem hovoru: lidé bez účtu WhatsApp čekají v čekárně, WinZapp řekne jméno každého, kdo dorazí, a tlačítko "Čekárna" v okně hovoru je pustí dovnitř nebo odmítne. Funguje s Neonize i WPPConnect.</p>
+
+<h3>Hovory s více lidmi</h3>
+<p>Hovory: chat, který je v probíhajícím hovoru, skupina nebo soukromý chat, jehož hovor se rozrostl na více lidí, nyní místo tlačítek hovoru ukazuje "Připojit se k probíhajícímu hlasovému hovoru" nebo "Připojit se k probíhajícímu videohovoru (kamera vypnutá)"; dokud je toto zařízení v hovoru s daným chatem, tlačítko zní "Vrátit se do hovoru" a vrátí okno hovoru do popředí.</p>
+<p>Hovory: hovor jeden na jednoho, který se stal skupinovým hovorem, je uveden podle svých lidí, jako v telefonu („A, B a C“ nebo „A a N dalších lidí“), v chatu, v náhledu seznamu chatů a na kartě Hovory. Skupinový hovor, který pokračoval bez vás a vaše zařízení jen zvonilo, se už nezobrazuje jako přijatý.</p>
+<p>Hovory, "Přidat účastníky": každá osoba se objeví jednou, takže kontakt uložený s devátou číslicí i bez ní, nebo pod svým číslem i propojeným ID, je jediný řádek; druhý seznam nabízí každou konverzaci jeden na jednoho, ať je kontakt uložen, nebo ne; a pole přijme ručně zadané telefonní číslo.</p>
+<p>Hovory: když přidáváte lidi, WinZapp řekne "Volá se: &lt;jména&gt;..." během odeslání pozvánky a "Pozváni do hovoru" až poté, co to potvrdil server WhatsAppu, místo aby ohlašoval lidi, kterým nikdy nezazvonilo. Neonize: přidání někoho do hovoru jeden na jednoho nebo do hovoru, který už je skupinový, mu nyní zazvoní, aniž by se ztlumila osoba, která už v hovoru je; a někdo, koho seznam v jedné odpovědi uvádí číslem a v další propojeným ID, se už neohlašuje jako odcházející a připojující se.</p>
+<p>Hovory: když se proces NVDA, který sdílení zvuku počítače sleduje, zavře, zatímco hovor pokračuje, sdílení se jednou samo spustí znovu, jako by se znovu stisklo "Sdílet zvuk počítače"; nezdařený restart se oznámí jako dříve.</p>
+<p>Neonize: hovor jeden na jednoho, který ze WinZappu uskutečníte, se nyní objeví i v historii hovorů ve vašem telefonu.</p>

@@ -175,7 +175,7 @@ def test_the_saved_call_settings_reach_the_audio_session(monkeypatch):
     built = []
 
     class _Session:
-        def __init__(self, sio, config):
+        def __init__(self, sio, config, **kwargs):
             built.append(config)
 
     monkeypatch.setattr(call_audio, "CallAudioSession", _Session)

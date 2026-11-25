@@ -333,6 +333,18 @@ def address_book_fields(fields: dict, phone_jid: str, lid_jid: str = "") -> dict
     return action
 
 
+def store_name_args(full_name: str, first_name: str) -> tuple:
+    """The two names in the order neonize's `put_contact_name` must receive them.
+
+    neonize labels them (fullname, firstname) and hands them on in that order,
+    but whatsmeow's SQL store takes (firstName, fullName), as its own app state
+    code calls it. A save that followed the label stored the full name as the
+    first name and the first name as the full one, and the next reload of the
+    store (which prefers the full name) renamed the contact to the first name
+    only."""
+    return first_name, full_name
+
+
 def contact_error(code: str) -> tuple:
     """(HTTP status, body) of a contact error; an unknown code never carries an
     exception text (it may have a name and number)."""
@@ -535,7 +547,7 @@ def register_routes(r, *, session, ok, jid_from_text, jid_text, destination_of, 
         s.db.contact(phone_jid, name=action["fullName"])
         try:
             await execute(s.client.contact.put_contact_name, jid_from_text(phone_jid),
-                          action["fullName"], action["firstName"])
+                          *store_name_args(action["fullName"], action["firstName"]))
         except Exception:
             log.warning("save-contact: neonize's contact store not updated")
         return ok(status="success",

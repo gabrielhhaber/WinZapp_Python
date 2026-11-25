@@ -15,9 +15,11 @@ class _Proc:
 
 def _bridge(tmp_path, with_python=True):
     root = tmp_path / "neonize_bridge"
-    (root / ".venv" / "Scripts").mkdir(parents=True)
+    python = nb.venv_python(str(root))
+    os.makedirs(os.path.dirname(python))
     if with_python:
-        (root / ".venv" / "Scripts" / "python.exe").write_text("")
+        with open(python, "w") as stream:
+            stream.write("")
         (root / "server.py").write_text("")
     return str(root)
 
@@ -62,7 +64,7 @@ def _handle(bridge, *, port_open=False, alive=lambda pid: False, spawned=None,
 def test_the_command_uses_the_bridge_virtualenv_and_the_fixed_port(tmp_path):
     bridge = _bridge(tmp_path)
     cmd = nb.command(bridge)
-    assert cmd[0].endswith("python.exe") and cmd[1].endswith("server.py")
+    assert cmd[0] == nb.venv_python(bridge) and cmd[1].endswith("server.py")
     assert cmd[cmd.index("--port") + 1] == "6300"
     assert cmd[cmd.index("--folder") + 1] == nb.data_dir(bridge)
 
@@ -73,8 +75,8 @@ def test_no_command_when_the_install_has_no_bridge(tmp_path):
 
 def test_a_packaged_bridge_exe_wins(tmp_path):
     bridge = _bridge(tmp_path)
-    open(os.path.join(bridge, "neonize_bridge.exe"), "w").close()
-    assert nb.command(bridge)[0].endswith("neonize_bridge.exe")
+    open(os.path.join(bridge, nb.PACKAGED_EXE), "w").close()
+    assert nb.command(bridge)[0] == os.path.join(bridge, nb.PACKAGED_EXE)
 
 
 def test_an_open_port_is_adopted_without_spawning(tmp_path):
@@ -644,3 +646,65 @@ def test_a_bridge_that_dies_at_once_logs_the_end_of_its_output(tmp_path, caplog)
     with caplog.at_level("ERROR", logger="neonize_bridge"):
         assert handle.start() is False
     assert "WinError 193" in caplog.text and "PROCESSOR_ARCHITECTURE" in caplog.text
+
+
+def test_the_bridge_output_is_not_buffered(tmp_path):
+    assert nb.environment(_bridge(tmp_path), {})["PYTHONUNBUFFERED"] == "1"
+
+
+def test_a_bridge_that_never_opens_the_port_logs_the_end_of_its_output(tmp_path, caplog):
+    bridge = _bridge(tmp_path)
+    handle = _handle(bridge, proc=_Proc(pid=900))      # alive, port closed
+    os.makedirs(nb.run_dir(bridge), exist_ok=True)
+    with open(os.path.join(nb.run_dir(bridge), nb.OUTPUT_FILE), "w", encoding="utf-8") as stream:
+        stream.write("bridge start +0.1s: imports begin\nbridge start +2.0s: loading neonize\n")
+    with caplog.at_level("ERROR", logger="neonize_bridge"):
+        assert handle.start() is False
+    assert "did not open port" in caplog.text and "loading neonize" in caplog.text
+
+
+# -- off Windows (the Mac build) ------------------------------------------------
+
+def test_the_virtualenv_interpreter_follows_the_system():
+    assert nb.venv_python("b", "win32") == os.path.join("b", ".venv", "Scripts", "python.exe")
+    assert nb.venv_python("b", "darwin") == os.path.join("b", ".venv", "bin", "python")
+
+
+def test_a_spawned_bridge_that_exited_is_dead_although_signal_0_still_reaches_it():
+    """A zombie child answers signal 0: without the reap the shutdown wait ran
+    out its grace and killed a bridge that had already closed."""
+    sent = []
+    alive = nb._posix_alive(900, waitpid=lambda pid, flags: (pid, 0),
+                            kill=lambda pid, sig: sent.append(pid))
+    assert alive is False and sent == []
+
+
+def test_a_running_child_or_another_process_answers_to_signal_0():
+    def not_our_child(pid, flags):
+        raise ChildProcessError
+    assert nb._posix_alive(900, waitpid=lambda pid, flags: (0, 0), kill=lambda pid, sig: None)
+    assert nb._posix_alive(900, waitpid=not_our_child, kill=lambda pid, sig: None)
+
+    def gone(pid, sig):
+        raise ProcessLookupError
+    assert not nb._posix_alive(900, waitpid=not_our_child, kill=gone)
+
+    def other_user(pid, sig):
+        raise PermissionError
+    assert nb._posix_alive(900, waitpid=not_our_child, kill=other_user)
+
+
+def test_off_windows_the_creation_time_comes_from_psutil():
+    """Without it bridge.pid has no stamp and the last client out never stops
+    the bridge."""
+    class _Psutil:
+        class Process:
+            def __init__(self, pid):
+                if pid != 900:
+                    raise LookupError("no such process")
+
+            def create_time(self):
+                return 1764000000.25
+
+    assert nb._posix_created(900, _Psutil) == "1764000000.25"
+    assert nb._posix_created(901, _Psutil) == ""

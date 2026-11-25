@@ -39,7 +39,8 @@ and adapts WinZapp's UI to how Mac apps and VoiceOver behave:
 
 ## Building
 
-Needs Python 3.13 and Homebrew's PortAudio (`brew install portaudio`).
+Needs Python 3.13, Homebrew's PortAudio (`brew install portaudio`) and Go
+(`brew install go`, at least the version neonize's `go.mod` asks).
 
     python3 macos/build_app.py --zip
 
@@ -54,6 +55,18 @@ packages a Windows end-user install keeps, cut down to what `dist/` and
 their imports no longer resolves), about a third of the files: fewer to
 unpack when an update installs, and to copy at the first launch after it. `.github/workflows/build-macos.yml`
 does this for both architectures on pull requests that touch the Mac build.
+
+The app also carries the Neonize engine: `macos/bridge_bundle.py` freezes the
+Neonize bridge (`neonize_bridge/`, with neonize's
+`neonize-darwin-<arch>.dylib` compiled from source, hence Go) into
+`Contents/Resources/neonize_bridge`, and the signing gives it the same
+entitlements as Node. The freeze runs in a child process while the app's own
+steps run, so it adds little to the build's time; its output is in
+`macos/build/bridge.log`. It runs from inside the app and keeps its sessions in
+Application Support (`data/global/neonize_bridge/`). `--no-bridge` builds
+without it (WPPConnect only, no Go needed). libmagic is not bundled: without
+Homebrew's, the bridge takes mimetypes from the file signature. A release
+workflow that builds the app needs `actions/setup-go` before `build_app.py`.
 
 Development run without building: `python3 macos/launcher.py`.
 

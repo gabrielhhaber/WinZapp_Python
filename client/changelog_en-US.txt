@@ -12,9 +12,23 @@ WHAT'S NEW
 
 - Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
 
+- Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.
+
+- One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback.
+
+- Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable.
+
+- One-to-one Neonize calls: removed a duplicate wait in incoming audio while keeping automatic playback buffering that protects against network jitter.
+
+- Neonize calls: microphone audio conversion is optimized to reduce Python processing, with automatic fallback when the installed engine does not support the optimization.
+
+- Czech: WinZapp is now available in Czech (Čeština): the interface, the user guide, the installer and uninstaller (which follow the Windows display language) and these release notes. Czech is also offered as a language to translate messages into, and the spell checker supports it. Thanks to jaxcze for the translation.
+
+- Connect with QR code: the QR code shows up again. With the latest WhatsApp Web versions, some computers get a separate login page that only has the QR code screen, and on it WinZapp kept connecting until it gave up, without showing the code. The QR code now shows up on that page within a few seconds.
+
 - Communities: Enter on a community in the chat list now opens the Communities panel with that community selected and the focus on its groups, instead of the community's own chat. Settings > Interface > Chats has the option, on by default.
 
-- Linking by phone number: the link no longer fails after WhatsApp on the phone accepts the pairing code. WinZapp used to close WhatsApp Web during the reload that finishes the login, or ask for a new code on it, so the phone showed the device as linked while WinZapp stayed on the pairing window. The pairing code window also lists its text, the code and Cancel in order instead of drawing them on top of each other.
+- Linking by phone number: the link no longer fails after WhatsApp on the phone accepts the pairing code. WinZapp used to close WhatsApp Web during the reload that finishes the login, or ask for a new code on it, so the phone showed the device as linked while WinZapp stayed on the pairing window. The pairing code window also lists its text, the code and Cancel in order instead of drawing them on top of each other. If WhatsApp Web still does not open your chats after the code is accepted, WinZapp now tries once more and then tells you, instead of waiting on the pairing window forever, and a link the phone accepted is no longer discarded when you restart WinZapp. Linking with the QR code now survives that reload too: WinZapp no longer shows a new QR code and gives up a few seconds after the phone accepted the scan.
 
 - When WhatsApp temporarily refuses pairing codes for a number, WinZapp says so right away instead of staying on "connecting" for a minute and a half, and suggests "Connect with QR code", which does not use a pairing code.
 
@@ -75,7 +89,7 @@ WHAT'S NEW
 
 - Neonize: while the phone sends the message history, WinZapp says so and asks you to keep WhatsApp open on the phone's screen, warns when the phone stops (with the percentage), when it sends again and when it finishes; while it is stopped, WinZapp asks the phone for the rest every 90 seconds.
 
-- Neonize: the conversations that WhatsApp for iPhone leaves out of its first history batch (it now sends only 400) are now requested and imported as well.
+- Neonize: the conversations that WhatsApp for iPhone leaves out of its first history batch (it now sends only 400) are now requested and imported as well. When the phone does not send the list of the ones left out, WinZapp, once the pairing's history is done, asks the phone for the conversations that are missing and waits a few minutes for the answer before calling the sync complete.
 
 - Neonize: deleting a list also removes it from its chats, so they do not keep pointing at a list that no longer exists.
 
@@ -663,6 +677,18 @@ WHAT'S NEW
 - Neonize on Windows on ARM: the connection bridge no longer fails to start (and pairing by QR code no longer stays stuck) because it asked for the ARM version of its library, which the program cannot load; it now uses the one for the architecture it really runs as.
 
 - Fixed: with install-on-exit turned on, after WinZapp announced that the update was downloaded, Help > Install downloaded update stayed unavailable. The item is now available and installs the update right away, then starts WinZapp again; exiting still installs without restarting.
+
+- Neonize: when the connection bridge takes too long to start, the program log now says whether it is still running and shows the last lines of its output, and the bridge writes each step of its start to its own log as it goes, so a bridge that stops half-way shows where.
+
+- Fixed: after switching the audio device, notification (toast) sounds stopped playing while chat audio and the other WinZapp sounds kept working. The switch left the already loaded notification sounds unusable; they are now reloaded together with the other sounds.
+
+- With Neonize, a contact saved with a first and last name no longer loses the last name in the conversation a few seconds later: the full name is stored in the right order, so the conversation keeps showing, for example, "Nuno Soares" instead of just "Nuno".
+
+- Neonize: when the connection bridge gets stuck while starting, it now writes to its own log where it is stuck after 25 seconds.
+
+- Neonize on Windows on ARM: the connection bridge no longer closes by itself right after starting (with the message that it could not be started), which prevented pairing.
+
+- Mac: the Neonize engine now comes with WinZapp for Mac too, on Apple Silicon and Intel, and connects straight to WhatsApp, without a browser. Choose it in the "Connection engine" list of the connection window or in Settings > Connection.
 
 V2.1.0.0
 

@@ -7,30 +7,41 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "client"))
 
 from core import wppconnect_host_layer_patch as m  # noqa: E402
+from core import wppconnect_pairing_completion_patch as v2  # noqa: E402
 
+# The v1 texts below shipped; wppconnect_pairing_completion_patch.py now
+# carries v2 of both and the behavioural tests (test_pairing_completion_patch.py).
 SOURCE = "\n".join([
+    "    async waitForLogin() {",
     "        if (typeof this.options.phoneNumber === 'string') {",
     m.ORIGINAL_RELOAD_LOGIN_BY_CODE,
     "        }",
-    m.ORIGINAL_POST_SCAN_AUTH_CHECK,
-    "                this.log('warn', 'Failed to authenticate');",
-    "            }",
+    v2.ORIGINAL_POST_SCAN_CHECK,
+    "    }",
 ])
 
 
 def test_both_parts_are_patched():
     notes = []
     out = m._patch_post_link_reload(SOURCE, notes)
-    assert m.PATCHED_POST_SCAN_AUTH_CHECK in out
-    assert m.PATCHED_RELOAD_LOGIN_BY_CODE in out
+    assert v2.PATCHED_POST_SCAN_CHECK in out
+    assert v2.PATCHED_RELOAD_GUARD in out
     assert not any("DID NOT MATCH" in n for n in notes)
+
+
+def test_v2_keeps_what_v1_did():
+    # v1's wait for the reloaded page and its guard survive in v2.
+    assert "authenticated === null && i < 120" in v2.PATCHED_POST_SCAN_CHECK
+    assert "await this.waitForPageLoad().catch(() => null);" in v2.PATCHED_POST_SCAN_CHECK
+    assert "this.lastLinkCode != null" in v2.PATCHED_RELOAD_GUARD
+    assert "wzLoad !== this.pageLoadPromise" in v2.PATCHED_RELOAD_GUARD
 
 
 def test_patching_twice_changes_nothing():
     once = m._patch_post_link_reload(SOURCE, [])
     notes = []
     assert m._patch_post_link_reload(once, notes) == once
-    assert all("already" in n for n in notes)
+    assert all("already" in n or "not in this file" in n for n in notes), notes
 
 
 def test_a_file_without_these_functions_is_left_alone():

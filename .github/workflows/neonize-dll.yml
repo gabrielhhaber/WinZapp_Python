@@ -3,7 +3,9 @@
 # compiled into the Windows DLL by neonize_bridge/build_neonize.py. The bridge's
 # tests then run against that package (ci.yml's bridge job builds and tests it
 # too, on every pull request; this workflow adds the export round-trip, the
-# artifact and the release).
+# artifact and the release). The same build runs on macOS (Apple Silicon and
+# Intel) into neonize's dylib, with the bridge's tests against it: the Neonize
+# engine on the Mac build (neonize_bridge/neonize_platform.py).
 #
 # - pull_request / push to main that touch the patches, the manifest or the
 #   build: build, test, and keep dist/ as an artifact.
@@ -22,7 +24,13 @@ on:
       - "neonize_bridge/neonize_patches/**"
       - "neonize_bridge/neonize_upstream.json"
       - "neonize_bridge/neonize_upstream.py"
+      - "neonize_bridge/neonize_platform.py"
       - "neonize_bridge/build_neonize.py"
+      - "neonize_bridge/build_neteq.py"
+      - "native/call_neteq/**"
+
+      - "neonize_bridge/prepare.py"
+      - "neonize_bridge/requirements*"
       - "neonize_bridge/contact_events.py"
       - ".github/workflows/neonize-dll.yml"
   push:
@@ -30,7 +38,14 @@ on:
     paths:
       - "neonize_bridge/neonize_patches/**"
       - "neonize_bridge/neonize_upstream.json"
+      - "neonize_bridge/neonize_upstream.py"
+      - "neonize_bridge/neonize_platform.py"
       - "neonize_bridge/build_neonize.py"
+      - "neonize_bridge/build_neteq.py"
+      - "native/call_neteq/**"
+
+      - "neonize_bridge/prepare.py"
+      - "neonize_bridge/requirements*"
       - ".github/workflows/neonize-dll.yml"
   workflow_dispatch:
     inputs:
@@ -87,8 +102,18 @@ jobs:
         shell: msys2 {0}
         run: echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
 
+      - name: Prepare pinned Rust for NetEq
+        run: rustup toolchain install 1.91.1-x86_64-pc-windows-msvc --profile minimal
+
       - name: Build (prepare, generate, build)
         run: python neonize_bridge/build_neonize.py all
+
+      - name: Test NetEq native playout
+        env:
+          CARGO_TARGET_DIR: neonize_bridge/neonize_build/neteq-target
+          CARGO_BUILD_JOBS: "1"
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: cargo +1.91.1-x86_64-pc-windows-msvc test --locked --manifest-path native/call_neteq/Cargo.toml --target x86_64-pc-windows-msvc
 
       - name: Test native call lifecycle against the real package
         working-directory: neonize_bridge/neonize_build/neonize/goneonize
@@ -96,7 +121,7 @@ jobs:
           CGO_ENABLED: "1"
           GOTOOLCHAIN: local
           GOFLAGS: -mod=readonly
-        run: go test -p 1 -count=1 -run 'Test(CallLifecycle|IncomingAfterTerminal|IncomingBeforeTerminal|OldIncomingOwner|ConcurrentIncomingAndEnd|CallEventQueue)' .
+        run: go test -p 1 -count=1 -run 'Test(CallAudioTimed|CallAudioIPC|CallPCMResample|CallPCMBuffered|CallLifecycle|IncomingAfterTerminal|IncomingBeforeTerminal|OldIncomingOwner|ConcurrentIncomingAndEnd|CallEventQueue)' .
 
       - name: The patches round-trip (export reproduces them byte for byte)
         run: |
@@ -118,6 +143,93 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: neonize-dll
+          path: |
+            neonize_bridge/neonize_build/dist/*.zip
+            neonize_bridge/neonize_build/dist/SHA256SUMS.txt
+            neonize_bridge/neonize_build/dist/BUILD_INFO.json
+          if-no-files-found: error
+
+  # The same build on macOS: the dylib the Mac build's bridge loads
+  # (neonize-darwin-<arch>.dylib), with the bridge's tests against it. Apple's
+  # clang is cgo's compiler; libmagic is what python-magic needs off Windows.
+  build-macos:
+    name: Build and test the neonize dylib (macOS ${{ matrix.arch }})
+    if: github.event_name != 'schedule' && inputs.check_ref == ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15          # Apple Silicon
+            arch: arm64
+          - runner: macos-15-intel    # Intel (GitHub's last x86_64 image, until Aug 2027)
+            arch: amd64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      # Go's build and module caches: whatsmeow and neonize compile again only
+      # when the approved release or a patch changes (the build cache is
+      # content-addressed, so an older entry restored by prefix is still safe)
+      - name: Go caches
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Caches/go-build
+            ~/go/pkg/mod
+          key: go-neonize-dylib-${{ matrix.arch }}-${{ env.GO_VERSION }}-${{ hashFiles('neonize_bridge/neonize_upstream.json', 'neonize_bridge/neonize_patches/**') }}
+          restore-keys: go-neonize-dylib-${{ matrix.arch }}-${{ env.GO_VERSION }}-
+
+      - name: libmagic (for python-magic)
+        run: brew install libmagic
+
+      - name: Build (prepare, generate, build)
+        run: python neonize_bridge/build_neonize.py all
+
+      - name: The library is the one neonize loads on this Mac
+        run: |
+          lib=neonize_bridge/neonize_build/dist/neonize/neonize-darwin-${{ matrix.arch }}.dylib
+          test -f "$lib"
+          file "$lib"
+
+      - name: Test native call lifecycle against the real package
+        working-directory: neonize_bridge/neonize_build/neonize/goneonize
+        env:
+          CGO_ENABLED: "1"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+        run: go test -p 1 -count=1 -run 'Test(CallLifecycle|IncomingAfterTerminal|IncomingBeforeTerminal|OldIncomingOwner|ConcurrentIncomingAndEnd|CallEventQueue)' .
+
+      - name: Install the bridge's requirements and the built package into a venv
+        run: |
+          python -m venv venv
+          venv/bin/python -m pip install --upgrade pip --quiet
+          venv/bin/python -m pip install --require-hashes -r neonize_bridge/requirements-macos.lock --quiet
+          venv/bin/python -m pip install -r requirements-dev.txt --quiet
+          python neonize_bridge/build_neonize.py install --venv venv
+
+      - name: neonize loads the dylib and reports its version
+        run: venv/bin/python -c "from neonize._binder import load_goneonize; print(load_goneonize().GetVersion().decode())"
+
+      - name: Run the bridge's tests against the built package
+        run: venv/bin/python -m pytest neonize_bridge -q --numprocesses=auto
+
+      - name: Keep the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: neonize-dylib-${{ matrix.arch }}
           path: |
             neonize_bridge/neonize_build/dist/*.zip
             neonize_bridge/neonize_build/dist/SHA256SUMS.txt
@@ -197,6 +309,9 @@ jobs:
           msystem: UCRT64
           update: false
           install: mingw-w64-ucrt-x86_64-gcc
+
+      - name: Prepare pinned Rust for NetEq
+        run: rustup toolchain install 1.91.1-x86_64-pc-windows-msvc --profile minimal
 
       - name: Add MSYS2 UCRT64 bin to Windows PATH
         shell: msys2 {0}

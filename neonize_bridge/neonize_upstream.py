@@ -15,7 +15,12 @@ The manifest, in short:
 - `whatsmeow`: the version neonize's go.mod requires (the patched copy
   replaces it); `meowcaller`: the commit the call patches apply to.
 - `toolchain`: what regenerates neonize's protobuf code byte for byte as
-  upstream does (protoc and its SHA-256, protoc-gen-go, mypy-protobuf).
+  upstream does (protoc and its SHA-256, protoc-gen-go, mypy-protobuf). Its
+  `protoc` is the Windows download.
+- `protoc_platforms`: the SHA-256 of the same protoc's download for the
+  other systems the library is built on (macOS, and Linux for CI), by
+  protoc's asset suffix. Kept out of `toolchain` because the code it
+  generates is the same: a build's identity does not depend on the system.
 - `release`: the WinZapp release with the built package that
   `prepare.py` downloads, or null until one is published. Its `identity`
   (BUILD_INFO.json) says which pins and patches it was built from: a release
@@ -35,8 +40,6 @@ MANIFEST = "neonize_upstream.json"
 GENERATED = ("goneonize/defproto/Neonize.pb.go",
              "neonize/proto/Neonize_pb2.py",
              "neonize/proto/Neonize_pb2.pyi")
-
-DLL_NAME = "neonize-windows-amd64.dll"
 
 _VERSION = re.compile(r"^\d+\.\d+\.\d+$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
@@ -64,6 +67,12 @@ def validate(manifest) -> dict:
     protoc = (manifest.get("toolchain") or {}).get("protoc") or {}
     if not _SHA256.match(str(protoc.get("sha256", ""))):
         raise ValueError("toolchain.protoc.sha256 is not a SHA-256")
+    platforms = manifest.get("protoc_platforms") or {}
+    if not isinstance(platforms, dict):
+        raise ValueError("protoc_platforms is not a table")
+    for key, digest in platforms.items():
+        if not _TAG.match(str(key)) or not _SHA256.match(str(digest)):
+            raise ValueError(f"protoc_platforms[{key!r}] is not a SHA-256")
     release = manifest.get("release")
     if release is not None:
         if not _TAG.match(str(release.get("tag", ""))) or not _TAG.match(str(release.get("asset", ""))):
@@ -137,8 +146,17 @@ def release_url(repository: str, release: dict) -> str:
             f"{release['tag']}/{release['asset']}")
 
 
-def asset_name(version: str) -> str:
-    return f"neonize-{version}-winzapp-windows-amd64.zip"
+def protoc_download(manifest, platform_key: str) -> tuple:
+    """(asset file name, SHA-256) of protoc for one of protoc's platform
+    suffixes (``win64``, ``osx-aarch_64``...); ValueError when the manifest
+    has no checked download for it."""
+    protoc = manifest["toolchain"]["protoc"]
+    if platform_key == "win64":
+        return protoc["asset"], protoc["sha256"]
+    digest = (manifest.get("protoc_platforms") or {}).get(platform_key)
+    if not digest:
+        raise ValueError(f"neonize_upstream.json has no protoc download for {platform_key}")
+    return f"protoc-{protoc['version']}-{platform_key}.zip", digest
 
 
 def sha256_hex(data: bytes) -> str:
@@ -191,6 +209,18 @@ def read_patches(patches_dir) -> dict:
             if name.endswith(".patch"):
                 with open(os.path.join(folder, name), "rb") as f:
                     found[tree][name] = f.read()
+    # The sidecar source and Cargo checksums are part of the downloadable
+    # package too. A changed NetEq wrapper must invalidate the installed build.
+    native = os.path.abspath(os.path.join(patches_dir, "..", "..", "native", "call_neteq"))
+    paths = ("Cargo.toml", "Cargo.lock", "src/lib.rs", "THIRD_PARTY_NOTICES.txt")
+    if os.path.isdir(native):
+        found["call_neteq"] = {}
+        for name in paths:
+            with open(os.path.join(native, name), "rb") as handle:
+                found["call_neteq"][name] = handle.read().replace(b"\r\n", b"\n")
+        helper = os.path.join(patches_dir, "..", "build_neteq.py")
+        with open(helper, "rb") as handle:
+            found["call_neteq"]["build_neteq.py"] = handle.read().replace(b"\r\n", b"\n")
     return found
 
 

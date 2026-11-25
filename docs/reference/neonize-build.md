@@ -24,6 +24,35 @@ stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
+- **neonize 0036 / meowcaller 0038**: optional protocol 2 timed PCM, carrying
+  the source/codec epoch and sample timeline into the device-clock NetEq
+  component. Protocol 1 remains compatible. The sidecar is built from
+  `native/call_neteq` with Rust 1.91.1 (`x86_64-pc-windows-msvc`), Cargo.lock,
+  and Visual C++ Build Tools. It uses a static CRT and ships its notices.
+  Sources, lockfile and helper invalidate the installed artifact identity.
+  The sidecar is optional: source builders who want it run `rustup toolchain
+  install 1.91.1-x86_64-pc-windows-msvc --profile minimal`; without that
+  toolchain the build skips it with a warning and calls keep the compatible
+  playback (release workflows install it). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
+
+- **neonize 0034 / meowcaller 0037**: the bridge queue opts into
+  `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing
+  adaptive playback reservoir without a second native prefill/lookahead.
+  Conventional sinks and group mixing retain their buffering policy.
+  Native tests cover timestamp overlap, short frames, clock/source changes
+  and sink handoff; client timing tests exercise the unchanged reservoir.
+
+- **neonize 0033**: optional stateless `CallResamplePCM48To16`, exposed as
+  `Calls.resample_pcm48_to16`. It moves the bridge's 97-tap microphone FIR to
+  Go without changing its 16 kHz call contract. Each invocation includes the
+  microphone owner's history; older DLLs keep the Python fallback. Synthetic
+  Go and compiled-package binding tests cover the conversion.
+
+- **neonize 0035**: optional native loopback PCM transport
+  (`CallAudioTransportOpen` / `CallAudioTransportClose`). A generation- and
+  stream-bound authenticated socket connects the audio session straight to
+  Go, with exclusive queue ownership and Socket.IO fallback. See
+  [neonize-call-audio.md](neonize-call-audio.md) for protocol and lifecycle.
 - **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
   whatsmeow patch) and media transfers to and from disk with progress and
   cancel (`DownloadAnyToFileTracked`, `UploadFile`, `TransferProgress`,
@@ -290,6 +319,33 @@ Go must be at least the `go` line of neonize's `goneonize/go.mod`, and gcc a
 afterwards so both are on the PATH. protoc, protoc-gen-go and mypy-protobuf
 are fetched by the build into `neonize_bridge/neonize_build/tools/`.
 
+### macOS
+
+The same build makes neonize's dylib (`neonize-darwin-arm64.dylib` on Apple
+Silicon, `neonize-darwin-amd64.dylib` on Intel), the name neonize loads it by.
+It needs the Xcode command line tools (`xcode-select --install`: Apple's
+clang is cgo's compiler), Go (`brew install go`) and libmagic
+(`brew install libmagic`, for python-magic). The library is built for the
+architecture of the Python that runs `build_neonize.py`, so an Intel Python
+under Rosetta gets the Intel one. `neonize_platform.py` holds these rules;
+protoc's macOS downloads are checked against `protoc_platforms` in the
+manifest (outside `toolchain`, so a build's identity is the same on every
+system). The bridge's requirements come from `requirements-macos.lock`
+(python-magic instead of python-magic-bin, the same versions as
+`requirements.lock`). After a change to `requirements.txt` or
+`requirements.lock`, regenerate it from `neonize_bridge/`:
+
+```sh
+grep -oE "^[A-Za-z0-9_.-]+==[^ \\]+" requirements.lock > windows-pins.txt
+uv pip compile requirements.txt -c windows-pins.txt --generate-hashes \
+  --python-version 3.13 --python-platform aarch64-apple-darwin -o requirements-macos.lock
+rm windows-pins.txt
+```
+
+(uv's hashes cover every wheel of each version, Intel's included.) Nobody on the team needs a Mac for it:
+`neonize-dll.yml`'s `build-macos` job builds and tests both architectures on
+GitHub's macOS runners, and keeps each build as an artifact.
+
 ## Building
 
 ```powershell
@@ -309,7 +365,7 @@ leave half a package. `prepare.py` does the same for a fresh checkout
 (downloading the published build instead when `release` is set).
 
 Output in `neonize_bridge/neonize_build/dist/`: `neonize/` (the package with
-`neonize-windows-amd64.dll`), the zip, `SHA256SUMS.txt` and
+`neonize-windows-amd64.dll`, or the dylib on macOS), the zip, `SHA256SUMS.txt` and
 `BUILD_INFO.json` (the exact inputs: neonize commit, whatsmeow, meowcaller,
 a hash of each tree's patches, the zip's SHA-256).
 
