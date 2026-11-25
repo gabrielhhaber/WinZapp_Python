@@ -76,11 +76,12 @@ def guias_desatualizados(repo):
 
 
 def divergencias_entre_idiomas():
-    """Compara cada idioma com o pt-BR: nomes de seção, selos e subtítulos."""
+    """Compara cada idioma com o pt-BR: seções (pelo número do arquivo, cujo
+    nome é no idioma de cada guia), selos e subtítulos."""
     def perfil(loc):
         pasta = AQUI / 'sections' / loc
         return {
-            a.name: (a.read_text(encoding='utf-8').count('class="desde"'),
+            a.name.split('-', 1)[0]: (a.read_text(encoding='utf-8').count('class="desde"'),
                      a.read_text(encoding='utf-8').count('<h3'))
             for a in sorted(pasta.glob('[0-9]*.html'))
         }
@@ -93,7 +94,7 @@ def divergencias_entre_idiomas():
             continue
         for nome, valor in base.items():
             if outro[nome] != valor:
-                achados.append(f'{loc}/{nome}: selos/subtítulos {outro[nome]} em vez de {valor}')
+                achados.append(f'{loc}/{nome}-*: selos/subtítulos {outro[nome]} em vez de {valor}')
     return achados
 
 

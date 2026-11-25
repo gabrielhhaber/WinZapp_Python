@@ -41,4 +41,4 @@ for k in sorted(depois.keys() - antes.keys()): print('NOVO     ', k, depois[k])
 for k in sorted(antes.keys() - depois.keys()): print('REMOVIDO ', k, antes[k])
 for k in sorted(antes.keys() & depois.keys()):
     if antes[k] != depois[k]: print('ALTERADO ', k, antes[k], '->', depois[k])
-print('\nDepois de atualizar as seções: edite coverage.json, acrescente a linha em sections/99-changelog.html e rode generate_guide.py.')
+print('\nDepois de atualizar as seções: edite coverage.json, acrescente a linha em sections/<idioma>/99-*.html e rode generate_guide.py.')
