@@ -161,7 +161,8 @@ class NeonizeCallAudioTransport:
                 if self._closed.is_set() or self._fallback_requested:
                     return
                 self._active = True
-            logging.info('[call_audio] transport=native')
+            # Protocol 1 = the bridge plays (Go mixer in a group); 2/3 = NetEq here.
+            logging.info('[call_audio] transport=native protocol=%d', protocol)
             writer = threading.Thread(target=self._write, args=(connection, disconnected),
                                       name='call-native-microphone', daemon=True)
             writer.start()

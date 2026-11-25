@@ -65,6 +65,15 @@ class NetEqOutputBuffer:
         return self._library is not None and self._rate in RATES and not self._failed
 
     @property
+    def unavailable_reason(self):
+        """Why NetEq cannot play this call, for the log; None when it can."""
+        if self._library is None:
+            return 'no NetEq sidecar installed'
+        if self._rate not in RATES:
+            return f'device rate {self._rate} Hz'
+        return 'NetEq failed' if self._failed else None
+
+    @property
     def native_failed(self):
         return self._failed
 

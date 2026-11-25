@@ -1528,7 +1528,13 @@ class CallAudioSession:
     def _configure_transport_playout(self) -> None:
         playout = getattr(self._transport, 'configure_playout', None)
         if callable(playout):
-            playout(bool(getattr(self._output_buffer, 'native_available', False)) and not self._live_translation)
+            timed = bool(getattr(self._output_buffer, 'native_available', False)) and not self._live_translation
+            if not timed:
+                # Without NetEq a group call silently falls back to the bridge's mixer.
+                logging.info("[call_audio] playout=compatible: %s",
+                             getattr(self._output_buffer, 'unavailable_reason', None)
+                             or ('live translation' if self._live_translation else 'no NetEq buffer'))
+            playout(timed)
 
     def _emit_start(self) -> None:
         try:

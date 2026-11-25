@@ -368,3 +368,11 @@ def test_a_bridge_that_predates_protocol_3_is_asked_for_protocol_2(monkeypatch, 
     transport.configure_playout(True)
     transport._run()
     assert [b['audioProtocol'] for b in bodies] == [3, 2]
+
+
+@pytest.mark.parametrize('protocol', [1, 2, 3])
+def test_the_negotiated_protocol_is_logged(monkeypatch, no_writer, caplog, protocol):
+    # Protocol 1 means the bridge mixes a group call; the log must tell it apart.
+    with caplog.at_level('INFO'):
+        _protocol3_run(monkeypatch, [], protocol=protocol, handshake=b'NZA%d' % protocol)
+    assert f'transport=native protocol={protocol}' in caplog.text
