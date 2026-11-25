@@ -60,7 +60,9 @@ The app also carries the Neonize engine: `macos/bridge_bundle.py` freezes the
 Neonize bridge (`neonize_bridge/`, with neonize's
 `neonize-darwin-<arch>.dylib` compiled from source, hence Go) into
 `Contents/Resources/neonize_bridge`, and the signing gives it the same
-entitlements as Node. It runs from inside the app and keeps its sessions in
+entitlements as Node. The freeze runs in a child process while the app's own
+steps run, so it adds little to the build's time; its output is in
+`macos/build/bridge.log`. It runs from inside the app and keeps its sessions in
 Application Support (`data/global/neonize_bridge/`). `--no-bridge` builds
 without it (WPPConnect only, no Go needed). libmagic is not bundled: without
 Homebrew's, the bridge takes mimetypes from the file signature. A release

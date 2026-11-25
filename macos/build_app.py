@@ -14,6 +14,8 @@ Steps
   4b. The Neonize bridge, frozen, into Contents/Resources/neonize_bridge
      (bridge_bundle.py: neonize's dylib is compiled from source, so this needs
      Go; --no-bridge leaves the Neonize engine out of a quick local build).
+     The freeze starts right after the release checks and runs in a child
+     process beside steps 1-4; its output is in macos/build/bridge.log.
   5. The server runtime (api/ + node/) into Contents/Resources/runtime with a
      STAMP, without the server's development packages (runtime_prune.py);
      the app installs it into Application Support at launch
@@ -817,6 +819,11 @@ def main():
     source = (release_source()
               if a.zip or local or os.environ.get("WINZAPP_MAC_RELEASES_REPO") else None)
     sparkle_plist(source)       # a bad Sparkle key or feed stops here too, not at the end
+    freezing = None
+    if not a.no_bridge:
+        bridge_bundle.require_go()
+        step("Neonize bridge: freezing in the background (macos/build/bridge.log)")
+        freezing = bridge_bundle.start(BUILD)
     if not a.no_deps:
         python_deps()
     node_dir = node_runtime()
@@ -825,9 +832,9 @@ def main():
         build_api(node_dir)
     sparkle_dir = fetch_sparkle()
     pyinstaller()
-    if not a.no_bridge:
+    if freezing is not None:
         step("Neonize bridge -> Contents/Resources/neonize_bridge")
-        bridge_bundle.bundle(ROOT, APP, BUILD, ARCH)
+        bridge_bundle.finish(freezing, APP, ARCH)
     bundle_runtime(node_dir)
     embed_sparkle(sparkle_dir)
     finish_bundle(source)
