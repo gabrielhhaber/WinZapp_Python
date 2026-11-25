@@ -745,6 +745,20 @@ def register_routes(r, *, session, ok):
     async def status(media, body):
         return ok(status="success", response=media.status(str(body.get("callId") or "")))
 
+    async def audio_transport(media, body):
+        try:
+            descriptor = await in_thread(media.open_audio_transport, body)
+        except LookupError:
+            return error("audio owner not connected", 409)
+        except (ValueError, TypeError):
+            return error("invalid audio owner", 400)
+        except Exception:
+            log.warning("native audio transport unavailable")
+            return error("native audio unavailable", 503)
+        if descriptor is None:
+            return error("native audio unsupported", 501)
+        return ok(status="success", response=descriptor)
+
     async def audio_enable(media, body):
         return ok(status="success", response={"enabled": True})
 
@@ -762,6 +776,7 @@ def register_routes(r, *, session, ok):
     for route, action in (("call/offer", offer), ("call/group/offer", group_offer),
                           ("call/upgrade-video", upgrade_video), ("call/accept", accept),
                           ("call/end", end), ("call/ensure-ended", end),
-                          ("call/status", status), ("call/audio/enable", audio_enable)):
+                          ("call/status", status), ("call/audio/enable", audio_enable),
+                          ("call/audio/transport", audio_transport)):
         r.add_post("/api/{tok}/" + route, media_route(
             action, needs_connection=action is not end))

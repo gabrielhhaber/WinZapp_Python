@@ -4,6 +4,16 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.
+
+- One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback.
+
+- Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable.
+
+- One-to-one Neonize calls: removed a duplicate wait in incoming audio while keeping automatic playback buffering that protects against network jitter.
+
+- Neonize calls: microphone audio conversion is optimized to reduce Python processing, with automatic fallback when the installed engine does not support the optimization.
+
 - Czech: WinZapp is now available in Czech (Čeština): the interface, the user guide, the installer and uninstaller (which follow the Windows display language) and these release notes. Czech is also offered as a language to translate messages into, and the spell checker supports it. Thanks to jaxcze for the translation.
 
 - Connect with QR code: the QR code shows up again. With the latest WhatsApp Web versions, some computers get a separate login page that only has the QR code screen, and on it WinZapp kept connecting until it gave up, without showing the code. The QR code now shows up on that page within a few seconds.

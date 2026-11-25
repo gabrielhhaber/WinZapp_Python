@@ -4,6 +4,16 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Chiamate Neonize: corretto il ritorno all’audio compatibile quando l’uscita esclusiva usa una frequenza non supportata da NetEQ, mantenendo la compensazione delle perdite di pacchetti.
+
+- Chiamate individuali Neonize: la riproduzione con NetEQ attenua le variazioni di rete e le perdite audio, con ritorno automatico alla modalità compatibile.
+
+- Chiamate Neonize: l’audio usa una connessione locale diretta al motore nativo, con ritorno automatico a Socket.IO quando non è disponibile.
+
+- Chiamate individuali con Neonize: eliminata un’attesa duplicata nell’audio ricevuto, mantenendo la regolazione automatica della riproduzione contro le variazioni del ritardo di rete.
+
+- Chiamate con Neonize: conversione dell’audio del microfono ottimizzata per ridurre l’elaborazione in Python, con ritorno automatico all’elaborazione precedente se il motore installato non supporta l’ottimizzazione.
+
 - Ceco: WinZapp è ora disponibile in ceco (Čeština): l'interfaccia, la guida per l'utente, il programma di installazione e di disinstallazione (che seguono la lingua di visualizzazione di Windows) e queste note di rilascio. Il ceco è offerto anche come lingua in cui tradurre i messaggi, e il correttore ortografico lo supporta. Grazie a jaxcze per la traduzione.
 
 - Connettiti con il codice QR: il codice QR torna a comparire. Con le versioni più recenti di WhatsApp Web, alcuni computer ricevono una pagina di accesso separata, con la sola schermata del codice QR, e lì WinZapp continuava a connettersi fino a rinunciare, senza mostrare il codice. Ora il codice QR compare in quella pagina in pochi secondi.

@@ -1,0 +1,365 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Igor Alves <igoralves.dev82@gmail.com>
+Date: Tue, 24 Nov 2026 17:33:14 -0300
+Subject: [PATCH] perf(audio): defer playout buffering to downstream sinks
+
+---
+ audio.go                       |   9 ++
+ audio_playout.go               |  13 +++
+ audio_playout_buffered.go      |  93 +++++++++++++++++++
+ audio_playout_buffered_test.go | 164 +++++++++++++++++++++++++++++++++
+ engine_media.go                |   7 +-
+ 5 files changed, 285 insertions(+), 1 deletion(-)
+ create mode 100644 audio_playout_buffered.go
+ create mode 100644 audio_playout_buffered_test.go
+
+diff --git a/audio.go b/audio.go
+index ce514be..5e8461b 100644
+--- a/audio.go
++++ b/audio.go
+@@ -42,6 +42,15 @@ type AudioSink interface {
+ 	Close() error
+ }
+ 
++// BufferedAudioSink opts into immediate delivery of authenticated, reordered
++// decoder output. The sink owns its playback reservoir and device clock, so
++// meowcaller must not hold another packet or prefill in front of it. Sinks
++// without this capability retain timestamp alignment and the native prefill.
++type BufferedAudioSink interface {
++	AudioSink
++	BuffersAudioPlayout() bool
++}
++
+ // SinkFunc adapts a plain function to an AudioSink (Close is a no-op).
+ type SinkFunc func(frame []float32)
+ 
+diff --git a/audio_playout.go b/audio_playout.go
+index 7dbc006..05e19c0 100644
+--- a/audio_playout.go
++++ b/audio_playout.go
+@@ -19,6 +19,12 @@ type audioPlayoutBuffer struct {
+ 	prefill        [][]float32
+ 	prefillSamples int
+ 	started        bool
++	bufferedSink   bool
++	bufferedEnd    uint32
++	bufferedStart  uint32
++	bufferedPad    int
++	receiveSSRC    uint32
++	receiveClock   uint32
+ }
+ 
+ func newAudioPlayoutBuffer(rates ...int) *audioPlayoutBuffer {
+@@ -26,6 +32,9 @@ func newAudioPlayoutBuffer(rates ...int) *audioPlayoutBuffer {
+ }
+ 
+ func (p *audioPlayoutBuffer) Push(timestamp uint32, frame []float32, sink AudioSink) (startedNow bool, err error) {
++	if handled, started, err := p.pushBuffered(timestamp, frame, sink); handled {
++		return started, err
++	}
+ 	if p.pending == nil {
+ 		p.pending = &audioPlayoutFrame{timestamp: timestamp, pcm: frame}
+ 		return false, nil
+@@ -91,6 +100,10 @@ func (p *audioPlayoutBuffer) Drain(sink AudioSink) error {
+ 	p.prefill = nil
+ 	p.prefillSamples = 0
+ 	p.started = false
++	p.bufferedSink = false
++	p.bufferedEnd = 0
++	p.bufferedStart = 0
++	p.bufferedPad = 0
+ 	if sink == nil {
+ 		return nil
+ 	}
+diff --git a/audio_playout_buffered.go b/audio_playout_buffered.go
+new file mode 100644
+index 0000000..2a16ac5
+--- /dev/null
++++ b/audio_playout_buffered.go
+@@ -0,0 +1,93 @@
++package meowcaller
++
++// A codec switch rebuilds the RTP-to-PCM clock at a new origin; another
++// sender has its own origin too. Neither is overlapping/duplicate PCM.
++// Conventional sinks keep their existing timestamp-reset policy.
++func (p *audioPlayoutBuffer) setReceiveEpoch(ssrc, clock uint32) {
++	if p.bufferedSink && (ssrc != p.receiveSSRC || clock != p.receiveClock) {
++		_ = p.Drain(nil)
++	}
++	p.receiveSSRC, p.receiveClock = ssrc, clock
++}
++
++// pushBuffered is used only for a sink that explicitly owns its playback
++// reservoir. Authentication, codec PLC and packet ordering already happened
++// before Push. The device callback downstream decides when it is played.
++// Timestamps still exclude overlapping PCM and complete a short predecessor,
++// but no PCM is held waiting for the next packet or a native prefill.
++func (p *audioPlayoutBuffer) pushBuffered(timestamp uint32, frame []float32, sink AudioSink) (handled, started bool, err error) {
++	buffered, ok := sink.(BufferedAudioSink)
++	if !ok || !buffered.BuffersAudioPlayout() {
++		if p.bufferedSink {
++			// Immediate delivery retained no pending PCM. Returning to a
++			// conventional sink must start its normal prefill again.
++			_ = p.Drain(nil)
++		}
++		return false, false, nil
++	}
++	if !p.bufferedSink {
++		// If a sink changes mid-call, hand off the old pending frames once
++		// before the current frame. Group-mixer Drain uses the same rule.
++		hadPending := p.pending != nil
++		handoffStarts := hadPending && !p.started
++		var handedOffEnd uint32
++		var handedOffStart uint32
++		var handedOffPad int
++		if hadPending {
++			delta := timestamp - p.pending.timestamp
++			if delta > 0 && delta <= uint32(2*audioPCMRate(p.pcmRate)) {
++				p.pending.pcm = alignAudioFrameAtRate(p.pending.pcm, int(delta), audioPCMRate(p.pcmRate))
++			}
++			handedOffEnd = p.pending.timestamp + uint32(len(p.pending.pcm))
++			handedOffStart = p.pending.timestamp
++			handedOffPad = max(0, audioPCMRate(p.pcmRate)*60/1000-len(p.pending.pcm))
++		}
++		if err := p.Drain(sink); err != nil {
++			return true, false, err
++		}
++		p.bufferedSink = true
++		started = handoffStarts
++		if hadPending {
++			p.started = true
++			p.bufferedEnd, p.bufferedPad = handedOffEnd, handedOffPad
++			p.bufferedStart = handedOffStart
++		}
++	}
++	if len(frame) == 0 {
++		return true, started, nil
++	}
++	started = started || !p.started
++	rate := audioPCMRate(p.pcmRate)
++	naturalLength := len(frame)
++	end := timestamp + uint32(naturalLength)
++	if p.started && int32(timestamp-p.bufferedStart) >= 0 {
++		delta := int32(timestamp - p.bufferedEnd) // wraps with the RTP clock
++		if delta < 0 && delta >= int32(-2*rate) {
++			overlap := min(int(-delta), len(frame))
++			frame = frame[overlap:]
++			if len(frame) == 0 {
++				return true, started, nil
++			}
++		} else if delta > 0 && delta <= int32(2*rate) {
++			// Preserve the old short-frame padding, but never enqueue an
++			// elapsed RTP gap after a full codec frame (the device clock
++			// already advanced through that network outage).
++			padding := min(int(delta), p.bufferedPad)
++			if padding > 0 {
++				if err := sink.WriteFrame(make([]float32, padding)); err != nil {
++					return true, false, err
++				}
++				p.bufferedEnd += uint32(padding)
++			}
++		}
++	}
++	p.bufferedPad = 0
++	if err := sink.WriteFrame(frame); err != nil {
++		return true, false, err
++	}
++	p.started = true
++	p.bufferedEnd = end
++	p.bufferedStart = timestamp
++	p.bufferedPad = max(0, rate*60/1000-naturalLength)
++	return true, started, nil
++}
+diff --git a/audio_playout_buffered_test.go b/audio_playout_buffered_test.go
+new file mode 100644
+index 0000000..590a2cc
+--- /dev/null
++++ b/audio_playout_buffered_test.go
+@@ -0,0 +1,164 @@
++package meowcaller
++
++import (
++	"errors"
++	"reflect"
++	"testing"
++)
++
++type bufferedPlayoutSink struct {
++	playoutTestSink
++	err error
++}
++
++func (*bufferedPlayoutSink) BuffersAudioPlayout() bool { return true }
++func (s *bufferedPlayoutSink) WriteFrame(frame []float32) error {
++	if s.err != nil {
++		return s.err
++	}
++	return s.playoutTestSink.WriteFrame(frame)
++}
++
++func TestAudioPlayoutBufferedSinkDeliversImmediatelyAtBothRates(t *testing.T) {
++	for _, rate := range []int{16000, 48000} {
++		p, sink := newAudioPlayoutBuffer(rate), &bufferedPlayoutSink{}
++		var timestamp uint32
++		for i, ms := range []int{60, 120, 20, 60} {
++			frame := constantPCM(rate*ms/1000, .25)
++			started, err := p.Push(timestamp, frame, sink)
++			if err != nil || started != (i == 0) || len(sink.frames) != i+1 {
++				t.Fatalf("rate=%d immediate frame=%d started=%v err=%v", rate, i, started, err)
++			}
++			if !reflect.DeepEqual(sink.frames[i], frame) {
++				t.Fatal("natural decoder duration or level changed")
++			}
++			timestamp += uint32(len(frame))
++		}
++		if p.pending != nil || len(p.prefill) != 0 {
++			t.Fatal("PCM was retained ahead of the downstream buffer")
++		}
++		_ = p.Flush(sink)
++		_ = p.Drain(sink)
++		if len(sink.frames) != 4 {
++			t.Fatal("flush/drain replayed already delivered PCM")
++		}
++	}
++}
++
++func TestAudioPlayoutBufferedSinkCompletesShortFramesWithoutReplayingOutages(t *testing.T) {
++	p, sink := newAudioPlayoutBuffer(), &bufferedPlayoutSink{}
++	_, _ = p.Push(0, constantPCM(160, .25), sink)
++	_, _ = p.Push(960, constantPCM(960, .5), sink)
++	_, _ = p.Push(8*960, constantPCM(960, .75), sink)
++	if got := frameLengths(sink.frames); !reflect.DeepEqual(got, []int{160, 800, 960, 960}) {
++		t.Fatalf("short-frame padding / elapsed-gap handling = %v", got)
++	}
++	for _, value := range sink.frames[1] {
++		if value != 0 {
++			t.Fatal("short-frame padding was not silence")
++		}
++	}
++}
++
++func TestAudioPlayoutBufferedSinkExcludesOverlapAndHandlesTimestampWrap(t *testing.T) {
++	p, sink := newAudioPlayoutBuffer(), &bufferedPlayoutSink{}
++	start := ^uint32(0) - 959
++	_, _ = p.Push(start, constantPCM(1920, .25), sink)
++	_, _ = p.Push(0, constantPCM(960, .5), sink)    // entirely inside the first 120 ms
++	_, _ = p.Push(480, constantPCM(960, .75), sink) // 30 ms of fresh PCM
++	if got := frameLengths(sink.frames); !reflect.DeepEqual(got, []int{1920, 480}) {
++		t.Fatalf("overlapping PCM was replayed: %v", got)
++	}
++	if sink.frames[1][0] != .75 {
++		t.Fatal("fresh suffix changed level")
++	}
++}
++
++func TestAudioPlayoutBufferedSinkFailureDoesNotClaimPlaybackStarted(t *testing.T) {
++	p, sink := newAudioPlayoutBuffer(), &bufferedPlayoutSink{err: errors.New("synthetic")}
++	started, err := p.Push(0, constantPCM(960, .25), sink)
++	if started || err != sink.err || p.started {
++		t.Fatal("failed write claimed playback started")
++	}
++	sink.err = nil
++	started, err = p.Push(960, constantPCM(960, .5), sink)
++	if !started || err != nil || len(sink.frames) != 1 {
++		t.Fatal("fresh PCM did not recover after a failed write")
++	}
++}
++
++func TestAudioPlayoutBufferedSinkHandoffKeepsFramesOnceAndRestoresDefaultPrefill(t *testing.T) {
++	p, direct, buffered := newAudioPlayoutBuffer(), &playoutTestSink{}, &bufferedPlayoutSink{}
++	_, _ = p.Push(0, constantPCM(1920, .25), direct)
++	_, _ = p.Push(960, constantPCM(960, .5), buffered)
++	if got := frameLengths(buffered.frames); !reflect.DeepEqual(got, []int{960, 960}) {
++		t.Fatalf("handoff lost or repeated pending PCM: %v", got)
++	}
++	for i := 2; i < 5; i++ {
++		started, err := p.Push(uint32(i*960), constantPCM(960, .75), direct)
++		if err != nil || started != (i == 4) {
++			t.Fatal("conventional sink did not regain its normal prefill")
++		}
++	}
++}
++
++func TestAudioPlayoutBufferedSinkScheduleMatchesConsumerTimingContract(t *testing.T) {
++	for _, arrivals := range [][]int{{0, 60, 120, 180, 240, 300}, {0, 75, 110, 185, 230, 315}} {
++		for _, buffered := range []bool{false, true} {
++			p := newAudioPlayoutBuffer()
++			var now int
++			var times []int
++			var sink AudioSink = SinkFunc(func([]float32) { times = append(times, now) })
++			if buffered {
++				sink = &timedBufferedSink{write: func() { times = append(times, now) }}
++			}
++			for i, arrival := range arrivals {
++				now = arrival
++				if _, err := p.Push(uint32(i*960), constantPCM(960, .25), sink); err != nil {
++					t.Fatal(err)
++				}
++			}
++			want := arrivals
++			if !buffered {
++				want = append([]int{arrivals[2], arrivals[2]}, arrivals[3:]...)
++			}
++			if !reflect.DeepEqual(times, want) {
++				t.Fatalf("buffered=%v arrivals=%v delivered=%v want=%v", buffered, arrivals, times, want)
++			}
++		}
++	}
++}
++
++type timedBufferedSink struct{ write func() }
++
++func (*timedBufferedSink) BuffersAudioPlayout() bool    { return true }
++func (s *timedBufferedSink) WriteFrame([]float32) error { s.write(); return nil }
++func (*timedBufferedSink) Close() error                 { return nil }
++
++type unbufferedPlayoutSink struct{ playoutTestSink }
++
++func (*unbufferedPlayoutSink) BuffersAudioPlayout() bool { return false }
++
++func TestAudioPlayoutBufferedSinkOptOutKeepsNativePrefill(t *testing.T) {
++	p, sink := newAudioPlayoutBuffer(), &unbufferedPlayoutSink{}
++	for i := 0; i < 3; i++ {
++		started, err := p.Push(uint32(i*960), constantPCM(960, .25), sink)
++		if err != nil || started != (i == 2) {
++			t.Fatal("a sink that opts out lost the original native prefill")
++		}
++	}
++	if len(sink.frames) != 2 || p.bufferedSink {
++		t.Fatal("opt-out sink received an immediate frame")
++	}
++}
++
++func TestAudioPlayoutBufferedSinkNewCodecOrSenderDoesNotLookLikeDuplicatePCM(t *testing.T) {
++	p, sink := newAudioPlayoutBuffer(), &bufferedPlayoutSink{}
++	for i, epoch := range [][2]uint32{{1, 16000}, {1, 48000}, {2, 48000}} {
++		p.setReceiveEpoch(epoch[0], epoch[1])
++		started, err := p.Push(0, constantPCM(960, float32(i+1)/10), sink)
++		if !started || err != nil || len(sink.frames) != i+1 {
++			t.Fatal("new receive epoch was mistaken for already delivered PCM")
++		}
++	}
++}
+diff --git a/engine_media.go b/engine_media.go
+index e54e071..5e14420 100644
+--- a/engine_media.go
++++ b/engine_media.go
+@@ -1260,12 +1260,17 @@ func (e *engine) runMedia(ctx context.Context, callID string, call *Call, callKe
+ 				audioMixer.Add(audio.ParticipantID, audio.PCM)
+ 			} else {
+ 				_, sink := callPlayerSink(call)
++				audioPlayout.setReceiveEpoch(audio.SSRC, receiveClock)
+ 				playoutStarted, playoutErr := audioPlayout.Push(audio.Timestamp, audio.PCM, sink)
+ 				if playoutErr != nil {
+ 					log.Warn().Err(playoutErr).Msg("failed to write timestamp-aligned WhatsApp audio")
+ 				}
+ 				if playoutStarted {
+-					log.Info().Int("prefill_ms", audioPlayoutPrefillSamples*1000/SampleRate).Msg("started timestamp-aligned inbound audio playout")
++					if audioPlayout.bufferedSink {
++						log.Info().Msg("started inbound audio delivery to downstream playback buffer")
++					} else {
++						log.Info().Int("prefill_ms", audioPlayoutPrefillSamples*1000/SampleRate).Msg("started timestamp-aligned inbound audio playout")
++					}
+ 				}
+ 			}
+ 			if playoutLocked {

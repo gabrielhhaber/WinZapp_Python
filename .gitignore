@@ -250,3 +250,6 @@ neonize_bridge/neonize_build/
 
 .patch-no-commit/
 
+
+# Standalone Cargo invocations (normal builds use neonize_build/neteq-target).
+native/call_neteq/target/

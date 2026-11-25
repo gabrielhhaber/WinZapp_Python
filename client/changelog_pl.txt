@@ -4,6 +4,16 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Połączenia Neonize: poprawiono powrót do zgodnego odtwarzania, gdy wyjście w trybie wyłącznym używa częstotliwości nieobsługiwanej przez NetEQ, zachowując maskowanie utraty pakietów.
+
+- Indywidualne połączenia Neonize: odtwarzanie z NetEQ łagodzi wahania sieci i utratę dźwięku, z automatycznym powrotem do zgodnego trybu odtwarzania.
+
+- Połączenia Neonize: dźwięk korzysta z bezpośredniego połączenia lokalnego z natywnym silnikiem, z automatycznym powrotem do Socket.IO, gdy jest ono niedostępne.
+
+- Połączenia indywidualne przez Neonize: usunięto podwójne oczekiwanie na odtwarzanie odbieranego dźwięku, zachowując automatyczne buforowanie chroniące przed wahaniami opóźnienia sieci.
+
+- Połączenia przez Neonize: zoptymalizowano konwersję dźwięku mikrofonu, aby zmniejszyć obciążenie Pythona. Jeśli zainstalowany silnik nie obsługuje optymalizacji, automatycznie używany jest dotychczasowy sposób przetwarzania.
+
 - Czeski: WinZapp jest teraz dostępny po czesku (Čeština): interfejs, przewodnik użytkownika, instalator i dezinstalator (które podążają za językiem wyświetlania Windows) oraz te informacje o wersji. Czeski jest też dostępny jako język tłumaczenia wiadomości, a sprawdzanie pisowni go obsługuje. Dziękujemy jaxcze za tłumaczenie.
 
 - Połącz za pomocą kodu QR: kod QR znowu się pojawia. W najnowszych wersjach WhatsApp Web niektóre komputery dostają osobną stronę logowania, tylko z ekranem kodu QR, i na niej WinZapp łączył się, aż w końcu rezygnował, nie pokazując kodu. Teraz kod QR pojawia się na tej stronie w ciągu kilku sekund.

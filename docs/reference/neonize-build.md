@@ -24,6 +24,35 @@ stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
+- **neonize 0036 / meowcaller 0038**: optional protocol 2 timed PCM, carrying
+  the source/codec epoch and sample timeline into the device-clock NetEq
+  component. Protocol 1 remains compatible. The sidecar is built from
+  `native/call_neteq` with Rust 1.91.1 (`x86_64-pc-windows-msvc`), Cargo.lock,
+  and Visual C++ Build Tools. It uses a static CRT and ships its notices.
+  Sources, lockfile and helper invalidate the installed artifact identity.
+  The sidecar is optional: source builders who want it run `rustup toolchain
+  install 1.91.1-x86_64-pc-windows-msvc --profile minimal`; without that
+  toolchain the build skips it with a warning and calls keep the compatible
+  playback (release workflows install it). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
+
+- **neonize 0034 / meowcaller 0037**: the bridge queue opts into
+  `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing
+  adaptive playback reservoir without a second native prefill/lookahead.
+  Conventional sinks and group mixing retain their buffering policy.
+  Native tests cover timestamp overlap, short frames, clock/source changes
+  and sink handoff; client timing tests exercise the unchanged reservoir.
+
+- **neonize 0033**: optional stateless `CallResamplePCM48To16`, exposed as
+  `Calls.resample_pcm48_to16`. It moves the bridge's 97-tap microphone FIR to
+  Go without changing its 16 kHz call contract. Each invocation includes the
+  microphone owner's history; older DLLs keep the Python fallback. Synthetic
+  Go and compiled-package binding tests cover the conversion.
+
+- **neonize 0035**: optional native loopback PCM transport
+  (`CallAudioTransportOpen` / `CallAudioTransportClose`). A generation- and
+  stream-bound authenticated socket connects the audio session straight to
+  Go, with exclusive queue ownership and Socket.IO fallback. See
+  [neonize-call-audio.md](neonize-call-audio.md) for protocol and lifecycle.
 - **neonize 0001**: the lock-chat app-state event (50, `events.Lock` from the
   whatsmeow patch) and media transfers to and from disk with progress and
   cancel (`DownloadAnyToFileTracked`, `UploadFile`, `TransferProgress`,

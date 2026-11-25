@@ -1,0 +1,657 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Igor Alves <igoralves.dev82@gmail.com>
+Date: Tue, 24 Nov 2026 17:56:21 -0300
+Subject: [PATCH] feat(audio): add native loopback transport
+
+---
+ goneonize/calls.go                  |   9 +
+ goneonize/calls_audio_ipc.go        | 274 ++++++++++++++++++++++++++++
+ goneonize/calls_audio_ipc_export.go |  35 ++++
+ goneonize/calls_audio_ipc_test.go   | 217 ++++++++++++++++++++++
+ goneonize/calls_audio_v2.go         |   7 +-
+ neonize/_binder.py                  |   5 +
+ neonize/calls.py                    |  16 ++
+ 7 files changed, 562 insertions(+), 1 deletion(-)
+ create mode 100644 goneonize/calls_audio_ipc.go
+ create mode 100644 goneonize/calls_audio_ipc_export.go
+ create mode 100644 goneonize/calls_audio_ipc_test.go
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 5016e87..29d7ecb 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -164,6 +164,10 @@ func registrar(cliente, formato string, args ...any) {
+ 
+ // chamadaAtiva liga uma chamada do meowcaller as filas de audio do Python.
+ type chamadaAtiva struct {
++	audioReadMu   sync.Mutex
++	audioMu       sync.Mutex
++	audioIPC      *callAudioIPC
++	audioStream   uint64
+ 	pcmRate       int
+ 	generation    uint64
+ 	call          *meowcaller.Call
+@@ -193,6 +197,11 @@ func (c *chamadaAtiva) encerrar() {
+ 	c.uma.Do(func() {
+ 		close(c.fim)
+ 		c.entrada.Close()
++		c.audioMu.Lock()
++		if c.audioIPC != nil {
++			c.audioIPC.close()
++		}
++		c.audioMu.Unlock()
+ 	})
+ }
+ 
+diff --git a/goneonize/calls_audio_ipc.go b/goneonize/calls_audio_ipc.go
+new file mode 100644
+index 0000000..9722c96
+--- /dev/null
++++ b/goneonize/calls_audio_ipc.go
+@@ -0,0 +1,274 @@
++package main
++
++// Local PCM transport. Control/authentication stays on the bridge's HTTP API;
++// the hot path connects the device worker directly to this native call record.
++import (
++	"crypto/rand"
++	"crypto/subtle"
++	"encoding/binary"
++	"encoding/hex"
++	"errors"
++	"io"
++	"net"
++	"sync"
++	"time"
++)
++
++type callAudioIPC struct {
++	listener *net.TCPListener
++	secret   [32]byte
++	stream   uint64
++	active   bool // protected by chamadaAtiva.audioMu
++	done     chan struct{}
++	once     sync.Once
++	mu       sync.Mutex
++	conn     net.Conn
++}
++
++func (p *callAudioIPC) close() {
++	p.once.Do(func() {
++		close(p.done)
++		p.listener.Close()
++		p.mu.Lock()
++		if p.conn != nil {
++			p.conn.Close()
++		}
++		p.mu.Unlock()
++	})
++}
++
++func drainCallMicrophone(a *chamadaAtiva) {
++	for {
++		select {
++		case <-a.saida:
++		default:
++			return
++		}
++	}
++}
++
++func openCallAudioIPC(a *chamadaAtiva, generation, stream uint64) (map[string]any, error) {
++	a.audioMu.Lock()
++	defer a.audioMu.Unlock()
++	select {
++	case <-a.fim:
++		return nil, errCallPCMClosed
++	default:
++	}
++	if generation == 0 || generation != a.generation || stream == 0 || stream >= 1<<53 || stream <= a.audioStream {
++		return nil, errors.New("stale native audio owner")
++	}
++	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
++	if err != nil {
++		return nil, err
++	}
++	p := &callAudioIPC{listener: listener, stream: stream, done: make(chan struct{})}
++	if _, err = rand.Read(p.secret[:]); err != nil {
++		listener.Close()
++		return nil, err
++	}
++	if a.audioIPC != nil {
++		a.audioIPC.close()
++	}
++	a.audioIPC, a.audioStream = p, stream
++	go p.serve(a)
++	return map[string]any{"protocol": 1, "port": listener.Addr().(*net.TCPAddr).Port,
++		"secret": hex.EncodeToString(p.secret[:]), "sampleRate": callAudioRate(a.pcmRate), "generation": a.generation}, nil
++}
++
++func (p *callAudioIPC) serve(a *chamadaAtiva) {
++	defer func() {
++		p.close()
++		a.audioMu.Lock()
++		if a.audioIPC == p {
++			a.audioIPC = nil
++			drainCallMicrophone(a)
++		}
++		a.audioMu.Unlock()
++	}()
++	// An abandoned HTTP negotiation cannot leave a listening port behind.
++	p.listener.SetDeadline(time.Now().Add(10 * time.Second))
++	for {
++		conn, err := p.listener.AcceptTCP()
++		if err != nil {
++			return
++		}
++		conn.SetNoDelay(true)
++		conn.SetDeadline(time.Now().Add(time.Second))
++		var secret [32]byte
++		_, err = io.ReadFull(conn, secret[:])
++		if err != nil || subtle.ConstantTimeCompare(secret[:], p.secret[:]) != 1 {
++			conn.Close()
++			continue
++		}
++		p.mu.Lock()
++		select {
++		case <-p.done:
++			conn.Close()
++			p.mu.Unlock()
++			return
++		default:
++		}
++		p.conn = conn
++		p.mu.Unlock()
++		p.listener.Close() // One authenticated consumer per lease.
++		a.audioReadMu.Lock()
++		a.audioMu.Lock()
++		if a.audioIPC != p {
++			a.audioMu.Unlock()
++			a.audioReadMu.Unlock()
++			return
++		}
++		select {
++		case <-a.fim:
++			a.audioMu.Unlock()
++			a.audioReadMu.Unlock()
++			return
++		default:
++		}
++		drainCallMicrophone(a)
++		p.active = true
++		_, err = conn.Write([]byte("NZA1"))
++		a.audioMu.Unlock()
++		a.audioReadMu.Unlock()
++		if err != nil {
++			return
++		}
++		conn.SetDeadline(time.Time{})
++		remoteDone := make(chan struct{})
++		go func() { defer close(remoteDone); p.sendRemote(a, conn); p.close() }()
++		p.readMicrophone(a, conn)
++		p.close()
++		<-remoteDone
++		return
++	}
++}
++
++func (p *callAudioIPC) sendRemote(a *chamadaAtiva, conn net.Conn) {
++	for {
++		a.audioReadMu.Lock()
++		a.audioMu.Lock()
++		current := a.audioIPC == p
++		a.audioMu.Unlock()
++		if !current {
++			a.audioReadMu.Unlock()
++			return
++		}
++		pcm, ended := a.entrada.Read(callAudioFrameBytes(a.pcmRate), 200*time.Millisecond)
++		a.audioReadMu.Unlock()
++		if ended {
++			return
++		}
++		select {
++		case <-p.done:
++			return
++		default:
++		}
++		// Empty PCM is a heartbeat, with the same immutable format envelope.
++		packet := make([]byte, 16+len(pcm))
++		binary.LittleEndian.PutUint32(packet, uint32(12+len(pcm)))
++		binary.LittleEndian.PutUint32(packet[4:], uint32(callAudioRate(a.pcmRate)))
++		binary.LittleEndian.PutUint64(packet[8:], a.generation)
++		copy(packet[16:], pcm)
++		conn.SetWriteDeadline(time.Now().Add(250 * time.Millisecond))
++		if _, err := conn.Write(packet); err != nil {
++			return
++		}
++	}
++}
++
++func (p *callAudioIPC) readMicrophone(a *chamadaAtiva, conn net.Conn) {
++	var header [4]byte
++	history := make([]byte, 192)
++	var pending []byte
++	for {
++		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
++		if _, err := io.ReadFull(conn, header[:]); err != nil {
++			return
++		}
++		n := binary.LittleEndian.Uint32(header[:])
++		if n == 0 {
++			continue
++		} // receive-only clients also send heartbeats
++		if n != 1920 {
++			return
++		} // exactly 20 ms, s16le mono at 48 kHz
++		pcm := make([]byte, n)
++		if _, err := io.ReadFull(conn, pcm); err != nil {
++			return
++		}
++		if callAudioRate(a.pcmRate) == 16000 {
++			window := append(history, pcm...)
++			converted, err := resampleCallPCM48(window)
++			if err != nil {
++				return
++			}
++			history = append([]byte(nil), window[len(window)-192:]...)
++			pcm = converted
++		}
++		pending = append(pending, pcm...)
++		frameBytes := callAudioFrameBytes(a.pcmRate)
++		if len(pending) < frameBytes {
++			continue
++		}
++		a.audioMu.Lock()
++		if a.audioIPC != p {
++			a.audioMu.Unlock()
++			return
++		}
++		select {
++		case <-a.fim:
++			a.audioMu.Unlock()
++			return
++		default:
++		}
++		frame := append([]byte(nil), pending[:frameBytes]...)
++		pending = pending[frameBytes:]
++		select {
++		case a.saida <- frame:
++		default:
++			select {
++			case <-a.saida:
++			default:
++			}
++			select {
++			case a.saida <- frame:
++			default:
++			}
++		}
++		a.audioMu.Unlock()
++	}
++}
++
++func closeCallAudioIPC(a *chamadaAtiva, generation, stream uint64) {
++	a.audioMu.Lock()
++	defer a.audioMu.Unlock()
++	if generation == a.generation && a.audioIPC != nil && a.audioIPC.stream <= stream {
++		a.audioIPC.close()
++	}
++}
++
++// The legacy bridge reader stays alive during native ownership but cannot
++// dequeue PCM. Never hold its reader lock during the idle wait: that would
++// add 200 ms to native delivery, and never hold audioMu across a blocking read
++// because microphone delivery must remain independent of receive cadence.
++func readCallAudioEnvelope(a *chamadaAtiva, capacity int, timeout time.Duration) ([]byte, bool, error) {
++	a.audioReadMu.Lock()
++	a.audioMu.Lock()
++	active := a.audioIPC != nil && a.audioIPC.active
++	a.audioMu.Unlock()
++	if active {
++		a.audioReadMu.Unlock()
++		if timeout <= 0 {
++			return nil, false, nil
++		}
++		select {
++		case <-a.fim:
++			return nil, true, nil
++		case <-time.After(timeout):
++			return nil, false, nil
++		}
++	}
++	defer a.audioReadMu.Unlock()
++	return readCallPCMEnvelope(a.entrada, a.pcmRate, a.generation, capacity, timeout)
++}
+diff --git a/goneonize/calls_audio_ipc_export.go b/goneonize/calls_audio_ipc_export.go
+new file mode 100644
+index 0000000..8a40428
+--- /dev/null
++++ b/goneonize/calls_audio_ipc_export.go
+@@ -0,0 +1,35 @@
++package main
++
++/*
++#include <stdint.h>
++*/
++import "C"
++import (
++	"encoding/json"
++	"unsafe"
++)
++
++//export CallAudioTransportOpen
++func CallAudioTransportOpen(id *C.char, call *C.char, generation C.uint64_t, stream C.uint64_t, buf *C.uchar, capacity C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	if capacity < 512 {
++		return erroTamanho
++	}
++	value, err := openCallAudioIPC(a, uint64(generation), uint64(stream))
++	if err != nil {
++		return erroTamanho
++	}
++	data, _ := json.Marshal(value)
++	copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(capacity)), data)
++	return C.int(len(data))
++}
++
++//export CallAudioTransportClose
++func CallAudioTransportClose(id *C.char, call *C.char, generation C.uint64_t, stream C.uint64_t) {
++	if a := buscarChamada(C.GoString(id), C.GoString(call)); a != nil {
++		closeCallAudioIPC(a, uint64(generation), uint64(stream))
++	}
++}
+diff --git a/goneonize/calls_audio_ipc_test.go b/goneonize/calls_audio_ipc_test.go
+new file mode 100644
+index 0000000..df5f3ad
+--- /dev/null
++++ b/goneonize/calls_audio_ipc_test.go
+@@ -0,0 +1,217 @@
++package main
++
++import (
++	"bytes"
++	"encoding/binary"
++	"encoding/hex"
++	"fmt"
++	"io"
++	"net"
++	"runtime"
++	"testing"
++	"time"
++)
++
++func ipcCall(rate int) *chamadaAtiva {
++	return &chamadaAtiva{pcmRate: rate, generation: 7, entrada: newCallPCMQueueForRate(rate), saida: make(chan []byte, 3), fim: make(chan struct{})}
++}
++
++func ipcConnect(t *testing.T, a *chamadaAtiva, stream uint64) net.Conn {
++	t.Helper()
++	d, err := openCallAudioIPC(a, 7, stream)
++	if err != nil {
++		t.Fatal(err)
++	}
++	conn, err := net.DialTimeout("tcp4", net.JoinHostPort("127.0.0.1", fmtPort(d["port"].(int))), time.Second)
++	if err != nil {
++		t.Fatal(err)
++	}
++	conn.SetDeadline(time.Now().Add(2 * time.Second))
++	secret, _ := hex.DecodeString(d["secret"].(string))
++	conn.Write(secret)
++	ready := make([]byte, 4)
++	if _, err = io.ReadFull(conn, ready); err != nil || string(ready) != "NZA1" {
++		t.Fatalf("handshake: %q %v", ready, err)
++	}
++	t.Cleanup(func() { conn.Close(); a.encerrar() })
++	return conn
++}
++
++func fmtPort(port int) string { // keep the protocol tests independent of C
++	return fmt.Sprint(port)
++}
++
++func TestCallAudioIPCPCM(t *testing.T) {
++	for _, rate := range []int{16000, 48000} {
++		a := ipcCall(rate)
++		conn := ipcConnect(t, a, 10)
++		pcm := bytes.Repeat([]byte{3, 4}, callAudioFrameBytes(rate)/2)
++		a.entrada.Push(pcm)
++		var header [4]byte
++		for {
++			if _, err := io.ReadFull(conn, header[:]); err != nil {
++				t.Fatal(err)
++			}
++			packet := make([]byte, binary.LittleEndian.Uint32(header[:]))
++			if _, err := io.ReadFull(conn, packet); err != nil {
++				t.Fatal(err)
++			}
++			if binary.LittleEndian.Uint32(packet) != uint32(rate) || binary.LittleEndian.Uint64(packet[4:]) != 7 {
++				t.Fatal("wrong owner")
++			}
++			if len(packet) > 12 {
++				if !bytes.Equal(packet[12:], pcm) {
++					t.Fatal("changed PCM")
++				}
++				break
++			}
++		}
++		capture := bytes.Repeat([]byte{20, 0}, 960)
++		for i := 0; i < 3; i++ {
++			binary.LittleEndian.PutUint32(header[:], uint32(len(capture)))
++			conn.Write(header[:])
++			conn.Write(capture)
++		}
++		select {
++		case frame := <-a.saida:
++			if len(frame) != callAudioFrameBytes(rate) {
++				t.Fatal("wrong native frame length")
++			}
++			if rate == 48000 && !bytes.Equal(frame, bytes.Repeat(capture, 3)) {
++				t.Fatal("capture changed")
++			}
++			if rate == 16000 {
++				expected, _ := resampleCallPCM48(append(make([]byte, 192), bytes.Repeat(capture, 3)...))
++				if !bytes.Equal(frame, expected) {
++					t.Fatal("FIR history changed")
++				}
++			}
++		case <-time.After(time.Second):
++			t.Fatal("capture stalled behind remote read")
++		}
++	}
++}
++
++func TestCallAudioIPCOwnership(t *testing.T) {
++	a := ipcCall(48000)
++	conn := ipcConnect(t, a, 10)
++	if _, err := openCallAudioIPC(a, 6, 11); err == nil {
++		t.Fatal("stale generation accepted")
++	}
++	if _, err := openCallAudioIPC(a, 7, 10); err == nil {
++		t.Fatal("replayed stream accepted")
++	}
++	newConn := ipcConnect(t, a, 11)
++	closeCallAudioIPC(a, 7, 10) // stale stop cannot close the replacement
++	a.audioMu.Lock()
++	current := a.audioIPC
++	active := current != nil && current.active
++	a.audioMu.Unlock()
++	if !active {
++		t.Fatal("stale stop closed replacement")
++	}
++	var one [1]byte
++	for {
++		if _, err := conn.Read(one[:]); err != nil {
++			break
++		}
++	} // previous socket is closed
++	a.encerrar()
++	if _, err := newConn.Read(one[:]); err == nil {
++		t.Fatal("terminal call kept socket open")
++	}
++}
++
++func TestCallAudioIPCExclusiveAndFallback(t *testing.T) {
++	a := ipcCall(48000)
++	// A reserved but not authenticated socket cannot interrupt Socket.IO.
++	_, err := openCallAudioIPC(a, 7, 1)
++	if err != nil {
++		t.Fatal(err)
++	}
++	a.entrada.Push([]byte{1, 2})
++	packet, ended, err := readCallAudioEnvelope(a, 5772, 0)
++	if err != nil || ended || !bytes.Equal(packet[12:], []byte{1, 2}) {
++		t.Fatal("reservation blocked fallback")
++	}
++	conn := ipcConnect(t, a, 2)
++	packet, _, _ = readCallAudioEnvelope(a, 5772, 0)
++	if len(packet) != 0 {
++		t.Fatal("legacy reader competed with native reader")
++	}
++	a.audioMu.Lock()
++	p := a.audioIPC
++	a.audioMu.Unlock()
++	conn.Close()
++	select {
++	case <-p.done:
++	case <-time.After(time.Second):
++		t.Fatal("disconnect not observed")
++	}
++	// Wait only for this lease's cleanup, not for unrelated application threads.
++	deadline := time.After(time.Second)
++	for {
++		a.audioMu.Lock()
++		released := a.audioIPC == nil
++		a.audioMu.Unlock()
++		if released {
++			break
++		}
++		select {
++		case <-deadline:
++			t.Fatal("fallback owner not restored")
++		default:
++			runtime.Gosched()
++		}
++	}
++	a.entrada.Push([]byte{3, 4})
++	packet, ended, err = readCallAudioEnvelope(a, 5772, 0)
++	if err != nil || ended || !bytes.Equal(packet[12:], []byte{3, 4}) {
++		t.Fatal("Socket.IO reader did not resume")
++	}
++}
++
++func TestCallAudioIPCBadAuthenticationAndBounds(t *testing.T) {
++	a := ipcCall(16000)
++	defer a.encerrar()
++	d, err := openCallAudioIPC(a, 7, 1)
++	if err != nil {
++		t.Fatal(err)
++	}
++	addr := net.JoinHostPort("127.0.0.1", fmtPort(d["port"].(int)))
++	bad, _ := net.DialTimeout("tcp4", addr, time.Second)
++	bad.SetDeadline(time.Now().Add(time.Second))
++	bad.Write(make([]byte, 32))
++	var ready [4]byte
++	if _, err := io.ReadFull(bad, ready[:]); err == nil {
++		t.Fatal("unauthenticated connection accepted")
++	}
++	bad.Close()
++	a.audioMu.Lock()
++	active := a.audioIPC.active
++	a.audioMu.Unlock()
++	if active {
++		t.Fatal("bad authentication took ownership")
++	}
++	conn, _ := net.DialTimeout("tcp4", addr, time.Second)
++	defer conn.Close()
++	conn.SetDeadline(time.Now().Add(time.Second))
++	secret, _ := hex.DecodeString(d["secret"].(string))
++	conn.Write(secret)
++	if _, err := io.ReadFull(conn, ready[:]); err != nil {
++		t.Fatal(err)
++	}
++	binary.LittleEndian.PutUint32(ready[:], 0xffffffff)
++	conn.Write(ready[:])
++	// Malformed sizes are rejected before allocating the requested body.
++	for {
++		if _, err := conn.Read(ready[:]); err != nil {
++			break
++		}
++	}
++	select {
++	case pcm := <-a.saida:
++		t.Fatalf("invalid capture reached native sink: %d", len(pcm))
++	default:
++	}
++}
+diff --git a/goneonize/calls_audio_v2.go b/goneonize/calls_audio_v2.go
+index 59e2ce2..89853e0 100644
+--- a/goneonize/calls_audio_v2.go
++++ b/goneonize/calls_audio_v2.go
+@@ -45,7 +45,7 @@ func CallReadAudioFrame(id *C.char, call *C.char, buf *C.uchar, capacity C.int,
+ 	if int(capacity) < callPCMHeaderBytes+callAudioFrameBytes(a.pcmRate) {
+ 		return erroTamanho
+ 	}
+-	packet, ended, err := readCallPCMEnvelope(a.entrada, a.pcmRate, a.generation, int(capacity), time.Duration(timeoutMs)*time.Millisecond)
++	packet, ended, err := readCallAudioEnvelope(a, int(capacity), time.Duration(timeoutMs)*time.Millisecond)
+ 	if err != nil {
+ 		return erroTamanho
+ 	}
+@@ -67,6 +67,11 @@ func CallWriteAudioFrame(id *C.char, call *C.char, rate C.int, generation C.uint
+ 	if a == nil {
+ 		return erroSemChamada
+ 	}
++	a.audioMu.Lock()
++	defer a.audioMu.Unlock()
++	if a.audioIPC != nil && a.audioIPC.active {
++		return erroTamanho
++	}
+ 	if !validCallPCMWrite(int(rate), uint64(generation), a.pcmRate, a.generation, int(n)) {
+ 		return erroTamanho
+ 	}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index b863996..39c8756 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -1031,6 +1031,11 @@ if not os.environ.get("SPHINX"):
+     if hasattr(gocode, "CallResamplePCM48To16"):
+         gocode.CallResamplePCM48To16.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
+         gocode.CallResamplePCM48To16.restype = ctypes.c_int
++    if hasattr(gocode, "CallAudioTransportOpen"):
++        gocode.CallAudioTransportOpen.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallAudioTransportOpen.restype = ctypes.c_int
++        gocode.CallAudioTransportClose.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_uint64]
++        gocode.CallAudioTransportClose.restype = None
+     if hasattr(gocode, "CallAudioFormat"):
+         gocode.CallsConfigurePCM48.argtypes = [ctypes.c_int]
+         gocode.CallsConfigurePCM48.restype = None
+diff --git a/neonize/calls.py b/neonize/calls.py
+index 820ed0b..e403471 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -306,6 +306,22 @@ class Calls:
+             return b""
+         return buf.raw[:size]
+ 
++    def open_audio_transport(self, call_id: str, generation: int, stream: int):
++        """Reserve a single-use loopback PCM connection, or None on older DLLs."""
++        if not hasattr(gocode, "CallAudioTransportOpen"):
++            return None
++        if type(generation) is not int or not 0 < generation < 2**64 or type(stream) is not int or not 0 < stream < 2**53:
++            raise ValueError("invalid native audio owner")
++        buf = ctypes.create_string_buffer(_RESULT_BUFFER)
++        size = gocode.CallAudioTransportOpen(self.uuid, call_id.encode(), generation, stream, buf, _RESULT_BUFFER)
++        if not 0 < size <= _RESULT_BUFFER:
++            raise CallError("native audio transport unavailable")
++        return json.loads(buf.raw[:size].decode("utf-8"))
++
++    def close_audio_transport(self, call_id: str, generation: int, stream: int):
++        if hasattr(gocode, "CallAudioTransportClose"):
++            gocode.CallAudioTransportClose(self.uuid, call_id.encode(), generation, stream)
++
+     def audio_format(self, call_id: str):
+         """Fixed PCM format and native record identity; None after call end."""
+         if not pcm48_available():

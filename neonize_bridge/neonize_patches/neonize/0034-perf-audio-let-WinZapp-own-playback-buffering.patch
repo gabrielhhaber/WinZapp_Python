@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Igor Alves <igoralves.dev82@gmail.com>
+Date: Tue, 24 Nov 2026 17:33:17 -0300
+Subject: [PATCH] perf(audio): let WinZapp own playback buffering
+
+---
+ goneonize/calls_audio_buffered.go      |  7 +++++++
+ goneonize/calls_audio_buffered_test.go | 22 ++++++++++++++++++++++
+ 2 files changed, 29 insertions(+)
+ create mode 100644 goneonize/calls_audio_buffered.go
+ create mode 100644 goneonize/calls_audio_buffered_test.go
+
+diff --git a/goneonize/calls_audio_buffered.go b/goneonize/calls_audio_buffered.go
+new file mode 100644
+index 0000000..67fb225
+--- /dev/null
++++ b/goneonize/calls_audio_buffered.go
+@@ -0,0 +1,7 @@
++package main
++
++// BuffersAudioPlayout tells meowcaller that WinZapp's device callback owns
++// the playback clock and jitter reservoir. entrada is a bounded transport
++// queue, not a real-time speaker; delivering decoded PCM must not wait for
++// another RTP packet or a second native prefill.
++func (c *chamadaAtiva) BuffersAudioPlayout() bool { return true }
+diff --git a/goneonize/calls_audio_buffered_test.go b/goneonize/calls_audio_buffered_test.go
+new file mode 100644
+index 0000000..0c848cd
+--- /dev/null
++++ b/goneonize/calls_audio_buffered_test.go
+@@ -0,0 +1,22 @@
++package main
++
++import (
++	"testing"
++
++	"github.com/purpshell/meowcaller"
++)
++
++func TestCallPCMBufferedSinkOwnsPlayback(t *testing.T) {
++	var sink meowcaller.BufferedAudioSink = &chamadaAtiva{entrada: newCallPCMQueue()}
++	if !sink.BuffersAudioPlayout() {
++		t.Fatal("the bridge queue must defer playback buffering to WinZapp")
++	}
++	if err := sink.WriteFrame([]float32{.25, -.25}); err != nil {
++		t.Fatal(err)
++	}
++	call := sink.(*chamadaAtiva)
++	pcm, ended := call.entrada.Read(4, 0)
++	if ended || len(pcm) != 4 {
++		t.Fatal("decoded PCM was held ahead of the bridge queue")
++	}
++}
