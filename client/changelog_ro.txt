@@ -4,6 +4,8 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Motorul Neonize: în fereastra de asociere și în Setări, eticheta Neonize nu mai spune „experimental”, ci „implicit”.
+
 - Apeluri Neonize: corectată revenirea la sunetul compatibil când ieșirea exclusivă folosește o rată neacceptată de NetEQ, păstrând mascarea pierderilor de pachete.
 
 - Apeluri individuale Neonize: redarea cu NetEQ atenuează variațiile rețelei și pierderile audio, cu revenire automată la redarea compatibilă.

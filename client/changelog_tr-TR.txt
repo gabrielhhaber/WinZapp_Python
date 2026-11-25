@@ -4,6 +4,8 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Neonize motoru: eşleştirme penceresinde ve Ayarlar'da Neonize etiketi artık "deneysel" yerine "varsayılan" diyor.
+
 - Neonize aramaları: özel çıkış NetEQ tarafından desteklenmeyen bir örnekleme hızı kullandığında, paket kaybı gizleme korunarak uyumlu sese dönülmesi düzeltildi.
 
 - Bire bir Neonize aramaları: NetEQ ile oynatma, ağ dalgalanmalarını ve ses kaybını azaltır; gerektiğinde otomatik olarak uyumlu oynatmaya dönülür.
