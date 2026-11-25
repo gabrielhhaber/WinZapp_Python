@@ -4,6 +4,8 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- macOS: kontrola novějších verzí WhatsApp Web nyní funguje na Macích bez nainstalovaného Pythonu z python.org. Dříve selhávala s chybou certifikátu, kterou protokol zapisoval jako "offline", takže se seznam verzí nikdy neaktualizoval, a když WhatsApp přestal poskytovat verzi, kterou WinZapp používal, WPPConnect se už nemohl připojit.
+
 - Engine Neonize: v okně párování a v Nastavení už popisek Neonize neříká „experimentální“, ale „výchozí“.
 
 - Hovory Neonize: opraven návrat ke kompatibilnímu zvuku, když výhradní výstup používá frekvenci nepodporovanou NetEQ, se zachováním kompenzace ztráty paketů.

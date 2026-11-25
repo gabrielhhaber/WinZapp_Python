@@ -71,6 +71,7 @@ import logging
 import os
 import re
 import shutil
+import ssl
 import tarfile
 import tempfile
 import threading
@@ -416,6 +417,40 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def _https_context():
+    """The SSLContext the catalogue check verifies with.
+
+    urllib's default context reads the CA store at OpenSSL's compiled-in
+    OPENSSLDIR. On a macOS build that directory belongs to the python.org
+    installer of the build machine, so on a Mac without that installer the
+    default context has no roots at all, every check fails with
+    CERTIFICATE_VERIFY_FAILED, and the outcome is logged as "offline" for
+    good. The catalogue then never moves, and the pinned WhatsApp Web build
+    ages until WhatsApp stops serving it (the macOS updater had the same gap,
+    fixed with certifi). Verify through the OS trust store like the rest of
+    WinZapp's HTTPS (tls_trust), else against certifi's list; None only if
+    neither is available, which leaves urllib's default as before.
+    """
+    from core import tls_trust
+
+    context = tls_trust.system_ssl_context()
+    if context is not None:
+        return context
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return None
+
+
+def _build_opener():
+    context = _https_context()
+    if context is None:
+        return urllib.request.build_opener(_NoRedirect)
+    return urllib.request.build_opener(_NoRedirect, urllib.request.HTTPSHandler(context=context))
+
+
 def default_fetch(url: str, max_bytes: int, deadline: float = LATEST_DEADLINE_SECONDS, *,
                   timeout: float = TIMEOUT_SECONDS, opener=None,
                   clock=time.monotonic) -> bytes:
@@ -428,7 +463,7 @@ def default_fetch(url: str, max_bytes: int, deadline: float = LATEST_DEADLINE_SE
     """
     if urlparse(url).scheme != "https":
         raise ValueError("https only")
-    opener = opener or urllib.request.build_opener(_NoRedirect)
+    opener = opener or _build_opener()
     req = urllib.request.Request(url, headers={
         "Accept": "application/json, application/octet-stream",
         "User-Agent": "WinZapp",

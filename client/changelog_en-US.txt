@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- macOS: WinZapp's check for newer WhatsApp Web versions now works on Macs without Python from python.org installed. It used to fail with a certificate error that the log reported as "offline", so the list of versions never updated and, once WhatsApp stopped serving the build WinZapp was using, WPPConnect could no longer connect.
+
 - Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".
 
 - Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.

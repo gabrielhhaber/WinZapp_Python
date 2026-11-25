@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- macOS: a verificação de versões mais novas do WhatsApp Web agora funciona em Macs sem o Python do python.org instalado. Ela falhava com um erro de certificado que o log registrava como "offline", então a lista de versões nunca era atualizada e, quando o WhatsApp deixava de servir a versão que o WinZapp usava, o WPPConnect não conseguia mais conectar.
+
 - Motor Neonize: na janela de pareamento e nas Configurações, o rótulo do Neonize deixou de dizer "experimental" e passou a dizer "padrão".
 
 - Chamadas Neonize: corrigida a retomada do áudio compatível quando a saída exclusiva usa uma taxa não suportada pelo NetEQ, preservando a ocultação de perdas.
