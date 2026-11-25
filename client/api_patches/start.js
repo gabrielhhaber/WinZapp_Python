@@ -907,6 +907,65 @@ async function fetchLiveWhatsappDocument() {
 
 const whatsappVersion = resolveWhatsappVersion();
 
+// What is served at `/` (docs/traps/whatsapp-web-version-pin.md, "Never serve
+// the login document at `/`"). For a browser without a login, Meta answers `/`
+// with a 302 to `/login/`, and the wa-version crawler stores that page under
+// `/` for every build since 2.3000.1055857453: the QR screen and nothing else.
+//
+// The check is positive on purpose: a document is served only when it carries
+// WhatsApp's full app. Looking for the login page instead would serve anything
+// it fails to recognise (the login bootstrap renamed, an error or checkpoint
+// page), and the cost of that mistake is a wiped login. The cost of the
+// opposite mistake (a full document whose markers were renamed) is only that
+// WhatsApp answers `/` itself, which is what every login-only build does.
+// Measured on @wppconnect/wa-version 1.5.5244 (2026-11-25): all 306 full
+// documents carry both markers, none of the 9 login documents carries either.
+const FULL_APP_DOCUMENT_MARKERS = ['"WAWebMainWrapper"', '"WAWebAppInitializer.react"'];
+// Only names the refused document in the log; it decides nothing.
+const LOGIN_ONLY_DOCUMENT_MARKER = 'WAWebLoggedOutBootstrap';
+
+function isFullAppDocument(html) {
+  return (
+    typeof html === 'string' &&
+    FULL_APP_DOCUMENT_MARKERS.some((marker) => html.includes(marker))
+  );
+}
+
+// The document the interception answers `/` with, or null to let WhatsApp
+// answer `/` itself. `label` says where the document came from (the pinned
+// catalogue build, or Meta's live document when the catalogue has expired).
+//
+// Never anything but the full app. The login-only document served at `/` to a
+// profile that is signed in is WhatsApp's own code wiping that login: its
+// WAWebLoggedOutBootstrap finds a registration in localStorage while the
+// CurrentUser written into the document (crawled without a login) says logged
+// out, and calls deleteAllIdb() and clearRegistrationInfo(). The account comes
+// back logged out on its next start (three times on one Mac on 2026-11-25,
+// pinned 2.3000.1056179073, while the same profile reached inChat on the full
+// documents of 1048711051 and 1055837054). The page a phone has just linked is
+// sent back to `/` for the full app, and re-serving it the login document there
+// is the "linked, then a new QR / Phone not connected" failure (2026-11-24).
+//
+// Meta's own answer is right in both cases: the full app for a signed-in
+// browser (it checks the wa_web_access_token cookie, so the crawler cannot store
+// that page), the 302 to `/login/` for a signed-out one (not intercepted; the
+// wa-js loader patch gives the QR code there). The build selection is left as
+// it is, but a session that WhatsApp answers runs WhatsApp's live build, not the
+// pinned one: there is no full document of the pinned build to serve.
+function pinnedDocumentForRoot(body, label, logger) {
+  if (isFullAppDocument(body)) return body;
+  const kind = typeof body === 'string' && body.includes(LOGIN_ONLY_DOCUMENT_MARKER)
+    ? "is WhatsApp's login-only page"
+    : "is not WhatsApp's full app (no known marker)";
+  (logger || console).warn(
+    `[WinZapp] The WhatsApp Web document (${label}) ${kind}. Not serving it ` +
+    'at / (a document without the app logs a signed-in or just-linked session ' +
+    'out): WhatsApp answers / itself, with the full app of its live build when ' +
+    'the profile has a login and the login page when it does not.'
+  );
+  return null;
+}
+
 // ── Serving the pinned HTML without breaking WhatsApp Web's workers ─────────
 //
 // WPPConnect serves the pinned build by calling page.setRequestInterception(true)
@@ -1027,6 +1086,11 @@ async function installPinnedPageInterception(page, body, log) {
       if (request.url.startsWith(WA_CHECK_UPDATE)) {
         console.log('[WinZapp] check-update aborted by the interception.');
         await cdp.send('Fetch.failRequest', { requestId, errorReason: 'Aborted' });
+      } else if (request.url === WA_WEB_URL && body === null) {
+        // pinnedDocumentForRoot() refused a document without the full app:
+        // WhatsApp answers `/` (full app when signed in, 302 to /login/ when not).
+        console.log(`[WinZapp] / left to WhatsApp (pinned document is not the full app) for ${request.url}`);
+        await cdp.send('Fetch.continueRequest', { requestId });
       } else if (request.url === WA_WEB_URL) {
         documentsServed += 1;
         console.log(
@@ -1098,8 +1162,10 @@ function patchWppconnectVersionPinning() {
           source = `live from Meta via ${live.channel} (local catalogue fully expired)`;
           console.warn(
             '[WinZapp] Every build in the local catalogue has expired; serving the ' +
-            `document Meta is currently returning, fetched with ${live.channel}(). This ` +
-            'keeps the page pinned and the worker unblocked, but the bundled wa-js may ' +
+            `document Meta is currently returning, fetched with ${live.channel}(), when it ` +
+            'is the full app (a login-only one is left to WhatsApp, see ' +
+            'pinnedDocumentForRoot). This keeps the page pinned and the worker ' +
+            'unblocked, but the bundled wa-js may ' +
             'lag that build — and fetchLatestAlpha() means a PRE-RELEASE build, which is ' +
             'what the stable-first order exists to avoid, so a session that unpairs later ' +
             'starts here. Run: npm update @wppconnect/wa-version (or reinstall the API ' +
@@ -1123,8 +1189,10 @@ function patchWppconnectVersionPinning() {
         }
       }
       if (body) {
+        const rootBody = pinnedDocumentForRoot(body, source);
+        if (rootBody === null) source = `${source}, not the full app: / left to WhatsApp`;
         try {
-          await installPinnedPageInterception(page, body, log);
+          await installPinnedPageInterception(page, rootBody, log);
           console.log(
             `[WinZapp] Serving WhatsApp Web (${source}) via a document-only ` +
             'interception (worker requests left alone).'
